@@ -5,12 +5,16 @@
   "description": "MD2 Electron host shell",
   "main": "main.js",
   "scripts": {
+    "lint": "eslint .",
     "start": "node start-electron.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "electron": "^43.0.0"
+    "@eslint/js": "^10.0.1",
+    "electron": "^43.0.0",
+    "eslint": "^10.6.0",
+    "globals": "^17.7.0"
   }
 }
