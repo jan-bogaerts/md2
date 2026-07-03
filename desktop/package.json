@@ -13,9 +13,10 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@eslint/js": "^10.0.1",
+    "@eslint/js": "^9.39.4",
     "electron": "^43.0.0",
-    "eslint": "^10.6.0",
+    "eslint": "^9.39.4",
+    "eslint-plugin-import": "^2.32.0",
     "globals": "^17.7.0"
   }
 }
