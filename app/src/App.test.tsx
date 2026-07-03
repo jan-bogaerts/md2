@@ -4,6 +4,7 @@ import { App } from './App'
 
 vi.mock('./auth/useGithubAuth', () => ({
     useGithubAuth: () => ({
+        accessToken: null,
         deviceCode: null,
         errorMessage: null,
         isAuthenticated: false,

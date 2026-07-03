@@ -1,7 +1,7 @@
 ---
 id: F-002
 title: data management
-status: ready for implementation
+status: ready
 owner: JB
 affects:
 policy:

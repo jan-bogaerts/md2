@@ -4,6 +4,7 @@ import { getDefaultGithubAuthService } from './defaultGithubAuthService'
 import type { AuthSnapshot } from './githubAuthTypes'
 
 interface UseGithubAuthResult extends AuthSnapshot {
+    accessToken: string | null
     login: () => Promise<void>
     logout: () => void
 }
@@ -21,6 +22,7 @@ export function useGithubAuth(service: GithubAuthService = getDefaultGithubAuthS
 
     return {
         ...snapshot,
+        accessToken: service.getAccessToken(),
         login: service.login.bind(service),
         logout: service.logout.bind(service),
     }

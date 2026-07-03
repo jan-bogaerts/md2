@@ -1,0 +1,231 @@
+import type { BranchReference, CommitRequest, MarkdownFile, ProjectReference, StorageProjectFiles, StorageService } from './dataTypes'
+
+const GITHUB_API_URL = 'https://api.github.com'
+const GITHUB_API_VERSION = '2022-11-28'
+const TEXT_DECODER = new TextDecoder()
+
+interface GithubStorageDependencies {
+    accessToken: string
+    fetchImplementation?: typeof fetch
+}
+
+interface GithubRepositoryResponse {
+    full_name?: unknown
+    name?: unknown
+    owner?: { login?: unknown }
+}
+
+interface GithubBranchResponse {
+    name?: unknown
+}
+
+interface GithubContentResponse {
+    content?: unknown
+    download_url?: unknown
+    encoding?: unknown
+    name?: unknown
+    path?: unknown
+    sha?: unknown
+    type?: unknown
+}
+
+function requireString(value: unknown, fieldName: string) {
+    if (typeof value !== 'string' || value.length === 0) throw new Error(`Missing GitHub storage field: ${fieldName}`)
+
+    return value
+}
+
+function encodePath(path: string) {
+    return path.split('/').map(encodeURIComponent).join('/')
+}
+
+function encodeContent(content: string) {
+    return btoa(unescape(encodeURIComponent(content)))
+}
+
+function decodeContent(content: string) {
+    const binary = Uint8Array.from(atob(content.replace(/\s/gu, '')), (character) => character.charCodeAt(0))
+
+    return TEXT_DECODER.decode(binary)
+}
+
+function normalizeRepository(payload: unknown): ProjectReference {
+    const response = payload as GithubRepositoryResponse
+    const owner = requireString(response.owner?.login, 'repository.owner.login')
+    const repository = requireString(response.name, 'repository.name')
+
+    return {
+        branch: 'main',
+        id: requireString(response.full_name, 'repository.full_name'),
+        owner,
+        repository,
+    }
+}
+
+function normalizeBranches(payload: unknown): BranchReference[] {
+    if (!Array.isArray(payload)) throw new Error('Missing GitHub storage field: branches')
+
+    return payload.map((branch) => ({ name: requireString((branch as GithubBranchResponse).name, 'branch.name') }))
+}
+
+function normalizeDirectoryEntries(payload: unknown) {
+    if (!Array.isArray(payload)) throw new Error('Missing GitHub storage field: directory entries')
+
+    return payload as GithubContentResponse[]
+}
+
+function normalizeFileContent(payload: unknown): MarkdownFile {
+    const response = payload as GithubContentResponse
+    const encoding = requireString(response.encoding, 'content.encoding')
+
+    if (encoding !== 'base64') throw new Error(`Unsupported GitHub content encoding: ${encoding}`)
+
+    return {
+        content: decodeContent(requireString(response.content, 'content.content')),
+        path: requireString(response.path, 'content.path'),
+        sha: requireString(response.sha, 'content.sha'),
+    }
+}
+
+export class GithubStorageService implements StorageService {
+    private readonly accessToken
+    private readonly fetchImplementation
+
+    constructor(dependencies: GithubStorageDependencies) {
+        this.accessToken = dependencies.accessToken
+        this.fetchImplementation = dependencies.fetchImplementation ?? fetch
+    }
+
+    async createProject(project: ProjectReference, workingFolder: string) {
+        GithubStorageService.requireGithubProject(project)
+        await this.commit({
+            branch: project.branch,
+            files: [{
+                content: '# MD2\n\nProject design folder created by MD2.\n',
+                path: `${workingFolder}/README.md`,
+            }],
+            message: `Create ${workingFolder} workspace`,
+        })
+
+        return project
+    }
+
+    async loadProject(project: ProjectReference, workingFolder: string): Promise<StorageProjectFiles> {
+        GithubStorageService.requireGithubProject(project)
+        const files = await this.readDirectory(project, workingFolder)
+
+        return { files, workingFolder }
+    }
+
+    async listBranches(project: ProjectReference) {
+        GithubStorageService.requireGithubProject(project)
+        const payload = await this.request(`/repos/${project.owner}/${project.repository}/branches`)
+
+        return normalizeBranches(payload)
+    }
+
+    async checkoutBranch(project: ProjectReference, branch: string) {
+        if (this.accessToken.length === 0) throw new Error('Missing GitHub access token')
+
+        return { ...project, branch }
+    }
+
+    async commit(request: CommitRequest) {
+        for (const file of request.files) {
+            await this.writeFile(request.branch, file, request.message)
+        }
+    }
+
+    async push() {
+        if (this.accessToken.length === 0) throw new Error('Missing GitHub access token')
+
+        return Promise.resolve()
+    }
+
+    async findRepository(owner: string, repository: string) {
+        const payload = await this.request(`/repos/${owner}/${repository}`)
+        const project = normalizeRepository(payload)
+
+        return { ...project, branch: project.branch }
+    }
+
+    private async readDirectory(project: ProjectReference, path: string): Promise<MarkdownFile[]> {
+        const entries = normalizeDirectoryEntries(await this.request(
+            `/repos/${project.owner}/${project.repository}/contents/${encodePath(path)}?ref=${encodeURIComponent(project.branch)}`,
+        ))
+        const files: MarkdownFile[] = []
+
+        for (const entry of entries) {
+            const type = requireString(entry.type, 'content.type')
+            const entryPath = requireString(entry.path, 'content.path')
+
+            if (type === 'dir') {
+                files.push(...await this.readDirectory(project, entryPath))
+                continue
+            }
+
+            if (type === 'file' && entryPath.toLowerCase().endsWith('.md')) {
+                files.push(await this.readFile(project, entryPath))
+            }
+        }
+
+        return files
+    }
+
+    private async readFile(project: ProjectReference, path: string) {
+        const payload = await this.request(
+            `/repos/${project.owner}/${project.repository}/contents/${encodePath(path)}?ref=${encodeURIComponent(project.branch)}`,
+        )
+
+        return normalizeFileContent(payload)
+    }
+
+    private async writeFile(branch: string, file: MarkdownFile, message: string) {
+        const project = GithubStorageService.getCommitProject()
+        const payload = {
+            branch,
+            content: encodeContent(file.content),
+            message,
+            sha: file.sha,
+        }
+
+        await this.request(`/repos/${project.owner}/${project.repository}/contents/${encodePath(file.path)}`, {
+            body: JSON.stringify(payload),
+            method: 'PUT',
+        })
+    }
+
+    private static getCommitProject() {
+        const project = GithubStorageService.activeProject
+
+        if (!project) throw new Error('Cannot commit before a GitHub project is loaded')
+
+        return project
+    }
+
+    private static requireGithubProject(project: ProjectReference) {
+        if (!project.owner) throw new Error('Missing GitHub project owner')
+        if (!project.repository) throw new Error('Missing GitHub project repository')
+
+        GithubStorageService.activeProject = project
+    }
+
+    private async request(path: string, init: RequestInit = {}) {
+        const response = await this.fetchImplementation(`${GITHUB_API_URL}${path}`, {
+            ...init,
+            headers: {
+                Accept: 'application/vnd.github+json',
+                Authorization: `Bearer ${this.accessToken}`,
+                'Content-Type': 'application/json',
+                'X-GitHub-Api-Version': GITHUB_API_VERSION,
+                ...init.headers,
+            },
+        })
+
+        if (!response.ok) throw new Error(`GitHub storage request failed with status ${response.status}`)
+
+        return response.json()
+    }
+
+    private static activeProject: ProjectReference | null = null
+}
