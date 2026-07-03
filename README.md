@@ -9,10 +9,12 @@ Each subproject is standalone and has its own npm scripts.
 cd app
 npm run lint
 npm run lint-fix
+npm run test
 ```
 
 ```powershell
 cd desktop
 npm run lint
 npm run lint-fix
+npm run test
 ```

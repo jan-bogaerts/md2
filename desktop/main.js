@@ -1,8 +1,8 @@
 const { app, BrowserWindow } = require('electron')
 const path = require('node:path')
+const { resolveAppUrl } = require('./config')
 
-const DEFAULT_APP_URL = 'http://localhost:5173'
-const appUrl = process.env.MD2_APP_URL || DEFAULT_APP_URL
+const appUrl = resolveAppUrl()
 
 function createWindow() {
     const window = new BrowserWindow({
