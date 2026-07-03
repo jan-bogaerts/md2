@@ -84,3 +84,23 @@
 - files:
   - either local menu or global toolbar
   - perhaps configurable
+
+
+Here's a transcription of your handwritten notes. I've kept the structure and wording as close as possible while making a few small corrections where the handwriting was ambiguous.
+
+---
+
+# Batch commands
+
+- Configurable folder in the Electron app + also in project for local batch files.
+- Folders contain all the batch / PowerShell (.ps1) or bash scripts that can be run as actions.
+- Scripts can have parameters.
+  - User can provide values during configuration. Placeholder supported.
+- Advantages:
+  - More complex tasks possible compared to a basic command line.
+  - Easier to auto-extend and let the system grow without complex integrations.
+    - agent can render script and save it in the specified folder. Perhaps a JSON for some configuration for the related action.
+- Electron app monitors changes in the folders.
+  - When files get added / removed / changed, related actions get added / deleted / updated.
+  - Electron app notifies React that actions have changed.
+

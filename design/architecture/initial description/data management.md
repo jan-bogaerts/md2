@@ -68,3 +68,6 @@
     - Git = only available when linked with Electron app
     - other types, web services...
 
+-- 
+- Electron app monitors changes in the folders.
+  - When files get added / removed / changed, related actions get added / deleted / updated.

@@ -1,0 +1,24 @@
+# Styling
+
+- Provide a global mechanism so all components have quick access to the theme service and that all components refresh when the theme changes.
+  - See vidsy project for example (C:\Users\janbo\Documents\dev\vidsy\vidsy_ai_electron). 
+- Support light and dark mode.
+- Components are not aware of color mode; they only know the theme and ask colors, spacing, fonts, ... from the theme.
+- use round-round corners
+- flat look.
+- no borders by default, show border when:
+  - buttons -> on hover
+  - input -> show line below, on hover and focus
+- Markdown -> styles can be configured:
+  - which fonts, color, size, formatting is applied to which type of text section (title1, title2, caption, ...)
+  - list of pre-built default styles:
+    - modern
+    - classic
+    - serif
+    - sans-serif
+    - handwritten
+    - ...?
+- The desktop (electron) app needs to read the selected theme before the main window is created so that the window buttons (min, max, close) can be styled properly.
+- Allow for easy configuration of the color scheme used in the app (with preview).
+  - primary, secondary, ...
+  - light, regular, dark
