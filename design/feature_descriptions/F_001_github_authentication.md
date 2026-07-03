@@ -1,7 +1,7 @@
 ---
 id: F-001
 title: github authentication
-status: design
+status: ready
 owner: JB
 affects:
 policy:

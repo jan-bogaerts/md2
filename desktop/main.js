@@ -1,8 +1,16 @@
-const { app, BrowserWindow } = require('electron')
+const { app, BrowserWindow, ipcMain } = require('electron')
 const path = require('node:path')
 const { resolveAppUrl } = require('./config')
+const { requestGithubAccessToken, requestGithubDeviceCode } = require('./github-oauth-proxy')
 
 const appUrl = resolveAppUrl()
+const GITHUB_DEVICE_CODE_CHANNEL = 'md2-github-auth:request-device-code'
+const GITHUB_ACCESS_TOKEN_CHANNEL = 'md2-github-auth:request-access-token'
+
+function registerGithubAuthBridge() {
+    ipcMain.handle(GITHUB_DEVICE_CODE_CHANNEL, async (_event, request) => requestGithubDeviceCode(request))
+    ipcMain.handle(GITHUB_ACCESS_TOKEN_CHANNEL, async (_event, request) => requestGithubAccessToken(request))
+}
 
 function createWindow() {
     const window = new BrowserWindow({
@@ -19,6 +27,7 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+    registerGithubAuthBridge()
     createWindow()
 
     app.on('activate', () => {

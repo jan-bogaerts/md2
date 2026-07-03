@@ -1,16 +1,20 @@
 import { Box, Container, CssBaseline, Typography } from '@mui/material'
+import { useGithubAuth } from './auth/useGithubAuth'
+import { GithubAuthPanel } from './components/GithubAuthPanel'
+
+const APP_VERTICAL_PADDING = 8
 
 export function App() {
+    const auth = useGithubAuth()
+
     return (
         <>
             <CssBaseline />
-            <Box component="main" sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
-                <Container maxWidth="md" sx={{ py: 8 }}>
-                    <Typography component="h1" variant="h3" gutterBottom>
-            MD2
-                    </Typography>
+            <Box component="main" sx={{ minHeight: '100vh', bgcolor: 'background.default', display: 'flex', alignItems: 'center' }}>
+                <Container maxWidth="sm" sx={{ py: APP_VERTICAL_PADDING }}>
+                    <GithubAuthPanel {...auth} />
                     <Typography color="text.secondary" variant="body1">
-            React app initialized. Future cards, editors, diff views, and desktop bridge integrations build from here.
+                        GitHub storage is required before project files can be loaded.
                     </Typography>
                 </Container>
             </Box>
