@@ -8,10 +8,8 @@ function renderWindow(overrides?: Partial<Parameters<typeof MainWindow>[0]>) {
             agents={[]}
             leftPanel={<div>Left content</div>}
             mode="light"
-            onStatusInfoChange={vi.fn()}
             onToggleTheme={vi.fn()}
             rightPanel={<div>Right content</div>}
-            statusInfo=""
             {...overrides}
         />,
     )

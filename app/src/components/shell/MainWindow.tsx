@@ -13,18 +13,17 @@ interface MainWindowProps {
     agents: RunningAgent[]
     leftPanel: ReactNode
     mode: PaletteMode
-    onStatusInfoChange: (info: string) => void
     onToggleTheme: () => void
     rightPanel: ReactNode
-    statusInfo: string
 }
 
 /** Main window: owns the global layout and switches between desktop and mobile presentations. */
 export function MainWindow(props: MainWindowProps) {
-    const { agents, leftPanel, mode, onStatusInfoChange, onToggleTheme, rightPanel, statusInfo } = props
+    const { agents, leftPanel, mode, onToggleTheme, rightPanel } = props
     const theme = useTheme()
     const isMobile = useMediaQuery(theme.breakpoints.down('md'))
     const [isMenuOpen, setIsMenuOpen] = useState(false)
+    const [statusInfo, setStatusInfo] = useState('')
 
     const handleOpenMenu = () => {
         setIsMenuOpen(true)
@@ -47,7 +46,7 @@ export function MainWindow(props: MainWindowProps) {
             ) : (
                 <>
                     <SplitLayout left={leftPanel} right={rightPanel} />
-                    <StatusBar agents={agents} info={statusInfo} onInfoChange={onStatusInfoChange} />
+                    <StatusBar agents={agents} info={statusInfo} onInfoChange={setStatusInfo} />
                 </>
             )}
         </Box>

@@ -1,5 +1,5 @@
 import { Box, CssBaseline, ThemeProvider } from '@mui/material'
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { useGithubAuth } from './auth/useGithubAuth'
 import { useAppBootstrap } from './app/useAppBootstrap'
 import { GithubAuthPanel } from './components/GithubAuthPanel'
@@ -15,7 +15,6 @@ export function App() {
     const auth = useGithubAuth()
     const { mode, toggleMode } = useThemeMode()
     const bootstrap = useAppBootstrap(auth.accessToken)
-    const [statusInfo, setStatusInfo] = useState('')
     const theme = useMemo(() => createAppTheme(mode), [mode])
     const session = bootstrap.session
 
@@ -33,7 +32,6 @@ export function App() {
                         </Box>
                     )}
                     mode={mode}
-                    onStatusInfoChange={setStatusInfo}
                     onToggleTheme={toggleMode}
                     rightPanel={(
                         <Box sx={{ p: PANEL_PADDING }}>
@@ -48,7 +46,6 @@ export function App() {
                             />
                         </Box>
                     )}
-                    statusInfo={bootstrap.error ?? statusInfo}
                 />
             )}
         </ThemeProvider>
