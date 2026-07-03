@@ -1,0 +1,28 @@
+{
+  "name": "app",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.3",
+    "typescript": "~6.0.2",
+    "vite": "^8.1.1"
+  },
+  "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mdxeditor/editor": "^4.0.4",
+    "@mui/material": "^9.2.0",
+    "mdi-material-ui": "^8.0.0",
+    "react": "^19.2.7",
+    "react-diff-viewer-continued": "^4.2.2",
+    "react-dom": "^19.2.7"
+  }
+}
