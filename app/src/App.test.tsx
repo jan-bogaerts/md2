@@ -1,5 +1,5 @@
-import { render, screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { cleanup, render, screen } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from './App'
 
 vi.mock('./auth/useGithubAuth', () => ({
@@ -17,10 +17,25 @@ vi.mock('./auth/useGithubAuth', () => ({
 }))
 
 describe('App', () => {
-    it('renders the GitHub authentication shell', () => {
+    beforeEach(() => {
+        window.localStorage.clear()
+    })
+
+    afterEach(() => {
+        cleanup()
+        window.localStorage.clear()
+    })
+
+    it('shows the shell with the sign-in panel once startup finishes', async () => {
         render(<App />)
 
-        expect(screen.getByRole('heading', { name: 'MD2' })).not.toBeNull()
-        expect(screen.getByRole('button', { name: 'Sign in with GitHub' })).not.toBeNull()
+        expect(await screen.findByRole('button', { name: 'Sign in with GitHub' })).toBeInTheDocument()
+    })
+
+    it('renders the toolbar theme toggle', async () => {
+        render(<App />)
+
+        await screen.findByRole('button', { name: 'Sign in with GitHub' })
+        expect(screen.getByRole('button', { name: 'Switch to dark theme' })).toBeInTheDocument()
     })
 })

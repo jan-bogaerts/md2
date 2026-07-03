@@ -3,63 +3,45 @@ import type { SelectChangeEvent } from '@mui/material'
 import type { ChangeEvent } from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { DataService } from '../data/DataService'
-import { GithubStorageService } from '../data/GithubStorageService'
-import { LocalGitStorageService } from '../data/LocalGitStorageService'
-import { DEFAULT_CARD_TYPES, type CardDraft, type ProjectCard, type ProjectConfig, type ProjectReference, type PushMode } from '../data/dataTypes'
+import { createProjectConfig, createStorageService, writeLastProject, type StorageType } from '../data/projectSession'
+import type { CardDraft, ProjectCard, ProjectReference, ProjectSnapshot, PushMode } from '../data/dataTypes'
 import { getElectronDataBridge } from '../data/electronDataBridge'
 import { CardSelectButton } from './CardSelectButton'
 
 const WORKSPACE_PANEL_PADDING = 3
-const LAST_PROJECT_STORAGE_KEY = 'md2.lastProject'
 
 interface ProjectWorkspaceProps {
     accessToken: string | null
+    initialDataService?: DataService | null
+    initialProject?: ProjectReference | null
+    initialSnapshot?: ProjectSnapshot | null
+    initialStorageType?: StorageType
     isGithubAuthenticated: boolean
 }
 
-interface LastProject {
-    project: ProjectReference
-    storageType: StorageType
-}
-
-type StorageType = 'github' | 'local'
-
-function createProjectConfig(pushMode: PushMode): ProjectConfig {
-    return {
-        cardTypes: DEFAULT_CARD_TYPES,
-        pushMode,
-        workingFolder: 'design',
-    }
-}
-
-function readLastProject() {
-    const storedValue = window.localStorage.getItem(LAST_PROJECT_STORAGE_KEY)
-
-    if (!storedValue) return null
-
-    return JSON.parse(storedValue) as LastProject
-}
-
-function writeLastProject(storageType: StorageType, project: ProjectReference) {
-    window.localStorage.setItem(LAST_PROJECT_STORAGE_KEY, JSON.stringify({ project, storageType }))
-}
-
 export function ProjectWorkspace(props: ProjectWorkspaceProps) {
-    const { accessToken, isGithubAuthenticated } = props
-    const [activeCards, setActiveCards] = useState<ProjectCard[]>([])
-    const [backgroundCards, setBackgroundCards] = useState<ProjectCard[]>([])
-    const [branch, setBranch] = useState('main')
+    const {
+        accessToken,
+        initialDataService = null,
+        initialProject = null,
+        initialSnapshot = null,
+        initialStorageType = 'github',
+        isGithubAuthenticated,
+    } = props
+    const [activeCards, setActiveCards] = useState<ProjectCard[]>(initialSnapshot?.activeCards ?? [])
+    const [backgroundCards, setBackgroundCards] = useState<ProjectCard[]>(initialSnapshot?.backgroundCards ?? [])
+    const [branch, setBranch] = useState(initialProject?.branch ?? 'main')
     const [cardBody, setCardBody] = useState('')
     const [cardTitle, setCardTitle] = useState('')
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [githubOwner, setGithubOwner] = useState('')
     const [githubRepository, setGithubRepository] = useState('')
     const [isLoading, setIsLoading] = useState(false)
-    const [project, setProject] = useState<ProjectReference | null>(null)
+    const [project, setProject] = useState<ProjectReference | null>(initialProject)
     const [pushMode, setPushMode] = useState<PushMode>('auto')
-    const [selectedCardPath, setSelectedCardPath] = useState('')
-    const [storageType, setStorageType] = useState<StorageType>('github')
-    const dataServiceRef = useRef<DataService | null>(null)
+    const [selectedCardPath, setSelectedCardPath] = useState(initialSnapshot?.activeCards[0]?.path ?? '')
+    const [storageType, setStorageType] = useState<StorageType>(initialStorageType)
+    const dataServiceRef = useRef<DataService | null>(initialDataService)
     const electronBridge = useMemo(() => getElectronDataBridge(), [])
     const canUseLocalGit = !!electronBridge
     const isProjectOpen = !!project
@@ -70,9 +52,7 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
         setErrorMessage(null)
 
         try {
-            const storage = nextStorageType === 'github'
-                ? new GithubStorageService({ accessToken: accessToken ?? '' })
-                : new LocalGitStorageService()
+            const storage = createStorageService(nextStorageType, accessToken)
             const dataService = new DataService({ config: createProjectConfig(pushMode), storage })
             const snapshot = await dataService.openProject(nextProject)
 
@@ -100,14 +80,6 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
 
         return () => window.removeEventListener('beforeunload', handleClose)
     }, [])
-
-    useEffect(() => {
-        const lastProject = readLastProject()
-
-        if (!lastProject || dataServiceRef.current || (!accessToken && lastProject.storageType === 'github')) return
-
-        void openProject(lastProject.storageType, lastProject.project)
-    }, [accessToken, openProject])
 
     const handleGithubOwnerChange = (event: ChangeEvent<HTMLInputElement>) => {
         setGithubOwner(event.target.value)
@@ -153,9 +125,9 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
     const handleOpenLocalClick = async () => {
         if (!electronBridge) return
 
-        const project = await electronBridge.openProjectFolder()
+        const localProject = await electronBridge.openProjectFolder()
 
-        if (project) await openProject('local', project)
+        if (localProject) await openProject('local', localProject)
     }
 
     const handleSwitchBranchClick = async () => {

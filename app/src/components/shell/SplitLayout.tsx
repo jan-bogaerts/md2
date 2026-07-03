@@ -1,0 +1,83 @@
+import { Box } from '@mui/material'
+import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react'
+import { useCallback, useRef, useState } from 'react'
+
+export const SPLIT_WIDTH_STORAGE_KEY = 'md2.splitWidth'
+const MIN_LEFT_WIDTH = 160
+const MAX_LEFT_WIDTH_RATIO = 0.8
+const DEFAULT_LEFT_WIDTH = 280
+const SEPARATOR_WIDTH = 6
+
+interface SplitLayoutProps {
+    left: ReactNode
+    right: ReactNode
+}
+
+function readStoredWidth(): number {
+    const storedValue = window.localStorage.getItem(SPLIT_WIDTH_STORAGE_KEY)
+    const parsedValue = storedValue ? Number.parseInt(storedValue, 10) : Number.NaN
+    return Number.isNaN(parsedValue) ? DEFAULT_LEFT_WIDTH : parsedValue
+}
+
+function clampWidth(proposedWidth: number, containerWidth: number): number {
+    const maxWidth = Math.max(MIN_LEFT_WIDTH, containerWidth * MAX_LEFT_WIDTH_RATIO)
+    return Math.min(Math.max(proposedWidth, MIN_LEFT_WIDTH), maxWidth)
+}
+
+/** Desktop body layout: a left and right panel separated by a draggable splitter. */
+export function SplitLayout(props: SplitLayoutProps) {
+    const { left, right } = props
+    const containerRef = useRef<HTMLDivElement>(null)
+    const [leftWidth, setLeftWidth] = useState(readStoredWidth)
+    const [isDragging, setIsDragging] = useState(false)
+
+    const handlePointerDown = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
+        event.preventDefault()
+        setIsDragging(true)
+        event.currentTarget.setPointerCapture?.(event.pointerId)
+    }, [])
+
+    const handlePointerMove = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
+        if (!isDragging || !containerRef.current) return
+
+        const bounds = containerRef.current.getBoundingClientRect()
+        setLeftWidth(clampWidth(event.clientX - bounds.left, bounds.width))
+    }, [isDragging])
+
+    const handlePointerUp = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
+        if (!isDragging) return
+
+        setIsDragging(false)
+        event.currentTarget.releasePointerCapture?.(event.pointerId)
+        setLeftWidth((currentWidth) => {
+            window.localStorage.setItem(SPLIT_WIDTH_STORAGE_KEY, String(Math.round(currentWidth)))
+            return currentWidth
+        })
+    }, [isDragging])
+
+    return (
+        <Box ref={containerRef} sx={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+            <Box sx={{ flexShrink: 0, minWidth: 0, overflow: 'auto', width: leftWidth }}>
+                {left}
+            </Box>
+            <Box
+                aria-label="Resize panels"
+                aria-orientation="vertical"
+                onPointerDown={handlePointerDown}
+                onPointerMove={handlePointerMove}
+                onPointerUp={handlePointerUp}
+                role="separator"
+                sx={{
+                    bgcolor: isDragging ? 'primary.main' : 'divider',
+                    cursor: 'col-resize',
+                    flexShrink: 0,
+                    width: SEPARATOR_WIDTH,
+                    '&:hover': { bgcolor: 'primary.main' },
+                }}
+            />
+            <Box sx={{ flex: 1, minWidth: 0, overflow: 'auto' }}>
+                {right}
+            </Box>
+        </Box>
+    )
+}
