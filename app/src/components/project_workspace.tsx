@@ -3,14 +3,14 @@ import type { SelectChangeEvent } from '@mui/material'
 import type { ChangeEvent } from 'react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { createProjectConfig, createStorageService, writeLastProject, type StorageType } from '../data/project_session'
-import type { CardDraft, ProjectReference, PushMode } from '../data/data_types'
+import type { CardDraft, ProjectCard, ProjectReference, PushMode } from '../data/data_types'
 import { getElectronDataBridge } from '../data/electron_data_bridge'
 import { dataService } from '../services/data_service'
 import { CardSelectButton } from './card_select_button'
 import { useProjectState } from './hooks/use_project_state'
 
 const WORKSPACE_PANEL_PADDING = 3
-const EMPTY_CARDS = []
+const EMPTY_CARDS: ProjectCard[] = []
 
 interface ProjectWorkspaceProps {
     accessToken: string | null
