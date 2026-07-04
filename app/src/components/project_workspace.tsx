@@ -95,8 +95,7 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
     const handleEditorChange = (event: ChangeEvent<HTMLInputElement>) => {
         if (!selectedCard) return
 
-        const nextCard = { ...selectedCard, content: event.target.value }
-        dataService.saveFile({ content: nextCard.content, path: nextCard.path, sha: nextCard.sha })
+        dataService.updateCardBody(selectedCard.path, event.target.value)
     }
 
     const handleOpenGithubClick = () => {

@@ -1,4 +1,5 @@
-﻿import type { CardDraft, CardTypeConfig, MarkdownFile } from './data_types'
+﻿import { markdownParsingService } from '../services/markdown_parsing_service'
+import type { CardDraft, CardTypeConfig, MarkdownFile } from './data_types'
 
 const MARKDOWN_EXTENSION = '.md'
 const TITLE_SEPARATOR = '-'
@@ -36,10 +37,6 @@ export function getNextCardNumber(files: MarkdownFile[], idPrefix: string) {
     return numbers.length > 0 ? Math.max(...numbers) + 1 : 1
 }
 
-export function buildCardMarkdown(id: string, title: string, body: string) {
-    return `---\nid: ${id}\ntitle: ${title}\nstatus: new\naffects:\n---\n\n# ${title}\n\n${body}`
-}
-
 export function createCardFile(files: MarkdownFile[], workingFolder: string, cardTypes: CardTypeConfig[], draft: CardDraft): MarkdownFile {
     const cardTypeConfig = getCardTypeConfig(cardTypes, draft)
     const number = getNextCardNumber(files, cardTypeConfig.idPrefix)
@@ -47,7 +44,10 @@ export function createCardFile(files: MarkdownFile[], workingFolder: string, car
     const titleSlug = slugifyTitle(draft.title)
 
     return {
-        content: buildCardMarkdown(id, draft.title, draft.body),
+        content: markdownParsingService.buildCardMarkdown(
+            { affects: [], id, internalId: markdownParsingService.generateInternalId(), status: 'new', title: draft.title },
+            draft.body,
+        ),
         path: `${workingFolder}/${id}-${titleSlug}${MARKDOWN_EXTENSION}`,
     }
 }

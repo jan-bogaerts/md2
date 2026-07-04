@@ -1,0 +1,143 @@
+import { describe, expect, it } from 'vitest'
+import { markdownParsingService } from './markdown_parsing_service'
+import type { MarkdownFile } from '../data/data_types'
+
+const ROOT_FILE: MarkdownFile = {
+    content: '---\nid: F-1\ntitle: Root\nstatus: active\nowner: JB\naffects:\n  - app/src/app.tsx\n---\n\n# Root\n\nBody text',
+    path: 'design/F-1-root.md',
+    sha: 'sha-1',
+}
+
+describe('markdownParsingService.parse', () => {
+    it('parses scalar, list and nested map header fields', () => {
+        const content = '---\nauthor: JB\nid: F-9\nafter: F-8\naffects:\n  - a.ts\n  - b.ts\npolicy:\n  checkLinting: true\n  requireTests: true\n---\n\n# Body'
+        const parsed = markdownParsingService.parse(content)
+
+        expect(parsed.header.author).toBe('JB')
+        expect(parsed.header.id).toBe('F-9')
+        expect(parsed.header.after).toBe('F-8')
+        expect(parsed.header.affects).toEqual(['a.ts', 'b.ts'])
+        expect(parsed.header.policy).toEqual({ checkLinting: 'true', requireTests: 'true' })
+        expect(parsed.body).toBe('\n# Body')
+        expect(parsed.rawHeader).toContain('author: JB')
+    })
+
+    it('treats unclosed frontmatter as body without dropping text', () => {
+        const content = '---\nid: F-1\nnot closed\n\n# Still body'
+        const parsed = markdownParsingService.parse(content)
+
+        expect(parsed.header).toEqual({})
+        expect(parsed.body).toBe(content)
+        expect(parsed.rawHeader).toBe('')
+    })
+
+    it('parses files without frontmatter as pure body', () => {
+        const parsed = markdownParsingService.parse('# Just a note')
+
+        expect(parsed.header).toEqual({})
+        expect(parsed.body).toBe('# Just a note')
+    })
+})
+
+describe('markdownParsingService.parseCard', () => {
+    it('parses frontmatter and marks root files as active', () => {
+        const card = markdownParsingService.parseCard(ROOT_FILE, 'design')
+
+        expect(card.isActive).toBe(true)
+        expect(card.header).toMatchObject({
+            affects: ['app/src/app.tsx'],
+            id: 'F-1',
+            owner: 'JB',
+            status: 'active',
+            title: 'Root',
+        })
+    })
+
+    it('imports files without naming convention as new features', () => {
+        const card = markdownParsingService.parseCard({ content: '# Imported', path: 'design/free note.md' }, 'design')
+
+        expect(markdownParsingService.followsCardNamingConvention(card.path)).toBe(false)
+        expect(card.header.id).toBe('F-0')
+        expect(card.header.status).toBe('new')
+        expect(card.header.title).toBe('Imported')
+    })
+})
+
+describe('markdownParsingService.splitCards', () => {
+    it('splits active root cards before background cards', () => {
+        const files: MarkdownFile[] = [
+            ROOT_FILE,
+            { content: '# Old', path: 'design/history/F-3-old.md' },
+            { content: '# Imported', path: 'design/free note.md' },
+        ]
+        const cards = markdownParsingService.splitCards(files, 'design')
+
+        expect(cards.activeCards.map((card) => card.path)).toEqual(['design/F-1-root.md', 'design/free note.md'])
+        expect(cards.backgroundCards.map((card) => card.path)).toEqual(['design/history/F-3-old.md'])
+    })
+})
+
+describe('markdownParsingService.replaceBody', () => {
+    it('swaps the body while preserving the existing header', () => {
+        const next = markdownParsingService.replaceBody(ROOT_FILE.content, '\n# Root\n\nEdited body')
+
+        expect(next.startsWith('---\nid: F-1\ntitle: Root')).toBe(true)
+        expect(next).toContain('affects:\n  - app/src/app.tsx')
+        expect(next).toContain('Edited body')
+        expect(next).not.toContain('Body text')
+    })
+
+    it('returns the body unchanged for headerless files', () => {
+        expect(markdownParsingService.replaceBody('# Note', '# Edited')).toBe('# Edited')
+    })
+})
+
+describe('markdownParsingService.rewriteHeader', () => {
+    it('rewrites a field while preserving unrelated fields, internalId and body', () => {
+        const content = '---\nid: F-1\ninternalId: abc-123\ntitle: Root\nstatus: active\naffects:\n  - a.ts\n---\n\n# Root'
+        const next = markdownParsingService.rewriteHeader(content, { status: 'ready' })
+
+        expect(next).toContain('status: ready')
+        expect(next).not.toContain('status: active')
+        expect(next).toContain('internalId: abc-123')
+        expect(next).toContain('affects:\n  - a.ts')
+        expect(next.endsWith('\n\n# Root')).toBe(true)
+    })
+
+    it('appends fields that do not yet exist', () => {
+        const content = '---\nid: F-1\ntitle: Root\n---\n\n# Root'
+        const next = markdownParsingService.rewriteHeader(content, { owner: 'JB' })
+
+        expect(next).toContain('owner: JB')
+        expect(next).toContain('id: F-1')
+    })
+})
+
+describe('markdownParsingService.buildCardMarkdown', () => {
+    it('generates markdown with a header, title heading and body', () => {
+        const content = markdownParsingService.buildCardMarkdown(
+            { affects: [], id: 'F-4', internalId: 'fixed-id', status: 'new', title: 'New Card' },
+            'Body',
+        )
+
+        expect(content).toContain('id: F-4')
+        expect(content).toContain('internalId: fixed-id')
+        expect(content).toContain('# New Card')
+        expect(content.endsWith('\n\nBody')).toBe(true)
+    })
+
+    it('fails fast when required fields are missing', () => {
+        expect(() => markdownParsingService.buildCardMarkdown({ id: '', title: 'x' }, 'Body')).toThrow()
+        expect(() => markdownParsingService.buildCardMarkdown({ id: 'F-1', title: '' }, 'Body')).toThrow()
+    })
+})
+
+describe('markdownParsingService.generateInternalId', () => {
+    it('generates a distinct non-empty id on each call', () => {
+        const first = markdownParsingService.generateInternalId()
+        const second = markdownParsingService.generateInternalId()
+
+        expect(first).not.toBe(second)
+        expect(first.length).toBeGreaterThan(0)
+    })
+})

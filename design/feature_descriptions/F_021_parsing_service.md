@@ -1,7 +1,7 @@
 ---
 id: F-021
 title: parsing service
-status: design
+status: ready
 owner: JB
 affects:
 policy:

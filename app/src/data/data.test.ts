@@ -3,7 +3,6 @@ import { CommitBatcher } from './commit_batcher'
 import { createCardFile, getNextCardNumber } from './card_naming'
 import { DataService } from '../services/data_service'
 import { DEFAULT_CARD_TYPES, type CommitRequest, type MarkdownFile, type StorageService } from './data_types'
-import { followsCardNamingConvention, parseMarkdownCard, splitProjectCards } from './markdown_headers'
 
 const files: MarkdownFile[] = [
     { content: '---\nid: F-1\ntitle: Root\nstatus: active\naffects:\n  - app/src/app.tsx\n---\n\n# Root', path: 'design/F-1-root.md' },
@@ -22,35 +21,6 @@ function createStorage(overrides: Partial<StorageService> = {}): StorageService 
         ...overrides,
     }
 }
-
-describe('markdownHeaders', () => {
-    it('parses frontmatter and marks root files as active', () => {
-        const card = parseMarkdownCard(files[0], 'design')
-
-        expect(card.isActive).toBe(true)
-        expect(card.header).toMatchObject({
-            affects: ['app/src/app.tsx'],
-            id: 'F-1',
-            status: 'active',
-            title: 'Root',
-        })
-    })
-
-    it('imports external files without naming convention as new features', () => {
-        const card = parseMarkdownCard(files[2], 'design')
-
-        expect(followsCardNamingConvention(card.path)).toBe(false)
-        expect(card.header.id).toBe('F-0')
-        expect(card.header.status).toBe('new')
-    })
-
-    it('splits active root cards before background cards', () => {
-        const cards = splitProjectCards(files, 'design')
-
-        expect(cards.activeCards.map((card) => card.path)).toEqual(['design/F-1-root.md', 'design/free note.md'])
-        expect(cards.backgroundCards.map((card) => card.path)).toEqual(['design/history/F-3-old.md'])
-    })
-})
 
 describe('cardNaming', () => {
     it('uses the next available number across folders and subfolders', () => {
@@ -116,5 +86,19 @@ describe('DataService', () => {
 
         expect(storage.commit).toHaveBeenCalledTimes(1)
         expect(storage.push).not.toHaveBeenCalled()
+    })
+
+    it('preserves the frontmatter header when a card body is edited', async () => {
+        const storage = createStorage()
+        const service = new DataService()
+        service.init({ storage })
+
+        await service.openProject({ branch: 'main', id: 'project' })
+        service.updateCardBody('design/F-1-root.md', '\n# Root\n\nEdited body')
+        await service.flushPendingCommits()
+
+        const committed = (storage.commit as ReturnType<typeof vi.fn>).mock.calls.at(-1)?.[0] as CommitRequest
+        expect(committed.files[0].content.startsWith('---\nid: F-1')).toBe(true)
+        expect(committed.files[0].content).toContain('Edited body')
     })
 })

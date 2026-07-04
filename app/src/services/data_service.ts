@@ -9,7 +9,7 @@ import {
     type ProjectSnapshot,
     type StorageService,
 } from '../data/data_types'
-import { splitProjectCards } from '../data/markdown_headers'
+import { markdownParsingService } from './markdown_parsing_service'
 import { register } from './service_injector'
 
 interface DataServiceDependencies {
@@ -72,7 +72,7 @@ export class DataService extends EventTarget {
         const projectFiles = await storage.loadProject(project, config.workingFolder)
         this.currentFiles = projectFiles.files
         this.currentSnapshot = {
-            ...splitProjectCards(projectFiles.files, projectFiles.workingFolder),
+            ...markdownParsingService.splitCards(projectFiles.files, projectFiles.workingFolder),
             workingFolder: projectFiles.workingFolder,
         }
         this.dispatchChanged()
@@ -108,6 +108,13 @@ export class DataService extends EventTarget {
         return file
     }
 
+    updateCardBody(path: string, body: string) {
+        const existingFile = this.currentFiles.find((currentFile) => currentFile.path === path)
+        if (!existingFile) throw new Error(`Cannot update a card that is not loaded: ${path}`)
+
+        return this.saveFile({ content: markdownParsingService.replaceBody(existingFile.content, body), path, sha: existingFile.sha })
+    }
+
     saveFile(file: MarkdownFile) {
         const { commitBatcher } = this.requireDependencies()
         if (!this.currentProject) throw new Error('Cannot save a file before a project is open')
@@ -115,6 +122,8 @@ export class DataService extends EventTarget {
         this.currentFiles = this.currentFiles.map((currentFile) => (currentFile.path === file.path ? file : currentFile))
         commitBatcher.schedule(this.currentProject.branch, [file], `Update ${file.path}`)
         this.refreshSnapshot()
+
+        return file
     }
 
     async flushPendingCommits() {
@@ -131,7 +140,8 @@ export class DataService extends EventTarget {
 
     private refreshSnapshot() {
         const { config } = this.requireDependencies()
-        this.currentSnapshot = { ...splitProjectCards(this.currentFiles, config.workingFolder), workingFolder: config.workingFolder }
+        const cards = markdownParsingService.splitCards(this.currentFiles, config.workingFolder)
+        this.currentSnapshot = { ...cards, workingFolder: config.workingFolder }
         this.dispatchChanged()
     }
 
