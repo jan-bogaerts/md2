@@ -125,6 +125,33 @@ describe('TextView', () => {
         expect(screen.getByDisplayValue(/Body A/)).toBeInTheDocument()
     })
 
+    it('keeps the formatting toolbar sticky above the editor on mobile', () => {
+        const { container } = render(
+            <TextView
+                activeCards={activeCards}
+                backgroundCards={backgroundCards}
+                isMobile
+                onBodyChange={vi.fn()}
+                requestedNonce={0}
+                requestedPath={null}
+                workingFolder="design"
+            />,
+        )
+
+        fireEvent.click(screen.getByRole('button', { name: /Browse files/ }))
+        clickTreeFile('F-1 Alpha')
+
+        expect(container.querySelector('[data-sticky-toolbar="true"]')).not.toBeNull()
+    })
+
+    it('leaves the toolbar non-sticky on desktop', () => {
+        renderTextView()
+
+        clickTreeFile('F-1 Alpha')
+
+        expect(document.querySelector('[data-sticky-toolbar="false"]')).not.toBeNull()
+    })
+
     it('renders the desktop tree inline without a Browse files button', () => {
         renderTextView()
 

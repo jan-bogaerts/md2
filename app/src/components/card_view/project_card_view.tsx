@@ -127,7 +127,7 @@ export function ProjectCardView(props: ProjectCardViewProps) {
                 {isMobile ? (
                     <Collapse in={isBodyOpen} unmountOnExit>
                         <Box onClick={stopClick} sx={{ pt: 1 }}>
-                            <CardBodyEditor card={card} onBodyChange={onBodyChange} />
+                            <CardBodyEditor card={card} isMobile={isMobile} onBodyChange={onBodyChange} />
                             <Button onClick={() => onOpenInFileMode(card.path)} size="small" sx={{ mt: 1 }}>
                                 Open in file mode
                             </Button>

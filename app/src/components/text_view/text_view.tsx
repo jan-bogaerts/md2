@@ -1,15 +1,14 @@
-import { Box, Button, Drawer, Paper, TextField, Typography } from '@mui/material'
+import { Box, Button, Drawer, Paper, Typography } from '@mui/material'
 import FolderOutline from 'mdi-material-ui/FolderOutline'
 import { useEffect, useMemo, useState } from 'react'
-import type { ChangeEvent } from 'react'
 import { buildFileTree, fileLabel } from '../../data/file_tree'
 import type { ProjectCard } from '../../data/data_types'
+import { MarkdownEditor } from '../editor/markdown_editor'
 import { FileTreeView } from './file_tree_view'
 import { TabBar, type OpenTab } from './tab_bar'
 import { useOpenTabs } from './use_open_tabs'
 
 const TREE_WIDTH = 280
-const EDITOR_MIN_ROWS = 12
 
 interface TextViewProps {
     activeCards: ProjectCard[]
@@ -57,8 +56,8 @@ export function TextView(props: TextViewProps) {
         setIsTreeOpen(false)
     }
 
-    const handleEditorChange = (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        if (activePath) onBodyChange(activePath, event.target.value)
+    const handleEditorChange = (body: string) => {
+        if (activePath) onBodyChange(activePath, body)
     }
 
     const treeContent = (
@@ -70,15 +69,13 @@ export function TextView(props: TextViewProps) {
     const editorPane = (
         <Box sx={{ display: 'flex', flex: 1, flexDirection: 'column', minWidth: 0 }}>
             <TabBar activePath={activePath} onActivate={activateTab} onClose={closeTab} tabs={openTabs} />
-            <Box sx={{ flex: 1, p: 2 }}>
-                {activeCard ? (
-                    <TextField
-                        fullWidth
-                        minRows={EDITOR_MIN_ROWS}
-                        multiline
+            <Box sx={{ flex: 1, overflow: 'auto', p: 2 }}>
+                {activeCard && activePath ? (
+                    <MarkdownEditor
+                        key={activePath}
+                        markdown={activeCard.content}
                         onChange={handleEditorChange}
-                        slotProps={{ htmlInput: { 'aria-label': 'File editor' } }}
-                        value={activeCard.content}
+                        stickyToolbar={isMobile}
                     />
                 ) : (
                     <Typography color="text.secondary" variant="body2">

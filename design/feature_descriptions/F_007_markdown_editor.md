@@ -1,7 +1,7 @@
 ---
 id: F-007
 title: markdown editor
-status: design
+status: ready
 owner: JB
 affects:
 policy:
@@ -13,7 +13,7 @@ policy:
 Integrate MDXEditor (with plugins for lists, quotes, tables, code blocks, links and images) as the editor for card bodies and files, with a local formatting toolbar that stays sticky at the top on mobile.
 
 ## Current state
-`@mdxeditor/editor` is already installed in the app, but no editor component uses it yet. `ProjectWorkspace` edits the selected active card through a multiline MUI `TextField` and persists every change through `DataService.saveFile`; there is no shared editor surface for card dialogs, mobile accordions or text-view tabs. The app can save full markdown file content, but the UI does not yet separate markdown headers from body-only card editing.
+`@mdxeditor/editor` is installed but still not used by any component in `app/src`; every editing surface is an interim multiline MUI `TextField`. Card view ([[F-005]]) and text view ([[F-006]]) are both implemented and wired through `ProjectWorkspace`, so `ProjectWorkspace` no longer edits a card directly — it delegates to `CardView` and `TextView` and forwards their changes to `DataService`. Card body editing goes through `CardBodyEditor` (used by the desktop `CardBodyDialog` and mobile accordion), whose `onBodyChange` calls `DataService.updateCardBody`; that method already uses the shared `markdownParsingService.replaceBody` to preserve the frontmatter/header block and replace only the body. Text view edits full file content in a per-tab `TextField` and saves via the same `onBodyChange`/`DataService` path. Both `CardBodyEditor` and the text-view editor carry TODO notes that the MDXEditor component and its formatting toolbar land with F-007 and replace them. There is still no shared editor component and no formatting toolbar (sticky or otherwise).
 
 ## implementation details
 - Create a reusable markdown editor component in the app and use MDXEditor with plugins for lists, quotes, tables, thematic breaks, code blocks, links and images.

@@ -1,29 +1,26 @@
-import { Stack, TextField, Typography } from '@mui/material'
-import type { ChangeEvent } from 'react'
 import type { ProjectCard } from '../../data/data_types'
+import { MarkdownEditor } from '../editor/markdown_editor'
 
 interface CardBodyEditorProps {
     card: ProjectCard
+    isMobile?: boolean
     onBodyChange: (path: string, body: string) => void
 }
 
 /**
- * Body editing surface for a card. This is the interim textarea path; the
- * markdown editor and its formatting toolbar arrive with F-007 and replace it.
+ * Body editing surface for a card. Renders the shared markdown editor (F-007);
+ * edits flow up as markdown through `onBodyChange`, and `DataService` preserves
+ * the frontmatter/header block via the shared parsing service.
  */
 export function CardBodyEditor(props: CardBodyEditorProps) {
-    const { card, onBodyChange } = props
-
-    const handleChange = (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        onBodyChange(card.path, event.target.value)
-    }
+    const { card, isMobile = false, onBodyChange } = props
 
     return (
-        <Stack spacing={1}>
-            <Typography color="text.secondary" variant="caption">
-                Formatting toolbar arrives with the markdown editor (F-007).
-            </Typography>
-            <TextField fullWidth minRows={6} multiline onChange={handleChange} value={card.content} />
-        </Stack>
+        <MarkdownEditor
+            key={card.path}
+            markdown={card.content}
+            onChange={(body) => onBodyChange(card.path, body)}
+            stickyToolbar={isMobile}
+        />
     )
 }
