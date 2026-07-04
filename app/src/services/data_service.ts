@@ -1,5 +1,6 @@
 ﻿import { CommitBatcher } from '../data/commit_batcher'
 import { createCardFile } from '../data/card_naming'
+import { computeMove } from '../data/card_ordering'
 import {
     DEFAULT_PROJECT_CONFIG,
     type CardDraft,
@@ -59,6 +60,10 @@ export class DataService extends EventTarget {
         return { project: this.currentProject, snapshot: this.currentSnapshot }
     }
 
+    getConfig(): ProjectConfig | null {
+        return this.config
+    }
+
     async createProject(project: ProjectReference) {
         const { config, storage } = this.requireDependencies()
         this.currentProject = await storage.createProject(project, config.workingFolder)
@@ -109,10 +114,53 @@ export class DataService extends EventTarget {
     }
 
     updateCardBody(path: string, body: string) {
+        const existingFile = this.requireFile(path)
+
+        return this.saveFile({ content: markdownParsingService.replaceBody(existingFile.content, body), path, sha: existingFile.sha })
+    }
+
+    private requireFile(path: string): MarkdownFile {
         const existingFile = this.currentFiles.find((currentFile) => currentFile.path === path)
         if (!existingFile) throw new Error(`Cannot update a card that is not loaded: ${path}`)
 
-        return this.saveFile({ content: markdownParsingService.replaceBody(existingFile.content, body), path, sha: existingFile.sha })
+        return existingFile
+    }
+
+    updateCardHeaderFields(path: string, updates: Record<string, string>) {
+        const existingFile = this.requireFile(path)
+
+        return this.saveFile({
+            content: markdownParsingService.rewriteHeader(existingFile.content, updates),
+            path,
+            sha: existingFile.sha,
+        })
+    }
+
+    updateCardTitle(path: string, title: string) {
+        return this.updateCardHeaderFields(path, { title })
+    }
+
+    toggleCardPolicy(path: string, policyKey: string) {
+        const existingFile = this.requireFile(path)
+        const card = markdownParsingService.parseCard(existingFile, this.requireDependencies().config.workingFolder)
+        const enabled = card.header.policy[policyKey] === 'true'
+
+        return this.saveFile({
+            content: markdownParsingService.setPolicyFlag(existingFile.content, policyKey, !enabled),
+            path,
+            sha: existingFile.sha,
+        })
+    }
+
+    moveCard(cardPath: string, targetStatus: string, targetIndex: number) {
+        const activeCards = this.currentSnapshot?.activeCards ?? []
+        const updates = computeMove(activeCards, cardPath, targetStatus, targetIndex)
+
+        for (const update of updates) {
+            this.updateCardHeaderFields(update.path, { after: update.after ?? '', status: update.status })
+        }
+
+        return updates
     }
 
     saveFile(file: MarkdownFile) {

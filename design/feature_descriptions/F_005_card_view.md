@@ -1,7 +1,7 @@
 ---
 id: F-005
 title: card view
-status: design
+status: ready
 owner: JB
 affects:
 policy:

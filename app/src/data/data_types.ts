@@ -27,9 +27,11 @@ export interface MarkdownFile {
 
 export interface CardHeader {
     affects: string[]
+    after: string | null
     id: string
     internalId: string | null
     owner: string | null
+    policy: Record<string, string>
     status: string | null
     title: string
 }

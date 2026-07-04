@@ -1,13 +1,15 @@
-﻿import { Alert, Box, Button, Divider, MenuItem, Paper, Select, Stack, TextField, Typography } from '@mui/material'
+﻿import { Alert, Box, Button, Divider, MenuItem, Paper, Select, Stack, TextField, Typography, useMediaQuery, useTheme } from '@mui/material'
 import type { SelectChangeEvent } from '@mui/material'
 import type { ChangeEvent } from 'react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { createProjectConfig, createStorageService, writeLastProject, type StorageType } from '../data/project_session'
-import type { CardDraft, ProjectCard, ProjectReference, PushMode } from '../data/data_types'
+import { DEFAULT_CARD_TYPES, type CardDraft, type ProjectCard, type ProjectReference, type PushMode } from '../data/data_types'
 import { getElectronDataBridge } from '../data/electron_data_bridge'
 import { dataService } from '../services/data_service'
-import { CardSelectButton } from './card_select_button'
+import { CardView } from './card_view/card_view'
 import { useProjectState } from './hooks/use_project_state'
+
+type WorkspaceViewMode = 'cards' | 'file'
 
 const WORKSPACE_PANEL_PADDING = 3
 const EMPTY_CARDS: ProjectCard[] = []
@@ -23,6 +25,8 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
         isGithubAuthenticated,
     } = props
     const { project, snapshot } = useProjectState()
+    const theme = useTheme()
+    const isMobile = useMediaQuery(theme.breakpoints.down('md'))
     const activeCards = snapshot?.activeCards ?? EMPTY_CARDS
     const backgroundCards = snapshot?.backgroundCards ?? EMPTY_CARDS
     const [branch, setBranch] = useState(project?.branch ?? 'main')
@@ -34,9 +38,11 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
     const [isLoading, setIsLoading] = useState(false)
     const [pushMode, setPushMode] = useState<PushMode>('auto')
     const [selectedCardPath, setSelectedCardPath] = useState(activeCards[0]?.path ?? '')
+    const [viewMode, setViewMode] = useState<WorkspaceViewMode>('cards')
     const electronBridge = useMemo(() => getElectronDataBridge(), [])
     const canUseLocalGit = !!electronBridge
     const isProjectOpen = !!project
+    const cardTypes = dataService.getConfig()?.cardTypes ?? DEFAULT_CARD_TYPES
     const selectedCard = activeCards.find((card) => card.path === selectedCardPath) ?? activeCards[0] ?? null
 
     const openProject = useCallback(async (nextStorageType: StorageType, nextProject: ProjectReference) => {
@@ -141,8 +147,29 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
         void dataService.push()
     }
 
-    const handleSelectCard = (path: string) => {
+    const handleMoveCard = (path: string, targetStatus: string, targetIndex: number) => {
+        dataService.moveCard(path, targetStatus, targetIndex)
+    }
+
+    const handleTogglePolicy = (path: string, policyKey: string) => {
+        dataService.toggleCardPolicy(path, policyKey)
+    }
+
+    const handleTitleChange = (path: string, title: string) => {
+        dataService.updateCardTitle(path, title)
+    }
+
+    const handleBodyChange = (path: string, body: string) => {
+        dataService.updateCardBody(path, body)
+    }
+
+    const handleOpenInFileMode = (path: string) => {
         setSelectedCardPath(path)
+        setViewMode('file')
+    }
+
+    const handleBackToCards = () => {
+        setViewMode('cards')
     }
 
     return (
@@ -183,14 +210,18 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
                     <Typography component="h2" variant="h6">
                         Active cards
                     </Typography>
-                    {activeCards.map((card) => (
-                        <CardSelectButton
-                            key={card.path}
-                            card={card}
-                            isSelected={card.path === selectedCard?.path}
-                            onSelect={handleSelectCard}
+                    {viewMode === 'cards' ? (
+                        <CardView
+                            cardTypes={cardTypes}
+                            cards={activeCards}
+                            isMobile={isMobile}
+                            onBodyChange={handleBodyChange}
+                            onMoveCard={handleMoveCard}
+                            onOpenInFileMode={handleOpenInFileMode}
+                            onTitleChange={handleTitleChange}
+                            onTogglePolicy={handleTogglePolicy}
                         />
-                    ))}
+                    ) : null}
                     <Typography color="text.secondary" variant="body2">
                         Background cards loaded: {backgroundCards.length}
                     </Typography>
@@ -204,11 +235,16 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
                     </Button>
                 </Stack>
 
-                {selectedCard ? (
+                {viewMode === 'file' && selectedCard ? (
                     <Box>
-                        <Typography component="h2" variant="h6">
-                            {selectedCard.header.id}
-                        </Typography>
+                        <Stack direction="row" spacing={2} sx={{ alignItems: 'center', mb: 1 }}>
+                            <Button onClick={handleBackToCards} variant="outlined">
+                                Back to cards
+                            </Button>
+                            <Typography component="h2" variant="h6">
+                                {selectedCard.header.id} {selectedCard.header.title}
+                            </Typography>
+                        </Stack>
                         <TextField fullWidth minRows={8} multiline onChange={handleEditorChange} value={selectedCard.content} />
                     </Box>
                 ) : null}

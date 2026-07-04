@@ -136,6 +136,12 @@ function getListField(fields: MarkdownHeaderFields, fieldName: string) {
     return Array.isArray(value) ? value : []
 }
 
+function getMapField(fields: MarkdownHeaderFields, fieldName: string): Record<string, string> {
+    const value = fields[fieldName]
+
+    return value !== null && typeof value === 'object' && !Array.isArray(value) ? value : {}
+}
+
 function getTitleFromBody(body: string) {
     const titleLine = body.split(/\r?\n/).find((line) => line.startsWith(TITLE_PREFIX))
 
@@ -171,9 +177,11 @@ function parseCardHeader(fields: MarkdownHeaderFields, file: MarkdownFile, body:
 
     return {
         affects: getListField(fields, 'affects'),
+        after: getStringField(fields, 'after'),
         id,
         internalId: getStringField(fields, 'internalId'),
         owner: getStringField(fields, 'owner'),
+        policy: getMapField(fields, 'policy'),
         status,
         title,
     }
@@ -187,6 +195,39 @@ function rewriteHeaderLine(lines: string[], key: string, value: string) {
 
     const updated = [...lines]
     updated[targetIndex] = `${key}: ${value}`
+
+    return updated
+}
+
+function isHeaderKeyLine(line: string, key: string) {
+    return !line.startsWith(' ') && line.slice(0, line.indexOf(':') + 1) === `${key}:`
+}
+
+function rewritePolicyLines(lines: string[], key: string, value: string) {
+    const childLine = `${CHILD_INDENT}${key}: ${value}`
+    const policyIndex = lines.findIndex((line) => isHeaderKeyLine(line, 'policy'))
+
+    if (policyIndex === -1) return [...lines, 'policy:', childLine]
+
+    let childIndex = policyIndex + 1
+    let lastChildIndex = policyIndex
+
+    while (childIndex < lines.length && lines[childIndex].startsWith(CHILD_INDENT)) {
+        const trimmed = lines[childIndex].trim()
+
+        if (trimmed.slice(0, trimmed.indexOf(':')).trim() === key) {
+            const updated = [...lines]
+            updated[childIndex] = childLine
+
+            return updated
+        }
+
+        lastChildIndex = childIndex
+        childIndex += 1
+    }
+
+    const updated = [...lines]
+    updated.splice(lastChildIndex + 1, 0, childLine)
 
     return updated
 }
@@ -264,6 +305,16 @@ export const markdownParsingService = {
             startingLines,
         )
         const nextHeader = nextLines.join('\n')
+
+        if (hasHeader) return `${HEADER_DELIMITER}\n${nextHeader}\n${HEADER_DELIMITER}\n${body}`
+
+        return `${HEADER_DELIMITER}\n${nextHeader}\n${HEADER_DELIMITER}\n\n${content}`
+    },
+
+    setPolicyFlag(content: string, key: string, enabled: boolean) {
+        const { body, hasHeader, rawHeader } = splitHeader(content)
+        const startingLines = hasHeader ? rawHeader.split('\n') : []
+        const nextHeader = rewritePolicyLines(startingLines, key, enabled ? 'true' : 'false').join('\n')
 
         if (hasHeader) return `${HEADER_DELIMITER}\n${nextHeader}\n${HEADER_DELIMITER}\n${body}`
 

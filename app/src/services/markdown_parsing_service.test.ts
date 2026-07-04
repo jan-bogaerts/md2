@@ -61,6 +61,21 @@ describe('markdownParsingService.parseCard', () => {
         expect(card.header.status).toBe('new')
         expect(card.header.title).toBe('Imported')
     })
+
+    it('parses the after tag and policy map into the card header', () => {
+        const content = '---\nid: F-2\ntitle: Second\nstatus: active\nafter: uuid-1\naffects:\npolicy:\n  checkLinting: true\n  requireTests: false\n---\n\n# Second'
+        const card = markdownParsingService.parseCard({ content, path: 'design/F-2-second.md' }, 'design')
+
+        expect(card.header.after).toBe('uuid-1')
+        expect(card.header.policy).toEqual({ checkLinting: 'true', requireTests: 'false' })
+    })
+
+    it('defaults after to null and policy to an empty map when absent', () => {
+        const card = markdownParsingService.parseCard(ROOT_FILE, 'design')
+
+        expect(card.header.after).toBeNull()
+        expect(card.header.policy).toEqual({})
+    })
 })
 
 describe('markdownParsingService.splitCards', () => {
@@ -110,6 +125,35 @@ describe('markdownParsingService.rewriteHeader', () => {
 
         expect(next).toContain('owner: JB')
         expect(next).toContain('id: F-1')
+    })
+})
+
+describe('markdownParsingService.setPolicyFlag', () => {
+    it('toggles an existing policy flag while preserving other fields and body', () => {
+        const content = '---\nid: F-1\ntitle: Root\nstatus: active\npolicy:\n  checkLinting: true\n  requireTests: true\n---\n\n# Root'
+        const next = markdownParsingService.setPolicyFlag(content, 'checkLinting', false)
+
+        expect(next).toContain('  checkLinting: false')
+        expect(next).toContain('  requireTests: true')
+        expect(next).toContain('id: F-1')
+        expect(next.endsWith('\n\n# Root')).toBe(true)
+    })
+
+    it('adds a policy flag under an existing policy block', () => {
+        const content = '---\nid: F-1\ntitle: Root\npolicy:\n  checkLinting: true\n---\n\n# Root'
+        const next = markdownParsingService.setPolicyFlag(content, 'requireTests', true)
+
+        expect(next).toContain('  checkLinting: true')
+        expect(next).toContain('  requireTests: true')
+    })
+
+    it('creates a policy block when none exists', () => {
+        const content = '---\nid: F-1\ntitle: Root\n---\n\n# Root'
+        const next = markdownParsingService.setPolicyFlag(content, 'checkLinting', true)
+
+        expect(next).toContain('policy:\n  checkLinting: true')
+        const reparsed = markdownParsingService.parseCard({ content: next, path: 'design/F-1-root.md' }, 'design')
+        expect(reparsed.header.policy).toEqual({ checkLinting: 'true' })
     })
 })
 

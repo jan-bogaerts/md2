@@ -30,13 +30,15 @@ describe('ProjectWorkspace', () => {
         delete window.md2Data
     })
 
-    it('opens a local project and shows root cards before background cards', async () => {
+    it('opens a local project and shows root cards in the card view before background cards', async () => {
         window.md2Data = createBridge()
 
         render(<ProjectWorkspace accessToken={null} isGithubAuthenticated={false} />)
         fireEvent.click(screen.getByRole('button', { name: 'Open Local' }))
 
-        expect(await screen.findByRole('button', { name: 'F-1 Root' })).toBeInTheDocument()
+        expect(await screen.findByText('Root')).toBeInTheDocument()
+        expect(screen.getByText('F-1')).toBeInTheDocument()
+        expect(screen.getByText('active')).toBeInTheDocument()
         expect(screen.getByText('Background cards loaded: 1')).toBeInTheDocument()
     })
 
@@ -46,13 +48,24 @@ describe('ProjectWorkspace', () => {
 
         render(<ProjectWorkspace accessToken={null} isGithubAuthenticated={false} />)
         fireEvent.click(screen.getByRole('button', { name: 'Open Local' }))
-        await screen.findByRole('button', { name: 'F-1 Root' })
+        await screen.findByText('Root')
 
         fireEvent.change(screen.getByLabelText('New card title'), { target: { value: 'New Card' } })
         fireEvent.change(screen.getByLabelText('New card body'), { target: { value: 'Body' } })
         fireEvent.click(screen.getByRole('button', { name: 'Create Feature' }))
 
         await waitFor(() => expect(bridge.commit).toHaveBeenCalled())
-        expect(await screen.findByRole('button', { name: 'F-3 New Card' })).toBeInTheDocument()
+        expect(await screen.findByText('New Card')).toBeInTheDocument()
+    })
+
+    it('switches a card into file mode from the card body dialog', async () => {
+        window.md2Data = createBridge()
+
+        render(<ProjectWorkspace accessToken={null} isGithubAuthenticated={false} />)
+        fireEvent.click(screen.getByRole('button', { name: 'Open Local' }))
+        fireEvent.click(await screen.findByText('Root'))
+        fireEvent.click(await screen.findByRole('button', { name: 'Open in file mode' }))
+
+        expect(await screen.findByRole('button', { name: 'Back to cards' })).toBeInTheDocument()
     })
 })
