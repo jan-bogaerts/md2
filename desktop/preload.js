@@ -1,52 +1,59 @@
-﻿const { contextBridge, ipcRenderer } = require('electron')
+const { ipcRenderer } = require('electron')
 const { requestGithubAccessToken, requestGithubDeviceCode } = require('./github_oauth_proxy')
+const localGitService = require('./local_git_service')
 
 const DATA_OPEN_PROJECT_FOLDER_CHANNEL = 'md2-data:open-project-folder'
-const DATA_CREATE_PROJECT_CHANNEL = 'md2-data:create-project'
-const DATA_LOAD_PROJECT_CHANNEL = 'md2-data:load-project'
-const DATA_LIST_BRANCHES_CHANNEL = 'md2-data:list-branches'
-const DATA_CHECKOUT_BRANCH_CHANNEL = 'md2-data:checkout-branch'
-const DATA_COMMIT_CHANNEL = 'md2-data:commit'
-const DATA_PUSH_CHANNEL = 'md2-data:push'
-const DATA_WATCH_PROJECT_CHANNEL = 'md2-data:watch-project'
-const DATA_UNWATCH_PROJECT_CHANNEL = 'md2-data:unwatch-project'
-const DATA_PROJECT_CHANGED_CHANNEL = 'md2-data:project-changed'
 const DATA_MENU_PUSH_CHANNEL = 'md2-data:menu-push'
+
+let currentLocalProject = null
+
+function createLocalProject(rootPath) {
+    return {
+        branch: 'main',
+        id: rootPath,
+        rootPath,
+    }
+}
 
 const githubAuthBridge = {
     requestAccessToken: (request) => requestGithubAccessToken(request),
     requestDeviceCode: (request) => requestGithubDeviceCode(request),
 }
 
-contextBridge.exposeInMainWorld('md2GithubAuth', githubAuthBridge)
+window.md2GithubAuth = githubAuthBridge
 
 const dataBridge = {
-    checkoutBranch: (project, branch) => ipcRenderer.invoke(DATA_CHECKOUT_BRANCH_CHANNEL, project, branch),
-    commit: (request) => ipcRenderer.invoke(DATA_COMMIT_CHANNEL, request),
-    createProject: (project, workingFolder) => ipcRenderer.invoke(DATA_CREATE_PROJECT_CHANNEL, project, workingFolder),
-    listBranches: (project) => ipcRenderer.invoke(DATA_LIST_BRANCHES_CHANNEL, project),
-    loadProject: (project, workingFolder) => ipcRenderer.invoke(DATA_LOAD_PROJECT_CHANNEL, project, workingFolder),
+    checkoutBranch: async (project, branch) => {
+        currentLocalProject = await localGitService.checkoutBranch(project, branch)
+
+        return currentLocalProject
+    },
+    commit: (request) => localGitService.commit(request, currentLocalProject),
+    createProject: (project, workingFolder) => localGitService.createProject(project, workingFolder),
+    listBranches: (project) => localGitService.listBranches(project),
+    loadProject: async (project, workingFolder) => {
+        currentLocalProject = project
+
+        return localGitService.loadProject(project, workingFolder)
+    },
     onMenuPush: (callback) => {
         const listener = () => callback()
         ipcRenderer.on(DATA_MENU_PUSH_CHANNEL, listener)
 
         return () => ipcRenderer.removeListener(DATA_MENU_PUSH_CHANNEL, listener)
     },
-    openProjectFolder: () => ipcRenderer.invoke(DATA_OPEN_PROJECT_FOLDER_CHANNEL),
-    push: (project) => ipcRenderer.invoke(DATA_PUSH_CHANNEL, project),
-    watchProject: (project, callback) => {
-        let watcherId = null
-        const listener = () => callback()
-        ipcRenderer.on(DATA_PROJECT_CHANGED_CHANNEL, listener)
-        void ipcRenderer.invoke(DATA_WATCH_PROJECT_CHANNEL, project).then((id) => {
-            watcherId = id
-        })
+    openProjectFolder: async () => {
+        const rootPath = await ipcRenderer.invoke(DATA_OPEN_PROJECT_FOLDER_CHANNEL)
+        if (!rootPath) return null
 
-        return () => {
-            ipcRenderer.removeListener(DATA_PROJECT_CHANGED_CHANNEL, listener)
-            if (watcherId) void ipcRenderer.invoke(DATA_UNWATCH_PROJECT_CHANNEL, watcherId)
-        }
+        const project = createLocalProject(rootPath)
+        await localGitService.assertGitRoot(project.rootPath)
+        currentLocalProject = project
+
+        return project
     },
+    push: (project) => localGitService.push(project),
+    watchProject: (project, callback) => localGitService.watchProject(project, callback),
 }
 
-contextBridge.exposeInMainWorld('md2Data', dataBridge)
+window.md2Data = dataBridge

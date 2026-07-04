@@ -13,13 +13,13 @@ policy:
 Load action definitions (json) from the project's actions folder and run them via the Electron app: agent or cmd type, placeholders, before/after sub-actions, condition→action pairs on output, circular-call checking, state-change triggers (`onState`), and context-sensitive UI display via `appliesTo`.
 
 ## Current state
-Not implemented. The current app can load markdown files through GitHub or the Electron local-Git bridge, but there is no action definition model, actions folder discovery, action IPC bridge, runner, action UI, logs, `appliesTo` filtering or `onState` trigger handling.
+Not implemented. The current app can load markdown files through GitHub or the Electron local-Git bridge, but there is no action definition model, actions bridge, runner, action UI, logs, `appliesTo` filtering or `onState` trigger handling.
 
 ## implementation details
 - Add an action model for json definitions with `name`, `label`, `description`, `type`, `text`, optional `icon`, `appliesTo`, `before`, `after`, `on` and `onState`.
 - Load actions from the configured project actions folder when a project opens; fail fast on invalid json, missing required fields, unknown action refs or circular calls.
 - Keep action state in a singleton app service and expose it to React through a hook. React displays actions close to the matching card/file/folder based on `appliesTo`.
-- Add Electron preload/main IPC for running actions. Command actions execute in Electron; agent actions start the configured agent command/prompt flow.
+- Add preload bridge methods for running actions. Command actions execute from preload unless a command requires main-owned Electron APIs; agent actions start the configured agent command/prompt flow.
 - Resolve placeholders at run time from the selected context, at minimum `rootProjectFolder` and `file`.
 - Execute `before`, main action, `on` output matches and `after` in a deterministic order. `after` runs even when the main action fails; errors are returned in the action log/status.
 - Trigger actions with `onState` when a card state changes to the configured value.

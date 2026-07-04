@@ -13,8 +13,8 @@ policy:
 Auto-import images from a Remarkable device over SSH: list and select files, track last import dates, place images next to the card-file (new or existing feature), commit to GitHub, and offer an agent command to convert images to text.
 
 ## implementation details
-- Implement Remarkable import as an Electron/local Git capability. React calls explicit preload bridge methods; Electron owns SSH, filesystem writes and Git commands.
-- Add Electron handlers to configure/test SSH connection details, list image files on the device with modified times, import selected files and persist per-device import metadata in the project.
+- Implement Remarkable import as an Electron/local Git capability. React calls explicit preload bridge methods; preload owns SSH, filesystem writes and Git commands unless a step requires the Electron main process.
+- Add preload bridge methods to configure/test SSH connection details, list image files on the device with modified times, import selected files and persist per-device import metadata in the project.
 - Store import metadata in a project-local json file under the working folder so the UI can mark files as new, changed or already imported.
 - Extend the local Git write path to support binary asset files in addition to markdown text files. Keep root-path validation so imported files cannot escape the project.
 - Add a React import panel for connection status, remote file selection, import target selection and changed-since-last-import indicators.

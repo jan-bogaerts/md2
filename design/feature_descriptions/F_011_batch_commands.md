@@ -13,7 +13,7 @@ policy:
 Support batch/PowerShell/bash scripts (with parameters and placeholders) in configurable folders as runnable actions; the Electron app monitors these folders and adds/updates/removes the related actions, notifying the React app of changes. Extension to `design\feature_descriptions\F_010_actions.md`
 
 ## Current state
-Not implemented. F-010 action loading/running is also not implemented yet. The Electron app currently exposes only local Git/data IPC, watches markdown changes under the project root and has no script-folder config, script discovery, command runner, parameter model or action-change notification channel.
+Not implemented. F-010 action loading/running is also not implemented yet. The Electron app currently exposes only local Git/data bridge methods, watches markdown changes under the project root and has no script-folder config, script discovery, command runner, parameter model or action-change notification channel.
 
 ## implementation details
 - Extend the F-010 action model with generated `cmd` actions sourced from configured script folders.

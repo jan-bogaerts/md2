@@ -17,7 +17,7 @@ Provide a browsable `/config` page with sections and quick-jump tabs, typed valu
 - Define config metadata separately from values: key, section, label, description, value type, allowed options/range, default value, source (`react`, `desktop`, `project`) and editability.
 - Replace `createProjectConfig(pushMode)` and direct config constants with values from `ConfigService`; affected call sites are `use_app_bootstrap.ts`, `project_workspace.tsx` and `data_service.ts`. They should receive the new config behavior.
 - Keep GitHub env config (`github_auth_config.ts`) fail-fast for required build/runtime values, but expose editable connection settings only for values that can be changed safely at runtime.
-- In desktop mode, add preload/main IPC for desktop config values. React must never read Node APIs directly.
+- In desktop mode, expose desktop config values through the preload bridge. Use main-process IPC only for values that require main-owned Electron APIs.
 - Project config is loaded after a project opens, merged over defaults, and saved through the active storage backend. Missing required project config fields fail with clear errors.
 - Build `/config` as a real navigable route or URL-backed view. Sections use hash anchors for quick jumps; desktop shows section tabs on the left, mobile shows them below the toolbar.
 - The config page edits a draft only. Save validates and applies changes to services; Cancel or leaving the page clears the draft without changing active config.

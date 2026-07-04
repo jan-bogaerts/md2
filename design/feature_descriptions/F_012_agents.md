@@ -15,7 +15,7 @@ Store agent outputs in json files referenced from md files, show agent conversat
 ## Current state
 Not implemented. Cards are parsed from markdown headers and rendered in `ProjectWorkspace`, but `ProjectCard` has no agent-output references and the shared parsing service does not yet read or write agent metadata. The editor is a single multiline `TextField` with no toolbar, bottom split panel or conversation viewer.
 
-The app shell has a running-agents status indicator, but `App` always passes an empty list. Electron exposes only local Git/project IPC through `window.md2Data`; there is no agent process bridge, log storage, stdout/stderr streaming, stdin forwarding or persisted conversation model yet.
+The app shell has a running-agents status indicator, but `App` always passes an empty list. Electron exposes only local Git/project capabilities through `window.md2Data`; there is no agent process bridge, log storage, stdout/stderr streaming, stdin forwarding or persisted conversation model yet.
 
 ## implementation details
 - Add an agent-output reference field to card metadata stored in markdown, using json log files as the conversation source of truth.
