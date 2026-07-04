@@ -1,0 +1,134 @@
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { TextView } from './text_view'
+import type { ProjectCard } from '../../data/data_types'
+
+function card(path: string, overrides: Partial<ProjectCard['header']> = {}, content = ''): ProjectCard {
+    return {
+        content,
+        header: {
+            affects: [],
+            after: null,
+            id: 'F-0',
+            internalId: null,
+            owner: null,
+            policy: {},
+            status: null,
+            title: 'Untitled',
+            ...overrides,
+        },
+        isActive: false,
+        path,
+    }
+}
+
+const activeCards = [
+    card('design/F-1-a.md', { id: 'F-1', title: 'Alpha', status: 'todo' }, '# Alpha\n\nBody A'),
+    card('design/F-2-b.md', { id: 'F-2', title: 'Beta', status: 'done' }, '# Beta\n\nBody B'),
+]
+const backgroundCards = [card('design/history/rel1/F-9-old.md', { id: 'F-9', title: 'Old' }, '# Old')]
+
+function renderTextView(overrides: Partial<Parameters<typeof TextView>[0]> = {}) {
+    const onBodyChange = vi.fn()
+
+    render(
+        <TextView
+            activeCards={activeCards}
+            backgroundCards={backgroundCards}
+            isMobile={false}
+            onBodyChange={onBodyChange}
+            requestedNonce={0}
+            requestedPath={null}
+            workingFolder="design"
+            {...overrides}
+        />,
+    )
+
+    return { onBodyChange }
+}
+
+/** Click a file leaf inside the tree region (avoids matching the same label in an open tab). */
+function clickTreeFile(label: string) {
+    fireEvent.click(within(screen.getByLabelText('File tree')).getByText(label))
+}
+
+describe('TextView', () => {
+    afterEach(cleanup)
+
+    it('renders a tree with status groups and special folders', () => {
+        renderTextView()
+        const tree = within(screen.getByLabelText('File tree'))
+
+        expect(tree.getByText('todo')).toBeInTheDocument()
+        expect(tree.getByText('done')).toBeInTheDocument()
+        expect(tree.getByText('history')).toBeInTheDocument()
+        expect(tree.getByText('F-1 Alpha')).toBeInTheDocument()
+    })
+
+    it('opens a file in a tab when its tree node is clicked', () => {
+        renderTextView()
+
+        clickTreeFile('F-1 Alpha')
+
+        expect(screen.getByRole('tab', { name: /Alpha/ })).toBeInTheDocument()
+        expect(screen.getByDisplayValue(/Body A/)).toBeInTheDocument()
+    })
+
+    it('focuses the existing tab instead of duplicating when a file is reopened', () => {
+        renderTextView()
+
+        clickTreeFile('F-1 Alpha')
+        clickTreeFile('F-2 Beta')
+        clickTreeFile('F-1 Alpha')
+
+        expect(screen.getAllByRole('tab', { name: /Alpha/ })).toHaveLength(1)
+        expect(screen.getByDisplayValue(/Body A/)).toBeInTheDocument()
+    })
+
+    it('closes a tab from the tab bar', () => {
+        renderTextView()
+
+        clickTreeFile('F-1 Alpha')
+        clickTreeFile('F-2 Beta')
+        fireEvent.click(screen.getByRole('button', { name: 'Close F-1 Alpha' }))
+
+        expect(screen.queryByRole('tab', { name: /Alpha/ })).not.toBeInTheDocument()
+        expect(screen.getByRole('tab', { name: /Beta/ })).toBeInTheDocument()
+    })
+
+    it('persists edits to the active file through onBodyChange', () => {
+        const { onBodyChange } = renderTextView()
+
+        clickTreeFile('F-1 Alpha')
+        fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Edited body' } })
+
+        expect(onBodyChange).toHaveBeenCalledWith('design/F-1-a.md', 'Edited body')
+    })
+
+    it('opens the requested file when the open nonce changes', () => {
+        const shared = { activeCards, backgroundCards, isMobile: false, onBodyChange: vi.fn(), workingFolder: 'design' }
+        const { rerender } = render(<TextView {...shared} requestedNonce={0} requestedPath={null} />)
+
+        rerender(<TextView {...shared} requestedNonce={1} requestedPath="design/F-2-b.md" />)
+
+        expect(screen.getByRole('tab', { name: /Beta/ })).toBeInTheDocument()
+    })
+
+    it('hides the tree behind a Browse files drawer on mobile', () => {
+        renderTextView({ isMobile: true })
+
+        expect(screen.queryByLabelText('File tree')).not.toBeInTheDocument()
+
+        fireEvent.click(screen.getByRole('button', { name: /Browse files/ }))
+        clickTreeFile('F-1 Alpha')
+
+        expect(screen.getByDisplayValue(/Body A/)).toBeInTheDocument()
+    })
+
+    it('renders the desktop tree inline without a Browse files button', () => {
+        renderTextView()
+
+        expect(screen.queryByRole('button', { name: /Browse files/ })).not.toBeInTheDocument()
+        expect(within(screen.getByLabelText('File tree')).getByText('F-1 Alpha')).toBeInTheDocument()
+    })
+})

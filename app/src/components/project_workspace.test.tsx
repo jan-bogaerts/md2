@@ -58,7 +58,7 @@ describe('ProjectWorkspace', () => {
         expect(await screen.findByText('New Card')).toBeInTheDocument()
     })
 
-    it('switches a card into file mode from the card body dialog', async () => {
+    it('opens a card in the text view as a tab from the card body dialog', async () => {
         window.md2Data = createBridge()
 
         render(<ProjectWorkspace accessToken={null} isGithubAuthenticated={false} />)
@@ -66,6 +66,19 @@ describe('ProjectWorkspace', () => {
         fireEvent.click(await screen.findByText('Root'))
         fireEvent.click(await screen.findByRole('button', { name: 'Open in file mode' }))
 
-        expect(await screen.findByRole('button', { name: 'Back to cards' })).toBeInTheDocument()
+        expect(await screen.findByRole('tab', { name: /Root/ })).toBeInTheDocument()
+        expect(screen.getByLabelText('File tree')).toBeInTheDocument()
+    })
+
+    it('switches to the text view from the view toggle', async () => {
+        window.md2Data = createBridge()
+
+        render(<ProjectWorkspace accessToken={null} isGithubAuthenticated={false} />)
+        fireEvent.click(screen.getByRole('button', { name: 'Open Local' }))
+        await screen.findByText('Root')
+
+        fireEvent.click(screen.getByRole('button', { name: 'Text' }))
+
+        expect(screen.getByLabelText('File tree')).toBeInTheDocument()
     })
 })

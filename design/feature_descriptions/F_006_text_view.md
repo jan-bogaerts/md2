@@ -1,7 +1,7 @@
 ---
 id: F-006
 title: text view
-status: design
+status: ready
 owner: JB
 affects:
 policy:
@@ -13,7 +13,7 @@ policy:
 Implement the text view: a folder/status tree on the left (including special folders) and tabbed open files on the right, with mobile behavior that moves the tree into the hamburger menu.
 
 ## Current state
-The app shell ([[F-004]]) provides a desktop splitter and mobile hamburger drawer, but the left panel currently contains GitHub authentication instead of the text tree. `ProjectWorkspace` renders active root cards as a flat button list and edits one selected card in a plain textarea; there are no file tabs, no folder/status tree, and no route or mode switch for text view. `DataService` loads markdown files recursively from the working folder and splits them into active root cards and background subfolder cards, but it does not expose a tree model, open-file state or special-folder metadata.
+The app shell ([[F-004]]) provides a desktop splitter and mobile hamburger drawer, but the left panel still hosts `GithubAuthPanel` instead of the text tree. `ProjectWorkspace` now renders active cards through the kanban `CardView` ([[F-005]]) with status columns, drag-to-move and inline title/policy edits. It already carries a `viewMode` toggle of `'cards' | 'file'`, but the `'file'` mode is only a stopgap: it shows the single `selectedCard` in a plain multiline `TextField` with a "Back to cards" button — there is no folder/status tree, no tabbed multi-file surface, and no route or mode switch dedicated to a text view. Card splitting now runs through the shared `markdownParsingService` ([[F-021]]). `DataService` loads markdown files recursively from the working folder and exposes `ProjectSnapshot` (active cards, background cards, working folder) plus save/commit via `saveFile`, but it does not expose a tree model, open-file/tab state or special-folder metadata.
 
 ## implementation details
 - Add a text-view mode hosted by `ProjectWorkspace` or a dedicated child component, keeping project open/create and branch/push controls available.
