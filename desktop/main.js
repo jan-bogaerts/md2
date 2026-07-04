@@ -1,12 +1,9 @@
-const { app, BrowserWindow, dialog, ipcMain, Menu } = require('electron')
+﻿const { app, BrowserWindow, dialog, ipcMain, Menu } = require('electron')
 const path = require('node:path')
 const { resolveAppUrl } = require('./config')
-const { requestGithubAccessToken, requestGithubDeviceCode } = require('./github-oauth-proxy')
-const localGitService = require('./local-git-service')
+const localGitService = require('./local_git_service')
 
 const appUrl = resolveAppUrl()
-const GITHUB_DEVICE_CODE_CHANNEL = 'md2-github-auth:request-device-code'
-const GITHUB_ACCESS_TOKEN_CHANNEL = 'md2-github-auth:request-access-token'
 const DATA_OPEN_PROJECT_FOLDER_CHANNEL = 'md2-data:open-project-folder'
 const DATA_CREATE_PROJECT_CHANNEL = 'md2-data:create-project'
 const DATA_LOAD_PROJECT_CHANNEL = 'md2-data:load-project'
@@ -21,11 +18,6 @@ const DATA_MENU_PUSH_CHANNEL = 'md2-data:menu-push'
 
 let currentLocalProject = null
 const projectWatchers = new Map()
-
-function registerGithubAuthBridge() {
-    ipcMain.handle(GITHUB_DEVICE_CODE_CHANNEL, async (_event, request) => requestGithubDeviceCode(request))
-    ipcMain.handle(GITHUB_ACCESS_TOKEN_CHANNEL, async (_event, request) => requestGithubAccessToken(request))
-}
 
 function createLocalProject(rootPath) {
     return {
@@ -120,7 +112,6 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
-    registerGithubAuthBridge()
     registerDataBridge()
     createAppMenu()
     createWindow()

@@ -49,6 +49,13 @@ npm run lint
 npm run lint-fix
 ```
 
+
+## Architecture decision docs
+- follow the architectural decisions described in `design\architecture\architectural_decisions.md`
+- Do not edit `design/architecture/architectural_decisions.md` unless the user explicitly asks to update architectural decisions.
+- When adding a new architecture note, create or update the specific architecture markdown file only, and link it from related feature docs.
+- If a change seems to belong in `architectural_decisions.md`, ask first.
+
 ## code style guide
 - Put every **component or class** in it's **own file**.
 - Add a short **JSDoc** to new functions when useful.

@@ -1,7 +1,6 @@
-const { contextBridge, ipcRenderer } = require('electron')
+﻿const { contextBridge, ipcRenderer } = require('electron')
+const { requestGithubAccessToken, requestGithubDeviceCode } = require('./github_oauth_proxy')
 
-const GITHUB_DEVICE_CODE_CHANNEL = 'md2-github-auth:request-device-code'
-const GITHUB_ACCESS_TOKEN_CHANNEL = 'md2-github-auth:request-access-token'
 const DATA_OPEN_PROJECT_FOLDER_CHANNEL = 'md2-data:open-project-folder'
 const DATA_CREATE_PROJECT_CHANNEL = 'md2-data:create-project'
 const DATA_LOAD_PROJECT_CHANNEL = 'md2-data:load-project'
@@ -15,8 +14,8 @@ const DATA_PROJECT_CHANGED_CHANNEL = 'md2-data:project-changed'
 const DATA_MENU_PUSH_CHANNEL = 'md2-data:menu-push'
 
 const githubAuthBridge = {
-    requestAccessToken: (request) => ipcRenderer.invoke(GITHUB_ACCESS_TOKEN_CHANNEL, request),
-    requestDeviceCode: (request) => ipcRenderer.invoke(GITHUB_DEVICE_CODE_CHANNEL, request),
+    requestAccessToken: (request) => requestGithubAccessToken(request),
+    requestDeviceCode: (request) => requestGithubDeviceCode(request),
 }
 
 contextBridge.exposeInMainWorld('md2GithubAuth', githubAuthBridge)

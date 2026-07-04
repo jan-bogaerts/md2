@@ -1,4 +1,4 @@
-{
+﻿{
   "name": "desktop",
   "version": "1.0.0",
   "private": true,
@@ -7,7 +7,7 @@
   "scripts": {
     "lint": "eslint .",
     "lint-fix": "eslint . --fix",
-    "start": "node start-electron.js",
+    "start": "node start_electron.js",
     "test": "vitest run"
   },
   "keywords": [],

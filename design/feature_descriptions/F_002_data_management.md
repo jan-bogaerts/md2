@@ -21,7 +21,7 @@ Only the design notes exist. There is no React app, Electron bridge, data servic
 - Implement a local Git storage service exposed by Electron for opening a local `.git` folder, reading/writing files, running Git commands and watching file changes.
 - Project create/open loads the configured working folder, defaults to `design`, asks for another folder if missing, and can create template content when no folder exists.
 - Card creation writes a markdown file in the working folder using `{id}-{title}.md`; ids are configurable per card type and default to `F-{number}`, `J-{number}`, `B-{number}` using the next available number across the folder and subfolders.
-- Project load reads root markdown headers first for active cards, then reads subfolder headers in the background for search/history data.
+- Project load reads root markdown headers first for active cards, then reads subfolder headers in the background for search/history data. Header parsing and active/background splitting go through the shared parsing service.
 - Auto-save file edits, but batch commits so normal typing commits at most every 30 seconds; force a final commit on close.
 - Support auto-push and manual-push modes. Manual mode exposes a push command in the menu.
 - Auto-load the last project on app start and allow branch switching from the menu.
@@ -41,3 +41,4 @@ Only the design notes exist. There is no React app, Electron bridge, data servic
 - `design\architecture\initial description\data management.md`
 - `design\architecture\initial description\overview.md`
 - `design\architecture\initial description\desktop app.md`
+- `design\architecture\parsing_service.md`

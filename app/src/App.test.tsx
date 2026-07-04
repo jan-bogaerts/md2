@@ -1,8 +1,8 @@
-import { cleanup, render, screen } from '@testing-library/react'
+﻿import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { App } from './App'
+import { App } from './app'
 
-vi.mock('./auth/useGithubAuth', () => ({
+vi.mock('./auth/use_github_auth', () => ({
     useGithubAuth: () => ({
         accessToken: null,
         deviceCode: null,

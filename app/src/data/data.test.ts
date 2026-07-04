@@ -1,12 +1,12 @@
-import { describe, expect, it, vi } from 'vitest'
-import { CommitBatcher } from './CommitBatcher'
-import { createCardFile, getNextCardNumber } from './cardNaming'
-import { DataService } from './DataService'
-import { DEFAULT_CARD_TYPES, type CommitRequest, type MarkdownFile, type StorageService } from './dataTypes'
-import { followsCardNamingConvention, parseMarkdownCard, splitProjectCards } from './markdownHeaders'
+﻿import { describe, expect, it, vi } from 'vitest'
+import { CommitBatcher } from './commit_batcher'
+import { createCardFile, getNextCardNumber } from './card_naming'
+import { DataService } from '../services/data_service'
+import { DEFAULT_CARD_TYPES, type CommitRequest, type MarkdownFile, type StorageService } from './data_types'
+import { followsCardNamingConvention, parseMarkdownCard, splitProjectCards } from './markdown_headers'
 
 const files: MarkdownFile[] = [
-    { content: '---\nid: F-1\ntitle: Root\nstatus: active\naffects:\n  - app/src/App.tsx\n---\n\n# Root', path: 'design/F-1-root.md' },
+    { content: '---\nid: F-1\ntitle: Root\nstatus: active\naffects:\n  - app/src/app.tsx\n---\n\n# Root', path: 'design/F-1-root.md' },
     { content: '# Old', path: 'design/history/F-3-old.md' },
     { content: '# Imported', path: 'design/free note.md' },
 ]
@@ -29,7 +29,7 @@ describe('markdownHeaders', () => {
 
         expect(card.isActive).toBe(true)
         expect(card.header).toMatchObject({
-            affects: ['app/src/App.tsx'],
+            affects: ['app/src/app.tsx'],
             id: 'F-1',
             status: 'active',
             title: 'Root',
@@ -96,7 +96,8 @@ describe('CommitBatcher', () => {
 describe('DataService', () => {
     it('creates cards with commits and auto-pushes when configured', async () => {
         const storage = createStorage()
-        const service = new DataService({ storage })
+        const service = new DataService()
+        service.init({ storage })
 
         await service.openProject({ branch: 'main', id: 'project' })
         await service.createCard({ body: 'Body', title: 'New Card', type: 'feature' })
@@ -107,7 +108,8 @@ describe('DataService', () => {
 
     it('leaves commits unpushed in manual mode', async () => {
         const storage = createStorage()
-        const service = new DataService({ config: { cardTypes: DEFAULT_CARD_TYPES, pushMode: 'manual', workingFolder: 'design' }, storage })
+        const service = new DataService()
+        service.init({ config: { cardTypes: DEFAULT_CARD_TYPES, pushMode: 'manual', workingFolder: 'design' }, storage })
 
         await service.openProject({ branch: 'main', id: 'project' })
         await service.createCard({ body: 'Body', title: 'New Card', type: 'feature' })
