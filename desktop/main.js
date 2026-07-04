@@ -1,10 +1,15 @@
-const { app, BrowserWindow, dialog, ipcMain, Menu } = require('electron')
+const { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme } = require('electron')
 const path = require('node:path')
+const Store = require('electron-store')
 const { resolveAppUrl } = require('./config')
+const { THEME_MODE_STORE_KEY, resolveThemeMode, resolveTitleBarOverlay } = require('./theme')
 
 const appUrl = resolveAppUrl()
 const DATA_OPEN_PROJECT_FOLDER_CHANNEL = 'md2-data:open-project-folder'
 const DATA_MENU_PUSH_CHANNEL = 'md2-data:menu-push'
+const THEME_SET_MODE_CHANNEL = 'md2-theme:set-mode'
+
+const store = new Store()
 
 async function openProjectFolder(window) {
     const result = await dialog.showOpenDialog(window, {
@@ -25,6 +30,18 @@ function registerDataBridge() {
     })
 }
 
+/** Keep the persisted mode, native theme source and window controls in sync with the renderer. */
+function registerThemeBridge() {
+    ipcMain.on(THEME_SET_MODE_CHANNEL, (event, incomingMode) => {
+        const mode = resolveThemeMode(incomingMode)
+        store.set(THEME_MODE_STORE_KEY, mode)
+        nativeTheme.themeSource = mode
+
+        const window = BrowserWindow.fromWebContents(event.sender)
+        window?.setTitleBarOverlay?.(resolveTitleBarOverlay(mode))
+    })
+}
+
 function createAppMenu() {
     const template = [
         {
@@ -42,9 +59,14 @@ function createAppMenu() {
 }
 
 function createWindow() {
+    const mode = resolveThemeMode(store.get(THEME_MODE_STORE_KEY))
+    nativeTheme.themeSource = mode
+
     const window = new BrowserWindow({
         width: 1280,
         height: 900,
+        titleBarStyle: 'hidden',
+        titleBarOverlay: resolveTitleBarOverlay(mode),
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
             nodeIntegration: false,
@@ -58,6 +80,7 @@ function createWindow() {
 
 app.whenReady().then(() => {
     registerDataBridge()
+    registerThemeBridge()
     createAppMenu()
     createWindow()
 

@@ -4,6 +4,7 @@ const localGitService = require('./local_git_service')
 
 const DATA_OPEN_PROJECT_FOLDER_CHANNEL = 'md2-data:open-project-folder'
 const DATA_MENU_PUSH_CHANNEL = 'md2-data:menu-push'
+const THEME_SET_MODE_CHANNEL = 'md2-theme:set-mode'
 
 let currentLocalProject = null
 
@@ -21,6 +22,10 @@ const githubAuthBridge = {
 }
 
 window.md2GithubAuth = githubAuthBridge
+
+const themeBridge = { setThemeMode: (mode) => ipcRenderer.send(THEME_SET_MODE_CHANNEL, mode) }
+
+window.md2Theme = themeBridge
 
 const dataBridge = {
     checkoutBranch: async (project, branch) => {

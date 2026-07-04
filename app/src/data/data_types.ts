@@ -1,3 +1,5 @@
+import { DEFAULT_COLOR_SCHEME } from '../theme/theme_config'
+
 export const DEFAULT_WORKING_FOLDER = 'design'
 export const AUTO_COMMIT_DELAY_MS = 30000
 
@@ -5,6 +7,7 @@ export type CardType = 'feature' | 'job' | 'bug'
 export type PushMode = 'auto' | 'manual'
 
 export interface CardTypeConfig {
+    color: string
     idPrefix: string
     label: string
     type: CardType
@@ -84,10 +87,12 @@ export interface StorageService {
     watchProject?(project: ProjectReference, onChange: () => void): () => void
 }
 
+const BUG_CARD_COLOR = '#d32f2f'
+
 export const DEFAULT_CARD_TYPES: CardTypeConfig[] = [
-    { idPrefix: 'F', label: 'Feature', type: 'feature' },
-    { idPrefix: 'J', label: 'Job', type: 'job' },
-    { idPrefix: 'B', label: 'Bug', type: 'bug' },
+    { color: DEFAULT_COLOR_SCHEME.primary.regular, idPrefix: 'F', label: 'Feature', type: 'feature' },
+    { color: DEFAULT_COLOR_SCHEME.secondary.regular, idPrefix: 'J', label: 'Job', type: 'job' },
+    { color: BUG_CARD_COLOR, idPrefix: 'B', label: 'Bug', type: 'bug' },
 ]
 
 export const DEFAULT_PROJECT_CONFIG: ProjectConfig = {

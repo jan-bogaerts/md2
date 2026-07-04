@@ -1,4 +1,4 @@
-﻿{
+{
   "name": "desktop",
   "version": "1.0.0",
   "private": true,
@@ -20,5 +20,8 @@
     "eslint-plugin-import": "^2.32.0",
     "globals": "^17.7.0",
     "vitest": "^4.1.9"
+  },
+  "dependencies": {
+    "electron-store": "^8.2.0"
   }
 }

@@ -1,7 +1,7 @@
 ---
 id: F-018
 title: styling and theming
-status: design
+status: ready
 owner: JB
 affects:
 policy:
