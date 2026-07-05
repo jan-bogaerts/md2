@@ -272,6 +272,7 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
                         <TextView
                             activeCards={activeCards}
                             backgroundCards={backgroundCards}
+                            cardTypes={cardTypes}
                             isMobile={isMobile}
                             onBodyChange={handleBodyChange}
                             requestedNonce={requestedNonce}

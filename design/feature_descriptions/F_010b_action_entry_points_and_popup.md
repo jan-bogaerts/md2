@@ -1,7 +1,7 @@
 ---
 id: F-010b
 title: action entry points and popup
-status: design
+status: ready
 owner: JB
 affects:
 policy:

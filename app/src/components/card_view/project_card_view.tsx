@@ -2,7 +2,9 @@ import { Box, Button, Collapse, IconButton, Stack, TextField, Tooltip, Typograph
 import { useSortable } from '@dnd-kit/sortable'
 import { useState } from 'react'
 import type { KeyboardEvent, MouseEvent } from 'react'
-import type { ProjectCard } from '../../data/data_types'
+import type { CardTypeConfig, ProjectCard } from '../../data/data_types'
+import { cardContext } from '../../data/action_context'
+import { ActionEntryPoints } from '../actions/action_entry_points'
 import { CardBodyEditor } from './card_body_editor'
 import { PolicyLed } from './policy_led'
 
@@ -18,6 +20,7 @@ export interface CardHandlers {
 
 interface ProjectCardViewProps extends CardHandlers {
     card: ProjectCard
+    cardTypes: CardTypeConfig[]
     color?: string
     isBodyOpen: boolean
     isMobile: boolean
@@ -26,7 +29,8 @@ interface ProjectCardViewProps extends CardHandlers {
 
 /** A single card: type-color line, id + title, policy leds, drag handle and body access. */
 export function ProjectCardView(props: ProjectCardViewProps) {
-    const { card, color, isBodyOpen, isMobile, onBodyChange, onOpenBody, onOpenInFileMode, onTogglePolicy, onTitleChange } = props
+    const { card, cardTypes, color, isBodyOpen, isMobile, onBodyChange, onOpenBody, onOpenInFileMode } = props
+    const { onTogglePolicy, onTitleChange } = props
     const { isSelected } = props
     const { attributes, isDragging, listeners, setNodeRef, transform, transition } = useSortable({ id: card.path })
     const [isEditingTitle, setIsEditingTitle] = useState(false)
@@ -116,7 +120,7 @@ export function ProjectCardView(props: ProjectCardViewProps) {
                             </Typography>
                         )}
                     </Box>
-                    <Stack direction="row" spacing={0.5} sx={{ flexShrink: 0, pt: 0.5 }}>
+                    <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center', flexShrink: 0, pt: 0.5 }}>
                         {policyKeys.map((policyKey) => (
                             <PolicyLed
                                 key={policyKey}
@@ -125,6 +129,7 @@ export function ProjectCardView(props: ProjectCardViewProps) {
                                 policyKey={policyKey}
                             />
                         ))}
+                        <ActionEntryPoints context={cardContext(card, cardTypes)} variant="icons" />
                     </Stack>
                 </Stack>
                 {isMobile ? (

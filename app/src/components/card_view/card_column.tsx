@@ -44,6 +44,7 @@ export function CardColumn(props: CardColumnProps) {
                         <ProjectCardView
                             key={card.path}
                             card={card}
+                            cardTypes={cardTypes}
                             color={getCardTypeColor(cardTypes, card.header.id)}
                             isBodyOpen={openBodyPath === card.path}
                             isMobile={isMobile}

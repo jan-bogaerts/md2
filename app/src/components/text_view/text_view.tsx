@@ -2,7 +2,7 @@ import { Box, Button, Drawer, Paper, Typography } from '@mui/material'
 import FolderOutline from 'mdi-material-ui/FolderOutline'
 import { useEffect, useMemo, useState } from 'react'
 import { buildFileTree, fileLabel } from '../../data/file_tree'
-import type { ProjectCard } from '../../data/data_types'
+import type { CardTypeConfig, ProjectCard } from '../../data/data_types'
 import { MarkdownEditor } from '../editor/markdown_editor'
 import { FileTreeView } from './file_tree_view'
 import { TabBar, type OpenTab } from './tab_bar'
@@ -13,6 +13,7 @@ const TREE_WIDTH = 280
 interface TextViewProps {
     activeCards: ProjectCard[]
     backgroundCards: ProjectCard[]
+    cardTypes: CardTypeConfig[]
     isMobile: boolean
     onBodyChange: (path: string, body: string) => void
     requestedNonce: number
@@ -28,7 +29,7 @@ function tabLabel(cardsByPath: Map<string, ProjectCard>, path: string): string {
 
 /** Text view: a folder/status tree plus tabbed, editable open files. */
 export function TextView(props: TextViewProps) {
-    const { activeCards, backgroundCards, isMobile, onBodyChange, requestedNonce, requestedPath, workingFolder } = props
+    const { activeCards, backgroundCards, cardTypes, isMobile, onBodyChange, requestedNonce, requestedPath, workingFolder } = props
     const { activePath, activateTab, closeTab, openTab, tabs } = useOpenTabs()
     const [isTreeOpen, setIsTreeOpen] = useState(false)
 
@@ -62,7 +63,7 @@ export function TextView(props: TextViewProps) {
 
     const treeContent = (
         <Box aria-label="File tree" sx={{ overflow: 'auto' }}>
-            <FileTreeView nodes={tree} onSelect={handleSelect} selectedPath={activePath} />
+            <FileTreeView cardTypes={cardTypes} cardsByPath={cardsByPath} nodes={tree} onSelect={handleSelect} selectedPath={activePath} />
         </Box>
     )
 

@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { TextView } from './text_view'
-import type { ProjectCard } from '../../data/data_types'
+import { DEFAULT_CARD_TYPES, type ProjectCard } from '../../data/data_types'
 
 function card(path: string, overrides: Partial<ProjectCard['header']> = {}, content = ''): ProjectCard {
     return {
@@ -36,6 +36,7 @@ function renderTextView(overrides: Partial<Parameters<typeof TextView>[0]> = {})
         <TextView
             activeCards={activeCards}
             backgroundCards={backgroundCards}
+            cardTypes={DEFAULT_CARD_TYPES}
             isMobile={false}
             onBodyChange={onBodyChange}
             requestedNonce={0}
@@ -107,7 +108,7 @@ describe('TextView', () => {
     })
 
     it('opens the requested file when the open nonce changes', () => {
-        const shared = { activeCards, backgroundCards, isMobile: false, onBodyChange: vi.fn(), workingFolder: 'design' }
+        const shared = { activeCards, backgroundCards, cardTypes: DEFAULT_CARD_TYPES, isMobile: false, onBodyChange: vi.fn(), workingFolder: 'design' }
         const { rerender } = render(<TextView {...shared} requestedNonce={0} requestedPath={null} />)
 
         rerender(<TextView {...shared} requestedNonce={1} requestedPath="design/F-2-b.md" />)
@@ -131,6 +132,7 @@ describe('TextView', () => {
             <TextView
                 activeCards={activeCards}
                 backgroundCards={backgroundCards}
+                cardTypes={DEFAULT_CARD_TYPES}
                 isMobile
                 onBodyChange={vi.fn()}
                 requestedNonce={0}
