@@ -1,7 +1,7 @@
 ---
 id: F-019
 title: telemetry
-status: design
+status: ready
 owner: JB
 affects:
 policy:

@@ -2,6 +2,7 @@ const { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme } = require('elec
 const path = require('node:path')
 const Store = require('electron-store')
 const { resolveAppUrl } = require('./config')
+const { flush, registerProcessErrorHandlers, startElectronTelemetry, trackEvent } = require('./telemetry')
 const { THEME_MODE_STORE_KEY, resolveThemeMode, resolveTitleBarOverlay } = require('./theme')
 
 const appUrl = resolveAppUrl()
@@ -10,6 +11,10 @@ const DATA_MENU_PUSH_CHANNEL = 'md2-data:menu-push'
 const THEME_SET_MODE_CHANNEL = 'md2-theme:set-mode'
 
 const store = new Store()
+const electronTelemetryStarted = startElectronTelemetry()
+let isQuittingAfterTelemetry = false
+
+registerProcessErrorHandlers()
 
 async function openProjectFolder(window) {
     const result = await dialog.showOpenDialog(window, {
@@ -78,7 +83,17 @@ function createWindow() {
     window.loadURL(appUrl)
 }
 
-app.whenReady().then(() => {
+async function stopAndQuit() {
+    if (isQuittingAfterTelemetry) return
+
+    isQuittingAfterTelemetry = true
+    await trackEvent('electron_stop')
+    await flush()
+    app.quit()
+}
+
+app.whenReady().then(async () => {
+    await electronTelemetryStarted
     registerDataBridge()
     registerThemeBridge()
     createAppMenu()
@@ -95,4 +110,11 @@ app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
         app.quit()
     }
+})
+
+app.on('before-quit', (event) => {
+    if (isQuittingAfterTelemetry) return
+
+    event.preventDefault()
+    void stopAndQuit()
 })

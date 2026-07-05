@@ -20,6 +20,7 @@ import { agentConversationService, loadAgentConversation } from './agent_convers
 import { configService } from './config_service'
 import { markdownParsingService } from './markdown_parsing_service'
 import { register } from './service_injector'
+import { telemetryService } from './telemetry_service'
 
 const ACTION_RELOAD_DEBOUNCE_MS = 150
 const JSON_EXTENSION = '.json'
@@ -113,6 +114,7 @@ export class DataService extends EventTarget {
         const { config, storage } = this.requireDependencies()
         this.currentProject = await storage.createProject(project, config.workingFolder)
         await storage.saveProjectConfig(this.currentProject, config)
+        telemetryService.trackEvent('create_project')
 
         return this.openProject(this.currentProject)
     }
@@ -130,6 +132,7 @@ export class DataService extends EventTarget {
         this.currentSnapshot = await this.createSnapshot(projectFiles.files, projectFiles.workingFolder)
         this.startProjectWatch()
         this.dispatchChanged()
+        telemetryService.trackEvent('open_project')
 
         return this.currentSnapshot
     }
@@ -165,6 +168,7 @@ export class DataService extends EventTarget {
         if (config.pushMode === 'auto') await storage.push(this.currentProject)
 
         this.refreshSnapshot()
+        telemetryService.trackEvent('create_card')
 
         return file
     }

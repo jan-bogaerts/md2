@@ -3,6 +3,7 @@ import FolderOutline from 'mdi-material-ui/FolderOutline'
 import { useEffect, useMemo, useState } from 'react'
 import { buildFileTree, fileLabel } from '../../data/file_tree'
 import type { AgentConversation, CardTypeConfig, ProjectCard } from '../../data/data_types'
+import { telemetryService } from '../../services/telemetry_service'
 import { AgentConversationList } from '../agents/agent_conversation_list'
 import { MarkdownEditor } from '../editor/markdown_editor'
 import { FileTreeView } from './file_tree_view'
@@ -69,6 +70,12 @@ export function TextView(props: TextViewProps) {
     const handleSelect = (path: string) => {
         openTab(path)
         setIsTreeOpen(false)
+        telemetryService.trackEvent('navigation')
+    }
+
+    const handleActivateTab = (path: string) => {
+        activateTab(path)
+        telemetryService.trackEvent('navigation')
     }
 
     const handleEditorChange = (body: string) => {
@@ -91,7 +98,7 @@ export function TextView(props: TextViewProps) {
 
     const editorPane = (
         <Box sx={{ display: 'flex', flex: 1, flexDirection: 'column', minWidth: 0 }}>
-            <TabBar activePath={activePath} onActivate={activateTab} onClose={closeTab} tabs={openTabs} />
+            <TabBar activePath={activePath} onActivate={handleActivateTab} onClose={closeTab} tabs={openTabs} />
             <Stack direction="row" spacing={1} sx={{ alignItems: 'center', borderBottom: 1, borderColor: 'divider', px: 2, py: 1 }}>
                 <Button
                     disabled={!activeCard}

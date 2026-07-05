@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/rea
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { TextView } from './text_view'
 import { DEFAULT_CARD_TYPES, type AgentConversation, type ProjectCard } from '../../data/data_types'
+import { telemetryService } from '../../services/telemetry_service'
 
 function conversation(): AgentConversation {
     return {
@@ -86,12 +87,16 @@ describe('TextView', () => {
     })
 
     it('opens a file in a tab when its tree node is clicked', () => {
+        const trackEvent = vi.spyOn(telemetryService, 'trackEvent').mockImplementation(() => undefined)
         renderTextView()
 
         clickTreeFile('F-1 Alpha')
 
         expect(screen.getByRole('tab', { name: /Alpha/ })).toBeInTheDocument()
         expect(screen.getByDisplayValue(/Body A/)).toBeInTheDocument()
+        expect(trackEvent).toHaveBeenCalledWith('navigation')
+
+        trackEvent.mockRestore()
     })
 
     it('focuses the existing tab instead of duplicating when a file is reopened', () => {

@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/rea
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { CardView } from './card_view'
 import { DEFAULT_CARD_TYPES, type AgentConversation, type ProjectCard } from '../../data/data_types'
+import { telemetryService } from '../../services/telemetry_service'
 
 function conversation(): AgentConversation {
     return {
@@ -92,6 +93,7 @@ describe('CardView', () => {
     })
 
     it('opens the body in a dialog on desktop when a card is clicked', () => {
+        const trackEvent = vi.spyOn(telemetryService, 'trackEvent').mockImplementation(() => undefined)
         renderCardView()
 
         fireEvent.click(screen.getByText('First'))
@@ -99,6 +101,9 @@ describe('CardView', () => {
         const dialog = screen.getByRole('dialog')
         expect(within(dialog).getByText('F-1 First')).toBeInTheDocument()
         expect(within(dialog).getByDisplayValue(/Body of F-1/)).toBeInTheDocument()
+        expect(trackEvent).toHaveBeenCalledWith('navigation')
+
+        trackEvent.mockRestore()
     })
 
     it('routes the file-mode action from the dialog to the callback', () => {

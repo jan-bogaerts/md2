@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ProjectWorkspace } from './project_workspace'
 import type { ElectronDataBridge } from '../data/electron_data_bridge'
 import { configService } from '../services/config_service'
+import { telemetryService } from '../services/telemetry_service'
 import { workspaceNavigationService } from '../services/workspace_navigation_service'
 
 function createBridge(): ElectronDataBridge {
@@ -78,6 +79,7 @@ describe('ProjectWorkspace', () => {
 
     it('switches to the text view from the view toggle', async () => {
         window.md2Data = createBridge()
+        const trackEvent = vi.spyOn(telemetryService, 'trackEvent').mockImplementation(() => undefined)
 
         render(<ProjectWorkspace accessToken={null} isGithubAuthenticated={false} />)
         fireEvent.click(screen.getByRole('button', { name: 'Open Local' }))
@@ -86,10 +88,14 @@ describe('ProjectWorkspace', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Text' }))
 
         expect(screen.getByLabelText('File tree')).toBeInTheDocument()
+        expect(trackEvent).toHaveBeenCalledWith('navigation')
+
+        trackEvent.mockRestore()
     })
 
     it('reveals a navigated card and keeps the current card view', async () => {
         window.md2Data = createBridge()
+        const trackEvent = vi.spyOn(telemetryService, 'trackEvent').mockImplementation(() => undefined)
 
         render(<ProjectWorkspace accessToken={null} isGithubAuthenticated={false} />)
         fireEvent.click(screen.getByRole('button', { name: 'Open Local' }))
@@ -101,5 +107,8 @@ describe('ProjectWorkspace', () => {
         const selected = document.querySelector('[data-selected="true"]')
         expect(selected).not.toBeNull()
         expect(selected).toHaveTextContent('Root')
+        expect(trackEvent).toHaveBeenCalledWith('navigation')
+
+        trackEvent.mockRestore()
     })
 })

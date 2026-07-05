@@ -4,6 +4,7 @@ import type { DragEndEvent } from '@dnd-kit/core'
 import { useMemo, useState } from 'react'
 import { groupByStatus } from '../../data/card_ordering'
 import type { AgentConversation, CardTypeConfig, ProjectCard } from '../../data/data_types'
+import { telemetryService } from '../../services/telemetry_service'
 import { CardBodyDialog } from './card_body_dialog'
 import { CardColumn } from './card_column'
 import { resolveDrop } from './card_drag'
@@ -43,6 +44,7 @@ export function CardView(props: CardViewProps) {
 
     const handleOpenBody = (path: string) => {
         setOpenBodyPath((current) => (current === path ? null : path))
+        telemetryService.trackEvent('navigation')
     }
 
     const handleDragEnd = (event: DragEndEvent) => {

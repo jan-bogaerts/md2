@@ -7,6 +7,7 @@ import { actionRunner } from '../services/action_runner'
 import { configService } from '../services/config_service'
 import { DataService } from '../services/data_service'
 import { markdownParsingService } from '../services/markdown_parsing_service'
+import { telemetryService } from '../services/telemetry_service'
 import {
     DEFAULT_CARD_BODY_TEMPLATE,
     DEFAULT_CARD_TYPES,
@@ -135,6 +136,43 @@ describe('DataService', () => {
 
         expect(storage.commit).toHaveBeenCalledWith(expect.objectContaining({ message: 'Create design/F-4-new-card.md' }) as CommitRequest)
         expect(storage.push).toHaveBeenCalledWith({ branch: 'main', id: 'project' })
+    })
+
+    it('emits usage events after project and card operations succeed', async () => {
+        configService.init()
+        const storage = createStorage()
+        const service = new DataService()
+        const trackEvent = vi.spyOn(telemetryService, 'trackEvent').mockImplementation(() => undefined)
+
+        service.init({ storage })
+        await service.createProject({ branch: 'main', id: 'project' })
+        await service.createCard({ body: 'Body', title: 'New Card', type: 'feature' })
+
+        expect(trackEvent).toHaveBeenCalledWith('create_project')
+        expect(trackEvent).toHaveBeenCalledWith('open_project')
+        expect(trackEvent).toHaveBeenCalledWith('create_card')
+
+        trackEvent.mockRestore()
+    })
+
+    it('does not emit create card usage when persistence fails', async () => {
+        configService.init()
+        const storage = createStorage({
+            commit: vi.fn(async () => {
+                throw new Error('commit failed')
+            }),
+        })
+        const service = new DataService()
+        const trackEvent = vi.spyOn(telemetryService, 'trackEvent').mockImplementation(() => undefined)
+
+        service.init({ storage })
+        await service.openProject({ branch: 'main', id: 'project' })
+        trackEvent.mockClear()
+
+        await expect(service.createCard({ body: 'Body', title: 'New Card', type: 'feature' })).rejects.toThrow('commit failed')
+        expect(trackEvent).not.toHaveBeenCalledWith('create_card')
+
+        trackEvent.mockRestore()
     })
 
     it('leaves commits unpushed in manual mode', async () => {

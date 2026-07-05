@@ -19,6 +19,7 @@ import { getElectronDataBridge } from '../data/electron_data_bridge'
 import { configService } from '../services/config_service'
 import { dataService } from '../services/data_service'
 import { getElectronConfigBridge } from '../services/electron_config_bridge'
+import { telemetryService } from '../services/telemetry_service'
 import { workspaceNavigationService, type WorkspaceOpenRequest } from '../services/workspace_navigation_service'
 import { CardView } from './card_view/card_view'
 import { TextView } from './text_view/text_view'
@@ -120,6 +121,7 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
             setSelectedPath(path)
             setRequestedPath(path)
             setRequestedNonce((nonce) => nonce + 1)
+            telemetryService.trackEvent('navigation')
         }
 
         workspaceNavigationService.addEventListener('open', handleNavigationOpen)
@@ -222,10 +224,14 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
         setRequestedPath(path)
         setRequestedNonce((nonce) => nonce + 1)
         setViewMode('text')
+        telemetryService.trackEvent('navigation')
     }
 
     const handleViewModeChange = (_event: MouseEvent<HTMLElement>, nextMode: WorkspaceViewMode | null) => {
-        if (nextMode) setViewMode(nextMode)
+        if (!nextMode || nextMode === viewMode) return
+
+        setViewMode(nextMode)
+        telemetryService.trackEvent('navigation')
     }
 
     return (
