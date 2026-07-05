@@ -71,6 +71,11 @@ const dataBridge = {
 
 window.md2Data = dataBridge
 
-const actionBridge = { runCommand: (command) => localGitService.runCommand(currentLocalProject, command) }
+const actionBridge = {
+    appendActionRunHistory: (request, entry) => localGitService.appendActionRunHistory(currentLocalProject, request, entry),
+    loadActionRunHistory: (request) => localGitService.loadActionRunHistory(currentLocalProject, request),
+    runAgent: (request) => localGitService.runAgent(currentLocalProject, request),
+    runCommand: (command) => localGitService.runCommand(currentLocalProject, command),
+}
 
 window.md2Actions = actionBridge

@@ -1,7 +1,7 @@
 ---
 id: F-010d
 title: agent actions
-status: design
+status: ready
 owner: JB
 affects:
 policy:

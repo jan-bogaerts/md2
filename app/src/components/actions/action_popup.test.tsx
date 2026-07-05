@@ -32,10 +32,21 @@ const completedResult: ActionRunResult = {
 function renderPopup(overrides: Partial<Parameters<typeof ActionPopup>[0]> = {}) {
     const onNavigate = vi.fn()
     const onClose = vi.fn()
+    const loadHistory = vi.fn(async () => [])
     const runAction = vi.fn(async () => completedResult)
-    render(<ActionPopup action={action('Implement')} context={context} onClose={onClose} onNavigate={onNavigate} runAction={runAction} {...overrides} />)
+    render(
+        <ActionPopup
+            action={action('Implement')}
+            context={context}
+            loadHistory={loadHistory}
+            onClose={onClose}
+            onNavigate={onNavigate}
+            runAction={runAction}
+            {...overrides}
+        />,
+    )
 
-    return { onClose, onNavigate, runAction }
+    return { loadHistory, onClose, onNavigate, runAction }
 }
 
 describe('ActionPopup', () => {
@@ -57,7 +68,39 @@ describe('ActionPopup', () => {
         expect(screen.getByRole('status')).toHaveTextContent('running')
         await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('completed'))
         expect(screen.getByRole('status')).toHaveTextContent('main: Implement completed')
-        expect(runAction).toHaveBeenCalledWith(expect.objectContaining({ name: 'Implement' }), context)
+        expect(runAction).toHaveBeenCalledWith(expect.objectContaining({ name: 'Implement' }), context, { extraPrompt: '' })
+    })
+
+    it('passes extra prompt input when running an agent action', async () => {
+        const { runAction } = renderPopup({ action: action('Implement', { type: 'agent' }) })
+
+        fireEvent.change(screen.getByLabelText('Extra prompt'), { target: { value: 'focus tests' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Run' }))
+
+        const expectedInput = { extraPrompt: 'focus tests' }
+        await waitFor(() => expect(runAction).toHaveBeenCalledWith(expect.objectContaining({ name: 'Implement' }), context, expectedInput))
+    })
+
+    it('shows previous run history for an agent action', async () => {
+        renderPopup({
+            action: action('Implement', { type: 'agent' }),
+            loadHistory: vi.fn(async () => [{ completedAt: '2026-07-05T10:00:00.000Z', output: 'done', prompt: 'run', status: 'completed' }]),
+        })
+
+        expect(screen.getByText('Run history')).toBeInTheDocument()
+        await waitFor(() => expect(screen.getByText('completed: done')).toBeInTheDocument())
+    })
+
+    it('converts extra prompt input to an action file', async () => {
+        const convertPromptToAction = vi.fn(async () => ({ path: 'actions/custom-review.json' }))
+        renderPopup({ action: action('Custom prompt', { text: '{{prompt}}', type: 'agent' }), convertPromptToAction })
+
+        fireEvent.change(screen.getByLabelText('Extra prompt'), { target: { value: 'review this file' } })
+        fireEvent.change(screen.getByLabelText('Action label'), { target: { value: 'Custom review' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Convert to action' }))
+
+        await waitFor(() => expect(screen.getByText('Saved actions/custom-review.json')).toBeInTheDocument())
+        expect(convertPromptToAction).toHaveBeenCalledWith({ context, label: 'Custom review', prompt: 'review this file' })
     })
 
     it('shows before and after shortcuts and navigates to them with the same context', () => {

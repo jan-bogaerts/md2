@@ -193,6 +193,21 @@ export class DataService extends EventTarget {
         return file
     }
 
+    async saveProjectFile(file: MarkdownFile, message: string) {
+        const { config, storage } = this.requireDependencies()
+        if (!this.currentProject) throw new Error('Cannot save a project file before a project is open')
+
+        await storage.commit({
+            branch: this.currentProject.branch,
+            files: [file],
+            message,
+        })
+
+        if (config.pushMode === 'auto') await storage.push(this.currentProject)
+
+        return file
+    }
+
     async flushPendingCommits() {
         const { commitBatcher } = this.requireDependencies()
         await commitBatcher.flush()

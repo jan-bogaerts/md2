@@ -1,9 +1,11 @@
-import { Box, Button, Dialog, Divider, Stack, Typography } from '@mui/material'
+import { Box, Button, Dialog, Divider, Stack, TextField, Typography } from '@mui/material'
 import { useEffect, useRef, useState } from 'react'
+import type { ChangeEvent } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import type { ActionContext } from '../../data/action_context'
 import type { ActionDefinition } from '../../data/action_types'
-import { actionRunner, type ActionRunResult } from '../../services/action_runner'
+import type { ActionRunHistoryEntry } from '../../data/electron_action_bridge'
+import { actionRunner, type ActionRunInput, type ActionRunResult, type ConvertPromptToActionInput } from '../../services/action_runner'
 
 /** Which lower corner the resize handle sits in, chosen by the popup's screen position. */
 export type ResizeCorner = 'lower-left' | 'lower-right'
@@ -13,9 +15,12 @@ const MIN_HEIGHT = 200
 const DEFAULT_WIDTH = 420
 const DEFAULT_HEIGHT = 320
 const HANDLE_SIZE = 16
+const DEFAULT_CONVERT_LABEL_LENGTH = 40
 
 type PopupRunStatus = 'idle' | 'running' | ActionRunResult['status']
-type RunAction = (action: ActionDefinition, context: ActionContext) => Promise<ActionRunResult>
+type ConvertPromptToAction = (input: ConvertPromptToActionInput) => Promise<{ path: string }>
+type LoadHistory = (action: ActionDefinition, context: ActionContext) => Promise<ActionRunHistoryEntry[]>
+type RunAction = (action: ActionDefinition, context: ActionContext, input?: ActionRunInput) => Promise<ActionRunResult>
 
 interface ActionPopupProps {
     action: ActionDefinition
@@ -23,6 +28,8 @@ interface ActionPopupProps {
     /** Open a new popup for a related (`before`/`after`) action with the same context. */
     onNavigate: (action: ActionDefinition) => void
     onClose: () => void
+    convertPromptToAction?: ConvertPromptToAction
+    loadHistory?: LoadHistory
     /** Lower corner to place the resize handle; defaults to lower-right. */
     resizeCorner?: ResizeCorner
     runAction?: RunAction
@@ -53,8 +60,16 @@ function RelatedActions(props: RelatedActionsProps) {
     )
 }
 
-function defaultRunAction(action: ActionDefinition, context: ActionContext) {
-    return actionRunner.run(action, context)
+function defaultRunAction(action: ActionDefinition, context: ActionContext, input?: ActionRunInput) {
+    return actionRunner.run(action, context, input)
+}
+
+function defaultLoadHistory(action: ActionDefinition, context: ActionContext) {
+    return actionRunner.loadHistory(action, context)
+}
+
+function defaultConvertPromptToAction(input: ConvertPromptToActionInput) {
+    return actionRunner.convertPromptToAction(input)
 }
 
 function statusColor(status: PopupRunStatus) {
@@ -72,8 +87,15 @@ function statusColor(status: PopupRunStatus) {
  */
 export function ActionPopup(props: ActionPopupProps) {
     const { action, context, onClose, onNavigate } = props
+    const convertPromptToAction = props.convertPromptToAction ?? defaultConvertPromptToAction
+    const loadHistory = props.loadHistory ?? defaultLoadHistory
     const resizeCorner = props.resizeCorner ?? 'lower-right'
     const runAction = props.runAction ?? defaultRunAction
+    const [actionLabel, setActionLabel] = useState('')
+    const [convertMessage, setConvertMessage] = useState<string | null>(null)
+    const [extraPrompt, setExtraPrompt] = useState('')
+    const [history, setHistory] = useState<ActionRunHistoryEntry[]>([])
+    const [historyError, setHistoryError] = useState<string | null>(null)
     const [size, setSize] = useState({ height: DEFAULT_HEIGHT, width: DEFAULT_WIDTH })
     const [runResult, setRunResult] = useState<ActionRunResult | null>(null)
     const [runStatus, setRunStatus] = useState<PopupRunStatus>('idle')
@@ -81,14 +103,37 @@ export function ActionPopup(props: ActionPopupProps) {
 
     useEffect(() => () => resizeRef.current?.abort(), [])
 
+    useEffect(() => {
+        if (action.type !== 'agent') return
+
+        let isActive = true
+
+        async function loadAgentHistory() {
+            setHistoryError(null)
+            try {
+                const entries = await loadHistory(action, context)
+                if (isActive) setHistory(entries)
+            } catch (error) {
+                if (isActive) setHistoryError(error instanceof Error ? error.message : 'Could not load run history')
+            }
+        }
+
+        void loadAgentHistory()
+
+        return () => {
+            isActive = false
+        }
+    }, [action, context, loadHistory])
+
     const handleRun = async () => {
         setRunStatus('running')
         setRunResult(null)
 
         try {
-            const result = await runAction(action, context)
+            const result = await runAction(action, context, { extraPrompt })
             setRunResult(result)
             setRunStatus(result.status)
+            if (action.type === 'agent') setHistory(await loadHistory(action, context))
         } catch (error) {
             const message = error instanceof Error ? error.message : 'Action run failed'
             setRunResult({
@@ -96,6 +141,27 @@ export function ActionPopup(props: ActionPopupProps) {
                 status: 'failed',
             })
             setRunStatus('failed')
+        }
+    }
+
+    const handleExtraPromptChange = (event: ChangeEvent<HTMLInputElement>) => {
+        setExtraPrompt(event.target.value)
+        setConvertMessage(null)
+    }
+
+    const handleActionLabelChange = (event: ChangeEvent<HTMLInputElement>) => {
+        setActionLabel(event.target.value)
+        setConvertMessage(null)
+    }
+
+    const handleConvertToAction = async () => {
+        setConvertMessage(null)
+        try {
+            const label = actionLabel.trim().length > 0 ? actionLabel : extraPrompt.trim().slice(0, DEFAULT_CONVERT_LABEL_LENGTH)
+            const result = await convertPromptToAction({ context, label, prompt: extraPrompt })
+            setConvertMessage(`Saved ${result.path}`)
+        } catch (error) {
+            setConvertMessage(error instanceof Error ? error.message : 'Could not convert prompt to action')
         }
     }
 
@@ -142,6 +208,36 @@ export function ActionPopup(props: ActionPopupProps) {
                     <Button onClick={onClose}>Close</Button>
                 </Stack>
 
+                {action.type === 'agent' ? (
+                    <Stack spacing={1}>
+                        <TextField
+                            label="Extra prompt"
+                            minRows={3}
+                            multiline
+                            onChange={handleExtraPromptChange}
+                            value={extraPrompt}
+                        />
+                        {extraPrompt.trim().length > 0 ? (
+                            <Stack direction="row" spacing={1}>
+                                <TextField
+                                    label="Action label"
+                                    onChange={handleActionLabelChange}
+                                    size="small"
+                                    value={actionLabel}
+                                />
+                                <Button onClick={handleConvertToAction} variant="outlined">
+                                    Convert to action
+                                </Button>
+                            </Stack>
+                        ) : null}
+                        {convertMessage ? (
+                            <Typography color="text.secondary" variant="caption">
+                                {convertMessage}
+                            </Typography>
+                        ) : null}
+                    </Stack>
+                ) : null}
+
                 {runStatus !== 'idle' ? (
                     <Box role="status">
                         <Typography color={statusColor(runStatus)} variant="body2">
@@ -160,6 +256,32 @@ export function ActionPopup(props: ActionPopupProps) {
                 ) : null}
 
                 <Divider />
+
+                {action.type === 'agent' ? (
+                    <Box>
+                        <Typography color="text.secondary" variant="caption">
+                            Run history
+                        </Typography>
+                        {historyError ? (
+                            <Typography color="error" variant="caption">
+                                {historyError}
+                            </Typography>
+                        ) : null}
+                        {history.length > 0 ? (
+                            <Stack spacing={0.5} sx={{ mt: 0.5 }}>
+                                {history.map((entry, index) => (
+                                    <Typography key={`${entry.completedAt}-${entry.status}-${index}`} color="text.secondary" variant="caption">
+                                        {entry.status}: {entry.output || entry.prompt}
+                                    </Typography>
+                                ))}
+                            </Stack>
+                        ) : (
+                            <Typography color="text.secondary" variant="caption">
+                                No previous runs
+                            </Typography>
+                        )}
+                    </Box>
+                ) : null}
 
                 <RelatedActions actions={action.before} label="Before" onNavigate={onNavigate} />
                 <RelatedActions actions={action.after} label="After" onNavigate={onNavigate} />

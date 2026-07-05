@@ -5,7 +5,7 @@ import { createRequire } from 'node:module'
 import { describe, expect, it } from 'vitest'
 
 const require = createRequire(import.meta.url)
-const { loadActionFiles, loadProject, loadProjectConfig, runCommand } = require('./local_git_service')
+const { appendActionRunHistory, loadActionFiles, loadActionRunHistory, loadProject, loadProjectConfig, runAgent, runCommand } = require('./local_git_service')
 
 describe('local-git-service', () => {
     it('loads markdown files from the working folder and subfolders', async () => {
@@ -116,6 +116,46 @@ describe('local-git-service', () => {
 
             expect(result.exitCode).toBe(7)
             expect(result.stderr).toBe('bad')
+        } finally {
+            await rm(rootPath, { force: true, recursive: true })
+        }
+    })
+
+    it('runs an agent command from the project root with prompt input', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-local-git-'))
+
+        try {
+            await mkdir(join(rootPath, '.git'))
+
+            const result = await runAgent(
+                { branch: 'main', id: 'local', rootPath },
+                { command: 'node -e "process.stdin.on(\'data\', data => process.stdout.write(data))"', prompt: 'hello agent' },
+            )
+
+            expect(result.exitCode).toBe(0)
+            expect(result.prompt).toBe('hello agent')
+            expect(result.stdout).toBe('hello agent')
+        } finally {
+            await rm(rootPath, { force: true, recursive: true })
+        }
+    })
+
+    it('persists and loads action run history for the same action and context', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-local-git-'))
+        const request = {
+            actionName: 'implement',
+            actionsFolder: 'actions',
+            context: { file: 'design/F-010.md', kind: 'card', type: 'feature' },
+        }
+        const entry = { completedAt: '2026-07-05T10:00:00.000Z', output: 'done', prompt: 'run', status: 'completed' }
+
+        try {
+            await mkdir(join(rootPath, '.git'))
+            await mkdir(join(rootPath, 'actions'))
+
+            await appendActionRunHistory({ branch: 'main', id: 'local', rootPath }, request, entry)
+
+            await expect(loadActionRunHistory({ branch: 'main', id: 'local', rootPath }, request)).resolves.toEqual([entry])
         } finally {
             await rm(rootPath, { force: true, recursive: true })
         }

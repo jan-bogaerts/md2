@@ -1,4 +1,4 @@
-const { exec, execFile } = require('node:child_process')
+const { exec, execFile, spawn } = require('node:child_process')
 const fs = require('node:fs')
 const path = require('node:path')
 const { promisify } = require('node:util')
@@ -8,6 +8,7 @@ const execAsync = promisify(exec)
 const MARKDOWN_EXTENSION = '.md'
 const JSON_EXTENSION = '.json'
 const PROJECT_CONFIG_PATH = 'md2.config.json'
+const ACTION_HISTORY_FOLDER = '.md2-action-history'
 
 function normalizePath(filePath) {
     return filePath.replace(/\\/g, '/')
@@ -66,6 +67,95 @@ async function runCommand(project, command) {
             stdout: typeof error.stdout === 'string' ? error.stdout : '',
         }
     }
+}
+
+function runProcessWithInput(command, input, cwd) {
+    return new Promise((resolve, reject) => {
+        const child = spawn(command, { cwd, shell: true })
+        let stdout = ''
+        let stderr = ''
+
+        child.stdout.on('data', (chunk) => {
+            stdout += chunk.toString()
+        })
+        child.stderr.on('data', (chunk) => {
+            stderr += chunk.toString()
+        })
+        child.on('error', reject)
+        child.on('close', (code) => {
+            resolve({ exitCode: typeof code === 'number' ? code : 1, stderr, stdout })
+        })
+        child.stdin.end(input)
+    })
+}
+
+function safeHistorySegment(value) {
+    return value.replace(/[^a-zA-Z0-9._-]/g, '_')
+}
+
+function contextHistoryKey(context) {
+    const file = typeof context.file === 'string' ? context.file : ''
+    const folder = typeof context.folder === 'string' ? context.folder : ''
+    const kind = typeof context.kind === 'string' ? context.kind : ''
+
+    return safeHistorySegment(`${kind}_${file || folder || 'context'}`)
+}
+
+function historyFilePath(rootPath, actionsFolder, actionName, context) {
+    const actionsFolderPath = ensureInsideRoot(rootPath, path.join(rootPath, actionsFolder))
+    const historyFolderPath = ensureInsideRoot(rootPath, path.join(actionsFolderPath, ACTION_HISTORY_FOLDER))
+    const fileName = `${safeHistorySegment(actionName)}_${contextHistoryKey(context)}.json`
+
+    return ensureInsideRoot(rootPath, path.join(historyFolderPath, fileName))
+}
+
+async function readJsonArray(filePath) {
+    if (!await pathExists(filePath)) return []
+
+    const content = await fs.promises.readFile(filePath, 'utf8')
+    const parsed = JSON.parse(content)
+    if (!Array.isArray(parsed)) throw new Error('Action history file must contain an array')
+
+    return parsed
+}
+
+async function loadActionRunHistory(project, request) {
+    const rootPath = requireRootPath(project)
+    await assertGitRoot(rootPath)
+    if (!request || typeof request.actionName !== 'string' || request.actionName.length === 0) throw new Error('Missing action history actionName')
+    if (!request.context || typeof request.context !== 'object') throw new Error('Missing action history context')
+    if (typeof request.actionsFolder !== 'string' || request.actionsFolder.length === 0) throw new Error('Missing action history actionsFolder')
+
+    const filePath = historyFilePath(rootPath, request.actionsFolder, request.actionName, request.context)
+
+    return readJsonArray(filePath)
+}
+
+async function appendActionRunHistory(project, request, entry) {
+    const rootPath = requireRootPath(project)
+    await assertGitRoot(rootPath)
+    if (!request || typeof request.actionName !== 'string' || request.actionName.length === 0) throw new Error('Missing action history actionName')
+    if (!request.context || typeof request.context !== 'object') throw new Error('Missing action history context')
+    if (typeof request.actionsFolder !== 'string' || request.actionsFolder.length === 0) throw new Error('Missing action history actionsFolder')
+
+    const filePath = historyFilePath(rootPath, request.actionsFolder, request.actionName, request.context)
+    const entries = await readJsonArray(filePath)
+    const nextEntries = [...entries, entry]
+    await fs.promises.mkdir(path.dirname(filePath), { recursive: true })
+    await fs.promises.writeFile(filePath, `${JSON.stringify(nextEntries, null, 2)}\n`)
+
+    return nextEntries
+}
+
+async function runAgent(project, request) {
+    const rootPath = requireRootPath(project)
+    await assertGitRoot(rootPath)
+    if (!request || typeof request.command !== 'string' || request.command.length === 0) throw new Error('Missing agent command')
+    if (typeof request.prompt !== 'string' || request.prompt.length === 0) throw new Error('Missing agent prompt')
+
+    const { exitCode, stderr, stdout } = await runProcessWithInput(request.command, request.prompt, rootPath)
+
+    return { command: request.command, exitCode, prompt: request.prompt, stderr, stdout }
 }
 
 async function readMarkdownFiles(rootPath, folderPath) {
@@ -212,11 +302,14 @@ module.exports = {
     commit,
     createProject,
     listBranches,
+    appendActionRunHistory,
+    loadActionRunHistory,
     loadActionFiles,
     loadProject,
     loadProjectConfig,
     push,
     runCommand,
+    runAgent,
     runGit,
     saveProjectConfig,
     watchProject,
