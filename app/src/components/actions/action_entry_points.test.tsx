@@ -14,8 +14,13 @@ function file(definition: unknown): ActionFile {
 
 function card(id: string, status: string | null, title = id): ProjectCard {
     return {
+        agentConversationErrors: [],
+        agentConversations: [],
         content: '',
-        header: { affects: [], after: null, author: null, id, internalId: id.toLowerCase(), owner: null, policy: {}, status, title },
+        header: {
+            affects: [], after: null, agentLogReferences: [], author: null, id, internalId: id.toLowerCase(), owner: null,
+            policy: {}, status, title,
+        },
         isActive: true,
         path: `design/${id}.md`,
     }

@@ -8,6 +8,7 @@ function makeHeader(overrides: Partial<CardHeader> = {}): CardHeader {
     return {
         affects: [],
         after: null,
+        agentLogReferences: [],
         author: null,
         id: 'F-1',
         internalId: null,
@@ -20,7 +21,7 @@ function makeHeader(overrides: Partial<CardHeader> = {}): CardHeader {
 }
 
 function makeCard(path: string, content: string, header: Partial<CardHeader>, isActive: boolean): ProjectCard {
-    return { content, header: makeHeader(header), isActive, path }
+    return { agentConversationErrors: [], agentConversations: [], content, header: makeHeader(header), isActive, path }
 }
 
 const snapshot: ProjectSnapshot = {
@@ -34,7 +35,7 @@ const snapshot: ProjectSnapshot = {
     workingFolder: 'design',
 }
 
-vi.mock('../../hooks/use_project_state', () => ({ useProjectState: () => ({ project: null, snapshot }) }))
+vi.mock('../../hooks/use_project_state', () => ({ useProjectState: () => ({ project: null, runningAgents: [], snapshot }) }))
 
 function typeQuery(value: string) {
     fireEvent.change(screen.getByRole('textbox', { name: 'Search project' }), { target: { value } })

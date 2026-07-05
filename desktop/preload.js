@@ -39,9 +39,15 @@ const dataBridge = {
         return currentLocalProject
     },
     commit: (request) => localGitService.commit(request, currentLocalProject),
+    continueAgentConversation: (request) => {
+        const { agent } = resolveDesktopConfig()
+
+        return localGitService.continueAgentConversation(currentLocalProject, { ...request, command: agent })
+    },
     createProject: (project, workingFolder) => localGitService.createProject(project, workingFolder),
     listBranches: (project) => localGitService.listBranches(project),
     loadActionFiles: (project, actionsFolder) => localGitService.loadActionFiles(project, actionsFolder),
+    loadAgentConversation: (path) => localGitService.loadAgentConversation(currentLocalProject, path),
     loadProject: async (project, workingFolder) => {
         currentLocalProject = project
 

@@ -2,8 +2,12 @@ import type { ActionFile } from '../data/action_types'
 import type {
     BranchReference,
     CommitRequest,
+    ContinueAgentConversationRequest,
+    ContinueAgentConversationResult,
+    AgentConversation,
     ProjectConfig,
     ProjectReference,
+    ProjectWatchEvent,
     StorageProjectFiles,
     StorageService,
 } from '../data/data_types'
@@ -44,6 +48,23 @@ export class LocalGitStorageService implements StorageService {
         return this.requireBridge().loadActionFiles(project, actionsFolder)
     }
 
+    async loadAgentConversation(_project: ProjectReference, path: string): Promise<AgentConversation> {
+        const bridge = this.requireBridge()
+        if (!bridge.loadAgentConversation) throw new Error('Electron local Git bridge cannot load agent conversations')
+
+        return bridge.loadAgentConversation(path)
+    }
+
+    async continueAgentConversation(
+        _project: ProjectReference,
+        request: ContinueAgentConversationRequest,
+    ): Promise<ContinueAgentConversationResult> {
+        const bridge = this.requireBridge()
+        if (!bridge.continueAgentConversation) throw new Error('Electron local Git bridge cannot continue agent conversations')
+
+        return bridge.continueAgentConversation(request)
+    }
+
     async loadProjectConfig(project: ProjectReference): Promise<Partial<ProjectConfig> | null> {
         return this.requireBridge().loadProjectConfig(project)
     }
@@ -68,7 +89,7 @@ export class LocalGitStorageService implements StorageService {
         await this.requireBridge().saveProjectConfig(project, config)
     }
 
-    watchProject(project: ProjectReference, onChange: () => void) {
+    watchProject(project: ProjectReference, onChange: (event: ProjectWatchEvent) => void) {
         return this.requireBridge().watchProject(project, onChange)
     }
 

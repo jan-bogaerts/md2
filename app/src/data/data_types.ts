@@ -32,6 +32,7 @@ export interface MarkdownFile {
 export interface CardHeader {
     affects: string[]
     after: string | null
+    agentLogReferences: string[]
     author: string | null
     id: string
     internalId: string | null
@@ -42,6 +43,8 @@ export interface CardHeader {
 }
 
 export interface ProjectCard {
+    agentConversationErrors: AgentConversationError[]
+    agentConversations: AgentConversation[]
     content: string
     header: CardHeader
     isActive: boolean
@@ -83,6 +86,57 @@ export interface ProjectWatchEvent {
     path: string
 }
 
+/** A background agent/action currently running against a card or file. */
+export interface RunningAgent {
+    id: string
+    label: string
+}
+
+export type AgentConversationStatus = 'completed' | 'failed' | 'running'
+export type AgentMessageRole = 'agent' | 'stderr' | 'stdout' | 'system' | 'user'
+
+export interface AgentConversationMessage {
+    content: string
+    id: string
+    role: AgentMessageRole
+    timestamp: string
+}
+
+export interface AgentConversationEvent {
+    content: string
+    id: string
+    timestamp: string
+    type: string
+}
+
+export interface AgentConversation {
+    cardPath: string
+    completedAt: string | null
+    events: AgentConversationEvent[]
+    id: string
+    messages: AgentConversationMessage[]
+    path: string
+    startedAt: string
+    status: AgentConversationStatus
+    title: string
+}
+
+export interface AgentConversationError {
+    message: string
+    path: string
+}
+
+export interface ContinueAgentConversationRequest {
+    cardPath: string
+    input: string
+    sourcePath: string
+}
+
+export interface ContinueAgentConversationResult {
+    conversation: AgentConversation
+    reference: string
+}
+
 export interface StorageProjectFiles {
     files: MarkdownFile[]
     workingFolder: string
@@ -92,8 +146,13 @@ export interface StorageService {
     checkoutBranch(project: ProjectReference, branch: string): Promise<ProjectReference>
     commit(request: CommitRequest): Promise<void>
     createProject(project: ProjectReference, workingFolder: string): Promise<ProjectReference>
+    continueAgentConversation?(
+        project: ProjectReference,
+        request: ContinueAgentConversationRequest,
+    ): Promise<ContinueAgentConversationResult>
     listBranches(project: ProjectReference): Promise<BranchReference[]>
     loadActionFiles(project: ProjectReference, actionsFolder: string): Promise<ActionFile[]>
+    loadAgentConversation?(project: ProjectReference, path: string): Promise<AgentConversation>
     loadProject(project: ProjectReference, workingFolder: string): Promise<StorageProjectFiles>
     loadProjectConfig(project: ProjectReference): Promise<Partial<ProjectConfig> | null>
     push(project: ProjectReference): Promise<void>

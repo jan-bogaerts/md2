@@ -1,17 +1,22 @@
-import { Box, Button, Collapse, IconButton, Stack, TextField, Tooltip, Typography } from '@mui/material'
+import { Badge, Box, Button, Collapse, IconButton, Popover, Stack, TextField, Tooltip, Typography } from '@mui/material'
 import { useSortable } from '@dnd-kit/sortable'
 import { useState } from 'react'
 import type { KeyboardEvent, MouseEvent } from 'react'
+import type { AgentConversation } from '../../data/data_types'
 import type { CardTypeConfig, ProjectCard } from '../../data/data_types'
 import { cardContext } from '../../data/action_context'
 import { ActionEntryPoints } from '../actions/action_entry_points'
+import { AgentConversationList } from '../agents/agent_conversation_list'
 import { CardBodyEditor } from './card_body_editor'
 import { PolicyLed } from './policy_led'
 
 const TYPE_LINE_WIDTH = 4
+const AGENT_LED_SIZE = 10
+const AGENT_POPOVER_WIDTH = 420
 
 export interface CardHandlers {
     onBodyChange: (path: string, body: string) => void
+    onContinueAgentConversation: (cardPath: string, conversation: AgentConversation) => void
     onOpenBody: (path: string) => void
     onOpenInFileMode: (path: string) => void
     onTogglePolicy: (path: string, policyKey: string) => void
@@ -29,10 +34,11 @@ interface ProjectCardViewProps extends CardHandlers {
 
 /** A single card: type-color line, id + title, policy leds, drag handle and body access. */
 export function ProjectCardView(props: ProjectCardViewProps) {
-    const { card, cardTypes, color, isBodyOpen, isMobile, onBodyChange, onOpenBody, onOpenInFileMode } = props
+    const { card, cardTypes, color, isBodyOpen, isMobile, onBodyChange, onContinueAgentConversation, onOpenBody, onOpenInFileMode } = props
     const { onTogglePolicy, onTitleChange } = props
     const { isSelected } = props
     const { attributes, isDragging, listeners, setNodeRef, transform, transition } = useSortable({ id: card.path })
+    const [agentAnchorElement, setAgentAnchorElement] = useState<HTMLElement | null>(null)
     const [isEditingTitle, setIsEditingTitle] = useState(false)
     const [titleDraft, setTitleDraft] = useState(card.header.title)
 
@@ -67,7 +73,22 @@ export function ProjectCardView(props: ProjectCardViewProps) {
         event.stopPropagation()
     }
 
+    const openAgentConversations = (event: MouseEvent<HTMLElement>) => {
+        event.stopPropagation()
+        setAgentAnchorElement(event.currentTarget)
+    }
+
+    const closeAgentConversations = () => {
+        setAgentAnchorElement(null)
+    }
+
+    const continueAgentConversation = (conversation: AgentConversation) => {
+        onContinueAgentConversation(card.path, conversation)
+    }
+
     const policyKeys = Object.keys(card.header.policy)
+    const agentSignalCount = card.agentConversations.length + card.agentConversationErrors.length
+    const hasAgentSignal = agentSignalCount > 0
 
     return (
         <Box
@@ -129,6 +150,23 @@ export function ProjectCardView(props: ProjectCardViewProps) {
                                 policyKey={policyKey}
                             />
                         ))}
+                        {hasAgentSignal ? (
+                            <Tooltip title="Agent conversations">
+                                <IconButton aria-label={`Agent conversations for ${card.header.id}`} onClick={openAgentConversations} size="small">
+                                    <Badge badgeContent={agentSignalCount} color="primary">
+                                        <Box
+                                            component="span"
+                                            sx={{
+                                                bgcolor: card.agentConversationErrors.length > 0 ? 'error.main' : 'success.main',
+                                                borderRadius: '50%',
+                                                height: AGENT_LED_SIZE,
+                                                width: AGENT_LED_SIZE,
+                                            }}
+                                        />
+                                    </Badge>
+                                </IconButton>
+                            </Tooltip>
+                        ) : null}
                         <ActionEntryPoints context={cardContext(card, cardTypes)} variant="icons" />
                     </Stack>
                 </Stack>
@@ -143,6 +181,20 @@ export function ProjectCardView(props: ProjectCardViewProps) {
                     </Collapse>
                 ) : null}
             </Box>
+            <Popover
+                anchorEl={agentAnchorElement}
+                anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+                onClose={closeAgentConversations}
+                open={!!agentAnchorElement}
+            >
+                <Box sx={{ maxWidth: '90vw', p: 2, width: AGENT_POPOVER_WIDTH }}>
+                    <AgentConversationList
+                        conversations={card.agentConversations}
+                        errors={card.agentConversationErrors}
+                        onContinue={continueAgentConversation}
+                    />
+                </Box>
+            </Popover>
         </Box>
     )
 }

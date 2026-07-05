@@ -4,10 +4,13 @@ import type { ProjectCard } from './data_types'
 
 function card(path: string, overrides: Partial<ProjectCard['header']> = {}): ProjectCard {
     return {
+        agentConversationErrors: [],
+        agentConversations: [],
         content: '',
         header: {
             affects: [],
             after: null,
+            agentLogReferences: [],
             author: null,
             id: 'F-0',
             internalId: null,

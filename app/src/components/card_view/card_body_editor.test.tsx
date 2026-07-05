@@ -5,9 +5,11 @@ import type { ProjectCard } from '../../data/data_types'
 
 function card(overrides: Partial<ProjectCard> = {}): ProjectCard {
     return {
+        agentConversationErrors: [],
+        agentConversations: [],
         content: '# Alpha\n\nOriginal body',
         header: {
-            affects: [], after: null, author: null, id: 'F-1', internalId: 'f-1', owner: null, policy: {}, status: 'todo',
+            affects: [], after: null, agentLogReferences: [], author: null, id: 'F-1', internalId: 'f-1', owner: null, policy: {}, status: 'todo',
             title: 'Alpha',
         },
         isActive: true,

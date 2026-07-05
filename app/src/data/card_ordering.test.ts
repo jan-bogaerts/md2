@@ -4,10 +4,13 @@ import type { ProjectCard } from './data_types'
 
 function card(internalId: string, options: { after?: string | null; status?: string } = {}): ProjectCard {
     return {
+        agentConversationErrors: [],
+        agentConversations: [],
         content: '',
         header: {
             affects: [],
             after: options.after ?? null,
+            agentLogReferences: [],
             author: null,
             id: internalId.toUpperCase(),
             internalId,

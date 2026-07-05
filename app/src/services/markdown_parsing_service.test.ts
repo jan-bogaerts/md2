@@ -71,10 +71,18 @@ describe('markdownParsingService.parseCard', () => {
         expect(card.header.policy).toEqual({ checkLinting: 'true', requireTests: 'false' })
     })
 
+    it('parses agent log references into the card header', () => {
+        const content = '---\nid: F-2\ntitle: Second\nstatus: active\nagents:\n  - .md2-agent-logs/one.json\n  - .md2-agent-logs/two.json\n---\n\n# Second'
+        const card = markdownParsingService.parseCard({ content, path: 'design/F-2-second.md' }, 'design')
+
+        expect(card.header.agentLogReferences).toEqual(['.md2-agent-logs/one.json', '.md2-agent-logs/two.json'])
+    })
+
     it('defaults after to null and policy to an empty map when absent', () => {
         const card = markdownParsingService.parseCard(ROOT_FILE, 'design')
 
         expect(card.header.after).toBeNull()
+        expect(card.header.agentLogReferences).toEqual([])
         expect(card.header.policy).toEqual({})
     })
 })
@@ -158,6 +166,18 @@ describe('markdownParsingService.setPolicyFlag', () => {
     })
 })
 
+describe('markdownParsingService.setAgentLogReferences', () => {
+    it('rewrites agent log references while preserving other header fields and body', () => {
+        const content = '---\nid: F-1\ntitle: Root\nagents:\n  - old.json\npolicy:\n  checkLinting: true\n---\n\n# Root'
+        const next = markdownParsingService.setAgentLogReferences(content, ['one.json', 'two.json'])
+
+        expect(next).toContain('agents:\n  - one.json\n  - two.json')
+        expect(next).not.toContain('old.json')
+        expect(next).toContain('policy:\n  checkLinting: true')
+        expect(next.endsWith('\n\n# Root')).toBe(true)
+    })
+})
+
 describe('markdownParsingService.buildCardMarkdown', () => {
     it('generates markdown with the full supported header and body template', () => {
         const content = markdownParsingService.buildCardMarkdown(
@@ -180,7 +200,7 @@ describe('markdownParsingService.buildCardMarkdown', () => {
         expect(content).toContain('title: New Card')
         expect(content).toContain('status: new')
         expect(content).toContain('owner:')
-        expect(content).toContain('affects:\npolicy:')
+        expect(content).toContain('affects:\nagents:\npolicy:')
         expect(content.endsWith('\n\n# Goal\n\n# Tasks')).toBe(true)
     })
 

@@ -19,6 +19,7 @@ export interface ParsedMarkdown {
 
 export interface NewCardHeader {
     affects?: string[]
+    agentLogReferences?: string[]
     author?: string | null
     id: string
     internalId: string
@@ -179,6 +180,7 @@ function parseCardHeader(fields: MarkdownHeaderFields, file: MarkdownFile, body:
     return {
         affects: getListField(fields, 'affects'),
         after: getStringField(fields, 'after'),
+        agentLogReferences: getListField(fields, 'agents'),
         author: getStringField(fields, 'author'),
         id,
         internalId: getStringField(fields, 'internalId'),
@@ -234,12 +236,34 @@ function rewritePolicyLines(lines: string[], key: string, value: string) {
     return updated
 }
 
+function childBlockEndIndex(lines: string[], startIndex: number) {
+    let index = startIndex + 1
+
+    while (index < lines.length && lines[index].startsWith(CHILD_INDENT)) index += 1
+
+    return index
+}
+
+function rewriteListLines(lines: string[], key: string, values: string[]) {
+    const keyLine = `${key}:`
+    const nextLines = [keyLine, ...values.map((value) => `${LIST_ITEM_PREFIX}${value}`)]
+    const keyIndex = lines.findIndex((line) => isHeaderKeyLine(line, key))
+
+    if (keyIndex === -1) return [...lines, ...nextLines]
+
+    const updated = [...lines]
+    updated.splice(keyIndex, childBlockEndIndex(lines, keyIndex) - keyIndex, ...nextLines)
+
+    return updated
+}
+
 function serializeNewHeader(header: NewCardHeader) {
     if (!header.id) throw new Error('Cannot generate a card without an id')
     if (!header.internalId) throw new Error('Cannot generate a card without an internalId')
     if (!header.title) throw new Error('Cannot generate a card without a title')
 
     const affects = header.affects ?? []
+    const agentLogReferences = header.agentLogReferences ?? []
     const policy = header.policy ?? {}
 
     const lines: string[] = []
@@ -250,6 +274,7 @@ function serializeNewHeader(header: NewCardHeader) {
     lines.push(`status: ${header.status ?? DEFAULT_IMPORTED_STATUS}`)
     lines.push(`owner: ${header.owner ?? ''}`)
     lines.push('affects:', ...affects.map((entry) => `${LIST_ITEM_PREFIX}${entry}`))
+    lines.push('agents:', ...agentLogReferences.map((entry) => `${LIST_ITEM_PREFIX}${entry}`))
     lines.push('policy:', ...Object.entries(policy).map(([key, value]) => `${CHILD_INDENT}${key}: ${value}`))
 
     return lines.join('\n')
@@ -273,6 +298,8 @@ export const markdownParsingService = {
         const fields = parseHeaderFields(rawHeader)
 
         return {
+            agentConversationErrors: [],
+            agentConversations: [],
             content: body,
             header: parseCardHeader(fields, file, body),
             isActive: isRootWorkingFolderFile(file.path, workingFolder),
@@ -319,6 +346,16 @@ export const markdownParsingService = {
         const { body, hasHeader, rawHeader } = splitHeader(content)
         const startingLines = hasHeader ? rawHeader.split('\n') : []
         const nextHeader = rewritePolicyLines(startingLines, key, enabled ? 'true' : 'false').join('\n')
+
+        if (hasHeader) return `${HEADER_DELIMITER}\n${nextHeader}\n${HEADER_DELIMITER}\n${body}`
+
+        return `${HEADER_DELIMITER}\n${nextHeader}\n${HEADER_DELIMITER}\n\n${content}`
+    },
+
+    setAgentLogReferences(content: string, references: string[]) {
+        const { body, hasHeader, rawHeader } = splitHeader(content)
+        const startingLines = hasHeader ? rawHeader.split('\n') : []
+        const nextHeader = rewriteListLines(startingLines, 'agents', references).join('\n')
 
         if (hasHeader) return `${HEADER_DELIMITER}\n${nextHeader}\n${HEADER_DELIMITER}\n${body}`
 

@@ -7,7 +7,15 @@ import { actionRunner } from '../services/action_runner'
 import { configService } from '../services/config_service'
 import { DataService } from '../services/data_service'
 import { markdownParsingService } from '../services/markdown_parsing_service'
-import { DEFAULT_CARD_BODY_TEMPLATE, DEFAULT_CARD_TYPES, type CommitRequest, type MarkdownFile, type StorageService } from './data_types'
+import {
+    DEFAULT_CARD_BODY_TEMPLATE,
+    DEFAULT_CARD_TYPES,
+    type AgentConversation,
+    type CommitRequest,
+    type ContinueAgentConversationResult,
+    type MarkdownFile,
+    type StorageService,
+} from './data_types'
 
 vi.mock('../services/action_runner', () => ({ actionRunner: { run: vi.fn(async () => ({ logs: [], status: 'completed' })) } }))
 
@@ -16,6 +24,20 @@ const files: MarkdownFile[] = [
     { content: '# Old', path: 'design/history/F-3-old.md' },
     { content: '# Imported', path: 'design/free note.md' },
 ]
+
+function conversation(path = '.md2-agent-logs/one.json'): AgentConversation {
+    return {
+        cardPath: 'design/F-1-root.md',
+        completedAt: '2026-01-01T00:01:00.000Z',
+        events: [],
+        id: 'agent-1',
+        messages: [{ content: 'done', id: 'm1', role: 'agent', timestamp: '2026-01-01T00:01:00.000Z' }],
+        path,
+        startedAt: '2026-01-01T00:00:00.000Z',
+        status: 'completed',
+        title: 'Agent run',
+    }
+}
 
 function createStorage(overrides: Partial<StorageService> = {}): StorageService {
     return {
@@ -275,6 +297,94 @@ describe('DataService', () => {
         expect(actionService.getActions().map((action) => action.name)).toContain('do')
     })
 
+    it('loads referenced agent conversations onto cards', async () => {
+        configService.init()
+        const agentFiles: MarkdownFile[] = [
+            {
+                content: '---\nid: F-1\ntitle: Root\nstatus: active\nagents:\n  - .md2-agent-logs/one.json\n---\n\n# Root',
+                path: 'design/F-1-root.md',
+            },
+        ]
+        const storage = createStorage({
+            loadAgentConversation: vi.fn(async () => conversation()),
+            loadProject: vi.fn(async () => ({ files: agentFiles, workingFolder: 'design' })),
+        })
+        const service = new DataService()
+        service.init({ storage })
+
+        const snapshot = await service.openProject({ branch: 'main', id: 'project' })
+
+        expect(snapshot.activeCards[0].agentConversations).toHaveLength(1)
+        expect(snapshot.activeCards[0].agentConversations[0].title).toBe('Agent run')
+    })
+
+    it('keeps cards loaded when a referenced agent log is invalid', async () => {
+        configService.init()
+        const agentFiles: MarkdownFile[] = [
+            {
+                content: '---\nid: F-1\ntitle: Root\nstatus: active\nagents:\n  - .md2-agent-logs/missing.json\n---\n\n# Root',
+                path: 'design/F-1-root.md',
+            },
+        ]
+        const storage = createStorage({
+            loadAgentConversation: vi.fn(async () => {
+                throw new Error('Agent log not found')
+            }),
+            loadProject: vi.fn(async () => ({ files: agentFiles, workingFolder: 'design' })),
+        })
+        const service = new DataService()
+        service.init({ storage })
+
+        const snapshot = await service.openProject({ branch: 'main', id: 'project' })
+
+        expect(snapshot.activeCards[0].header.title).toBe('Root')
+        expect(snapshot.activeCards[0].agentConversationErrors).toEqual([
+            { message: 'Agent log not found', path: '.md2-agent-logs/missing.json' },
+        ])
+    })
+
+    it('continues a conversation and links the returned log to the card header', async () => {
+        configService.init()
+        const storage = createStorage({continueAgentConversation: vi.fn(async () => ({ conversation: conversation('.md2-agent-logs/two.json'), reference: '.md2-agent-logs/two.json' }))})
+        const service = new DataService()
+        service.init({ storage })
+
+        await service.openProject({ branch: 'main', id: 'project' })
+        await service.continueAgentConversation('design/F-1-root.md', '.md2-agent-logs/one.json')
+        await service.flushPendingCommits()
+
+        const committed = (storage.commit as ReturnType<typeof vi.fn>).mock.calls.at(-1)?.[0] as CommitRequest
+        expect(committed.files[0].content).toContain('agents:\n  - .md2-agent-logs/two.json')
+        expect(storage.continueAgentConversation).toHaveBeenCalledWith(
+            { branch: 'main', id: 'project' },
+            { cardPath: 'design/F-1-root.md', input: 'continue', sourcePath: '.md2-agent-logs/one.json' },
+        )
+    })
+
+    it('reports running agent state while a continue request is in flight', async () => {
+        configService.init()
+        const resolveContinue: Array<(result: ContinueAgentConversationResult) => void> = []
+        const storage = createStorage({
+            continueAgentConversation: vi.fn(() => new Promise<ContinueAgentConversationResult>((resolve) => {
+                resolveContinue.push(resolve)
+            })),
+        })
+        const service = new DataService()
+        service.init({ storage })
+
+        await service.openProject({ branch: 'main', id: 'project' })
+        const pending = service.continueAgentConversation('design/F-1-root.md', '.md2-agent-logs/one.json')
+
+        expect(service.getState().runningAgents).toHaveLength(1)
+
+        if (!resolveContinue[0]) throw new Error('Continue resolver not registered')
+
+        resolveContinue[0]({ conversation: conversation('.md2-agent-logs/two.json'), reference: '.md2-agent-logs/two.json' })
+        await pending
+
+        expect(service.getState().runningAgents).toHaveLength(0)
+    })
+
     it('reloads actions when the local actions folder watcher reports json changes', async () => {
         vi.useFakeTimers()
         configService.init()
@@ -283,7 +393,9 @@ describe('DataService', () => {
             .mockResolvedValueOnce([])
             .mockResolvedValueOnce([actionFile])
             .mockResolvedValueOnce([])
-        let watchChange: ((event: { path: string }) => void) | null = null
+        let watchChange: (event: { path: string }) => void = () => {
+            throw new Error('Watcher not registered')
+        }
         const storage = createStorage({
             loadActionFiles,
             watchProject: vi.fn((_project, onChange) => {
@@ -296,12 +408,12 @@ describe('DataService', () => {
         service.init({ storage })
 
         await service.openProject({ branch: 'main', id: 'project' })
-        watchChange?.({ path: 'actions/do.json' })
+        watchChange({ path: 'actions/do.json' })
         await vi.advanceTimersByTimeAsync(150)
 
         expect(actionService.getActions().map((action) => action.name)).toContain('do')
 
-        watchChange?.({ path: 'actions/do.json' })
+        watchChange({ path: 'actions/do.json' })
         await vi.advanceTimersByTimeAsync(150)
 
         expect(actionService.getActions().map((action) => action.name)).not.toContain('do')
@@ -315,7 +427,9 @@ describe('DataService', () => {
         const loadActionFiles = vi.fn()
             .mockResolvedValueOnce([validActionFile])
             .mockResolvedValueOnce([invalidActionFile])
-        let watchChange: ((event: { path: string }) => void) | null = null
+        let watchChange: (event: { path: string }) => void = () => {
+            throw new Error('Watcher not registered')
+        }
         const storage = createStorage({
             loadActionFiles,
             watchProject: vi.fn((_project, onChange) => {
@@ -328,7 +442,7 @@ describe('DataService', () => {
         service.init({ storage })
 
         await service.openProject({ branch: 'main', id: 'project' })
-        watchChange?.({ path: 'actions/bad.json' })
+        watchChange({ path: 'actions/bad.json' })
         await vi.advanceTimersByTimeAsync(150)
 
         expect(actionService.getActions().map((action) => action.name)).toContain('do')

@@ -1,7 +1,7 @@
 ---
 id: F-012
 title: agents
-status: design
+status: ready
 owner: JB
 affects:
 policy:

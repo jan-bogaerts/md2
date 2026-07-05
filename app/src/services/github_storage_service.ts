@@ -1,5 +1,6 @@
 import type { ActionFile } from '../data/action_types'
 import type {
+    AgentConversation,
     BranchReference,
     CommitRequest,
     MarkdownFile,
@@ -8,6 +9,7 @@ import type {
     StorageProjectFiles,
     StorageService,
 } from '../data/data_types'
+import { parseAgentConversationLog } from './agent_conversation_service'
 
 const GITHUB_API_URL = 'https://api.github.com'
 const GITHUB_API_VERSION = '2022-11-28'
@@ -155,6 +157,13 @@ export class GithubStorageService implements StorageService {
         }
 
         return files
+    }
+
+    async loadAgentConversation(project: ProjectReference, path: string): Promise<AgentConversation> {
+        this.requireGithubProject(project)
+        const file = await this.readFile(project, path)
+
+        return parseAgentConversationLog(file.content, path)
     }
 
     async loadProjectConfig(project: ProjectReference): Promise<Partial<ProjectConfig> | null> {

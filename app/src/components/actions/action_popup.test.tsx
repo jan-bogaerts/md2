@@ -84,7 +84,7 @@ describe('ActionPopup', () => {
     it('shows previous run history for an agent action', async () => {
         renderPopup({
             action: action('Implement', { type: 'agent' }),
-            loadHistory: vi.fn(async () => [{ completedAt: '2026-07-05T10:00:00.000Z', output: 'done', prompt: 'run', status: 'completed' }]),
+            loadHistory: vi.fn(async () => [{ completedAt: '2026-07-05T10:00:00.000Z', output: 'done', prompt: 'run', status: 'completed' as const }]),
         })
 
         expect(screen.getByText('Run history')).toBeInTheDocument()

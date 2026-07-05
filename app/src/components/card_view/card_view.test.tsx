@@ -1,12 +1,31 @@
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { CardView } from './card_view'
-import { DEFAULT_CARD_TYPES, type ProjectCard } from '../../data/data_types'
+import { DEFAULT_CARD_TYPES, type AgentConversation, type ProjectCard } from '../../data/data_types'
+
+function conversation(): AgentConversation {
+    return {
+        cardPath: 'design/F-1.md',
+        completedAt: '2026-01-01T00:01:00.000Z',
+        events: [],
+        id: 'agent-1',
+        messages: [{ content: 'completed output', id: 'm1', role: 'agent', timestamp: '2026-01-01T00:01:00.000Z' }],
+        path: '.md2-agent-logs/one.json',
+        startedAt: '2026-01-01T00:00:00.000Z',
+        status: 'completed',
+        title: 'Implementation agent',
+    }
+}
 
 function card(id: string, title: string, status: string, policy: Record<string, string> = {}): ProjectCard {
     return {
+        agentConversationErrors: [],
+        agentConversations: [],
         content: `# ${title}\n\nBody of ${id}`,
-        header: { affects: [], after: null, author: null, id, internalId: id.toLowerCase(), owner: null, policy, status, title },
+        header: {
+            affects: [], after: null, agentLogReferences: [], author: null, id, internalId: id.toLowerCase(), owner: null,
+            policy, status, title,
+        },
         isActive: true,
         path: `design/${id}.md`,
     }
@@ -20,6 +39,7 @@ const cards = [
 function renderCardView(overrides: Partial<Parameters<typeof CardView>[0]> = {}) {
     const handlers = {
         onBodyChange: vi.fn(),
+        onContinueAgentConversation: vi.fn(),
         onMoveCard: vi.fn(),
         onOpenInFileMode: vi.fn(),
         onTitleChange: vi.fn(),
@@ -106,6 +126,7 @@ describe('CardView', () => {
                 cards={cards}
                 isMobile={false}
                 onBodyChange={vi.fn()}
+                onContinueAgentConversation={vi.fn()}
                 onMoveCard={vi.fn()}
                 onOpenInFileMode={vi.fn()}
                 onTitleChange={vi.fn()}
@@ -117,5 +138,19 @@ describe('CardView', () => {
         const selected = container.querySelectorAll('[data-selected="true"]')
         expect(selected).toHaveLength(1)
         expect(within(selected[0] as HTMLElement).getByText('Second')).toBeInTheDocument()
+    })
+
+    it('shows agent conversations from the card led and continues them', () => {
+        const agentConversation = conversation()
+        const cardWithConversation = { ...cards[0], agentConversations: [agentConversation] }
+        const handlers = renderCardView({ cards: [cardWithConversation] })
+
+        fireEvent.click(screen.getByRole('button', { name: 'Agent conversations for F-1' }))
+        expect(screen.getByText('Implementation agent')).toBeInTheDocument()
+        expect(screen.getByText('completed output')).toBeInTheDocument()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+
+        expect(handlers.onContinueAgentConversation).toHaveBeenCalledWith('design/F-1.md', agentConversation)
     })
 })

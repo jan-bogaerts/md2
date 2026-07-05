@@ -185,7 +185,10 @@ describe('ActionRunner', () => {
     })
 
     it('converts prompt input to a reusable action json file', async () => {
-        const actionWriter = vi.fn(async () => undefined)
+        const actionWriter = vi.fn(async (path: string, content: string) => {
+            void path
+            void content
+        })
         const result = await new ActionRunner({
             actionWriter,
             actionsFolderProvider: () => 'actions',

@@ -1,14 +1,16 @@
-import { Box, Button, Drawer, Paper, Typography } from '@mui/material'
+import { Badge, Box, Button, Divider, Drawer, Paper, Stack, Typography } from '@mui/material'
 import FolderOutline from 'mdi-material-ui/FolderOutline'
 import { useEffect, useMemo, useState } from 'react'
 import { buildFileTree, fileLabel } from '../../data/file_tree'
-import type { CardTypeConfig, ProjectCard } from '../../data/data_types'
+import type { AgentConversation, CardTypeConfig, ProjectCard } from '../../data/data_types'
+import { AgentConversationList } from '../agents/agent_conversation_list'
 import { MarkdownEditor } from '../editor/markdown_editor'
 import { FileTreeView } from './file_tree_view'
 import { TabBar, type OpenTab } from './tab_bar'
 import { useOpenTabs } from './use_open_tabs'
 
 const TREE_WIDTH = 280
+const CONVERSATION_PANEL_MIN_HEIGHT = 220
 
 interface TextViewProps {
     activeCards: ProjectCard[]
@@ -16,6 +18,7 @@ interface TextViewProps {
     cardTypes: CardTypeConfig[]
     isMobile: boolean
     onBodyChange: (path: string, body: string) => void
+    onContinueAgentConversation: (path: string, conversation: AgentConversation) => void
     requestedNonce: number
     requestedPath: string | null
     workingFolder: string
@@ -29,8 +32,19 @@ function tabLabel(cardsByPath: Map<string, ProjectCard>, path: string): string {
 
 /** Text view: a folder/status tree plus tabbed, editable open files. */
 export function TextView(props: TextViewProps) {
-    const { activeCards, backgroundCards, cardTypes, isMobile, onBodyChange, requestedNonce, requestedPath, workingFolder } = props
+    const {
+        activeCards,
+        backgroundCards,
+        cardTypes,
+        isMobile,
+        onBodyChange,
+        onContinueAgentConversation,
+        requestedNonce,
+        requestedPath,
+        workingFolder,
+    } = props
     const { activePath, activateTab, closeTab, openTab, tabs } = useOpenTabs()
+    const [isConversationPanelOpen, setIsConversationPanelOpen] = useState(false)
     const [isTreeOpen, setIsTreeOpen] = useState(false)
 
     const tree = useMemo(
@@ -61,6 +75,14 @@ export function TextView(props: TextViewProps) {
         if (activePath) onBodyChange(activePath, body)
     }
 
+    const handleToggleConversationPanel = () => {
+        setIsConversationPanelOpen((current) => !current)
+    }
+
+    const handleContinueAgentConversation = (conversation: AgentConversation) => {
+        if (activePath) onContinueAgentConversation(activePath, conversation)
+    }
+
     const treeContent = (
         <Box aria-label="File tree" sx={{ overflow: 'auto' }}>
             <FileTreeView cardTypes={cardTypes} cardsByPath={cardsByPath} nodes={tree} onSelect={handleSelect} selectedPath={activePath} />
@@ -70,19 +92,54 @@ export function TextView(props: TextViewProps) {
     const editorPane = (
         <Box sx={{ display: 'flex', flex: 1, flexDirection: 'column', minWidth: 0 }}>
             <TabBar activePath={activePath} onActivate={activateTab} onClose={closeTab} tabs={openTabs} />
-            <Box sx={{ flex: 1, overflow: 'auto', p: 2 }}>
-                {activeCard && activePath ? (
-                    <MarkdownEditor
-                        key={activePath}
-                        markdown={activeCard.content}
-                        onChange={handleEditorChange}
-                        stickyToolbar={isMobile}
-                    />
-                ) : (
+            <Stack direction="row" spacing={1} sx={{ alignItems: 'center', borderBottom: 1, borderColor: 'divider', px: 2, py: 1 }}>
+                <Button
+                    disabled={!activeCard}
+                    onClick={handleToggleConversationPanel}
+                    size="small"
+                    variant={isConversationPanelOpen ? 'contained' : 'outlined'}
+                >
+                    <Badge
+                        badgeContent={(activeCard?.agentConversations.length ?? 0) + (activeCard?.agentConversationErrors.length ?? 0)}
+                        color="primary"
+                        sx={{ mr: 1 }}
+                    >
+                        Agents
+                    </Badge>
+                </Button>
+                {activeCard ? (
                     <Typography color="text.secondary" variant="body2">
-                        Select a file from the tree to open it.
+                        {fileLabel(activeCard)}
                     </Typography>
-                )}
+                ) : null}
+            </Stack>
+            <Box sx={{ display: 'flex', flex: 1, flexDirection: 'column', minHeight: 0 }}>
+                <Box sx={{ flex: 1, overflow: 'auto', p: 2 }}>
+                    {activeCard && activePath ? (
+                        <MarkdownEditor
+                            key={activePath}
+                            markdown={activeCard.content}
+                            onChange={handleEditorChange}
+                            stickyToolbar={isMobile}
+                        />
+                    ) : (
+                        <Typography color="text.secondary" variant="body2">
+                            Select a file from the tree to open it.
+                        </Typography>
+                    )}
+                </Box>
+                {isConversationPanelOpen && activeCard ? (
+                    <>
+                        <Divider />
+                        <Box sx={{ minHeight: CONVERSATION_PANEL_MIN_HEIGHT, overflow: 'auto', p: 2 }}>
+                            <AgentConversationList
+                                conversations={activeCard.agentConversations}
+                                errors={activeCard.agentConversationErrors}
+                                onContinue={handleContinueAgentConversation}
+                            />
+                        </Box>
+                    </>
+                ) : null}
             </Box>
         </Box>
     )

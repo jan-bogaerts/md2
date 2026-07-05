@@ -1,10 +1,22 @@
 import type { ActionFile } from './action_types'
-import type { BranchReference, CommitRequest, ProjectConfig, ProjectReference, ProjectWatchEvent, StorageProjectFiles } from './data_types'
+import type {
+    AgentConversation,
+    BranchReference,
+    CommitRequest,
+    ContinueAgentConversationRequest,
+    ContinueAgentConversationResult,
+    ProjectConfig,
+    ProjectReference,
+    ProjectWatchEvent,
+    StorageProjectFiles,
+} from './data_types'
 
 export interface ElectronDataBridge {
     checkoutBranch(project: ProjectReference, branch: string): Promise<ProjectReference>
     commit(request: CommitRequest): Promise<void>
+    continueAgentConversation?(request: ContinueAgentConversationRequest): Promise<ContinueAgentConversationResult>
     createProject(project: ProjectReference, workingFolder: string): Promise<ProjectReference>
+    loadAgentConversation?(path: string): Promise<AgentConversation>
     loadActionFiles(project: ProjectReference, actionsFolder: string): Promise<ActionFile[]>
     loadProject(project: ProjectReference, workingFolder: string): Promise<StorageProjectFiles>
     loadProjectConfig(project: ProjectReference): Promise<Partial<ProjectConfig> | null>

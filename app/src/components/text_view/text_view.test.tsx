@@ -1,14 +1,31 @@
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { TextView } from './text_view'
-import { DEFAULT_CARD_TYPES, type ProjectCard } from '../../data/data_types'
+import { DEFAULT_CARD_TYPES, type AgentConversation, type ProjectCard } from '../../data/data_types'
+
+function conversation(): AgentConversation {
+    return {
+        cardPath: 'design/F-1-a.md',
+        completedAt: '2026-01-01T00:01:00.000Z',
+        events: [],
+        id: 'agent-1',
+        messages: [{ content: 'editor output', id: 'm1', role: 'agent', timestamp: '2026-01-01T00:01:00.000Z' }],
+        path: '.md2-agent-logs/one.json',
+        startedAt: '2026-01-01T00:00:00.000Z',
+        status: 'completed',
+        title: 'Editor agent',
+    }
+}
 
 function card(path: string, overrides: Partial<ProjectCard['header']> = {}, content = ''): ProjectCard {
     return {
+        agentConversationErrors: [],
+        agentConversations: [],
         content,
         header: {
             affects: [],
             after: null,
+            agentLogReferences: [],
             author: null,
             id: 'F-0',
             internalId: null,
@@ -39,6 +56,7 @@ function renderTextView(overrides: Partial<Parameters<typeof TextView>[0]> = {})
             cardTypes={DEFAULT_CARD_TYPES}
             isMobile={false}
             onBodyChange={onBodyChange}
+            onContinueAgentConversation={vi.fn()}
             requestedNonce={0}
             requestedPath={null}
             workingFolder="design"
@@ -108,7 +126,15 @@ describe('TextView', () => {
     })
 
     it('opens the requested file when the open nonce changes', () => {
-        const shared = { activeCards, backgroundCards, cardTypes: DEFAULT_CARD_TYPES, isMobile: false, onBodyChange: vi.fn(), workingFolder: 'design' }
+        const shared = {
+            activeCards,
+            backgroundCards,
+            cardTypes: DEFAULT_CARD_TYPES,
+            isMobile: false,
+            onBodyChange: vi.fn(),
+            onContinueAgentConversation: vi.fn(),
+            workingFolder: 'design',
+        }
         const { rerender } = render(<TextView {...shared} requestedNonce={0} requestedPath={null} />)
 
         rerender(<TextView {...shared} requestedNonce={1} requestedPath="design/F-2-b.md" />)
@@ -135,6 +161,7 @@ describe('TextView', () => {
                 cardTypes={DEFAULT_CARD_TYPES}
                 isMobile
                 onBodyChange={vi.fn()}
+                onContinueAgentConversation={vi.fn()}
                 requestedNonce={0}
                 requestedPath={null}
                 workingFolder="design"
@@ -160,5 +187,23 @@ describe('TextView', () => {
 
         expect(screen.queryByRole('button', { name: /Browse files/ })).not.toBeInTheDocument()
         expect(within(screen.getByLabelText('File tree')).getByText('F-1 Alpha')).toBeInTheDocument()
+    })
+
+    it('opens the editor conversation panel and continues the active card conversation', () => {
+        const agentConversation = conversation()
+        const onContinueAgentConversation = vi.fn()
+        renderTextView({
+            activeCards: [{ ...activeCards[0], agentConversations: [agentConversation] }],
+            onContinueAgentConversation,
+        })
+
+        clickTreeFile('F-1 Alpha')
+        fireEvent.click(screen.getByRole('button', { name: /Agents/ }))
+        expect(screen.getByText('Editor agent')).toBeInTheDocument()
+        expect(screen.getByText('editor output')).toBeInTheDocument()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+
+        expect(onContinueAgentConversation).toHaveBeenCalledWith('design/F-1-a.md', agentConversation)
     })
 })

@@ -7,7 +7,13 @@ import type { ChangeEvent, MouseEvent } from 'react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { createStorageService, writeLastProject, type StorageType } from '../data/project_session'
 import {
-    DEFAULT_CARD_TYPES, DEFAULT_WORKING_FOLDER, type CardDraft, type ProjectCard, type ProjectReference, type PushMode,
+    DEFAULT_CARD_TYPES,
+    DEFAULT_WORKING_FOLDER,
+    type AgentConversation,
+    type CardDraft,
+    type ProjectCard,
+    type ProjectReference,
+    type PushMode,
 } from '../data/data_types'
 import { getElectronDataBridge } from '../data/electron_data_bridge'
 import { configService } from '../services/config_service'
@@ -202,6 +208,16 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
         dataService.updateCardBody(path, body)
     }
 
+    const handleContinueAgentConversation = async (path: string, conversation: AgentConversation) => {
+        setErrorMessage(null)
+
+        try {
+            await dataService.continueAgentConversation(path, conversation.path)
+        } catch (error) {
+            setErrorMessage(error instanceof Error ? error.message : 'Agent continue failed')
+        }
+    }
+
     const handleOpenInFileMode = (path: string) => {
         setRequestedPath(path)
         setRequestedNonce((nonce) => nonce + 1)
@@ -262,6 +278,7 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
                             cards={activeCards}
                             isMobile={isMobile}
                             onBodyChange={handleBodyChange}
+                            onContinueAgentConversation={handleContinueAgentConversation}
                             onMoveCard={handleMoveCard}
                             onOpenInFileMode={handleOpenInFileMode}
                             onTitleChange={handleTitleChange}
@@ -275,6 +292,7 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
                             cardTypes={cardTypes}
                             isMobile={isMobile}
                             onBodyChange={handleBodyChange}
+                            onContinueAgentConversation={handleContinueAgentConversation}
                             requestedNonce={requestedNonce}
                             requestedPath={requestedPath}
                             workingFolder={workingFolder}

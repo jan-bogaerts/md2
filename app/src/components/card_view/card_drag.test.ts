@@ -5,8 +5,10 @@ import type { CardTypeConfig, ProjectCard } from '../../data/data_types'
 
 function card(path: string, internalId: string): ProjectCard {
     return {
+        agentConversationErrors: [],
+        agentConversations: [],
         content: '',
-        header: { affects: [], after: null, author: null, id: path, internalId, owner: null, policy: {}, status: 'todo', title: path },
+        header: { affects: [], after: null, agentLogReferences: [], author: null, id: path, internalId, owner: null, policy: {}, status: 'todo', title: path },
         isActive: true,
         path,
     }

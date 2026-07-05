@@ -3,7 +3,7 @@ import { DndContext, PointerSensor, closestCorners, useSensor, useSensors } from
 import type { DragEndEvent } from '@dnd-kit/core'
 import { useMemo, useState } from 'react'
 import { groupByStatus } from '../../data/card_ordering'
-import type { CardTypeConfig, ProjectCard } from '../../data/data_types'
+import type { AgentConversation, CardTypeConfig, ProjectCard } from '../../data/data_types'
 import { CardBodyDialog } from './card_body_dialog'
 import { CardColumn } from './card_column'
 import { resolveDrop } from './card_drag'
@@ -15,6 +15,7 @@ interface CardViewProps {
     cards: ProjectCard[]
     isMobile: boolean
     onBodyChange: (path: string, body: string) => void
+    onContinueAgentConversation: (path: string, conversation: AgentConversation) => void
     onMoveCard: (path: string, targetStatus: string, targetIndex: number) => void
     onOpenInFileMode: (path: string) => void
     onTogglePolicy: (path: string, policyKey: string) => void
@@ -24,7 +25,18 @@ interface CardViewProps {
 
 /** Card view: status columns of draggable cards with body dialog/accordion access. */
 export function CardView(props: CardViewProps) {
-    const { cardTypes, cards, isMobile, onBodyChange, onMoveCard, onOpenInFileMode, onTogglePolicy, onTitleChange, selectedPath } = props
+    const {
+        cardTypes,
+        cards,
+        isMobile,
+        onBodyChange,
+        onContinueAgentConversation,
+        onMoveCard,
+        onOpenInFileMode,
+        onTogglePolicy,
+        onTitleChange,
+        selectedPath,
+    } = props
     const columns = useMemo(() => groupByStatus(cards), [cards])
     const [openBodyPath, setOpenBodyPath] = useState<string | null>(null)
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: DRAG_ACTIVATION_DISTANCE } }))
@@ -62,6 +74,7 @@ export function CardView(props: CardViewProps) {
                         column={column}
                         isMobile={isMobile}
                         onBodyChange={onBodyChange}
+                        onContinueAgentConversation={onContinueAgentConversation}
                         onOpenBody={handleOpenBody}
                         onOpenInFileMode={handleOpenInFileMode}
                         onTitleChange={onTitleChange}

@@ -29,8 +29,13 @@ function action(name: string, appliesTo: ActionDefinition['appliesTo']): ActionD
 
 function card(id: string, status: string | null): ProjectCard {
     return {
+        agentConversationErrors: [],
+        agentConversations: [],
         content: '',
-        header: { affects: [], after: null, author: null, id, internalId: id.toLowerCase(), owner: null, policy: {}, status, title: id },
+        header: {
+            affects: [], after: null, agentLogReferences: [], author: null, id, internalId: id.toLowerCase(), owner: null,
+            policy: {}, status, title: id,
+        },
         isActive: true,
         path: `design/${id}.md`,
     }
