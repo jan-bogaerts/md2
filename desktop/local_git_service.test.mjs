@@ -5,7 +5,7 @@ import { createRequire } from 'node:module'
 import { describe, expect, it } from 'vitest'
 
 const require = createRequire(import.meta.url)
-const { loadProject } = require('./local_git_service')
+const { loadProject, loadProjectConfig } = require('./local_git_service')
 
 describe('local-git-service', () => {
     it('loads markdown files from the working folder and subfolders', async () => {
@@ -34,6 +34,22 @@ describe('local-git-service', () => {
             await loadProject({ branch: 'main', id: 'local', rootPath }, 'design')
 
             await expect(readFile(join(rootPath, 'design', 'README.md'), 'utf8')).resolves.toContain('Project design folder')
+        } finally {
+            await rm(rootPath, { force: true, recursive: true })
+        }
+    })
+
+    it('loads project config from the repository root', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-local-git-'))
+
+        try {
+            await mkdir(join(rootPath, '.git'))
+            await writeFile(join(rootPath, 'md2.config.json'), JSON.stringify({ pushMode: 'manual', workingFolder: 'docs' }))
+
+            await expect(loadProjectConfig({ branch: 'main', id: 'local', rootPath })).resolves.toEqual({
+                pushMode: 'manual',
+                workingFolder: 'docs',
+            })
         } finally {
             await rm(rootPath, { force: true, recursive: true })
         }

@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { useAppBootstrap } from './use_app_bootstrap'
 import { LAST_PROJECT_STORAGE_KEY } from '../data/project_session'
 import type { ElectronDataBridge } from '../data/electron_data_bridge'
+import { configService } from '../services/config_service'
 
 function createBridge(): ElectronDataBridge {
     const files = [
@@ -15,14 +16,17 @@ function createBridge(): ElectronDataBridge {
         createProject: vi.fn(async (project) => project),
         listBranches: vi.fn(async () => [{ name: 'main' }]),
         loadProject: vi.fn(async () => ({ files, workingFolder: 'design' })),
+        loadProjectConfig: vi.fn(async () => null),
         openProjectFolder: vi.fn(async () => ({ branch: 'main', id: 'local', rootPath: 'C:/repo' })),
         push: vi.fn(),
+        saveProjectConfig: vi.fn(),
         watchProject: vi.fn(() => vi.fn()),
     }
 }
 
 describe('useAppBootstrap', () => {
     afterEach(() => {
+        configService.clear()
         window.localStorage.clear()
         delete window.md2Data
     })

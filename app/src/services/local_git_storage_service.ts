@@ -1,4 +1,11 @@
-﻿import type { BranchReference, CommitRequest, ProjectReference, StorageProjectFiles, StorageService } from '../data/data_types'
+import type {
+    BranchReference,
+    CommitRequest,
+    ProjectConfig,
+    ProjectReference,
+    StorageProjectFiles,
+    StorageService,
+} from '../data/data_types'
 import { getElectronDataBridge, type ElectronDataBridge } from '../data/electron_data_bridge'
 
 interface LocalGitStorageDependencies {
@@ -32,6 +39,10 @@ export class LocalGitStorageService implements StorageService {
         return this.requireBridge().loadProject(project, workingFolder)
     }
 
+    async loadProjectConfig(project: ProjectReference): Promise<Partial<ProjectConfig> | null> {
+        return this.requireBridge().loadProjectConfig(project)
+    }
+
     async listBranches(project: ProjectReference): Promise<BranchReference[]> {
         return this.requireBridge().listBranches(project)
     }
@@ -46,6 +57,10 @@ export class LocalGitStorageService implements StorageService {
 
     async push(project: ProjectReference): Promise<void> {
         await this.requireBridge().push(project)
+    }
+
+    async saveProjectConfig(project: ProjectReference, config: ProjectConfig): Promise<void> {
+        await this.requireBridge().saveProjectConfig(project, config)
     }
 
     watchProject(project: ProjectReference, onChange: () => void) {

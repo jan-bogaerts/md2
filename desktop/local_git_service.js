@@ -5,6 +5,7 @@ const { promisify } = require('node:util')
 
 const execFileAsync = promisify(execFile)
 const MARKDOWN_EXTENSION = '.md'
+const PROJECT_CONFIG_PATH = 'md2.config.json'
 
 function normalizePath(filePath) {
     return filePath.replace(/\\/g, '/')
@@ -102,6 +103,17 @@ async function loadProject(project, workingFolder) {
     }
 }
 
+async function loadProjectConfig(project) {
+    const rootPath = requireRootPath(project)
+    await assertGitRoot(rootPath)
+    const configPath = ensureInsideRoot(rootPath, path.join(rootPath, PROJECT_CONFIG_PATH))
+    if (!await pathExists(configPath)) return null
+
+    const content = await fs.promises.readFile(configPath, 'utf8')
+
+    return JSON.parse(content)
+}
+
 async function listBranches(project) {
     const rootPath = requireRootPath(project)
     const output = await runGit(rootPath, ['branch', '--format=%(refname:short)'])
@@ -129,6 +141,15 @@ async function commit(request, project) {
     await runGit(rootPath, ['commit', '-m', request.message])
 }
 
+async function saveProjectConfig(project, config) {
+    const rootPath = requireRootPath(project)
+    await assertGitRoot(rootPath)
+    const configPath = ensureInsideRoot(rootPath, path.join(rootPath, PROJECT_CONFIG_PATH))
+    await fs.promises.writeFile(configPath, `${JSON.stringify(config, null, 2)}\n`)
+    await runGit(rootPath, ['add', PROJECT_CONFIG_PATH])
+    await runGit(rootPath, ['commit', '-m', 'Update MD2 project config'])
+}
+
 async function push(project) {
     await runGit(requireRootPath(project), ['push'])
 }
@@ -149,7 +170,9 @@ module.exports = {
     createProject,
     listBranches,
     loadProject,
+    loadProjectConfig,
     push,
     runGit,
+    saveProjectConfig,
     watchProject,
 }

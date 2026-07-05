@@ -1,7 +1,7 @@
 ---
 id: F-016
 title: config
-status: design
+status: ready
 owner: JB
 affects:
 policy:

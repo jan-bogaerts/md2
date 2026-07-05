@@ -87,7 +87,9 @@ export interface StorageService {
     createProject(project: ProjectReference, workingFolder: string): Promise<ProjectReference>
     listBranches(project: ProjectReference): Promise<BranchReference[]>
     loadProject(project: ProjectReference, workingFolder: string): Promise<StorageProjectFiles>
+    loadProjectConfig(project: ProjectReference): Promise<Partial<ProjectConfig> | null>
     push(project: ProjectReference): Promise<void>
+    saveProjectConfig(project: ProjectReference, config: ProjectConfig): Promise<void>
     watchProject?(project: ProjectReference, onChange: () => void): () => void
 }
 

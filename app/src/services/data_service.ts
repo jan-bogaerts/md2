@@ -2,7 +2,6 @@
 import { createCardFile } from '../data/card_naming'
 import { computeMove } from '../data/card_ordering'
 import {
-    DEFAULT_PROJECT_CONFIG,
     type CardDraft,
     type MarkdownFile,
     type ProjectConfig,
@@ -10,11 +9,11 @@ import {
     type ProjectSnapshot,
     type StorageService,
 } from '../data/data_types'
+import { configService } from './config_service'
 import { markdownParsingService } from './markdown_parsing_service'
 import { register } from './service_injector'
 
 interface DataServiceDependencies {
-    config?: ProjectConfig
     storage: StorageService
 }
 
@@ -25,7 +24,6 @@ export interface DataServiceState {
 
 export class DataService extends EventTarget {
     private commitBatcher: CommitBatcher | null
-    private config: ProjectConfig | null
     private currentFiles
     private currentProject: ProjectReference | null
     private currentSnapshot: ProjectSnapshot | null
@@ -34,7 +32,6 @@ export class DataService extends EventTarget {
     constructor() {
         super()
         this.commitBatcher = null
-        this.config = null
         this.currentFiles = [] as MarkdownFile[]
         this.currentProject = null
         this.currentSnapshot = null
@@ -43,14 +40,15 @@ export class DataService extends EventTarget {
     }
 
     init(dependencies: DataServiceDependencies) {
-        this.config = dependencies.config ?? DEFAULT_PROJECT_CONFIG
         this.currentFiles = []
         this.currentProject = null
         this.currentSnapshot = null
         this.storage = dependencies.storage
+        const delayMs = configService.get('react.autoCommitDelayMs') as number
         this.commitBatcher = new CommitBatcher({
             clearDelay: window.clearTimeout,
             commit: this.commitFiles.bind(this),
+            delayMs,
             setDelay: window.setTimeout,
         })
         this.dispatchChanged()
@@ -61,19 +59,29 @@ export class DataService extends EventTarget {
     }
 
     getConfig(): ProjectConfig | null {
-        return this.config
+        if (!this.storage) return null
+
+        try {
+            return configService.getProjectConfig()
+        } catch {
+            return null
+        }
     }
 
     async createProject(project: ProjectReference) {
         const { config, storage } = this.requireDependencies()
         this.currentProject = await storage.createProject(project, config.workingFolder)
+        await storage.saveProjectConfig(this.currentProject, config)
 
         return this.openProject(this.currentProject)
     }
 
     async openProject(project: ProjectReference) {
-        const { config, storage } = this.requireDependencies()
+        const { storage } = this.requireDependencies()
         this.currentProject = project
+        const projectConfig = await storage.loadProjectConfig(project)
+        configService.loadProjectConfig(projectConfig)
+        const config = configService.getProjectConfig()
         const projectFiles = await storage.loadProject(project, config.workingFolder)
         this.currentFiles = projectFiles.files
         this.currentSnapshot = {
@@ -83,6 +91,13 @@ export class DataService extends EventTarget {
         this.dispatchChanged()
 
         return this.currentSnapshot
+    }
+
+    async saveProjectConfig() {
+        const { storage } = this.requireDependencies()
+        if (!this.currentProject) throw new Error('Cannot save project config before a project is open')
+
+        await storage.saveProjectConfig(this.currentProject, configService.getProjectConfig())
     }
 
     async switchBranch(branch: string) {
@@ -201,11 +216,11 @@ export class DataService extends EventTarget {
     }
 
     private requireDependencies() {
-        if (!this.config) throw new Error('Data service is not initialized')
         if (!this.storage) throw new Error('Data service storage is not initialized')
         if (!this.commitBatcher) throw new Error('Data service commit batcher is not initialized')
+        const config = configService.getProjectConfig()
 
-        return { commitBatcher: this.commitBatcher, config: this.config, storage: this.storage }
+        return { commitBatcher: this.commitBatcher, config, storage: this.storage }
     }
 
     private dispatchChanged() {

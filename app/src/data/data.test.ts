@@ -1,6 +1,8 @@
 ﻿import { describe, expect, it, vi } from 'vitest'
 import { CommitBatcher } from './commit_batcher'
+import { afterEach } from 'vitest'
 import { createCardFile, getNextCardNumber } from './card_naming'
+import { configService } from '../services/config_service'
 import { DataService } from '../services/data_service'
 import { markdownParsingService } from '../services/markdown_parsing_service'
 import { DEFAULT_CARD_BODY_TEMPLATE, DEFAULT_CARD_TYPES, type CommitRequest, type MarkdownFile, type StorageService } from './data_types'
@@ -18,7 +20,9 @@ function createStorage(overrides: Partial<StorageService> = {}): StorageService 
         createProject: vi.fn(async (project) => project),
         listBranches: vi.fn(async () => [{ name: 'main' }]),
         loadProject: vi.fn(async () => ({ files, workingFolder: 'design' })),
+        loadProjectConfig: vi.fn(async () => null),
         push: vi.fn(),
+        saveProjectConfig: vi.fn(),
         ...overrides,
     }
 }
@@ -87,7 +91,12 @@ describe('CommitBatcher', () => {
 })
 
 describe('DataService', () => {
+    afterEach(() => {
+        configService.clear()
+    })
+
     it('creates cards with commits and auto-pushes when configured', async () => {
+        configService.init()
         const storage = createStorage()
         const service = new DataService()
         service.init({ storage })
@@ -100,12 +109,10 @@ describe('DataService', () => {
     })
 
     it('leaves commits unpushed in manual mode', async () => {
-        const storage = createStorage()
+        configService.init()
+        const storage = createStorage({ loadProjectConfig: vi.fn(async () => ({ pushMode: 'manual' })) })
         const service = new DataService()
-        service.init({
-            config: { cardBodyTemplate: DEFAULT_CARD_BODY_TEMPLATE, cardTypes: DEFAULT_CARD_TYPES, pushMode: 'manual', workingFolder: 'design' },
-            storage,
-        })
+        service.init({ storage })
 
         await service.openProject({ branch: 'main', id: 'project' })
         await service.createCard({ body: 'Body', title: 'New Card', type: 'feature' })
@@ -115,6 +122,7 @@ describe('DataService', () => {
     })
 
     it('toggles a card policy flag and persists the change', async () => {
+        configService.init()
         const policyFiles: MarkdownFile[] = [
             { content: '---\nid: F-1\ntitle: Root\nstatus: active\npolicy:\n  checkLinting: true\n---\n\n# Root', path: 'design/F-1-root.md' },
         ]
@@ -131,6 +139,7 @@ describe('DataService', () => {
     })
 
     it('moves a card across columns writing only the affected cards', async () => {
+        configService.init()
         const moveFiles: MarkdownFile[] = [
             { content: '---\nid: A\ninternalId: a\ntitle: A\nstatus: todo\n---\n\n# A', path: 'design/A.md' },
             { content: '---\nid: B\ninternalId: b\ntitle: B\nstatus: todo\nafter: a\n---\n\n# B', path: 'design/B.md' },
@@ -154,6 +163,7 @@ describe('DataService', () => {
     })
 
     it('edits a card title inline and persists it through the header', async () => {
+        configService.init()
         const storage = createStorage()
         const service = new DataService()
         service.init({ storage })
@@ -167,6 +177,7 @@ describe('DataService', () => {
     })
 
     it('preserves the frontmatter header when a card body is edited', async () => {
+        configService.init()
         const storage = createStorage()
         const service = new DataService()
         service.init({ storage })

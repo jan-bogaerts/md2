@@ -11,6 +11,14 @@ function createResponse(payload: unknown) {
     } as Response
 }
 
+function createStatusResponse(status: number) {
+    return {
+        json: async () => ({}),
+        ok: status >= 200 && status < 300,
+        status,
+    } as Response
+}
+
 describe('GithubStorageService', () => {
     it('loads markdown files recursively from the selected branch', async () => {
         const fetchImplementation = vi.fn()
@@ -73,5 +81,29 @@ describe('GithubStorageService', () => {
             { name: 'main' },
             { name: 'feature' },
         ])
+    })
+
+    it('loads project config from the repository root', async () => {
+        const fetchImplementation = vi.fn().mockResolvedValue(createResponse({
+            content: btoa(JSON.stringify({ pushMode: 'manual', workingFolder: 'docs' })),
+            encoding: 'base64',
+            path: 'md2.config.json',
+            sha: 'config-sha',
+        }))
+        const service = new GithubStorageService()
+        service.init({ accessToken: 'token', fetchImplementation })
+
+        await expect(service.loadProjectConfig({ branch: 'main', id: 'owner/repo', owner: 'owner', repository: 'repo' })).resolves.toEqual({
+            pushMode: 'manual',
+            workingFolder: 'docs',
+        })
+    })
+
+    it('returns null when project config is absent', async () => {
+        const fetchImplementation = vi.fn().mockResolvedValue(createStatusResponse(404))
+        const service = new GithubStorageService()
+        service.init({ accessToken: 'token', fetchImplementation })
+
+        await expect(service.loadProjectConfig({ branch: 'main', id: 'owner/repo', owner: 'owner', repository: 'repo' })).resolves.toBeNull()
     })
 })

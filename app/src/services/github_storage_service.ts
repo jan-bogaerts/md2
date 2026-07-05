@@ -1,7 +1,16 @@
-﻿import type { BranchReference, CommitRequest, MarkdownFile, ProjectReference, StorageProjectFiles, StorageService } from '../data/data_types'
+import type {
+    BranchReference,
+    CommitRequest,
+    MarkdownFile,
+    ProjectConfig,
+    ProjectReference,
+    StorageProjectFiles,
+    StorageService,
+} from '../data/data_types'
 
 const GITHUB_API_URL = 'https://api.github.com'
 const GITHUB_API_VERSION = '2022-11-28'
+const PROJECT_CONFIG_PATH = 'md2.config.json'
 const TEXT_DECODER = new TextDecoder()
 
 interface GithubStorageDependencies {
@@ -125,6 +134,14 @@ export class GithubStorageService implements StorageService {
         return { files, workingFolder }
     }
 
+    async loadProjectConfig(project: ProjectReference): Promise<Partial<ProjectConfig> | null> {
+        this.requireGithubProject(project)
+        const file = await this.readOptionalFile(project, PROJECT_CONFIG_PATH)
+        if (!file) return null
+
+        return JSON.parse(file.content) as Partial<ProjectConfig>
+    }
+
     async listBranches(project: ProjectReference) {
         this.requireGithubProject(project)
         const payload = await this.request(`/repos/${project.owner}/${project.repository}/branches`)
@@ -145,6 +162,16 @@ export class GithubStorageService implements StorageService {
         for (const file of request.files) {
             await this.writeFile(request.branch, file, request.message)
         }
+    }
+
+    async saveProjectConfig(project: ProjectReference, config: ProjectConfig) {
+        this.requireGithubProject(project)
+        const existingFile = await this.readOptionalFile(project, PROJECT_CONFIG_PATH)
+        await this.writeFile(project.branch, {
+            content: `${JSON.stringify(config, null, 2)}\n`,
+            path: PROJECT_CONFIG_PATH,
+            sha: existingFile?.sha,
+        }, 'Update MD2 project config')
     }
 
     async push() {
@@ -192,6 +219,17 @@ export class GithubStorageService implements StorageService {
         return normalizeFileContent(payload)
     }
 
+    private async readOptionalFile(project: ProjectReference, path: string) {
+        const payload = await this.request(
+            `/repos/${project.owner}/${project.repository}/contents/${encodePath(path)}?ref=${encodeURIComponent(project.branch)}`,
+            {},
+            true,
+        )
+        if (payload === null) return null
+
+        return normalizeFileContent(payload)
+    }
+
     private async writeFile(branch: string, file: MarkdownFile, message: string) {
         const project = this.getCommitProject()
         const payload = {
@@ -220,7 +258,7 @@ export class GithubStorageService implements StorageService {
         this.activeProject = project
     }
 
-    private async request(path: string, init: RequestInit = {}) {
+    private async request(path: string, init: RequestInit = {}, allowNotFound = false) {
         const { accessToken, fetchImplementation } = this.requireDependencies()
         const response = await fetchImplementation(`${GITHUB_API_URL}${path}`, {
             ...init,
@@ -233,6 +271,7 @@ export class GithubStorageService implements StorageService {
             },
         })
 
+        if (allowNotFound && response.status === 404) return null
         if (!response.ok) throw new Error(`GitHub storage request failed with status ${response.status}`)
 
         return response.json()

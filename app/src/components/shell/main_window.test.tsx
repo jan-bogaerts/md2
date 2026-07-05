@@ -1,6 +1,7 @@
 ﻿import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { UseGithubAuthResult } from '../../auth/use_github_auth'
+import { configService } from '../../services/config_service'
 import { MainWindow } from './main_window'
 
 const auth: UseGithubAuthResult = {
@@ -43,6 +44,8 @@ function mockMatchMedia(matches: boolean) {
 describe('MainWindow', () => {
     afterEach(() => {
         cleanup()
+        configService.clear()
+        window.history.pushState(null, '', '/')
         mockMatchMedia(false)
     })
 
@@ -63,5 +66,24 @@ describe('MainWindow', () => {
         expect(screen.queryByRole('button', { name: 'Sign in with GitHub' })).toBeNull()
         fireEvent.click(screen.getByRole('button', { name: 'Open menu' }))
         expect(screen.getByRole('button', { name: 'Sign in with GitHub' })).toBeInTheDocument()
+    })
+
+    it('opens the config page from the toolbar', () => {
+        mockMatchMedia(false)
+        renderWindow()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Open config' }))
+
+        expect(screen.getByRole('heading', { name: 'Config' })).toBeInTheDocument()
+        expect(window.location.pathname).toBe('/config')
+    })
+
+    it('opens the config page directly from the URL', () => {
+        window.history.pushState(null, '', '/config#connection')
+        mockMatchMedia(false)
+        renderWindow()
+
+        expect(screen.getByRole('heading', { name: 'Config' })).toBeInTheDocument()
+        expect(screen.getByRole('tab', { name: 'Connection' })).toBeInTheDocument()
     })
 })

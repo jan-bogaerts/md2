@@ -1,4 +1,5 @@
 const { ipcRenderer } = require('electron')
+const { resolveDesktopConfig } = require('./config')
 const { requestGithubAccessToken, requestGithubDeviceCode } = require('./github_oauth_proxy')
 const localGitService = require('./local_git_service')
 
@@ -27,6 +28,10 @@ const themeBridge = { setThemeMode: (mode) => ipcRenderer.send(THEME_SET_MODE_CH
 
 window.md2Theme = themeBridge
 
+const configBridge = { getDesktopConfig: () => resolveDesktopConfig() }
+
+window.md2Config = configBridge
+
 const dataBridge = {
     checkoutBranch: async (project, branch) => {
         currentLocalProject = await localGitService.checkoutBranch(project, branch)
@@ -41,6 +46,7 @@ const dataBridge = {
 
         return localGitService.loadProject(project, workingFolder)
     },
+    loadProjectConfig: (project) => localGitService.loadProjectConfig(project),
     onMenuPush: (callback) => {
         const listener = () => callback()
         ipcRenderer.on(DATA_MENU_PUSH_CHANNEL, listener)
@@ -58,6 +64,7 @@ const dataBridge = {
         return project
     },
     push: (project) => localGitService.push(project),
+    saveProjectConfig: (project, config) => localGitService.saveProjectConfig(project, config),
     watchProject: (project, callback) => localGitService.watchProject(project, callback),
 }
 

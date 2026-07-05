@@ -1,9 +1,9 @@
-﻿import { useEffect, useState } from 'react'
-import { createProjectConfig, createStorageService, readLastProject, type StorageType } from '../data/project_session'
+import { useEffect, useState } from 'react'
+import { createStorageService, readLastProject, type StorageType } from '../data/project_session'
 import type { ProjectReference, ProjectSnapshot } from '../data/data_types'
+import { configService } from '../services/config_service'
 import { dataService } from '../services/data_service'
-
-const DEFAULT_PUSH_MODE = 'auto'
+import { getElectronConfigBridge } from '../services/electron_config_bridge'
 
 export type BootstrapPhase = 'starting' | 'ready'
 
@@ -23,12 +23,14 @@ const INITIAL_STATE: AppBootstrapState = { error: null, phase: 'starting', sessi
 
 /** Start services and open the last project. Returns null when there is nothing to restore. */
 async function loadLastProjectSession(accessToken: string | null): Promise<ProjectSession | null> {
+    const desktopConfig = getElectronConfigBridge()?.getDesktopConfig() ?? null
+    configService.init({ desktopConfig })
     const lastProject = readLastProject()
     if (!lastProject) return null
     if (lastProject.storageType === 'github' && !accessToken) return null
 
     const storage = createStorageService(lastProject.storageType, accessToken)
-    dataService.init({ config: createProjectConfig(DEFAULT_PUSH_MODE), storage })
+    dataService.init({ storage })
     const snapshot = await dataService.openProject(lastProject.project)
 
     return { project: lastProject.project, snapshot, storageType: lastProject.storageType }

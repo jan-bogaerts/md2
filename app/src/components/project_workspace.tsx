@@ -1,16 +1,18 @@
-﻿import {
+import {
     Alert, Button, Divider, MenuItem, Paper, Select, Stack, TextField, ToggleButton, ToggleButtonGroup, Typography,
     useMediaQuery, useTheme,
 } from '@mui/material'
 import type { SelectChangeEvent } from '@mui/material'
 import type { ChangeEvent, MouseEvent } from 'react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { createProjectConfig, createStorageService, writeLastProject, type StorageType } from '../data/project_session'
+import { createStorageService, writeLastProject, type StorageType } from '../data/project_session'
 import {
     DEFAULT_CARD_TYPES, DEFAULT_WORKING_FOLDER, type CardDraft, type ProjectCard, type ProjectReference, type PushMode,
 } from '../data/data_types'
 import { getElectronDataBridge } from '../data/electron_data_bridge'
+import { configService } from '../services/config_service'
 import { dataService } from '../services/data_service'
+import { getElectronConfigBridge } from '../services/electron_config_bridge'
 import { CardView } from './card_view/card_view'
 import { TextView } from './text_view/text_view'
 import { useProjectState } from './hooks/use_project_state'
@@ -25,7 +27,15 @@ interface ProjectWorkspaceProps {
     isGithubAuthenticated: boolean
 }
 
+function ensureConfigServiceInitialized() {
+    if (configService.isInitialized()) return
+
+    const desktopConfig = getElectronConfigBridge()?.getDesktopConfig() ?? null
+    configService.init({ desktopConfig })
+}
+
 export function ProjectWorkspace(props: ProjectWorkspaceProps) {
+    ensureConfigServiceInitialized()
     const {
         accessToken,
         isGithubAuthenticated,
@@ -38,19 +48,23 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
     const [branch, setBranch] = useState(project?.branch ?? 'main')
     const [cardBody, setCardBody] = useState('')
     const [cardTitle, setCardTitle] = useState('')
+    const [configRevision, setConfigRevision] = useState(0)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [githubOwner, setGithubOwner] = useState('')
     const [githubRepository, setGithubRepository] = useState('')
     const [isLoading, setIsLoading] = useState(false)
-    const [pushMode, setPushMode] = useState<PushMode>('auto')
     const [requestedPath, setRequestedPath] = useState<string | null>(null)
     const [requestedNonce, setRequestedNonce] = useState(0)
     const [viewMode, setViewMode] = useState<WorkspaceViewMode>('cards')
     const electronBridge = useMemo(() => getElectronDataBridge(), [])
     const canUseLocalGit = !!electronBridge
     const isProjectOpen = !!project
-    const cardTypes = dataService.getConfig()?.cardTypes ?? DEFAULT_CARD_TYPES
-    const workingFolder = snapshot?.workingFolder ?? DEFAULT_WORKING_FOLDER
+    const projectConfig = dataService.getConfig()
+    const cardTypes = projectConfig?.cardTypes ?? DEFAULT_CARD_TYPES
+    const pushMode = (projectConfig?.pushMode ?? 'auto') as PushMode
+    const workingFolder = snapshot?.workingFolder ?? projectConfig?.workingFolder ?? DEFAULT_WORKING_FOLDER
+
+    void configRevision
 
     const openProject = useCallback(async (nextStorageType: StorageType, nextProject: ProjectReference) => {
         setIsLoading(true)
@@ -58,7 +72,7 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
 
         try {
             const storage = createStorageService(nextStorageType, accessToken)
-            dataService.init({ config: createProjectConfig(pushMode), storage })
+            dataService.init({ storage })
             await dataService.openProject(nextProject)
 
             setBranch(nextProject.branch)
@@ -68,7 +82,7 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
         } finally {
             setIsLoading(false)
         }
-    }, [accessToken, pushMode])
+    }, [accessToken])
 
     useEffect(() => {
         const handleClose = () => {
@@ -78,6 +92,16 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
         window.addEventListener('beforeunload', handleClose)
 
         return () => window.removeEventListener('beforeunload', handleClose)
+    }, [])
+
+    useEffect(() => {
+        const handleConfigChange = () => {
+            setConfigRevision((revision) => revision + 1)
+        }
+
+        configService.addEventListener('changed', handleConfigChange)
+
+        return () => configService.removeEventListener('changed', handleConfigChange)
     }, [])
 
     const handleGithubOwnerChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -101,7 +125,7 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
     }
 
     const handlePushModeChange = (event: SelectChangeEvent) => {
-        setPushMode(event.target.value as PushMode)
+        configService.set('project.pushMode', event.target.value as PushMode)
     }
 
     const handleOpenGithubClick = () => {
