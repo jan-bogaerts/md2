@@ -6,7 +6,7 @@ import type { CardTypeConfig, ProjectCard } from '../../data/data_types'
 function card(path: string, internalId: string): ProjectCard {
     return {
         content: '',
-        header: { affects: [], after: null, id: path, internalId, owner: null, policy: {}, status: 'todo', title: path },
+        header: { affects: [], after: null, author: null, id: path, internalId, owner: null, policy: {}, status: 'todo', title: path },
         isActive: true,
         path,
     }

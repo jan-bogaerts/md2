@@ -8,6 +8,7 @@ function card(internalId: string, options: { after?: string | null; status?: str
         header: {
             affects: [],
             after: options.after ?? null,
+            author: null,
             id: internalId.toUpperCase(),
             internalId,
             owner: null,

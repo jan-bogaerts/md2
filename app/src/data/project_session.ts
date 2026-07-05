@@ -1,6 +1,8 @@
 ﻿import { GithubStorageService } from '../services/github_storage_service'
 import { LocalGitStorageService } from '../services/local_git_storage_service'
-import { DEFAULT_CARD_TYPES, type ProjectConfig, type ProjectReference, type PushMode, type StorageService } from './data_types'
+import {
+    DEFAULT_CARD_BODY_TEMPLATE, DEFAULT_CARD_TYPES, type ProjectConfig, type ProjectReference, type PushMode, type StorageService,
+} from './data_types'
 
 export const LAST_PROJECT_STORAGE_KEY = 'md2.lastProject'
 const WORKING_FOLDER = 'design'
@@ -15,6 +17,7 @@ export interface LastProject {
 /** Build the project config for a session; kept small until a settings feature owns it. */
 export function createProjectConfig(pushMode: PushMode): ProjectConfig {
     return {
+        cardBodyTemplate: DEFAULT_CARD_BODY_TEMPLATE,
         cardTypes: DEFAULT_CARD_TYPES,
         pushMode,
         workingFolder: WORKING_FOLDER,

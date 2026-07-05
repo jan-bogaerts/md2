@@ -1,7 +1,7 @@
 ---
 id: F-008
 title: templates and headers
-status: design
+status: ready
 owner: JB
 affects:
 policy:

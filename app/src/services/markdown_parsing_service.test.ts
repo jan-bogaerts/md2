@@ -3,7 +3,7 @@ import { markdownParsingService } from './markdown_parsing_service'
 import type { MarkdownFile } from '../data/data_types'
 
 const ROOT_FILE: MarkdownFile = {
-    content: '---\nid: F-1\ntitle: Root\nstatus: active\nowner: JB\naffects:\n  - app/src/app.tsx\n---\n\n# Root\n\nBody text',
+    content: '---\nauthor: AB\nid: F-1\ntitle: Root\nstatus: active\nowner: JB\naffects:\n  - app/src/app.tsx\n---\n\n# Root\n\nBody text',
     path: 'design/F-1-root.md',
     sha: 'sha-1',
 }
@@ -46,6 +46,7 @@ describe('markdownParsingService.parseCard', () => {
         expect(card.isActive).toBe(true)
         expect(card.header).toMatchObject({
             affects: ['app/src/app.tsx'],
+            author: 'AB',
             id: 'F-1',
             owner: 'JB',
             status: 'active',
@@ -96,7 +97,7 @@ describe('markdownParsingService.replaceBody', () => {
     it('swaps the body while preserving the existing header', () => {
         const next = markdownParsingService.replaceBody(ROOT_FILE.content, '\n# Root\n\nEdited body')
 
-        expect(next.startsWith('---\nid: F-1\ntitle: Root')).toBe(true)
+        expect(next.startsWith('---\nauthor: AB\nid: F-1\ntitle: Root')).toBe(true)
         expect(next).toContain('affects:\n  - app/src/app.tsx')
         expect(next).toContain('Edited body')
         expect(next).not.toContain('Body text')
@@ -158,21 +159,35 @@ describe('markdownParsingService.setPolicyFlag', () => {
 })
 
 describe('markdownParsingService.buildCardMarkdown', () => {
-    it('generates markdown with a header, title heading and body', () => {
+    it('generates markdown with the full supported header and body template', () => {
         const content = markdownParsingService.buildCardMarkdown(
-            { affects: [], id: 'F-4', internalId: 'fixed-id', status: 'new', title: 'New Card' },
-            'Body',
+            {
+                affects: [],
+                author: null,
+                id: 'F-4',
+                internalId: 'fixed-id',
+                owner: null,
+                policy: {},
+                status: 'new',
+                title: 'New Card',
+            },
+            '# Goal\n\n# Tasks',
         )
 
+        expect(content).toContain('author:')
         expect(content).toContain('id: F-4')
         expect(content).toContain('internalId: fixed-id')
-        expect(content).toContain('# New Card')
-        expect(content.endsWith('\n\nBody')).toBe(true)
+        expect(content).toContain('title: New Card')
+        expect(content).toContain('status: new')
+        expect(content).toContain('owner:')
+        expect(content).toContain('affects:\npolicy:')
+        expect(content.endsWith('\n\n# Goal\n\n# Tasks')).toBe(true)
     })
 
     it('fails fast when required fields are missing', () => {
-        expect(() => markdownParsingService.buildCardMarkdown({ id: '', title: 'x' }, 'Body')).toThrow()
-        expect(() => markdownParsingService.buildCardMarkdown({ id: 'F-1', title: '' }, 'Body')).toThrow()
+        expect(() => markdownParsingService.buildCardMarkdown({ id: '', internalId: 'uuid', title: 'x' }, 'Body')).toThrow()
+        expect(() => markdownParsingService.buildCardMarkdown({ id: 'F-1', internalId: '', title: 'x' }, 'Body')).toThrow()
+        expect(() => markdownParsingService.buildCardMarkdown({ id: 'F-1', internalId: 'uuid', title: '' }, 'Body')).toThrow()
     })
 })
 

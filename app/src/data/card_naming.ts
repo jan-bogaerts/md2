@@ -37,17 +37,31 @@ export function getNextCardNumber(files: MarkdownFile[], idPrefix: string) {
     return numbers.length > 0 ? Math.max(...numbers) + 1 : 1
 }
 
-export function createCardFile(files: MarkdownFile[], workingFolder: string, cardTypes: CardTypeConfig[], draft: CardDraft): MarkdownFile {
+function buildCardBody(template: string, draft: CardDraft) {
+    const hasDraftBody = draft.body.trim().length > 0
+
+    return hasDraftBody ? `${template}\n\n${draft.body}` : template
+}
+
+export function createCardFile(
+    files: MarkdownFile[],
+    workingFolder: string,
+    cardTypes: CardTypeConfig[],
+    cardBodyTemplate: string,
+    draft: CardDraft,
+): MarkdownFile {
     const cardTypeConfig = getCardTypeConfig(cardTypes, draft)
     const number = getNextCardNumber(files, cardTypeConfig.idPrefix)
     const id = `${cardTypeConfig.idPrefix}-${number}`
     const titleSlug = slugifyTitle(draft.title)
+    const internalId = markdownParsingService.generateInternalId()
+    const content = markdownParsingService.buildCardMarkdown(
+        { affects: [], id, internalId, policy: {}, status: 'new', title: draft.title },
+        buildCardBody(cardBodyTemplate, draft),
+    )
 
     return {
-        content: markdownParsingService.buildCardMarkdown(
-            { affects: [], id, internalId: markdownParsingService.generateInternalId(), status: 'new', title: draft.title },
-            draft.body,
-        ),
+        content,
         path: `${workingFolder}/${id}-${titleSlug}${MARKDOWN_EXTENSION}`,
     }
 }

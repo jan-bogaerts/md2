@@ -21,8 +21,9 @@ export interface NewCardHeader {
     affects?: string[]
     author?: string | null
     id: string
-    internalId?: string | null
+    internalId: string
     owner?: string | null
+    policy?: Record<string, string>
     status?: string | null
     title: string
 }
@@ -178,6 +179,7 @@ function parseCardHeader(fields: MarkdownHeaderFields, file: MarkdownFile, body:
     return {
         affects: getListField(fields, 'affects'),
         after: getStringField(fields, 'after'),
+        author: getStringField(fields, 'author'),
         id,
         internalId: getStringField(fields, 'internalId'),
         owner: getStringField(fields, 'owner'),
@@ -234,19 +236,21 @@ function rewritePolicyLines(lines: string[], key: string, value: string) {
 
 function serializeNewHeader(header: NewCardHeader) {
     if (!header.id) throw new Error('Cannot generate a card without an id')
+    if (!header.internalId) throw new Error('Cannot generate a card without an internalId')
     if (!header.title) throw new Error('Cannot generate a card without a title')
 
-    const lines: string[] = []
+    const affects = header.affects ?? []
+    const policy = header.policy ?? {}
 
-    if (header.author != null) lines.push(`author: ${header.author}`)
+    const lines: string[] = []
+    lines.push(`author: ${header.author ?? ''}`)
     lines.push(`id: ${header.id}`)
-    if (header.internalId != null) lines.push(`internalId: ${header.internalId}`)
+    lines.push(`internalId: ${header.internalId}`)
     lines.push(`title: ${header.title}`)
     lines.push(`status: ${header.status ?? DEFAULT_IMPORTED_STATUS}`)
-    if (header.owner != null) lines.push(`owner: ${header.owner}`)
-
-    const affects = header.affects ?? []
+    lines.push(`owner: ${header.owner ?? ''}`)
     lines.push('affects:', ...affects.map((entry) => `${LIST_ITEM_PREFIX}${entry}`))
+    lines.push('policy:', ...Object.entries(policy).map(([key, value]) => `${CHILD_INDENT}${key}: ${value}`))
 
     return lines.join('\n')
 }
@@ -322,7 +326,7 @@ export const markdownParsingService = {
     },
 
     buildCardMarkdown(header: NewCardHeader, body: string) {
-        return `${HEADER_DELIMITER}\n${serializeNewHeader(header)}\n${HEADER_DELIMITER}\n\n# ${header.title}\n\n${body}`
+        return `${HEADER_DELIMITER}\n${serializeNewHeader(header)}\n${HEADER_DELIMITER}\n\n${body}`
     },
 
     generateInternalId() {

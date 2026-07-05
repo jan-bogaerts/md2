@@ -2,7 +2,8 @@
 import { CommitBatcher } from './commit_batcher'
 import { createCardFile, getNextCardNumber } from './card_naming'
 import { DataService } from '../services/data_service'
-import { DEFAULT_CARD_TYPES, type CommitRequest, type MarkdownFile, type StorageService } from './data_types'
+import { markdownParsingService } from '../services/markdown_parsing_service'
+import { DEFAULT_CARD_BODY_TEMPLATE, DEFAULT_CARD_TYPES, type CommitRequest, type MarkdownFile, type StorageService } from './data_types'
 
 const files: MarkdownFile[] = [
     { content: '---\nid: F-1\ntitle: Root\nstatus: active\naffects:\n  - app/src/app.tsx\n---\n\n# Root', path: 'design/F-1-root.md' },
@@ -28,10 +29,32 @@ describe('cardNaming', () => {
     })
 
     it('creates cards with configured id and filename convention', () => {
-        const file = createCardFile(files, 'design', DEFAULT_CARD_TYPES, { body: 'Body', title: 'New Card', type: 'feature' })
+        const file = createCardFile(files, 'design', DEFAULT_CARD_TYPES, DEFAULT_CARD_BODY_TEMPLATE, {
+            body: 'Body',
+            title: 'New Card',
+            type: 'feature',
+        })
 
         expect(file.path).toBe('design/F-4-new-card.md')
         expect(file.content).toContain('id: F-4')
+        expect(file.content).toContain(DEFAULT_CARD_BODY_TEMPLATE)
+        expect(file.content).toContain('Body')
+        expect(file.content).toContain('policy:')
+        expect(file.content).toContain('author:')
+    })
+
+    it('creates cards with a generated internal id that is separate from filename id', () => {
+        const file = createCardFile(files, 'design', DEFAULT_CARD_TYPES, DEFAULT_CARD_BODY_TEMPLATE, {
+            body: '',
+            title: 'New Card',
+            type: 'feature',
+        })
+        const card = markdownParsingService.parseCard(file, 'design')
+
+        expect(card.header.id).toBe('F-4')
+        expect(card.header.internalId).toBeTruthy()
+        expect(card.header.internalId).not.toBe('F-4')
+        expect(card.header.internalId).not.toContain('new-card')
     })
 })
 
@@ -79,7 +102,10 @@ describe('DataService', () => {
     it('leaves commits unpushed in manual mode', async () => {
         const storage = createStorage()
         const service = new DataService()
-        service.init({ config: { cardTypes: DEFAULT_CARD_TYPES, pushMode: 'manual', workingFolder: 'design' }, storage })
+        service.init({
+            config: { cardBodyTemplate: DEFAULT_CARD_BODY_TEMPLATE, cardTypes: DEFAULT_CARD_TYPES, pushMode: 'manual', workingFolder: 'design' },
+            storage,
+        })
 
         await service.openProject({ branch: 'main', id: 'project' })
         await service.createCard({ body: 'Body', title: 'New Card', type: 'feature' })

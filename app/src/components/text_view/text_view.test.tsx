@@ -9,6 +9,7 @@ function card(path: string, overrides: Partial<ProjectCard['header']> = {}, cont
         header: {
             affects: [],
             after: null,
+            author: null,
             id: 'F-0',
             internalId: null,
             owner: null,

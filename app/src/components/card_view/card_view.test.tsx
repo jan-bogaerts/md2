@@ -6,7 +6,7 @@ import { DEFAULT_CARD_TYPES, type ProjectCard } from '../../data/data_types'
 function card(id: string, title: string, status: string, policy: Record<string, string> = {}): ProjectCard {
     return {
         content: `# ${title}\n\nBody of ${id}`,
-        header: { affects: [], after: null, id, internalId: id.toLowerCase(), owner: null, policy, status, title },
+        header: { affects: [], after: null, author: null, id, internalId: id.toLowerCase(), owner: null, policy, status, title },
         isActive: true,
         path: `design/${id}.md`,
     }

@@ -14,6 +14,7 @@ export interface CardTypeConfig {
 }
 
 export interface ProjectConfig {
+    cardBodyTemplate: string
     cardTypes: CardTypeConfig[]
     pushMode: PushMode
     workingFolder: string
@@ -28,6 +29,7 @@ export interface MarkdownFile {
 export interface CardHeader {
     affects: string[]
     after: string | null
+    author: string | null
     id: string
     internalId: string | null
     owner: string | null
@@ -97,7 +99,10 @@ export const DEFAULT_CARD_TYPES: CardTypeConfig[] = [
     { color: BUG_CARD_COLOR, idPrefix: 'B', label: 'Bug', type: 'bug' },
 ]
 
+export const DEFAULT_CARD_BODY_TEMPLATE = '# Goal\n\n# Current status\n\n# Details\n\n# Tasks'
+
 export const DEFAULT_PROJECT_CONFIG: ProjectConfig = {
+    cardBodyTemplate: DEFAULT_CARD_BODY_TEMPLATE,
     cardTypes: DEFAULT_CARD_TYPES,
     pushMode: 'auto',
     workingFolder: DEFAULT_WORKING_FOLDER,

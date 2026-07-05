@@ -7,7 +7,7 @@ function card(overrides: Partial<ProjectCard> = {}): ProjectCard {
     return {
         content: '# Alpha\n\nOriginal body',
         header: {
-            affects: [], after: null, id: 'F-1', internalId: 'f-1', owner: null, policy: {}, status: 'todo',
+            affects: [], after: null, author: null, id: 'F-1', internalId: 'f-1', owner: null, policy: {}, status: 'todo',
             title: 'Alpha',
         },
         isActive: true,

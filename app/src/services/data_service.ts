@@ -98,7 +98,7 @@ export class DataService extends EventTarget {
         const { config, storage } = this.requireDependencies()
         if (!this.currentProject) throw new Error('Cannot create a card before a project is open')
 
-        const file = createCardFile(this.currentFiles, config.workingFolder, config.cardTypes, draft)
+        const file = createCardFile(this.currentFiles, config.workingFolder, config.cardTypes, config.cardBodyTemplate, draft)
         this.currentFiles = [...this.currentFiles, file]
         await storage.commit({
             branch: this.currentProject.branch,
