@@ -12,6 +12,17 @@ policy:
 ## Goal
 Provide a browsable `/config` page with sections and quick-jump tabs, typed value editors with descriptions, explicit save/cancel, and a global config service that merges values from React-app, desktop-app and project-level sources depending on the connection setup.
 
+## Current state
+Config is still handled by separate feature-specific paths. There is no `/config` route, no router-backed navigation, no config page UI, no draft save/cancel flow and no singleton `ConfigService`. The shared `service_injector` exists and `DataService` registers itself there, but config is passed directly into `DataService.init`.
+
+Project config is a small in-memory object. `createProjectConfig(pushMode)` builds it from hard-coded/default values: working folder `design`, default card types, default card body template and the selected push mode. `ProjectWorkspace` owns the push-mode select, recreates config when opening a GitHub or local project, and reads card types/working folder back from `DataService`. `use_app_bootstrap.ts` restores the last project with auto push mode. No project config file is loaded, merged, validated or saved.
+
+GitHub auth config is read from Vite environment values by `readGithubAuthConfig`; missing `VITE_GITHUB_CLIENT_ID` fails fast, optional proxy URL can be absent and scopes default to `repo`. Theme settings are persisted separately in `localStorage` through `useThemeSettings`, not through a general config system.
+
+Electron exposes local data, GitHub OAuth proxy and theme-mode bridges on `window.md2Data`, `window.md2GithubAuth` and `window.md2Theme`. The desktop app URL is resolved from `MD2_APP_URL` with a localhost default. There is no desktop config bridge for editable settings and no project-level config IPC/storage contract.
+
+Tests cover the current focused paths: project/session data behavior, GitHub auth config, theme settings/provider, Electron app URL resolution and desktop theme helpers. There are no config-service merge/validation tests or config-page React tests yet.
+
 ## implementation details
 - Add a singleton `ConfigService` in `app/src/services/`, registered through `service_injector`, with two-phase initialization and explicit `get`, `set`, `clear`, `loadDraft`, `saveDraft` and `discardDraft` behavior.
 - Define config metadata separately from values: key, section, label, description, value type, allowed options/range, default value, source (`react`, `desktop`, `project`) and editability.

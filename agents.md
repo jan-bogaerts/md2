@@ -1,5 +1,8 @@
 # Agent Instructions
 
+You should always only do what is instructed, never just do something because you think this is part of the task. if you believe something is missing in the task, say so, don't just do it.
+ex: instruction is to split up feature descriptions, nothing is mentioned about changing feature status, then don't change it.
+
 ## folder structure
 - app: react-front end
 - desktop: electron desktop-host / backend app
