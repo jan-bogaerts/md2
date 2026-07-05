@@ -2,6 +2,7 @@ import {
     DEFAULT_ACTIONS_FOLDER,
     DEFAULT_CARD_BODY_TEMPLATE,
     DEFAULT_CARD_TYPES,
+    DEFAULT_DIFF_COMMAND,
     DEFAULT_WORKING_FOLDER,
     type CardTypeConfig,
     type ProjectConfig,
@@ -19,6 +20,7 @@ export type ConfigKey =
     | 'project.actionsFolder'
     | 'project.cardBodyTemplate'
     | 'project.cardTypes'
+    | 'project.diffCommand'
     | 'project.pushMode'
     | 'project.workingFolder'
     | 'react.autoCommitDelayMs'
@@ -125,6 +127,16 @@ export const CONFIG_ENTRIES: ConfigEntry[] = [
         type: 'string',
     },
     {
+        defaultValue: DEFAULT_DIFF_COMMAND,
+        description: 'Command template used to render a commit diff. Placeholders: {{rootProjectFolder}}, {{commit}}, {{branch}}, {{file}}.',
+        editable: true,
+        key: 'project.diffCommand',
+        label: 'Diff command',
+        section: 'project',
+        source: 'project',
+        type: 'string',
+    },
+    {
         defaultValue: 'auto',
         description: 'Push commits automatically or wait for an explicit push.',
         editable: true,
@@ -192,6 +204,7 @@ const CONFIG_ENTRY_BY_KEY = new Map(CONFIG_ENTRIES.map((entry) => [entry.key, en
 const PROJECT_KEYS: ConfigKey[] = [
     'project.workingFolder',
     'project.actionsFolder',
+    'project.diffCommand',
     'project.pushMode',
     'project.cardBodyTemplate',
     'project.cardTypes',
@@ -273,6 +286,7 @@ function readProjectConfig(values: ConfigValues): ProjectConfig {
         actionsFolder: values['project.actionsFolder'] as string,
         cardBodyTemplate: values['project.cardBodyTemplate'] as string,
         cardTypes: values['project.cardTypes'] as CardTypeConfig[],
+        diffCommand: values['project.diffCommand'] as string,
         pushMode: values['project.pushMode'] as PushMode,
         workingFolder: values['project.workingFolder'] as string,
     }
@@ -353,6 +367,7 @@ export class ConfigService extends EventTarget {
 
         if (projectConfig?.workingFolder !== undefined) nextValues = mergeValue(nextValues, 'project.workingFolder', projectConfig.workingFolder)
         if (projectConfig?.actionsFolder !== undefined) nextValues = mergeValue(nextValues, 'project.actionsFolder', projectConfig.actionsFolder)
+        if (projectConfig?.diffCommand !== undefined) nextValues = mergeValue(nextValues, 'project.diffCommand', projectConfig.diffCommand)
         if (projectConfig?.pushMode !== undefined) nextValues = mergeValue(nextValues, 'project.pushMode', projectConfig.pushMode)
         if (projectConfig?.cardBodyTemplate !== undefined) {
             nextValues = mergeValue(nextValues, 'project.cardBodyTemplate', projectConfig.cardBodyTemplate)

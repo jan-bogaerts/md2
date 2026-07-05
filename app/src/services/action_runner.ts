@@ -5,6 +5,7 @@ import {
     type ActionRunHistoryRequest,
     type AgentExecutionResult,
     type AgentExecutionRequest,
+    type CommitMetadata,
     getElectronActionBridge,
     type CommandExecutionResult,
     type ElectronActionBridge,
@@ -73,6 +74,8 @@ export interface ConvertPromptToActionInput {
 const PLACEHOLDER_PATTERN = /\{\{\s*(rootProjectFolder|file|prompt)\s*\}\}/gu
 const PROMPT_PLACEHOLDER_PATTERN = /\{\{\s*prompt\s*\}\}/u
 const ACTION_FILE_EXTENSION = '.json'
+const COMMIT_LINE_PATTERN = /^\[(.+?) ([0-9a-f]{7,40})\]/mu
+const ROOT_COMMIT_SUFFIX = ' (root-commit)'
 
 function combineOutput(result: CommandExecutionResult) {
     return `${result.stdout}${result.stderr}`
@@ -143,6 +146,32 @@ function resolveAgentPrompt(action: ActionDefinition, context: ActionContext, pr
     if (extraPrompt.trim().length === 0) return resolvedText
 
     return `${resolvedText}\n\n${extraPrompt}`
+}
+
+interface CommitMetadataInput {
+    actionName: string
+    completedAt: string
+    context: ActionContext
+    output: string
+    project: ProjectReference
+}
+
+/** Parse the git commit summary line (`[branch hash] message`) an action reported, if any. */
+function extractCommitMetadata(input: CommitMetadataInput): CommitMetadata | null {
+    const match = COMMIT_LINE_PATTERN.exec(input.output)
+    if (!match || !input.project.rootPath) return null
+
+    const branch = match[1].endsWith(ROOT_COMMIT_SUFFIX) ? match[1].slice(0, -ROOT_COMMIT_SUFFIX.length) : match[1]
+    const filePaths = input.context.file ? [input.context.file] : []
+
+    return {
+        actionName: input.actionName,
+        branch,
+        commit: match[2],
+        completedAt: input.completedAt,
+        filePaths,
+        repositoryRoot: input.project.rootPath,
+    }
 }
 
 function matchingOnRules(rules: OnRule[], output: string): OnRule[] {
@@ -301,6 +330,7 @@ export class ActionRunner {
             const result = await this.commandRunner(bridge, command)
             options.state.logs.push(createCommandLog(action, options.phase, command, result))
             if (result.exitCode !== 0) options.state.failed = true
+            await this.appendCommandHistory(bridge, action, context, project, command, result)
 
             return combineOutput(result)
         } catch (error) {
@@ -344,12 +374,41 @@ export class ActionRunner {
         const actionsFolder = this.actionsFolderProvider()
         if (!actionsFolder) throw new Error('Cannot store action history before project config is loaded')
 
+        const completedAt = new Date().toISOString()
+        const output = combineOutput(result)
+        const project = this.projectProvider()
+        const commit = project
+            ? extractCommitMetadata({ actionName: action.name, completedAt, context, output, project })
+            : null
         const entry: ActionRunHistoryEntry = {
-            completedAt: new Date().toISOString(),
-            output: combineOutput(result),
+            completedAt,
+            output,
             prompt: result.prompt,
             status: statusFromExitCode(result.exitCode),
+            ...(commit ? { commit } : {}),
         }
+        const request = { actionName: action.name, actionsFolder, context }
+        await this.actionHistoryAppender(bridge, request, entry)
+    }
+
+    /** Persist a command run only when it reported a commit, so the log can expose a diff view. */
+    private async appendCommandHistory(
+        bridge: ElectronActionBridge,
+        action: ActionDefinition,
+        context: ActionContext,
+        project: ProjectReference,
+        command: string,
+        result: CommandExecutionResult,
+    ) {
+        const completedAt = new Date().toISOString()
+        const output = combineOutput(result)
+        const commit = extractCommitMetadata({ actionName: action.name, completedAt, context, output, project })
+        if (!commit) return
+
+        const actionsFolder = this.actionsFolderProvider()
+        if (!actionsFolder) throw new Error('Cannot store action history before project config is loaded')
+
+        const entry: ActionRunHistoryEntry = { command, commit, completedAt, output, prompt: '', status: statusFromExitCode(result.exitCode) }
         const request = { actionName: action.name, actionsFolder, context }
         await this.actionHistoryAppender(bridge, request, entry)
     }

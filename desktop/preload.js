@@ -2,6 +2,7 @@ const { ipcRenderer } = require('electron')
 const { resolveDesktopConfig } = require('./config')
 const { requestGithubAccessToken, requestGithubDeviceCode } = require('./github_oauth_proxy')
 const localGitService = require('./local_git_service')
+const diffService = require('./diff_service')
 
 const DATA_OPEN_PROJECT_FOLDER_CHANNEL = 'md2-data:open-project-folder'
 const DATA_MENU_PUSH_CHANNEL = 'md2-data:menu-push'
@@ -79,7 +80,9 @@ window.md2Data = dataBridge
 
 const actionBridge = {
     appendActionRunHistory: (request, entry) => localGitService.appendActionRunHistory(currentLocalProject, request, entry),
+    generateDiff: (request) => diffService.generateDiff(currentLocalProject, request),
     loadActionRunHistory: (request) => localGitService.loadActionRunHistory(currentLocalProject, request),
+    openInEditor: (request) => diffService.openInEditor(currentLocalProject, request),
     runAgent: (request) => localGitService.runAgent(currentLocalProject, request),
     runCommand: (command) => localGitService.runCommand(currentLocalProject, command),
 }

@@ -1,7 +1,7 @@
 ---
 id: F-014
 title: diff view
-status: design
+status: ready
 owner: JB
 affects:
 policy:

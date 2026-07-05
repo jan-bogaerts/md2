@@ -91,6 +91,42 @@ describe('ActionPopup', () => {
         await waitFor(() => expect(screen.getByText('completed: done')).toBeInTheDocument())
     })
 
+    it('shows and hides a diff view for a commit history entry', async () => {
+        const commitEntry = {
+            command: 'git commit',
+            commit: {
+                actionName: 'commit',
+                branch: 'main',
+                commit: 'abc1234',
+                completedAt: '2026-07-05T10:00:00.000Z',
+                filePaths: ['design/F-010.md'],
+                repositoryRoot: 'C:/repo',
+            },
+            completedAt: '2026-07-05T10:00:00.000Z',
+            output: 'committed',
+            prompt: '',
+            status: 'completed' as const,
+        }
+        renderPopup({ action: action('Commit'), loadHistory: vi.fn(async () => [commitEntry]) })
+
+        const toggle = await screen.findByRole('button', { name: 'Show diff' })
+        fireEvent.click(toggle)
+        expect(screen.getByRole('button', { name: 'Hide diff' })).toBeInTheDocument()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Hide diff' }))
+        expect(screen.getByRole('button', { name: 'Show diff' })).toBeInTheDocument()
+    })
+
+    it('does not offer a diff view for a history entry without commit metadata', async () => {
+        renderPopup({
+            action: action('Implement'),
+            loadHistory: vi.fn(async () => [{ completedAt: '2026-07-05T10:00:00.000Z', output: 'done', prompt: 'run', status: 'completed' as const }]),
+        })
+
+        await waitFor(() => expect(screen.getByText('completed: done')).toBeInTheDocument())
+        expect(screen.queryByRole('button', { name: 'Show diff' })).not.toBeInTheDocument()
+    })
+
     it('converts extra prompt input to an action file', async () => {
         const convertPromptToAction = vi.fn(async () => ({ path: 'actions/custom-review.json' }))
         renderPopup({ action: action('Custom prompt', { text: '{{prompt}}', type: 'agent' }), convertPromptToAction })

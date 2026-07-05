@@ -33,6 +33,7 @@ describe('LocalGitStorageService', () => {
             actionsFolder: 'actions',
             cardBodyTemplate: '# Template',
             cardTypes: [],
+            diffCommand: 'git show {{commit}}',
             pushMode: 'auto',
             workingFolder: 'design',
         })

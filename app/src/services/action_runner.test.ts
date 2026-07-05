@@ -24,7 +24,9 @@ function action(name: string, overrides: Partial<ActionDefinition> = {}): Action
 
 const bridge: ElectronActionBridge = {
     appendActionRunHistory: vi.fn(async () => []),
+    generateDiff: vi.fn(async () => ({ commit: '', files: [] })),
     loadActionRunHistory: vi.fn(async () => []),
+    openInEditor: vi.fn(async () => {}),
     runAgent: vi.fn(),
     runCommand: vi.fn(),
 }
@@ -182,6 +184,71 @@ describe('ActionRunner', () => {
 
         expect(entries).toEqual(history)
         expect(actionHistoryLoader).toHaveBeenCalledWith(bridge, { actionName: 'implement', actionsFolder: 'actions', context })
+    })
+
+    it('stores commit metadata when a command action reports a commit', async () => {
+        const actionHistoryAppender = vi.fn(async () => [])
+        const commandRunner = vi.fn(async (_bridge: ElectronActionBridge, command: string) => (
+            commandResult(command, { stdout: '[main a1b2c3d] Implement feature\n 1 file changed' })
+        ))
+        const result = await new ActionRunner({
+            actionHistoryAppender,
+            actionsFolderProvider: () => 'actions',
+            bridgeProvider: () => bridge,
+            commandRunner,
+            projectProvider: () => ({ branch: 'main', id: 'local', rootPath: 'C:/repo' }),
+        }).run(action('commit', { text: 'git commit' }), context)
+
+        expect(result.status).toBe('completed')
+        expect(actionHistoryAppender).toHaveBeenCalledWith(
+            bridge,
+            { actionName: 'commit', actionsFolder: 'actions', context },
+            expect.objectContaining({
+                command: 'git commit',
+                commit: {
+                    actionName: 'commit',
+                    branch: 'main',
+                    commit: 'a1b2c3d',
+                    completedAt: expect.any(String),
+                    filePaths: ['design/F-010.md'],
+                    repositoryRoot: 'C:/repo',
+                },
+            }),
+        )
+    })
+
+    it('does not store history for a command action without a commit', async () => {
+        const actionHistoryAppender = vi.fn(async () => [])
+        await new ActionRunner({
+            actionHistoryAppender,
+            actionsFolderProvider: () => 'actions',
+            bridgeProvider: () => bridge,
+            commandRunner: vi.fn(async (_bridge: ElectronActionBridge, command: string) => commandResult(command)),
+            projectProvider: () => ({ branch: 'main', id: 'local', rootPath: 'C:/repo' }),
+        }).run(action('build', { text: 'npm run build' }), context)
+
+        expect(actionHistoryAppender).not.toHaveBeenCalled()
+    })
+
+    it('attaches commit metadata to an agent run that reports a commit', async () => {
+        const actionHistoryAppender = vi.fn(async () => [])
+        const agentRunner = vi.fn(async (_bridge: ElectronActionBridge, request: AgentExecutionRequest) => (
+            agentResult(request, { stdout: 'done\n[feature/x 0f1e2d3c4b5a] Add tests' })
+        ))
+        await new ActionRunner({
+            actionHistoryAppender,
+            actionsFolderProvider: () => 'actions',
+            agentCommandProvider: () => 'codex',
+            agentRunner,
+            bridgeProvider: () => bridge,
+            projectProvider: () => ({ branch: 'main', id: 'local', rootPath: 'C:/repo' }),
+        }).run(action('implement', { text: 'implement', type: 'agent' }), context)
+
+        expect(actionHistoryAppender).toHaveBeenCalledWith(
+            bridge,
+            { actionName: 'implement', actionsFolder: 'actions', context },
+            expect.objectContaining({ commit: expect.objectContaining({ branch: 'feature/x', commit: '0f1e2d3c4b5a' }) }),
+        )
     })
 
     it('converts prompt input to a reusable action json file', async () => {

@@ -6,6 +6,7 @@ import type { ActionContext } from '../../data/action_context'
 import type { ActionDefinition } from '../../data/action_types'
 import type { ActionRunHistoryEntry } from '../../data/electron_action_bridge'
 import { actionRunner, type ActionRunInput, type ActionRunResult, type ConvertPromptToActionInput } from '../../services/action_runner'
+import { DiffView } from './diff_view'
 
 /** Which lower corner the resize handle sits in, chosen by the popup's screen position. */
 export type ResizeCorner = 'lower-left' | 'lower-right'
@@ -60,6 +61,34 @@ function RelatedActions(props: RelatedActionsProps) {
     )
 }
 
+interface HistoryEntryRowProps {
+    entry: ActionRunHistoryEntry
+}
+
+/** One run history line; commit entries expose a toggleable diff view. */
+function HistoryEntryRow(props: HistoryEntryRowProps) {
+    const { entry } = props
+    const [showDiff, setShowDiff] = useState(false)
+
+    const handleToggleDiff = () => setShowDiff((previous) => !previous)
+
+    return (
+        <Box>
+            <Typography color="text.secondary" variant="caption">
+                {entry.status}: {entry.output || entry.prompt}
+            </Typography>
+            {entry.commit ? (
+                <Box>
+                    <Button onClick={handleToggleDiff} size="small">
+                        {showDiff ? 'Hide diff' : 'Show diff'}
+                    </Button>
+                    {showDiff ? <DiffView entry={entry} /> : null}
+                </Box>
+            ) : null}
+        </Box>
+    )
+}
+
 function defaultRunAction(action: ActionDefinition, context: ActionContext, input?: ActionRunInput) {
     return actionRunner.run(action, context, input)
 }
@@ -104,11 +133,9 @@ export function ActionPopup(props: ActionPopupProps) {
     useEffect(() => () => resizeRef.current?.abort(), [])
 
     useEffect(() => {
-        if (action.type !== 'agent') return
-
         let isActive = true
 
-        async function loadAgentHistory() {
+        async function loadRunHistory() {
             setHistoryError(null)
             try {
                 const entries = await loadHistory(action, context)
@@ -118,7 +145,7 @@ export function ActionPopup(props: ActionPopupProps) {
             }
         }
 
-        void loadAgentHistory()
+        void loadRunHistory()
 
         return () => {
             isActive = false
@@ -133,7 +160,7 @@ export function ActionPopup(props: ActionPopupProps) {
             const result = await runAction(action, context, { extraPrompt })
             setRunResult(result)
             setRunStatus(result.status)
-            if (action.type === 'agent') setHistory(await loadHistory(action, context))
+            setHistory(await loadHistory(action, context))
         } catch (error) {
             const message = error instanceof Error ? error.message : 'Action run failed'
             setRunResult({
@@ -257,31 +284,27 @@ export function ActionPopup(props: ActionPopupProps) {
 
                 <Divider />
 
-                {action.type === 'agent' ? (
-                    <Box>
-                        <Typography color="text.secondary" variant="caption">
-                            Run history
+                <Box>
+                    <Typography color="text.secondary" variant="caption">
+                        Run history
+                    </Typography>
+                    {historyError ? (
+                        <Typography color="error" variant="caption">
+                            {historyError}
                         </Typography>
-                        {historyError ? (
-                            <Typography color="error" variant="caption">
-                                {historyError}
-                            </Typography>
-                        ) : null}
-                        {history.length > 0 ? (
-                            <Stack spacing={0.5} sx={{ mt: 0.5 }}>
-                                {history.map((entry, index) => (
-                                    <Typography key={`${entry.completedAt}-${entry.status}-${index}`} color="text.secondary" variant="caption">
-                                        {entry.status}: {entry.output || entry.prompt}
-                                    </Typography>
-                                ))}
-                            </Stack>
-                        ) : (
-                            <Typography color="text.secondary" variant="caption">
-                                No previous runs
-                            </Typography>
-                        )}
-                    </Box>
-                ) : null}
+                    ) : null}
+                    {history.length > 0 ? (
+                        <Stack spacing={0.5} sx={{ mt: 0.5 }}>
+                            {history.map((entry, index) => (
+                                <HistoryEntryRow entry={entry} key={`${entry.completedAt}-${entry.status}-${index}`} />
+                            ))}
+                        </Stack>
+                    ) : (
+                        <Typography color="text.secondary" variant="caption">
+                            No previous runs
+                        </Typography>
+                    )}
+                </Box>
 
                 <RelatedActions actions={action.before} label="Before" onNavigate={onNavigate} />
                 <RelatedActions actions={action.after} label="After" onNavigate={onNavigate} />

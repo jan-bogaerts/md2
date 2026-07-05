@@ -3,6 +3,7 @@ import { DEFAULT_COLOR_SCHEME } from '../theme/theme_config'
 
 export const DEFAULT_WORKING_FOLDER = 'design'
 export const DEFAULT_ACTIONS_FOLDER = 'actions'
+export const DEFAULT_DIFF_COMMAND = 'git show {{commit}}'
 export const AUTO_COMMIT_DELAY_MS = 30000
 
 export type CardType = 'feature' | 'job' | 'bug'
@@ -19,6 +20,7 @@ export interface ProjectConfig {
     actionsFolder: string
     cardBodyTemplate: string
     cardTypes: CardTypeConfig[]
+    diffCommand: string
     pushMode: PushMode
     workingFolder: string
 }
@@ -174,6 +176,7 @@ export const DEFAULT_PROJECT_CONFIG: ProjectConfig = {
     actionsFolder: DEFAULT_ACTIONS_FOLDER,
     cardBodyTemplate: DEFAULT_CARD_BODY_TEMPLATE,
     cardTypes: DEFAULT_CARD_TYPES,
+    diffCommand: DEFAULT_DIFF_COMMAND,
     pushMode: 'auto',
     workingFolder: DEFAULT_WORKING_FOLDER,
 }
