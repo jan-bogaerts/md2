@@ -5,7 +5,7 @@ import { createRequire } from 'node:module'
 import { describe, expect, it } from 'vitest'
 
 const require = createRequire(import.meta.url)
-const { loadProject, loadProjectConfig } = require('./local_git_service')
+const { loadActionFiles, loadProject, loadProjectConfig } = require('./local_git_service')
 
 describe('local-git-service', () => {
     it('loads markdown files from the working folder and subfolders', async () => {
@@ -34,6 +34,35 @@ describe('local-git-service', () => {
             await loadProject({ branch: 'main', id: 'local', rootPath }, 'design')
 
             await expect(readFile(join(rootPath, 'design', 'README.md'), 'utf8')).resolves.toContain('Project design folder')
+        } finally {
+            await rm(rootPath, { force: true, recursive: true })
+        }
+    })
+
+    it('loads json action files from the actions folder', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-local-git-'))
+
+        try {
+            await mkdir(join(rootPath, '.git'))
+            await mkdir(join(rootPath, 'actions'))
+            await writeFile(join(rootPath, 'actions', 'implement.json'), '{"name":"implement"}')
+            await writeFile(join(rootPath, 'actions', 'notes.md'), '# skip me')
+
+            const files = await loadActionFiles({ branch: 'main', id: 'local', rootPath }, 'actions')
+
+            expect(files).toEqual([{ content: '{"name":"implement"}', path: 'actions/implement.json' }])
+        } finally {
+            await rm(rootPath, { force: true, recursive: true })
+        }
+    })
+
+    it('returns no action files when the actions folder is missing', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-local-git-'))
+
+        try {
+            await mkdir(join(rootPath, '.git'))
+
+            await expect(loadActionFiles({ branch: 'main', id: 'local', rootPath }, 'actions')).resolves.toEqual([])
         } finally {
             await rm(rootPath, { force: true, recursive: true })
         }

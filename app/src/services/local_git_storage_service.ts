@@ -1,3 +1,4 @@
+import type { ActionFile } from '../data/action_types'
 import type {
     BranchReference,
     CommitRequest,
@@ -37,6 +38,10 @@ export class LocalGitStorageService implements StorageService {
 
     async loadProject(project: ProjectReference, workingFolder: string): Promise<StorageProjectFiles> {
         return this.requireBridge().loadProject(project, workingFolder)
+    }
+
+    async loadActionFiles(project: ProjectReference, actionsFolder: string): Promise<ActionFile[]> {
+        return this.requireBridge().loadActionFiles(project, actionsFolder)
     }
 
     async loadProjectConfig(project: ProjectReference): Promise<Partial<ProjectConfig> | null> {

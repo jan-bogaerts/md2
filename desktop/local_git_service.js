@@ -5,6 +5,7 @@ const { promisify } = require('node:util')
 
 const execFileAsync = promisify(execFile)
 const MARKDOWN_EXTENSION = '.md'
+const JSON_EXTENSION = '.json'
 const PROJECT_CONFIG_PATH = 'md2.config.json'
 
 function normalizePath(filePath) {
@@ -103,6 +104,26 @@ async function loadProject(project, workingFolder) {
     }
 }
 
+async function loadActionFiles(project, actionsFolder) {
+    const rootPath = requireRootPath(project)
+    await assertGitRoot(rootPath)
+    const actionsFolderPath = ensureInsideRoot(rootPath, path.join(rootPath, actionsFolder))
+    if (!await pathExists(actionsFolderPath)) return []
+
+    const entries = await fs.promises.readdir(actionsFolderPath, { withFileTypes: true })
+    const files = []
+
+    for (const entry of entries) {
+        if (entry.isFile() && entry.name.toLowerCase().endsWith(JSON_EXTENSION)) {
+            const entryPath = path.join(actionsFolderPath, entry.name)
+            const content = await fs.promises.readFile(entryPath, 'utf8')
+            files.push({ content, path: normalizePath(path.relative(rootPath, entryPath)) })
+        }
+    }
+
+    return files
+}
+
 async function loadProjectConfig(project) {
     const rootPath = requireRootPath(project)
     await assertGitRoot(rootPath)
@@ -169,6 +190,7 @@ module.exports = {
     commit,
     createProject,
     listBranches,
+    loadActionFiles,
     loadProject,
     loadProjectConfig,
     push,

@@ -106,4 +106,32 @@ describe('GithubStorageService', () => {
 
         await expect(service.loadProjectConfig({ branch: 'main', id: 'owner/repo', owner: 'owner', repository: 'repo' })).resolves.toBeNull()
     })
+
+    it('loads json action files from the actions folder', async () => {
+        const fetchImplementation = vi.fn()
+            .mockResolvedValueOnce(createResponse([
+                { path: 'actions/implement.json', type: 'file' },
+                { path: 'actions/readme.md', type: 'file' },
+            ]))
+            .mockResolvedValueOnce(createResponse({
+                content: btoa('{"name":"implement"}'),
+                encoding: 'base64',
+                path: 'actions/implement.json',
+                sha: 'action-sha',
+            }))
+        const service = new GithubStorageService()
+        service.init({ accessToken: 'token', fetchImplementation })
+
+        const files = await service.loadActionFiles({ branch: 'main', id: 'owner/repo', owner: 'owner', repository: 'repo' }, 'actions')
+
+        expect(files).toEqual([{ content: '{"name":"implement"}', path: 'actions/implement.json' }])
+    })
+
+    it('returns no action files when the actions folder is absent', async () => {
+        const fetchImplementation = vi.fn().mockResolvedValue(createStatusResponse(404))
+        const service = new GithubStorageService()
+        service.init({ accessToken: 'token', fetchImplementation })
+
+        await expect(service.loadActionFiles({ branch: 'main', id: 'owner/repo', owner: 'owner', repository: 'repo' }, 'actions')).resolves.toEqual([])
+    })
 })

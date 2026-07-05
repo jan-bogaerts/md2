@@ -1,4 +1,5 @@
 import {
+    DEFAULT_ACTIONS_FOLDER,
     DEFAULT_CARD_BODY_TEMPLATE,
     DEFAULT_CARD_TYPES,
     DEFAULT_WORKING_FOLDER,
@@ -15,6 +16,7 @@ export type ConfigKey =
     | 'connection.githubScopes'
     | 'desktop.agent'
     | 'desktop.projectLocationMode'
+    | 'project.actionsFolder'
     | 'project.cardBodyTemplate'
     | 'project.cardTypes'
     | 'project.pushMode'
@@ -113,6 +115,16 @@ export const CONFIG_ENTRIES: ConfigEntry[] = [
         type: 'string',
     },
     {
+        defaultValue: DEFAULT_ACTIONS_FOLDER,
+        description: 'Folder that contains the project action json definitions.',
+        editable: true,
+        key: 'project.actionsFolder',
+        label: 'Actions folder',
+        section: 'project',
+        source: 'project',
+        type: 'string',
+    },
+    {
         defaultValue: 'auto',
         description: 'Push commits automatically or wait for an explicit push.',
         editable: true,
@@ -177,7 +189,13 @@ export const CONFIG_ENTRIES: ConfigEntry[] = [
 ]
 
 const CONFIG_ENTRY_BY_KEY = new Map(CONFIG_ENTRIES.map((entry) => [entry.key, entry]))
-const PROJECT_KEYS: ConfigKey[] = ['project.workingFolder', 'project.pushMode', 'project.cardBodyTemplate', 'project.cardTypes']
+const PROJECT_KEYS: ConfigKey[] = [
+    'project.workingFolder',
+    'project.actionsFolder',
+    'project.pushMode',
+    'project.cardBodyTemplate',
+    'project.cardTypes',
+]
 
 function createDefaultValues(): ConfigValues {
     return CONFIG_ENTRIES.reduce((values, entry) => ({ ...values, [entry.key]: entry.defaultValue }), {} as ConfigValues)
@@ -252,6 +270,7 @@ function mergeValue(values: ConfigValues, key: ConfigKey, value: unknown): Confi
 
 function readProjectConfig(values: ConfigValues): ProjectConfig {
     return {
+        actionsFolder: values['project.actionsFolder'] as string,
         cardBodyTemplate: values['project.cardBodyTemplate'] as string,
         cardTypes: values['project.cardTypes'] as CardTypeConfig[],
         pushMode: values['project.pushMode'] as PushMode,
@@ -333,6 +352,7 @@ export class ConfigService extends EventTarget {
         }
 
         if (projectConfig?.workingFolder !== undefined) nextValues = mergeValue(nextValues, 'project.workingFolder', projectConfig.workingFolder)
+        if (projectConfig?.actionsFolder !== undefined) nextValues = mergeValue(nextValues, 'project.actionsFolder', projectConfig.actionsFolder)
         if (projectConfig?.pushMode !== undefined) nextValues = mergeValue(nextValues, 'project.pushMode', projectConfig.pushMode)
         if (projectConfig?.cardBodyTemplate !== undefined) {
             nextValues = mergeValue(nextValues, 'project.cardBodyTemplate', projectConfig.cardBodyTemplate)

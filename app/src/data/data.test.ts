@@ -2,6 +2,7 @@
 import { CommitBatcher } from './commit_batcher'
 import { afterEach } from 'vitest'
 import { createCardFile, getNextCardNumber } from './card_naming'
+import { actionService } from '../services/action_service'
 import { configService } from '../services/config_service'
 import { DataService } from '../services/data_service'
 import { markdownParsingService } from '../services/markdown_parsing_service'
@@ -19,6 +20,7 @@ function createStorage(overrides: Partial<StorageService> = {}): StorageService 
         commit: vi.fn(),
         createProject: vi.fn(async (project) => project),
         listBranches: vi.fn(async () => [{ name: 'main' }]),
+        loadActionFiles: vi.fn(async () => []),
         loadProject: vi.fn(async () => ({ files, workingFolder: 'design' })),
         loadProjectConfig: vi.fn(async () => null),
         push: vi.fn(),
@@ -189,5 +191,18 @@ describe('DataService', () => {
         const committed = (storage.commit as ReturnType<typeof vi.fn>).mock.calls.at(-1)?.[0] as CommitRequest
         expect(committed.files[0].content.startsWith('---\nid: F-1')).toBe(true)
         expect(committed.files[0].content).toContain('Edited body')
+    })
+
+    it('loads action files from the configured actions folder into the action service on open', async () => {
+        configService.init()
+        const actionFile = { content: JSON.stringify({ description: 'Do', label: 'Do', name: 'do', text: 'run', type: 'cmd' }), path: 'actions/do.json' }
+        const storage = createStorage({ loadActionFiles: vi.fn(async () => [actionFile]) })
+        const service = new DataService()
+        service.init({ storage })
+
+        await service.openProject({ branch: 'main', id: 'project' })
+
+        expect(storage.loadActionFiles).toHaveBeenCalledWith({ branch: 'main', id: 'project' }, 'actions')
+        expect(actionService.getActions().map((action) => action.name)).toContain('do')
     })
 })

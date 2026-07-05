@@ -41,6 +41,7 @@ const dataBridge = {
     commit: (request) => localGitService.commit(request, currentLocalProject),
     createProject: (project, workingFolder) => localGitService.createProject(project, workingFolder),
     listBranches: (project) => localGitService.listBranches(project),
+    loadActionFiles: (project, actionsFolder) => localGitService.loadActionFiles(project, actionsFolder),
     loadProject: async (project, workingFolder) => {
         currentLocalProject = project
 

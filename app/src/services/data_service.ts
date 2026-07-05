@@ -9,6 +9,7 @@ import {
     type ProjectSnapshot,
     type StorageService,
 } from '../data/data_types'
+import { actionService } from './action_service'
 import { configService } from './config_service'
 import { markdownParsingService } from './markdown_parsing_service'
 import { register } from './service_injector'
@@ -44,6 +45,7 @@ export class DataService extends EventTarget {
         this.currentProject = null
         this.currentSnapshot = null
         this.storage = dependencies.storage
+        actionService.init()
         const delayMs = configService.get('react.autoCommitDelayMs') as number
         this.commitBatcher = new CommitBatcher({
             clearDelay: window.clearTimeout,
@@ -82,6 +84,8 @@ export class DataService extends EventTarget {
         const projectConfig = await storage.loadProjectConfig(project)
         configService.loadProjectConfig(projectConfig)
         const config = configService.getProjectConfig()
+        const actionFiles = await storage.loadActionFiles(project, config.actionsFolder)
+        actionService.loadFromFiles(actionFiles)
         const projectFiles = await storage.loadProject(project, config.workingFolder)
         this.currentFiles = projectFiles.files
         this.currentSnapshot = {

@@ -1,6 +1,8 @@
+import type { ActionFile } from './action_types'
 import { DEFAULT_COLOR_SCHEME } from '../theme/theme_config'
 
 export const DEFAULT_WORKING_FOLDER = 'design'
+export const DEFAULT_ACTIONS_FOLDER = 'actions'
 export const AUTO_COMMIT_DELAY_MS = 30000
 
 export type CardType = 'feature' | 'job' | 'bug'
@@ -14,6 +16,7 @@ export interface CardTypeConfig {
 }
 
 export interface ProjectConfig {
+    actionsFolder: string
     cardBodyTemplate: string
     cardTypes: CardTypeConfig[]
     pushMode: PushMode
@@ -86,6 +89,7 @@ export interface StorageService {
     commit(request: CommitRequest): Promise<void>
     createProject(project: ProjectReference, workingFolder: string): Promise<ProjectReference>
     listBranches(project: ProjectReference): Promise<BranchReference[]>
+    loadActionFiles(project: ProjectReference, actionsFolder: string): Promise<ActionFile[]>
     loadProject(project: ProjectReference, workingFolder: string): Promise<StorageProjectFiles>
     loadProjectConfig(project: ProjectReference): Promise<Partial<ProjectConfig> | null>
     push(project: ProjectReference): Promise<void>
@@ -104,6 +108,7 @@ export const DEFAULT_CARD_TYPES: CardTypeConfig[] = [
 export const DEFAULT_CARD_BODY_TEMPLATE = '# Goal\n\n# Current status\n\n# Details\n\n# Tasks'
 
 export const DEFAULT_PROJECT_CONFIG: ProjectConfig = {
+    actionsFolder: DEFAULT_ACTIONS_FOLDER,
     cardBodyTemplate: DEFAULT_CARD_BODY_TEMPLATE,
     cardTypes: DEFAULT_CARD_TYPES,
     pushMode: 'auto',

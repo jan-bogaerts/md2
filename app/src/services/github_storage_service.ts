@@ -1,3 +1,4 @@
+import type { ActionFile } from '../data/action_types'
 import type {
     BranchReference,
     CommitRequest,
@@ -132,6 +133,28 @@ export class GithubStorageService implements StorageService {
         const files = await this.readDirectory(project, workingFolder)
 
         return { files, workingFolder }
+    }
+
+    async loadActionFiles(project: ProjectReference, actionsFolder: string): Promise<ActionFile[]> {
+        this.requireGithubProject(project)
+        const entries = await this.request(
+            `/repos/${project.owner}/${project.repository}/contents/${encodePath(actionsFolder)}?ref=${encodeURIComponent(project.branch)}`,
+            {},
+            true,
+        )
+        if (entries === null) return []
+
+        const files: ActionFile[] = []
+        for (const entry of normalizeDirectoryEntries(entries)) {
+            const type = requireString(entry.type, 'content.type')
+            const entryPath = requireString(entry.path, 'content.path')
+            if (type === 'file' && entryPath.toLowerCase().endsWith('.json')) {
+                const jsonFile = await this.readFile(project, entryPath)
+                files.push({ content: jsonFile.content, path: jsonFile.path })
+            }
+        }
+
+        return files
     }
 
     async loadProjectConfig(project: ProjectReference): Promise<Partial<ProjectConfig> | null> {

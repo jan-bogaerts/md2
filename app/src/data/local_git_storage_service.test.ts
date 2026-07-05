@@ -8,6 +8,7 @@ function createBridge(): ElectronDataBridge {
         commit: vi.fn(),
         createProject: vi.fn(async (project) => project),
         listBranches: vi.fn(async () => [{ name: 'main' }]),
+        loadActionFiles: vi.fn(async () => []),
         loadProject: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
         loadProjectConfig: vi.fn(async () => null),
         openProjectFolder: vi.fn(async () => ({ branch: 'main', id: 'local', rootPath: 'C:/repo' })),
@@ -29,6 +30,7 @@ describe('LocalGitStorageService', () => {
         await service.checkoutBranch(project!, 'feature')
         await service.commit({ branch: 'feature', files: [{ content: '# Test', path: 'design/F-1-test.md' }], message: 'Update test' })
         await service.saveProjectConfig(project!, {
+            actionsFolder: 'actions',
             cardBodyTemplate: '# Template',
             cardTypes: [],
             pushMode: 'auto',

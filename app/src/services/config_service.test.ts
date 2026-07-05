@@ -12,14 +12,22 @@ describe('ConfigService', () => {
 
     it('merges project config over defaults', () => {
         service.init()
-        service.loadProjectConfig({ pushMode: 'manual', workingFolder: 'docs' })
+        service.loadProjectConfig({ actionsFolder: 'ops', pushMode: 'manual', workingFolder: 'docs' })
 
         expect(service.getProjectConfig()).toMatchObject({
+            actionsFolder: 'ops',
             cardBodyTemplate: '# Goal\n\n# Current status\n\n# Details\n\n# Tasks',
             pushMode: 'manual',
             workingFolder: 'docs',
         })
         expect(service.getProjectConfig().cardTypes).toEqual(DEFAULT_CARD_TYPES)
+    })
+
+    it('defaults the actions folder when project config omits it', () => {
+        service.init()
+        service.loadProjectConfig(null)
+
+        expect(service.getProjectConfig().actionsFolder).toBe('actions')
     })
 
     it('rejects invalid project config values', () => {

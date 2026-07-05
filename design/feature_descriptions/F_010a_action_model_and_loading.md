@@ -1,7 +1,7 @@
 ---
 id: F-010a
 title: action model and loading
-status: design
+status: ready
 owner: JB
 affects:
 policy:
