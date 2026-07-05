@@ -1,5 +1,5 @@
 import type { ActionFile } from './action_types'
-import type { BranchReference, CommitRequest, ProjectConfig, ProjectReference, StorageProjectFiles } from './data_types'
+import type { BranchReference, CommitRequest, ProjectConfig, ProjectReference, ProjectWatchEvent, StorageProjectFiles } from './data_types'
 
 export interface ElectronDataBridge {
     checkoutBranch(project: ProjectReference, branch: string): Promise<ProjectReference>
@@ -12,7 +12,7 @@ export interface ElectronDataBridge {
     openProjectFolder(): Promise<ProjectReference | null>
     push(project: ProjectReference): Promise<void>
     saveProjectConfig(project: ProjectReference, config: ProjectConfig): Promise<void>
-    watchProject(project: ProjectReference, callback: () => void): () => void
+    watchProject(project: ProjectReference, callback: (event: ProjectWatchEvent) => void): () => void
 }
 
 declare global {

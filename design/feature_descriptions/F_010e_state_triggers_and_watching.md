@@ -1,7 +1,7 @@
 ---
 id: F-010e
 title: state triggers and folder watching
-status: design
+status: ready
 owner: JB
 affects:
 policy:

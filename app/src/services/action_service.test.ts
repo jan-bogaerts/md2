@@ -35,6 +35,26 @@ describe('ActionService', () => {
         expect(service.getActions().map((action) => action.name)).toContain('do')
     })
 
+    it('retains previous valid actions and exposes reload errors', () => {
+        const service = new ActionService()
+        service.loadFromFiles([file(VALID)])
+
+        service.reloadFromFiles([file({ ...VALID, type: 'bad' })], 'actions/action.json')
+
+        expect(service.getActions().map((action) => action.name)).toContain('do')
+        expect(service.getState().error).toContain('actions/action.json')
+        expect(service.getState().error).toContain('Invalid action type')
+    })
+
+    it('finds matching onState actions for the current context', () => {
+        const service = new ActionService()
+        service.loadFromFiles([file({ ...VALID, appliesTo: { type: 'feature' }, onState: 'ready' })])
+
+        const matches = service.getActionsForStateTrigger('ready', { file: 'design/F-010.md', kind: 'card', state: 'ready', type: 'feature' })
+
+        expect(matches.map((action) => action.name)).toEqual(['do'])
+    })
+
     it('clears back to the built-in action', () => {
         const service = new ActionService()
         service.loadFromFiles([file(VALID)])

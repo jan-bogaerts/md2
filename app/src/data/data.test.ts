@@ -3,10 +3,13 @@ import { CommitBatcher } from './commit_batcher'
 import { afterEach } from 'vitest'
 import { createCardFile, getNextCardNumber } from './card_naming'
 import { actionService } from '../services/action_service'
+import { actionRunner } from '../services/action_runner'
 import { configService } from '../services/config_service'
 import { DataService } from '../services/data_service'
 import { markdownParsingService } from '../services/markdown_parsing_service'
 import { DEFAULT_CARD_BODY_TEMPLATE, DEFAULT_CARD_TYPES, type CommitRequest, type MarkdownFile, type StorageService } from './data_types'
+
+vi.mock('../services/action_runner', () => ({ actionRunner: { run: vi.fn(async () => ({ logs: [], status: 'completed' })) } }))
 
 const files: MarkdownFile[] = [
     { content: '---\nid: F-1\ntitle: Root\nstatus: active\naffects:\n  - app/src/app.tsx\n---\n\n# Root', path: 'design/F-1-root.md' },
@@ -94,6 +97,8 @@ describe('CommitBatcher', () => {
 
 describe('DataService', () => {
     afterEach(() => {
+        vi.useRealTimers()
+        vi.mocked(actionRunner.run).mockClear()
         configService.clear()
     })
 
@@ -164,6 +169,70 @@ describe('DataService', () => {
         expect(movedContent).toContain('after: p')
     })
 
+    it('runs matching onState actions when a card changes to the configured state', async () => {
+        configService.init()
+        const moveFiles: MarkdownFile[] = [
+            { content: '---\nid: F-1\ninternalId: a\ntitle: A\nstatus: todo\n---\n\n# A', path: 'design/F-1.md' },
+            { content: '---\nid: F-2\ninternalId: b\ntitle: B\nstatus: todo\nafter: a\n---\n\n# B', path: 'design/F-2.md' },
+        ]
+        const actionFile = {
+            content: JSON.stringify({
+                appliesTo: { type: 'feature' },
+                description: 'Ready',
+                label: 'Ready',
+                name: 'ready-action',
+                onState: 'ready',
+                text: 'run',
+                type: 'cmd',
+            }),
+            path: 'actions/ready.json',
+        }
+        const storage = createStorage({
+            loadActionFiles: vi.fn(async () => [actionFile]),
+            loadProject: vi.fn(async () => ({ files: moveFiles, workingFolder: 'design' })),
+        })
+        const service = new DataService()
+        service.init({ storage })
+
+        await service.openProject({ branch: 'main', id: 'project' })
+        service.moveCard('design/F-2.md', 'ready', 0)
+
+        expect(actionRunner.run).toHaveBeenCalledWith(
+            expect.objectContaining({ name: 'ready-action' }),
+            expect.objectContaining({ file: 'design/F-2.md', kind: 'card', state: 'ready', type: 'feature' }),
+        )
+    })
+
+    it('does not run onState actions when a card is reordered inside the same state', async () => {
+        configService.init()
+        const moveFiles: MarkdownFile[] = [
+            { content: '---\nid: F-1\ninternalId: a\ntitle: A\nstatus: todo\n---\n\n# A', path: 'design/F-1.md' },
+            { content: '---\nid: F-2\ninternalId: b\ntitle: B\nstatus: todo\nafter: a\n---\n\n# B', path: 'design/F-2.md' },
+        ]
+        const actionFile = {
+            content: JSON.stringify({
+                description: 'Todo',
+                label: 'Todo',
+                name: 'todo-action',
+                onState: 'todo',
+                text: 'run',
+                type: 'cmd',
+            }),
+            path: 'actions/todo.json',
+        }
+        const storage = createStorage({
+            loadActionFiles: vi.fn(async () => [actionFile]),
+            loadProject: vi.fn(async () => ({ files: moveFiles, workingFolder: 'design' })),
+        })
+        const service = new DataService()
+        service.init({ storage })
+
+        await service.openProject({ branch: 'main', id: 'project' })
+        service.moveCard('design/F-2.md', 'todo', 0)
+
+        expect(actionRunner.run).not.toHaveBeenCalled()
+    })
+
     it('edits a card title inline and persists it through the header', async () => {
         configService.init()
         const storage = createStorage()
@@ -204,5 +273,66 @@ describe('DataService', () => {
 
         expect(storage.loadActionFiles).toHaveBeenCalledWith({ branch: 'main', id: 'project' }, 'actions')
         expect(actionService.getActions().map((action) => action.name)).toContain('do')
+    })
+
+    it('reloads actions when the local actions folder watcher reports json changes', async () => {
+        vi.useFakeTimers()
+        configService.init()
+        const actionFile = { content: JSON.stringify({ description: 'Do', label: 'Do', name: 'do', text: 'run', type: 'cmd' }), path: 'actions/do.json' }
+        const loadActionFiles = vi.fn()
+            .mockResolvedValueOnce([])
+            .mockResolvedValueOnce([actionFile])
+            .mockResolvedValueOnce([])
+        let watchChange: ((event: { path: string }) => void) | null = null
+        const storage = createStorage({
+            loadActionFiles,
+            watchProject: vi.fn((_project, onChange) => {
+                watchChange = onChange
+
+                return vi.fn()
+            }),
+        })
+        const service = new DataService()
+        service.init({ storage })
+
+        await service.openProject({ branch: 'main', id: 'project' })
+        watchChange?.({ path: 'actions/do.json' })
+        await vi.advanceTimersByTimeAsync(150)
+
+        expect(actionService.getActions().map((action) => action.name)).toContain('do')
+
+        watchChange?.({ path: 'actions/do.json' })
+        await vi.advanceTimersByTimeAsync(150)
+
+        expect(actionService.getActions().map((action) => action.name)).not.toContain('do')
+    })
+
+    it('surfaces action reload validation errors without dropping the previous valid actions', async () => {
+        vi.useFakeTimers()
+        configService.init()
+        const validActionFile = { content: JSON.stringify({ description: 'Do', label: 'Do', name: 'do', text: 'run', type: 'cmd' }), path: 'actions/do.json' }
+        const invalidActionFile = { content: JSON.stringify({ description: 'Bad', label: 'Bad', name: 'bad', text: 'run', type: 'bad' }), path: 'actions/bad.json' }
+        const loadActionFiles = vi.fn()
+            .mockResolvedValueOnce([validActionFile])
+            .mockResolvedValueOnce([invalidActionFile])
+        let watchChange: ((event: { path: string }) => void) | null = null
+        const storage = createStorage({
+            loadActionFiles,
+            watchProject: vi.fn((_project, onChange) => {
+                watchChange = onChange
+
+                return vi.fn()
+            }),
+        })
+        const service = new DataService()
+        service.init({ storage })
+
+        await service.openProject({ branch: 'main', id: 'project' })
+        watchChange?.({ path: 'actions/bad.json' })
+        await vi.advanceTimersByTimeAsync(150)
+
+        expect(actionService.getActions().map((action) => action.name)).toContain('do')
+        expect(actionService.getState().error).toContain('actions/bad.json')
+        expect(actionService.getState().error).toContain('Invalid action type')
     })
 })

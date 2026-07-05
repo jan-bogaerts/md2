@@ -79,6 +79,10 @@ export interface CommitRequest {
     message: string
 }
 
+export interface ProjectWatchEvent {
+    path: string
+}
+
 export interface StorageProjectFiles {
     files: MarkdownFile[]
     workingFolder: string
@@ -94,7 +98,7 @@ export interface StorageService {
     loadProjectConfig(project: ProjectReference): Promise<Partial<ProjectConfig> | null>
     push(project: ProjectReference): Promise<void>
     saveProjectConfig(project: ProjectReference, config: ProjectConfig): Promise<void>
-    watchProject?(project: ProjectReference, onChange: () => void): () => void
+    watchProject?(project: ProjectReference, onChange: (event: ProjectWatchEvent) => void): () => void
 }
 
 const BUG_CARD_COLOR = '#d32f2f'

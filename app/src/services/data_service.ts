@@ -1,4 +1,5 @@
 ﻿import { CommitBatcher } from '../data/commit_batcher'
+import { cardContext } from '../data/action_context'
 import { createCardFile } from '../data/card_naming'
 import { computeMove } from '../data/card_ordering'
 import {
@@ -6,13 +7,25 @@ import {
     type MarkdownFile,
     type ProjectConfig,
     type ProjectReference,
+    type ProjectWatchEvent,
     type ProjectSnapshot,
     type StorageService,
 } from '../data/data_types'
 import { actionService } from './action_service'
+import { actionRunner } from './action_runner'
 import { configService } from './config_service'
 import { markdownParsingService } from './markdown_parsing_service'
 import { register } from './service_injector'
+
+const ACTION_RELOAD_DEBOUNCE_MS = 150
+const JSON_EXTENSION = '.json'
+
+function isActionDefinitionPath(path: string, actionsFolder: string) {
+    const normalizedPath = path.replace(/\\/gu, '/')
+    const normalizedActionsFolder = actionsFolder.replace(/\\/gu, '/').replace(/\/$/u, '')
+
+    return normalizedPath.startsWith(`${normalizedActionsFolder}/`) && normalizedPath.toLowerCase().endsWith(JSON_EXTENSION)
+}
 
 interface DataServiceDependencies {
     storage: StorageService
@@ -24,23 +37,32 @@ export interface DataServiceState {
 }
 
 export class DataService extends EventTarget {
+    private actionReloadChangedPath: string | null
+    private actionReloadTimeout: number | null
     private commitBatcher: CommitBatcher | null
     private currentFiles
     private currentProject: ProjectReference | null
     private currentSnapshot: ProjectSnapshot | null
     private storage: StorageService | null
+    private watchCleanup: (() => void) | null
 
     constructor() {
         super()
+        this.actionReloadChangedPath = null
+        this.actionReloadTimeout = null
         this.commitBatcher = null
         this.currentFiles = [] as MarkdownFile[]
         this.currentProject = null
         this.currentSnapshot = null
         this.storage = null
+        this.watchCleanup = null
         register('dataService', this)
     }
 
     init(dependencies: DataServiceDependencies) {
+        this.stopProjectWatch()
+        this.clearActionReloadTimeout()
+        this.actionReloadChangedPath = null
         this.currentFiles = []
         this.currentProject = null
         this.currentSnapshot = null
@@ -92,6 +114,7 @@ export class DataService extends EventTarget {
             ...markdownParsingService.splitCards(projectFiles.files, projectFiles.workingFolder),
             workingFolder: projectFiles.workingFolder,
         }
+        this.startProjectWatch()
         this.dispatchChanged()
 
         return this.currentSnapshot
@@ -173,11 +196,15 @@ export class DataService extends EventTarget {
 
     moveCard(cardPath: string, targetStatus: string, targetIndex: number) {
         const activeCards = this.currentSnapshot?.activeCards ?? []
+        const movedCard = activeCards.find((card) => card.path === cardPath)
+        const previousStatus = movedCard?.header.status ?? null
         const updates = computeMove(activeCards, cardPath, targetStatus, targetIndex)
 
         for (const update of updates) {
             this.updateCardHeaderFields(update.path, { after: update.after ?? '', status: update.status })
         }
+
+        if (movedCard && previousStatus !== targetStatus) this.triggerStateActions(movedCard.path, targetStatus)
 
         return updates
     }
@@ -225,6 +252,67 @@ export class DataService extends EventTarget {
         const cards = markdownParsingService.splitCards(this.currentFiles, config.workingFolder)
         this.currentSnapshot = { ...cards, workingFolder: config.workingFolder }
         this.dispatchChanged()
+    }
+
+    private triggerStateActions(cardPath: string, state: string) {
+        const { config } = this.requireDependencies()
+        const card = this.currentSnapshot?.activeCards.find((currentCard) => currentCard.path === cardPath)
+        if (!card) return
+
+        const context = cardContext(card, config.cardTypes)
+        const actions = actionService.getActionsForStateTrigger(state, context)
+        for (const action of actions) {
+            void actionRunner.run(action, context)
+        }
+    }
+
+    private startProjectWatch() {
+        this.stopProjectWatch()
+        if (!this.currentProject || !this.storage?.watchProject) return
+
+        this.watchCleanup = this.storage.watchProject(this.currentProject, (event) => this.handleProjectWatchEvent(event))
+    }
+
+    private stopProjectWatch() {
+        if (!this.watchCleanup) return
+
+        this.watchCleanup()
+        this.watchCleanup = null
+    }
+
+    private handleProjectWatchEvent(event: ProjectWatchEvent) {
+        const { config } = this.requireDependencies()
+        if (!isActionDefinitionPath(event.path, config.actionsFolder)) return
+
+        this.scheduleActionReload(event.path)
+    }
+
+    private scheduleActionReload(changedPath: string) {
+        this.actionReloadChangedPath = changedPath
+        this.clearActionReloadTimeout()
+        this.actionReloadTimeout = window.setTimeout(() => {
+            void this.reloadActionsFromCurrentProject()
+        }, ACTION_RELOAD_DEBOUNCE_MS)
+    }
+
+    private clearActionReloadTimeout() {
+        if (this.actionReloadTimeout === null) return
+
+        window.clearTimeout(this.actionReloadTimeout)
+        this.actionReloadTimeout = null
+    }
+
+    private async reloadActionsFromCurrentProject() {
+        const { config, storage } = this.requireDependencies()
+        if (!this.currentProject) return
+
+        const changedPath = this.actionReloadChangedPath
+        if (!changedPath) return
+
+        this.clearActionReloadTimeout()
+        const actionFiles = await storage.loadActionFiles(this.currentProject, config.actionsFolder)
+        actionService.reloadFromFiles(actionFiles, changedPath)
+        this.actionReloadChangedPath = null
     }
 
     private async commitFiles(request: Parameters<StorageService['commit']>[0]) {

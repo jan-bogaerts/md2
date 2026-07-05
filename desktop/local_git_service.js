@@ -290,7 +290,11 @@ async function push(project) {
 function watchProject(project, onChange) {
     const rootPath = requireRootPath(project)
     const watcher = fs.watch(rootPath, { recursive: true }, (_eventType, fileName) => {
-        if (typeof fileName === 'string' && fileName.toLowerCase().endsWith(MARKDOWN_EXTENSION)) onChange()
+        if (typeof fileName !== 'string') return
+
+        const normalizedPath = normalizePath(fileName)
+        const lowerPath = normalizedPath.toLowerCase()
+        if (lowerPath.endsWith(MARKDOWN_EXTENSION) || lowerPath.endsWith(JSON_EXTENSION)) onChange({ path: normalizedPath })
     })
 
     return () => watcher.close()

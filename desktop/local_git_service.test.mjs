@@ -5,7 +5,16 @@ import { createRequire } from 'node:module'
 import { describe, expect, it } from 'vitest'
 
 const require = createRequire(import.meta.url)
-const { appendActionRunHistory, loadActionFiles, loadActionRunHistory, loadProject, loadProjectConfig, runAgent, runCommand } = require('./local_git_service')
+const {
+    appendActionRunHistory,
+    loadActionFiles,
+    loadActionRunHistory,
+    loadProject,
+    loadProjectConfig,
+    runAgent,
+    runCommand,
+    watchProject,
+} = require('./local_git_service')
 
 describe('local-git-service', () => {
     it('loads markdown files from the working folder and subfolders', async () => {
@@ -157,6 +166,26 @@ describe('local-git-service', () => {
 
             await expect(loadActionRunHistory({ branch: 'main', id: 'local', rootPath }, request)).resolves.toEqual([entry])
         } finally {
+            await rm(rootPath, { force: true, recursive: true })
+        }
+    })
+
+    it('reports json file changes for action hot-reload', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-local-git-'))
+        let closeWatcher = null
+
+        try {
+            await mkdir(join(rootPath, '.git'))
+            await mkdir(join(rootPath, 'actions'))
+            const event = new Promise((resolve) => {
+                closeWatcher = watchProject({ branch: 'main', id: 'local', rootPath }, resolve)
+            })
+
+            await writeFile(join(rootPath, 'actions', 'implement.json'), '{"name":"implement"}')
+
+            await expect(event).resolves.toEqual({ path: 'actions/implement.json' })
+        } finally {
+            if (closeWatcher) closeWatcher()
             await rm(rootPath, { force: true, recursive: true })
         }
     })
