@@ -25,8 +25,12 @@ export interface ProjectConfig {
     workingFolder: string
 }
 
+/** How a file's `content` is encoded for the storage write path. Binary assets use base64. */
+export type FileEncoding = 'utf-8' | 'base64'
+
 export interface MarkdownFile {
     content: string
+    encoding?: FileEncoding
     path: string
     sha?: string
 }
