@@ -1,8 +1,9 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ActionPopup } from './action_popup'
 import type { ActionDefinition } from '../../data/action_types'
 import type { ActionContext } from '../../data/action_context'
+import type { ActionRunResult } from '../../services/action_runner'
 
 function action(name: string, overrides: Partial<ActionDefinition> = {}): ActionDefinition {
     return {
@@ -23,13 +24,18 @@ function action(name: string, overrides: Partial<ActionDefinition> = {}): Action
 }
 
 const context: ActionContext = { file: 'design/F-010.md', kind: 'card', state: 'design', type: 'feature' }
+const completedResult: ActionRunResult = {
+    logs: [{ actionName: 'Implement', command: 'run', message: 'Implement completed', phase: 'main', status: 'completed', stderr: '', stdout: 'ok' }],
+    status: 'completed',
+}
 
 function renderPopup(overrides: Partial<Parameters<typeof ActionPopup>[0]> = {}) {
     const onNavigate = vi.fn()
     const onClose = vi.fn()
-    render(<ActionPopup action={action('Implement')} context={context} onClose={onClose} onNavigate={onNavigate} {...overrides} />)
+    const runAction = vi.fn(async () => completedResult)
+    render(<ActionPopup action={action('Implement')} context={context} onClose={onClose} onNavigate={onNavigate} runAction={runAction} {...overrides} />)
 
-    return { onClose, onNavigate }
+    return { onClose, onNavigate, runAction }
 }
 
 describe('ActionPopup', () => {
@@ -43,12 +49,15 @@ describe('ActionPopup', () => {
         expect(screen.getByRole('button', { name: 'Run' })).toBeInTheDocument()
     })
 
-    it('reports "not yet runnable" when Run is pressed (F-010c stub)', () => {
-        renderPopup()
+    it('reports running and completed states when Run is pressed', async () => {
+        const { runAction } = renderPopup()
 
         fireEvent.click(screen.getByRole('button', { name: 'Run' }))
 
-        expect(screen.getByRole('status')).toHaveTextContent('not yet runnable')
+        expect(screen.getByRole('status')).toHaveTextContent('running')
+        await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('completed'))
+        expect(screen.getByRole('status')).toHaveTextContent('main: Implement completed')
+        expect(runAction).toHaveBeenCalledWith(expect.objectContaining({ name: 'Implement' }), context)
     })
 
     it('shows before and after shortcuts and navigates to them with the same context', () => {

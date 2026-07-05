@@ -1,7 +1,7 @@
 ---
 id: F-010c
 title: command execution and chaining
-status: design
+status: ready
 owner: JB
 affects:
 policy:

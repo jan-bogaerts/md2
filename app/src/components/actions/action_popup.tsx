@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import type { ActionContext } from '../../data/action_context'
 import type { ActionDefinition } from '../../data/action_types'
-import { runActionStub, type ActionRunResult } from '../../services/action_run_stub'
+import { actionRunner, type ActionRunResult } from '../../services/action_runner'
 
 /** Which lower corner the resize handle sits in, chosen by the popup's screen position. */
 export type ResizeCorner = 'lower-left' | 'lower-right'
@@ -14,6 +14,9 @@ const DEFAULT_WIDTH = 420
 const DEFAULT_HEIGHT = 320
 const HANDLE_SIZE = 16
 
+type PopupRunStatus = 'idle' | 'running' | ActionRunResult['status']
+type RunAction = (action: ActionDefinition, context: ActionContext) => Promise<ActionRunResult>
+
 interface ActionPopupProps {
     action: ActionDefinition
     context: ActionContext
@@ -22,6 +25,7 @@ interface ActionPopupProps {
     onClose: () => void
     /** Lower corner to place the resize handle; defaults to lower-right. */
     resizeCorner?: ResizeCorner
+    runAction?: RunAction
 }
 
 interface RelatedActionsProps {
@@ -49,22 +53,50 @@ function RelatedActions(props: RelatedActionsProps) {
     )
 }
 
+function defaultRunAction(action: ActionDefinition, context: ActionContext) {
+    return actionRunner.run(action, context)
+}
+
+function statusColor(status: PopupRunStatus) {
+    if (status === 'completed') return 'success.main'
+    if (status === 'failed') return 'error.main'
+    if (status === 'running') return 'info.main'
+
+    return 'text.secondary'
+}
+
 /**
  * The execution surface for a selected action and context: a resizable popup with
- * a `Run` command (stubbed until F-010c) and shortcuts to the action's `before`
- * and `after` actions. Activating a shortcut opens a new popup for that action.
+ * a `Run` command and shortcuts to the action's `before` and `after` actions.
+ * Activating a shortcut opens a new popup for that action.
  */
 export function ActionPopup(props: ActionPopupProps) {
     const { action, context, onClose, onNavigate } = props
     const resizeCorner = props.resizeCorner ?? 'lower-right'
+    const runAction = props.runAction ?? defaultRunAction
     const [size, setSize] = useState({ height: DEFAULT_HEIGHT, width: DEFAULT_WIDTH })
     const [runResult, setRunResult] = useState<ActionRunResult | null>(null)
+    const [runStatus, setRunStatus] = useState<PopupRunStatus>('idle')
     const resizeRef = useRef<AbortController | null>(null)
 
     useEffect(() => () => resizeRef.current?.abort(), [])
 
-    const handleRun = () => {
-        setRunResult(runActionStub(action, context))
+    const handleRun = async () => {
+        setRunStatus('running')
+        setRunResult(null)
+
+        try {
+            const result = await runAction(action, context)
+            setRunResult(result)
+            setRunStatus(result.status)
+        } catch (error) {
+            const message = error instanceof Error ? error.message : 'Action run failed'
+            setRunResult({
+                logs: [{ actionName: action.name, command: null, message, phase: 'main', status: 'failed', stderr: message, stdout: '' }],
+                status: 'failed',
+            })
+            setRunStatus('failed')
+        }
     }
 
     const startResize = (event: ReactPointerEvent) => {
@@ -104,16 +136,27 @@ export function ActionPopup(props: ActionPopupProps) {
                 </Box>
 
                 <Stack direction="row" spacing={1}>
-                    <Button onClick={handleRun} variant="contained">
+                    <Button disabled={runStatus === 'running'} onClick={handleRun} variant="contained">
                         Run
                     </Button>
                     <Button onClick={onClose}>Close</Button>
                 </Stack>
 
-                {runResult ? (
-                    <Typography color="warning.main" role="status" variant="body2">
-                        {runResult.message}
-                    </Typography>
+                {runStatus !== 'idle' ? (
+                    <Box role="status">
+                        <Typography color={statusColor(runStatus)} variant="body2">
+                            {runStatus}
+                        </Typography>
+                        {runResult ? (
+                            <Stack spacing={0.5} sx={{ mt: 1 }}>
+                                {runResult.logs.map((log, index) => (
+                                    <Typography key={`${log.actionName}-${log.phase}-${index}`} color="text.secondary" variant="caption">
+                                        {log.phase}: {log.message}
+                                    </Typography>
+                                ))}
+                            </Stack>
+                        ) : null}
+                    </Box>
                 ) : null}
 
                 <Divider />

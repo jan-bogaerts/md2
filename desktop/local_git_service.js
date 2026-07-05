@@ -1,9 +1,10 @@
-const { execFile } = require('node:child_process')
+const { exec, execFile } = require('node:child_process')
 const fs = require('node:fs')
 const path = require('node:path')
 const { promisify } = require('node:util')
 
 const execFileAsync = promisify(execFile)
+const execAsync = promisify(exec)
 const MARKDOWN_EXTENSION = '.md'
 const JSON_EXTENSION = '.json'
 const PROJECT_CONFIG_PATH = 'md2.config.json'
@@ -44,6 +45,27 @@ async function runGit(rootPath, args) {
     const { stdout } = await execFileAsync('git', args, { cwd: rootPath })
 
     return stdout.trim()
+}
+
+async function runCommand(project, command) {
+    const rootPath = requireRootPath(project)
+    await assertGitRoot(rootPath)
+    if (typeof command !== 'string' || command.length === 0) throw new Error('Missing command text')
+
+    try {
+        const { stderr, stdout } = await execAsync(command, { cwd: rootPath })
+
+        return { command, exitCode: 0, stderr, stdout }
+    } catch (error) {
+        if (!error || typeof error !== 'object') throw error
+
+        return {
+            command,
+            exitCode: typeof error.code === 'number' ? error.code : 1,
+            stderr: typeof error.stderr === 'string' ? error.stderr : '',
+            stdout: typeof error.stdout === 'string' ? error.stdout : '',
+        }
+    }
 }
 
 async function readMarkdownFiles(rootPath, folderPath) {
@@ -194,6 +216,7 @@ module.exports = {
     loadProject,
     loadProjectConfig,
     push,
+    runCommand,
     runGit,
     saveProjectConfig,
     watchProject,

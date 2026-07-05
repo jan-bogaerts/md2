@@ -5,7 +5,7 @@ import { createRequire } from 'node:module'
 import { describe, expect, it } from 'vitest'
 
 const require = createRequire(import.meta.url)
-const { loadActionFiles, loadProject, loadProjectConfig } = require('./local_git_service')
+const { loadActionFiles, loadProject, loadProjectConfig, runCommand } = require('./local_git_service')
 
 describe('local-git-service', () => {
     it('loads markdown files from the working folder and subfolders', async () => {
@@ -79,6 +79,43 @@ describe('local-git-service', () => {
                 pushMode: 'manual',
                 workingFolder: 'docs',
             })
+        } finally {
+            await rm(rootPath, { force: true, recursive: true })
+        }
+    })
+
+    it('runs commands from the project root and captures output', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-local-git-'))
+
+        try {
+            await mkdir(join(rootPath, '.git'))
+
+            const result = await runCommand(
+                { branch: 'main', id: 'local', rootPath },
+                'node -e "process.stdout.write(process.cwd())"',
+            )
+
+            expect(result.exitCode).toBe(0)
+            expect(result.stdout).toBe(rootPath)
+            expect(result.stderr).toBe('')
+        } finally {
+            await rm(rootPath, { force: true, recursive: true })
+        }
+    })
+
+    it('returns failed command output without throwing', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-local-git-'))
+
+        try {
+            await mkdir(join(rootPath, '.git'))
+
+            const result = await runCommand(
+                { branch: 'main', id: 'local', rootPath },
+                'node -e "process.stderr.write(\'bad\'); process.exit(7)"',
+            )
+
+            expect(result.exitCode).toBe(7)
+            expect(result.stderr).toBe('bad')
         } finally {
             await rm(rootPath, { force: true, recursive: true })
         }

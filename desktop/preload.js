@@ -70,3 +70,7 @@ const dataBridge = {
 }
 
 window.md2Data = dataBridge
+
+const actionBridge = { runCommand: (command) => localGitService.runCommand(currentLocalProject, command) }
+
+window.md2Actions = actionBridge
