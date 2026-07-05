@@ -7,6 +7,7 @@ import { ConfigPage } from '../config/config_page'
 import { GithubAuthPanel } from '../github_auth_panel'
 import { ProjectWorkspace } from '../project_workspace'
 import { MainToolbar } from './main_toolbar'
+import { SearchControl } from './search/search_control'
 import { SplitLayout } from './split_layout'
 import { StatusBar } from './status_bar'
 import type { RunningAgent } from './running_agent_types'
@@ -60,7 +61,13 @@ export function MainWindow(props: MainWindowProps) {
 
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
-            <MainToolbar action={toolbarAction} isMobile={isMobile} onOpenConfig={handleOpenConfig} onOpenMenu={handleOpenMenu} />
+            <MainToolbar
+                action={toolbarAction}
+                isMobile={isMobile}
+                onOpenConfig={handleOpenConfig}
+                onOpenMenu={handleOpenMenu}
+                search={<SearchControl />}
+            />
             {isConfigPage ? (
                 <ConfigPage hash={location.hash} />
             ) : isMobile ? (

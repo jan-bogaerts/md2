@@ -31,6 +31,7 @@ function renderCardView(overrides: Partial<Parameters<typeof CardView>[0]> = {})
             cardTypes={DEFAULT_CARD_TYPES}
             cards={cards}
             isMobile={false}
+            selectedPath={null}
             {...handlers}
             {...overrides}
         />,
@@ -96,5 +97,25 @@ describe('CardView', () => {
 
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
         expect(screen.getByDisplayValue(/Body of F-1/)).toBeInTheDocument()
+    })
+
+    it('highlights the card matching the selected path', () => {
+        const { container } = render(
+            <CardView
+                cardTypes={DEFAULT_CARD_TYPES}
+                cards={cards}
+                isMobile={false}
+                onBodyChange={vi.fn()}
+                onMoveCard={vi.fn()}
+                onOpenInFileMode={vi.fn()}
+                onTitleChange={vi.fn()}
+                onTogglePolicy={vi.fn()}
+                selectedPath="design/F-2.md"
+            />,
+        )
+
+        const selected = container.querySelectorAll('[data-selected="true"]')
+        expect(selected).toHaveLength(1)
+        expect(within(selected[0] as HTMLElement).getByText('Second')).toBeInTheDocument()
     })
 })

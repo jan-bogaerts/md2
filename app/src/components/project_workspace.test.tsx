@@ -1,8 +1,9 @@
-﻿import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+﻿import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ProjectWorkspace } from './project_workspace'
 import type { ElectronDataBridge } from '../data/electron_data_bridge'
 import { configService } from '../services/config_service'
+import { workspaceNavigationService } from '../services/workspace_navigation_service'
 
 function createBridge(): ElectronDataBridge {
     const files = [
@@ -84,5 +85,20 @@ describe('ProjectWorkspace', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Text' }))
 
         expect(screen.getByLabelText('File tree')).toBeInTheDocument()
+    })
+
+    it('reveals a navigated card and keeps the current card view', async () => {
+        window.md2Data = createBridge()
+
+        render(<ProjectWorkspace accessToken={null} isGithubAuthenticated={false} />)
+        fireEvent.click(screen.getByRole('button', { name: 'Open Local' }))
+        await screen.findByText('Root')
+
+        act(() => workspaceNavigationService.open('design/F-1-root.md'))
+
+        expect(screen.getByRole('heading', { name: 'Active cards' })).toBeInTheDocument()
+        const selected = document.querySelector('[data-selected="true"]')
+        expect(selected).not.toBeNull()
+        expect(selected).toHaveTextContent('Root')
     })
 })

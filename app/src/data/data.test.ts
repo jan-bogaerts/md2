@@ -110,7 +110,7 @@ describe('DataService', () => {
 
     it('leaves commits unpushed in manual mode', async () => {
         configService.init()
-        const storage = createStorage({ loadProjectConfig: vi.fn(async () => ({ pushMode: 'manual' })) })
+        const storage = createStorage({ loadProjectConfig: vi.fn(async () => ({ pushMode: 'manual' as const })) })
         const service = new DataService()
         service.init({ storage })
 

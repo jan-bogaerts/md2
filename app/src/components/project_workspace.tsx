@@ -13,6 +13,7 @@ import { getElectronDataBridge } from '../data/electron_data_bridge'
 import { configService } from '../services/config_service'
 import { dataService } from '../services/data_service'
 import { getElectronConfigBridge } from '../services/electron_config_bridge'
+import { workspaceNavigationService, type WorkspaceOpenRequest } from '../services/workspace_navigation_service'
 import { CardView } from './card_view/card_view'
 import { TextView } from './text_view/text_view'
 import { useProjectState } from './hooks/use_project_state'
@@ -55,6 +56,7 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
     const [isLoading, setIsLoading] = useState(false)
     const [requestedPath, setRequestedPath] = useState<string | null>(null)
     const [requestedNonce, setRequestedNonce] = useState(0)
+    const [selectedPath, setSelectedPath] = useState<string | null>(null)
     const [viewMode, setViewMode] = useState<WorkspaceViewMode>('cards')
     const electronBridge = useMemo(() => getElectronDataBridge(), [])
     const canUseLocalGit = !!electronBridge
@@ -102,6 +104,21 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
         configService.addEventListener('changed', handleConfigChange)
 
         return () => configService.removeEventListener('changed', handleConfigChange)
+    }, [])
+
+    useEffect(() => {
+        const handleNavigationOpen = (event: Event) => {
+            const { path } = (event as CustomEvent<WorkspaceOpenRequest>).detail
+            // Reveal the card/file without changing the current view mode: highlight it in card view
+            // and queue it as a text-view tab for when that view is shown.
+            setSelectedPath(path)
+            setRequestedPath(path)
+            setRequestedNonce((nonce) => nonce + 1)
+        }
+
+        workspaceNavigationService.addEventListener('open', handleNavigationOpen)
+
+        return () => workspaceNavigationService.removeEventListener('open', handleNavigationOpen)
     }, [])
 
     const handleGithubOwnerChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -249,6 +266,7 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
                             onOpenInFileMode={handleOpenInFileMode}
                             onTitleChange={handleTitleChange}
                             onTogglePolicy={handleTogglePolicy}
+                            selectedPath={selectedPath}
                         />
                     ) : (
                         <TextView

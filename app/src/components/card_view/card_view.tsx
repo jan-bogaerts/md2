@@ -19,11 +19,12 @@ interface CardViewProps {
     onOpenInFileMode: (path: string) => void
     onTogglePolicy: (path: string, policyKey: string) => void
     onTitleChange: (path: string, title: string) => void
+    selectedPath: string | null
 }
 
 /** Card view: status columns of draggable cards with body dialog/accordion access. */
 export function CardView(props: CardViewProps) {
-    const { cardTypes, cards, isMobile, onBodyChange, onMoveCard, onOpenInFileMode, onTogglePolicy, onTitleChange } = props
+    const { cardTypes, cards, isMobile, onBodyChange, onMoveCard, onOpenInFileMode, onTogglePolicy, onTitleChange, selectedPath } = props
     const columns = useMemo(() => groupByStatus(cards), [cards])
     const [openBodyPath, setOpenBodyPath] = useState<string | null>(null)
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: DRAG_ACTIVATION_DISTANCE } }))
@@ -66,6 +67,7 @@ export function CardView(props: CardViewProps) {
                         onTitleChange={onTitleChange}
                         onTogglePolicy={onTogglePolicy}
                         openBodyPath={openBodyPath}
+                        selectedPath={selectedPath}
                     />
                 ))}
             </Stack>

@@ -13,11 +13,12 @@ interface CardColumnProps extends CardHandlers {
     column: CardColumnModel
     isMobile: boolean
     openBodyPath: string | null
+    selectedPath: string | null
 }
 
 /** One status column: a droppable, sortable stack of cards under the status title. */
 export function CardColumn(props: CardColumnProps) {
-    const { cardTypes, column, isMobile, openBodyPath, ...handlers } = props
+    const { cardTypes, column, isMobile, openBodyPath, selectedPath, ...handlers } = props
     const { setNodeRef } = useDroppable({ id: columnDropId(column.status) })
 
     return (
@@ -46,6 +47,7 @@ export function CardColumn(props: CardColumnProps) {
                             color={getCardTypeColor(cardTypes, card.header.id)}
                             isBodyOpen={openBodyPath === card.path}
                             isMobile={isMobile}
+                            isSelected={selectedPath === card.path}
                             {...handlers}
                         />
                     ))}

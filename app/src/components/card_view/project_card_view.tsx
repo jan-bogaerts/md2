@@ -21,11 +21,13 @@ interface ProjectCardViewProps extends CardHandlers {
     color?: string
     isBodyOpen: boolean
     isMobile: boolean
+    isSelected: boolean
 }
 
 /** A single card: type-color line, id + title, policy leds, drag handle and body access. */
 export function ProjectCardView(props: ProjectCardViewProps) {
     const { card, color, isBodyOpen, isMobile, onBodyChange, onOpenBody, onOpenInFileMode, onTogglePolicy, onTitleChange } = props
+    const { isSelected } = props
     const { attributes, isDragging, listeners, setNodeRef, transform, transition } = useSortable({ id: card.path })
     const [isEditingTitle, setIsEditingTitle] = useState(false)
     const [titleDraft, setTitleDraft] = useState(card.header.title)
@@ -65,11 +67,12 @@ export function ProjectCardView(props: ProjectCardViewProps) {
 
     return (
         <Box
+            data-selected={isSelected ? 'true' : undefined}
             ref={setNodeRef}
             sx={{
                 bgcolor: 'background.paper',
-                border: 1,
-                borderColor: 'divider',
+                border: isSelected ? 2 : 1,
+                borderColor: isSelected ? 'primary.main' : 'divider',
                 borderRadius: 1,
                 display: 'flex',
                 overflow: 'hidden',

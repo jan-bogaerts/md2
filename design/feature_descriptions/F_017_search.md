@@ -1,7 +1,7 @@
 ---
 id: F-017
 title: search
-status: design
+status: ready
 owner: JB
 affects:
 policy:
@@ -11,6 +11,17 @@ policy:
 
 ## Goal
 Add an easy-to-access text search (with optional RegExp mode and agent-built expressions) over cards, history and other special folders, with grouped results and navigation to the matching card or file, integrated into the borderless window's drag bar area.
+
+## Current state
+There is no search feature: no search service or module, no search UI, no RegExp handling and no agent-built expression flow. The initial description assumed history is "not loaded", but that is no longer true — the data the search needs is already in memory.
+
+The parsed project data is available through `useProjectState()`, which returns the `DataService` state including a `ProjectSnapshot` with `activeCards`, `backgroundCards` and `workingFolder`. `markdownParsingService.splitCards` already splits files into active vs background using `isRootWorkingFolderFile` (root markdown files under the working folder are active; everything in subfolders is background), and produces `ProjectCard` objects with `content` (body only), a parsed `header` (`CardHeader`: id, title, status, owner, affects, policy, etc.), `isActive` and `path`. A search module can consume this snapshot directly; frontmatter parsing already lives in `markdown_parsing_service.ts` and must not be duplicated. Background results are not currently grouped by their first subfolder anywhere.
+
+The top shell is `MainToolbar` (MUI `AppBar`/`Toolbar`) rendered by `MainWindow`; it holds the "MD2" title, a config `IconButton` and a `toolbarAction` slot (currently `<ThemeControls />` from `app.tsx`). There is no search input in the toolbar. The desktop window is borderless via Electron `titleBarStyle: 'hidden'` with a `titleBarOverlay` in `desktop/main.js`; there is no manual CSS drag region (`-webkit-app-region`) anywhere in the React shell, so a custom drag bar and its non-draggable input/button zones do not yet exist.
+
+Navigation into a card/file is local to `ProjectWorkspace`, which owns `viewMode` (`'cards' | 'text'`). `handleOpenInFileMode(path)` sets a `requestedPath` + `requestedNonce` and switches to text view; `TextView` opens that path as a tab via `useOpenTabs` and can browse background files through its file tree. There is no shared/global "navigate to card or file, keeping current view" API — selecting a background result without changing view mode is not currently supported. Routing exists via `app_navigation` (`navigateTo` / `useAppLocation`, with a `/config` route), but nothing search-related uses it.
+
+There is no agent infrastructure wired up: `App` passes `agents={[]}` to `MainWindow`, so agent-built RegExp has no existing execution path to reuse. No tests cover search.
 
 ## implementation details
 - Add a search service or pure search module in `app/src/` that searches the loaded `ProjectSnapshot`; keep storage-specific file loading in the existing GitHub/local storage services.
