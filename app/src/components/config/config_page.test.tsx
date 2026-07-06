@@ -88,7 +88,6 @@ describe('ConfigPage', () => {
             getDesktopConfig: () => ({ agent: 'codex', projectLocationMode: 'folder' }),
             setDesktopConfig,
         }
-        configService.init({ desktopConfig: { agent: 'codex', projectLocationMode: 'folder' } })
 
         render(<ConfigPage hash="#desktop" />)
         configService.setDraftValue('desktop.agent', 'system')
@@ -97,6 +96,33 @@ describe('ConfigPage', () => {
         expect(setDesktopConfig).toHaveBeenCalledWith({ agent: 'system', projectLocationMode: 'folder' })
 
         delete window.md2Config
+    })
+
+    it('initializes desktop config values from the electron bridge', () => {
+        mockMatchMedia(false)
+        window.md2Config = {
+            getDesktopConfig: () => ({ agent: 'system', projectLocationMode: 'current-directory' }),
+            setDesktopConfig: vi.fn(),
+        }
+
+        render(<ConfigPage hash="#desktop" />)
+
+        expect(configService.get('desktop.agent')).toBe('system')
+        expect(configService.get('desktop.projectLocationMode')).toBe('current-directory')
+        expect(screen.getByRole('tab', { name: 'Desktop' })).toBeInTheDocument()
+
+        delete window.md2Config
+    })
+
+    it('hides desktop config entries in web mode', () => {
+        mockMatchMedia(false)
+        configService.init()
+
+        render(<ConfigPage hash="#desktop" />)
+
+        expect(screen.queryByRole('tab', { name: 'Desktop' })).not.toBeInTheDocument()
+        expect(screen.queryByLabelText('Agent')).not.toBeInTheDocument()
+        expect(screen.queryByLabelText('Project location')).not.toBeInTheDocument()
     })
 
     it('never touches the desktop bridge in web mode', () => {

@@ -6,8 +6,10 @@ import { actionService } from '../services/action_service'
 import { actionRunner } from '../services/action_runner'
 import { configService } from '../services/config_service'
 import { DataService } from '../services/data_service'
+import { GithubStorageService } from '../services/github_storage_service'
 import { markdownParsingService } from '../services/markdown_parsing_service'
 import { telemetryService } from '../services/telemetry_service'
+import { GithubUnauthorizedError } from '../auth/github_api_client'
 import {
     DEFAULT_CARD_BODY_TEMPLATE,
     DEFAULT_CARD_TYPES,
@@ -25,6 +27,24 @@ const files: MarkdownFile[] = [
     { content: '# Old', path: 'design/history/F-3-old.md' },
     { content: '# Imported', path: 'design/free note.md' },
 ]
+
+const githubProject = { branch: 'main', id: 'owner/repo', owner: 'owner', repository: 'repo' }
+
+function createGithubResponse(payload: unknown) {
+    return {
+        json: async () => payload,
+        ok: true,
+        status: 200,
+    } as Response
+}
+
+function createGithubStatusResponse(status: number) {
+    return {
+        json: async () => ({}),
+        ok: status >= 200 && status < 300,
+        status,
+    } as Response
+}
 
 function conversation(path = '.md2-agent-logs/one.json'): AgentConversation {
     return {
@@ -158,6 +178,49 @@ describe('DataService', () => {
 
         expect(storage.commit).toHaveBeenCalledWith(expect.objectContaining({ message: 'Create design/F-4-new-card.md' }) as CommitRequest)
         expect(storage.push).toHaveBeenCalledWith({ branch: 'main', id: 'project' })
+    })
+
+    it('handles GitHub unauthorized once when opening a project gets a 401', async () => {
+        configService.init()
+        const handleUnauthorized = vi.fn()
+        const githubStorage = new GithubStorageService()
+        githubStorage.init({
+            accessToken: 'token',
+            fetchImplementation: vi.fn().mockResolvedValue(createGithubStatusResponse(401)),
+            onUnauthorized: handleUnauthorized,
+        })
+        const service = new DataService()
+        service.init({ storage: githubStorage })
+
+        await expect(service.openProject(githubProject)).rejects.toBeInstanceOf(GithubUnauthorizedError)
+        expect(handleUnauthorized).toHaveBeenCalledTimes(1)
+    })
+
+    it('handles GitHub unauthorized once when a batched commit gets a 401', async () => {
+        configService.init()
+        const handleUnauthorized = vi.fn()
+        const fetchImplementation = vi.fn()
+            .mockResolvedValueOnce(createGithubStatusResponse(404))
+            .mockResolvedValueOnce(createGithubStatusResponse(404))
+            .mockResolvedValueOnce(createGithubResponse([{ path: 'design/F-1-root.md', type: 'file' }]))
+            .mockResolvedValueOnce(createGithubResponse({
+                content: btoa(files[0].content),
+                encoding: 'base64',
+                path: 'design/F-1-root.md',
+                sha: 'sha-1',
+            }))
+            .mockResolvedValueOnce(createGithubResponse([]))
+            .mockResolvedValueOnce(createGithubStatusResponse(401))
+        const githubStorage = new GithubStorageService()
+        githubStorage.init({ accessToken: 'token', fetchImplementation, onUnauthorized: handleUnauthorized })
+        const service = new DataService()
+        service.init({ storage: githubStorage })
+
+        await service.openProject(githubProject)
+        service.updateCardBody('design/F-1-root.md', '# Root\n\nChanged')
+
+        await expect(service.flushPendingCommits()).rejects.toBeInstanceOf(GithubUnauthorizedError)
+        expect(handleUnauthorized).toHaveBeenCalledTimes(1)
     })
 
     it('imports Remarkable images into an existing card and commits card, assets and metadata together', async () => {

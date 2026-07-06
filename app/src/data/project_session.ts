@@ -1,4 +1,5 @@
 import { GithubStorageService } from '../services/github_storage_service'
+import { githubAuthService } from '../services/github_auth_service'
 import { LocalGitStorageService } from '../services/local_git_storage_service'
 import type { ProjectReference, StorageService } from './data_types'
 
@@ -15,7 +16,10 @@ export interface LastProject {
 export function createStorageService(storageType: StorageType, accessToken: string | null): StorageService {
     if (storageType === 'github') {
         const storage = new GithubStorageService()
-        storage.init({ accessToken: accessToken ?? '' })
+        storage.init({
+            accessToken: accessToken ?? '',
+            onUnauthorized: () => githubAuthService.handleUnauthorized(),
+        })
 
         return storage
     }

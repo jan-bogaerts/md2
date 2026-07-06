@@ -1,5 +1,6 @@
 import type { ActionFile } from '../data/action_types'
 import { MissingWorkingFolderError } from '../data/data_types'
+import { GithubUnauthorizedError } from '../auth/github_api_client'
 import type {
     AgentConversation,
     BranchReference,
@@ -26,6 +27,7 @@ const TEXT_DECODER = new TextDecoder()
 interface GithubStorageDependencies {
     accessToken: string
     fetchImplementation?: typeof fetch
+    onUnauthorized?: () => void
 }
 
 interface GithubRepositoryResponse {
@@ -228,12 +230,14 @@ export class GithubStorageService implements StorageService {
     private accessToken: string | null
     private activeProject: ProjectReference | null
     private fetchImplementation: typeof fetch | null
+    private onUnauthorized: (() => void) | null
     private pendingCommitHeads: Map<string, string>
 
     constructor() {
         this.accessToken = null
         this.activeProject = null
         this.fetchImplementation = null
+        this.onUnauthorized = null
         this.pendingCommitHeads = new Map()
     }
 
@@ -241,6 +245,7 @@ export class GithubStorageService implements StorageService {
         this.accessToken = dependencies.accessToken
         this.activeProject = null
         this.fetchImplementation = dependencies.fetchImplementation ?? fetch
+        this.onUnauthorized = dependencies.onUnauthorized ?? null
         this.pendingCommitHeads = new Map()
     }
 
@@ -641,6 +646,10 @@ export class GithubStorageService implements StorageService {
         if (allowNotFound && response.status === 404) return null
         if ((init.method === 'PATCH' || init.method === 'PUT') && (response.status === 409 || response.status === 422)) {
             throw new Error('The file changed remotely. Reload or refresh the project before saving again.')
+        }
+        if (response.status === 401) {
+            this.onUnauthorized?.()
+            throw new GithubUnauthorizedError()
         }
         if (!response.ok) throw new Error(`GitHub storage request failed with status ${response.status}`)
 

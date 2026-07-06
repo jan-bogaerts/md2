@@ -325,6 +325,16 @@ describe('GithubStorageService', () => {
         ])
     })
 
+    it('keeps non-401 request failures surfaced as storage errors', async () => {
+        const handleUnauthorized = vi.fn()
+        const fetchImplementation = vi.fn().mockResolvedValue(createStatusResponse(500))
+        const service = new GithubStorageService()
+        service.init({ accessToken: 'token', fetchImplementation, onUnauthorized: handleUnauthorized })
+
+        await expect(service.listBranches(project)).rejects.toThrow('GitHub storage request failed with status 500')
+        expect(handleUnauthorized).not.toHaveBeenCalled()
+    })
+
     it('lists authenticated user repositories across pages with default branches', async () => {
         const firstPage = Array.from({ length: 100 }, (_item, index) => ({
             default_branch: `branch-${index}`,
