@@ -50,6 +50,7 @@ const architectureCard = makeCard(
 const snapshot: ProjectSnapshot = {
     activeCards: [activeAlpha, activeBeta],
     backgroundCards: [historyCard, architectureCard],
+    repositoryFiles: [],
     workingFolder: 'design',
 }
 

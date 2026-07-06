@@ -23,6 +23,7 @@ export interface ElectronDataBridge {
     loadActionFiles(project: ProjectReference, actionsFolder: string): Promise<ActionFile[]>
     loadProject(project: ProjectReference, workingFolder: string): Promise<StorageProjectFiles>
     loadProjectConfig(project: ProjectReference): Promise<Partial<ProjectConfig> | null>
+    listRepositoryFiles(project: ProjectReference): Promise<string[]>
     listBranches(project: ProjectReference): Promise<BranchReference[]>
     openProjectFolder(): Promise<ProjectReference | null>
     push(project: ProjectReference): Promise<void>

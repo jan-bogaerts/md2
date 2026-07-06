@@ -107,17 +107,17 @@ npm run lint-fix
 
 ### Agent Responsibilities
 
-As an agent, you must:
+you must:
 
 1. **Do not break existing tests.** If a test fails after your change, either:
 
-   * Fix the code if the test remains correct, or
-   * Update the test and explain why if behavior intentionally changed.
+   - Fix the code if the test remains correct, or
+   - Update the test and explain why if behavior intentionally changed.
 2. **Add tests** for:
 
-   * New public functions or utilities.
-   * New React components or significant UI states.
-   * Bug fixes (a regression test that would fail before the fix).
+   - New public functions or utilities.
+   - New React components or significant UI states.
+   - Bug fixes (a regression test that would fail before the fix).
 3. **Run the test suite** before submitting changes:
 
    ```powershell
@@ -128,38 +128,40 @@ As an agent, you must:
 
 ### Test Conventions
 
-* **Location / Naming**
+- **Location / Naming**
 
-  * Place tests close to the code they test
-* **Structure**
+  - Place tests close to the code they test
+- **Structure**
 
-  * Use `describe` blocks to group related tests by component or function.
-  * Use clear, descriptive `it` / `test` names that describe behavior, not implementation.
-* **Style**
+  - Use `describe` blocks to group related tests by component or function.
+  - Use clear, descriptive `it` / `test` names that describe behavior, not implementation.
+- **Style**
 
-  * Follow the same **code style guide** as production code (no unnecessary nesting, use `const`, clear variable names, etc.).
-  * Use **async/await** in tests for async behavior; avoid `.then()`.
+  - Follow the same **code style guide** as production code (no unnecessary nesting, use `const`, clear variable names, etc.).
+  - Use **async/await** in tests for async behavior; avoid `.then()`.
 
 ### Test / Code Conflicts
 
-- When a test fails after your changes, assume your changes caused it and may also have broken related app behavior. Fix the code first. Only call it pre-existing with concrete evidence, such as a failing baseline from before your edits.
+- When a test fails after your changes, assume your changes caused it and may also have broken related app behavior. Fix the code first. 
+- Fix pre-existing failures.
 - Treat tests as signals, not automatic source of truth.
 - If an existing test conflicts with current implementation, naming, comments, docs, or the user request, do **not** immediately change code to satisfy the test.
-- First determine whether the test may be stale or whether the code may be wrong.
+  - First determine whether the test may be stale or whether the code may be wrong.
 - If the correct behavior is not clearly established from the current task or nearby code, ask the user a single concise clarifying question before changing either the code or the test.
 - Do not broaden a task by "fixing" unrelated behavior only because an older test expects it.
 - When a test failure reveals behavior outside the requested change, prefer pausing for confirmation over making compatibility changes.
 - When updating a test to match intended behavior, briefly state why the test was considered stale.
+- Never change the requirements cause the test is failing: fix the test or make a note, but stick to the requirements. Example: `The failing test exposed that MUI’s chip delete icon is not accessible by label in this version. I’m replacing it with an explicit Remove … button so removal is user-centric and testable.` this is not allowed. fix the test instead.
 
 ### React Testing Guidelines
 
-* Prefer **user-centric tests** using React Testing Library:
+- Prefer **user-centric tests** using React Testing Library:
 
-  * Use queries like `getByRole`, `getByText`, `getByLabelText`, etc.
-  * Avoid testing implementation details such as internal state or private functions.
-* Use `@testing-library/jest-dom` matchers, for example:
+  - Use queries like `getByRole`, `getByText`, `getByLabelText`, etc.
+  - Avoid testing implementation details such as internal state or private functions.
+- Use `@testing-library/jest-dom` matchers, for example:
 
-  * `expect(element).toBeInTheDocument()`
-  * `expect(button).toBeDisabled()`
-  * `expect(message).toHaveTextContent('...')`
-* For user interactions, use `userEvent` (if configured) instead of calling event handlers directly.
+  - `expect(element).toBeInTheDocument()`
+  - `expect(button).toBeDisabled()`
+  - `expect(message).toHaveTextContent('...')`
+- For user interactions, use `userEvent` (if configured) instead of calling event handlers directly.

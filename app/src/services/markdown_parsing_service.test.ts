@@ -178,6 +178,26 @@ describe('markdownParsingService.setAgentLogReferences', () => {
     })
 })
 
+describe('markdownParsingService.setAffects', () => {
+    it('rewrites affects while preserving unrelated header fields and body', () => {
+        const content = '---\nid: F-1\ntitle: Root\naffects:\n  - old.ts\npolicy:\n  checkLinting: true\n---\n\n# Root'
+        const next = markdownParsingService.setAffects(content, ['app/src/app.tsx', 'desktop/main.js'])
+
+        expect(next).toContain('affects:\n  - app/src/app.tsx\n  - desktop/main.js')
+        expect(next).not.toContain('old.ts')
+        expect(next).toContain('policy:\n  checkLinting: true')
+        expect(next.endsWith('\n\n# Root')).toBe(true)
+    })
+
+    it('creates an empty affects list when no entries are selected', () => {
+        const content = '---\nid: F-1\ntitle: Root\naffects:\n  - old.ts\n---\n\n# Root'
+        const next = markdownParsingService.setAffects(content, [])
+
+        expect(next).toContain('affects:\n---')
+        expect(next).not.toContain('old.ts')
+    })
+})
+
 describe('markdownParsingService.buildCardMarkdown', () => {
     it('generates markdown with the full supported header and body template', () => {
         const content = markdownParsingService.buildCardMarkdown(

@@ -362,6 +362,16 @@ export const markdownParsingService = {
         return `${HEADER_DELIMITER}\n${nextHeader}\n${HEADER_DELIMITER}\n\n${content}`
     },
 
+    setAffects(content: string, affects: string[]) {
+        const { body, hasHeader, rawHeader } = splitHeader(content)
+        const startingLines = hasHeader ? rawHeader.split('\n') : []
+        const nextHeader = rewriteListLines(startingLines, 'affects', affects).join('\n')
+
+        if (hasHeader) return `${HEADER_DELIMITER}\n${nextHeader}\n${HEADER_DELIMITER}\n${body}`
+
+        return `${HEADER_DELIMITER}\n${nextHeader}\n${HEADER_DELIMITER}\n\n${content}`
+    },
+
     buildCardMarkdown(header: NewCardHeader, body: string) {
         return `${HEADER_DELIMITER}\n${serializeNewHeader(header)}\n${HEADER_DELIMITER}\n\n${body}`
     },

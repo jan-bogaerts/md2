@@ -78,6 +78,7 @@ const dataBridge = {
     },
     createProject: (project, workingFolder) => localGitService.createProject(project, workingFolder),
     listBranches: (project) => localGitService.listBranches(project),
+    listRepositoryFiles: (project) => localGitService.listRepositoryFiles(project),
     loadActionFiles: (project, actionsFolder) => localGitService.loadActionFiles(project, actionsFolder),
     loadAgentConversation: (path) => localGitService.loadAgentConversation(currentLocalProject, path),
     loadProject: async (project, workingFolder) => {

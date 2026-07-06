@@ -15,8 +15,10 @@ const AGENT_LED_SIZE = 10
 const AGENT_POPOVER_WIDTH = 420
 
 export interface CardHandlers {
+    onAffectsChange: (path: string, affects: string[]) => void
     onBodyChange: (path: string, body: string) => void
     onContinueAgentConversation: (cardPath: string, conversation: AgentConversation) => void
+    onOpenAffects: (path: string) => void
     onOpenBody: (path: string) => void
     onOpenInFileMode: (path: string) => void
     onSendAgentInput: (runId: string, input: string) => void
@@ -37,7 +39,7 @@ interface ProjectCardViewProps extends CardHandlers {
 /** A single card: type-color line, id + title, policy leds, drag handle and body access. */
 export function ProjectCardView(props: ProjectCardViewProps) {
     const { card, cardTypes, color, isBodyOpen, isMobile, onBodyChange, onContinueAgentConversation, onOpenBody, onOpenInFileMode } = props
-    const { onSendAgentInput, onStartAgentConversation } = props
+    const { onOpenAffects, onSendAgentInput, onStartAgentConversation } = props
     const { onTogglePolicy, onTitleChange } = props
     const { isSelected } = props
     const { attributes, isDragging, listeners, setNodeRef, transform, transition } = useSortable({ id: card.path })
@@ -79,6 +81,11 @@ export function ProjectCardView(props: ProjectCardViewProps) {
     const openAgentConversations = (event: MouseEvent<HTMLElement>) => {
         event.stopPropagation()
         setAgentAnchorElement(event.currentTarget)
+    }
+
+    const openAffects = (event: MouseEvent<HTMLElement>) => {
+        event.stopPropagation()
+        onOpenAffects(card.path)
     }
 
     const closeAgentConversations = () => {
@@ -157,6 +164,9 @@ export function ProjectCardView(props: ProjectCardViewProps) {
                                 policyKey={policyKey}
                             />
                         ))}
+                        <Button onClick={openAffects} size="small">
+                            Affects
+                        </Button>
                         <Tooltip title="Agent conversations">
                             <IconButton aria-label={`Agent conversations for ${card.header.id}`} onClick={openAgentConversations} size="small">
                                 <Badge badgeContent={agentSignalCount} color="primary">

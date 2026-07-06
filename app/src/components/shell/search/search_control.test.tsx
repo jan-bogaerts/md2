@@ -32,6 +32,7 @@ const snapshot: ProjectSnapshot = {
     backgroundCards: [
         makeCard('design/history/note.md', '# Note\n\nHidden secret text.', { id: 'H-1', title: 'History note', status: 'archived' }, false),
     ],
+    repositoryFiles: [],
     workingFolder: 'design',
 }
 

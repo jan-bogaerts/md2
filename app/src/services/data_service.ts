@@ -154,8 +154,9 @@ export class DataService extends EventTarget {
         const actionFiles = await storage.loadActionFiles(project, config.actionsFolder)
         actionService.loadFromFiles(actionFiles)
         const projectFiles = await storage.loadProject(project, config.workingFolder)
+        const repositoryFiles = await storage.listRepositoryFiles(project)
         this.currentFiles = projectFiles.files
-        this.currentSnapshot = await this.createSnapshot(projectFiles.files, projectFiles.workingFolder)
+        this.currentSnapshot = await this.createSnapshot(projectFiles.files, projectFiles.workingFolder, repositoryFiles)
         this.startProjectWatch()
         this.dispatchChanged()
         telemetryService.trackEvent('open_project')
@@ -247,6 +248,12 @@ export class DataService extends EventTarget {
         const existingFile = this.requireFile(path)
 
         return this.saveFile({ content: markdownParsingService.replaceBody(existingFile.content, body), path, sha: existingFile.sha })
+    }
+
+    updateCardAffects(path: string, affects: string[]) {
+        const existingFile = this.requireFile(path)
+
+        return this.saveFile({ content: markdownParsingService.setAffects(existingFile.content, affects), path, sha: existingFile.sha })
     }
 
     async continueAgentConversation(cardPath: string, sourcePath: string) {
@@ -387,17 +394,18 @@ export class DataService extends EventTarget {
     private refreshSnapshot() {
         const { config } = this.requireDependencies()
         const cards = this.attachAgentConversations(markdownParsingService.splitCards(this.currentFiles, config.workingFolder))
-        this.currentSnapshot = { ...cards, workingFolder: config.workingFolder }
+        const repositoryFiles = this.currentSnapshot?.repositoryFiles ?? []
+        this.currentSnapshot = { ...cards, repositoryFiles, workingFolder: config.workingFolder }
         this.dispatchChanged()
     }
 
-    private async createSnapshot(files: MarkdownFile[], workingFolder: string): Promise<ProjectSnapshot> {
+    private async createSnapshot(files: MarkdownFile[], workingFolder: string, repositoryFiles: string[]): Promise<ProjectSnapshot> {
         const cards = markdownParsingService.splitCards(files, workingFolder)
         const resolved = await this.resolveAgentConversations([...cards.activeCards, ...cards.backgroundCards])
         this.conversationsByCardPath = resolved.conversationsByCardPath
         this.errorsByCardPath = resolved.errorsByCardPath
 
-        return { ...this.attachAgentConversations(cards), workingFolder }
+        return { ...this.attachAgentConversations(cards), repositoryFiles, workingFolder }
     }
 
     private attachAgentConversations(cards: Pick<ProjectSnapshot, 'activeCards' | 'backgroundCards'>) {

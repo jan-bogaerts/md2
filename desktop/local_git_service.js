@@ -11,6 +11,7 @@ const PROJECT_CONFIG_PATH = 'md2.config.json'
 const ACTION_HISTORY_FOLDER = '.md2-action-history'
 const AGENT_LOG_FOLDER = '.md2-agent-logs'
 const CONTINUE_LOG_TITLE = 'Continue'
+const GIT_FOLDER = '.git'
 
 function normalizePath(filePath) {
     return filePath.replace(/\\/g, '/')
@@ -269,6 +270,26 @@ async function readMarkdownFiles(rootPath, folderPath) {
     return files
 }
 
+async function readRepositoryFilePaths(rootPath, folderPath) {
+    const entries = await fs.promises.readdir(folderPath, { withFileTypes: true })
+    const files = []
+
+    for (const entry of entries) {
+        if (entry.name === GIT_FOLDER) continue
+
+        const entryPath = path.join(folderPath, entry.name)
+
+        if (entry.isDirectory()) {
+            files.push(...await readRepositoryFilePaths(rootPath, entryPath))
+            continue
+        }
+
+        if (entry.isFile()) files.push(normalizePath(path.relative(rootPath, entryPath)))
+    }
+
+    return files
+}
+
 async function assertGitRoot(rootPath) {
     const gitPath = path.join(rootPath, '.git')
 
@@ -344,6 +365,14 @@ async function listBranches(project) {
     return output.split(/\r?\n/u).filter((name) => name.length > 0).map((name) => ({ name }))
 }
 
+async function listRepositoryFiles(project) {
+    const rootPath = requireRootPath(project)
+    await assertGitRoot(rootPath)
+    const files = await readRepositoryFilePaths(rootPath, rootPath)
+
+    return files.sort((left, right) => left.localeCompare(right))
+}
+
 async function checkoutBranch(project, branch) {
     const rootPath = requireRootPath(project)
     await runGit(rootPath, ['checkout', branch])
@@ -397,6 +426,7 @@ module.exports = {
     commit,
     createProject,
     listBranches,
+    listRepositoryFiles,
     appendActionRunHistory,
     loadActionRunHistory,
     continueAgentConversation,

@@ -39,6 +39,7 @@ const cards = [
 
 function renderCardView(overrides: Partial<Parameters<typeof CardView>[0]> = {}) {
     const handlers = {
+        onAffectsChange: vi.fn(),
         onBodyChange: vi.fn(),
         onContinueAgentConversation: vi.fn(),
         onMoveCard: vi.fn(),
@@ -54,6 +55,7 @@ function renderCardView(overrides: Partial<Parameters<typeof CardView>[0]> = {})
             cardTypes={DEFAULT_CARD_TYPES}
             cards={cards}
             isMobile={false}
+            repositoryFiles={['app/src/app.tsx', 'design/F-1.md']}
             selectedPath={null}
             {...handlers}
             {...overrides}
@@ -132,6 +134,7 @@ describe('CardView', () => {
                 cardTypes={DEFAULT_CARD_TYPES}
                 cards={cards}
                 isMobile={false}
+                onAffectsChange={vi.fn()}
                 onBodyChange={vi.fn()}
                 onContinueAgentConversation={vi.fn()}
                 onMoveCard={vi.fn()}
@@ -140,6 +143,7 @@ describe('CardView', () => {
                 onStartAgentConversation={vi.fn()}
                 onTitleChange={vi.fn()}
                 onTogglePolicy={vi.fn()}
+                repositoryFiles={[]}
                 selectedPath="design/F-2.md"
             />,
         )
@@ -171,5 +175,16 @@ describe('CardView', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Start' }))
 
         expect(handlers.onStartAgentConversation).toHaveBeenCalledWith('design/F-1.md', 'implement this card')
+    })
+
+    it('saves affects changes from the card dialog', () => {
+        const handlers = renderCardView({ repositoryFiles: ['app/src/app.tsx', 'design/F-1.md'] })
+
+        fireEvent.click(screen.getAllByRole('button', { name: 'Affects' })[0])
+        fireEvent.change(screen.getByRole('combobox', { name: 'Add affected file' }), { target: { value: 'app/src/app.tsx' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+        expect(handlers.onAffectsChange).toHaveBeenCalledWith('design/F-1.md', ['app/src/app.tsx'])
     })
 })

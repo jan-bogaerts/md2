@@ -83,6 +83,28 @@ describe('GithubStorageService', () => {
         ])
     })
 
+    it('lists repository files recursively as repo-relative paths', async () => {
+        const fetchImplementation = vi.fn()
+            .mockResolvedValueOnce(createResponse([
+                { path: 'app', type: 'dir' },
+                { path: 'README.md', type: 'file' },
+            ]))
+            .mockResolvedValueOnce(createResponse([
+                { path: 'app/src', type: 'dir' },
+            ]))
+            .mockResolvedValueOnce(createResponse([
+                { path: 'app/src/main.tsx', type: 'file' },
+            ]))
+        const service = new GithubStorageService()
+        service.init({ accessToken: 'token', fetchImplementation })
+
+        const files = await service.listRepositoryFiles({ branch: 'main', id: 'owner/repo', owner: 'owner', repository: 'repo' })
+
+        expect(files).toEqual(['app/src/main.tsx', 'README.md'])
+        expect(fetchImplementation.mock.calls[0][0]).toContain('/repos/owner/repo/contents?ref=main')
+        expect(fetchImplementation.mock.calls[1][0]).toContain('/repos/owner/repo/contents/app?ref=main')
+    })
+
     it('loads project config from the repository root', async () => {
         const fetchImplementation = vi.fn().mockResolvedValue(createResponse({
             content: btoa(JSON.stringify({ pushMode: 'manual', workingFolder: 'docs' })),

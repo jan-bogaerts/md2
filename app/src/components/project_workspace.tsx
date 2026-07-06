@@ -31,6 +31,7 @@ type WorkspaceViewMode = 'cards' | 'text'
 
 const WORKSPACE_PANEL_PADDING = 3
 const EMPTY_CARDS: ProjectCard[] = []
+const EMPTY_REPOSITORY_FILES: string[] = []
 
 interface ProjectWorkspaceProps {
     accessToken: string | null
@@ -55,6 +56,7 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
     const isMobile = useMediaQuery(theme.breakpoints.down('md'))
     const activeCards = snapshot?.activeCards ?? EMPTY_CARDS
     const backgroundCards = snapshot?.backgroundCards ?? EMPTY_CARDS
+    const repositoryFiles = snapshot?.repositoryFiles ?? EMPTY_REPOSITORY_FILES
     const [branch, setBranch] = useState(project?.branch ?? 'main')
     const [cardBody, setCardBody] = useState('')
     const [cardTitle, setCardTitle] = useState('')
@@ -213,6 +215,10 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
         dataService.updateCardBody(path, body)
     }
 
+    const handleAffectsChange = (path: string, affects: string[]) => {
+        dataService.updateCardAffects(path, affects)
+    }
+
     const handleContinueAgentConversation = async (path: string, conversation: AgentConversation) => {
         setErrorMessage(null)
 
@@ -306,6 +312,7 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
                             cardTypes={cardTypes}
                             cards={activeCards}
                             isMobile={isMobile}
+                            onAffectsChange={handleAffectsChange}
                             onBodyChange={handleBodyChange}
                             onContinueAgentConversation={handleContinueAgentConversation}
                             onMoveCard={handleMoveCard}
@@ -314,6 +321,7 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
                             onStartAgentConversation={handleStartAgentConversation}
                             onTitleChange={handleTitleChange}
                             onTogglePolicy={handleTogglePolicy}
+                            repositoryFiles={repositoryFiles}
                             selectedPath={selectedPath}
                         />
                     ) : (

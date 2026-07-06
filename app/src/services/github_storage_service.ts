@@ -99,6 +99,10 @@ function normalizeFileContent(payload: unknown): MarkdownFile {
     }
 }
 
+function sortPaths(paths: string[]) {
+    return [...paths].sort((left, right) => left.localeCompare(right))
+}
+
 export class GithubStorageService implements StorageService {
     private accessToken: string | null
     private activeProject: ProjectReference | null
@@ -181,6 +185,12 @@ export class GithubStorageService implements StorageService {
         return normalizeBranches(payload)
     }
 
+    async listRepositoryFiles(project: ProjectReference) {
+        this.requireGithubProject(project)
+
+        return sortPaths(await this.readRepositoryFilePaths(project, ''))
+    }
+
     async checkoutBranch(project: ProjectReference, branch: string) {
         const { accessToken } = this.requireDependencies()
         if (accessToken.length === 0) throw new Error('Missing GitHub access token')
@@ -241,6 +251,28 @@ export class GithubStorageService implements StorageService {
         }
 
         return files
+    }
+
+    private async readRepositoryFilePaths(project: ProjectReference, path: string): Promise<string[]> {
+        const contentPath = path.length > 0 ? `/${encodePath(path)}` : ''
+        const entries = normalizeDirectoryEntries(await this.request(
+            `/repos/${project.owner}/${project.repository}/contents${contentPath}?ref=${encodeURIComponent(project.branch)}`,
+        ))
+        const paths: string[] = []
+
+        for (const entry of entries) {
+            const type = requireString(entry.type, 'content.type')
+            const entryPath = requireString(entry.path, 'content.path')
+
+            if (type === 'dir') {
+                paths.push(...await this.readRepositoryFilePaths(project, entryPath))
+                continue
+            }
+
+            if (type === 'file') paths.push(entryPath.replace(/\\/gu, '/'))
+        }
+
+        return paths
     }
 
     private async readFile(project: ProjectReference, path: string) {

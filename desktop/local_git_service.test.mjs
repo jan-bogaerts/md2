@@ -12,6 +12,7 @@ const require = createRequire(import.meta.url)
 const {
     appendActionRunHistory,
     commit,
+    listRepositoryFiles,
     loadActionFiles,
     loadActionRunHistory,
     loadProject,
@@ -65,6 +66,24 @@ describe('local-git-service', () => {
             const files = await loadActionFiles({ branch: 'main', id: 'local', rootPath }, 'actions')
 
             expect(files).toEqual([{ content: '{"name":"implement"}', path: 'actions/implement.json' }])
+        } finally {
+            await rm(rootPath, { force: true, recursive: true })
+        }
+    })
+
+    it('lists repository files as normalized repo-relative paths excluding git internals', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-local-git-'))
+
+        try {
+            await mkdir(join(rootPath, '.git'), { recursive: true })
+            await writeFile(join(rootPath, '.git', 'config'), 'git config')
+            await mkdir(join(rootPath, 'app', 'src'), { recursive: true })
+            await writeFile(join(rootPath, 'app', 'src', 'main.tsx'), 'main')
+            await writeFile(join(rootPath, 'README.md'), 'readme')
+
+            const files = await listRepositoryFiles({ branch: 'main', id: 'local', rootPath })
+
+            expect(files).toEqual(['app/src/main.tsx', 'README.md'])
         } finally {
             await rm(rootPath, { force: true, recursive: true })
         }

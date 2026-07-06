@@ -1,7 +1,7 @@
 ---
 id: F-009
 title: affects editor
-status: design
+status: ready
 owner: JB
 affects:
 policy:
@@ -13,7 +13,7 @@ policy:
 Provide a custom dialog to easily edit the `affects` list of a card, with a dropdown of proposed repo files filtered on what is already typed.
 
 ## Current state
-`CardHeader.affects` exists as `string[]` and is parsed by `markdownParsingService` from `affects:` frontmatter lists. New cards are generated through `markdownParsingService.buildCardMarkdown` with an empty `affects` block. `DataService` can preserve headers while editing card bodies, rewrite scalar header fields such as `title`, and toggle nested `policy` flags, but it does not yet provide an affects-specific list rewrite helper. The card UI supports inline title editing, body editing, policy toggles and file-mode opening; there is still no UI for editing `affects`. GitHub and local storage currently load markdown files recursively under the configured working folder, producing active root cards and background cards, but the storage contract has no full repository file listing for non-markdown suggestion targets.
+Still not implemented (confirmed by the 2026-07 implementation audit). `CardHeader.affects` exists as `string[]`, is parsed by `markdownParsingService` from `affects:` frontmatter lists and is searchable through F-017, and `markdownParsingService.rewriteListLines` already rewrites list fields generically (used for `agents:` references via `setAgentLogReferences`) — but there is no public affects-specific rewrite helper on `DataService`. The card UI (card view, body dialog, text view) has no `affects` editing surface. The storage contract (`StorageService` in `app/src/data/data_types.ts`) still has no repository file listing, so no suggestion source exists for either GitHub or local projects.
 
 ## implementation details
 - Add a repository file listing path to the storage contract and Electron bridge so GitHub and local projects can provide normalized repo-relative paths, not only markdown files from the working folder.

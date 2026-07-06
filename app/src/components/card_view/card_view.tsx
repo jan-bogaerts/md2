@@ -5,6 +5,7 @@ import { useMemo, useState } from 'react'
 import { groupByStatus } from '../../data/card_ordering'
 import type { AgentConversation, CardTypeConfig, ProjectCard } from '../../data/data_types'
 import { telemetryService } from '../../services/telemetry_service'
+import { AffectsEditorDialog } from './affects_editor_dialog'
 import { CardBodyDialog } from './card_body_dialog'
 import { CardColumn } from './card_column'
 import { resolveDrop } from './card_drag'
@@ -15,6 +16,7 @@ interface CardViewProps {
     cardTypes: CardTypeConfig[]
     cards: ProjectCard[]
     isMobile: boolean
+    onAffectsChange: (path: string, affects: string[]) => void
     onBodyChange: (path: string, body: string) => void
     onContinueAgentConversation: (path: string, conversation: AgentConversation) => void
     onMoveCard: (path: string, targetStatus: string, targetIndex: number) => void
@@ -23,6 +25,7 @@ interface CardViewProps {
     onStartAgentConversation: (path: string, prompt: string) => void
     onTogglePolicy: (path: string, policyKey: string) => void
     onTitleChange: (path: string, title: string) => void
+    repositoryFiles: string[]
     selectedPath: string | null
 }
 
@@ -32,6 +35,7 @@ export function CardView(props: CardViewProps) {
         cardTypes,
         cards,
         isMobile,
+        onAffectsChange,
         onBodyChange,
         onContinueAgentConversation,
         onMoveCard,
@@ -40,15 +44,25 @@ export function CardView(props: CardViewProps) {
         onStartAgentConversation,
         onTogglePolicy,
         onTitleChange,
+        repositoryFiles,
         selectedPath,
     } = props
     const columns = useMemo(() => groupByStatus(cards), [cards])
     const [openBodyPath, setOpenBodyPath] = useState<string | null>(null)
+    const [openAffectsPath, setOpenAffectsPath] = useState<string | null>(null)
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: DRAG_ACTIVATION_DISTANCE } }))
 
     const handleOpenBody = (path: string) => {
         setOpenBodyPath((current) => (current === path ? null : path))
         telemetryService.trackEvent('navigation')
+    }
+
+    const handleOpenAffects = (path: string) => {
+        setOpenAffectsPath(path)
+    }
+
+    const handleCloseAffects = () => {
+        setOpenAffectsPath(null)
     }
 
     const handleDragEnd = (event: DragEndEvent) => {
@@ -65,6 +79,7 @@ export function CardView(props: CardViewProps) {
     }
 
     const openCard = cards.find((card) => card.path === openBodyPath) ?? null
+    const affectsCard = cards.find((card) => card.path === openAffectsPath) ?? null
 
     return (
         <DndContext collisionDetection={closestCorners} onDragEnd={handleDragEnd} sensors={sensors}>
@@ -79,9 +94,11 @@ export function CardView(props: CardViewProps) {
                         cardTypes={cardTypes}
                         column={column}
                         isMobile={isMobile}
+                        onAffectsChange={onAffectsChange}
                         onBodyChange={onBodyChange}
                         onContinueAgentConversation={onContinueAgentConversation}
                         onOpenBody={handleOpenBody}
+                        onOpenAffects={handleOpenAffects}
                         onOpenInFileMode={handleOpenInFileMode}
                         onSendAgentInput={onSendAgentInput}
                         onStartAgentConversation={onStartAgentConversation}
@@ -100,6 +117,12 @@ export function CardView(props: CardViewProps) {
                     onOpenInFileMode={handleOpenInFileMode}
                 />
             )}
+            <AffectsEditorDialog
+                card={affectsCard}
+                onClose={handleCloseAffects}
+                onSave={onAffectsChange}
+                repositoryFiles={repositoryFiles}
+            />
         </DndContext>
     )
 }

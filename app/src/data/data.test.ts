@@ -46,6 +46,7 @@ function createStorage(overrides: Partial<StorageService> = {}): StorageService 
         commit: vi.fn(),
         createProject: vi.fn(async (project) => project),
         listBranches: vi.fn(async () => [{ name: 'main' }]),
+        listRepositoryFiles: vi.fn(async () => ['app/src/app.tsx', 'app/src/card.tsx', 'design/F-1-root.md']),
         loadActionFiles: vi.fn(async () => []),
         loadProject: vi.fn(async () => ({ files, workingFolder: 'design' })),
         loadProjectConfig: vi.fn(async () => null),
@@ -368,6 +369,22 @@ describe('DataService', () => {
         const committed = (storage.commit as ReturnType<typeof vi.fn>).mock.calls.at(-1)?.[0] as CommitRequest
         expect(committed.files[0].content.startsWith('---\nid: F-1')).toBe(true)
         expect(committed.files[0].content).toContain('Edited body')
+    })
+
+    it('updates card affects through the shared header rewrite and save flow', async () => {
+        configService.init()
+        const storage = createStorage()
+        const service = new DataService()
+        service.init({ storage })
+
+        await service.openProject({ branch: 'main', id: 'project' })
+        service.updateCardAffects('design/F-1-root.md', ['app/src/card.tsx'])
+        await service.flushPendingCommits()
+
+        const committed = (storage.commit as ReturnType<typeof vi.fn>).mock.calls.at(-1)?.[0] as CommitRequest
+        expect(committed.files[0].content).toContain('affects:\n  - app/src/card.tsx')
+        expect(committed.files[0].content).not.toContain('app/src/app.tsx')
+        expect(committed.files[0].content.endsWith('\n\n# Root')).toBe(true)
     })
 
     it('loads action files from the configured actions folder into the action service on open', async () => {

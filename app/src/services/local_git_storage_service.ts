@@ -101,6 +101,10 @@ export class LocalGitStorageService implements StorageService {
         return this.requireBridge().listBranches(project)
     }
 
+    async listRepositoryFiles(project: ProjectReference): Promise<string[]> {
+        return this.requireBridge().listRepositoryFiles(project)
+    }
+
     async checkoutBranch(project: ProjectReference, branch: string): Promise<ProjectReference> {
         return this.requireBridge().checkoutBranch(project, branch)
     }

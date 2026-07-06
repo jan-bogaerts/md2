@@ -61,6 +61,7 @@ export interface ProjectCard {
 export interface ProjectSnapshot {
     activeCards: ProjectCard[]
     backgroundCards: ProjectCard[]
+    repositoryFiles: string[]
     workingFolder: string
 }
 
@@ -178,6 +179,7 @@ export interface StorageService {
     loadAgentConversation?(project: ProjectReference, path: string): Promise<AgentConversation>
     loadProject(project: ProjectReference, workingFolder: string): Promise<StorageProjectFiles>
     loadProjectConfig(project: ProjectReference): Promise<Partial<ProjectConfig> | null>
+    listRepositoryFiles(project: ProjectReference): Promise<string[]>
     push(project: ProjectReference): Promise<void>
     saveProjectConfig(project: ProjectReference, config: ProjectConfig): Promise<void>
     sendAgentInput?(project: ProjectReference, runId: string, input: string): Promise<void>
