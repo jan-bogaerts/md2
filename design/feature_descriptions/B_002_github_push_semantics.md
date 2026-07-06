@@ -1,7 +1,7 @@
 ---
 id: B-002
 title: github push semantics wrong (manual push meaningless, N commits per batch)
-status: design
+status: ready
 owner: JB
 affects:
 policy:

@@ -1,4 +1,4 @@
-const { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme } = require('electron')
+const { app, BrowserWindow, dialog, ipcMain, nativeTheme } = require('electron')
 const path = require('node:path')
 const Store = require('electron-store')
 const { resolveAppUrl } = require('./config')
@@ -9,7 +9,6 @@ const { THEME_MODE_STORE_KEY, resolveThemeMode, resolveTitleBarOverlay } = requi
 
 const appUrl = resolveAppUrl()
 const DATA_OPEN_PROJECT_FOLDER_CHANNEL = 'md2-data:open-project-folder'
-const DATA_MENU_PUSH_CHANNEL = 'md2-data:menu-push'
 const REMOTE_CONTROL_STATUS_CHANNEL = 'md2-remote-control:status'
 const REMOTE_CONTROL_START_CHANNEL = 'md2-remote-control:start'
 const REMOTE_CONTROL_STOP_CHANNEL = 'md2-remote-control:stop'
@@ -78,22 +77,6 @@ function registerThemeBridge() {
     })
 }
 
-function createAppMenu() {
-    const template = [
-        {
-            label: 'Project',
-            submenu: [
-                {
-                    click: (_menuItem, window) => window?.webContents.send(DATA_MENU_PUSH_CHANNEL),
-                    label: 'Push',
-                },
-            ],
-        },
-    ]
-
-    Menu.setApplicationMenu(Menu.buildFromTemplate(template))
-}
-
 function createWindow() {
     const mode = resolveThemeMode(store.get(THEME_MODE_STORE_KEY))
     nativeTheme.themeSource = mode
@@ -130,7 +113,6 @@ app.whenReady().then(async () => {
     registerRemarkableBridge()
     registerRemoteControlBridge()
     registerThemeBridge()
-    createAppMenu()
     createWindow()
 
     app.on('activate', () => {

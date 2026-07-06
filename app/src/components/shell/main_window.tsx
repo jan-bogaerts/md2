@@ -7,6 +7,7 @@ import { ConfigPage } from '../config/config_page'
 import { GithubAuthPanel } from '../github_auth_panel'
 import { ProjectWorkspace } from '../project_workspace'
 import { createSearchRegexpAgent, isSearchRegexpAgentAvailable } from '../../services/search/search_regexp_agent'
+import { AppMenu } from './menu/app_menu'
 import { MainToolbar } from './main_toolbar'
 import { ProjectToolbarMenu } from './project_toolbar_menu'
 import { SearchControl } from './search/search_control'
@@ -66,6 +67,7 @@ export function MainWindow(props: MainWindowProps) {
                 action={(
                     <>
                         <ProjectToolbarMenu accessToken={auth.accessToken} isGithubAuthenticated={auth.isAuthenticated} />
+                        <AppMenu />
                         {toolbarAction}
                     </>
                 )}

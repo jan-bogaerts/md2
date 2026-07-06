@@ -7,7 +7,6 @@ const localGitService = require('./local_git_service')
 const diffService = require('./diff_service')
 
 const DATA_OPEN_PROJECT_FOLDER_CHANNEL = 'md2-data:open-project-folder'
-const DATA_MENU_PUSH_CHANNEL = 'md2-data:menu-push'
 const REMOTE_CONTROL_STATUS_CHANNEL = 'md2-remote-control:status'
 const REMOTE_CONTROL_START_CHANNEL = 'md2-remote-control:start'
 const REMOTE_CONTROL_STOP_CHANNEL = 'md2-remote-control:stop'
@@ -96,12 +95,6 @@ const dataBridge = {
     },
     loadProjectConfig: (project) => localGitService.loadProjectConfig(project),
     moveFiles: (request) => localGitService.moveFiles(request, currentLocalProject),
-    onMenuPush: (callback) => {
-        const listener = () => callback()
-        ipcRenderer.on(DATA_MENU_PUSH_CHANNEL, listener)
-
-        return () => ipcRenderer.removeListener(DATA_MENU_PUSH_CHANNEL, listener)
-    },
     openProjectFolder: async () => {
         const rootPath = await ipcRenderer.invoke(DATA_OPEN_PROJECT_FOLDER_CHANNEL)
         if (!rootPath) return null

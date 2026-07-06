@@ -1,7 +1,7 @@
 ---
 id: B-004
 title: electron Project→Push menu item does nothing
-status: design
+status: ready
 owner: JB
 affects:
 policy:

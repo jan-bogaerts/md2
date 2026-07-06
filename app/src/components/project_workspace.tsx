@@ -20,7 +20,7 @@ import { CardView } from './card_view/card_view'
 import { RemarkableImportPanel } from './remarkable_import_panel'
 import { TextView } from './text_view/text_view'
 import { useProjectState } from './hooks/use_project_state'
-import { requestOpenProjectDialog } from './project_command_events'
+import { requestOpenProjectDialog, WORKSPACE_ERROR_EVENT } from './project_command_events'
 
 type WorkspaceViewMode = 'cards' | 'text'
 
@@ -91,6 +91,16 @@ export function ProjectWorkspace() {
         workspaceNavigationService.addEventListener('open', handleNavigationOpen)
 
         return () => workspaceNavigationService.removeEventListener('open', handleNavigationOpen)
+    }, [])
+
+    useEffect(() => {
+        const handleWorkspaceError = (event: Event) => {
+            setErrorMessage((event as CustomEvent<string>).detail)
+        }
+
+        window.addEventListener(WORKSPACE_ERROR_EVENT, handleWorkspaceError)
+
+        return () => window.removeEventListener(WORKSPACE_ERROR_EVENT, handleWorkspaceError)
     }, [])
 
     const handleMoveCard = (path: string, targetStatus: string, targetIndex: number) => {
