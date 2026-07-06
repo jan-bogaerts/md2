@@ -87,6 +87,7 @@ const dataBridge = {
         return localGitService.loadProject(project, workingFolder)
     },
     loadProjectConfig: (project) => localGitService.loadProjectConfig(project),
+    moveFiles: (request) => localGitService.moveFiles(request, currentLocalProject),
     onMenuPush: (callback) => {
         const listener = () => callback()
         ipcRenderer.on(DATA_MENU_PUSH_CHANNEL, listener)

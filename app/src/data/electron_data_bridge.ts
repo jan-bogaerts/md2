@@ -6,6 +6,7 @@ import type {
     CommitRequest,
     ContinueAgentConversationRequest,
     ContinueAgentConversationResult,
+    MoveFilesRequest,
     ProjectConfig,
     ProjectReference,
     ProjectWatchEvent,
@@ -25,6 +26,7 @@ export interface ElectronDataBridge {
     loadProjectConfig(project: ProjectReference): Promise<Partial<ProjectConfig> | null>
     listRepositoryFiles(project: ProjectReference): Promise<string[]>
     listBranches(project: ProjectReference): Promise<BranchReference[]>
+    moveFiles(request: MoveFilesRequest): Promise<void>
     openProjectFolder(): Promise<ProjectReference | null>
     push(project: ProjectReference): Promise<void>
     saveProjectConfig(project: ProjectReference, config: ProjectConfig): Promise<void>

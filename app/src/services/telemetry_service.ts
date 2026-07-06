@@ -3,6 +3,7 @@ import { register } from './service_injector'
 export type TelemetryRuntime = 'react_web' | 'react_electron'
 
 export type TelemetryEventName =
+    | 'complete_release'
     | 'create_card'
     | 'create_project'
     | 'navigation'
@@ -36,6 +37,7 @@ interface TelemetryInitOptions {
 
 const FLUSH_TIMEOUT_MS = 1500
 const TELEMETRY_EVENTS = new Set<TelemetryEventName>([
+    'complete_release',
     'create_card',
     'create_project',
     'navigation',

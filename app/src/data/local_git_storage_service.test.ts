@@ -12,6 +12,7 @@ function createBridge(): ElectronDataBridge {
         loadActionFiles: vi.fn(async () => []),
         loadProject: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
         loadProjectConfig: vi.fn(async () => null),
+        moveFiles: vi.fn(),
         openProjectFolder: vi.fn(async () => ({ branch: 'main', id: 'local', rootPath: 'C:/repo' })),
         push: vi.fn(),
         saveProjectConfig: vi.fn(),
@@ -31,6 +32,11 @@ describe('LocalGitStorageService', () => {
         await service.listRepositoryFiles(project!)
         await service.checkoutBranch(project!, 'feature')
         await service.commit({ branch: 'feature', files: [{ content: '# Test', path: 'design/F-1-test.md' }], message: 'Update test' })
+        await service.moveFiles({
+            branch: 'feature',
+            message: 'Complete release v1',
+            moves: [{ content: '# Test', fromPath: 'design/F-1-test.md', toPath: 'design/history/v1/F-1-test.md' }],
+        })
         await service.saveProjectConfig(project!, {
             actionsFolder: 'actions',
             cardBodyTemplate: '# Template',
@@ -47,6 +53,7 @@ describe('LocalGitStorageService', () => {
         expect(bridge.listRepositoryFiles).toHaveBeenCalledWith(project)
         expect(bridge.checkoutBranch).toHaveBeenCalledWith(project, 'feature')
         expect(bridge.commit).toHaveBeenCalled()
+        expect(bridge.moveFiles).toHaveBeenCalled()
         expect(bridge.saveProjectConfig).toHaveBeenCalled()
         expect(bridge.push).toHaveBeenCalledWith(project)
     })

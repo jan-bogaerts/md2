@@ -6,6 +6,7 @@ import type {
     ContinueAgentConversationResult,
     AgentConversation,
     AgentRunEvent,
+    MoveFilesRequest,
     ProjectConfig,
     ProjectReference,
     ProjectWatchEvent,
@@ -111,6 +112,10 @@ export class LocalGitStorageService implements StorageService {
 
     async commit(request: CommitRequest): Promise<void> {
         await this.requireBridge().commit(request)
+    }
+
+    async moveFiles(request: MoveFilesRequest): Promise<void> {
+        await this.requireBridge().moveFiles(request)
     }
 
     async push(project: ProjectReference): Promise<void> {

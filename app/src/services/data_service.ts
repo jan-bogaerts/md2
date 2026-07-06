@@ -2,6 +2,7 @@
 import { cardContext } from '../data/action_context'
 import { createCardFile } from '../data/card_naming'
 import { computeMove } from '../data/card_ordering'
+import { buildReleaseMoves } from '../data/release_archiving'
 import {
     type AgentConversation,
     type AgentConversationError,
@@ -388,6 +389,35 @@ export class DataService extends EventTarget {
     async flushPendingCommits() {
         const { commitBatcher } = this.requireDependencies()
         await commitBatcher.flush()
+    }
+
+    async completeRelease(releaseName: string) {
+        const { commitBatcher, config, storage } = this.requireDependencies()
+        if (!this.currentProject) throw new Error('Cannot complete a release before a project is open')
+
+        await commitBatcher.flush()
+
+        const activeCards = this.currentSnapshot?.activeCards ?? []
+        if (activeCards.length === 0) throw new Error('Cannot complete a release without active cards')
+
+        const repositoryFiles = this.currentSnapshot?.repositoryFiles ?? []
+        const moves = buildReleaseMoves(this.currentFiles, activeCards, config.workingFolder, releaseName, repositoryFiles)
+        await storage.moveFiles({
+            branch: this.currentProject.branch,
+            message: `Complete release ${releaseName.trim()}`,
+            moves,
+        })
+
+        if (config.pushMode === 'auto') await storage.push(this.currentProject)
+
+        const projectFiles = await storage.loadProject(this.currentProject, config.workingFolder)
+        const refreshedRepositoryFiles = await storage.listRepositoryFiles(this.currentProject)
+        this.currentFiles = projectFiles.files
+        this.currentSnapshot = await this.createSnapshot(projectFiles.files, projectFiles.workingFolder, refreshedRepositoryFiles)
+        this.dispatchChanged()
+        telemetryService.trackEvent('complete_release')
+
+        return this.currentSnapshot
     }
 
     async push() {

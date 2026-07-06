@@ -13,6 +13,7 @@ function createBridge(overrides: Partial<ElectronDataBridge> = {}): ElectronData
         loadActionFiles: vi.fn(),
         loadProject: vi.fn(),
         loadProjectConfig: vi.fn(),
+        moveFiles: vi.fn().mockResolvedValue(undefined),
         openProjectFolder: vi.fn(),
         push: vi.fn().mockResolvedValue(undefined),
         saveProjectConfig: vi.fn(),
@@ -41,5 +42,21 @@ describe('LocalGitStorageService binary write path', () => {
 
         expect(commit).toHaveBeenCalledWith(request)
         expect(commit.mock.calls[0][0].files[1].encoding).toBe('base64')
+    })
+
+    it('forwards file moves to the bridge unchanged', async () => {
+        const moveFiles = vi.fn().mockResolvedValue(undefined)
+        const bridge = createBridge({ moveFiles })
+        const service = new LocalGitStorageService()
+        service.init({ bridge })
+        const request = {
+            branch: 'main',
+            message: 'Complete release v1',
+            moves: [{ content: '# Card', fromPath: 'design/F-1-card.md', toPath: 'design/history/v1/F-1-card.md' }],
+        }
+
+        await service.moveFiles(request)
+
+        expect(moveFiles).toHaveBeenCalledWith(request)
     })
 })

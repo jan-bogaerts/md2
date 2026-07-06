@@ -23,6 +23,13 @@ function createBridge(): ElectronDataBridge {
         loadActionFiles: vi.fn(async () => []),
         loadProject: vi.fn(async () => ({ files, workingFolder: 'design' })),
         loadProjectConfig: vi.fn(async () => null),
+        moveFiles: vi.fn(async (request) => {
+            for (const move of request.moves) {
+                const existingIndex = files.findIndex((file) => file.path === move.fromPath)
+                if (existingIndex >= 0) files.splice(existingIndex, 1)
+                files.push({ content: move.content, path: move.toPath })
+            }
+        }),
         openProjectFolder: vi.fn(async () => ({ branch: 'main', id: 'local', rootPath: 'C:/repo' })),
         push: vi.fn(),
         saveProjectConfig: vi.fn(),
@@ -64,6 +71,23 @@ describe('ProjectWorkspace', () => {
 
         await waitFor(() => expect(bridge.commit).toHaveBeenCalled())
         expect(await screen.findByText('New Card')).toBeInTheDocument()
+    })
+
+    it('completes a release from the project controls', async () => {
+        const bridge = createBridge()
+        window.md2Data = bridge
+        const prompt = vi.spyOn(window, 'prompt').mockReturnValue('v1')
+
+        render(<ProjectWorkspace accessToken={null} isGithubAuthenticated={false} />)
+        fireEvent.click(screen.getByRole('button', { name: 'Open Local' }))
+        await screen.findByText('Root')
+
+        fireEvent.click(screen.getByRole('button', { name: 'Complete release...' }))
+
+        await waitFor(() => expect(bridge.moveFiles).toHaveBeenCalled())
+        expect(await screen.findByText('Background cards loaded: 2')).toBeInTheDocument()
+
+        prompt.mockRestore()
     })
 
     it('opens a card in the text view as a tab from the card body dialog', async () => {

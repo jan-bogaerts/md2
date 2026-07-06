@@ -17,6 +17,7 @@ const {
     loadActionRunHistory,
     loadProject,
     loadProjectConfig,
+    moveFiles,
     runAgent,
     runCommand,
     watchProject,
@@ -211,6 +212,30 @@ describe('local-git-service', () => {
 
             const written = await readFile(join(rootPath, 'design', 'note.png'))
             expect(written.toString()).toBe('binary-bytes')
+        } finally {
+            await rm(rootPath, { force: true, recursive: true })
+        }
+    })
+
+    it('moves files with git mv and commits the archive', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-local-git-'))
+
+        try {
+            await execFileAsync('git', ['init'], { cwd: rootPath })
+            await execFileAsync('git', ['config', 'user.email', 'md2@example.test'], { cwd: rootPath })
+            await execFileAsync('git', ['config', 'user.name', 'MD2 Test'], { cwd: rootPath })
+            await mkdir(join(rootPath, 'design'))
+            await writeFile(join(rootPath, 'design', 'F-1-root.md'), '# Root')
+            await execFileAsync('git', ['add', 'design/F-1-root.md'], { cwd: rootPath })
+            await execFileAsync('git', ['commit', '-m', 'Seed card'], { cwd: rootPath })
+
+            await moveFiles({
+                message: 'Complete release v1',
+                moves: [{ content: '# Root', fromPath: 'design/F-1-root.md', toPath: 'design/history/v1/F-1-root.md' }],
+            }, { branch: 'main', id: 'local', rootPath })
+
+            await expect(readFile(join(rootPath, 'design', 'history', 'v1', 'F-1-root.md'), 'utf8')).resolves.toBe('# Root')
+            await expect(readFile(join(rootPath, 'design', 'F-1-root.md'), 'utf8')).rejects.toThrow()
         } finally {
             await rm(rootPath, { force: true, recursive: true })
         }

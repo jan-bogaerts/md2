@@ -65,6 +65,7 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
     const [githubOwner, setGithubOwner] = useState('')
     const [githubRepository, setGithubRepository] = useState('')
     const [isLoading, setIsLoading] = useState(false)
+    const [isReleaseCompleting, setIsReleaseCompleting] = useState(false)
     const [requestedPath, setRequestedPath] = useState<string | null>(null)
     const [requestedNonce, setRequestedNonce] = useState(0)
     const [selectedPath, setSelectedPath] = useState<string | null>(null)
@@ -199,6 +200,22 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
         void dataService.push()
     }
 
+    const handleCompleteReleaseClick = async () => {
+        const releaseName = window.prompt('Release name')
+        if (releaseName === null) return
+
+        setIsReleaseCompleting(true)
+        setErrorMessage(null)
+
+        try {
+            await dataService.completeRelease(releaseName)
+        } catch (error) {
+            setErrorMessage(error instanceof Error ? error.message : 'Release completion failed')
+        } finally {
+            setIsReleaseCompleting(false)
+        }
+    }
+
     const handleMoveCard = (path: string, targetStatus: string, targetIndex: number) => {
         dataService.moveCard(path, targetStatus, targetIndex)
     }
@@ -291,6 +308,9 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
                             Push
                         </Button>
                     ) : null}
+                    <Button disabled={!isProjectOpen || isReleaseCompleting || activeCards.length === 0} onClick={handleCompleteReleaseClick} variant="outlined">
+                        {isReleaseCompleting ? 'Completing release...' : 'Complete release...'}
+                    </Button>
                 </Stack>
 
                 {errorMessage ? <Alert severity="error">{errorMessage}</Alert> : null}

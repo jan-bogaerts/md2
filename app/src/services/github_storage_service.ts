@@ -4,6 +4,7 @@ import type {
     BranchReference,
     CommitRequest,
     MarkdownFile,
+    MoveFilesRequest,
     ProjectConfig,
     ProjectReference,
     StorageProjectFiles,
@@ -206,6 +207,13 @@ export class GithubStorageService implements StorageService {
         }
     }
 
+    async moveFiles(request: MoveFilesRequest) {
+        for (const move of request.moves) {
+            await this.writeFile(request.branch, { content: move.content, path: move.toPath }, request.message)
+            await this.deleteFile(request.branch, move.fromPath, move.sha, request.message)
+        }
+    }
+
     async saveProjectConfig(project: ProjectReference, config: ProjectConfig) {
         this.requireGithubProject(project)
         const existingFile = await this.readOptionalFile(project, PROJECT_CONFIG_PATH)
@@ -306,6 +314,18 @@ export class GithubStorageService implements StorageService {
         await this.request(`/repos/${project.owner}/${project.repository}/contents/${encodePath(file.path)}`, {
             body: JSON.stringify(payload),
             method: 'PUT',
+        })
+    }
+
+    private async deleteFile(branch: string, path: string, sha: string | undefined, message: string) {
+        if (!sha) throw new Error(`Cannot delete GitHub file without sha: ${path}`)
+
+        const project = this.getCommitProject()
+        const payload = { branch, message, sha }
+
+        await this.request(`/repos/${project.owner}/${project.repository}/contents/${encodePath(path)}`, {
+            body: JSON.stringify(payload),
+            method: 'DELETE',
         })
     }
 

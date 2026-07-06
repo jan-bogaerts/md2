@@ -89,6 +89,19 @@ export interface CommitRequest {
     message: string
 }
 
+export interface MoveFile {
+    content: string
+    fromPath: string
+    sha?: string
+    toPath: string
+}
+
+export interface MoveFilesRequest {
+    branch: string
+    message: string
+    moves: MoveFile[]
+}
+
 export interface ProjectWatchEvent {
     path: string
 }
@@ -180,6 +193,7 @@ export interface StorageService {
     loadProject(project: ProjectReference, workingFolder: string): Promise<StorageProjectFiles>
     loadProjectConfig(project: ProjectReference): Promise<Partial<ProjectConfig> | null>
     listRepositoryFiles(project: ProjectReference): Promise<string[]>
+    moveFiles(request: MoveFilesRequest): Promise<void>
     push(project: ProjectReference): Promise<void>
     saveProjectConfig(project: ProjectReference, config: ProjectConfig): Promise<void>
     sendAgentInput?(project: ProjectReference, runId: string, input: string): Promise<void>

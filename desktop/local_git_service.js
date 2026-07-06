@@ -394,6 +394,25 @@ async function commit(request, project) {
     await runGit(rootPath, ['commit', '-m', request.message])
 }
 
+async function moveFiles(request, project) {
+    const rootPath = requireRootPath(project)
+    await assertGitRoot(rootPath)
+    if (!request || typeof request.message !== 'string' || request.message.length === 0) throw new Error('Missing move commit message')
+    if (!Array.isArray(request.moves) || request.moves.length === 0) throw new Error('Missing files to move')
+
+    for (const move of request.moves) {
+        if (!move || typeof move.fromPath !== 'string' || move.fromPath.length === 0) throw new Error('Missing move source path')
+        if (typeof move.toPath !== 'string' || move.toPath.length === 0) throw new Error('Missing move target path')
+
+        const sourcePath = ensureInsideRoot(rootPath, path.join(rootPath, move.fromPath))
+        const targetPath = ensureInsideRoot(rootPath, path.join(rootPath, move.toPath))
+        await fs.promises.mkdir(path.dirname(targetPath), { recursive: true })
+        await runGit(rootPath, ['mv', normalizePath(path.relative(rootPath, sourcePath)), normalizePath(path.relative(rootPath, targetPath))])
+    }
+
+    await runGit(rootPath, ['commit', '-m', request.message])
+}
+
 async function saveProjectConfig(project, config) {
     const rootPath = requireRootPath(project)
     await assertGitRoot(rootPath)
@@ -434,6 +453,7 @@ module.exports = {
     loadActionFiles,
     loadProject,
     loadProjectConfig,
+    moveFiles,
     push,
     runCommand,
     runAgent,

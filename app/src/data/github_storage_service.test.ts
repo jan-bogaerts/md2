@@ -72,6 +72,37 @@ describe('GithubStorageService', () => {
         })
     })
 
+    it('moves files by writing the target and deleting the source with sha', async () => {
+        const fetchImplementation = vi.fn()
+            .mockResolvedValueOnce(createResponse([]))
+            .mockResolvedValueOnce(createResponse({}))
+            .mockResolvedValueOnce(createResponse({}))
+        const service = new GithubStorageService()
+        service.init({ accessToken: 'token', fetchImplementation })
+
+        await service.loadProject({ branch: 'main', id: 'owner/repo', owner: 'owner', repository: 'repo' }, 'design')
+        await service.moveFiles({
+            branch: 'main',
+            message: 'Complete release v1',
+            moves: [{
+                content: '# Root',
+                fromPath: 'design/F-1-root.md',
+                sha: 'sha-1',
+                toPath: 'design/history/v1/F-1-root.md',
+            }],
+        })
+
+        expect(fetchImplementation.mock.calls[1][0]).toContain('/repos/owner/repo/contents/design/history/v1/F-1-root.md')
+        expect(fetchImplementation.mock.calls[1][1].method).toBe('PUT')
+        expect(fetchImplementation.mock.calls[2][0]).toContain('/repos/owner/repo/contents/design/F-1-root.md')
+        expect(fetchImplementation.mock.calls[2][1].method).toBe('DELETE')
+        expect(JSON.parse(fetchImplementation.mock.calls[2][1].body)).toMatchObject({
+            branch: 'main',
+            message: 'Complete release v1',
+            sha: 'sha-1',
+        })
+    })
+
     it('lists branches for repository selection', async () => {
         const fetchImplementation = vi.fn().mockResolvedValue(createResponse([{ name: 'main' }, { name: 'feature' }]))
         const service = new GithubStorageService()

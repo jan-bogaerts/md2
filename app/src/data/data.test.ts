@@ -12,8 +12,8 @@ import {
     DEFAULT_CARD_BODY_TEMPLATE,
     DEFAULT_CARD_TYPES,
     type AgentConversation,
+    type AgentRunEvent,
     type CommitRequest,
-    type ContinueAgentConversationResult,
     type MarkdownFile,
     type StorageService,
 } from './data_types'
@@ -50,6 +50,7 @@ function createStorage(overrides: Partial<StorageService> = {}): StorageService 
         loadActionFiles: vi.fn(async () => []),
         loadProject: vi.fn(async () => ({ files, workingFolder: 'design' })),
         loadProjectConfig: vi.fn(async () => null),
+        moveFiles: vi.fn(),
         push: vi.fn(),
         saveProjectConfig: vi.fn(),
         ...overrides,
@@ -57,7 +58,7 @@ function createStorage(overrides: Partial<StorageService> = {}): StorageService 
 }
 
 describe('cardNaming', () => {
-    it('uses the next available number across folders and subfolders', () => {
+    it('uses the next available number across folders and archived history cards', () => {
         expect(getNextCardNumber(files, 'F')).toBe(4)
     })
 
@@ -234,6 +235,98 @@ describe('DataService', () => {
         await service.createCard({ body: 'Body', title: 'New Card', type: 'feature' })
 
         expect(storage.commit).toHaveBeenCalledTimes(1)
+        expect(storage.push).not.toHaveBeenCalled()
+    })
+
+    it('completes a release by moving active cards to history and refreshing the snapshot', async () => {
+        configService.init()
+        const archivedFiles: MarkdownFile[] = [
+            { content: files[0].content, path: 'design/history/v1/F-1-root.md' },
+            { content: '# Old', path: 'design/history/F-3-old.md' },
+            { content: '# Imported', path: 'design/history/v1/free note.md' },
+        ]
+        const storage = createStorage({
+            listRepositoryFiles: vi.fn()
+                .mockResolvedValueOnce(['design/F-1-root.md'])
+                .mockResolvedValueOnce(['design/history/v1/F-1-root.md']),
+            loadProject: vi.fn()
+                .mockResolvedValueOnce({ files, workingFolder: 'design' })
+                .mockResolvedValueOnce({ files: archivedFiles, workingFolder: 'design' }),
+        })
+        const service = new DataService()
+        service.init({ storage })
+
+        await service.openProject({ branch: 'main', id: 'project' })
+        const snapshot = await service.completeRelease('v1')
+
+        expect(storage.moveFiles).toHaveBeenCalledWith({
+            branch: 'main',
+            message: 'Complete release v1',
+            moves: [
+                {
+                    content: files[0].content,
+                    fromPath: 'design/F-1-root.md',
+                    sha: undefined,
+                    toPath: 'design/history/v1/F-1-root.md',
+                },
+                {
+                    content: '# Imported',
+                    fromPath: 'design/free note.md',
+                    sha: undefined,
+                    toPath: 'design/history/v1/free note.md',
+                },
+            ],
+        })
+        expect(storage.push).toHaveBeenCalledWith({ branch: 'main', id: 'project' })
+        expect(snapshot.activeCards).toHaveLength(0)
+        expect(snapshot.backgroundCards.map((card) => card.path)).toContain('design/history/v1/F-1-root.md')
+    })
+
+    it('rejects invalid release names before moving files', async () => {
+        configService.init()
+        const storage = createStorage()
+        const service = new DataService()
+        service.init({ storage })
+
+        await service.openProject({ branch: 'main', id: 'project' })
+
+        await expect(service.completeRelease('bad/name')).rejects.toThrow('Release name may contain only')
+        expect(storage.moveFiles).not.toHaveBeenCalled()
+    })
+
+    it('rejects duplicate release folders before moving files', async () => {
+        configService.init()
+        const storage = createStorage({
+            loadProject: vi.fn(async () => ({
+                files: [...files, { content: '# Archived', path: 'design/history/v1/F-9.md' }],
+                workingFolder: 'design',
+            })),
+        })
+        const service = new DataService()
+        service.init({ storage })
+
+        await service.openProject({ branch: 'main', id: 'project' })
+
+        await expect(service.completeRelease('v1')).rejects.toThrow('Release already exists: v1')
+        expect(storage.moveFiles).not.toHaveBeenCalled()
+    })
+
+    it('leaves release completion unpushed in manual mode', async () => {
+        configService.init()
+        const archivedFiles: MarkdownFile[] = [{ content: files[0].content, path: 'design/history/v1/F-1-root.md' }]
+        const storage = createStorage({
+            loadProject: vi.fn()
+                .mockResolvedValueOnce({ files, workingFolder: 'design' })
+                .mockResolvedValueOnce({ files: archivedFiles, workingFolder: 'design' }),
+            loadProjectConfig: vi.fn(async () => ({ pushMode: 'manual' as const })),
+        })
+        const service = new DataService()
+        service.init({ storage })
+
+        await service.openProject({ branch: 'main', id: 'project' })
+        await service.completeRelease('v1')
+
+        expect(storage.moveFiles).toHaveBeenCalledTimes(1)
         expect(storage.push).not.toHaveBeenCalled()
     })
 
@@ -446,9 +539,16 @@ describe('DataService', () => {
         ])
     })
 
-    it('continues a conversation and links the returned log to the card header', async () => {
+    it('continues a conversation and links the returned streaming log to the card header', async () => {
         configService.init()
-        const storage = createStorage({continueAgentConversation: vi.fn(async () => ({ conversation: conversation('.md2-agent-logs/two.json'), reference: '.md2-agent-logs/two.json' }))})
+        const continuedConversation = { ...conversation('.md2-agent-logs/two.json'), id: 'agent-2', status: 'running' as const }
+        const storage = createStorage({
+            startAgentConversation: vi.fn(async () => ({
+                conversation: continuedConversation,
+                reference: '.md2-agent-logs/two.json',
+                runId: 'agent-2',
+            })),
+        })
         const service = new DataService()
         service.init({ storage })
 
@@ -458,32 +558,35 @@ describe('DataService', () => {
 
         const committed = (storage.commit as ReturnType<typeof vi.fn>).mock.calls.at(-1)?.[0] as CommitRequest
         expect(committed.files[0].content).toContain('agents:\n  - .md2-agent-logs/two.json')
-        expect(storage.continueAgentConversation).toHaveBeenCalledWith(
+        expect(storage.startAgentConversation).toHaveBeenCalledWith(
             { branch: 'main', id: 'project' },
-            { cardPath: 'design/F-1-root.md', input: 'continue', sourcePath: '.md2-agent-logs/one.json' },
+            { cardPath: 'design/F-1-root.md', prompt: 'continue', title: 'Continue' },
+            expect.any(Function),
         )
     })
 
-    it('reports running agent state while a continue request is in flight', async () => {
+    it('reports running agent state from streaming continue events', async () => {
         configService.init()
-        const resolveContinue: Array<(result: ContinueAgentConversationResult) => void> = []
+        const callbacks: Array<(event: AgentRunEvent) => void> = []
         const storage = createStorage({
-            continueAgentConversation: vi.fn(() => new Promise<ContinueAgentConversationResult>((resolve) => {
-                resolveContinue.push(resolve)
-            })),
+            startAgentConversation: vi.fn(async (_project, _request, callback) => {
+                callbacks.push(callback)
+                const runningConversation: AgentConversation = { ...conversation('.md2-agent-logs/two.json'), id: 'agent-2', status: 'running' }
+
+                return { conversation: runningConversation, reference: '.md2-agent-logs/two.json', runId: 'agent-2' }
+            }),
         })
         const service = new DataService()
         service.init({ storage })
 
         await service.openProject({ branch: 'main', id: 'project' })
-        const pending = service.continueAgentConversation('design/F-1-root.md', '.md2-agent-logs/one.json')
+        await service.continueAgentConversation('design/F-1-root.md', '.md2-agent-logs/one.json')
+        if (!callbacks[0]) throw new Error('Streaming callback not registered')
 
+        callbacks[0]({ content: '', conversation: { ...conversation(), id: 'agent-2', status: 'running' }, runId: 'agent-2', type: 'started' })
         expect(service.getState().runningAgents).toHaveLength(1)
 
-        if (!resolveContinue[0]) throw new Error('Continue resolver not registered')
-
-        resolveContinue[0]({ conversation: conversation('.md2-agent-logs/two.json'), reference: '.md2-agent-logs/two.json' })
-        await pending
+        callbacks[0]({ content: '0', conversation: { ...conversation(), id: 'agent-2', status: 'completed' }, runId: 'agent-2', type: 'closed' })
 
         expect(service.getState().runningAgents).toHaveLength(0)
     })
