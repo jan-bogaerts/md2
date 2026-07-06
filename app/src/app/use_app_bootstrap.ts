@@ -21,10 +21,16 @@ interface AppBootstrapState {
 
 const INITIAL_STATE: AppBootstrapState = { error: null, phase: 'starting', session: null }
 
-/** Start services and open the last project. Returns null when there is nothing to restore. */
-async function loadLastProjectSession(accessToken: string | null): Promise<ProjectSession | null> {
+function ensureConfigServiceInitialized() {
+    if (configService.isInitialized()) return
+
     const desktopConfig = getElectronConfigBridge()?.getDesktopConfig() ?? null
     configService.init({ desktopConfig })
+}
+
+/** Start services and open the last project. Returns null when there is nothing to restore. */
+async function loadLastProjectSession(accessToken: string | null): Promise<ProjectSession | null> {
+    ensureConfigServiceInitialized()
     const lastProject = readLastProject()
     if (!lastProject) return null
     if (lastProject.storageType === 'github' && !accessToken) return null

@@ -15,10 +15,10 @@ import { Tab } from './tab'
 
 /** Reusable app menu hosting cross-cutting workspace actions such as Push. */
 export function AppMenu() {
-    if (!configService.isInitialized()) configService.init({ desktopConfig: null })
-
     const { project } = useProjectState()
+    const projectConfig = dataService.getConfig()
     const isProjectOpen = !!project
+    const canPush = isProjectOpen && projectConfig?.pushMode === 'manual'
     const desktopAvailable = configService.hasDesktopConfig()
     const agentProfiles = mergeAgentProfiles(configService.get('desktop.agentProfiles') as AgentProfile[])
     const [selectedAgent, setSelectedAgent] = useState(() => configService.get('desktop.agent') as string)
@@ -33,7 +33,7 @@ export function AppMenu() {
     }
 
     const handlePushClick = async () => {
-        if (!isProjectOpen) return
+        if (!canPush) return
 
         try {
             await dataService.push()
@@ -62,13 +62,13 @@ export function AppMenu() {
         <Menu>
             <Tab>
                 <Section label="Actions">
-                    <Tooltip title={isProjectOpen ? 'Push' : 'Open a project to push'}>
-                        <span>
-                            <IconButton aria-label="Push" disabled={!isProjectOpen} onClick={() => void handlePushClick()}>
+                    {canPush ? (
+                        <Tooltip title="Push">
+                            <IconButton aria-label="Push" onClick={() => void handlePushClick()}>
                                 <CloudUpload />
                             </IconButton>
-                        </span>
-                    </Tooltip>
+                        </Tooltip>
+                    ) : null}
                 </Section>
                 <Section label="Default agent">
                     <FormControl size="small" sx={{ minWidth: 120 }}>

@@ -1,4 +1,5 @@
 ﻿import { renderHook, waitFor } from '@testing-library/react'
+import { createElement, StrictMode, type ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { useAppBootstrap } from './use_app_bootstrap'
 import { LAST_PROJECT_STORAGE_KEY } from '../data/project_session'
@@ -31,6 +32,12 @@ function createBridge(): ElectronDataBridge {
     }
 }
 
+function StrictModeWrapper(props: { children: ReactNode }) {
+    const { children } = props
+
+    return createElement(StrictMode, null, children)
+}
+
 describe('useAppBootstrap', () => {
     afterEach(() => {
         configService.clear()
@@ -42,6 +49,15 @@ describe('useAppBootstrap', () => {
         const { result } = renderHook(() => useAppBootstrap(null))
 
         await waitFor(() => expect(result.current.phase).toBe('ready'))
+        expect(result.current.session).toBeNull()
+    })
+
+    it('initializes config once during StrictMode bootstrap without a stored project', async () => {
+        const init = vi.spyOn(configService, 'init')
+        const { result } = renderHook(() => useAppBootstrap(null), { wrapper: StrictModeWrapper })
+
+        await waitFor(() => expect(result.current.phase).toBe('ready'))
+        expect(init).toHaveBeenCalledTimes(1)
         expect(result.current.session).toBeNull()
     })
 

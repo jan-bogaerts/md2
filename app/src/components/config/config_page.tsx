@@ -1,23 +1,17 @@
 import { Alert, Box, Button, Divider, Stack, Tab, Tabs, Typography, useMediaQuery, useTheme } from '@mui/material'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { navigateTo } from '../../app/app_navigation'
-import { CONFIG_SECTIONS, configService, type ConfigKey, type ConfigValues } from '../../services/config_service'
+import { CONFIG_SECTIONS, configService, type ConfigKey } from '../../services/config_service'
 import { dataService } from '../../services/data_service'
 import { getElectronConfigBridge } from '../../services/electron_config_bridge'
 import { ConfigValueEditor } from './config_value_editor'
 
 const CONFIG_PAGE_PADDING = 3
 const CONFIG_SIDEBAR_WIDTH = 220
+const DRAFT_DISCARD_DELAY_MS = 0
 
 interface ConfigPageProps {
     hash: string
-}
-
-function ensureConfigServiceInitialized() {
-    if (configService.isInitialized()) return
-
-    const desktopConfig = getElectronConfigBridge()?.getDesktopConfig() ?? null
-    configService.init({ desktopConfig })
 }
 
 function getActiveSection(hash: string) {
@@ -27,13 +21,23 @@ function getActiveSection(hash: string) {
     return CONFIG_SECTIONS[0].id
 }
 
+function getConfigDraftSnapshot() {
+    return configService.getDraft()
+}
+
+function subscribeToConfigChanges(onStoreChange: () => void) {
+    configService.addEventListener('changed', onStoreChange)
+
+    return () => configService.removeEventListener('changed', onStoreChange)
+}
+
 export function ConfigPage(props: ConfigPageProps) {
-    ensureConfigServiceInitialized()
     const { hash } = props
     const theme = useTheme()
     const isMobile = useMediaQuery(theme.breakpoints.down('md'))
-    const [draft, setDraft] = useState<ConfigValues | null>(() => configService.loadDraft())
+    const draft = useSyncExternalStore(subscribeToConfigChanges, getConfigDraftSnapshot)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
+    const draftDiscardTimeoutRef = useRef<number | null>(null)
     const entries = configService.getEntries()
     const visibleSections = useMemo(
         () => CONFIG_SECTIONS.filter((section) => entries.some((entry) => entry.section === section.id)),
@@ -42,15 +46,25 @@ export function ConfigPage(props: ConfigPageProps) {
     const activeSection = getActiveSection(hash)
 
     useEffect(() => {
+        if (draftDiscardTimeoutRef.current !== null) {
+            window.clearTimeout(draftDiscardTimeoutRef.current)
+            draftDiscardTimeoutRef.current = null
+        }
+
+        const currentDraft = configService.getDraft()
+        if (!currentDraft) configService.loadDraft()
+
         return () => {
-            configService.discardDraft()
+            draftDiscardTimeoutRef.current = window.setTimeout(() => {
+                configService.discardDraft()
+                draftDiscardTimeoutRef.current = null
+            }, DRAFT_DISCARD_DELAY_MS)
         }
     }, [])
 
     const handleValueChange = (key: ConfigKey, value: unknown) => {
         try {
             configService.setDraftValue(key, value)
-            setDraft(configService.getDraft())
             setErrorMessage(null)
         } catch (error) {
             setErrorMessage(error instanceof Error ? error.message : 'Invalid config value')
@@ -62,7 +76,7 @@ export function ConfigPage(props: ConfigPageProps) {
             configService.saveDraft()
             if (configService.hasProjectConfig()) await dataService.saveProjectConfig()
             if (configService.hasDesktopConfig()) getElectronConfigBridge()?.setDesktopConfig(configService.getDesktopValues())
-            setDraft(configService.loadDraft())
+            configService.loadDraft()
             setErrorMessage(null)
         } catch (error) {
             setErrorMessage(error instanceof Error ? error.message : 'Config save failed')

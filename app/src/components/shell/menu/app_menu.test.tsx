@@ -98,18 +98,26 @@ describe('AppMenu', () => {
         vi.restoreAllMocks()
     })
 
-    it('disables the Push button and does not call push when no project is open', () => {
+    it('hides the Push button when no project is open', () => {
         renderSurface()
 
-        const pushButton = screen.getByRole('button', { name: 'Push' })
-        expect(pushButton).toBeDisabled()
-
-        fireEvent.click(pushButton)
+        expect(screen.queryByRole('button', { name: 'Push' })).toBeNull()
         expect(dataService.getState().project).toBeNull()
     })
 
-    it('pushes the current project when the Push button is clicked', async () => {
+    it('hides the Push button when the open project uses auto push mode', async () => {
         const bridge = createBridge()
+        window.md2Data = bridge
+
+        renderSurface()
+        await openLocalProject()
+
+        expect(screen.queryByRole('button', { name: 'Push' })).toBeNull()
+    })
+
+    it('pushes the current manual project when the Push button is clicked', async () => {
+        const bridge = createBridge()
+        bridge.loadProjectConfig = vi.fn(async () => ({ pushMode: 'manual' }))
         window.md2Data = bridge
 
         renderSurface()
@@ -125,6 +133,7 @@ describe('AppMenu', () => {
 
     it('surfaces a push failure through the existing workspace error alert', async () => {
         const bridge = createBridge()
+        bridge.loadProjectConfig = vi.fn(async () => ({ pushMode: 'manual' }))
         bridge.push = vi.fn(async () => {
             throw new Error('push failed')
         })

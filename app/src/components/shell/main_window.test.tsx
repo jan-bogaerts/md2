@@ -1,5 +1,5 @@
 ﻿import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { UseGithubAuthResult } from '../../auth/use_github_auth'
 import type { AgentExecutionRequest, ElectronActionBridge } from '../../data/electron_action_bridge'
 import type { AgentConversation } from '../../data/data_types'
@@ -87,6 +87,10 @@ function mockMatchMedia(matches: boolean) {
 }
 
 describe('MainWindow', () => {
+    beforeEach(() => {
+        configService.init({ desktopConfig: null })
+    })
+
     afterEach(() => {
         cleanup()
         configService.clear()

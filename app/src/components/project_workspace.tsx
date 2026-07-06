@@ -13,7 +13,6 @@ import {
 import { getRemarkableBridge } from '../data/remarkable_bridge'
 import { configService } from '../services/config_service'
 import { dataService } from '../services/data_service'
-import { getElectronConfigBridge } from '../services/electron_config_bridge'
 import { getElectronLifecycleBridge, type ElectronLifecycleBridge } from '../services/electron_lifecycle_bridge'
 import { telemetryService } from '../services/telemetry_service'
 import { workspaceNavigationService, type WorkspaceOpenRequest } from '../services/workspace_navigation_service'
@@ -47,16 +46,8 @@ interface ProjectWorkspaceProps {
     onLeftPanelInteraction: () => void
 }
 
-function ensureConfigServiceInitialized() {
-    if (configService.isInitialized()) return
-
-    const desktopConfig = getElectronConfigBridge()?.getDesktopConfig() ?? null
-    configService.init({ desktopConfig })
-}
-
 export function ProjectWorkspace(props: ProjectWorkspaceProps) {
     const { onLeftPanelContentChange, onLeftPanelInteraction } = props
-    ensureConfigServiceInitialized()
     const { project, snapshot } = useProjectState()
     const theme = useTheme()
     const isMobile = useMediaQuery(theme.breakpoints.down('md'))

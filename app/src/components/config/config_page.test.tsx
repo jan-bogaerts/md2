@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { StrictMode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ConfigPage } from './config_page'
 import { configService } from '../../services/config_service'
@@ -15,6 +16,11 @@ function mockMatchMedia(matches: boolean) {
         removeEventListener: () => {},
         removeListener: () => {},
     })) as unknown as typeof window.matchMedia
+}
+
+function initConfigFromElectronBridge() {
+    const desktopConfig = window.md2Config?.getDesktopConfig() ?? null
+    configService.init({ desktopConfig })
 }
 
 describe('ConfigPage', () => {
@@ -37,6 +43,21 @@ describe('ConfigPage', () => {
         expect(screen.getByLabelText('GitHub scopes')).toBeInTheDocument()
         expect(screen.getByLabelText('Auto commit delay')).toBeInTheDocument()
         expect(screen.getByText('OAuth scopes requested when connecting GitHub.')).toBeInTheDocument()
+    })
+
+    it('loads the config draft once under StrictMode', () => {
+        mockMatchMedia(false)
+        configService.init()
+        const loadDraft = vi.spyOn(configService, 'loadDraft')
+
+        render(
+            <StrictMode>
+                <ConfigPage hash="" />
+            </StrictMode>,
+        )
+
+        expect(loadDraft).toHaveBeenCalledTimes(1)
+        expect(screen.getByRole('switch', { name: 'Startup splash' })).toBeInTheDocument()
     })
 
     it('saves draft edits into active config', () => {
@@ -90,6 +111,7 @@ describe('ConfigPage', () => {
             getDesktopConfig: () => ({ agent: 'codex', agentProfiles: BUILTIN_AGENT_PROFILES, model: '', projectLocationMode: 'folder' }),
             setDesktopConfig,
         }
+        initConfigFromElectronBridge()
 
         render(<ConfigPage hash="#desktop" />)
         configService.setDraftValue('desktop.agent', 'system')
@@ -105,12 +127,13 @@ describe('ConfigPage', () => {
         delete window.md2Config
     })
 
-    it('initializes desktop config values from the electron bridge', () => {
+    it('renders desktop config values initialized during bootstrap', () => {
         mockMatchMedia(false)
         window.md2Config = {
             getDesktopConfig: () => ({ agent: 'system', agentProfiles: BUILTIN_AGENT_PROFILES, model: '', projectLocationMode: 'current-directory' }),
             setDesktopConfig: vi.fn(),
         }
+        initConfigFromElectronBridge()
 
         render(<ConfigPage hash="#desktop" />)
 

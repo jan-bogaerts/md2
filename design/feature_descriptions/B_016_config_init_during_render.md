@@ -1,7 +1,7 @@
 ---
 id: B-016
 title: config service initialized during component render
-status: design
+status: ready
 owner: JB
 affects:
 policy:
