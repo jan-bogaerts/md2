@@ -2,6 +2,7 @@
 import { GithubStorageService } from './github_storage_service'
 
 const encodedContent = btoa('# Root')
+const project = { branch: 'main', id: 'owner/repo', owner: 'owner', repository: 'repo' }
 
 function createResponse(payload: unknown) {
     return {
@@ -50,53 +51,186 @@ describe('GithubStorageService', () => {
         expect(fetchImplementation.mock.calls[0][0]).toContain('/repos/owner/repo/contents/design?ref=main')
     })
 
-    it('writes files through the contents API with commit message and branch', async () => {
+    it('creates blobs, one tree, and one commit with the request message for a multi-file commit', async () => {
         const fetchImplementation = vi.fn()
             .mockResolvedValueOnce(createResponse([]))
-            .mockResolvedValueOnce(createResponse({ content: { sha: 'sha-2' } }))
+            .mockResolvedValueOnce(createResponse({ object: { sha: 'base-commit', type: 'commit' }, ref: 'refs/heads/main' }))
+            .mockResolvedValueOnce(createResponse({ sha: 'base-commit', tree: { sha: 'base-tree' } }))
+            .mockResolvedValueOnce(createResponse({ sha: 'blob-1' }))
+            .mockResolvedValueOnce(createResponse({ sha: 'blob-2' }))
+            .mockResolvedValueOnce(createResponse({ sha: 'new-tree' }))
+            .mockResolvedValueOnce(createResponse({ sha: 'pending-commit', tree: { sha: 'new-tree' } }))
         const service = new GithubStorageService()
         service.init({ accessToken: 'token', fetchImplementation })
 
-        await service.loadProject({ branch: 'main', id: 'owner/repo', owner: 'owner', repository: 'repo' }, 'design')
+        await service.loadProject(project, 'design')
         const updatedFiles = await service.commit({
             branch: 'main',
-            files: [{ content: '# Updated', path: 'design/F-1-root.md', sha: 'sha-1' }],
-            message: 'Update root',
+            files: [
+                { content: '# Updated', path: 'design/F-1-root.md' },
+                { content: '# Added', path: 'design/F-2-added.md' },
+            ],
+            message: 'Update design files',
         })
 
-        expect(fetchImplementation.mock.calls[1][0]).toContain('/repos/owner/repo/contents/design/F-1-root.md')
-        expect(JSON.parse(fetchImplementation.mock.calls[1][1].body)).toMatchObject({
-            branch: 'main',
-            message: 'Update root',
-            sha: 'sha-1',
+        const blobCalls = fetchImplementation.mock.calls.filter(([url]) => url.includes('/repos/owner/repo/git/blobs'))
+        const treeCalls = fetchImplementation.mock.calls.filter(([url]) => url.includes('/repos/owner/repo/git/trees'))
+        const commitCalls = fetchImplementation.mock.calls.filter(([url]) => url.includes('/repos/owner/repo/git/commits'))
+        const patchCalls = fetchImplementation.mock.calls.filter(([, init]) => init.method === 'PATCH')
+
+        expect(blobCalls).toHaveLength(2)
+        expect(treeCalls).toHaveLength(1)
+        expect(commitCalls).toHaveLength(2)
+        expect(JSON.parse(treeCalls[0][1].body)).toEqual({
+            base_tree: 'base-tree',
+            tree: [
+                { mode: '100644', path: 'design/F-1-root.md', sha: 'blob-1', type: 'blob' },
+                { mode: '100644', path: 'design/F-2-added.md', sha: 'blob-2', type: 'blob' },
+            ],
         })
-        expect(updatedFiles).toEqual([{ content: '# Updated', path: 'design/F-1-root.md', sha: 'sha-2' }])
+        expect(JSON.parse(commitCalls[1][1].body)).toEqual({
+            message: 'Update design files',
+            parents: ['base-commit'],
+            tree: 'new-tree',
+        })
+        expect(patchCalls).toHaveLength(0)
+        expect(updatedFiles).toEqual([
+            { content: '# Updated', path: 'design/F-1-root.md', sha: 'blob-1' },
+            { content: '# Added', path: 'design/F-2-added.md', sha: 'blob-2' },
+        ])
     })
 
-    it.each([409, 422])('throws a clear remote-change error when GitHub rejects a stale sha write with %s', async (status) => {
+    it('pushes the pending commit to the branch ref', async () => {
         const fetchImplementation = vi.fn()
             .mockResolvedValueOnce(createResponse([]))
-            .mockResolvedValueOnce(createStatusResponse(status))
-        const service = new GithubStorageService()
-        service.init({ accessToken: 'token', fetchImplementation })
-
-        await service.loadProject({ branch: 'main', id: 'owner/repo', owner: 'owner', repository: 'repo' }, 'design')
-        await expect(service.commit({
-            branch: 'main',
-            files: [{ content: '# Updated', path: 'design/F-1-root.md', sha: 'sha-1' }],
-            message: 'Update root',
-        })).rejects.toThrow(/changed remotely.*Reload or refresh/u)
-    })
-
-    it('moves files by writing the target and deleting the source with sha', async () => {
-        const fetchImplementation = vi.fn()
-            .mockResolvedValueOnce(createResponse([]))
-            .mockResolvedValueOnce(createResponse({ content: { sha: 'sha-2' } }))
+            .mockResolvedValueOnce(createResponse({ object: { sha: 'base-commit', type: 'commit' }, ref: 'refs/heads/main' }))
+            .mockResolvedValueOnce(createResponse({ sha: 'base-commit', tree: { sha: 'base-tree' } }))
+            .mockResolvedValueOnce(createResponse({ sha: 'blob-1' }))
+            .mockResolvedValueOnce(createResponse({ sha: 'new-tree' }))
+            .mockResolvedValueOnce(createResponse({ sha: 'pending-commit', tree: { sha: 'new-tree' } }))
             .mockResolvedValueOnce(createResponse({}))
         const service = new GithubStorageService()
         service.init({ accessToken: 'token', fetchImplementation })
 
-        await service.loadProject({ branch: 'main', id: 'owner/repo', owner: 'owner', repository: 'repo' }, 'design')
+        await service.loadProject(project, 'design')
+        await service.commit({
+            branch: 'main',
+            files: [{ content: '# Updated', path: 'design/F-1-root.md' }],
+            message: 'Update root',
+        })
+        await service.push(project)
+
+        const patchCalls = fetchImplementation.mock.calls.filter(([, init]) => init.method === 'PATCH')
+
+        expect(patchCalls).toHaveLength(1)
+        expect(patchCalls[0][0]).toContain('/repos/owner/repo/git/refs/heads/main')
+        expect(JSON.parse(patchCalls[0][1].body)).toEqual({ force: false, sha: 'pending-commit' })
+    })
+
+    it('leaves the branch and pending head unchanged when building a later commit fails', async () => {
+        const fetchImplementation = vi.fn()
+            .mockResolvedValueOnce(createResponse([]))
+            .mockResolvedValueOnce(createResponse({ object: { sha: 'base-commit', type: 'commit' }, ref: 'refs/heads/main' }))
+            .mockResolvedValueOnce(createResponse({ sha: 'base-commit', tree: { sha: 'base-tree' } }))
+            .mockResolvedValueOnce(createResponse({ sha: 'blob-1' }))
+            .mockResolvedValueOnce(createResponse({ sha: 'tree-1' }))
+            .mockResolvedValueOnce(createResponse({ sha: 'pending-commit-1', tree: { sha: 'tree-1' } }))
+            .mockResolvedValueOnce(createResponse({ sha: 'pending-commit-1', tree: { sha: 'tree-1' } }))
+            .mockResolvedValueOnce(createResponse({ sha: 'blob-2' }))
+            .mockResolvedValueOnce(createStatusResponse(500))
+            .mockResolvedValueOnce(createResponse({}))
+        const service = new GithubStorageService()
+        service.init({ accessToken: 'token', fetchImplementation })
+
+        await service.loadProject(project, 'design')
+        await service.commit({
+            branch: 'main',
+            files: [{ content: '# First', path: 'design/F-1-root.md' }],
+            message: 'First pending commit',
+        })
+        await expect(service.commit({
+            branch: 'main',
+            files: [{ content: '# Second', path: 'design/F-2-added.md' }],
+            message: 'Second pending commit',
+        })).rejects.toThrow('GitHub storage request failed with status 500')
+
+        const patchCallsBeforePush = fetchImplementation.mock.calls.filter(([, init]) => init.method === 'PATCH')
+        expect(patchCallsBeforePush).toHaveLength(0)
+
+        await service.push(project)
+
+        const patchCalls = fetchImplementation.mock.calls.filter(([, init]) => init.method === 'PATCH')
+        expect(patchCalls).toHaveLength(1)
+        expect(JSON.parse(patchCalls[0][1].body)).toEqual({ force: false, sha: 'pending-commit-1' })
+    })
+
+    it('throws a clear remote-change error before writing when the recursive tree sha is stale', async () => {
+        const fetchImplementation = vi.fn()
+            .mockResolvedValueOnce(createResponse([]))
+            .mockResolvedValueOnce(createResponse({ object: { sha: 'base-commit', type: 'commit' }, ref: 'refs/heads/main' }))
+            .mockResolvedValueOnce(createResponse({ sha: 'base-commit', tree: { sha: 'base-tree' } }))
+            .mockResolvedValueOnce(createResponse({
+                tree: [{ path: 'design/F-1-root.md', sha: 'remote-sha', type: 'blob' }],
+                truncated: false,
+            }))
+        const service = new GithubStorageService()
+        service.init({ accessToken: 'token', fetchImplementation })
+
+        await service.loadProject(project, 'design')
+        await expect(service.commit({
+            branch: 'main',
+            files: [{ content: '# Updated', path: 'design/F-1-root.md', sha: 'stale-sha' }],
+            message: 'Update root',
+        })).rejects.toThrow(/changed remotely.*Reload or refresh/u)
+
+        expect(fetchImplementation).toHaveBeenCalledTimes(4)
+        expect(fetchImplementation.mock.calls.some(([url]) => url.includes('/repos/owner/repo/git/blobs'))).toBe(false)
+        expect(fetchImplementation.mock.calls.some(([url]) => url.includes('/repos/owner/repo/git/trees') && !url.includes('recursive=1'))).toBe(false)
+        expect(fetchImplementation.mock.calls.some(([, init]) => init.method === 'PATCH')).toBe(false)
+    })
+
+    it('supports auto behavior as commit followed by push', async () => {
+        const fetchImplementation = vi.fn()
+            .mockResolvedValueOnce(createResponse([]))
+            .mockResolvedValueOnce(createResponse({ object: { sha: 'base-commit', type: 'commit' }, ref: 'refs/heads/main' }))
+            .mockResolvedValueOnce(createResponse({ sha: 'base-commit', tree: { sha: 'base-tree' } }))
+            .mockResolvedValueOnce(createResponse({ sha: 'blob-1' }))
+            .mockResolvedValueOnce(createResponse({ sha: 'new-tree' }))
+            .mockResolvedValueOnce(createResponse({ sha: 'auto-commit', tree: { sha: 'new-tree' } }))
+            .mockResolvedValueOnce(createResponse({}))
+        const service = new GithubStorageService()
+        service.init({ accessToken: 'token', fetchImplementation })
+
+        await service.loadProject(project, 'design')
+        await service.commit({
+            branch: 'main',
+            files: [{ content: '# Updated', path: 'design/F-1-root.md' }],
+            message: 'Auto update root',
+        })
+        await service.push(project)
+
+        const patchCalls = fetchImplementation.mock.calls.filter(([, init]) => init.method === 'PATCH')
+
+        expect(patchCalls).toHaveLength(1)
+        expect(JSON.parse(patchCalls[0][1].body)).toEqual({ force: false, sha: 'auto-commit' })
+    })
+
+    it('moves files by creating a blob, one tree with target and source changes, and one commit', async () => {
+        const fetchImplementation = vi.fn()
+            .mockResolvedValueOnce(createResponse([]))
+            .mockResolvedValueOnce(createResponse({ object: { sha: 'base-commit', type: 'commit' }, ref: 'refs/heads/main' }))
+            .mockResolvedValueOnce(createResponse({ sha: 'base-commit', tree: { sha: 'base-tree' } }))
+            .mockResolvedValueOnce(createResponse({
+                tree: [{ path: 'design/F-1-root.md', sha: 'sha-1', type: 'blob' }],
+                truncated: false,
+            }))
+            .mockResolvedValueOnce(createResponse({ sha: 'blob-2' }))
+            .mockResolvedValueOnce(createResponse({ sha: 'new-tree' }))
+            .mockResolvedValueOnce(createResponse({ sha: 'pending-commit', tree: { sha: 'new-tree' } }))
+        const service = new GithubStorageService()
+        service.init({ accessToken: 'token', fetchImplementation })
+
+        await service.loadProject(project, 'design')
         await service.moveFiles({
             branch: 'main',
             message: 'Complete release v1',
@@ -108,25 +242,40 @@ describe('GithubStorageService', () => {
             }],
         })
 
-        expect(fetchImplementation.mock.calls[1][0]).toContain('/repos/owner/repo/contents/design/history/v1/F-1-root.md')
-        expect(fetchImplementation.mock.calls[1][1].method).toBe('PUT')
-        expect(fetchImplementation.mock.calls[2][0]).toContain('/repos/owner/repo/contents/design/F-1-root.md')
-        expect(fetchImplementation.mock.calls[2][1].method).toBe('DELETE')
-        expect(JSON.parse(fetchImplementation.mock.calls[2][1].body)).toMatchObject({
-            branch: 'main',
+        const treeCall = fetchImplementation.mock.calls.find(([url, init]) => (
+            url.includes('/repos/owner/repo/git/trees') && init.method === 'POST'
+        ))
+        const commitCalls = fetchImplementation.mock.calls.filter(([url]) => url.includes('/repos/owner/repo/git/commits'))
+
+        expect(JSON.parse(treeCall?.[1].body)).toEqual({
+            base_tree: 'base-tree',
+            tree: [
+                { mode: '100644', path: 'design/history/v1/F-1-root.md', sha: 'blob-2', type: 'blob' },
+                { mode: '100644', path: 'design/F-1-root.md', sha: null, type: 'blob' },
+            ],
+        })
+        expect(JSON.parse(commitCalls[1][1].body)).toEqual({
             message: 'Complete release v1',
-            sha: 'sha-1',
+            parents: ['base-commit'],
+            tree: 'new-tree',
         })
     })
 
-    it('deletes files through the contents API with commit message, branch, and sha', async () => {
+    it('deletes files by creating one tree with a null sha and one commit', async () => {
         const fetchImplementation = vi.fn()
             .mockResolvedValueOnce(createResponse([]))
-            .mockResolvedValueOnce(createResponse({}))
+            .mockResolvedValueOnce(createResponse({ object: { sha: 'base-commit', type: 'commit' }, ref: 'refs/heads/feature' }))
+            .mockResolvedValueOnce(createResponse({ sha: 'base-commit', tree: { sha: 'base-tree' } }))
+            .mockResolvedValueOnce(createResponse({
+                tree: [{ path: 'design/F-1-root.md', sha: 'sha-1', type: 'blob' }],
+                truncated: false,
+            }))
+            .mockResolvedValueOnce(createResponse({ sha: 'new-tree' }))
+            .mockResolvedValueOnce(createResponse({ sha: 'pending-commit', tree: { sha: 'new-tree' } }))
         const service = new GithubStorageService()
         service.init({ accessToken: 'token', fetchImplementation })
 
-        await service.loadProject({ branch: 'main', id: 'owner/repo', owner: 'owner', repository: 'repo' }, 'design')
+        await service.loadProject(project, 'design')
         await service.deleteFile({
             branch: 'feature',
             message: 'Delete obsolete card',
@@ -134,12 +283,19 @@ describe('GithubStorageService', () => {
             sha: 'sha-1',
         })
 
-        expect(fetchImplementation.mock.calls[1][0]).toContain('/repos/owner/repo/contents/design/F-1-root.md')
-        expect(fetchImplementation.mock.calls[1][1].method).toBe('DELETE')
-        expect(JSON.parse(fetchImplementation.mock.calls[1][1].body)).toEqual({
-            branch: 'feature',
+        const treeCall = fetchImplementation.mock.calls.find(([url, init]) => (
+            url.includes('/repos/owner/repo/git/trees') && init.method === 'POST'
+        ))
+        const commitCalls = fetchImplementation.mock.calls.filter(([url]) => url.includes('/repos/owner/repo/git/commits'))
+
+        expect(JSON.parse(treeCall?.[1].body)).toEqual({
+            base_tree: 'base-tree',
+            tree: [{ mode: '100644', path: 'design/F-1-root.md', sha: null, type: 'blob' }],
+        })
+        expect(JSON.parse(commitCalls[1][1].body)).toEqual({
             message: 'Delete obsolete card',
-            sha: 'sha-1',
+            parents: ['base-commit'],
+            tree: 'new-tree',
         })
     })
 
@@ -149,7 +305,7 @@ describe('GithubStorageService', () => {
         const service = new GithubStorageService()
         service.init({ accessToken: 'token', fetchImplementation })
 
-        await service.loadProject({ branch: 'main', id: 'owner/repo', owner: 'owner', repository: 'repo' }, 'design')
+        await service.loadProject(project, 'design')
         await expect(service.deleteFile({
             branch: 'main',
             message: 'Delete obsolete card',
@@ -248,18 +404,25 @@ describe('GithubStorageService', () => {
     })
 
     it('creates template content only through explicit working-folder creation', async () => {
-        const fetchImplementation = vi.fn().mockResolvedValue(createResponse({ content: { sha: 'sha-1' } }))
+        const fetchImplementation = vi.fn()
+            .mockResolvedValueOnce(createResponse({ object: { sha: 'base-commit', type: 'commit' }, ref: 'refs/heads/main' }))
+            .mockResolvedValueOnce(createResponse({ sha: 'base-commit', tree: { sha: 'base-tree' } }))
+            .mockResolvedValueOnce(createResponse({ sha: 'blob-1' }))
+            .mockResolvedValueOnce(createResponse({ sha: 'new-tree' }))
+            .mockResolvedValueOnce(createResponse({ sha: 'pending-commit', tree: { sha: 'new-tree' } }))
         const service = new GithubStorageService()
         service.init({ accessToken: 'token', fetchImplementation })
 
-        await service.createWorkingFolderFromTemplate({ branch: 'main', id: 'owner/repo', owner: 'owner', repository: 'repo' }, 'design')
+        await service.createWorkingFolderFromTemplate(project, 'design')
 
-        expect(fetchImplementation.mock.calls[0][0]).toContain('/repos/owner/repo/contents/design/README.md')
-        expect(fetchImplementation.mock.calls[0][1].method).toBe('PUT')
-        expect(JSON.parse(fetchImplementation.mock.calls[0][1].body)).toMatchObject({
-            branch: 'main',
-            message: 'Create design workspace',
+        const blobCall = fetchImplementation.mock.calls.find(([url]) => url.includes('/repos/owner/repo/git/blobs'))
+        const commitCalls = fetchImplementation.mock.calls.filter(([url]) => url.includes('/repos/owner/repo/git/commits'))
+
+        expect(JSON.parse(blobCall?.[1].body)).toEqual({
+            content: '# MD2\n\nProject design folder created by MD2.\n',
+            encoding: 'utf-8',
         })
+        expect(JSON.parse(commitCalls[1][1].body)).toMatchObject({ message: 'Create design workspace' })
     })
 
     it('loads project config from the repository root', async () => {

@@ -49,9 +49,48 @@ interface GithubContentResponse {
     type?: unknown
 }
 
-interface GithubWriteFileResponse {
-    content?: { sha?: unknown }
+interface GithubGitRefResponse {
+    object?: { sha?: unknown, type?: unknown }
+    ref?: unknown
 }
+
+interface GithubGitBlobResponse {
+    sha?: unknown
+}
+
+interface GithubGitTreeResponse {
+    sha?: unknown
+    tree?: unknown
+    truncated?: unknown
+}
+
+interface GithubGitCommitResponse {
+    sha?: unknown
+    tree?: { sha?: unknown }
+}
+
+interface GithubTreeFile {
+    path: string
+    sha: string
+}
+
+interface GithubTreeDelete {
+    path: string
+    sha: null
+}
+
+interface GithubTreeEntry {
+    path?: unknown
+    sha?: unknown
+    type?: unknown
+}
+
+interface GithubBranchHead {
+    commitSha: string
+    treeSha: string
+}
+
+type GithubTreeChange = GithubTreeDelete | GithubTreeFile
 
 function requireString(value: unknown, fieldName: string) {
     if (typeof value !== 'string' || value.length === 0) throw new Error(`Missing GitHub storage field: ${fieldName}`)
@@ -61,10 +100,6 @@ function requireString(value: unknown, fieldName: string) {
 
 function encodePath(path: string) {
     return path.split('/').map(encodeURIComponent).join('/')
-}
-
-function encodeContent(content: string) {
-    return btoa(unescape(encodeURIComponent(content)))
 }
 
 function decodeContent(content: string) {
@@ -130,32 +165,83 @@ function normalizeFileContent(payload: unknown): MarkdownFile {
     }
 }
 
-function normalizeWrittenFile(file: MarkdownFile, payload: unknown): MarkdownFile {
-    const response = payload as GithubWriteFileResponse
-    const sha = requireString(response.content?.sha, 'content.sha')
+function normalizeGitRef(payload: unknown) {
+    const response = payload as GithubGitRefResponse
+    const objectType = requireString(response.object?.type, 'gitRef.object.type')
+    if (objectType !== 'commit') throw new Error(`Unsupported GitHub ref object type: ${objectType}`)
 
-    return { ...file, sha }
+    return {
+        commitSha: requireString(response.object?.sha, 'gitRef.object.sha'),
+        ref: requireString(response.ref, 'gitRef.ref'),
+    }
+}
+
+function normalizeGitBlob(payload: unknown) {
+    const response = payload as GithubGitBlobResponse
+
+    return { sha: requireString(response.sha, 'gitBlob.sha') }
+}
+
+function normalizeGitTree(payload: unknown) {
+    const response = payload as GithubGitTreeResponse
+
+    return { sha: requireString(response.sha, 'gitTree.sha') }
+}
+
+function normalizeRecursiveGitTree(payload: unknown) {
+    const response = payload as GithubGitTreeResponse
+    if (response.truncated === true) throw new Error('GitHub tree is too large to verify stale file shas.')
+    if (!Array.isArray(response.tree)) throw new Error('Missing GitHub storage field: gitTree.tree')
+
+    const entries = new Map<string, string>()
+    for (const entry of response.tree as GithubTreeEntry[]) {
+        const type = requireString(entry.type, 'gitTree.entry.type')
+        if (type !== 'blob') continue
+
+        entries.set(requireString(entry.path, 'gitTree.entry.path'), requireString(entry.sha, 'gitTree.entry.sha'))
+    }
+
+    return entries
+}
+
+function normalizeGitCommit(payload: unknown) {
+    const response = payload as GithubGitCommitResponse
+
+    return {
+        sha: requireString(response.sha, 'gitCommit.sha'),
+        treeSha: requireString(response.tree?.sha, 'gitCommit.tree.sha'),
+    }
 }
 
 function sortPaths(paths: string[]) {
     return [...paths].sort((left, right) => left.localeCompare(right))
 }
 
+function createPendingHeadKey(project: ProjectReference) {
+    if (!project.owner) throw new Error('Missing GitHub project owner')
+    if (!project.repository) throw new Error('Missing GitHub project repository')
+
+    return `${project.owner}/${project.repository}:${project.branch}`
+}
+
 export class GithubStorageService implements StorageService {
     private accessToken: string | null
     private activeProject: ProjectReference | null
     private fetchImplementation: typeof fetch | null
+    private pendingCommitHeads: Map<string, string>
 
     constructor() {
         this.accessToken = null
         this.activeProject = null
         this.fetchImplementation = null
+        this.pendingCommitHeads = new Map()
     }
 
     init(dependencies: GithubStorageDependencies) {
         this.accessToken = dependencies.accessToken
         this.activeProject = null
         this.fetchImplementation = dependencies.fetchImplementation ?? fetch
+        this.pendingCommitHeads = new Map()
     }
 
     async createProject(project: ProjectReference, workingFolder: string) {
@@ -268,39 +354,75 @@ export class GithubStorageService implements StorageService {
     }
 
     async commit(request: CommitRequest): Promise<CommitResult> {
+        const branchHead = await this.getBranchHead(request.branch)
+        await this.assertFileShasMatch(branchHead.treeSha, request.files)
+
         const updatedFiles: MarkdownFile[] = []
+        const treeFiles: GithubTreeFile[] = []
 
         for (const file of request.files) {
-            updatedFiles.push(await this.writeFile(request.branch, file, request.message))
+            const blob = await this.createBlob(file)
+            updatedFiles.push({ ...file, sha: blob.sha })
+            treeFiles.push({ path: file.path, sha: blob.sha })
         }
+
+        await this.createPendingCommit(request.branch, request.message, branchHead, treeFiles)
 
         return updatedFiles
     }
 
     async deleteFile(request: DeleteFileRequest) {
-        await this.deleteGithubFile(request.branch, request.path, request.sha, request.message)
+        if (!request.sha) throw new Error(`Cannot delete GitHub file without sha: ${request.path}`)
+
+        const branchHead = await this.getBranchHead(request.branch)
+        await this.assertPathShasMatch(branchHead.treeSha, [{ path: request.path, sha: request.sha }])
+        await this.createPendingCommit(request.branch, request.message, branchHead, [{ path: request.path, sha: null }])
     }
 
     async moveFiles(request: MoveFilesRequest) {
+        const sourceFiles: GithubTreeFile[] = []
         for (const move of request.moves) {
-            await this.writeFile(request.branch, { content: move.content, path: move.toPath }, request.message)
-            await this.deleteGithubFile(request.branch, move.fromPath, move.sha, request.message)
+            if (!move.sha) throw new Error(`Cannot delete GitHub file without sha: ${move.fromPath}`)
+            sourceFiles.push({ path: move.fromPath, sha: move.sha })
         }
+
+        const branchHead = await this.getBranchHead(request.branch)
+        await this.assertPathShasMatch(branchHead.treeSha, sourceFiles)
+
+        const treeChanges: GithubTreeChange[] = []
+        for (const move of request.moves) {
+            const blob = await this.createBlob({ content: move.content, path: move.toPath })
+            treeChanges.push({ path: move.toPath, sha: blob.sha })
+            treeChanges.push({ path: move.fromPath, sha: null })
+        }
+
+        await this.createPendingCommit(request.branch, request.message, branchHead, treeChanges)
     }
 
     async saveProjectConfig(project: ProjectReference, config: ProjectConfig) {
         this.requireGithubProject(project)
         const existingFile = await this.readOptionalFile(project, PROJECT_CONFIG_PATH)
-        await this.writeFile(project.branch, {
-            content: `${JSON.stringify(config, null, 2)}\n`,
-            path: PROJECT_CONFIG_PATH,
-            sha: existingFile?.sha,
-        }, 'Update MD2 project config')
+        await this.commit({
+            branch: project.branch,
+            files: [{
+                content: `${JSON.stringify(config, null, 2)}\n`,
+                path: PROJECT_CONFIG_PATH,
+                sha: existingFile?.sha,
+            }],
+            message: 'Update MD2 project config',
+        })
     }
 
-    async push() {
+    async push(project: ProjectReference) {
         const { accessToken } = this.requireDependencies()
         if (accessToken.length === 0) throw new Error('Missing GitHub access token')
+
+        this.requireGithubProject(project)
+        const pendingCommitSha = this.pendingCommitHeads.get(createPendingHeadKey(project))
+        if (!pendingCommitSha) return Promise.resolve()
+
+        await this.updateBranchRef(project.branch, pendingCommitSha)
+        this.pendingCommitHeads.delete(createPendingHeadKey(project))
 
         return Promise.resolve()
     }
@@ -381,33 +503,109 @@ export class GithubStorageService implements StorageService {
         return normalizeFileContent(payload)
     }
 
-    private async writeFile(branch: string, file: MarkdownFile, message: string) {
+    private async getBranchHead(branch: string): Promise<GithubBranchHead> {
         const project = this.getCommitProject()
-        const payload = {
-            branch,
-            content: encodeContent(file.content),
-            message,
-            sha: file.sha,
+        const pendingCommitSha = this.pendingCommitHeads.get(createPendingHeadKey({ ...project, branch }))
+        if (pendingCommitSha) {
+            const pendingCommit = await this.getCommit(pendingCommitSha)
+
+            return { commitSha: pendingCommit.sha, treeSha: pendingCommit.treeSha }
         }
 
-        const response = await this.request(`/repos/${project.owner}/${project.repository}/contents/${encodePath(file.path)}`, {
-            body: JSON.stringify(payload),
-            method: 'PUT',
-        })
+        const gitRef = normalizeGitRef(await this.request(
+            `/repos/${project.owner}/${project.repository}/git/ref/heads/${encodePath(branch)}`,
+        ))
+        const gitCommit = await this.getCommit(gitRef.commitSha)
 
-        return normalizeWrittenFile(file, response)
+        return { commitSha: gitRef.commitSha, treeSha: gitCommit.treeSha }
     }
 
-    private async deleteGithubFile(branch: string, path: string, sha: string | undefined, message: string) {
-        if (!sha) throw new Error(`Cannot delete GitHub file without sha: ${path}`)
+    private async assertFileShasMatch(treeSha: string, files: MarkdownFile[]) {
+        const filesWithSha: GithubTreeFile[] = []
+        for (const file of files) {
+            if (file.sha) filesWithSha.push({ path: file.path, sha: file.sha })
+        }
 
+        await this.assertPathShasMatch(treeSha, filesWithSha)
+    }
+
+    private async assertPathShasMatch(treeSha: string, files: GithubTreeFile[]) {
+        if (files.length === 0) return
+
+        const treeEntries = await this.getRecursiveTreeEntries(treeSha)
+        for (const file of files) {
+            if (treeEntries.get(file.path) !== file.sha) {
+                throw new Error('The file changed remotely. Reload or refresh the project before saving again.')
+            }
+        }
+    }
+
+    private async getRecursiveTreeEntries(treeSha: string) {
         const project = this.getCommitProject()
-        const payload = { branch, message, sha }
+        const response = await this.request(`/repos/${project.owner}/${project.repository}/git/trees/${treeSha}?recursive=1`)
 
-        await this.request(`/repos/${project.owner}/${project.repository}/contents/${encodePath(path)}`, {
+        return normalizeRecursiveGitTree(response)
+    }
+
+    private async createBlob(file: MarkdownFile) {
+        const project = this.getCommitProject()
+        const payload = {
+            content: file.content,
+            encoding: file.encoding ?? 'utf-8',
+        }
+        const response = await this.request(`/repos/${project.owner}/${project.repository}/git/blobs`, {
             body: JSON.stringify(payload),
-            method: 'DELETE',
+            method: 'POST',
         })
+
+        return normalizeGitBlob(response)
+    }
+
+    private async createTree(baseTreeSha: string, files: GithubTreeChange[]) {
+        const project = this.getCommitProject()
+        const tree = files.map((file) => ({ mode: '100644', path: file.path, sha: file.sha, type: 'blob' }))
+        const payload = { base_tree: baseTreeSha, tree }
+        const response = await this.request(`/repos/${project.owner}/${project.repository}/git/trees`, {
+            body: JSON.stringify(payload),
+            method: 'POST',
+        })
+
+        return normalizeGitTree(response)
+    }
+
+    private async createCommit(message: string, treeSha: string, parentSha: string) {
+        const project = this.getCommitProject()
+        const payload = { message, parents: [parentSha], tree: treeSha }
+        const response = await this.request(`/repos/${project.owner}/${project.repository}/git/commits`, {
+            body: JSON.stringify(payload),
+            method: 'POST',
+        })
+
+        return normalizeGitCommit(response)
+    }
+
+    private async createPendingCommit(branch: string, message: string, branchHead: GithubBranchHead, treeChanges: GithubTreeChange[]) {
+        const tree = await this.createTree(branchHead.treeSha, treeChanges)
+        const commit = await this.createCommit(message, tree.sha, branchHead.commitSha)
+        const project = this.getCommitProject()
+        this.pendingCommitHeads.set(createPendingHeadKey({ ...project, branch }), commit.sha)
+    }
+
+    private async updateBranchRef(branch: string, commitSha: string) {
+        const project = this.getCommitProject()
+        const payload = { force: false, sha: commitSha }
+
+        await this.request(`/repos/${project.owner}/${project.repository}/git/refs/heads/${encodePath(branch)}`, {
+            body: JSON.stringify(payload),
+            method: 'PATCH',
+        })
+    }
+
+    private async getCommit(commitSha: string) {
+        const project = this.getCommitProject()
+        const response = await this.request(`/repos/${project.owner}/${project.repository}/git/commits/${commitSha}`)
+
+        return normalizeGitCommit(response)
     }
 
     private getCommitProject() {
@@ -419,6 +617,10 @@ export class GithubStorageService implements StorageService {
     private requireGithubProject(project: ProjectReference) {
         if (!project.owner) throw new Error('Missing GitHub project owner')
         if (!project.repository) throw new Error('Missing GitHub project repository')
+
+        if (this.activeProject && createPendingHeadKey(this.activeProject) !== createPendingHeadKey(project)) {
+            this.pendingCommitHeads = new Map()
+        }
 
         this.activeProject = project
     }
@@ -437,7 +639,7 @@ export class GithubStorageService implements StorageService {
         })
 
         if (allowNotFound && response.status === 404) return null
-        if (init.method === 'PUT' && (response.status === 409 || response.status === 422)) {
+        if ((init.method === 'PATCH' || init.method === 'PUT') && (response.status === 409 || response.status === 422)) {
             throw new Error('The file changed remotely. Reload or refresh the project before saving again.')
         }
         if (!response.ok) throw new Error(`GitHub storage request failed with status ${response.status}`)
