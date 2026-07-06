@@ -1,6 +1,7 @@
 import type { ActionFile } from '../data/action_types'
 import type {
     BranchReference,
+    CommitResult,
     CommitRequest,
     ContinueAgentConversationRequest,
     ContinueAgentConversationResult,
@@ -127,8 +128,10 @@ export class LocalGitStorageService implements StorageService {
         return this.requireBridge().checkoutBranch(project, branch)
     }
 
-    async commit(request: CommitRequest): Promise<void> {
+    async commit(request: CommitRequest): Promise<CommitResult> {
         await this.requireBridge().commit(request)
+
+        return []
     }
 
     async deleteFile(request: DeleteFileRequest): Promise<void> {

@@ -23,7 +23,7 @@ vi.mock('@sentry/react', () => ({
 function createBridge(): ElectronDataBridge {
     return {
         checkoutBranch: vi.fn(async (project) => project),
-        commit: vi.fn(async () => undefined),
+        commit: vi.fn(async () => []),
         createProject: vi.fn(async (project) => project),
         createWorkingFolderFromTemplate: vi.fn(async (project) => project),
         deleteFile: vi.fn(async () => undefined),

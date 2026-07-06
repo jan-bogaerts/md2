@@ -53,12 +53,12 @@ describe('GithubStorageService', () => {
     it('writes files through the contents API with commit message and branch', async () => {
         const fetchImplementation = vi.fn()
             .mockResolvedValueOnce(createResponse([]))
-            .mockResolvedValueOnce(createResponse({}))
+            .mockResolvedValueOnce(createResponse({ content: { sha: 'sha-2' } }))
         const service = new GithubStorageService()
         service.init({ accessToken: 'token', fetchImplementation })
 
         await service.loadProject({ branch: 'main', id: 'owner/repo', owner: 'owner', repository: 'repo' }, 'design')
-        await service.commit({
+        const updatedFiles = await service.commit({
             branch: 'main',
             files: [{ content: '# Updated', path: 'design/F-1-root.md', sha: 'sha-1' }],
             message: 'Update root',
@@ -70,12 +70,28 @@ describe('GithubStorageService', () => {
             message: 'Update root',
             sha: 'sha-1',
         })
+        expect(updatedFiles).toEqual([{ content: '# Updated', path: 'design/F-1-root.md', sha: 'sha-2' }])
+    })
+
+    it.each([409, 422])('throws a clear remote-change error when GitHub rejects a stale sha write with %s', async (status) => {
+        const fetchImplementation = vi.fn()
+            .mockResolvedValueOnce(createResponse([]))
+            .mockResolvedValueOnce(createStatusResponse(status))
+        const service = new GithubStorageService()
+        service.init({ accessToken: 'token', fetchImplementation })
+
+        await service.loadProject({ branch: 'main', id: 'owner/repo', owner: 'owner', repository: 'repo' }, 'design')
+        await expect(service.commit({
+            branch: 'main',
+            files: [{ content: '# Updated', path: 'design/F-1-root.md', sha: 'sha-1' }],
+            message: 'Update root',
+        })).rejects.toThrow(/changed remotely.*Reload or refresh/u)
     })
 
     it('moves files by writing the target and deleting the source with sha', async () => {
         const fetchImplementation = vi.fn()
             .mockResolvedValueOnce(createResponse([]))
-            .mockResolvedValueOnce(createResponse({}))
+            .mockResolvedValueOnce(createResponse({ content: { sha: 'sha-2' } }))
             .mockResolvedValueOnce(createResponse({}))
         const service = new GithubStorageService()
         service.init({ accessToken: 'token', fetchImplementation })
@@ -232,7 +248,7 @@ describe('GithubStorageService', () => {
     })
 
     it('creates template content only through explicit working-folder creation', async () => {
-        const fetchImplementation = vi.fn().mockResolvedValue(createResponse({}))
+        const fetchImplementation = vi.fn().mockResolvedValue(createResponse({ content: { sha: 'sha-1' } }))
         const service = new GithubStorageService()
         service.init({ accessToken: 'token', fetchImplementation })
 

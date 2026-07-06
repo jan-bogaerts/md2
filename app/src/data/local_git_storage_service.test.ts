@@ -5,7 +5,7 @@ import type { ElectronDataBridge } from './electron_data_bridge'
 function createBridge(): ElectronDataBridge {
     return {
         checkoutBranch: vi.fn(async (project, branch) => ({ ...project, branch })),
-        commit: vi.fn(),
+        commit: vi.fn(async () => []),
         createProject: vi.fn(async (project) => project),
         createWorkingFolderFromTemplate: vi.fn(async (project) => project),
         deleteFile: vi.fn(),
@@ -36,7 +36,7 @@ describe('LocalGitStorageService', () => {
         await service.listTopLevelFolders(project!)
         await service.createWorkingFolderFromTemplate(project!, 'design')
         await service.checkoutBranch(project!, 'feature')
-        await service.commit({ branch: 'feature', files: [{ content: '# Test', path: 'design/F-1-test.md' }], message: 'Update test' })
+        const commitResult = await service.commit({ branch: 'feature', files: [{ content: '# Test', path: 'design/F-1-test.md' }], message: 'Update test' })
         await service.deleteFile({ branch: 'feature', message: 'Delete test', path: 'design/F-1-test.md', sha: 'sha-1' })
         await service.moveFiles({
             branch: 'feature',
@@ -61,6 +61,7 @@ describe('LocalGitStorageService', () => {
         expect(bridge.createWorkingFolderFromTemplate).toHaveBeenCalledWith(project, 'design')
         expect(bridge.checkoutBranch).toHaveBeenCalledWith(project, 'feature')
         expect(bridge.commit).toHaveBeenCalled()
+        expect(commitResult).toEqual([])
         expect(bridge.deleteFile).toHaveBeenCalled()
         expect(bridge.moveFiles).toHaveBeenCalled()
         expect(bridge.saveProjectConfig).toHaveBeenCalled()

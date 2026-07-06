@@ -23,6 +23,8 @@ function createBridge(): ElectronDataBridge {
         checkoutBranch: vi.fn(async (project, branch) => ({ ...project, branch })),
         commit: vi.fn(async (request) => {
             files.push(...request.files)
+
+            return []
         }),
         createProject: vi.fn(async (project) => project),
         createWorkingFolderFromTemplate: vi.fn(async (project) => project),
@@ -53,7 +55,7 @@ function createBridge(): ElectronDataBridge {
 function createResetStorage(): StorageService {
     return {
         checkoutBranch: vi.fn(async (project, branch) => ({ ...project, branch })),
-        commit: vi.fn(),
+        commit: vi.fn(async () => []),
         createProject: vi.fn(async (project) => project),
         createWorkingFolderFromTemplate: vi.fn(async (project) => project),
         deleteFile: vi.fn(),

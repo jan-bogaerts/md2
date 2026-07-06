@@ -6,7 +6,7 @@ import { LocalGitStorageService } from './local_git_storage_service'
 function createBridge(overrides: Partial<ElectronDataBridge> = {}): ElectronDataBridge {
     return {
         checkoutBranch: vi.fn(),
-        commit: vi.fn().mockResolvedValue(undefined),
+        commit: vi.fn().mockResolvedValue([]),
         createProject: vi.fn(),
         createWorkingFolderFromTemplate: vi.fn(),
         deleteFile: vi.fn().mockResolvedValue(undefined),
@@ -27,7 +27,7 @@ function createBridge(overrides: Partial<ElectronDataBridge> = {}): ElectronData
 
 describe('LocalGitStorageService binary write path', () => {
     it('forwards base64 asset files to the bridge unchanged', async () => {
-        const commit = vi.fn().mockResolvedValue(undefined)
+        const commit = vi.fn().mockResolvedValue([])
         const bridge = createBridge({ commit })
         const service = new LocalGitStorageService()
         service.init({ bridge })
@@ -41,10 +41,11 @@ describe('LocalGitStorageService binary write path', () => {
             message: 'Import Remarkable images',
         }
 
-        await service.commit(request)
+        const result = await service.commit(request)
 
         expect(commit).toHaveBeenCalledWith(request)
         expect(commit.mock.calls[0][0].files[1].encoding).toBe('base64')
+        expect(result).toEqual([])
     })
 
     it('forwards file moves to the bridge unchanged', async () => {

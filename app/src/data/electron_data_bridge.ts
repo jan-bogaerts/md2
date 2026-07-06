@@ -3,6 +3,7 @@ import type {
     AgentConversation,
     AgentRunEvent,
     BranchReference,
+    CommitResult,
     CommitRequest,
     ContinueAgentConversationRequest,
     ContinueAgentConversationResult,
@@ -19,7 +20,7 @@ import type {
 
 export interface ElectronDataBridge {
     checkoutBranch(project: ProjectReference, branch: string): Promise<ProjectReference>
-    commit(request: CommitRequest): Promise<void>
+    commit(request: CommitRequest): Promise<CommitResult>
     continueAgentConversation?(request: ContinueAgentConversationRequest): Promise<ContinueAgentConversationResult>
     createProject(project: ProjectReference, workingFolder: string): Promise<ProjectReference>
     createWorkingFolderFromTemplate(project: ProjectReference, workingFolder: string): Promise<ProjectReference>

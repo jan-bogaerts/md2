@@ -59,7 +59,7 @@ function activeCardFile(id: string, options: { after?: string; sha?: string; sta
 function createStorage(overrides: Partial<StorageService> = {}): StorageService {
     return {
         checkoutBranch: vi.fn(async (project, branch) => ({ ...project, branch })),
-        commit: vi.fn(),
+        commit: vi.fn(async () => []),
         createProject: vi.fn(async (project) => project),
         createWorkingFolderFromTemplate: vi.fn(async (project) => project),
         deleteFile: vi.fn(),
@@ -115,7 +115,7 @@ describe('cardNaming', () => {
 describe('CommitBatcher', () => {
     it('batches typing commits until the delay expires', async () => {
         vi.useFakeTimers()
-        const commit = vi.fn()
+        const commit = vi.fn(async () => undefined)
         const batcher = new CommitBatcher({ clearDelay: window.clearTimeout, commit, delayMs: 30000, setDelay: window.setTimeout })
 
         batcher.schedule('main', [{ content: 'one', path: 'design/F-1-root.md' }], 'Update root')
@@ -130,7 +130,7 @@ describe('CommitBatcher', () => {
     })
 
     it('flushes pending commits on close', async () => {
-        const commit = vi.fn()
+        const commit = vi.fn(async () => undefined)
         const batcher = new CommitBatcher({ clearDelay: window.clearTimeout, commit, delayMs: 30000, setDelay: window.setTimeout })
 
         batcher.schedule('main', [{ content: 'one', path: 'design/F-1-root.md' }], 'Update root')
@@ -616,6 +616,40 @@ describe('DataService', () => {
         const committed = (storage.commit as ReturnType<typeof vi.fn>).mock.calls.at(-1)?.[0] as CommitRequest
         expect(committed.files[0].content.startsWith('---\nid: F-1')).toBe(true)
         expect(committed.files[0].content).toContain('Edited body')
+    })
+
+    it('uses the committed sha from the first body update for the next body update', async () => {
+        configService.init()
+        const staleShaFiles: MarkdownFile[] = [{
+            content: '---\nid: F-1\ntitle: Root\nstatus: active\n---\n\n# Root',
+            path: 'design/F-1-root.md',
+            sha: 'sha-1',
+        }]
+        const commit = vi.fn(async (request: CommitRequest) => {
+            const [file] = request.files
+            if (!file) throw new Error('Expected commit file')
+
+            return [{ ...file, sha: 'sha-2' }]
+        })
+        const storage = createStorage({
+            commit,
+            loadProject: vi.fn(async () => ({ files: staleShaFiles, workingFolder: 'design' })),
+        })
+        const service = new DataService()
+        service.init({ storage })
+
+        await service.openProject({ branch: 'main', id: 'project' })
+        service.updateCardBody('design/F-1-root.md', '# Root\n\nFirst edit')
+        await service.flushPendingCommits()
+
+        const snapshotCard = service.getState().snapshot?.activeCards[0]
+        expect(snapshotCard?.sha).toBe('sha-2')
+
+        service.updateCardBody('design/F-1-root.md', '# Root\n\nSecond edit')
+        await service.flushPendingCommits()
+
+        expect(commit).toHaveBeenCalledTimes(2)
+        expect(commit.mock.calls[1][0].files[0].sha).toBe('sha-2')
     })
 
     it('updates card affects through the shared header rewrite and save flow', async () => {

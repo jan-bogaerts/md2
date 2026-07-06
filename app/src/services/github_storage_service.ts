@@ -3,6 +3,7 @@ import { MissingWorkingFolderError } from '../data/data_types'
 import type {
     AgentConversation,
     BranchReference,
+    CommitResult,
     CommitRequest,
     DeleteFileRequest,
     MarkdownFile,
@@ -46,6 +47,10 @@ interface GithubContentResponse {
     path?: unknown
     sha?: unknown
     type?: unknown
+}
+
+interface GithubWriteFileResponse {
+    content?: { sha?: unknown }
 }
 
 function requireString(value: unknown, fieldName: string) {
@@ -123,6 +128,13 @@ function normalizeFileContent(payload: unknown): MarkdownFile {
         path: requireString(response.path, 'content.path'),
         sha: requireString(response.sha, 'content.sha'),
     }
+}
+
+function normalizeWrittenFile(file: MarkdownFile, payload: unknown): MarkdownFile {
+    const response = payload as GithubWriteFileResponse
+    const sha = requireString(response.content?.sha, 'content.sha')
+
+    return { ...file, sha }
 }
 
 function sortPaths(paths: string[]) {
@@ -255,10 +267,14 @@ export class GithubStorageService implements StorageService {
         return { ...project, branch }
     }
 
-    async commit(request: CommitRequest) {
+    async commit(request: CommitRequest): Promise<CommitResult> {
+        const updatedFiles: MarkdownFile[] = []
+
         for (const file of request.files) {
-            await this.writeFile(request.branch, file, request.message)
+            updatedFiles.push(await this.writeFile(request.branch, file, request.message))
         }
+
+        return updatedFiles
     }
 
     async deleteFile(request: DeleteFileRequest) {
@@ -374,10 +390,12 @@ export class GithubStorageService implements StorageService {
             sha: file.sha,
         }
 
-        await this.request(`/repos/${project.owner}/${project.repository}/contents/${encodePath(file.path)}`, {
+        const response = await this.request(`/repos/${project.owner}/${project.repository}/contents/${encodePath(file.path)}`, {
             body: JSON.stringify(payload),
             method: 'PUT',
         })
+
+        return normalizeWrittenFile(file, response)
     }
 
     private async deleteGithubFile(branch: string, path: string, sha: string | undefined, message: string) {
@@ -419,6 +437,9 @@ export class GithubStorageService implements StorageService {
         })
 
         if (allowNotFound && response.status === 404) return null
+        if (init.method === 'PUT' && (response.status === 409 || response.status === 422)) {
+            throw new Error('The file changed remotely. Reload or refresh the project before saving again.')
+        }
         if (!response.ok) throw new Error(`GitHub storage request failed with status ${response.status}`)
 
         return response.json()

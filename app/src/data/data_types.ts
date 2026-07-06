@@ -112,6 +112,8 @@ export interface CommitRequest {
     message: string
 }
 
+export type CommitResult = MarkdownFile[]
+
 export interface MoveFile {
     content: string
     fromPath: string
@@ -211,7 +213,7 @@ export interface StorageProjectFiles {
 
 export interface StorageService {
     checkoutBranch(project: ProjectReference, branch: string): Promise<ProjectReference>
-    commit(request: CommitRequest): Promise<void>
+    commit(request: CommitRequest): Promise<CommitResult>
     createProject(project: ProjectReference, workingFolder: string): Promise<ProjectReference>
     createWorkingFolderFromTemplate(project: ProjectReference, workingFolder: string): Promise<ProjectReference>
     deleteFile(request: DeleteFileRequest): Promise<void>

@@ -191,11 +191,11 @@ export class DataService extends EventTarget {
 
         const file = createCardFile(this.currentFiles, config.workingFolder, config.cardTypes, config.cardBodyTemplate, draft)
         this.currentFiles = [...this.currentFiles, file]
-        await storage.commit({
+        await this.commitAndMergeFiles({
             branch: this.currentProject.branch,
             files: [file],
             message: `Create ${file.path}`,
-        })
+        }, [file])
 
         if (config.pushMode === 'auto') await storage.push(this.currentProject)
 
@@ -238,8 +238,11 @@ export class DataService extends EventTarget {
             target: request.target,
         })
 
-        await storage.commit({ branch: this.currentProject.branch, files: plan.commitFiles, message: plan.message })
-        this.currentFiles = mergeFiles(this.currentFiles, plan.commitFiles)
+        await this.commitAndMergeFiles({
+            branch: this.currentProject.branch,
+            files: plan.commitFiles,
+            message: plan.message,
+        }, plan.commitFiles)
 
         if (config.pushMode === 'auto') await storage.push(this.currentProject)
 
@@ -394,11 +397,11 @@ export class DataService extends EventTarget {
         const { config, storage } = this.requireDependencies()
         if (!this.currentProject) throw new Error('Cannot save a project file before a project is open')
 
-        await storage.commit({
+        await this.commitAndMergeFiles({
             branch: this.currentProject.branch,
             files: [file],
             message,
-        })
+        }, [file])
 
         if (config.pushMode === 'auto') await storage.push(this.currentProject)
 
@@ -635,9 +638,26 @@ export class DataService extends EventTarget {
 
     private async commitFiles(request: Parameters<StorageService['commit']>[0]) {
         const { config, storage } = this.requireDependencies()
-        await storage.commit(request)
+        const updatedFiles = await storage.commit(request)
+
+        if (updatedFiles.length > 0) {
+            this.currentFiles = mergeFiles(this.currentFiles, updatedFiles)
+            this.refreshSnapshot()
+        }
 
         if (this.currentProject && config.pushMode === 'auto') await storage.push(this.currentProject)
+    }
+
+    private async commitAndMergeFiles(request: Parameters<StorageService['commit']>[0], fallbackFiles: MarkdownFile[] = []) {
+        const { storage } = this.requireDependencies()
+        const updatedFiles = await storage.commit(request)
+        const committedFiles = updatedFiles.length > 0 ? updatedFiles : fallbackFiles
+        if (committedFiles.length === 0) return updatedFiles
+
+        this.currentFiles = mergeFiles(this.currentFiles, committedFiles)
+        this.refreshSnapshot()
+
+        return updatedFiles
     }
 
     private requireDependencies() {
