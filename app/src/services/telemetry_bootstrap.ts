@@ -36,13 +36,13 @@ export function startReactTelemetry() {
 
     isReactTelemetryStarted = true
     telemetryService.init({
-        aptabaseAppKey: import.meta.env.VITE_APTABASE_APP_KEY,
+        aptabaseAppKey: import.meta.env.APTABASE_APP_KEY,
         clients: {
             aptabase: { init: initAptabase, trackEvent: trackAptabaseEvent },
             sentry: { captureException: Sentry.captureException, flush: Sentry.flush, init: Sentry.init },
         },
         runtime: getReactRuntime(),
-        sentryDsn: import.meta.env.VITE_SENTRY_DSN,
+        sentryDsn: import.meta.env.SENTRY_DSN,
     })
     telemetryService.trackEvent('react_start')
 

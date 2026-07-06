@@ -1,6 +1,6 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { StorageService } from '../data/data_types'
+import { MissingWorkingFolderError, type ProjectConfig, type StorageService } from '../data/data_types'
 import type { ElectronDataBridge } from '../data/electron_data_bridge'
 import { configService } from '../services/config_service'
 import { dataService } from '../services/data_service'
@@ -160,6 +160,82 @@ describe('ProjectWorkspace', () => {
         expect(screen.getByText('Background cards loaded: 1')).toBeInTheDocument()
     })
 
+    it('asks for a folder and persists an existing choice when the configured working folder is missing', async () => {
+        const bridge = createBridge()
+        let savedConfig: ProjectConfig | null = null
+        bridge.listTopLevelFolders = vi.fn(async () => [
+            { name: 'docs', path: 'docs' },
+            { name: 'notes', path: 'notes' },
+        ])
+        bridge.loadProjectConfig = vi.fn(async () => savedConfig ?? { workingFolder: 'missing' })
+        bridge.loadProject = vi.fn(async (_project, workingFolder) => {
+            if (!savedConfig) throw new MissingWorkingFolderError(workingFolder)
+
+            return {
+                files: [{ content: '---\nid: F-1\ntitle: Root\nstatus: active\naffects:\n---\n\n# Root', path: `${workingFolder}/F-1-root.md` }],
+                workingFolder,
+            }
+        })
+        bridge.saveProjectConfig = vi.fn(async (_project, config) => {
+            savedConfig = config
+        })
+        window.md2Data = bridge
+
+        renderProjectSurface()
+        await openProjectDialog()
+        await chooseLocalSource()
+        fireEvent.click(screen.getByRole('button', { name: 'Choose local folder...' }))
+        await waitFor(() => expect(screen.getByRole('combobox', { name: 'Branch' })).toHaveTextContent('main'))
+        fireEvent.click(screen.getByRole('button', { name: 'Open Local' }))
+
+        expect(await screen.findByText('Working folder is missing: missing')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Use folder docs' })).toBeInTheDocument()
+        expect(bridge.createWorkingFolderFromTemplate).not.toHaveBeenCalled()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Use folder docs' }))
+
+        await waitFor(() => expect(bridge.saveProjectConfig).toHaveBeenCalledWith(expect.any(Object), expect.objectContaining({ workingFolder: 'docs' })))
+        expect(bridge.createWorkingFolderFromTemplate).not.toHaveBeenCalled()
+        expect(await screen.findByText('Root')).toBeInTheDocument()
+    })
+
+    it('creates the configured folder only after the explicit create action', async () => {
+        const bridge = createBridge()
+        let isCreated = false
+        bridge.listTopLevelFolders = vi.fn(async () => [{ name: 'docs', path: 'docs' }])
+        bridge.loadProjectConfig = vi.fn(async () => ({ workingFolder: 'missing' }))
+        bridge.loadProject = vi.fn(async (_project, workingFolder) => {
+            if (!isCreated) throw new MissingWorkingFolderError(workingFolder)
+
+            return {
+                files: [{ content: '---\nid: F-1\ntitle: Root\nstatus: active\naffects:\n---\n\n# Root', path: `${workingFolder}/F-1-root.md` }],
+                workingFolder,
+            }
+        })
+        bridge.createWorkingFolderFromTemplate = vi.fn(async (project) => {
+            isCreated = true
+
+            return project
+        })
+        window.md2Data = bridge
+
+        renderProjectSurface()
+        await openProjectDialog()
+        await chooseLocalSource()
+        fireEvent.click(screen.getByRole('button', { name: 'Choose local folder...' }))
+        await waitFor(() => expect(screen.getByRole('combobox', { name: 'Branch' })).toHaveTextContent('main'))
+        fireEvent.click(screen.getByRole('button', { name: 'Open Local' }))
+
+        await screen.findByText('Working folder is missing: missing')
+        expect(bridge.createWorkingFolderFromTemplate).not.toHaveBeenCalled()
+
+        fireEvent.click(screen.getByRole('button', { name: "Create 'missing' from template" }))
+
+        await waitFor(() => expect(bridge.createWorkingFolderFromTemplate).toHaveBeenCalledWith(expect.any(Object), 'missing'))
+        await waitFor(() => expect(bridge.saveProjectConfig).toHaveBeenCalledWith(expect.any(Object), expect.objectContaining({ workingFolder: 'missing' })))
+        expect(await screen.findByText('Root')).toBeInTheDocument()
+    })
+
     it('creates a new feature card through the project menu', async () => {
         const bridge = createBridge()
         window.md2Data = bridge
@@ -316,6 +392,70 @@ describe('ProjectWorkspace', () => {
         expect(screen.getByRole('option', { name: 'topic' })).toBeInTheDocument()
     })
 
+    it('keeps manual GitHub branch loading usable after repository listing fails', async () => {
+        const fetchImplementation = vi.fn(async (url: string | URL | Request) => {
+            const requestUrl = url.toString()
+            if (requestUrl === GITHUB_REPOSITORIES_URL) return new Response('{}', { status: 403 })
+            if (requestUrl === OWNER_REPOSITORY_URL) {
+                return Response.json({ default_branch: 'trunk', full_name: 'octo/demo', name: 'demo', owner: { login: 'octo' } })
+            }
+            if (requestUrl === BRANCHES_URL) return Response.json([{ name: 'trunk' }, { name: 'topic' }])
+
+            return new Response('{}', { status: 404 })
+        })
+        vi.stubGlobal('fetch', fetchImplementation)
+
+        renderProjectSurface(true)
+        await openProjectDialog()
+
+        expect(await screen.findByText('GitHub storage request failed with status 403')).toBeInTheDocument()
+
+        fireEvent.change(screen.getByLabelText('Owner'), { target: { value: 'octo' } })
+        fireEvent.change(screen.getByRole('textbox', { name: 'Repository' }), { target: { value: 'demo' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Load branches' }))
+
+        await waitFor(() => expect(screen.getByRole('combobox', { name: 'Branch' })).toHaveTextContent('trunk'))
+        expect(screen.queryByText('GitHub storage request failed with status 403')).toBeNull()
+    })
+
+    it('keeps manual GitHub branch loading usable after selected repository branch listing fails', async () => {
+        const fetchImplementation = vi.fn(async (url: string | URL | Request) => {
+            const requestUrl = url.toString()
+            if (requestUrl === GITHUB_REPOSITORIES_URL) {
+                return Response.json([
+                    { default_branch: 'trunk', full_name: 'octo/demo', name: 'demo', owner: { login: 'octo' } },
+                ])
+            }
+            if (requestUrl === OWNER_REPOSITORY_URL) {
+                return Response.json({ default_branch: 'trunk', full_name: 'octo/demo', name: 'demo', owner: { login: 'octo' } })
+            }
+            const branchRequestCount = fetchImplementation.mock.calls
+                .filter(([callUrl]) => callUrl.toString() === BRANCHES_URL)
+                .length
+            if (requestUrl === BRANCHES_URL && branchRequestCount === 1) {
+                return new Response('{}', { status: 500 })
+            }
+            if (requestUrl === BRANCHES_URL) return Response.json([{ name: 'trunk' }, { name: 'topic' }])
+
+            return new Response('{}', { status: 404 })
+        })
+        vi.stubGlobal('fetch', fetchImplementation)
+
+        renderProjectSurface(true)
+        await openProjectDialog()
+
+        await waitFor(() => expect(screen.getByRole('combobox', { name: 'Repository' })).not.toHaveAttribute('aria-disabled', 'true'))
+        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Repository' }))
+        fireEvent.click(await screen.findByRole('option', { name: 'octo/demo' }))
+
+        expect(await screen.findByText('GitHub storage request failed with status 500')).toBeInTheDocument()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Load branches' }))
+
+        await waitFor(() => expect(screen.getByRole('combobox', { name: 'Branch' })).toHaveTextContent('trunk'))
+        expect(screen.queryByText('GitHub storage request failed with status 500')).toBeNull()
+    })
+
     it('switches the current project branch from a branch dropdown', async () => {
         const bridge = createBridge()
         window.md2Data = bridge
@@ -332,5 +472,6 @@ describe('ProjectWorkspace', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Switch' }))
 
         await waitFor(() => expect(bridge.checkoutBranch).toHaveBeenCalledWith(expect.objectContaining({ branch: 'main' }), 'feature'))
+        await waitFor(() => expect(bridge.loadProject).toHaveBeenLastCalledWith(expect.objectContaining({ branch: 'feature' }), 'design'))
     })
 })

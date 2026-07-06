@@ -17,7 +17,7 @@ Config is still handled by separate feature-specific paths. There is no `/config
 
 Project config is a small in-memory object. `createProjectConfig(pushMode)` builds it from hard-coded/default values: working folder `design`, default card types, default card body template and the selected push mode. `ProjectWorkspace` owns the push-mode select, recreates config when opening a GitHub or local project, and reads card types/working folder back from `DataService`. `use_app_bootstrap.ts` restores the last project with auto push mode. No project config file is loaded, merged, validated or saved.
 
-GitHub auth config is read from Vite environment values by `readGithubAuthConfig`; missing `VITE_GITHUB_CLIENT_ID` fails fast, optional proxy URL can be absent and scopes default to `repo`. Theme settings are persisted separately in `localStorage` through `useThemeSettings`, not through a general config system.
+GitHub auth config is read from Vite environment values by `readGithubAuthConfig`; missing `GITHUB_CLIENT_ID` fails fast, optional proxy URL can be absent and scopes default to `repo`. Theme settings are persisted separately in `localStorage` through `useThemeSettings`, not through a general config system.
 
 Electron exposes local data, GitHub OAuth proxy and theme-mode bridges on `window.md2Data`, `window.md2GithubAuth` and `window.md2Theme`. The desktop app URL is resolved from `MD2_APP_URL` with a localhost default. There is no desktop config bridge for editable settings and no project-level config IPC/storage contract.
 

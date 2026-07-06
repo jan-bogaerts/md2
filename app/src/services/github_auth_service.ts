@@ -138,7 +138,7 @@ export class GithubAuthService extends EventTarget {
         this.setSnapshot({ deviceCode: null, errorMessage: null, status: 'requesting-code' })
 
         try {
-            const deviceCode = await requestDeviceCode({ ...config, scopes: this.resolveScopes(config.scopes) })
+            const deviceCode = await requestDeviceCode({ ...config, scopes: GithubAuthService.resolveScopes(config.scopes) })
 
             if (loginId !== this.activeLoginId) return
 
@@ -275,7 +275,7 @@ export class GithubAuthService extends EventTarget {
         this.pollingDelayId = null
     }
 
-    private resolveScopes(fallbackScopes: string): string {
+    private static resolveScopes(fallbackScopes: string): string {
         if (!configService.isInitialized()) return fallbackScopes
 
         const scopes = configService.get('connection.githubScopes')

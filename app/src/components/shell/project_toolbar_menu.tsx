@@ -18,7 +18,16 @@ import {
 import type { SelectChangeEvent } from '@mui/material'
 import type { ChangeEvent, MouseEvent } from 'react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import type { BranchReference, CardDraft, ProjectReference, PushMode, RepositoryReference } from '../../data/data_types'
+import {
+    MISSING_WORKING_FOLDER_ERROR,
+    type BranchReference,
+    type CardDraft,
+    type ProjectReference,
+    type PushMode,
+    type RepositoryReference,
+    type StorageService,
+    type TopLevelFolderReference,
+} from '../../data/data_types'
 import { createStorageService, writeLastProject, type StorageType } from '../../data/project_session'
 import { getElectronDataBridge } from '../../data/electron_data_bridge'
 import { configService } from '../../services/config_service'
@@ -32,6 +41,14 @@ type ProjectSource = 'github' | 'local'
 
 const EMPTY_BRANCHES: BranchReference[] = []
 const EMPTY_REPOSITORIES: RepositoryReference[] = []
+const EMPTY_TOP_LEVEL_FOLDERS: TopLevelFolderReference[] = []
+
+interface MissingWorkingFolderResolution {
+    configuredWorkingFolder: string
+    folders: TopLevelFolderReference[]
+    project: ProjectReference
+    storageType: StorageType
+}
 
 interface ProjectToolbarMenuProps {
     accessToken: string | null
@@ -62,6 +79,22 @@ function repositoryMatchesFilter(repository: RepositoryReference, filter: string
     return repository.id.toLowerCase().includes(normalizedFilter)
 }
 
+function isMissingWorkingFolderError(error: unknown): error is { workingFolder: string } {
+    if (!error || typeof error !== 'object') return false
+
+    const storageError = error as { code?: unknown; workingFolder?: unknown }
+
+    return storageError.code === MISSING_WORKING_FOLDER_ERROR && typeof storageError.workingFolder === 'string'
+}
+
+async function persistWorkingFolder(storage: StorageService, project: ProjectReference, workingFolder: string) {
+    const projectConfig = await storage.loadProjectConfig(project)
+    configService.loadProjectConfig(projectConfig)
+    const nextConfig = { ...configService.getProjectConfig(), workingFolder }
+    configService.loadProjectConfig(nextConfig)
+    await storage.saveProjectConfig(project, nextConfig)
+}
+
 /** Toolbar project menu with dialogs for open, branch, push, release and card creation commands. */
 export function ProjectToolbarMenu(props: ProjectToolbarMenuProps) {
     const { accessToken, isGithubAuthenticated } = props
@@ -79,6 +112,7 @@ export function ProjectToolbarMenu(props: ProjectToolbarMenuProps) {
     const [isLoading, setIsLoading] = useState(false)
     const [isReleaseCompleting, setIsReleaseCompleting] = useState(false)
     const [localProject, setLocalProject] = useState<ProjectReference | null>(null)
+    const [missingWorkingFolder, setMissingWorkingFolder] = useState<MissingWorkingFolderResolution | null>(null)
     const [repositories, setRepositories] = useState<RepositoryReference[]>(EMPTY_REPOSITORIES)
     const [repositoryFilter, setRepositoryFilter] = useState('')
     const [selectedBranch, setSelectedBranch] = useState(project?.branch ?? '')
@@ -179,6 +213,7 @@ export function ProjectToolbarMenu(props: ProjectToolbarMenuProps) {
     const handleCloseDialog = () => {
         setDialogMode(null)
         setErrorMessage(null)
+        setMissingWorkingFolder(null)
     }
 
     const handleRepositoryFilterChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -204,6 +239,7 @@ export function ProjectToolbarMenu(props: ProjectToolbarMenuProps) {
     const handleSourceChange = (event: SelectChangeEvent) => {
         setSource(event.target.value as ProjectSource)
         setBranches(EMPTY_BRANCHES)
+        setMissingWorkingFolder(null)
         setSelectedBranch('')
         setLocalProject(null)
     }
@@ -280,6 +316,7 @@ export function ProjectToolbarMenu(props: ProjectToolbarMenuProps) {
     const openProject = async (storageType: StorageType, nextProject: ProjectReference) => {
         setIsLoading(true)
         setErrorMessage(null)
+        setMissingWorkingFolder(null)
 
         try {
             const storage = createStorageService(storageType, accessToken)
@@ -288,7 +325,83 @@ export function ProjectToolbarMenu(props: ProjectToolbarMenuProps) {
             writeLastProject(storageType, nextProject)
             handleCloseDialog()
         } catch (error) {
+            if (isMissingWorkingFolderError(error)) {
+                try {
+                    const storage = createStorageService(storageType, accessToken)
+                    const folders = await storage.listTopLevelFolders(nextProject)
+                    setMissingWorkingFolder({
+                        configuredWorkingFolder: error.workingFolder,
+                        folders,
+                        project: nextProject,
+                        storageType,
+                    })
+                    setErrorMessage(null)
+                } catch (listError) {
+                    setErrorMessage(listError instanceof Error ? listError.message : 'Working folder list failed')
+                    setMissingWorkingFolder({
+                        configuredWorkingFolder: error.workingFolder,
+                        folders: EMPTY_TOP_LEVEL_FOLDERS,
+                        project: nextProject,
+                        storageType,
+                    })
+                }
+
+                return
+            }
+
             setErrorMessage(error instanceof Error ? error.message : 'Project load failed')
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
+    const openExistingWorkingFolder = async (folder: TopLevelFolderReference) => {
+        if (!missingWorkingFolder) return
+
+        setIsLoading(true)
+        setErrorMessage(null)
+
+        try {
+            const storage = createStorageService(missingWorkingFolder.storageType, accessToken)
+            await persistWorkingFolder(storage, missingWorkingFolder.project, folder.path)
+            dataService.init({ storage })
+            await dataService.openProject(missingWorkingFolder.project)
+            writeLastProject(missingWorkingFolder.storageType, missingWorkingFolder.project)
+            handleCloseDialog()
+        } catch (error) {
+            setErrorMessage(error instanceof Error ? error.message : 'Working folder selection failed')
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
+    const handleUseWorkingFolderClick = (event: MouseEvent<HTMLButtonElement>) => {
+        const folderPath = event.currentTarget.value
+        const folder = missingWorkingFolder?.folders.find((currentFolder) => currentFolder.path === folderPath)
+        if (!folder) return
+
+        void openExistingWorkingFolder(folder)
+    }
+
+    const handleCreateWorkingFolderClick = async () => {
+        if (!missingWorkingFolder) return
+
+        setIsLoading(true)
+        setErrorMessage(null)
+
+        try {
+            const storage = createStorageService(missingWorkingFolder.storageType, accessToken)
+            const nextProject = await storage.createWorkingFolderFromTemplate(
+                missingWorkingFolder.project,
+                missingWorkingFolder.configuredWorkingFolder,
+            )
+            await persistWorkingFolder(storage, nextProject, missingWorkingFolder.configuredWorkingFolder)
+            dataService.init({ storage })
+            await dataService.openProject(nextProject)
+            writeLastProject(missingWorkingFolder.storageType, nextProject)
+            handleCloseDialog()
+        } catch (error) {
+            setErrorMessage(error instanceof Error ? error.message : 'Working folder creation failed')
         } finally {
             setIsLoading(false)
         }
@@ -433,6 +546,25 @@ export function ProjectToolbarMenu(props: ProjectToolbarMenuProps) {
                                 {branches.map(({ name }) => <MenuItem key={name} value={name}>{name}</MenuItem>)}
                             </Select>
                         </FormControl>
+                        {missingWorkingFolder ? (
+                            <Stack spacing={1}>
+                                <Typography variant="subtitle2">Working folder is missing: {missingWorkingFolder.configuredWorkingFolder}</Typography>
+                                {missingWorkingFolder.folders.map((folder) => (
+                                    <Button
+                                        disabled={isLoading}
+                                        key={folder.path}
+                                        onClick={handleUseWorkingFolderClick}
+                                        value={folder.path}
+                                        variant="outlined"
+                                    >
+                                        Use folder {folder.name}
+                                    </Button>
+                                ))}
+                                <Button disabled={isLoading} onClick={handleCreateWorkingFolderClick} variant="outlined">
+                                    Create &apos;{missingWorkingFolder.configuredWorkingFolder}&apos; from template
+                                </Button>
+                            </Stack>
+                        ) : null}
                     </Stack>
                 </DialogContent>
                 <DialogActions>

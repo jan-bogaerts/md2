@@ -1,7 +1,7 @@
 ---
 id: F-027
 title: repository and branch selection
-status: design
+status: ready
 owner: JB
 affects:
 policy:

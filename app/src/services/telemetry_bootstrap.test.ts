@@ -44,8 +44,8 @@ function createBridge(): ElectronDataBridge {
 describe('startReactTelemetry', () => {
     beforeEach(() => {
         vi.resetModules()
-        vi.stubEnv('VITE_APTABASE_APP_KEY', 'aptabase-key')
-        vi.stubEnv('VITE_SENTRY_DSN', 'sentry-dsn')
+        vi.stubEnv('APTABASE_APP_KEY', 'aptabase-key')
+        vi.stubEnv('SENTRY_DSN', 'sentry-dsn')
         telemetryMocks.aptabaseInit.mockClear()
         telemetryMocks.aptabaseTrackEvent.mockClear()
         telemetryMocks.sentryCaptureException.mockClear()
