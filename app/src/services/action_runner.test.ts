@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import type { ActionContext } from '../data/action_context'
 import type { ActionDefinition } from '../data/action_types'
 import type { AgentExecutionRequest, AgentExecutionResult, CommandExecutionResult, ElectronActionBridge } from '../data/electron_action_bridge'
+import type { AgentConversation, AgentRunEvent } from '../data/data_types'
 import { ActionRunner } from './action_runner'
 
 function action(name: string, overrides: Partial<ActionDefinition> = {}): ActionDefinition {
@@ -36,8 +37,36 @@ function commandResult(command: string, overrides: Partial<CommandExecutionResul
     return { command, exitCode: 0, stderr: '', stdout: command, ...overrides }
 }
 
+function conversation(request: AgentExecutionRequest): AgentConversation {
+    return {
+        cardPath: request.cardPath,
+        completedAt: '2026-01-01T00:01:00.000Z',
+        events: [],
+        id: 'agent-1',
+        messages: [{ content: request.prompt, id: 'm1', role: 'stdout', timestamp: '2026-01-01T00:01:00.000Z' }],
+        path: '.md2-agent-logs/one.json',
+        startedAt: '2026-01-01T00:00:00.000Z',
+        status: 'completed',
+        title: 'Agent run',
+    }
+}
+
 function agentResult(request: AgentExecutionRequest, overrides: Partial<AgentExecutionResult> = {}): AgentExecutionResult {
-    return { command: request.command, exitCode: 0, prompt: request.prompt, stderr: '', stdout: request.prompt, ...overrides }
+    return {
+        command: request.command,
+        conversation: conversation(request),
+        exitCode: 0,
+        prompt: request.prompt,
+        reference: '.md2-agent-logs/one.json',
+        runId: 'agent-1',
+        stderr: '',
+        stdout: request.prompt,
+        ...overrides,
+    }
+}
+
+function noopAgentConversationLinker() {
+    return Promise.resolve()
 }
 
 function runner(commandRunner = vi.fn(async (_bridge: ElectronActionBridge, command: string) => commandResult(command))) {
@@ -108,21 +137,37 @@ describe('ActionRunner', () => {
     })
 
     it('runs an agent action with resolved placeholders and extra prompt input', async () => {
-        const agentRunner = vi.fn(async (_bridge: ElectronActionBridge, request: AgentExecutionRequest) => (
-            agentResult(request)
-        ))
+        const agentRunner = vi.fn(async (
+            _bridge: ElectronActionBridge,
+            request: AgentExecutionRequest,
+            onEvent?: (event: AgentRunEvent) => void,
+        ) => {
+            onEvent?.({ content: '', conversation: conversation(request), runId: 'agent-1', type: 'started' })
+
+            return agentResult(request)
+        })
+        const agentRunEventRecorder = vi.fn()
         const actionHistoryAppender = vi.fn(async () => [])
+        const agentConversationLinker = vi.fn(async () => undefined)
         const result = await new ActionRunner({
             actionHistoryAppender,
+            agentConversationLinker,
             actionsFolderProvider: () => 'actions',
             agentCommandProvider: () => 'codex',
+            agentRunEventRecorder,
             agentRunner,
             bridgeProvider: () => bridge,
             projectProvider: () => ({ branch: 'main', id: 'local', rootPath: 'C:/repo' }),
         }).run(action('implement', { text: 'implement {{file}}', type: 'agent' }), context, { extraPrompt: 'focus tests' })
 
         expect(result.status).toBe('completed')
-        expect(agentRunner).toHaveBeenCalledWith(bridge, { command: 'codex', prompt: 'implement design/F-010.md\n\nfocus tests' })
+        expect(agentRunEventRecorder).toHaveBeenCalledWith('design/F-010.md', expect.objectContaining({ type: 'started' }))
+        expect(agentConversationLinker).toHaveBeenCalledWith('design/F-010.md', expect.objectContaining({ reference: '.md2-agent-logs/one.json' }))
+        expect(agentRunner).toHaveBeenCalledWith(
+            bridge,
+            { cardPath: 'design/F-010.md', command: 'codex', prompt: 'implement design/F-010.md\n\nfocus tests', title: 'implement' },
+            expect.any(Function),
+        )
         expect(actionHistoryAppender).toHaveBeenCalledWith(
             bridge,
             { actionName: 'implement', actionsFolder: 'actions', context },
@@ -136,6 +181,7 @@ describe('ActionRunner', () => {
         ))
         const result = await new ActionRunner({
             actionHistoryAppender: vi.fn(async () => []),
+            agentConversationLinker: noopAgentConversationLinker,
             actionsFolderProvider: () => 'actions',
             agentCommandProvider: () => 'codex',
             agentRunner,
@@ -144,7 +190,11 @@ describe('ActionRunner', () => {
         }).run(action('custom prompt', { text: '{{prompt}}', type: 'agent' }), context, { extraPrompt: 'write docs' })
 
         expect(result.status).toBe('completed')
-        expect(agentRunner).toHaveBeenCalledWith(bridge, { command: 'codex', prompt: 'write docs' })
+        expect(agentRunner).toHaveBeenCalledWith(
+            bridge,
+            { cardPath: 'design/F-010.md', command: 'codex', prompt: 'write docs', title: 'custom prompt' },
+            expect.any(Function),
+        )
     })
 
     it('runs agent actions through before, on and after chains', async () => {
@@ -159,6 +209,7 @@ describe('ActionRunner', () => {
 
         const result = await new ActionRunner({
             actionHistoryAppender: vi.fn(async () => []),
+            agentConversationLinker: noopAgentConversationLinker,
             actionsFolderProvider: () => 'actions',
             agentCommandProvider: () => 'codex',
             agentRunner,
@@ -221,6 +272,7 @@ describe('ActionRunner', () => {
         const actionHistoryAppender = vi.fn(async () => [])
         await new ActionRunner({
             actionHistoryAppender,
+            agentConversationLinker: noopAgentConversationLinker,
             actionsFolderProvider: () => 'actions',
             bridgeProvider: () => bridge,
             commandRunner: vi.fn(async (_bridge: ElectronActionBridge, command: string) => commandResult(command)),
@@ -237,6 +289,7 @@ describe('ActionRunner', () => {
         ))
         await new ActionRunner({
             actionHistoryAppender,
+            agentConversationLinker: noopAgentConversationLinker,
             actionsFolderProvider: () => 'actions',
             agentCommandProvider: () => 'codex',
             agentRunner,

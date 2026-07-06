@@ -10,8 +10,9 @@ import {
     type CommandExecutionResult,
     type ElectronActionBridge,
 } from '../data/electron_action_bridge'
-import type { ProjectReference } from '../data/data_types'
+import type { AgentRunEvent, ProjectReference } from '../data/data_types'
 import { dataService } from './data_service'
+import { agentConversationService } from './agent_conversation_service'
 import { configService } from './config_service'
 
 type RunStatus = 'completed' | 'failed'
@@ -33,8 +34,14 @@ export interface ActionRunResult {
 }
 
 interface ActionRunnerDependencies {
+    agentConversationLinker?: (cardPath: string, result: AgentExecutionResult) => Promise<void>
     agentCommandProvider?: () => string
-    agentRunner?: (bridge: ElectronActionBridge, request: AgentExecutionRequest) => Promise<AgentExecutionResult>
+    agentRunEventRecorder?: (cardPath: string, event: AgentRunEvent) => void
+    agentRunner?: (
+        bridge: ElectronActionBridge,
+        request: AgentExecutionRequest,
+        onEvent?: (event: AgentRunEvent) => void,
+    ) => Promise<AgentExecutionResult>
     actionHistoryAppender?: (
         bridge: ElectronActionBridge,
         request: ActionRunHistoryRequest,
@@ -186,8 +193,17 @@ async function defaultCommandRunner(bridge: ElectronActionBridge, command: strin
     return bridge.runCommand(command)
 }
 
-async function defaultAgentRunner(bridge: ElectronActionBridge, request: AgentExecutionRequest) {
-    return bridge.runAgent(request)
+async function defaultAgentRunner(bridge: ElectronActionBridge, request: AgentExecutionRequest, onEvent?: (event: AgentRunEvent) => void) {
+    return bridge.runAgent(request, onEvent)
+}
+
+async function defaultAgentConversationLinker(cardPath: string, result: AgentExecutionResult) {
+    await dataService.linkAgentConversation(cardPath, result.conversation, result.reference)
+}
+
+function defaultAgentRunEventRecorder(cardPath: string, event: AgentRunEvent) {
+    agentConversationService.observeRunEvent(event, `Agent ${cardPath}`)
+    dataService.recordAgentRunEvent(cardPath, event)
 }
 
 async function defaultActionHistoryAppender(bridge: ElectronActionBridge, request: ActionRunHistoryRequest, entry: ActionRunHistoryEntry) {
@@ -236,6 +252,7 @@ function createActionDefinition(input: ConvertPromptToActionInput): RawActionDef
 }
 
 export class ActionRunner {
+    private agentConversationLinker: (cardPath: string, result: AgentExecutionResult) => Promise<void>
     private actionHistoryAppender: (
         bridge: ElectronActionBridge,
         request: ActionRunHistoryRequest,
@@ -245,17 +262,24 @@ export class ActionRunner {
     private actionWriter: (path: string, content: string) => Promise<void>
     private actionsFolderProvider: () => string | null
     private agentCommandProvider: () => string
-    private agentRunner: (bridge: ElectronActionBridge, request: AgentExecutionRequest) => Promise<AgentExecutionResult>
+    private agentRunEventRecorder: (cardPath: string, event: AgentRunEvent) => void
+    private agentRunner: (
+        bridge: ElectronActionBridge,
+        request: AgentExecutionRequest,
+        onEvent?: (event: AgentRunEvent) => void,
+    ) => Promise<AgentExecutionResult>
     private bridgeProvider: () => ElectronActionBridge | null
     private commandRunner: (bridge: ElectronActionBridge, command: string) => Promise<CommandExecutionResult>
     private projectProvider: () => ProjectReference | null
 
     constructor(dependencies: ActionRunnerDependencies = {}) {
+        this.agentConversationLinker = dependencies.agentConversationLinker ?? defaultAgentConversationLinker
         this.actionHistoryAppender = dependencies.actionHistoryAppender ?? defaultActionHistoryAppender
         this.actionHistoryLoader = dependencies.actionHistoryLoader ?? defaultActionHistoryLoader
         this.actionWriter = dependencies.actionWriter ?? defaultActionWriter
         this.actionsFolderProvider = dependencies.actionsFolderProvider ?? defaultActionsFolderProvider
         this.agentCommandProvider = dependencies.agentCommandProvider ?? defaultAgentCommandProvider
+        this.agentRunEventRecorder = dependencies.agentRunEventRecorder ?? defaultAgentRunEventRecorder
         this.agentRunner = dependencies.agentRunner ?? defaultAgentRunner
         this.bridgeProvider = dependencies.bridgeProvider ?? getElectronActionBridge
         this.commandRunner = dependencies.commandRunner ?? defaultCommandRunner
@@ -352,9 +376,13 @@ export class ActionRunner {
         try {
             const command = this.agentCommandProvider()
             const prompt = resolveAgentPrompt(action, context, project, options.extraPrompt)
-            const result = await this.agentRunner(bridge, { command, prompt })
+            if (!context.file) throw new Error('Agent actions require a file context')
+
+            const request = { cardPath: context.file, command, prompt, title: action.label }
+            const result = await this.agentRunner(bridge, request, (event) => this.agentRunEventRecorder(context.file as string, event))
             options.state.logs.push(createAgentLog(action, options.phase, command, result))
             if (result.exitCode !== 0) options.state.failed = true
+            await this.agentConversationLinker(context.file, result)
             await this.appendAgentHistory(bridge, action, context, result)
 
             return combineOutput(result)

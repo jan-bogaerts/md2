@@ -123,17 +123,20 @@ export class AgentConversationService extends EventTarget {
         storage: StorageService,
         project: ProjectReference,
         request: Omit<ContinueAgentConversationRequest, 'input'>,
+        onEvent: (event: AgentRunEvent) => void,
     ): Promise<ContinueAgentConversationResult> {
-        if (!storage.continueAgentConversation) throw new Error('Continuing agent conversations requires an Electron agent bridge')
+        if (!storage.startAgentConversation) throw new Error('Continuing agent conversations requires an Electron agent bridge')
 
-        const runningAgent = { id: `${request.cardPath}:${request.sourcePath}:${Date.now()}`, label: `Continue ${request.cardPath}` }
-        this.setRunningAgents([...this.runningAgents, runningAgent])
+        const result = await storage.startAgentConversation(
+            project,
+            { cardPath: request.cardPath, prompt: CONTINUE_INPUT, title: 'Continue' },
+            (event) => {
+                onEvent(event)
+                this.observeRunEvent(event, `Continue ${request.cardPath}`)
+            },
+        )
 
-        try {
-            return await storage.continueAgentConversation(project, { ...request, input: CONTINUE_INPUT })
-        } finally {
-            this.setRunningAgents(this.runningAgents.filter((agent) => agent.id !== runningAgent.id))
-        }
+        return result
     }
 
     async startConversation(
@@ -146,12 +149,22 @@ export class AgentConversationService extends EventTarget {
 
         const result = await storage.startAgentConversation(project, request, (event) => {
             onEvent(event)
-            if (event.type === 'closed') this.removeRunningAgent(event.runId)
+            this.observeRunEvent(event, `Agent ${request.cardPath}`)
         })
-        const runningAgent = { id: result.runId, label: `Agent ${request.cardPath}` }
-        this.setRunningAgents([...this.runningAgents, runningAgent])
 
         return result
+    }
+
+    observeRunEvent(event: AgentRunEvent, label: string) {
+        if (event.type === 'started') {
+            if (!this.runningAgents.some((agent) => agent.id === event.runId)) {
+                this.setRunningAgents([...this.runningAgents, { id: event.runId, label }])
+            }
+
+            return
+        }
+
+        if (event.type === 'closed' || event.type === 'error') this.removeRunningAgent(event.runId)
     }
 
     subscribe(listener: Listener) {

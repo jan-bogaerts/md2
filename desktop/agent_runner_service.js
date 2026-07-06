@@ -88,7 +88,30 @@ class AgentRunnerService {
         this.processes = new Map()
     }
 
-    async start(project, request, onEvent) {
+    async run(project, request, onEvent) {
+        let resolveCompletion
+        const completion = new Promise((resolve) => {
+            resolveCompletion = resolve
+        })
+        const onComplete = (exitCode, run) => {
+            resolveCompletion({
+                command: request.command,
+                conversation: { ...run.conversation, path: run.reference },
+                exitCode,
+                prompt: request.prompt,
+                reference: run.reference,
+                runId: run.conversation.id,
+                stderr: run.stderr,
+                stdout: run.stdout,
+            })
+        }
+
+        await this.start(project, request, onEvent, onComplete)
+
+        return completion
+    }
+
+    async start(project, request, onEvent, onComplete) {
         const rootPath = requireRootPath(project)
         await assertGitRoot(rootPath)
 
@@ -116,7 +139,7 @@ class AgentRunnerService {
         await persistConversation(filePath, conversation)
 
         const child = spawn(command, { cwd: rootPath, shell: true })
-        const run = { child, conversation, filePath, onEvent, reference }
+        const run = { child, conversation, filePath, onComplete, onEvent, reference, stderr: '', stdout: '' }
         this.processes.set(id, run)
 
         child.stdout.on('data', (chunk) => this.handleOutput(id, 'stdout', chunk))
@@ -148,12 +171,19 @@ class AgentRunnerService {
         run.child.kill()
     }
 
+    stopAll() {
+        for (const run of this.processes.values()) {
+            run.child.kill()
+        }
+    }
+
     handleOutput(runId, role, chunk) {
         const run = this.processes.get(runId)
         if (!run) return
 
         const content = chunk.toString()
         const timestamp = new Date().toISOString()
+        run[role] += content
         run.conversation.messages.push(createMessage(`${runId}-${role}-${run.conversation.messages.length}`, role, content, timestamp))
         run.conversation.events.push(createEvent(`${runId}-${role}-${run.conversation.events.length}`, role, content, timestamp))
         void persistConversation(run.filePath, run.conversation)
@@ -181,8 +211,9 @@ class AgentRunnerService {
         run.conversation.status = exitCode === 0 ? 'completed' : 'failed'
         run.conversation.events.push(createEvent(`${runId}-closed`, 'closed', String(exitCode), completedAt))
         await persistConversation(run.filePath, run.conversation)
-        this.processes.delete(runId)
         emitRunEvent(run, 'closed', String(exitCode))
+        if (run.onComplete) run.onComplete(exitCode, run)
+        this.processes.delete(runId)
     }
 
     requireRun(runId) {

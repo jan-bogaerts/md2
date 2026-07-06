@@ -122,8 +122,12 @@ const actionBridge = {
     generateDiff: (request) => diffService.generateDiff(currentLocalProject, request),
     loadActionRunHistory: (request) => localGitService.loadActionRunHistory(currentLocalProject, request),
     openInEditor: (request) => diffService.openInEditor(currentLocalProject, request),
-    runAgent: (request) => localGitService.runAgent(currentLocalProject, request),
+    runAgent: (request, callback) => agentRunnerService.run(currentLocalProject, request, callback),
     runCommand: (command) => localGitService.runCommand(currentLocalProject, command),
 }
 
 window.md2Actions = actionBridge
+
+window.addEventListener('beforeunload', () => {
+    agentRunnerService.stopAll()
+})

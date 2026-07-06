@@ -1,4 +1,5 @@
 import type { ActionContext } from './action_context'
+import type { AgentConversation, AgentRunEvent } from './data_types'
 
 export interface CommandExecutionResult {
     command: string
@@ -8,12 +9,17 @@ export interface CommandExecutionResult {
 }
 
 export interface AgentExecutionRequest {
+    cardPath: string
     command: string
     prompt: string
+    title?: string
 }
 
 export interface AgentExecutionResult extends CommandExecutionResult {
+    conversation: AgentConversation
     prompt: string
+    reference: string
+    runId: string
 }
 
 export interface ActionRunHistoryRequest {
@@ -77,7 +83,7 @@ export interface ElectronActionBridge {
     generateDiff(request: DiffRequest): Promise<DiffResult>
     loadActionRunHistory(request: ActionRunHistoryRequest): Promise<ActionRunHistoryEntry[]>
     openInEditor(request: OpenInEditorRequest): Promise<void>
-    runAgent(request: AgentExecutionRequest): Promise<AgentExecutionResult>
+    runAgent(request: AgentExecutionRequest, callback?: (event: AgentRunEvent) => void): Promise<AgentExecutionResult>
     runCommand(command: string): Promise<CommandExecutionResult>
 }
 

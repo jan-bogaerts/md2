@@ -260,25 +260,21 @@ export class DataService extends EventTarget {
         const { storage } = this.requireDependencies()
         if (!this.currentProject) throw new Error('Cannot continue an agent before a project is open')
 
-        const existingFile = this.requireFile(cardPath)
-        const result = await agentConversationService.continueConversation(storage, this.currentProject, { cardPath, sourcePath })
-        const card = markdownParsingService.parseCard(existingFile, this.requireDependencies().config.workingFolder)
-        const nextReferences = [...new Set([...card.header.agentLogReferences, result.reference])]
-        const conversations = this.conversationsByCardPath.get(cardPath) ?? []
-        this.conversationsByCardPath.set(cardPath, [...conversations, result.conversation])
+        const result = await agentConversationService.continueConversation(
+            storage,
+            this.currentProject,
+            { cardPath, sourcePath },
+            (event) => this.recordAgentRunEvent(cardPath, event),
+        )
+        this.upsertAgentConversation(cardPath, result.conversation)
 
-        return this.saveFile({
-            content: markdownParsingService.setAgentLogReferences(existingFile.content, nextReferences),
-            path: cardPath,
-            sha: existingFile.sha,
-        })
+        return this.linkAgentConversation(cardPath, result.conversation, result.reference)
     }
 
     async startAgentConversation(cardPath: string, prompt: string) {
         const { storage } = this.requireDependencies()
         if (!this.currentProject) throw new Error('Cannot start an agent before a project is open')
 
-        const existingFile = this.requireFile(cardPath)
         const result = await agentConversationService.startConversation(
             storage,
             this.currentProject,
@@ -287,14 +283,7 @@ export class DataService extends EventTarget {
         )
         this.upsertAgentConversation(cardPath, result.conversation)
 
-        const card = markdownParsingService.parseCard(existingFile, this.requireDependencies().config.workingFolder)
-        const nextReferences = [...new Set([...card.header.agentLogReferences, result.reference])]
-
-        return this.saveFile({
-            content: markdownParsingService.setAgentLogReferences(existingFile.content, nextReferences),
-            path: cardPath,
-            sha: existingFile.sha,
-        })
+        return this.linkAgentConversation(cardPath, result.conversation, result.reference)
     }
 
     async sendAgentInput(runId: string, input: string) {
@@ -303,6 +292,23 @@ export class DataService extends EventTarget {
         if (!storage.sendAgentInput) throw new Error('Sending agent input requires an Electron agent bridge')
 
         await storage.sendAgentInput(this.currentProject, runId, input)
+    }
+
+    recordAgentRunEvent(cardPath: string, event: AgentRunEvent) {
+        this.upsertAgentConversation(cardPath, event.conversation)
+    }
+
+    linkAgentConversation(cardPath: string, conversation: AgentConversation, reference: string) {
+        const existingFile = this.requireFile(cardPath)
+        const card = markdownParsingService.parseCard(existingFile, this.requireDependencies().config.workingFolder)
+        const nextReferences = [...new Set([...card.header.agentLogReferences, reference])]
+        this.upsertAgentConversation(cardPath, conversation)
+
+        return this.saveFile({
+            content: markdownParsingService.setAgentLogReferences(existingFile.content, nextReferences),
+            path: cardPath,
+            sha: existingFile.sha,
+        })
     }
 
     private requireFile(path: string): MarkdownFile {
