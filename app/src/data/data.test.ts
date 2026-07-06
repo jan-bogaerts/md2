@@ -138,6 +138,54 @@ describe('DataService', () => {
         expect(storage.push).toHaveBeenCalledWith({ branch: 'main', id: 'project' })
     })
 
+    it('imports Remarkable images into an existing card and commits card, assets and metadata together', async () => {
+        configService.init()
+        const storage = createStorage()
+        const remarkableBridge = {
+            importFiles: vi.fn(async () => [
+                { content: btoa('img'), modifiedTime: '2026-07-01T10:00:00.000Z', name: 'note.png', sourcePath: '/img/note.png' },
+            ]),
+            listImageFiles: vi.fn(async () => []),
+            testConnection: vi.fn(async () => ({ message: null, ok: true })),
+        }
+        const service = new DataService()
+        service.init({ remarkableBridge, storage })
+        await service.openProject({ branch: 'main', id: 'project' })
+
+        const plan = await service.importRemarkableImages({
+            paths: ['/img/note.png'],
+            settings: { host: 'remarkable.local', imageFolder: '/img', password: 'secret', port: 22, username: 'root' },
+            target: { cardPath: 'design/F-1-root.md', kind: 'existing' },
+        })
+
+        expect(remarkableBridge.importFiles).toHaveBeenCalledWith(expect.objectContaining({ paths: ['/img/note.png'] }))
+        const commitRequest = vi.mocked(storage.commit).mock.calls[0][0]
+        expect(commitRequest.files.map((file) => file.path)).toEqual([
+            'design/F-1-root.md',
+            'design/note.png',
+            'design/.remarkable-import.json',
+        ])
+        expect(commitRequest.files[1].encoding).toBe('base64')
+        expect(plan.importedAssetPaths).toEqual(['design/note.png'])
+        expect(storage.push).toHaveBeenCalled()
+    })
+
+    it('rejects Remarkable import when no bridge is available', async () => {
+        configService.init()
+        const storage = createStorage()
+        const service = new DataService()
+        service.init({ storage })
+        await service.openProject({ branch: 'main', id: 'project' })
+
+        await expect(service.importRemarkableImages({
+            paths: ['/img/note.png'],
+            settings: { host: 'remarkable.local', imageFolder: '/img', password: 'secret', port: 22, username: 'root' },
+            target: { cardPath: 'design/F-1-root.md', kind: 'existing' },
+        })).rejects.toThrow(/Electron local mode/u)
+
+        expect(storage.commit).not.toHaveBeenCalled()
+    })
+
     it('emits usage events after project and card operations succeed', async () => {
         configService.init()
         const storage = createStorage()

@@ -16,12 +16,14 @@ import {
     type PushMode,
 } from '../data/data_types'
 import { getElectronDataBridge } from '../data/electron_data_bridge'
+import { getRemarkableBridge } from '../data/remarkable_bridge'
 import { configService } from '../services/config_service'
 import { dataService } from '../services/data_service'
 import { getElectronConfigBridge } from '../services/electron_config_bridge'
 import { telemetryService } from '../services/telemetry_service'
 import { workspaceNavigationService, type WorkspaceOpenRequest } from '../services/workspace_navigation_service'
 import { CardView } from './card_view/card_view'
+import { RemarkableImportPanel } from './remarkable_import_panel'
 import { TextView } from './text_view/text_view'
 import { useProjectState } from './hooks/use_project_state'
 
@@ -66,6 +68,7 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
     const [selectedPath, setSelectedPath] = useState<string | null>(null)
     const [viewMode, setViewMode] = useState<WorkspaceViewMode>('cards')
     const electronBridge = useMemo(() => getElectronDataBridge(), [])
+    const remarkableBridge = useMemo(() => getRemarkableBridge(), [])
     const canUseLocalGit = !!electronBridge
     const isProjectOpen = !!project
     const projectConfig = dataService.getConfig()
@@ -316,6 +319,13 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
                         Create Feature
                     </Button>
                 </Stack>
+
+                {remarkableBridge ? (
+                    <>
+                        <Divider />
+                        <RemarkableImportPanel activeCards={activeCards} bridge={remarkableBridge} isProjectOpen={isProjectOpen} />
+                    </>
+                ) : null}
             </Stack>
         </Paper>
     )

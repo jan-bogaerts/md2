@@ -9,6 +9,7 @@ export type TelemetryEventName =
     | 'open_project'
     | 'react_start'
     | 'react_stop'
+    | 'remarkable_import'
 
 interface AptabaseClient {
     init(appKey: string): void
@@ -41,6 +42,7 @@ const TELEMETRY_EVENTS = new Set<TelemetryEventName>([
     'open_project',
     'react_start',
     'react_stop',
+    'remarkable_import',
 ])
 
 function hasValue(value: string | undefined) {

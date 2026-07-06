@@ -1,7 +1,7 @@
 ---
 id: F-015
 title: remarkable integration
-status: design
+status: ready
 owner: JB
 affects:
 policy:

@@ -14,9 +14,12 @@ import {
     type RunningAgent,
     type StorageService,
 } from '../data/data_types'
+import { getRemarkableBridge, validateRemarkableSettings, type RemarkableBridge, type RemarkableConnectionSettings } from '../data/remarkable_bridge'
+import { remarkableMetadataPath } from '../data/remarkable_import_metadata'
 import { actionService } from './action_service'
 import { actionRunner } from './action_runner'
 import { agentConversationService, loadAgentConversation } from './agent_conversation_service'
+import { buildRemarkableImport, type RemarkableImportPlan, type RemarkableImportTarget } from './remarkable_import_service'
 import { configService } from './config_service'
 import { markdownParsingService } from './markdown_parsing_service'
 import { register } from './service_injector'
@@ -32,8 +35,27 @@ function isActionDefinitionPath(path: string, actionsFolder: string) {
     return normalizedPath.startsWith(`${normalizedActionsFolder}/`) && normalizedPath.toLowerCase().endsWith(JSON_EXTENSION)
 }
 
+/** Merge committed files into the loaded set: replace matching paths, append new ones. */
+function mergeFiles(current: MarkdownFile[], updates: MarkdownFile[]): MarkdownFile[] {
+    const updateByPath = new Map(updates.map((file) => [file.path, file]))
+    const merged = current.map((file) => updateByPath.get(file.path) ?? file)
+    const existingPaths = new Set(current.map((file) => file.path))
+    for (const file of updates) {
+        if (!existingPaths.has(file.path)) merged.push(file)
+    }
+
+    return merged
+}
+
 interface DataServiceDependencies {
+    remarkableBridge?: RemarkableBridge
     storage: StorageService
+}
+
+export interface RemarkableImportInput {
+    paths: string[]
+    settings: RemarkableConnectionSettings
+    target: RemarkableImportTarget
 }
 
 export interface DataServiceState {
@@ -56,6 +78,7 @@ export class DataService extends EventTarget {
     private currentProject: ProjectReference | null
     private currentSnapshot: ProjectSnapshot | null
     private errorsByCardPath: Map<string, AgentConversationError[]>
+    private remarkableBridge: RemarkableBridge | null
     private storage: StorageService | null
     private watchCleanup: (() => void) | null
 
@@ -69,6 +92,7 @@ export class DataService extends EventTarget {
         this.currentProject = null
         this.currentSnapshot = null
         this.errorsByCardPath = new Map()
+        this.remarkableBridge = null
         this.storage = null
         this.watchCleanup = null
         agentConversationService.subscribe(() => this.dispatchChanged())
@@ -84,6 +108,7 @@ export class DataService extends EventTarget {
         this.currentProject = null
         this.currentSnapshot = null
         this.errorsByCardPath = new Map()
+        this.remarkableBridge = dependencies.remarkableBridge ?? null
         this.storage = dependencies.storage
         actionService.init()
         const delayMs = configService.get('react.autoCommitDelayMs') as number
@@ -171,6 +196,50 @@ export class DataService extends EventTarget {
         telemetryService.trackEvent('create_card')
 
         return file
+    }
+
+    getRemarkableMetadataContent(): string | null {
+        const config = this.getConfig()
+        if (!config) return null
+
+        const path = remarkableMetadataPath(config.workingFolder)
+
+        return this.currentFiles.find((file) => file.path === path)?.content ?? null
+    }
+
+    /**
+     * Import selected Remarkable images beside a target card and commit the card, image assets and
+     * refreshed import metadata together. The transfer and file plan are built before any commit, so
+     * a failure (bad settings, transfer error, duplicate name, unsupported type) leaves state intact.
+     */
+    async importRemarkableImages(request: RemarkableImportInput): Promise<RemarkableImportPlan> {
+        const { config, storage } = this.requireDependencies()
+        if (!this.currentProject) throw new Error('Cannot import Remarkable images before a project is open')
+
+        const bridge = this.remarkableBridge ?? getRemarkableBridge()
+        if (!bridge) throw new Error('Remarkable import requires Electron local mode')
+
+        const settings = validateRemarkableSettings(request.settings)
+        const assets = await bridge.importFiles({ paths: request.paths, settings })
+        const plan = buildRemarkableImport({
+            assets,
+            config,
+            files: this.currentFiles,
+            importedAt: new Date().toISOString(),
+            metadataContent: this.getRemarkableMetadataContent(),
+            settings,
+            target: request.target,
+        })
+
+        await storage.commit({ branch: this.currentProject.branch, files: plan.commitFiles, message: plan.message })
+        this.currentFiles = mergeFiles(this.currentFiles, plan.commitFiles)
+
+        if (config.pushMode === 'auto') await storage.push(this.currentProject)
+
+        this.refreshSnapshot()
+        telemetryService.trackEvent('remarkable_import')
+
+        return plan
     }
 
     updateCardBody(path: string, body: string) {
