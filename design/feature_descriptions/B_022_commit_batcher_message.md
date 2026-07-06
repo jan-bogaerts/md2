@@ -1,7 +1,7 @@
 ---
 id: B-022
 title: commit batcher keeps only the last message for a batch
-status: ready
+status: design
 owner: JB
 affects:
 policy:

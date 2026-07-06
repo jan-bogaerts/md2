@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { DEFAULT_CARD_TYPES } from '../data/data_types'
-import { ConfigService } from './config_service'
+import { ConfigService, REACT_CONFIG_STORAGE_KEY, readStartupSplashPreference } from './config_service'
 
 describe('ConfigService', () => {
     let service = new ConfigService()
@@ -8,6 +8,7 @@ describe('ConfigService', () => {
     afterEach(() => {
         service.clear()
         service = new ConfigService()
+        window.localStorage.clear()
     })
 
     it('merges project config over defaults', () => {
@@ -64,5 +65,57 @@ describe('ConfigService', () => {
 
         expect(service.getEntries().some((entry) => entry.source === 'desktop')).toBe(true)
         expect(service.get('desktop.agent')).toBe('system')
+    })
+
+    it('persists react and connection values across instances, simulating a reload', () => {
+        service.init()
+        service.loadDraft()
+        service.setDraftValue('react.autoCommitDelayMs', 5000)
+        service.setDraftValue('connection.githubScopes', 'public_repo')
+        service.saveDraft()
+
+        const reloaded = new ConfigService()
+        reloaded.init()
+
+        expect(reloaded.get('react.autoCommitDelayMs')).toBe(5000)
+        expect(reloaded.get('connection.githubScopes')).toBe('public_repo')
+
+        reloaded.clear()
+    })
+
+    it('falls back to defaults when stored react config is corrupted', () => {
+        window.localStorage.setItem(REACT_CONFIG_STORAGE_KEY, 'not-json')
+
+        expect(() => service.init()).not.toThrow()
+        expect(service.get('react.autoCommitDelayMs')).toBe(30000)
+        expect(service.get('react.showStartupSplash')).toBe(true)
+    })
+
+    it('ignores an out-of-range persisted value and keeps its default, without affecting other keys', () => {
+        window.localStorage.setItem(
+            REACT_CONFIG_STORAGE_KEY,
+            JSON.stringify({ 'react.autoCommitDelayMs': 999999999, 'connection.githubScopes': 'public_repo' }),
+        )
+
+        service.init()
+
+        expect(service.get('react.autoCommitDelayMs')).toBe(30000)
+        expect(service.get('connection.githubScopes')).toBe('public_repo')
+    })
+
+    it('returns the current desktop values from getDesktopValues', () => {
+        service.init({ desktopConfig: { agent: 'system', projectLocationMode: 'current-directory' } })
+
+        expect(service.getDesktopValues()).toEqual({ agent: 'system', projectLocationMode: 'current-directory' })
+    })
+
+    it('reads the startup splash preference before init, defaulting to true', () => {
+        expect(readStartupSplashPreference()).toBe(true)
+    })
+
+    it('reads a stored false startup splash preference before init', () => {
+        window.localStorage.setItem(REACT_CONFIG_STORAGE_KEY, JSON.stringify({ 'react.showStartupSplash': false }))
+
+        expect(readStartupSplashPreference()).toBe(false)
     })
 })

@@ -14,6 +14,7 @@ import type {
     StartAgentConversationRequest,
     StartAgentConversationResult,
     StorageProjectFiles,
+    TopLevelFolderReference,
 } from './data_types'
 
 export interface ElectronDataBridge {
@@ -21,6 +22,7 @@ export interface ElectronDataBridge {
     commit(request: CommitRequest): Promise<void>
     continueAgentConversation?(request: ContinueAgentConversationRequest): Promise<ContinueAgentConversationResult>
     createProject(project: ProjectReference, workingFolder: string): Promise<ProjectReference>
+    createWorkingFolderFromTemplate(project: ProjectReference, workingFolder: string): Promise<ProjectReference>
     deleteFile(request: DeleteFileRequest): Promise<void>
     loadAgentConversation?(path: string): Promise<AgentConversation>
     loadActionFiles(project: ProjectReference, actionsFolder: string): Promise<ActionFile[]>
@@ -28,6 +30,7 @@ export interface ElectronDataBridge {
     loadProjectConfig(project: ProjectReference): Promise<Partial<ProjectConfig> | null>
     listRepositoryFiles(project: ProjectReference): Promise<string[]>
     listBranches(project: ProjectReference): Promise<BranchReference[]>
+    listTopLevelFolders(project: ProjectReference): Promise<TopLevelFolderReference[]>
     moveFiles(request: MoveFilesRequest): Promise<void>
     openProjectFolder(): Promise<ProjectReference | null>
     push(project: ProjectReference): Promise<void>

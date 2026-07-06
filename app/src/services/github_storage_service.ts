@@ -1,4 +1,5 @@
 import type { ActionFile } from '../data/action_types'
+import { MissingWorkingFolderError } from '../data/data_types'
 import type {
     AgentConversation,
     BranchReference,
@@ -8,13 +9,16 @@ import type {
     MoveFilesRequest,
     ProjectConfig,
     ProjectReference,
+    RepositoryReference,
     StorageProjectFiles,
     StorageService,
+    TopLevelFolderReference,
 } from '../data/data_types'
 import { parseAgentConversationLog } from './agent_conversation_service'
 
 const GITHUB_API_URL = 'https://api.github.com'
 const GITHUB_API_VERSION = '2022-11-28'
+const GITHUB_PAGE_SIZE = 100
 const PROJECT_CONFIG_PATH = 'md2.config.json'
 const TEXT_DECODER = new TextDecoder()
 
@@ -24,6 +28,7 @@ interface GithubStorageDependencies {
 }
 
 interface GithubRepositoryResponse {
+    default_branch?: unknown
     full_name?: unknown
     name?: unknown
     owner?: { login?: unknown }
@@ -63,17 +68,26 @@ function decodeContent(content: string) {
     return TEXT_DECODER.decode(binary)
 }
 
-function normalizeRepository(payload: unknown): ProjectReference {
+function normalizeRepository(payload: unknown): RepositoryReference {
     const response = payload as GithubRepositoryResponse
     const owner = requireString(response.owner?.login, 'repository.owner.login')
     const repository = requireString(response.name, 'repository.name')
+    const defaultBranch = typeof response.default_branch === 'string' && response.default_branch.length > 0
+        ? response.default_branch
+        : 'main'
 
     return {
-        branch: 'main',
+        branch: defaultBranch,
         id: requireString(response.full_name, 'repository.full_name'),
         owner,
         repository,
     }
+}
+
+function normalizeRepositories(payload: unknown): RepositoryReference[] {
+    if (!Array.isArray(payload)) throw new Error('Missing GitHub storage field: repositories')
+
+    return payload.map((repository) => normalizeRepository(repository))
 }
 
 function normalizeBranches(payload: unknown): BranchReference[] {
@@ -86,6 +100,16 @@ function normalizeDirectoryEntries(payload: unknown) {
     if (!Array.isArray(payload)) throw new Error('Missing GitHub storage field: directory entries')
 
     return payload as GithubContentResponse[]
+}
+
+function normalizeTopLevelFolders(payload: unknown): TopLevelFolderReference[] {
+    return normalizeDirectoryEntries(payload)
+        .filter((entry) => requireString(entry.type, 'content.type') === 'dir')
+        .map((entry) => {
+            const path = requireString(entry.path, 'content.path')
+
+            return { name: requireString(entry.name, 'content.name'), path }
+        })
 }
 
 function normalizeFileContent(payload: unknown): MarkdownFile {
@@ -123,6 +147,10 @@ export class GithubStorageService implements StorageService {
     }
 
     async createProject(project: ProjectReference, workingFolder: string) {
+        return this.createWorkingFolderFromTemplate(project, workingFolder)
+    }
+
+    async createWorkingFolderFromTemplate(project: ProjectReference, workingFolder: string) {
         this.requireGithubProject(project)
         await this.commit({
             branch: project.branch,
@@ -138,7 +166,7 @@ export class GithubStorageService implements StorageService {
 
     async loadProject(project: ProjectReference, workingFolder: string): Promise<StorageProjectFiles> {
         this.requireGithubProject(project)
-        const files = await this.readDirectory(project, workingFolder)
+        const files = await this.readDirectory(project, workingFolder, true)
 
         return { files, workingFolder }
     }
@@ -187,10 +215,35 @@ export class GithubStorageService implements StorageService {
         return normalizeBranches(payload)
     }
 
+    async listRepositories() {
+        const repositories: RepositoryReference[] = []
+        let page = 1
+        let hasMorePages = true
+
+        while (hasMorePages) {
+            const payload = await this.request(`/user/repos?per_page=${GITHUB_PAGE_SIZE}&page=${page}`)
+            const pageRepositories = normalizeRepositories(payload)
+            repositories.push(...pageRepositories)
+            hasMorePages = pageRepositories.length === GITHUB_PAGE_SIZE
+            page += 1
+        }
+
+        return repositories
+    }
+
     async listRepositoryFiles(project: ProjectReference) {
         this.requireGithubProject(project)
 
         return sortPaths(await this.readRepositoryFilePaths(project, ''))
+    }
+
+    async listTopLevelFolders(project: ProjectReference) {
+        this.requireGithubProject(project)
+        const payload = await this.request(
+            `/repos/${project.owner}/${project.repository}/contents?ref=${encodeURIComponent(project.branch)}`,
+        )
+
+        return normalizeTopLevelFolders(payload)
     }
 
     async checkoutBranch(project: ProjectReference, branch: string) {
@@ -243,10 +296,15 @@ export class GithubStorageService implements StorageService {
         return { ...project, branch: project.branch }
     }
 
-    private async readDirectory(project: ProjectReference, path: string): Promise<MarkdownFile[]> {
-        const entries = normalizeDirectoryEntries(await this.request(
+    private async readDirectory(project: ProjectReference, path: string, isWorkingFolder = false): Promise<MarkdownFile[]> {
+        const payload = await this.request(
             `/repos/${project.owner}/${project.repository}/contents/${encodePath(path)}?ref=${encodeURIComponent(project.branch)}`,
-        ))
+            {},
+            isWorkingFolder,
+        )
+        if (payload === null) throw new MissingWorkingFolderError(path)
+
+        const entries = normalizeDirectoryEntries(payload)
         const files: MarkdownFile[] = []
 
         for (const entry of entries) {

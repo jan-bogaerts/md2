@@ -1,7 +1,7 @@
 ---
 id: B-023
 title: dead code and duplication cleanup
-status: ready
+status: design
 owner: JB
 affects:
 policy:

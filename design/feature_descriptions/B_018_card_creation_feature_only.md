@@ -1,7 +1,7 @@
 ---
 id: B-018
 title: cards can only be created as features
-status: ready
+status: design
 owner: JB
 affects:
 policy:

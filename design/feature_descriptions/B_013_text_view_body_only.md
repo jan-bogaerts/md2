@@ -1,7 +1,7 @@
 ---
 id: B-013
 title: text view edits body only, not the full file
-status: ready
+status: design
 owner: JB
 affects:
 policy:

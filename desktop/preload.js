@@ -1,5 +1,6 @@
 const { ipcRenderer } = require('electron')
-const { resolveDesktopConfig } = require('./config')
+const Store = require('electron-store')
+const { readDesktopConfig, writeDesktopConfig } = require('./config')
 const { requestGithubAccessToken, requestGithubDeviceCode } = require('./github_oauth_proxy')
 const { AgentRunnerService } = require('./agent_runner_service')
 const localGitService = require('./local_git_service')
@@ -18,6 +19,7 @@ const REMARKABLE_IMPORT_FILES_CHANNEL = 'md2-remarkable:import-files'
 
 let currentLocalProject = null
 const agentRunnerService = new AgentRunnerService()
+const desktopConfigStore = new Store()
 
 function createLocalProject(rootPath) {
     return {
@@ -38,7 +40,10 @@ const themeBridge = { setThemeMode: (mode) => ipcRenderer.send(THEME_SET_MODE_CH
 
 window.md2Theme = themeBridge
 
-const configBridge = { getDesktopConfig: () => resolveDesktopConfig() }
+const configBridge = {
+    getDesktopConfig: () => readDesktopConfig(desktopConfigStore),
+    setDesktopConfig: (values) => writeDesktopConfig(desktopConfigStore, values),
+}
 
 window.md2Config = configBridge
 
@@ -73,13 +78,15 @@ const dataBridge = {
     commit: (request) => localGitService.commit(request, currentLocalProject),
     deleteFile: (request) => localGitService.deleteFile(request, currentLocalProject),
     continueAgentConversation: (request) => {
-        const { agent } = resolveDesktopConfig()
+        const { agent } = readDesktopConfig(desktopConfigStore)
 
         return localGitService.continueAgentConversation(currentLocalProject, { ...request, command: agent })
     },
     createProject: (project, workingFolder) => localGitService.createProject(project, workingFolder),
+    createWorkingFolderFromTemplate: (project, workingFolder) => localGitService.createWorkingFolderFromTemplate(project, workingFolder),
     listBranches: (project) => localGitService.listBranches(project),
     listRepositoryFiles: (project) => localGitService.listRepositoryFiles(project),
+    listTopLevelFolders: (project) => localGitService.listTopLevelFolders(project),
     loadActionFiles: (project, actionsFolder) => localGitService.loadActionFiles(project, actionsFolder),
     loadAgentConversation: (path) => localGitService.loadAgentConversation(currentLocalProject, path),
     loadProject: async (project, workingFolder) => {
@@ -109,7 +116,7 @@ const dataBridge = {
     saveProjectConfig: (project, config) => localGitService.saveProjectConfig(project, config),
     sendAgentInput: (runId, input) => agentRunnerService.sendInput(runId, input),
     startAgentConversation: (request, callback) => {
-        const { agent } = resolveDesktopConfig()
+        const { agent } = readDesktopConfig(desktopConfigStore)
 
         return agentRunnerService.start(currentLocalProject, { ...request, command: agent }, callback)
     },

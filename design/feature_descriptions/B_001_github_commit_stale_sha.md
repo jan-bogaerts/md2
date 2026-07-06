@@ -1,7 +1,7 @@
 ---
 id: B-001
 title: github commits fail after first auto-save (stale sha)
-status: ready
+status: design
 owner: JB
 affects:
 policy:

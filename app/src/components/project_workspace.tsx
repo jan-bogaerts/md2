@@ -1,21 +1,15 @@
 import {
-    Alert, Button, Divider, MenuItem, Paper, Select, Stack, TextField, ToggleButton, ToggleButtonGroup, Typography,
+    Alert, Button, Divider, Paper, Stack, ToggleButton, ToggleButtonGroup, Typography,
     useMediaQuery, useTheme,
 } from '@mui/material'
-import type { SelectChangeEvent } from '@mui/material'
-import type { ChangeEvent, MouseEvent } from 'react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { createStorageService, writeLastProject, type StorageType } from '../data/project_session'
+import type { MouseEvent } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
     DEFAULT_CARD_TYPES,
     DEFAULT_WORKING_FOLDER,
     type AgentConversation,
-    type CardDraft,
     type ProjectCard,
-    type ProjectReference,
-    type PushMode,
 } from '../data/data_types'
-import { getElectronDataBridge } from '../data/electron_data_bridge'
 import { getRemarkableBridge } from '../data/remarkable_bridge'
 import { configService } from '../services/config_service'
 import { dataService } from '../services/data_service'
@@ -26,17 +20,13 @@ import { CardView } from './card_view/card_view'
 import { RemarkableImportPanel } from './remarkable_import_panel'
 import { TextView } from './text_view/text_view'
 import { useProjectState } from './hooks/use_project_state'
+import { requestOpenProjectDialog } from './project_command_events'
 
 type WorkspaceViewMode = 'cards' | 'text'
 
 const WORKSPACE_PANEL_PADDING = 3
 const EMPTY_CARDS: ProjectCard[] = []
 const EMPTY_REPOSITORY_FILES: string[] = []
-
-interface ProjectWorkspaceProps {
-    accessToken: string | null
-    isGithubAuthenticated: boolean
-}
 
 function ensureConfigServiceInitialized() {
     if (configService.isInitialized()) return
@@ -45,59 +35,27 @@ function ensureConfigServiceInitialized() {
     configService.init({ desktopConfig })
 }
 
-export function ProjectWorkspace(props: ProjectWorkspaceProps) {
+export function ProjectWorkspace() {
     ensureConfigServiceInitialized()
-    const {
-        accessToken,
-        isGithubAuthenticated,
-    } = props
     const { project, snapshot } = useProjectState()
     const theme = useTheme()
     const isMobile = useMediaQuery(theme.breakpoints.down('md'))
     const activeCards = snapshot?.activeCards ?? EMPTY_CARDS
     const backgroundCards = snapshot?.backgroundCards ?? EMPTY_CARDS
     const repositoryFiles = snapshot?.repositoryFiles ?? EMPTY_REPOSITORY_FILES
-    const [branch, setBranch] = useState(project?.branch ?? 'main')
-    const [cardBody, setCardBody] = useState('')
-    const [cardTitle, setCardTitle] = useState('')
     const [configRevision, setConfigRevision] = useState(0)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
-    const [githubOwner, setGithubOwner] = useState('')
-    const [githubRepository, setGithubRepository] = useState('')
-    const [isLoading, setIsLoading] = useState(false)
-    const [isReleaseCompleting, setIsReleaseCompleting] = useState(false)
     const [requestedPath, setRequestedPath] = useState<string | null>(null)
     const [requestedNonce, setRequestedNonce] = useState(0)
     const [selectedPath, setSelectedPath] = useState<string | null>(null)
     const [viewMode, setViewMode] = useState<WorkspaceViewMode>('cards')
-    const electronBridge = useMemo(() => getElectronDataBridge(), [])
     const remarkableBridge = useMemo(() => getRemarkableBridge(), [])
-    const canUseLocalGit = !!electronBridge
     const isProjectOpen = !!project
     const projectConfig = dataService.getConfig()
     const cardTypes = projectConfig?.cardTypes ?? DEFAULT_CARD_TYPES
-    const pushMode = (projectConfig?.pushMode ?? 'auto') as PushMode
     const workingFolder = snapshot?.workingFolder ?? projectConfig?.workingFolder ?? DEFAULT_WORKING_FOLDER
 
     void configRevision
-
-    const openProject = useCallback(async (nextStorageType: StorageType, nextProject: ProjectReference) => {
-        setIsLoading(true)
-        setErrorMessage(null)
-
-        try {
-            const storage = createStorageService(nextStorageType, accessToken)
-            dataService.init({ storage })
-            await dataService.openProject(nextProject)
-
-            setBranch(nextProject.branch)
-            writeLastProject(nextStorageType, nextProject)
-        } catch (error) {
-            setErrorMessage(error instanceof Error ? error.message : 'Project load failed')
-        } finally {
-            setIsLoading(false)
-        }
-    }, [accessToken])
 
     useEffect(() => {
         const handleClose = () => {
@@ -134,87 +92,6 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
 
         return () => workspaceNavigationService.removeEventListener('open', handleNavigationOpen)
     }, [])
-
-    const handleGithubOwnerChange = (event: ChangeEvent<HTMLInputElement>) => {
-        setGithubOwner(event.target.value)
-    }
-
-    const handleGithubRepositoryChange = (event: ChangeEvent<HTMLInputElement>) => {
-        setGithubRepository(event.target.value)
-    }
-
-    const handleBranchChange = (event: ChangeEvent<HTMLInputElement>) => {
-        setBranch(event.target.value)
-    }
-
-    const handleCardTitleChange = (event: ChangeEvent<HTMLInputElement>) => {
-        setCardTitle(event.target.value)
-    }
-
-    const handleCardBodyChange = (event: ChangeEvent<HTMLInputElement>) => {
-        setCardBody(event.target.value)
-    }
-
-    const handlePushModeChange = (event: SelectChangeEvent) => {
-        configService.set('project.pushMode', event.target.value as PushMode)
-    }
-
-    const handleOpenGithubClick = () => {
-        void openProject('github', {
-            branch,
-            id: `${githubOwner}/${githubRepository}`,
-            owner: githubOwner,
-            repository: githubRepository,
-        })
-    }
-
-    const handleOpenLocalClick = async () => {
-        if (!electronBridge) return
-
-        const localProject = await electronBridge.openProjectFolder()
-
-        if (localProject) await openProject('local', localProject)
-    }
-
-    const handleSwitchBranchClick = async () => {
-        if (!project) return
-
-        setIsLoading(true)
-        try {
-            await dataService.switchBranch(branch)
-        } finally {
-            setIsLoading(false)
-        }
-    }
-
-    const handleCreateCardClick = async () => {
-        if (!project) return
-
-        const draft: CardDraft = { body: cardBody, title: cardTitle, type: 'feature' }
-        await dataService.createCard(draft)
-        setCardBody('')
-        setCardTitle('')
-    }
-
-    const handlePushClick = () => {
-        void dataService.push()
-    }
-
-    const handleCompleteReleaseClick = async () => {
-        const releaseName = window.prompt('Release name')
-        if (releaseName === null) return
-
-        setIsReleaseCompleting(true)
-        setErrorMessage(null)
-
-        try {
-            await dataService.completeRelease(releaseName)
-        } catch (error) {
-            setErrorMessage(error instanceof Error ? error.message : 'Release completion failed')
-        } finally {
-            setIsReleaseCompleting(false)
-        }
-    }
 
     const handleMoveCard = (path: string, targetStatus: string, targetIndex: number) => {
         dataService.moveCard(path, targetStatus, targetIndex)
@@ -312,98 +189,68 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
     return (
         <Paper elevation={0} sx={{ border: 1, borderColor: 'divider', borderRadius: 2, p: WORKSPACE_PANEL_PADDING }}>
             <Stack spacing={3}>
-                <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-                    <TextField disabled={!isGithubAuthenticated} label="Owner" onChange={handleGithubOwnerChange} size="small" value={githubOwner} />
-                    <TextField disabled={!isGithubAuthenticated} label="Repository" onChange={handleGithubRepositoryChange} size="small" value={githubRepository} />
-                    <TextField label="Branch" onChange={handleBranchChange} size="small" value={branch} />
-                    <Button disabled={!isGithubAuthenticated || isLoading} onClick={handleOpenGithubClick} variant="contained">
-                        Open GitHub
-                    </Button>
-                    <Button disabled={!canUseLocalGit || isLoading} onClick={handleOpenLocalClick} variant="outlined">
-                        Open Local
-                    </Button>
-                </Stack>
-
-                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                    <Select onChange={handlePushModeChange} size="small" value={pushMode}>
-                        <MenuItem value="auto">Auto push</MenuItem>
-                        <MenuItem value="manual">Manual push</MenuItem>
-                    </Select>
-                    <Button disabled={!isProjectOpen || isLoading} onClick={handleSwitchBranchClick} variant="outlined">
-                        Switch Branch
-                    </Button>
-                    {pushMode === 'manual' ? (
-                        <Button disabled={!isProjectOpen} onClick={handlePushClick} variant="outlined">
-                            Push
-                        </Button>
-                    ) : null}
-                    <Button disabled={!isProjectOpen || isReleaseCompleting || activeCards.length === 0} onClick={handleCompleteReleaseClick} variant="outlined">
-                        {isReleaseCompleting ? 'Completing release...' : 'Complete release...'}
-                    </Button>
-                </Stack>
-
                 {errorMessage ? <Alert severity="error">{errorMessage}</Alert> : null}
 
-                <Divider />
-
-                <Stack spacing={2}>
-                    <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
-                        <Typography component="h2" variant="h6">
-                            {viewMode === 'cards' ? 'Active cards' : 'Files'}
+                {isProjectOpen ? (
+                    <Stack spacing={2}>
+                        <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
+                            <Typography component="h2" variant="h6">
+                                {viewMode === 'cards' ? 'Active cards' : 'Files'}
+                            </Typography>
+                            <ToggleButtonGroup exclusive onChange={handleViewModeChange} size="small" value={viewMode}>
+                                <ToggleButton value="cards">Cards</ToggleButton>
+                                <ToggleButton value="text">Text</ToggleButton>
+                            </ToggleButtonGroup>
+                        </Stack>
+                        {viewMode === 'cards' ? (
+                            <CardView
+                                cardTypes={cardTypes}
+                                cards={activeCards}
+                                isMobile={isMobile}
+                                onAffectsChange={handleAffectsChange}
+                                onBodyChange={handleBodyChange}
+                                onContinueAgentConversation={handleContinueAgentConversation}
+                                onDeleteCard={handleDeleteCard}
+                                onMoveCard={handleMoveCard}
+                                onOpenInFileMode={handleOpenInFileMode}
+                                onSendAgentInput={handleSendAgentInput}
+                                onStartAgentConversation={handleStartAgentConversation}
+                                onTitleChange={handleTitleChange}
+                                onTogglePolicy={handleTogglePolicy}
+                                repositoryFiles={repositoryFiles}
+                                selectedPath={selectedPath}
+                            />
+                        ) : (
+                            <TextView
+                                activeCards={activeCards}
+                                backgroundCards={backgroundCards}
+                                cardTypes={cardTypes}
+                                isMobile={isMobile}
+                                onBodyChange={handleBodyChange}
+                                onContinueAgentConversation={handleContinueAgentConversation}
+                                onDeleteFile={handleDeleteFile}
+                                onSendAgentInput={handleSendAgentInput}
+                                onStartAgentConversation={handleStartAgentConversation}
+                                requestedNonce={requestedNonce}
+                                requestedPath={requestedPath}
+                                workingFolder={workingFolder}
+                            />
+                        )}
+                        <Typography color="text.secondary" variant="body2">
+                            Background cards loaded: {backgroundCards.length}
                         </Typography>
-                        <ToggleButtonGroup exclusive onChange={handleViewModeChange} size="small" value={viewMode}>
-                            <ToggleButton value="cards">Cards</ToggleButton>
-                            <ToggleButton value="text">Text</ToggleButton>
-                        </ToggleButtonGroup>
                     </Stack>
-                    {viewMode === 'cards' ? (
-                        <CardView
-                            cardTypes={cardTypes}
-                            cards={activeCards}
-                            isMobile={isMobile}
-                            onAffectsChange={handleAffectsChange}
-                            onBodyChange={handleBodyChange}
-                            onContinueAgentConversation={handleContinueAgentConversation}
-                            onDeleteCard={handleDeleteCard}
-                            onMoveCard={handleMoveCard}
-                            onOpenInFileMode={handleOpenInFileMode}
-                            onSendAgentInput={handleSendAgentInput}
-                            onStartAgentConversation={handleStartAgentConversation}
-                            onTitleChange={handleTitleChange}
-                            onTogglePolicy={handleTogglePolicy}
-                            repositoryFiles={repositoryFiles}
-                            selectedPath={selectedPath}
-                        />
-                    ) : (
-                        <TextView
-                            activeCards={activeCards}
-                            backgroundCards={backgroundCards}
-                            cardTypes={cardTypes}
-                            isMobile={isMobile}
-                            onBodyChange={handleBodyChange}
-                            onContinueAgentConversation={handleContinueAgentConversation}
-                            onDeleteFile={handleDeleteFile}
-                            onSendAgentInput={handleSendAgentInput}
-                            onStartAgentConversation={handleStartAgentConversation}
-                            requestedNonce={requestedNonce}
-                            requestedPath={requestedPath}
-                            workingFolder={workingFolder}
-                        />
-                    )}
-                    <Typography color="text.secondary" variant="body2">
-                        Background cards loaded: {backgroundCards.length}
-                    </Typography>
-                </Stack>
+                ) : (
+                    <Stack spacing={2} sx={{ alignItems: 'flex-start', py: 6 }}>
+                        <Typography component="h2" variant="h6">No project open</Typography>
+                        <Typography color="text.secondary" variant="body2">
+                            Open a GitHub repository or local folder to work with project cards.
+                        </Typography>
+                        <Button onClick={requestOpenProjectDialog} variant="contained">Open project...</Button>
+                    </Stack>
+                )}
 
-                <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-                    <TextField label="New card title" onChange={handleCardTitleChange} size="small" value={cardTitle} />
-                    <TextField label="New card body" onChange={handleCardBodyChange} size="small" value={cardBody} />
-                    <Button disabled={!isProjectOpen || cardTitle.length === 0} onClick={handleCreateCardClick} variant="contained">
-                        Create Feature
-                    </Button>
-                </Stack>
-
-                {remarkableBridge ? (
+                {remarkableBridge && isProjectOpen ? (
                     <>
                         <Divider />
                         <RemarkableImportPanel activeCards={activeCards} bridge={remarkableBridge} isProjectOpen={isProjectOpen} />

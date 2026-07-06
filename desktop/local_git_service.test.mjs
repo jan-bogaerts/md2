@@ -12,8 +12,10 @@ const require = createRequire(import.meta.url)
 const {
     appendActionRunHistory,
     commit,
+    createWorkingFolderFromTemplate,
     deleteFile,
     listRepositoryFiles,
+    listTopLevelFolders,
     loadActionFiles,
     loadActionRunHistory,
     loadProject,
@@ -42,15 +44,36 @@ describe('local-git-service', () => {
         }
     })
 
-    it('creates template content when the working folder is missing', async () => {
+    it('throws a clear missing-folder error without creating template content on load', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-local-git-'))
 
         try {
             await mkdir(join(rootPath, '.git'))
 
-            await loadProject({ branch: 'main', id: 'local', rootPath }, 'design')
+            await expect(loadProject({ branch: 'main', id: 'local', rootPath }, 'design')).rejects.toMatchObject({
+                code: 'missing-working-folder',
+                message: 'Working folder is missing: design',
+                workingFolder: 'design',
+            })
+            await expect(readFile(join(rootPath, 'design', 'README.md'), 'utf8')).rejects.toThrow()
+        } finally {
+            await rm(rootPath, { force: true, recursive: true })
+        }
+    })
+
+    it('creates template content when explicitly requested', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-local-git-'))
+
+        try {
+            await execFileAsync('git', ['init'], { cwd: rootPath })
+            await execFileAsync('git', ['config', 'user.email', 'md2@example.test'], { cwd: rootPath })
+            await execFileAsync('git', ['config', 'user.name', 'MD2 Test'], { cwd: rootPath })
+
+            await createWorkingFolderFromTemplate({ branch: 'main', id: 'local', rootPath }, 'design')
 
             await expect(readFile(join(rootPath, 'design', 'README.md'), 'utf8')).resolves.toContain('Project design folder')
+            const log = await execFileAsync('git', ['log', '-1', '--pretty=%s'], { cwd: rootPath })
+            expect(log.stdout.trim()).toBe('Create design workspace')
         } finally {
             await rm(rootPath, { force: true, recursive: true })
         }
@@ -86,6 +109,23 @@ describe('local-git-service', () => {
             const files = await listRepositoryFiles({ branch: 'main', id: 'local', rootPath })
 
             expect(files).toEqual(['app/src/main.tsx', 'README.md'])
+        } finally {
+            await rm(rootPath, { force: true, recursive: true })
+        }
+    })
+
+    it('lists top-level folders excluding git internals', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-local-git-'))
+
+        try {
+            await mkdir(join(rootPath, '.git'), { recursive: true })
+            await mkdir(join(rootPath, 'app'))
+            await mkdir(join(rootPath, 'design'))
+            await writeFile(join(rootPath, 'README.md'), 'readme')
+
+            const folders = await listTopLevelFolders({ branch: 'main', id: 'local', rootPath })
+
+            expect(folders).toEqual([{ name: 'app', path: 'app' }, { name: 'design', path: 'design' }])
         } finally {
             await rm(rootPath, { force: true, recursive: true })
         }

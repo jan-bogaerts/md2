@@ -1,6 +1,8 @@
-﻿import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+﻿import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { UseGithubAuthResult } from '../../auth/use_github_auth'
+import type { AgentExecutionRequest, ElectronActionBridge } from '../../data/electron_action_bridge'
+import type { AgentConversation } from '../../data/data_types'
 import { configService } from '../../services/config_service'
 import { MainWindow } from './main_window'
 
@@ -28,6 +30,47 @@ function renderWindow(overrides?: Partial<Parameters<typeof MainWindow>[0]>) {
     )
 }
 
+function conversation(request: AgentExecutionRequest): AgentConversation {
+    return {
+        cardPath: request.cardPath,
+        completedAt: '2026-01-01T00:01:00.000Z',
+        events: [],
+        id: 'agent-1',
+        messages: [{ content: request.prompt, id: 'm1', role: 'stdout', timestamp: '2026-01-01T00:01:00.000Z' }],
+        path: '.md2-agent-logs/one.json',
+        startedAt: '2026-01-01T00:00:00.000Z',
+        status: 'completed',
+        title: 'Search RegExp',
+    }
+}
+
+function installAgentBridge(stdout: string) {
+    const bridge: ElectronActionBridge = {
+        appendActionRunHistory: vi.fn(async () => []),
+        generateDiff: vi.fn(async () => ({ commit: '', files: [] })),
+        loadActionRunHistory: vi.fn(async () => []),
+        openInEditor: vi.fn(async () => {}),
+        runAgent: vi.fn(async (request: AgentExecutionRequest) => ({
+            command: request.command,
+            conversation: conversation(request),
+            exitCode: 0,
+            prompt: request.prompt,
+            reference: '.md2-agent-logs/one.json',
+            runId: 'agent-1',
+            stderr: '',
+            stdout,
+        })),
+        runCommand: vi.fn(async () => ({ command: '', exitCode: 0, stderr: '', stdout: '' })),
+    }
+    window.md2Actions = bridge
+
+    return bridge
+}
+
+function typeQuery(value: string) {
+    fireEvent.change(screen.getByRole('textbox', { name: 'Search project' }), { target: { value } })
+}
+
 function mockMatchMedia(matches: boolean) {
     window.matchMedia = ((query: string) => ({
         addEventListener: () => {},
@@ -45,6 +88,7 @@ describe('MainWindow', () => {
     afterEach(() => {
         cleanup()
         configService.clear()
+        delete window.md2Actions
         window.history.pushState(null, '', '/')
         mockMatchMedia(false)
     })
@@ -54,7 +98,8 @@ describe('MainWindow', () => {
         renderWindow()
 
         expect(screen.getByRole('button', { name: 'Sign in with GitHub' })).toBeInTheDocument()
-        expect(screen.getByRole('heading', { name: 'Active cards' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Project' })).toBeInTheDocument()
+        expect(screen.getByRole('heading', { name: 'No project open' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Running agents: 0' })).toBeInTheDocument()
         expect(screen.queryByRole('button', { name: 'Open menu' })).toBeNull()
     })
@@ -85,5 +130,28 @@ describe('MainWindow', () => {
 
         expect(screen.getByRole('heading', { name: 'Config' })).toBeInTheDocument()
         expect(screen.getByRole('tab', { name: 'Connection' })).toBeInTheDocument()
+    })
+
+    it('populates the search query from a real agent run when the Electron bridge is available', async () => {
+        mockMatchMedia(false)
+        installAgentBridge('Beta')
+        renderWindow()
+
+        typeQuery('find the beta card')
+        fireEvent.click(screen.getByRole('button', { name: 'Ask agent to build a RegExp' }))
+
+        await waitFor(() => expect(screen.getByRole('textbox', { name: 'Search project' })).toHaveValue('Beta'))
+    })
+
+    it('reports the RegExp agent as unavailable without the Electron bridge', async () => {
+        mockMatchMedia(false)
+        delete window.md2Actions
+        renderWindow()
+
+        typeQuery('alpha only')
+        fireEvent.click(screen.getByRole('button', { name: 'Ask agent to build a RegExp' }))
+
+        await waitFor(() => expect(screen.getByText('RegExp agent is not available')).toBeInTheDocument())
+        expect(screen.getByRole('textbox', { name: 'Search project' })).toHaveValue('alpha only')
     })
 })

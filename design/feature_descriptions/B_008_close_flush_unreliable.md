@@ -1,7 +1,7 @@
 ---
 id: B-008
 title: force-commit on close is unreliable
-status: ready
+status: design
 owner: JB
 affects:
 policy:

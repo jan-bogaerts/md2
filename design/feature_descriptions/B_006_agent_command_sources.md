@@ -1,7 +1,7 @@
 ---
 id: B-006
 title: two sources of truth for the agent command
-status: ready
+status: design
 owner: JB
 affects:
 policy:

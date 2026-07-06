@@ -13,6 +13,7 @@ import {
     type GithubUser,
 } from '../auth/github_auth_types'
 import { requestGithubAccessToken, requestGithubDeviceCode } from '../auth/github_oauth_transport'
+import { configService } from './config_service'
 import { register } from './service_injector'
 
 type DelayId = ReturnType<typeof window.setTimeout>
@@ -137,7 +138,7 @@ export class GithubAuthService extends EventTarget {
         this.setSnapshot({ deviceCode: null, errorMessage: null, status: 'requesting-code' })
 
         try {
-            const deviceCode = await requestDeviceCode(config)
+            const deviceCode = await requestDeviceCode({ ...config, scopes: this.resolveScopes(config.scopes) })
 
             if (loginId !== this.activeLoginId) return
 
@@ -272,6 +273,14 @@ export class GithubAuthService extends EventTarget {
 
         clearDelay(this.pollingDelayId)
         this.pollingDelayId = null
+    }
+
+    private resolveScopes(fallbackScopes: string): string {
+        if (!configService.isInitialized()) return fallbackScopes
+
+        const scopes = configService.get('connection.githubScopes')
+
+        return typeof scopes === 'string' ? scopes : fallbackScopes
     }
 
     private persistToken(accessToken: string) {

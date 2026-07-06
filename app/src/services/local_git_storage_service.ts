@@ -10,11 +10,13 @@ import type {
     MoveFilesRequest,
     ProjectConfig,
     ProjectReference,
+    RepositoryReference,
     ProjectWatchEvent,
     StartAgentConversationRequest,
     StartAgentConversationResult,
     StorageProjectFiles,
     StorageService,
+    TopLevelFolderReference,
 } from '../data/data_types'
 import { getElectronDataBridge, type ElectronDataBridge } from '../data/electron_data_bridge'
 
@@ -43,6 +45,10 @@ export class LocalGitStorageService implements StorageService {
 
     async createProject(project: ProjectReference, workingFolder: string): Promise<ProjectReference> {
         return this.requireBridge().createProject(project, workingFolder)
+    }
+
+    async createWorkingFolderFromTemplate(project: ProjectReference, workingFolder: string): Promise<ProjectReference> {
+        return this.requireBridge().createWorkingFolderFromTemplate(project, workingFolder)
     }
 
     async loadProject(project: ProjectReference, workingFolder: string): Promise<StorageProjectFiles> {
@@ -103,8 +109,18 @@ export class LocalGitStorageService implements StorageService {
         return this.requireBridge().listBranches(project)
     }
 
+    async listRepositories(): Promise<RepositoryReference[]> {
+        this.requireBridge()
+
+        return []
+    }
+
     async listRepositoryFiles(project: ProjectReference): Promise<string[]> {
         return this.requireBridge().listRepositoryFiles(project)
+    }
+
+    async listTopLevelFolders(project: ProjectReference): Promise<TopLevelFolderReference[]> {
+        return this.requireBridge().listTopLevelFolders(project)
     }
 
     async checkoutBranch(project: ProjectReference, branch: string): Promise<ProjectReference> {

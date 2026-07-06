@@ -153,6 +153,33 @@ describe('GithubStorageService', () => {
         ])
     })
 
+    it('lists authenticated user repositories across pages with default branches', async () => {
+        const firstPage = Array.from({ length: 100 }, (_item, index) => ({
+            default_branch: `branch-${index}`,
+            full_name: `owner/repo-${index}`,
+            name: `repo-${index}`,
+            owner: { login: 'owner' },
+        }))
+        const fetchImplementation = vi.fn()
+            .mockResolvedValueOnce(createResponse(firstPage))
+            .mockResolvedValueOnce(createResponse([{
+                default_branch: 'trunk',
+                full_name: 'other/final',
+                name: 'final',
+                owner: { login: 'other' },
+            }]))
+        const service = new GithubStorageService()
+        service.init({ accessToken: 'token', fetchImplementation })
+
+        const repositories = await service.listRepositories()
+
+        expect(repositories).toHaveLength(101)
+        expect(repositories[0]).toMatchObject({ branch: 'branch-0', id: 'owner/repo-0', owner: 'owner', repository: 'repo-0' })
+        expect(repositories[100]).toMatchObject({ branch: 'trunk', id: 'other/final', owner: 'other', repository: 'final' })
+        expect(fetchImplementation.mock.calls[0][0]).toContain('/user/repos?per_page=100&page=1')
+        expect(fetchImplementation.mock.calls[1][0]).toContain('/user/repos?per_page=100&page=2')
+    })
+
     it('lists repository files recursively as repo-relative paths', async () => {
         const fetchImplementation = vi.fn()
             .mockResolvedValueOnce(createResponse([
@@ -173,6 +200,50 @@ describe('GithubStorageService', () => {
         expect(files).toEqual(['app/src/main.tsx', 'README.md'])
         expect(fetchImplementation.mock.calls[0][0]).toContain('/repos/owner/repo/contents?ref=main')
         expect(fetchImplementation.mock.calls[1][0]).toContain('/repos/owner/repo/contents/app?ref=main')
+    })
+
+    it('lists top-level folders from the repository root', async () => {
+        const fetchImplementation = vi.fn().mockResolvedValue(createResponse([
+            { name: 'app', path: 'app', type: 'dir' },
+            { name: 'README.md', path: 'README.md', type: 'file' },
+            { name: 'design', path: 'design', type: 'dir' },
+        ]))
+        const service = new GithubStorageService()
+        service.init({ accessToken: 'token', fetchImplementation })
+
+        const folders = await service.listTopLevelFolders({ branch: 'main', id: 'owner/repo', owner: 'owner', repository: 'repo' })
+
+        expect(folders).toEqual([{ name: 'app', path: 'app' }, { name: 'design', path: 'design' }])
+        expect(fetchImplementation.mock.calls[0][0]).toContain('/repos/owner/repo/contents?ref=main')
+    })
+
+    it('throws a clear missing-folder error without creating content when loading a missing project folder', async () => {
+        const fetchImplementation = vi.fn().mockResolvedValue(createStatusResponse(404))
+        const service = new GithubStorageService()
+        service.init({ accessToken: 'token', fetchImplementation })
+
+        await expect(service.loadProject({ branch: 'main', id: 'owner/repo', owner: 'owner', repository: 'repo' }, 'design')).rejects.toMatchObject({
+            code: 'missing-working-folder',
+            message: 'Working folder is missing: design',
+            workingFolder: 'design',
+        })
+        expect(fetchImplementation).toHaveBeenCalledTimes(1)
+        expect(fetchImplementation.mock.calls[0][1].method).toBeUndefined()
+    })
+
+    it('creates template content only through explicit working-folder creation', async () => {
+        const fetchImplementation = vi.fn().mockResolvedValue(createResponse({}))
+        const service = new GithubStorageService()
+        service.init({ accessToken: 'token', fetchImplementation })
+
+        await service.createWorkingFolderFromTemplate({ branch: 'main', id: 'owner/repo', owner: 'owner', repository: 'repo' }, 'design')
+
+        expect(fetchImplementation.mock.calls[0][0]).toContain('/repos/owner/repo/contents/design/README.md')
+        expect(fetchImplementation.mock.calls[0][1].method).toBe('PUT')
+        expect(JSON.parse(fetchImplementation.mock.calls[0][1].body)).toMatchObject({
+            branch: 'main',
+            message: 'Create design workspace',
+        })
     })
 
     it('loads project config from the repository root', async () => {

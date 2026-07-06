@@ -1,5 +1,5 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ConfigPage } from './config_page'
 import { configService } from '../../services/config_service'
 
@@ -22,6 +22,7 @@ describe('ConfigPage', () => {
         configService.clear()
         window.history.pushState(null, '', '/config')
         mockMatchMedia(false)
+        window.localStorage.clear()
     })
 
     it('renders typed editors with descriptions', () => {
@@ -78,5 +79,34 @@ describe('ConfigPage', () => {
         render(<ConfigPage hash="#connection" />)
 
         expect(screen.getByRole('tablist', { name: 'Config sections' })).not.toHaveAttribute('aria-orientation', 'vertical')
+    })
+
+    it('pushes desktop config edits through the electron bridge on save', () => {
+        mockMatchMedia(false)
+        const setDesktopConfig = vi.fn()
+        window.md2Config = {
+            getDesktopConfig: () => ({ agent: 'codex', projectLocationMode: 'folder' }),
+            setDesktopConfig,
+        }
+        configService.init({ desktopConfig: { agent: 'codex', projectLocationMode: 'folder' } })
+
+        render(<ConfigPage hash="#desktop" />)
+        configService.setDraftValue('desktop.agent', 'system')
+        fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+        expect(setDesktopConfig).toHaveBeenCalledWith({ agent: 'system', projectLocationMode: 'folder' })
+
+        delete window.md2Config
+    })
+
+    it('never touches the desktop bridge in web mode', () => {
+        mockMatchMedia(false)
+        configService.init()
+
+        render(<ConfigPage hash="" />)
+        fireEvent.click(screen.getByRole('switch', { name: 'Startup splash' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+        expect(window.md2Config).toBeUndefined()
     })
 })

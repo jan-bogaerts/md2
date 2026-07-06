@@ -1,7 +1,7 @@
 ---
 id: B-019
 title: project open/create controls permanently occupy the workspace
-status: ready
+status: design
 owner: JB
 affects:
 policy:

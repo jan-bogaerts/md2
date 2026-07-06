@@ -1,10 +1,17 @@
-﻿import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
-import { ProjectWorkspace } from './project_workspace'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { StorageService } from '../data/data_types'
 import type { ElectronDataBridge } from '../data/electron_data_bridge'
 import { configService } from '../services/config_service'
+import { dataService } from '../services/data_service'
 import { telemetryService } from '../services/telemetry_service'
 import { workspaceNavigationService } from '../services/workspace_navigation_service'
+import { ProjectWorkspace } from './project_workspace'
+import { ProjectToolbarMenu } from './shell/project_toolbar_menu'
+
+const GITHUB_REPOSITORIES_URL = 'https://api.github.com/user/repos?per_page=100&page=1'
+const OWNER_REPOSITORY_URL = 'https://api.github.com/repos/octo/demo'
+const BRANCHES_URL = 'https://api.github.com/repos/octo/demo/branches'
 
 function createBridge(): ElectronDataBridge {
     const files = [
@@ -18,12 +25,14 @@ function createBridge(): ElectronDataBridge {
             files.push(...request.files)
         }),
         createProject: vi.fn(async (project) => project),
+        createWorkingFolderFromTemplate: vi.fn(async (project) => project),
         deleteFile: vi.fn(async (request) => {
             const existingIndex = files.findIndex((file) => file.path === request.path)
             if (existingIndex >= 0) files.splice(existingIndex, 1)
         }),
-        listBranches: vi.fn(async () => [{ name: 'main' }]),
+        listBranches: vi.fn(async () => [{ name: 'main' }, { name: 'feature' }]),
         listRepositoryFiles: vi.fn(async () => ['app/src/app.tsx', 'design/F-1-root.md']),
+        listTopLevelFolders: vi.fn(async () => [{ name: 'design', path: 'design' }]),
         loadActionFiles: vi.fn(async () => []),
         loadProject: vi.fn(async () => ({ files, workingFolder: 'design' })),
         loadProjectConfig: vi.fn(async () => null),
@@ -41,19 +50,109 @@ function createBridge(): ElectronDataBridge {
     }
 }
 
+function createResetStorage(): StorageService {
+    return {
+        checkoutBranch: vi.fn(async (project, branch) => ({ ...project, branch })),
+        commit: vi.fn(),
+        createProject: vi.fn(async (project) => project),
+        createWorkingFolderFromTemplate: vi.fn(async (project) => project),
+        deleteFile: vi.fn(),
+        listBranches: vi.fn(async () => []),
+        listRepositories: vi.fn(async () => []),
+        listRepositoryFiles: vi.fn(async () => []),
+        listTopLevelFolders: vi.fn(async () => []),
+        loadActionFiles: vi.fn(async () => []),
+        loadProject: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
+        loadProjectConfig: vi.fn(async () => null),
+        moveFiles: vi.fn(),
+        push: vi.fn(),
+        saveProjectConfig: vi.fn(),
+    }
+}
+
+function renderProjectSurface(isGithubAuthenticated = false) {
+    return render(
+        <>
+            <ProjectToolbarMenu accessToken="token" isGithubAuthenticated={isGithubAuthenticated} />
+            <ProjectWorkspace />
+        </>,
+    )
+}
+
+async function openProjectDialog() {
+    fireEvent.click(screen.getByRole('button', { name: 'Project' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Open project...' }))
+    await screen.findByRole('heading', { name: 'Open project' })
+}
+
+async function chooseLocalSource() {
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Source' }))
+    fireEvent.click(await screen.findByRole('option', { name: 'Local' }))
+}
+
+async function chooseBranch(branch: string) {
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Branch' }))
+    fireEvent.click(await screen.findByRole('option', { name: branch }))
+}
+
+async function openLocalProject() {
+    await openProjectDialog()
+    await chooseLocalSource()
+    fireEvent.click(screen.getByRole('button', { name: 'Choose local folder...' }))
+    await waitFor(() => expect(screen.getByRole('combobox', { name: 'Branch' })).toHaveTextContent('main'))
+    fireEvent.click(screen.getByRole('button', { name: 'Open Local' }))
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Open project' })).toBeNull())
+}
+
+function mockGithubFetch() {
+    return vi.fn(async (url: string | URL | Request) => {
+        const requestUrl = url.toString()
+        if (requestUrl === GITHUB_REPOSITORIES_URL) {
+            return Response.json([
+                { default_branch: 'trunk', full_name: 'octo/demo', name: 'demo', owner: { login: 'octo' } },
+                { default_branch: 'main', full_name: 'octo/notes', name: 'notes', owner: { login: 'octo' } },
+            ])
+        }
+        if (requestUrl === OWNER_REPOSITORY_URL) {
+            return Response.json({ default_branch: 'trunk', full_name: 'octo/demo', name: 'demo', owner: { login: 'octo' } })
+        }
+        if (requestUrl === BRANCHES_URL) return Response.json([{ name: 'trunk' }, { name: 'topic' }])
+
+        return new Response('{}', { status: 404 })
+    })
+}
+
 describe('ProjectWorkspace', () => {
+    beforeEach(() => {
+        configService.init({ desktopConfig: null })
+        dataService.init({ storage: createResetStorage() })
+    })
+
     afterEach(() => {
         cleanup()
         configService.clear()
         window.localStorage.clear()
         delete window.md2Data
+        vi.restoreAllMocks()
+    })
+
+    it('shows an empty state without setup fields in the workspace body', () => {
+        dataService.init({ storage: createResetStorage() })
+
+        renderProjectSurface()
+
+        expect(screen.getByRole('heading', { name: 'No project open' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Open project...' })).toBeInTheDocument()
+        expect(screen.queryByLabelText('Owner')).toBeNull()
+        expect(screen.queryByLabelText('Repository')).toBeNull()
+        expect(screen.queryByRole('button', { name: 'Open Local' })).toBeNull()
     })
 
     it('opens a local project and shows root cards in the card view before background cards', async () => {
         window.md2Data = createBridge()
 
-        render(<ProjectWorkspace accessToken={null} isGithubAuthenticated={false} />)
-        fireEvent.click(screen.getByRole('button', { name: 'Open Local' }))
+        renderProjectSurface()
+        await openLocalProject()
 
         expect(await screen.findByText('Root')).toBeInTheDocument()
         expect(screen.getByText('F-1')).toBeInTheDocument()
@@ -61,14 +160,16 @@ describe('ProjectWorkspace', () => {
         expect(screen.getByText('Background cards loaded: 1')).toBeInTheDocument()
     })
 
-    it('creates a new feature card through the data service', async () => {
+    it('creates a new feature card through the project menu', async () => {
         const bridge = createBridge()
         window.md2Data = bridge
 
-        render(<ProjectWorkspace accessToken={null} isGithubAuthenticated={false} />)
-        fireEvent.click(screen.getByRole('button', { name: 'Open Local' }))
+        renderProjectSurface()
+        await openLocalProject()
         await screen.findByText('Root')
 
+        fireEvent.click(screen.getByRole('button', { name: 'Project' }))
+        fireEvent.click(screen.getByRole('menuitem', { name: 'New card...' }))
         fireEvent.change(screen.getByLabelText('New card title'), { target: { value: 'New Card' } })
         fireEvent.change(screen.getByLabelText('New card body'), { target: { value: 'Body' } })
         fireEvent.click(screen.getByRole('button', { name: 'Create Feature' }))
@@ -77,16 +178,17 @@ describe('ProjectWorkspace', () => {
         expect(await screen.findByText('New Card')).toBeInTheDocument()
     })
 
-    it('completes a release from the project controls', async () => {
+    it('completes a release from the project menu', async () => {
         const bridge = createBridge()
         window.md2Data = bridge
         const prompt = vi.spyOn(window, 'prompt').mockReturnValue('v1')
 
-        render(<ProjectWorkspace accessToken={null} isGithubAuthenticated={false} />)
-        fireEvent.click(screen.getByRole('button', { name: 'Open Local' }))
+        renderProjectSurface()
+        await openLocalProject()
         await screen.findByText('Root')
 
-        fireEvent.click(screen.getByRole('button', { name: 'Complete release...' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Project' }))
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Complete release...' }))
 
         await waitFor(() => expect(bridge.moveFiles).toHaveBeenCalled())
         expect(await screen.findByText('Background cards loaded: 2')).toBeInTheDocument()
@@ -97,8 +199,8 @@ describe('ProjectWorkspace', () => {
     it('opens a card in the text view as a tab from the card body dialog', async () => {
         window.md2Data = createBridge()
 
-        render(<ProjectWorkspace accessToken={null} isGithubAuthenticated={false} />)
-        fireEvent.click(screen.getByRole('button', { name: 'Open Local' }))
+        renderProjectSurface()
+        await openLocalProject()
         fireEvent.click(await screen.findByText('Root'))
         fireEvent.click(await screen.findByRole('button', { name: 'Open in file mode' }))
 
@@ -110,8 +212,8 @@ describe('ProjectWorkspace', () => {
         window.md2Data = createBridge()
         const trackEvent = vi.spyOn(telemetryService, 'trackEvent').mockImplementation(() => undefined)
 
-        render(<ProjectWorkspace accessToken={null} isGithubAuthenticated={false} />)
-        fireEvent.click(screen.getByRole('button', { name: 'Open Local' }))
+        renderProjectSurface()
+        await openLocalProject()
         await screen.findByText('Root')
 
         fireEvent.click(screen.getByRole('button', { name: 'Text' }))
@@ -126,8 +228,8 @@ describe('ProjectWorkspace', () => {
         window.md2Data = createBridge()
         const trackEvent = vi.spyOn(telemetryService, 'trackEvent').mockImplementation(() => undefined)
 
-        render(<ProjectWorkspace accessToken={null} isGithubAuthenticated={false} />)
-        fireEvent.click(screen.getByRole('button', { name: 'Open Local' }))
+        renderProjectSurface()
+        await openLocalProject()
         await screen.findByText('Root')
 
         act(() => workspaceNavigationService.open('design/F-1-root.md'))
@@ -146,8 +248,8 @@ describe('ProjectWorkspace', () => {
         window.md2Data = bridge
         const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
 
-        render(<ProjectWorkspace accessToken={null} isGithubAuthenticated={false} />)
-        fireEvent.click(screen.getByRole('button', { name: 'Open Local' }))
+        renderProjectSurface()
+        await openLocalProject()
         await screen.findByText('Root')
 
         act(() => workspaceNavigationService.open('design/F-1-root.md'))
@@ -171,8 +273,8 @@ describe('ProjectWorkspace', () => {
         window.md2Data = bridge
         const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
 
-        render(<ProjectWorkspace accessToken={null} isGithubAuthenticated={false} />)
-        fireEvent.click(screen.getByRole('button', { name: 'Open Local' }))
+        renderProjectSurface()
+        await openLocalProject()
         await screen.findByText('Root')
 
         fireEvent.click(screen.getByRole('button', { name: 'Card actions for F-1' }))
@@ -182,5 +284,53 @@ describe('ProjectWorkspace', () => {
         expect(screen.getByText('Root')).toBeInTheDocument()
 
         confirm.mockRestore()
+    })
+
+    it('filters authenticated GitHub repositories', async () => {
+        vi.stubGlobal('fetch', mockGithubFetch())
+
+        renderProjectSurface(true)
+        await openProjectDialog()
+
+        await waitFor(() => expect(screen.getByRole('combobox', { name: 'Repository' })).not.toHaveAttribute('aria-disabled', 'true'))
+        fireEvent.change(screen.getByLabelText('Filter repositories'), { target: { value: 'notes' } })
+        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Repository' }))
+
+        expect(await screen.findByRole('option', { name: 'octo/notes' })).toBeInTheDocument()
+        expect(screen.queryByRole('option', { name: 'octo/demo' })).toBeNull()
+    })
+
+    it('loads GitHub branches from the selected repository', async () => {
+        vi.stubGlobal('fetch', mockGithubFetch())
+
+        renderProjectSurface(true)
+        await openProjectDialog()
+
+        await waitFor(() => expect(screen.getByRole('combobox', { name: 'Repository' })).not.toHaveAttribute('aria-disabled', 'true'))
+        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Repository' }))
+        fireEvent.click(await screen.findByRole('option', { name: 'octo/demo' }))
+
+        await waitFor(() => expect(screen.getByRole('combobox', { name: 'Branch' })).toHaveTextContent('trunk'))
+        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Branch' }))
+        expect(screen.getByRole('option', { name: 'trunk' })).toBeInTheDocument()
+        expect(screen.getByRole('option', { name: 'topic' })).toBeInTheDocument()
+    })
+
+    it('switches the current project branch from a branch dropdown', async () => {
+        const bridge = createBridge()
+        window.md2Data = bridge
+
+        renderProjectSurface()
+        await openLocalProject()
+        await screen.findByText('Root')
+
+        fireEvent.click(screen.getByRole('button', { name: 'Project' }))
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Switch branch...' }))
+        await screen.findByRole('heading', { name: 'Switch branch' })
+        await waitFor(() => expect(screen.getByRole('combobox', { name: 'Branch' })).toHaveTextContent('main'))
+        await chooseBranch('feature')
+        fireEvent.click(screen.getByRole('button', { name: 'Switch' }))
+
+        await waitFor(() => expect(bridge.checkoutBranch).toHaveBeenCalledWith(expect.objectContaining({ branch: 'main' }), 'feature'))
     })
 })

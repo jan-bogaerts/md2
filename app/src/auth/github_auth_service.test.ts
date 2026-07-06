@@ -1,4 +1,5 @@
 ﻿import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest'
+import { configService } from '../services/config_service'
 import { GithubAuthService, type GithubAuthServiceDependencies } from '../services/github_auth_service'
 import { GithubUnauthorizedError } from './github_api_client'
 import { AUTH_TOKEN_STORAGE_KEY, type AuthStorage, type GithubDeviceCode, type GithubUser } from './github_auth_types'
@@ -67,6 +68,7 @@ describe('GithubAuthService', () => {
 
     afterEach(() => {
         vi.useRealTimers()
+        configService.clear()
     })
 
     it('persists a successful device-flow token and loads the current user', async () => {
@@ -83,6 +85,26 @@ describe('GithubAuthService', () => {
             status: 'authenticated',
             user: githubUser,
         })
+    })
+
+    it('falls back to the configured scopes when configService is not initialized', async () => {
+        const { dependencies, service } = createService()
+
+        await service.login()
+        await vi.advanceTimersByTimeAsync(1000)
+
+        expect(dependencies.requestDeviceCode).toHaveBeenCalledWith({ ...config, scopes: 'repo' })
+    })
+
+    it('uses the connection.githubScopes config value when requesting the device code', async () => {
+        configService.init()
+        configService.set('connection.githubScopes', 'public_repo')
+        const { dependencies, service } = createService()
+
+        await service.login()
+        await vi.advanceTimersByTimeAsync(1000)
+
+        expect(dependencies.requestDeviceCode).toHaveBeenCalledWith({ ...config, scopes: 'public_repo' })
     })
 
     it('respects pending and slow-down polling states before token success', async () => {

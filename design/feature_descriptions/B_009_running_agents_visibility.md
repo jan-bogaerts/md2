@@ -1,7 +1,7 @@
 ---
 id: B-009
 title: running-agents indicator misses action and onState runs
-status: ready
+status: design
 owner: JB
 affects:
 policy:

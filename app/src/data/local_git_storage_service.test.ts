@@ -7,9 +7,11 @@ function createBridge(): ElectronDataBridge {
         checkoutBranch: vi.fn(async (project, branch) => ({ ...project, branch })),
         commit: vi.fn(),
         createProject: vi.fn(async (project) => project),
+        createWorkingFolderFromTemplate: vi.fn(async (project) => project),
         deleteFile: vi.fn(),
         listBranches: vi.fn(async () => [{ name: 'main' }]),
         listRepositoryFiles: vi.fn(async () => ['design/F-1-root.md']),
+        listTopLevelFolders: vi.fn(async () => [{ name: 'design', path: 'design' }]),
         loadActionFiles: vi.fn(async () => []),
         loadProject: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
         loadProjectConfig: vi.fn(async () => null),
@@ -31,6 +33,8 @@ describe('LocalGitStorageService', () => {
         await service.loadProject(project!, 'design')
         await service.loadProjectConfig(project!)
         await service.listRepositoryFiles(project!)
+        await service.listTopLevelFolders(project!)
+        await service.createWorkingFolderFromTemplate(project!, 'design')
         await service.checkoutBranch(project!, 'feature')
         await service.commit({ branch: 'feature', files: [{ content: '# Test', path: 'design/F-1-test.md' }], message: 'Update test' })
         await service.deleteFile({ branch: 'feature', message: 'Delete test', path: 'design/F-1-test.md', sha: 'sha-1' })
@@ -53,6 +57,8 @@ describe('LocalGitStorageService', () => {
         expect(bridge.loadProject).toHaveBeenCalledWith(project, 'design')
         expect(bridge.loadProjectConfig).toHaveBeenCalledWith(project)
         expect(bridge.listRepositoryFiles).toHaveBeenCalledWith(project)
+        expect(bridge.listTopLevelFolders).toHaveBeenCalledWith(project)
+        expect(bridge.createWorkingFolderFromTemplate).toHaveBeenCalledWith(project, 'design')
         expect(bridge.checkoutBranch).toHaveBeenCalledWith(project, 'feature')
         expect(bridge.commit).toHaveBeenCalled()
         expect(bridge.deleteFile).toHaveBeenCalled()

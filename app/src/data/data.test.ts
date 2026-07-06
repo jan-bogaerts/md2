@@ -61,9 +61,12 @@ function createStorage(overrides: Partial<StorageService> = {}): StorageService 
         checkoutBranch: vi.fn(async (project, branch) => ({ ...project, branch })),
         commit: vi.fn(),
         createProject: vi.fn(async (project) => project),
+        createWorkingFolderFromTemplate: vi.fn(async (project) => project),
         deleteFile: vi.fn(),
         listBranches: vi.fn(async () => [{ name: 'main' }]),
+        listRepositories: vi.fn(async () => []),
         listRepositoryFiles: vi.fn(async () => ['app/src/app.tsx', 'app/src/card.tsx', 'design/F-1-root.md']),
+        listTopLevelFolders: vi.fn(async () => [{ name: 'design', path: 'design' }]),
         loadActionFiles: vi.fn(async () => []),
         loadProject: vi.fn(async () => ({ files, workingFolder: 'design' })),
         loadProjectConfig: vi.fn(async () => null),
@@ -295,6 +298,8 @@ describe('DataService', () => {
             ],
         })
         expect(storage.push).toHaveBeenCalledWith({ branch: 'main', id: 'project' })
+        if (!snapshot) throw new Error('Expected release completion to return a snapshot')
+
         expect(snapshot.activeCards).toHaveLength(0)
         expect(snapshot.backgroundCards.map((card) => card.path)).toContain('design/history/v1/F-1-root.md')
     })

@@ -1,7 +1,7 @@
 ---
 id: F-030
 title: action entry point display
-status: ready
+status: design
 owner: JB
 affects:
 policy:

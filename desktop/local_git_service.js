@@ -290,13 +290,34 @@ async function readRepositoryFilePaths(rootPath, folderPath) {
     return files
 }
 
+async function readTopLevelFolders(rootPath) {
+    const entries = await fs.promises.readdir(rootPath, { withFileTypes: true })
+
+    return entries
+        .filter((entry) => entry.isDirectory() && entry.name !== GIT_FOLDER)
+        .map((entry) => ({ name: entry.name, path: normalizePath(entry.name) }))
+        .sort((left, right) => left.path.localeCompare(right.path))
+}
+
 async function assertGitRoot(rootPath) {
     const gitPath = path.join(rootPath, '.git')
 
     if (!await pathExists(gitPath)) throw new Error('Selected folder must contain a .git directory')
 }
 
+function createMissingWorkingFolderError(workingFolder) {
+    const error = new Error(`Working folder is missing: ${workingFolder}`)
+    error.code = 'missing-working-folder'
+    error.workingFolder = workingFolder
+
+    return error
+}
+
 async function createProject(project, workingFolder) {
+    return createWorkingFolderFromTemplate(project, workingFolder)
+}
+
+async function createWorkingFolderFromTemplate(project, workingFolder) {
     const rootPath = requireRootPath(project)
     await assertGitRoot(rootPath)
     const workingFolderPath = ensureInsideRoot(rootPath, path.join(rootPath, workingFolder))
@@ -317,8 +338,7 @@ async function loadProject(project, workingFolder) {
     const workingFolderPath = ensureInsideRoot(rootPath, path.join(rootPath, workingFolder))
 
     if (!await pathExists(workingFolderPath)) {
-        await fs.promises.mkdir(workingFolderPath, { recursive: true })
-        await fs.promises.writeFile(path.join(workingFolderPath, 'README.md'), '# MD2\n\nProject design folder created by MD2.\n')
+        throw createMissingWorkingFolderError(workingFolder)
     }
 
     return {
@@ -371,6 +391,13 @@ async function listRepositoryFiles(project) {
     const files = await readRepositoryFilePaths(rootPath, rootPath)
 
     return files.sort((left, right) => left.localeCompare(right))
+}
+
+async function listTopLevelFolders(project) {
+    const rootPath = requireRootPath(project)
+    await assertGitRoot(rootPath)
+
+    return readTopLevelFolders(rootPath)
 }
 
 async function checkoutBranch(project, branch) {
@@ -456,9 +483,11 @@ module.exports = {
     checkoutBranch,
     commit,
     createProject,
+    createWorkingFolderFromTemplate,
     deleteFile,
     listBranches,
     listRepositoryFiles,
+    listTopLevelFolders,
     appendActionRunHistory,
     loadActionRunHistory,
     continueAgentConversation,

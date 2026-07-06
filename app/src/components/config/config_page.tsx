@@ -61,6 +61,7 @@ export function ConfigPage(props: ConfigPageProps) {
         try {
             configService.saveDraft()
             if (configService.hasProjectConfig()) await dataService.saveProjectConfig()
+            if (configService.hasDesktopConfig()) getElectronConfigBridge()?.setDesktopConfig(configService.getDesktopValues())
             setDraft(configService.loadDraft())
             setErrorMessage(null)
         } catch (error) {

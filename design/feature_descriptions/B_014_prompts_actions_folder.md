@@ -1,7 +1,7 @@
 ---
 id: B-014
 title: prompts vs actions folder inconsistency
-status: ready
+status: design
 owner: JB
 affects:
 policy:

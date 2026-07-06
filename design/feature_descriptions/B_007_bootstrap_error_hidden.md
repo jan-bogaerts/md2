@@ -1,7 +1,7 @@
 ---
 id: B-007
 title: startup restore errors are swallowed
-status: ready
+status: design
 owner: JB
 affects:
 policy:

@@ -58,6 +58,8 @@ interface ConfigServiceInitDependencies {
     desktopConfig?: Partial<DesktopConfigValues> | null
 }
 
+export const REACT_CONFIG_STORAGE_KEY = 'md2.reactConfig'
+
 export const CONFIG_SECTIONS = [
     { id: 'react', label: 'React app' },
     { id: 'connection', label: 'Connection' },
@@ -209,6 +211,9 @@ const PROJECT_KEYS: ConfigKey[] = [
     'project.cardBodyTemplate',
     'project.cardTypes',
 ]
+const LOCAL_STORAGE_KEYS: ConfigKey[] = CONFIG_ENTRIES.filter(
+    (entry) => entry.source === 'react' || entry.source === 'connection',
+).map((entry) => entry.key)
 
 function createDefaultValues(): ConfigValues {
     return CONFIG_ENTRIES.reduce((values, entry) => ({ ...values, [entry.key]: entry.defaultValue }), {} as ConfigValues)
@@ -281,6 +286,49 @@ function mergeValue(values: ConfigValues, key: ConfigKey, value: unknown): Confi
     return { ...values, [key]: validateValue(key, value) }
 }
 
+function readStoredReactValues(): Partial<Record<ConfigKey, unknown>> {
+    const raw = window.localStorage.getItem(REACT_CONFIG_STORAGE_KEY)
+    if (!raw) return {}
+
+    try {
+        const parsed = JSON.parse(raw) as unknown
+        return parsed && typeof parsed === 'object' ? (parsed as Partial<Record<ConfigKey, unknown>>) : {}
+    } catch {
+        return {}
+    }
+}
+
+function writeStoredReactValues(values: ConfigValues) {
+    const stored: Partial<Record<ConfigKey, unknown>> = {}
+    for (const key of LOCAL_STORAGE_KEYS) stored[key] = values[key]
+
+    window.localStorage.setItem(REACT_CONFIG_STORAGE_KEY, JSON.stringify(stored))
+}
+
+function mergeStoredReactValues(values: ConfigValues): ConfigValues {
+    let nextValues = values
+    const stored = readStoredReactValues()
+
+    for (const key of LOCAL_STORAGE_KEYS) {
+        if (stored[key] === undefined) continue
+
+        try {
+            nextValues = mergeValue(nextValues, key, stored[key])
+        } catch {
+            // ignore invalid persisted value, keep the default
+        }
+    }
+
+    return nextValues
+}
+
+/** Read the startup-splash preference straight from storage, for use before the config service initializes. */
+export function readStartupSplashPreference(): boolean {
+    const stored = readStoredReactValues()['react.showStartupSplash']
+
+    return typeof stored === 'boolean' ? stored : (requireEntry('react.showStartupSplash').defaultValue as boolean)
+}
+
 function readProjectConfig(values: ConfigValues): ProjectConfig {
     return {
         actionsFolder: values['project.actionsFolder'] as string,
@@ -315,6 +363,8 @@ export class ConfigService extends EventTarget {
         this.desktopAvailable = !!desktopConfig
         this.projectLoaded = false
         this.draftValues = null
+
+        nextValues = mergeStoredReactValues(nextValues)
 
         if (desktopConfig?.agent !== undefined) nextValues = mergeValue(nextValues, 'desktop.agent', desktopConfig.agent)
         if (desktopConfig?.projectLocationMode !== undefined) {
@@ -385,6 +435,15 @@ export class ConfigService extends EventTarget {
         return readProjectConfig(this.values)
     }
 
+    getDesktopValues(): DesktopConfigValues {
+        this.requireInitialized()
+
+        return {
+            agent: this.values['desktop.agent'] as string,
+            projectLocationMode: this.values['desktop.projectLocationMode'] as string,
+        }
+    }
+
     loadDraft() {
         this.requireInitialized()
         this.draftValues = { ...this.values }
@@ -408,6 +467,7 @@ export class ConfigService extends EventTarget {
         for (const key of PROJECT_KEYS) validateValue(key, draft[key])
         this.values = draft
         this.draftValues = null
+        writeStoredReactValues(this.values)
         this.dispatchChanged()
 
         return this.values

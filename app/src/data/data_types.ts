@@ -79,8 +79,31 @@ export interface ProjectReference {
     rootPath?: string
 }
 
+export interface RepositoryReference extends ProjectReference {
+    owner: string
+    repository: string
+}
+
 export interface BranchReference {
     name: string
+}
+
+export interface TopLevelFolderReference {
+    name: string
+    path: string
+}
+
+export const MISSING_WORKING_FOLDER_ERROR = 'missing-working-folder'
+
+export class MissingWorkingFolderError extends Error {
+    code: typeof MISSING_WORKING_FOLDER_ERROR
+    workingFolder: string
+
+    constructor(workingFolder: string) {
+        super(`Working folder is missing: ${workingFolder}`)
+        this.code = MISSING_WORKING_FOLDER_ERROR
+        this.workingFolder = workingFolder
+    }
 }
 
 export interface CommitRequest {
@@ -190,17 +213,20 @@ export interface StorageService {
     checkoutBranch(project: ProjectReference, branch: string): Promise<ProjectReference>
     commit(request: CommitRequest): Promise<void>
     createProject(project: ProjectReference, workingFolder: string): Promise<ProjectReference>
+    createWorkingFolderFromTemplate(project: ProjectReference, workingFolder: string): Promise<ProjectReference>
     deleteFile(request: DeleteFileRequest): Promise<void>
     continueAgentConversation?(
         project: ProjectReference,
         request: ContinueAgentConversationRequest,
     ): Promise<ContinueAgentConversationResult>
     listBranches(project: ProjectReference): Promise<BranchReference[]>
+    listRepositories(): Promise<RepositoryReference[]>
     loadActionFiles(project: ProjectReference, actionsFolder: string): Promise<ActionFile[]>
     loadAgentConversation?(project: ProjectReference, path: string): Promise<AgentConversation>
     loadProject(project: ProjectReference, workingFolder: string): Promise<StorageProjectFiles>
     loadProjectConfig(project: ProjectReference): Promise<Partial<ProjectConfig> | null>
     listRepositoryFiles(project: ProjectReference): Promise<string[]>
+    listTopLevelFolders(project: ProjectReference): Promise<TopLevelFolderReference[]>
     moveFiles(request: MoveFilesRequest): Promise<void>
     push(project: ProjectReference): Promise<void>
     saveProjectConfig(project: ProjectReference, config: ProjectConfig): Promise<void>

@@ -2,6 +2,7 @@ import type { DesktopConfigValues } from './config_service'
 
 export interface ElectronConfigBridge {
     getDesktopConfig(): Partial<DesktopConfigValues>
+    setDesktopConfig(values: DesktopConfigValues): void
 }
 
 declare global {

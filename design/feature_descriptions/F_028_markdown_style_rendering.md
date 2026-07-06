@@ -1,7 +1,7 @@
 ---
 id: F-028
 title: markdown style rendering
-status: ready
+status: design
 owner: JB
 affects:
 policy:

@@ -1,7 +1,7 @@
 ---
 id: B-012
 title: left split panel hosts the auth panel instead of the tree/columns
-status: ready
+status: design
 owner: JB
 affects:
 policy:

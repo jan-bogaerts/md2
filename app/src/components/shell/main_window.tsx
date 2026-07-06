@@ -6,7 +6,9 @@ import type { UseGithubAuthResult } from '../../auth/use_github_auth'
 import { ConfigPage } from '../config/config_page'
 import { GithubAuthPanel } from '../github_auth_panel'
 import { ProjectWorkspace } from '../project_workspace'
+import { createSearchRegexpAgent, isSearchRegexpAgentAvailable } from '../../services/search/search_regexp_agent'
 import { MainToolbar } from './main_toolbar'
+import { ProjectToolbarMenu } from './project_toolbar_menu'
 import { SearchControl } from './search/search_control'
 import { SplitLayout } from './split_layout'
 import { StatusBar } from './status_bar'
@@ -31,6 +33,7 @@ export function MainWindow(props: MainWindowProps) {
     const [isMenuOpen, setIsMenuOpen] = useState(false)
     const [statusInfo, setStatusInfo] = useState('')
     const isConfigPage = location.pathname === '/config'
+    const regexpAgent = isSearchRegexpAgentAvailable() ? createSearchRegexpAgent() : undefined
 
     const handleOpenMenu = () => {
         setIsMenuOpen(true)
@@ -53,8 +56,6 @@ export function MainWindow(props: MainWindowProps) {
         <Box sx={{ p: PANEL_PADDING }}>
             <ProjectWorkspace
                 key={session?.project.id ?? 'no-project'}
-                accessToken={auth.accessToken}
-                isGithubAuthenticated={auth.isAuthenticated}
             />
         </Box>
     )
@@ -62,11 +63,16 @@ export function MainWindow(props: MainWindowProps) {
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
             <MainToolbar
-                action={toolbarAction}
+                action={(
+                    <>
+                        <ProjectToolbarMenu accessToken={auth.accessToken} isGithubAuthenticated={auth.isAuthenticated} />
+                        {toolbarAction}
+                    </>
+                )}
                 isMobile={isMobile}
                 onOpenConfig={handleOpenConfig}
                 onOpenMenu={handleOpenMenu}
-                search={<SearchControl />}
+                search={<SearchControl regexpAgent={regexpAgent} />}
             />
             {isConfigPage ? (
                 <ConfigPage hash={location.hash} />

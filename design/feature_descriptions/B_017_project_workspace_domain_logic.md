@@ -1,7 +1,7 @@
 ---
 id: B-017
 title: ProjectWorkspace owns domain workflows (god component)
-status: ready
+status: design
 owner: JB
 affects:
 policy:

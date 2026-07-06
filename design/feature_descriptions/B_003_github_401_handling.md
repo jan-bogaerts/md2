@@ -1,7 +1,7 @@
 ---
 id: B-003
 title: 401 from storage calls does not clear token or return to sign-in
-status: ready
+status: design
 owner: JB
 affects:
 policy:

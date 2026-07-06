@@ -20,6 +20,7 @@ const REMARKABLE_LIST_IMAGE_FILES_CHANNEL = 'md2-remarkable:list-image-files'
 const REMARKABLE_IMPORT_FILES_CHANNEL = 'md2-remarkable:import-files'
 
 const store = new Store()
+Store.initRenderer()
 const remoteControlService = new RemoteControlService()
 const electronTelemetryStarted = startElectronTelemetry()
 let isQuittingAfterTelemetry = false

@@ -1,7 +1,7 @@
 ---
 id: B-011
 title: every edit rewrites CRLF files as LF
-status: ready
+status: design
 owner: JB
 affects:
 policy:

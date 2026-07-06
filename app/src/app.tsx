@@ -6,16 +6,18 @@ import { RemoteControlButton } from './components/shell/remote_control_button'
 import { ThemeControls } from './components/shell/theme_controls'
 import { useProjectState } from './components/hooks/use_project_state'
 import { AppThemeProvider } from './theme/theme_provider'
+import { readStartupSplashPreference } from './services/config_service'
 
 export function App() {
     const auth = useGithubAuth()
     const bootstrap = useAppBootstrap(auth.accessToken)
     const { runningAgents } = useProjectState()
+    const showStartupSplash = readStartupSplashPreference()
 
     return (
         <AppThemeProvider>
             {bootstrap.phase === 'starting' ? (
-                <StartupSplash />
+                showStartupSplash ? <StartupSplash /> : null
             ) : (
                 <MainWindow
                     agents={runningAgents}
