@@ -2,11 +2,16 @@
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { createRequire } from 'node:module'
+import { execFile } from 'node:child_process'
+import { promisify } from 'node:util'
 import { describe, expect, it } from 'vitest'
+
+const execFileAsync = promisify(execFile)
 
 const require = createRequire(import.meta.url)
 const {
     appendActionRunHistory,
+    commit,
     loadActionFiles,
     loadActionRunHistory,
     loadProject,
@@ -165,6 +170,28 @@ describe('local-git-service', () => {
             await appendActionRunHistory({ branch: 'main', id: 'local', rootPath }, request, entry)
 
             await expect(loadActionRunHistory({ branch: 'main', id: 'local', rootPath }, request)).resolves.toEqual([entry])
+        } finally {
+            await rm(rootPath, { force: true, recursive: true })
+        }
+    })
+
+    it('writes base64-encoded files as binary and commits them alongside text files', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-local-git-'))
+
+        try {
+            await execFileAsync('git', ['init'], { cwd: rootPath })
+            await mkdir(join(rootPath, 'design'))
+
+            await commit({
+                files: [
+                    { content: '# Card', path: 'design/F-1-card.md' },
+                    { content: Buffer.from('binary-bytes').toString('base64'), encoding: 'base64', path: 'design/note.png' },
+                ],
+                message: 'Import Remarkable asset',
+            }, { branch: 'main', id: 'local', rootPath })
+
+            const written = await readFile(join(rootPath, 'design', 'note.png'))
+            expect(written.toString()).toBe('binary-bytes')
         } finally {
             await rm(rootPath, { force: true, recursive: true })
         }

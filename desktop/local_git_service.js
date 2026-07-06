@@ -356,8 +356,9 @@ async function commit(request, project) {
 
     for (const file of request.files) {
         const filePath = ensureInsideRoot(rootPath, path.join(rootPath, file.path))
+        const data = file.encoding === 'base64' ? Buffer.from(file.content, 'base64') : file.content
         await fs.promises.mkdir(path.dirname(filePath), { recursive: true })
-        await fs.promises.writeFile(filePath, file.content)
+        await fs.promises.writeFile(filePath, data)
         await runGit(rootPath, ['add', file.path])
     }
 
