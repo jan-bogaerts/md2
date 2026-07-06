@@ -4,6 +4,7 @@ import type {
     CommitRequest,
     ContinueAgentConversationRequest,
     ContinueAgentConversationResult,
+    DeleteFileRequest,
     AgentConversation,
     AgentRunEvent,
     MoveFilesRequest,
@@ -112,6 +113,10 @@ export class LocalGitStorageService implements StorageService {
 
     async commit(request: CommitRequest): Promise<void> {
         await this.requireBridge().commit(request)
+    }
+
+    async deleteFile(request: DeleteFileRequest): Promise<void> {
+        await this.requireBridge().deleteFile(request)
     }
 
     async moveFiles(request: MoveFilesRequest): Promise<void> {

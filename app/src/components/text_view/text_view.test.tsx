@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { TextView } from './text_view'
 import { DEFAULT_CARD_TYPES, type AgentConversation, type ProjectCard } from '../../data/data_types'
@@ -49,6 +49,7 @@ const backgroundCards = [card('design/history/rel1/F-9-old.md', { id: 'F-9', tit
 
 function renderTextView(overrides: Partial<Parameters<typeof TextView>[0]> = {}) {
     const onBodyChange = vi.fn()
+    const onDeleteFile = vi.fn(async () => undefined)
 
     render(
         <TextView
@@ -58,6 +59,7 @@ function renderTextView(overrides: Partial<Parameters<typeof TextView>[0]> = {})
             isMobile={false}
             onBodyChange={onBodyChange}
             onContinueAgentConversation={vi.fn()}
+            onDeleteFile={onDeleteFile}
             onSendAgentInput={vi.fn()}
             onStartAgentConversation={vi.fn()}
             requestedNonce={0}
@@ -67,7 +69,7 @@ function renderTextView(overrides: Partial<Parameters<typeof TextView>[0]> = {})
         />,
     )
 
-    return { onBodyChange }
+    return { onBodyChange, onDeleteFile }
 }
 
 /** Click a file leaf inside the tree region (avoids matching the same label in an open tab). */
@@ -123,6 +125,20 @@ describe('TextView', () => {
         expect(screen.getByRole('tab', { name: /Beta/ })).toBeInTheDocument()
     })
 
+    it('confirms tree deletion and closes the matching open tab after success', async () => {
+        const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
+        const { onDeleteFile } = renderTextView()
+
+        clickTreeFile('F-1 Alpha')
+        fireEvent.click(screen.getByRole('button', { name: 'Delete design/F-1-a.md' }))
+
+        expect(confirm).toHaveBeenCalledWith(expect.stringContaining('design/F-1-a.md'))
+        expect(onDeleteFile).toHaveBeenCalledWith('design/F-1-a.md')
+        await waitFor(() => expect(screen.queryByRole('tab', { name: /Alpha/ })).not.toBeInTheDocument())
+
+        confirm.mockRestore()
+    })
+
     it('persists edits to the active file through onBodyChange', () => {
         const { onBodyChange } = renderTextView()
 
@@ -140,6 +156,7 @@ describe('TextView', () => {
             isMobile: false,
             onBodyChange: vi.fn(),
             onContinueAgentConversation: vi.fn(),
+            onDeleteFile: vi.fn(async () => undefined),
             onSendAgentInput: vi.fn(),
             onStartAgentConversation: vi.fn(),
             workingFolder: 'design',
@@ -171,6 +188,7 @@ describe('TextView', () => {
                 isMobile
                 onBodyChange={vi.fn()}
                 onContinueAgentConversation={vi.fn()}
+                onDeleteFile={vi.fn(async () => undefined)}
                 onSendAgentInput={vi.fn()}
                 onStartAgentConversation={vi.fn()}
                 requestedNonce={0}

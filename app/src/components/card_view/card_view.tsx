@@ -19,6 +19,7 @@ interface CardViewProps {
     onAffectsChange: (path: string, affects: string[]) => void
     onBodyChange: (path: string, body: string) => void
     onContinueAgentConversation: (path: string, conversation: AgentConversation) => void
+    onDeleteCard: (path: string) => Promise<void>
     onMoveCard: (path: string, targetStatus: string, targetIndex: number) => void
     onOpenInFileMode: (path: string) => void
     onSendAgentInput: (runId: string, input: string) => void
@@ -38,6 +39,7 @@ export function CardView(props: CardViewProps) {
         onAffectsChange,
         onBodyChange,
         onContinueAgentConversation,
+        onDeleteCard,
         onMoveCard,
         onOpenInFileMode,
         onSendAgentInput,
@@ -78,6 +80,12 @@ export function CardView(props: CardViewProps) {
         onOpenInFileMode(path)
     }
 
+    const handleDeleteCard = async (path: string) => {
+        await onDeleteCard(path)
+        if (openBodyPath === path) setOpenBodyPath(null)
+        if (openAffectsPath === path) setOpenAffectsPath(null)
+    }
+
     const openCard = cards.find((card) => card.path === openBodyPath) ?? null
     const affectsCard = cards.find((card) => card.path === openAffectsPath) ?? null
 
@@ -97,6 +105,7 @@ export function CardView(props: CardViewProps) {
                         onAffectsChange={onAffectsChange}
                         onBodyChange={onBodyChange}
                         onContinueAgentConversation={onContinueAgentConversation}
+                        onDeleteCard={handleDeleteCard}
                         onOpenBody={handleOpenBody}
                         onOpenAffects={handleOpenAffects}
                         onOpenInFileMode={handleOpenInFileMode}
@@ -114,6 +123,7 @@ export function CardView(props: CardViewProps) {
                     card={openCard}
                     onBodyChange={onBodyChange}
                     onClose={() => setOpenBodyPath(null)}
+                    onDeleteCard={handleDeleteCard}
                     onOpenInFileMode={handleOpenInFileMode}
                 />
             )}

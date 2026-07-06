@@ -42,6 +42,7 @@ function renderCardView(overrides: Partial<Parameters<typeof CardView>[0]> = {})
         onAffectsChange: vi.fn(),
         onBodyChange: vi.fn(),
         onContinueAgentConversation: vi.fn(),
+        onDeleteCard: vi.fn(async () => undefined),
         onMoveCard: vi.fn(),
         onOpenInFileMode: vi.fn(),
         onSendAgentInput: vi.fn(),
@@ -119,6 +120,44 @@ describe('CardView', () => {
         expect(handlers.onOpenInFileMode).toHaveBeenCalledWith('design/F-1.md')
     })
 
+    it('confirms before deleting from the card actions menu', () => {
+        const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
+        const handlers = renderCardView()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Card actions for F-1' }))
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }))
+
+        expect(confirm).toHaveBeenCalledWith(expect.stringContaining('design/F-1.md'))
+        expect(handlers.onDeleteCard).toHaveBeenCalledWith('design/F-1.md')
+
+        confirm.mockRestore()
+    })
+
+    it('does not delete from the card actions menu when confirmation is cancelled', () => {
+        const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false)
+        const handlers = renderCardView()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Card actions for F-1' }))
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }))
+
+        expect(handlers.onDeleteCard).not.toHaveBeenCalled()
+
+        confirm.mockRestore()
+    })
+
+    it('confirms before deleting from the body dialog', () => {
+        const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
+        const handlers = renderCardView()
+
+        fireEvent.click(screen.getByText('First'))
+        fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete' }))
+
+        expect(confirm).toHaveBeenCalledWith(expect.stringContaining('design/F-1.md'))
+        expect(handlers.onDeleteCard).toHaveBeenCalledWith('design/F-1.md')
+
+        confirm.mockRestore()
+    })
+
     it('expands the body inline as an accordion on mobile instead of a dialog', () => {
         renderCardView({ isMobile: true })
 
@@ -137,6 +176,7 @@ describe('CardView', () => {
                 onAffectsChange={vi.fn()}
                 onBodyChange={vi.fn()}
                 onContinueAgentConversation={vi.fn()}
+                onDeleteCard={vi.fn(async () => undefined)}
                 onMoveCard={vi.fn()}
                 onOpenInFileMode={vi.fn()}
                 onSendAgentInput={vi.fn()}

@@ -40,11 +40,28 @@ function conversation(path = '.md2-agent-logs/one.json'): AgentConversation {
     }
 }
 
+function activeCardFile(id: string, options: { after?: string; sha?: string; status?: string } = {}): MarkdownFile {
+    const content = [
+        '---',
+        `id: ${id.toUpperCase()}`,
+        `internalId: ${id}`,
+        `title: ${id.toUpperCase()}`,
+        `status: ${options.status ?? 'todo'}`,
+        ...(options.after ? [`after: ${options.after}`] : []),
+        '---',
+        '',
+        `# ${id.toUpperCase()}`,
+    ].join('\n')
+
+    return { content, path: `design/${id.toUpperCase()}.md`, sha: options.sha }
+}
+
 function createStorage(overrides: Partial<StorageService> = {}): StorageService {
     return {
         checkoutBranch: vi.fn(async (project, branch) => ({ ...project, branch })),
         commit: vi.fn(),
         createProject: vi.fn(async (project) => project),
+        deleteFile: vi.fn(),
         listBranches: vi.fn(async () => [{ name: 'main' }]),
         listRepositoryFiles: vi.fn(async () => ['app/src/app.tsx', 'app/src/card.tsx', 'design/F-1-root.md']),
         loadActionFiles: vi.fn(async () => []),
@@ -369,6 +386,138 @@ describe('DataService', () => {
         const movedContent = committed.files[0].content
         expect(movedContent).toContain('status: done')
         expect(movedContent).toContain('after: p')
+    })
+
+    it('repairs ordering after deleting a middle card', async () => {
+        configService.init()
+        const deletionFiles = [
+            activeCardFile('a', { sha: 'sha-a' }),
+            activeCardFile('b', { after: 'a', sha: 'sha-b' }),
+            activeCardFile('c', { after: 'b', sha: 'sha-c' }),
+        ]
+        const refreshedFiles = [
+            activeCardFile('a', { sha: 'sha-a' }),
+            activeCardFile('c', { after: 'a', sha: 'sha-c-next' }),
+        ]
+        const storage = createStorage({
+            loadProject: vi.fn()
+                .mockResolvedValueOnce({ files: deletionFiles, workingFolder: 'design' })
+                .mockResolvedValueOnce({ files: refreshedFiles, workingFolder: 'design' }),
+        })
+        const service = new DataService()
+        service.init({ storage })
+
+        await service.openProject({ branch: 'main', id: 'project' })
+        const snapshot = await service.deleteCard('design/B.md')
+
+        const repairCommit = vi.mocked(storage.commit).mock.calls[0][0]
+        expect(repairCommit).toMatchObject({ branch: 'main', message: 'Repair ordering after deleting design/B.md' })
+        expect(repairCommit.files.map((file) => file.path)).toEqual(['design/C.md'])
+        expect(repairCommit.files[0].content).toContain('after: a')
+        expect(storage.deleteFile).toHaveBeenCalledWith({
+            branch: 'main',
+            message: 'Delete design/B.md',
+            path: 'design/B.md',
+            sha: 'sha-b',
+        })
+        expect(vi.mocked(storage.commit).mock.invocationCallOrder[0]).toBeLessThan(
+            vi.mocked(storage.deleteFile).mock.invocationCallOrder[0],
+        )
+        expect(snapshot?.activeCards.map((card) => card.path)).toEqual(['design/A.md', 'design/C.md'])
+    })
+
+    it('does not repair ordering after deleting a tail card', async () => {
+        configService.init()
+        const deletionFiles = [
+            activeCardFile('a', { sha: 'sha-a' }),
+            activeCardFile('b', { after: 'a', sha: 'sha-b' }),
+        ]
+        const storage = createStorage({
+            loadProject: vi.fn()
+                .mockResolvedValueOnce({ files: deletionFiles, workingFolder: 'design' })
+                .mockResolvedValueOnce({ files: [deletionFiles[0]], workingFolder: 'design' }),
+        })
+        const service = new DataService()
+        service.init({ storage })
+
+        await service.openProject({ branch: 'main', id: 'project' })
+        await service.deleteCard('design/B.md')
+
+        expect(storage.commit).not.toHaveBeenCalled()
+        expect(storage.deleteFile).toHaveBeenCalledWith(expect.objectContaining({ path: 'design/B.md', sha: 'sha-b' }))
+    })
+
+    it('leaves deleted files unpushed in manual mode', async () => {
+        configService.init()
+        const deletionFiles = [
+            activeCardFile('a', { sha: 'sha-a' }),
+            activeCardFile('b', { after: 'a', sha: 'sha-b' }),
+        ]
+        const storage = createStorage({
+            loadProject: vi.fn()
+                .mockResolvedValueOnce({ files: deletionFiles, workingFolder: 'design' })
+                .mockResolvedValueOnce({ files: [deletionFiles[0]], workingFolder: 'design' }),
+            loadProjectConfig: vi.fn(async () => ({ pushMode: 'manual' as const })),
+        })
+        const service = new DataService()
+        service.init({ storage })
+
+        await service.openProject({ branch: 'main', id: 'project' })
+        await service.deleteCard('design/B.md')
+
+        expect(storage.deleteFile).toHaveBeenCalledTimes(1)
+        expect(storage.push).not.toHaveBeenCalled()
+    })
+
+    it('leaves the snapshot unchanged when storage delete fails', async () => {
+        configService.init()
+        const deletionFiles = [
+            activeCardFile('a', { sha: 'sha-a' }),
+            activeCardFile('b', { after: 'a', sha: 'sha-b' }),
+        ]
+        const storage = createStorage({
+            deleteFile: vi.fn(async () => {
+                throw new Error('delete failed')
+            }),
+            loadProject: vi.fn(async () => ({ files: deletionFiles, workingFolder: 'design' })),
+        })
+        const service = new DataService()
+        service.init({ storage })
+
+        await service.openProject({ branch: 'main', id: 'project' })
+        const beforePaths = service.getState().snapshot?.activeCards.map((card) => card.path)
+
+        await expect(service.deleteCard('design/B.md')).rejects.toThrow('delete failed')
+
+        expect(service.getState().snapshot?.activeCards.map((card) => card.path)).toEqual(beforePaths)
+        expect(storage.push).not.toHaveBeenCalled()
+        expect(storage.loadProject).toHaveBeenCalledTimes(1)
+    })
+
+    it('flushes a pending body update before deleting a card', async () => {
+        configService.init()
+        const deletionFiles = [
+            activeCardFile('a', { sha: 'sha-a' }),
+            activeCardFile('b', { after: 'a', sha: 'sha-b' }),
+        ]
+        const storage = createStorage({
+            loadProject: vi.fn()
+                .mockResolvedValueOnce({ files: deletionFiles, workingFolder: 'design' })
+                .mockResolvedValueOnce({ files: [deletionFiles[0]], workingFolder: 'design' }),
+        })
+        const service = new DataService()
+        service.init({ storage })
+
+        await service.openProject({ branch: 'main', id: 'project' })
+        service.updateCardBody('design/B.md', '# B\n\nEdited body')
+        await service.deleteCard('design/B.md')
+
+        const updateCommit = vi.mocked(storage.commit).mock.calls[0][0]
+        expect(updateCommit.files[0].path).toBe('design/B.md')
+        expect(updateCommit.files[0].content).toContain('Edited body')
+        expect(vi.mocked(storage.commit).mock.invocationCallOrder[0]).toBeLessThan(
+            vi.mocked(storage.deleteFile).mock.invocationCallOrder[0],
+        )
     })
 
     it('runs matching onState actions when a card changes to the configured state', async () => {

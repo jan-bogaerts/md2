@@ -20,6 +20,7 @@ interface TextViewProps {
     isMobile: boolean
     onBodyChange: (path: string, body: string) => void
     onContinueAgentConversation: (path: string, conversation: AgentConversation) => void
+    onDeleteFile: (path: string) => Promise<void>
     onSendAgentInput: (runId: string, input: string) => void
     onStartAgentConversation: (path: string, prompt: string) => void
     requestedNonce: number
@@ -42,6 +43,7 @@ export function TextView(props: TextViewProps) {
         isMobile,
         onBodyChange,
         onContinueAgentConversation,
+        onDeleteFile,
         onSendAgentInput,
         onStartAgentConversation,
         requestedNonce,
@@ -77,6 +79,12 @@ export function TextView(props: TextViewProps) {
         telemetryService.trackEvent('navigation')
     }
 
+    const handleDeleteFile = async (path: string) => {
+        await onDeleteFile(path)
+        closeTab(path)
+        if (isMobile) setIsTreeOpen(false)
+    }
+
     const handleActivateTab = (path: string) => {
         activateTab(path)
         telemetryService.trackEvent('navigation')
@@ -100,7 +108,14 @@ export function TextView(props: TextViewProps) {
 
     const treeContent = (
         <Box aria-label="File tree" sx={{ overflow: 'auto' }}>
-            <FileTreeView cardTypes={cardTypes} cardsByPath={cardsByPath} nodes={tree} onSelect={handleSelect} selectedPath={activePath} />
+            <FileTreeView
+                cardTypes={cardTypes}
+                cardsByPath={cardsByPath}
+                nodes={tree}
+                onDeleteFile={handleDeleteFile}
+                onSelect={handleSelect}
+                selectedPath={activePath}
+            />
         </Box>
     )
 

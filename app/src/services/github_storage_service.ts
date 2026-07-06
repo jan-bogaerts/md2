@@ -3,6 +3,7 @@ import type {
     AgentConversation,
     BranchReference,
     CommitRequest,
+    DeleteFileRequest,
     MarkdownFile,
     MoveFilesRequest,
     ProjectConfig,
@@ -207,10 +208,14 @@ export class GithubStorageService implements StorageService {
         }
     }
 
+    async deleteFile(request: DeleteFileRequest) {
+        await this.deleteGithubFile(request.branch, request.path, request.sha, request.message)
+    }
+
     async moveFiles(request: MoveFilesRequest) {
         for (const move of request.moves) {
             await this.writeFile(request.branch, { content: move.content, path: move.toPath }, request.message)
-            await this.deleteFile(request.branch, move.fromPath, move.sha, request.message)
+            await this.deleteGithubFile(request.branch, move.fromPath, move.sha, request.message)
         }
     }
 
@@ -317,7 +322,7 @@ export class GithubStorageService implements StorageService {
         })
     }
 
-    private async deleteFile(branch: string, path: string, sha: string | undefined, message: string) {
+    private async deleteGithubFile(branch: string, path: string, sha: string | undefined, message: string) {
         if (!sha) throw new Error(`Cannot delete GitHub file without sha: ${path}`)
 
         const project = this.getCommitProject()

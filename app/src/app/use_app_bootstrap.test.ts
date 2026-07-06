@@ -14,6 +14,7 @@ function createBridge(): ElectronDataBridge {
         checkoutBranch: vi.fn(async (project, branch) => ({ ...project, branch })),
         commit: vi.fn(),
         createProject: vi.fn(async (project) => project),
+        deleteFile: vi.fn(),
         listBranches: vi.fn(async () => [{ name: 'main' }]),
         listRepositoryFiles: vi.fn(async () => ['design/F-1-root.md']),
         loadActionFiles: vi.fn(async () => []),

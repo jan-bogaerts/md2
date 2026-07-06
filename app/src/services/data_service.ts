@@ -1,7 +1,7 @@
 ﻿import { CommitBatcher } from '../data/commit_batcher'
 import { cardContext } from '../data/action_context'
 import { createCardFile } from '../data/card_naming'
-import { computeMove } from '../data/card_ordering'
+import { computeMove, orderByAfter, UNASSIGNED_STATUS } from '../data/card_ordering'
 import { buildReleaseMoves } from '../data/release_archiving'
 import {
     type AgentConversation,
@@ -47,6 +47,10 @@ function mergeFiles(current: MarkdownFile[], updates: MarkdownFile[]): MarkdownF
     }
 
     return merged
+}
+
+function statusOf(card: ProjectSnapshot['activeCards'][number]) {
+    return card.header.status ?? UNASSIGNED_STATUS
 }
 
 interface DataServiceDependencies {
@@ -360,6 +364,21 @@ export class DataService extends EventTarget {
         return updates
     }
 
+    async deleteCard(path: string) {
+        const card = this.currentSnapshot?.activeCards.find((currentCard) => currentCard.path === path)
+        if (!card) throw new Error(`Cannot delete an active card that is not loaded: ${path}`)
+
+        return this.deleteLoadedFile(path, true)
+    }
+
+    async deleteFile(path: string) {
+        this.requireFile(path)
+
+        const activeCard = this.currentSnapshot?.activeCards.some((card) => card.path === path) ?? false
+
+        return this.deleteLoadedFile(path, activeCard)
+    }
+
     saveFile(file: MarkdownFile) {
         const { commitBatcher } = this.requireDependencies()
         if (!this.currentProject) throw new Error('Cannot save a file before a project is open')
@@ -410,11 +429,7 @@ export class DataService extends EventTarget {
 
         if (config.pushMode === 'auto') await storage.push(this.currentProject)
 
-        const projectFiles = await storage.loadProject(this.currentProject, config.workingFolder)
-        const refreshedRepositoryFiles = await storage.listRepositoryFiles(this.currentProject)
-        this.currentFiles = projectFiles.files
-        this.currentSnapshot = await this.createSnapshot(projectFiles.files, projectFiles.workingFolder, refreshedRepositoryFiles)
-        this.dispatchChanged()
+        await this.reloadCurrentProjectSnapshot()
         telemetryService.trackEvent('complete_release')
 
         return this.currentSnapshot
@@ -432,6 +447,68 @@ export class DataService extends EventTarget {
         const cards = this.attachAgentConversations(markdownParsingService.splitCards(this.currentFiles, config.workingFolder))
         const repositoryFiles = this.currentSnapshot?.repositoryFiles ?? []
         this.currentSnapshot = { ...cards, repositoryFiles, workingFolder: config.workingFolder }
+        this.dispatchChanged()
+    }
+
+    private async deleteLoadedFile(path: string, repairActiveOrdering: boolean) {
+        const { commitBatcher, config, storage } = this.requireDependencies()
+        if (!this.currentProject) throw new Error('Cannot delete a file before a project is open')
+
+        await commitBatcher.flush()
+
+        const existingFile = this.requireFile(path)
+        const repairFile = repairActiveOrdering ? this.createDeleteRepairFile(path) : null
+
+        if (repairFile) {
+            await storage.commit({
+                branch: this.currentProject.branch,
+                files: [repairFile],
+                message: `Repair ordering after deleting ${path}`,
+            })
+        }
+
+        await storage.deleteFile({
+            branch: this.currentProject.branch,
+            message: `Delete ${path}`,
+            path,
+            sha: existingFile.sha,
+        })
+
+        if (config.pushMode === 'auto') await storage.push(this.currentProject)
+
+        await this.reloadCurrentProjectSnapshot()
+
+        return this.currentSnapshot
+    }
+
+    private createDeleteRepairFile(path: string): MarkdownFile | null {
+        const activeCards = this.currentSnapshot?.activeCards ?? []
+        const deletedCard = activeCards.find((card) => card.path === path)
+        if (!deletedCard) return null
+        if (!deletedCard.header.internalId) return null
+
+        const column = orderByAfter(activeCards.filter((card) => statusOf(card) === statusOf(deletedCard)))
+        const deletedIndex = column.findIndex((card) => card.path === path)
+        const follower = column[deletedIndex + 1]
+        if (!follower || follower.header.after !== deletedCard.header.internalId) return null
+
+        const followerFile = this.requireFile(follower.path)
+
+        return {
+            content: markdownParsingService.rewriteHeader(followerFile.content, { after: deletedCard.header.after ?? '' }),
+            path: followerFile.path,
+            sha: followerFile.sha,
+        }
+    }
+
+    private async reloadCurrentProjectSnapshot() {
+        const { config, storage } = this.requireDependencies()
+        if (!this.currentProject) throw new Error('Cannot reload project snapshot before a project is open')
+
+        const projectFiles = await storage.loadProject(this.currentProject, config.workingFolder)
+        const repositoryFiles = await storage.listRepositoryFiles(this.currentProject)
+        this.currentFiles = projectFiles.files
+        this.currentSnapshot = await this.createSnapshot(projectFiles.files, projectFiles.workingFolder, repositoryFiles)
         this.dispatchChanged()
     }
 

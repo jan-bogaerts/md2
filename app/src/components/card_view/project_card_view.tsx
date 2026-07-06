@@ -1,5 +1,6 @@
-import { Badge, Box, Button, Collapse, IconButton, Popover, Stack, TextField, Tooltip, Typography } from '@mui/material'
+import { Badge, Box, Button, Collapse, IconButton, Menu, MenuItem, Popover, Stack, TextField, Tooltip, Typography } from '@mui/material'
 import { useSortable } from '@dnd-kit/sortable'
+import DotsVertical from 'mdi-material-ui/DotsVertical'
 import { useState } from 'react'
 import type { KeyboardEvent, MouseEvent } from 'react'
 import type { AgentConversation } from '../../data/data_types'
@@ -18,6 +19,7 @@ export interface CardHandlers {
     onAffectsChange: (path: string, affects: string[]) => void
     onBodyChange: (path: string, body: string) => void
     onContinueAgentConversation: (cardPath: string, conversation: AgentConversation) => void
+    onDeleteCard: (path: string) => Promise<void>
     onOpenAffects: (path: string) => void
     onOpenBody: (path: string) => void
     onOpenInFileMode: (path: string) => void
@@ -39,11 +41,12 @@ interface ProjectCardViewProps extends CardHandlers {
 /** A single card: type-color line, id + title, policy leds, drag handle and body access. */
 export function ProjectCardView(props: ProjectCardViewProps) {
     const { card, cardTypes, color, isBodyOpen, isMobile, onBodyChange, onContinueAgentConversation, onOpenBody, onOpenInFileMode } = props
-    const { onOpenAffects, onSendAgentInput, onStartAgentConversation } = props
+    const { onDeleteCard, onOpenAffects, onSendAgentInput, onStartAgentConversation } = props
     const { onTogglePolicy, onTitleChange } = props
     const { isSelected } = props
     const { attributes, isDragging, listeners, setNodeRef, transform, transition } = useSortable({ id: card.path })
     const [agentAnchorElement, setAgentAnchorElement] = useState<HTMLElement | null>(null)
+    const [actionsAnchorElement, setActionsAnchorElement] = useState<HTMLElement | null>(null)
     const [isEditingTitle, setIsEditingTitle] = useState(false)
     const [titleDraft, setTitleDraft] = useState(card.header.title)
 
@@ -83,6 +86,11 @@ export function ProjectCardView(props: ProjectCardViewProps) {
         setAgentAnchorElement(event.currentTarget)
     }
 
+    const openCardActions = (event: MouseEvent<HTMLElement>) => {
+        event.stopPropagation()
+        setActionsAnchorElement(event.currentTarget)
+    }
+
     const openAffects = (event: MouseEvent<HTMLElement>) => {
         event.stopPropagation()
         onOpenAffects(card.path)
@@ -90,6 +98,22 @@ export function ProjectCardView(props: ProjectCardViewProps) {
 
     const closeAgentConversations = () => {
         setAgentAnchorElement(null)
+    }
+
+    const closeCardActions = () => {
+        setActionsAnchorElement(null)
+    }
+
+    const deleteCard = async () => {
+        closeCardActions()
+        const confirmed = window.confirm(`Delete ${card.path}?`)
+        if (!confirmed) return
+
+        try {
+            await onDeleteCard(card.path)
+        } catch {
+            // ProjectWorkspace owns the user-visible delete error.
+        }
     }
 
     const continueAgentConversation = (conversation: AgentConversation) => {
@@ -185,6 +209,11 @@ export function ProjectCardView(props: ProjectCardViewProps) {
                             </IconButton>
                         </Tooltip>
                         <ActionEntryPoints context={cardContext(card, cardTypes)} variant="icons" />
+                        <Tooltip title="Card actions">
+                            <IconButton aria-label={`Card actions for ${card.header.id}`} onClick={openCardActions} size="small">
+                                <DotsVertical fontSize="small" />
+                            </IconButton>
+                        </Tooltip>
                     </Stack>
                 </Stack>
                 {isMobile ? (
@@ -214,6 +243,9 @@ export function ProjectCardView(props: ProjectCardViewProps) {
                     />
                 </Box>
             </Popover>
+            <Menu anchorEl={actionsAnchorElement} onClose={closeCardActions} open={!!actionsAnchorElement}>
+                <MenuItem onClick={deleteCard}>Delete</MenuItem>
+            </Menu>
         </Box>
     )
 }

@@ -18,6 +18,10 @@ function createBridge(): ElectronDataBridge {
             files.push(...request.files)
         }),
         createProject: vi.fn(async (project) => project),
+        deleteFile: vi.fn(async (request) => {
+            const existingIndex = files.findIndex((file) => file.path === request.path)
+            if (existingIndex >= 0) files.splice(existingIndex, 1)
+        }),
         listBranches: vi.fn(async () => [{ name: 'main' }]),
         listRepositoryFiles: vi.fn(async () => ['app/src/app.tsx', 'design/F-1-root.md']),
         loadActionFiles: vi.fn(async () => []),
@@ -135,5 +139,48 @@ describe('ProjectWorkspace', () => {
         expect(trackEvent).toHaveBeenCalledWith('navigation')
 
         trackEvent.mockRestore()
+    })
+
+    it('deletes a selected card and clears the selected highlight', async () => {
+        const bridge = createBridge()
+        window.md2Data = bridge
+        const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
+
+        render(<ProjectWorkspace accessToken={null} isGithubAuthenticated={false} />)
+        fireEvent.click(screen.getByRole('button', { name: 'Open Local' }))
+        await screen.findByText('Root')
+
+        act(() => workspaceNavigationService.open('design/F-1-root.md'))
+        expect(document.querySelector('[data-selected="true"]')).not.toBeNull()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Card actions for F-1' }))
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }))
+
+        await waitFor(() => expect(bridge.deleteFile).toHaveBeenCalled())
+        expect(screen.queryByText('Root')).not.toBeInTheDocument()
+        expect(document.querySelector('[data-selected="true"]')).toBeNull()
+
+        confirm.mockRestore()
+    })
+
+    it('shows a clear error when card deletion fails', async () => {
+        const bridge = createBridge()
+        bridge.deleteFile = vi.fn(async () => {
+            throw new Error('delete failed')
+        })
+        window.md2Data = bridge
+        const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
+
+        render(<ProjectWorkspace accessToken={null} isGithubAuthenticated={false} />)
+        fireEvent.click(screen.getByRole('button', { name: 'Open Local' }))
+        await screen.findByText('Root')
+
+        fireEvent.click(screen.getByRole('button', { name: 'Card actions for F-1' }))
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }))
+
+        expect(await screen.findByText('delete failed')).toBeInTheDocument()
+        expect(screen.getByText('Root')).toBeInTheDocument()
+
+        confirm.mockRestore()
     })
 })

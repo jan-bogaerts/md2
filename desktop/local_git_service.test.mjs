@@ -12,6 +12,7 @@ const require = createRequire(import.meta.url)
 const {
     appendActionRunHistory,
     commit,
+    deleteFile,
     listRepositoryFiles,
     loadActionFiles,
     loadActionRunHistory,
@@ -236,6 +237,34 @@ describe('local-git-service', () => {
 
             await expect(readFile(join(rootPath, 'design', 'history', 'v1', 'F-1-root.md'), 'utf8')).resolves.toBe('# Root')
             await expect(readFile(join(rootPath, 'design', 'F-1-root.md'), 'utf8')).rejects.toThrow()
+        } finally {
+            await rm(rootPath, { force: true, recursive: true })
+        }
+    })
+
+    it('deletes files with git rm and commits the deletion', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-local-git-'))
+
+        try {
+            await execFileAsync('git', ['init'], { cwd: rootPath })
+            await execFileAsync('git', ['config', 'user.email', 'md2@example.test'], { cwd: rootPath })
+            await execFileAsync('git', ['config', 'user.name', 'MD2 Test'], { cwd: rootPath })
+            await mkdir(join(rootPath, 'design'))
+            await writeFile(join(rootPath, 'design', 'F-1-root.md'), '# Root')
+            await execFileAsync('git', ['add', 'design/F-1-root.md'], { cwd: rootPath })
+            await execFileAsync('git', ['commit', '-m', 'Seed card'], { cwd: rootPath })
+
+            await deleteFile({
+                branch: 'main',
+                message: 'Delete obsolete card',
+                path: 'design/F-1-root.md',
+            }, { branch: 'main', id: 'local', rootPath })
+
+            await expect(readFile(join(rootPath, 'design', 'F-1-root.md'), 'utf8')).rejects.toThrow()
+            const status = await execFileAsync('git', ['status', '--short'], { cwd: rootPath })
+            const log = await execFileAsync('git', ['log', '-1', '--pretty=%s'], { cwd: rootPath })
+            expect(status.stdout).toBe('')
+            expect(log.stdout.trim()).toBe('Delete obsolete card')
         } finally {
             await rm(rootPath, { force: true, recursive: true })
         }

@@ -103,6 +103,45 @@ describe('GithubStorageService', () => {
         })
     })
 
+    it('deletes files through the contents API with commit message, branch, and sha', async () => {
+        const fetchImplementation = vi.fn()
+            .mockResolvedValueOnce(createResponse([]))
+            .mockResolvedValueOnce(createResponse({}))
+        const service = new GithubStorageService()
+        service.init({ accessToken: 'token', fetchImplementation })
+
+        await service.loadProject({ branch: 'main', id: 'owner/repo', owner: 'owner', repository: 'repo' }, 'design')
+        await service.deleteFile({
+            branch: 'feature',
+            message: 'Delete obsolete card',
+            path: 'design/F-1-root.md',
+            sha: 'sha-1',
+        })
+
+        expect(fetchImplementation.mock.calls[1][0]).toContain('/repos/owner/repo/contents/design/F-1-root.md')
+        expect(fetchImplementation.mock.calls[1][1].method).toBe('DELETE')
+        expect(JSON.parse(fetchImplementation.mock.calls[1][1].body)).toEqual({
+            branch: 'feature',
+            message: 'Delete obsolete card',
+            sha: 'sha-1',
+        })
+    })
+
+    it('rejects GitHub deletion without a sha before calling the contents API', async () => {
+        const fetchImplementation = vi.fn()
+            .mockResolvedValueOnce(createResponse([]))
+        const service = new GithubStorageService()
+        service.init({ accessToken: 'token', fetchImplementation })
+
+        await service.loadProject({ branch: 'main', id: 'owner/repo', owner: 'owner', repository: 'repo' }, 'design')
+        await expect(service.deleteFile({
+            branch: 'main',
+            message: 'Delete obsolete card',
+            path: 'design/F-1-root.md',
+        })).rejects.toThrow('Cannot delete GitHub file without sha: design/F-1-root.md')
+        expect(fetchImplementation).toHaveBeenCalledTimes(1)
+    })
+
     it('lists branches for repository selection', async () => {
         const fetchImplementation = vi.fn().mockResolvedValue(createResponse([{ name: 'main' }, { name: 'feature' }]))
         const service = new GithubStorageService()

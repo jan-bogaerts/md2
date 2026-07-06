@@ -1,6 +1,7 @@
-import { Box, Collapse, List, ListItemButton, ListItemText } from '@mui/material'
+import { Box, Collapse, IconButton, List, ListItemButton, ListItemText, Tooltip } from '@mui/material'
 import ChevronDown from 'mdi-material-ui/ChevronDown'
 import ChevronRight from 'mdi-material-ui/ChevronRight'
+import DeleteOutline from 'mdi-material-ui/DeleteOutline'
 import FileDocumentOutline from 'mdi-material-ui/FileDocumentOutline'
 import FolderOutline from 'mdi-material-ui/FolderOutline'
 import StarOutline from 'mdi-material-ui/StarOutline'
@@ -17,6 +18,7 @@ interface FileTreeViewProps {
     cardTypes: CardTypeConfig[]
     cardsByPath: Map<string, ProjectCard>
     nodes: TreeNode[]
+    onDeleteFile: (path: string) => Promise<void>
     onSelect: (path: string) => void
     selectedPath: string | null
 }
@@ -45,12 +47,13 @@ interface TreeNodeRowProps {
     cardsByPath: Map<string, ProjectCard>
     depth: number
     node: TreeNode
+    onDeleteFile: (path: string) => Promise<void>
     onSelect: (path: string) => void
     selectedPath: string | null
 }
 
 function TreeNodeRow(props: TreeNodeRowProps) {
-    const { cardTypes, cardsByPath, depth, node, onSelect, selectedPath } = props
+    const { cardTypes, cardsByPath, depth, node, onDeleteFile, onSelect, selectedPath } = props
     const [isOpen, setIsOpen] = useState(true)
     const indent = 1 + depth * INDENT_STEP
     const context = nodeContext(node, cardTypes, cardsByPath)
@@ -60,11 +63,28 @@ function TreeNodeRow(props: TreeNodeRowProps) {
         </Box>
     ) : null
 
+    const selectFile = () => {
+        if (node.path) onSelect(node.path)
+    }
+
+    const deleteFile = async () => {
+        if (!node.path) return
+
+        const confirmed = window.confirm(`Delete ${node.path}?`)
+        if (!confirmed) return
+
+        try {
+            await onDeleteFile(node.path)
+        } catch {
+            // ProjectWorkspace owns the user-visible delete error.
+        }
+    }
+
     if (node.kind === 'file') {
         return (
             <Box sx={{ alignItems: 'center', display: 'flex' }}>
                 <ListItemButton
-                    onClick={() => node.path && onSelect(node.path)}
+                    onClick={selectFile}
                     selected={node.path != null && node.path === selectedPath}
                     sx={{ flex: 1, minWidth: 0, pl: indent }}
                 >
@@ -73,6 +93,11 @@ function TreeNodeRow(props: TreeNodeRowProps) {
                     </Box>
                     <ListItemText primary={node.label} slotProps={{ primary: { variant: 'body2' } }} />
                 </ListItemButton>
+                <Tooltip title="Delete file">
+                    <IconButton aria-label={`Delete ${node.path}`} onClick={deleteFile} size="small">
+                        <DeleteOutline fontSize="small" />
+                    </IconButton>
+                </Tooltip>
                 {entryPoints}
             </Box>
         )
@@ -99,6 +124,7 @@ function TreeNodeRow(props: TreeNodeRowProps) {
                             cardsByPath={cardsByPath}
                             depth={depth + 1}
                             node={child}
+                            onDeleteFile={onDeleteFile}
                             onSelect={onSelect}
                             selectedPath={selectedPath}
                         />
@@ -111,7 +137,7 @@ function TreeNodeRow(props: TreeNodeRowProps) {
 
 /** Recursive folder/status tree; file leaves are clickable to open a tab. */
 export function FileTreeView(props: FileTreeViewProps) {
-    const { cardTypes, cardsByPath, nodes, onSelect, selectedPath } = props
+    const { cardTypes, cardsByPath, nodes, onDeleteFile, onSelect, selectedPath } = props
 
     return (
         <List component="nav" dense disablePadding>
@@ -122,6 +148,7 @@ export function FileTreeView(props: FileTreeViewProps) {
                     cardsByPath={cardsByPath}
                     depth={0}
                     node={node}
+                    onDeleteFile={onDeleteFile}
                     onSelect={onSelect}
                     selectedPath={selectedPath}
                 />

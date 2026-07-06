@@ -7,6 +7,7 @@ function createBridge(): ElectronDataBridge {
         checkoutBranch: vi.fn(async (project, branch) => ({ ...project, branch })),
         commit: vi.fn(),
         createProject: vi.fn(async (project) => project),
+        deleteFile: vi.fn(),
         listBranches: vi.fn(async () => [{ name: 'main' }]),
         listRepositoryFiles: vi.fn(async () => ['design/F-1-root.md']),
         loadActionFiles: vi.fn(async () => []),
@@ -32,6 +33,7 @@ describe('LocalGitStorageService', () => {
         await service.listRepositoryFiles(project!)
         await service.checkoutBranch(project!, 'feature')
         await service.commit({ branch: 'feature', files: [{ content: '# Test', path: 'design/F-1-test.md' }], message: 'Update test' })
+        await service.deleteFile({ branch: 'feature', message: 'Delete test', path: 'design/F-1-test.md', sha: 'sha-1' })
         await service.moveFiles({
             branch: 'feature',
             message: 'Complete release v1',
@@ -53,6 +55,7 @@ describe('LocalGitStorageService', () => {
         expect(bridge.listRepositoryFiles).toHaveBeenCalledWith(project)
         expect(bridge.checkoutBranch).toHaveBeenCalledWith(project, 'feature')
         expect(bridge.commit).toHaveBeenCalled()
+        expect(bridge.deleteFile).toHaveBeenCalled()
         expect(bridge.moveFiles).toHaveBeenCalled()
         expect(bridge.saveProjectConfig).toHaveBeenCalled()
         expect(bridge.push).toHaveBeenCalledWith(project)

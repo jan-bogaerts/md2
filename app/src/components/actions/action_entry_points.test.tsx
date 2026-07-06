@@ -124,7 +124,14 @@ describe('entry-point placement in the file tree', () => {
         const cardsByPath = new Map(active.concat(background).map((entry) => [entry.path, entry]))
 
         render(
-            <FileTreeView cardTypes={DEFAULT_CARD_TYPES} cardsByPath={cardsByPath} nodes={tree} onSelect={() => {}} selectedPath={null} />,
+            <FileTreeView
+                cardTypes={DEFAULT_CARD_TYPES}
+                cardsByPath={cardsByPath}
+                nodes={tree}
+                onDeleteFile={async () => undefined}
+                onSelect={() => {}}
+                selectedPath={null}
+            />,
         )
 
         // history folder + file leaf both expose an Actions menu; the status group ("todo") does not.

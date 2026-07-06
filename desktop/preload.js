@@ -71,6 +71,7 @@ const dataBridge = {
         return currentLocalProject
     },
     commit: (request) => localGitService.commit(request, currentLocalProject),
+    deleteFile: (request) => localGitService.deleteFile(request, currentLocalProject),
     continueAgentConversation: (request) => {
         const { agent } = resolveDesktopConfig()
 

@@ -6,6 +6,7 @@ import type {
     CommitRequest,
     ContinueAgentConversationRequest,
     ContinueAgentConversationResult,
+    DeleteFileRequest,
     MoveFilesRequest,
     ProjectConfig,
     ProjectReference,
@@ -20,6 +21,7 @@ export interface ElectronDataBridge {
     commit(request: CommitRequest): Promise<void>
     continueAgentConversation?(request: ContinueAgentConversationRequest): Promise<ContinueAgentConversationResult>
     createProject(project: ProjectReference, workingFolder: string): Promise<ProjectReference>
+    deleteFile(request: DeleteFileRequest): Promise<void>
     loadAgentConversation?(path: string): Promise<AgentConversation>
     loadActionFiles(project: ProjectReference, actionsFolder: string): Promise<ActionFile[]>
     loadProject(project: ProjectReference, workingFolder: string): Promise<StorageProjectFiles>

@@ -236,6 +236,35 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
         dataService.updateCardAffects(path, affects)
     }
 
+    const clearDeletedPathState = (path: string) => {
+        setSelectedPath((currentPath) => (currentPath === path ? null : currentPath))
+        setRequestedPath((currentPath) => (currentPath === path ? null : currentPath))
+    }
+
+    const handleDeleteCard = async (path: string) => {
+        setErrorMessage(null)
+
+        try {
+            await dataService.deleteCard(path)
+            clearDeletedPathState(path)
+        } catch (error) {
+            setErrorMessage(error instanceof Error ? error.message : `Card delete failed: ${path}`)
+            throw error
+        }
+    }
+
+    const handleDeleteFile = async (path: string) => {
+        setErrorMessage(null)
+
+        try {
+            await dataService.deleteFile(path)
+            clearDeletedPathState(path)
+        } catch (error) {
+            setErrorMessage(error instanceof Error ? error.message : `File delete failed: ${path}`)
+            throw error
+        }
+    }
+
     const handleContinueAgentConversation = async (path: string, conversation: AgentConversation) => {
         setErrorMessage(null)
 
@@ -335,6 +364,7 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
                             onAffectsChange={handleAffectsChange}
                             onBodyChange={handleBodyChange}
                             onContinueAgentConversation={handleContinueAgentConversation}
+                            onDeleteCard={handleDeleteCard}
                             onMoveCard={handleMoveCard}
                             onOpenInFileMode={handleOpenInFileMode}
                             onSendAgentInput={handleSendAgentInput}
@@ -352,6 +382,7 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
                             isMobile={isMobile}
                             onBodyChange={handleBodyChange}
                             onContinueAgentConversation={handleContinueAgentConversation}
+                            onDeleteFile={handleDeleteFile}
                             onSendAgentInput={handleSendAgentInput}
                             onStartAgentConversation={handleStartAgentConversation}
                             requestedNonce={requestedNonce}

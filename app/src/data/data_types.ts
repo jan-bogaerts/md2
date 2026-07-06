@@ -102,6 +102,13 @@ export interface MoveFilesRequest {
     moves: MoveFile[]
 }
 
+export interface DeleteFileRequest {
+    branch: string
+    message: string
+    path: string
+    sha?: string
+}
+
 export interface ProjectWatchEvent {
     path: string
 }
@@ -183,6 +190,7 @@ export interface StorageService {
     checkoutBranch(project: ProjectReference, branch: string): Promise<ProjectReference>
     commit(request: CommitRequest): Promise<void>
     createProject(project: ProjectReference, workingFolder: string): Promise<ProjectReference>
+    deleteFile(request: DeleteFileRequest): Promise<void>
     continueAgentConversation?(
         project: ProjectReference,
         request: ContinueAgentConversationRequest,

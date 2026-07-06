@@ -394,6 +394,18 @@ async function commit(request, project) {
     await runGit(rootPath, ['commit', '-m', request.message])
 }
 
+async function deleteFile(request, project) {
+    const rootPath = requireRootPath(project)
+    await assertGitRoot(rootPath)
+    if (!request || typeof request.message !== 'string' || request.message.length === 0) throw new Error('Missing delete commit message')
+    if (typeof request.path !== 'string' || request.path.length === 0) throw new Error('Missing delete file path')
+
+    const filePath = ensureInsideRoot(rootPath, path.join(rootPath, request.path))
+    const repositoryPath = normalizePath(path.relative(rootPath, filePath))
+    await runGit(rootPath, ['rm', repositoryPath])
+    await runGit(rootPath, ['commit', '-m', request.message])
+}
+
 async function moveFiles(request, project) {
     const rootPath = requireRootPath(project)
     await assertGitRoot(rootPath)
@@ -444,6 +456,7 @@ module.exports = {
     checkoutBranch,
     commit,
     createProject,
+    deleteFile,
     listBranches,
     listRepositoryFiles,
     appendActionRunHistory,
