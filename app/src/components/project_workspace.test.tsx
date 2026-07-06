@@ -37,6 +37,10 @@ function createBridge(): ElectronDataBridge {
         listTopLevelFolders: vi.fn(async () => [{ name: 'design', path: 'design' }]),
         loadActionFiles: vi.fn(async () => []),
         loadProject: vi.fn(async () => ({ files, workingFolder: 'design' })),
+        loadProjectRoot: vi.fn(async () => ({
+            files: files.filter((file) => !file.path.slice('design/'.length).includes('/')),
+            workingFolder: 'design',
+        })),
         loadProjectConfig: vi.fn(async () => null),
         moveFiles: vi.fn(async (request) => {
             for (const move of request.moves) {
@@ -65,6 +69,7 @@ function createResetStorage(): StorageService {
         listTopLevelFolders: vi.fn(async () => []),
         loadActionFiles: vi.fn(async () => []),
         loadProject: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
+        loadProjectRoot: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
         loadProjectConfig: vi.fn(async () => null),
         moveFiles: vi.fn(),
         push: vi.fn(),
@@ -170,7 +175,7 @@ describe('ProjectWorkspace', () => {
             { name: 'notes', path: 'notes' },
         ])
         bridge.loadProjectConfig = vi.fn(async () => savedConfig ?? { workingFolder: 'missing' })
-        bridge.loadProject = vi.fn(async (_project, workingFolder) => {
+        const loadProject = vi.fn(async (_project, workingFolder) => {
             if (!savedConfig) throw new MissingWorkingFolderError(workingFolder)
 
             return {
@@ -178,6 +183,8 @@ describe('ProjectWorkspace', () => {
                 workingFolder,
             }
         })
+        bridge.loadProject = loadProject
+        bridge.loadProjectRoot = loadProject
         bridge.saveProjectConfig = vi.fn(async (_project, config) => {
             savedConfig = config
         })
@@ -206,7 +213,7 @@ describe('ProjectWorkspace', () => {
         let isCreated = false
         bridge.listTopLevelFolders = vi.fn(async () => [{ name: 'docs', path: 'docs' }])
         bridge.loadProjectConfig = vi.fn(async () => ({ workingFolder: 'missing' }))
-        bridge.loadProject = vi.fn(async (_project, workingFolder) => {
+        const loadProject = vi.fn(async (_project, workingFolder) => {
             if (!isCreated) throw new MissingWorkingFolderError(workingFolder)
 
             return {
@@ -214,6 +221,8 @@ describe('ProjectWorkspace', () => {
                 workingFolder,
             }
         })
+        bridge.loadProject = loadProject
+        bridge.loadProjectRoot = loadProject
         bridge.createWorkingFolderFromTemplate = vi.fn(async (project) => {
             isCreated = true
 
@@ -250,10 +259,57 @@ describe('ProjectWorkspace', () => {
         fireEvent.click(screen.getByRole('menuitem', { name: 'New card...' }))
         fireEvent.change(screen.getByLabelText('New card title'), { target: { value: 'New Card' } })
         fireEvent.change(screen.getByLabelText('New card body'), { target: { value: 'Body' } })
-        fireEvent.click(screen.getByRole('button', { name: 'Create Feature' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Create card' }))
 
-        await waitFor(() => expect(bridge.commit).toHaveBeenCalled())
+        await waitFor(() => expect(bridge.commit).toHaveBeenCalledWith(expect.objectContaining({files: [expect.objectContaining({ path: 'design/F-3-new-card.md' })]})))
         expect(await screen.findByText('New Card')).toBeInTheDocument()
+    })
+
+    it('creates job and bug cards with the type-specific id prefix', async () => {
+        const bridge = createBridge()
+        window.md2Data = bridge
+
+        renderProjectSurface()
+        await openLocalProject()
+        await screen.findByText('Root')
+
+        const createCardOfType = async (typeLabel: string, title: string) => {
+            fireEvent.click(screen.getByRole('button', { name: 'Project' }))
+            fireEvent.click(screen.getByRole('menuitem', { name: 'New card...' }))
+            fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Card type' }))
+            fireEvent.click(await screen.findByRole('option', { name: typeLabel }))
+            fireEvent.change(screen.getByLabelText('New card title'), { target: { value: title } })
+            fireEvent.click(screen.getByRole('button', { name: 'Create card' }))
+            await waitFor(() => expect(screen.queryByRole('dialog', { name: 'New card' })).toBeNull())
+        }
+
+        await createCardOfType('Job', 'New Job')
+        await waitFor(() => expect(bridge.commit).toHaveBeenCalledWith(expect.objectContaining({files: [expect.objectContaining({ path: 'design/J-1-new-job.md' })]})))
+
+        await createCardOfType('Bug', 'New Bug')
+        await waitFor(() => expect(bridge.commit).toHaveBeenCalledWith(expect.objectContaining({files: [expect.objectContaining({ path: 'design/B-1-new-bug.md' })]})))
+    })
+
+    it('lists custom configured card types and uses their prefix', async () => {
+        const bridge = createBridge()
+        bridge.loadProjectConfig = vi.fn(async () => ({cardTypes: [{ color: '#123456', idPrefix: 'T', label: 'Task', type: 'task' }]}))
+        window.md2Data = bridge
+
+        renderProjectSurface()
+        await openLocalProject()
+        await screen.findByText('Root')
+
+        fireEvent.click(screen.getByRole('button', { name: 'Project' }))
+        fireEvent.click(screen.getByRole('menuitem', { name: 'New card...' }))
+        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Card type' }))
+        expect(await screen.findByRole('option', { name: 'Task' })).toBeInTheDocument()
+        expect(screen.queryByRole('option', { name: 'Feature' })).toBeNull()
+
+        fireEvent.click(screen.getByRole('option', { name: 'Task' }))
+        fireEvent.change(screen.getByLabelText('New card title'), { target: { value: 'New Task' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Create card' }))
+
+        await waitFor(() => expect(bridge.commit).toHaveBeenCalledWith(expect.objectContaining({files: [expect.objectContaining({ path: 'design/T-1-new-task.md' })]})))
     })
 
     it('completes a release from the project menu', async () => {

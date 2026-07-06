@@ -9,9 +9,12 @@ const MARKDOWN_EXTENSION = '.md'
 const JSON_EXTENSION = '.json'
 const PROJECT_CONFIG_PATH = 'md2.config.json'
 const ACTION_HISTORY_FOLDER = '.md2-action-history'
+const ACTION_SCHEDULES_FILE = '.md2-schedules.json'
 const AGENT_LOG_FOLDER = '.md2-agent-logs'
 const CONTINUE_LOG_TITLE = 'Continue'
 const GIT_FOLDER = '.git'
+const ACTION_SCHEDULE_STATUSES = ['cancelled', 'done', 'pending', 'running']
+const ACTION_CONTEXT_KINDS = ['card', 'file', 'folder']
 
 function normalizePath(filePath) {
     return filePath.replace(/\\/g, '/')
@@ -49,6 +52,24 @@ async function runGit(rootPath, args) {
     const { stdout } = await execFileAsync('git', args, { cwd: rootPath })
 
     return stdout.trim()
+}
+
+async function hasStagedChanges(rootPath) {
+    try {
+        await execFileAsync('git', ['diff', '--cached', '--quiet'], { cwd: rootPath })
+
+        return false
+    } catch (error) {
+        if (error && typeof error === 'object' && error.code === 1) return true
+
+        throw error
+    }
+}
+
+async function commitStagedChanges(rootPath, message) {
+    if (!await hasStagedChanges(rootPath)) return
+
+    await runGit(rootPath, ['commit', '-m', message])
 }
 
 async function runCommand(project, command) {
@@ -112,6 +133,12 @@ function historyFilePath(rootPath, actionsFolder, actionName, context) {
     return ensureInsideRoot(rootPath, path.join(historyFolderPath, fileName))
 }
 
+function scheduleFilePath(rootPath, actionsFolder) {
+    const actionsFolderPath = ensureInsideRoot(rootPath, path.join(rootPath, actionsFolder))
+
+    return ensureInsideRoot(rootPath, path.join(actionsFolderPath, ACTION_SCHEDULES_FILE))
+}
+
 async function readJsonArray(filePath) {
     if (!await pathExists(filePath)) return []
 
@@ -120,6 +147,80 @@ async function readJsonArray(filePath) {
     if (!Array.isArray(parsed)) throw new Error('Action history file must contain an array')
 
     return parsed
+}
+
+function requireScheduleObject(value, fieldName) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`Invalid action schedule file: ${fieldName} must be an object`)
+
+    return value
+}
+
+function requireScheduleString(value, fieldName) {
+    if (typeof value !== 'string' || value.length === 0) throw new Error(`Invalid action schedule file: missing ${fieldName}`)
+
+    return value
+}
+
+function normalizeScheduleStatus(value) {
+    const status = requireScheduleString(value, 'status')
+    if (!ACTION_SCHEDULE_STATUSES.includes(status)) throw new Error(`Invalid action schedule file: unsupported status ${status}`)
+
+    return status
+}
+
+function normalizeScheduleContext(value) {
+    const context = requireScheduleObject(value, 'context')
+    const kind = requireScheduleString(context.kind, 'context.kind')
+    if (!ACTION_CONTEXT_KINDS.includes(kind)) throw new Error(`Invalid action schedule file: unsupported context kind ${kind}`)
+
+    const normalizedContext = { kind }
+    for (const [key, contextValue] of Object.entries(context)) {
+        if (key === 'kind') continue
+        if (typeof contextValue !== 'string') throw new Error(`Invalid action schedule file: context.${key} must be a string`)
+
+        normalizedContext[key] = contextValue
+    }
+
+    return normalizedContext
+}
+
+function normalizeScheduleTrigger(value) {
+    const trigger = requireScheduleObject(value, 'trigger')
+    const type = requireScheduleString(trigger.type, 'trigger.type')
+
+    if (type === 'at') return { timestamp: requireScheduleString(trigger.timestamp, 'trigger.timestamp'), type }
+    if (type === 'agentSlot') return { type }
+    if (type === 'afterAction') return { actionName: requireScheduleString(trigger.actionName, 'trigger.actionName'), type }
+
+    throw new Error(`Invalid action schedule file: unsupported trigger type ${type}`)
+}
+
+function normalizeActionSchedule(value) {
+    const schedule = requireScheduleObject(value, 'schedule')
+
+    return {
+        actionName: requireScheduleString(schedule.actionName, 'actionName'),
+        context: normalizeScheduleContext(schedule.context),
+        createdAt: requireScheduleString(schedule.createdAt, 'createdAt'),
+        id: requireScheduleString(schedule.id, 'id'),
+        status: normalizeScheduleStatus(schedule.status),
+        trigger: normalizeScheduleTrigger(schedule.trigger),
+    }
+}
+
+function normalizeActionScheduleFile(value) {
+    const file = requireScheduleObject(value, 'root')
+    if (!Array.isArray(file.schedules)) throw new Error('Invalid action schedule file: schedules must be an array')
+
+    return { schedules: file.schedules.map((schedule) => normalizeActionSchedule(schedule)) }
+}
+
+async function readActionScheduleFile(filePath) {
+    if (!await pathExists(filePath)) return { schedules: [] }
+
+    const content = await fs.promises.readFile(filePath, 'utf8')
+
+    return normalizeActionScheduleFile(JSON.parse(content))
 }
 
 function requireString(value, fieldName) {
@@ -188,6 +289,48 @@ async function appendActionRunHistory(project, request, entry) {
     await fs.promises.writeFile(filePath, `${JSON.stringify(nextEntries, null, 2)}\n`)
 
     return nextEntries
+}
+
+async function loadActionSchedules(project, actionsFolder) {
+    const rootPath = requireRootPath(project)
+    await assertGitRoot(rootPath)
+    if (typeof actionsFolder !== 'string' || actionsFolder.length === 0) throw new Error('Missing action schedules actionsFolder')
+
+    const filePath = scheduleFilePath(rootPath, actionsFolder)
+    const file = await readActionScheduleFile(filePath)
+
+    return file.schedules
+}
+
+async function saveActionSchedules(project, actionsFolder, schedules) {
+    const rootPath = requireRootPath(project)
+    await assertGitRoot(rootPath)
+    if (typeof actionsFolder !== 'string' || actionsFolder.length === 0) throw new Error('Missing action schedules actionsFolder')
+    if (!Array.isArray(schedules)) throw new Error('Missing action schedules')
+
+    const filePath = scheduleFilePath(rootPath, actionsFolder)
+    const file = normalizeActionScheduleFile({ schedules })
+    await fs.promises.mkdir(path.dirname(filePath), { recursive: true })
+    await fs.promises.writeFile(filePath, `${JSON.stringify(file, null, 2)}\n`)
+
+    return file.schedules
+}
+
+async function cancelActionSchedule(project, actionsFolder, scheduleId) {
+    if (typeof scheduleId !== 'string' || scheduleId.length === 0) throw new Error('Missing action schedule id')
+
+    const schedules = await loadActionSchedules(project, actionsFolder)
+    const schedule = schedules.find((candidate) => candidate.id === scheduleId)
+    if (!schedule) throw new Error(`Action schedule not found: ${scheduleId}`)
+    if (schedule.status !== 'pending') throw new Error(`Cannot cancel action schedule with status ${schedule.status}`)
+
+    const nextSchedules = schedules.map((candidate) => {
+        if (candidate.id !== scheduleId) return candidate
+
+        return { ...candidate, status: 'cancelled' }
+    })
+
+    return saveActionSchedules(project, actionsFolder, nextSchedules)
 }
 
 async function runAgent(project, request) {
@@ -270,6 +413,21 @@ async function readMarkdownFiles(rootPath, folderPath) {
     return files
 }
 
+async function readRootMarkdownFiles(rootPath, folderPath) {
+    const entries = await fs.promises.readdir(folderPath, { withFileTypes: true })
+    const files = []
+
+    for (const entry of entries) {
+        if (entry.isFile() && entry.name.toLowerCase().endsWith(MARKDOWN_EXTENSION)) {
+            const entryPath = path.join(folderPath, entry.name)
+            const content = await fs.promises.readFile(entryPath, 'utf8')
+            files.push({ content, path: normalizePath(path.relative(rootPath, entryPath)) })
+        }
+    }
+
+    return files
+}
+
 async function readRepositoryFilePaths(rootPath, folderPath) {
     const entries = await fs.promises.readdir(folderPath, { withFileTypes: true })
     const files = []
@@ -326,7 +484,7 @@ async function createWorkingFolderFromTemplate(project, workingFolder) {
         await fs.promises.mkdir(workingFolderPath, { recursive: true })
         await fs.promises.writeFile(path.join(workingFolderPath, 'README.md'), '# MD2\n\nProject design folder created by MD2.\n')
         await runGit(rootPath, ['add', workingFolder])
-        await runGit(rootPath, ['commit', '-m', `Create ${workingFolder} workspace`])
+        await commitStagedChanges(rootPath, `Create ${workingFolder} workspace`)
     }
 
     return project
@@ -347,6 +505,21 @@ async function loadProject(project, workingFolder) {
     }
 }
 
+async function loadProjectRoot(project, workingFolder) {
+    const rootPath = requireRootPath(project)
+    await assertGitRoot(rootPath)
+    const workingFolderPath = ensureInsideRoot(rootPath, path.join(rootPath, workingFolder))
+
+    if (!await pathExists(workingFolderPath)) {
+        throw createMissingWorkingFolderError(workingFolder)
+    }
+
+    return {
+        files: await readRootMarkdownFiles(rootPath, workingFolderPath),
+        workingFolder,
+    }
+}
+
 async function loadActionFiles(project, actionsFolder) {
     const rootPath = requireRootPath(project)
     await assertGitRoot(rootPath)
@@ -357,7 +530,7 @@ async function loadActionFiles(project, actionsFolder) {
     const files = []
 
     for (const entry of entries) {
-        if (entry.isFile() && entry.name.toLowerCase().endsWith(JSON_EXTENSION)) {
+        if (entry.isFile() && entry.name !== ACTION_SCHEDULES_FILE && entry.name.toLowerCase().endsWith(JSON_EXTENSION)) {
             const entryPath = path.join(actionsFolderPath, entry.name)
             const content = await fs.promises.readFile(entryPath, 'utf8')
             files.push({ content, path: normalizePath(path.relative(rootPath, entryPath)) })
@@ -418,7 +591,7 @@ async function commit(request, project) {
         await runGit(rootPath, ['add', file.path])
     }
 
-    await runGit(rootPath, ['commit', '-m', request.message])
+    await commitStagedChanges(rootPath, request.message)
 }
 
 async function deleteFile(request, project) {
@@ -458,7 +631,7 @@ async function saveProjectConfig(project, config) {
     const configPath = ensureInsideRoot(rootPath, path.join(rootPath, PROJECT_CONFIG_PATH))
     await fs.promises.writeFile(configPath, `${JSON.stringify(config, null, 2)}\n`)
     await runGit(rootPath, ['add', PROJECT_CONFIG_PATH])
-    await runGit(rootPath, ['commit', '-m', 'Update MD2 project config'])
+    await commitStagedChanges(rootPath, 'Update MD2 project config')
 }
 
 async function push(project) {
@@ -489,17 +662,21 @@ module.exports = {
     listRepositoryFiles,
     listTopLevelFolders,
     appendActionRunHistory,
+    cancelActionSchedule,
     loadActionRunHistory,
+    loadActionSchedules,
     continueAgentConversation,
     loadAgentConversation,
     loadActionFiles,
     loadProject,
+    loadProjectRoot,
     loadProjectConfig,
     moveFiles,
     push,
     runCommand,
     runAgent,
     runGit,
+    saveActionSchedules,
     saveProjectConfig,
     watchProject,
 }

@@ -1,7 +1,7 @@
 ---
 id: F-022
 title: scheduled actions (timers)
-status: design
+status: ready
 owner: JB
 affects:
 policy:

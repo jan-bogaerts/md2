@@ -15,6 +15,7 @@ function createBridge(overrides: Partial<ElectronDataBridge> = {}): ElectronData
         listTopLevelFolders: vi.fn(),
         loadActionFiles: vi.fn(),
         loadProject: vi.fn(),
+        loadProjectRoot: vi.fn(),
         loadProjectConfig: vi.fn(),
         moveFiles: vi.fn().mockResolvedValue(undefined),
         openProjectFolder: vi.fn(),

@@ -1,55 +1,59 @@
 const crypto = require('node:crypto')
 const http = require('node:http')
+const { URL } = require('node:url')
+const { WebSocketServer } = require('ws')
 
 const DEFAULT_HOST = '127.0.0.1'
 const DEFAULT_PORT = 0
+const SOCKET_OPEN_STATE = 1
+const REMOTE_CONTROL_STOP_CODE = 1001
+const UNAUTHORIZED_STATUS = 401
+const AGENT_EVENT_METHODS = new Set(['runAgent', 'startAgentConversation'])
 
 function createInactiveState() {
     return {
         active: false,
         clientCount: 0,
         endpoint: null,
+        token: null,
     }
 }
 
-function acceptKey(key) {
-    return crypto
-        .createHash('sha1')
-        .update(`${key}258EAFA5-E914-47DA-95CA-C5AB0DC85B11`)
-        .digest('base64')
+function createToken() {
+    return crypto.randomBytes(18).toString('base64url')
 }
 
-function encodeTextFrame(text) {
-    const payload = Buffer.from(text)
-    if (payload.length > 125) throw new Error('Remote-control message is too large')
-
-    return Buffer.concat([Buffer.from([0x81, payload.length]), payload])
+function isLoopbackHost(host) {
+    return host === '127.0.0.1' || host === 'localhost' || host === '::1'
 }
 
-function decodeTextFrame(buffer) {
-    const isMasked = !!(buffer[1] & 0x80)
-    const length = buffer[1] & 0x7f
-    const maskOffset = 2
-    const payloadOffset = isMasked ? 6 : 2
-    const payload = buffer.subarray(payloadOffset, payloadOffset + length)
+function sendJson(socket, message) {
+    if (socket.readyState !== SOCKET_OPEN_STATE) return
 
-    if (!isMasked) return payload.toString()
+    socket.send(JSON.stringify(message))
+}
 
-    const mask = buffer.subarray(maskOffset, payloadOffset)
-    const decoded = Buffer.alloc(payload.length)
-    for (let index = 0; index < payload.length; index += 1) decoded[index] = payload[index] ^ mask[index % 4]
+function closeUnauthorized(socket) {
+    socket.write(`HTTP/1.1 ${UNAUTHORIZED_STATUS} Unauthorized\r\nConnection: close\r\n\r\n`)
+    socket.destroy()
+}
 
-    return decoded.toString()
+function errorMessage(error) {
+    return error instanceof Error ? error.message : 'Remote-control request failed'
 }
 
 class RemoteControlService {
-    constructor() {
+    constructor(dispatcher = null) {
         this.clientCount = 0
         this.clients = new Set()
+        this.dispatcher = dispatcher
         this.host = DEFAULT_HOST
         this.port = DEFAULT_PORT
         this.server = null
         this.statusListener = null
+        this.subscriptions = new Map()
+        this.token = null
+        this.websocketServer = null
     }
 
     getStatus() {
@@ -62,6 +66,7 @@ class RemoteControlService {
             active: true,
             clientCount: this.clientCount,
             endpoint: `ws://${this.host}:${port}`,
+            token: this.token,
         }
     }
 
@@ -70,22 +75,27 @@ class RemoteControlService {
 
         this.host = typeof options.host === 'string' && options.host.length > 0 ? options.host : DEFAULT_HOST
         this.port = Number.isInteger(options.port) ? options.port : DEFAULT_PORT
+        this.token = typeof options.token === 'string' && options.token.length > 0 ? options.token : createToken()
+        if (!isLoopbackHost(this.host) && !this.token) throw new Error('Remote-control token is required for non-loopback binds')
 
         await new Promise((resolve, reject) => {
             const server = http.createServer()
+            const websocketServer = new WebSocketServer({ noServer: true })
             const service = this
+
+            function handleError(error) {
+                server.off('listening', handleListening)
+                service.token = null
+                reject(error)
+            }
 
             function handleListening() {
                 server.off('error', handleError)
                 service.server = server
-                service.registerServerEvents(server)
+                service.websocketServer = websocketServer
+                service.registerServerEvents(server, websocketServer)
                 service.emitStatus()
                 resolve()
-            }
-
-            function handleError(error) {
-                server.off('listening', handleListening)
-                reject(error)
             }
 
             server.once('error', handleError)
@@ -100,11 +110,15 @@ class RemoteControlService {
         if (!this.server) return createInactiveState()
 
         const server = this.server
+        const websocketServer = this.websocketServer
         this.server = null
+        this.websocketServer = null
         this.clientCount = 0
 
-        for (const client of this.clients) client.destroy()
+        for (const client of this.clients) client.close(REMOTE_CONTROL_STOP_CODE, 'Remote control stopped')
+        for (const client of this.clients) client.terminate()
         this.clients.clear()
+        this.clearAllSubscriptions()
 
         await new Promise((resolve, reject) => {
             server.close((error) => {
@@ -117,6 +131,8 @@ class RemoteControlService {
             })
         })
 
+        if (websocketServer) websocketServer.close()
+        this.token = null
         this.emitStatus()
 
         return createInactiveState()
@@ -126,35 +142,117 @@ class RemoteControlService {
         this.statusListener = listener
     }
 
-    registerServerEvents(server) {
-        server.on('upgrade', (request, socket) => {
-            const key = request.headers['sec-websocket-key']
-            if (typeof key !== 'string' || key.length === 0) {
-                socket.destroy()
+    registerServerEvents(server, websocketServer) {
+        server.on('upgrade', (request, socket, head) => {
+            if (!this.isAuthorized(request)) {
+                closeUnauthorized(socket)
                 return
             }
 
-            socket.write([
-                'HTTP/1.1 101 Switching Protocols',
-                'Upgrade: websocket',
-                'Connection: Upgrade',
-                `Sec-WebSocket-Accept: ${acceptKey(key)}`,
-                '',
-                '',
-            ].join('\r\n'))
-            this.clients.add(socket)
+            websocketServer.handleUpgrade(request, socket, head, (client) => {
+                websocketServer.emit('connection', client)
+            })
+        })
+
+        websocketServer.on('connection', (client) => {
+            this.clients.add(client)
             this.clientCount += 1
             this.emitStatus()
-
-            socket.on('data', (message) => {
-                socket.write(encodeTextFrame(decodeTextFrame(message)))
+            client.on('message', (message) => {
+                void this.handleMessage(client, message)
             })
-            socket.on('close', () => {
-                this.clients.delete(socket)
+            client.on('close', () => {
+                this.clients.delete(client)
+                this.clearClientSubscriptions(client)
                 this.clientCount = Math.max(0, this.clientCount - 1)
                 this.emitStatus()
             })
         })
+    }
+
+    isAuthorized(request) {
+        const url = new URL(request.url, `ws://${request.headers.host ?? this.host}`)
+
+        return url.searchParams.get('token') === this.token
+    }
+
+    async handleMessage(client, rawMessage) {
+        let request
+        try {
+            request = JSON.parse(rawMessage.toString())
+        } catch {
+            sendJson(client, { error: { message: 'Invalid remote-control JSON message' }, id: null })
+            return
+        }
+
+        const { id, method, params = [] } = request
+        try {
+            const result = await this.invoke(client, method, params, id)
+            sendJson(client, { id, result })
+        } catch (error) {
+            sendJson(client, { error: { message: errorMessage(error) }, id })
+        }
+    }
+
+    async invoke(client, method, params, id) {
+        if (method === 'unsubscribe') return this.unsubscribe(client, params)
+        if (method === 'watchProject') return this.watchProject(client, params, id)
+        if (!this.dispatcher) throw new Error('Remote-control dispatch is not configured')
+        if (AGENT_EVENT_METHODS.has(method)) {
+            return this.dispatcher.invoke(method, [...params, (event) => sendJson(client, { event: 'agentRun', payload: { event, requestId: id } })])
+        }
+
+        return this.dispatcher.invoke(method, params)
+    }
+
+    watchProject(client, params, id) {
+        if (!this.dispatcher) throw new Error('Remote-control dispatch is not configured')
+        if (!Array.isArray(params)) throw new Error('Remote-control params must be an array')
+
+        const subscriptionId = crypto.randomUUID()
+        const cleanup = this.dispatcher.invoke('watchProject', [
+            params[0],
+            (event) => sendJson(client, { event: 'watchProject', payload: { event, requestId: id, subscriptionId } }),
+        ])
+        this.addSubscription(client, subscriptionId, cleanup)
+
+        return { subscriptionId }
+    }
+
+    unsubscribe(client, params) {
+        if (!Array.isArray(params) || typeof params[0] !== 'string') throw new Error('Missing subscription id')
+
+        return this.removeSubscription(client, params[0])
+    }
+
+    addSubscription(client, subscriptionId, cleanup) {
+        const subscriptions = this.subscriptions.get(client) ?? new Map()
+        subscriptions.set(subscriptionId, cleanup)
+        this.subscriptions.set(client, subscriptions)
+    }
+
+    removeSubscription(client, subscriptionId) {
+        const subscriptions = this.subscriptions.get(client)
+        const cleanup = subscriptions?.get(subscriptionId)
+        if (!cleanup) return false
+
+        cleanup()
+        subscriptions.delete(subscriptionId)
+        if (subscriptions.size === 0) this.subscriptions.delete(client)
+
+        return true
+    }
+
+    clearClientSubscriptions(client) {
+        const subscriptions = this.subscriptions.get(client)
+        if (!subscriptions) return
+
+        for (const cleanup of subscriptions.values()) cleanup()
+        this.subscriptions.delete(client)
+    }
+
+    clearAllSubscriptions() {
+        for (const client of this.subscriptions.keys()) this.clearClientSubscriptions(client)
     }
 
     emitStatus() {

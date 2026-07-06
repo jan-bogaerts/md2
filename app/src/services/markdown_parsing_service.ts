@@ -35,18 +35,24 @@ interface HeaderSplit {
     rawHeader: string
 }
 
+function detectLineEnding(content: string) {
+    return content.includes('\r\n') ? '\r\n' : '\n'
+}
+
 function splitHeader(content: string): HeaderSplit {
     if (!content.startsWith(`${HEADER_DELIMITER}\n`) && !content.startsWith(`${HEADER_DELIMITER}\r\n`)) {
         return { body: content, hasHeader: false, rawHeader: '' }
     }
 
-    const normalizedContent = content.replace(/\r\n/g, '\n')
-    const closingDelimiterIndex = normalizedContent.indexOf(`\n${HEADER_DELIMITER}\n`, HEADER_DELIMITER.length + 1)
+    const closingDelimiter = /\r?\n---\r?\n/g
+    closingDelimiter.lastIndex = HEADER_DELIMITER.length
+    const closingMatch = closingDelimiter.exec(content)
 
-    if (closingDelimiterIndex === -1) return { body: content, hasHeader: false, rawHeader: '' }
+    if (!closingMatch) return { body: content, hasHeader: false, rawHeader: '' }
 
-    const rawHeader = normalizedContent.slice(HEADER_DELIMITER.length + 1, closingDelimiterIndex)
-    const body = normalizedContent.slice(closingDelimiterIndex + HEADER_DELIMITER.length + 2)
+    const headerStart = content.indexOf('\n') + 1
+    const rawHeader = content.slice(headerStart, closingMatch.index).replace(/\r\n/g, '\n')
+    const body = content.slice(closingMatch.index + closingMatch[0].length)
 
     return { body, hasHeader: true, rawHeader }
 }
@@ -257,6 +263,10 @@ function rewriteListLines(lines: string[], key: string, values: string[]) {
     return updated
 }
 
+function frameDocument(headerLines: string[], body: string, lineEnding: string) {
+    return `${HEADER_DELIMITER}${lineEnding}${headerLines.join(lineEnding)}${lineEnding}${HEADER_DELIMITER}${lineEnding}${body}`
+}
+
 function serializeNewHeader(header: NewCardHeader) {
     if (!header.id) throw new Error('Cannot generate a card without an id')
     if (!header.internalId) throw new Error('Cannot generate a card without an internalId')
@@ -302,6 +312,7 @@ export const markdownParsingService = {
             agentConversations: [],
             content: body,
             header: parseCardHeader(fields, file, body),
+            headerFields: fields,
             isActive: isRootWorkingFolderFile(file.path, workingFolder),
             path: file.path,
             sha: file.sha,
@@ -325,51 +336,54 @@ export const markdownParsingService = {
 
         if (!hasHeader) return body
 
-        return `${HEADER_DELIMITER}\n${rawHeader}\n${HEADER_DELIMITER}\n${body}`
+        return frameDocument(rawHeader.split('\n'), body, detectLineEnding(content))
     },
 
     rewriteHeader(content: string, updates: Record<string, string>) {
         const { body, hasHeader, rawHeader } = splitHeader(content)
+        const lineEnding = detectLineEnding(content)
         const startingLines = hasHeader ? rawHeader.split('\n') : []
         const nextLines = Object.entries(updates).reduce(
             (lines, [key, value]) => rewriteHeaderLine(lines, key, value),
             startingLines,
         )
-        const nextHeader = nextLines.join('\n')
 
-        if (hasHeader) return `${HEADER_DELIMITER}\n${nextHeader}\n${HEADER_DELIMITER}\n${body}`
+        if (hasHeader) return frameDocument(nextLines, body, lineEnding)
 
-        return `${HEADER_DELIMITER}\n${nextHeader}\n${HEADER_DELIMITER}\n\n${content}`
+        return frameDocument(nextLines, `${lineEnding}${content}`, lineEnding)
     },
 
     setPolicyFlag(content: string, key: string, enabled: boolean) {
         const { body, hasHeader, rawHeader } = splitHeader(content)
+        const lineEnding = detectLineEnding(content)
         const startingLines = hasHeader ? rawHeader.split('\n') : []
-        const nextHeader = rewritePolicyLines(startingLines, key, enabled ? 'true' : 'false').join('\n')
+        const nextLines = rewritePolicyLines(startingLines, key, enabled ? 'true' : 'false')
 
-        if (hasHeader) return `${HEADER_DELIMITER}\n${nextHeader}\n${HEADER_DELIMITER}\n${body}`
+        if (hasHeader) return frameDocument(nextLines, body, lineEnding)
 
-        return `${HEADER_DELIMITER}\n${nextHeader}\n${HEADER_DELIMITER}\n\n${content}`
+        return frameDocument(nextLines, `${lineEnding}${content}`, lineEnding)
     },
 
     setAgentLogReferences(content: string, references: string[]) {
         const { body, hasHeader, rawHeader } = splitHeader(content)
+        const lineEnding = detectLineEnding(content)
         const startingLines = hasHeader ? rawHeader.split('\n') : []
-        const nextHeader = rewriteListLines(startingLines, 'agents', references).join('\n')
+        const nextLines = rewriteListLines(startingLines, 'agents', references)
 
-        if (hasHeader) return `${HEADER_DELIMITER}\n${nextHeader}\n${HEADER_DELIMITER}\n${body}`
+        if (hasHeader) return frameDocument(nextLines, body, lineEnding)
 
-        return `${HEADER_DELIMITER}\n${nextHeader}\n${HEADER_DELIMITER}\n\n${content}`
+        return frameDocument(nextLines, `${lineEnding}${content}`, lineEnding)
     },
 
     setAffects(content: string, affects: string[]) {
         const { body, hasHeader, rawHeader } = splitHeader(content)
+        const lineEnding = detectLineEnding(content)
         const startingLines = hasHeader ? rawHeader.split('\n') : []
-        const nextHeader = rewriteListLines(startingLines, 'affects', affects).join('\n')
+        const nextLines = rewriteListLines(startingLines, 'affects', affects)
 
-        if (hasHeader) return `${HEADER_DELIMITER}\n${nextHeader}\n${HEADER_DELIMITER}\n${body}`
+        if (hasHeader) return frameDocument(nextLines, body, lineEnding)
 
-        return `${HEADER_DELIMITER}\n${nextHeader}\n${HEADER_DELIMITER}\n\n${content}`
+        return frameDocument(nextLines, `${lineEnding}${content}`, lineEnding)
     },
 
     buildCardMarkdown(header: NewCardHeader, body: string) {

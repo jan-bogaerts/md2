@@ -9,6 +9,7 @@ const require = createRequire(import.meta.url)
 const currentDirectory = dirname(fileURLToPath(import.meta.url))
 const preloadPath = join(currentDirectory, 'preload.js')
 const actualConfig = require('./config')
+const actualLocalBridgeDispatch = require('./local_bridge_dispatch')
 
 function createPreloadHarness() {
     const storeData = {}
@@ -22,6 +23,9 @@ function createPreloadHarness() {
         start: vi.fn(() => ({ reference: 'started-log.json' })),
         stop: vi.fn(),
         stopAll: vi.fn(),
+    }
+    const actionSchedulerService = {
+        stop: vi.fn(),
     }
     const window = { addEventListener: vi.fn() }
     const electron = { ipcRenderer: { invoke: vi.fn(), on: vi.fn(), removeListener: vi.fn(), send: vi.fn() } }
@@ -42,11 +46,19 @@ function createPreloadHarness() {
         }
     }
 
+    class FakeActionSchedulerService {
+        constructor() {
+            return actionSchedulerService
+        }
+    }
+
     const mockedModules = {
+        './action_scheduler_service': { ActionSchedulerService: FakeActionSchedulerService },
         './agent_runner_service': { AgentRunnerService: FakeAgentRunnerService },
         './config': actualConfig,
         './diff_service': {},
         './github_oauth_proxy': { requestGithubAccessToken: vi.fn(), requestGithubDeviceCode: vi.fn() },
+        './local_bridge_dispatch': actualLocalBridgeDispatch,
         './local_git_service': localGitService,
         electron,
         'electron-store': FakeStore,
@@ -63,7 +75,7 @@ function createPreloadHarness() {
 
     script.runInContext(context)
 
-    return { agentRunnerService, localGitService, window }
+    return { actionSchedulerService, agentRunnerService, localGitService, window }
 }
 
 describe('preload desktop agent bridge', () => {

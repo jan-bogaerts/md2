@@ -1,4 +1,5 @@
 import type { ActionFile } from '../data/action_types'
+import type { ActionSchedule } from '../data/action_schedule_types'
 import type {
     BranchReference,
     CommitResult,
@@ -56,8 +57,33 @@ export class LocalGitStorageService implements StorageService {
         return this.requireBridge().loadProject(project, workingFolder)
     }
 
+    async loadProjectRoot(project: ProjectReference, workingFolder: string): Promise<StorageProjectFiles> {
+        return this.requireBridge().loadProjectRoot(project, workingFolder)
+    }
+
     async loadActionFiles(project: ProjectReference, actionsFolder: string): Promise<ActionFile[]> {
         return this.requireBridge().loadActionFiles(project, actionsFolder)
+    }
+
+    async loadActionSchedules(project: ProjectReference, actionsFolder: string): Promise<ActionSchedule[]> {
+        const bridge = this.requireBridge()
+        if (!bridge.loadActionSchedules) throw new Error('Electron local Git bridge cannot load action schedules')
+
+        return bridge.loadActionSchedules(project, actionsFolder)
+    }
+
+    async saveActionSchedules(project: ProjectReference, actionsFolder: string, schedules: ActionSchedule[]): Promise<ActionSchedule[]> {
+        const bridge = this.requireBridge()
+        if (!bridge.saveActionSchedules) throw new Error('Electron local Git bridge cannot save action schedules')
+
+        return bridge.saveActionSchedules(project, actionsFolder, schedules)
+    }
+
+    async cancelActionSchedule(project: ProjectReference, actionsFolder: string, scheduleId: string): Promise<ActionSchedule[]> {
+        const bridge = this.requireBridge()
+        if (!bridge.cancelActionSchedule) throw new Error('Electron local Git bridge cannot cancel action schedules')
+
+        return bridge.cancelActionSchedule(project, actionsFolder, scheduleId)
     }
 
     async loadAgentConversation(_project: ProjectReference, path: string): Promise<AgentConversation> {

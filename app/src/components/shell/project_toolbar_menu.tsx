@@ -1,5 +1,6 @@
 import {
     Alert,
+    Box,
     Button,
     Dialog,
     DialogActions,
@@ -19,6 +20,7 @@ import type { SelectChangeEvent } from '@mui/material'
 import type { ChangeEvent, MouseEvent } from 'react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
+    DEFAULT_CARD_TYPES,
     MISSING_WORKING_FOLDER_ERROR,
     type BranchReference,
     type CardDraft,
@@ -29,6 +31,7 @@ import {
     type TopLevelFolderReference,
 } from '../../data/data_types'
 import { createStorageService, writeLastProject, type StorageType } from '../../data/project_session'
+import { configureRemoteControlConnection } from '../../data/remote_control_connection'
 import { getElectronDataBridge } from '../../data/electron_data_bridge'
 import { configService } from '../../services/config_service'
 import { dataService } from '../../services/data_service'
@@ -37,7 +40,7 @@ import { useProjectState } from '../hooks/use_project_state'
 import { OPEN_PROJECT_DIALOG_EVENT } from '../project_command_events'
 
 type ProjectDialogMode = 'open' | 'branch' | 'card'
-type ProjectSource = 'github' | 'local'
+type ProjectSource = 'github' | 'local' | 'remote'
 
 const EMPTY_BRANCHES: BranchReference[] = []
 const EMPTY_REPOSITORIES: RepositoryReference[] = []
@@ -104,6 +107,7 @@ export function ProjectToolbarMenu(props: ProjectToolbarMenuProps) {
     const [branches, setBranches] = useState<BranchReference[]>(EMPTY_BRANCHES)
     const [cardBody, setCardBody] = useState('')
     const [cardTitle, setCardTitle] = useState('')
+    const [cardType, setCardType] = useState('feature')
     const [configRevision, setConfigRevision] = useState(0)
     const [dialogMode, setDialogMode] = useState<ProjectDialogMode | null>(null)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -115,12 +119,17 @@ export function ProjectToolbarMenu(props: ProjectToolbarMenuProps) {
     const [missingWorkingFolder, setMissingWorkingFolder] = useState<MissingWorkingFolderResolution | null>(null)
     const [repositories, setRepositories] = useState<RepositoryReference[]>(EMPTY_REPOSITORIES)
     const [repositoryFilter, setRepositoryFilter] = useState('')
+    const [remoteEndpoint, setRemoteEndpoint] = useState('')
+    const [remoteRootPath, setRemoteRootPath] = useState('')
+    const [remoteToken, setRemoteToken] = useState('')
     const [selectedBranch, setSelectedBranch] = useState(project?.branch ?? '')
     const [selectedRepositoryId, setSelectedRepositoryId] = useState('')
     const [source, setSource] = useState<ProjectSource>('github')
     const activeCards = snapshot?.activeCards ?? []
     const projectConfig = dataService.getConfig()
     const pushMode = (projectConfig?.pushMode ?? 'auto') as PushMode
+    const cardTypes = projectConfig?.cardTypes ?? DEFAULT_CARD_TYPES
+    const selectedCardType = cardTypes.some((typeConfig) => typeConfig.type === cardType) ? cardType : cardTypes[0]?.type ?? ''
     const isMenuOpen = !!anchorElement
     const isProjectOpen = !!project
     const filteredRepositories = repositories.filter((repository) => repositoryMatchesFilter(repository, repositoryFilter))
@@ -228,12 +237,28 @@ export function ProjectToolbarMenu(props: ProjectToolbarMenuProps) {
         setGithubRepository(event.target.value)
     }
 
+    const handleRemoteEndpointChange = (event: ChangeEvent<HTMLInputElement>) => {
+        setRemoteEndpoint(event.target.value)
+    }
+
+    const handleRemoteRootPathChange = (event: ChangeEvent<HTMLInputElement>) => {
+        setRemoteRootPath(event.target.value)
+    }
+
+    const handleRemoteTokenChange = (event: ChangeEvent<HTMLInputElement>) => {
+        setRemoteToken(event.target.value)
+    }
+
     const handleCardTitleChange = (event: ChangeEvent<HTMLInputElement>) => {
         setCardTitle(event.target.value)
     }
 
     const handleCardBodyChange = (event: ChangeEvent<HTMLInputElement>) => {
         setCardBody(event.target.value)
+    }
+
+    const handleCardTypeChange = (event: SelectChangeEvent) => {
+        setCardType(event.target.value)
     }
 
     const handleSourceChange = (event: SelectChangeEvent) => {
@@ -273,6 +298,10 @@ export function ProjectToolbarMenu(props: ProjectToolbarMenuProps) {
         setSelectedBranch(event.target.value)
     }
 
+    const handleBranchTextChange = (event: ChangeEvent<HTMLInputElement>) => {
+        setSelectedBranch(event.target.value)
+    }
+
     const handleChooseLocalFolderClick = async () => {
         if (!electronBridge) return
 
@@ -308,6 +337,36 @@ export function ProjectToolbarMenu(props: ProjectToolbarMenuProps) {
             setSelectedBranch(branchValue(nextBranches, repository.branch))
         } catch (error) {
             setErrorMessage(error instanceof Error ? error.message : 'Manual repository branch list failed')
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
+    const createRemoteProject = (): ProjectReference => {
+        if (remoteRootPath.length === 0) throw new Error('Missing remote project root path')
+
+        return { branch: selectedBranch || 'main', id: remoteRootPath, rootPath: remoteRootPath }
+    }
+
+    const configureRemoteStorage = () => {
+        configureRemoteControlConnection({ endpoint: remoteEndpoint, token: remoteToken })
+    }
+
+    const loadRemoteBranches = async () => {
+        setIsLoading(true)
+        setErrorMessage(null)
+
+        try {
+            configureRemoteStorage()
+            const storage = createStorageService('remote', accessToken)
+            const nextProject = createRemoteProject()
+            const nextBranches = await storage.listBranches(nextProject)
+            setBranches(nextBranches)
+            setSelectedBranch(branchValue(nextBranches, nextProject.branch))
+        } catch (error) {
+            setErrorMessage(error instanceof Error ? error.message : 'Remote branch list failed')
+            setBranches(EMPTY_BRANCHES)
+            setSelectedBranch('main')
         } finally {
             setIsLoading(false)
         }
@@ -411,6 +470,10 @@ export function ProjectToolbarMenu(props: ProjectToolbarMenuProps) {
         void loadManualRepositoryBranches()
     }
 
+    const handleLoadRemoteBranchesClick = () => {
+        void loadRemoteBranches()
+    }
+
     const handleOpenGithubClick = async () => {
         const storage = createGithubStorage(accessToken)
         setIsLoading(true)
@@ -435,6 +498,13 @@ export function ProjectToolbarMenu(props: ProjectToolbarMenuProps) {
         if (!localProject || selectedBranch.length === 0) return
 
         void openProject('local', { ...localProject, branch: selectedBranch })
+    }
+
+    const handleOpenRemoteClick = async () => {
+        if (remoteEndpoint.length === 0 || remoteToken.length === 0 || remoteRootPath.length === 0) return
+
+        configureRemoteStorage()
+        await openProject('remote', createRemoteProject())
     }
 
     const handleSwitchBranchClick = async () => {
@@ -478,10 +548,11 @@ export function ProjectToolbarMenu(props: ProjectToolbarMenuProps) {
     const handleCreateCardClick = async () => {
         if (!project || cardTitle.length === 0) return
 
-        const draft: CardDraft = { body: cardBody, title: cardTitle, type: 'feature' }
+        const draft: CardDraft = { body: cardBody, title: cardTitle, type: selectedCardType }
         await dataService.createCard(draft)
         setCardBody('')
         setCardTitle('')
+        setCardType('feature')
         handleCloseDialog()
     }
 
@@ -511,7 +582,8 @@ export function ProjectToolbarMenu(props: ProjectToolbarMenuProps) {
                             <InputLabel id="project-source-label">Source</InputLabel>
                             <Select label="Source" labelId="project-source-label" onChange={handleSourceChange} value={source}>
                                 <MenuItem value="github">GitHub</MenuItem>
-                                <MenuItem value="local">Local</MenuItem>
+                                {electronBridge ? <MenuItem value="local">Local</MenuItem> : null}
+                                <MenuItem value="remote">Remote</MenuItem>
                             </Select>
                         </FormControl>
                         {source === 'github' ? (
@@ -535,17 +607,38 @@ export function ProjectToolbarMenu(props: ProjectToolbarMenuProps) {
                                     Load branches
                                 </Button>
                             </>
-                        ) : (
+                        ) : source === 'local' ? (
                             <Button disabled={!electronBridge || isLoading} onClick={handleChooseLocalFolderClick} variant="outlined">
                                 Choose local folder...
                             </Button>
+                        ) : (
+                            <>
+                                <TextField label="Endpoint" onChange={handleRemoteEndpointChange} size="small" value={remoteEndpoint} />
+                                <TextField label="Token" onChange={handleRemoteTokenChange} size="small" type="password" value={remoteToken} />
+                                <TextField label="Project root path" onChange={handleRemoteRootPathChange} size="small" value={remoteRootPath} />
+                                <TextField label="Branch" onChange={handleBranchTextChange} size="small" value={selectedBranch || 'main'} />
+                                <Button
+                                    disabled={
+                                        remoteEndpoint.length === 0
+                                        || remoteToken.length === 0
+                                        || remoteRootPath.length === 0
+                                        || isLoading
+                                    }
+                                    onClick={handleLoadRemoteBranchesClick}
+                                    variant="outlined"
+                                >
+                                    Load remote branches
+                                </Button>
+                            </>
                         )}
-                        <FormControl disabled={branches.length === 0} size="small">
-                            <InputLabel id="open-branch-label">Branch</InputLabel>
-                            <Select label="Branch" labelId="open-branch-label" onChange={handleBranchChange} value={selectedBranch}>
-                                {branches.map(({ name }) => <MenuItem key={name} value={name}>{name}</MenuItem>)}
-                            </Select>
-                        </FormControl>
+                        {source !== 'remote' ? (
+                            <FormControl disabled={branches.length === 0} size="small">
+                                <InputLabel id="open-branch-label">Branch</InputLabel>
+                                <Select label="Branch" labelId="open-branch-label" onChange={handleBranchChange} value={selectedBranch}>
+                                    {branches.map(({ name }) => <MenuItem key={name} value={name}>{name}</MenuItem>)}
+                                </Select>
+                            </FormControl>
+                        ) : null}
                         {missingWorkingFolder ? (
                             <Stack spacing={1}>
                                 <Typography variant="subtitle2">Working folder is missing: {missingWorkingFolder.configuredWorkingFolder}</Typography>
@@ -572,6 +665,14 @@ export function ProjectToolbarMenu(props: ProjectToolbarMenuProps) {
                     {source === 'github' ? (
                         <Button disabled={!isGithubAuthenticated || githubOwner.length === 0 || githubRepository.length === 0 || isLoading} onClick={handleOpenGithubClick} variant="contained">
                             Open GitHub
+                        </Button>
+                    ) : source === 'remote' ? (
+                        <Button
+                            disabled={remoteEndpoint.length === 0 || remoteToken.length === 0 || remoteRootPath.length === 0 || isLoading}
+                            onClick={handleOpenRemoteClick}
+                            variant="contained"
+                        >
+                            Open Remote
                         </Button>
                     ) : (
                         <Button disabled={!localProject || selectedBranch.length === 0 || isLoading} onClick={handleOpenLocalClick} variant="contained">
@@ -606,14 +707,27 @@ export function ProjectToolbarMenu(props: ProjectToolbarMenuProps) {
                 <DialogTitle>New card</DialogTitle>
                 <DialogContent>
                     <Stack spacing={2} sx={{ pt: 1 }}>
+                        <FormControl size="small">
+                            <InputLabel id="card-type-label">Card type</InputLabel>
+                            <Select label="Card type" labelId="card-type-label" onChange={handleCardTypeChange} value={selectedCardType}>
+                                {cardTypes.map((typeConfig) => (
+                                    <MenuItem key={typeConfig.type} value={typeConfig.type}>
+                                        <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+                                            <Box sx={{ backgroundColor: typeConfig.color, borderRadius: '50%', height: 12, width: 12 }} />
+                                            <span>{typeConfig.label}</span>
+                                        </Stack>
+                                    </MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
                         <TextField label="New card title" onChange={handleCardTitleChange} size="small" value={cardTitle} />
                         <TextField label="New card body" multiline onChange={handleCardBodyChange} size="small" value={cardBody} />
                     </Stack>
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={handleCloseDialog}>Cancel</Button>
-                    <Button disabled={!isProjectOpen || cardTitle.length === 0} onClick={handleCreateCardClick} variant="contained">
-                        Create Feature
+                    <Button disabled={!isProjectOpen || cardTitle.length === 0 || selectedCardType.length === 0} onClick={handleCreateCardClick} variant="contained">
+                        Create card
                     </Button>
                 </DialogActions>
             </Dialog>

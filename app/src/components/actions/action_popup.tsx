@@ -1,10 +1,11 @@
-import { Box, Button, Dialog, Divider, Stack, TextField, Typography } from '@mui/material'
+import { Box, Button, Dialog, Divider, MenuItem, Stack, TextField, Typography } from '@mui/material'
 import { useEffect, useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import type { ActionContext } from '../../data/action_context'
+import type { ActionScheduleTrigger } from '../../data/action_schedule_types'
 import type { ActionDefinition } from '../../data/action_types'
-import type { ActionRunHistoryEntry } from '../../data/electron_action_bridge'
+import { getElectronActionBridge, type ActionRunHistoryEntry } from '../../data/electron_action_bridge'
 import { actionRunner, type ActionRunInput, type ActionRunResult, type ConvertPromptToActionInput } from '../../services/action_runner'
 import { DiffView } from './diff_view'
 
@@ -22,6 +23,8 @@ type PopupRunStatus = 'idle' | 'running' | ActionRunResult['status']
 type ConvertPromptToAction = (input: ConvertPromptToActionInput) => Promise<{ path: string }>
 type LoadHistory = (action: ActionDefinition, context: ActionContext) => Promise<ActionRunHistoryEntry[]>
 type RunAction = (action: ActionDefinition, context: ActionContext, input?: ActionRunInput) => Promise<ActionRunResult>
+type ScheduleAction = (action: ActionDefinition, context: ActionContext, trigger: ActionScheduleTrigger) => Promise<void>
+type ScheduleTriggerType = ActionScheduleTrigger['type']
 
 interface ActionPopupProps {
     action: ActionDefinition
@@ -34,6 +37,7 @@ interface ActionPopupProps {
     /** Lower corner to place the resize handle; defaults to lower-right. */
     resizeCorner?: ResizeCorner
     runAction?: RunAction
+    scheduleAction?: ScheduleAction
 }
 
 interface RelatedActionsProps {
@@ -101,12 +105,34 @@ function defaultConvertPromptToAction(input: ConvertPromptToActionInput) {
     return actionRunner.convertPromptToAction(input)
 }
 
+async function defaultScheduleAction(action: ActionDefinition, context: ActionContext, trigger: ActionScheduleTrigger) {
+    const bridge = getElectronActionBridge()
+    if (!bridge?.registerActionSchedule) throw new Error('Scheduling actions requires Electron local mode')
+
+    await bridge.registerActionSchedule({ actionName: action.name, context, trigger })
+}
+
 function statusColor(status: PopupRunStatus) {
     if (status === 'completed') return 'success.main'
     if (status === 'failed') return 'error.main'
     if (status === 'running') return 'info.main'
 
     return 'text.secondary'
+}
+
+function createScheduleTrigger(type: ScheduleTriggerType, timestampInput: string, afterActionNameInput: string): ActionScheduleTrigger {
+    if (type === 'agentSlot') return { type: 'agentSlot' }
+    if (type === 'afterAction') {
+        const actionName = afterActionNameInput.trim()
+        if (actionName.length === 0) throw new Error('Action name is required for after action schedules')
+
+        return { actionName, type: 'afterAction' }
+    }
+
+    const timestamp = timestampInput.trim()
+    if (timestamp.length === 0) throw new Error('Timestamp is required for time schedules')
+
+    return { timestamp, type: 'at' }
 }
 
 /**
@@ -120,12 +146,18 @@ export function ActionPopup(props: ActionPopupProps) {
     const loadHistory = props.loadHistory ?? defaultLoadHistory
     const resizeCorner = props.resizeCorner ?? 'lower-right'
     const runAction = props.runAction ?? defaultRunAction
+    const scheduleAction = props.scheduleAction ?? defaultScheduleAction
     const [actionLabel, setActionLabel] = useState('')
     const [convertMessage, setConvertMessage] = useState<string | null>(null)
     const [extraPrompt, setExtraPrompt] = useState('')
     const [history, setHistory] = useState<ActionRunHistoryEntry[]>([])
     const [historyError, setHistoryError] = useState<string | null>(null)
     const [size, setSize] = useState({ height: DEFAULT_HEIGHT, width: DEFAULT_WIDTH })
+    const [scheduleAfterActionName, setScheduleAfterActionName] = useState('')
+    const [scheduleMessage, setScheduleMessage] = useState<string | null>(null)
+    const [scheduleOpen, setScheduleOpen] = useState(false)
+    const [scheduleTimestamp, setScheduleTimestamp] = useState('')
+    const [scheduleTriggerType, setScheduleTriggerType] = useState<ScheduleTriggerType>('at')
     const [runResult, setRunResult] = useState<ActionRunResult | null>(null)
     const [runStatus, setRunStatus] = useState<PopupRunStatus>('idle')
     const resizeRef = useRef<AbortController | null>(null)
@@ -168,6 +200,38 @@ export function ActionPopup(props: ActionPopupProps) {
                 status: 'failed',
             })
             setRunStatus('failed')
+        }
+    }
+
+    const handleToggleSchedule = () => {
+        setScheduleOpen((previous) => !previous)
+        setScheduleMessage(null)
+    }
+
+    const handleScheduleTriggerTypeChange = (event: ChangeEvent<HTMLInputElement>) => {
+        setScheduleTriggerType(event.target.value as ScheduleTriggerType)
+        setScheduleMessage(null)
+    }
+
+    const handleScheduleTimestampChange = (event: ChangeEvent<HTMLInputElement>) => {
+        setScheduleTimestamp(event.target.value)
+        setScheduleMessage(null)
+    }
+
+    const handleScheduleAfterActionNameChange = (event: ChangeEvent<HTMLInputElement>) => {
+        setScheduleAfterActionName(event.target.value)
+        setScheduleMessage(null)
+    }
+
+    const handleScheduleAction = async () => {
+        setScheduleMessage(null)
+
+        try {
+            const trigger = createScheduleTrigger(scheduleTriggerType, scheduleTimestamp, scheduleAfterActionName)
+            await scheduleAction(action, context, trigger)
+            setScheduleMessage('Schedule registered')
+        } catch (error) {
+            setScheduleMessage(error instanceof Error ? error.message : 'Could not register schedule')
         }
     }
 
@@ -229,11 +293,55 @@ export function ActionPopup(props: ActionPopupProps) {
                 </Box>
 
                 <Stack direction="row" spacing={1}>
+                    <Button disabled={runStatus === 'running'} onClick={handleToggleSchedule} variant="outlined">
+                        Schedule
+                    </Button>
                     <Button disabled={runStatus === 'running'} onClick={handleRun} variant="contained">
                         Run
                     </Button>
                     <Button onClick={onClose}>Close</Button>
                 </Stack>
+
+                {scheduleOpen ? (
+                    <Stack spacing={1}>
+                        <TextField
+                            label="Schedule trigger"
+                            onChange={handleScheduleTriggerTypeChange}
+                            select
+                            size="small"
+                            value={scheduleTriggerType}
+                        >
+                            <MenuItem value="at">At</MenuItem>
+                            <MenuItem value="agentSlot">Agent slot</MenuItem>
+                            <MenuItem value="afterAction">After action</MenuItem>
+                        </TextField>
+                        {scheduleTriggerType === 'at' ? (
+                            <TextField
+                                label="Schedule timestamp"
+                                onChange={handleScheduleTimestampChange}
+                                size="small"
+                                type="datetime-local"
+                                value={scheduleTimestamp}
+                            />
+                        ) : null}
+                        {scheduleTriggerType === 'afterAction' ? (
+                            <TextField
+                                label="After action name"
+                                onChange={handleScheduleAfterActionNameChange}
+                                size="small"
+                                value={scheduleAfterActionName}
+                            />
+                        ) : null}
+                        <Button onClick={handleScheduleAction} size="small" variant="contained">
+                            Register schedule
+                        </Button>
+                        {scheduleMessage ? (
+                            <Typography color="text.secondary" role="status" variant="caption">
+                                {scheduleMessage}
+                            </Typography>
+                        ) : null}
+                    </Stack>
+                ) : null}
 
                 {action.type === 'agent' ? (
                     <Stack spacing={1}>

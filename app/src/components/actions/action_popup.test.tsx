@@ -29,11 +29,17 @@ const completedResult: ActionRunResult = {
     status: 'completed',
 }
 
+function selectScheduleTrigger(label: string) {
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Schedule trigger' }))
+    fireEvent.click(screen.getByRole('option', { name: label }))
+}
+
 function renderPopup(overrides: Partial<Parameters<typeof ActionPopup>[0]> = {}) {
     const onNavigate = vi.fn()
     const onClose = vi.fn()
     const loadHistory = vi.fn(async () => [])
     const runAction = vi.fn(async () => completedResult)
+    const scheduleAction = vi.fn(async () => {})
     render(
         <ActionPopup
             action={action('Implement')}
@@ -42,22 +48,80 @@ function renderPopup(overrides: Partial<Parameters<typeof ActionPopup>[0]> = {})
             onClose={onClose}
             onNavigate={onNavigate}
             runAction={runAction}
+            scheduleAction={scheduleAction}
             {...overrides}
         />,
     )
 
-    return { loadHistory, onClose, onNavigate, runAction }
+    return { loadHistory, onClose, onNavigate, runAction, scheduleAction }
 }
 
 describe('ActionPopup', () => {
     afterEach(cleanup)
 
-    it('shows the action label, description and a Run command', () => {
+    it('shows the action label, description and Schedule before Run', () => {
         renderPopup()
 
         expect(screen.getByText('Implement')).toBeInTheDocument()
         expect(screen.getByText('Implement description')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Schedule' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Run' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Schedule' }).compareDocumentPosition(screen.getByRole('button', { name: 'Run' })))
+            .toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+    })
+
+    it('registers an at schedule from the picker', async () => {
+        const { runAction, scheduleAction } = renderPopup()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Schedule' }))
+        fireEvent.change(screen.getByLabelText('Schedule timestamp'), { target: { value: '2026-07-07T10:30' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Register schedule' }))
+
+        await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Schedule registered'))
+        expect(scheduleAction).toHaveBeenCalledWith(
+            expect.objectContaining({ name: 'Implement' }),
+            context,
+            { timestamp: '2026-07-07T10:30', type: 'at' },
+        )
+        expect(runAction).not.toHaveBeenCalled()
+    })
+
+    it('registers an agent slot schedule without extra input', async () => {
+        const { scheduleAction } = renderPopup()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Schedule' }))
+        selectScheduleTrigger('Agent slot')
+        fireEvent.click(screen.getByRole('button', { name: 'Register schedule' }))
+
+        await waitFor(() => expect(scheduleAction).toHaveBeenCalledWith(expect.objectContaining({ name: 'Implement' }), context, { type: 'agentSlot' }))
+    })
+
+    it('registers an after action schedule with the action name', async () => {
+        const { scheduleAction } = renderPopup()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Schedule' }))
+        selectScheduleTrigger('After action')
+        fireEvent.change(screen.getByLabelText('After action name'), { target: { value: 'Run tests' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Register schedule' }))
+
+        await waitFor(() => expect(scheduleAction).toHaveBeenCalledWith(
+            expect.objectContaining({ name: 'Implement' }),
+            context,
+            { actionName: 'Run tests', type: 'afterAction' },
+        ))
+    })
+
+    it('shows schedule registration errors', async () => {
+        const scheduleAction = vi.fn(async () => {
+            throw new Error('Desktop scheduler unavailable')
+        })
+        renderPopup({ scheduleAction })
+
+        fireEvent.click(screen.getByRole('button', { name: 'Schedule' }))
+        fireEvent.change(screen.getByLabelText('Schedule timestamp'), { target: { value: '2026-07-07T10:30' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Register schedule' }))
+
+        await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Desktop scheduler unavailable'))
     })
 
     it('reports running and completed states when Run is pressed', async () => {

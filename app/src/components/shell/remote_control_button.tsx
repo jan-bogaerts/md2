@@ -2,12 +2,18 @@ import { Alert, Button, Snackbar, Tooltip } from '@mui/material'
 import { useEffect, useMemo, useState } from 'react'
 import { getElectronRemoteControlBridge, type RemoteControlStatus } from '../../data/electron_remote_control_bridge'
 
-const INITIAL_STATUS: RemoteControlStatus = { active: false, clientCount: 0, endpoint: null }
+const INITIAL_STATUS: RemoteControlStatus = { active: false, clientCount: 0, endpoint: null, token: null }
 
 function statusLabel(status: RemoteControlStatus) {
     if (!status.active) return 'Remote off'
 
     return status.clientCount > 0 ? `Remote ${status.clientCount}` : 'Remote on'
+}
+
+function tooltipLabel(status: RemoteControlStatus) {
+    if (!status.endpoint) return 'Remote control is stopped'
+
+    return status.token ? `${status.endpoint} token ${status.token}` : status.endpoint
 }
 
 /** Toolbar control that starts/stops the Electron WebSocket remote-control endpoint. */
@@ -57,7 +63,7 @@ export function RemoteControlButton() {
 
     return (
         <>
-            <Tooltip title={status.endpoint ?? 'Remote control is stopped'}>
+            <Tooltip title={tooltipLabel(status)}>
                 <span>
                     <Button color={status.active ? 'success' : 'inherit'} disabled={isBusy} onClick={handleClick} size="small" variant="outlined">
                         {statusLabel(status)}

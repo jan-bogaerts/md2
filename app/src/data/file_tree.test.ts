@@ -6,6 +6,7 @@ function card(path: string, overrides: Partial<ProjectCard['header']> = {}): Pro
     return {
         agentConversationErrors: [],
         agentConversations: [],
+        headerFields: {},
         content: '',
         header: {
             affects: [],

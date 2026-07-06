@@ -1,4 +1,5 @@
 import type { ActionFile } from '../data/action_types'
+import { ACTION_SCHEDULES_FILE } from '../data/action_schedule_types'
 import { MissingWorkingFolderError } from '../data/data_types'
 import { GithubUnauthorizedError } from '../auth/github_api_client'
 import type {
@@ -274,6 +275,13 @@ export class GithubStorageService implements StorageService {
         return { files, workingFolder }
     }
 
+    async loadProjectRoot(project: ProjectReference, workingFolder: string): Promise<StorageProjectFiles> {
+        this.requireGithubProject(project)
+        const files = await this.readRootMarkdownFiles(project, workingFolder)
+
+        return { files, workingFolder }
+    }
+
     async loadActionFiles(project: ProjectReference, actionsFolder: string): Promise<ActionFile[]> {
         this.requireGithubProject(project)
         const entries = await this.request(
@@ -287,7 +295,8 @@ export class GithubStorageService implements StorageService {
         for (const entry of normalizeDirectoryEntries(entries)) {
             const type = requireString(entry.type, 'content.type')
             const entryPath = requireString(entry.path, 'content.path')
-            if (type === 'file' && entryPath.toLowerCase().endsWith('.json')) {
+            const fileName = entryPath.split('/').pop()
+            if (type === 'file' && fileName !== ACTION_SCHEDULES_FILE && entryPath.toLowerCase().endsWith('.json')) {
                 const jsonFile = await this.readFile(project, entryPath)
                 files.push({ content: jsonFile.content, path: jsonFile.path })
             }
@@ -458,6 +467,29 @@ export class GithubStorageService implements StorageService {
                 files.push(...await this.readDirectory(project, entryPath))
                 continue
             }
+
+            if (type === 'file' && entryPath.toLowerCase().endsWith('.md')) {
+                files.push(await this.readFile(project, entryPath))
+            }
+        }
+
+        return files
+    }
+
+    private async readRootMarkdownFiles(project: ProjectReference, path: string): Promise<MarkdownFile[]> {
+        const payload = await this.request(
+            `/repos/${project.owner}/${project.repository}/contents/${encodePath(path)}?ref=${encodeURIComponent(project.branch)}`,
+            {},
+            true,
+        )
+        if (payload === null) throw new MissingWorkingFolderError(path)
+
+        const entries = normalizeDirectoryEntries(payload)
+        const files: MarkdownFile[] = []
+
+        for (const entry of entries) {
+            const type = requireString(entry.type, 'content.type')
+            const entryPath = requireString(entry.path, 'content.path')
 
             if (type === 'file' && entryPath.toLowerCase().endsWith('.md')) {
                 files.push(await this.readFile(project, entryPath))

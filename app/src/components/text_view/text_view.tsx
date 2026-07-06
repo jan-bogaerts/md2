@@ -7,6 +7,7 @@ import { telemetryService } from '../../services/telemetry_service'
 import { AgentConversationList } from '../agents/agent_conversation_list'
 import { MarkdownEditor } from '../editor/markdown_editor'
 import { FileTreeView } from './file_tree_view'
+import { HeaderEditorPanel } from './header_editor_panel'
 import { TabBar, type OpenTab } from './tab_bar'
 import { useOpenTabs } from './use_open_tabs'
 
@@ -21,6 +22,7 @@ interface TextViewProps {
     onBodyChange: (path: string, body: string) => void
     onContinueAgentConversation: (path: string, conversation: AgentConversation) => void
     onDeleteFile: (path: string) => Promise<void>
+    onHeaderFieldChange: (path: string, key: string, value: string) => void
     onSendAgentInput: (runId: string, input: string) => void
     onStartAgentConversation: (path: string, prompt: string) => void
     requestedNonce: number
@@ -44,6 +46,7 @@ export function TextView(props: TextViewProps) {
         onBodyChange,
         onContinueAgentConversation,
         onDeleteFile,
+        onHeaderFieldChange,
         onSendAgentInput,
         onStartAgentConversation,
         requestedNonce,
@@ -92,6 +95,10 @@ export function TextView(props: TextViewProps) {
 
     const handleEditorChange = (body: string) => {
         if (activePath) onBodyChange(activePath, body)
+    }
+
+    const handleHeaderFieldChange = (key: string, value: string) => {
+        if (activePath) onHeaderFieldChange(activePath, key, value)
     }
 
     const handleToggleConversationPanel = () => {
@@ -146,12 +153,22 @@ export function TextView(props: TextViewProps) {
             <Box sx={{ display: 'flex', flex: 1, flexDirection: 'column', minHeight: 0 }}>
                 <Box sx={{ flex: 1, overflow: 'auto', p: 2 }}>
                     {activeCard && activePath ? (
-                        <MarkdownEditor
-                            key={activePath}
-                            markdown={activeCard.content}
-                            onChange={handleEditorChange}
-                            stickyToolbar={isMobile}
-                        />
+                        <>
+                            {Object.keys(activeCard.headerFields).length > 0 ? (
+                                <HeaderEditorPanel
+                                    fields={activeCard.headerFields}
+                                    key={`header:${activePath}`}
+                                    onFieldChange={handleHeaderFieldChange}
+                                    title={activeCard.header.title}
+                                />
+                            ) : null}
+                            <MarkdownEditor
+                                key={activePath}
+                                markdown={activeCard.content}
+                                onChange={handleEditorChange}
+                                stickyToolbar={isMobile}
+                            />
+                        </>
                     ) : (
                         <Typography color="text.secondary" variant="body2">
                             Select a file from the tree to open it.

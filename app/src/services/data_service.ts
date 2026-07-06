@@ -1,7 +1,9 @@
 ﻿import { CommitBatcher } from '../data/commit_batcher'
 import { cardContext } from '../data/action_context'
+import { ACTION_SCHEDULES_FILE } from '../data/action_schedule_types'
 import { createCardFile } from '../data/card_naming'
 import { computeMove, orderByAfter, UNASSIGNED_STATUS } from '../data/card_ordering'
+import { getElectronActionBridge } from '../data/electron_action_bridge'
 import { buildReleaseMoves } from '../data/release_archiving'
 import {
     type AgentConversation,
@@ -33,6 +35,8 @@ const JSON_EXTENSION = '.json'
 function isActionDefinitionPath(path: string, actionsFolder: string) {
     const normalizedPath = path.replace(/\\/gu, '/')
     const normalizedActionsFolder = actionsFolder.replace(/\\/gu, '/').replace(/\/$/u, '')
+    const fileName = normalizedPath.split('/').pop()
+    if (fileName === ACTION_SCHEDULES_FILE) return false
 
     return normalizedPath.startsWith(`${normalizedActionsFolder}/`) && normalizedPath.toLowerCase().endsWith(JSON_EXTENSION)
 }
@@ -51,6 +55,14 @@ function mergeFiles(current: MarkdownFile[], updates: MarkdownFile[]): MarkdownF
 
 function statusOf(card: ProjectSnapshot['activeCards'][number]) {
     return card.header.status ?? UNASSIGNED_STATUS
+}
+
+function isSameProjectReference(left: ProjectReference | null, right: ProjectReference) {
+    return left?.branch === right.branch
+        && left.id === right.id
+        && left.owner === right.owner
+        && left.repository === right.repository
+        && left.rootPath === right.rootPath
 }
 
 interface DataServiceDependencies {
@@ -75,31 +87,62 @@ interface ResolvedAgentConversations {
     errorsByCardPath: Map<string, AgentConversationError[]>
 }
 
+async function resolveAgentConversations(
+    cards: ProjectSnapshot['activeCards'],
+    project: ProjectReference,
+    storage: StorageService,
+): Promise<ResolvedAgentConversations> {
+    const conversationsByCardPath = new Map<string, AgentConversation[]>()
+    const errorsByCardPath = new Map<string, AgentConversationError[]>()
+
+    for (const card of cards) {
+        for (const reference of card.header.agentLogReferences) {
+            try {
+                const conversation = await loadAgentConversation(storage, project, reference)
+                if (conversation.cardPath !== card.path) throw new Error(`Agent log belongs to ${conversation.cardPath}, not ${card.path}`)
+
+                conversationsByCardPath.set(card.path, [...(conversationsByCardPath.get(card.path) ?? []), conversation])
+            } catch (error) {
+                const message = error instanceof Error ? error.message : 'Agent log failed to load'
+                errorsByCardPath.set(card.path, [...(errorsByCardPath.get(card.path) ?? []), { message, path: reference }])
+            }
+        }
+    }
+
+    return { conversationsByCardPath, errorsByCardPath }
+}
+
 export class DataService extends EventTarget {
     private actionReloadChangedPath: string | null
     private actionReloadTimeout: number | null
+    private agentConversationLoadToken: number
     private commitBatcher: CommitBatcher | null
     private conversationsByCardPath: Map<string, AgentConversation[]>
     private currentFiles
     private currentProject: ProjectReference | null
     private currentSnapshot: ProjectSnapshot | null
     private errorsByCardPath: Map<string, AgentConversationError[]>
+    private projectLoadToken: number
     private remarkableBridge: RemarkableBridge | null
     private storage: StorageService | null
+    private scheduledRunCleanup: (() => void) | null
     private watchCleanup: (() => void) | null
 
     constructor() {
         super()
         this.actionReloadChangedPath = null
         this.actionReloadTimeout = null
+        this.agentConversationLoadToken = 0
         this.commitBatcher = null
         this.conversationsByCardPath = new Map()
         this.currentFiles = [] as MarkdownFile[]
         this.currentProject = null
         this.currentSnapshot = null
         this.errorsByCardPath = new Map()
+        this.projectLoadToken = 0
         this.remarkableBridge = null
         this.storage = null
+        this.scheduledRunCleanup = null
         this.watchCleanup = null
         agentConversationService.subscribe(() => this.dispatchChanged())
         register('dataService', this)
@@ -107,15 +150,19 @@ export class DataService extends EventTarget {
 
     init(dependencies: DataServiceDependencies) {
         this.stopProjectWatch()
+        this.stopScheduledRunWatch()
         this.clearActionReloadTimeout()
         this.actionReloadChangedPath = null
+        this.agentConversationLoadToken += 1
         this.conversationsByCardPath = new Map()
         this.currentFiles = []
         this.currentProject = null
         this.currentSnapshot = null
         this.errorsByCardPath = new Map()
+        this.projectLoadToken += 1
         this.remarkableBridge = dependencies.remarkableBridge ?? null
         this.storage = dependencies.storage
+        this.startScheduledRunWatch()
         actionService.init()
         const delayMs = configService.get('react.autoCommitDelayMs') as number
         this.commitBatcher = new CommitBatcher({
@@ -152,18 +199,25 @@ export class DataService extends EventTarget {
 
     async openProject(project: ProjectReference) {
         const { storage } = this.requireDependencies()
+        const projectLoadToken = this.projectLoadToken + 1
+        this.projectLoadToken = projectLoadToken
+        this.agentConversationLoadToken += 1
+        this.conversationsByCardPath = new Map()
+        this.errorsByCardPath = new Map()
         this.currentProject = project
         const projectConfig = await storage.loadProjectConfig(project)
         configService.loadProjectConfig(projectConfig)
         const config = configService.getProjectConfig()
         const actionFiles = await storage.loadActionFiles(project, config.actionsFolder)
         actionService.loadFromFiles(actionFiles)
-        const projectFiles = await storage.loadProject(project, config.workingFolder)
-        const repositoryFiles = await storage.listRepositoryFiles(project)
+        const projectFiles = await storage.loadProjectRoot(project, config.workingFolder)
+        const repositoryFiles: string[] = []
         this.currentFiles = projectFiles.files
-        this.currentSnapshot = await this.createSnapshot(projectFiles.files, projectFiles.workingFolder, repositoryFiles)
+        this.currentSnapshot = this.createSnapshot(projectFiles.files, projectFiles.workingFolder, repositoryFiles)
         this.startProjectWatch()
         this.dispatchChanged()
+        this.loadAgentConversationsInBackground(this.currentSnapshot, project, projectLoadToken)
+        void this.loadFullProjectInBackground(project, config.workingFolder, projectLoadToken)
         telemetryService.trackEvent('open_project')
 
         return this.currentSnapshot
@@ -508,20 +562,67 @@ export class DataService extends EventTarget {
         const { config, storage } = this.requireDependencies()
         if (!this.currentProject) throw new Error('Cannot reload project snapshot before a project is open')
 
+        const project = this.currentProject
+        const projectLoadToken = this.projectLoadToken + 1
+        this.projectLoadToken = projectLoadToken
         const projectFiles = await storage.loadProject(this.currentProject, config.workingFolder)
         const repositoryFiles = await storage.listRepositoryFiles(this.currentProject)
         this.currentFiles = projectFiles.files
-        this.currentSnapshot = await this.createSnapshot(projectFiles.files, projectFiles.workingFolder, repositoryFiles)
+        this.currentSnapshot = this.createSnapshot(projectFiles.files, projectFiles.workingFolder, repositoryFiles)
         this.dispatchChanged()
+        this.loadAgentConversationsInBackground(this.currentSnapshot, project, projectLoadToken)
     }
 
-    private async createSnapshot(files: MarkdownFile[], workingFolder: string, repositoryFiles: string[]): Promise<ProjectSnapshot> {
+    private createSnapshot(files: MarkdownFile[], workingFolder: string, repositoryFiles: string[]): ProjectSnapshot {
         const cards = markdownParsingService.splitCards(files, workingFolder)
-        const resolved = await this.resolveAgentConversations([...cards.activeCards, ...cards.backgroundCards])
-        this.conversationsByCardPath = resolved.conversationsByCardPath
-        this.errorsByCardPath = resolved.errorsByCardPath
 
         return { ...this.attachAgentConversations(cards), repositoryFiles, workingFolder }
+    }
+
+    private async loadFullProjectInBackground(project: ProjectReference, workingFolder: string, projectLoadToken: number) {
+        const { storage } = this.requireDependencies()
+
+        try {
+            const [projectFiles, repositoryFiles] = await Promise.all([
+                storage.loadProject(project, workingFolder),
+                storage.listRepositoryFiles(project),
+            ])
+            if (!this.shouldApplyProjectLoad(project, projectLoadToken)) return
+
+            this.currentFiles = mergeFiles(projectFiles.files, this.currentFiles)
+            this.currentSnapshot = this.createSnapshot(this.currentFiles, projectFiles.workingFolder, repositoryFiles)
+            this.dispatchChanged()
+            this.loadAgentConversationsInBackground(this.currentSnapshot, project, projectLoadToken)
+        } catch (error) {
+            console.error('Failed to load full project in background', error)
+        }
+    }
+
+    private shouldApplyProjectLoad(project: ProjectReference, projectLoadToken: number) {
+        return this.projectLoadToken === projectLoadToken && isSameProjectReference(this.currentProject, project)
+    }
+
+    private loadAgentConversationsInBackground(snapshot: ProjectSnapshot, project: ProjectReference, projectLoadToken: number) {
+        const cards = [...snapshot.activeCards, ...snapshot.backgroundCards]
+        const agentConversationLoadToken = this.agentConversationLoadToken + 1
+        this.agentConversationLoadToken = agentConversationLoadToken
+        void this.resolveAndAttachAgentConversations(cards, project, projectLoadToken, agentConversationLoadToken)
+    }
+
+    private async resolveAndAttachAgentConversations(
+        cards: ProjectSnapshot['activeCards'],
+        project: ProjectReference,
+        projectLoadToken: number,
+        agentConversationLoadToken: number,
+    ) {
+        const { storage } = this.requireDependencies()
+        const resolved = await resolveAgentConversations(cards, project, storage)
+        if (!this.shouldApplyProjectLoad(project, projectLoadToken)) return
+        if (this.agentConversationLoadToken !== agentConversationLoadToken) return
+
+        this.conversationsByCardPath = resolved.conversationsByCardPath
+        this.errorsByCardPath = resolved.errorsByCardPath
+        this.refreshSnapshot()
     }
 
     private attachAgentConversations(cards: Pick<ProjectSnapshot, 'activeCards' | 'backgroundCards'>) {
@@ -539,29 +640,6 @@ export class DataService extends EventTarget {
         }
     }
 
-    private async resolveAgentConversations(cards: ProjectSnapshot['activeCards']): Promise<ResolvedAgentConversations> {
-        const conversationsByCardPath = new Map<string, AgentConversation[]>()
-        const errorsByCardPath = new Map<string, AgentConversationError[]>()
-        const { storage } = this.requireDependencies()
-        if (!this.currentProject) return { conversationsByCardPath, errorsByCardPath }
-
-        for (const card of cards) {
-            for (const reference of card.header.agentLogReferences) {
-                try {
-                    const conversation = await loadAgentConversation(storage, this.currentProject, reference)
-                    if (conversation.cardPath !== card.path) throw new Error(`Agent log belongs to ${conversation.cardPath}, not ${card.path}`)
-
-                    conversationsByCardPath.set(card.path, [...(conversationsByCardPath.get(card.path) ?? []), conversation])
-                } catch (error) {
-                    const message = error instanceof Error ? error.message : 'Agent log failed to load'
-                    errorsByCardPath.set(card.path, [...(errorsByCardPath.get(card.path) ?? []), { message, path: reference }])
-                }
-            }
-        }
-
-        return { conversationsByCardPath, errorsByCardPath }
-    }
-
     private triggerStateActions(cardPath: string, state: string) {
         const { config } = this.requireDependencies()
         const card = this.currentSnapshot?.activeCards.find((currentCard) => currentCard.path === cardPath)
@@ -576,6 +654,16 @@ export class DataService extends EventTarget {
 
     private handleAgentRunEvent(cardPath: string, event: AgentRunEvent) {
         this.upsertAgentConversation(cardPath, event.conversation)
+    }
+
+    private handleScheduledRunEvent(event: AgentRunEvent) {
+        agentConversationService.observeRunEvent(event, event.conversation.title)
+        if (!event.conversation.cardPath) {
+            this.dispatchChanged()
+            return
+        }
+
+        this.recordAgentRunEvent(event.conversation.cardPath, event)
     }
 
     private upsertAgentConversation(cardPath: string, conversation: AgentConversation) {
@@ -599,6 +687,21 @@ export class DataService extends EventTarget {
 
         this.watchCleanup()
         this.watchCleanup = null
+    }
+
+    private startScheduledRunWatch() {
+        this.stopScheduledRunWatch()
+        const bridge = getElectronActionBridge()
+        if (!bridge?.onScheduledActionRun) return
+
+        this.scheduledRunCleanup = bridge.onScheduledActionRun((event) => this.handleScheduledRunEvent(event))
+    }
+
+    private stopScheduledRunWatch() {
+        if (!this.scheduledRunCleanup) return
+
+        this.scheduledRunCleanup()
+        this.scheduledRunCleanup = null
     }
 
     private handleProjectWatchEvent(event: ProjectWatchEvent) {

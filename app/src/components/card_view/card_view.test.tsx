@@ -22,6 +22,7 @@ function card(id: string, title: string, status: string, policy: Record<string, 
     return {
         agentConversationErrors: [],
         agentConversations: [],
+        headerFields: {},
         content: `# ${title}\n\nBody of ${id}`,
         header: {
             affects: [], after: null, agentLogReferences: [], author: null, id, internalId: id.toLowerCase(), owner: null,

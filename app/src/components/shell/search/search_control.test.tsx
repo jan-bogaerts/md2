@@ -21,7 +21,7 @@ function makeHeader(overrides: Partial<CardHeader> = {}): CardHeader {
 }
 
 function makeCard(path: string, content: string, header: Partial<CardHeader>, isActive: boolean): ProjectCard {
-    return { agentConversationErrors: [], agentConversations: [], content, header: makeHeader(header), isActive, path }
+    return { agentConversationErrors: [], agentConversations: [], content, headerFields: {}, header: makeHeader(header), isActive, path }
 }
 
 const snapshot: ProjectSnapshot = {

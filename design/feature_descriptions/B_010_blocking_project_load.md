@@ -1,7 +1,7 @@
 ---
 id: B-010
 title: project load is one blocking pass (phased loading not implemented)
-status: design
+status: ready
 owner: JB
 affects:
 policy:

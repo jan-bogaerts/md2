@@ -6,6 +6,7 @@ function card(internalId: string, options: { after?: string | null; status?: str
     return {
         agentConversationErrors: [],
         agentConversations: [],
+        headerFields: {},
         content: '',
         header: {
             affects: [],

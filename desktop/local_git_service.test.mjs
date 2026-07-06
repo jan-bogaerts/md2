@@ -11,6 +11,7 @@ const execFileAsync = promisify(execFile)
 const require = createRequire(import.meta.url)
 const {
     appendActionRunHistory,
+    cancelActionSchedule,
     commit,
     createWorkingFolderFromTemplate,
     deleteFile,
@@ -18,13 +19,29 @@ const {
     listTopLevelFolders,
     loadActionFiles,
     loadActionRunHistory,
+    loadActionSchedules,
     loadProject,
+    loadProjectRoot,
     loadProjectConfig,
     moveFiles,
     runAgent,
     runCommand,
+    saveActionSchedules,
+    saveProjectConfig,
     watchProject,
 } = require('./local_git_service')
+
+async function initializeGitRepository(rootPath) {
+    await execFileAsync('git', ['init'], { cwd: rootPath })
+    await execFileAsync('git', ['config', 'user.email', 'md2@example.test'], { cwd: rootPath })
+    await execFileAsync('git', ['config', 'user.name', 'MD2 Test'], { cwd: rootPath })
+}
+
+async function commitCount(rootPath) {
+    const result = await execFileAsync('git', ['rev-list', '--count', 'HEAD'], { cwd: rootPath })
+
+    return Number.parseInt(result.stdout.trim(), 10)
+}
 
 describe('local-git-service', () => {
     it('loads markdown files from the working folder and subfolders', async () => {
@@ -39,6 +56,24 @@ describe('local-git-service', () => {
             const projectFiles = await loadProject({ branch: 'main', id: 'local', rootPath }, 'design')
 
             expect(projectFiles.files.map((file) => file.path).sort()).toEqual(['design/F-1-root.md', 'design/history/F-2-old.md'])
+        } finally {
+            await rm(rootPath, { force: true, recursive: true })
+        }
+    })
+
+    it('loads only direct markdown files from the working folder root', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-local-git-'))
+
+        try {
+            await mkdir(join(rootPath, '.git'))
+            await mkdir(join(rootPath, 'design', 'history'), { recursive: true })
+            await writeFile(join(rootPath, 'design', 'F-1-root.md'), '# Root')
+            await writeFile(join(rootPath, 'design', 'notes.txt'), 'Notes')
+            await writeFile(join(rootPath, 'design', 'history', 'F-2-old.md'), '# Old')
+
+            const projectFiles = await loadProjectRoot({ branch: 'main', id: 'local', rootPath }, 'design')
+
+            expect(projectFiles.files.map((file) => file.path)).toEqual(['design/F-1-root.md'])
         } finally {
             await rm(rootPath, { force: true, recursive: true })
         }
@@ -65,15 +100,31 @@ describe('local-git-service', () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-local-git-'))
 
         try {
-            await execFileAsync('git', ['init'], { cwd: rootPath })
-            await execFileAsync('git', ['config', 'user.email', 'md2@example.test'], { cwd: rootPath })
-            await execFileAsync('git', ['config', 'user.name', 'MD2 Test'], { cwd: rootPath })
+            await initializeGitRepository(rootPath)
 
             await createWorkingFolderFromTemplate({ branch: 'main', id: 'local', rootPath }, 'design')
 
             await expect(readFile(join(rootPath, 'design', 'README.md'), 'utf8')).resolves.toContain('Project design folder')
             const log = await execFileAsync('git', ['log', '-1', '--pretty=%s'], { cwd: rootPath })
             expect(log.stdout.trim()).toBe('Create design workspace')
+        } finally {
+            await rm(rootPath, { force: true, recursive: true })
+        }
+    })
+
+    it('does not create a commit when template content already exists', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-local-git-'))
+
+        try {
+            await initializeGitRepository(rootPath)
+            await mkdir(join(rootPath, 'design'))
+            await writeFile(join(rootPath, 'design', 'README.md'), '# MD2\n\nProject design folder created by MD2.\n')
+            await execFileAsync('git', ['add', 'design/README.md'], { cwd: rootPath })
+            await execFileAsync('git', ['commit', '-m', 'Seed workspace'], { cwd: rootPath })
+
+            await createWorkingFolderFromTemplate({ branch: 'main', id: 'local', rootPath }, 'design')
+
+            expect(await commitCount(rootPath)).toBe(1)
         } finally {
             await rm(rootPath, { force: true, recursive: true })
         }
@@ -86,6 +137,7 @@ describe('local-git-service', () => {
             await mkdir(join(rootPath, '.git'))
             await mkdir(join(rootPath, 'actions'))
             await writeFile(join(rootPath, 'actions', 'implement.json'), '{"name":"implement"}')
+            await writeFile(join(rootPath, 'actions', '.md2-schedules.json'), '{"schedules":[]}')
             await writeFile(join(rootPath, 'actions', 'notes.md'), '# skip me')
 
             const files = await loadActionFiles({ branch: 'main', id: 'local', rootPath }, 'actions')
@@ -236,11 +288,86 @@ describe('local-git-service', () => {
         }
     })
 
+    it('persists and loads action schedules from the actions folder', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-local-git-'))
+        const schedule = {
+            actionName: 'implement',
+            context: { file: 'design/F-022.md', kind: 'card', type: 'feature' },
+            createdAt: '2026-07-06T10:00:00.000Z',
+            id: 'schedule-1',
+            status: 'pending',
+            trigger: { timestamp: '2026-07-06T11:00:00.000Z', type: 'at' },
+        }
+
+        try {
+            await mkdir(join(rootPath, '.git'))
+
+            await saveActionSchedules({ branch: 'main', id: 'local', rootPath }, 'actions', [schedule])
+
+            await expect(readFile(join(rootPath, 'actions', '.md2-schedules.json'), 'utf8')).resolves.toContain('"schedules"')
+            await expect(loadActionSchedules({ branch: 'main', id: 'local', rootPath }, 'actions')).resolves.toEqual([schedule])
+        } finally {
+            await rm(rootPath, { force: true, recursive: true })
+        }
+    })
+
+    it('returns an empty schedule list when no schedule file exists', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-local-git-'))
+
+        try {
+            await mkdir(join(rootPath, '.git'))
+
+            await expect(loadActionSchedules({ branch: 'main', id: 'local', rootPath }, 'actions')).resolves.toEqual([])
+        } finally {
+            await rm(rootPath, { force: true, recursive: true })
+        }
+    })
+
+    it('cancels pending schedules by updating the schedule file', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-local-git-'))
+        const schedule = {
+            actionName: 'implement',
+            context: { file: 'design/F-022.md', kind: 'card', type: 'feature' },
+            createdAt: '2026-07-06T10:00:00.000Z',
+            id: 'schedule-1',
+            status: 'pending',
+            trigger: { type: 'agentSlot' },
+        }
+
+        try {
+            await mkdir(join(rootPath, '.git'))
+            await saveActionSchedules({ branch: 'main', id: 'local', rootPath }, 'actions', [schedule])
+
+            await expect(cancelActionSchedule({ branch: 'main', id: 'local', rootPath }, 'actions', 'schedule-1')).resolves.toEqual([
+                { ...schedule, status: 'cancelled' },
+            ])
+            await expect(loadActionSchedules({ branch: 'main', id: 'local', rootPath }, 'actions')).resolves.toEqual([
+                { ...schedule, status: 'cancelled' },
+            ])
+        } finally {
+            await rm(rootPath, { force: true, recursive: true })
+        }
+    })
+
+    it('rejects invalid schedule files', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-local-git-'))
+
+        try {
+            await mkdir(join(rootPath, '.git'))
+            await mkdir(join(rootPath, 'actions'))
+            await writeFile(join(rootPath, 'actions', '.md2-schedules.json'), '{"schedules":[{"id":"schedule-1"}]}')
+
+            await expect(loadActionSchedules({ branch: 'main', id: 'local', rootPath }, 'actions')).rejects.toThrow('missing actionName')
+        } finally {
+            await rm(rootPath, { force: true, recursive: true })
+        }
+    })
+
     it('writes base64-encoded files as binary and commits them alongside text files', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-local-git-'))
 
         try {
-            await execFileAsync('git', ['init'], { cwd: rootPath })
+            await initializeGitRepository(rootPath)
             await mkdir(join(rootPath, 'design'))
 
             await commit({
@@ -258,13 +385,83 @@ describe('local-git-service', () => {
         }
     })
 
+    it('does not create a commit when saved content is unchanged', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-local-git-'))
+
+        try {
+            await initializeGitRepository(rootPath)
+            await mkdir(join(rootPath, 'design'))
+            await writeFile(join(rootPath, 'design', 'F-1-card.md'), '# Card')
+            await execFileAsync('git', ['add', 'design/F-1-card.md'], { cwd: rootPath })
+            await execFileAsync('git', ['commit', '-m', 'Seed card'], { cwd: rootPath })
+
+            await commit({
+                files: [{ content: '# Card', path: 'design/F-1-card.md' }],
+                message: 'Update design/F-1-card.md',
+            }, { branch: 'main', id: 'local', rootPath })
+
+            expect(await commitCount(rootPath)).toBe(1)
+            const status = await execFileAsync('git', ['status', '--short'], { cwd: rootPath })
+            expect(status.stdout).toBe('')
+        } finally {
+            await rm(rootPath, { force: true, recursive: true })
+        }
+    })
+
+    it('commits a mixed batch with changed and unchanged files', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-local-git-'))
+
+        try {
+            await initializeGitRepository(rootPath)
+            await mkdir(join(rootPath, 'design'))
+            await writeFile(join(rootPath, 'design', 'F-1-card.md'), '# Card')
+            await writeFile(join(rootPath, 'design', 'F-2-card.md'), '# Old')
+            await execFileAsync('git', ['add', 'design/F-1-card.md', 'design/F-2-card.md'], { cwd: rootPath })
+            await execFileAsync('git', ['commit', '-m', 'Seed cards'], { cwd: rootPath })
+
+            await commit({
+                files: [
+                    { content: '# Card', path: 'design/F-1-card.md' },
+                    { content: '# New', path: 'design/F-2-card.md' },
+                ],
+                message: 'Update cards',
+            }, { branch: 'main', id: 'local', rootPath })
+
+            expect(await commitCount(rootPath)).toBe(2)
+            await expect(readFile(join(rootPath, 'design', 'F-1-card.md'), 'utf8')).resolves.toBe('# Card')
+            await expect(readFile(join(rootPath, 'design', 'F-2-card.md'), 'utf8')).resolves.toBe('# New')
+            const log = await execFileAsync('git', ['log', '-1', '--pretty=%s'], { cwd: rootPath })
+            expect(log.stdout.trim()).toBe('Update cards')
+        } finally {
+            await rm(rootPath, { force: true, recursive: true })
+        }
+    })
+
+    it('does not create a project config commit when config is unchanged', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-local-git-'))
+        const config = { pushMode: 'manual', workingFolder: 'design' }
+
+        try {
+            await initializeGitRepository(rootPath)
+            await writeFile(join(rootPath, 'md2.config.json'), `${JSON.stringify(config, null, 2)}\n`)
+            await execFileAsync('git', ['add', 'md2.config.json'], { cwd: rootPath })
+            await execFileAsync('git', ['commit', '-m', 'Seed config'], { cwd: rootPath })
+
+            await saveProjectConfig({ branch: 'main', id: 'local', rootPath }, config)
+
+            expect(await commitCount(rootPath)).toBe(1)
+            const status = await execFileAsync('git', ['status', '--short'], { cwd: rootPath })
+            expect(status.stdout).toBe('')
+        } finally {
+            await rm(rootPath, { force: true, recursive: true })
+        }
+    })
+
     it('moves files with git mv and commits the archive', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-local-git-'))
 
         try {
-            await execFileAsync('git', ['init'], { cwd: rootPath })
-            await execFileAsync('git', ['config', 'user.email', 'md2@example.test'], { cwd: rootPath })
-            await execFileAsync('git', ['config', 'user.name', 'MD2 Test'], { cwd: rootPath })
+            await initializeGitRepository(rootPath)
             await mkdir(join(rootPath, 'design'))
             await writeFile(join(rootPath, 'design', 'F-1-root.md'), '# Root')
             await execFileAsync('git', ['add', 'design/F-1-root.md'], { cwd: rootPath })
@@ -286,9 +483,7 @@ describe('local-git-service', () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-local-git-'))
 
         try {
-            await execFileAsync('git', ['init'], { cwd: rootPath })
-            await execFileAsync('git', ['config', 'user.email', 'md2@example.test'], { cwd: rootPath })
-            await execFileAsync('git', ['config', 'user.name', 'MD2 Test'], { cwd: rootPath })
+            await initializeGitRepository(rootPath)
             await mkdir(join(rootPath, 'design'))
             await writeFile(join(rootPath, 'design', 'F-1-root.md'), '# Root')
             await execFileAsync('git', ['add', 'design/F-1-root.md'], { cwd: rootPath })

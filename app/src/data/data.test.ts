@@ -17,6 +17,7 @@ import {
     type AgentRunEvent,
     type CommitRequest,
     type MarkdownFile,
+    type StorageProjectFiles,
     type StorageService,
 } from './data_types'
 
@@ -29,6 +30,7 @@ const files: MarkdownFile[] = [
 ]
 
 const githubProject = { branch: 'main', id: 'owner/repo', owner: 'owner', repository: 'repo' }
+type CommitCallback = (request: CommitRequest) => Promise<void>
 
 function createGithubResponse(payload: unknown) {
     return {
@@ -76,6 +78,15 @@ function activeCardFile(id: string, options: { after?: string; sha?: string; sta
     return { content, path: `design/${id.toUpperCase()}.md`, sha: options.sha }
 }
 
+function createDeferred<T>() {
+    let resolveDeferred: (value: T) => void = () => undefined
+    const promise = new Promise<T>((resolve) => {
+        resolveDeferred = resolve
+    })
+
+    return { promise, resolve: resolveDeferred }
+}
+
 function createStorage(overrides: Partial<StorageService> = {}): StorageService {
     return {
         checkoutBranch: vi.fn(async (project, branch) => ({ ...project, branch })),
@@ -89,6 +100,7 @@ function createStorage(overrides: Partial<StorageService> = {}): StorageService 
         listTopLevelFolders: vi.fn(async () => [{ name: 'design', path: 'design' }]),
         loadActionFiles: vi.fn(async () => []),
         loadProject: vi.fn(async () => ({ files, workingFolder: 'design' })),
+        loadProjectRoot: vi.fn(async () => ({ files, workingFolder: 'design' })),
         loadProjectConfig: vi.fn(async () => null),
         moveFiles: vi.fn(),
         push: vi.fn(),
@@ -117,6 +129,43 @@ describe('cardNaming', () => {
         expect(file.content).toContain('author:')
     })
 
+    it('generates the id prefix and number per card type', () => {
+        const job = createCardFile(files, 'design', DEFAULT_CARD_TYPES, DEFAULT_CARD_BODY_TEMPLATE, {
+            body: '',
+            title: 'Job Card',
+            type: 'job',
+        })
+        const bug = createCardFile(files, 'design', DEFAULT_CARD_TYPES, DEFAULT_CARD_BODY_TEMPLATE, {
+            body: '',
+            title: 'Bug Card',
+            type: 'bug',
+        })
+
+        expect(job.path).toBe('design/J-1-job-card.md')
+        expect(job.content).toContain('id: J-1')
+        expect(bug.path).toBe('design/B-1-bug-card.md')
+        expect(bug.content).toContain('id: B-1')
+    })
+
+    it('numbers each type independently of other prefixes', () => {
+        const nextFiles = [...files, { content: '# Job', path: 'design/J-7-job.md' }]
+
+        expect(getNextCardNumber(nextFiles, 'J')).toBe(8)
+        expect(getNextCardNumber(nextFiles, 'F')).toBe(4)
+    })
+
+    it('creates cards for custom configured types', () => {
+        const customTypes = [{ color: '#123456', idPrefix: 'T', label: 'Task', type: 'task' }]
+        const file = createCardFile(files, 'design', customTypes, DEFAULT_CARD_BODY_TEMPLATE, {
+            body: '',
+            title: 'Custom Card',
+            type: 'task',
+        })
+
+        expect(file.path).toBe('design/T-1-custom-card.md')
+        expect(file.content).toContain('id: T-1')
+    })
+
     it('creates cards with a generated internal id that is separate from filename id', () => {
         const file = createCardFile(files, 'design', DEFAULT_CARD_TYPES, DEFAULT_CARD_BODY_TEMPLATE, {
             body: '',
@@ -135,7 +184,7 @@ describe('cardNaming', () => {
 describe('CommitBatcher', () => {
     it('batches typing commits until the delay expires', async () => {
         vi.useFakeTimers()
-        const commit = vi.fn(async () => undefined)
+        const commit = vi.fn<CommitCallback>(async () => undefined)
         const batcher = new CommitBatcher({ clearDelay: window.clearTimeout, commit, delayMs: 30000, setDelay: window.setTimeout })
 
         batcher.schedule('main', [{ content: 'one', path: 'design/F-1-root.md' }], 'Update root')
@@ -150,7 +199,7 @@ describe('CommitBatcher', () => {
     })
 
     it('flushes pending commits on close', async () => {
-        const commit = vi.fn(async () => undefined)
+        const commit = vi.fn<CommitCallback>(async () => undefined)
         const batcher = new CommitBatcher({ clearDelay: window.clearTimeout, commit, delayMs: 30000, setDelay: window.setTimeout })
 
         batcher.schedule('main', [{ content: 'one', path: 'design/F-1-root.md' }], 'Update root')
@@ -164,6 +213,7 @@ describe('DataService', () => {
     afterEach(() => {
         vi.useRealTimers()
         vi.mocked(actionRunner.run).mockClear()
+        delete window.md2Actions
         configService.clear()
     })
 
@@ -210,6 +260,7 @@ describe('DataService', () => {
                 sha: 'sha-1',
             }))
             .mockResolvedValueOnce(createGithubResponse([]))
+            .mockResolvedValueOnce(createGithubResponse([{ path: 'design/F-1-root.md', type: 'file' }]))
             .mockResolvedValueOnce(createGithubStatusResponse(401))
         const githubStorage = new GithubStorageService()
         githubStorage.init({ accessToken: 'token', fetchImplementation, onUnauthorized: handleUnauthorized })
@@ -420,7 +471,10 @@ describe('DataService', () => {
         const policyFiles: MarkdownFile[] = [
             { content: '---\nid: F-1\ntitle: Root\nstatus: active\npolicy:\n  checkLinting: true\n---\n\n# Root', path: 'design/F-1-root.md' },
         ]
-        const storage = createStorage({ loadProject: vi.fn(async () => ({ files: policyFiles, workingFolder: 'design' })) })
+        const storage = createStorage({
+            loadProject: vi.fn(async () => ({ files: policyFiles, workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: policyFiles, workingFolder: 'design' })),
+        })
         const service = new DataService()
         service.init({ storage })
 
@@ -439,7 +493,10 @@ describe('DataService', () => {
             { content: '---\nid: B\ninternalId: b\ntitle: B\nstatus: todo\nafter: a\n---\n\n# B', path: 'design/B.md' },
             { content: '---\nid: P\ninternalId: p\ntitle: P\nstatus: done\n---\n\n# P', path: 'design/P.md' },
         ]
-        const storage = createStorage({ loadProject: vi.fn(async () => ({ files: moveFiles, workingFolder: 'design' })) })
+        const storage = createStorage({
+            loadProject: vi.fn(async () => ({ files: moveFiles, workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: moveFiles, workingFolder: 'design' })),
+        })
         const service = new DataService()
         service.init({ storage })
 
@@ -471,6 +528,7 @@ describe('DataService', () => {
             loadProject: vi.fn()
                 .mockResolvedValueOnce({ files: deletionFiles, workingFolder: 'design' })
                 .mockResolvedValueOnce({ files: refreshedFiles, workingFolder: 'design' }),
+            loadProjectRoot: vi.fn(async () => ({ files: deletionFiles, workingFolder: 'design' })),
         })
         const service = new DataService()
         service.init({ storage })
@@ -504,6 +562,7 @@ describe('DataService', () => {
             loadProject: vi.fn()
                 .mockResolvedValueOnce({ files: deletionFiles, workingFolder: 'design' })
                 .mockResolvedValueOnce({ files: [deletionFiles[0]], workingFolder: 'design' }),
+            loadProjectRoot: vi.fn(async () => ({ files: deletionFiles, workingFolder: 'design' })),
         })
         const service = new DataService()
         service.init({ storage })
@@ -525,6 +584,7 @@ describe('DataService', () => {
             loadProject: vi.fn()
                 .mockResolvedValueOnce({ files: deletionFiles, workingFolder: 'design' })
                 .mockResolvedValueOnce({ files: [deletionFiles[0]], workingFolder: 'design' }),
+            loadProjectRoot: vi.fn(async () => ({ files: deletionFiles, workingFolder: 'design' })),
             loadProjectConfig: vi.fn(async () => ({ pushMode: 'manual' as const })),
         })
         const service = new DataService()
@@ -548,6 +608,7 @@ describe('DataService', () => {
                 throw new Error('delete failed')
             }),
             loadProject: vi.fn(async () => ({ files: deletionFiles, workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: deletionFiles, workingFolder: 'design' })),
         })
         const service = new DataService()
         service.init({ storage })
@@ -572,6 +633,7 @@ describe('DataService', () => {
             loadProject: vi.fn()
                 .mockResolvedValueOnce({ files: deletionFiles, workingFolder: 'design' })
                 .mockResolvedValueOnce({ files: [deletionFiles[0]], workingFolder: 'design' }),
+            loadProjectRoot: vi.fn(async () => ({ files: deletionFiles, workingFolder: 'design' })),
         })
         const service = new DataService()
         service.init({ storage })
@@ -609,6 +671,7 @@ describe('DataService', () => {
         const storage = createStorage({
             loadActionFiles: vi.fn(async () => [actionFile]),
             loadProject: vi.fn(async () => ({ files: moveFiles, workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: moveFiles, workingFolder: 'design' })),
         })
         const service = new DataService()
         service.init({ storage })
@@ -642,6 +705,7 @@ describe('DataService', () => {
         const storage = createStorage({
             loadActionFiles: vi.fn(async () => [actionFile]),
             loadProject: vi.fn(async () => ({ files: moveFiles, workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: moveFiles, workingFolder: 'design' })),
         })
         const service = new DataService()
         service.init({ storage })
@@ -664,6 +728,27 @@ describe('DataService', () => {
 
         const committed = (storage.commit as ReturnType<typeof vi.fn>).mock.calls.at(-1)?.[0] as CommitRequest
         expect(committed.files[0].content).toContain('title: Renamed Root')
+    })
+
+    it('edits a header field while preserving unknown header fields unchanged', async () => {
+        configService.init()
+        const headerFiles: MarkdownFile[] = [{
+            content: '---\ncustomField: keep me\nid: F-1\ntitle: Root\nstatus: active\n---\n\n# Root',
+            path: 'design/F-1-root.md',
+        }]
+        const storage = createStorage({
+            loadProject: vi.fn(async () => ({ files: headerFiles, workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: headerFiles, workingFolder: 'design' })),
+        })
+        const service = new DataService()
+        service.init({ storage })
+
+        await service.openProject({ branch: 'main', id: 'project' })
+        service.updateCardHeaderFields('design/F-1-root.md', { status: 'ready' })
+        await service.flushPendingCommits()
+
+        const committed = (storage.commit as ReturnType<typeof vi.fn>).mock.calls.at(-1)?.[0] as CommitRequest
+        expect(committed.files[0].content).toBe('---\ncustomField: keep me\nid: F-1\ntitle: Root\nstatus: ready\n---\n\n# Root')
     })
 
     it('preserves the frontmatter header when a card body is edited', async () => {
@@ -697,6 +782,7 @@ describe('DataService', () => {
         const storage = createStorage({
             commit,
             loadProject: vi.fn(async () => ({ files: staleShaFiles, workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: staleShaFiles, workingFolder: 'design' })),
         })
         const service = new DataService()
         service.init({ storage })
@@ -744,6 +830,38 @@ describe('DataService', () => {
         expect(actionService.getActions().map((action) => action.name)).toContain('do')
     })
 
+    it('dispatches the root snapshot before loading background subfolder and history cards', async () => {
+        configService.init()
+        const rootFiles = [files[0]]
+        const backgroundFile = files[1]
+        const fullProject = createDeferred<StorageProjectFiles>()
+        const snapshots: Array<ReturnType<DataService['getState']>['snapshot']> = []
+        const storage = createStorage({
+            listRepositoryFiles: vi.fn(async () => ['design/F-1-root.md', 'design/history/F-3-old.md']),
+            loadProject: vi.fn(async () => fullProject.promise),
+            loadProjectRoot: vi.fn(async () => ({ files: rootFiles, workingFolder: 'design' })),
+        })
+        const service = new DataService()
+        service.init({ storage })
+        service.addEventListener('changed', () => {
+            snapshots.push(service.getState().snapshot)
+        })
+
+        const openedSnapshot = await service.openProject({ branch: 'main', id: 'project' })
+
+        expect(openedSnapshot.activeCards.map((card) => card.path)).toEqual(['design/F-1-root.md'])
+        expect(openedSnapshot.backgroundCards).toHaveLength(0)
+        expect(snapshots.filter((snapshot) => snapshot !== null)[0]?.backgroundCards).toHaveLength(0)
+        expect(storage.loadProjectRoot).toHaveBeenCalledWith({ branch: 'main', id: 'project' }, 'design')
+        expect(storage.loadProject).toHaveBeenCalledWith({ branch: 'main', id: 'project' }, 'design')
+
+        fullProject.resolve({ files: [files[0], backgroundFile], workingFolder: 'design' })
+
+        await vi.waitFor(() => {
+            expect(service.getState().snapshot?.backgroundCards.map((card) => card.path)).toEqual(['design/history/F-3-old.md'])
+        })
+    })
+
     it('loads referenced agent conversations onto cards', async () => {
         configService.init()
         const agentFiles: MarkdownFile[] = [
@@ -752,17 +870,24 @@ describe('DataService', () => {
                 path: 'design/F-1-root.md',
             },
         ]
+        const conversationLoad = createDeferred<AgentConversation>()
+        const fullProject = createDeferred<StorageProjectFiles>()
         const storage = createStorage({
-            loadAgentConversation: vi.fn(async () => conversation()),
-            loadProject: vi.fn(async () => ({ files: agentFiles, workingFolder: 'design' })),
+            loadAgentConversation: vi.fn(async () => conversationLoad.promise),
+            loadProject: vi.fn(async () => fullProject.promise),
+            loadProjectRoot: vi.fn(async () => ({ files: agentFiles, workingFolder: 'design' })),
         })
         const service = new DataService()
         service.init({ storage })
 
         const snapshot = await service.openProject({ branch: 'main', id: 'project' })
 
-        expect(snapshot.activeCards[0].agentConversations).toHaveLength(1)
-        expect(snapshot.activeCards[0].agentConversations[0].title).toBe('Agent run')
+        expect(snapshot.activeCards[0].agentConversations).toHaveLength(0)
+        conversationLoad.resolve(conversation())
+
+        await vi.waitFor(() => {
+            expect(service.getState().snapshot?.activeCards[0].agentConversations[0].title).toBe('Agent run')
+        })
     })
 
     it('keeps cards loaded when a referenced agent log is invalid', async () => {
@@ -773,11 +898,13 @@ describe('DataService', () => {
                 path: 'design/F-1-root.md',
             },
         ]
+        const fullProject = createDeferred<StorageProjectFiles>()
         const storage = createStorage({
             loadAgentConversation: vi.fn(async () => {
                 throw new Error('Agent log not found')
             }),
-            loadProject: vi.fn(async () => ({ files: agentFiles, workingFolder: 'design' })),
+            loadProject: vi.fn(async () => fullProject.promise),
+            loadProjectRoot: vi.fn(async () => ({ files: agentFiles, workingFolder: 'design' })),
         })
         const service = new DataService()
         service.init({ storage })
@@ -785,9 +912,13 @@ describe('DataService', () => {
         const snapshot = await service.openProject({ branch: 'main', id: 'project' })
 
         expect(snapshot.activeCards[0].header.title).toBe('Root')
-        expect(snapshot.activeCards[0].agentConversationErrors).toEqual([
-            { message: 'Agent log not found', path: '.md2-agent-logs/missing.json' },
-        ])
+        expect(snapshot.activeCards[0].agentConversationErrors).toEqual([])
+
+        await vi.waitFor(() => {
+            expect(service.getState().snapshot?.activeCards[0].agentConversationErrors).toEqual([
+                { message: 'Agent log not found', path: '.md2-agent-logs/missing.json' },
+            ])
+        })
     })
 
     it('continues a conversation and links the returned streaming log to the card header', async () => {
@@ -838,6 +969,37 @@ describe('DataService', () => {
         expect(service.getState().runningAgents).toHaveLength(1)
 
         callbacks[0]({ content: '0', conversation: { ...conversation(), id: 'agent-2', status: 'completed' }, runId: 'agent-2', type: 'closed' })
+
+        expect(service.getState().runningAgents).toHaveLength(0)
+    })
+
+    it('reports desktop-owned scheduled action runs in running agent state', async () => {
+        configService.init()
+        let scheduledRunCallback: ((event: AgentRunEvent) => void) | null = null
+        window.md2Actions = {
+            onScheduledActionRun: (callback: (event: AgentRunEvent) => void) => {
+                scheduledRunCallback = callback
+
+                return vi.fn()
+            },
+        } as typeof window.md2Actions
+        const storage = createStorage()
+        const service = new DataService()
+        service.init({ storage })
+
+        await service.openProject({ branch: 'main', id: 'project' })
+        if (!scheduledRunCallback) throw new Error('Scheduled run callback not registered')
+
+        const runningConversation: AgentConversation = { ...conversation(), id: 'schedule-1', status: 'running', title: 'Scheduled implement' }
+        scheduledRunCallback({ content: '', conversation: runningConversation, runId: 'schedule-1', type: 'started' })
+        expect(service.getState().runningAgents).toEqual([{ id: 'schedule-1', label: 'Scheduled implement' }])
+
+        scheduledRunCallback({
+            content: '',
+            conversation: { ...runningConversation, completedAt: '2026-01-01T00:02:00.000Z', status: 'completed' },
+            runId: 'schedule-1',
+            type: 'closed',
+        })
 
         expect(service.getState().runningAgents).toHaveLength(0)
     })

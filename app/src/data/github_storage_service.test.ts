@@ -51,6 +51,28 @@ describe('GithubStorageService', () => {
         expect(fetchImplementation.mock.calls[0][0]).toContain('/repos/owner/repo/contents/design?ref=main')
     })
 
+    it('loads only root markdown files without recursing into subfolders', async () => {
+        const fetchImplementation = vi.fn()
+            .mockResolvedValueOnce(createResponse([
+                { path: 'design/F-1-root.md', type: 'file' },
+                { path: 'design/history', type: 'dir' },
+            ]))
+            .mockResolvedValueOnce(createResponse({
+                content: encodedContent,
+                encoding: 'base64',
+                path: 'design/F-1-root.md',
+                sha: 'sha-1',
+            }))
+        const service = new GithubStorageService()
+        service.init({ accessToken: 'token', fetchImplementation })
+
+        const projectFiles = await service.loadProjectRoot(project, 'design')
+
+        expect(projectFiles.files.map((file) => file.path)).toEqual(['design/F-1-root.md'])
+        expect(fetchImplementation).toHaveBeenCalledTimes(2)
+        expect(fetchImplementation.mock.calls.some(([url]) => url.includes('/contents/design/history'))).toBe(false)
+    })
+
     it('creates blobs, one tree, and one commit with the request message for a multi-file commit', async () => {
         const fetchImplementation = vi.fn()
             .mockResolvedValueOnce(createResponse([]))

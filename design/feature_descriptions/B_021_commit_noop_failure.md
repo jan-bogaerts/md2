@@ -1,7 +1,7 @@
 ---
 id: B-021
 title: local git commit fails when nothing changed
-status: design
+status: ready
 owner: JB
 affects:
 policy:

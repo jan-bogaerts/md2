@@ -3,8 +3,10 @@ const Store = require('electron-store')
 const { readDesktopConfig, writeDesktopConfig } = require('./config')
 const { requestGithubAccessToken, requestGithubDeviceCode } = require('./github_oauth_proxy')
 const { AgentRunnerService } = require('./agent_runner_service')
+const { ActionSchedulerService } = require('./action_scheduler_service')
 const localGitService = require('./local_git_service')
 const diffService = require('./diff_service')
+const { createLocalBridgeDispatch } = require('./local_bridge_dispatch')
 
 const DATA_OPEN_PROJECT_FOLDER_CHANNEL = 'md2-data:open-project-folder'
 const REMOTE_CONTROL_STATUS_CHANNEL = 'md2-remote-control:status'
@@ -16,17 +18,13 @@ const REMARKABLE_TEST_CONNECTION_CHANNEL = 'md2-remarkable:test-connection'
 const REMARKABLE_LIST_IMAGE_FILES_CHANNEL = 'md2-remarkable:list-image-files'
 const REMARKABLE_IMPORT_FILES_CHANNEL = 'md2-remarkable:import-files'
 
-let currentLocalProject = null
 const agentRunnerService = new AgentRunnerService()
 const desktopConfigStore = new Store()
-
-function createLocalProject(rootPath) {
-    return {
-        branch: 'main',
-        id: rootPath,
-        rootPath,
-    }
-}
+const actionSchedulerService = new ActionSchedulerService({
+    agentCommandProvider: () => readDesktopConfig(desktopConfigStore).agent,
+    agentRunnerService,
+    localGitService,
+})
 
 const githubAuthBridge = {
     requestAccessToken: (request) => requestGithubAccessToken(request),
@@ -68,68 +66,20 @@ const remarkableBridge = {
 
 window.md2Remarkable = remarkableBridge
 
-const dataBridge = {
-    checkoutBranch: async (project, branch) => {
-        currentLocalProject = await localGitService.checkoutBranch(project, branch)
+const localBridgeDispatch = createLocalBridgeDispatch({
+    actionSchedulerService,
+    agentRunnerService,
+    desktopConfigStore,
+    diffService,
+    localGitService,
+    openProjectFolder: () => ipcRenderer.invoke(DATA_OPEN_PROJECT_FOLDER_CHANNEL),
+    readDesktopConfig,
+})
 
-        return currentLocalProject
-    },
-    commit: (request) => localGitService.commit(request, currentLocalProject),
-    deleteFile: (request) => localGitService.deleteFile(request, currentLocalProject),
-    continueAgentConversation: (request) => {
-        const { agent } = readDesktopConfig(desktopConfigStore)
-
-        return localGitService.continueAgentConversation(currentLocalProject, { ...request, command: agent })
-    },
-    createProject: (project, workingFolder) => localGitService.createProject(project, workingFolder),
-    createWorkingFolderFromTemplate: (project, workingFolder) => localGitService.createWorkingFolderFromTemplate(project, workingFolder),
-    listBranches: (project) => localGitService.listBranches(project),
-    listRepositoryFiles: (project) => localGitService.listRepositoryFiles(project),
-    listTopLevelFolders: (project) => localGitService.listTopLevelFolders(project),
-    loadActionFiles: (project, actionsFolder) => localGitService.loadActionFiles(project, actionsFolder),
-    loadAgentConversation: (path) => localGitService.loadAgentConversation(currentLocalProject, path),
-    loadProject: async (project, workingFolder) => {
-        currentLocalProject = project
-
-        return localGitService.loadProject(project, workingFolder)
-    },
-    loadProjectConfig: (project) => localGitService.loadProjectConfig(project),
-    moveFiles: (request) => localGitService.moveFiles(request, currentLocalProject),
-    openProjectFolder: async () => {
-        const rootPath = await ipcRenderer.invoke(DATA_OPEN_PROJECT_FOLDER_CHANNEL)
-        if (!rootPath) return null
-
-        const project = createLocalProject(rootPath)
-        await localGitService.assertGitRoot(project.rootPath)
-        currentLocalProject = project
-
-        return project
-    },
-    push: (project) => localGitService.push(project),
-    saveProjectConfig: (project, config) => localGitService.saveProjectConfig(project, config),
-    sendAgentInput: (runId, input) => agentRunnerService.sendInput(runId, input),
-    startAgentConversation: (request, callback) => {
-        const { agent } = readDesktopConfig(desktopConfigStore)
-
-        return agentRunnerService.start(currentLocalProject, { ...request, command: agent }, callback)
-    },
-    stopAgent: (runId) => agentRunnerService.stop(runId),
-    watchProject: (project, callback) => localGitService.watchProject(project, callback),
-}
-
-window.md2Data = dataBridge
-
-const actionBridge = {
-    appendActionRunHistory: (request, entry) => localGitService.appendActionRunHistory(currentLocalProject, request, entry),
-    generateDiff: (request) => diffService.generateDiff(currentLocalProject, request),
-    loadActionRunHistory: (request) => localGitService.loadActionRunHistory(currentLocalProject, request),
-    openInEditor: (request) => diffService.openInEditor(currentLocalProject, request),
-    runAgent: (request, callback) => agentRunnerService.run(currentLocalProject, request, callback),
-    runCommand: (command) => localGitService.runCommand(currentLocalProject, command),
-}
-
-window.md2Actions = actionBridge
+window.md2Data = localBridgeDispatch.dataBridge
+window.md2Actions = localBridgeDispatch.actionBridge
 
 window.addEventListener('beforeunload', () => {
+    actionSchedulerService.stop()
     agentRunnerService.stopAll()
 })

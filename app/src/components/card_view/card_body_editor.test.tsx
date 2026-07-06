@@ -7,6 +7,7 @@ function card(overrides: Partial<ProjectCard> = {}): ProjectCard {
     return {
         agentConversationErrors: [],
         agentConversations: [],
+        headerFields: {},
         content: '# Alpha\n\nOriginal body',
         header: {
             affects: [], after: null, agentLogReferences: [], author: null, id: 'F-1', internalId: 'f-1', owner: null, policy: {}, status: 'todo',

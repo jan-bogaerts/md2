@@ -78,6 +78,19 @@ describe('markdownParsingService.parseCard', () => {
         expect(card.header.agentLogReferences).toEqual(['.md2-agent-logs/one.json', '.md2-agent-logs/two.json'])
     })
 
+    it('exposes raw header fields including unknown keys', () => {
+        const content = '---\nid: F-2\ntitle: Second\ncustomField: keep me\nextras:\n  - one\n---\n\n# Second'
+        const card = markdownParsingService.parseCard({ content, path: 'design/F-2-second.md' }, 'design')
+
+        expect(card.headerFields).toEqual({ customField: 'keep me', extras: ['one'], id: 'F-2', title: 'Second' })
+    })
+
+    it('exposes empty raw header fields for headerless files', () => {
+        const card = markdownParsingService.parseCard({ content: '# Note', path: 'design/note.md' }, 'design')
+
+        expect(card.headerFields).toEqual({})
+    })
+
     it('defaults after to null and policy to an empty map when absent', () => {
         const card = markdownParsingService.parseCard(ROOT_FILE, 'design')
 
@@ -126,6 +139,13 @@ describe('markdownParsingService.rewriteHeader', () => {
         expect(next).toContain('internalId: abc-123')
         expect(next).toContain('affects:\n  - a.ts')
         expect(next.endsWith('\n\n# Root')).toBe(true)
+    })
+
+    it('preserves unknown fields and their order when rewriting', () => {
+        const content = '---\ncustomField: keep me\nid: F-1\nmystery: value\nstatus: active\n---\n\n# Root'
+        const next = markdownParsingService.rewriteHeader(content, { status: 'ready' })
+
+        expect(next).toBe('---\ncustomField: keep me\nid: F-1\nmystery: value\nstatus: ready\n---\n\n# Root')
     })
 
     it('appends fields that do not yet exist', () => {
@@ -195,6 +215,60 @@ describe('markdownParsingService.setAffects', () => {
 
         expect(next).toContain('affects:\n---')
         expect(next).not.toContain('old.ts')
+    })
+})
+
+describe('markdownParsingService line-ending preservation', () => {
+    const CRLF_CONTENT = '---\r\nid: F-1\r\ntitle: Root\r\nstatus: active\r\npolicy:\r\n  checkLinting: true\r\n---\r\n\r\n# Root\r\n\r\nBody text'
+
+    it('parses CRLF headers identically to LF headers', () => {
+        const parsed = markdownParsingService.parse(CRLF_CONTENT)
+
+        expect(parsed.header.id).toBe('F-1')
+        expect(parsed.header.title).toBe('Root')
+        expect(parsed.header.policy).toEqual({ checkLinting: 'true' })
+        expect(parsed.body).toBe('\r\n# Root\r\n\r\nBody text')
+    })
+
+    it('replaces the body of a CRLF file without converting it to LF', () => {
+        const next = markdownParsingService.replaceBody(CRLF_CONTENT, '\r\n# Root\r\n\r\nEdited body')
+
+        expect(next).toBe('---\r\nid: F-1\r\ntitle: Root\r\nstatus: active\r\npolicy:\r\n  checkLinting: true\r\n---\r\n\r\n# Root\r\n\r\nEdited body')
+        expect(next).not.toMatch(/[^\r]\n/)
+    })
+
+    it('rewrites a header field of a CRLF file while keeping CRLF endings', () => {
+        const next = markdownParsingService.rewriteHeader(CRLF_CONTENT, { status: 'ready' })
+
+        expect(next).toContain('status: ready\r\n')
+        expect(next).toContain('# Root\r\n\r\nBody text')
+        expect(next).not.toMatch(/[^\r]\n/)
+    })
+
+    it('toggles a policy flag of a CRLF file while keeping CRLF endings', () => {
+        const next = markdownParsingService.setPolicyFlag(CRLF_CONTENT, 'checkLinting', false)
+
+        expect(next).toContain('  checkLinting: false\r\n')
+        expect(next).toContain('# Root\r\n\r\nBody text')
+        expect(next).not.toMatch(/[^\r]\n/)
+
+        const reparsed = markdownParsingService.parse(next)
+        expect(reparsed.header.policy).toEqual({ checkLinting: 'false' })
+    })
+
+    it('keeps LF files free of carriage returns', () => {
+        const next = markdownParsingService.rewriteHeader(ROOT_FILE.content, { status: 'ready' })
+
+        expect(next).toContain('status: ready')
+        expect(next).not.toContain('\r')
+    })
+
+    it('picks CRLF deterministically for mixed files', () => {
+        const mixed = '---\nid: F-1\r\ntitle: Root\n---\n\n# Root'
+        const next = markdownParsingService.rewriteHeader(mixed, { status: 'ready' })
+
+        expect(next).toContain('---\r\nid: F-1\r\ntitle: Root\r\nstatus: ready\r\n---\r\n')
+        expect(next.endsWith('\n# Root')).toBe(true)
     })
 })
 

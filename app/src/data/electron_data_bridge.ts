@@ -1,4 +1,5 @@
 import type { ActionFile } from './action_types'
+import type { ActionSchedule } from './action_schedule_types'
 import type {
     AgentConversation,
     AgentRunEvent,
@@ -27,7 +28,10 @@ export interface ElectronDataBridge {
     deleteFile(request: DeleteFileRequest): Promise<void>
     loadAgentConversation?(path: string): Promise<AgentConversation>
     loadActionFiles(project: ProjectReference, actionsFolder: string): Promise<ActionFile[]>
+    loadActionSchedules?(project: ProjectReference, actionsFolder: string): Promise<ActionSchedule[]>
+    cancelActionSchedule?(project: ProjectReference, actionsFolder: string, scheduleId: string): Promise<ActionSchedule[]>
     loadProject(project: ProjectReference, workingFolder: string): Promise<StorageProjectFiles>
+    loadProjectRoot(project: ProjectReference, workingFolder: string): Promise<StorageProjectFiles>
     loadProjectConfig(project: ProjectReference): Promise<Partial<ProjectConfig> | null>
     listRepositoryFiles(project: ProjectReference): Promise<string[]>
     listBranches(project: ProjectReference): Promise<BranchReference[]>
@@ -35,6 +39,7 @@ export interface ElectronDataBridge {
     moveFiles(request: MoveFilesRequest): Promise<void>
     openProjectFolder(): Promise<ProjectReference | null>
     push(project: ProjectReference): Promise<void>
+    saveActionSchedules?(project: ProjectReference, actionsFolder: string, schedules: ActionSchedule[]): Promise<ActionSchedule[]>
     saveProjectConfig(project: ProjectReference, config: ProjectConfig): Promise<void>
     sendAgentInput?(runId: string, input: string): Promise<void>
     startAgentConversation?(

@@ -1,7 +1,11 @@
 const { app, BrowserWindow, dialog, ipcMain, nativeTheme } = require('electron')
 const path = require('node:path')
 const Store = require('electron-store')
-const { resolveAppUrl } = require('./config')
+const { readDesktopConfig, resolveAppUrl } = require('./config')
+const { AgentRunnerService } = require('./agent_runner_service')
+const diffService = require('./diff_service')
+const { createLocalBridgeDispatch } = require('./local_bridge_dispatch')
+const localGitService = require('./local_git_service')
 const { RemoteControlService } = require('./remote_control_service')
 const remarkableService = require('./remarkable_service')
 const { flush, registerProcessErrorHandlers, startElectronTelemetry, trackEvent } = require('./telemetry')
@@ -20,7 +24,15 @@ const REMARKABLE_IMPORT_FILES_CHANNEL = 'md2-remarkable:import-files'
 
 const store = new Store()
 Store.initRenderer()
-const remoteControlService = new RemoteControlService()
+const remoteAgentRunnerService = new AgentRunnerService()
+const remoteBridgeDispatch = createLocalBridgeDispatch({
+    agentRunnerService: remoteAgentRunnerService,
+    desktopConfigStore: store,
+    diffService,
+    localGitService,
+    readDesktopConfig,
+})
+const remoteControlService = new RemoteControlService(remoteBridgeDispatch)
 const electronTelemetryStarted = startElectronTelemetry()
 let isQuittingAfterTelemetry = false
 
@@ -102,6 +114,7 @@ async function stopAndQuit() {
 
     isQuittingAfterTelemetry = true
     await remoteControlService.stop()
+    remoteAgentRunnerService.stopAll()
     await trackEvent('electron_stop')
     await flush()
     app.quit()

@@ -13,6 +13,7 @@ function card(): ProjectCard {
     return {
         agentConversationErrors: [],
         agentConversations: [],
+        headerFields: {},
         content: '# Goal',
         header: { affects: [], after: null, agentLogReferences: [], author: null, id: 'F-1', internalId: null, owner: null, policy: {}, status: 'new', title: 'Card' },
         isActive: true,

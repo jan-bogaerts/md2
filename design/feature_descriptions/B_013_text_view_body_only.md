@@ -1,7 +1,7 @@
 ---
 id: B-013
 title: text view edits body only, not the full file
-status: design
+status: ready
 owner: JB
 affects:
 policy:
@@ -14,9 +14,9 @@ F-007 specifies "full-file editing for text view and body editing for card view"
 
 ## Fix
 - Text view tabs edit the raw file content (`MarkdownFile.content`), saving through `DataService.saveFile` directly.
-- MDXEditor doesn't understand frontmatter, so either:
-  - render a compact header editor panel above the body editor (key/value grid backed by the parsing service's rewrite helpers) with the body in MDXEditor below — keeps parsing centralized (recommended); or
-  - use MDXEditor's frontmatter plugin if it round-trips the header format acceptably.
+- MDXEditor doesn't understand frontmatter, so:
+  - render a compact header editor panel above the body editor (key/value grid backed by the parsing service's rewrite helpers) with the body in MDXEditor below — keeps parsing centralized (recommended);
+  - collapsible, when collapsed, only the title is shown
 - Card view behavior (body-only, header preserved) stays unchanged.
 - Guard against destructive round-trips: saving from text view must not lose or reorder unknown header fields (parsing-service ownership per F-021).
 

@@ -123,6 +123,10 @@ export function ProjectWorkspace() {
         dataService.updateCardAffects(path, affects)
     }
 
+    const handleHeaderFieldChange = (path: string, key: string, value: string) => {
+        dataService.updateCardHeaderFields(path, { [key]: value })
+    }
+
     const clearDeletedPathState = (path: string) => {
         setSelectedPath((currentPath) => (currentPath === path ? null : currentPath))
         setRequestedPath((currentPath) => (currentPath === path ? null : currentPath))
@@ -239,6 +243,7 @@ export function ProjectWorkspace() {
                                 onBodyChange={handleBodyChange}
                                 onContinueAgentConversation={handleContinueAgentConversation}
                                 onDeleteFile={handleDeleteFile}
+                                onHeaderFieldChange={handleHeaderFieldChange}
                                 onSendAgentInput={handleSendAgentInput}
                                 onStartAgentConversation={handleStartAgentConversation}
                                 requestedNonce={requestedNonce}

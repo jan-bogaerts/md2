@@ -1,4 +1,5 @@
 import type { ActionContext } from './action_context'
+import type { ActionScheduleTrigger } from './action_schedule_types'
 import type { AgentConversation, AgentRunEvent } from './data_types'
 
 export interface CommandExecutionResult {
@@ -26,6 +27,12 @@ export interface ActionRunHistoryRequest {
     actionName: string
     actionsFolder: string
     context: ActionContext
+}
+
+export interface ActionScheduleRegistrationRequest {
+    actionName: string
+    context: ActionContext
+    trigger: ActionScheduleTrigger
 }
 
 /** Commit produced by an action run; presence enables the diff view for a log entry. */
@@ -82,7 +89,10 @@ export interface ElectronActionBridge {
     appendActionRunHistory(request: ActionRunHistoryRequest, entry: ActionRunHistoryEntry): Promise<ActionRunHistoryEntry[]>
     generateDiff(request: DiffRequest): Promise<DiffResult>
     loadActionRunHistory(request: ActionRunHistoryRequest): Promise<ActionRunHistoryEntry[]>
+    notifyActionCompleted?(actionName: string): Promise<void>
+    onScheduledActionRun?(callback: (event: AgentRunEvent) => void): () => void
     openInEditor(request: OpenInEditorRequest): Promise<void>
+    registerActionSchedule?(request: ActionScheduleRegistrationRequest): Promise<void>
     runAgent(request: AgentExecutionRequest, callback?: (event: AgentRunEvent) => void): Promise<AgentExecutionResult>
     runCommand(command: string): Promise<CommandExecutionResult>
 }

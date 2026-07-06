@@ -31,6 +31,7 @@ function card(id: string, status: string | null): ProjectCard {
     return {
         agentConversationErrors: [],
         agentConversations: [],
+        headerFields: {},
         content: '',
         header: {
             affects: [], after: null, agentLogReferences: [], author: null, id, internalId: id.toLowerCase(), owner: null,

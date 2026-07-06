@@ -22,6 +22,7 @@ function card(path: string, overrides: Partial<ProjectCard['header']> = {}, cont
     return {
         agentConversationErrors: [],
         agentConversations: [],
+        headerFields: {},
         content,
         header: {
             affects: [],
@@ -50,6 +51,7 @@ const backgroundCards = [card('design/history/rel1/F-9-old.md', { id: 'F-9', tit
 function renderTextView(overrides: Partial<Parameters<typeof TextView>[0]> = {}) {
     const onBodyChange = vi.fn()
     const onDeleteFile = vi.fn(async () => undefined)
+    const onHeaderFieldChange = vi.fn()
 
     render(
         <TextView
@@ -60,6 +62,7 @@ function renderTextView(overrides: Partial<Parameters<typeof TextView>[0]> = {})
             onBodyChange={onBodyChange}
             onContinueAgentConversation={vi.fn()}
             onDeleteFile={onDeleteFile}
+            onHeaderFieldChange={onHeaderFieldChange}
             onSendAgentInput={vi.fn()}
             onStartAgentConversation={vi.fn()}
             requestedNonce={0}
@@ -69,7 +72,7 @@ function renderTextView(overrides: Partial<Parameters<typeof TextView>[0]> = {})
         />,
     )
 
-    return { onBodyChange, onDeleteFile }
+    return { onBodyChange, onDeleteFile, onHeaderFieldChange }
 }
 
 /** Click a file leaf inside the tree region (avoids matching the same label in an open tab). */
@@ -157,6 +160,7 @@ describe('TextView', () => {
             onBodyChange: vi.fn(),
             onContinueAgentConversation: vi.fn(),
             onDeleteFile: vi.fn(async () => undefined),
+            onHeaderFieldChange: vi.fn(),
             onSendAgentInput: vi.fn(),
             onStartAgentConversation: vi.fn(),
             workingFolder: 'design',
@@ -189,6 +193,7 @@ describe('TextView', () => {
                 onBodyChange={vi.fn()}
                 onContinueAgentConversation={vi.fn()}
                 onDeleteFile={vi.fn(async () => undefined)}
+                onHeaderFieldChange={vi.fn()}
                 onSendAgentInput={vi.fn()}
                 onStartAgentConversation={vi.fn()}
                 requestedNonce={0}
@@ -234,6 +239,38 @@ describe('TextView', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
 
         expect(onContinueAgentConversation).toHaveBeenCalledWith('design/F-1-a.md', agentConversation)
+    })
+
+    it('shows the header fields of the open file behind a collapsible panel', () => {
+        renderTextView({activeCards: [{ ...activeCards[0], headerFields: { customField: 'keep me', id: 'F-1', status: 'todo' } }, activeCards[1]]})
+
+        clickTreeFile('F-1 Alpha')
+        expect(screen.queryByLabelText('Header field status')).not.toBeInTheDocument()
+
+        fireEvent.click(screen.getByLabelText('Toggle header fields'))
+
+        expect(screen.getByLabelText('Header field status')).toHaveValue('todo')
+        expect(screen.getByLabelText('Header field customField')).toHaveValue('keep me')
+    })
+
+    it('persists header field edits through onHeaderFieldChange', () => {
+        const { onHeaderFieldChange } = renderTextView({activeCards: [{ ...activeCards[0], headerFields: { id: 'F-1', status: 'todo' } }, activeCards[1]]})
+
+        clickTreeFile('F-1 Alpha')
+        fireEvent.click(screen.getByLabelText('Toggle header fields'))
+        const statusInput = screen.getByLabelText('Header field status')
+        fireEvent.change(statusInput, { target: { value: 'done' } })
+        fireEvent.blur(statusInput)
+
+        expect(onHeaderFieldChange).toHaveBeenCalledWith('design/F-1-a.md', 'status', 'done')
+    })
+
+    it('renders no header panel for files without frontmatter', () => {
+        renderTextView()
+
+        clickTreeFile('F-1 Alpha')
+
+        expect(screen.queryByLabelText('Toggle header fields')).not.toBeInTheDocument()
     })
 
     it('starts a new agent conversation for the active text tab', () => {

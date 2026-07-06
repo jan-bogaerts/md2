@@ -16,6 +16,7 @@ function card(id: string, status: string | null, title = id): ProjectCard {
     return {
         agentConversationErrors: [],
         agentConversations: [],
+        headerFields: {},
         content: '',
         header: {
             affects: [], after: null, agentLogReferences: [], author: null, id, internalId: id.toLowerCase(), owner: null,

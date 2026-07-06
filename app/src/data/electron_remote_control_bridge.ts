@@ -2,6 +2,7 @@ export interface RemoteControlStatus {
     active: boolean
     clientCount: number
     endpoint: string | null
+    token: string | null
 }
 
 export interface ElectronRemoteControlBridge {

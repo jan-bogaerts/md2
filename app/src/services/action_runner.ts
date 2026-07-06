@@ -290,6 +290,7 @@ export class ActionRunner {
         const state: RunState = { failed: false, logs: [] }
 
         await this.runAction(action, context, { extraPrompt: input.extraPrompt ?? '', phase: 'main', stack: [], state })
+        await this.notifyActionCompleted(action.name)
 
         return { logs: state.logs, status: state.failed ? 'failed' : 'completed' }
     }
@@ -454,6 +455,13 @@ export class ActionRunner {
         for (const rule of matches) {
             await this.runAction(rule.action, context, { ...options, phase: 'on', stack: options.stack })
         }
+    }
+
+    private async notifyActionCompleted(actionName: string) {
+        const bridge = this.bridgeProvider()
+        if (!bridge?.notifyActionCompleted) return
+
+        await bridge.notifyActionCompleted(actionName)
     }
 
 }

@@ -8,6 +8,7 @@ function card(): ProjectCard {
     return {
         agentConversationErrors: [],
         agentConversations: [],
+        headerFields: {},
         content: '# Root',
         header: {
             affects: ['app/src/old.ts'],

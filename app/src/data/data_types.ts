@@ -1,4 +1,5 @@
 import type { ActionFile } from './action_types'
+import type { ActionSchedule } from './action_schedule_types'
 import { DEFAULT_COLOR_SCHEME } from '../theme/theme_config'
 
 export const DEFAULT_WORKING_FOLDER = 'design'
@@ -6,7 +7,8 @@ export const DEFAULT_ACTIONS_FOLDER = 'actions'
 export const DEFAULT_DIFF_COMMAND = 'git show {{commit}}'
 export const AUTO_COMMIT_DELAY_MS = 30000
 
-export type CardType = 'feature' | 'job' | 'bug'
+/** Card type id; projects can configure custom types beyond the default feature/job/bug. */
+export type CardType = string
 export type PushMode = 'auto' | 'manual'
 
 export interface CardTypeConfig {
@@ -53,6 +55,8 @@ export interface ProjectCard {
     agentConversations: AgentConversation[]
     content: string
     header: CardHeader
+    /** Raw frontmatter fields as written in the file, including unknown keys. */
+    headerFields: Record<string, string | string[] | Record<string, string>>
     isActive: boolean
     path: string
     sha?: string
@@ -224,13 +228,17 @@ export interface StorageService {
     listBranches(project: ProjectReference): Promise<BranchReference[]>
     listRepositories(): Promise<RepositoryReference[]>
     loadActionFiles(project: ProjectReference, actionsFolder: string): Promise<ActionFile[]>
+    loadActionSchedules?(project: ProjectReference, actionsFolder: string): Promise<ActionSchedule[]>
+    cancelActionSchedule?(project: ProjectReference, actionsFolder: string, scheduleId: string): Promise<ActionSchedule[]>
     loadAgentConversation?(project: ProjectReference, path: string): Promise<AgentConversation>
     loadProject(project: ProjectReference, workingFolder: string): Promise<StorageProjectFiles>
+    loadProjectRoot(project: ProjectReference, workingFolder: string): Promise<StorageProjectFiles>
     loadProjectConfig(project: ProjectReference): Promise<Partial<ProjectConfig> | null>
     listRepositoryFiles(project: ProjectReference): Promise<string[]>
     listTopLevelFolders(project: ProjectReference): Promise<TopLevelFolderReference[]>
     moveFiles(request: MoveFilesRequest): Promise<void>
     push(project: ProjectReference): Promise<void>
+    saveActionSchedules?(project: ProjectReference, actionsFolder: string, schedules: ActionSchedule[]): Promise<ActionSchedule[]>
     saveProjectConfig(project: ProjectReference, config: ProjectConfig): Promise<void>
     sendAgentInput?(project: ProjectReference, runId: string, input: string): Promise<void>
     startAgentConversation?(

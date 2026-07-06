@@ -3,8 +3,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ElectronRemoteControlBridge, RemoteControlStatus } from '../../data/electron_remote_control_bridge'
 import { RemoteControlButton } from './remote_control_button'
 
-const stoppedStatus: RemoteControlStatus = { active: false, clientCount: 0, endpoint: null }
-const startedStatus: RemoteControlStatus = { active: true, clientCount: 0, endpoint: 'ws://127.0.0.1:1234' }
+const stoppedStatus: RemoteControlStatus = { active: false, clientCount: 0, endpoint: null, token: null }
+const startedStatus: RemoteControlStatus = { active: true, clientCount: 0, endpoint: 'ws://127.0.0.1:1234', token: 'token-1' }
 
 function installBridge(overrides: Partial<ElectronRemoteControlBridge> = {}) {
     const bridge: ElectronRemoteControlBridge = {
