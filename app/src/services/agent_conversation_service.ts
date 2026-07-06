@@ -7,6 +7,9 @@ import type {
     ContinueAgentConversationResult,
     ProjectReference,
     RunningAgent,
+    AgentRunEvent,
+    StartAgentConversationRequest,
+    StartAgentConversationResult,
     StorageService,
 } from '../data/data_types'
 import { register } from './service_injector'
@@ -133,6 +136,24 @@ export class AgentConversationService extends EventTarget {
         }
     }
 
+    async startConversation(
+        storage: StorageService,
+        project: ProjectReference,
+        request: StartAgentConversationRequest,
+        onEvent: (event: AgentRunEvent) => void,
+    ): Promise<StartAgentConversationResult> {
+        if (!storage.startAgentConversation) throw new Error('Starting agent conversations requires an Electron agent bridge')
+
+        const result = await storage.startAgentConversation(project, request, (event) => {
+            onEvent(event)
+            if (event.type === 'closed') this.removeRunningAgent(event.runId)
+        })
+        const runningAgent = { id: result.runId, label: `Agent ${request.cardPath}` }
+        this.setRunningAgents([...this.runningAgents, runningAgent])
+
+        return result
+    }
+
     subscribe(listener: Listener) {
         this.addEventListener('changed', listener)
 
@@ -142,6 +163,10 @@ export class AgentConversationService extends EventTarget {
     private setRunningAgents(runningAgents: RunningAgent[]) {
         this.runningAgents = runningAgents
         this.dispatchEvent(new CustomEvent('changed'))
+    }
+
+    private removeRunningAgent(runId: string) {
+        this.setRunningAgents(this.runningAgents.filter((agent) => agent.id !== runId))
     }
 }
 

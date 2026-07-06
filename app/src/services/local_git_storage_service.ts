@@ -5,9 +5,12 @@ import type {
     ContinueAgentConversationRequest,
     ContinueAgentConversationResult,
     AgentConversation,
+    AgentRunEvent,
     ProjectConfig,
     ProjectReference,
     ProjectWatchEvent,
+    StartAgentConversationRequest,
+    StartAgentConversationResult,
     StorageProjectFiles,
     StorageService,
 } from '../data/data_types'
@@ -63,6 +66,31 @@ export class LocalGitStorageService implements StorageService {
         if (!bridge.continueAgentConversation) throw new Error('Electron local Git bridge cannot continue agent conversations')
 
         return bridge.continueAgentConversation(request)
+    }
+
+    async startAgentConversation(
+        _project: ProjectReference,
+        request: StartAgentConversationRequest,
+        onEvent: (event: AgentRunEvent) => void,
+    ): Promise<StartAgentConversationResult> {
+        const bridge = this.requireBridge()
+        if (!bridge.startAgentConversation) throw new Error('Electron local Git bridge cannot start agent conversations')
+
+        return bridge.startAgentConversation(request, onEvent)
+    }
+
+    async sendAgentInput(_project: ProjectReference, runId: string, input: string): Promise<void> {
+        const bridge = this.requireBridge()
+        if (!bridge.sendAgentInput) throw new Error('Electron local Git bridge cannot send agent input')
+
+        await bridge.sendAgentInput(runId, input)
+    }
+
+    async stopAgent(_project: ProjectReference, runId: string): Promise<void> {
+        const bridge = this.requireBridge()
+        if (!bridge.stopAgent) throw new Error('Electron local Git bridge cannot stop agents')
+
+        await bridge.stopAgent(runId)
     }
 
     async loadProjectConfig(project: ProjectReference): Promise<Partial<ProjectConfig> | null> {

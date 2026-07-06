@@ -223,6 +223,26 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
         }
     }
 
+    const handleStartAgentConversation = async (path: string, prompt: string) => {
+        setErrorMessage(null)
+
+        try {
+            await dataService.startAgentConversation(path, prompt)
+        } catch (error) {
+            setErrorMessage(error instanceof Error ? error.message : 'Agent start failed')
+        }
+    }
+
+    const handleSendAgentInput = async (runId: string, input: string) => {
+        setErrorMessage(null)
+
+        try {
+            await dataService.sendAgentInput(runId, input)
+        } catch (error) {
+            setErrorMessage(error instanceof Error ? error.message : 'Agent input failed')
+        }
+    }
+
     const handleOpenInFileMode = (path: string) => {
         setRequestedPath(path)
         setRequestedNonce((nonce) => nonce + 1)
@@ -290,6 +310,8 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
                             onContinueAgentConversation={handleContinueAgentConversation}
                             onMoveCard={handleMoveCard}
                             onOpenInFileMode={handleOpenInFileMode}
+                            onSendAgentInput={handleSendAgentInput}
+                            onStartAgentConversation={handleStartAgentConversation}
                             onTitleChange={handleTitleChange}
                             onTogglePolicy={handleTogglePolicy}
                             selectedPath={selectedPath}
@@ -302,6 +324,8 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
                             isMobile={isMobile}
                             onBodyChange={handleBodyChange}
                             onContinueAgentConversation={handleContinueAgentConversation}
+                            onSendAgentInput={handleSendAgentInput}
+                            onStartAgentConversation={handleStartAgentConversation}
                             requestedNonce={requestedNonce}
                             requestedPath={requestedPath}
                             workingFolder={workingFolder}

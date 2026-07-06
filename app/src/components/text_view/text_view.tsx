@@ -20,6 +20,8 @@ interface TextViewProps {
     isMobile: boolean
     onBodyChange: (path: string, body: string) => void
     onContinueAgentConversation: (path: string, conversation: AgentConversation) => void
+    onSendAgentInput: (runId: string, input: string) => void
+    onStartAgentConversation: (path: string, prompt: string) => void
     requestedNonce: number
     requestedPath: string | null
     workingFolder: string
@@ -40,6 +42,8 @@ export function TextView(props: TextViewProps) {
         isMobile,
         onBodyChange,
         onContinueAgentConversation,
+        onSendAgentInput,
+        onStartAgentConversation,
         requestedNonce,
         requestedPath,
         workingFolder,
@@ -88,6 +92,10 @@ export function TextView(props: TextViewProps) {
 
     const handleContinueAgentConversation = (conversation: AgentConversation) => {
         if (activePath) onContinueAgentConversation(activePath, conversation)
+    }
+
+    const handleStartAgentConversation = (prompt: string) => {
+        if (activePath) onStartAgentConversation(activePath, prompt)
     }
 
     const treeContent = (
@@ -143,6 +151,8 @@ export function TextView(props: TextViewProps) {
                                 conversations={activeCard.agentConversations}
                                 errors={activeCard.agentConversationErrors}
                                 onContinue={handleContinueAgentConversation}
+                                onSendInput={onSendAgentInput}
+                                onStart={handleStartAgentConversation}
                             />
                         </Box>
                     </>

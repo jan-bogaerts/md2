@@ -1,15 +1,20 @@
-import { Alert, Box, Button, Chip, Divider, List, ListItem, ListItemText, Stack, Typography } from '@mui/material'
+import { Alert, Box, Button, Chip, Divider, List, ListItem, ListItemText, Stack, TextField, Typography } from '@mui/material'
+import { useState } from 'react'
+import type { ChangeEvent } from 'react'
 import type { AgentConversation, AgentConversationError } from '../../data/data_types'
 
 interface AgentConversationListProps {
     conversations: AgentConversation[]
     errors: AgentConversationError[]
     onContinue: (conversation: AgentConversation) => void
+    onSendInput: (runId: string, input: string) => void
+    onStart: (prompt: string) => void
 }
 
 interface ConversationItemProps {
     conversation: AgentConversation
     onContinue: (conversation: AgentConversation) => void
+    onSendInput: (runId: string, input: string) => void
 }
 
 function statusColor(status: AgentConversation['status']) {
@@ -24,20 +29,34 @@ function lastMessage(conversation: AgentConversation) {
 }
 
 function ConversationItem(props: ConversationItemProps) {
-    const { conversation, onContinue } = props
+    const { conversation, onContinue, onSendInput } = props
+    const [input, setInput] = useState('')
 
     const handleContinue = () => {
         onContinue(conversation)
     }
 
+    const handleInputChange = (event: ChangeEvent<HTMLInputElement>) => {
+        setInput(event.target.value)
+    }
+
+    const handleSendInput = () => {
+        if (input.trim().length === 0) return
+
+        onSendInput(conversation.id, input)
+        setInput('')
+    }
+
+    const isRunning = conversation.status === 'running'
+
     return (
         <ListItem
             disableGutters
-            secondaryAction={(
+            secondaryAction={!isRunning ? (
                 <Button onClick={handleContinue} size="small" variant="outlined">
                     Continue
                 </Button>
-            )}
+            ) : undefined}
             sx={{ alignItems: 'flex-start', pr: 12 }}
         >
             <ListItemText
@@ -48,9 +67,19 @@ function ConversationItem(props: ConversationItemProps) {
                     </Stack>
                 )}
                 secondary={(
-                    <Typography color="text.secondary" sx={{ display: 'block', whiteSpace: 'pre-wrap' }} variant="body2">
-                        {lastMessage(conversation)}
-                    </Typography>
+                    <Box>
+                        <Typography color="text.secondary" sx={{ display: 'block', whiteSpace: 'pre-wrap' }} variant="body2">
+                            {lastMessage(conversation)}
+                        </Typography>
+                        {isRunning ? (
+                            <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+                                <TextField label="Input" onChange={handleInputChange} size="small" value={input} />
+                                <Button disabled={input.trim().length === 0} onClick={handleSendInput} size="small" variant="outlined">
+                                    Send
+                                </Button>
+                            </Stack>
+                        ) : null}
+                    </Box>
                 )}
             />
         </ListItem>
@@ -59,12 +88,30 @@ function ConversationItem(props: ConversationItemProps) {
 
 /** Shows persisted agent conversations plus load/start errors for a card. */
 export function AgentConversationList(props: AgentConversationListProps) {
-    const { conversations, errors, onContinue } = props
+    const { conversations, errors, onContinue, onSendInput, onStart } = props
+    const [prompt, setPrompt] = useState('')
     const hasConversations = conversations.length > 0
     const hasErrors = errors.length > 0
 
+    const handlePromptChange = (event: ChangeEvent<HTMLInputElement>) => {
+        setPrompt(event.target.value)
+    }
+
+    const handleStart = () => {
+        if (prompt.trim().length === 0) return
+
+        onStart(prompt)
+        setPrompt('')
+    }
+
     return (
         <Stack spacing={1.5}>
+            <Stack direction="row" spacing={1}>
+                <TextField fullWidth label="Agent prompt" onChange={handlePromptChange} size="small" value={prompt} />
+                <Button disabled={prompt.trim().length === 0} onClick={handleStart} size="small" variant="contained">
+                    Start
+                </Button>
+            </Stack>
             {hasErrors ? (
                 <Stack spacing={1}>
                     {errors.map((error) => (
@@ -79,7 +126,7 @@ export function AgentConversationList(props: AgentConversationListProps) {
                     {conversations.map((conversation, index) => (
                         <Box key={conversation.id}>
                             {index > 0 ? <Divider component="li" /> : null}
-                            <ConversationItem conversation={conversation} onContinue={onContinue} />
+                            <ConversationItem conversation={conversation} onContinue={onContinue} onSendInput={onSendInput} />
                         </Box>
                     ))}
                 </List>

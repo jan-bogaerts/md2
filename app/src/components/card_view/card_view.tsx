@@ -19,6 +19,8 @@ interface CardViewProps {
     onContinueAgentConversation: (path: string, conversation: AgentConversation) => void
     onMoveCard: (path: string, targetStatus: string, targetIndex: number) => void
     onOpenInFileMode: (path: string) => void
+    onSendAgentInput: (runId: string, input: string) => void
+    onStartAgentConversation: (path: string, prompt: string) => void
     onTogglePolicy: (path: string, policyKey: string) => void
     onTitleChange: (path: string, title: string) => void
     selectedPath: string | null
@@ -34,6 +36,8 @@ export function CardView(props: CardViewProps) {
         onContinueAgentConversation,
         onMoveCard,
         onOpenInFileMode,
+        onSendAgentInput,
+        onStartAgentConversation,
         onTogglePolicy,
         onTitleChange,
         selectedPath,
@@ -79,6 +83,8 @@ export function CardView(props: CardViewProps) {
                         onContinueAgentConversation={onContinueAgentConversation}
                         onOpenBody={handleOpenBody}
                         onOpenInFileMode={handleOpenInFileMode}
+                        onSendAgentInput={onSendAgentInput}
+                        onStartAgentConversation={onStartAgentConversation}
                         onTitleChange={onTitleChange}
                         onTogglePolicy={onTogglePolicy}
                         openBodyPath={openBodyPath}

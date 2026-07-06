@@ -43,6 +43,8 @@ function renderCardView(overrides: Partial<Parameters<typeof CardView>[0]> = {})
         onContinueAgentConversation: vi.fn(),
         onMoveCard: vi.fn(),
         onOpenInFileMode: vi.fn(),
+        onSendAgentInput: vi.fn(),
+        onStartAgentConversation: vi.fn(),
         onTitleChange: vi.fn(),
         onTogglePolicy: vi.fn(),
     }
@@ -134,6 +136,8 @@ describe('CardView', () => {
                 onContinueAgentConversation={vi.fn()}
                 onMoveCard={vi.fn()}
                 onOpenInFileMode={vi.fn()}
+                onSendAgentInput={vi.fn()}
+                onStartAgentConversation={vi.fn()}
                 onTitleChange={vi.fn()}
                 onTogglePolicy={vi.fn()}
                 selectedPath="design/F-2.md"
@@ -157,5 +161,15 @@ describe('CardView', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
 
         expect(handlers.onContinueAgentConversation).toHaveBeenCalledWith('design/F-1.md', agentConversation)
+    })
+
+    it('starts a new agent conversation from the card popover', () => {
+        const handlers = renderCardView()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Agent conversations for F-1' }))
+        fireEvent.change(screen.getByLabelText('Agent prompt'), { target: { value: 'implement this card' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Start' }))
+
+        expect(handlers.onStartAgentConversation).toHaveBeenCalledWith('design/F-1.md', 'implement this card')
     })
 })

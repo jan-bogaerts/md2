@@ -143,6 +143,23 @@ export interface ContinueAgentConversationResult {
     reference: string
 }
 
+export interface StartAgentConversationRequest {
+    cardPath: string
+    prompt: string
+    title?: string
+}
+
+export interface StartAgentConversationResult extends ContinueAgentConversationResult {
+    runId: string
+}
+
+export interface AgentRunEvent {
+    content: string
+    conversation: AgentConversation
+    runId: string
+    type: string
+}
+
 export interface StorageProjectFiles {
     files: MarkdownFile[]
     workingFolder: string
@@ -163,6 +180,13 @@ export interface StorageService {
     loadProjectConfig(project: ProjectReference): Promise<Partial<ProjectConfig> | null>
     push(project: ProjectReference): Promise<void>
     saveProjectConfig(project: ProjectReference, config: ProjectConfig): Promise<void>
+    sendAgentInput?(project: ProjectReference, runId: string, input: string): Promise<void>
+    startAgentConversation?(
+        project: ProjectReference,
+        request: StartAgentConversationRequest,
+        onEvent: (event: AgentRunEvent) => void,
+    ): Promise<StartAgentConversationResult>
+    stopAgent?(project: ProjectReference, runId: string): Promise<void>
     watchProject?(project: ProjectReference, onChange: (event: ProjectWatchEvent) => void): () => void
 }
 

@@ -5,6 +5,7 @@ import { computeMove } from '../data/card_ordering'
 import {
     type AgentConversation,
     type AgentConversationError,
+    type AgentRunEvent,
     type CardDraft,
     type MarkdownFile,
     type ProjectConfig,
@@ -266,6 +267,37 @@ export class DataService extends EventTarget {
         })
     }
 
+    async startAgentConversation(cardPath: string, prompt: string) {
+        const { storage } = this.requireDependencies()
+        if (!this.currentProject) throw new Error('Cannot start an agent before a project is open')
+
+        const existingFile = this.requireFile(cardPath)
+        const result = await agentConversationService.startConversation(
+            storage,
+            this.currentProject,
+            { cardPath, prompt, title: `Agent ${cardPath}` },
+            (event) => this.handleAgentRunEvent(cardPath, event),
+        )
+        this.upsertAgentConversation(cardPath, result.conversation)
+
+        const card = markdownParsingService.parseCard(existingFile, this.requireDependencies().config.workingFolder)
+        const nextReferences = [...new Set([...card.header.agentLogReferences, result.reference])]
+
+        return this.saveFile({
+            content: markdownParsingService.setAgentLogReferences(existingFile.content, nextReferences),
+            path: cardPath,
+            sha: existingFile.sha,
+        })
+    }
+
+    async sendAgentInput(runId: string, input: string) {
+        const { storage } = this.requireDependencies()
+        if (!this.currentProject) throw new Error('Cannot send agent input before a project is open')
+        if (!storage.sendAgentInput) throw new Error('Sending agent input requires an Electron agent bridge')
+
+        await storage.sendAgentInput(this.currentProject, runId, input)
+    }
+
     private requireFile(path: string): MarkdownFile {
         const existingFile = this.currentFiles.find((currentFile) => currentFile.path === path)
         if (!existingFile) throw new Error(`Cannot update a card that is not loaded: ${path}`)
@@ -416,6 +448,19 @@ export class DataService extends EventTarget {
         for (const action of actions) {
             void actionRunner.run(action, context)
         }
+    }
+
+    private handleAgentRunEvent(cardPath: string, event: AgentRunEvent) {
+        this.upsertAgentConversation(cardPath, event.conversation)
+    }
+
+    private upsertAgentConversation(cardPath: string, conversation: AgentConversation) {
+        const conversations = this.conversationsByCardPath.get(cardPath) ?? []
+        const nextConversations = conversations.some((current) => current.id === conversation.id)
+            ? conversations.map((current) => (current.id === conversation.id ? conversation : current))
+            : [...conversations, conversation]
+        this.conversationsByCardPath.set(cardPath, nextConversations)
+        this.refreshSnapshot()
     }
 
     private startProjectWatch() {

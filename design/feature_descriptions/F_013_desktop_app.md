@@ -1,7 +1,7 @@
 ---
 id: F-013
 title: desktop app
-status: design
+status: ready
 owner: JB
 affects:
 policy:

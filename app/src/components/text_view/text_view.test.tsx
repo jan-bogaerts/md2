@@ -58,6 +58,8 @@ function renderTextView(overrides: Partial<Parameters<typeof TextView>[0]> = {})
             isMobile={false}
             onBodyChange={onBodyChange}
             onContinueAgentConversation={vi.fn()}
+            onSendAgentInput={vi.fn()}
+            onStartAgentConversation={vi.fn()}
             requestedNonce={0}
             requestedPath={null}
             workingFolder="design"
@@ -138,6 +140,8 @@ describe('TextView', () => {
             isMobile: false,
             onBodyChange: vi.fn(),
             onContinueAgentConversation: vi.fn(),
+            onSendAgentInput: vi.fn(),
+            onStartAgentConversation: vi.fn(),
             workingFolder: 'design',
         }
         const { rerender } = render(<TextView {...shared} requestedNonce={0} requestedPath={null} />)
@@ -167,6 +171,8 @@ describe('TextView', () => {
                 isMobile
                 onBodyChange={vi.fn()}
                 onContinueAgentConversation={vi.fn()}
+                onSendAgentInput={vi.fn()}
+                onStartAgentConversation={vi.fn()}
                 requestedNonce={0}
                 requestedPath={null}
                 workingFolder="design"
@@ -210,5 +216,17 @@ describe('TextView', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
 
         expect(onContinueAgentConversation).toHaveBeenCalledWith('design/F-1-a.md', agentConversation)
+    })
+
+    it('starts a new agent conversation for the active text tab', () => {
+        const onStartAgentConversation = vi.fn()
+        renderTextView({ onStartAgentConversation })
+
+        clickTreeFile('F-1 Alpha')
+        fireEvent.click(screen.getByRole('button', { name: /Agents/ }))
+        fireEvent.change(screen.getByLabelText('Agent prompt'), { target: { value: 'review this file' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Start' }))
+
+        expect(onStartAgentConversation).toHaveBeenCalledWith('design/F-1-a.md', 'review this file')
     })
 })

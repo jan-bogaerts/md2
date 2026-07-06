@@ -19,6 +19,8 @@ export interface CardHandlers {
     onContinueAgentConversation: (cardPath: string, conversation: AgentConversation) => void
     onOpenBody: (path: string) => void
     onOpenInFileMode: (path: string) => void
+    onSendAgentInput: (runId: string, input: string) => void
+    onStartAgentConversation: (cardPath: string, prompt: string) => void
     onTogglePolicy: (path: string, policyKey: string) => void
     onTitleChange: (path: string, title: string) => void
 }
@@ -35,6 +37,7 @@ interface ProjectCardViewProps extends CardHandlers {
 /** A single card: type-color line, id + title, policy leds, drag handle and body access. */
 export function ProjectCardView(props: ProjectCardViewProps) {
     const { card, cardTypes, color, isBodyOpen, isMobile, onBodyChange, onContinueAgentConversation, onOpenBody, onOpenInFileMode } = props
+    const { onSendAgentInput, onStartAgentConversation } = props
     const { onTogglePolicy, onTitleChange } = props
     const { isSelected } = props
     const { attributes, isDragging, listeners, setNodeRef, transform, transition } = useSortable({ id: card.path })
@@ -84,6 +87,10 @@ export function ProjectCardView(props: ProjectCardViewProps) {
 
     const continueAgentConversation = (conversation: AgentConversation) => {
         onContinueAgentConversation(card.path, conversation)
+    }
+
+    const startAgentConversation = (prompt: string) => {
+        onStartAgentConversation(card.path, prompt)
     }
 
     const policyKeys = Object.keys(card.header.policy)
@@ -150,23 +157,23 @@ export function ProjectCardView(props: ProjectCardViewProps) {
                                 policyKey={policyKey}
                             />
                         ))}
-                        {hasAgentSignal ? (
-                            <Tooltip title="Agent conversations">
-                                <IconButton aria-label={`Agent conversations for ${card.header.id}`} onClick={openAgentConversations} size="small">
-                                    <Badge badgeContent={agentSignalCount} color="primary">
-                                        <Box
-                                            component="span"
-                                            sx={{
-                                                bgcolor: card.agentConversationErrors.length > 0 ? 'error.main' : 'success.main',
-                                                borderRadius: '50%',
-                                                height: AGENT_LED_SIZE,
-                                                width: AGENT_LED_SIZE,
-                                            }}
-                                        />
-                                    </Badge>
-                                </IconButton>
-                            </Tooltip>
-                        ) : null}
+                        <Tooltip title="Agent conversations">
+                            <IconButton aria-label={`Agent conversations for ${card.header.id}`} onClick={openAgentConversations} size="small">
+                                <Badge badgeContent={agentSignalCount} color="primary">
+                                    <Box
+                                        component="span"
+                                        sx={{
+                                            bgcolor: hasAgentSignal
+                                                ? card.agentConversationErrors.length > 0 ? 'error.main' : 'success.main'
+                                                : 'text.disabled',
+                                            borderRadius: '50%',
+                                            height: AGENT_LED_SIZE,
+                                            width: AGENT_LED_SIZE,
+                                        }}
+                                    />
+                                </Badge>
+                            </IconButton>
+                        </Tooltip>
                         <ActionEntryPoints context={cardContext(card, cardTypes)} variant="icons" />
                     </Stack>
                 </Stack>
@@ -192,6 +199,8 @@ export function ProjectCardView(props: ProjectCardViewProps) {
                         conversations={card.agentConversations}
                         errors={card.agentConversationErrors}
                         onContinue={continueAgentConversation}
+                        onSendInput={onSendAgentInput}
+                        onStart={startAgentConversation}
                     />
                 </Box>
             </Popover>

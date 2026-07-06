@@ -2,6 +2,7 @@ import { useGithubAuth } from './auth/use_github_auth'
 import { useAppBootstrap } from './app/use_app_bootstrap'
 import { MainWindow } from './components/shell/main_window'
 import { StartupSplash } from './components/shell/startup_splash'
+import { RemoteControlButton } from './components/shell/remote_control_button'
 import { ThemeControls } from './components/shell/theme_controls'
 import { useProjectState } from './components/hooks/use_project_state'
 import { AppThemeProvider } from './theme/theme_provider'
@@ -20,7 +21,12 @@ export function App() {
                     agents={runningAgents}
                     auth={auth}
                     session={bootstrap.session}
-                    toolbarAction={<ThemeControls />}
+                    toolbarAction={(
+                        <>
+                            <RemoteControlButton />
+                            <ThemeControls />
+                        </>
+                    )}
                 />
             )}
         </AppThemeProvider>

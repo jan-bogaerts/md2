@@ -2,15 +2,25 @@ const { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme } = require('elec
 const path = require('node:path')
 const Store = require('electron-store')
 const { resolveAppUrl } = require('./config')
+const { RemoteControlService } = require('./remote_control_service')
+const remarkableService = require('./remarkable_service')
 const { flush, registerProcessErrorHandlers, startElectronTelemetry, trackEvent } = require('./telemetry')
 const { THEME_MODE_STORE_KEY, resolveThemeMode, resolveTitleBarOverlay } = require('./theme')
 
 const appUrl = resolveAppUrl()
 const DATA_OPEN_PROJECT_FOLDER_CHANNEL = 'md2-data:open-project-folder'
 const DATA_MENU_PUSH_CHANNEL = 'md2-data:menu-push'
+const REMOTE_CONTROL_STATUS_CHANNEL = 'md2-remote-control:status'
+const REMOTE_CONTROL_START_CHANNEL = 'md2-remote-control:start'
+const REMOTE_CONTROL_STOP_CHANNEL = 'md2-remote-control:stop'
+const REMOTE_CONTROL_GET_STATUS_CHANNEL = 'md2-remote-control:get-status'
 const THEME_SET_MODE_CHANNEL = 'md2-theme:set-mode'
+const REMARKABLE_TEST_CONNECTION_CHANNEL = 'md2-remarkable:test-connection'
+const REMARKABLE_LIST_IMAGE_FILES_CHANNEL = 'md2-remarkable:list-image-files'
+const REMARKABLE_IMPORT_FILES_CHANNEL = 'md2-remarkable:import-files'
 
 const store = new Store()
+const remoteControlService = new RemoteControlService()
 const electronTelemetryStarted = startElectronTelemetry()
 let isQuittingAfterTelemetry = false
 
@@ -33,6 +43,26 @@ function registerDataBridge() {
 
         return openProjectFolder(window)
     })
+}
+
+function broadcastRemoteControlStatus(status) {
+    for (const window of BrowserWindow.getAllWindows()) {
+        window.webContents.send(REMOTE_CONTROL_STATUS_CHANNEL, status)
+    }
+}
+
+function registerRemarkableBridge() {
+    ipcMain.handle(REMARKABLE_TEST_CONNECTION_CHANNEL, (_event, settings) => remarkableService.testConnection(settings))
+    ipcMain.handle(REMARKABLE_LIST_IMAGE_FILES_CHANNEL, (_event, settings) => remarkableService.listImageFiles(settings))
+    ipcMain.handle(REMARKABLE_IMPORT_FILES_CHANNEL, (_event, request) => remarkableService.importFiles(request))
+}
+
+function registerRemoteControlBridge() {
+    remoteControlService.setStatusListener(broadcastRemoteControlStatus)
+
+    ipcMain.handle(REMOTE_CONTROL_START_CHANNEL, async () => remoteControlService.start())
+    ipcMain.handle(REMOTE_CONTROL_STOP_CHANNEL, async () => remoteControlService.stop())
+    ipcMain.handle(REMOTE_CONTROL_GET_STATUS_CHANNEL, () => remoteControlService.getStatus())
 }
 
 /** Keep the persisted mode, native theme source and window controls in sync with the renderer. */
@@ -87,6 +117,7 @@ async function stopAndQuit() {
     if (isQuittingAfterTelemetry) return
 
     isQuittingAfterTelemetry = true
+    await remoteControlService.stop()
     await trackEvent('electron_stop')
     await flush()
     app.quit()
@@ -95,6 +126,8 @@ async function stopAndQuit() {
 app.whenReady().then(async () => {
     await electronTelemetryStarted
     registerDataBridge()
+    registerRemarkableBridge()
+    registerRemoteControlBridge()
     registerThemeBridge()
     createAppMenu()
     createWindow()

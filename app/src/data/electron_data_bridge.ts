@@ -1,6 +1,7 @@
 import type { ActionFile } from './action_types'
 import type {
     AgentConversation,
+    AgentRunEvent,
     BranchReference,
     CommitRequest,
     ContinueAgentConversationRequest,
@@ -8,6 +9,8 @@ import type {
     ProjectConfig,
     ProjectReference,
     ProjectWatchEvent,
+    StartAgentConversationRequest,
+    StartAgentConversationResult,
     StorageProjectFiles,
 } from './data_types'
 
@@ -24,6 +27,12 @@ export interface ElectronDataBridge {
     openProjectFolder(): Promise<ProjectReference | null>
     push(project: ProjectReference): Promise<void>
     saveProjectConfig(project: ProjectReference, config: ProjectConfig): Promise<void>
+    sendAgentInput?(runId: string, input: string): Promise<void>
+    startAgentConversation?(
+        request: StartAgentConversationRequest,
+        callback: (event: AgentRunEvent) => void,
+    ): Promise<StartAgentConversationResult>
+    stopAgent?(runId: string): Promise<void>
     watchProject(project: ProjectReference, callback: (event: ProjectWatchEvent) => void): () => void
 }
 
