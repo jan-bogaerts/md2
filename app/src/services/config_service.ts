@@ -8,6 +8,7 @@ import {
     type ProjectConfig,
     type PushMode,
 } from '../data/data_types'
+import { BUILTIN_AGENT_PROFILES, validateAgentProfiles, type AgentProfile } from '../data/agent_profiles'
 import { register } from './service_injector'
 
 export type ConfigSource = 'react' | 'connection' | 'desktop' | 'project'
@@ -16,6 +17,8 @@ export type ConfigValueType = 'boolean' | 'number' | 'select' | 'string' | 'json
 export type ConfigKey =
     | 'connection.githubScopes'
     | 'desktop.agent'
+    | 'desktop.agentProfiles'
+    | 'desktop.model'
     | 'desktop.projectLocationMode'
     | 'project.actionsFolder'
     | 'project.cardBodyTemplate'
@@ -26,7 +29,7 @@ export type ConfigKey =
     | 'react.autoCommitDelayMs'
     | 'react.showStartupSplash'
 
-export type ConfigValue = boolean | number | string | CardTypeConfig[]
+export type ConfigValue = boolean | number | string | AgentProfile[] | CardTypeConfig[]
 
 export interface ConfigOption {
     label: string
@@ -51,6 +54,8 @@ export type ConfigValues = Record<ConfigKey, ConfigValue>
 
 export interface DesktopConfigValues {
     agent: string
+    agentProfiles: AgentProfile[]
+    model: string
     projectLocationMode: string
 }
 
@@ -174,17 +179,33 @@ export const CONFIG_ENTRIES: ConfigEntry[] = [
     },
     {
         defaultValue: 'codex',
-        description: 'Default local agent used by desktop actions.',
+        description: 'Default local agent profile used by desktop actions.',
         editable: true,
         key: 'desktop.agent',
-        label: 'Agent',
-        options: [
-            { label: 'Codex', value: 'codex' },
-            { label: 'System default', value: 'system' },
-        ],
+        label: 'Default agent',
         section: 'desktop',
         source: 'desktop',
-        type: 'select',
+        type: 'string',
+    },
+    {
+        defaultValue: '',
+        description: 'Default model for the selected desktop agent profile. Leave empty for the profile default.',
+        editable: true,
+        key: 'desktop.model',
+        label: 'Default model',
+        section: 'desktop',
+        source: 'desktop',
+        type: 'string',
+    },
+    {
+        defaultValue: BUILTIN_AGENT_PROFILES,
+        description: 'Agent profiles. Fields: name, command, modelArgument, models, defaultModel. Custom command may include {{model}}.',
+        editable: true,
+        key: 'desktop.agentProfiles',
+        label: 'Agent profiles',
+        section: 'desktop',
+        source: 'desktop',
+        type: 'json',
     },
     {
         defaultValue: 'folder',
@@ -259,6 +280,10 @@ function validateCardTypes(value: unknown): CardTypeConfig[] {
     })
 }
 
+function validateDesktopAgentProfiles(value: unknown): AgentProfile[] {
+    return validateAgentProfiles(value)
+}
+
 function validateOption(value: string, entry: ConfigEntry) {
     if (!entry.options) return value
     if (!entry.options.some((option) => option.value === value)) throw new Error(`Invalid config value for ${entry.key}: ${value}`)
@@ -278,6 +303,12 @@ function validateValue(key: ConfigKey, value: unknown): ConfigValue {
         return numberValue
     }
     if (entry.type === 'json' && key === 'project.cardTypes') return validateCardTypes(value)
+    if (entry.type === 'json' && key === 'desktop.agentProfiles') return validateDesktopAgentProfiles(value)
+    if (key === 'desktop.model') {
+        if (typeof value !== 'string') throw new Error(`Missing config field: ${entry.key}`)
+
+        return value
+    }
 
     return validateOption(requireString(value, entry.key), entry)
 }
@@ -367,6 +398,8 @@ export class ConfigService extends EventTarget {
         nextValues = mergeStoredReactValues(nextValues)
 
         if (desktopConfig?.agent !== undefined) nextValues = mergeValue(nextValues, 'desktop.agent', desktopConfig.agent)
+        if (desktopConfig?.agentProfiles !== undefined) nextValues = mergeValue(nextValues, 'desktop.agentProfiles', desktopConfig.agentProfiles)
+        if (desktopConfig?.model !== undefined) nextValues = mergeValue(nextValues, 'desktop.model', desktopConfig.model)
         if (desktopConfig?.projectLocationMode !== undefined) {
             nextValues = mergeValue(nextValues, 'desktop.projectLocationMode', desktopConfig.projectLocationMode)
         }
@@ -380,7 +413,7 @@ export class ConfigService extends EventTarget {
         this.requireInitialized()
 
         return CONFIG_ENTRIES.filter((entry) => {
-            if (entry.source === 'desktop') return this.desktopAvailable
+            if (entry.source === 'desktop') return true
             if (entry.source === 'project') return this.projectLoaded
 
             return true
@@ -440,6 +473,8 @@ export class ConfigService extends EventTarget {
 
         return {
             agent: this.values['desktop.agent'] as string,
+            agentProfiles: this.values['desktop.agentProfiles'] as AgentProfile[],
+            model: this.values['desktop.model'] as string,
             projectLocationMode: this.values['desktop.projectLocationMode'] as string,
         }
     }

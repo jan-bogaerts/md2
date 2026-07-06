@@ -9,6 +9,8 @@ import {
     type RawOnRule,
     type RawSubAction,
 } from '../data/action_types'
+import { validateAgentSelection, type AgentProfile } from '../data/agent_profiles'
+import { configService } from './config_service'
 
 const ACTION_TYPES: ActionType[] = ['agent', 'cmd']
 
@@ -22,6 +24,11 @@ type NormalizedAction = RawActionDefinition & {
     on: RawOnRule[]
     text: string
     type: string
+}
+
+interface ActionDefinitionLoaderDependencies {
+    defaultAgent?: string
+    profiles?: AgentProfile[]
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -91,20 +98,42 @@ function validateRawDefinition(value: unknown, source: string): NormalizedAction
     requireString(value.text, `text for "${name}"`)
     if (value.icon !== undefined && typeof value.icon !== 'string') throw new Error(`Invalid icon for "${name}"`)
     if (value.onState !== undefined && typeof value.onState !== 'string') throw new Error(`Invalid onState for "${name}"`)
+    if (value.agent !== undefined && typeof value.agent !== 'string') throw new Error(`Invalid agent for "${name}"`)
+    if (value.model !== undefined && typeof value.model !== 'string') throw new Error(`Invalid model for "${name}"`)
 
     return {
         after: readSubActionList(value.after, name, 'after'),
+        agent: value.agent as string | undefined,
         appliesTo: readAppliesTo(value.appliesTo, name) ?? undefined,
         before: readSubActionList(value.before, name, 'before'),
         description: value.description as string,
         icon: value.icon as string | undefined,
         label: value.label as string,
+        model: value.model as string | undefined,
         name,
         on: readOnRules(value.on, name),
         onState: value.onState as string | undefined,
         text: value.text as string,
         type: value.type as string,
     }
+}
+
+function defaultLoaderDependencies(): ActionDefinitionLoaderDependencies {
+    if (!configService.isInitialized()) return {}
+
+    return {
+        defaultAgent: configService.get('desktop.agent') as string,
+        profiles: configService.get('desktop.agentProfiles') as AgentProfile[],
+    }
+}
+
+function validateAgentFields(raw: NormalizedAction, dependencies: ActionDefinitionLoaderDependencies) {
+    if (raw.agent === undefined && raw.model === undefined) return
+
+    const agent = raw.agent ?? dependencies.defaultAgent
+    if (!agent) throw new Error(`Missing default agent for action "${raw.name}" model validation`)
+
+    validateAgentSelection(dependencies.profiles ?? [], { agent, model: raw.model ?? '' }, `action "${raw.name}"`)
 }
 
 /** Recursively validate and register a definition and any inline sub-actions, deduping by name. */
@@ -168,11 +197,15 @@ function detectCycles(actions: ActionDefinition[]) {
  * fields, unknown refs, duplicate names or circular calls. String refs and inline definitions
  * resolve to the same shared definition object.
  */
-export function loadActionDefinitions(files: ActionFile[]): ActionDefinition[] {
+export function loadActionDefinitions(
+    files: ActionFile[],
+    dependencies: ActionDefinitionLoaderDependencies = defaultLoaderDependencies(),
+): ActionDefinition[] {
     const registry = new Map<string, NormalizedAction>()
     for (const file of files) {
         for (const item of parseFile(file)) collectDefinition(item, file.path, registry)
     }
+    for (const raw of registry.values()) validateAgentFields(raw, dependencies)
 
     const resolved = new Map<string, ActionDefinition>()
     resolved.set(CUSTOM_PROMPT_ACTION_NAME, BUILTIN_CUSTOM_PROMPT)
@@ -180,12 +213,14 @@ export function loadActionDefinitions(files: ActionFile[]): ActionDefinition[] {
     for (const raw of registry.values()) {
         resolved.set(raw.name, {
             after: [],
+            agent: raw.agent ?? null,
             appliesTo: raw.appliesTo ?? null,
             before: [],
             builtin: false,
             description: raw.description as string,
             icon: raw.icon ?? null,
             label: raw.label as string,
+            model: raw.model ?? null,
             name: raw.name,
             on: [],
             onState: raw.onState ?? null,

@@ -1,7 +1,7 @@
 ---
 id: F-033
 title: agent and model selection (menu, per action, per run)
-status: design
+status: ready
 owner: JB
 affects:
 policy:

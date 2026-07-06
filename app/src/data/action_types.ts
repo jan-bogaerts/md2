@@ -21,11 +21,13 @@ export interface RawOnRule {
 /** Action definition exactly as it appears in json, before refs are resolved. */
 export interface RawActionDefinition {
     after?: RawSubAction[]
+    agent?: string
     appliesTo?: ActionAppliesTo
     before?: RawSubAction[]
     description?: string
     icon?: string
     label?: string
+    model?: string
     name?: string
     on?: RawOnRule[]
     onState?: string
@@ -42,12 +44,14 @@ export interface OnRule {
 /** Fully validated action with all sub-action refs resolved to shared definitions. */
 export interface ActionDefinition {
     after: ActionDefinition[]
+    agent: string | null
     appliesTo: ActionAppliesTo | null
     before: ActionDefinition[]
     builtin: boolean
     description: string
     icon: string | null
     label: string
+    model: string | null
     name: string
     on: OnRule[]
     onState: string | null
@@ -60,12 +64,14 @@ export const CUSTOM_PROMPT_ACTION_NAME = 'custom prompt'
 /** Always-available agent action, independent of any project action files. */
 export const BUILTIN_CUSTOM_PROMPT: ActionDefinition = {
     after: [],
+    agent: null,
     appliesTo: null,
     before: [],
     builtin: true,
     description: 'Send a custom prompt to the agent.',
     icon: null,
     label: 'Custom prompt',
+    model: null,
     name: CUSTOM_PROMPT_ACTION_NAME,
     on: [],
     onState: null,

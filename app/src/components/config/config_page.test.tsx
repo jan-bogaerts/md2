@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ConfigPage } from './config_page'
 import { configService } from '../../services/config_service'
+import { BUILTIN_AGENT_PROFILES } from '../../data/agent_profiles'
 
 function mockMatchMedia(matches: boolean) {
     window.matchMedia = ((query: string) => ({
@@ -23,6 +24,7 @@ describe('ConfigPage', () => {
         window.history.pushState(null, '', '/config')
         mockMatchMedia(false)
         window.localStorage.clear()
+        delete window.md2Config
     })
 
     it('renders typed editors with descriptions', () => {
@@ -62,7 +64,7 @@ describe('ConfigPage', () => {
 
     it('uses vertical section tabs on desktop', () => {
         mockMatchMedia(false)
-        configService.init({ desktopConfig: { agent: 'codex', projectLocationMode: 'folder' } })
+        configService.init({ desktopConfig: { agent: 'codex', agentProfiles: BUILTIN_AGENT_PROFILES, model: '', projectLocationMode: 'folder' } })
         configService.loadProjectConfig(null)
 
         render(<ConfigPage hash="#project" />)
@@ -85,7 +87,7 @@ describe('ConfigPage', () => {
         mockMatchMedia(false)
         const setDesktopConfig = vi.fn()
         window.md2Config = {
-            getDesktopConfig: () => ({ agent: 'codex', projectLocationMode: 'folder' }),
+            getDesktopConfig: () => ({ agent: 'codex', agentProfiles: BUILTIN_AGENT_PROFILES, model: '', projectLocationMode: 'folder' }),
             setDesktopConfig,
         }
 
@@ -93,7 +95,12 @@ describe('ConfigPage', () => {
         configService.setDraftValue('desktop.agent', 'system')
         fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
-        expect(setDesktopConfig).toHaveBeenCalledWith({ agent: 'system', projectLocationMode: 'folder' })
+        expect(setDesktopConfig).toHaveBeenCalledWith({
+            agent: 'system',
+            agentProfiles: BUILTIN_AGENT_PROFILES,
+            model: '',
+            projectLocationMode: 'folder',
+        })
 
         delete window.md2Config
     })
@@ -101,7 +108,7 @@ describe('ConfigPage', () => {
     it('initializes desktop config values from the electron bridge', () => {
         mockMatchMedia(false)
         window.md2Config = {
-            getDesktopConfig: () => ({ agent: 'system', projectLocationMode: 'current-directory' }),
+            getDesktopConfig: () => ({ agent: 'system', agentProfiles: BUILTIN_AGENT_PROFILES, model: '', projectLocationMode: 'current-directory' }),
             setDesktopConfig: vi.fn(),
         }
 
@@ -114,15 +121,15 @@ describe('ConfigPage', () => {
         delete window.md2Config
     })
 
-    it('hides desktop config entries in web mode', () => {
+    it('shows disabled desktop config entries in web mode', () => {
         mockMatchMedia(false)
         configService.init()
 
         render(<ConfigPage hash="#desktop" />)
 
-        expect(screen.queryByRole('tab', { name: 'Desktop' })).not.toBeInTheDocument()
-        expect(screen.queryByLabelText('Agent')).not.toBeInTheDocument()
-        expect(screen.queryByLabelText('Project location')).not.toBeInTheDocument()
+        expect(screen.getByRole('tab', { name: 'Desktop' })).toBeInTheDocument()
+        expect(screen.getByLabelText('Default agent')).toHaveAttribute('aria-disabled', 'true')
+        expect(screen.getByLabelText('Project location')).toHaveAttribute('aria-disabled', 'true')
     })
 
     it('never touches the desktop bridge in web mode', () => {

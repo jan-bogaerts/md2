@@ -13,12 +13,14 @@ import { DEFAULT_CARD_TYPES, type ProjectCard } from './data_types'
 function action(name: string, appliesTo: ActionDefinition['appliesTo']): ActionDefinition {
     return {
         after: [],
+        agent: null,
         appliesTo,
         before: [],
         builtin: false,
         description: name,
         icon: null,
         label: name,
+        model: null,
         name,
         on: [],
         onState: null,

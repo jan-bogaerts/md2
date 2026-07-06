@@ -9,6 +9,7 @@ const require = createRequire(import.meta.url)
 const currentDirectory = dirname(fileURLToPath(import.meta.url))
 const preloadPath = join(currentDirectory, 'preload.js')
 const actualConfig = require('./config')
+const actualAgentProfiles = require('./agent_profiles')
 const actualLocalBridgeDispatch = require('./local_bridge_dispatch')
 
 function createPreloadHarness() {
@@ -54,6 +55,7 @@ function createPreloadHarness() {
 
     const mockedModules = {
         './action_scheduler_service': { ActionSchedulerService: FakeActionSchedulerService },
+        './agent_profiles': actualAgentProfiles,
         './agent_runner_service': { AgentRunnerService: FakeAgentRunnerService },
         './config': actualConfig,
         './diff_service': {},
@@ -79,18 +81,22 @@ function createPreloadHarness() {
 }
 
 describe('preload desktop agent bridge', () => {
-    it('continues an agent conversation with the stored desktop agent instead of MD2_AGENT', () => {
+    it('continues an agent conversation with the MD2_AGENT command override', () => {
         const previousAgent = process.env.MD2_AGENT
         process.env.MD2_AGENT = 'env-agent'
 
         try {
             const { localGitService, window } = createPreloadHarness()
 
-            window.md2Config.setDesktopConfig({ agent: 'stored-agent' })
+            window.md2Config.setDesktopConfig({
+                agent: 'stored-agent',
+                agentProfiles: [{ command: 'stored-agent', name: 'stored-agent' }],
+                model: '',
+            })
             window.md2Data.continueAgentConversation({ input: 'continue this' })
 
             expect(localGitService.continueAgentConversation).toHaveBeenCalledWith(null, {
-                command: 'stored-agent',
+                command: 'env-agent',
                 input: 'continue this',
             })
         } finally {
@@ -102,7 +108,7 @@ describe('preload desktop agent bridge', () => {
         }
     })
 
-    it('starts an agent conversation with the stored desktop agent instead of MD2_AGENT', () => {
+    it('starts an agent conversation with the MD2_AGENT command override', () => {
         const previousAgent = process.env.MD2_AGENT
         process.env.MD2_AGENT = 'env-agent'
 
@@ -110,11 +116,15 @@ describe('preload desktop agent bridge', () => {
             const { agentRunnerService, window } = createPreloadHarness()
             const callback = vi.fn()
 
-            window.md2Config.setDesktopConfig({ agent: 'stored-agent' })
+            window.md2Config.setDesktopConfig({
+                agent: 'stored-agent',
+                agentProfiles: [{ command: 'stored-agent', name: 'stored-agent' }],
+                model: '',
+            })
             window.md2Data.startAgentConversation({ prompt: 'start this' }, callback)
 
             expect(agentRunnerService.start).toHaveBeenCalledWith(null, {
-                command: 'stored-agent',
+                command: 'env-agent',
                 prompt: 'start this',
             }, callback)
         } finally {

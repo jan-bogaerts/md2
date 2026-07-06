@@ -1,5 +1,6 @@
 const { exec } = require('node:child_process')
 const { promisify } = require('node:util')
+const { resolveAgentCommand, validateAgentSelection } = require('./agent_profiles')
 
 const execAsync = promisify(exec)
 const ACTION_TYPES = ['agent', 'cmd']
@@ -13,12 +14,14 @@ const ROOT_COMMIT_SUFFIX = ' (root-commit)'
 
 const BUILTIN_CUSTOM_PROMPT = {
     after: [],
+    agent: null,
     appliesTo: null,
     before: [],
     builtin: true,
     description: 'Send a custom prompt to the agent.',
     icon: null,
     label: 'Custom prompt',
+    model: null,
     name: CUSTOM_PROMPT_ACTION_NAME,
     on: [],
     onState: null,
@@ -90,14 +93,18 @@ function validateRawDefinition(value, source) {
     requireString(value.text, `text for "${name}"`)
     if (value.icon !== undefined && typeof value.icon !== 'string') throw new Error(`Invalid icon for "${name}"`)
     if (value.onState !== undefined && typeof value.onState !== 'string') throw new Error(`Invalid onState for "${name}"`)
+    if (value.agent !== undefined && typeof value.agent !== 'string') throw new Error(`Invalid agent for "${name}"`)
+    if (value.model !== undefined && typeof value.model !== 'string') throw new Error(`Invalid model for "${name}"`)
 
     return {
         after: readSubActionList(value.after, name, 'after'),
+        agent: value.agent,
         appliesTo: readAppliesTo(value.appliesTo, name) ?? undefined,
         before: readSubActionList(value.before, name, 'before'),
         description: value.description,
         icon: value.icon,
         label: value.label,
+        model: value.model,
         name,
         on: readOnRules(value.on, name),
         onState: value.onState,
@@ -157,11 +164,20 @@ function detectCycles(actions) {
     for (const action of actions) visitActionForCycles(action, visiting, done, [])
 }
 
-function loadActionDefinitions(files) {
+function validateAgentFields(raw, config) {
+    if (raw.agent === undefined && raw.model === undefined) return
+    if (!config) return
+
+    const agent = raw.agent ?? config.agent
+    validateAgentSelection(config.agentProfiles, { agent, model: raw.model ?? '' }, `action "${raw.name}"`)
+}
+
+function loadActionDefinitions(files, config = null) {
     const registry = new Map()
     for (const file of files) {
         for (const item of parseActionFile(file)) collectDefinition(item, file.path, registry)
     }
+    for (const raw of registry.values()) validateAgentFields(raw, config)
 
     const resolved = new Map()
     resolved.set(CUSTOM_PROMPT_ACTION_NAME, BUILTIN_CUSTOM_PROMPT)
@@ -169,12 +185,14 @@ function loadActionDefinitions(files) {
     for (const raw of registry.values()) {
         resolved.set(raw.name, {
             after: [],
+            agent: raw.agent ?? null,
             appliesTo: raw.appliesTo ?? null,
             before: [],
             builtin: false,
             description: raw.description,
             icon: raw.icon ?? null,
             label: raw.label,
+            model: raw.model ?? null,
             name: raw.name,
             on: [],
             onState: raw.onState ?? null,
@@ -298,6 +316,7 @@ async function defaultCommandRunner(command, rootPath) {
 class ActionSchedulerService {
     constructor(dependencies) {
         this.agentCommandProvider = dependencies?.agentCommandProvider ?? defaultAgentCommandProvider
+        this.agentConfigProvider = dependencies?.agentConfigProvider ?? null
         this.agentRunnerService = dependencies?.agentRunnerService
         this.agentSlotCommandProvider = dependencies?.agentSlotCommandProvider ?? defaultAgentSlotCommandProvider
         this.clearTimeout = dependencies?.clearTimeout ?? clearTimeout
@@ -530,7 +549,7 @@ class ActionSchedulerService {
     async loadActions() {
         const files = await this.localGitService.loadActionFiles(this.requireCurrentProject(), await this.requireActionsFolder())
 
-        return loadActionDefinitions(files)
+        return loadActionDefinitions(files, this.agentConfigProvider ? this.agentConfigProvider() : null)
     }
 
     async runAction(action, context, options) {
@@ -573,7 +592,14 @@ class ActionSchedulerService {
     }
 
     async runAgentAction(action, context, options) {
-        const command = this.agentCommandProvider()
+        const config = this.agentConfigProvider ? this.agentConfigProvider() : null
+        const resolvedAgent = config
+            ? resolveAgentCommand(config, {
+                ...(action.agent ? { agent: action.agent } : {}),
+                ...(action.model ? { model: action.model } : {}),
+            })
+            : { agent: null, command: this.agentCommandProvider(), model: '' }
+        const command = resolvedAgent.command
         if (typeof command !== 'string' || command.length === 0) throw new Error('Missing desktop agent command')
         if (!context.file) throw new Error('Agent actions require a file context')
         if (!this.agentRunnerService) throw new Error('Missing agent runner service')
@@ -583,7 +609,14 @@ class ActionSchedulerService {
         const result = await this.agentRunnerService.run(this.requireCurrentProject(), request)
         const output = combineOutput(result)
         const completedAt = new Date().toISOString()
-        const entry = { completedAt, output, prompt: result.prompt, status: statusFromExitCode(result.exitCode) }
+        const entry = {
+            agent: resolvedAgent.agent,
+            completedAt,
+            model: resolvedAgent.model,
+            output,
+            prompt: result.prompt,
+            status: statusFromExitCode(result.exitCode),
+        }
         await this.appendHistory(action.name, context, entry)
         if (result.exitCode !== 0) throw new Error(`${action.label} failed with exit code ${result.exitCode}`)
 

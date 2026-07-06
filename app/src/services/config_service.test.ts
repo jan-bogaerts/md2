@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { DEFAULT_CARD_TYPES } from '../data/data_types'
+import { BUILTIN_AGENT_PROFILES } from '../data/agent_profiles'
 import { ConfigService, REACT_CONFIG_STORAGE_KEY, readStartupSplashPreference } from './config_service'
 
 describe('ConfigService', () => {
@@ -57,11 +58,11 @@ describe('ConfigService', () => {
         expect(service.getProjectConfig().pushMode).toBe('manual')
     })
 
-    it('shows desktop entries only when desktop config is available', () => {
+    it('shows desktop entries and loads desktop values when desktop config is available', () => {
         service.init()
-        expect(service.getEntries().some((entry) => entry.source === 'desktop')).toBe(false)
+        expect(service.getEntries().some((entry) => entry.source === 'desktop')).toBe(true)
 
-        service.init({ desktopConfig: { agent: 'system', projectLocationMode: 'current-directory' } })
+        service.init({ desktopConfig: { agent: 'system', agentProfiles: BUILTIN_AGENT_PROFILES, model: '', projectLocationMode: 'current-directory' } })
 
         expect(service.getEntries().some((entry) => entry.source === 'desktop')).toBe(true)
         expect(service.get('desktop.agent')).toBe('system')
@@ -104,9 +105,14 @@ describe('ConfigService', () => {
     })
 
     it('returns the current desktop values from getDesktopValues', () => {
-        service.init({ desktopConfig: { agent: 'system', projectLocationMode: 'current-directory' } })
+        service.init({ desktopConfig: { agent: 'system', agentProfiles: BUILTIN_AGENT_PROFILES, model: '', projectLocationMode: 'current-directory' } })
 
-        expect(service.getDesktopValues()).toEqual({ agent: 'system', projectLocationMode: 'current-directory' })
+        expect(service.getDesktopValues()).toEqual({
+            agent: 'system',
+            agentProfiles: BUILTIN_AGENT_PROFILES,
+            model: '',
+            projectLocationMode: 'current-directory',
+        })
     })
 
     it('reads the startup splash preference before init, defaulting to true', () => {

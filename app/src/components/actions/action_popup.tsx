@@ -6,7 +6,9 @@ import type { ActionContext } from '../../data/action_context'
 import type { ActionScheduleTrigger } from '../../data/action_schedule_types'
 import type { ActionDefinition } from '../../data/action_types'
 import { getElectronActionBridge, type ActionRunHistoryEntry } from '../../data/electron_action_bridge'
+import { defaultModelForProfile, findAgentProfile, mergeAgentProfiles, type AgentProfile } from '../../data/agent_profiles'
 import { actionRunner, type ActionRunInput, type ActionRunResult, type ConvertPromptToActionInput } from '../../services/action_runner'
+import { configService } from '../../services/config_service'
 import { DiffView } from './diff_view'
 
 /** Which lower corner the resize handle sits in, chosen by the popup's screen position. */
@@ -73,13 +75,14 @@ interface HistoryEntryRowProps {
 function HistoryEntryRow(props: HistoryEntryRowProps) {
     const { entry } = props
     const [showDiff, setShowDiff] = useState(false)
+    const agentLabel = entry.agent ? ` (${entry.agent}${entry.model ? ` / ${entry.model}` : ''})` : ''
 
     const handleToggleDiff = () => setShowDiff((previous) => !previous)
 
     return (
         <Box>
             <Typography color="text.secondary" variant="caption">
-                {entry.status}: {entry.output || entry.prompt}
+                {entry.status}{agentLabel}: {entry.output || entry.prompt}
             </Typography>
             {entry.commit ? (
                 <Box>
@@ -120,6 +123,22 @@ function statusColor(status: PopupRunStatus) {
     return 'text.secondary'
 }
 
+function readAgentProfiles(): AgentProfile[] {
+    if (!configService.isInitialized()) return []
+
+    return mergeAgentProfiles(configService.get('desktop.agentProfiles') as AgentProfile[])
+}
+
+function readDefaultAgentSelection(action: ActionDefinition) {
+    if (!configService.isInitialized()) return { agent: action.agent ?? '', model: action.model ?? '' }
+
+    const agent = action.agent ?? configService.get('desktop.agent') as string
+    const profile = findAgentProfile(readAgentProfiles(), agent)
+    const model = (action.model ?? (configService.get('desktop.model') as string)) || (profile ? defaultModelForProfile(profile) : '')
+
+    return { agent, model }
+}
+
 function createScheduleTrigger(type: ScheduleTriggerType, timestampInput: string, afterActionNameInput: string): ActionScheduleTrigger {
     if (type === 'agentSlot') return { type: 'agentSlot' }
     if (type === 'afterAction') {
@@ -148,6 +167,7 @@ export function ActionPopup(props: ActionPopupProps) {
     const runAction = props.runAction ?? defaultRunAction
     const scheduleAction = props.scheduleAction ?? defaultScheduleAction
     const [actionLabel, setActionLabel] = useState('')
+    const [agent, setAgent] = useState(() => readDefaultAgentSelection(action).agent)
     const [convertMessage, setConvertMessage] = useState<string | null>(null)
     const [extraPrompt, setExtraPrompt] = useState('')
     const [history, setHistory] = useState<ActionRunHistoryEntry[]>([])
@@ -160,7 +180,11 @@ export function ActionPopup(props: ActionPopupProps) {
     const [scheduleTriggerType, setScheduleTriggerType] = useState<ScheduleTriggerType>('at')
     const [runResult, setRunResult] = useState<ActionRunResult | null>(null)
     const [runStatus, setRunStatus] = useState<PopupRunStatus>('idle')
+    const [model, setModel] = useState(() => readDefaultAgentSelection(action).model)
     const resizeRef = useRef<AbortController | null>(null)
+    const agentProfiles = readAgentProfiles()
+    const selectedAgentProfile = findAgentProfile(agentProfiles, agent)
+    const selectedAgentModels = selectedAgentProfile?.models ?? []
 
     useEffect(() => () => resizeRef.current?.abort(), [])
 
@@ -189,7 +213,8 @@ export function ActionPopup(props: ActionPopupProps) {
         setRunResult(null)
 
         try {
-            const result = await runAction(action, context, { extraPrompt })
+            const runInput = { ...(agent ? { agent } : {}), extraPrompt, ...(model ? { model } : {}) }
+            const result = await runAction(action, context, runInput)
             setRunResult(result)
             setRunStatus(result.status)
             setHistory(await loadHistory(action, context))
@@ -238,6 +263,17 @@ export function ActionPopup(props: ActionPopupProps) {
     const handleExtraPromptChange = (event: ChangeEvent<HTMLInputElement>) => {
         setExtraPrompt(event.target.value)
         setConvertMessage(null)
+    }
+
+    const handleAgentChange = (event: ChangeEvent<HTMLInputElement>) => {
+        const nextAgent = event.target.value
+        const profile = findAgentProfile(agentProfiles, nextAgent)
+        setAgent(nextAgent)
+        setModel(profile ? defaultModelForProfile(profile) : '')
+    }
+
+    const handleModelChange = (event: ChangeEvent<HTMLInputElement>) => {
+        setModel(event.target.value)
     }
 
     const handleActionLabelChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -345,6 +381,34 @@ export function ActionPopup(props: ActionPopupProps) {
 
                 {action.type === 'agent' ? (
                     <Stack spacing={1}>
+                        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+                            <TextField
+                                label="Agent"
+                                onChange={handleAgentChange}
+                                select
+                                size="small"
+                                value={agent}
+                            >
+                                {agentProfiles.map((profile) => (
+                                    <MenuItem key={profile.name} value={profile.name}>{profile.name}</MenuItem>
+                                ))}
+                            </TextField>
+                            {selectedAgentModels.length > 0 ? (
+                                <TextField
+                                    label="Model"
+                                    onChange={handleModelChange}
+                                    select
+                                    size="small"
+                                    value={model}
+                                >
+                                    {selectedAgentModels.map((agentModel) => (
+                                        <MenuItem key={agentModel} value={agentModel}>{agentModel}</MenuItem>
+                                    ))}
+                                </TextField>
+                            ) : (
+                                <TextField label="Model" onChange={handleModelChange} size="small" value={model} />
+                            )}
+                        </Stack>
                         <TextField
                             label="Extra prompt"
                             minRows={3}

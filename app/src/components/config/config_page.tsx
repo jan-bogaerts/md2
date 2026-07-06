@@ -118,10 +118,12 @@ export function ConfigPage(props: ConfigPageProps) {
                                 </Typography>
                                 {entries.filter((entry) => entry.section === section.id).map((entry) => (
                                     <ConfigValueEditor
+                                        disabled={entry.source === 'desktop' && !configService.hasDesktopConfig()}
                                         entry={entry}
                                         key={entry.key}
                                         onChange={handleValueChange}
                                         value={draft[entry.key]}
+                                        values={draft}
                                     />
                                 ))}
                                 <Divider />

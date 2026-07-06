@@ -3,16 +3,24 @@ import type { SelectChangeEvent } from '@mui/material'
 import type { ChangeEvent } from 'react'
 import { useState } from 'react'
 import type { ConfigEntry, ConfigValue } from '../../services/config_service'
+import { defaultModelForProfile, findAgentProfile, mergeAgentProfiles, type AgentProfile } from '../../data/agent_profiles'
 
 interface ConfigValueEditorProps {
+    disabled?: boolean
     entry: ConfigEntry
     onChange: (key: ConfigEntry['key'], value: unknown) => void
     value: ConfigValue
+    values?: Partial<Record<ConfigEntry['key'], ConfigValue>>
 }
 
 export function ConfigValueEditor(props: ConfigValueEditorProps) {
-    const { entry, onChange, value } = props
+    const { disabled = false, entry, onChange, value, values } = props
     const [jsonText, setJsonText] = useState(() => (entry.type === 'json' ? JSON.stringify(value, null, 2) : ''))
+    const agentProfiles = mergeAgentProfiles((values?.['desktop.agentProfiles'] ?? []) as AgentProfile[])
+    const selectedAgentProfile = entry.key === 'desktop.model'
+        ? findAgentProfile(agentProfiles, (values?.['desktop.agent'] ?? '') as string)
+        : null
+    const selectedAgentModels = selectedAgentProfile?.models ?? []
 
     const handleBooleanChange = (event: ChangeEvent<HTMLInputElement>) => {
         onChange(entry.key, event.target.checked)
@@ -39,10 +47,34 @@ export function ConfigValueEditor(props: ConfigValueEditorProps) {
     }
 
     const control = entry.type === 'boolean' ? (
-        <FormControlLabel control={<Switch checked={value as boolean} onChange={handleBooleanChange} />} label={entry.label} />
+        <FormControlLabel
+            control={<Switch checked={value as boolean} disabled={disabled} onChange={handleBooleanChange} />}
+            label={entry.label}
+        />
+    ) : entry.key === 'desktop.agent' ? (
+        <FormControl fullWidth size="small">
+            <Select aria-label={entry.label} disabled={disabled} onChange={handleSelectChange} value={value as string}>
+                {agentProfiles.map((profile) => (
+                    <MenuItem key={profile.name} value={profile.name}>{profile.name}</MenuItem>
+                ))}
+            </Select>
+        </FormControl>
+    ) : entry.key === 'desktop.model' && selectedAgentModels.length > 0 ? (
+        <FormControl fullWidth size="small">
+            <Select
+                aria-label={entry.label}
+                disabled={disabled}
+                onChange={handleSelectChange}
+                value={(value as string) || defaultModelForProfile(selectedAgentProfile as AgentProfile)}
+            >
+                {selectedAgentModels.map((model) => (
+                    <MenuItem key={model} value={model}>{model}</MenuItem>
+                ))}
+            </Select>
+        </FormControl>
     ) : entry.type === 'select' ? (
         <FormControl fullWidth size="small">
-            <Select aria-label={entry.label} onChange={handleSelectChange} value={value as string}>
+            <Select aria-label={entry.label} disabled={disabled} onChange={handleSelectChange} value={value as string}>
                 {entry.options?.map((option) => (
                     <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
                 ))}
@@ -51,6 +83,7 @@ export function ConfigValueEditor(props: ConfigValueEditorProps) {
     ) : entry.type === 'number' ? (
         <TextField
             fullWidth
+            disabled={disabled}
             label={entry.label}
             onChange={handleNumberChange}
             size="small"
@@ -61,6 +94,7 @@ export function ConfigValueEditor(props: ConfigValueEditorProps) {
     ) : entry.type === 'json' ? (
         <TextField
             fullWidth
+            disabled={disabled}
             label={entry.label}
             multiline
             onBlur={handleJsonBlur}
@@ -69,7 +103,7 @@ export function ConfigValueEditor(props: ConfigValueEditorProps) {
             value={jsonText}
         />
     ) : (
-        <TextField fullWidth label={entry.label} multiline onChange={handleStringChange} size="small" value={value as string} />
+        <TextField disabled={disabled} fullWidth label={entry.label} multiline onChange={handleStringChange} size="small" value={value as string} />
     )
 
     return (

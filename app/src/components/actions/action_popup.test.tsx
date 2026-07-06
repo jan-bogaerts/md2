@@ -4,16 +4,19 @@ import { ActionPopup } from './action_popup'
 import type { ActionDefinition } from '../../data/action_types'
 import type { ActionContext } from '../../data/action_context'
 import type { ActionRunResult } from '../../services/action_runner'
+import { configService } from '../../services/config_service'
 
 function action(name: string, overrides: Partial<ActionDefinition> = {}): ActionDefinition {
     return {
         after: [],
+        agent: null,
         appliesTo: null,
         before: [],
         builtin: false,
         description: `${name} description`,
         icon: null,
         label: name,
+        model: null,
         name,
         on: [],
         onState: null,
@@ -58,6 +61,9 @@ function renderPopup(overrides: Partial<Parameters<typeof ActionPopup>[0]> = {})
 
 describe('ActionPopup', () => {
     afterEach(cleanup)
+    afterEach(() => {
+        configService.clear()
+    })
 
     it('shows the action label, description and Schedule before Run', () => {
         renderPopup()
@@ -145,14 +151,39 @@ describe('ActionPopup', () => {
         await waitFor(() => expect(runAction).toHaveBeenCalledWith(expect.objectContaining({ name: 'Implement' }), context, expectedInput))
     })
 
+    it('passes selected agent and model when running an agent action', async () => {
+        configService.init({
+            desktopConfig: {
+                agent: 'codex',
+                agentProfiles: [{ command: 'codex', modelArgument: '--model', models: ['gpt-5', 'gpt-5-mini'], name: 'codex' }],
+                model: 'gpt-5',
+                projectLocationMode: 'folder',
+            },
+        })
+        const { runAction } = renderPopup({ action: action('Implement', { model: 'gpt-5-mini', type: 'agent' }) })
+
+        fireEvent.change(screen.getByLabelText('Extra prompt'), { target: { value: 'focus tests' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Run' }))
+
+        const expectedInput = { agent: 'codex', extraPrompt: 'focus tests', model: 'gpt-5-mini' }
+        await waitFor(() => expect(runAction).toHaveBeenCalledWith(expect.objectContaining({ name: 'Implement' }), context, expectedInput))
+    })
+
     it('shows previous run history for an agent action', async () => {
         renderPopup({
             action: action('Implement', { type: 'agent' }),
-            loadHistory: vi.fn(async () => [{ completedAt: '2026-07-05T10:00:00.000Z', output: 'done', prompt: 'run', status: 'completed' as const }]),
+            loadHistory: vi.fn(async () => [{
+                agent: 'codex',
+                completedAt: '2026-07-05T10:00:00.000Z',
+                model: 'gpt-5',
+                output: 'done',
+                prompt: 'run',
+                status: 'completed' as const,
+            }]),
         })
 
         expect(screen.getByText('Run history')).toBeInTheDocument()
-        await waitFor(() => expect(screen.getByText('completed: done')).toBeInTheDocument())
+        await waitFor(() => expect(screen.getByText('completed (codex / gpt-5): done')).toBeInTheDocument())
     })
 
     it('shows and hides a diff view for a commit history entry', async () => {

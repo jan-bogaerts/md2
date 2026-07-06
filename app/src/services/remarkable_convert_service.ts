@@ -27,12 +27,14 @@ function buildConvertAction(imagePaths: string[]): ActionDefinition {
 
     return {
         after: [],
+        agent: null,
         appliesTo: null,
         before: [],
         builtin: true,
         description: 'Transcribe imported Remarkable images and append the text to the card.',
         icon: null,
         label: CONVERT_ACTION_LABEL,
+        model: null,
         name: CONVERT_ACTION_NAME,
         on: [],
         onState: null,

@@ -5,6 +5,7 @@ const require = createRequire(import.meta.url)
 const {
     DEFAULT_APP_URL,
     DEFAULT_DESKTOP_AGENT,
+    DEFAULT_DESKTOP_MODEL,
     DEFAULT_PROJECT_LOCATION_MODE,
     DESKTOP_CONFIG_STORE_KEY,
     readDesktopConfig,
@@ -38,13 +39,17 @@ describe('resolveDesktopConfig', () => {
     it('defaults desktop config values', () => {
         expect(resolveDesktopConfig({})).toEqual({
             agent: DEFAULT_DESKTOP_AGENT,
+            agentProfiles: expect.arrayContaining([expect.objectContaining({ command: 'codex', name: 'codex' })]),
+            model: DEFAULT_DESKTOP_MODEL,
             projectLocationMode: DEFAULT_PROJECT_LOCATION_MODE,
         })
     })
 
     it('uses configured desktop values', () => {
-        expect(resolveDesktopConfig({ MD2_AGENT: 'system', MD2_PROJECT_LOCATION_MODE: 'current-directory' })).toEqual({
-            agent: 'system',
+        expect(resolveDesktopConfig({ MD2_AGENT: 'custom-codex', MD2_PROJECT_LOCATION_MODE: 'current-directory' })).toEqual({
+            agent: DEFAULT_DESKTOP_AGENT,
+            agentProfiles: expect.arrayContaining([expect.objectContaining({ command: 'custom-codex', name: 'codex' })]),
+            model: DEFAULT_DESKTOP_MODEL,
             projectLocationMode: 'current-directory',
         })
     })
@@ -56,6 +61,8 @@ describe('readDesktopConfig', () => {
 
         expect(readDesktopConfig(store, {})).toEqual({
             agent: DEFAULT_DESKTOP_AGENT,
+            agentProfiles: expect.arrayContaining([expect.objectContaining({ name: 'codex' })]),
+            model: DEFAULT_DESKTOP_MODEL,
             projectLocationMode: DEFAULT_PROJECT_LOCATION_MODE,
         })
     })
@@ -65,6 +72,8 @@ describe('readDesktopConfig', () => {
 
         expect(readDesktopConfig(store, { MD2_PROJECT_LOCATION_MODE: 'current-directory' })).toEqual({
             agent: 'system',
+            agentProfiles: expect.arrayContaining([expect.objectContaining({ name: 'system' })]),
+            model: DEFAULT_DESKTOP_MODEL,
             projectLocationMode: 'current-directory',
         })
     })
@@ -78,6 +87,8 @@ describe('writeDesktopConfig', () => {
 
         expect(readDesktopConfig(store, {})).toEqual({
             agent: 'system',
+            agentProfiles: expect.arrayContaining([expect.objectContaining({ name: 'system' })]),
+            model: DEFAULT_DESKTOP_MODEL,
             projectLocationMode: DEFAULT_PROJECT_LOCATION_MODE,
         })
     })
@@ -90,6 +101,8 @@ describe('writeDesktopConfig', () => {
 
         expect(readDesktopConfig(store, {})).toEqual({
             agent: 'system',
+            agentProfiles: expect.arrayContaining([expect.objectContaining({ name: 'system' })]),
+            model: DEFAULT_DESKTOP_MODEL,
             projectLocationMode: 'current-directory',
         })
     })

@@ -8,12 +8,14 @@ import { ActionRunner } from './action_runner'
 function action(name: string, overrides: Partial<ActionDefinition> = {}): ActionDefinition {
     return {
         after: [],
+        agent: null,
         appliesTo: null,
         before: [],
         builtin: false,
         description: `${name} description`,
         icon: null,
         label: name,
+        model: null,
         name,
         on: [],
         onState: null,
@@ -171,8 +173,44 @@ describe('ActionRunner', () => {
         expect(actionHistoryAppender).toHaveBeenCalledWith(
             bridge,
             { actionName: 'implement', actionsFolder: 'actions', context },
-            expect.objectContaining({ output: 'implement design/F-010.md\n\nfocus tests', prompt: 'implement design/F-010.md\n\nfocus tests' }),
+            expect.objectContaining({
+                agent: 'default',
+                model: '',
+                output: 'implement design/F-010.md\n\nfocus tests',
+                prompt: 'implement design/F-010.md\n\nfocus tests',
+            }),
         )
+    })
+
+    it('resolves agent and model by run input, action definition, then global default', async () => {
+        const agentRunner = vi.fn(async (_bridge: ElectronActionBridge, request: AgentExecutionRequest) => agentResult(request))
+        const baseRunner = new ActionRunner({
+            actionHistoryAppender: vi.fn(async () => []),
+            agentConfigProvider: () => ({
+                agent: 'codex',
+                agentProfiles: [
+                    { command: 'codex', modelArgument: '--model', models: ['gpt-5', 'gpt-5-mini'], name: 'codex' },
+                    { command: 'custom --model {{model}}', models: ['fast'], name: 'custom' },
+                ],
+                model: 'gpt-5',
+                projectLocationMode: 'folder',
+            }),
+            agentConversationLinker: noopAgentConversationLinker,
+            actionsFolderProvider: () => 'actions',
+            agentRunner,
+            bridgeProvider: () => bridge,
+            projectProvider: () => ({ branch: 'main', id: 'local', rootPath: 'C:/repo' }),
+        })
+
+        await baseRunner.run(action('global', { text: 'run', type: 'agent' }), context)
+        await baseRunner.run(action('action', { agent: 'custom', model: 'fast', text: 'run', type: 'agent' }), context)
+        await baseRunner.run(action('run', { agent: 'custom', model: 'fast', text: 'run', type: 'agent' }), context, { agent: 'codex', model: 'gpt-5-mini' })
+
+        expect(agentRunner.mock.calls.map((call) => call[1].command)).toEqual([
+            'codex --model gpt-5',
+            'custom --model fast',
+            'codex --model gpt-5-mini',
+        ])
     })
 
     it('inserts extra prompt text into the prompt placeholder for custom prompt actions', async () => {

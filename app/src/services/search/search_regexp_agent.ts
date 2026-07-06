@@ -1,4 +1,5 @@
 import { type AgentExecutionRequest, type ElectronActionBridge, getElectronActionBridge } from '../../data/electron_action_bridge'
+import { buildAgentCommand, defaultModelForProfile, findAgentProfile } from '../../data/agent_profiles'
 import type { AgentRunEvent } from '../../data/data_types'
 import { agentConversationService } from '../agent_conversation_service'
 import { configService } from '../config_service'
@@ -18,7 +19,12 @@ export interface SearchRegexpAgentDependencies {
 }
 
 function defaultCommandProvider() {
-    return configService.get('desktop.agent') as string
+    const config = configService.getDesktopValues()
+    const profile = findAgentProfile(config.agentProfiles, config.agent)
+    if (!profile) throw new Error(`Unknown agent profile: ${config.agent}`)
+    const model = config.model || defaultModelForProfile(profile)
+
+    return buildAgentCommand(profile, model)
 }
 
 function defaultRunEventObserver(event: AgentRunEvent) {

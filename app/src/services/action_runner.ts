@@ -14,6 +14,13 @@ import type { AgentRunEvent, ProjectReference } from '../data/data_types'
 import { dataService } from './data_service'
 import { agentConversationService } from './agent_conversation_service'
 import { configService } from './config_service'
+import {
+    buildAgentCommand,
+    defaultModelForProfile,
+    findAgentProfile,
+    validateAgentSelection,
+} from '../data/agent_profiles'
+import type { DesktopConfigValues } from './config_service'
 
 type RunStatus = 'completed' | 'failed'
 type RunPhase = 'after' | 'before' | 'main' | 'on'
@@ -35,6 +42,7 @@ export interface ActionRunResult {
 
 interface ActionRunnerDependencies {
     agentConversationLinker?: (cardPath: string, result: AgentExecutionResult) => Promise<void>
+    agentConfigProvider?: () => DesktopConfigValues
     agentCommandProvider?: () => string
     agentRunEventRecorder?: (cardPath: string, event: AgentRunEvent) => void
     agentRunner?: (
@@ -61,14 +69,18 @@ interface RunState {
 }
 
 interface RunOptions {
+    agent?: string
     extraPrompt: string
+    model?: string
     phase: RunPhase
     stack: string[]
     state: RunState
 }
 
 export interface ActionRunInput {
+    agent?: string
     extraPrompt?: string
+    model?: string
 }
 
 export interface ConvertPromptToActionInput {
@@ -222,6 +234,27 @@ function defaultAgentCommandProvider() {
     return configService.get('desktop.agent') as string
 }
 
+function defaultAgentConfigProvider() {
+    return configService.getDesktopValues()
+}
+
+interface ResolvedAgentRun {
+    agent: string
+    command: string
+    model: string
+}
+
+function resolveAgentRun(config: DesktopConfigValues, action: ActionDefinition, input: ActionRunInput): ResolvedAgentRun {
+    const agent = input.agent ?? action.agent ?? config.agent
+    const profile = findAgentProfile(config.agentProfiles, agent)
+    if (!profile) throw new Error(`Unknown agent profile: ${agent}`)
+
+    const model = (input.model ?? action.model ?? config.model) || defaultModelForProfile(profile)
+    validateAgentSelection(config.agentProfiles, { agent, model }, `action "${action.name}"`)
+
+    return { agent, command: buildAgentCommand(profile, model), model }
+}
+
 function defaultActionsFolderProvider() {
     return dataService.getConfig()?.actionsFolder ?? null
 }
@@ -261,6 +294,7 @@ export class ActionRunner {
     private actionHistoryLoader: (bridge: ElectronActionBridge, request: ActionRunHistoryRequest) => Promise<ActionRunHistoryEntry[]>
     private actionWriter: (path: string, content: string) => Promise<void>
     private actionsFolderProvider: () => string | null
+    private agentConfigProvider: () => DesktopConfigValues
     private agentCommandProvider: () => string
     private agentRunEventRecorder: (cardPath: string, event: AgentRunEvent) => void
     private agentRunner: (
@@ -279,6 +313,12 @@ export class ActionRunner {
         this.actionWriter = dependencies.actionWriter ?? defaultActionWriter
         this.actionsFolderProvider = dependencies.actionsFolderProvider ?? defaultActionsFolderProvider
         this.agentCommandProvider = dependencies.agentCommandProvider ?? defaultAgentCommandProvider
+        this.agentConfigProvider = dependencies.agentConfigProvider ?? (dependencies.agentCommandProvider ? (() => ({
+            agent: 'default',
+            agentProfiles: [{ command: this.agentCommandProvider(), name: 'default' }],
+            model: '',
+            projectLocationMode: 'folder',
+        })) : defaultAgentConfigProvider)
         this.agentRunEventRecorder = dependencies.agentRunEventRecorder ?? defaultAgentRunEventRecorder
         this.agentRunner = dependencies.agentRunner ?? defaultAgentRunner
         this.bridgeProvider = dependencies.bridgeProvider ?? getElectronActionBridge
@@ -289,7 +329,7 @@ export class ActionRunner {
     async run(action: ActionDefinition, context: ActionContext, input: ActionRunInput = {}): Promise<ActionRunResult> {
         const state: RunState = { failed: false, logs: [] }
 
-        await this.runAction(action, context, { extraPrompt: input.extraPrompt ?? '', phase: 'main', stack: [], state })
+        await this.runAction(action, context, { agent: input.agent, extraPrompt: input.extraPrompt ?? '', model: input.model, phase: 'main', stack: [], state })
         await this.notifyActionCompleted(action.name)
 
         return { logs: state.logs, status: state.failed ? 'failed' : 'completed' }
@@ -375,7 +415,12 @@ export class ActionRunner {
         }
 
         try {
-            const command = this.agentCommandProvider()
+            const resolvedAgent = resolveAgentRun(this.agentConfigProvider(), action, {
+                agent: options.agent,
+                extraPrompt: options.extraPrompt,
+                model: options.model,
+            })
+            const command = resolvedAgent.command
             const prompt = resolveAgentPrompt(action, context, project, options.extraPrompt)
             if (!context.file) throw new Error('Agent actions require a file context')
 
@@ -384,7 +429,7 @@ export class ActionRunner {
             options.state.logs.push(createAgentLog(action, options.phase, command, result))
             if (result.exitCode !== 0) options.state.failed = true
             await this.agentConversationLinker(context.file, result)
-            await this.appendAgentHistory(bridge, action, context, result)
+            await this.appendAgentHistory(bridge, action, context, result, resolvedAgent)
 
             return combineOutput(result)
         } catch (error) {
@@ -399,6 +444,7 @@ export class ActionRunner {
         action: ActionDefinition,
         context: ActionContext,
         result: AgentExecutionResult,
+        resolvedAgent: ResolvedAgentRun,
     ) {
         const actionsFolder = this.actionsFolderProvider()
         if (!actionsFolder) throw new Error('Cannot store action history before project config is loaded')
@@ -410,7 +456,9 @@ export class ActionRunner {
             ? extractCommitMetadata({ actionName: action.name, completedAt, context, output, project })
             : null
         const entry: ActionRunHistoryEntry = {
+            agent: resolvedAgent.agent,
             completedAt,
+            model: resolvedAgent.model,
             output,
             prompt: result.prompt,
             status: statusFromExitCode(result.exitCode),

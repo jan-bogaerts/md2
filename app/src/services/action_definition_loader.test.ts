@@ -20,15 +20,19 @@ describe('loadActionDefinitions', () => {
         const actions = loadActionDefinitions([file('implement', {
             ...IMPLEMENT,
             appliesTo: { state: 'design', type: 'feature' },
+            agent: 'codex',
             icon: 'icon.svg',
+            model: 'gpt-5',
             onState: 'implementing',
-        })])
+        })], {profiles: [{ command: 'codex', modelArgument: '--model', models: ['gpt-5'], name: 'codex' }]})
         const implement = actions.find((action) => action.name === 'implement')
 
         expect(implement).toMatchObject({
+            agent: 'codex',
             appliesTo: { state: 'design', type: 'feature' },
             builtin: false,
             icon: 'icon.svg',
+            model: 'gpt-5',
             onState: 'implementing',
             type: 'agent',
         })
@@ -79,6 +83,14 @@ describe('loadActionDefinitions', () => {
 
     it('throws on an invalid type', () => {
         expect(() => loadActionDefinitions([file('implement', { ...IMPLEMENT, type: 'shell' })])).toThrow(/Invalid action type/u)
+    })
+
+    it('throws on an unknown agent profile', () => {
+        expect(() => loadActionDefinitions([file('implement', { ...IMPLEMENT, agent: 'missing' })], { profiles: [] })).toThrow(/Unknown agent profile/u)
+    })
+
+    it('throws on an unknown model for the selected agent profile', () => {
+        expect(() => loadActionDefinitions([file('implement', { ...IMPLEMENT, agent: 'codex', model: 'bad' })], {profiles: [{ command: 'codex', models: ['gpt-5'], name: 'codex' }]})).toThrow(/Unknown model/u)
     })
 
     it('throws on an unknown ref', () => {

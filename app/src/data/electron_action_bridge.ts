@@ -46,9 +46,11 @@ export interface CommitMetadata {
 }
 
 export interface ActionRunHistoryEntry {
+    agent?: string | null
     command?: string
     commit?: CommitMetadata
     completedAt: string
+    model?: string
     output: string
     prompt: string
     status: 'completed' | 'failed'

@@ -7,6 +7,7 @@ const { ActionSchedulerService } = require('./action_scheduler_service')
 const localGitService = require('./local_git_service')
 const diffService = require('./diff_service')
 const { createLocalBridgeDispatch } = require('./local_bridge_dispatch')
+const { resolveAgentCommand } = require('./agent_profiles')
 
 const DATA_OPEN_PROJECT_FOLDER_CHANNEL = 'md2-data:open-project-folder'
 const REMOTE_CONTROL_STATUS_CHANNEL = 'md2-remote-control:status'
@@ -21,7 +22,8 @@ const REMARKABLE_IMPORT_FILES_CHANNEL = 'md2-remarkable:import-files'
 const agentRunnerService = new AgentRunnerService()
 const desktopConfigStore = new Store()
 const actionSchedulerService = new ActionSchedulerService({
-    agentCommandProvider: () => readDesktopConfig(desktopConfigStore).agent,
+    agentCommandProvider: () => resolveAgentCommand(readDesktopConfig(desktopConfigStore)).command,
+    agentConfigProvider: () => readDesktopConfig(desktopConfigStore),
     agentRunnerService,
     localGitService,
 })
