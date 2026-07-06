@@ -20,6 +20,7 @@ const {
     loadActionFiles,
     loadActionRunHistory,
     loadActionSchedules,
+    loadAgentConversation,
     loadProject,
     loadProjectRoot,
     loadProjectConfig,
@@ -248,6 +249,18 @@ describe('local-git-service', () => {
         }
     })
 
+    it('rejects non-string commands from the bridge surface', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-local-git-'))
+
+        try {
+            await mkdir(join(rootPath, '.git'))
+
+            await expect(runCommand({ branch: 'main', id: 'local', rootPath }, { command: 'git status' })).rejects.toThrow('Missing command text')
+        } finally {
+            await rm(rootPath, { force: true, recursive: true })
+        }
+    })
+
     it('runs an agent command from the project root with prompt input', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-local-git-'))
 
@@ -283,6 +296,20 @@ describe('local-git-service', () => {
             await appendActionRunHistory({ branch: 'main', id: 'local', rootPath }, request, entry)
 
             await expect(loadActionRunHistory({ branch: 'main', id: 'local', rootPath }, request)).resolves.toEqual([entry])
+        } finally {
+            await rm(rootPath, { force: true, recursive: true })
+        }
+    })
+
+    it('rejects agent log paths that escape the project root', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-local-git-'))
+
+        try {
+            await mkdir(join(rootPath, '.git'))
+
+            await expect(loadAgentConversation({ branch: 'main', id: 'local', rootPath }, '../agent-log.json')).rejects.toThrow(
+                'Local Git path escapes project root',
+            )
         } finally {
             await rm(rootPath, { force: true, recursive: true })
         }

@@ -10,8 +10,6 @@ const JSON_EXTENSION = '.json'
 const PROJECT_CONFIG_PATH = 'md2.config.json'
 const ACTION_HISTORY_FOLDER = '.md2-action-history'
 const ACTION_SCHEDULES_FILE = '.md2-schedules.json'
-const AGENT_LOG_FOLDER = '.md2-agent-logs'
-const CONTINUE_LOG_TITLE = 'Continue'
 const GIT_FOLDER = '.git'
 const ACTION_SCHEDULE_STATUSES = ['cancelled', 'done', 'pending', 'running']
 const ACTION_CONTEXT_KINDS = ['card', 'file', 'folder']
@@ -242,25 +240,16 @@ function normalizeAgentConversation(content, referencePath) {
     return {
         cardPath: requireString(parsed.cardPath, 'cardPath'),
         completedAt: parsed.completedAt === null || parsed.completedAt === undefined ? null : requireString(parsed.completedAt, 'completedAt'),
+        continuedFrom: parsed.continuedFrom === null || parsed.continuedFrom === undefined ? null : requireString(parsed.continuedFrom, 'continuedFrom'),
         events: Array.isArray(parsed.events) ? parsed.events : [],
         id: requireString(parsed.id, 'id'),
         messages: requireArray(parsed.messages, 'messages'),
+        nativeSessionId: parsed.nativeSessionId === null || parsed.nativeSessionId === undefined ? null : requireString(parsed.nativeSessionId, 'nativeSessionId'),
         path: referencePath,
         startedAt: requireString(parsed.startedAt, 'startedAt'),
         status: requireString(parsed.status, 'status'),
         title: typeof parsed.title === 'string' && parsed.title.length > 0 ? parsed.title : parsed.id,
     }
-}
-
-function agentLogFilePath(rootPath, cardPath, id) {
-    const folderPath = ensureInsideRoot(rootPath, path.join(rootPath, AGENT_LOG_FOLDER))
-    const fileName = `${safeHistorySegment(cardPath)}_${safeHistorySegment(id)}.json`
-
-    return ensureInsideRoot(rootPath, path.join(folderPath, fileName))
-}
-
-function createMessage(id, role, content, timestamp) {
-    return { content, id, role, timestamp }
 }
 
 async function loadActionRunHistory(project, request) {
@@ -353,43 +342,6 @@ async function loadAgentConversation(project, referencePath) {
     const content = await fs.promises.readFile(filePath, 'utf8')
 
     return normalizeAgentConversation(content, referencePath)
-}
-
-async function continueAgentConversation(project, request) {
-    const rootPath = requireRootPath(project)
-    await assertGitRoot(rootPath)
-    if (!request || typeof request.command !== 'string' || request.command.length === 0) throw new Error('Missing agent command')
-    if (typeof request.cardPath !== 'string' || request.cardPath.length === 0) throw new Error('Missing agent cardPath')
-    if (typeof request.input !== 'string' || request.input.length === 0) throw new Error('Missing agent input')
-    if (typeof request.sourcePath !== 'string' || request.sourcePath.length === 0) throw new Error('Missing source agent log path')
-
-    const id = `agent-${Date.now()}`
-    const startedAt = new Date().toISOString()
-    const result = await runProcessWithInput(request.command, request.input, rootPath)
-    const completedAt = new Date().toISOString()
-    const status = result.exitCode === 0 ? 'completed' : 'failed'
-    const messages = [
-        createMessage(`${id}-input`, 'user', request.input, startedAt),
-        createMessage(`${id}-stdout`, 'stdout', result.stdout, completedAt),
-        createMessage(`${id}-stderr`, 'stderr', result.stderr, completedAt),
-    ]
-    const conversation = {
-        cardPath: request.cardPath,
-        completedAt,
-        events: [],
-        id,
-        messages,
-        startedAt,
-        status,
-        title: CONTINUE_LOG_TITLE,
-    }
-    const filePath = agentLogFilePath(rootPath, request.cardPath, id)
-    const reference = normalizePath(path.relative(rootPath, filePath))
-    const persisted = { ...conversation, path: undefined }
-    await fs.promises.mkdir(path.dirname(filePath), { recursive: true })
-    await fs.promises.writeFile(filePath, `${JSON.stringify(persisted, null, 2)}\n`)
-
-    return { conversation: { ...conversation, path: reference }, reference }
 }
 
 async function readMarkdownFiles(rootPath, folderPath) {
@@ -665,7 +617,6 @@ module.exports = {
     cancelActionSchedule,
     loadActionRunHistory,
     loadActionSchedules,
-    continueAgentConversation,
     loadAgentConversation,
     loadActionFiles,
     loadProject,

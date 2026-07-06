@@ -13,6 +13,9 @@ const { THEME_MODE_STORE_KEY, resolveThemeMode, resolveTitleBarOverlay } = requi
 
 const appUrl = resolveAppUrl()
 const DATA_OPEN_PROJECT_FOLDER_CHANNEL = 'md2-data:open-project-folder'
+const LIFECYCLE_FLUSH_REQUEST_CHANNEL = 'md2-lifecycle:flush-pending-commits'
+const LIFECYCLE_FLUSH_DONE_CHANNEL = 'md2-lifecycle:flush-pending-commits-done'
+const QUIT_FLUSH_TIMEOUT_MS = 5000
 const REMOTE_CONTROL_STATUS_CHANNEL = 'md2-remote-control:status'
 const REMOTE_CONTROL_START_CHANNEL = 'md2-remote-control:start'
 const REMOTE_CONTROL_STOP_CHANNEL = 'md2-remote-control:stop'
@@ -101,7 +104,7 @@ function createWindow() {
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
             nodeIntegration: false,
-            contextIsolation: false,
+            contextIsolation: true,
             sandbox: false,
         },
     })
@@ -113,11 +116,53 @@ async function stopAndQuit() {
     if (isQuittingAfterTelemetry) return
 
     isQuittingAfterTelemetry = true
+    await flushRendererPendingCommits()
     await remoteControlService.stop()
     remoteAgentRunnerService.stopAll()
     await trackEvent('electron_stop')
     await flush()
     app.quit()
+}
+
+function waitForRendererFlush(browserWindow, requestId) {
+    if (browserWindow.webContents.isDestroyed()) return Promise.resolve()
+
+    return new Promise((resolve) => {
+        let isSettled = false
+        let timeoutId = null
+
+        function settle() {
+            if (isSettled) return
+
+            isSettled = true
+            if (timeoutId !== null) clearTimeout(timeoutId)
+            ipcMain.removeListener(LIFECYCLE_FLUSH_DONE_CHANNEL, handleFlushDone)
+            resolve()
+        }
+
+        function handleFlushDone(event, completedRequestId) {
+            if (event.sender !== browserWindow.webContents) return
+            if (completedRequestId !== requestId) return
+
+            settle()
+        }
+
+        timeoutId = setTimeout(settle, QUIT_FLUSH_TIMEOUT_MS)
+        ipcMain.on(LIFECYCLE_FLUSH_DONE_CHANNEL, handleFlushDone)
+
+        try {
+            browserWindow.webContents.send(LIFECYCLE_FLUSH_REQUEST_CHANNEL, requestId)
+        } catch {
+            settle()
+        }
+    })
+}
+
+async function flushRendererPendingCommits() {
+    const windows = BrowserWindow.getAllWindows()
+    const flushes = windows.map((browserWindow, index) => waitForRendererFlush(browserWindow, `quit-${Date.now()}-${index}`))
+
+    await Promise.all(flushes)
 }
 
 app.whenReady().then(async () => {

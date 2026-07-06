@@ -21,7 +21,6 @@ function createDispatch() {
         assertGitRoot: vi.fn(),
         checkoutBranch: vi.fn(async (project, branch) => ({ ...project, branch })),
         commit: vi.fn(async () => []),
-        continueAgentConversation: vi.fn(async () => ({ reference: 'log.json' })),
         loadProject: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
         loadProjectRoot: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
         runCommand: vi.fn(async () => ({ exitCode: 0, stderr: '', stdout: 'ok' })),
@@ -69,5 +68,40 @@ describe('createLocalBridgeDispatch', () => {
         dispatch.actionBridge.onScheduledActionRun(callback)
 
         expect(actionSchedulerService.subscribeRunEvents).toHaveBeenCalledWith(callback)
+    })
+
+    it('uses profile resume command for native agent resume starts', async () => {
+        const agentRunnerService = {
+            run: vi.fn(async () => ({ runId: 'run-1' })),
+            sendInput: vi.fn(),
+            start: vi.fn(async () => ({ runId: 'run-2' })),
+            stop: vi.fn(),
+        }
+        const dispatch = createLocalBridgeDispatch({
+            actionSchedulerService: null,
+            agentRunnerService,
+            desktopConfigStore: {},
+            diffService: { generateDiff: vi.fn(), openInEditor: vi.fn() },
+            localGitService: {
+                assertGitRoot: vi.fn(),
+                loadProject: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
+            },
+            readDesktopConfig: () => ({
+                agent: 'resumable',
+                agentProfiles: [{ command: 'agent start', name: 'resumable', resumeCommand: 'agent resume {{sessionId}}' }],
+                model: '',
+            }),
+        })
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
+
+        await dispatch.dataBridge.loadProject(project, 'design')
+        await dispatch.dataBridge.startAgentConversation({ cardPath: 'design/F-1.md', nativeResumeSessionId: 'session-1', prompt: 'continue' }, vi.fn())
+
+        expect(agentRunnerService.start).toHaveBeenCalledWith(project, {
+            cardPath: 'design/F-1.md',
+            command: 'agent resume session-1',
+            nativeResumeSessionId: 'session-1',
+            prompt: 'continue',
+        }, expect.any(Function))
     })
 })

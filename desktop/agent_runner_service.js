@@ -128,9 +128,13 @@ class AgentRunnerService {
         const conversation = {
             cardPath,
             completedAt: null,
+            continuedFrom: typeof request.continuedFrom === 'string' && request.continuedFrom.length > 0 ? request.continuedFrom : null,
             events: [createEvent(`${id}-started`, 'started', command, startedAt)],
             id,
             messages: [createMessage(`${id}-prompt`, 'user', prompt, startedAt)],
+            nativeSessionId: typeof request.nativeResumeSessionId === 'string' && request.nativeResumeSessionId.length > 0
+                ? request.nativeResumeSessionId
+                : null,
             startedAt,
             status: 'running',
             title,

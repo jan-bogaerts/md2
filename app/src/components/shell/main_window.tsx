@@ -1,12 +1,13 @@
-import { Box, Drawer, useMediaQuery, useTheme } from '@mui/material'
-import { useState, type ReactNode } from 'react'
+import { Box, Drawer, Typography, useMediaQuery, useTheme } from '@mui/material'
+import { useCallback, useState, type ReactNode } from 'react'
 import { navigateTo, useAppLocation } from '../../app/app_navigation'
 import type { ProjectSession } from '../../app/use_app_bootstrap'
 import type { UseGithubAuthResult } from '../../auth/use_github_auth'
 import { ConfigPage } from '../config/config_page'
-import { GithubAuthPanel } from '../github_auth_panel'
 import { ProjectWorkspace } from '../project_workspace'
+import { useProjectState } from '../hooks/use_project_state'
 import { createSearchRegexpAgent, isSearchRegexpAgentAvailable } from '../../services/search/search_regexp_agent'
+import { GithubAuthToolbarButton } from './github_auth_toolbar_button'
 import { AppMenu } from './menu/app_menu'
 import { MainToolbar } from './main_toolbar'
 import { ProjectToolbarMenu } from './project_toolbar_menu'
@@ -32,31 +33,39 @@ export function MainWindow(props: MainWindowProps) {
     const theme = useTheme()
     const isMobile = useMediaQuery(theme.breakpoints.down('md'))
     const [isMenuOpen, setIsMenuOpen] = useState(false)
+    const [leftPanelContent, setLeftPanelContent] = useState<ReactNode>(null)
     const [statusInfo, setStatusInfo] = useState('')
+    const { hasPendingCommits } = useProjectState()
     const isConfigPage = location.pathname === '/config'
     const regexpAgent = isSearchRegexpAgentAvailable() ? createSearchRegexpAgent() : undefined
 
-    const handleOpenMenu = () => {
+    const handleOpenMenu = useCallback(() => {
         setIsMenuOpen(true)
-    }
+    }, [])
 
-    const handleCloseMenu = () => {
+    const handleCloseMenu = useCallback(() => {
         setIsMenuOpen(false)
-    }
+    }, [])
 
-    const handleOpenConfig = () => {
+    const handleOpenConfig = useCallback(() => {
         navigateTo('/config')
-    }
+    }, [])
 
     const leftPanel = (
         <Box sx={{ p: PANEL_PADDING }}>
-            <GithubAuthPanel {...auth} />
+            {leftPanelContent ?? (
+                <Typography color="text.secondary" variant="body2">
+                    No project navigation available.
+                </Typography>
+            )}
         </Box>
     )
     const rightPanel = (
         <Box sx={{ p: PANEL_PADDING }}>
             <ProjectWorkspace
                 key={session?.project.id ?? 'no-project'}
+                onLeftPanelContentChange={setLeftPanelContent}
+                onLeftPanelInteraction={handleCloseMenu}
             />
         </Box>
     )
@@ -68,6 +77,7 @@ export function MainWindow(props: MainWindowProps) {
                     <>
                         <ProjectToolbarMenu accessToken={auth.accessToken} isGithubAuthenticated={auth.isAuthenticated} />
                         <AppMenu />
+                        <GithubAuthToolbarButton auth={auth} />
                         {toolbarAction}
                     </>
                 )}
@@ -88,7 +98,12 @@ export function MainWindow(props: MainWindowProps) {
             ) : (
                 <>
                     <SplitLayout left={leftPanel} right={rightPanel} />
-                    <StatusBar agents={agents} info={statusInfo} onInfoChange={setStatusInfo} />
+                    <StatusBar
+                        agents={agents}
+                        hasPendingCommits={hasPendingCommits}
+                        info={statusInfo}
+                        onInfoChange={setStatusInfo}
+                    />
                 </>
             )}
         </Box>

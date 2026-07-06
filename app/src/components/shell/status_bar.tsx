@@ -1,4 +1,4 @@
-﻿import { Box, Stack, TextField } from '@mui/material'
+import { Box, Chip, Stack, TextField } from '@mui/material'
 import type { ChangeEvent } from 'react'
 import { KeyboardStatus } from './keyboard_status'
 import { RunningAgentsIndicator } from './running_agents_indicator'
@@ -6,13 +6,14 @@ import type { RunningAgent } from './running_agent_types'
 
 interface StatusBarProps {
     agents: RunningAgent[]
+    hasPendingCommits: boolean
     info: string
     onInfoChange: (info: string) => void
 }
 
 /** Desktop status bar: editable info, keyboard status and the running-agents indicator. */
 export function StatusBar(props: StatusBarProps) {
-    const { agents, info, onInfoChange } = props
+    const { agents, hasPendingCommits, info, onInfoChange } = props
 
     const handleInfoChange = (event: ChangeEvent<HTMLInputElement>) => {
         onInfoChange(event.target.value)
@@ -41,6 +42,7 @@ export function StatusBar(props: StatusBarProps) {
                 variant="standard"
             />
             <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
+                {hasPendingCommits ? <Chip color="warning" label="Unsaved changes" size="small" variant="outlined" /> : null}
                 <KeyboardStatus />
                 <RunningAgentsIndicator agents={agents} />
             </Stack>

@@ -1,6 +1,6 @@
 use /caveman skill
 Read and implement the feature/job described in: 
-`design\feature_descriptions\F_022_scheduled_actions.md`
+`design\feature_descriptions\F_033_agent_and_model_selection.md`
 
 You do not need to look at the git status. This is not your concern.  The worktree is what it is, you only need to touch what is required for the above mentioned job/feature description.
 

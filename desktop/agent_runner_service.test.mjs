@@ -35,7 +35,13 @@ describe('AgentRunnerService', () => {
 
             const result = await service.start(
                 { branch: 'main', id: 'local', rootPath },
-                { cardPath: 'design/F-1.md', command, prompt: 'hello' },
+                {
+                    cardPath: 'design/F-1.md',
+                    command,
+                    continuedFrom: '.md2-agent-logs/source.json',
+                    nativeResumeSessionId: 'session-1',
+                    prompt: 'hello',
+                },
                 (event) => events.push(event),
             )
             const runningContent = await readFile(join(rootPath, result.reference), 'utf8')
@@ -51,6 +57,8 @@ describe('AgentRunnerService', () => {
             expect(events.some((event) => event.type === 'stdout' && event.content.includes('hello'))).toBe(true)
             expect(events.some((event) => event.type === 'stdout' && event.content.includes('done'))).toBe(true)
             expect(persisted.cardPath).toBe('design/F-1.md')
+            expect(persisted.continuedFrom).toBe('.md2-agent-logs/source.json')
+            expect(persisted.nativeSessionId).toBe('session-1')
             expect(persisted.status).toBe('completed')
             expect(persisted.messages.map((message) => message.content).join('')).toContain('done')
         } finally {

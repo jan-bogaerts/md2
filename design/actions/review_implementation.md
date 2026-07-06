@@ -8,3 +8,6 @@ list all:
 - bad design, 
 - not following architectural design
 - code smells
+
+We already know that:
+- github authorization is inconsistent: the react app uses oauth, which requires an authorization callback url, which is a problem at the moment since we don't have a backend. Either we need to add a backend for this single purpose or use a different approach.

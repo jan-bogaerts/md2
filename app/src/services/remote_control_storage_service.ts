@@ -17,8 +17,6 @@ import type {
     BranchReference,
     CommitRequest,
     CommitResult,
-    ContinueAgentConversationRequest,
-    ContinueAgentConversationResult,
     DeleteFileRequest,
     MoveFilesRequest,
     ProjectConfig,
@@ -130,13 +128,6 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
 
     async deleteFile(request: DeleteFileRequest): Promise<void> {
         await this.request('deleteFile', [request])
-    }
-
-    async continueAgentConversation(
-        _project: ProjectReference,
-        request: ContinueAgentConversationRequest,
-    ): Promise<ContinueAgentConversationResult> {
-        return this.request<ContinueAgentConversationResult>('continueAgentConversation', [request])
     }
 
     async listBranches(project: ProjectReference): Promise<BranchReference[]> {

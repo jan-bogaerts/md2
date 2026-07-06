@@ -1,4 +1,4 @@
-﻿import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from './app'
 import { configService, REACT_CONFIG_STORAGE_KEY } from './services/config_service'
@@ -28,16 +28,18 @@ describe('App', () => {
         window.localStorage.clear()
     })
 
-    it('shows the shell with the sign-in panel once startup finishes', async () => {
+    it('shows the shell with GitHub authentication reachable once startup finishes', async () => {
         render(<App />)
 
-        expect(await screen.findByRole('button', { name: 'Sign in with GitHub' })).toBeInTheDocument()
+        fireEvent.click(await screen.findByRole('button', { name: 'GitHub account' }))
+
+        expect(screen.getByRole('button', { name: 'Sign in with GitHub' })).toBeInTheDocument()
     })
 
     it('renders the toolbar theme toggle', async () => {
         render(<App />)
 
-        await screen.findByRole('button', { name: 'Sign in with GitHub' })
+        await screen.findByRole('button', { name: 'GitHub account' })
         expect(screen.getByRole('button', { name: 'Switch to dark theme' })).toBeInTheDocument()
     })
 

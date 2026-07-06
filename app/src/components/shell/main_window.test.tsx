@@ -34,9 +34,11 @@ function conversation(request: AgentExecutionRequest): AgentConversation {
     return {
         cardPath: request.cardPath,
         completedAt: '2026-01-01T00:01:00.000Z',
+        continuedFrom: null,
         events: [],
         id: 'agent-1',
         messages: [{ content: request.prompt, id: 'm1', role: 'stdout', timestamp: '2026-01-01T00:01:00.000Z' }],
+        nativeSessionId: null,
         path: '.md2-agent-logs/one.json',
         startedAt: '2026-01-01T00:00:00.000Z',
         status: 'completed',
@@ -97,19 +99,30 @@ describe('MainWindow', () => {
         mockMatchMedia(false)
         renderWindow()
 
-        expect(screen.getByRole('button', { name: 'Sign in with GitHub' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'GitHub account' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Project' })).toBeInTheDocument()
         expect(screen.getByRole('heading', { name: 'No project open' })).toBeInTheDocument()
+        expect(screen.getByText('No project navigation available.')).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Running agents: 0' })).toBeInTheDocument()
         expect(screen.queryByRole('button', { name: 'Open menu' })).toBeNull()
     })
 
-    it('moves the left panel into a hamburger drawer on mobile', () => {
+    it('moves the left panel content into a hamburger drawer on mobile', () => {
         mockMatchMedia(true)
         renderWindow()
 
         expect(screen.queryByRole('button', { name: 'Sign in with GitHub' })).toBeNull()
         fireEvent.click(screen.getByRole('button', { name: 'Open menu' }))
+        expect(screen.getByText('No project navigation available.')).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Sign in with GitHub' })).toBeNull()
+    })
+
+    it('keeps GitHub authentication reachable from the toolbar', () => {
+        mockMatchMedia(true)
+        renderWindow()
+
+        fireEvent.click(screen.getByRole('button', { name: 'GitHub account' }))
+
         expect(screen.getByRole('button', { name: 'Sign in with GitHub' })).toBeInTheDocument()
     })
 

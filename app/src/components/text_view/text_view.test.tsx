@@ -1,5 +1,6 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { useCallback, useState, type ReactNode } from 'react'
 import { TextView } from './text_view'
 import { DEFAULT_CARD_TYPES, type AgentConversation, type ProjectCard } from '../../data/data_types'
 import { telemetryService } from '../../services/telemetry_service'
@@ -8,9 +9,11 @@ function conversation(): AgentConversation {
     return {
         cardPath: 'design/F-1-a.md',
         completedAt: '2026-01-01T00:01:00.000Z',
+        continuedFrom: null,
         events: [],
         id: 'agent-1',
         messages: [{ content: 'editor output', id: 'm1', role: 'agent', timestamp: '2026-01-01T00:01:00.000Z' }],
+        nativeSessionId: null,
         path: '.md2-agent-logs/one.json',
         startedAt: '2026-01-01T00:00:00.000Z',
         status: 'completed',
@@ -53,24 +56,36 @@ function renderTextView(overrides: Partial<Parameters<typeof TextView>[0]> = {})
     const onDeleteFile = vi.fn(async () => undefined)
     const onHeaderFieldChange = vi.fn()
 
-    render(
-        <TextView
-            activeCards={activeCards}
-            backgroundCards={backgroundCards}
-            cardTypes={DEFAULT_CARD_TYPES}
-            isMobile={false}
-            onBodyChange={onBodyChange}
-            onContinueAgentConversation={vi.fn()}
-            onDeleteFile={onDeleteFile}
-            onHeaderFieldChange={onHeaderFieldChange}
-            onSendAgentInput={vi.fn()}
-            onStartAgentConversation={vi.fn()}
-            requestedNonce={0}
-            requestedPath={null}
-            workingFolder="design"
-            {...overrides}
-        />,
-    )
+    function TextViewHarness() {
+        const [leftPanelContent, setLeftPanelContent] = useState<ReactNode>(null)
+        const handleLeftPanelInteraction = useCallback(() => undefined, [])
+
+        return (
+            <>
+                {leftPanelContent}
+                <TextView
+                    activeCards={activeCards}
+                    backgroundCards={backgroundCards}
+                    cardTypes={DEFAULT_CARD_TYPES}
+                    isMobile={false}
+                    onBodyChange={onBodyChange}
+                    onContinueAgentConversation={vi.fn()}
+                    onDeleteFile={onDeleteFile}
+                    onHeaderFieldChange={onHeaderFieldChange}
+                    onLeftPanelContentChange={setLeftPanelContent}
+                    onLeftPanelInteraction={handleLeftPanelInteraction}
+                    onSendAgentInput={vi.fn()}
+                    onStartAgentConversation={vi.fn()}
+                    requestedNonce={0}
+                    requestedPath={null}
+                    workingFolder="design"
+                    {...overrides}
+                />
+            </>
+        )
+    }
+
+    render(<TextViewHarness />)
 
     return { onBodyChange, onDeleteFile, onHeaderFieldChange }
 }
@@ -161,6 +176,8 @@ describe('TextView', () => {
             onContinueAgentConversation: vi.fn(),
             onDeleteFile: vi.fn(async () => undefined),
             onHeaderFieldChange: vi.fn(),
+            onLeftPanelContentChange: vi.fn(),
+            onLeftPanelInteraction: vi.fn(),
             onSendAgentInput: vi.fn(),
             onStartAgentConversation: vi.fn(),
             workingFolder: 'design',
@@ -172,40 +189,19 @@ describe('TextView', () => {
         expect(screen.getByRole('tab', { name: /Beta/ })).toBeInTheDocument()
     })
 
-    it('hides the tree behind a Browse files drawer on mobile', () => {
+    it('publishes the tree as left-panel content on mobile', () => {
         renderTextView({ isMobile: true })
 
-        expect(screen.queryByLabelText('File tree')).not.toBeInTheDocument()
-
-        fireEvent.click(screen.getByRole('button', { name: /Browse files/ }))
         clickTreeFile('F-1 Alpha')
 
         expect(screen.getByDisplayValue(/Body A/)).toBeInTheDocument()
     })
 
     it('keeps the formatting toolbar sticky above the editor on mobile', () => {
-        const { container } = render(
-            <TextView
-                activeCards={activeCards}
-                backgroundCards={backgroundCards}
-                cardTypes={DEFAULT_CARD_TYPES}
-                isMobile
-                onBodyChange={vi.fn()}
-                onContinueAgentConversation={vi.fn()}
-                onDeleteFile={vi.fn(async () => undefined)}
-                onHeaderFieldChange={vi.fn()}
-                onSendAgentInput={vi.fn()}
-                onStartAgentConversation={vi.fn()}
-                requestedNonce={0}
-                requestedPath={null}
-                workingFolder="design"
-            />,
-        )
-
-        fireEvent.click(screen.getByRole('button', { name: /Browse files/ }))
+        renderTextView({ isMobile: true })
         clickTreeFile('F-1 Alpha')
 
-        expect(container.querySelector('[data-sticky-toolbar="true"]')).not.toBeNull()
+        expect(document.querySelector('[data-sticky-toolbar="true"]')).not.toBeNull()
     })
 
     it('leaves the toolbar non-sticky on desktop', () => {
@@ -216,7 +212,7 @@ describe('TextView', () => {
         expect(document.querySelector('[data-sticky-toolbar="false"]')).not.toBeNull()
     })
 
-    it('renders the desktop tree inline without a Browse files button', () => {
+    it('publishes the desktop tree without a Browse files button', () => {
         renderTextView()
 
         expect(screen.queryByRole('button', { name: /Browse files/ })).not.toBeInTheDocument()

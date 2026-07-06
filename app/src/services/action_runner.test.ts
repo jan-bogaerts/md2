@@ -43,9 +43,11 @@ function conversation(request: AgentExecutionRequest): AgentConversation {
     return {
         cardPath: request.cardPath,
         completedAt: '2026-01-01T00:01:00.000Z',
+        continuedFrom: null,
         events: [],
         id: 'agent-1',
         messages: [{ content: request.prompt, id: 'm1', role: 'stdout', timestamp: '2026-01-01T00:01:00.000Z' }],
+        nativeSessionId: null,
         path: '.md2-agent-logs/one.json',
         startedAt: '2026-01-01T00:00:00.000Z',
         status: 'completed',
@@ -67,6 +69,15 @@ function agentResult(request: AgentExecutionRequest, overrides: Partial<AgentExe
     }
 }
 
+function createDeferred<T>() {
+    let resolveDeferred: (value: T) => void = () => undefined
+    const promise = new Promise<T>((resolve) => {
+        resolveDeferred = resolve
+    })
+
+    return { promise, resolve: resolveDeferred }
+}
+
 function noopAgentConversationLinker() {
     return Promise.resolve()
 }
@@ -81,6 +92,28 @@ function runner(commandRunner = vi.fn(async (_bridge: ElectronActionBridge, comm
 }
 
 describe('ActionRunner', () => {
+    it('registers a running action for the duration of the run', async () => {
+        const commandRun = createDeferred<CommandExecutionResult>()
+        const agentRunStarter = vi.fn(() => 'running-1')
+        const agentRunFinisher = vi.fn()
+        const commandRunner = vi.fn(async () => commandRun.promise)
+        const runPromise = new ActionRunner({
+            agentRunFinisher,
+            agentRunStarter,
+            bridgeProvider: () => bridge,
+            commandRunner,
+            projectProvider: () => ({ branch: 'main', id: 'local', rootPath: 'C:/repo' }),
+        }).run(action('implement'), context)
+
+        expect(agentRunStarter).toHaveBeenCalledWith('implement design/F-010.md')
+        expect(agentRunFinisher).not.toHaveBeenCalled()
+
+        commandRun.resolve(commandResult('implement'))
+        await runPromise
+
+        expect(agentRunFinisher).toHaveBeenCalledWith('running-1')
+    })
+
     it('resolves rootProjectFolder and file placeholders before running a command', async () => {
         const commandRunner = vi.fn(async (_bridge: ElectronActionBridge, command: string) => commandResult(command))
         const result = await runner(commandRunner).run(action('implement', { text: 'run {{rootProjectFolder}} {{file}}' }), context)

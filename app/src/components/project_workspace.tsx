@@ -2,7 +2,7 @@ import {
     Alert, Button, Divider, Paper, Stack, ToggleButton, ToggleButtonGroup, Typography,
     useMediaQuery, useTheme,
 } from '@mui/material'
-import type { MouseEvent } from 'react'
+import type { MouseEvent, ReactNode } from 'react'
 import { useEffect, useMemo, useState } from 'react'
 import {
     DEFAULT_CARD_TYPES,
@@ -14,9 +14,11 @@ import { getRemarkableBridge } from '../data/remarkable_bridge'
 import { configService } from '../services/config_service'
 import { dataService } from '../services/data_service'
 import { getElectronConfigBridge } from '../services/electron_config_bridge'
+import { getElectronLifecycleBridge, type ElectronLifecycleBridge } from '../services/electron_lifecycle_bridge'
 import { telemetryService } from '../services/telemetry_service'
 import { workspaceNavigationService, type WorkspaceOpenRequest } from '../services/workspace_navigation_service'
 import { CardView } from './card_view/card_view'
+import { CardViewNavigation } from './card_view/card_view_navigation'
 import { RemarkableImportPanel } from './remarkable_import_panel'
 import { TextView } from './text_view/text_view'
 import { useProjectState } from './hooks/use_project_state'
@@ -28,6 +30,23 @@ const WORKSPACE_PANEL_PADDING = 3
 const EMPTY_CARDS: ProjectCard[] = []
 const EMPTY_REPOSITORY_FILES: string[] = []
 
+function flushPendingCommits() {
+    void dataService.flushPendingCommits()
+}
+
+async function flushAndConfirmPendingCommits(lifecycleBridge: ElectronLifecycleBridge, requestId: string) {
+    try {
+        await dataService.flushPendingCommits()
+    } finally {
+        lifecycleBridge.confirmFlush(requestId)
+    }
+}
+
+interface ProjectWorkspaceProps {
+    onLeftPanelContentChange: (content: ReactNode) => void
+    onLeftPanelInteraction: () => void
+}
+
 function ensureConfigServiceInitialized() {
     if (configService.isInitialized()) return
 
@@ -35,7 +54,8 @@ function ensureConfigServiceInitialized() {
     configService.init({ desktopConfig })
 }
 
-export function ProjectWorkspace() {
+export function ProjectWorkspace(props: ProjectWorkspaceProps) {
+    const { onLeftPanelContentChange, onLeftPanelInteraction } = props
     ensureConfigServiceInitialized()
     const { project, snapshot } = useProjectState()
     const theme = useTheme()
@@ -54,18 +74,61 @@ export function ProjectWorkspace() {
     const projectConfig = dataService.getConfig()
     const cardTypes = projectConfig?.cardTypes ?? DEFAULT_CARD_TYPES
     const workingFolder = snapshot?.workingFolder ?? projectConfig?.workingFolder ?? DEFAULT_WORKING_FOLDER
+    const cardNavigation = useMemo(
+        () => <CardViewNavigation cards={activeCards} onNavigate={onLeftPanelInteraction} />,
+        [activeCards, onLeftPanelInteraction],
+    )
 
     void configRevision
 
     useEffect(() => {
-        const handleClose = () => {
-            void dataService.flushPendingCommits()
+        const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+            if (dataService.getState().hasPendingCommits) {
+                event.preventDefault()
+                event.returnValue = ''
+            }
+
+            flushPendingCommits()
         }
 
-        window.addEventListener('beforeunload', handleClose)
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'hidden') flushPendingCommits()
+        }
 
-        return () => window.removeEventListener('beforeunload', handleClose)
+        const handleBlur = () => {
+            if (dataService.getState().hasPendingCommits) flushPendingCommits()
+        }
+
+        document.addEventListener('visibilitychange', handleVisibilityChange)
+        window.addEventListener('beforeunload', handleBeforeUnload)
+        window.addEventListener('blur', handleBlur)
+
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange)
+            window.removeEventListener('beforeunload', handleBeforeUnload)
+            window.removeEventListener('blur', handleBlur)
+        }
     }, [])
+
+    useEffect(() => {
+        const lifecycleBridge = getElectronLifecycleBridge()
+        if (!lifecycleBridge) return undefined
+
+        return lifecycleBridge.onFlushRequested((requestId) => {
+            void flushAndConfirmPendingCommits(lifecycleBridge, requestId)
+        })
+    }, [])
+
+    useEffect(() => {
+        if (!isProjectOpen) {
+            onLeftPanelContentChange(null)
+
+            return
+        }
+        if (viewMode !== 'cards') return
+
+        onLeftPanelContentChange(cardNavigation)
+    }, [cardNavigation, isProjectOpen, onLeftPanelContentChange, viewMode])
 
     useEffect(() => {
         const handleConfigChange = () => {
@@ -240,6 +303,8 @@ export function ProjectWorkspace() {
                                 backgroundCards={backgroundCards}
                                 cardTypes={cardTypes}
                                 isMobile={isMobile}
+                                onLeftPanelContentChange={onLeftPanelContentChange}
+                                onLeftPanelInteraction={onLeftPanelInteraction}
                                 onBodyChange={handleBodyChange}
                                 onContinueAgentConversation={handleContinueAgentConversation}
                                 onDeleteFile={handleDeleteFile}

@@ -4,8 +4,6 @@ import type {
     BranchReference,
     CommitResult,
     CommitRequest,
-    ContinueAgentConversationRequest,
-    ContinueAgentConversationResult,
     DeleteFileRequest,
     AgentConversation,
     AgentRunEvent,
@@ -91,16 +89,6 @@ export class LocalGitStorageService implements StorageService {
         if (!bridge.loadAgentConversation) throw new Error('Electron local Git bridge cannot load agent conversations')
 
         return bridge.loadAgentConversation(path)
-    }
-
-    async continueAgentConversation(
-        _project: ProjectReference,
-        request: ContinueAgentConversationRequest,
-    ): Promise<ContinueAgentConversationResult> {
-        const bridge = this.requireBridge()
-        if (!bridge.continueAgentConversation) throw new Error('Electron local Git bridge cannot continue agent conversations')
-
-        return bridge.continueAgentConversation(request)
     }
 
     async startAgentConversation(

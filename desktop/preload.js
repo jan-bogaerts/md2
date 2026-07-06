@@ -1,4 +1,4 @@
-const { ipcRenderer } = require('electron')
+const { contextBridge, ipcRenderer } = require('electron')
 const Store = require('electron-store')
 const { readDesktopConfig, writeDesktopConfig } = require('./config')
 const { requestGithubAccessToken, requestGithubDeviceCode } = require('./github_oauth_proxy')
@@ -15,6 +15,8 @@ const REMOTE_CONTROL_START_CHANNEL = 'md2-remote-control:start'
 const REMOTE_CONTROL_STOP_CHANNEL = 'md2-remote-control:stop'
 const REMOTE_CONTROL_GET_STATUS_CHANNEL = 'md2-remote-control:get-status'
 const THEME_SET_MODE_CHANNEL = 'md2-theme:set-mode'
+const LIFECYCLE_FLUSH_REQUEST_CHANNEL = 'md2-lifecycle:flush-pending-commits'
+const LIFECYCLE_FLUSH_DONE_CHANNEL = 'md2-lifecycle:flush-pending-commits-done'
 const REMARKABLE_TEST_CONNECTION_CHANNEL = 'md2-remarkable:test-connection'
 const REMARKABLE_LIST_IMAGE_FILES_CHANNEL = 'md2-remarkable:list-image-files'
 const REMARKABLE_IMPORT_FILES_CHANNEL = 'md2-remarkable:import-files'
@@ -33,18 +35,30 @@ const githubAuthBridge = {
     requestDeviceCode: (request) => requestGithubDeviceCode(request),
 }
 
-window.md2GithubAuth = githubAuthBridge
+contextBridge.exposeInMainWorld('md2GithubAuth', githubAuthBridge)
 
 const themeBridge = { setThemeMode: (mode) => ipcRenderer.send(THEME_SET_MODE_CHANNEL, mode) }
 
-window.md2Theme = themeBridge
+contextBridge.exposeInMainWorld('md2Theme', themeBridge)
+
+const lifecycleBridge = {
+    confirmFlush: (requestId) => ipcRenderer.send(LIFECYCLE_FLUSH_DONE_CHANNEL, requestId),
+    onFlushRequested: (callback) => {
+        const listener = (_event, requestId) => callback(requestId)
+        ipcRenderer.on(LIFECYCLE_FLUSH_REQUEST_CHANNEL, listener)
+
+        return () => ipcRenderer.removeListener(LIFECYCLE_FLUSH_REQUEST_CHANNEL, listener)
+    },
+}
+
+contextBridge.exposeInMainWorld('md2Lifecycle', lifecycleBridge)
 
 const configBridge = {
     getDesktopConfig: () => readDesktopConfig(desktopConfigStore),
     setDesktopConfig: (values) => writeDesktopConfig(desktopConfigStore, values),
 }
 
-window.md2Config = configBridge
+contextBridge.exposeInMainWorld('md2Config', configBridge)
 
 const remoteControlBridge = {
     getStatus: () => ipcRenderer.invoke(REMOTE_CONTROL_GET_STATUS_CHANNEL),
@@ -58,7 +72,7 @@ const remoteControlBridge = {
     stop: () => ipcRenderer.invoke(REMOTE_CONTROL_STOP_CHANNEL),
 }
 
-window.md2RemoteControl = remoteControlBridge
+contextBridge.exposeInMainWorld('md2RemoteControl', remoteControlBridge)
 
 const remarkableBridge = {
     importFiles: (request) => ipcRenderer.invoke(REMARKABLE_IMPORT_FILES_CHANNEL, request),
@@ -66,7 +80,7 @@ const remarkableBridge = {
     testConnection: (settings) => ipcRenderer.invoke(REMARKABLE_TEST_CONNECTION_CHANNEL, settings),
 }
 
-window.md2Remarkable = remarkableBridge
+contextBridge.exposeInMainWorld('md2Remarkable', remarkableBridge)
 
 const localBridgeDispatch = createLocalBridgeDispatch({
     actionSchedulerService,
@@ -78,8 +92,8 @@ const localBridgeDispatch = createLocalBridgeDispatch({
     readDesktopConfig,
 })
 
-window.md2Data = localBridgeDispatch.dataBridge
-window.md2Actions = localBridgeDispatch.actionBridge
+contextBridge.exposeInMainWorld('md2Data', localBridgeDispatch.dataBridge)
+contextBridge.exposeInMainWorld('md2Actions', localBridgeDispatch.actionBridge)
 
 window.addEventListener('beforeunload', () => {
     actionSchedulerService.stop()

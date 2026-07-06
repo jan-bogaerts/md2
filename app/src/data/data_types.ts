@@ -168,9 +168,11 @@ export interface AgentConversationEvent {
 export interface AgentConversation {
     cardPath: string
     completedAt: string | null
+    continuedFrom: string | null
     events: AgentConversationEvent[]
     id: string
     messages: AgentConversationMessage[]
+    nativeSessionId: string | null
     path: string
     startedAt: string
     status: AgentConversationStatus
@@ -182,12 +184,6 @@ export interface AgentConversationError {
     path: string
 }
 
-export interface ContinueAgentConversationRequest {
-    cardPath: string
-    input: string
-    sourcePath: string
-}
-
 export interface ContinueAgentConversationResult {
     conversation: AgentConversation
     reference: string
@@ -195,6 +191,8 @@ export interface ContinueAgentConversationResult {
 
 export interface StartAgentConversationRequest {
     cardPath: string
+    continuedFrom?: string
+    nativeResumeSessionId?: string
     prompt: string
     title?: string
 }
@@ -221,10 +219,6 @@ export interface StorageService {
     createProject(project: ProjectReference, workingFolder: string): Promise<ProjectReference>
     createWorkingFolderFromTemplate(project: ProjectReference, workingFolder: string): Promise<ProjectReference>
     deleteFile(request: DeleteFileRequest): Promise<void>
-    continueAgentConversation?(
-        project: ProjectReference,
-        request: ContinueAgentConversationRequest,
-    ): Promise<ContinueAgentConversationResult>
     listBranches(project: ProjectReference): Promise<BranchReference[]>
     listRepositories(): Promise<RepositoryReference[]>
     loadActionFiles(project: ProjectReference, actionsFolder: string): Promise<ActionFile[]>

@@ -52,9 +52,11 @@ function conversation(path = '.md2-agent-logs/one.json'): AgentConversation {
     return {
         cardPath: 'design/F-1-root.md',
         completedAt: '2026-01-01T00:01:00.000Z',
+        continuedFrom: null,
         events: [],
         id: 'agent-1',
         messages: [{ content: 'done', id: 'm1', role: 'agent', timestamp: '2026-01-01T00:01:00.000Z' }],
+        nativeSessionId: null,
         path,
         startedAt: '2026-01-01T00:00:00.000Z',
         status: 'completed',
@@ -99,6 +101,7 @@ function createStorage(overrides: Partial<StorageService> = {}): StorageService 
         listRepositoryFiles: vi.fn(async () => ['app/src/app.tsx', 'app/src/card.tsx', 'design/F-1-root.md']),
         listTopLevelFolders: vi.fn(async () => [{ name: 'design', path: 'design' }]),
         loadActionFiles: vi.fn(async () => []),
+        loadAgentConversation: vi.fn(async (_project, path) => conversation(path)),
         loadProject: vi.fn(async () => ({ files, workingFolder: 'design' })),
         loadProjectRoot: vi.fn(async () => ({ files, workingFolder: 'design' })),
         loadProjectConfig: vi.fn(async () => null),
@@ -194,18 +197,59 @@ describe('CommitBatcher', () => {
         await vi.advanceTimersByTimeAsync(30000)
 
         expect(commit).toHaveBeenCalledTimes(1)
-        expect(commit.mock.calls[0][0]).toMatchObject({ files: [{ content: 'two', path: 'design/F-1-root.md' }] })
+        expect(commit.mock.calls[0][0]).toMatchObject({ files: [{ content: 'two', path: 'design/F-1-root.md' }], message: 'Update root' })
         vi.useRealTimers()
     })
 
-    it('flushes pending commits on close', async () => {
+    it('flushes one logical change with the exact message on close', async () => {
         const commit = vi.fn<CommitCallback>(async () => undefined)
         const batcher = new CommitBatcher({ clearDelay: window.clearTimeout, commit, delayMs: 30000, setDelay: window.setTimeout })
 
         batcher.schedule('main', [{ content: 'one', path: 'design/F-1-root.md' }], 'Update root')
+        expect(batcher.hasPending()).toBe(true)
+
+        await batcher.flush()
+
+        expect(batcher.hasPending()).toBe(false)
+        expect(commit).toHaveBeenCalledTimes(1)
+        expect(commit.mock.calls[0][0]).toMatchObject({ message: 'Update root' })
+    })
+
+    it('combines distinct messages for a multi-file batch', async () => {
+        const commit = vi.fn<CommitCallback>(async () => undefined)
+        const batcher = new CommitBatcher({ clearDelay: window.clearTimeout, commit, delayMs: 30000, setDelay: window.setTimeout })
+
+        batcher.schedule('main', [{ content: 'one', path: 'design/F-1-root.md' }], 'Update design/F-1-root.md')
+        batcher.schedule('main', [{ content: 'two', path: 'design/F-2-child.md' }], 'Update design/F-2-child.md')
         await batcher.flush()
 
         expect(commit).toHaveBeenCalledTimes(1)
+        expect(commit.mock.calls[0][0]).toMatchObject({
+            files: [
+                { content: 'one', path: 'design/F-1-root.md' },
+                { content: 'two', path: 'design/F-2-child.md' },
+            ],
+            message: 'Update 2 files\n\n- Update design/F-1-root.md\n- Update design/F-2-child.md',
+        })
+    })
+
+    it('deduplicates repeated messages for the same path', async () => {
+        const commit = vi.fn<CommitCallback>(async () => undefined)
+        const batcher = new CommitBatcher({ clearDelay: window.clearTimeout, commit, delayMs: 30000, setDelay: window.setTimeout })
+
+        batcher.schedule('main', [{ content: 'one', path: 'design/F-1-root.md' }], 'Update design/F-1-root.md')
+        batcher.schedule('main', [{ content: 'two', path: 'design/F-1-root.md' }], 'Update design/F-1-root.md')
+        batcher.schedule('main', [{ content: 'three', path: 'design/F-2-child.md' }], 'Update design/F-2-child.md')
+        await batcher.flush()
+
+        expect(commit).toHaveBeenCalledTimes(1)
+        expect(commit.mock.calls[0][0]).toMatchObject({
+            files: [
+                { content: 'two', path: 'design/F-1-root.md' },
+                { content: 'three', path: 'design/F-2-child.md' },
+            ],
+            message: 'Update 2 files\n\n- Update design/F-1-root.md\n- Update design/F-2-child.md',
+        })
     })
 })
 
@@ -685,6 +729,55 @@ describe('DataService', () => {
         )
     })
 
+    it('surfaces failed onState actions on the moved card', async () => {
+        configService.init()
+        vi.mocked(actionRunner.run).mockResolvedValueOnce({
+            logs: [{
+                actionName: 'ready-action',
+                command: 'run',
+                message: 'Ready failed with exit code 1',
+                phase: 'main',
+                status: 'failed',
+                stderr: 'bad',
+                stdout: '',
+            }],
+            status: 'failed',
+        })
+        const moveFiles: MarkdownFile[] = [
+            { content: '---\nid: F-1\ninternalId: a\ntitle: A\nstatus: todo\n---\n\n# A', path: 'design/F-1.md' },
+            { content: '---\nid: F-2\ninternalId: b\ntitle: B\nstatus: todo\nafter: a\n---\n\n# B', path: 'design/F-2.md' },
+        ]
+        const actionFile = {
+            content: JSON.stringify({
+                appliesTo: { type: 'feature' },
+                description: 'Ready',
+                label: 'Ready',
+                name: 'ready-action',
+                onState: 'ready',
+                text: 'run',
+                type: 'cmd',
+            }),
+            path: 'actions/ready.json',
+        }
+        const storage = createStorage({
+            loadActionFiles: vi.fn(async () => [actionFile]),
+            loadProject: vi.fn(async () => ({ files: moveFiles, workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: moveFiles, workingFolder: 'design' })),
+        })
+        const service = new DataService()
+        service.init({ storage })
+
+        await service.openProject({ branch: 'main', id: 'project' })
+        service.moveCard('design/F-2.md', 'ready', 0)
+
+        await vi.waitFor(() => {
+            const movedCard = service.getState().snapshot?.activeCards.find((card) => card.path === 'design/F-2.md')
+            expect(movedCard?.agentConversationErrors).toEqual([
+                { message: 'Ready failed with exit code 1', path: 'onState:ready-action' },
+            ])
+        })
+    })
+
     it('does not run onState actions when a card is reordered inside the same state', async () => {
         configService.init()
         const moveFiles: MarkdownFile[] = [
@@ -942,7 +1035,43 @@ describe('DataService', () => {
         expect(committed.files[0].content).toContain('agents:\n  - .md2-agent-logs/two.json')
         expect(storage.startAgentConversation).toHaveBeenCalledWith(
             { branch: 'main', id: 'project' },
-            { cardPath: 'design/F-1-root.md', prompt: 'continue', title: 'Continue' },
+            {
+                cardPath: 'design/F-1-root.md',
+                continuedFrom: '.md2-agent-logs/one.json',
+                nativeResumeSessionId: undefined,
+                prompt: expect.stringContaining('agent: done'),
+                title: 'Continue',
+            },
+            expect.any(Function),
+        )
+    })
+
+    it('uses native resume when the source conversation has a native session id', async () => {
+        configService.init()
+        const sourceConversation = { ...conversation('.md2-agent-logs/one.json'), nativeSessionId: 'session-1' }
+        const storage = createStorage({
+            loadAgentConversation: vi.fn(async () => sourceConversation),
+            startAgentConversation: vi.fn(async () => ({
+                conversation: { ...conversation('.md2-agent-logs/two.json'), continuedFrom: '.md2-agent-logs/one.json', id: 'agent-2' },
+                reference: '.md2-agent-logs/two.json',
+                runId: 'agent-2',
+            })),
+        })
+        const service = new DataService()
+        service.init({ storage })
+
+        await service.openProject({ branch: 'main', id: 'project' })
+        await service.continueAgentConversation('design/F-1-root.md', '.md2-agent-logs/one.json')
+
+        expect(storage.startAgentConversation).toHaveBeenCalledWith(
+            { branch: 'main', id: 'project' },
+            {
+                cardPath: 'design/F-1-root.md',
+                continuedFrom: '.md2-agent-logs/one.json',
+                nativeResumeSessionId: 'session-1',
+                prompt: 'continue',
+                title: 'Continue',
+            },
             expect.any(Function),
         )
     })

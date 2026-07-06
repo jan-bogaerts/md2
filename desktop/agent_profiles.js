@@ -1,4 +1,5 @@
 const MODEL_PLACEHOLDER = '{{model}}'
+const SESSION_ID_PLACEHOLDER = '{{sessionId}}'
 
 const BUILTIN_AGENT_PROFILES = [
     { command: 'codex', modelArgument: '--model', models: [], name: 'codex' },
@@ -49,6 +50,7 @@ function validateAgentProfiles(value) {
             ...(profile.modelArgument !== undefined ? { modelArgument: requireString(profile.modelArgument, `desktop.agentProfiles[${index}].modelArgument`) } : {}),
             ...(models !== undefined ? { models } : {}),
             name,
+            ...(profile.resumeCommand !== undefined ? { resumeCommand: requireString(profile.resumeCommand, `desktop.agentProfiles[${index}].resumeCommand`) } : {}),
         }
     })
 }
@@ -88,6 +90,12 @@ function buildAgentCommand(profile, model) {
     return profile.command
 }
 
+function buildResumeAgentCommand(profile, sessionId) {
+    if (!profile.resumeCommand) throw new Error(`Agent profile does not support native resume: ${profile.name}`)
+
+    return profile.resumeCommand.replaceAll(SESSION_ID_PLACEHOLDER, sessionId)
+}
+
 function resolveAgentCommand(config, selection = {}) {
     const agent = selection.agent ?? config.agent
     const profiles = config.agentProfiles ?? []
@@ -102,6 +110,7 @@ function resolveAgentCommand(config, selection = {}) {
 module.exports = {
     BUILTIN_AGENT_PROFILES,
     buildAgentCommand,
+    buildResumeAgentCommand,
     defaultModelForProfile,
     findAgentProfile,
     mergeAgentProfiles,

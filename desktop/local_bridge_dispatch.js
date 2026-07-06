@@ -1,4 +1,13 @@
-const { resolveAgentCommand } = require('./agent_profiles')
+const { buildResumeAgentCommand, resolveAgentCommand } = require('./agent_profiles')
+
+function resolveStartAgentCommand(config, request) {
+    const resolved = resolveAgentCommand(config)
+    if (typeof request.nativeResumeSessionId === 'string' && request.nativeResumeSessionId.length > 0 && resolved.profile.resumeCommand) {
+        return buildResumeAgentCommand(resolved.profile, request.nativeResumeSessionId)
+    }
+
+    return resolved.command
+}
 
 function createLocalProject(rootPath) {
     return {
@@ -33,11 +42,6 @@ function createLocalBridgeDispatch(dependencies) {
             return localGitService.cancelActionSchedule(project, actionsFolder, scheduleId)
         },
         commit: (request) => localGitService.commit(request, currentLocalProject),
-        continueAgentConversation: (request) => {
-            const { command } = resolveAgentCommand(readDesktopConfig(desktopConfigStore))
-
-            return localGitService.continueAgentConversation(currentLocalProject, { ...request, command })
-        },
         createProject: (project, workingFolder) => localGitService.createProject(project, workingFolder),
         createWorkingFolderFromTemplate: (project, workingFolder) => (
             localGitService.createWorkingFolderFromTemplate(project, workingFolder)
@@ -81,7 +85,7 @@ function createLocalBridgeDispatch(dependencies) {
         saveProjectConfig: (project, config) => localGitService.saveProjectConfig(project, config),
         sendAgentInput: (runId, input) => agentRunnerService.sendInput(runId, input),
         startAgentConversation: (request, callback) => {
-            const { command } = resolveAgentCommand(readDesktopConfig(desktopConfigStore))
+            const command = resolveStartAgentCommand(readDesktopConfig(desktopConfigStore), request)
 
             return agentRunnerService.start(currentLocalProject, { ...request, command }, callback)
         },

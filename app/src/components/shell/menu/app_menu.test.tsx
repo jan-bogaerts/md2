@@ -1,5 +1,6 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { useCallback, useState, type ReactNode } from 'react'
 import type { StorageService } from '../../../data/data_types'
 import type { ElectronDataBridge } from '../../../data/electron_data_bridge'
 import { configService } from '../../../services/config_service'
@@ -52,12 +53,22 @@ function createResetStorage(): StorageService {
 }
 
 function renderSurface() {
+    function Surface() {
+        const [leftPanelContent, setLeftPanelContent] = useState<ReactNode>(null)
+        const handleLeftPanelInteraction = useCallback(() => undefined, [])
+
+        return (
+            <>
+                <ProjectToolbarMenu accessToken="token" isGithubAuthenticated={false} />
+                <AppMenu />
+                {leftPanelContent}
+                <ProjectWorkspace onLeftPanelContentChange={setLeftPanelContent} onLeftPanelInteraction={handleLeftPanelInteraction} />
+            </>
+        )
+    }
+
     return render(
-        <>
-            <ProjectToolbarMenu accessToken="token" isGithubAuthenticated={false} />
-            <AppMenu />
-            <ProjectWorkspace />
-        </>,
+        <Surface />,
     )
 }
 

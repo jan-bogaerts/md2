@@ -3,7 +3,6 @@ import type {
     AgentConversationEvent,
     AgentConversationMessage,
     AgentConversationStatus,
-    ContinueAgentConversationRequest,
     ContinueAgentConversationResult,
     ProjectReference,
     RunningAgent,
@@ -15,6 +14,7 @@ import type {
 import { register } from './service_injector'
 
 const CONTINUE_INPUT = 'continue'
+const CONTINUE_TRANSCRIPT_LIMIT = 12000
 const VALID_STATUSES = new Set<AgentConversationStatus>(['completed', 'failed', 'running'])
 const VALID_ROLES = new Set(['agent', 'stderr', 'stdout', 'system', 'user'])
 
@@ -90,14 +90,38 @@ export function parseAgentConversationLog(content: string, referencePath: string
     return {
         cardPath: requireString(payload.cardPath, 'cardPath'),
         completedAt: nullableString(payload.completedAt, 'completedAt'),
+        continuedFrom: nullableString(payload.continuedFrom, 'continuedFrom'),
         events,
         id: requireString(payload.id, 'id'),
         messages,
+        nativeSessionId: nullableString(payload.nativeSessionId, 'nativeSessionId'),
         path: referencePath,
         startedAt: requireString(payload.startedAt, 'startedAt'),
         status: requireStatus(payload.status),
         title: typeof payload.title === 'string' && payload.title.length > 0 ? payload.title : requireString(payload.id, 'id'),
     }
+}
+
+function transcriptLine(message: AgentConversationMessage) {
+    return `${message.role}: ${message.content}`
+}
+
+function truncateTranscript(transcript: string) {
+    if (transcript.length <= CONTINUE_TRANSCRIPT_LIMIT) return transcript
+
+    return transcript.slice(transcript.length - CONTINUE_TRANSCRIPT_LIMIT)
+}
+
+export function buildContinuePrompt(conversation: AgentConversation, input = CONTINUE_INPUT) {
+    const transcript = truncateTranscript(conversation.messages.map(transcriptLine).join('\n\n'))
+
+    return [
+        'Continue the prior agent conversation using this transcript.',
+        '',
+        transcript,
+        '',
+        `User instruction: ${input}`,
+    ].join('\n')
 }
 
 export async function loadAgentConversation(storage: StorageService, project: ProjectReference, path: string) {
@@ -107,10 +131,12 @@ export async function loadAgentConversation(storage: StorageService, project: Pr
 }
 
 export class AgentConversationService extends EventTarget {
+    private nextRunningAgentId: number
     private runningAgents: RunningAgent[]
 
     constructor() {
         super()
+        this.nextRunningAgentId = 0
         this.runningAgents = []
         register('agentConversationService', this)
     }
@@ -119,17 +145,37 @@ export class AgentConversationService extends EventTarget {
         return this.runningAgents
     }
 
+    startRunningAgent(label: string) {
+        this.nextRunningAgentId += 1
+        const id = `action-${this.nextRunningAgentId}`
+        this.setRunningAgents([...this.runningAgents, { id, label }])
+
+        return id
+    }
+
+    finishRunningAgent(id: string) {
+        this.removeRunningAgent(id)
+    }
+
     async continueConversation(
         storage: StorageService,
         project: ProjectReference,
-        request: Omit<ContinueAgentConversationRequest, 'input'>,
+        request: { cardPath: string; sourcePath: string },
         onEvent: (event: AgentRunEvent) => void,
     ): Promise<ContinueAgentConversationResult> {
         if (!storage.startAgentConversation) throw new Error('Continuing agent conversations requires an Electron agent bridge')
 
+        const sourceConversation = await loadAgentConversation(storage, project, request.sourcePath)
+        const nativeSessionId = sourceConversation.nativeSessionId ?? undefined
         const result = await storage.startAgentConversation(
             project,
-            { cardPath: request.cardPath, prompt: CONTINUE_INPUT, title: 'Continue' },
+            {
+                cardPath: request.cardPath,
+                continuedFrom: request.sourcePath,
+                nativeResumeSessionId: nativeSessionId,
+                prompt: nativeSessionId ? CONTINUE_INPUT : buildContinuePrompt(sourceConversation),
+                title: 'Continue',
+            },
             (event) => {
                 onEvent(event)
                 this.observeRunEvent(event, `Continue ${request.cardPath}`)

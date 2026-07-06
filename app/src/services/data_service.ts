@@ -1,5 +1,6 @@
 ﻿import { CommitBatcher } from '../data/commit_batcher'
-import { cardContext } from '../data/action_context'
+import { cardContext, type ActionContext } from '../data/action_context'
+import type { ActionDefinition } from '../data/action_types'
 import { ACTION_SCHEDULES_FILE } from '../data/action_schedule_types'
 import { createCardFile } from '../data/card_naming'
 import { computeMove, orderByAfter, UNASSIGNED_STATUS } from '../data/card_ordering'
@@ -31,6 +32,7 @@ import { telemetryService } from './telemetry_service'
 
 const ACTION_RELOAD_DEBOUNCE_MS = 150
 const JSON_EXTENSION = '.json'
+const ON_STATE_ACTION_ERROR_PATH_PREFIX = 'onState'
 
 function isActionDefinitionPath(path: string, actionsFolder: string) {
     const normalizedPath = path.replace(/\\/gu, '/')
@@ -39,6 +41,10 @@ function isActionDefinitionPath(path: string, actionsFolder: string) {
     if (fileName === ACTION_SCHEDULES_FILE) return false
 
     return normalizedPath.startsWith(`${normalizedActionsFolder}/`) && normalizedPath.toLowerCase().endsWith(JSON_EXTENSION)
+}
+
+function isOnStateActionError(error: AgentConversationError) {
+    return error.path.startsWith(`${ON_STATE_ACTION_ERROR_PATH_PREFIX}:`)
 }
 
 /** Merge committed files into the loaded set: replace matching paths, append new ones. */
@@ -77,6 +83,7 @@ export interface RemarkableImportInput {
 }
 
 export interface DataServiceState {
+    hasPendingCommits: boolean
     project: ProjectReference | null
     runningAgents: RunningAgent[]
     snapshot: ProjectSnapshot | null
@@ -175,7 +182,12 @@ export class DataService extends EventTarget {
     }
 
     getState(): DataServiceState {
-        return { project: this.currentProject, runningAgents: agentConversationService.getRunningAgents(), snapshot: this.currentSnapshot }
+        return {
+            hasPendingCommits: this.commitBatcher?.hasPending() ?? false,
+            project: this.currentProject,
+            runningAgents: agentConversationService.getRunningAgents(),
+            snapshot: this.currentSnapshot,
+        }
     }
 
     getConfig(): ProjectConfig | null {
@@ -463,15 +475,14 @@ export class DataService extends EventTarget {
     }
 
     async flushPendingCommits() {
-        const { commitBatcher } = this.requireDependencies()
-        await commitBatcher.flush()
+        await this.flushPendingCommitBatch()
     }
 
     async completeRelease(releaseName: string) {
-        const { commitBatcher, config, storage } = this.requireDependencies()
+        const { config, storage } = this.requireDependencies()
         if (!this.currentProject) throw new Error('Cannot complete a release before a project is open')
 
-        await commitBatcher.flush()
+        await this.flushPendingCommitBatch()
 
         const activeCards = this.currentSnapshot?.activeCards ?? []
         if (activeCards.length === 0) throw new Error('Cannot complete a release without active cards')
@@ -508,10 +519,10 @@ export class DataService extends EventTarget {
     }
 
     private async deleteLoadedFile(path: string, repairActiveOrdering: boolean) {
-        const { commitBatcher, config, storage } = this.requireDependencies()
+        const { config, storage } = this.requireDependencies()
         if (!this.currentProject) throw new Error('Cannot delete a file before a project is open')
 
-        await commitBatcher.flush()
+        await this.flushPendingCommitBatch()
 
         const existingFile = this.requireFile(path)
         const repairFile = repairActiveOrdering ? this.createDeleteRepairFile(path) : null
@@ -573,6 +584,15 @@ export class DataService extends EventTarget {
         this.loadAgentConversationsInBackground(this.currentSnapshot, project, projectLoadToken)
     }
 
+    private async flushPendingCommitBatch() {
+        const { commitBatcher } = this.requireDependencies()
+        const hadPendingCommits = commitBatcher.hasPending()
+
+        await commitBatcher.flush()
+
+        if (hadPendingCommits) this.dispatchChanged()
+    }
+
     private createSnapshot(files: MarkdownFile[], workingFolder: string, repositoryFiles: string[]): ProjectSnapshot {
         const cards = markdownParsingService.splitCards(files, workingFolder)
 
@@ -621,8 +641,21 @@ export class DataService extends EventTarget {
         if (this.agentConversationLoadToken !== agentConversationLoadToken) return
 
         this.conversationsByCardPath = resolved.conversationsByCardPath
-        this.errorsByCardPath = resolved.errorsByCardPath
+        this.errorsByCardPath = this.mergeResolvedAgentErrors(resolved.errorsByCardPath)
         this.refreshSnapshot()
+    }
+
+    private mergeResolvedAgentErrors(resolvedErrors: Map<string, AgentConversationError[]>) {
+        const errors = new Map(resolvedErrors)
+
+        for (const [cardPath, existingErrors] of this.errorsByCardPath) {
+            const onStateErrors = existingErrors.filter(isOnStateActionError)
+            if (onStateErrors.length === 0) continue
+
+            errors.set(cardPath, [...(errors.get(cardPath) ?? []), ...onStateErrors])
+        }
+
+        return errors
     }
 
     private attachAgentConversations(cards: Pick<ProjectSnapshot, 'activeCards' | 'backgroundCards'>) {
@@ -648,8 +681,26 @@ export class DataService extends EventTarget {
         const context = cardContext(card, config.cardTypes)
         const actions = actionService.getActionsForStateTrigger(state, context)
         for (const action of actions) {
-            void actionRunner.run(action, context)
+            this.runStateAction(action, context, cardPath)
         }
+    }
+
+    private async runStateAction(action: ActionDefinition, context: ActionContext, cardPath: string) {
+        try {
+            const result = await actionRunner.run(action, context)
+            if (result.status === 'completed') return
+
+            const failedLog = result.logs.find((log) => log.status === 'failed')
+            this.recordCardAgentError(cardPath, action.name, failedLog?.message ?? `${action.label} failed`)
+        } catch (error) {
+            this.recordCardAgentError(cardPath, action.name, error instanceof Error ? error.message : `${action.label} failed`)
+        }
+    }
+
+    private recordCardAgentError(cardPath: string, actionName: string, message: string) {
+        const path = `${ON_STATE_ACTION_ERROR_PATH_PREFIX}:${actionName}`
+        this.errorsByCardPath.set(cardPath, [...(this.errorsByCardPath.get(cardPath) ?? []), { message, path }])
+        this.refreshSnapshot()
     }
 
     private handleAgentRunEvent(cardPath: string, event: AgentRunEvent) {

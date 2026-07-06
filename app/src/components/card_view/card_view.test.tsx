@@ -8,9 +8,11 @@ function conversation(): AgentConversation {
     return {
         cardPath: 'design/F-1.md',
         completedAt: '2026-01-01T00:01:00.000Z',
+        continuedFrom: null,
         events: [],
         id: 'agent-1',
         messages: [{ content: 'completed output', id: 'm1', role: 'agent', timestamp: '2026-01-01T00:01:00.000Z' }],
+        nativeSessionId: null,
         path: '.md2-agent-logs/one.json',
         startedAt: '2026-01-01T00:00:00.000Z',
         status: 'completed',

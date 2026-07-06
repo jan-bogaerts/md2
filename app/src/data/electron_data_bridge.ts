@@ -6,8 +6,6 @@ import type {
     BranchReference,
     CommitResult,
     CommitRequest,
-    ContinueAgentConversationRequest,
-    ContinueAgentConversationResult,
     DeleteFileRequest,
     MoveFilesRequest,
     ProjectConfig,
@@ -22,7 +20,6 @@ import type {
 export interface ElectronDataBridge {
     checkoutBranch(project: ProjectReference, branch: string): Promise<ProjectReference>
     commit(request: CommitRequest): Promise<CommitResult>
-    continueAgentConversation?(request: ContinueAgentConversationRequest): Promise<ContinueAgentConversationResult>
     createProject(project: ProjectReference, workingFolder: string): Promise<ProjectReference>
     createWorkingFolderFromTemplate(project: ProjectReference, workingFolder: string): Promise<ProjectReference>
     deleteFile(request: DeleteFileRequest): Promise<void>

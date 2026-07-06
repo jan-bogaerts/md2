@@ -1,7 +1,7 @@
 ---
 id: B-015
 title: electron renderer runs without context isolation
-status: design
+status: ready
 owner: JB
 affects:
 policy:

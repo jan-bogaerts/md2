@@ -1,5 +1,6 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { useCallback, useState, type ReactNode } from 'react'
 import { MissingWorkingFolderError, type ProjectConfig, type StorageService } from '../data/data_types'
 import type { ElectronDataBridge } from '../data/electron_data_bridge'
 import { configService } from '../services/config_service'
@@ -78,11 +79,21 @@ function createResetStorage(): StorageService {
 }
 
 function renderProjectSurface(isGithubAuthenticated = false) {
+    function ProjectSurface() {
+        const [leftPanelContent, setLeftPanelContent] = useState<ReactNode>(null)
+        const handleLeftPanelInteraction = useCallback(() => undefined, [])
+
+        return (
+            <>
+                <ProjectToolbarMenu accessToken="token" isGithubAuthenticated={isGithubAuthenticated} />
+                {leftPanelContent}
+                <ProjectWorkspace onLeftPanelContentChange={setLeftPanelContent} onLeftPanelInteraction={handleLeftPanelInteraction} />
+            </>
+        )
+    }
+
     return render(
-        <>
-            <ProjectToolbarMenu accessToken="token" isGithubAuthenticated={isGithubAuthenticated} />
-            <ProjectWorkspace />
-        </>,
+        <ProjectSurface />,
     )
 }
 
@@ -140,6 +151,7 @@ describe('ProjectWorkspace', () => {
         configService.clear()
         window.localStorage.clear()
         delete window.md2Data
+        delete window.md2Lifecycle
         vi.restoreAllMocks()
     })
 
@@ -163,8 +175,74 @@ describe('ProjectWorkspace', () => {
 
         expect(await screen.findByText('Root')).toBeInTheDocument()
         expect(screen.getByText('F-1')).toBeInTheDocument()
-        expect(screen.getByText('active')).toBeInTheDocument()
+        expect(screen.getAllByText('active').length).toBeGreaterThan(0)
+        expect(screen.getByLabelText('Card columns')).toHaveTextContent('active')
         expect(screen.getByText('Background cards loaded: 1')).toBeInTheDocument()
+    })
+
+    it('flushes pending commits when the app is hidden', async () => {
+        const bridge = createBridge()
+        window.md2Data = bridge
+        const visibilityState = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden')
+
+        renderProjectSurface()
+        await openLocalProject()
+        await screen.findByText('Root')
+
+        dataService.updateCardBody('design/F-1-root.md', 'Changed while open')
+        await waitFor(() => expect(dataService.getState().hasPendingCommits).toBe(true))
+        document.dispatchEvent(new Event('visibilitychange'))
+
+        await waitFor(() => expect(bridge.commit).toHaveBeenCalledWith(expect.objectContaining({files: [expect.objectContaining({ path: 'design/F-1-root.md' })]})))
+        expect(dataService.getState().hasPendingCommits).toBe(false)
+
+        visibilityState.mockRestore()
+    })
+
+    it('confirms close only while commits are pending', async () => {
+        window.md2Data = createBridge()
+
+        renderProjectSurface()
+        await openLocalProject()
+        await screen.findByText('Root')
+
+        const cleanClose = new Event('beforeunload', { cancelable: true })
+        window.dispatchEvent(cleanClose)
+
+        expect(cleanClose.defaultPrevented).toBe(false)
+
+        dataService.updateCardBody('design/F-1-root.md', 'Changed before close')
+        await waitFor(() => expect(dataService.getState().hasPendingCommits).toBe(true))
+
+        const pendingClose = new Event('beforeunload', { cancelable: true })
+        window.dispatchEvent(pendingClose)
+
+        expect(pendingClose.defaultPrevented).toBe(true)
+    })
+
+    it('flushes and confirms Electron quit flush requests', async () => {
+        const bridge = createBridge()
+        let flushRequested: ((requestId: string) => void) | null = null
+        window.md2Data = bridge
+        window.md2Lifecycle = {
+            confirmFlush: vi.fn(),
+            onFlushRequested: vi.fn((callback) => {
+                flushRequested = callback
+
+                return vi.fn()
+            }),
+        }
+
+        renderProjectSurface()
+        await openLocalProject()
+        await screen.findByText('Root')
+
+        dataService.updateCardBody('design/F-1-root.md', 'Changed before quit')
+        await waitFor(() => expect(dataService.getState().hasPendingCommits).toBe(true))
+        act(() => flushRequested?.('quit-1'))
+
+        await waitFor(() => expect(bridge.commit).toHaveBeenCalled())
+        await waitFor(() => expect(window.md2Lifecycle?.confirmFlush).toHaveBeenCalledWith('quit-1'))
     })
 
     it('asks for a folder and persists an existing choice when the configured working folder is missing', async () => {

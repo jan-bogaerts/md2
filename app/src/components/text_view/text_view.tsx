@@ -1,6 +1,5 @@
-import { Badge, Box, Button, Divider, Drawer, Paper, Stack, Typography } from '@mui/material'
-import FolderOutline from 'mdi-material-ui/FolderOutline'
-import { useEffect, useMemo, useState } from 'react'
+import { Badge, Box, Button, Divider, Stack, Typography } from '@mui/material'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { buildFileTree, fileLabel } from '../../data/file_tree'
 import type { AgentConversation, CardTypeConfig, ProjectCard } from '../../data/data_types'
 import { telemetryService } from '../../services/telemetry_service'
@@ -11,7 +10,6 @@ import { HeaderEditorPanel } from './header_editor_panel'
 import { TabBar, type OpenTab } from './tab_bar'
 import { useOpenTabs } from './use_open_tabs'
 
-const TREE_WIDTH = 280
 const CONVERSATION_PANEL_MIN_HEIGHT = 220
 
 interface TextViewProps {
@@ -19,6 +17,8 @@ interface TextViewProps {
     backgroundCards: ProjectCard[]
     cardTypes: CardTypeConfig[]
     isMobile: boolean
+    onLeftPanelContentChange: (content: ReactNode) => void
+    onLeftPanelInteraction: () => void
     onBodyChange: (path: string, body: string) => void
     onContinueAgentConversation: (path: string, conversation: AgentConversation) => void
     onDeleteFile: (path: string) => Promise<void>
@@ -43,6 +43,8 @@ export function TextView(props: TextViewProps) {
         backgroundCards,
         cardTypes,
         isMobile,
+        onLeftPanelContentChange,
+        onLeftPanelInteraction,
         onBodyChange,
         onContinueAgentConversation,
         onDeleteFile,
@@ -55,7 +57,8 @@ export function TextView(props: TextViewProps) {
     } = props
     const { activePath, activateTab, closeTab, openTab, tabs } = useOpenTabs()
     const [isConversationPanelOpen, setIsConversationPanelOpen] = useState(false)
-    const [isTreeOpen, setIsTreeOpen] = useState(false)
+    const onDeleteFileRef = useRef(onDeleteFile)
+    const onLeftPanelInteractionRef = useRef(onLeftPanelInteraction)
 
     const tree = useMemo(
         () => buildFileTree(activeCards, backgroundCards, workingFolder),
@@ -69,6 +72,11 @@ export function TextView(props: TextViewProps) {
     }, [activeCards, backgroundCards])
 
     useEffect(() => {
+        onDeleteFileRef.current = onDeleteFile
+        onLeftPanelInteractionRef.current = onLeftPanelInteraction
+    })
+
+    useEffect(() => {
         if (requestedPath) openTab(requestedPath)
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [requestedNonce])
@@ -76,17 +84,17 @@ export function TextView(props: TextViewProps) {
     const openTabs: OpenTab[] = tabs.map((path) => ({ label: tabLabel(cardsByPath, path), path }))
     const activeCard = activePath ? cardsByPath.get(activePath) ?? null : null
 
-    const handleSelect = (path: string) => {
+    const handleSelect = useCallback((path: string) => {
         openTab(path)
-        setIsTreeOpen(false)
+        onLeftPanelInteractionRef.current()
         telemetryService.trackEvent('navigation')
-    }
+    }, [openTab])
 
-    const handleDeleteFile = async (path: string) => {
-        await onDeleteFile(path)
+    const handleDeleteFile = useCallback(async (path: string) => {
+        await onDeleteFileRef.current(path)
         closeTab(path)
-        if (isMobile) setIsTreeOpen(false)
-    }
+        onLeftPanelInteractionRef.current()
+    }, [closeTab])
 
     const handleActivateTab = (path: string) => {
         activateTab(path)
@@ -113,7 +121,7 @@ export function TextView(props: TextViewProps) {
         if (activePath) onStartAgentConversation(activePath, prompt)
     }
 
-    const treeContent = (
+    const treeContent = useMemo(() => (
         <Box aria-label="File tree" sx={{ overflow: 'auto' }}>
             <FileTreeView
                 cardTypes={cardTypes}
@@ -124,7 +132,11 @@ export function TextView(props: TextViewProps) {
                 selectedPath={activePath}
             />
         </Box>
-    )
+    ), [activePath, cardTypes, cardsByPath, handleDeleteFile, handleSelect, tree])
+
+    useEffect(() => {
+        onLeftPanelContentChange(treeContent)
+    }, [onLeftPanelContentChange, treeContent])
 
     const editorPane = (
         <Box sx={{ display: 'flex', flex: 1, flexDirection: 'column', minWidth: 0 }}>
@@ -193,29 +205,8 @@ export function TextView(props: TextViewProps) {
         </Box>
     )
 
-    if (isMobile) {
-        return (
-            <Box>
-                <Button onClick={() => setIsTreeOpen(true)} startIcon={<FolderOutline />} sx={{ mb: 1 }}>
-                    Browse files
-                </Button>
-                <Drawer anchor="left" onClose={() => setIsTreeOpen(false)} open={isTreeOpen}>
-                    <Box sx={{ width: TREE_WIDTH }}>{treeContent}</Box>
-                </Drawer>
-                {editorPane}
-            </Box>
-        )
-    }
-
     return (
         <Box sx={{ display: 'flex', minHeight: 0 }}>
-            <Paper
-                elevation={0}
-                sx={{ borderColor: 'divider', borderRadius: 0, borderRight: 1, flexShrink: 0, overflow: 'auto', width: TREE_WIDTH }}
-                variant="outlined"
-            >
-                {treeContent}
-            </Paper>
             {editorPane}
         </Box>
     )

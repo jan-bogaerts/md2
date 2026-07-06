@@ -7,9 +7,11 @@ function conversation(request: AgentExecutionRequest): AgentConversation {
     return {
         cardPath: request.cardPath,
         completedAt: '2026-01-01T00:01:00.000Z',
+        continuedFrom: null,
         events: [],
         id: 'agent-1',
         messages: [{ content: request.prompt, id: 'm1', role: 'stdout', timestamp: '2026-01-01T00:01:00.000Z' }],
+        nativeSessionId: null,
         path: '.md2-agent-logs/one.json',
         startedAt: '2026-01-01T00:00:00.000Z',
         status: 'completed',

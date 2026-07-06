@@ -15,7 +15,7 @@ export class CommitBatcher {
     private readonly delayMs
     private pendingBranch: string | null
     private readonly pendingFiles
-    private pendingMessage: string | null
+    private readonly pendingMessagesByPath
     private scheduledDelayId: DelayId | null
     private readonly setDelay
 
@@ -25,35 +25,58 @@ export class CommitBatcher {
         this.delayMs = dependencies.delayMs ?? AUTO_COMMIT_DELAY_MS
         this.pendingBranch = null
         this.pendingFiles = new Map<string, MarkdownFile>()
-        this.pendingMessage = null
+        this.pendingMessagesByPath = new Map<string, string[]>()
         this.scheduledDelayId = null
         this.setDelay = dependencies.setDelay
     }
 
     schedule(branch: string, files: MarkdownFile[], message: string) {
         this.pendingBranch = branch
-        this.pendingMessage = message
-        files.forEach((file) => this.pendingFiles.set(file.path, file))
+        files.forEach((file) => {
+            this.pendingFiles.set(file.path, file)
+            this.addPendingMessage(file.path, message)
+        })
 
         if (this.scheduledDelayId !== null) return
 
         this.scheduledDelayId = this.setDelay(this.createFlushCallback(), this.delayMs)
     }
 
+    hasPending() {
+        return this.pendingFiles.size > 0 && this.pendingBranch !== null
+    }
+
     async flush() {
-        if (this.pendingFiles.size === 0 || this.pendingBranch === null || this.pendingMessage === null) return
+        if (!this.hasPending()) return
 
         this.clearScheduledDelay()
         const request = {
-            branch: this.pendingBranch,
+            branch: this.pendingBranch as string,
             files: [...this.pendingFiles.values()],
-            message: this.pendingMessage,
+            message: this.createCommitMessage(),
         }
 
         this.pendingBranch = null
-        this.pendingMessage = null
         this.pendingFiles.clear()
+        this.pendingMessagesByPath.clear()
         await this.commit(request)
+    }
+
+    private addPendingMessage(path: string, message: string) {
+        const messages = this.pendingMessagesByPath.get(path) ?? []
+        if (messages.includes(message)) return
+
+        this.pendingMessagesByPath.set(path, [...messages, message])
+    }
+
+    private createCommitMessage() {
+        const messages = [...this.pendingMessagesByPath.values()].flat()
+        const distinctMessages = [...new Set(messages)]
+        if (distinctMessages.length === 1) return distinctMessages[0]
+
+        const body = distinctMessages.map((message) => `- ${message}`).join('\n')
+
+        return `Update ${this.pendingFiles.size} files\n\n${body}`
     }
 
     private createFlushCallback() {
