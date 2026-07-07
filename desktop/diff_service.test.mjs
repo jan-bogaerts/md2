@@ -104,4 +104,19 @@ describe('diff-service', () => {
 
         expect(spawnProcess).toHaveBeenCalledWith(expect.stringContaining(':7"'), expect.objectContaining({ cwd: 'C:/repo', shell: true }))
     })
+
+    it('rejects when the editor process fails to spawn', async () => {
+        const handlers = new Map()
+        const child = {
+            on: vi.fn((event, handler) => {
+                handlers.set(event, handler)
+            }),
+        }
+        const spawnProcess = vi.fn(() => child)
+        const openPromise = openInEditor({ branch: 'main', id: 'local', rootPath: 'C:/repo' }, { line: 7, path: 'design/F-010.md' }, spawnProcess)
+
+        handlers.get('error')(new Error('spawn code ENOENT'))
+
+        await expect(openPromise).rejects.toThrow('Editor launch failed: spawn code ENOENT')
+    })
 })

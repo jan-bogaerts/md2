@@ -152,7 +152,29 @@ function openInEditor(project, request, spawnProcess = spawn) {
     const rootPath = requireRootPath(project)
     const command = buildEditorLaunch(rootPath, request)
     const child = spawnProcess(command, { cwd: rootPath, shell: true })
-    child.on('error', () => {})
+
+    return new Promise((resolve, reject) => {
+        let isSettled = false
+        const settle = (handler, value) => {
+            if (isSettled) return
+
+            isSettled = true
+            handler(value)
+        }
+
+        child.on('error', (error) => {
+            const message = error instanceof Error ? error.message : 'unknown error'
+            settle(reject, new Error(`Editor launch failed: ${message}`))
+        })
+        child.on('exit', (code) => {
+            if (code === 0 || code === null) {
+                settle(resolve)
+                return
+            }
+
+            settle(reject, new Error(`Editor launch failed with exit code ${code}`))
+        })
+    })
 }
 
 module.exports = {

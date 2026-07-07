@@ -1,7 +1,7 @@
 ---
 id: B-024
 title: swallowed errors across UI handlers and services
-status: design
+status: ready
 owner: JB
 affects:
 policy:

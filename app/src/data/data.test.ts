@@ -229,6 +229,34 @@ describe('CommitBatcher', () => {
         expect(commit.mock.calls[0][0]).toMatchObject({ message: 'Update root' })
     })
 
+    it('reports delayed commit failures and keeps pending files for retry', async () => {
+        vi.useFakeTimers()
+        const error = new Error('network down')
+        const onFlushError = vi.fn()
+        const commit = vi.fn<CommitCallback>(async () => {
+            throw error
+        })
+        const batcher = new CommitBatcher({
+            clearDelay: window.clearTimeout,
+            commit,
+            delayMs: 30000,
+            onFlushError,
+            setDelay: window.setTimeout,
+        })
+
+        batcher.schedule('main', [{ content: 'one', path: 'design/F-1-root.md' }], 'Update root')
+        await vi.advanceTimersByTimeAsync(30000)
+
+        expect(onFlushError).toHaveBeenCalledWith(error)
+        expect(batcher.hasPending()).toBe(true)
+
+        commit.mockImplementation(async () => undefined)
+        await batcher.flush()
+
+        expect(batcher.hasPending()).toBe(false)
+        expect(commit).toHaveBeenCalledTimes(2)
+    })
+
     it('combines distinct messages for a multi-file batch', async () => {
         const commit = vi.fn<CommitCallback>(async () => undefined)
         const batcher = new CommitBatcher({ clearDelay: window.clearTimeout, commit, delayMs: 30000, setDelay: window.setTimeout })
@@ -1428,5 +1456,41 @@ describe('DataService', () => {
         expect(conflicts[0]).toContain('External change ignored for design/F-1-root.md')
         const card = service.getState().snapshot?.activeCards.find((candidate) => candidate.path === 'design/F-1-root.md')
         expect(card?.content).toContain('Local draft')
+    })
+
+    it('reports commit flush failures and keeps pending edits for retry', async () => {
+        configService.init()
+        const error = new Error('network down')
+        const commit = vi.fn<StorageService['commit']>(async () => {
+            throw error
+        })
+        const storage = createStorage({ commit })
+        const service = new DataService()
+        const errors: string[] = []
+        const handleWorkspaceError = (event: Event) => {
+            errors.push((event as CustomEvent<string>).detail)
+        }
+        const captureError = vi.spyOn(telemetryService, 'captureError').mockImplementation(() => undefined)
+        window.addEventListener('md2:workspace-error', handleWorkspaceError)
+
+        try {
+            service.init({ storage })
+            await service.openProject({ branch: 'main', id: 'project' })
+            service.updateCardBody('design/F-1-root.md', '# Root\n\nLocal draft')
+
+            await expect(service.flushPendingCommits()).rejects.toThrow('network down')
+
+            expect(errors).toContain('network down')
+            expect(captureError).toHaveBeenCalledWith(error)
+            expect(service.getState().hasPendingCommits).toBe(true)
+
+            commit.mockImplementation(async (request) => request.files)
+            await service.flushPendingCommits()
+
+            expect(service.getState().hasPendingCommits).toBe(false)
+            expect(commit).toHaveBeenCalledTimes(2)
+        } finally {
+            window.removeEventListener('md2:workspace-error', handleWorkspaceError)
+        }
     })
 })

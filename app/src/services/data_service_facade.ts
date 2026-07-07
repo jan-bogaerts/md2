@@ -64,6 +64,14 @@ function reportMarkdownWatchConflict(path: string) {
     window.dispatchEvent(new CustomEvent<string>(WORKSPACE_ERROR_EVENT, { detail: `External change ignored for ${path} because the file has unsaved local edits.` }))
 }
 
+function errorMessage(error: unknown, fallback: string) {
+    return error instanceof Error ? error.message : fallback
+}
+
+function reportWorkspaceError(message: string) {
+    window.dispatchEvent(new CustomEvent<string>(WORKSPACE_ERROR_EVENT, { detail: message }))
+}
+
 /** Merge committed files into the loaded set: replace matching paths, append new ones. */
 function mergeFiles(current: MarkdownFile[], updates: MarkdownFile[]): MarkdownFile[] {
     const updateByPath = new Map(updates.map((file) => [file.path, file]))
@@ -227,6 +235,7 @@ export class DataService extends EventTarget {
             clearDelay: window.clearTimeout,
             commit: this.commitFiles.bind(this),
             delayMs,
+            onFlushError: this.reportCommitFlushFailure.bind(this),
             setDelay: window.setTimeout,
         })
         this.dispatchChanged()
@@ -248,11 +257,7 @@ export class DataService extends EventTarget {
     getConfig(): ProjectConfig | null {
         if (!this.storage) return null
 
-        try {
-            return configService.getProjectConfig()
-        } catch {
-            return null
-        }
+        return configService.getProjectConfig()
     }
 
     async createProject(project: ProjectReference) {
@@ -655,9 +660,21 @@ export class DataService extends EventTarget {
         const { commitBatcher } = this.requireDependencies()
         const hadPendingCommits = commitBatcher.hasPending()
 
-        await commitBatcher.flush()
+        try {
+            await commitBatcher.flush()
+        } catch (error) {
+            this.reportCommitFlushFailure(error)
+            throw error
+        }
 
         if (hadPendingCommits) this.dispatchChanged()
+    }
+
+    private reportCommitFlushFailure(error: unknown) {
+        const message = errorMessage(error, 'Commit failed')
+        reportWorkspaceError(message)
+        telemetryService.captureError(error)
+        this.dispatchChanged()
     }
 
     private createSnapshot(files: MarkdownFile[], workingFolder: string, repositoryFiles: string[]): ProjectSnapshot {

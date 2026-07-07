@@ -6,6 +6,7 @@ interface CommitBatcherDependencies {
     clearDelay: (delayId: DelayId) => void
     commit: (request: CommitRequest) => Promise<void>
     delayMs?: number
+    onFlushError?: (error: unknown) => void
     setDelay: (callback: () => void, delayMs: number) => DelayId
 }
 
@@ -16,6 +17,7 @@ export class CommitBatcher {
     private pendingBranch: string | null
     private readonly pendingFiles
     private readonly pendingMessagesByPath
+    private readonly onFlushError: ((error: unknown) => void) | null
     private scheduledDelayId: DelayId | null
     private readonly setDelay
 
@@ -26,6 +28,7 @@ export class CommitBatcher {
         this.pendingBranch = null
         this.pendingFiles = new Map<string, MarkdownFile>()
         this.pendingMessagesByPath = new Map<string, string[]>()
+        this.onFlushError = dependencies.onFlushError ?? null
         this.scheduledDelayId = null
         this.setDelay = dependencies.setDelay
     }
@@ -60,10 +63,10 @@ export class CommitBatcher {
             message: this.createCommitMessage(),
         }
 
+        await this.commit(request)
         this.pendingBranch = null
         this.pendingFiles.clear()
         this.pendingMessagesByPath.clear()
-        await this.commit(request)
     }
 
     private addPendingMessage(path: string, message: string) {
@@ -85,7 +88,7 @@ export class CommitBatcher {
 
     private createFlushCallback() {
         return () => {
-            void this.flush()
+            void this.flush().catch((error: unknown) => this.onFlushError?.(error))
         }
     }
 

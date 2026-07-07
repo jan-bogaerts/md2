@@ -24,6 +24,7 @@ import { useProjectState } from './hooks/use_project_state'
 import { requestOpenProjectDialog, WORKSPACE_ERROR_EVENT } from './project_command_events'
 
 type WorkspaceViewMode = 'cards' | 'text'
+type ErrorSetter = (message: string | null) => void
 
 const WORKSPACE_PANEL_PADDING = 3
 const EMPTY_CARDS: ProjectCard[] = []
@@ -38,6 +39,16 @@ async function flushAndConfirmPendingCommits(lifecycleBridge: ElectronLifecycleB
         await dataService.flushPendingCommits()
     } finally {
         lifecycleBridge.confirmFlush(requestId)
+    }
+}
+
+function runWorkspaceEdit(action: () => void, setErrorMessage: ErrorSetter, fallbackMessage: string) {
+    setErrorMessage(null)
+
+    try {
+        action()
+    } catch (error) {
+        setErrorMessage(error instanceof Error ? error.message : fallbackMessage)
     }
 }
 
@@ -163,27 +174,27 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
     }, [])
 
     const handleMoveCard = (path: string, targetStatus: string, targetIndex: number) => {
-        dataService.moveCard(path, targetStatus, targetIndex)
+        runWorkspaceEdit(() => dataService.moveCard(path, targetStatus, targetIndex), setErrorMessage, `Card move failed: ${path}`)
     }
 
     const handleTogglePolicy = (path: string, policyKey: string) => {
-        dataService.toggleCardPolicy(path, policyKey)
+        runWorkspaceEdit(() => dataService.toggleCardPolicy(path, policyKey), setErrorMessage, `Policy toggle failed: ${path}`)
     }
 
     const handleTitleChange = (path: string, title: string) => {
-        dataService.updateCardTitle(path, title)
+        runWorkspaceEdit(() => dataService.updateCardTitle(path, title), setErrorMessage, `Title update failed: ${path}`)
     }
 
     const handleBodyChange = (path: string, body: string) => {
-        dataService.updateCardBody(path, body)
+        runWorkspaceEdit(() => dataService.updateCardBody(path, body), setErrorMessage, `Body update failed: ${path}`)
     }
 
     const handleAffectsChange = (path: string, affects: string[]) => {
-        dataService.updateCardAffects(path, affects)
+        runWorkspaceEdit(() => dataService.updateCardAffects(path, affects), setErrorMessage, `Affects update failed: ${path}`)
     }
 
     const handleHeaderFieldChange = (path: string, key: string, value: string) => {
-        dataService.updateCardHeaderFields(path, { [key]: value })
+        runWorkspaceEdit(() => dataService.updateCardHeaderFields(path, { [key]: value }), setErrorMessage, `Header update failed: ${path}`)
     }
 
     const clearDeletedPathState = (path: string) => {

@@ -637,4 +637,23 @@ describe('ProjectWorkspace', () => {
         await waitFor(() => expect(bridge.checkoutBranch).toHaveBeenCalledWith(expect.objectContaining({ branch: 'main' }), 'feature'))
         await waitFor(() => expect(bridge.loadProject).toHaveBeenLastCalledWith(expect.objectContaining({ branch: 'feature' }), 'design'))
     })
+
+    it('shows branch switch failures in the switch dialog', async () => {
+        const bridge = createBridge()
+        vi.mocked(bridge.checkoutBranch).mockRejectedValue(new Error('checkout failed'))
+        window.md2Data = bridge
+
+        renderProjectSurface()
+        await openLocalProject()
+        await screen.findByText('Root')
+
+        fireEvent.click(screen.getByRole('button', { name: 'Project' }))
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Switch branch...' }))
+        await screen.findByRole('heading', { name: 'Switch branch' })
+        await waitFor(() => expect(screen.getByRole('combobox', { name: 'Branch' })).toHaveTextContent('main'))
+        await chooseBranch('feature')
+        fireEvent.click(screen.getByRole('button', { name: 'Switch' }))
+
+        expect(await screen.findByText('checkout failed')).toBeInTheDocument()
+    })
 })
