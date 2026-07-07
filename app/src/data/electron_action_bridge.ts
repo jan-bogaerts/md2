@@ -115,6 +115,14 @@ declare global {
     }
 }
 
+let actionBridgeOverride: ElectronActionBridge | null = null
+
+export function setActionBridgeOverride(bridge: ElectronActionBridge | null) {
+    actionBridgeOverride = bridge
+}
+
 export function getElectronActionBridge() {
+    if (actionBridgeOverride) return actionBridgeOverride
+
     return window.md2Actions ?? null
 }

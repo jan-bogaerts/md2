@@ -3,6 +3,7 @@ import { githubAuthService } from '../services/github_auth_service'
 import { LocalGitStorageService } from '../services/local_git_storage_service'
 import { RemoteControlStorageService } from '../services/remote_control_storage_service'
 import type { ProjectReference, StorageService } from './data_types'
+import { setActionBridgeOverride } from './electron_action_bridge'
 
 export const LAST_PROJECT_STORAGE_KEY = 'md2.lastProject'
 
@@ -18,10 +19,12 @@ export function createStorageService(storageType: StorageType, accessToken: stri
     if (storageType === 'remote') {
         const storage = new RemoteControlStorageService()
         storage.init()
-        window.md2Actions = storage
+        setActionBridgeOverride(storage)
 
         return storage
     }
+
+    setActionBridgeOverride(null)
 
     if (storageType === 'github') {
         const storage = new GithubStorageService()

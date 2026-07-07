@@ -1,7 +1,7 @@
 ---
 id: B-030
 title: remote storage impersonates the electron bridge via window global assignment
-status: design
+status: ready
 owner: JB
 affects:
 policy:
