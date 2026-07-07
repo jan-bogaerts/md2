@@ -1,7 +1,7 @@
 ---
 id: B-027
 title: github manual-push commits are lost on reload (pending head only in memory)
-status: ready
+status: design
 owner: JB
 affects:
 policy:

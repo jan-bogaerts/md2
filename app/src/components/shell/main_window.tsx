@@ -22,13 +22,14 @@ const PANEL_PADDING = 2
 interface MainWindowProps {
     agents: RunningAgent[]
     auth: UseGithubAuthResult
+    bootstrapError: string | null
     session: ProjectSession | null
     toolbarAction: ReactNode
 }
 
 /** Main window: owns the global layout and switches between desktop and mobile presentations. */
 export function MainWindow(props: MainWindowProps) {
-    const { agents, auth, session, toolbarAction } = props
+    const { agents, auth, bootstrapError, session, toolbarAction } = props
     const location = useAppLocation()
     const theme = useTheme()
     const isMobile = useMediaQuery(theme.breakpoints.down('md'))
@@ -63,6 +64,7 @@ export function MainWindow(props: MainWindowProps) {
     const rightPanel = (
         <Box sx={{ p: PANEL_PADDING }}>
             <ProjectWorkspace
+                bootstrapError={bootstrapError}
                 key={session?.project.id ?? 'no-project'}
                 onLeftPanelContentChange={setLeftPanelContent}
                 onLeftPanelInteraction={handleCloseMenu}

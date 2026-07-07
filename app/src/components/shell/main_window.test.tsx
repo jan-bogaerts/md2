@@ -25,6 +25,7 @@ function renderWindow(overrides?: Partial<Parameters<typeof MainWindow>[0]>) {
         <MainWindow
             agents={[]}
             auth={auth}
+            bootstrapError={null}
             session={null}
             toolbarAction={<button type="button">Action</button>}
             {...overrides}

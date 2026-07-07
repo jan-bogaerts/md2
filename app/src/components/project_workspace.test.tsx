@@ -87,7 +87,11 @@ function renderProjectSurface(isGithubAuthenticated = false) {
             <>
                 <ProjectToolbarMenu accessToken="token" isGithubAuthenticated={isGithubAuthenticated} />
                 {leftPanelContent}
-                <ProjectWorkspace onLeftPanelContentChange={setLeftPanelContent} onLeftPanelInteraction={handleLeftPanelInteraction} />
+                <ProjectWorkspace
+                    bootstrapError={null}
+                    onLeftPanelContentChange={setLeftPanelContent}
+                    onLeftPanelInteraction={handleLeftPanelInteraction}
+                />
             </>
         )
     }

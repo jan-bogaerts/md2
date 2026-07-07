@@ -22,6 +22,7 @@ export function App() {
                 <MainWindow
                     agents={runningAgents}
                     auth={auth}
+                    bootstrapError={bootstrap.error}
                     session={bootstrap.session}
                     toolbarAction={(
                         <>

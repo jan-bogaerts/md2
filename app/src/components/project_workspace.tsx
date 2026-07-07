@@ -42,12 +42,13 @@ async function flushAndConfirmPendingCommits(lifecycleBridge: ElectronLifecycleB
 }
 
 interface ProjectWorkspaceProps {
+    bootstrapError: string | null
     onLeftPanelContentChange: (content: ReactNode) => void
     onLeftPanelInteraction: () => void
 }
 
 export function ProjectWorkspace(props: ProjectWorkspaceProps) {
-    const { onLeftPanelContentChange, onLeftPanelInteraction } = props
+    const { bootstrapError, onLeftPanelContentChange, onLeftPanelInteraction } = props
     const { project, snapshot } = useProjectState()
     const theme = useTheme()
     const isMobile = useMediaQuery(theme.breakpoints.down('md'))
@@ -60,6 +61,7 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
     const [requestedNonce, setRequestedNonce] = useState(0)
     const [selectedPath, setSelectedPath] = useState<string | null>(null)
     const [viewMode, setViewMode] = useState<WorkspaceViewMode>('cards')
+    const [dismissedBootstrapError, setDismissedBootstrapError] = useState<string | null>(null)
     const remarkableBridge = useMemo(() => getRemarkableBridge(), [])
     const isProjectOpen = !!project
     const projectConfig = dataService.getConfig()
@@ -69,6 +71,9 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
         () => <CardViewNavigation cards={activeCards} onNavigate={onLeftPanelInteraction} />,
         [activeCards, onLeftPanelInteraction],
     )
+    const bootstrapErrorMessage = bootstrapError && bootstrapError !== dismissedBootstrapError
+        ? `Could not restore last project: ${bootstrapError}`
+        : null
 
     void configRevision
 
@@ -254,9 +259,16 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
         telemetryService.trackEvent('navigation')
     }
 
+    const handleDismissBootstrapError = () => {
+        setDismissedBootstrapError(bootstrapError)
+    }
+
     return (
         <Paper elevation={0} sx={{ border: 1, borderColor: 'divider', borderRadius: 2, p: WORKSPACE_PANEL_PADDING }}>
             <Stack spacing={3}>
+                {bootstrapErrorMessage ? (
+                    <Alert onClose={handleDismissBootstrapError} severity="error">{bootstrapErrorMessage}</Alert>
+                ) : null}
                 {errorMessage ? <Alert severity="error">{errorMessage}</Alert> : null}
 
                 {isProjectOpen ? (

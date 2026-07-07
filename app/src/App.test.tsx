@@ -1,7 +1,11 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from './app'
+import { LAST_PROJECT_STORAGE_KEY } from './data/project_session'
+import type { ElectronDataBridge } from './data/electron_data_bridge'
+import type { StorageService } from './data/data_types'
 import { configService, REACT_CONFIG_STORAGE_KEY } from './services/config_service'
+import { dataService } from './services/data_service'
 
 vi.mock('./auth/use_github_auth', () => ({
     useGithubAuth: () => ({
@@ -17,15 +21,65 @@ vi.mock('./auth/use_github_auth', () => ({
     }),
 }))
 
+function createFailingBridge(): ElectronDataBridge {
+    return {
+        checkoutBranch: vi.fn(async (project, branch) => ({ ...project, branch })),
+        commit: vi.fn(async () => []),
+        createProject: vi.fn(async (project) => project),
+        createWorkingFolderFromTemplate: vi.fn(async (project) => project),
+        deleteFile: vi.fn(),
+        listBranches: vi.fn(async () => [{ name: 'main' }]),
+        listRepositoryFiles: vi.fn(async () => []),
+        listTopLevelFolders: vi.fn(async () => []),
+        loadActionFiles: vi.fn(async () => []),
+        loadProject: vi.fn(async () => {
+            throw new Error('repository folder moved')
+        }),
+        loadProjectRoot: vi.fn(async () => {
+            throw new Error('repository folder moved')
+        }),
+        loadProjectConfig: vi.fn(async () => null),
+        moveFiles: vi.fn(),
+        openProjectFolder: vi.fn(async () => null),
+        push: vi.fn(),
+        saveProjectConfig: vi.fn(),
+        watchProject: vi.fn(() => vi.fn()),
+    }
+}
+
+function createResetStorage(): StorageService {
+    return {
+        checkoutBranch: vi.fn(async (project, branch) => ({ ...project, branch })),
+        commit: vi.fn(async () => []),
+        createProject: vi.fn(async (project) => project),
+        createWorkingFolderFromTemplate: vi.fn(async (project) => project),
+        deleteFile: vi.fn(),
+        listBranches: vi.fn(async () => []),
+        listRepositories: vi.fn(async () => []),
+        listRepositoryFiles: vi.fn(async () => []),
+        listTopLevelFolders: vi.fn(async () => []),
+        loadActionFiles: vi.fn(async () => []),
+        loadProject: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
+        loadProjectRoot: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
+        loadProjectConfig: vi.fn(async () => null),
+        moveFiles: vi.fn(),
+        push: vi.fn(),
+        saveProjectConfig: vi.fn(),
+    }
+}
+
 describe('App', () => {
     beforeEach(() => {
         window.localStorage.clear()
+        configService.init({ desktopConfig: null })
+        dataService.init({ storage: createResetStorage() })
     })
 
     afterEach(() => {
         cleanup()
         configService.clear()
         window.localStorage.clear()
+        delete window.md2Data
     })
 
     it('shows the shell with GitHub authentication reachable once startup finishes', async () => {
@@ -55,5 +109,29 @@ describe('App', () => {
         render(<App />)
 
         expect(screen.queryByText('Starting MD2...')).not.toBeInTheDocument()
+    })
+
+    it('shows a dismissible restore error when the last project fails to open', async () => {
+        window.md2Data = createFailingBridge()
+        window.localStorage.setItem(LAST_PROJECT_STORAGE_KEY, JSON.stringify({
+            project: { branch: 'main', id: 'local', rootPath: 'C:/repo' },
+            storageType: 'local',
+        }))
+
+        render(<App />)
+
+        expect(await screen.findByText('Could not restore last project: repository folder moved')).toBeInTheDocument()
+        expect(screen.getByRole('heading', { name: 'No project open' })).toBeInTheDocument()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+
+        expect(screen.queryByText('Could not restore last project: repository folder moved')).toBeNull()
+    })
+
+    it('does not show a restore error when no previous project exists', async () => {
+        render(<App />)
+
+        expect(await screen.findByRole('heading', { name: 'No project open' })).toBeInTheDocument()
+        expect(screen.queryByText(/Could not restore last project/)).toBeNull()
     })
 })

@@ -37,9 +37,14 @@ async function loadLastProjectSession(accessToken: string | null): Promise<Proje
 
     const storage = createStorageService(lastProject.storageType, accessToken)
     dataService.init({ storage })
-    const snapshot = await dataService.openProject(lastProject.project)
+    try {
+        const snapshot = await dataService.openProject(lastProject.project)
 
-    return { project: lastProject.project, snapshot, storageType: lastProject.storageType }
+        return { project: lastProject.project, snapshot, storageType: lastProject.storageType }
+    } catch (error) {
+        dataService.init({ storage })
+        throw error
+    }
 }
 
 /**

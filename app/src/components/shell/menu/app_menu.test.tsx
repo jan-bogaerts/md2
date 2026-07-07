@@ -62,7 +62,11 @@ function renderSurface() {
                 <ProjectToolbarMenu accessToken="token" isGithubAuthenticated={false} />
                 <AppMenu />
                 {leftPanelContent}
-                <ProjectWorkspace onLeftPanelContentChange={setLeftPanelContent} onLeftPanelInteraction={handleLeftPanelInteraction} />
+                <ProjectWorkspace
+                    bootstrapError={null}
+                    onLeftPanelContentChange={setLeftPanelContent}
+                    onLeftPanelInteraction={handleLeftPanelInteraction}
+                />
             </>
         )
     }

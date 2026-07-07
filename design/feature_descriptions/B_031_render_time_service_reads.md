@@ -1,7 +1,7 @@
 ---
 id: B-031
 title: components read mutable service state during render instead of subscribing
-status: ready
+status: design
 owner: JB
 affects:
 policy:
