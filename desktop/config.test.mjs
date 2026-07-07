@@ -77,6 +77,28 @@ describe('readDesktopConfig', () => {
             projectLocationMode: 'current-directory',
         })
     })
+
+    it('keeps MD2_AGENT scoped to the built-in default profile command', () => {
+        const store = createFakeStore({
+            [DESKTOP_CONFIG_STORE_KEY]: {
+                agent: 'custom',
+                agentProfiles: [
+                    { command: 'stored-codex', name: 'codex' },
+                    { command: 'stored-custom', name: 'custom' },
+                ],
+            },
+        })
+
+        expect(readDesktopConfig(store, { MD2_AGENT: 'env-codex' })).toEqual({
+            agent: 'custom',
+            agentProfiles: expect.arrayContaining([
+                expect.objectContaining({ command: 'env-codex', name: 'codex' }),
+                expect.objectContaining({ command: 'stored-custom', name: 'custom' }),
+            ]),
+            model: DEFAULT_DESKTOP_MODEL,
+            projectLocationMode: DEFAULT_PROJECT_LOCATION_MODE,
+        })
+    })
 })
 
 describe('writeDesktopConfig', () => {

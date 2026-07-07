@@ -1,4 +1,5 @@
-﻿import { Alert, Avatar, Box, Button, CircularProgress, Divider, Link, Paper, Stack, Typography } from '@mui/material'
+import { useState, type ChangeEvent } from 'react'
+import { Alert, Avatar, Box, Button, CircularProgress, Divider, Link, Paper, Stack, TextField, Typography } from '@mui/material'
 import type { AuthSnapshot } from '../auth/github_auth_types'
 
 const AUTH_PANEL_RADIUS = 2
@@ -8,6 +9,7 @@ const CODE_LETTER_SPACING = 3
 interface GithubAuthPanelProps extends AuthSnapshot {
     login: () => Promise<void>
     logout: () => void
+    savePersonalAccessToken: (accessToken: string) => Promise<void>
 }
 
 function getStatusMessage(status: AuthSnapshot['status']) {
@@ -22,21 +24,33 @@ function getStatusMessage(status: AuthSnapshot['status']) {
 
 export function GithubAuthPanel(props: GithubAuthPanelProps) {
     const {
+        authMethod,
         deviceCode,
         errorMessage,
         isAuthenticated,
         isLoadingUser,
         login,
         logout,
+        savePersonalAccessToken,
         status,
         user,
     } = props
+    const [personalAccessToken, setPersonalAccessToken] = useState('')
 
     const statusMessage = getStatusMessage(status)
     const isLoginDisabled = status === 'requesting-code' || status === 'waiting'
+    const isSaveTokenDisabled = personalAccessToken.trim().length === 0 || isLoadingUser
 
     const handleLoginClick = () => {
         void login()
+    }
+
+    const handlePersonalAccessTokenChange = (event: ChangeEvent<HTMLInputElement>) => {
+        setPersonalAccessToken(event.target.value)
+    }
+
+    const handleSavePersonalAccessTokenClick = () => {
+        void savePersonalAccessToken(personalAccessToken)
     }
 
     const handleCopyCodeClick = () => {
@@ -52,6 +66,11 @@ export function GithubAuthPanel(props: GithubAuthPanelProps) {
     }
 
     if (isAuthenticated) {
+        const signedInText = authMethod === 'pat'
+            ? 'Signed in with personal access token.'
+            : 'Signed in with GitHub device flow.'
+        const logoutLabel = authMethod === 'pat' ? 'Remove token' : 'Log out'
+
         return (
             <Paper elevation={0} sx={{ border: 1, borderColor: 'divider', borderRadius: AUTH_PANEL_RADIUS, p: AUTH_PANEL_PADDING }}>
                 <Stack spacing={3}>
@@ -60,7 +79,7 @@ export function GithubAuthPanel(props: GithubAuthPanelProps) {
                             MD2
                         </Typography>
                         <Typography color="text.secondary" variant="body1">
-                            GitHub authentication is active.
+                            {signedInText}
                         </Typography>
                     </Box>
 
@@ -79,7 +98,7 @@ export function GithubAuthPanel(props: GithubAuthPanelProps) {
                             ) : null}
                         </Box>
                         <Button color="inherit" onClick={logout} variant="outlined">
-                            Log out
+                            {logoutLabel}
                         </Button>
                     </Stack>
 
@@ -104,6 +123,34 @@ export function GithubAuthPanel(props: GithubAuthPanelProps) {
                 <Button disabled={isLoginDisabled} onClick={handleLoginClick} size="large" variant="contained">
                     Sign in with GitHub
                 </Button>
+
+                <Divider />
+
+                <Stack spacing={1.5}>
+                    <Typography component="h2" variant="h6">
+                        Use a personal access token
+                    </Typography>
+                    <TextField
+                        autoComplete="off"
+                        disabled={isLoadingUser}
+                        helperText={(
+                            <span>
+                                Fine-grained token needs Contents read/write on target repositories.{' '}
+                                <Link href="https://github.com/settings/personal-access-tokens/new" rel="noreferrer" target="_blank">
+                                    Create token
+                                </Link>
+                            </span>
+                        )}
+                        label="Personal access token"
+                        onChange={handlePersonalAccessTokenChange}
+                        size="small"
+                        type="password"
+                        value={personalAccessToken}
+                    />
+                    <Button disabled={isSaveTokenDisabled} onClick={handleSavePersonalAccessTokenClick} variant="outlined">
+                        Save token
+                    </Button>
+                </Stack>
 
                 {statusMessage ? (
                     <Alert severity={status === 'waiting' || status === 'requesting-code' ? 'info' : 'error'}>

@@ -6,6 +6,7 @@ export interface UseGithubAuthResult extends AuthSnapshot {
     accessToken: string | null
     login: () => Promise<void>
     logout: () => void
+    savePersonalAccessToken: (accessToken: string) => Promise<void>
 }
 
 function getChangedSnapshot(event: Event): AuthSnapshot {
@@ -35,5 +36,6 @@ export function useGithubAuth(service: GithubAuthService = githubAuthService): U
         accessToken: service.getAccessToken(),
         login: service.login.bind(service),
         logout: service.logout.bind(service),
+        savePersonalAccessToken: service.savePersonalAccessToken.bind(service),
     }
 }

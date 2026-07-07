@@ -10,19 +10,20 @@ policy:
 ---
 
 ## Problem
-`app/src/components/project_workspace.tsx` (~320 lines) owns project open/create orchestration (`createStorageService` + `dataService.init` + `openProject`), session persistence (`writeLastProject`), branch switching, push-mode config writes, card creation and navigation state. The architecture decisions say components do not own domain state/logic — this belongs in services, with the component reduced to presentation + hooks.
+**Updated 2026-07-06:** the god component moved instead of dissolving. `ProjectWorkspace` was slimmed to view composition, but the domain orchestration now lives in `app/src/components/shell/project_toolbar_menu.tsx` (~736 lines, 22 direct data-service/storage call sites): project open/create for GitHub/local/remote (`createStorageService` + `dataService.init` + `openProject`), session persistence (`writeLastProject`), branch listing/switching, working-folder chooser flow, push, complete-release and the new-card form. The architecture decisions say components do not own domain state/logic — this belongs in services, with components reduced to presentation + hooks. No `projectSessionService` exists yet.
 
 ## Fix
-- Add a `projectSessionService` (singleton, `src/services/`) owning: open GitHub/local project, create project, switch branch, persist/restore last session, push. It wraps the existing `dataService`/storage wiring currently inlined in the component.
-- `ProjectWorkspace` consumes it through a hook (`useProjectSession`) exposing status/error, and keeps only UI state (view mode, selection, drafts).
+See `design\feature_descriptions\J_002_refactor_large_modules.md` item 1 for the concrete split (service + `useProjectSession` hook + dialog subcomponents). In summary:
+- Add a `projectSessionService` (singleton, `src/services/`) owning: open GitHub/local/remote project, create project, switch branch, working-folder resolution, persist/restore last session, push, complete release. It wraps the existing `dataService`/storage wiring currently inlined in `ProjectToolbarMenu`.
+- `ProjectToolbarMenu` consumes it through a hook (`useProjectSession`) exposing status/error, and keeps only menu/dialog UI state; the dialogs (open project, working-folder chooser, new card, complete release) become sibling components.
 - Navigation state (`requestedPath`/nonce) can move into the existing `workspaceNavigationService` so card→file jumps don't thread through props.
-- This refactor is a prerequisite-friendly companion to F-027 (selection UI) and B-019 (form placement) — do it first or together.
 
 ## acceptance criteria
 - No component calls `createStorageService`, `dataService.init` or `writeLastProject` directly.
-- `ProjectWorkspace` shrinks to view composition + handlers delegating to services.
-- Behavior is unchanged (open, restore, switch branch, push, create card) and covered by service-level tests instead of only component tests.
+- `ProjectToolbarMenu` shrinks to menu composition + dialog triggers delegating to services.
+- Behavior is unchanged (open, restore, switch branch, push, create card, complete release) and covered by service-level tests instead of only component tests.
 
 ## see also
 - `design\architecture\architectural_decisions.md`
+- `design\feature_descriptions\J_002_refactor_large_modules.md`
 - `design\feature_descriptions\F_027_repository_branch_selection.md`

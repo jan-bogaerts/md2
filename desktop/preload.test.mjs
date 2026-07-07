@@ -144,7 +144,7 @@ describe('preload desktop agent bridge', () => {
         expect(exposed.md2Lifecycle.ipcRenderer).toBeUndefined()
     })
 
-    it('starts an agent conversation with the MD2_AGENT command override', () => {
+    it('starts an agent conversation with the selected stored profile when MD2_AGENT overrides only codex', () => {
         const previousAgent = process.env.MD2_AGENT
         process.env.MD2_AGENT = 'env-agent'
 
@@ -160,7 +160,7 @@ describe('preload desktop agent bridge', () => {
             window.md2Data.startAgentConversation({ prompt: 'start this' }, callback)
 
             expect(agentRunnerService.start).toHaveBeenCalledWith(null, {
-                command: 'env-agent',
+                command: 'stored-agent',
                 prompt: 'start this',
             }, callback)
         } finally {

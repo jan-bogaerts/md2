@@ -8,12 +8,14 @@ import { MainWindow } from './main_window'
 
 const auth: UseGithubAuthResult = {
     accessToken: null,
+    authMethod: null,
     deviceCode: null,
     errorMessage: null,
     isAuthenticated: false,
     isLoadingUser: false,
     login: vi.fn(),
     logout: vi.fn(),
+    savePersonalAccessToken: vi.fn(),
     status: 'idle',
     user: null,
 }

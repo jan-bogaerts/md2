@@ -32,7 +32,7 @@ function readDesktopConfig(store, env = process.env) {
     const resolved = { ...resolveDesktopConfig(env), ...readStoredDesktopConfig(store) }
     const agentProfiles = validateAgentProfiles(resolved.agentProfiles)
     if (env.MD2_AGENT) {
-        const defaultProfile = agentProfiles.find((profile) => profile.name === resolved.agent)
+        const defaultProfile = agentProfiles.find((profile) => profile.name === DEFAULT_DESKTOP_AGENT)
         if (defaultProfile) defaultProfile.command = env.MD2_AGENT
     }
 

@@ -10,12 +10,12 @@ policy:
 ---
 
 ## Problem
-The config entry `desktop.agent` (`app/src/services/config_service.ts`) offers options `codex` and `system` ("System default"). The value is used verbatim as the shell command by `ActionRunner` → `runAgent` → `runProcessWithInput` in `desktop/local_git_service.js`, so choosing "System default" spawns a process literally named `system`, which fails. There is no mapping from the option to any real default agent.
+Still present after the F-033 agent-profile rework (2026-07-06 audit). The built-in profile list (`BUILTIN_AGENT_PROFILES` in `app/src/data/agent_profiles.ts` and its duplicate `desktop/agent_profiles.js`) contains `{ command: 'system', name: 'system' }`, and `buildAgentCommand`/`resolveAgentCommand` use the profile's `command` verbatim as the shell command. Selecting the `system` profile (app menu, action popup, action json or `desktop.agent` config) spawns a process literally named `system`, which fails — there is still no mapping to any real default agent.
 
 ## Fix
-- Decide what "system default" means. Recommended: drop the fake option and make `desktop.agent` a free-text command (validated non-empty) with `codex` as default — the design says "the string that gets sent to the agent is configurable".
-- If a named default is kept, resolve it in one place (desktop config module) to a concrete command before spawning, and fail with a clear message when unresolvable.
-- Add validation feedback in the action popup when an agent run fails to spawn (currently the exit path reports, spawn `error` events reject — verify the message reaches the log/status).
+- Decide what "system default" means. Recommended: remove the fake `system` built-in profile — user-defined profiles with free-form commands now cover the "configurable agent string" requirement, and `codex`/`claude` remain sensible defaults.
+- If a named default is kept, resolve it in one place (the shared agent-profiles module) to a concrete command before spawning, and fail with a clear message when unresolvable. Apply the change to both copies of the module (see J-002 item 8 on the duplication).
+- Add validation feedback in the action popup when an agent run fails to spawn (verify spawn `error` events reach the run log/status shown in the popup).
 
 ## acceptance criteria
 - No selectable config value causes a spawn of a nonexistent literal command.

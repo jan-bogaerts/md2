@@ -1,7 +1,7 @@
 ---
 id: F-035
 title: personal access token fallback for GitHub auth
-status: design
+status: ready
 owner: JB
 affects:
 policy:

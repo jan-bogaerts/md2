@@ -1,4 +1,5 @@
 export const AUTH_TOKEN_STORAGE_KEY = 'md2.github.accessToken'
+export const AUTH_METHOD_STORAGE_KEY = 'md2.github.authMethod'
 export const GITHUB_DEVICE_CODE_URL = 'https://github.com/login/device/code'
 export const GITHUB_TOKEN_URL = 'https://github.com/login/oauth/access_token'
 export const GITHUB_USER_URL = 'https://api.github.com/user'
@@ -7,6 +8,7 @@ export const GITHUB_AUTH_SLOW_DOWN_SECONDS = 5
 export const SECONDS_TO_MILLISECONDS = 1000
 
 export type GithubDeviceFlowStatus = 'idle' | 'requesting-code' | 'waiting' | 'authenticated' | 'denied' | 'expired' | 'error'
+export type GithubAuthMethod = 'device' | 'pat'
 
 export interface GithubDeviceCode {
     deviceCode: string
@@ -36,6 +38,7 @@ export interface GithubUser {
 }
 
 export interface AuthSnapshot {
+    authMethod: GithubAuthMethod | null
     deviceCode: GithubDeviceCode | null
     errorMessage: string | null
     isAuthenticated: boolean

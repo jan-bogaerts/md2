@@ -1,12 +1,14 @@
 ﻿import { readGithubAuthConfig, type GithubAuthConfig } from '../auth/github_auth_config'
 import { fetchGithubUser, GithubUnauthorizedError } from '../auth/github_api_client'
 import {
+    AUTH_METHOD_STORAGE_KEY,
     AUTH_TOKEN_STORAGE_KEY,
     GITHUB_AUTH_POLLING_FALLBACK_SECONDS,
     GITHUB_AUTH_SLOW_DOWN_SECONDS,
     SECONDS_TO_MILLISECONDS,
     type AuthSnapshot,
     type AuthStorage,
+    type GithubAuthMethod,
     type GithubDeviceCode,
     type GithubOAuthErrorResponse,
     type GithubTokenResponse,
@@ -29,6 +31,7 @@ export interface GithubAuthServiceDependencies {
 }
 
 const INITIAL_AUTH_SNAPSHOT: AuthSnapshot = {
+    authMethod: null,
     deviceCode: null,
     errorMessage: null,
     isAuthenticated: false,
@@ -47,6 +50,15 @@ function buildAuthErrorMessage(error: GithubOAuthErrorResponse) {
 
 function getStoredAccessToken(storage: AuthStorage) {
     return storage.getItem(AUTH_TOKEN_STORAGE_KEY)
+}
+
+function getStoredAuthMethod(storage: AuthStorage): GithubAuthMethod | null {
+    const storedMethod = storage.getItem(AUTH_METHOD_STORAGE_KEY)
+
+    if (storedMethod === 'device' || storedMethod === 'pat') return storedMethod
+    if (storedMethod === null) return null
+
+    throw new Error(`Unsupported GitHub auth method: ${storedMethod}`)
 }
 
 function getErrorMessage(error: unknown) {
@@ -123,8 +135,11 @@ export class GithubAuthService extends EventTarget {
 
         if (!storedToken) return
 
+        const authMethod = getStoredAuthMethod(storage)
+        if (!authMethod) throw new Error('Missing GitHub auth method')
+
         this.accessToken = storedToken
-        this.setSnapshot({ errorMessage: null, isAuthenticated: true, isLoadingUser: true, status: 'authenticated' })
+        this.setSnapshot({ authMethod, errorMessage: null, isAuthenticated: true, isLoadingUser: true, status: 'authenticated' })
         await this.loadCurrentUser(storedToken)
     }
 
@@ -162,6 +177,39 @@ export class GithubAuthService extends EventTarget {
         this.activeDeviceCode = null
         this.activeLoginId += 1
         this.setSnapshot({ ...INITIAL_AUTH_SNAPSHOT })
+    }
+
+    async savePersonalAccessToken(accessToken: string) {
+        const personalAccessToken = accessToken.trim()
+        const { fetchUser } = this.requireDependencies()
+
+        this.cancelPolling()
+        this.activeDeviceCode = null
+        this.activeLoginId += 1
+        this.setSnapshot({ deviceCode: null, errorMessage: null, isLoadingUser: true, status: 'idle' })
+
+        try {
+            const user = await fetchUser(personalAccessToken)
+
+            this.persistToken(personalAccessToken, 'pat')
+            this.setSnapshot({
+                authMethod: 'pat',
+                errorMessage: null,
+                isAuthenticated: true,
+                isLoadingUser: false,
+                status: 'authenticated',
+                user,
+            })
+        } catch (error) {
+            this.setSnapshot({
+                authMethod: null,
+                errorMessage: getErrorMessage(error),
+                isAuthenticated: false,
+                isLoadingUser: false,
+                status: 'idle',
+                user: null,
+            })
+        }
     }
 
     handleUnauthorized() {
@@ -218,8 +266,14 @@ export class GithubAuthService extends EventTarget {
                 return
             }
 
-            this.persistToken(tokenResponse.accessToken)
-            this.setSnapshot({ errorMessage: null, isAuthenticated: true, isLoadingUser: true, status: 'authenticated' })
+            this.persistToken(tokenResponse.accessToken, 'device')
+            this.setSnapshot({
+                authMethod: 'device',
+                errorMessage: null,
+                isAuthenticated: true,
+                isLoadingUser: true,
+                status: 'authenticated',
+            })
             await this.loadCurrentUser(tokenResponse.accessToken)
         } catch (error) {
             this.setSnapshot({ errorMessage: getErrorMessage(error), status: 'error' })
@@ -283,16 +337,18 @@ export class GithubAuthService extends EventTarget {
         return typeof scopes === 'string' ? scopes : fallbackScopes
     }
 
-    private persistToken(accessToken: string) {
+    private persistToken(accessToken: string, authMethod: GithubAuthMethod) {
         const { storage } = this.requireDependencies()
         this.accessToken = accessToken
         storage.setItem(AUTH_TOKEN_STORAGE_KEY, accessToken)
+        storage.setItem(AUTH_METHOD_STORAGE_KEY, authMethod)
     }
 
     private clearToken() {
         const { storage } = this.requireDependencies()
         this.accessToken = null
         storage.removeItem(AUTH_TOKEN_STORAGE_KEY)
+        storage.removeItem(AUTH_METHOD_STORAGE_KEY)
     }
 
     private setSnapshot(snapshot: Partial<AuthSnapshot>) {

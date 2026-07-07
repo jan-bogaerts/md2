@@ -10,13 +10,14 @@ policy:
 ---
 
 ## Problem
-Several failure paths vanish without any user-visible signal:
-- `DataService.getConfig()` catches all errors and returns `null` — a config-service bug looks like "no project config".
-- `ProjectWorkspace.handleSwitchBranchClick` uses `try/finally` with no `catch`; a failed checkout leaves an unhandled rejection and no message.
-- `handleCreateCardClick`, `handlePushClick`, `handleMoveCard`, `handleTogglePolicy`, `handleTitleChange`, `handleBodyChange` fire async data-service calls without error handling; commit-batcher failures (e.g. B-001, B-021) surface nowhere.
-- `DataService.moveCard` `void`-fires `onState` action runs (also B-009).
-- `desktop/diff_service.js` `openInEditor` swallows spawn errors with `child.on('error', () => {})`.
-- The commit batcher itself: `flush()` rejections from the timer callback (`void this.flush()`) are unobserved — a failed delayed commit is silent data loss.
+Several failure paths vanish without any user-visible signal. Status per item re-verified 2026-07-06:
+- **Still open**: `DataService.getConfig()` catches all errors and returns `null` — a config-service bug looks like "no project config".
+- **Still open**: `ProjectWorkspace`'s `handleMoveCard`, `handleTogglePolicy`, `handleTitleChange`, `handleBodyChange`, `handleAffectsChange`, `handleHeaderFieldChange` fire data-service calls without error handling; the scheduled-commit failures they can cause surface nowhere.
+- **Still open**: the commit batcher's timer callback runs `void this.flush()` (`app/src/data/commit_batcher.ts`) — rejections from a failed delayed commit are unobserved: silent data loss.
+- **Still open**: `desktop/diff_service.js` `openInEditor` swallows spawn errors with `child.on('error', () => {})` — a missing `code` binary is a silent no-op.
+- ~~`handleSwitchBranchClick` try/finally without catch~~ **done** — branch switching moved to `ProjectToolbarMenu` with error reporting.
+- ~~`handleCreateCardClick`/`handlePushClick` unhandled~~ **done** — both report through `reportWorkspaceError`/dialog error state.
+- ~~`DataService.moveCard` void-fires `onState` runs~~ **done** — `runStateAction` records failures as card agent errors (B-009).
 
 ## Fix
 - Add a single error-reporting path for background persistence: `DataService` catches commit/flush failures, keeps the pending files, and dispatches an `error` event; the workspace shows it in the existing alert (plus telemetry `captureError`).

@@ -101,7 +101,7 @@ function resolveAgentCommand(config, selection = {}) {
     const profiles = config.agentProfiles ?? []
     const profile = findAgentProfile(profiles, agent)
     if (!profile) throw new Error(`Unknown agent profile: ${agent}`)
-    const model = selection.model ?? config.model ?? defaultModelForProfile(profile)
+    const model = (selection.model ?? config.model) || defaultModelForProfile(profile)
     validateAgentSelection(profiles, { agent, model }, 'desktop config')
 
     return { agent, command: buildAgentCommand(profile, model), model, profile }

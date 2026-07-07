@@ -7,6 +7,7 @@
   "scripts": {
     "lint": "eslint .",
     "lint-fix": "eslint . --fix",
+    "oauth-proxy": "node start_github_oauth_cors_server.js",
     "start": "node start_electron.js",
     "test": "vitest run"
   },

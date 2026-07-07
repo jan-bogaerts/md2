@@ -1,7 +1,7 @@
 ---
 id: F-034
 title: GitHub device-flow CORS proxy for web mode
-status: design
+status: ready
 owner: JB
 affects:
 policy:
