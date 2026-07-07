@@ -1,7 +1,7 @@
 ---
 id: J-006
 title: split desktop local git service into three modules plus aggregator
-status: design
+status: ready
 owner: JB
 affects:
 policy:
