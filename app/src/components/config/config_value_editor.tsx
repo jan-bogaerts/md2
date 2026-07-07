@@ -4,17 +4,19 @@ import type { ChangeEvent } from 'react'
 import { useState } from 'react'
 import type { ConfigEntry, ConfigValue } from '../../services/config_service'
 import { defaultModelForProfile, findAgentProfile, mergeAgentProfiles, type AgentProfile } from '../../data/agent_profiles'
+import { AgentProfilesEditor } from './agent_profiles_editor'
 
 interface ConfigValueEditorProps {
     disabled?: boolean
     entry: ConfigEntry
     onChange: (key: ConfigEntry['key'], value: unknown) => void
+    onValidityChange?: (key: ConfigEntry['key'], valid: boolean) => void
     value: ConfigValue
     values?: Partial<Record<ConfigEntry['key'], ConfigValue>>
 }
 
 export function ConfigValueEditor(props: ConfigValueEditorProps) {
-    const { disabled = false, entry, onChange, value, values } = props
+    const { disabled = false, entry, onChange, onValidityChange, value, values } = props
     const [jsonText, setJsonText] = useState(() => (entry.type === 'json' ? JSON.stringify(value, null, 2) : ''))
     const agentProfiles = mergeAgentProfiles((values?.['desktop.agentProfiles'] ?? []) as AgentProfile[])
     const selectedAgentProfile = entry.key === 'desktop.model'
@@ -44,6 +46,14 @@ export function ConfigValueEditor(props: ConfigValueEditorProps) {
 
     const handleJsonBlur = () => {
         onChange(entry.key, JSON.parse(jsonText))
+    }
+
+    const handleAgentProfilesChange = (nextValue: AgentProfile[]) => {
+        onChange(entry.key, nextValue)
+    }
+
+    const handleAgentProfilesValidityChange = (valid: boolean) => {
+        onValidityChange?.(entry.key, valid)
     }
 
     const control = entry.type === 'boolean' ? (
@@ -90,6 +100,13 @@ export function ConfigValueEditor(props: ConfigValueEditorProps) {
             slotProps={{ htmlInput: { max: entry.max, min: entry.min } }}
             type="number"
             value={value as number}
+        />
+    ) : entry.key === 'desktop.agentProfiles' ? (
+        <AgentProfilesEditor
+            disabled={disabled}
+            onChange={handleAgentProfilesChange}
+            onValidityChange={handleAgentProfilesValidityChange}
+            value={value as AgentProfile[]}
         />
     ) : entry.type === 'json' ? (
         <TextField

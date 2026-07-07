@@ -1,7 +1,7 @@
 ---
 id: B-035
 title: agent profiles are edited as a raw JSON textarea
-status: design
+status: ready
 owner: JB
 affects:
 policy:

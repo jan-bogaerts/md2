@@ -142,6 +142,128 @@ describe('ConfigPage', () => {
         delete window.md2Config
     })
 
+    it('adds an agent profile with fields and persists it through the desktop bridge', () => {
+        mockMatchMedia(false)
+        const setDesktopConfig = vi.fn()
+        window.md2Config = {
+            getDesktopConfig: () => ({
+                agent: 'codex',
+                agentSlotCommand: '',
+                agentProfiles: BUILTIN_AGENT_PROFILES,
+                model: '',
+                projectLocationMode: 'folder',
+            }),
+            setDesktopConfig,
+        }
+        initConfigFromElectronBridge()
+
+        render(<ConfigPage hash="#desktop" />)
+        fireEvent.click(screen.getByRole('button', { name: 'Add profile' }))
+
+        expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled()
+
+        fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'local' } })
+        fireEvent.change(screen.getByLabelText('Command'), { target: { value: 'local-agent {{model}}' } })
+        fireEvent.change(screen.getByLabelText('Model argument'), { target: { value: '--model' } })
+        fireEvent.change(screen.getByLabelText('Models'), { target: { value: 'gpt-5, gpt-5-mini' } })
+        fireEvent.change(screen.getByLabelText('Profile default model'), { target: { value: 'gpt-5' } })
+        fireEvent.change(screen.getByLabelText('Resume command'), { target: { value: 'local resume {{sessionId}}' } })
+        fireEvent.change(screen.getByLabelText('Session-id pattern'), { target: { value: 'session ([a-z0-9-]+)' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Save profile' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+        expect(setDesktopConfig).toHaveBeenCalledWith(expect.objectContaining({
+            agentProfiles: expect.arrayContaining([
+                expect.objectContaining({
+                    command: 'local-agent {{model}}',
+                    defaultModel: 'gpt-5',
+                    modelArgument: '--model',
+                    models: ['gpt-5', 'gpt-5-mini'],
+                    name: 'local',
+                    resumeCommand: 'local resume {{sessionId}}',
+                    sessionIdPattern: 'session ([a-z0-9-]+)',
+                }),
+            ]),
+        }))
+        expect(configService.get('desktop.agentProfiles')).toEqual(expect.arrayContaining([expect.objectContaining({ name: 'local' })]))
+
+        delete window.md2Config
+    })
+
+    it('edits and removes user agent profiles while built-ins stay read-only', () => {
+        mockMatchMedia(false)
+        const setDesktopConfig = vi.fn()
+        window.md2Config = {
+            getDesktopConfig: () => ({
+                agent: 'codex',
+                agentSlotCommand: '',
+                agentProfiles: [...BUILTIN_AGENT_PROFILES, { command: 'local-agent', name: 'local' }],
+                model: '',
+                projectLocationMode: 'folder',
+            }),
+            setDesktopConfig,
+        }
+        initConfigFromElectronBridge()
+
+        render(<ConfigPage hash="#desktop" />)
+
+        expect(screen.getAllByText('Built-in')).toHaveLength(2)
+
+        fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
+        fireEvent.change(screen.getByLabelText('Command'), { target: { value: 'edited-agent' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Save profile' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+        expect(setDesktopConfig).toHaveBeenLastCalledWith(expect.objectContaining({agentProfiles: expect.arrayContaining([expect.objectContaining({ command: 'edited-agent', name: 'local' })])}))
+
+        fireEvent.click(screen.getByRole('button', { name: 'Remove' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+        const lastCall = setDesktopConfig.mock.calls.at(-1)?.[0]
+        expect(lastCall.agentProfiles).not.toEqual(expect.arrayContaining([expect.objectContaining({ name: 'local' })]))
+
+        delete window.md2Config
+    })
+
+    it('reports agent profile validation errors before page save is enabled', () => {
+        mockMatchMedia(false)
+        window.md2Config = {
+            getDesktopConfig: () => ({
+                agent: 'codex',
+                agentSlotCommand: '',
+                agentProfiles: BUILTIN_AGENT_PROFILES,
+                model: '',
+                projectLocationMode: 'folder',
+            }),
+            setDesktopConfig: vi.fn(),
+        }
+        initConfigFromElectronBridge()
+
+        render(<ConfigPage hash="#desktop" />)
+        fireEvent.click(screen.getByRole('button', { name: 'Add profile' }))
+
+        expect(screen.getByText(/Name is required/)).toBeInTheDocument()
+        expect(screen.getByText(/Command is required/)).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled()
+
+        fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'codex' } })
+        fireEvent.change(screen.getByLabelText('Command'), { target: { value: 'agent' } })
+
+        expect(screen.getByText('Duplicate agent profile: codex')).toBeInTheDocument()
+
+        fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'local' } })
+        fireEvent.change(screen.getByLabelText('Session-id pattern'), { target: { value: '(' } })
+
+        expect(screen.getByText('Session-id pattern is not a valid regular expression.')).toBeInTheDocument()
+
+        fireEvent.change(screen.getByLabelText('Session-id pattern'), { target: { value: '(?:session)' } })
+
+        expect(screen.getByText('Session-id pattern must include one capture group.')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Save profile' })).toBeDisabled()
+
+        delete window.md2Config
+    })
+
     it('renders desktop config values initialized during bootstrap', () => {
         mockMatchMedia(false)
         window.md2Config = {

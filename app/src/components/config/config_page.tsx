@@ -37,6 +37,7 @@ export function ConfigPage(props: ConfigPageProps) {
     const isMobile = useMediaQuery(theme.breakpoints.down('md'))
     const draft = useSyncExternalStore(subscribeToConfigChanges, getConfigDraftSnapshot)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
+    const [invalidConfigKeys, setInvalidConfigKeys] = useState<Set<ConfigKey>>(() => new Set())
     const draftDiscardTimeoutRef = useRef<number | null>(null)
     const entries = configService.getEntries()
     const visibleSections = useMemo(
@@ -69,6 +70,19 @@ export function ConfigPage(props: ConfigPageProps) {
         } catch (error) {
             setErrorMessage(error instanceof Error ? error.message : 'Invalid config value')
         }
+    }
+
+    const handleValidityChange = (key: ConfigKey, valid: boolean) => {
+        setInvalidConfigKeys((currentKeys) => {
+            if (valid && !currentKeys.has(key)) return currentKeys
+            if (!valid && currentKeys.has(key)) return currentKeys
+
+            const nextKeys = new Set(currentKeys)
+            if (valid) nextKeys.delete(key)
+            else nextKeys.add(key)
+
+            return nextKeys
+        })
     }
 
     const handleSaveClick = async () => {
@@ -116,7 +130,7 @@ export function ConfigPage(props: ConfigPageProps) {
                         <Button onClick={handleCancelClick} variant="outlined">
                             Cancel
                         </Button>
-                        <Button onClick={handleSaveClick} variant="contained">
+                        <Button disabled={invalidConfigKeys.size > 0} onClick={handleSaveClick} variant="contained">
                             Save
                         </Button>
                     </Stack>
@@ -136,6 +150,7 @@ export function ConfigPage(props: ConfigPageProps) {
                                         entry={entry}
                                         key={entry.key}
                                         onChange={handleValueChange}
+                                        onValidityChange={handleValidityChange}
                                         value={draft[entry.key]}
                                         values={draft}
                                     />
