@@ -1,7 +1,7 @@
 ---
 id: J-008
 title: extract action runner history and text helpers
-status: design
+status: ready
 owner: JB
 affects:
 policy:
