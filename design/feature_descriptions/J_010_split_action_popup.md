@@ -1,7 +1,7 @@
 ---
 id: J-010
 title: extract action popup schedule form and run history subcomponents
-status: design
+status: ready
 owner: JB
 affects:
 policy:
