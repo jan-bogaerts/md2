@@ -113,6 +113,15 @@ function messageFromCommandResult(action: ActionDefinition, result: CommandExecu
     return `${action.label} failed with exit code ${result.exitCode}`
 }
 
+function messageFromAgentResult(action: ActionDefinition, result: AgentExecutionResult) {
+    if (result.exitCode === 0) return `${action.label} completed`
+
+    const output = (result.stderr.trim() || result.stdout.trim())
+    if (output.length === 0) return `${action.label} failed with exit code ${result.exitCode}`
+
+    return `${action.label} failed with exit code ${result.exitCode}: ${output}`
+}
+
 function createFailureLog(action: ActionDefinition, phase: RunPhase, message: string): ActionRunLogEntry {
     return { actionName: action.name, command: null, message, phase, status: 'failed', stderr: message, stdout: '' }
 }
@@ -133,7 +142,7 @@ function createAgentLog(action: ActionDefinition, phase: RunPhase, command: stri
     return {
         actionName: action.name,
         command,
-        message: messageFromCommandResult(action, result),
+        message: messageFromAgentResult(action, result),
         phase,
         status: statusFromExitCode(result.exitCode),
         stderr: result.stderr,

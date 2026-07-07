@@ -231,6 +231,25 @@ describe('ActionRunner', () => {
         )
     })
 
+    it('includes agent stderr detail in failed run logs', async () => {
+        const agentRunner = vi.fn(async (_bridge: ElectronActionBridge, request: AgentExecutionRequest) => (
+            agentResult(request, { exitCode: 1, stderr: 'spawn missing-agent ENOENT' })
+        ))
+
+        const result = await new ActionRunner({
+            actionHistoryAppender: vi.fn(async () => []),
+            agentConversationLinker: noopAgentConversationLinker,
+            actionsFolderProvider: () => 'actions',
+            agentCommandProvider: () => 'missing-agent',
+            agentRunner,
+            bridgeProvider: () => bridge,
+            projectProvider: () => ({ branch: 'main', id: 'local', rootPath: 'C:/repo' }),
+        }).run(action('implement', { text: 'implement', type: 'agent' }), context)
+
+        expect(result.status).toBe('failed')
+        expect(result.logs[0].message).toBe('implement failed with exit code 1: spawn missing-agent ENOENT')
+    })
+
     it('resolves agent and model by run input, action definition, then global default', async () => {
         const agentRunner = vi.fn(async (_bridge: ElectronActionBridge, request: AgentExecutionRequest) => agentResult(request))
         const baseRunner = new ActionRunner({

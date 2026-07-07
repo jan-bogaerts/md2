@@ -68,11 +68,11 @@ describe('readDesktopConfig', () => {
     })
 
     it('lets a stored value override the env default for one field while the other falls back', () => {
-        const store = createFakeStore({ [DESKTOP_CONFIG_STORE_KEY]: { agent: 'system' } })
+        const store = createFakeStore({ [DESKTOP_CONFIG_STORE_KEY]: { agent: 'claude' } })
 
         expect(readDesktopConfig(store, { MD2_PROJECT_LOCATION_MODE: 'current-directory' })).toEqual({
-            agent: 'system',
-            agentProfiles: expect.arrayContaining([expect.objectContaining({ name: 'system' })]),
+            agent: 'claude',
+            agentProfiles: expect.arrayContaining([expect.objectContaining({ name: 'claude' })]),
             model: DEFAULT_DESKTOP_MODEL,
             projectLocationMode: 'current-directory',
         })
@@ -105,11 +105,11 @@ describe('writeDesktopConfig', () => {
     it('persists values so a subsequent readDesktopConfig reflects them', () => {
         const store = createFakeStore()
 
-        writeDesktopConfig(store, { agent: 'system' })
+        writeDesktopConfig(store, { agent: 'claude' })
 
         expect(readDesktopConfig(store, {})).toEqual({
-            agent: 'system',
-            agentProfiles: expect.arrayContaining([expect.objectContaining({ name: 'system' })]),
+            agent: 'claude',
+            agentProfiles: expect.arrayContaining([expect.objectContaining({ name: 'claude' })]),
             model: DEFAULT_DESKTOP_MODEL,
             projectLocationMode: DEFAULT_PROJECT_LOCATION_MODE,
         })
@@ -118,12 +118,12 @@ describe('writeDesktopConfig', () => {
     it('merges with a previous write instead of overwriting it', () => {
         const store = createFakeStore()
 
-        writeDesktopConfig(store, { agent: 'system' })
+        writeDesktopConfig(store, { agent: 'claude' })
         writeDesktopConfig(store, { projectLocationMode: 'current-directory' })
 
         expect(readDesktopConfig(store, {})).toEqual({
-            agent: 'system',
-            agentProfiles: expect.arrayContaining([expect.objectContaining({ name: 'system' })]),
+            agent: 'claude',
+            agentProfiles: expect.arrayContaining([expect.objectContaining({ name: 'claude' })]),
             model: DEFAULT_DESKTOP_MODEL,
             projectLocationMode: 'current-directory',
         })

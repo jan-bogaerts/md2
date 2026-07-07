@@ -35,7 +35,6 @@ export const BUILTIN_AGENT_PROFILES: AgentProfile[] = [
         resumeCommand: 'claude --resume {{sessionId}}',
         sessionIdPattern: '(?:Session ID|session id|session_id|sessionId)[:= ]+([0-9a-fA-F-]{36})',
     },
-    { command: 'system', models: [], name: 'system' },
 ]
 
 function requireString(value: unknown, fieldName: string) {

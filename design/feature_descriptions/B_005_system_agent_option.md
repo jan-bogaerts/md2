@@ -1,7 +1,7 @@
 ---
 id: B-005
 title: desktop.agent "System default" option spawns the literal command `system`
-status: design
+status: ready
 owner: JB
 affects:
 policy:

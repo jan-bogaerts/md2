@@ -296,6 +296,7 @@ class AgentRunnerService {
 
         const timestamp = new Date().toISOString()
         const message = error instanceof Error ? error.message : 'Agent process failed'
+        run.stderr += message
         run.conversation.messages.push(createMessage(`${runId}-error`, 'stderr', message, timestamp))
         run.conversation.events.push(createEvent(`${runId}-error`, 'error', message, timestamp))
         void queueConversationPersist(run)

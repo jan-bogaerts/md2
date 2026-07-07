@@ -141,6 +141,28 @@ describe('ActionPopup', () => {
         expect(runAction).toHaveBeenCalledWith(expect.objectContaining({ name: 'Implement' }), context, { extraPrompt: '' })
     })
 
+    it('shows failed agent run details from the run log', async () => {
+        const failedResult: ActionRunResult = {
+            logs: [{
+                actionName: 'Implement',
+                command: 'missing-agent',
+                message: 'Implement failed with exit code 1: spawn missing-agent ENOENT',
+                phase: 'main',
+                status: 'failed',
+                stderr: 'spawn missing-agent ENOENT',
+                stdout: '',
+            }],
+            status: 'failed',
+        }
+        const runAction = vi.fn(async () => failedResult)
+        renderPopup({ action: action('Implement', { type: 'agent' }), runAction })
+
+        fireEvent.click(screen.getByRole('button', { name: 'Run' }))
+
+        await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('failed'))
+        expect(screen.getByRole('status')).toHaveTextContent('main: Implement failed with exit code 1: spawn missing-agent ENOENT')
+    })
+
     it('passes extra prompt input when running an agent action', async () => {
         const { runAction } = renderPopup({ action: action('Implement', { type: 'agent' }) })
 

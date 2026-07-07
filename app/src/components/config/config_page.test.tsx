@@ -114,11 +114,11 @@ describe('ConfigPage', () => {
         initConfigFromElectronBridge()
 
         render(<ConfigPage hash="#desktop" />)
-        configService.setDraftValue('desktop.agent', 'system')
+        configService.setDraftValue('desktop.agent', 'claude')
         fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
         expect(setDesktopConfig).toHaveBeenCalledWith({
-            agent: 'system',
+            agent: 'claude',
             agentProfiles: BUILTIN_AGENT_PROFILES,
             model: '',
             projectLocationMode: 'folder',
@@ -130,14 +130,14 @@ describe('ConfigPage', () => {
     it('renders desktop config values initialized during bootstrap', () => {
         mockMatchMedia(false)
         window.md2Config = {
-            getDesktopConfig: () => ({ agent: 'system', agentProfiles: BUILTIN_AGENT_PROFILES, model: '', projectLocationMode: 'current-directory' }),
+            getDesktopConfig: () => ({ agent: 'claude', agentProfiles: BUILTIN_AGENT_PROFILES, model: '', projectLocationMode: 'current-directory' }),
             setDesktopConfig: vi.fn(),
         }
         initConfigFromElectronBridge()
 
         render(<ConfigPage hash="#desktop" />)
 
-        expect(configService.get('desktop.agent')).toBe('system')
+        expect(configService.get('desktop.agent')).toBe('claude')
         expect(configService.get('desktop.projectLocationMode')).toBe('current-directory')
         expect(screen.getByRole('tab', { name: 'Desktop' })).toBeInTheDocument()
 

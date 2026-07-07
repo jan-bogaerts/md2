@@ -124,6 +124,42 @@ describe('AgentRunnerService', () => {
         }
     })
 
+    it('includes spawn error events in the final stderr result', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-runner-'))
+        const service = new AgentRunnerService()
+        const events = []
+        const command = 'node -e "setTimeout(() => process.exit(1), 25)"'
+        let completeRun
+        const completion = new Promise((resolve) => {
+            completeRun = resolve
+        })
+
+        try {
+            await prepareProject(rootPath)
+
+            const result = await service.start(
+                createProject(rootPath),
+                { cardPath: 'design/F-1.md', command, prompt: 'hello' },
+                (event) => events.push(event),
+                (_exitCode, run) => completeRun(run),
+            )
+
+            service.handleError(result.runId, new Error('spawn missing-agent ENOENT'))
+            await waitForEvent(events, 'closed')
+            const completedRun = await completion
+
+            const content = await readFile(join(rootPath, result.reference), 'utf8')
+            const persisted = JSON.parse(content)
+
+            expect(completedRun.stderr).toContain('spawn missing-agent ENOENT')
+            expect(events).toContainEqual(expect.objectContaining({ content: 'spawn missing-agent ENOENT', type: 'error' }))
+            expect(persisted.status).toBe('failed')
+            expect(persisted.events).toContainEqual(expect.objectContaining({ content: 'spawn missing-agent ENOENT', type: 'error' }))
+        } finally {
+            await rm(rootPath, { force: true, recursive: true })
+        }
+    })
+
     it('captures a native session id from output when a pattern is configured', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-runner-'))
         const service = new AgentRunnerService()

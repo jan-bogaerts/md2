@@ -159,7 +159,7 @@ describe('AppMenu', () => {
                 agent: 'codex',
                 agentProfiles: [
                     { command: 'codex', modelArgument: '--model', models: ['gpt-5'], name: 'codex' },
-                    { command: 'system', modelArgument: '--model', models: ['system-model'], name: 'system' },
+                    { command: 'local-agent', modelArgument: '--model', models: ['local-model'], name: 'local' },
                 ],
                 model: 'gpt-5',
                 projectLocationMode: 'folder',
@@ -172,11 +172,11 @@ describe('AppMenu', () => {
         expect(screen.getByRole('combobox', { name: 'Default model' })).toHaveTextContent('gpt-5')
 
         act(() => {
-            configService.set('desktop.agent', 'system')
-            configService.set('desktop.model', 'system-model')
+            configService.set('desktop.agent', 'local')
+            configService.set('desktop.model', 'local-model')
         })
 
-        await waitFor(() => expect(screen.getByRole('combobox', { name: 'Default agent' })).toHaveTextContent('system'))
-        expect(screen.getByRole('combobox', { name: 'Default model' })).toHaveTextContent('system-model')
+        await waitFor(() => expect(screen.getByRole('combobox', { name: 'Default agent' })).toHaveTextContent('local'))
+        expect(screen.getByRole('combobox', { name: 'Default model' })).toHaveTextContent('local-model')
     })
 })
