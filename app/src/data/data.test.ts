@@ -1156,7 +1156,7 @@ describe('DataService', () => {
             .mockResolvedValueOnce([])
             .mockResolvedValueOnce([actionFile])
             .mockResolvedValueOnce([])
-        let watchChange: (event: { path: string }) => void = () => {
+        let watchChange: (event: { changeKind: 'added' | 'changed' | 'removed' | 'unknown'; path: string }) => void = () => {
             throw new Error('Watcher not registered')
         }
         const storage = createStorage({
@@ -1171,12 +1171,12 @@ describe('DataService', () => {
         service.init({ storage })
 
         await service.openProject({ branch: 'main', id: 'project' })
-        watchChange({ path: 'actions/do.json' })
+        watchChange({ changeKind: 'changed', path: 'actions/do.json' })
         await vi.advanceTimersByTimeAsync(150)
 
         expect(actionService.getActions().map((action) => action.name)).toContain('do')
 
-        watchChange({ path: 'actions/do.json' })
+        watchChange({ changeKind: 'changed', path: 'actions/do.json' })
         await vi.advanceTimersByTimeAsync(150)
 
         expect(actionService.getActions().map((action) => action.name)).not.toContain('do')
@@ -1190,7 +1190,7 @@ describe('DataService', () => {
         const loadActionFiles = vi.fn()
             .mockResolvedValueOnce([validActionFile])
             .mockResolvedValueOnce([invalidActionFile])
-        let watchChange: (event: { path: string }) => void = () => {
+        let watchChange: (event: { changeKind: 'added' | 'changed' | 'removed' | 'unknown'; path: string }) => void = () => {
             throw new Error('Watcher not registered')
         }
         const storage = createStorage({
@@ -1205,11 +1205,178 @@ describe('DataService', () => {
         service.init({ storage })
 
         await service.openProject({ branch: 'main', id: 'project' })
-        watchChange({ path: 'actions/bad.json' })
+        watchChange({ changeKind: 'changed', path: 'actions/bad.json' })
         await vi.advanceTimersByTimeAsync(150)
 
         expect(actionService.getActions().map((action) => action.name)).toContain('do')
         expect(actionService.getState().error).toContain('actions/bad.json')
         expect(actionService.getState().error).toContain('Invalid action type')
+    })
+
+    it('adds a markdown card when the watcher reports a new file', async () => {
+        vi.useFakeTimers()
+        configService.init()
+        let watchChange: (event: { changeKind: 'added' | 'changed' | 'removed' | 'unknown'; path: string }) => void = () => {
+            throw new Error('Watcher not registered')
+        }
+        const storage = createStorage({
+            loadFile: vi.fn(async () => ({ content: '# New external note', path: 'design/free-note.md' })),
+            watchProject: vi.fn((_project, onChange) => {
+                watchChange = onChange
+
+                return vi.fn()
+            }),
+        })
+        const service = new DataService()
+        service.init({ storage })
+        await service.openProject({ branch: 'main', id: 'project' })
+
+        watchChange({ changeKind: 'added', path: 'design/free-note.md' })
+        await vi.advanceTimersByTimeAsync(150)
+
+        const card = service.getState().snapshot?.activeCards.find((candidate) => candidate.path === 'design/free-note.md')
+        expect(card?.header.status).toBe('new')
+    })
+
+    it('updates markdown content when the watcher reports an external edit', async () => {
+        vi.useFakeTimers()
+        configService.init()
+        let watchChange: (event: { changeKind: 'added' | 'changed' | 'removed' | 'unknown'; path: string }) => void = () => {
+            throw new Error('Watcher not registered')
+        }
+        const storage = createStorage({
+            loadFile: vi.fn(async () => ({
+                content: '---\nid: F-1\ntitle: Root\nstatus: active\n---\n\n# Root\n\nExternally changed',
+                path: 'design/F-1-root.md',
+            })),
+            watchProject: vi.fn((_project, onChange) => {
+                watchChange = onChange
+
+                return vi.fn()
+            }),
+        })
+        const service = new DataService()
+        service.init({ storage })
+        await service.openProject({ branch: 'main', id: 'project' })
+
+        watchChange({ changeKind: 'changed', path: 'design/F-1-root.md' })
+        await vi.advanceTimersByTimeAsync(150)
+
+        const card = service.getState().snapshot?.activeCards.find((candidate) => candidate.path === 'design/F-1-root.md')
+        expect(card?.content).toContain('Externally changed')
+    })
+
+    it('removes a markdown card when the watcher reports deletion', async () => {
+        vi.useFakeTimers()
+        configService.init()
+        let watchChange: (event: { changeKind: 'added' | 'changed' | 'removed' | 'unknown'; path: string }) => void = () => {
+            throw new Error('Watcher not registered')
+        }
+        const storage = createStorage({
+            loadFile: vi.fn(),
+            watchProject: vi.fn((_project, onChange) => {
+                watchChange = onChange
+
+                return vi.fn()
+            }),
+        })
+        const service = new DataService()
+        service.init({ storage })
+        await service.openProject({ branch: 'main', id: 'project' })
+
+        watchChange({ changeKind: 'removed', path: 'design/F-1-root.md' })
+        await vi.advanceTimersByTimeAsync(150)
+
+        expect(service.getState().snapshot?.activeCards.some((card) => card.path === 'design/F-1-root.md')).toBe(false)
+        expect(storage.loadFile).not.toHaveBeenCalled()
+    })
+
+    it('debounces repeated markdown watcher events for the same file', async () => {
+        vi.useFakeTimers()
+        configService.init()
+        let watchChange: (event: { changeKind: 'added' | 'changed' | 'removed' | 'unknown'; path: string }) => void = () => {
+            throw new Error('Watcher not registered')
+        }
+        const loadFile = vi.fn(async () => ({
+            content: '---\nid: F-1\ntitle: Root\nstatus: active\n---\n\n# Root\n\nLatest',
+            path: 'design/F-1-root.md',
+        }))
+        const storage = createStorage({
+            loadFile,
+            watchProject: vi.fn((_project, onChange) => {
+                watchChange = onChange
+
+                return vi.fn()
+            }),
+        })
+        const service = new DataService()
+        service.init({ storage })
+        await service.openProject({ branch: 'main', id: 'project' })
+
+        watchChange({ changeKind: 'changed', path: 'design/F-1-root.md' })
+        watchChange({ changeKind: 'changed', path: 'design/F-1-root.md' })
+        await vi.advanceTimersByTimeAsync(149)
+        expect(loadFile).not.toHaveBeenCalled()
+        await vi.advanceTimersByTimeAsync(1)
+
+        expect(loadFile).toHaveBeenCalledTimes(1)
+    })
+
+    it('ignores self-echo markdown watcher events when content matches memory', async () => {
+        vi.useFakeTimers()
+        configService.init()
+        let watchChange: (event: { changeKind: 'added' | 'changed' | 'removed' | 'unknown'; path: string }) => void = () => {
+            throw new Error('Watcher not registered')
+        }
+        const storage = createStorage({
+            loadFile: vi.fn(async () => files[0]),
+            watchProject: vi.fn((_project, onChange) => {
+                watchChange = onChange
+
+                return vi.fn()
+            }),
+        })
+        const service = new DataService()
+        service.init({ storage })
+        await service.openProject({ branch: 'main', id: 'project' })
+        watchChange({ changeKind: 'changed', path: 'design/F-1-root.md' })
+        await vi.advanceTimersByTimeAsync(150)
+
+        const card = service.getState().snapshot?.activeCards.find((candidate) => candidate.path === 'design/F-1-root.md')
+        expect(card?.content).toContain('# Root')
+    })
+
+    it('reports a conflict and keeps local markdown content when unsaved edits exist', async () => {
+        vi.useFakeTimers()
+        configService.init()
+        let watchChange: (event: { changeKind: 'added' | 'changed' | 'removed' | 'unknown'; path: string }) => void = () => {
+            throw new Error('Watcher not registered')
+        }
+        const storage = createStorage({
+            loadFile: vi.fn(async () => ({
+                content: '---\nid: F-1\ntitle: Root\nstatus: active\n---\n\n# Root\n\nExternal',
+                path: 'design/F-1-root.md',
+            })),
+            watchProject: vi.fn((_project, onChange) => {
+                watchChange = onChange
+
+                return vi.fn()
+            }),
+        })
+        const service = new DataService()
+        service.init({ storage })
+        const conflicts: string[] = []
+        window.addEventListener('md2:workspace-error', (event) => {
+            conflicts.push((event as CustomEvent<string>).detail)
+        })
+        await service.openProject({ branch: 'main', id: 'project' })
+
+        service.updateCardBody('design/F-1-root.md', '# Root\n\nLocal draft')
+        watchChange({ changeKind: 'changed', path: 'design/F-1-root.md' })
+        await vi.advanceTimersByTimeAsync(150)
+
+        expect(conflicts[0]).toContain('External change ignored for design/F-1-root.md')
+        const card = service.getState().snapshot?.activeCards.find((candidate) => candidate.path === 'design/F-1-root.md')
+        expect(card?.content).toContain('Local draft')
     })
 })

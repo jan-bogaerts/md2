@@ -21,6 +21,7 @@ function createDispatch() {
         assertGitRoot: vi.fn(),
         checkoutBranch: vi.fn(async (project, branch) => ({ ...project, branch })),
         commit: vi.fn(async () => []),
+        loadFile: vi.fn(async () => ({ content: '# Root', path: 'design/F-1.md' })),
         loadProject: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
         loadProjectRoot: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
         runCommand: vi.fn(async () => ({ exitCode: 0, stderr: '', stdout: 'ok' })),
@@ -59,6 +60,15 @@ describe('createLocalBridgeDispatch', () => {
         await dispatch.invoke('loadProjectRoot', [project, 'design'])
 
         expect(localGitService.loadProjectRoot).toHaveBeenCalledWith(project, 'design')
+    })
+
+    it('forwards single file reads through the data bridge', async () => {
+        const { dispatch, localGitService } = createDispatch()
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
+
+        await dispatch.dataBridge.loadFile(project, 'design/F-1.md')
+
+        expect(localGitService.loadFile).toHaveBeenCalledWith(project, 'design/F-1.md')
     })
 
     it('exposes scheduled run subscriptions through the action bridge', () => {

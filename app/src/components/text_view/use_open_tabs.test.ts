@@ -85,4 +85,15 @@ describe('useOpenTabs', () => {
 
         expect(result.current.activePath).toBe('a.md')
     })
+
+    it('closes tabs whose files are no longer available', () => {
+        const { rerender, result } = renderHook(({ paths }) => useOpenTabs(paths), {initialProps: { paths: ['a.md', 'b.md'] }})
+
+        act(() => result.current.openTab('a.md'))
+        act(() => result.current.openTab('b.md'))
+        rerender({ paths: ['b.md'] })
+
+        expect(result.current.tabs).toEqual(['b.md'])
+        expect(result.current.activePath).toBe('b.md')
+    })
 })

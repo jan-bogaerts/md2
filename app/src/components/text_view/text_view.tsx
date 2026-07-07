@@ -55,7 +55,6 @@ export function TextView(props: TextViewProps) {
         requestedPath,
         workingFolder,
     } = props
-    const { activePath, activateTab, closeTab, openTab, tabs } = useOpenTabs()
     const [isConversationPanelOpen, setIsConversationPanelOpen] = useState(false)
     const onDeleteFileRef = useRef(onDeleteFile)
     const onLeftPanelInteractionRef = useRef(onLeftPanelInteraction)
@@ -70,6 +69,8 @@ export function TextView(props: TextViewProps) {
 
         return map
     }, [activeCards, backgroundCards])
+    const availablePaths = useMemo(() => [...cardsByPath.keys()], [cardsByPath])
+    const { activePath, activateTab, closeTab, openTab, tabs } = useOpenTabs(availablePaths)
 
     useEffect(() => {
         onDeleteFileRef.current = onDeleteFile

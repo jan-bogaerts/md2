@@ -34,7 +34,10 @@ import { telemetryService } from './telemetry_service'
 const ACTION_RELOAD_DEBOUNCE_MS = 150
 const AGENT_CONVERSATION_LOAD_CONCURRENCY = 8
 const JSON_EXTENSION = '.json'
+const MARKDOWN_EXTENSION = '.md'
+const MARKDOWN_RELOAD_DEBOUNCE_MS = 150
 const ON_STATE_ACTION_ERROR_PATH_PREFIX = 'onState'
+const WORKSPACE_ERROR_EVENT = 'md2:workspace-error'
 
 function isActionDefinitionPath(path: string, actionsFolder: string) {
     const normalizedPath = path.replace(/\\/gu, '/')
@@ -45,8 +48,19 @@ function isActionDefinitionPath(path: string, actionsFolder: string) {
     return normalizedPath.startsWith(`${normalizedActionsFolder}/`) && normalizedPath.toLowerCase().endsWith(JSON_EXTENSION)
 }
 
+function isProjectMarkdownPath(path: string, workingFolder: string) {
+    const normalizedPath = path.replace(/\\/gu, '/')
+    const normalizedWorkingFolder = workingFolder.replace(/\\/gu, '/').replace(/\/$/u, '')
+
+    return normalizedPath.startsWith(`${normalizedWorkingFolder}/`) && normalizedPath.toLowerCase().endsWith(MARKDOWN_EXTENSION)
+}
+
 function isOnStateActionError(error: AgentConversationError) {
     return error.path.startsWith(`${ON_STATE_ACTION_ERROR_PATH_PREFIX}:`)
+}
+
+function reportMarkdownWatchConflict(path: string) {
+    window.dispatchEvent(new CustomEvent<string>(WORKSPACE_ERROR_EVENT, { detail: `External change ignored for ${path} because the file has unsaved local edits.` }))
 }
 
 /** Merge committed files into the loaded set: replace matching paths, append new ones. */
@@ -156,6 +170,9 @@ export class DataService extends EventTarget {
     private currentProject: ProjectReference | null
     private currentSnapshot: ProjectSnapshot | null
     private errorsByCardPath: Map<string, AgentConversationError[]>
+    private inFlightCommitPaths: Set<string>
+    private markdownReloadEventsByPath: Map<string, ProjectWatchEvent>
+    private markdownReloadTimeout: number | null
     private projectLoadToken: number
     private remarkableBridge: RemarkableBridge | null
     private storage: StorageService | null
@@ -173,6 +190,9 @@ export class DataService extends EventTarget {
         this.currentProject = null
         this.currentSnapshot = null
         this.errorsByCardPath = new Map()
+        this.inFlightCommitPaths = new Set()
+        this.markdownReloadEventsByPath = new Map()
+        this.markdownReloadTimeout = null
         this.projectLoadToken = 0
         this.remarkableBridge = null
         this.storage = null
@@ -186,6 +206,7 @@ export class DataService extends EventTarget {
         this.stopProjectWatch()
         this.stopScheduledRunWatch()
         this.clearActionReloadTimeout()
+        this.clearMarkdownReloadTimeout()
         this.actionReloadChangedPath = null
         this.agentConversationLoadToken += 1
         this.conversationsByCardPath = new Map()
@@ -193,6 +214,8 @@ export class DataService extends EventTarget {
         this.currentProject = null
         this.currentSnapshot = null
         this.errorsByCardPath = new Map()
+        this.inFlightCommitPaths = new Set()
+        this.markdownReloadEventsByPath = new Map()
         this.projectLoadToken += 1
         this.remarkableBridge = dependencies.remarkableBridge ?? null
         this.storage = dependencies.storage
@@ -242,11 +265,13 @@ export class DataService extends EventTarget {
 
     async openProject(project: ProjectReference) {
         const { storage } = this.requireDependencies()
+        this.clearMarkdownReloadTimeout()
         const projectLoadToken = this.projectLoadToken + 1
         this.projectLoadToken = projectLoadToken
         this.agentConversationLoadToken += 1
         this.conversationsByCardPath = new Map()
         this.errorsByCardPath = new Map()
+        this.markdownReloadEventsByPath = new Map()
         this.currentProject = project
         const projectConfig = await storage.loadProjectConfig(project)
         configService.loadProjectConfig(projectConfig)
@@ -790,9 +815,12 @@ export class DataService extends EventTarget {
 
     private handleProjectWatchEvent(event: ProjectWatchEvent) {
         const { config } = this.requireDependencies()
-        if (!isActionDefinitionPath(event.path, config.actionsFolder)) return
+        if (isActionDefinitionPath(event.path, config.actionsFolder)) {
+            this.scheduleActionReload(event.path)
+            return
+        }
 
-        this.scheduleActionReload(event.path)
+        if (isProjectMarkdownPath(event.path, config.workingFolder)) this.scheduleMarkdownReload(event)
     }
 
     private scheduleActionReload(changedPath: string) {
@@ -810,6 +838,83 @@ export class DataService extends EventTarget {
         this.actionReloadTimeout = null
     }
 
+    private scheduleMarkdownReload(event: ProjectWatchEvent) {
+        this.markdownReloadEventsByPath.set(event.path, event)
+        this.clearMarkdownReloadTimeout()
+        this.markdownReloadTimeout = window.setTimeout(() => {
+            void this.reloadMarkdownFilesFromWatchEvents()
+        }, MARKDOWN_RELOAD_DEBOUNCE_MS)
+    }
+
+    private clearMarkdownReloadTimeout() {
+        if (this.markdownReloadTimeout === null) return
+
+        window.clearTimeout(this.markdownReloadTimeout)
+        this.markdownReloadTimeout = null
+    }
+
+    private async reloadMarkdownFilesFromWatchEvents() {
+        const { commitBatcher, storage } = this.requireDependencies()
+        if (!this.currentProject || !storage.loadFile) return
+
+        this.clearMarkdownReloadTimeout()
+        const events = [...this.markdownReloadEventsByPath.values()]
+        this.markdownReloadEventsByPath.clear()
+        const updatedFiles: MarkdownFile[] = []
+        const removedPaths: string[] = []
+
+        for (const event of events) {
+            if (this.inFlightCommitPaths.has(event.path)) continue
+            if (commitBatcher.hasPendingFile(event.path)) {
+                reportMarkdownWatchConflict(event.path)
+                continue
+            }
+
+            if (event.changeKind === 'removed') {
+                removedPaths.push(event.path)
+                continue
+            }
+
+            const loadedFile = await this.loadWatchedMarkdownFile(event)
+            if (!loadedFile) {
+                if (event.changeKind === 'unknown') removedPaths.push(event.path)
+                continue
+            }
+
+            const currentFile = this.currentFiles.find((file) => file.path === loadedFile.path)
+            if (currentFile?.content === loadedFile.content) continue
+
+            updatedFiles.push(loadedFile)
+        }
+
+        if (updatedFiles.length === 0 && removedPaths.length === 0) return
+
+        const removedPathSet = new Set(removedPaths)
+        this.currentFiles = mergeFiles(
+            this.currentFiles.filter((file) => !removedPathSet.has(file.path)),
+            updatedFiles,
+        )
+        const repositoryFiles = await storage.listRepositoryFiles(this.currentProject)
+        const { config } = this.requireDependencies()
+        this.currentSnapshot = this.createSnapshot(this.currentFiles, config.workingFolder, repositoryFiles)
+        this.dispatchChanged()
+    }
+
+    private async loadWatchedMarkdownFile(event: ProjectWatchEvent) {
+        const { storage } = this.requireDependencies()
+        if (!this.currentProject || !storage.loadFile) return null
+
+        try {
+            return await storage.loadFile(this.currentProject, event.path)
+        } catch (error) {
+            if (event.changeKind === 'unknown' || event.changeKind === 'removed') return null
+
+            console.error('Failed to load watched markdown file', error)
+
+            return null
+        }
+    }
+
     private async reloadActionsFromCurrentProject() {
         const { config, storage } = this.requireDependencies()
         if (!this.currentProject) return
@@ -825,7 +930,15 @@ export class DataService extends EventTarget {
 
     private async commitFiles(request: Parameters<StorageService['commit']>[0]) {
         const { config, storage } = this.requireDependencies()
-        const updatedFiles = await storage.commit(request)
+        const commitPaths = request.files.map((file) => file.path)
+        commitPaths.forEach((path) => this.inFlightCommitPaths.add(path))
+        let updatedFiles: MarkdownFile[] = []
+
+        try {
+            updatedFiles = await storage.commit(request)
+        } finally {
+            commitPaths.forEach((path) => this.inFlightCommitPaths.delete(path))
+        }
 
         if (updatedFiles.length > 0) {
             this.currentFiles = mergeFiles(this.currentFiles, updatedFiles)
@@ -838,7 +951,15 @@ export class DataService extends EventTarget {
 
     private async commitAndMergeFiles(request: Parameters<StorageService['commit']>[0], fallbackFiles: MarkdownFile[] = []) {
         const { storage } = this.requireDependencies()
-        const updatedFiles = await storage.commit(request)
+        const commitPaths = request.files.map((file) => file.path)
+        commitPaths.forEach((path) => this.inFlightCommitPaths.add(path))
+        let updatedFiles: MarkdownFile[] = []
+
+        try {
+            updatedFiles = await storage.commit(request)
+        } finally {
+            commitPaths.forEach((path) => this.inFlightCommitPaths.delete(path))
+        }
         const committedFiles = updatedFiles.length > 0 ? updatedFiles : fallbackFiles
         if (committedFiles.length === 0) return updatedFiles
 

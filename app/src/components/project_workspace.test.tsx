@@ -38,6 +38,12 @@ function createBridge(): ElectronDataBridge {
         listRepositoryFiles: vi.fn(async () => ['app/src/app.tsx', 'design/F-1-root.md']),
         listTopLevelFolders: vi.fn(async () => [{ name: 'design', path: 'design' }]),
         loadActionFiles: vi.fn(async () => []),
+        loadFile: vi.fn(async (_project, path) => {
+            const file = files.find((candidate) => candidate.path === path)
+            if (!file) throw new Error(`Missing file: ${path}`)
+
+            return file
+        }),
         loadProject: vi.fn(async () => ({ files, workingFolder: 'design' })),
         loadProjectRoot: vi.fn(async () => ({
             files: files.filter((file) => !file.path.slice('design/'.length).includes('/')),

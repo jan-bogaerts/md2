@@ -7,6 +7,7 @@ import type {
     CommitResult,
     CommitRequest,
     DeleteFileRequest,
+    MarkdownFile,
     MoveFilesRequest,
     ProjectConfig,
     ProjectReference,
@@ -45,6 +46,7 @@ export interface ElectronDataBridge {
     ): Promise<StartAgentConversationResult>
     stopAgent?(runId: string): Promise<void>
     watchProject(project: ProjectReference, callback: (event: ProjectWatchEvent) => void): () => void
+    loadFile(project: ProjectReference, path: string): Promise<MarkdownFile>
 }
 
 declare global {

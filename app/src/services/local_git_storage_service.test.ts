@@ -13,6 +13,7 @@ function createBridge(overrides: Partial<ElectronDataBridge> = {}): ElectronData
         listBranches: vi.fn(),
         listRepositoryFiles: vi.fn(),
         listTopLevelFolders: vi.fn(),
+        loadFile: vi.fn().mockResolvedValue({ content: '# Root', path: 'design/F-1-card.md' }),
         loadActionFiles: vi.fn(),
         loadProject: vi.fn(),
         loadProjectRoot: vi.fn(),
@@ -80,5 +81,18 @@ describe('LocalGitStorageService binary write path', () => {
         await service.deleteFile(request)
 
         expect(deleteFile).toHaveBeenCalledWith(request)
+    })
+
+    it('forwards single file reads to the bridge unchanged', async () => {
+        const loadFile = vi.fn().mockResolvedValue({ content: '# Root', path: 'design/F-1-card.md' })
+        const bridge = createBridge({ loadFile })
+        const service = new LocalGitStorageService()
+        service.init({ bridge })
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
+
+        const file = await service.loadFile(project, 'design/F-1-card.md')
+
+        expect(loadFile).toHaveBeenCalledWith(project, 'design/F-1-card.md')
+        expect(file).toEqual({ content: '# Root', path: 'design/F-1-card.md' })
     })
 })

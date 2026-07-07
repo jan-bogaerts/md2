@@ -1,7 +1,7 @@
 ---
 id: F-026
 title: external change watching
-status: design
+status: ready
 owner: JB
 affects:
 policy:

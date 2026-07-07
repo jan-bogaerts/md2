@@ -15,13 +15,25 @@ interface TabsSnapshot {
 
 const EMPTY: TabsSnapshot = { activePath: null, tabs: [] }
 
+function removeUnavailableTabs(current: TabsSnapshot, availablePaths: string[] | null): TabsSnapshot {
+    if (!availablePaths) return current
+
+    const availablePathSet = new Set(availablePaths)
+    const tabs = current.tabs.filter((tab) => availablePathSet.has(tab))
+    if (tabs.length === current.tabs.length) return current
+    if (!current.activePath || tabs.includes(current.activePath)) return { activePath: current.activePath, tabs }
+
+    return { activePath: tabs[0] ?? null, tabs }
+}
+
 /**
  * Manage the open-file tabs for the text view: opening a file activates its
  * existing tab instead of duplicating it, and closing the active tab focuses a
  * neighbouring tab so the editor never lands on nothing while tabs remain.
  */
-export function useOpenTabs(): OpenTabsState {
+export function useOpenTabs(availablePaths: string[] | null = null): OpenTabsState {
     const [state, setState] = useState<TabsSnapshot>(EMPTY)
+    const visibleState = removeUnavailableTabs(state, availablePaths)
 
     const openTab = useCallback((path: string) => {
         setState((current) => {
@@ -49,5 +61,5 @@ export function useOpenTabs(): OpenTabsState {
         })
     }, [])
 
-    return { activePath: state.activePath, activateTab, closeTab, openTab, tabs: state.tabs }
+    return { activePath: visibleState.activePath, activateTab, closeTab, openTab, tabs: visibleState.tabs }
 }

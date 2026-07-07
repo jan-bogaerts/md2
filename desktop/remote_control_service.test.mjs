@@ -63,7 +63,7 @@ function createDispatcher(overrides = {}) {
             return { runId: 'run-1' }
         },
         watchProject: (_project, onChange) => {
-            onChange({ path: 'design/F-1.md' })
+            onChange({ changeKind: 'changed', path: 'design/F-1.md' })
 
             return vi.fn()
         },
@@ -139,7 +139,7 @@ describe('RemoteControlService', () => {
         const [agentPush, agentResponse] = await agentPromise
 
         expect(watchPush.event).toBe('watchProject')
-        expect(watchPush.payload.event).toEqual({ path: 'design/F-1.md' })
+        expect(watchPush.payload.event).toEqual({ changeKind: 'changed', path: 'design/F-1.md' })
         expect(watchResponse.result.subscriptionId).toEqual(expect.any(String))
         expect(agentPush).toEqual({
             event: 'agentRun',

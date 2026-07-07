@@ -46,6 +46,10 @@ export class CommitBatcher {
         return this.pendingFiles.size > 0 && this.pendingBranch !== null
     }
 
+    hasPendingFile(path: string) {
+        return this.pendingFiles.has(path)
+    }
+
     async flush() {
         if (!this.hasPending()) return
 

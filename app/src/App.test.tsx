@@ -32,6 +32,7 @@ function createFailingBridge(): ElectronDataBridge {
         listRepositoryFiles: vi.fn(async () => []),
         listTopLevelFolders: vi.fn(async () => []),
         loadActionFiles: vi.fn(async () => []),
+        loadFile: vi.fn(async () => ({ content: '', path: 'design/empty.md' })),
         loadProject: vi.fn(async () => {
             throw new Error('repository folder moved')
         }),

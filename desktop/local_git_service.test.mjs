@@ -21,6 +21,7 @@ const {
     loadActionRunHistory,
     loadActionSchedules,
     loadAgentConversation,
+    loadFile,
     loadProject,
     loadProjectRoot,
     loadProjectConfig,
@@ -75,6 +76,23 @@ describe('local-git-service', () => {
             const projectFiles = await loadProjectRoot({ branch: 'main', id: 'local', rootPath }, 'design')
 
             expect(projectFiles.files.map((file) => file.path)).toEqual(['design/F-1-root.md'])
+        } finally {
+            await rm(rootPath, { force: true, recursive: true })
+        }
+    })
+
+    it('loads one markdown file by repository-relative path', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-local-git-'))
+
+        try {
+            await mkdir(join(rootPath, '.git'))
+            await mkdir(join(rootPath, 'design'), { recursive: true })
+            await writeFile(join(rootPath, 'design', 'F-1-root.md'), '# Root')
+
+            await expect(loadFile({ branch: 'main', id: 'local', rootPath }, 'design/F-1-root.md')).resolves.toEqual({
+                content: '# Root',
+                path: 'design/F-1-root.md',
+            })
         } finally {
             await rm(rootPath, { force: true, recursive: true })
         }
@@ -545,7 +563,28 @@ describe('local-git-service', () => {
 
             await writeFile(join(rootPath, 'actions', 'implement.json'), '{"name":"implement"}')
 
-            await expect(event).resolves.toEqual({ path: 'actions/implement.json' })
+            await expect(event).resolves.toMatchObject({ path: 'actions/implement.json' })
+        } finally {
+            if (closeWatcher) closeWatcher()
+            await rm(rootPath, { force: true, recursive: true })
+        }
+    })
+
+    it('reports removed markdown files with change kind', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-local-git-'))
+        let closeWatcher = null
+
+        try {
+            await mkdir(join(rootPath, '.git'))
+            await mkdir(join(rootPath, 'design'))
+            await writeFile(join(rootPath, 'design', 'F-1-root.md'), '# Root')
+            const event = new Promise((resolve) => {
+                closeWatcher = watchProject({ branch: 'main', id: 'local', rootPath }, resolve)
+            })
+
+            await rm(join(rootPath, 'design', 'F-1-root.md'))
+
+            await expect(event).resolves.toEqual({ changeKind: 'removed', path: 'design/F-1-root.md' })
         } finally {
             if (closeWatcher) closeWatcher()
             await rm(rootPath, { force: true, recursive: true })

@@ -138,7 +138,10 @@ export interface DeleteFileRequest {
     sha?: string
 }
 
+export type ProjectWatchChangeKind = 'added' | 'changed' | 'removed' | 'unknown'
+
 export interface ProjectWatchEvent {
+    changeKind: ProjectWatchChangeKind
     path: string
 }
 
@@ -228,6 +231,7 @@ export interface StorageService {
     cancelActionSchedule?(project: ProjectReference, actionsFolder: string, scheduleId: string): Promise<ActionSchedule[]>
     loadAgentConversation?(project: ProjectReference, path: string): Promise<AgentConversation>
     loadProject(project: ProjectReference, workingFolder: string): Promise<StorageProjectFiles>
+    loadFile?(project: ProjectReference, path: string): Promise<MarkdownFile>
     loadProjectRoot(project: ProjectReference, workingFolder: string): Promise<StorageProjectFiles>
     loadProjectConfig(project: ProjectReference): Promise<Partial<ProjectConfig> | null>
     restorePendingCommits?(project: ProjectReference): Promise<void>

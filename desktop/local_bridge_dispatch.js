@@ -53,6 +53,7 @@ function createLocalBridgeDispatch(dependencies) {
         loadActionFiles: (project, actionsFolder) => localGitService.loadActionFiles(project, actionsFolder),
         loadActionSchedules: (project, actionsFolder) => localGitService.loadActionSchedules(project, actionsFolder),
         loadAgentConversation: (path) => localGitService.loadAgentConversation(currentLocalProject, path),
+        loadFile: (project, path) => localGitService.loadFile(project, path),
         loadProject: async (project, workingFolder) => {
             currentLocalProject = project
             if (actionSchedulerService) await actionSchedulerService.startProject(project)

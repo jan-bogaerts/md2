@@ -473,6 +473,18 @@ async function loadProjectRoot(project, workingFolder) {
     }
 }
 
+async function loadFile(project, filePath) {
+    const rootPath = requireRootPath(project)
+    await assertGitRoot(rootPath)
+    if (typeof filePath !== 'string' || filePath.length === 0) throw new Error('Missing file path')
+    if (!filePath.toLowerCase().endsWith(MARKDOWN_EXTENSION)) throw new Error('Only markdown files can be loaded this way')
+
+    const fullPath = ensureInsideRoot(rootPath, path.join(rootPath, filePath))
+    const content = await fs.promises.readFile(fullPath, 'utf8')
+
+    return { content, path: normalizePath(path.relative(rootPath, fullPath)) }
+}
+
 async function loadActionFiles(project, actionsFolder) {
     const rootPath = requireRootPath(project)
     await assertGitRoot(rootPath)
@@ -591,14 +603,25 @@ async function push(project) {
     await runGit(requireRootPath(project), ['push'])
 }
 
+function watchChangeKind(rootPath, eventType, normalizedPath) {
+    if (eventType === 'change') return 'changed'
+    if (eventType !== 'rename') return 'unknown'
+
+    const targetPath = ensureInsideRoot(rootPath, path.join(rootPath, normalizedPath))
+
+    return fs.existsSync(targetPath) ? 'added' : 'removed'
+}
+
 function watchProject(project, onChange) {
     const rootPath = requireRootPath(project)
-    const watcher = fs.watch(rootPath, { recursive: true }, (_eventType, fileName) => {
+    const watcher = fs.watch(rootPath, { recursive: true }, (eventType, fileName) => {
         if (typeof fileName !== 'string') return
 
         const normalizedPath = normalizePath(fileName)
         const lowerPath = normalizedPath.toLowerCase()
-        if (lowerPath.endsWith(MARKDOWN_EXTENSION) || lowerPath.endsWith(JSON_EXTENSION)) onChange({ path: normalizedPath })
+        if (lowerPath.endsWith(MARKDOWN_EXTENSION) || lowerPath.endsWith(JSON_EXTENSION)) {
+            onChange({ changeKind: watchChangeKind(rootPath, eventType, normalizedPath), path: normalizedPath })
+        }
     })
 
     return () => watcher.close()
@@ -620,6 +643,7 @@ module.exports = {
     loadActionSchedules,
     loadAgentConversation,
     loadActionFiles,
+    loadFile,
     loadProject,
     loadProjectRoot,
     loadProjectConfig,

@@ -112,7 +112,7 @@ describe('RemoteControlStorageService', () => {
         socket.receive({ id: watchRequest.id, result: { subscriptionId: 'sub-1' } })
         socket.receive({
             event: 'watchProject',
-            payload: { event: { path: 'design/F-1.md' }, requestId: watchRequest.id, subscriptionId: 'sub-1' },
+            payload: { event: { changeKind: 'changed', path: 'design/F-1.md' }, requestId: watchRequest.id, subscriptionId: 'sub-1' },
         })
         socket.receive({
             event: 'agentRun',
@@ -124,7 +124,7 @@ describe('RemoteControlStorageService', () => {
         socket.receive({ id: agentStartRequest.id, result: { conversation: { id: 'run-1' }, reference: 'log.json', runId: 'run-1' } })
 
         await expect(agentRequest).resolves.toEqual({ conversation: { id: 'run-1' }, reference: 'log.json', runId: 'run-1' })
-        expect(watchCallback).toHaveBeenCalledWith({ path: 'design/F-1.md' })
+        expect(watchCallback).toHaveBeenCalledWith({ changeKind: 'changed', path: 'design/F-1.md' })
         expect(agentCallback).toHaveBeenCalledWith({ content: 'started', conversation: { id: 'run-1' }, runId: 'run-1', type: 'started' })
     })
 
