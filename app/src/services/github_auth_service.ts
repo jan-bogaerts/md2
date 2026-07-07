@@ -332,9 +332,7 @@ export class GithubAuthService extends EventTarget {
     private static resolveScopes(fallbackScopes: string): string {
         if (!configService.isInitialized()) return fallbackScopes
 
-        const scopes = configService.get('connection.githubScopes')
-
-        return typeof scopes === 'string' ? scopes : fallbackScopes
+        return configService.get('connection.githubScopes')
     }
 
     private persistToken(accessToken: string, authMethod: GithubAuthMethod) {

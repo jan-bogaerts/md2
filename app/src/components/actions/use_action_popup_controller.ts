@@ -3,7 +3,7 @@ import type { ChangeEvent } from 'react'
 import type { ActionContext } from '../../data/action_context'
 import type { ActionDefinition } from '../../data/action_types'
 import type { ActionRunHistoryEntry } from '../../data/electron_action_bridge'
-import { defaultModelForProfile, findAgentProfile, mergeAgentProfiles, type AgentProfile } from '../../data/agent_profiles'
+import { defaultModelForProfile, findAgentProfile, mergeAgentProfiles } from '../../data/agent_profiles'
 import type { ActionRunResult } from '../../services/action_runner'
 import { useConfigValueOrFallback } from '../hooks/use_config_value'
 import {
@@ -36,9 +36,9 @@ interface ActionPopupControllerInput {
 /** Own action popup state, injected services, and UI callbacks. */
 export function useActionPopupController(input: ActionPopupControllerInput) {
     const { action, context } = input
-    const configuredAgent = useConfigValueOrFallback('desktop.agent', '') as string
-    const configuredAgentProfiles = useConfigValueOrFallback('desktop.agentProfiles', [] as AgentProfile[]) as AgentProfile[]
-    const configuredModel = useConfigValueOrFallback('desktop.model', '') as string
+    const configuredAgent = useConfigValueOrFallback('desktop.agent', '')
+    const configuredAgentProfiles = useConfigValueOrFallback('desktop.agentProfiles', [])
+    const configuredModel = useConfigValueOrFallback('desktop.model', '')
     const convertPromptToAction = input.convertPromptToAction ?? defaultConvertPromptToAction
     const loadHistory = input.loadHistory ?? defaultLoadHistory
     const resizeCorner = input.resizeCorner ?? 'lower-right'

@@ -122,8 +122,8 @@ function defaultLoaderDependencies(): ActionDefinitionLoaderDependencies {
     if (!configService.isInitialized()) return {}
 
     return {
-        defaultAgent: configService.get('desktop.agent') as string,
-        profiles: configService.get('desktop.agentProfiles') as AgentProfile[],
+        defaultAgent: configService.get('desktop.agent'),
+        profiles: configService.get('desktop.agentProfiles'),
     }
 }
 

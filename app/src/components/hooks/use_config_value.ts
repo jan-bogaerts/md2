@@ -12,16 +12,16 @@ function subscribeToConfigChanges(onStoreChange: () => void) {
 export function useConfigValue<K extends ConfigKey>(key: K): ConfigValueSnapshot<K> {
     return useSyncExternalStore(
         subscribeToConfigChanges,
-        () => configService.get(key) as ConfigValueSnapshot<K>,
-        () => configService.get(key) as ConfigValueSnapshot<K>,
+        () => configService.get(key),
+        () => configService.get(key),
     )
 }
 
 export function useConfigValueOrFallback<K extends ConfigKey>(key: K, fallback: ConfigValueSnapshot<K>): ConfigValueSnapshot<K> {
     return useSyncExternalStore(
         subscribeToConfigChanges,
-        () => configService.isInitialized() ? configService.get(key) as ConfigValueSnapshot<K> : fallback,
-        () => configService.isInitialized() ? configService.get(key) as ConfigValueSnapshot<K> : fallback,
+        () => configService.isInitialized() ? configService.get(key) : fallback,
+        () => configService.isInitialized() ? configService.get(key) : fallback,
     )
 }
 

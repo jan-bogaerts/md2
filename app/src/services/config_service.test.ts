@@ -1,6 +1,6 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, expectTypeOf, it } from 'vitest'
 import { DEFAULT_CARD_TYPES } from '../data/data_types'
-import { BUILTIN_AGENT_PROFILES } from '../data/agent_profiles'
+import { BUILTIN_AGENT_PROFILES, type AgentProfile } from '../data/agent_profiles'
 import { ConfigService, REACT_CONFIG_STORAGE_KEY, readStartupSplashPreference } from './config_service'
 
 describe('ConfigService', () => {
@@ -23,6 +23,18 @@ describe('ConfigService', () => {
             workingFolder: 'docs',
         })
         expect(service.getProjectConfig().cardTypes).toEqual(DEFAULT_CARD_TYPES)
+    })
+
+    it('narrows config values by key at compile time', () => {
+        service.init()
+
+        expectTypeOf(service.get('desktop.agent')).toEqualTypeOf<string>()
+        expectTypeOf(service.get('desktop.agentProfiles')).toEqualTypeOf<AgentProfile[]>()
+        expectTypeOf(service.get('react.autoCommitDelayMs')).toEqualTypeOf<number>()
+        if (import.meta.env.MODE === 'typecheck') {
+            // @ts-expect-error desktop.agent must stay string typed.
+            service.set('desktop.agent', BUILTIN_AGENT_PROFILES)
+        }
     })
 
     it('defaults the actions folder when project config omits it', () => {

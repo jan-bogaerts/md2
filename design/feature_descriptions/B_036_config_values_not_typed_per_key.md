@@ -1,7 +1,7 @@
 ---
 id: B-036
 title: config values are not typed per key, forcing casts at every consumer
-status: design
+status: ready
 owner: JB
 affects:
 policy:

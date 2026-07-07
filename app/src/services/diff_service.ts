@@ -12,7 +12,7 @@ export async function generateDiff(entry: ActionRunHistoryEntry): Promise<DiffRe
     if (!entry.commit) throw new Error('Action log entry has no commit to diff')
 
     const { branch, commit, filePaths } = entry.commit
-    const template = configService.get('project.diffCommand') as string
+    const template = configService.get('project.diffCommand')
 
     return bridge.generateDiff({ branch, commit, filePath: filePaths[0] ?? '', template })
 }

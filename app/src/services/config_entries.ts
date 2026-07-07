@@ -5,27 +5,31 @@ import {
     DEFAULT_DIFF_COMMAND,
     DEFAULT_WORKING_FOLDER,
     type CardTypeConfig,
+    type PushMode,
 } from '../data/data_types'
 import { BUILTIN_AGENT_PROFILES, type AgentProfile } from '../data/agent_profiles'
 
 export type ConfigSource = 'react' | 'connection' | 'desktop' | 'project'
 export type ConfigValueType = 'boolean' | 'number' | 'select' | 'string' | 'json'
 
-export type ConfigKey =
-    | 'connection.githubScopes'
-    | 'desktop.agent'
-    | 'desktop.agentSlotCommand'
-    | 'desktop.agentProfiles'
-    | 'desktop.model'
-    | 'desktop.projectLocationMode'
-    | 'project.actionsFolder'
-    | 'project.cardBodyTemplate'
-    | 'project.cardTypes'
-    | 'project.diffCommand'
-    | 'project.pushMode'
-    | 'project.workingFolder'
-    | 'react.autoCommitDelayMs'
-    | 'react.showStartupSplash'
+export interface ConfigValueTypes {
+    'connection.githubScopes': string
+    'desktop.agent': string
+    'desktop.agentSlotCommand': string
+    'desktop.agentProfiles': AgentProfile[]
+    'desktop.model': string
+    'desktop.projectLocationMode': string
+    'project.actionsFolder': string
+    'project.cardBodyTemplate': string
+    'project.cardTypes': CardTypeConfig[]
+    'project.diffCommand': string
+    'project.pushMode': PushMode
+    'project.workingFolder': string
+    'react.autoCommitDelayMs': number
+    'react.showStartupSplash': boolean
+}
+
+export type ConfigKey = keyof ConfigValueTypes
 
 export type ConfigValue = boolean | number | string | AgentProfile[] | CardTypeConfig[]
 
@@ -48,7 +52,7 @@ export interface ConfigEntry {
     type: ConfigValueType
 }
 
-export type ConfigValues = Record<ConfigKey, ConfigValue>
+export type ConfigValues = ConfigValueTypes
 
 export interface DesktopConfigValues {
     agent: string

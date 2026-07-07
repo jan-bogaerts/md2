@@ -103,7 +103,7 @@ async function defaultActionWriter(path: string, content: string) {
 }
 
 function defaultAgentCommandProvider() {
-    return configService.get('desktop.agent') as string
+    return configService.get('desktop.agent')
 }
 
 function defaultAgentConfigProvider() {

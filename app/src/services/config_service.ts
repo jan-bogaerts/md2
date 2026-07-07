@@ -1,7 +1,6 @@
 import {
     type CardTypeConfig,
     type ProjectConfig,
-    type PushMode,
 } from '../data/data_types'
 import { validateAgentProfiles, type AgentProfile } from '../data/agent_profiles'
 import {
@@ -11,7 +10,7 @@ import {
     requireConfigEntry,
     type ConfigEntry,
     type ConfigKey,
-    type ConfigValue,
+    type ConfigValueTypes,
     type ConfigValues,
     type DesktopConfigValues,
 } from './config_entries'
@@ -29,6 +28,7 @@ export {
     type ConfigOption,
     type ConfigSource,
     type ConfigValue,
+    type ConfigValueTypes,
     type ConfigValues,
     type ConfigValueType,
     type DesktopConfigValues,
@@ -83,40 +83,40 @@ function validateOption(value: string, entry: ConfigEntry) {
     return value
 }
 
-function validateValue(key: ConfigKey, value: unknown): ConfigValue {
+function validateValue<K extends ConfigKey>(key: K, value: unknown): ConfigValueTypes[K] {
     const entry = requireConfigEntry(key)
 
-    if (entry.type === 'boolean') return requireBoolean(value, entry.key)
+    if (entry.type === 'boolean') return requireBoolean(value, entry.key) as ConfigValueTypes[K]
     if (entry.type === 'number') {
         const numberValue = requireNumber(value, entry.key)
         if (entry.min !== undefined && numberValue < entry.min) throw new Error(`Config value ${entry.key} is below ${entry.min}`)
         if (entry.max !== undefined && numberValue > entry.max) throw new Error(`Config value ${entry.key} is above ${entry.max}`)
 
-        return numberValue
+        return numberValue as ConfigValueTypes[K]
     }
-    if (entry.type === 'json' && key === 'project.cardTypes') return validateCardTypes(value)
-    if (entry.type === 'json' && key === 'desktop.agentProfiles') return validateDesktopAgentProfiles(value)
+    if (entry.type === 'json' && key === 'project.cardTypes') return validateCardTypes(value) as ConfigValueTypes[K]
+    if (entry.type === 'json' && key === 'desktop.agentProfiles') return validateDesktopAgentProfiles(value) as ConfigValueTypes[K]
     if (key === 'desktop.model' || key === 'desktop.agentSlotCommand') {
         if (typeof value !== 'string') throw new Error(`Missing config field: ${entry.key}`)
 
-        return value
+        return value as ConfigValueTypes[K]
     }
 
-    return validateOption(requireString(value, entry.key), entry)
+    return validateOption(requireString(value, entry.key), entry) as ConfigValueTypes[K]
 }
 
-function mergeValue(values: ConfigValues, key: ConfigKey, value: unknown): ConfigValues {
+function mergeValue<K extends ConfigKey>(values: ConfigValues, key: K, value: unknown): ConfigValues {
     return { ...values, [key]: validateValue(key, value) }
 }
 
 function readProjectConfig(values: ConfigValues): ProjectConfig {
     return {
-        actionsFolder: values['project.actionsFolder'] as string,
-        cardBodyTemplate: values['project.cardBodyTemplate'] as string,
-        cardTypes: values['project.cardTypes'] as CardTypeConfig[],
-        diffCommand: values['project.diffCommand'] as string,
-        pushMode: values['project.pushMode'] as PushMode,
-        workingFolder: values['project.workingFolder'] as string,
+        actionsFolder: values['project.actionsFolder'],
+        cardBodyTemplate: values['project.cardBodyTemplate'],
+        cardTypes: values['project.cardTypes'],
+        diffCommand: values['project.diffCommand'],
+        pushMode: values['project.pushMode'],
+        workingFolder: values['project.workingFolder'],
     }
 }
 
@@ -172,13 +172,13 @@ export class ConfigService extends EventTarget {
         })
     }
 
-    get(key: ConfigKey): ConfigValue {
+    get<K extends ConfigKey>(key: K): ConfigValueTypes[K] {
         this.requireInitialized()
 
         return this.values[key]
     }
 
-    set(key: ConfigKey, value: unknown) {
+    set<K extends ConfigKey>(key: K, value: ConfigValueTypes[K]) {
         this.requireInitialized()
         this.values = mergeValue(this.values, key, value)
         this.dispatchChanged()
@@ -224,11 +224,11 @@ export class ConfigService extends EventTarget {
         this.requireInitialized()
 
         return {
-            agent: this.values['desktop.agent'] as string,
-            agentSlotCommand: this.values['desktop.agentSlotCommand'] as string,
-            agentProfiles: this.values['desktop.agentProfiles'] as AgentProfile[],
-            model: this.values['desktop.model'] as string,
-            projectLocationMode: this.values['desktop.projectLocationMode'] as string,
+            agent: this.values['desktop.agent'],
+            agentSlotCommand: this.values['desktop.agentSlotCommand'],
+            agentProfiles: this.values['desktop.agentProfiles'],
+            model: this.values['desktop.model'],
+            projectLocationMode: this.values['desktop.projectLocationMode'],
         }
     }
 

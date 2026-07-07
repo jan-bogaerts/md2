@@ -65,7 +65,7 @@ export class DataService extends EventTarget {
         this.remarkableBridge = dependencies.remarkableBridge ?? null
         this.storage = dependencies.storage
         this.agents.startScheduledRunWatch()
-        const delayMs = configService.get('react.autoCommitDelayMs') as number
+        const delayMs = configService.get('react.autoCommitDelayMs')
         this.commitBatcher = new CommitBatcher({
             clearDelay: window.clearTimeout,
             commit: (request) => this.cards.commitFiles(request),

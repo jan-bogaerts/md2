@@ -2,7 +2,7 @@ import { FormControl, IconButton, MenuItem, Select, TextField, Tooltip } from '@
 import type { SelectChangeEvent } from '@mui/material'
 import type { ChangeEvent } from 'react'
 import CloudUpload from 'mdi-material-ui/CloudUpload'
-import { defaultModelForProfile, findAgentProfile, mergeAgentProfiles, type AgentProfile } from '../../../data/agent_profiles'
+import { defaultModelForProfile, findAgentProfile, mergeAgentProfiles } from '../../../data/agent_profiles'
 import { configService } from '../../../services/config_service'
 import { dataService } from '../../../services/data_service'
 import { writeDesktopConfigToBridge } from '../../../services/config_persistence'
@@ -21,11 +21,11 @@ export function AppMenu() {
     const isProjectOpen = !!project
     const canPush = isProjectOpen && projectConfig?.pushMode === 'manual'
     const desktopAvailable = useHasDesktopConfig()
-    const agentProfiles = mergeAgentProfiles(useConfigValue('desktop.agentProfiles') as AgentProfile[])
-    const selectedAgent = useConfigValue('desktop.agent') as string
+    const agentProfiles = mergeAgentProfiles(useConfigValue('desktop.agentProfiles'))
+    const selectedAgent = useConfigValue('desktop.agent')
     const selectedProfile = findAgentProfile(agentProfiles, selectedAgent)
     const selectedModels = selectedProfile?.models ?? []
-    const configuredModel = useConfigValue('desktop.model') as string
+    const configuredModel = useConfigValue('desktop.model')
     const selectedModel = configuredModel || (selectedProfile ? defaultModelForProfile(selectedProfile) : '')
 
     const persistDesktopConfig = () => {
