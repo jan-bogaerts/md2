@@ -30,9 +30,8 @@ import {
 } from '../../../data/data_types'
 import { getElectronDataBridge } from '../../../data/electron_data_bridge'
 import type { StorageType } from '../../../data/project_session'
-import { configService } from '../../../services/config_service'
-import { dataService } from '../../../services/data_service'
 import { projectSessionService } from '../../../services/project_session_service'
+import { useProjectConfig } from '../../hooks/use_project_config'
 import { useProjectSession } from '../../hooks/use_project_session'
 import { useProjectState } from '../../hooks/use_project_state'
 import { OPEN_PROJECT_DIALOG_EVENT } from '../../project_command_events'
@@ -82,7 +81,6 @@ export function ProjectToolbarMenu(props: ProjectToolbarMenuProps) {
     const [cardBody, setCardBody] = useState('')
     const [cardTitle, setCardTitle] = useState('')
     const [cardType, setCardType] = useState('feature')
-    const [configRevision, setConfigRevision] = useState(0)
     const [dialogMode, setDialogMode] = useState<ProjectDialogMode | null>(null)
     const [githubOwner, setGithubOwner] = useState('')
     const [githubRepository, setGithubRepository] = useState('')
@@ -101,15 +99,13 @@ export function ProjectToolbarMenu(props: ProjectToolbarMenuProps) {
     const errorMessage = projectSession.errorMessage
     const isLoading = projectSession.isLoading
     const pendingGithubConflictProject = projectSession.pendingGithubConflictProject
-    const projectConfig = dataService.getConfig()
+    const projectConfig = useProjectConfig()
     const pushMode = (projectConfig?.pushMode ?? 'auto') as PushMode
     const cardTypes = projectConfig?.cardTypes ?? DEFAULT_CARD_TYPES
     const selectedCardType = cardTypes.some((typeConfig) => typeConfig.type === cardType) ? cardType : cardTypes[0]?.type ?? ''
     const isMenuOpen = !!anchorElement
     const isProjectOpen = !!project
     const filteredRepositories = repositories.filter((repository) => repositoryMatchesFilter(repository, repositoryFilter))
-
-    void configRevision
 
     const openDialog = useCallback((mode: ProjectDialogMode) => {
         setAnchorElement(null)
@@ -138,16 +134,6 @@ export function ProjectToolbarMenu(props: ProjectToolbarMenuProps) {
             setRepositories(EMPTY_REPOSITORIES)
         }
     }, [accessToken])
-
-    useEffect(() => {
-        const handleConfigChange = () => {
-            setConfigRevision((revision) => revision + 1)
-        }
-
-        configService.addEventListener('changed', handleConfigChange)
-
-        return () => configService.removeEventListener('changed', handleConfigChange)
-    }, [])
 
     useEffect(() => {
         const handleOpenProjectDialog = () => {

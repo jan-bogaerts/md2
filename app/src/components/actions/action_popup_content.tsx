@@ -8,7 +8,7 @@ import type { ActionDefinition } from '../../data/action_types'
 import { getElectronActionBridge, type ActionRunHistoryEntry } from '../../data/electron_action_bridge'
 import { defaultModelForProfile, findAgentProfile, mergeAgentProfiles, type AgentProfile } from '../../data/agent_profiles'
 import { actionRunner, type ActionRunInput, type ActionRunResult, type ConvertPromptToActionInput } from '../../services/action_runner'
-import { configService } from '../../services/config_service'
+import { useConfigValueOrFallback } from '../hooks/use_config_value'
 import { DiffView } from './diff_view'
 
 /** Which lower corner the resize handle sits in, chosen by the popup's screen position. */
@@ -123,22 +123,6 @@ function statusColor(status: PopupRunStatus) {
     return 'text.secondary'
 }
 
-function readAgentProfiles(): AgentProfile[] {
-    if (!configService.isInitialized()) return []
-
-    return mergeAgentProfiles(configService.get('desktop.agentProfiles') as AgentProfile[])
-}
-
-function readDefaultAgentSelection(action: ActionDefinition) {
-    if (!configService.isInitialized()) return { agent: action.agent ?? '', model: action.model ?? '' }
-
-    const agent = action.agent ?? configService.get('desktop.agent') as string
-    const profile = findAgentProfile(readAgentProfiles(), agent)
-    const model = (action.model ?? (configService.get('desktop.model') as string)) || (profile ? defaultModelForProfile(profile) : '')
-
-    return { agent, model }
-}
-
 function createScheduleTrigger(type: ScheduleTriggerType, timestampInput: string, afterActionNameInput: string): ActionScheduleTrigger {
     if (type === 'agentSlot') return { type: 'agentSlot' }
     if (type === 'afterAction') {
@@ -161,13 +145,20 @@ function createScheduleTrigger(type: ScheduleTriggerType, timestampInput: string
  */
 export function ActionPopup(props: ActionPopupProps) {
     const { action, context, onClose, onNavigate } = props
+    const configuredAgent = useConfigValueOrFallback('desktop.agent', '')
+    const configuredAgentProfiles = useConfigValueOrFallback('desktop.agentProfiles', [] as AgentProfile[])
+    const configuredModel = useConfigValueOrFallback('desktop.model', '')
     const convertPromptToAction = props.convertPromptToAction ?? defaultConvertPromptToAction
     const loadHistory = props.loadHistory ?? defaultLoadHistory
     const resizeCorner = props.resizeCorner ?? 'lower-right'
     const runAction = props.runAction ?? defaultRunAction
     const scheduleAction = props.scheduleAction ?? defaultScheduleAction
+    const agentProfiles = mergeAgentProfiles(configuredAgentProfiles)
+    const defaultAgent = action.agent ?? configuredAgent
+    const defaultAgentProfile = findAgentProfile(agentProfiles, defaultAgent)
+    const defaultModel = (action.model ?? configuredModel) || (defaultAgentProfile ? defaultModelForProfile(defaultAgentProfile) : '')
     const [actionLabel, setActionLabel] = useState('')
-    const [agent, setAgent] = useState(() => readDefaultAgentSelection(action).agent)
+    const [agentOverride, setAgentOverride] = useState<string | null>(null)
     const [convertMessage, setConvertMessage] = useState<string | null>(null)
     const [extraPrompt, setExtraPrompt] = useState('')
     const [history, setHistory] = useState<ActionRunHistoryEntry[]>([])
@@ -180,9 +171,10 @@ export function ActionPopup(props: ActionPopupProps) {
     const [scheduleTriggerType, setScheduleTriggerType] = useState<ScheduleTriggerType>('at')
     const [runResult, setRunResult] = useState<ActionRunResult | null>(null)
     const [runStatus, setRunStatus] = useState<PopupRunStatus>('idle')
-    const [model, setModel] = useState(() => readDefaultAgentSelection(action).model)
+    const [modelOverride, setModelOverride] = useState<string | null>(null)
     const resizeRef = useRef<AbortController | null>(null)
-    const agentProfiles = readAgentProfiles()
+    const agent = agentOverride ?? defaultAgent
+    const model = modelOverride ?? defaultModel
     const selectedAgentProfile = findAgentProfile(agentProfiles, agent)
     const selectedAgentModels = selectedAgentProfile?.models ?? []
 
@@ -268,12 +260,12 @@ export function ActionPopup(props: ActionPopupProps) {
     const handleAgentChange = (event: ChangeEvent<HTMLInputElement>) => {
         const nextAgent = event.target.value
         const profile = findAgentProfile(agentProfiles, nextAgent)
-        setAgent(nextAgent)
-        setModel(profile ? defaultModelForProfile(profile) : '')
+        setAgentOverride(nextAgent)
+        setModelOverride(profile ? defaultModelForProfile(profile) : '')
     }
 
     const handleModelChange = (event: ChangeEvent<HTMLInputElement>) => {
-        setModel(event.target.value)
+        setModelOverride(event.target.value)
     }
 
     const handleActionLabelChange = (event: ChangeEvent<HTMLInputElement>) => {

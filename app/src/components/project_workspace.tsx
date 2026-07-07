@@ -11,7 +11,6 @@ import {
     type ProjectCard,
 } from '../data/data_types'
 import { getRemarkableBridge } from '../data/remarkable_bridge'
-import { configService } from '../services/config_service'
 import { dataService } from '../services/data_service'
 import { getElectronLifecycleBridge, type ElectronLifecycleBridge } from '../services/electron_lifecycle_bridge'
 import { telemetryService } from '../services/telemetry_service'
@@ -20,6 +19,7 @@ import { CardView } from './card_view/card_view'
 import { CardViewNavigation } from './card_view/card_view_navigation'
 import { RemarkableImportPanel } from './remarkable_import_panel'
 import { TextView } from './text_view/text_view'
+import { useProjectConfig } from './hooks/use_project_config'
 import { useProjectState } from './hooks/use_project_state'
 import { requestOpenProjectDialog, WORKSPACE_ERROR_EVENT, WORKSPACE_NOTICE_EVENT } from './project_command_events'
 
@@ -66,7 +66,6 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
     const activeCards = snapshot?.activeCards ?? EMPTY_CARDS
     const backgroundCards = snapshot?.backgroundCards ?? EMPTY_CARDS
     const repositoryFiles = snapshot?.repositoryFiles ?? EMPTY_REPOSITORY_FILES
-    const [configRevision, setConfigRevision] = useState(0)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [noticeMessage, setNoticeMessage] = useState<string | null>(null)
     const [requestedPath, setRequestedPath] = useState<string | null>(null)
@@ -76,7 +75,7 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
     const [dismissedBootstrapError, setDismissedBootstrapError] = useState<string | null>(null)
     const remarkableBridge = useMemo(() => getRemarkableBridge(), [])
     const isProjectOpen = !!project
-    const projectConfig = dataService.getConfig()
+    const projectConfig = useProjectConfig()
     const cardTypes = projectConfig?.cardTypes ?? DEFAULT_CARD_TYPES
     const workingFolder = snapshot?.workingFolder ?? projectConfig?.workingFolder ?? DEFAULT_WORKING_FOLDER
     const cardNavigation = useMemo(
@@ -86,8 +85,6 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
     const bootstrapErrorMessage = bootstrapError && bootstrapError !== dismissedBootstrapError
         ? `Could not restore last project: ${bootstrapError}`
         : null
-
-    void configRevision
 
     useEffect(() => {
         const handleBeforeUnload = (event: BeforeUnloadEvent) => {
@@ -137,16 +134,6 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
 
         onLeftPanelContentChange(cardNavigation)
     }, [cardNavigation, isProjectOpen, onLeftPanelContentChange, viewMode])
-
-    useEffect(() => {
-        const handleConfigChange = () => {
-            setConfigRevision((revision) => revision + 1)
-        }
-
-        configService.addEventListener('changed', handleConfigChange)
-
-        return () => configService.removeEventListener('changed', handleConfigChange)
-    }, [])
 
     useEffect(() => {
         const handleNavigationOpen = (event: Event) => {

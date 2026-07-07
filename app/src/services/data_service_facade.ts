@@ -319,6 +319,7 @@ export class DataService extends EventTarget {
         if (!this.currentProject) throw new Error('Cannot save project config before a project is open')
 
         await storage.saveProjectConfig(this.currentProject, configService.getProjectConfig())
+        this.dispatchChanged()
     }
 
     async loadProjectAsset(path: string): Promise<ProjectAsset> {

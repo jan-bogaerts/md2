@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useCallback, useState, type ReactNode } from 'react'
 import type { StorageService } from '../../../data/data_types'
@@ -150,5 +150,33 @@ describe('AppMenu', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Push' }))
 
         expect(await screen.findByText('push failed')).toBeInTheDocument()
+    })
+
+    it('refreshes selected agent and model when config changes elsewhere', async () => {
+        configService.clear()
+        configService.init({
+            desktopConfig: {
+                agent: 'codex',
+                agentProfiles: [
+                    { command: 'codex', modelArgument: '--model', models: ['gpt-5'], name: 'codex' },
+                    { command: 'system', modelArgument: '--model', models: ['system-model'], name: 'system' },
+                ],
+                model: 'gpt-5',
+                projectLocationMode: 'folder',
+            },
+        })
+
+        render(<AppMenu />)
+
+        expect(screen.getByRole('combobox', { name: 'Default agent' })).toHaveTextContent('codex')
+        expect(screen.getByRole('combobox', { name: 'Default model' })).toHaveTextContent('gpt-5')
+
+        act(() => {
+            configService.set('desktop.agent', 'system')
+            configService.set('desktop.model', 'system-model')
+        })
+
+        await waitFor(() => expect(screen.getByRole('combobox', { name: 'Default agent' })).toHaveTextContent('system'))
+        expect(screen.getByRole('combobox', { name: 'Default model' })).toHaveTextContent('system-model')
     })
 })

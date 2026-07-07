@@ -1,13 +1,14 @@
 import { FormControl, IconButton, MenuItem, Select, TextField, Tooltip } from '@mui/material'
 import type { SelectChangeEvent } from '@mui/material'
 import type { ChangeEvent } from 'react'
-import { useState } from 'react'
 import CloudUpload from 'mdi-material-ui/CloudUpload'
 import { defaultModelForProfile, findAgentProfile, mergeAgentProfiles, type AgentProfile } from '../../../data/agent_profiles'
 import { configService } from '../../../services/config_service'
 import { dataService } from '../../../services/data_service'
 import { getElectronConfigBridge } from '../../../services/electron_config_bridge'
 import { reportWorkspaceError } from '../../project_command_events'
+import { useConfigValue, useHasDesktopConfig } from '../../hooks/use_config_value'
+import { useProjectConfig } from '../../hooks/use_project_config'
 import { useProjectState } from '../../hooks/use_project_state'
 import { Menu } from './menu'
 import { Section } from './section'
@@ -16,15 +17,16 @@ import { Tab } from './tab'
 /** Reusable app menu hosting cross-cutting workspace actions such as Push. */
 export function AppMenu() {
     const { project } = useProjectState()
-    const projectConfig = dataService.getConfig()
+    const projectConfig = useProjectConfig()
     const isProjectOpen = !!project
     const canPush = isProjectOpen && projectConfig?.pushMode === 'manual'
-    const desktopAvailable = configService.hasDesktopConfig()
-    const agentProfiles = mergeAgentProfiles(configService.get('desktop.agentProfiles') as AgentProfile[])
-    const [selectedAgent, setSelectedAgent] = useState(() => configService.get('desktop.agent') as string)
+    const desktopAvailable = useHasDesktopConfig()
+    const agentProfiles = mergeAgentProfiles(useConfigValue('desktop.agentProfiles') as AgentProfile[])
+    const selectedAgent = useConfigValue('desktop.agent') as string
     const selectedProfile = findAgentProfile(agentProfiles, selectedAgent)
     const selectedModels = selectedProfile?.models ?? []
-    const [selectedModel, setSelectedModel] = useState(() => (configService.get('desktop.model') as string) || (selectedProfile ? defaultModelForProfile(selectedProfile) : ''))
+    const configuredModel = useConfigValue('desktop.model') as string
+    const selectedModel = configuredModel || (selectedProfile ? defaultModelForProfile(selectedProfile) : '')
 
     const persistDesktopConfig = () => {
         if (!configService.hasDesktopConfig()) return
@@ -45,21 +47,17 @@ export function AppMenu() {
     const handleAgentChange = (event: SelectChangeEvent) => {
         const profile = findAgentProfile(agentProfiles, event.target.value)
         const nextModel = profile ? defaultModelForProfile(profile) : ''
-        setSelectedAgent(event.target.value)
-        setSelectedModel(nextModel)
         configService.set('desktop.agent', event.target.value)
         configService.set('desktop.model', nextModel)
         persistDesktopConfig()
     }
 
     const setModel = (value: string) => {
-        setSelectedModel(value)
         configService.set('desktop.model', value)
         persistDesktopConfig()
     }
 
     const handleModelSelectChange = (event: SelectChangeEvent) => {
-        setSelectedModel(event.target.value)
         configService.set('desktop.model', event.target.value)
         persistDesktopConfig()
     }
@@ -68,13 +66,17 @@ export function AppMenu() {
         setModel(event.target.value)
     }
 
+    const handlePushIconClick = () => {
+        void handlePushClick()
+    }
+
     return (
         <Menu>
             <Tab>
                 <Section label="Actions">
                     {canPush ? (
                         <Tooltip title="Push">
-                            <IconButton aria-label="Push" onClick={() => void handlePushClick()}>
+                            <IconButton aria-label="Push" onClick={handlePushIconClick}>
                                 <CloudUpload />
                             </IconButton>
                         </Tooltip>
