@@ -1,34 +1,30 @@
 import { readFileSync } from 'node:fs'
-import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import vm from 'node:vm'
 import { describe, expect, it, vi } from 'vitest'
 
-const require = createRequire(import.meta.url)
 const currentDirectory = dirname(fileURLToPath(import.meta.url))
 const mainPath = join(currentDirectory, 'main.js')
 const preloadPath = join(currentDirectory, 'preload.js')
-const actualConfig = require('./config')
-const actualAgentProfiles = require('./agent_profiles')
-const actualLocalBridgeDispatch = require('./local_bridge_dispatch')
 
-function createPreloadHarness() {
-    const storeData = {}
-    const localGitService = new Proxy({}, {
-        get: (target, property) => target[property] ?? vi.fn(),
-    })
-    const agentRunnerService = {
-        sendInput: vi.fn(),
-        start: vi.fn(() => ({ reference: 'started-log.json' })),
-        stop: vi.fn(),
-        stopAll: vi.fn(),
+function createPreloadHarness(options = {}) {
+    const origin = options.origin ?? 'http://localhost:5173'
+    const allowedOrigins = options.allowedOrigins ?? ['http://localhost:5173']
+    const desktopConfig = options.desktopConfig ?? { agent: 'codex', agentProfiles: [{ command: 'codex', name: 'codex' }], model: '' }
+    const body = {
+        appendChild: vi.fn(),
+        innerHTML: 'app',
     }
-    const actionSchedulerService = {
-        startProject: vi.fn(),
-        stop: vi.fn(),
+    const document = {
+        body,
+        createElement: vi.fn(() => ({
+            setAttribute: vi.fn(),
+            style: {},
+            textContent: '',
+        })),
     }
-    const window = { addEventListener: vi.fn() }
+    const window = { addEventListener: vi.fn(), location: { origin } }
     const exposed = {}
     const contextBridge = {
         exposeInMainWorld: vi.fn((name, bridge) => {
@@ -40,46 +36,18 @@ function createPreloadHarness() {
         contextBridge,
         ipcRenderer: { invoke: vi.fn(), on: vi.fn(), removeListener: vi.fn(), send: vi.fn() },
     }
-
-    class FakeStore {
-        get(key) {
-            return storeData[key]
-        }
-
-        set(key, value) {
-            storeData[key] = value
-        }
-    }
-
-    class FakeAgentRunnerService {
-        constructor() {
-            return agentRunnerService
-        }
-    }
-
-    class FakeActionSchedulerService {
-        constructor() {
-            return actionSchedulerService
-        }
-    }
-
-    const mockedModules = {
-        './action_scheduler_service': { ActionSchedulerService: FakeActionSchedulerService },
-        './agent_profiles': actualAgentProfiles,
-        './agent_runner_service': { AgentRunnerService: FakeAgentRunnerService },
-        './config': actualConfig,
-        './diff_service': {},
-        './github_oauth_proxy': { requestGithubAccessToken: vi.fn(), requestGithubDeviceCode: vi.fn() },
-        './local_bridge_dispatch': actualLocalBridgeDispatch,
-        './local_git_service': localGitService,
-        electron,
-        'electron-store': FakeStore,
-    }
+    const argv = [
+        `--md2-bridge-allowed-origins=${encodeURIComponent(JSON.stringify(allowedOrigins))}`,
+        `--md2-desktop-config=${encodeURIComponent(JSON.stringify(desktopConfig))}`,
+    ]
+    const mockedModules = { electron }
     const fakeRequire = (moduleName) => mockedModules[moduleName]
     const module = { exports: {} }
     const context = vm.createContext({
+        document,
         module,
         exports: module.exports,
+        process: { argv },
         require: fakeRequire,
         window,
     })
@@ -87,7 +55,7 @@ function createPreloadHarness() {
 
     script.runInContext(context)
 
-    return { actionSchedulerService, agentRunnerService, electron, exposed, localGitService, window }
+    return { document, electron, exposed, window }
 }
 
 describe('preload desktop agent bridge', () => {
@@ -144,32 +112,26 @@ describe('preload desktop agent bridge', () => {
         expect(exposed.md2Lifecycle.ipcRenderer).toBeUndefined()
     })
 
-    it('starts an agent conversation with the selected stored profile when MD2_AGENT overrides only codex', () => {
-        const previousAgent = process.env.MD2_AGENT
-        process.env.MD2_AGENT = 'env-agent'
+    it('blocks privileged bridges and renders a warning for disallowed origins', () => {
+        const { document, electron, exposed } = createPreloadHarness({ origin: 'https://evil.example' })
 
-        try {
-            const { agentRunnerService, window } = createPreloadHarness()
-            const callback = vi.fn()
+        expect(electron.contextBridge.exposeInMainWorld).not.toHaveBeenCalled()
+        expect(exposed.md2Data).toBeUndefined()
+        expect(exposed.md2Actions).toBeUndefined()
+        expect(exposed.md2Config).toBeUndefined()
+        expect(document.body.innerHTML).toBe('')
+        expect(document.body.appendChild).toHaveBeenCalled()
+    })
 
-            window.md2Config.setDesktopConfig({
-                agent: 'stored-agent',
-                agentProfiles: [{ command: 'stored-agent', name: 'stored-agent' }],
-                model: '',
-            })
-            window.md2Data.startAgentConversation({ prompt: 'start this' }, callback)
+    it('keeps desktop config cached while persisting updates through IPC', () => {
+        const { electron, exposed } = createPreloadHarness()
+        const nextConfig = { agent: 'stored-agent', agentProfiles: [{ command: 'stored-agent', name: 'stored-agent' }], model: '' }
 
-            expect(agentRunnerService.start).toHaveBeenCalledWith(null, {
-                command: 'stored-agent',
-                prompt: 'start this',
-            }, callback)
-        } finally {
-            if (previousAgent === undefined) {
-                delete process.env.MD2_AGENT
-            } else {
-                process.env.MD2_AGENT = previousAgent
-            }
-        }
+        expect(exposed.md2Config.getDesktopConfig()).toEqual({ agent: 'codex', agentProfiles: [{ command: 'codex', name: 'codex' }], model: '' })
+        exposed.md2Config.setDesktopConfig(nextConfig)
+
+        expect(exposed.md2Config.getDesktopConfig()).toEqual(nextConfig)
+        expect(electron.ipcRenderer.invoke).toHaveBeenCalledWith('md2-config:set-desktop', nextConfig)
     })
 })
 
@@ -179,13 +141,13 @@ describe('electron main isolation settings', () => {
 
         expect(source).toContain('nodeIntegration: false')
         expect(source).toContain('contextIsolation: true')
-        expect(source).toContain('sandbox: false')
+        expect(source).toContain('sandbox: true')
     })
 
     it('waits for renderer pending commit flush before quitting', () => {
         const source = readFileSync(mainPath, 'utf8')
 
-        expect(source).toContain("const LIFECYCLE_FLUSH_REQUEST_CHANNEL = 'md2-lifecycle:flush-pending-commits'")
+        expect(source).toContain('LIFECYCLE_FLUSH_REQUEST_CHANNEL')
         expect(source).toContain('const QUIT_FLUSH_TIMEOUT_MS = 5000')
         expect(source).toContain('await flushRendererPendingCommits()')
         expect(source.indexOf('await flushRendererPendingCommits()')).toBeLessThan(source.indexOf('await remoteControlService.stop()'))

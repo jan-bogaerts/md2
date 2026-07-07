@@ -5,6 +5,7 @@ import type {
     ActionRunHistoryRequest,
     AgentExecutionRequest,
     AgentExecutionResult,
+    CommandActionExecutionRequest,
     CommandExecutionResult,
     DiffRequest,
     DiffResult,
@@ -66,13 +67,6 @@ interface WatchProjectPayload {
 }
 
 const SOCKET_OPEN_STATE = 1
-
-function endpointWithToken(endpoint: string, token: string) {
-    const url = new URL(endpoint)
-    url.searchParams.set('token', token)
-
-    return url.toString()
-}
 
 function isResponse(message: RemoteControlResponse | RemoteControlEvent): message is RemoteControlResponse {
     return 'id' in message
@@ -252,8 +246,8 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         return this.requestWithAgentEvents<AgentExecutionResult>('runAgent', [request], callback)
     }
 
-    async runCommand(command: string): Promise<CommandExecutionResult> {
-        return this.request<CommandExecutionResult>('runCommand', [command])
+    async runCommand(request: CommandActionExecutionRequest): Promise<CommandExecutionResult> {
+        return this.request<CommandExecutionResult>('runCommand', [request])
     }
 
     private async requestWithAgentEvents<T>(method: string, params: unknown[], onEvent?: (event: AgentRunEvent) => void): Promise<T> {
@@ -297,7 +291,7 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         if (this.socket?.readyState === SOCKET_OPEN_STATE) return
         if (this.connectPromise) return this.connectPromise
 
-        this.socket = new WebSocket(endpointWithToken(this.endpoint, this.token))
+        this.socket = new WebSocket(this.endpoint, this.token)
         this.socket.addEventListener('message', (event) => this.handleMessage(event))
         this.socket.addEventListener('close', () => this.handleClose())
         this.socket.addEventListener('error', () => this.handleClose())

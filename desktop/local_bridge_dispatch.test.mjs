@@ -22,6 +22,16 @@ function createDispatch() {
         checkoutBranch: vi.fn(async (project, branch) => ({ ...project, branch })),
         commit: vi.fn(async () => []),
         loadFile: vi.fn(async () => ({ content: '# Root', path: 'design/F-1.md' })),
+        loadActionFiles: vi.fn(async () => [{
+            content: JSON.stringify({
+                description: 'Run tests',
+                label: 'Test',
+                name: 'test',
+                text: 'npm test {{file}} {{prompt}}',
+                type: 'cmd',
+            }),
+            path: 'actions/test.json',
+        }]),
         loadProjectAsset: vi.fn(async () => ({ content: 'aWNvbg==', contentType: 'image/png', encoding: 'base64', path: 'actions/icon.png' })),
         loadProject: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
         loadProjectRoot: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
@@ -34,7 +44,7 @@ function createDispatch() {
         desktopConfigStore: {},
         diffService: { generateDiff: vi.fn(), openInEditor: vi.fn() },
         localGitService,
-        readDesktopConfig: () => ({ agent: 'codex' }),
+        readDesktopConfig: () => ({ agent: 'codex', agentProfiles: [{ command: 'codex', name: 'codex' }], model: '' }),
     })
 
     return { actionSchedulerService, agentRunnerService, dispatch, localGitService }
@@ -47,11 +57,30 @@ describe('createLocalBridgeDispatch', () => {
 
         await dispatch.dataBridge.loadProject(project, 'design')
         await dispatch.dataBridge.commit({ branch: 'main', files: [], message: 'Update' })
-        await dispatch.actionBridge.runCommand('npm test')
+        await dispatch.actionBridge.runCommand({
+            actionName: 'test',
+            actionsFolder: 'actions',
+            context: { file: 'design/F-1.md', kind: 'card' },
+            extraInput: 'focus',
+        })
 
         expect(localGitService.loadProject).toHaveBeenCalledWith(project, 'design')
         expect(localGitService.commit).toHaveBeenCalledWith({ branch: 'main', files: [], message: 'Update' }, project)
-        expect(localGitService.runCommand).toHaveBeenCalledWith(project, 'npm test')
+        expect(localGitService.loadActionFiles).toHaveBeenCalledWith(project, 'actions')
+        expect(localGitService.runCommand).toHaveBeenCalledWith(project, 'npm test design/F-1.md focus')
+    })
+
+    it('rejects unknown command action names', async () => {
+        const { dispatch } = createDispatch()
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
+
+        await dispatch.dataBridge.loadProject(project, 'design')
+        await expect(dispatch.actionBridge.runCommand({
+            actionName: 'missing',
+            actionsFolder: 'actions',
+            context: { file: 'design/F-1.md', kind: 'card' },
+            extraInput: '',
+        })).rejects.toThrow('Unknown command action: missing')
     })
 
     it('invokes shared method table for remote control', async () => {

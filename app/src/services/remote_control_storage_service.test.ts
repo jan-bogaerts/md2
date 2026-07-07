@@ -5,11 +5,13 @@ class MockWebSocket extends EventTarget {
     static instances: MockWebSocket[] = []
 
     readyState = 0
+    protocol: string | string[] | undefined
     sent: string[] = []
     url: string
 
-    constructor(url: string) {
+    constructor(url: string, protocol?: string | string[]) {
         super()
+        this.protocol = protocol
         this.url = url
         MockWebSocket.instances.push(this)
     }
@@ -52,6 +54,10 @@ function lastSocket() {
     return socket
 }
 
+function commandRequest() {
+    return { actionName: 'test', actionsFolder: 'actions', context: { file: 'design/F-1.md', kind: 'card' as const }, extraInput: '' }
+}
+
 async function flushPromises() {
     await Promise.resolve()
     await Promise.resolve()
@@ -84,7 +90,7 @@ describe('RemoteControlStorageService', () => {
     it('rejects error responses', async () => {
         installWebSocket()
         const service = createService()
-        const request = service.runCommand('npm test')
+        const request = service.runCommand(commandRequest())
         const socket = lastSocket()
 
         socket.open()
@@ -131,7 +137,7 @@ describe('RemoteControlStorageService', () => {
     it('fails pending requests clearly when the socket closes', async () => {
         installWebSocket()
         const service = createService()
-        const request = service.runCommand('npm test')
+        const request = service.runCommand(commandRequest())
         const socket = lastSocket()
 
         socket.open()
@@ -139,5 +145,21 @@ describe('RemoteControlStorageService', () => {
         socket.close()
 
         await expect(request).rejects.toThrow('Remote-control connection closed')
+    })
+
+    it('sends the token as WebSocket protocol instead of a query parameter', async () => {
+        installWebSocket()
+        const service = createService()
+        const request = service.runCommand(commandRequest())
+        const socket = lastSocket()
+
+        socket.open()
+        await flushPromises()
+        const sentRequest = JSON.parse(socket.sent[0]) as { id: string }
+        socket.receive({ id: sentRequest.id, result: { command: 'npm test', exitCode: 0, stderr: '', stdout: 'ok' } })
+
+        await expect(request).resolves.toEqual({ command: 'npm test', exitCode: 0, stderr: '', stdout: 'ok' })
+        expect(socket.url).toBe('ws://127.0.0.1:1234')
+        expect(socket.protocol).toBe('token-1')
     })
 })

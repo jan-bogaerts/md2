@@ -1,42 +1,64 @@
 const { app, BrowserWindow, dialog, ipcMain, nativeTheme } = require('electron')
 const path = require('node:path')
 const Store = require('electron-store')
-const { readDesktopConfig, resolveAppUrl } = require('./config')
+const { readDesktopConfig, resolveAppUrl, resolveBridgeAllowedOrigins, writeDesktopConfig } = require('./config')
 const { AgentRunnerService } = require('./agent_runner_service')
+const { ActionSchedulerService } = require('./action_scheduler_service')
 const diffService = require('./diff_service')
 const { createLocalBridgeDispatch } = require('./local_bridge_dispatch')
 const localGitService = require('./local_git_service')
+const { requestGithubAccessToken, requestGithubDeviceCode } = require('./github_oauth_proxy')
 const { RemoteControlService } = require('./remote_control_service')
 const remarkableService = require('./remarkable_service')
 const { flush, registerProcessErrorHandlers, startElectronTelemetry, trackEvent } = require('./telemetry')
 const { THEME_MODE_STORE_KEY, resolveThemeMode, resolveTitleBarOverlay } = require('./theme')
+const {
+    CONFIG_GET_DESKTOP_CHANNEL,
+    CONFIG_SET_DESKTOP_CHANNEL,
+    DATA_OPEN_PROJECT_FOLDER_CHANNEL,
+    GITHUB_AUTH_REQUEST_ACCESS_TOKEN_CHANNEL,
+    GITHUB_AUTH_REQUEST_DEVICE_CODE_CHANNEL,
+    LIFECYCLE_FLUSH_DONE_CHANNEL,
+    LIFECYCLE_FLUSH_REQUEST_CHANNEL,
+    LOCAL_BRIDGE_EVENT_CHANNEL,
+    LOCAL_BRIDGE_INVOKE_CHANNEL,
+    LOCAL_BRIDGE_SUBSCRIBE_CHANNEL,
+    LOCAL_BRIDGE_UNSUBSCRIBE_CHANNEL,
+    REMARKABLE_IMPORT_FILES_CHANNEL,
+    REMARKABLE_LIST_IMAGE_FILES_CHANNEL,
+    REMARKABLE_TEST_CONNECTION_CHANNEL,
+    REMOTE_CONTROL_GET_STATUS_CHANNEL,
+    REMOTE_CONTROL_START_CHANNEL,
+    REMOTE_CONTROL_STATUS_CHANNEL,
+    REMOTE_CONTROL_STOP_CHANNEL,
+    THEME_SET_MODE_CHANNEL,
+} = require('./ipc_channels')
 
 const appUrl = resolveAppUrl()
-const DATA_OPEN_PROJECT_FOLDER_CHANNEL = 'md2-data:open-project-folder'
-const LIFECYCLE_FLUSH_REQUEST_CHANNEL = 'md2-lifecycle:flush-pending-commits'
-const LIFECYCLE_FLUSH_DONE_CHANNEL = 'md2-lifecycle:flush-pending-commits-done'
 const QUIT_FLUSH_TIMEOUT_MS = 5000
-const REMOTE_CONTROL_STATUS_CHANNEL = 'md2-remote-control:status'
-const REMOTE_CONTROL_START_CHANNEL = 'md2-remote-control:start'
-const REMOTE_CONTROL_STOP_CHANNEL = 'md2-remote-control:stop'
-const REMOTE_CONTROL_GET_STATUS_CHANNEL = 'md2-remote-control:get-status'
-const THEME_SET_MODE_CHANNEL = 'md2-theme:set-mode'
-const REMARKABLE_TEST_CONNECTION_CHANNEL = 'md2-remarkable:test-connection'
-const REMARKABLE_LIST_IMAGE_FILES_CHANNEL = 'md2-remarkable:list-image-files'
-const REMARKABLE_IMPORT_FILES_CHANNEL = 'md2-remarkable:import-files'
+const EVENT_METHODS = new Set(['runAgent', 'startAgentConversation'])
+const SUBSCRIPTION_METHODS = new Set(['onScheduledActionRun', 'watchProject'])
 
 const store = new Store()
 Store.initRenderer()
-const remoteAgentRunnerService = new AgentRunnerService()
-const remoteBridgeDispatch = createLocalBridgeDispatch({
-    agentRunnerService: remoteAgentRunnerService,
+const agentRunnerService = new AgentRunnerService()
+const actionSchedulerService = new ActionSchedulerService({
+    agentConfigProvider: () => readDesktopConfig(store),
+    agentRunnerService,
+    localGitService,
+})
+const localBridgeDispatch = createLocalBridgeDispatch({
+    actionSchedulerService,
+    agentRunnerService,
     desktopConfigStore: store,
     diffService,
     localGitService,
+    openProjectFolder: () => openProjectFolder(BrowserWindow.getFocusedWindow()),
     readDesktopConfig,
 })
-const remoteControlService = new RemoteControlService(remoteBridgeDispatch)
+const remoteControlService = new RemoteControlService(localBridgeDispatch)
 const electronTelemetryStarted = startElectronTelemetry()
+const subscriptionCleanups = new Map()
 let isQuittingAfterTelemetry = false
 
 registerProcessErrorHandlers()
@@ -58,6 +80,58 @@ function registerDataBridge() {
 
         return openProjectFolder(window)
     })
+}
+
+function subscriptionKey(webContents, subscriptionId) {
+    return `${webContents.id}:${subscriptionId}`
+}
+
+function removeSubscription(webContents, subscriptionId) {
+    const key = subscriptionKey(webContents, subscriptionId)
+    const cleanup = subscriptionCleanups.get(key)
+    if (!cleanup) return
+
+    cleanup()
+    subscriptionCleanups.delete(key)
+}
+
+function registerLocalBridge() {
+    ipcMain.handle(LOCAL_BRIDGE_INVOKE_CHANNEL, (event, request) => {
+        const { eventId, method, params } = request
+        if (!EVENT_METHODS.has(method)) return localBridgeDispatch.invoke(method, params)
+
+        return localBridgeDispatch.invoke(method, [
+            ...params,
+            (payload) => event.sender.send(LOCAL_BRIDGE_EVENT_CHANNEL, { eventId, payload }),
+        ])
+    })
+
+    ipcMain.on(LOCAL_BRIDGE_SUBSCRIBE_CHANNEL, (event, request) => {
+        const { method, params, subscriptionId } = request
+        if (!SUBSCRIPTION_METHODS.has(method)) throw new Error(`Unsupported bridge subscription: ${method}`)
+
+        removeSubscription(event.sender, subscriptionId)
+        const cleanup = localBridgeDispatch.invoke(method, [
+            ...params,
+            (payload) => event.sender.send(LOCAL_BRIDGE_EVENT_CHANNEL, { eventId: subscriptionId, payload }),
+        ])
+        subscriptionCleanups.set(subscriptionKey(event.sender, subscriptionId), cleanup)
+        event.sender.once('destroyed', () => removeSubscription(event.sender, subscriptionId))
+    })
+
+    ipcMain.on(LOCAL_BRIDGE_UNSUBSCRIBE_CHANNEL, (event, subscriptionId) => {
+        removeSubscription(event.sender, subscriptionId)
+    })
+}
+
+function registerConfigBridge() {
+    ipcMain.handle(CONFIG_GET_DESKTOP_CHANNEL, () => readDesktopConfig(store))
+    ipcMain.handle(CONFIG_SET_DESKTOP_CHANNEL, (_event, values) => writeDesktopConfig(store, values))
+}
+
+function registerGithubAuthBridge() {
+    ipcMain.handle(GITHUB_AUTH_REQUEST_ACCESS_TOKEN_CHANNEL, (_event, request) => requestGithubAccessToken(request))
+    ipcMain.handle(GITHUB_AUTH_REQUEST_DEVICE_CODE_CHANNEL, (_event, request) => requestGithubDeviceCode(request))
 }
 
 function broadcastRemoteControlStatus(status) {
@@ -94,6 +168,8 @@ function registerThemeBridge() {
 
 function createWindow() {
     const mode = resolveThemeMode(store.get(THEME_MODE_STORE_KEY))
+    const desktopConfig = readDesktopConfig(store)
+    const bridgeAllowedOrigins = resolveBridgeAllowedOrigins(desktopConfig, appUrl)
     nativeTheme.themeSource = mode
 
     const window = new BrowserWindow({
@@ -102,10 +178,14 @@ function createWindow() {
         titleBarStyle: 'hidden',
         titleBarOverlay: resolveTitleBarOverlay(mode),
         webPreferences: {
+            additionalArguments: [
+                `--md2-bridge-allowed-origins=${encodeURIComponent(JSON.stringify(bridgeAllowedOrigins))}`,
+                `--md2-desktop-config=${encodeURIComponent(JSON.stringify(desktopConfig))}`,
+            ],
             preload: path.join(__dirname, 'preload.js'),
             nodeIntegration: false,
             contextIsolation: true,
-            sandbox: false,
+            sandbox: true,
         },
     })
 
@@ -118,7 +198,8 @@ async function stopAndQuit() {
     isQuittingAfterTelemetry = true
     await flushRendererPendingCommits()
     await remoteControlService.stop()
-    remoteAgentRunnerService.stopAll()
+    actionSchedulerService.stop()
+    agentRunnerService.stopAll()
     await trackEvent('electron_stop')
     await flush()
     app.quit()
@@ -167,7 +248,10 @@ async function flushRendererPendingCommits() {
 
 app.whenReady().then(async () => {
     await electronTelemetryStarted
+    registerConfigBridge()
     registerDataBridge()
+    registerGithubAuthBridge()
+    registerLocalBridge()
     registerRemarkableBridge()
     registerRemoteControlBridge()
     registerThemeBridge()

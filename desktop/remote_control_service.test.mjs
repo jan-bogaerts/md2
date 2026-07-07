@@ -8,7 +8,7 @@ const { RemoteControlService } = require('./remote_control_service')
 let service = null
 
 function connect(status, token = status.token) {
-    return new WebSocket(`${status.endpoint}?token=${token}`)
+    return new WebSocket(status.endpoint, token)
 }
 
 function waitForOpen(socket) {
@@ -111,6 +111,15 @@ describe('RemoteControlService', () => {
         const socket = connect(status, 'wrong-token')
 
         await expect(waitForOpen(socket)).rejects.toThrow()
+    })
+
+    it('does not put the token in the endpoint URL', async () => {
+        service = new RemoteControlService(createDispatcher())
+        const status = await service.start()
+        const socket = connect(status)
+        await waitForOpen(socket)
+
+        expect(status.endpoint).not.toContain(status.token)
     })
 
     it('returns method errors by request id', async () => {

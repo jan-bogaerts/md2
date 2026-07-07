@@ -1,7 +1,7 @@
 ---
 id: B-029
 title: desktop bridge still grants arbitrary shell execution to the loaded web app
-status: design
+status: ready
 owner: JB
 affects:
 policy:

@@ -1,4 +1,7 @@
 const { buildResumeAgentCommand, resolveAgentCommand } = require('./agent_profiles')
+const { loadActionDefinitions } = require('./action_scheduler_service_core')
+
+const PLACEHOLDER_PATTERN = /\{\{\s*(rootProjectFolder|file|prompt)\s*\}\}/gu
 
 function resolveStartAgentRequest(config, request) {
     const resolved = resolveAgentCommand(config)
@@ -13,12 +16,49 @@ function resolveStartAgentRequest(config, request) {
     }
 }
 
+function resolveRunAgentRequest(config, request) {
+    if (!request || typeof request !== 'object') throw new Error('Missing agent request')
+
+    const resolved = resolveAgentCommand(config, {
+        ...(typeof request.agent === 'string' && request.agent.length > 0 ? { agent: request.agent } : {}),
+        ...(typeof request.model === 'string' ? { model: request.model } : {}),
+    })
+
+    return {
+        ...request,
+        command: resolved.command,
+        ...(resolved.profile.sessionIdPattern ? { sessionIdPattern: resolved.profile.sessionIdPattern } : {}),
+    }
+}
+
 function createLocalProject(rootPath) {
     return {
         branch: 'main',
         id: rootPath,
         rootPath,
     }
+}
+
+function resolvePlaceholders(text, context, project, extraInput) {
+    return text.replace(PLACEHOLDER_PATTERN, (_match, name) => {
+        if (name === 'rootProjectFolder') {
+            if (!project.rootPath) throw new Error('Cannot resolve rootProjectFolder without a local project rootPath')
+
+            return project.rootPath
+        }
+
+        if (name === 'prompt') return extraInput
+        if (!context.file) throw new Error('Cannot resolve file placeholder without a file context')
+
+        return context.file
+    })
+}
+
+function validateActionCommandRequest(request) {
+    if (!request || typeof request !== 'object') throw new Error('Missing command action request')
+    if (typeof request.actionName !== 'string' || request.actionName.length === 0) throw new Error('Missing command actionName')
+    if (typeof request.actionsFolder !== 'string' || request.actionsFolder.length === 0) throw new Error('Missing command actionsFolder')
+    if (!request.context || typeof request.context !== 'object') throw new Error('Missing command context')
 }
 
 function createLocalBridgeDispatch(dependencies) {
@@ -122,8 +162,23 @@ function createLocalBridgeDispatch(dependencies) {
 
             return actionSchedulerService.registerActionSchedule(request)
         },
-        runAgent: (request, callback) => agentRunnerService.run(currentLocalProject, request, callback),
-        runCommand: (command) => localGitService.runCommand(currentLocalProject, command),
+        runAgent: (request, callback) => {
+            const agentRequest = resolveRunAgentRequest(readDesktopConfig(desktopConfigStore), request)
+
+            return agentRunnerService.run(currentLocalProject, agentRequest, callback)
+        },
+        runCommand: async (request) => {
+            validateActionCommandRequest(request)
+            const files = await localGitService.loadActionFiles(currentLocalProject, request.actionsFolder)
+            const actions = loadActionDefinitions(files, readDesktopConfig(desktopConfigStore))
+            const action = actions.find((candidate) => candidate.name === request.actionName)
+            if (!action) throw new Error(`Unknown command action: ${request.actionName}`)
+            if (action.type !== 'cmd') throw new Error(`Action is not a command: ${request.actionName}`)
+
+            const command = resolvePlaceholders(action.text, request.context, currentLocalProject, request.extraInput ?? '')
+
+            return localGitService.runCommand(currentLocalProject, command)
+        },
     }
 
     const methods = { ...dataBridge, ...actionBridge }

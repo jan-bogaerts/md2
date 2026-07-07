@@ -6,6 +6,7 @@ import {
     type AgentExecutionResult,
     type AgentExecutionRequest,
     type CommitMetadata,
+    type CommandActionExecutionRequest,
     getElectronActionBridge,
     type CommandExecutionResult,
     type ElectronActionBridge,
@@ -61,7 +62,7 @@ interface ActionRunnerDependencies {
     actionWriter?: (path: string, content: string) => Promise<void>
     actionsFolderProvider?: () => string | null
     bridgeProvider?: () => ElectronActionBridge | null
-    commandRunner?: (bridge: ElectronActionBridge, command: string) => Promise<CommandExecutionResult>
+    commandRunner?: (bridge: ElectronActionBridge, request: CommandActionExecutionRequest) => Promise<CommandExecutionResult>
     projectProvider?: () => ProjectReference | null
 }
 
@@ -203,8 +204,8 @@ function defaultProjectProvider() {
     return dataService.getState().project
 }
 
-async function defaultCommandRunner(bridge: ElectronActionBridge, command: string) {
-    return bridge.runCommand(command)
+async function defaultCommandRunner(bridge: ElectronActionBridge, request: CommandActionExecutionRequest) {
+    return bridge.runCommand(request)
 }
 
 async function defaultAgentRunner(bridge: ElectronActionBridge, request: AgentExecutionRequest, onEvent?: (event: AgentRunEvent) => void) {
@@ -326,7 +327,7 @@ export class ActionRunner {
         onEvent?: (event: AgentRunEvent) => void,
     ) => Promise<AgentExecutionResult>
     private bridgeProvider: () => ElectronActionBridge | null
-    private commandRunner: (bridge: ElectronActionBridge, command: string) => Promise<CommandExecutionResult>
+    private commandRunner: (bridge: ElectronActionBridge, request: CommandActionExecutionRequest) => Promise<CommandExecutionResult>
     private projectProvider: () => ProjectReference | null
 
     constructor(dependencies: ActionRunnerDependencies = {}) {
@@ -421,11 +422,14 @@ export class ActionRunner {
         }
 
         try {
-            const command = resolvePlaceholders(action.text, context, project, options.extraPrompt)
-            const result = await this.commandRunner(bridge, command)
-            options.state.logs.push(createCommandLog(action, options.phase, command, result))
+            const actionsFolder = this.actionsFolderProvider()
+            if (!actionsFolder) throw new Error('Cannot run command action before project config is loaded')
+
+            const request = { actionName: action.name, actionsFolder, context, extraInput: options.extraPrompt }
+            const result = await this.commandRunner(bridge, request)
+            options.state.logs.push(createCommandLog(action, options.phase, result.command, result))
             if (result.exitCode !== 0) options.state.failed = true
-            await this.appendCommandHistory(bridge, action, context, project, command, result)
+            await this.appendCommandHistory(bridge, action, context, project, result.command, result)
 
             return combineOutput(result)
         } catch (error) {
@@ -455,8 +459,10 @@ export class ActionRunner {
             if (!context.file) throw new Error('Agent actions require a file context')
 
             const request = {
+                agent: resolvedAgent.agent,
                 cardPath: context.file,
                 command,
+                model: resolvedAgent.model,
                 prompt,
                 ...(resolvedAgent.sessionIdPattern ? { sessionIdPattern: resolvedAgent.sessionIdPattern } : {}),
                 title: action.label,

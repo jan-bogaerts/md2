@@ -1,101 +1,211 @@
 const { contextBridge, ipcRenderer } = require('electron')
-const Store = require('electron-store')
-const { readDesktopConfig, writeDesktopConfig } = require('./config')
-const { requestGithubAccessToken, requestGithubDeviceCode } = require('./github_oauth_proxy')
-const { AgentRunnerService } = require('./agent_runner_service')
-const { ActionSchedulerService } = require('./action_scheduler_service')
-const localGitService = require('./local_git_service')
-const diffService = require('./diff_service')
-const { createLocalBridgeDispatch } = require('./local_bridge_dispatch')
-const { resolveAgentCommand } = require('./agent_profiles')
 
+const CONFIG_SET_DESKTOP_CHANNEL = 'md2-config:set-desktop'
 const DATA_OPEN_PROJECT_FOLDER_CHANNEL = 'md2-data:open-project-folder'
-const REMOTE_CONTROL_STATUS_CHANNEL = 'md2-remote-control:status'
-const REMOTE_CONTROL_START_CHANNEL = 'md2-remote-control:start'
-const REMOTE_CONTROL_STOP_CHANNEL = 'md2-remote-control:stop'
-const REMOTE_CONTROL_GET_STATUS_CHANNEL = 'md2-remote-control:get-status'
-const THEME_SET_MODE_CHANNEL = 'md2-theme:set-mode'
-const LIFECYCLE_FLUSH_REQUEST_CHANNEL = 'md2-lifecycle:flush-pending-commits'
+const GITHUB_AUTH_REQUEST_ACCESS_TOKEN_CHANNEL = 'md2-github-auth:request-access-token'
+const GITHUB_AUTH_REQUEST_DEVICE_CODE_CHANNEL = 'md2-github-auth:request-device-code'
 const LIFECYCLE_FLUSH_DONE_CHANNEL = 'md2-lifecycle:flush-pending-commits-done'
-const REMARKABLE_TEST_CONNECTION_CHANNEL = 'md2-remarkable:test-connection'
-const REMARKABLE_LIST_IMAGE_FILES_CHANNEL = 'md2-remarkable:list-image-files'
+const LIFECYCLE_FLUSH_REQUEST_CHANNEL = 'md2-lifecycle:flush-pending-commits'
+const LOCAL_BRIDGE_EVENT_CHANNEL = 'md2-local-bridge:event'
+const LOCAL_BRIDGE_INVOKE_CHANNEL = 'md2-local-bridge:invoke'
+const LOCAL_BRIDGE_SUBSCRIBE_CHANNEL = 'md2-local-bridge:subscribe'
+const LOCAL_BRIDGE_UNSUBSCRIBE_CHANNEL = 'md2-local-bridge:unsubscribe'
 const REMARKABLE_IMPORT_FILES_CHANNEL = 'md2-remarkable:import-files'
+const REMARKABLE_LIST_IMAGE_FILES_CHANNEL = 'md2-remarkable:list-image-files'
+const REMARKABLE_TEST_CONNECTION_CHANNEL = 'md2-remarkable:test-connection'
+const REMOTE_CONTROL_GET_STATUS_CHANNEL = 'md2-remote-control:get-status'
+const REMOTE_CONTROL_START_CHANNEL = 'md2-remote-control:start'
+const REMOTE_CONTROL_STATUS_CHANNEL = 'md2-remote-control:status'
+const REMOTE_CONTROL_STOP_CHANNEL = 'md2-remote-control:stop'
+const THEME_SET_MODE_CHANNEL = 'md2-theme:set-mode'
 
-const agentRunnerService = new AgentRunnerService()
-const desktopConfigStore = new Store()
-const actionSchedulerService = new ActionSchedulerService({
-    agentCommandProvider: () => resolveAgentCommand(readDesktopConfig(desktopConfigStore)).command,
-    agentConfigProvider: () => readDesktopConfig(desktopConfigStore),
-    agentRunnerService,
-    localGitService,
-})
+const DATA_METHODS = [
+    'cancelActionSchedule',
+    'checkoutBranch',
+    'commit',
+    'createProject',
+    'createWorkingFolderFromTemplate',
+    'deleteFile',
+    'listBranches',
+    'listRepositoryFiles',
+    'listTopLevelFolders',
+    'loadActionFiles',
+    'loadActionSchedules',
+    'loadAgentConversation',
+    'loadFile',
+    'loadProject',
+    'loadProjectAsset',
+    'loadProjectConfig',
+    'loadProjectRoot',
+    'moveFiles',
+    'openProjectFolder',
+    'push',
+    'saveActionSchedules',
+    'saveProjectConfig',
+    'sendAgentInput',
+    'startAgentConversation',
+    'stopAgent',
+]
+const ACTION_METHODS = [
+    'appendActionRunHistory',
+    'generateDiff',
+    'loadActionRunHistory',
+    'notifyActionCompleted',
+    'openInEditor',
+    'registerActionSchedule',
+    'runAgent',
+    'runCommand',
+]
+const EVENT_METHODS = new Set(['runAgent', 'startAgentConversation'])
 
-const githubAuthBridge = {
-    requestAccessToken: (request) => requestGithubAccessToken(request),
-    requestDeviceCode: (request) => requestGithubDeviceCode(request),
+let nextEventId = 1
+let desktopConfig = readArgumentJson('md2-desktop-config', {})
+
+function readArgumentValue(name) {
+    const prefix = `--${name}=`
+    const argument = process.argv.find((candidate) => candidate.startsWith(prefix))
+
+    return argument ? argument.slice(prefix.length) : null
 }
 
-contextBridge.exposeInMainWorld('md2GithubAuth', githubAuthBridge)
+function readArgumentJson(name, fallback) {
+    const value = readArgumentValue(name)
+    if (!value) return fallback
 
-const themeBridge = { setThemeMode: (mode) => ipcRenderer.send(THEME_SET_MODE_CHANNEL, mode) }
-
-contextBridge.exposeInMainWorld('md2Theme', themeBridge)
-
-const lifecycleBridge = {
-    confirmFlush: (requestId) => ipcRenderer.send(LIFECYCLE_FLUSH_DONE_CHANNEL, requestId),
-    onFlushRequested: (callback) => {
-        const listener = (_event, requestId) => callback(requestId)
-        ipcRenderer.on(LIFECYCLE_FLUSH_REQUEST_CHANNEL, listener)
-
-        return () => ipcRenderer.removeListener(LIFECYCLE_FLUSH_REQUEST_CHANNEL, listener)
-    },
+    return JSON.parse(decodeURIComponent(value))
 }
 
-contextBridge.exposeInMainWorld('md2Lifecycle', lifecycleBridge)
+function createEventId(method) {
+    const eventId = `${method}-${nextEventId}`
+    nextEventId += 1
 
-const configBridge = {
-    getDesktopConfig: () => readDesktopConfig(desktopConfigStore),
-    setDesktopConfig: (values) => writeDesktopConfig(desktopConfigStore, values),
+    return eventId
 }
 
-contextBridge.exposeInMainWorld('md2Config', configBridge)
+function invokeBridge(method, params, callback) {
+    const eventId = EVENT_METHODS.has(method) && callback ? createEventId(method) : null
+    let listener = null
 
-const remoteControlBridge = {
-    getStatus: () => ipcRenderer.invoke(REMOTE_CONTROL_GET_STATUS_CHANNEL),
-    onStatusChange: (callback) => {
-        const listener = (_event, status) => callback(status)
-        ipcRenderer.on(REMOTE_CONTROL_STATUS_CHANNEL, listener)
+    if (eventId) {
+        listener = (_event, message) => {
+            if (message.eventId === eventId) callback(message.payload)
+        }
+        ipcRenderer.on(LOCAL_BRIDGE_EVENT_CHANNEL, listener)
+    }
 
-        return () => ipcRenderer.removeListener(REMOTE_CONTROL_STATUS_CHANNEL, listener)
-    },
-    start: () => ipcRenderer.invoke(REMOTE_CONTROL_START_CHANNEL),
-    stop: () => ipcRenderer.invoke(REMOTE_CONTROL_STOP_CHANNEL),
+    return ipcRenderer.invoke(LOCAL_BRIDGE_INVOKE_CHANNEL, { eventId, method, params }).finally(() => {
+        if (listener) ipcRenderer.removeListener(LOCAL_BRIDGE_EVENT_CHANNEL, listener)
+    })
 }
 
-contextBridge.exposeInMainWorld('md2RemoteControl', remoteControlBridge)
+function subscribeBridge(method, params, callback) {
+    const subscriptionId = createEventId(method)
+    const listener = (_event, message) => {
+        if (message.eventId === subscriptionId) callback(message.payload)
+    }
 
-const remarkableBridge = {
-    importFiles: (request) => ipcRenderer.invoke(REMARKABLE_IMPORT_FILES_CHANNEL, request),
-    listImageFiles: (settings) => ipcRenderer.invoke(REMARKABLE_LIST_IMAGE_FILES_CHANNEL, settings),
-    testConnection: (settings) => ipcRenderer.invoke(REMARKABLE_TEST_CONNECTION_CHANNEL, settings),
+    ipcRenderer.on(LOCAL_BRIDGE_EVENT_CHANNEL, listener)
+    ipcRenderer.send(LOCAL_BRIDGE_SUBSCRIBE_CHANNEL, { method, params, subscriptionId })
+
+    return () => {
+        ipcRenderer.removeListener(LOCAL_BRIDGE_EVENT_CHANNEL, listener)
+        ipcRenderer.send(LOCAL_BRIDGE_UNSUBSCRIBE_CHANNEL, subscriptionId)
+    }
 }
 
-contextBridge.exposeInMainWorld('md2Remarkable', remarkableBridge)
+function createBridge(methods) {
+    return Object.fromEntries(methods.map((method) => [
+        method,
+        (...params) => {
+            const callback = EVENT_METHODS.has(method) && typeof params[params.length - 1] === 'function'
+                ? params.pop()
+                : null
 
-const localBridgeDispatch = createLocalBridgeDispatch({
-    actionSchedulerService,
-    agentRunnerService,
-    desktopConfigStore,
-    diffService,
-    localGitService,
-    openProjectFolder: () => ipcRenderer.invoke(DATA_OPEN_PROJECT_FOLDER_CHANNEL),
-    readDesktopConfig,
-})
+            return invokeBridge(method, params, callback)
+        },
+    ]))
+}
 
-contextBridge.exposeInMainWorld('md2Data', localBridgeDispatch.dataBridge)
-contextBridge.exposeInMainWorld('md2Actions', localBridgeDispatch.actionBridge)
+function exposeWarning(message) {
+    const render = () => {
+        document.body.innerHTML = ''
+        const warning = document.createElement('main')
+        warning.setAttribute('role', 'alert')
+        warning.style.cssText = 'font-family: system-ui, sans-serif; padding: 24px; color: #7f1d1d;'
+        warning.textContent = message
+        document.body.appendChild(warning)
+    }
 
-window.addEventListener('beforeunload', () => {
-    actionSchedulerService.stop()
-    agentRunnerService.stopAll()
-})
+    if (document.body) {
+        render()
+        return
+    }
+
+    window.addEventListener('DOMContentLoaded', render)
+}
+
+function isAllowedOrigin() {
+    const allowedOrigins = readArgumentJson('md2-bridge-allowed-origins', [])
+
+    return allowedOrigins.includes(window.location.origin)
+}
+
+if (!isAllowedOrigin()) {
+    exposeWarning(`MD2 desktop bridges blocked for origin: ${window.location.origin}`)
+} else {
+    const githubAuthBridge = {
+        requestAccessToken: (request) => ipcRenderer.invoke(GITHUB_AUTH_REQUEST_ACCESS_TOKEN_CHANNEL, request),
+        requestDeviceCode: (request) => ipcRenderer.invoke(GITHUB_AUTH_REQUEST_DEVICE_CODE_CHANNEL, request),
+    }
+    const themeBridge = { setThemeMode: (mode) => ipcRenderer.send(THEME_SET_MODE_CHANNEL, mode) }
+    const lifecycleBridge = {
+        confirmFlush: (requestId) => ipcRenderer.send(LIFECYCLE_FLUSH_DONE_CHANNEL, requestId),
+        onFlushRequested: (callback) => {
+            const listener = (_event, requestId) => callback(requestId)
+            ipcRenderer.on(LIFECYCLE_FLUSH_REQUEST_CHANNEL, listener)
+
+            return () => ipcRenderer.removeListener(LIFECYCLE_FLUSH_REQUEST_CHANNEL, listener)
+        },
+    }
+    const configBridge = {
+        getDesktopConfig: () => desktopConfig,
+        setDesktopConfig: (values) => {
+            desktopConfig = { ...desktopConfig, ...values }
+            void ipcRenderer.invoke(CONFIG_SET_DESKTOP_CHANNEL, values)
+        },
+    }
+    const remoteControlBridge = {
+        getStatus: () => ipcRenderer.invoke(REMOTE_CONTROL_GET_STATUS_CHANNEL),
+        onStatusChange: (callback) => {
+            const listener = (_event, status) => callback(status)
+            ipcRenderer.on(REMOTE_CONTROL_STATUS_CHANNEL, listener)
+
+            return () => ipcRenderer.removeListener(REMOTE_CONTROL_STATUS_CHANNEL, listener)
+        },
+        start: () => ipcRenderer.invoke(REMOTE_CONTROL_START_CHANNEL),
+        stop: () => ipcRenderer.invoke(REMOTE_CONTROL_STOP_CHANNEL),
+    }
+    const remarkableBridge = {
+        importFiles: (request) => ipcRenderer.invoke(REMARKABLE_IMPORT_FILES_CHANNEL, request),
+        listImageFiles: (settings) => ipcRenderer.invoke(REMARKABLE_LIST_IMAGE_FILES_CHANNEL, settings),
+        testConnection: (settings) => ipcRenderer.invoke(REMARKABLE_TEST_CONNECTION_CHANNEL, settings),
+    }
+    const dataBridge = {
+        ...createBridge(DATA_METHODS),
+        openProjectFolder: () => ipcRenderer.invoke(DATA_OPEN_PROJECT_FOLDER_CHANNEL),
+        watchProject: (project, callback) => subscribeBridge('watchProject', [project], callback),
+    }
+    const actionBridge = {
+        ...createBridge(ACTION_METHODS),
+        onScheduledActionRun: (callback) => subscribeBridge('onScheduledActionRun', [], callback),
+    }
+
+    contextBridge.exposeInMainWorld('md2GithubAuth', githubAuthBridge)
+    contextBridge.exposeInMainWorld('md2Theme', themeBridge)
+    contextBridge.exposeInMainWorld('md2Lifecycle', lifecycleBridge)
+    contextBridge.exposeInMainWorld('md2Config', configBridge)
+    contextBridge.exposeInMainWorld('md2RemoteControl', remoteControlBridge)
+    contextBridge.exposeInMainWorld('md2Remarkable', remarkableBridge)
+    contextBridge.exposeInMainWorld('md2Data', dataBridge)
+    contextBridge.exposeInMainWorld('md2Actions', actionBridge)
+}

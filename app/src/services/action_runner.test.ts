@@ -1,7 +1,13 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { ActionContext } from '../data/action_context'
 import type { ActionDefinition } from '../data/action_types'
-import type { AgentExecutionRequest, AgentExecutionResult, CommandExecutionResult, ElectronActionBridge } from '../data/electron_action_bridge'
+import type {
+    AgentExecutionRequest,
+    AgentExecutionResult,
+    CommandActionExecutionRequest,
+    CommandExecutionResult,
+    ElectronActionBridge,
+} from '../data/electron_action_bridge'
 import type { AgentConversation, AgentRunEvent } from '../data/data_types'
 import { ActionRunner } from './action_runner'
 
@@ -82,7 +88,11 @@ function noopAgentConversationLinker() {
     return Promise.resolve()
 }
 
-function runner(commandRunner = vi.fn(async (_bridge: ElectronActionBridge, command: string) => commandResult(command))) {
+function runner(
+    commandRunner = vi.fn(async (_bridge: ElectronActionBridge, request: CommandActionExecutionRequest) => (
+        commandResult(request.actionName)
+    )),
+) {
     return new ActionRunner({
         actionsFolderProvider: () => 'actions',
         bridgeProvider: () => bridge,
@@ -114,12 +124,14 @@ describe('ActionRunner', () => {
         expect(agentRunFinisher).toHaveBeenCalledWith('running-1')
     })
 
-    it('resolves rootProjectFolder and file placeholders before running a command', async () => {
-        const commandRunner = vi.fn(async (_bridge: ElectronActionBridge, command: string) => commandResult(command))
+    it('sends action identity and context instead of raw command text', async () => {
+        const commandRunner = vi.fn(async () => (
+            commandResult('run C:/repo design/F-010.md')
+        ))
         const result = await runner(commandRunner).run(action('implement', { text: 'run {{rootProjectFolder}} {{file}}' }), context)
 
         expect(result.status).toBe('completed')
-        expect(commandRunner).toHaveBeenCalledWith(bridge, 'run C:/repo design/F-010.md')
+        expect(commandRunner).toHaveBeenCalledWith(bridge, { actionName: 'implement', actionsFolder: 'actions', context, extraInput: '' })
         expect(result.logs[0].command).toBe('run C:/repo design/F-010.md')
     })
 
@@ -128,7 +140,9 @@ describe('ActionRunner', () => {
         const onAction = action('on-action')
         const after = action('after')
         const main = action('main', { after: [after], before: [before], on: [{ action: onAction, condition: 'trigger' }], text: 'main' })
-        const commandRunner = vi.fn(async (_bridge: ElectronActionBridge, command: string) => commandResult(command, { stdout: `${command} trigger` }))
+        const commandRunner = vi.fn(async (_bridge: ElectronActionBridge, request: CommandActionExecutionRequest) => (
+            commandResult(request.actionName, { stdout: `${request.actionName} trigger` })
+        ))
 
         const result = await runner(commandRunner).run(main, context)
 
@@ -140,8 +154,10 @@ describe('ActionRunner', () => {
     it('runs after when the main action fails and reports the failed status', async () => {
         const after = action('after')
         const main = action('main', { after: [after] })
-        const commandRunner = vi.fn(async (_bridge: ElectronActionBridge, command: string) => (
-            command === 'main' ? commandResult(command, { exitCode: 2, stderr: 'bad' }) : commandResult(command)
+        const commandRunner = vi.fn(async (_bridge: ElectronActionBridge, request: CommandActionExecutionRequest) => (
+            request.actionName === 'main'
+                ? commandResult(request.actionName, { exitCode: 2, stderr: 'bad' })
+                : commandResult(request.actionName)
         ))
 
         const result = await runner(commandRunner).run(main, context)
@@ -200,7 +216,7 @@ describe('ActionRunner', () => {
         expect(agentConversationLinker).toHaveBeenCalledWith('design/F-010.md', expect.objectContaining({ reference: '.md2-agent-logs/one.json' }))
         expect(agentRunner).toHaveBeenCalledWith(
             bridge,
-            { cardPath: 'design/F-010.md', command: 'codex', prompt: 'implement design/F-010.md\n\nfocus tests', title: 'implement' },
+            { agent: 'default', cardPath: 'design/F-010.md', command: 'codex', model: '', prompt: 'implement design/F-010.md\n\nfocus tests', title: 'implement' },
             expect.any(Function),
         )
         expect(actionHistoryAppender).toHaveBeenCalledWith(
@@ -264,7 +280,7 @@ describe('ActionRunner', () => {
         expect(result.status).toBe('completed')
         expect(agentRunner).toHaveBeenCalledWith(
             bridge,
-            { cardPath: 'design/F-010.md', command: 'codex', prompt: 'write docs', title: 'custom prompt' },
+            { agent: 'default', cardPath: 'design/F-010.md', command: 'codex', model: '', prompt: 'write docs', title: 'custom prompt' },
             expect.any(Function),
         )
     })
@@ -277,7 +293,9 @@ describe('ActionRunner', () => {
         const agentRunner = vi.fn(async (_bridge: ElectronActionBridge, request: AgentExecutionRequest) => (
             agentResult(request, { stdout: `${request.prompt} trigger` })
         ))
-        const commandRunner = vi.fn(async (_bridge: ElectronActionBridge, command: string) => commandResult(command))
+        const commandRunner = vi.fn(async (_bridge: ElectronActionBridge, request: CommandActionExecutionRequest) => (
+            commandResult(request.actionName)
+        ))
 
         const result = await new ActionRunner({
             actionHistoryAppender: vi.fn(async () => []),
@@ -311,8 +329,8 @@ describe('ActionRunner', () => {
 
     it('stores commit metadata when a command action reports a commit', async () => {
         const actionHistoryAppender = vi.fn(async () => [])
-        const commandRunner = vi.fn(async (_bridge: ElectronActionBridge, command: string) => (
-            commandResult(command, { stdout: '[main a1b2c3d] Implement feature\n 1 file changed' })
+        const commandRunner = vi.fn(async () => (
+            commandResult('git commit', { stdout: '[main a1b2c3d] Implement feature\n 1 file changed' })
         ))
         const result = await new ActionRunner({
             actionHistoryAppender,
@@ -347,7 +365,7 @@ describe('ActionRunner', () => {
             agentConversationLinker: noopAgentConversationLinker,
             actionsFolderProvider: () => 'actions',
             bridgeProvider: () => bridge,
-            commandRunner: vi.fn(async (_bridge: ElectronActionBridge, command: string) => commandResult(command)),
+            commandRunner: vi.fn(async () => commandResult('npm run build')),
             projectProvider: () => ({ branch: 'main', id: 'local', rootPath: 'C:/repo' }),
         }).run(action('build', { text: 'npm run build' }), context)
 

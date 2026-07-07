@@ -10,11 +10,20 @@ export interface CommandExecutionResult {
 }
 
 export interface AgentExecutionRequest {
+    agent?: string
     cardPath: string
     command: string
+    model?: string
     prompt: string
     sessionIdPattern?: string
     title?: string
+}
+
+export interface CommandActionExecutionRequest {
+    actionName: string
+    actionsFolder: string
+    context: ActionContext
+    extraInput: string
 }
 
 export interface AgentExecutionResult extends CommandExecutionResult {
@@ -97,7 +106,7 @@ export interface ElectronActionBridge {
     openInEditor(request: OpenInEditorRequest): Promise<void>
     registerActionSchedule?(request: ActionScheduleRegistrationRequest): Promise<void>
     runAgent(request: AgentExecutionRequest, callback?: (event: AgentRunEvent) => void): Promise<AgentExecutionResult>
-    runCommand(command: string): Promise<CommandExecutionResult>
+    runCommand(request: CommandActionExecutionRequest): Promise<CommandExecutionResult>
 }
 
 declare global {

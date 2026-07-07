@@ -1,6 +1,5 @@
 const crypto = require('node:crypto')
 const http = require('node:http')
-const { URL } = require('node:url')
 const { WebSocketServer } = require('ws')
 
 const DEFAULT_HOST = '127.0.0.1'
@@ -40,6 +39,13 @@ function closeUnauthorized(socket) {
 
 function errorMessage(error) {
     return error instanceof Error ? error.message : 'Remote-control request failed'
+}
+
+function protocolTokens(request) {
+    const header = request.headers['sec-websocket-protocol']
+    if (typeof header !== 'string') return []
+
+    return header.split(',').map((token) => token.trim()).filter((token) => token.length > 0)
 }
 
 class RemoteControlService {
@@ -171,9 +177,7 @@ class RemoteControlService {
     }
 
     isAuthorized(request) {
-        const url = new URL(request.url, `ws://${request.headers.host ?? this.host}`)
-
-        return url.searchParams.get('token') === this.token
+        return protocolTokens(request).includes(this.token)
     }
 
     async handleMessage(client, rawMessage) {
