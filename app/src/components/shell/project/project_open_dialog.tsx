@@ -68,6 +68,10 @@ function branchValue(branches: BranchReference[], preferredBranch: string) {
     return branches[0]?.name ?? ''
 }
 
+function selectValueExists(options: string[], value: string) {
+    return options.some((option) => option === value)
+}
+
 function repositoryMatchesFilter(repository: RepositoryReference, filter: string) {
     const normalizedFilter = filter.trim().toLowerCase()
     if (normalizedFilter.length === 0) return true
@@ -113,7 +117,11 @@ export function ProjectOpenDialog(props: ProjectOpenDialogProps) {
     const [selectedRepositoryId, setSelectedRepositoryId] = useState('')
     const [source, setSource] = useState<ProjectSource>('github')
     const filteredRepositories = repositories.filter((repository) => repositoryMatchesFilter(repository, repositoryFilter))
+    const filteredRepositoryIds = filteredRepositories.map(({ id }) => id)
     const isRemoteComplete = remoteEndpoint.length > 0 && remoteToken.length > 0 && remoteRootPath.length > 0
+    const branchNames = branches.map(({ name }) => name)
+    const branchSelectValue = selectValueExists(branchNames, selectedBranch) ? selectedBranch : ''
+    const repositorySelectValue = selectValueExists(filteredRepositoryIds, selectedRepositoryId) ? selectedRepositoryId : ''
 
     const handleSourceChange = (event: SelectChangeEvent) => {
         setSource(event.target.value as ProjectSource)
@@ -245,7 +253,7 @@ export function ProjectOpenDialog(props: ProjectOpenDialogProps) {
                             <TextField disabled={!isGithubAuthenticated} label="Filter repositories" onChange={handleRepositoryFilterChange} size="small" value={repositoryFilter} />
                             <FormControl disabled={!isGithubAuthenticated || repositories.length === 0} size="small">
                                 <InputLabel id="repository-label">Repository</InputLabel>
-                                <Select label="Repository" labelId="repository-label" onChange={handleRepositoryChange} value={selectedRepositoryId}>
+                                <Select label="Repository" labelId="repository-label" onChange={handleRepositoryChange} value={repositorySelectValue}>
                                     {filteredRepositories.map((repository) => (
                                         <MenuItem key={repository.id} value={repository.id}>{repository.id}</MenuItem>
                                     ))}
@@ -281,12 +289,16 @@ export function ProjectOpenDialog(props: ProjectOpenDialogProps) {
                         </>
                     )}
                     {source !== 'remote' ? (
-                        <FormControl disabled={branches.length === 0} size="small">
-                            <InputLabel id="open-branch-label">Branch</InputLabel>
-                            <Select label="Branch" labelId="open-branch-label" onChange={handleBranchChange} value={selectedBranch}>
-                                {branches.map(({ name }) => <MenuItem key={name} value={name}>{name}</MenuItem>)}
-                            </Select>
-                        </FormControl>
+                        branches.length > 0 ? (
+                            <FormControl size="small">
+                                <InputLabel id="open-branch-label">Branch</InputLabel>
+                                <Select label="Branch" labelId="open-branch-label" onChange={handleBranchChange} value={branchSelectValue}>
+                                    {branches.map(({ name }) => <MenuItem key={name} value={name}>{name}</MenuItem>)}
+                                </Select>
+                            </FormControl>
+                        ) : (
+                            <TextField label="Branch" onChange={handleBranchTextChange} size="small" value={selectedBranch} />
+                        )
                     ) : null}
                     {missingWorkingFolder ? (
                         <WorkingFolderChooserDialog

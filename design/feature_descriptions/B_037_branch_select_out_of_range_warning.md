@@ -1,7 +1,7 @@
 ---
 id: B-037
 title: branch select renders an out-of-range value when branch listing fails
-status: design
+status: ready
 owner: JB
 affects:
 policy:

@@ -555,6 +555,7 @@ describe('ProjectWorkspace', () => {
     })
 
     it('keeps manual GitHub branch loading usable after repository listing fails', async () => {
+        const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
         const fetchImplementation = vi.fn(async (url: string | URL | Request) => {
             const requestUrl = url.toString()
             if (requestUrl === GITHUB_REPOSITORIES_URL) return new Response('{}', { status: 403 })
@@ -578,9 +579,11 @@ describe('ProjectWorkspace', () => {
 
         await waitFor(() => expect(screen.getByRole('combobox', { name: 'Branch' })).toHaveTextContent('trunk'))
         expect(screen.queryByText('GitHub storage request failed with status 403')).toBeNull()
+        expect(consoleWarn).not.toHaveBeenCalled()
     })
 
     it('keeps manual GitHub branch loading usable after selected repository branch listing fails', async () => {
+        const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
         const fetchImplementation = vi.fn(async (url: string | URL | Request) => {
             const requestUrl = url.toString()
             if (requestUrl === GITHUB_REPOSITORIES_URL) {
@@ -616,6 +619,7 @@ describe('ProjectWorkspace', () => {
 
         await waitFor(() => expect(screen.getByRole('combobox', { name: 'Branch' })).toHaveTextContent('trunk'))
         expect(screen.queryByText('GitHub storage request failed with status 500')).toBeNull()
+        expect(consoleWarn).not.toHaveBeenCalled()
     })
 
     it('switches the current project branch from a branch dropdown', async () => {

@@ -1,5 +1,5 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { DEFAULT_CARD_TYPES, type BranchReference, type ProjectReference, type RepositoryReference } from '../../../data/data_types'
 import { BranchSwitchDialog } from './branch_switch_dialog'
 import { CompleteReleaseDialog } from './complete_release_dialog'
@@ -12,6 +12,11 @@ const PROJECT: ProjectReference = { branch: 'main', id: 'local', rootPath: 'C:/r
 const REPOSITORIES: RepositoryReference[] = [{ branch: 'main', id: 'octo/demo', owner: 'octo', repository: 'demo' }]
 
 describe('project dialog components', () => {
+    afterEach(() => {
+        cleanup()
+        vi.restoreAllMocks()
+    })
+
     it('renders the open project dialog without mounting the menu', () => {
         render(
             <ProjectOpenDialog
@@ -43,6 +48,45 @@ describe('project dialog components', () => {
 
         expect(screen.getByRole('dialog', { name: 'Open project' })).toBeInTheDocument()
         expect(screen.getByLabelText('Filter repositories')).toBeInTheDocument()
+    })
+
+    it('keeps branch entry editable when no branch options exist', () => {
+        const openGithub = vi.fn()
+
+        render(
+            <ProjectOpenDialog
+                branches={[]}
+                errorMessage={null}
+                isGithubAuthenticated
+                isLoading={false}
+                isLocalAvailable
+                missingWorkingFolder={null}
+                onBranchChange={vi.fn()}
+                onChooseLocalFolder={vi.fn(async () => ({ branches: BRANCHES, project: PROJECT }))}
+                onClose={vi.fn()}
+                onCreateRemoteProject={vi.fn((rootPath, branch) => ({ branch, id: rootPath, rootPath }))}
+                onCreateWorkingFolder={vi.fn()}
+                onDiscardGithubPendingCommits={vi.fn()}
+                onLoadManualBranches={vi.fn(async () => ({ branches: BRANCHES, repository: REPOSITORIES[0] }))}
+                onLoadRemoteBranches={vi.fn(async () => BRANCHES)}
+                onOpenGithub={openGithub}
+                onOpenLocal={vi.fn()}
+                onOpenRemote={vi.fn()}
+                onRepositoryChange={vi.fn(async () => BRANCHES)}
+                onSourceChange={vi.fn()}
+                onUseWorkingFolder={vi.fn()}
+                open
+                pendingGithubConflictProject={null}
+                repositories={[]}
+            />,
+        )
+
+        fireEvent.change(screen.getByLabelText('Owner'), { target: { value: 'octo' } })
+        fireEvent.change(screen.getByRole('textbox', { name: 'Repository' }), { target: { value: 'demo' } })
+        fireEvent.change(screen.getByLabelText('Branch'), { target: { value: 'topic' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Open GitHub' }))
+
+        expect(openGithub).toHaveBeenCalledWith('octo', 'demo', 'topic')
     })
 
     it('renders the working folder chooser without mounting the menu', () => {
