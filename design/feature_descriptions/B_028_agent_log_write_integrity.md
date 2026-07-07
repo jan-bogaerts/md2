@@ -1,7 +1,7 @@
 ---
 id: B-028
 title: agent conversation log writes can race and corrupt the json file
-status: design
+status: ready
 owner: JB
 affects:
 policy:

@@ -1,8 +1,10 @@
 const { spawn } = require('node:child_process')
+const crypto = require('node:crypto')
 const fs = require('node:fs')
 const path = require('node:path')
 
 const AGENT_LOG_FOLDER = '.md2-agent-logs'
+const INTERMEDIATE_PERSIST_INTERVAL_MS = 250
 
 function normalizePath(filePath) {
     return filePath.replace(/\\/g, '/')
@@ -109,8 +111,58 @@ function emitRunEvent(run, type, content) {
 }
 
 async function persistConversation(filePath, conversation) {
+    const temporaryPath = `${filePath}.tmp`
+
     await fs.promises.mkdir(path.dirname(filePath), { recursive: true })
-    await fs.promises.writeFile(filePath, `${JSON.stringify(conversation, null, 2)}\n`)
+    await fs.promises.writeFile(temporaryPath, `${JSON.stringify(conversation, null, 2)}\n`)
+    await fs.promises.rename(temporaryPath, filePath)
+}
+
+function appendWriteError(run, error) {
+    const timestamp = new Date().toISOString()
+    const message = error instanceof Error ? error.message : 'Agent log write failed'
+    run.conversation.events.push(createEvent(`${run.conversation.id}-write-error-${run.conversation.events.length}`, 'error', message, timestamp))
+    emitRunEvent(run, 'error', message)
+}
+
+function queueConversationPersist(run) {
+    run.writeChain = run.writeChain.then(async () => {
+        try {
+            await persistConversation(run.filePath, run.conversation)
+        } catch (error) {
+            appendWriteError(run, error)
+        }
+    })
+
+    return run.writeChain
+}
+
+function clearIntermediatePersist(run) {
+    if (!run.intermediatePersistTimer) return
+
+    clearTimeout(run.intermediatePersistTimer)
+    run.intermediatePersistTimer = null
+}
+
+function queueThrottledConversationPersist(run) {
+    const now = Date.now()
+    const elapsed = now - run.lastIntermediatePersistAt
+    if (elapsed >= INTERMEDIATE_PERSIST_INTERVAL_MS) {
+        run.lastIntermediatePersistAt = now
+
+        return queueConversationPersist(run)
+    }
+
+    if (!run.intermediatePersistTimer) {
+        const delay = INTERMEDIATE_PERSIST_INTERVAL_MS - elapsed
+        run.intermediatePersistTimer = setTimeout(() => {
+            run.intermediatePersistTimer = null
+            run.lastIntermediatePersistAt = Date.now()
+            void queueConversationPersist(run)
+        }, delay)
+    }
+
+    return run.writeChain
 }
 
 class AgentRunnerService {
@@ -151,7 +203,7 @@ class AgentRunnerService {
         const sessionIdPattern = readOptionalPattern(request?.sessionIdPattern, 'sessionIdPattern')
         ensureInsideRoot(rootPath, path.join(rootPath, cardPath))
 
-        const id = `agent-${Date.now()}-${this.processes.size + 1}`
+        const id = `agent-${crypto.randomUUID()}`
         const startedAt = new Date().toISOString()
         const filePath = agentLogFilePath(rootPath, cardPath, id)
         const reference = normalizePath(path.relative(rootPath, filePath))
@@ -174,7 +226,20 @@ class AgentRunnerService {
         await persistConversation(filePath, conversation)
 
         const child = spawn(command, { cwd: rootPath, shell: true })
-        const run = { child, conversation, filePath, onComplete, onEvent, reference, sessionIdPattern, stderr: '', stdout: '' }
+        const run = {
+            child,
+            conversation,
+            filePath,
+            intermediatePersistTimer: null,
+            lastIntermediatePersistAt: 0,
+            onComplete,
+            onEvent,
+            reference,
+            sessionIdPattern,
+            stderr: '',
+            stdout: '',
+            writeChain: Promise.resolve(),
+        }
         this.processes.set(id, run)
 
         child.stdout.on('data', (chunk) => this.handleOutput(id, 'stdout', chunk))
@@ -197,7 +262,7 @@ class AgentRunnerService {
         const message = createMessage(`${runId}-input-${run.conversation.messages.length}`, 'user', content, timestamp)
         run.conversation.messages.push(message)
         run.child.stdin.write(`${content}\n`)
-        void persistConversation(run.filePath, run.conversation)
+        void queueConversationPersist(run)
         emitRunEvent(run, 'stdin', content)
     }
 
@@ -221,7 +286,7 @@ class AgentRunnerService {
         run[role] += content
         run.conversation.messages.push(createMessage(`${runId}-${role}-${run.conversation.messages.length}`, role, content, timestamp))
         run.conversation.events.push(createEvent(`${runId}-${role}-${run.conversation.events.length}`, role, content, timestamp))
-        void persistConversation(run.filePath, run.conversation)
+        void queueThrottledConversationPersist(run)
         emitRunEvent(run, role, content)
     }
 
@@ -233,7 +298,7 @@ class AgentRunnerService {
         const message = error instanceof Error ? error.message : 'Agent process failed'
         run.conversation.messages.push(createMessage(`${runId}-error`, 'stderr', message, timestamp))
         run.conversation.events.push(createEvent(`${runId}-error`, 'error', message, timestamp))
-        void persistConversation(run.filePath, run.conversation)
+        void queueConversationPersist(run)
         emitRunEvent(run, 'error', message)
     }
 
@@ -241,13 +306,15 @@ class AgentRunnerService {
         const run = this.processes.get(runId)
         if (!run) return
 
+        clearIntermediatePersist(run)
+        await run.writeChain
         const completedAt = new Date().toISOString()
         const nativeSessionId = captureNativeSessionId(`${run.stdout}${run.stderr}`, run.sessionIdPattern)
         if (nativeSessionId) run.conversation.nativeSessionId = nativeSessionId
         run.conversation.completedAt = completedAt
         run.conversation.status = exitCode === 0 ? 'completed' : 'failed'
         run.conversation.events.push(createEvent(`${runId}-closed`, 'closed', String(exitCode), completedAt))
-        await persistConversation(run.filePath, run.conversation)
+        await queueConversationPersist(run)
         emitRunEvent(run, 'closed', String(exitCode))
         if (run.onComplete) run.onComplete(exitCode, run)
         this.processes.delete(runId)
