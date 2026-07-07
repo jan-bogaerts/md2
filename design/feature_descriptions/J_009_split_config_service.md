@@ -1,7 +1,7 @@
 ---
 id: J-009
 title: split config service into entries, persistence and service
-status: design
+status: ready
 owner: JB
 affects:
 policy:

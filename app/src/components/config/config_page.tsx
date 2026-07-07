@@ -2,8 +2,8 @@ import { Alert, Box, Button, Divider, Stack, Tab, Tabs, Typography, useMediaQuer
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { navigateTo } from '../../app/app_navigation'
 import { CONFIG_SECTIONS, configService, type ConfigKey } from '../../services/config_service'
+import { writeDesktopConfigToBridge } from '../../services/config_persistence'
 import { dataService } from '../../services/data_service'
-import { getElectronConfigBridge } from '../../services/electron_config_bridge'
 import { ConfigValueEditor } from './config_value_editor'
 
 const CONFIG_PAGE_PADDING = 3
@@ -75,7 +75,7 @@ export function ConfigPage(props: ConfigPageProps) {
         try {
             configService.saveDraft()
             if (configService.hasProjectConfig()) await dataService.saveProjectConfig()
-            if (configService.hasDesktopConfig()) getElectronConfigBridge()?.setDesktopConfig(configService.getDesktopValues())
+            if (configService.hasDesktopConfig()) writeDesktopConfigToBridge(configService.getDesktopValues())
             configService.loadDraft()
             setErrorMessage(null)
         } catch (error) {

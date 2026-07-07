@@ -1,4 +1,4 @@
-import type { DesktopConfigValues } from './config_service'
+import type { DesktopConfigValues } from './config_entries'
 
 export interface ElectronConfigBridge {
     getDesktopConfig(): Partial<DesktopConfigValues>

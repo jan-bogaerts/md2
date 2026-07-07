@@ -5,7 +5,7 @@ import CloudUpload from 'mdi-material-ui/CloudUpload'
 import { defaultModelForProfile, findAgentProfile, mergeAgentProfiles, type AgentProfile } from '../../../data/agent_profiles'
 import { configService } from '../../../services/config_service'
 import { dataService } from '../../../services/data_service'
-import { getElectronConfigBridge } from '../../../services/electron_config_bridge'
+import { writeDesktopConfigToBridge } from '../../../services/config_persistence'
 import { reportWorkspaceError } from '../../project_command_events'
 import { useConfigValue, useHasDesktopConfig } from '../../hooks/use_config_value'
 import { useProjectConfig } from '../../hooks/use_project_config'
@@ -31,7 +31,7 @@ export function AppMenu() {
     const persistDesktopConfig = () => {
         if (!configService.hasDesktopConfig()) return
 
-        getElectronConfigBridge()?.setDesktopConfig(configService.getDesktopValues())
+        writeDesktopConfigToBridge(configService.getDesktopValues())
     }
 
     const handlePushClick = async () => {

@@ -3,7 +3,7 @@ import { createStorageService, readLastProject, type StorageType } from '../data
 import type { ProjectReference, ProjectSnapshot } from '../data/data_types'
 import { configService } from '../services/config_service'
 import { dataService } from '../services/data_service'
-import { getElectronConfigBridge } from '../services/electron_config_bridge'
+import { readDesktopConfigFromBridge } from '../services/config_persistence'
 
 export type BootstrapPhase = 'starting' | 'ready'
 
@@ -24,7 +24,7 @@ const INITIAL_STATE: AppBootstrapState = { error: null, phase: 'starting', sessi
 function ensureConfigServiceInitialized() {
     if (configService.isInitialized()) return
 
-    const desktopConfig = getElectronConfigBridge()?.getDesktopConfig() ?? null
+    const desktopConfig = readDesktopConfigFromBridge()
     configService.init({ desktopConfig })
 }
 
