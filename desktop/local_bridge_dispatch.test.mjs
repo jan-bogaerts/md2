@@ -108,7 +108,12 @@ describe('createLocalBridgeDispatch', () => {
             },
             readDesktopConfig: () => ({
                 agent: 'resumable',
-                agentProfiles: [{ command: 'agent start', name: 'resumable', resumeCommand: 'agent resume {{sessionId}}' }],
+                agentProfiles: [{
+                    command: 'agent start',
+                    name: 'resumable',
+                    resumeCommand: 'agent resume {{sessionId}}',
+                    sessionIdPattern: 'Session: (.+)',
+                }],
                 model: '',
             }),
         })
@@ -122,6 +127,47 @@ describe('createLocalBridgeDispatch', () => {
             command: 'agent resume session-1',
             nativeResumeSessionId: 'session-1',
             prompt: 'continue',
+            sessionIdPattern: 'Session: (.+)',
+        }, expect.any(Function))
+    })
+
+    it('uses transcript replay command when no native session id is present', async () => {
+        const agentRunnerService = {
+            run: vi.fn(async () => ({ runId: 'run-1' })),
+            sendInput: vi.fn(),
+            start: vi.fn(async () => ({ runId: 'run-2' })),
+            stop: vi.fn(),
+        }
+        const dispatch = createLocalBridgeDispatch({
+            actionSchedulerService: null,
+            agentRunnerService,
+            desktopConfigStore: {},
+            diffService: { generateDiff: vi.fn(), openInEditor: vi.fn() },
+            localGitService: {
+                assertGitRoot: vi.fn(),
+                loadProject: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
+            },
+            readDesktopConfig: () => ({
+                agent: 'resumable',
+                agentProfiles: [{
+                    command: 'agent start',
+                    name: 'resumable',
+                    resumeCommand: 'agent resume {{sessionId}}',
+                    sessionIdPattern: 'Session: (.+)',
+                }],
+                model: '',
+            }),
+        })
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
+
+        await dispatch.dataBridge.loadProject(project, 'design')
+        await dispatch.dataBridge.startAgentConversation({ cardPath: 'design/F-1.md', prompt: 'transcript replay' }, vi.fn())
+
+        expect(agentRunnerService.start).toHaveBeenCalledWith(project, {
+            cardPath: 'design/F-1.md',
+            command: 'agent start',
+            prompt: 'transcript replay',
+            sessionIdPattern: 'Session: (.+)',
         }, expect.any(Function))
     })
 })

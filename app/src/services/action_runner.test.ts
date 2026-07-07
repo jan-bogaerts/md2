@@ -222,7 +222,7 @@ describe('ActionRunner', () => {
             agentConfigProvider: () => ({
                 agent: 'codex',
                 agentProfiles: [
-                    { command: 'codex', modelArgument: '--model', models: ['gpt-5', 'gpt-5-mini'], name: 'codex' },
+                    { command: 'codex', modelArgument: '--model', models: ['gpt-5', 'gpt-5-mini'], name: 'codex', sessionIdPattern: 'Session: (.+)' },
                     { command: 'custom --model {{model}}', models: ['fast'], name: 'custom' },
                 ],
                 model: 'gpt-5',
@@ -244,6 +244,7 @@ describe('ActionRunner', () => {
             'custom --model fast',
             'codex --model gpt-5-mini',
         ])
+        expect(agentRunner.mock.calls.map((call) => call[1].sessionIdPattern)).toEqual(['Session: (.+)', undefined, 'Session: (.+)'])
     })
 
     it('inserts extra prompt text into the prompt placeholder for custom prompt actions', async () => {

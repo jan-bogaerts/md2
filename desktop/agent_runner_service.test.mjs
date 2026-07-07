@@ -93,6 +93,36 @@ describe('AgentRunnerService', () => {
         }
     })
 
+    it('captures a native session id from output when a pattern is configured', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-runner-'))
+        const service = new AgentRunnerService()
+        const sessionId = '123e4567-e89b-12d3-a456-426614174000'
+        const command = `node -e "process.stdin.on('data', () => { process.stdout.write('Session ID: ${sessionId}'); process.exit(0) })"`
+
+        try {
+            await mkdir(join(rootPath, '.git'))
+            await mkdir(join(rootPath, 'design'))
+
+            const result = await service.run(
+                { branch: 'main', id: 'local', rootPath },
+                {
+                    cardPath: 'design/F-1.md',
+                    command,
+                    prompt: 'hello',
+                    sessionIdPattern: 'Session ID: ([0-9a-f-]+)',
+                },
+                () => undefined,
+            )
+            const content = await readFile(join(rootPath, result.reference), 'utf8')
+            const persisted = JSON.parse(content)
+
+            expect(result.conversation.nativeSessionId).toBe(sessionId)
+            expect(persisted.nativeSessionId).toBe(sessionId)
+        } finally {
+            await rm(rootPath, { force: true, recursive: true })
+        }
+    })
+
     it('rejects log paths that escape the project root', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-runner-'))
         const service = new AgentRunnerService()

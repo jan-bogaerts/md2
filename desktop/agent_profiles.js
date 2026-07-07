@@ -4,8 +4,22 @@ const SESSION_ID_PLACEHOLDER = '{{sessionId}}'
 // App TypeScript source is canonical. Keep behavior in sync; desktop parity test enforces this.
 
 const BUILTIN_AGENT_PROFILES = [
-    { command: 'codex', modelArgument: '--model', models: [], name: 'codex' },
-    { command: 'claude', modelArgument: '--model', models: [], name: 'claude' },
+    {
+        command: 'codex',
+        modelArgument: '--model',
+        models: [],
+        name: 'codex',
+        resumeCommand: 'codex resume {{sessionId}}',
+        sessionIdPattern: '(?:Session ID|session id|session_id|sessionId)[:= ]+([0-9a-fA-F-]{36})',
+    },
+    {
+        command: 'claude',
+        modelArgument: '--model',
+        models: [],
+        name: 'claude',
+        resumeCommand: 'claude --resume {{sessionId}}',
+        sessionIdPattern: '(?:Session ID|session id|session_id|sessionId)[:= ]+([0-9a-fA-F-]{36})',
+    },
     { command: 'system', models: [], name: 'system' },
 ]
 
@@ -29,6 +43,19 @@ function readModels(value, fieldName) {
     return value.map((model, index) => requireString(model, `${fieldName}[${index}]`))
 }
 
+function readOptionalPattern(value, fieldName) {
+    const pattern = readOptionalString(value, fieldName)
+    if (pattern === undefined) return undefined
+
+    try {
+        new RegExp(pattern, 'u')
+    } catch {
+        throw new Error(`Invalid agent profile field: ${fieldName}`)
+    }
+
+    return pattern
+}
+
 function validateAgentProfiles(value) {
     if (!Array.isArray(value)) throw new Error('Missing config field: desktop.agentProfiles')
 
@@ -42,6 +69,7 @@ function validateAgentProfiles(value) {
 
         const models = readModels(profile.models, `desktop.agentProfiles[${index}].models`)
         const defaultModel = readOptionalString(profile.defaultModel, `desktop.agentProfiles[${index}].defaultModel`)
+        const sessionIdPattern = readOptionalPattern(profile.sessionIdPattern, `desktop.agentProfiles[${index}].sessionIdPattern`)
         if (defaultModel && models && models.length > 0 && !models.includes(defaultModel)) {
             throw new Error(`Invalid default model for agent profile ${name}: ${defaultModel}`)
         }
@@ -53,6 +81,7 @@ function validateAgentProfiles(value) {
             ...(models !== undefined ? { models } : {}),
             name,
             ...(profile.resumeCommand !== undefined ? { resumeCommand: requireString(profile.resumeCommand, `desktop.agentProfiles[${index}].resumeCommand`) } : {}),
+            ...(sessionIdPattern !== undefined ? { sessionIdPattern } : {}),
         }
     })
 }

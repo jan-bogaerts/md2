@@ -52,6 +52,36 @@ function requireString(value, fieldName) {
     return value
 }
 
+function readOptionalString(value, fieldName) {
+    if (value === undefined || value === null) return null
+    if (typeof value !== 'string' || value.length === 0) throw new Error(`Missing agent ${fieldName}`)
+
+    return value
+}
+
+function readOptionalPattern(value, fieldName) {
+    const pattern = readOptionalString(value, fieldName)
+    if (!pattern) return null
+
+    try {
+        new RegExp(pattern, 'u')
+    } catch {
+        throw new Error(`Invalid agent ${fieldName}`)
+    }
+
+    return pattern
+}
+
+function captureNativeSessionId(output, pattern) {
+    if (!pattern) return null
+
+    const match = new RegExp(pattern, 'u').exec(output)
+    const sessionId = match?.[1]
+    if (typeof sessionId !== 'string' || sessionId.length === 0) return null
+
+    return sessionId
+}
+
 function createMessage(id, role, content, timestamp) {
     return { content, id, role, timestamp }
 }
@@ -118,6 +148,7 @@ class AgentRunnerService {
         const command = requireString(request?.command, 'command')
         const cardPath = requireString(request?.cardPath, 'cardPath')
         const prompt = requireString(request?.prompt, 'prompt')
+        const sessionIdPattern = readOptionalPattern(request?.sessionIdPattern, 'sessionIdPattern')
         ensureInsideRoot(rootPath, path.join(rootPath, cardPath))
 
         const id = `agent-${Date.now()}-${this.processes.size + 1}`
@@ -143,7 +174,7 @@ class AgentRunnerService {
         await persistConversation(filePath, conversation)
 
         const child = spawn(command, { cwd: rootPath, shell: true })
-        const run = { child, conversation, filePath, onComplete, onEvent, reference, stderr: '', stdout: '' }
+        const run = { child, conversation, filePath, onComplete, onEvent, reference, sessionIdPattern, stderr: '', stdout: '' }
         this.processes.set(id, run)
 
         child.stdout.on('data', (chunk) => this.handleOutput(id, 'stdout', chunk))
@@ -211,6 +242,8 @@ class AgentRunnerService {
         if (!run) return
 
         const completedAt = new Date().toISOString()
+        const nativeSessionId = captureNativeSessionId(`${run.stdout}${run.stderr}`, run.sessionIdPattern)
+        if (nativeSessionId) run.conversation.nativeSessionId = nativeSessionId
         run.conversation.completedAt = completedAt
         run.conversation.status = exitCode === 0 ? 'completed' : 'failed'
         run.conversation.events.push(createEvent(`${runId}-closed`, 'closed', String(exitCode), completedAt))

@@ -251,6 +251,7 @@ interface ResolvedAgentRun {
     agent: string
     command: string
     model: string
+    sessionIdPattern?: string
 }
 
 function resolveAgentRun(config: DesktopConfigValues, action: ActionDefinition, input: ActionRunInput): ResolvedAgentRun {
@@ -261,7 +262,12 @@ function resolveAgentRun(config: DesktopConfigValues, action: ActionDefinition, 
     const model = (input.model ?? action.model ?? config.model) || defaultModelForProfile(profile)
     validateAgentSelection(config.agentProfiles, { agent, model }, `action "${action.name}"`)
 
-    return { agent, command: buildAgentCommand(profile, model), model }
+    return {
+        agent,
+        command: buildAgentCommand(profile, model),
+        model,
+        ...(profile.sessionIdPattern ? { sessionIdPattern: profile.sessionIdPattern } : {}),
+    }
 }
 
 function defaultActionsFolderProvider() {
@@ -448,7 +454,13 @@ export class ActionRunner {
             const prompt = resolveAgentPrompt(action, context, project, options.extraPrompt)
             if (!context.file) throw new Error('Agent actions require a file context')
 
-            const request = { cardPath: context.file, command, prompt, title: action.label }
+            const request = {
+                cardPath: context.file,
+                command,
+                prompt,
+                ...(resolvedAgent.sessionIdPattern ? { sessionIdPattern: resolvedAgent.sessionIdPattern } : {}),
+                title: action.label,
+            }
             const result = await this.agentRunner(bridge, request, (event) => this.agentRunEventRecorder(context.file as string, event))
             options.state.logs.push(createAgentLog(action, options.phase, command, result))
             if (result.exitCode !== 0) options.state.failed = true

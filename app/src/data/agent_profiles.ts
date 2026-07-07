@@ -5,6 +5,7 @@ export interface AgentProfile {
     models?: string[]
     name: string
     resumeCommand?: string
+    sessionIdPattern?: string
 }
 
 // Desktop has a standalone CommonJS copy. Keep behavior in sync; desktop parity test enforces this.
@@ -18,8 +19,22 @@ export const MODEL_PLACEHOLDER = '{{model}}'
 export const SESSION_ID_PLACEHOLDER = '{{sessionId}}'
 
 export const BUILTIN_AGENT_PROFILES: AgentProfile[] = [
-    { command: 'codex', modelArgument: '--model', models: [], name: 'codex' },
-    { command: 'claude', modelArgument: '--model', models: [], name: 'claude' },
+    {
+        command: 'codex',
+        modelArgument: '--model',
+        models: [],
+        name: 'codex',
+        resumeCommand: 'codex resume {{sessionId}}',
+        sessionIdPattern: '(?:Session ID|session id|session_id|sessionId)[:= ]+([0-9a-fA-F-]{36})',
+    },
+    {
+        command: 'claude',
+        modelArgument: '--model',
+        models: [],
+        name: 'claude',
+        resumeCommand: 'claude --resume {{sessionId}}',
+        sessionIdPattern: '(?:Session ID|session id|session_id|sessionId)[:= ]+([0-9a-fA-F-]{36})',
+    },
     { command: 'system', models: [], name: 'system' },
 ]
 
@@ -43,6 +58,19 @@ function readModels(value: unknown, fieldName: string) {
     return value.map((model, index) => requireString(model, `${fieldName}[${index}]`))
 }
 
+function readOptionalPattern(value: unknown, fieldName: string) {
+    const pattern = readOptionalString(value, fieldName)
+    if (pattern === undefined) return undefined
+
+    try {
+        new RegExp(pattern, 'u')
+    } catch {
+        throw new Error(`Invalid agent profile field: ${fieldName}`)
+    }
+
+    return pattern
+}
+
 export function validateAgentProfiles(value: unknown): AgentProfile[] {
     if (!Array.isArray(value)) throw new Error('Missing config field: desktop.agentProfiles')
 
@@ -57,6 +85,7 @@ export function validateAgentProfiles(value: unknown): AgentProfile[] {
 
         const models = readModels(item.models, `desktop.agentProfiles[${index}].models`)
         const defaultModel = readOptionalString(item.defaultModel, `desktop.agentProfiles[${index}].defaultModel`)
+        const sessionIdPattern = readOptionalPattern(item.sessionIdPattern, `desktop.agentProfiles[${index}].sessionIdPattern`)
         if (defaultModel && models && models.length > 0 && !models.includes(defaultModel)) {
             throw new Error(`Invalid default model for agent profile ${name}: ${defaultModel}`)
         }
@@ -68,6 +97,7 @@ export function validateAgentProfiles(value: unknown): AgentProfile[] {
             ...(models !== undefined ? { models } : {}),
             name,
             ...(item.resumeCommand !== undefined ? { resumeCommand: requireString(item.resumeCommand, `desktop.agentProfiles[${index}].resumeCommand`) } : {}),
+            ...(sessionIdPattern !== undefined ? { sessionIdPattern } : {}),
         }
     })
 }

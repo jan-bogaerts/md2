@@ -13,6 +13,7 @@ export interface AgentExecutionRequest {
     cardPath: string
     command: string
     prompt: string
+    sessionIdPattern?: string
     title?: string
 }
 

@@ -199,7 +199,7 @@ export const CONFIG_ENTRIES: ConfigEntry[] = [
     },
     {
         defaultValue: BUILTIN_AGENT_PROFILES,
-        description: 'Agent profiles. Fields: name, command, modelArgument, models, defaultModel, resumeCommand. Custom command may include {{model}}; resumeCommand may include {{sessionId}}.',
+        description: 'Agent profiles. Fields: name, command, modelArgument, models, defaultModel, resumeCommand, sessionIdPattern. Custom command may include {{model}}; resumeCommand may include {{sessionId}}.',
         editable: true,
         key: 'desktop.agentProfiles',
         label: 'Agent profiles',
