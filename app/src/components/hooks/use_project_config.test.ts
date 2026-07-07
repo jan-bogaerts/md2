@@ -37,7 +37,7 @@ describe('useProjectConfig', () => {
 
     it('updates when the data service emits changed', () => {
         const service = new TestProjectConfigService()
-        const { result } = renderHook(() => useProjectConfig(service as DataService))
+        const { result } = renderHook(() => useProjectConfig(service as unknown as DataService))
 
         expect(result.current?.workingFolder).toBe('design')
 

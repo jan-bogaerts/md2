@@ -22,7 +22,7 @@ function createActionBridge(): ElectronActionBridge {
                 nativeSessionId: null,
                 path: '.md2-agent-logs/run-1.json',
                 startedAt: '2026-01-01T00:00:00.000Z',
-                status: 'completed',
+                status: 'completed' as const,
                 title: 'Run',
             },
             exitCode: 0,

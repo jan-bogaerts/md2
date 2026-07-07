@@ -667,17 +667,8 @@ export class GithubStorageService implements StorageService {
         return { commitSha: gitRef.commitSha, treeSha: gitCommit.treeSha }
     }
 
-    private async getRemoteBranchTreeSha(project: ProjectReference) {
-        const gitRef = normalizeGitRef(await this.request(
-            `/repos/${project.owner}/${project.repository}/git/ref/heads/${encodePath(project.branch)}`,
-        ))
-        const gitCommit = await this.getCommit(gitRef.commitSha)
-
-        return gitCommit.treeSha
-    }
-
     private async getProjectRecursiveTreeEntries(project: ProjectReference) {
-        const treeSha = await this.getRemoteBranchTreeSha(project)
+        const { treeSha } = await this.getBranchHead(project.branch)
         const cacheKey = `${createPendingHeadKey(project)}:${treeSha}`
         const cachedEntries = this.projectTreeEntriesByHead.get(cacheKey)
         if (cachedEntries) return cachedEntries

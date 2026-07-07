@@ -1,7 +1,7 @@
 ---
 id: J-002
 title: refactor oversized modules into focused files, classes and services
-status: ready
+status: in progress
 owner: JB
 affects:
 policy:
@@ -13,6 +13,26 @@ policy:
 Split the modules that have grown past a single responsibility into focused files/classes so the architecture rules hold again: components own presentation only, domain workflows live in services, and each file has one reason to change. Pure refactor — **no behavior change**, public entry points stay stable, tests move with the code they cover.
 
 Current offenders (2026-07-06 audit): `project_toolbar_menu.tsx` (736 lines, 22 direct data-service/storage call sites), `data_service.ts` (830), `action_scheduler_service.js` (691), `local_git_service.js` (633), `config_service.ts` (543), `action_runner.ts` (541), `action_popup.tsx` (503), plus the duplicated `agent_profiles` TS/JS pair.
+
+## Status per item (2026-07-07 audit — feature to be restarted)
+
+The first attempt largely **renamed the monoliths instead of splitting them**: each original file became a one-line re-export shim pointing at a `*_core`/`*_facade`/`*_content` copy of the whole module, and most of the "extracted" modules were created as files but are **dead code — nothing imports them**, while the same logic still lives inline in the renamed monolith. Behavior is fine (all tests pass); the structural goal was not met.
+
+**Done, keep:**
+- Item 1 (partially): `project_session_service.ts` exists (207 lines, registered via injector, owns `createStorageService`/`dataService.init`/`writeLastProject`, branch listing, working-folder resolution, push, complete-release) and `use_project_session.ts` exists. `project_toolbar_menu_content.tsx` has **zero** direct data-service calls — the B-017 domain-logic goal is met.
+- Item 8: `desktop/agent_profiles_parity.test.mjs` genuinely parses the TS source and compares built-ins + validation/command behavior. Works.
+- Item 9: the four old B-023 re-export shims and the duplicated `local_git_storage_service.test.ts` are gone; `PROJECT_README_TEMPLATE` is a shared constant per side.
+
+**Not done, redo:**
+- Item 1 (rest): the four dialog components (`project_open_dialog.tsx`, `working_folder_chooser_dialog.tsx`, `new_card_dialog.tsx`, `complete_release_dialog.tsx`) were never extracted; `project_toolbar_menu_content.tsx` is 617 lines (target < 150).
+- Item 2: `data_service_facade.ts` is 1,071 lines (bigger than the 830 it replaced). `project_loading.ts`, `card_operations.ts`, `agent_integration.ts`, `release_operations.ts` are 1-line aliases re-exporting the whole `DataService` — no collaborators exist.
+- Item 3: `local_git_service_core.js` is a 694-line monolith; `git_commands.js` / `project_files.js` / `action_files.js` are pure named re-export lists from it, not split modules.
+- Item 4: `action_scheduler_service_core.js` is unchanged at 691 lines; `schedule_store.js` and `schedule_timers.js` exist but are **unused** (the core keeps its own inline copies).
+- Item 5: `action_runner_core.ts` is 568 lines and keeps `resolvePlaceholders`/`resolveAgentPrompt`/`extractCommitMetadata` inline; `action_history.ts` and `action_text.ts` are unused duplicates.
+- Item 6: `config_service_core.ts` is 543 lines with the entry table and persistence inline; `config_entries.ts` is a re-export and `config_persistence.ts` an unused duplicate of the inline functions.
+- Item 7: `action_popup_content.tsx` (495 lines) reimplements `createScheduleTrigger` inline; `action_schedule_form.tsx`, `action_run_history.tsx` and `action_schedule_trigger.ts` are unused duplicates.
+
+**When restarting:** first delete the 12 dead files (`project_loading.ts`, `card_operations.ts`, `agent_integration.ts`, `release_operations.ts`, `action_history.ts`, `action_text.ts`, `config_persistence.ts`, `action_schedule_form.tsx`, `action_run_history.tsx`, `action_schedule_trigger.ts`, `schedule_store.js`, `schedule_timers.js`) and collapse the new one-line shims (`data_service.ts`, `config_service.ts`, `action_runner.ts`, `action_popup.tsx`, `project_toolbar_menu.tsx`, `action_scheduler_service.js`, plus the `git_commands/project_files/action_files` pass-throughs) so the real state is visible — then do the extractions for items 1 (dialogs), 2, 3, 4, 5, 6 and 7 for real. Acceptance criteria below stand unchanged.
 
 ## Ground rules
 - One extraction per commit; run `npm run typecheck` and the test suite after each (never `npm run build` for type checking).

@@ -368,7 +368,8 @@ describe('DataService', () => {
     it('handles GitHub unauthorized once when a batched commit gets a 401', async () => {
         configService.init()
         const handleUnauthorized = vi.fn()
-        const fetchImplementation = vi.fn(async (url: string, init: RequestInit = {}) => {
+        const fetchImplementation = vi.fn(async (input: RequestInfo | URL, init: RequestInit = {}) => {
+            const url = String(input)
             if (url.includes('/contents/md2.config.json')) return createGithubStatusResponse(404)
             if (url.includes('/git/ref/heads/main')) {
                 return createGithubResponse({ object: { sha: 'base-commit', type: 'commit' }, ref: 'refs/heads/main' })

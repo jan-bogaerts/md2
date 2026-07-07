@@ -145,9 +145,9 @@ function createScheduleTrigger(type: ScheduleTriggerType, timestampInput: string
  */
 export function ActionPopup(props: ActionPopupProps) {
     const { action, context, onClose, onNavigate } = props
-    const configuredAgent = useConfigValueOrFallback('desktop.agent', '')
-    const configuredAgentProfiles = useConfigValueOrFallback('desktop.agentProfiles', [] as AgentProfile[])
-    const configuredModel = useConfigValueOrFallback('desktop.model', '')
+    const configuredAgent = useConfigValueOrFallback('desktop.agent', '') as string
+    const configuredAgentProfiles = useConfigValueOrFallback('desktop.agentProfiles', [] as AgentProfile[]) as AgentProfile[]
+    const configuredModel = useConfigValueOrFallback('desktop.model', '') as string
     const convertPromptToAction = props.convertPromptToAction ?? defaultConvertPromptToAction
     const loadHistory = props.loadHistory ?? defaultLoadHistory
     const resizeCorner = props.resizeCorner ?? 'lower-right'
