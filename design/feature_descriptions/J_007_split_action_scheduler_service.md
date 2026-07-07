@@ -1,7 +1,7 @@
 ---
 id: J-007
 title: split desktop action scheduler into store, timers and service
-status: design
+status: ready
 owner: JB
 affects:
 policy:

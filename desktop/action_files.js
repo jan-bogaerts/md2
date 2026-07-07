@@ -7,12 +7,15 @@ const {
     ensureInsideRoot,
     requireRootPath,
 } = require('./git_commands')
+const {
+    ACTION_SCHEDULES_FILE,
+    cancelPendingActionSchedule,
+    createActionScheduleFile,
+    parseActionScheduleFile,
+} = require('./schedule_store')
 
 const JSON_EXTENSION = '.json'
 const ACTION_HISTORY_FOLDER = '.md2-action-history'
-const ACTION_SCHEDULES_FILE = '.md2-schedules.json'
-const ACTION_SCHEDULE_STATUSES = ['cancelled', 'done', 'pending', 'running']
-const ACTION_CONTEXT_KINDS = ['card', 'file', 'folder']
 
 function normalizePath(filePath) {
     return filePath.replace(/\\/g, '/')
@@ -83,78 +86,12 @@ async function readJsonArray(filePath) {
     return parsed
 }
 
-function requireScheduleObject(value, fieldName) {
-    if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`Invalid action schedule file: ${fieldName} must be an object`)
-
-    return value
-}
-
-function requireScheduleString(value, fieldName) {
-    if (typeof value !== 'string' || value.length === 0) throw new Error(`Invalid action schedule file: missing ${fieldName}`)
-
-    return value
-}
-
-function normalizeScheduleStatus(value) {
-    const status = requireScheduleString(value, 'status')
-    if (!ACTION_SCHEDULE_STATUSES.includes(status)) throw new Error(`Invalid action schedule file: unsupported status ${status}`)
-
-    return status
-}
-
-function normalizeScheduleContext(value) {
-    const context = requireScheduleObject(value, 'context')
-    const kind = requireScheduleString(context.kind, 'context.kind')
-    if (!ACTION_CONTEXT_KINDS.includes(kind)) throw new Error(`Invalid action schedule file: unsupported context kind ${kind}`)
-
-    const normalizedContext = { kind }
-    for (const [key, contextValue] of Object.entries(context)) {
-        if (key === 'kind') continue
-        if (typeof contextValue !== 'string') throw new Error(`Invalid action schedule file: context.${key} must be a string`)
-
-        normalizedContext[key] = contextValue
-    }
-
-    return normalizedContext
-}
-
-function normalizeScheduleTrigger(value) {
-    const trigger = requireScheduleObject(value, 'trigger')
-    const type = requireScheduleString(trigger.type, 'trigger.type')
-
-    if (type === 'at') return { timestamp: requireScheduleString(trigger.timestamp, 'trigger.timestamp'), type }
-    if (type === 'agentSlot') return { type }
-    if (type === 'afterAction') return { actionName: requireScheduleString(trigger.actionName, 'trigger.actionName'), type }
-
-    throw new Error(`Invalid action schedule file: unsupported trigger type ${type}`)
-}
-
-function normalizeActionSchedule(value) {
-    const schedule = requireScheduleObject(value, 'schedule')
-
-    return {
-        actionName: requireScheduleString(schedule.actionName, 'actionName'),
-        context: normalizeScheduleContext(schedule.context),
-        createdAt: requireScheduleString(schedule.createdAt, 'createdAt'),
-        id: requireScheduleString(schedule.id, 'id'),
-        status: normalizeScheduleStatus(schedule.status),
-        trigger: normalizeScheduleTrigger(schedule.trigger),
-    }
-}
-
-function normalizeActionScheduleFile(value) {
-    const file = requireScheduleObject(value, 'root')
-    if (!Array.isArray(file.schedules)) throw new Error('Invalid action schedule file: schedules must be an array')
-
-    return { schedules: file.schedules.map((schedule) => normalizeActionSchedule(schedule)) }
-}
-
 async function readActionScheduleFile(filePath) {
     if (!await pathExists(filePath)) return { schedules: [] }
 
     const content = await fs.promises.readFile(filePath, 'utf8')
 
-    return normalizeActionScheduleFile(JSON.parse(content))
+    return parseActionScheduleFile(JSON.parse(content))
 }
 
 function requireString(value, fieldName) {
@@ -254,7 +191,7 @@ async function saveActionSchedules(project, actionsFolder, schedules) {
     if (!Array.isArray(schedules)) throw new Error('Missing action schedules')
 
     const filePath = scheduleFilePath(rootPath, actionsFolder)
-    const file = normalizeActionScheduleFile({ schedules })
+    const file = createActionScheduleFile(schedules)
     await fs.promises.mkdir(path.dirname(filePath), { recursive: true })
     await fs.promises.writeFile(filePath, `${JSON.stringify(file, null, 2)}\n`)
 
@@ -265,15 +202,7 @@ async function cancelActionSchedule(project, actionsFolder, scheduleId) {
     if (typeof scheduleId !== 'string' || scheduleId.length === 0) throw new Error('Missing action schedule id')
 
     const schedules = await loadActionSchedules(project, actionsFolder)
-    const schedule = schedules.find((candidate) => candidate.id === scheduleId)
-    if (!schedule) throw new Error(`Action schedule not found: ${scheduleId}`)
-    if (schedule.status !== 'pending') throw new Error(`Cannot cancel action schedule with status ${schedule.status}`)
-
-    const nextSchedules = schedules.map((candidate) => {
-        if (candidate.id !== scheduleId) return candidate
-
-        return { ...candidate, status: 'cancelled' }
-    })
+    const nextSchedules = cancelPendingActionSchedule(schedules, scheduleId)
 
     return saveActionSchedules(project, actionsFolder, nextSchedules)
 }
