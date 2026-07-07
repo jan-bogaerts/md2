@@ -1,7 +1,7 @@
 ---
 id: B-033
 title: agentSlot schedule command is env-var-only, not configurable
-status: design
+status: ready
 owner: JB
 affects:
 policy:

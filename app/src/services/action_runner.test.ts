@@ -256,6 +256,7 @@ describe('ActionRunner', () => {
             actionHistoryAppender: vi.fn(async () => []),
             agentConfigProvider: () => ({
                 agent: 'codex',
+                agentSlotCommand: '',
                 agentProfiles: [
                     { command: 'codex', modelArgument: '--model', models: ['gpt-5', 'gpt-5-mini'], name: 'codex', sessionIdPattern: 'Session: (.+)' },
                     { command: 'custom --model {{model}}', models: ['fast'], name: 'custom' },

@@ -1,5 +1,6 @@
 const DEFAULT_APP_URL = 'http://localhost:5173'
 const DEFAULT_DESKTOP_AGENT = 'codex'
+const DEFAULT_AGENT_SLOT_COMMAND = ''
 const DEFAULT_DESKTOP_MODEL = ''
 const DEFAULT_PROJECT_LOCATION_MODE = 'folder'
 const DESKTOP_CONFIG_STORE_KEY = 'desktopConfig'
@@ -37,6 +38,7 @@ function resolveDesktopConfig(env = process.env) {
 
     return {
         agent: DEFAULT_DESKTOP_AGENT,
+        agentSlotCommand: env.MD2_AGENT_SLOT_COMMAND ?? DEFAULT_AGENT_SLOT_COMMAND,
         agentProfiles,
         ...(bridgeAllowedOrigins ? { bridgeAllowedOrigins } : {}),
         model: DEFAULT_DESKTOP_MODEL,
@@ -68,6 +70,7 @@ function writeDesktopConfig(store, values) {
 
 module.exports = {
     DEFAULT_APP_URL,
+    DEFAULT_AGENT_SLOT_COMMAND,
     DEFAULT_DESKTOP_AGENT,
     DEFAULT_DESKTOP_MODEL,
     DEFAULT_PROJECT_LOCATION_MODE,

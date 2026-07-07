@@ -157,6 +157,7 @@ describe('AppMenu', () => {
         configService.init({
             desktopConfig: {
                 agent: 'codex',
+                agentSlotCommand: '',
                 agentProfiles: [
                     { command: 'codex', modelArgument: '--model', models: ['gpt-5'], name: 'codex' },
                     { command: 'local-agent', modelArgument: '--model', models: ['local-model'], name: 'local' },

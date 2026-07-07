@@ -62,10 +62,19 @@ describe('ConfigService', () => {
         service.init()
         expect(service.getEntries().some((entry) => entry.source === 'desktop')).toBe(true)
 
-        service.init({ desktopConfig: { agent: 'claude', agentProfiles: BUILTIN_AGENT_PROFILES, model: '', projectLocationMode: 'current-directory' } })
+        service.init({
+            desktopConfig: {
+                agent: 'claude',
+                agentSlotCommand: 'slot-command',
+                agentProfiles: BUILTIN_AGENT_PROFILES,
+                model: '',
+                projectLocationMode: 'current-directory',
+            },
+        })
 
         expect(service.getEntries().some((entry) => entry.source === 'desktop')).toBe(true)
         expect(service.get('desktop.agent')).toBe('claude')
+        expect(service.get('desktop.agentSlotCommand')).toBe('slot-command')
     })
 
     it('persists react and connection values across instances, simulating a reload', () => {
@@ -105,10 +114,19 @@ describe('ConfigService', () => {
     })
 
     it('returns the current desktop values from getDesktopValues', () => {
-        service.init({ desktopConfig: { agent: 'claude', agentProfiles: BUILTIN_AGENT_PROFILES, model: '', projectLocationMode: 'current-directory' } })
+        service.init({
+            desktopConfig: {
+                agent: 'claude',
+                agentSlotCommand: 'slot-command',
+                agentProfiles: BUILTIN_AGENT_PROFILES,
+                model: '',
+                projectLocationMode: 'current-directory',
+            },
+        })
 
         expect(service.getDesktopValues()).toEqual({
             agent: 'claude',
+            agentSlotCommand: 'slot-command',
             agentProfiles: BUILTIN_AGENT_PROFILES,
             model: '',
             projectLocationMode: 'current-directory',

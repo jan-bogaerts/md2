@@ -420,7 +420,6 @@ describe('ProjectWorkspace', () => {
     it('completes a release from the project menu', async () => {
         const bridge = createBridge()
         window.md2Data = bridge
-        const prompt = vi.spyOn(window, 'prompt').mockReturnValue('v1')
 
         renderProjectSurface()
         await openLocalProject()
@@ -428,11 +427,11 @@ describe('ProjectWorkspace', () => {
 
         fireEvent.click(screen.getByRole('button', { name: 'Project' }))
         fireEvent.click(screen.getByRole('menuitem', { name: 'Complete release...' }))
+        fireEvent.change(await screen.findByLabelText('Release name'), { target: { value: 'v1' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Complete release' }))
 
         await waitFor(() => expect(bridge.moveFiles).toHaveBeenCalled())
         expect(await screen.findByText('Background cards loaded: 2')).toBeInTheDocument()
-
-        prompt.mockRestore()
     })
 
     it('opens a card in the text view as a tab from the card body dialog', async () => {

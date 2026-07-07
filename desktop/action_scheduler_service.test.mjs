@@ -126,6 +126,64 @@ describe('ActionSchedulerService', () => {
         expect(localGitService.schedules()).toEqual([{ ...schedule, status: 'done' }])
     })
 
+    it('resolves agentSlot schedules with the configured desktop command', async () => {
+        const schedule = createSchedule('schedule-1', 'implement', { type: 'agentSlot' })
+        const localGitService = createLocalGitService([schedule])
+        const commandRunner = vi.fn(async (command) => ({
+            command,
+            exitCode: 0,
+            stderr: '',
+            stdout: '2026-07-06T10:00:05.000Z',
+        }))
+        const scheduler = createScheduler(localGitService, {
+            agentConfigProvider: () => ({ agentSlotCommand: 'configured-slot-command' }),
+            commandRunner,
+        })
+
+        await scheduler.startProject(project)
+
+        expect(commandRunner).toHaveBeenCalledWith('configured-slot-command', project.rootPath)
+    })
+
+    it('uses changed desktop config on the next agentSlot resolution', async () => {
+        let agentSlotCommand = 'first-slot-command'
+        const localGitService = createLocalGitService([])
+        const commandRunner = vi.fn(async (command) => ({
+            command,
+            exitCode: 0,
+            stderr: '',
+            stdout: '2026-07-06T10:00:05.000Z',
+        }))
+        const scheduler = createScheduler(localGitService, {
+            agentConfigProvider: () => ({ agentSlotCommand }),
+            commandRunner,
+        })
+
+        await scheduler.startProject(project)
+        await scheduler.registerActionSchedule({ actionName: 'implement', context, trigger: { type: 'agentSlot' } })
+        agentSlotCommand = 'second-slot-command'
+        await scheduler.registerActionSchedule({ actionName: 'implement', context, trigger: { type: 'agentSlot' } })
+
+        expect(commandRunner).toHaveBeenNthCalledWith(1, 'first-slot-command', project.rootPath)
+        expect(commandRunner).toHaveBeenNthCalledWith(2, 'second-slot-command', project.rootPath)
+    })
+
+    it('records a config-entry error when agentSlot command is empty', async () => {
+        const schedule = createSchedule('schedule-1', 'implement', { type: 'agentSlot' })
+        const localGitService = createLocalGitService([schedule])
+        const scheduler = createScheduler(localGitService, {
+            agentConfigProvider: () => ({ agentSlotCommand: '' }),
+        })
+
+        await scheduler.startProject(project)
+
+        expect(localGitService.histories[0]).toMatchObject({
+            entry: { output: 'Missing desktop.agentSlotCommand for agentSlot action schedule', status: 'failed' },
+            request: { actionName: 'implement', actionsFolder: 'actions', context },
+        })
+        expect(localGitService.schedules()).toEqual([{ ...schedule, status: 'done' }])
+    })
+
     it('emits scheduled run events while firing a schedule', async () => {
         const schedule = createSchedule('schedule-1', 'implement', { timestamp: '2026-07-06T09:59:00.000Z', type: 'at' })
         const localGitService = createLocalGitService([schedule])

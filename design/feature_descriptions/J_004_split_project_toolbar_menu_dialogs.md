@@ -1,7 +1,7 @@
 ---
 id: J-004
 title: extract project toolbar menu dialogs into components
-status: design
+status: ready
 owner: JB
 affects:
 policy:

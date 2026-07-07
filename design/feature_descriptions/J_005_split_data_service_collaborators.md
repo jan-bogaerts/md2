@@ -19,6 +19,7 @@ Depends on: J-003 (dead alias files deleted, module back at `app/src/services/da
 - `services/card_operations.ts` — saveFile/updateCardBody/affects/header/title/policy, moveCard + ordering repair, deleteCard/deleteFile, createCard.
 - `services/agent_integration.ts` — conversation resolution/attachment maps, start/continue/sendInput, run-event handling, onState trigger dispatch and error recording.
 - `services/release_operations.ts` — completeRelease (`release_archiving` stays in `data/`).
+- do not wrap every function in `data_services.ts` to the actual implementation, but use the subservices, preferably as properties. Update call-sites to the new properties or services
 - Remarkable import orchestration already lives mostly in `remarkable_import_service.ts`; move the remaining `importRemarkableImages`/metadata glue there.
 - The commit batcher, `currentFiles`/snapshot state and `dispatchChanged` stay in the facade; collaborators receive a **narrow state accessor** (interface with just the members they need), not the whole service.
 - One collaborator extraction per commit; each commit must actually **move** the code out of the facade — a collaborator that duplicates or re-exports facade logic is a failure (this is exactly how the first attempt went wrong).

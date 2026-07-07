@@ -17,6 +17,7 @@ export type ConfigValueType = 'boolean' | 'number' | 'select' | 'string' | 'json
 export type ConfigKey =
     | 'connection.githubScopes'
     | 'desktop.agent'
+    | 'desktop.agentSlotCommand'
     | 'desktop.agentProfiles'
     | 'desktop.model'
     | 'desktop.projectLocationMode'
@@ -54,6 +55,7 @@ export type ConfigValues = Record<ConfigKey, ConfigValue>
 
 export interface DesktopConfigValues {
     agent: string
+    agentSlotCommand: string
     agentProfiles: AgentProfile[]
     model: string
     projectLocationMode: string
@@ -189,6 +191,16 @@ export const CONFIG_ENTRIES: ConfigEntry[] = [
     },
     {
         defaultValue: '',
+        description: 'Command that outputs the next agent-slot timestamp for scheduled actions.',
+        editable: true,
+        key: 'desktop.agentSlotCommand',
+        label: 'Agent slot command',
+        section: 'desktop',
+        source: 'desktop',
+        type: 'string',
+    },
+    {
+        defaultValue: '',
         description: 'Default model for the selected desktop agent profile. Leave empty for the profile default.',
         editable: true,
         key: 'desktop.model',
@@ -304,7 +316,7 @@ function validateValue(key: ConfigKey, value: unknown): ConfigValue {
     }
     if (entry.type === 'json' && key === 'project.cardTypes') return validateCardTypes(value)
     if (entry.type === 'json' && key === 'desktop.agentProfiles') return validateDesktopAgentProfiles(value)
-    if (key === 'desktop.model') {
+    if (key === 'desktop.model' || key === 'desktop.agentSlotCommand') {
         if (typeof value !== 'string') throw new Error(`Missing config field: ${entry.key}`)
 
         return value
@@ -398,6 +410,9 @@ export class ConfigService extends EventTarget {
         nextValues = mergeStoredReactValues(nextValues)
 
         if (desktopConfig?.agent !== undefined) nextValues = mergeValue(nextValues, 'desktop.agent', desktopConfig.agent)
+        if (desktopConfig?.agentSlotCommand !== undefined) {
+            nextValues = mergeValue(nextValues, 'desktop.agentSlotCommand', desktopConfig.agentSlotCommand)
+        }
         if (desktopConfig?.agentProfiles !== undefined) nextValues = mergeValue(nextValues, 'desktop.agentProfiles', desktopConfig.agentProfiles)
         if (desktopConfig?.model !== undefined) nextValues = mergeValue(nextValues, 'desktop.model', desktopConfig.model)
         if (desktopConfig?.projectLocationMode !== undefined) {
@@ -473,6 +488,7 @@ export class ConfigService extends EventTarget {
 
         return {
             agent: this.values['desktop.agent'] as string,
+            agentSlotCommand: this.values['desktop.agentSlotCommand'] as string,
             agentProfiles: this.values['desktop.agentProfiles'] as AgentProfile[],
             model: this.values['desktop.model'] as string,
             projectLocationMode: this.values['desktop.projectLocationMode'] as string,

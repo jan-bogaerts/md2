@@ -348,6 +348,7 @@ export class ActionRunner {
         this.agentCommandProvider = dependencies.agentCommandProvider ?? defaultAgentCommandProvider
         this.agentConfigProvider = dependencies.agentConfigProvider ?? (dependencies.agentCommandProvider ? (() => ({
             agent: 'default',
+            agentSlotCommand: '',
             agentProfiles: [{ command: this.agentCommandProvider(), name: 'default' }],
             model: '',
             projectLocationMode: 'folder',

@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
 const require = createRequire(import.meta.url)
 const {
     DEFAULT_APP_URL,
+    DEFAULT_AGENT_SLOT_COMMAND,
     DEFAULT_DESKTOP_AGENT,
     DEFAULT_DESKTOP_MODEL,
     DEFAULT_PROJECT_LOCATION_MODE,
@@ -39,6 +40,7 @@ describe('resolveDesktopConfig', () => {
     it('defaults desktop config values', () => {
         expect(resolveDesktopConfig({})).toEqual({
             agent: DEFAULT_DESKTOP_AGENT,
+            agentSlotCommand: DEFAULT_AGENT_SLOT_COMMAND,
             agentProfiles: expect.arrayContaining([expect.objectContaining({ command: 'codex', name: 'codex' })]),
             model: DEFAULT_DESKTOP_MODEL,
             projectLocationMode: DEFAULT_PROJECT_LOCATION_MODE,
@@ -46,8 +48,13 @@ describe('resolveDesktopConfig', () => {
     })
 
     it('uses configured desktop values', () => {
-        expect(resolveDesktopConfig({ MD2_AGENT: 'custom-codex', MD2_PROJECT_LOCATION_MODE: 'current-directory' })).toEqual({
+        expect(resolveDesktopConfig({
+            MD2_AGENT: 'custom-codex',
+            MD2_AGENT_SLOT_COMMAND: 'slot-command',
+            MD2_PROJECT_LOCATION_MODE: 'current-directory',
+        })).toEqual({
             agent: DEFAULT_DESKTOP_AGENT,
+            agentSlotCommand: 'slot-command',
             agentProfiles: expect.arrayContaining([expect.objectContaining({ command: 'custom-codex', name: 'codex' })]),
             model: DEFAULT_DESKTOP_MODEL,
             projectLocationMode: 'current-directory',
@@ -61,6 +68,7 @@ describe('readDesktopConfig', () => {
 
         expect(readDesktopConfig(store, {})).toEqual({
             agent: DEFAULT_DESKTOP_AGENT,
+            agentSlotCommand: DEFAULT_AGENT_SLOT_COMMAND,
             agentProfiles: expect.arrayContaining([expect.objectContaining({ name: 'codex' })]),
             model: DEFAULT_DESKTOP_MODEL,
             projectLocationMode: DEFAULT_PROJECT_LOCATION_MODE,
@@ -72,6 +80,7 @@ describe('readDesktopConfig', () => {
 
         expect(readDesktopConfig(store, { MD2_PROJECT_LOCATION_MODE: 'current-directory' })).toEqual({
             agent: 'claude',
+            agentSlotCommand: DEFAULT_AGENT_SLOT_COMMAND,
             agentProfiles: expect.arrayContaining([expect.objectContaining({ name: 'claude' })]),
             model: DEFAULT_DESKTOP_MODEL,
             projectLocationMode: 'current-directory',
@@ -91,12 +100,29 @@ describe('readDesktopConfig', () => {
 
         expect(readDesktopConfig(store, { MD2_AGENT: 'env-codex' })).toEqual({
             agent: 'custom',
+            agentSlotCommand: DEFAULT_AGENT_SLOT_COMMAND,
             agentProfiles: expect.arrayContaining([
                 expect.objectContaining({ command: 'env-codex', name: 'codex' }),
                 expect.objectContaining({ command: 'stored-custom', name: 'custom' }),
             ]),
             model: DEFAULT_DESKTOP_MODEL,
             projectLocationMode: DEFAULT_PROJECT_LOCATION_MODE,
+        })
+    })
+
+    it('keeps a stored agent slot command over the env first-run default', () => {
+        const store = createFakeStore({ [DESKTOP_CONFIG_STORE_KEY]: { agentSlotCommand: 'stored-slot-command' } })
+
+        expect(readDesktopConfig(store, { MD2_AGENT_SLOT_COMMAND: 'env-slot-command' })).toMatchObject({
+            agentSlotCommand: 'stored-slot-command',
+        })
+    })
+
+    it('keeps an explicitly empty stored agent slot command', () => {
+        const store = createFakeStore({ [DESKTOP_CONFIG_STORE_KEY]: { agentSlotCommand: '' } })
+
+        expect(readDesktopConfig(store, { MD2_AGENT_SLOT_COMMAND: 'env-slot-command' })).toMatchObject({
+            agentSlotCommand: '',
         })
     })
 })
@@ -109,6 +135,7 @@ describe('writeDesktopConfig', () => {
 
         expect(readDesktopConfig(store, {})).toEqual({
             agent: 'claude',
+            agentSlotCommand: DEFAULT_AGENT_SLOT_COMMAND,
             agentProfiles: expect.arrayContaining([expect.objectContaining({ name: 'claude' })]),
             model: DEFAULT_DESKTOP_MODEL,
             projectLocationMode: DEFAULT_PROJECT_LOCATION_MODE,
@@ -123,9 +150,20 @@ describe('writeDesktopConfig', () => {
 
         expect(readDesktopConfig(store, {})).toEqual({
             agent: 'claude',
+            agentSlotCommand: DEFAULT_AGENT_SLOT_COMMAND,
             agentProfiles: expect.arrayContaining([expect.objectContaining({ name: 'claude' })]),
             model: DEFAULT_DESKTOP_MODEL,
             projectLocationMode: 'current-directory',
+        })
+    })
+
+    it('persists agent slot command values', () => {
+        const store = createFakeStore()
+
+        writeDesktopConfig(store, { agentSlotCommand: 'stored-slot-command' })
+
+        expect(readDesktopConfig(store, {})).toMatchObject({
+            agentSlotCommand: 'stored-slot-command',
         })
     })
 })

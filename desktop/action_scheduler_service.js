@@ -292,8 +292,10 @@ function defaultAgentCommandProvider() {
     return process.env.MD2_AGENT
 }
 
-function defaultAgentSlotCommandProvider() {
-    return process.env.MD2_AGENT_SLOT_COMMAND
+function defaultAgentSlotCommandProvider(agentConfigProvider) {
+    const config = agentConfigProvider ? agentConfigProvider() : null
+
+    return config?.agentSlotCommand ?? ''
 }
 
 async function defaultCommandRunner(command, rootPath) {
@@ -318,7 +320,8 @@ class ActionSchedulerService {
         this.agentCommandProvider = dependencies?.agentCommandProvider ?? defaultAgentCommandProvider
         this.agentConfigProvider = dependencies?.agentConfigProvider ?? null
         this.agentRunnerService = dependencies?.agentRunnerService
-        this.agentSlotCommandProvider = dependencies?.agentSlotCommandProvider ?? defaultAgentSlotCommandProvider
+        this.agentSlotCommandProvider = dependencies?.agentSlotCommandProvider
+            ?? (() => defaultAgentSlotCommandProvider(this.agentConfigProvider))
         this.clearTimeout = dependencies?.clearTimeout ?? clearTimeout
         this.commandRunner = dependencies?.commandRunner ?? defaultCommandRunner
         this.localGitService = dependencies?.localGitService
@@ -453,7 +456,7 @@ class ActionSchedulerService {
     async scheduleAgentSlot(schedule) {
         const command = this.agentSlotCommandProvider()
         if (typeof command !== 'string' || command.length === 0) {
-            await this.failSchedule(schedule, 'Missing MD2_AGENT_SLOT_COMMAND for agentSlot action schedule')
+            await this.failSchedule(schedule, 'Missing desktop.agentSlotCommand for agentSlot action schedule')
             return
         }
 
