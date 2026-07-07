@@ -1,6 +1,6 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { useCallback, useState, type ReactNode } from 'react'
+import { useCallback } from 'react'
 import { MissingWorkingFolderError, type ProjectConfig, type StorageService } from '../data/data_types'
 import type { ElectronDataBridge } from '../data/electron_data_bridge'
 import { configService } from '../services/config_service'
@@ -10,6 +10,8 @@ import { workspaceNavigationService } from '../services/workspace_navigation_ser
 import { AppThemeProvider } from '../theme/theme_provider'
 import { ProjectWorkspace } from './project_workspace'
 import { ProjectToolbarMenu } from './shell/project_toolbar_menu'
+import { LeftPanelSlotProvider } from './shell/left_panel_slot_provider'
+import { LeftPanelTarget } from './shell/left_panel_target'
 
 const GITHUB_REPOSITORIES_URL = 'https://api.github.com/user/repos?per_page=100&page=1'
 const OWNER_REPOSITORY_URL = 'https://api.github.com/repos/octo/demo'
@@ -87,19 +89,17 @@ function createResetStorage(): StorageService {
 
 function renderProjectSurface(isGithubAuthenticated = false) {
     function ProjectSurface() {
-        const [leftPanelContent, setLeftPanelContent] = useState<ReactNode>(null)
         const handleLeftPanelInteraction = useCallback(() => undefined, [])
 
         return (
-            <>
+            <LeftPanelSlotProvider>
                 <ProjectToolbarMenu accessToken="token" isGithubAuthenticated={isGithubAuthenticated} />
-                {leftPanelContent}
+                <LeftPanelTarget fallback="No project navigation available." />
                 <ProjectWorkspace
                     bootstrapError={null}
-                    onLeftPanelContentChange={setLeftPanelContent}
                     onLeftPanelInteraction={handleLeftPanelInteraction}
                 />
-            </>
+            </LeftPanelSlotProvider>
         )
     }
 

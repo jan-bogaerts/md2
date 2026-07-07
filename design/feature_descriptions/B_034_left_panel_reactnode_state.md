@@ -1,7 +1,7 @@
 ---
 id: B-034
 title: left panel content is rendered JSX pushed into parent state
-status: design
+status: ready
 owner: JB
 affects:
 policy:

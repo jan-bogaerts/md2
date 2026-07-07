@@ -2,7 +2,7 @@ import {
     Alert, Button, Divider, Paper, Stack, ToggleButton, ToggleButtonGroup, Typography,
     useMediaQuery, useTheme,
 } from '@mui/material'
-import type { MouseEvent, ReactNode } from 'react'
+import type { MouseEvent } from 'react'
 import { useEffect, useMemo, useState } from 'react'
 import {
     DEFAULT_CARD_TYPES,
@@ -22,6 +22,7 @@ import { TextView } from './text_view/text_view'
 import { useProjectConfig } from './hooks/use_project_config'
 import { useProjectState } from './hooks/use_project_state'
 import { requestOpenProjectDialog, WORKSPACE_ERROR_EVENT, WORKSPACE_NOTICE_EVENT } from './project_command_events'
+import { LeftPanelSlot } from './shell/left_panel_slot'
 
 type WorkspaceViewMode = 'cards' | 'text'
 type ErrorSetter = (message: string | null) => void
@@ -54,12 +55,11 @@ function runWorkspaceEdit(action: () => void, setErrorMessage: ErrorSetter, fall
 
 interface ProjectWorkspaceProps {
     bootstrapError: string | null
-    onLeftPanelContentChange: (content: ReactNode) => void
     onLeftPanelInteraction: () => void
 }
 
 export function ProjectWorkspace(props: ProjectWorkspaceProps) {
-    const { bootstrapError, onLeftPanelContentChange, onLeftPanelInteraction } = props
+    const { bootstrapError, onLeftPanelInteraction } = props
     const { project, snapshot } = useProjectState()
     const theme = useTheme()
     const isMobile = useMediaQuery(theme.breakpoints.down('md'))
@@ -78,10 +78,6 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
     const projectConfig = useProjectConfig()
     const cardTypes = projectConfig?.cardTypes ?? DEFAULT_CARD_TYPES
     const workingFolder = snapshot?.workingFolder ?? projectConfig?.workingFolder ?? DEFAULT_WORKING_FOLDER
-    const cardNavigation = useMemo(
-        () => <CardViewNavigation cards={activeCards} onNavigate={onLeftPanelInteraction} />,
-        [activeCards, onLeftPanelInteraction],
-    )
     const bootstrapErrorMessage = bootstrapError && bootstrapError !== dismissedBootstrapError
         ? `Could not restore last project: ${bootstrapError}`
         : null
@@ -123,17 +119,6 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
             void flushAndConfirmPendingCommits(lifecycleBridge, requestId)
         })
     }, [])
-
-    useEffect(() => {
-        if (!isProjectOpen) {
-            onLeftPanelContentChange(null)
-
-            return
-        }
-        if (viewMode !== 'cards') return
-
-        onLeftPanelContentChange(cardNavigation)
-    }, [cardNavigation, isProjectOpen, onLeftPanelContentChange, viewMode])
 
     useEffect(() => {
         const handleNavigationOpen = (event: Event) => {
@@ -297,30 +282,34 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
                             </ToggleButtonGroup>
                         </Stack>
                         {viewMode === 'cards' ? (
-                            <CardView
-                                cardTypes={cardTypes}
-                                cards={activeCards}
-                                isMobile={isMobile}
-                                onAffectsChange={handleAffectsChange}
-                                onBodyChange={handleBodyChange}
-                                onContinueAgentConversation={handleContinueAgentConversation}
-                                onDeleteCard={handleDeleteCard}
-                                onMoveCard={handleMoveCard}
-                                onOpenInFileMode={handleOpenInFileMode}
-                                onSendAgentInput={handleSendAgentInput}
-                                onStartAgentConversation={handleStartAgentConversation}
-                                onTitleChange={handleTitleChange}
-                                onTogglePolicy={handleTogglePolicy}
-                                repositoryFiles={repositoryFiles}
-                                selectedPath={selectedPath}
-                            />
+                            <>
+                                <LeftPanelSlot>
+                                    <CardViewNavigation cards={activeCards} onNavigate={onLeftPanelInteraction} />
+                                </LeftPanelSlot>
+                                <CardView
+                                    cardTypes={cardTypes}
+                                    cards={activeCards}
+                                    isMobile={isMobile}
+                                    onAffectsChange={handleAffectsChange}
+                                    onBodyChange={handleBodyChange}
+                                    onContinueAgentConversation={handleContinueAgentConversation}
+                                    onDeleteCard={handleDeleteCard}
+                                    onMoveCard={handleMoveCard}
+                                    onOpenInFileMode={handleOpenInFileMode}
+                                    onSendAgentInput={handleSendAgentInput}
+                                    onStartAgentConversation={handleStartAgentConversation}
+                                    onTitleChange={handleTitleChange}
+                                    onTogglePolicy={handleTogglePolicy}
+                                    repositoryFiles={repositoryFiles}
+                                    selectedPath={selectedPath}
+                                />
+                            </>
                         ) : (
                             <TextView
                                 activeCards={activeCards}
                                 backgroundCards={backgroundCards}
                                 cardTypes={cardTypes}
                                 isMobile={isMobile}
-                                onLeftPanelContentChange={onLeftPanelContentChange}
                                 onLeftPanelInteraction={onLeftPanelInteraction}
                                 onBodyChange={handleBodyChange}
                                 onContinueAgentConversation={handleContinueAgentConversation}

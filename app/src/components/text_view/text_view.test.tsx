@@ -1,10 +1,12 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { useCallback, useState, type ReactNode } from 'react'
+import { useCallback } from 'react'
 import { TextView } from './text_view'
 import { DEFAULT_CARD_TYPES, type AgentConversation, type ProjectCard } from '../../data/data_types'
 import { telemetryService } from '../../services/telemetry_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
+import { LeftPanelSlotProvider } from '../shell/left_panel_slot_provider'
+import { LeftPanelTarget } from '../shell/left_panel_target'
 
 function conversation(): AgentConversation {
     return {
@@ -58,12 +60,11 @@ function renderTextView(overrides: Partial<Parameters<typeof TextView>[0]> = {})
     const onHeaderFieldChange = vi.fn()
 
     function TextViewHarness() {
-        const [leftPanelContent, setLeftPanelContent] = useState<ReactNode>(null)
         const handleLeftPanelInteraction = useCallback(() => undefined, [])
 
         return (
-            <>
-                {leftPanelContent}
+            <LeftPanelSlotProvider>
+                <LeftPanelTarget fallback="No project navigation available." />
                 <TextView
                     activeCards={activeCards}
                     backgroundCards={backgroundCards}
@@ -73,7 +74,6 @@ function renderTextView(overrides: Partial<Parameters<typeof TextView>[0]> = {})
                     onContinueAgentConversation={vi.fn()}
                     onDeleteFile={onDeleteFile}
                     onHeaderFieldChange={onHeaderFieldChange}
-                    onLeftPanelContentChange={setLeftPanelContent}
                     onLeftPanelInteraction={handleLeftPanelInteraction}
                     onSendAgentInput={vi.fn()}
                     onStartAgentConversation={vi.fn()}
@@ -82,7 +82,7 @@ function renderTextView(overrides: Partial<Parameters<typeof TextView>[0]> = {})
                     workingFolder="design"
                     {...overrides}
                 />
-            </>
+            </LeftPanelSlotProvider>
         )
     }
 
@@ -181,7 +181,6 @@ describe('TextView', () => {
             onContinueAgentConversation: vi.fn(),
             onDeleteFile: vi.fn(async () => undefined),
             onHeaderFieldChange: vi.fn(),
-            onLeftPanelContentChange: vi.fn(),
             onLeftPanelInteraction: vi.fn(),
             onSendAgentInput: vi.fn(),
             onStartAgentConversation: vi.fn(),
@@ -189,17 +188,63 @@ describe('TextView', () => {
         }
         const { rerender } = render(
             <AppThemeProvider>
-                <TextView {...shared} requestedNonce={0} requestedPath={null} />
+                <LeftPanelSlotProvider>
+                    <LeftPanelTarget fallback="No project navigation available." />
+                    <TextView {...shared} requestedNonce={0} requestedPath={null} />
+                </LeftPanelSlotProvider>
             </AppThemeProvider>,
         )
 
         rerender(
             <AppThemeProvider>
-                <TextView {...shared} requestedNonce={1} requestedPath="design/F-2-b.md" />
+                <LeftPanelSlotProvider>
+                    <LeftPanelTarget fallback="No project navigation available." />
+                    <TextView {...shared} requestedNonce={1} requestedPath="design/F-2-b.md" />
+                </LeftPanelSlotProvider>
             </AppThemeProvider>,
         )
 
         expect(screen.getByRole('tab', { name: /Beta/ })).toBeInTheDocument()
+    })
+
+    it('updates the left-panel tree when cards change without a view-mode switch', () => {
+        const shared = {
+            backgroundCards: [],
+            cardTypes: DEFAULT_CARD_TYPES,
+            isMobile: false,
+            onBodyChange: vi.fn(),
+            onContinueAgentConversation: vi.fn(),
+            onDeleteFile: vi.fn(async () => undefined),
+            onHeaderFieldChange: vi.fn(),
+            onLeftPanelInteraction: vi.fn(),
+            onSendAgentInput: vi.fn(),
+            onStartAgentConversation: vi.fn(),
+            requestedNonce: 0,
+            requestedPath: null,
+            workingFolder: 'design',
+        }
+        const { rerender } = render(
+            <AppThemeProvider>
+                <LeftPanelSlotProvider>
+                    <LeftPanelTarget fallback="No project navigation available." />
+                    <TextView {...shared} activeCards={[activeCards[0]]} />
+                </LeftPanelSlotProvider>
+            </AppThemeProvider>,
+        )
+
+        expect(within(screen.getByLabelText('File tree')).getByText('F-1 Alpha')).toBeInTheDocument()
+        expect(within(screen.getByLabelText('File tree')).queryByText('F-2 Beta')).toBeNull()
+
+        rerender(
+            <AppThemeProvider>
+                <LeftPanelSlotProvider>
+                    <LeftPanelTarget fallback="No project navigation available." />
+                    <TextView {...shared} activeCards={activeCards} />
+                </LeftPanelSlotProvider>
+            </AppThemeProvider>,
+        )
+
+        expect(within(screen.getByLabelText('File tree')).getByText('F-2 Beta')).toBeInTheDocument()
     })
 
     it('publishes the tree as left-panel content on mobile', () => {

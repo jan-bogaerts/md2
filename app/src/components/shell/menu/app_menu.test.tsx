@@ -1,12 +1,14 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { useCallback, useState, type ReactNode } from 'react'
+import { useCallback } from 'react'
 import type { StorageService } from '../../../data/data_types'
 import type { ElectronDataBridge } from '../../../data/electron_data_bridge'
 import { configService } from '../../../services/config_service'
 import { dataService } from '../../../services/data_service'
 import { ProjectToolbarMenu } from '../project_toolbar_menu'
 import { ProjectWorkspace } from '../../project_workspace'
+import { LeftPanelSlotProvider } from '../left_panel_slot_provider'
+import { LeftPanelTarget } from '../left_panel_target'
 import { AppMenu } from './app_menu'
 
 function createBridge(): ElectronDataBridge {
@@ -55,20 +57,18 @@ function createResetStorage(): StorageService {
 
 function renderSurface() {
     function Surface() {
-        const [leftPanelContent, setLeftPanelContent] = useState<ReactNode>(null)
         const handleLeftPanelInteraction = useCallback(() => undefined, [])
 
         return (
-            <>
+            <LeftPanelSlotProvider>
                 <ProjectToolbarMenu accessToken="token" isGithubAuthenticated={false} />
                 <AppMenu />
-                {leftPanelContent}
+                <LeftPanelTarget fallback="No project navigation available." />
                 <ProjectWorkspace
                     bootstrapError={null}
-                    onLeftPanelContentChange={setLeftPanelContent}
                     onLeftPanelInteraction={handleLeftPanelInteraction}
                 />
-            </>
+            </LeftPanelSlotProvider>
         )
     }
 
