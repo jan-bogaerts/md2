@@ -28,6 +28,7 @@ import { agentConversationService, loadAgentConversation } from './agent_convers
 import { mapWithConcurrency } from './concurrency'
 import { buildRemarkableImport, type RemarkableImportPlan, type RemarkableImportTarget } from './remarkable_import_service'
 import { configService } from './config_service'
+import { planExternalCardImports } from './external_card_import_service'
 import { markdownParsingService } from './markdown_parsing_service'
 import { register } from './service_injector'
 import { telemetryService } from './telemetry_service'
@@ -39,6 +40,7 @@ const MARKDOWN_EXTENSION = '.md'
 const MARKDOWN_RELOAD_DEBOUNCE_MS = 150
 const ON_STATE_ACTION_ERROR_PATH_PREFIX = 'onState'
 const WORKSPACE_ERROR_EVENT = 'md2:workspace-error'
+const WORKSPACE_NOTICE_EVENT = 'md2:workspace-notice'
 
 function isActionDefinitionPath(path: string, actionsFolder: string) {
     const normalizedPath = path.replace(/\\/gu, '/')
@@ -72,6 +74,10 @@ function reportWorkspaceError(message: string) {
     window.dispatchEvent(new CustomEvent<string>(WORKSPACE_ERROR_EVENT, { detail: message }))
 }
 
+function reportWorkspaceNotice(message: string) {
+    window.dispatchEvent(new CustomEvent<string>(WORKSPACE_NOTICE_EVENT, { detail: message }))
+}
+
 /** Merge committed files into the loaded set: replace matching paths, append new ones. */
 function mergeFiles(current: MarkdownFile[], updates: MarkdownFile[]): MarkdownFile[] {
     const updateByPath = new Map(updates.map((file) => [file.path, file]))
@@ -82,6 +88,16 @@ function mergeFiles(current: MarkdownFile[], updates: MarkdownFile[]): MarkdownF
     }
 
     return merged
+}
+
+function removeFilesByPath(files: MarkdownFile[], paths: string[]) {
+    const pathSet = new Set(paths)
+
+    return files.filter((file) => !pathSet.has(file.path))
+}
+
+function importedNoticeMessage(count: number) {
+    return `Imported ${count} external ${count === 1 ? 'file' : 'files'} as new cards.`
 }
 
 function statusOf(card: ProjectSnapshot['activeCards'][number]) {
@@ -683,6 +699,40 @@ export class DataService extends EventTarget {
         return { ...this.attachAgentConversations(cards), repositoryFiles, workingFolder }
     }
 
+    private async importExternalCardFiles(files: MarkdownFile[], workingFolder: string) {
+        const { config, storage } = this.requireDependencies()
+        if (!this.currentProject) return files
+
+        const plan = planExternalCardImports(files, workingFolder, config.cardTypes)
+        if (plan.moves.length === 0) return files
+
+        const importPaths = plan.moves.flatMap((move) => [move.fromPath, move.toPath])
+        importPaths.forEach((path) => this.inFlightCommitPaths.add(path))
+
+        try {
+            await storage.moveFiles({
+                branch: this.currentProject.branch,
+                message: `Import ${plan.moves.length} external ${plan.moves.length === 1 ? 'file' : 'files'}`,
+                moves: plan.moves,
+            })
+        } catch (error) {
+            reportWorkspaceError(errorMessage(error, 'External file import failed'))
+            telemetryService.captureError(error)
+
+            return files
+        } finally {
+            importPaths.forEach((path) => this.inFlightCommitPaths.delete(path))
+        }
+
+        if (config.pushMode === 'auto') await storage.push(this.currentProject)
+        if (config.pushMode === 'manual') this.dispatchChanged()
+
+        reportWorkspaceNotice(importedNoticeMessage(plan.moves.length))
+        telemetryService.trackEvent('external_file_import')
+
+        return mergeFiles(removeFilesByPath(files, plan.moves.map((move) => move.fromPath)), plan.importedFiles)
+    }
+
     private async loadFullProjectInBackground(project: ProjectReference, workingFolder: string, projectLoadToken: number) {
         const { storage } = this.requireDependencies()
 
@@ -693,7 +743,14 @@ export class DataService extends EventTarget {
             ])
             if (!this.shouldApplyProjectLoad(project, projectLoadToken)) return
 
-            this.currentFiles = mergeFiles(projectFiles.files, this.currentFiles)
+            const importedFiles = await this.importExternalCardFiles(projectFiles.files, projectFiles.workingFolder)
+            if (!this.shouldApplyProjectLoad(project, projectLoadToken)) return
+
+            const importedPaths = new Set(importedFiles.map((file) => file.path))
+            const removedImportedPaths = projectFiles.files
+                .filter((file) => !importedPaths.has(file.path))
+                .map((file) => file.path)
+            this.currentFiles = mergeFiles(importedFiles, removeFilesByPath(this.currentFiles, removedImportedPaths))
             this.currentSnapshot = this.createSnapshot(this.currentFiles, projectFiles.workingFolder, repositoryFiles)
             this.dispatchChanged()
             this.loadAgentConversationsInBackground(this.currentSnapshot, project, projectLoadToken)
@@ -913,13 +970,15 @@ export class DataService extends EventTarget {
             updatedFiles.push(loadedFile)
         }
 
-        if (updatedFiles.length === 0 && removedPaths.length === 0) return
-
         const removedPathSet = new Set(removedPaths)
-        this.currentFiles = mergeFiles(
+        const watchedFiles = mergeFiles(
             this.currentFiles.filter((file) => !removedPathSet.has(file.path)),
             updatedFiles,
         )
+        const importedFiles = await this.importExternalCardFiles(watchedFiles, this.requireDependencies().config.workingFolder)
+        if (updatedFiles.length === 0 && removedPaths.length === 0 && importedFiles === watchedFiles) return
+
+        this.currentFiles = importedFiles
         const repositoryFiles = await storage.listRepositoryFiles(this.currentProject)
         const { config } = this.requireDependencies()
         this.currentSnapshot = this.createSnapshot(this.currentFiles, config.workingFolder, repositoryFiles)

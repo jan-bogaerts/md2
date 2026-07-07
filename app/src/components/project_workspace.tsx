@@ -21,7 +21,7 @@ import { CardViewNavigation } from './card_view/card_view_navigation'
 import { RemarkableImportPanel } from './remarkable_import_panel'
 import { TextView } from './text_view/text_view'
 import { useProjectState } from './hooks/use_project_state'
-import { requestOpenProjectDialog, WORKSPACE_ERROR_EVENT } from './project_command_events'
+import { requestOpenProjectDialog, WORKSPACE_ERROR_EVENT, WORKSPACE_NOTICE_EVENT } from './project_command_events'
 
 type WorkspaceViewMode = 'cards' | 'text'
 type ErrorSetter = (message: string | null) => void
@@ -68,6 +68,7 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
     const repositoryFiles = snapshot?.repositoryFiles ?? EMPTY_REPOSITORY_FILES
     const [configRevision, setConfigRevision] = useState(0)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
+    const [noticeMessage, setNoticeMessage] = useState<string | null>(null)
     const [requestedPath, setRequestedPath] = useState<string | null>(null)
     const [requestedNonce, setRequestedNonce] = useState(0)
     const [selectedPath, setSelectedPath] = useState<string | null>(null)
@@ -173,6 +174,16 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
         return () => window.removeEventListener(WORKSPACE_ERROR_EVENT, handleWorkspaceError)
     }, [])
 
+    useEffect(() => {
+        const handleWorkspaceNotice = (event: Event) => {
+            setNoticeMessage((event as CustomEvent<string>).detail)
+        }
+
+        window.addEventListener(WORKSPACE_NOTICE_EVENT, handleWorkspaceNotice)
+
+        return () => window.removeEventListener(WORKSPACE_NOTICE_EVENT, handleWorkspaceNotice)
+    }, [])
+
     const handleMoveCard = (path: string, targetStatus: string, targetIndex: number) => {
         runWorkspaceEdit(() => dataService.moveCard(path, targetStatus, targetIndex), setErrorMessage, `Card move failed: ${path}`)
     }
@@ -274,6 +285,10 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
         setDismissedBootstrapError(bootstrapError)
     }
 
+    const handleDismissNotice = () => {
+        setNoticeMessage(null)
+    }
+
     return (
         <Paper elevation={0} sx={{ border: 1, borderColor: 'divider', borderRadius: 2, p: WORKSPACE_PANEL_PADDING }}>
             <Stack spacing={3}>
@@ -281,6 +296,7 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
                     <Alert onClose={handleDismissBootstrapError} severity="error">{bootstrapErrorMessage}</Alert>
                 ) : null}
                 {errorMessage ? <Alert severity="error">{errorMessage}</Alert> : null}
+                {noticeMessage ? <Alert onClose={handleDismissNotice} severity="success">{noticeMessage}</Alert> : null}
 
                 {isProjectOpen ? (
                     <Stack spacing={2}>

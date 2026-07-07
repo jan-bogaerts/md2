@@ -9,6 +9,7 @@ import { DataService } from '../services/data_service'
 import { GithubStorageService } from '../services/github_storage_service'
 import { markdownParsingService } from '../services/markdown_parsing_service'
 import { telemetryService } from '../services/telemetry_service'
+import { planExternalCardImports } from '../services/external_card_import_service'
 import { GithubUnauthorizedError } from '../auth/github_api_client'
 import {
     DEFAULT_CARD_BODY_TEMPLATE,
@@ -28,6 +29,7 @@ const files: MarkdownFile[] = [
     { content: '# Old', path: 'design/history/F-3-old.md' },
     { content: '# Imported', path: 'design/free note.md' },
 ]
+const storageFiles = files.filter((file) => file.path !== 'design/free note.md')
 
 const githubProject = { branch: 'main', id: 'owner/repo', owner: 'owner', repository: 'repo' }
 type CommitCallback = (request: CommitRequest) => Promise<void>
@@ -85,7 +87,7 @@ function activeCardFile(id: string, options: { after?: string; sha?: string; sta
         `# ${id.toUpperCase()}`,
     ].join('\n')
 
-    return { content, path: `design/${id.toUpperCase()}.md`, sha: options.sha }
+    return { content, path: `design/${id.toUpperCase()}-1-${id}.md`, sha: options.sha }
 }
 
 function createDeferred<T>() {
@@ -116,8 +118,8 @@ function createStorage(overrides: Partial<StorageService> = {}): StorageService 
         listTopLevelFolders: vi.fn(async () => [{ name: 'design', path: 'design' }]),
         loadActionFiles: vi.fn(async () => []),
         loadAgentConversation: vi.fn(async (_project, path) => conversation(path)),
-        loadProject: vi.fn(async () => ({ files, workingFolder: 'design' })),
-        loadProjectRoot: vi.fn(async () => ({ files, workingFolder: 'design' })),
+        loadProject: vi.fn(async () => ({ files: storageFiles, workingFolder: 'design' })),
+        loadProjectRoot: vi.fn(async () => ({ files: storageFiles, workingFolder: 'design' })),
         loadProjectConfig: vi.fn(async () => null),
         moveFiles: vi.fn(),
         push: vi.fn(),
@@ -195,6 +197,37 @@ describe('cardNaming', () => {
         expect(card.header.internalId).toBeTruthy()
         expect(card.header.internalId).not.toBe('F-4')
         expect(card.header.internalId).not.toContain('new-card')
+    })
+})
+
+describe('external card imports', () => {
+    it('completes headers, renames files and allocates sequential ids after existing cards', () => {
+        const importFiles: MarkdownFile[] = [
+            ...storageFiles,
+            { content: '# First note\n\nBody', path: 'design/notes.md', sha: 'sha-notes' },
+            { content: '---\nowner: JB\n---\n\n# Second note', path: 'design/second.md', sha: 'sha-second' },
+        ]
+        const plan = planExternalCardImports(importFiles, 'design', DEFAULT_CARD_TYPES)
+
+        expect(plan.moves.map((move) => move.toPath)).toEqual(['design/F-4-first-note.md', 'design/F-5-second-note.md'])
+        expect(plan.moves[0]).toMatchObject({ fromPath: 'design/notes.md', sha: 'sha-notes' })
+        expect(plan.importedFiles[0].content).toContain('id: F-4')
+        expect(plan.importedFiles[0].content).toContain('internalId:')
+        expect(plan.importedFiles[0].content).toContain('title: First note')
+        expect(plan.importedFiles[0].content).toContain('status: new')
+        expect(plan.importedFiles[0].content).toContain('# First note\n\nBody')
+        expect(plan.importedFiles[1].content).toContain('owner: JB')
+    })
+
+    it('does not plan imports for complete conforming root cards', () => {
+        const plan = planExternalCardImports([
+            {
+                content: '---\nid: F-4\ninternalId: uuid-4\ntitle: Done\nstatus: ready\n---\n\n# Done',
+                path: 'design/F-4-done.md',
+            },
+        ], 'design', DEFAULT_CARD_TYPES)
+
+        expect(plan.moves).toEqual([])
     })
 })
 
@@ -466,17 +499,22 @@ describe('DataService', () => {
 
     it('completes a release by moving active cards to history and refreshing the snapshot', async () => {
         configService.init()
+        const releaseFiles: MarkdownFile[] = [
+            files[0],
+            { content: '---\nid: F-2\ntitle: Imported\nstatus: active\n---\n\n# Imported', path: 'design/F-2-imported.md' },
+            files[1],
+        ]
         const archivedFiles: MarkdownFile[] = [
             { content: files[0].content, path: 'design/history/v1/F-1-root.md' },
+            { content: releaseFiles[1].content, path: 'design/history/v1/F-2-imported.md' },
             { content: '# Old', path: 'design/history/F-3-old.md' },
-            { content: '# Imported', path: 'design/history/v1/free note.md' },
         ]
         const storage = createStorage({
             listRepositoryFiles: vi.fn()
                 .mockResolvedValueOnce(['design/F-1-root.md'])
                 .mockResolvedValueOnce(['design/history/v1/F-1-root.md']),
             loadProject: vi.fn()
-                .mockResolvedValueOnce({ files, workingFolder: 'design' })
+                .mockResolvedValueOnce({ files: releaseFiles, workingFolder: 'design' })
                 .mockResolvedValueOnce({ files: archivedFiles, workingFolder: 'design' }),
         })
         const service = new DataService()
@@ -496,10 +534,10 @@ describe('DataService', () => {
                     toPath: 'design/history/v1/F-1-root.md',
                 },
                 {
-                    content: '# Imported',
-                    fromPath: 'design/free note.md',
+                    content: releaseFiles[1].content,
+                    fromPath: 'design/F-2-imported.md',
                     sha: undefined,
-                    toPath: 'design/history/v1/free note.md',
+                    toPath: 'design/history/v1/F-2-imported.md',
                 },
             ],
         })
@@ -526,7 +564,7 @@ describe('DataService', () => {
         configService.init()
         const storage = createStorage({
             loadProject: vi.fn(async () => ({
-                files: [...files, { content: '# Archived', path: 'design/history/v1/F-9.md' }],
+                files: [...storageFiles, { content: '# Archived', path: 'design/history/v1/F-9.md' }],
                 workingFolder: 'design',
             })),
         })
@@ -544,7 +582,7 @@ describe('DataService', () => {
         const archivedFiles: MarkdownFile[] = [{ content: files[0].content, path: 'design/history/v1/F-1-root.md' }]
         const storage = createStorage({
             loadProject: vi.fn()
-                .mockResolvedValueOnce({ files, workingFolder: 'design' })
+                .mockResolvedValueOnce({ files: storageFiles, workingFolder: 'design' })
                 .mockResolvedValueOnce({ files: archivedFiles, workingFolder: 'design' }),
             loadProjectConfig: vi.fn(async () => ({ pushMode: 'manual' as const })),
         })
@@ -581,9 +619,9 @@ describe('DataService', () => {
     it('moves a card across columns writing only the affected cards', async () => {
         configService.init()
         const moveFiles: MarkdownFile[] = [
-            { content: '---\nid: A\ninternalId: a\ntitle: A\nstatus: todo\n---\n\n# A', path: 'design/A.md' },
-            { content: '---\nid: B\ninternalId: b\ntitle: B\nstatus: todo\nafter: a\n---\n\n# B', path: 'design/B.md' },
-            { content: '---\nid: P\ninternalId: p\ntitle: P\nstatus: done\n---\n\n# P', path: 'design/P.md' },
+            { content: '---\nid: A\ninternalId: a\ntitle: A\nstatus: todo\n---\n\n# A', path: 'design/A-1-a.md' },
+            { content: '---\nid: B\ninternalId: b\ntitle: B\nstatus: todo\nafter: a\n---\n\n# B', path: 'design/B-1-b.md' },
+            { content: '---\nid: P\ninternalId: p\ntitle: P\nstatus: done\n---\n\n# P', path: 'design/P-1-p.md' },
         ]
         const storage = createStorage({
             loadProject: vi.fn(async () => ({ files: moveFiles, workingFolder: 'design' })),
@@ -593,13 +631,13 @@ describe('DataService', () => {
         service.init({ storage })
 
         await service.openProject({ branch: 'main', id: 'project' })
-        const updates = service.moveCard('design/B.md', 'done', 1)
+        const updates = service.moveCard('design/B-1-b.md', 'done', 1)
         await service.flushPendingCommits()
 
-        expect(updates).toContainEqual({ after: 'p', path: 'design/B.md', status: 'done' })
+        expect(updates).toContainEqual({ after: 'p', path: 'design/B-1-b.md', status: 'done' })
         const committed = (storage.commit as ReturnType<typeof vi.fn>).mock.calls.at(-1)?.[0] as CommitRequest
         const committedPaths = committed.files.map((file) => file.path)
-        expect(committedPaths).toEqual(['design/B.md'])
+        expect(committedPaths).toEqual(['design/B-1-b.md'])
         const movedContent = committed.files[0].content
         expect(movedContent).toContain('status: done')
         expect(movedContent).toContain('after: p')
@@ -626,22 +664,22 @@ describe('DataService', () => {
         service.init({ storage })
 
         await service.openProject({ branch: 'main', id: 'project' })
-        const snapshot = await service.deleteCard('design/B.md')
+        const snapshot = await service.deleteCard('design/B-1-b.md')
 
         const repairCommit = vi.mocked(storage.commit).mock.calls[0][0]
-        expect(repairCommit).toMatchObject({ branch: 'main', message: 'Repair ordering after deleting design/B.md' })
-        expect(repairCommit.files.map((file) => file.path)).toEqual(['design/C.md'])
+        expect(repairCommit).toMatchObject({ branch: 'main', message: 'Repair ordering after deleting design/B-1-b.md' })
+        expect(repairCommit.files.map((file) => file.path)).toEqual(['design/C-1-c.md'])
         expect(repairCommit.files[0].content).toContain('after: a')
         expect(storage.deleteFile).toHaveBeenCalledWith({
             branch: 'main',
-            message: 'Delete design/B.md',
-            path: 'design/B.md',
+            message: 'Delete design/B-1-b.md',
+            path: 'design/B-1-b.md',
             sha: 'sha-b',
         })
         expect(vi.mocked(storage.commit).mock.invocationCallOrder[0]).toBeLessThan(
             vi.mocked(storage.deleteFile).mock.invocationCallOrder[0],
         )
-        expect(snapshot?.activeCards.map((card) => card.path)).toEqual(['design/A.md', 'design/C.md'])
+        expect(snapshot?.activeCards.map((card) => card.path)).toEqual(['design/A-1-a.md', 'design/C-1-c.md'])
     })
 
     it('does not repair ordering after deleting a tail card', async () => {
@@ -660,10 +698,10 @@ describe('DataService', () => {
         service.init({ storage })
 
         await service.openProject({ branch: 'main', id: 'project' })
-        await service.deleteCard('design/B.md')
+        await service.deleteCard('design/B-1-b.md')
 
         expect(storage.commit).not.toHaveBeenCalled()
-        expect(storage.deleteFile).toHaveBeenCalledWith(expect.objectContaining({ path: 'design/B.md', sha: 'sha-b' }))
+        expect(storage.deleteFile).toHaveBeenCalledWith(expect.objectContaining({ path: 'design/B-1-b.md', sha: 'sha-b' }))
     })
 
     it('leaves deleted files unpushed in manual mode', async () => {
@@ -683,7 +721,7 @@ describe('DataService', () => {
         service.init({ storage })
 
         await service.openProject({ branch: 'main', id: 'project' })
-        await service.deleteCard('design/B.md')
+        await service.deleteCard('design/B-1-b.md')
 
         expect(storage.deleteFile).toHaveBeenCalledTimes(1)
         expect(storage.push).not.toHaveBeenCalled()
@@ -708,7 +746,7 @@ describe('DataService', () => {
         await service.openProject({ branch: 'main', id: 'project' })
         const beforePaths = service.getState().snapshot?.activeCards.map((card) => card.path)
 
-        await expect(service.deleteCard('design/B.md')).rejects.toThrow('delete failed')
+        await expect(service.deleteCard('design/B-1-b.md')).rejects.toThrow('delete failed')
 
         expect(service.getState().snapshot?.activeCards.map((card) => card.path)).toEqual(beforePaths)
         expect(storage.push).not.toHaveBeenCalled()
@@ -731,11 +769,11 @@ describe('DataService', () => {
         service.init({ storage })
 
         await service.openProject({ branch: 'main', id: 'project' })
-        service.updateCardBody('design/B.md', '# B\n\nEdited body')
-        await service.deleteCard('design/B.md')
+        service.updateCardBody('design/B-1-b.md', '# B\n\nEdited body')
+        await service.deleteCard('design/B-1-b.md')
 
         const updateCommit = vi.mocked(storage.commit).mock.calls[0][0]
-        expect(updateCommit.files[0].path).toBe('design/B.md')
+        expect(updateCommit.files[0].path).toBe('design/B-1-b.md')
         expect(updateCommit.files[0].content).toContain('Edited body')
         expect(vi.mocked(storage.commit).mock.invocationCallOrder[0]).toBeLessThan(
             vi.mocked(storage.deleteFile).mock.invocationCallOrder[0],
@@ -745,8 +783,8 @@ describe('DataService', () => {
     it('runs matching onState actions when a card changes to the configured state', async () => {
         configService.init()
         const moveFiles: MarkdownFile[] = [
-            { content: '---\nid: F-1\ninternalId: a\ntitle: A\nstatus: todo\n---\n\n# A', path: 'design/F-1.md' },
-            { content: '---\nid: F-2\ninternalId: b\ntitle: B\nstatus: todo\nafter: a\n---\n\n# B', path: 'design/F-2.md' },
+            { content: '---\nid: F-1\ninternalId: a\ntitle: A\nstatus: todo\n---\n\n# A', path: 'design/F-1-a.md' },
+            { content: '---\nid: F-2\ninternalId: b\ntitle: B\nstatus: todo\nafter: a\n---\n\n# B', path: 'design/F-2-b.md' },
         ]
         const actionFile = {
             content: JSON.stringify({
@@ -769,11 +807,11 @@ describe('DataService', () => {
         service.init({ storage })
 
         await service.openProject({ branch: 'main', id: 'project' })
-        service.moveCard('design/F-2.md', 'ready', 0)
+        service.moveCard('design/F-2-b.md', 'ready', 0)
 
         expect(actionRunner.run).toHaveBeenCalledWith(
             expect.objectContaining({ name: 'ready-action' }),
-            expect.objectContaining({ file: 'design/F-2.md', kind: 'card', state: 'ready', type: 'feature' }),
+            expect.objectContaining({ file: 'design/F-2-b.md', kind: 'card', state: 'ready', type: 'feature' }),
         )
     })
 
@@ -792,8 +830,8 @@ describe('DataService', () => {
             status: 'failed',
         })
         const moveFiles: MarkdownFile[] = [
-            { content: '---\nid: F-1\ninternalId: a\ntitle: A\nstatus: todo\n---\n\n# A', path: 'design/F-1.md' },
-            { content: '---\nid: F-2\ninternalId: b\ntitle: B\nstatus: todo\nafter: a\n---\n\n# B', path: 'design/F-2.md' },
+            { content: '---\nid: F-1\ninternalId: a\ntitle: A\nstatus: todo\n---\n\n# A', path: 'design/F-1-a.md' },
+            { content: '---\nid: F-2\ninternalId: b\ntitle: B\nstatus: todo\nafter: a\n---\n\n# B', path: 'design/F-2-b.md' },
         ]
         const actionFile = {
             content: JSON.stringify({
@@ -816,10 +854,10 @@ describe('DataService', () => {
         service.init({ storage })
 
         await service.openProject({ branch: 'main', id: 'project' })
-        service.moveCard('design/F-2.md', 'ready', 0)
+        service.moveCard('design/F-2-b.md', 'ready', 0)
 
         await vi.waitFor(() => {
-            const movedCard = service.getState().snapshot?.activeCards.find((card) => card.path === 'design/F-2.md')
+            const movedCard = service.getState().snapshot?.activeCards.find((card) => card.path === 'design/F-2-b.md')
             expect(movedCard?.agentConversationErrors).toEqual([
                 { message: 'Ready failed with exit code 1', path: 'onState:ready-action' },
             ])
@@ -829,8 +867,8 @@ describe('DataService', () => {
     it('does not run onState actions when a card is reordered inside the same state', async () => {
         configService.init()
         const moveFiles: MarkdownFile[] = [
-            { content: '---\nid: F-1\ninternalId: a\ntitle: A\nstatus: todo\n---\n\n# A', path: 'design/F-1.md' },
-            { content: '---\nid: F-2\ninternalId: b\ntitle: B\nstatus: todo\nafter: a\n---\n\n# B', path: 'design/F-2.md' },
+            { content: '---\nid: F-1\ninternalId: a\ntitle: A\nstatus: todo\n---\n\n# A', path: 'design/F-1-a.md' },
+            { content: '---\nid: F-2\ninternalId: b\ntitle: B\nstatus: todo\nafter: a\n---\n\n# B', path: 'design/F-2-b.md' },
         ]
         const actionFile = {
             content: JSON.stringify({
@@ -852,7 +890,7 @@ describe('DataService', () => {
         service.init({ storage })
 
         await service.openProject({ branch: 'main', id: 'project' })
-        service.moveCard('design/F-2.md', 'todo', 0)
+        service.moveCard('design/F-2-b.md', 'todo', 0)
 
         expect(actionRunner.run).not.toHaveBeenCalled()
     })
@@ -1001,6 +1039,103 @@ describe('DataService', () => {
         await vi.waitFor(() => {
             expect(service.getState().snapshot?.backgroundCards.map((card) => card.path)).toEqual(['design/history/F-3-old.md'])
         })
+    })
+
+    it('imports external root markdown files after the full project load', async () => {
+        configService.init()
+        const externalFile = { content: '# Notes\n\nBody', path: 'design/notes.md', sha: 'sha-notes' }
+        const rootFiles = [files[0], externalFile]
+        const fullFiles = [files[0], files[1], externalFile]
+        const notices: string[] = []
+        const handleNotice = (event: Event) => {
+            notices.push((event as CustomEvent<string>).detail)
+        }
+        const trackEvent = vi.spyOn(telemetryService, 'trackEvent').mockImplementation(() => undefined)
+        const storage = createStorage({
+            loadProject: vi.fn(async () => ({ files: fullFiles, workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: rootFiles, workingFolder: 'design' })),
+        })
+        const service = new DataService()
+        window.addEventListener('md2:workspace-notice', handleNotice)
+
+        try {
+            service.init({ storage })
+            await service.openProject({ branch: 'main', id: 'project' })
+
+            await vi.waitFor(() => {
+                expect(storage.moveFiles).toHaveBeenCalledWith({
+                    branch: 'main',
+                    message: 'Import 1 external file',
+                    moves: [expect.objectContaining({
+                        fromPath: 'design/notes.md',
+                        sha: 'sha-notes',
+                        toPath: 'design/F-4-notes.md',
+                    })],
+                })
+            })
+
+            const importedCard = service.getState().snapshot?.activeCards.find((card) => card.path === 'design/F-4-notes.md')
+            expect(importedCard?.header).toMatchObject({ id: 'F-4', status: 'new', title: 'Notes' })
+            expect(importedCard?.header.internalId).toBeTruthy()
+            expect(service.getState().snapshot?.activeCards.some((card) => card.path === 'design/notes.md')).toBe(false)
+            expect(notices).toContain('Imported 1 external file as new cards.')
+            expect(trackEvent).toHaveBeenCalledWith('external_file_import')
+        } finally {
+            window.removeEventListener('md2:workspace-notice', handleNotice)
+            trackEvent.mockRestore()
+        }
+    })
+
+    it('does not repeat imports for complete conforming cards', async () => {
+        configService.init()
+        const completeFile = {
+            content: '---\nid: F-4\ninternalId: uuid-4\ntitle: Imported\nstatus: new\n---\n\n# Imported',
+            path: 'design/F-4-imported.md',
+        }
+        const storage = createStorage({
+            loadProject: vi.fn(async () => ({ files: [...storageFiles, completeFile], workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: [files[0], completeFile], workingFolder: 'design' })),
+        })
+        const service = new DataService()
+        service.init({ storage })
+
+        await service.openProject({ branch: 'main', id: 'project' })
+        await waitForWorkerTurn()
+
+        expect(storage.moveFiles).not.toHaveBeenCalled()
+    })
+
+    it('reports import failures and keeps source files loaded unchanged', async () => {
+        configService.init()
+        const externalFile = { content: '# Notes\n\nBody', path: 'design/notes.md', sha: 'sha-notes' }
+        const errors: string[] = []
+        const handleWorkspaceError = (event: Event) => {
+            errors.push((event as CustomEvent<string>).detail)
+        }
+        const storage = createStorage({
+            loadProject: vi.fn(async () => ({ files: [...storageFiles, externalFile], workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: [files[0], externalFile], workingFolder: 'design' })),
+            moveFiles: vi.fn(async () => {
+                throw new Error('commit failed')
+            }),
+        })
+        const service = new DataService()
+        window.addEventListener('md2:workspace-error', handleWorkspaceError)
+
+        try {
+            service.init({ storage })
+            await service.openProject({ branch: 'main', id: 'project' })
+
+            await vi.waitFor(() => {
+                expect(errors).toContain('commit failed')
+            })
+
+            expect(service.getState().snapshot?.activeCards.some((card) => card.path === 'design/notes.md')).toBe(true)
+            expect(service.getState().snapshot?.activeCards.some((card) => card.path === 'design/F-4-notes.md')).toBe(false)
+            expect(storage.push).not.toHaveBeenCalled()
+        } finally {
+            window.removeEventListener('md2:workspace-error', handleWorkspaceError)
+        }
     })
 
     it('loads referenced agent conversations onto cards', async () => {
@@ -1291,7 +1426,7 @@ describe('DataService', () => {
         expect(actionService.getState().error).toContain('Invalid action type')
     })
 
-    it('adds a markdown card when the watcher reports a new file', async () => {
+    it('imports a new external markdown file when the watcher reports it', async () => {
         vi.useFakeTimers()
         configService.init()
         let watchChange: (event: { changeKind: 'added' | 'changed' | 'removed' | 'unknown'; path: string }) => void = () => {
@@ -1312,8 +1447,17 @@ describe('DataService', () => {
         watchChange({ changeKind: 'added', path: 'design/free-note.md' })
         await vi.advanceTimersByTimeAsync(150)
 
-        const card = service.getState().snapshot?.activeCards.find((candidate) => candidate.path === 'design/free-note.md')
+        expect(storage.moveFiles).toHaveBeenCalledWith({
+            branch: 'main',
+            message: 'Import 1 external file',
+            moves: [expect.objectContaining({
+                fromPath: 'design/free-note.md',
+                toPath: 'design/F-4-new-external-note.md',
+            })],
+        })
+        const card = service.getState().snapshot?.activeCards.find((candidate) => candidate.path === 'design/F-4-new-external-note.md')
         expect(card?.header.status).toBe('new')
+        expect(card?.header.internalId).toBeTruthy()
     })
 
     it('updates markdown content when the watcher reports an external edit', async () => {

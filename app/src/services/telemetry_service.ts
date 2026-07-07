@@ -6,6 +6,7 @@ export type TelemetryEventName =
     | 'complete_release'
     | 'create_card'
     | 'create_project'
+    | 'external_file_import'
     | 'navigation'
     | 'open_project'
     | 'react_start'
@@ -40,6 +41,7 @@ const TELEMETRY_EVENTS = new Set<TelemetryEventName>([
     'complete_release',
     'create_card',
     'create_project',
+    'external_file_import',
     'navigation',
     'open_project',
     'react_start',

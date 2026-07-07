@@ -9,7 +9,7 @@ function escapeRegExp(value: string) {
     return value.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')
 }
 
-function slugifyTitle(title: string) {
+export function slugifyTitle(title: string) {
     const slug = title
         .trim()
         .toLowerCase()

@@ -608,11 +608,15 @@ async function moveFiles(request, project) {
     for (const move of request.moves) {
         if (!move || typeof move.fromPath !== 'string' || move.fromPath.length === 0) throw new Error('Missing move source path')
         if (typeof move.toPath !== 'string' || move.toPath.length === 0) throw new Error('Missing move target path')
+        if (typeof move.content !== 'string') throw new Error('Missing move content')
 
         const sourcePath = ensureInsideRoot(rootPath, path.join(rootPath, move.fromPath))
         const targetPath = ensureInsideRoot(rootPath, path.join(rootPath, move.toPath))
+        const targetRepositoryPath = normalizePath(path.relative(rootPath, targetPath))
         await fs.promises.mkdir(path.dirname(targetPath), { recursive: true })
-        await runGit(rootPath, ['mv', normalizePath(path.relative(rootPath, sourcePath)), normalizePath(path.relative(rootPath, targetPath))])
+        await runGit(rootPath, ['mv', normalizePath(path.relative(rootPath, sourcePath)), targetRepositoryPath])
+        await fs.promises.writeFile(targetPath, move.content)
+        await runGit(rootPath, ['add', targetRepositoryPath])
     }
 
     await runGit(rootPath, ['commit', '-m', request.message])

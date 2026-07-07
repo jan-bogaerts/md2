@@ -1,7 +1,7 @@
 ---
 id: B-026
 title: external non-conforming files are not imported as new cards
-status: design
+status: ready
 owner: JB
 affects:
 policy:
