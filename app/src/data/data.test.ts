@@ -40,6 +40,14 @@ function createGithubResponse(payload: unknown) {
     } as Response
 }
 
+function createGithubRawResponse(content: string) {
+    return {
+        ok: true,
+        status: 200,
+        text: async () => content,
+    } as Response
+}
+
 function createGithubStatusResponse(status: number) {
     return {
         json: async () => ({}),
@@ -293,19 +301,25 @@ describe('DataService', () => {
     it('handles GitHub unauthorized once when a batched commit gets a 401', async () => {
         configService.init()
         const handleUnauthorized = vi.fn()
-        const fetchImplementation = vi.fn()
-            .mockResolvedValueOnce(createGithubStatusResponse(404))
-            .mockResolvedValueOnce(createGithubStatusResponse(404))
-            .mockResolvedValueOnce(createGithubResponse([{ path: 'design/F-1-root.md', type: 'file' }]))
-            .mockResolvedValueOnce(createGithubResponse({
-                content: btoa(files[0].content),
-                encoding: 'base64',
-                path: 'design/F-1-root.md',
-                sha: 'sha-1',
-            }))
-            .mockResolvedValueOnce(createGithubResponse([]))
-            .mockResolvedValueOnce(createGithubResponse([{ path: 'design/F-1-root.md', type: 'file' }]))
-            .mockResolvedValueOnce(createGithubStatusResponse(401))
+        const fetchImplementation = vi.fn(async (url: string, init: RequestInit = {}) => {
+            if (url.includes('/contents/md2.config.json')) return createGithubStatusResponse(404)
+            if (url.includes('/git/ref/heads/main')) {
+                return createGithubResponse({ object: { sha: 'base-commit', type: 'commit' }, ref: 'refs/heads/main' })
+            }
+            if (url.includes('/git/commits/base-commit')) {
+                return createGithubResponse({ sha: 'base-commit', tree: { sha: 'base-tree' } })
+            }
+            if (url.includes('/git/trees/base-tree')) {
+                return createGithubResponse({
+                    tree: [{ path: 'design/F-1-root.md', sha: 'sha-1', type: 'blob' }],
+                    truncated: false,
+                })
+            }
+            if (url.includes('/git/blobs/sha-1') && init.method !== 'POST') return createGithubRawResponse(files[0].content)
+            if (url.includes('/git/blobs') && init.method === 'POST') return createGithubStatusResponse(401)
+
+            return createGithubResponse([])
+        })
         const githubStorage = new GithubStorageService()
         githubStorage.init({ accessToken: 'token', fetchImplementation, onUnauthorized: handleUnauthorized })
         const service = new DataService()

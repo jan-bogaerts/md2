@@ -1,14 +1,23 @@
 ﻿import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { GithubPendingCommitConflictError, GithubStorageService } from '../services/github_storage_service'
 
-const encodedContent = btoa('# Root')
 const project = { branch: 'main', id: 'owner/repo', owner: 'owner', repository: 'repo' }
+const EXPECTED_GITHUB_CONCURRENCY_LIMIT = 8
+const GITHUB_CONCURRENCY_TEST_FILE_COUNT = 10
 
 function createResponse(payload: unknown) {
     return {
         json: async () => payload,
         ok: true,
         status: 200,
+    } as Response
+}
+
+function createRawResponse(content: string) {
+    return {
+        ok: true,
+        status: 200,
+        text: async () => content,
     } as Response
 }
 
@@ -20,6 +29,13 @@ function createStatusResponse(status: number) {
     } as Response
 }
 
+function queueProjectTree(fetchImplementation: ReturnType<typeof vi.fn>, entries: unknown[], treeSha = 'base-tree') {
+    fetchImplementation
+        .mockResolvedValueOnce(createResponse({ object: { sha: 'base-commit', type: 'commit' }, ref: 'refs/heads/main' }))
+        .mockResolvedValueOnce(createResponse({ sha: 'base-commit', tree: { sha: treeSha } }))
+        .mockResolvedValueOnce(createResponse({ tree: entries, truncated: false }))
+}
+
 describe('GithubStorageService', () => {
     beforeEach(() => {
         window.localStorage.clear()
@@ -27,59 +43,81 @@ describe('GithubStorageService', () => {
 
     it('loads markdown files recursively from the selected branch', async () => {
         const fetchImplementation = vi.fn()
-            .mockResolvedValueOnce(createResponse([
-                { path: 'design/F-1-root.md', type: 'file' },
-                { path: 'design/history', type: 'dir' },
-            ]))
-            .mockResolvedValueOnce(createResponse({
-                content: encodedContent,
-                encoding: 'base64',
-                path: 'design/F-1-root.md',
-                sha: 'sha-1',
-            }))
-            .mockResolvedValueOnce(createResponse([
-                { path: 'design/history/F-2-old.md', type: 'file' },
-            ]))
-            .mockResolvedValueOnce(createResponse({
-                content: encodedContent,
-                encoding: 'base64',
-                path: 'design/history/F-2-old.md',
-                sha: 'sha-2',
-            }))
+        queueProjectTree(fetchImplementation, [
+            { path: 'design/F-1-root.md', sha: 'sha-1', type: 'blob' },
+            { path: 'design/history', sha: 'tree-1', type: 'tree' },
+            { path: 'design/history/F-2-old.md', sha: 'sha-2', type: 'blob' },
+        ])
+        fetchImplementation
+            .mockResolvedValueOnce(createRawResponse('# Root'))
+            .mockResolvedValueOnce(createRawResponse('# Root'))
         const service = new GithubStorageService()
         service.init({ accessToken: 'token', fetchImplementation })
 
         const projectFiles = await service.loadProject({ branch: 'main', id: 'owner/repo', owner: 'owner', repository: 'repo' }, 'design')
 
         expect(projectFiles.files.map((file) => file.path)).toEqual(['design/F-1-root.md', 'design/history/F-2-old.md'])
-        expect(fetchImplementation.mock.calls[0][0]).toContain('/repos/owner/repo/contents/design?ref=main')
+        expect(fetchImplementation.mock.calls[2][0]).toContain('/repos/owner/repo/git/trees/base-tree?recursive=1')
     })
 
     it('loads only root markdown files without recursing into subfolders', async () => {
         const fetchImplementation = vi.fn()
-            .mockResolvedValueOnce(createResponse([
-                { path: 'design/F-1-root.md', type: 'file' },
-                { path: 'design/history', type: 'dir' },
-            ]))
-            .mockResolvedValueOnce(createResponse({
-                content: encodedContent,
-                encoding: 'base64',
-                path: 'design/F-1-root.md',
-                sha: 'sha-1',
-            }))
+        queueProjectTree(fetchImplementation, [
+            { path: 'design/F-1-root.md', sha: 'sha-1', type: 'blob' },
+            { path: 'design/history', sha: 'tree-1', type: 'tree' },
+            { path: 'design/history/F-2-old.md', sha: 'sha-2', type: 'blob' },
+        ])
+        fetchImplementation.mockResolvedValueOnce(createRawResponse('# Root'))
         const service = new GithubStorageService()
         service.init({ accessToken: 'token', fetchImplementation })
 
         const projectFiles = await service.loadProjectRoot(project, 'design')
 
         expect(projectFiles.files.map((file) => file.path)).toEqual(['design/F-1-root.md'])
-        expect(fetchImplementation).toHaveBeenCalledTimes(2)
-        expect(fetchImplementation.mock.calls.some(([url]) => url.includes('/contents/design/history'))).toBe(false)
+        expect(fetchImplementation).toHaveBeenCalledTimes(4)
+        expect(fetchImplementation.mock.calls.some(([url]) => url.includes('/git/blobs/sha-2'))).toBe(false)
+    })
+
+    it('bounds parallel markdown content requests when loading a project', async () => {
+        let activeBlobRequests = 0
+        let maxActiveBlobRequests = 0
+        const treeEntries = Array.from({ length: GITHUB_CONCURRENCY_TEST_FILE_COUNT }, (_item, index) => ({
+            path: `design/F-${index}-file.md`,
+            sha: `sha-${index}`,
+            type: 'blob',
+        }))
+        const fetchImplementation = vi.fn(async (url: string) => {
+            if (url.includes('/git/ref/heads/main')) {
+                return createResponse({ object: { sha: 'base-commit', type: 'commit' }, ref: 'refs/heads/main' })
+            }
+            if (url.includes('/git/commits/base-commit')) return createResponse({ sha: 'base-commit', tree: { sha: 'base-tree' } })
+            if (url.includes('/git/trees/base-tree')) return createResponse({ tree: treeEntries, truncated: false })
+            if (url.includes('/git/blobs/')) {
+                activeBlobRequests += 1
+                maxActiveBlobRequests = Math.max(maxActiveBlobRequests, activeBlobRequests)
+                await new Promise((resolve) => {
+                    window.setTimeout(resolve, 0)
+                })
+                activeBlobRequests -= 1
+
+                return createRawResponse('# File')
+            }
+
+            return createStatusResponse(404)
+        })
+        const service = new GithubStorageService()
+        service.init({ accessToken: 'token', fetchImplementation })
+
+        await service.loadProject(project, 'design')
+
+        expect(maxActiveBlobRequests).toBeGreaterThan(1)
+        expect(maxActiveBlobRequests).toBeLessThanOrEqual(EXPECTED_GITHUB_CONCURRENCY_LIMIT)
     })
 
     it('creates blobs, one tree, and one commit with the request message for a multi-file commit', async () => {
         const fetchImplementation = vi.fn()
-            .mockResolvedValueOnce(createResponse([]))
+        queueProjectTree(fetchImplementation, [{ path: 'design', sha: 'design-tree', type: 'tree' }])
+        fetchImplementation
             .mockResolvedValueOnce(createResponse({ object: { sha: 'base-commit', type: 'commit' }, ref: 'refs/heads/main' }))
             .mockResolvedValueOnce(createResponse({ sha: 'base-commit', tree: { sha: 'base-tree' } }))
             .mockResolvedValueOnce(createResponse({ sha: 'blob-1' }))
@@ -100,13 +138,13 @@ describe('GithubStorageService', () => {
         })
 
         const blobCalls = fetchImplementation.mock.calls.filter(([url]) => url.includes('/repos/owner/repo/git/blobs'))
-        const treeCalls = fetchImplementation.mock.calls.filter(([url]) => url.includes('/repos/owner/repo/git/trees'))
-        const commitCalls = fetchImplementation.mock.calls.filter(([url]) => url.includes('/repos/owner/repo/git/commits'))
+        const treeCalls = fetchImplementation.mock.calls.filter(([url, init]) => url.includes('/repos/owner/repo/git/trees') && init.method === 'POST')
+        const commitCalls = fetchImplementation.mock.calls.filter(([url, init]) => url.includes('/repos/owner/repo/git/commits') && init.method === 'POST')
         const patchCalls = fetchImplementation.mock.calls.filter(([, init]) => init.method === 'PATCH')
 
         expect(blobCalls).toHaveLength(2)
         expect(treeCalls).toHaveLength(1)
-        expect(commitCalls).toHaveLength(2)
+        expect(commitCalls).toHaveLength(1)
         expect(JSON.parse(treeCalls[0][1].body)).toEqual({
             base_tree: 'base-tree',
             tree: [
@@ -114,7 +152,7 @@ describe('GithubStorageService', () => {
                 { mode: '100644', path: 'design/F-2-added.md', sha: 'blob-2', type: 'blob' },
             ],
         })
-        expect(JSON.parse(commitCalls[1][1].body)).toEqual({
+        expect(JSON.parse(commitCalls[0][1].body)).toEqual({
             message: 'Update design files',
             parents: ['base-commit'],
             tree: 'new-tree',
@@ -128,7 +166,8 @@ describe('GithubStorageService', () => {
 
     it('pushes the pending commit to the branch ref', async () => {
         const fetchImplementation = vi.fn()
-            .mockResolvedValueOnce(createResponse([]))
+        queueProjectTree(fetchImplementation, [{ path: 'design', sha: 'design-tree', type: 'tree' }])
+        fetchImplementation
             .mockResolvedValueOnce(createResponse({ object: { sha: 'base-commit', type: 'commit' }, ref: 'refs/heads/main' }))
             .mockResolvedValueOnce(createResponse({ sha: 'base-commit', tree: { sha: 'base-tree' } }))
             .mockResolvedValueOnce(createResponse({ sha: 'blob-1' }))
@@ -157,7 +196,8 @@ describe('GithubStorageService', () => {
 
     it('persists pending heads and restores them after service recreation', async () => {
         const firstFetchImplementation = vi.fn()
-            .mockResolvedValueOnce(createResponse([]))
+        queueProjectTree(firstFetchImplementation, [{ path: 'design', sha: 'design-tree', type: 'tree' }])
+        firstFetchImplementation
             .mockResolvedValueOnce(createResponse({ object: { sha: 'base-commit', type: 'commit' }, ref: 'refs/heads/main' }))
             .mockResolvedValueOnce(createResponse({ sha: 'base-commit', tree: { sha: 'base-tree' } }))
             .mockResolvedValueOnce(createResponse({ sha: 'blob-1' }))
@@ -211,8 +251,8 @@ describe('GithubStorageService', () => {
             message: 'Second pending commit',
         })
 
-        const commitCalls = fetchImplementation.mock.calls.filter(([url]) => url.includes('/repos/owner/repo/git/commits'))
-        expect(JSON.parse(commitCalls[2][1].body)).toEqual({
+        const commitCalls = fetchImplementation.mock.calls.filter(([url, init]) => url.includes('/repos/owner/repo/git/commits') && init.method === 'POST')
+        expect(JSON.parse(commitCalls[0][1].body)).toEqual({
             message: 'Second pending commit',
             parents: ['pending-commit-1'],
             tree: 'tree-2',
@@ -249,13 +289,15 @@ describe('GithubStorageService', () => {
     it('keeps pending heads when switching projects', async () => {
         const otherProject = { branch: 'main', id: 'owner/other', owner: 'owner', repository: 'other' }
         const fetchImplementation = vi.fn()
-            .mockResolvedValueOnce(createResponse([]))
+        queueProjectTree(fetchImplementation, [{ path: 'design', sha: 'design-tree', type: 'tree' }])
+        fetchImplementation
             .mockResolvedValueOnce(createResponse({ object: { sha: 'base-commit', type: 'commit' }, ref: 'refs/heads/main' }))
             .mockResolvedValueOnce(createResponse({ sha: 'base-commit', tree: { sha: 'base-tree' } }))
             .mockResolvedValueOnce(createResponse({ sha: 'blob-1' }))
             .mockResolvedValueOnce(createResponse({ sha: 'new-tree' }))
             .mockResolvedValueOnce(createResponse({ sha: 'pending-commit', tree: { sha: 'new-tree' } }))
-            .mockResolvedValueOnce(createResponse([]))
+        queueProjectTree(fetchImplementation, [{ path: 'design', sha: 'design-tree', type: 'tree' }])
+        fetchImplementation
             .mockResolvedValueOnce(createResponse({}))
         const service = new GithubStorageService()
         service.init({ accessToken: 'token', fetchImplementation })
@@ -276,7 +318,8 @@ describe('GithubStorageService', () => {
 
     it('leaves the branch and pending head unchanged when building a later commit fails', async () => {
         const fetchImplementation = vi.fn()
-            .mockResolvedValueOnce(createResponse([]))
+        queueProjectTree(fetchImplementation, [{ path: 'design', sha: 'design-tree', type: 'tree' }])
+        fetchImplementation
             .mockResolvedValueOnce(createResponse({ object: { sha: 'base-commit', type: 'commit' }, ref: 'refs/heads/main' }))
             .mockResolvedValueOnce(createResponse({ sha: 'base-commit', tree: { sha: 'base-tree' } }))
             .mockResolvedValueOnce(createResponse({ sha: 'blob-1' }))
@@ -313,7 +356,8 @@ describe('GithubStorageService', () => {
 
     it('throws a clear remote-change error before writing when the recursive tree sha is stale', async () => {
         const fetchImplementation = vi.fn()
-            .mockResolvedValueOnce(createResponse([]))
+        queueProjectTree(fetchImplementation, [{ path: 'design', sha: 'design-tree', type: 'tree' }])
+        fetchImplementation
             .mockResolvedValueOnce(createResponse({ object: { sha: 'base-commit', type: 'commit' }, ref: 'refs/heads/main' }))
             .mockResolvedValueOnce(createResponse({ sha: 'base-commit', tree: { sha: 'base-tree' } }))
             .mockResolvedValueOnce(createResponse({
@@ -330,15 +374,16 @@ describe('GithubStorageService', () => {
             message: 'Update root',
         })).rejects.toThrow(/changed remotely.*Reload or refresh/u)
 
-        expect(fetchImplementation).toHaveBeenCalledTimes(4)
+        expect(fetchImplementation).toHaveBeenCalledTimes(6)
         expect(fetchImplementation.mock.calls.some(([url]) => url.includes('/repos/owner/repo/git/blobs'))).toBe(false)
-        expect(fetchImplementation.mock.calls.some(([url]) => url.includes('/repos/owner/repo/git/trees') && !url.includes('recursive=1'))).toBe(false)
+        expect(fetchImplementation.mock.calls.some(([url, init]) => url.includes('/repos/owner/repo/git/trees') && init.method === 'POST')).toBe(false)
         expect(fetchImplementation.mock.calls.some(([, init]) => init.method === 'PATCH')).toBe(false)
     })
 
     it('supports auto behavior as commit followed by push', async () => {
         const fetchImplementation = vi.fn()
-            .mockResolvedValueOnce(createResponse([]))
+        queueProjectTree(fetchImplementation, [{ path: 'design', sha: 'design-tree', type: 'tree' }])
+        fetchImplementation
             .mockResolvedValueOnce(createResponse({ object: { sha: 'base-commit', type: 'commit' }, ref: 'refs/heads/main' }))
             .mockResolvedValueOnce(createResponse({ sha: 'base-commit', tree: { sha: 'base-tree' } }))
             .mockResolvedValueOnce(createResponse({ sha: 'blob-1' }))
@@ -364,7 +409,8 @@ describe('GithubStorageService', () => {
 
     it('moves files by creating a blob, one tree with target and source changes, and one commit', async () => {
         const fetchImplementation = vi.fn()
-            .mockResolvedValueOnce(createResponse([]))
+        queueProjectTree(fetchImplementation, [{ path: 'design', sha: 'design-tree', type: 'tree' }])
+        fetchImplementation
             .mockResolvedValueOnce(createResponse({ object: { sha: 'base-commit', type: 'commit' }, ref: 'refs/heads/main' }))
             .mockResolvedValueOnce(createResponse({ sha: 'base-commit', tree: { sha: 'base-tree' } }))
             .mockResolvedValueOnce(createResponse({
@@ -392,7 +438,7 @@ describe('GithubStorageService', () => {
         const treeCall = fetchImplementation.mock.calls.find(([url, init]) => (
             url.includes('/repos/owner/repo/git/trees') && init.method === 'POST'
         ))
-        const commitCalls = fetchImplementation.mock.calls.filter(([url]) => url.includes('/repos/owner/repo/git/commits'))
+        const commitCalls = fetchImplementation.mock.calls.filter(([url, init]) => url.includes('/repos/owner/repo/git/commits') && init.method === 'POST')
 
         expect(JSON.parse(treeCall?.[1].body)).toEqual({
             base_tree: 'base-tree',
@@ -401,7 +447,7 @@ describe('GithubStorageService', () => {
                 { mode: '100644', path: 'design/F-1-root.md', sha: null, type: 'blob' },
             ],
         })
-        expect(JSON.parse(commitCalls[1][1].body)).toEqual({
+        expect(JSON.parse(commitCalls[0][1].body)).toEqual({
             message: 'Complete release v1',
             parents: ['base-commit'],
             tree: 'new-tree',
@@ -410,7 +456,8 @@ describe('GithubStorageService', () => {
 
     it('deletes files by creating one tree with a null sha and one commit', async () => {
         const fetchImplementation = vi.fn()
-            .mockResolvedValueOnce(createResponse([]))
+        queueProjectTree(fetchImplementation, [{ path: 'design', sha: 'design-tree', type: 'tree' }])
+        fetchImplementation
             .mockResolvedValueOnce(createResponse({ object: { sha: 'base-commit', type: 'commit' }, ref: 'refs/heads/feature' }))
             .mockResolvedValueOnce(createResponse({ sha: 'base-commit', tree: { sha: 'base-tree' } }))
             .mockResolvedValueOnce(createResponse({
@@ -433,13 +480,13 @@ describe('GithubStorageService', () => {
         const treeCall = fetchImplementation.mock.calls.find(([url, init]) => (
             url.includes('/repos/owner/repo/git/trees') && init.method === 'POST'
         ))
-        const commitCalls = fetchImplementation.mock.calls.filter(([url]) => url.includes('/repos/owner/repo/git/commits'))
+        const commitCalls = fetchImplementation.mock.calls.filter(([url, init]) => url.includes('/repos/owner/repo/git/commits') && init.method === 'POST')
 
         expect(JSON.parse(treeCall?.[1].body)).toEqual({
             base_tree: 'base-tree',
             tree: [{ mode: '100644', path: 'design/F-1-root.md', sha: null, type: 'blob' }],
         })
-        expect(JSON.parse(commitCalls[1][1].body)).toEqual({
+        expect(JSON.parse(commitCalls[0][1].body)).toEqual({
             message: 'Delete obsolete card',
             parents: ['base-commit'],
             tree: 'new-tree',
@@ -448,7 +495,7 @@ describe('GithubStorageService', () => {
 
     it('rejects GitHub deletion without a sha before calling the contents API', async () => {
         const fetchImplementation = vi.fn()
-            .mockResolvedValueOnce(createResponse([]))
+        queueProjectTree(fetchImplementation, [{ path: 'design', sha: 'design-tree', type: 'tree' }])
         const service = new GithubStorageService()
         service.init({ accessToken: 'token', fetchImplementation })
 
@@ -458,7 +505,7 @@ describe('GithubStorageService', () => {
             message: 'Delete obsolete card',
             path: 'design/F-1-root.md',
         })).rejects.toThrow('Cannot delete GitHub file without sha: design/F-1-root.md')
-        expect(fetchImplementation).toHaveBeenCalledTimes(1)
+        expect(fetchImplementation).toHaveBeenCalledTimes(3)
     })
 
     it('lists branches for repository selection', async () => {
@@ -511,24 +558,19 @@ describe('GithubStorageService', () => {
 
     it('lists repository files recursively as repo-relative paths', async () => {
         const fetchImplementation = vi.fn()
-            .mockResolvedValueOnce(createResponse([
-                { path: 'app', type: 'dir' },
-                { path: 'README.md', type: 'file' },
-            ]))
-            .mockResolvedValueOnce(createResponse([
-                { path: 'app/src', type: 'dir' },
-            ]))
-            .mockResolvedValueOnce(createResponse([
-                { path: 'app/src/main.tsx', type: 'file' },
-            ]))
+        queueProjectTree(fetchImplementation, [
+            { path: 'app', sha: 'app-tree', type: 'tree' },
+            { path: 'README.md', sha: 'readme-sha', type: 'blob' },
+            { path: 'app/src', sha: 'src-tree', type: 'tree' },
+            { path: 'app/src/main.tsx', sha: 'main-sha', type: 'blob' },
+        ])
         const service = new GithubStorageService()
         service.init({ accessToken: 'token', fetchImplementation })
 
         const files = await service.listRepositoryFiles({ branch: 'main', id: 'owner/repo', owner: 'owner', repository: 'repo' })
 
         expect(files).toEqual(['app/src/main.tsx', 'README.md'])
-        expect(fetchImplementation.mock.calls[0][0]).toContain('/repos/owner/repo/contents?ref=main')
-        expect(fetchImplementation.mock.calls[1][0]).toContain('/repos/owner/repo/contents/app?ref=main')
+        expect(fetchImplementation.mock.calls[2][0]).toContain('/repos/owner/repo/git/trees/base-tree?recursive=1')
     })
 
     it('lists top-level folders from the repository root', async () => {
@@ -547,7 +589,8 @@ describe('GithubStorageService', () => {
     })
 
     it('throws a clear missing-folder error without creating content when loading a missing project folder', async () => {
-        const fetchImplementation = vi.fn().mockResolvedValue(createStatusResponse(404))
+        const fetchImplementation = vi.fn()
+        queueProjectTree(fetchImplementation, [{ path: 'README.md', sha: 'readme-sha', type: 'blob' }])
         const service = new GithubStorageService()
         service.init({ accessToken: 'token', fetchImplementation })
 
@@ -556,7 +599,7 @@ describe('GithubStorageService', () => {
             message: 'Working folder is missing: design',
             workingFolder: 'design',
         })
-        expect(fetchImplementation).toHaveBeenCalledTimes(1)
+        expect(fetchImplementation).toHaveBeenCalledTimes(3)
         expect(fetchImplementation.mock.calls[0][1].method).toBeUndefined()
     })
 
@@ -608,16 +651,11 @@ describe('GithubStorageService', () => {
 
     it('loads json action files from the actions folder', async () => {
         const fetchImplementation = vi.fn()
-            .mockResolvedValueOnce(createResponse([
-                { path: 'actions/implement.json', type: 'file' },
-                { path: 'actions/readme.md', type: 'file' },
-            ]))
-            .mockResolvedValueOnce(createResponse({
-                content: btoa('{"name":"implement"}'),
-                encoding: 'base64',
-                path: 'actions/implement.json',
-                sha: 'action-sha',
-            }))
+        queueProjectTree(fetchImplementation, [
+            { path: 'actions/implement.json', sha: 'action-sha', type: 'blob' },
+            { path: 'actions/readme.md', sha: 'readme-sha', type: 'blob' },
+        ])
+        fetchImplementation.mockResolvedValueOnce(createRawResponse('{"name":"implement"}'))
         const service = new GithubStorageService()
         service.init({ accessToken: 'token', fetchImplementation })
 
@@ -627,7 +665,8 @@ describe('GithubStorageService', () => {
     })
 
     it('returns no action files when the actions folder is absent', async () => {
-        const fetchImplementation = vi.fn().mockResolvedValue(createStatusResponse(404))
+        const fetchImplementation = vi.fn()
+        queueProjectTree(fetchImplementation, [{ path: 'README.md', sha: 'readme-sha', type: 'blob' }])
         const service = new GithubStorageService()
         service.init({ accessToken: 'token', fetchImplementation })
 

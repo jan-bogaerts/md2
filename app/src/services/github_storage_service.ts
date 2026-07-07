@@ -18,10 +18,12 @@ import type {
     TopLevelFolderReference,
 } from '../data/data_types'
 import { parseAgentConversationLog } from './agent_conversation_service'
+import { mapWithConcurrency } from './concurrency'
 
 const GITHUB_API_URL = 'https://api.github.com'
 const GITHUB_API_VERSION = '2022-11-28'
 const GITHUB_PAGE_SIZE = 100
+const GITHUB_STORAGE_CONCURRENCY = 8
 const PROJECT_CONFIG_PATH = 'md2.config.json'
 export const PROJECT_README_TEMPLATE = '# MD2\n\nProject design folder created by MD2.\n'
 const TEXT_DECODER = new TextDecoder()
@@ -87,6 +89,12 @@ interface GithubTreeEntry {
     path?: unknown
     sha?: unknown
     type?: unknown
+}
+
+interface NormalizedGithubTreeEntry {
+    path: string
+    sha: string
+    type: string
 }
 
 interface GithubBranchHead {
@@ -201,16 +209,29 @@ function normalizeGitTree(payload: unknown) {
 }
 
 function normalizeRecursiveGitTree(payload: unknown) {
+    const entries = normalizeRecursiveGitTreeEntries(payload)
+    const blobs = new Map<string, string>()
+
+    for (const entry of entries) {
+        if (entry.type === 'blob') blobs.set(entry.path, entry.sha)
+    }
+
+    return blobs
+}
+
+function normalizeRecursiveGitTreeEntries(payload: unknown) {
     const response = payload as GithubGitTreeResponse
     if (response.truncated === true) throw new Error('GitHub tree is too large to verify stale file shas.')
     if (!Array.isArray(response.tree)) throw new Error('Missing GitHub storage field: gitTree.tree')
 
-    const entries = new Map<string, string>()
-    for (const entry of response.tree as GithubTreeEntry[]) {
-        const type = requireString(entry.type, 'gitTree.entry.type')
-        if (type !== 'blob') continue
+    const entries: NormalizedGithubTreeEntry[] = []
 
-        entries.set(requireString(entry.path, 'gitTree.entry.path'), requireString(entry.sha, 'gitTree.entry.sha'))
+    for (const entry of response.tree as GithubTreeEntry[]) {
+        entries.push({
+            path: requireString(entry.path, 'gitTree.entry.path').replace(/\\/gu, '/'),
+            sha: requireString(entry.sha, 'gitTree.entry.sha'),
+            type: requireString(entry.type, 'gitTree.entry.type'),
+        })
     }
 
     return entries
@@ -227,6 +248,37 @@ function normalizeGitCommit(payload: unknown) {
 
 function sortPaths(paths: string[]) {
     return [...paths].sort((left, right) => left.localeCompare(right))
+}
+
+function normalizeFolderPath(path: string) {
+    return path.replace(/\\/gu, '/').replace(/^\/+|\/+$/gu, '')
+}
+
+function isEntryInFolder(entryPath: string, folderPath: string) {
+    if (folderPath.length === 0) return true
+
+    return entryPath === folderPath || entryPath.startsWith(`${folderPath}/`)
+}
+
+function isDirectFileInFolder(entryPath: string, folderPath: string) {
+    const normalizedPath = entryPath.replace(/\\/gu, '/')
+    if (folderPath.length === 0) return !normalizedPath.includes('/')
+    if (!normalizedPath.startsWith(`${folderPath}/`)) return false
+
+    return !normalizedPath.slice(folderPath.length + 1).includes('/')
+}
+
+function isMarkdownBlob(entry: NormalizedGithubTreeEntry) {
+    return entry.type === 'blob' && entry.path.toLowerCase().endsWith('.md')
+}
+
+function isJsonActionBlob(entry: NormalizedGithubTreeEntry, actionsFolder: string) {
+    const fileName = entry.path.split('/').pop()
+
+    return entry.type === 'blob'
+        && fileName !== ACTION_SCHEDULES_FILE
+        && entry.path.toLowerCase().endsWith('.json')
+        && isDirectFileInFolder(entry.path, actionsFolder)
 }
 
 function createPendingHeadKey(project: ProjectReference) {
@@ -272,6 +324,8 @@ export class GithubStorageService implements StorageService {
     private fetchImplementation: typeof fetch | null
     private onUnauthorized: (() => void) | null
     private pendingCommitHeads: Map<string, PendingCommitHead>
+    private projectTreeEntriesByHead: Map<string, NormalizedGithubTreeEntry[]>
+    private recursiveTreeEntriesBySha: Map<string, Map<string, string>>
 
     constructor() {
         this.accessToken = null
@@ -279,6 +333,8 @@ export class GithubStorageService implements StorageService {
         this.fetchImplementation = null
         this.onUnauthorized = null
         this.pendingCommitHeads = new Map()
+        this.projectTreeEntriesByHead = new Map()
+        this.recursiveTreeEntriesBySha = new Map()
     }
 
     init(dependencies: GithubStorageDependencies) {
@@ -287,6 +343,8 @@ export class GithubStorageService implements StorageService {
         this.fetchImplementation = dependencies.fetchImplementation ?? fetch
         this.onUnauthorized = dependencies.onUnauthorized ?? null
         this.pendingCommitHeads = readStoredPendingCommitHeads()
+        this.projectTreeEntriesByHead = new Map()
+        this.recursiveTreeEntriesBySha = new Map()
     }
 
     async createProject(project: ProjectReference, workingFolder: string) {
@@ -323,25 +381,19 @@ export class GithubStorageService implements StorageService {
 
     async loadActionFiles(project: ProjectReference, actionsFolder: string): Promise<ActionFile[]> {
         this.requireGithubProject(project)
-        const entries = await this.request(
-            `/repos/${project.owner}/${project.repository}/contents/${encodePath(actionsFolder)}?ref=${encodeURIComponent(project.branch)}`,
-            {},
-            true,
+        const folderPath = normalizeFolderPath(actionsFolder)
+        const entries = await this.getProjectRecursiveTreeEntries(project)
+        const folderExists = entries.some((entry) => isEntryInFolder(entry.path, folderPath))
+        if (!folderExists) return []
+
+        const actionEntries = entries.filter((entry) => isJsonActionBlob(entry, folderPath))
+        const files = await mapWithConcurrency(
+            actionEntries,
+            GITHUB_STORAGE_CONCURRENCY,
+            async (entry) => this.readBlobFile(project, entry),
         )
-        if (entries === null) return []
 
-        const files: ActionFile[] = []
-        for (const entry of normalizeDirectoryEntries(entries)) {
-            const type = requireString(entry.type, 'content.type')
-            const entryPath = requireString(entry.path, 'content.path')
-            const fileName = entryPath.split('/').pop()
-            if (type === 'file' && fileName !== ACTION_SCHEDULES_FILE && entryPath.toLowerCase().endsWith('.json')) {
-                const jsonFile = await this.readFile(project, entryPath)
-                files.push({ content: jsonFile.content, path: jsonFile.path })
-            }
-        }
-
-        return files
+        return files.map((file) => ({ content: file.content, path: file.path }))
     }
 
     async loadAgentConversation(project: ProjectReference, path: string): Promise<AgentConversation> {
@@ -385,7 +437,11 @@ export class GithubStorageService implements StorageService {
     async listRepositoryFiles(project: ProjectReference) {
         this.requireGithubProject(project)
 
-        return sortPaths(await this.readRepositoryFilePaths(project, ''))
+        const entries = await this.getProjectRecursiveTreeEntries(project)
+
+        return sortPaths(entries
+            .filter((entry) => entry.type === 'blob')
+            .map((entry) => entry.path))
     }
 
     async listTopLevelFolders(project: ProjectReference) {
@@ -412,9 +468,10 @@ export class GithubStorageService implements StorageService {
 
         const updatedFiles: MarkdownFile[] = []
         const treeFiles: GithubTreeFile[] = []
+        const blobs = await mapWithConcurrency(request.files, GITHUB_STORAGE_CONCURRENCY, async (file) => this.createBlob(file))
 
-        for (const file of request.files) {
-            const blob = await this.createBlob(file)
+        for (const [index, file] of request.files.entries()) {
+            const blob = blobs[index]
             updatedFiles.push({ ...file, sha: blob.sha })
             treeFiles.push({ path: file.path, sha: blob.sha })
         }
@@ -443,8 +500,13 @@ export class GithubStorageService implements StorageService {
         await this.assertPathShasMatch(branchHead.treeSha, sourceFiles)
 
         const treeChanges: GithubTreeChange[] = []
-        for (const move of request.moves) {
-            const blob = await this.createBlob({ content: move.content, path: move.toPath })
+        const blobs = await mapWithConcurrency(request.moves, GITHUB_STORAGE_CONCURRENCY, async (move) => this.createBlob({
+            content: move.content,
+            path: move.toPath,
+        }))
+
+        for (const [index, move] of request.moves.entries()) {
+            const blob = blobs[index]
             treeChanges.push({ path: move.toPath, sha: blob.sha })
             treeChanges.push({ path: move.fromPath, sha: null })
         }
@@ -519,76 +581,25 @@ export class GithubStorageService implements StorageService {
     }
 
     private async readDirectory(project: ProjectReference, path: string, isWorkingFolder = false): Promise<MarkdownFile[]> {
-        const payload = await this.request(
-            `/repos/${project.owner}/${project.repository}/contents/${encodePath(path)}?ref=${encodeURIComponent(project.branch)}`,
-            {},
-            isWorkingFolder,
-        )
-        if (payload === null) throw new MissingWorkingFolderError(path)
+        const folderPath = normalizeFolderPath(path)
+        const entries = await this.getProjectRecursiveTreeEntries(project)
+        const folderExists = folderPath.length === 0 || entries.some((entry) => isEntryInFolder(entry.path, folderPath))
+        if (!folderExists && isWorkingFolder) throw new MissingWorkingFolderError(path)
 
-        const entries = normalizeDirectoryEntries(payload)
-        const files: MarkdownFile[] = []
+        const markdownEntries = entries.filter((entry) => isMarkdownBlob(entry) && isEntryInFolder(entry.path, folderPath))
 
-        for (const entry of entries) {
-            const type = requireString(entry.type, 'content.type')
-            const entryPath = requireString(entry.path, 'content.path')
-
-            if (type === 'dir') {
-                files.push(...await this.readDirectory(project, entryPath))
-                continue
-            }
-
-            if (type === 'file' && entryPath.toLowerCase().endsWith('.md')) {
-                files.push(await this.readFile(project, entryPath))
-            }
-        }
-
-        return files
+        return mapWithConcurrency(markdownEntries, GITHUB_STORAGE_CONCURRENCY, async (entry) => this.readBlobFile(project, entry))
     }
 
     private async readRootMarkdownFiles(project: ProjectReference, path: string): Promise<MarkdownFile[]> {
-        const payload = await this.request(
-            `/repos/${project.owner}/${project.repository}/contents/${encodePath(path)}?ref=${encodeURIComponent(project.branch)}`,
-            {},
-            true,
-        )
-        if (payload === null) throw new MissingWorkingFolderError(path)
+        const folderPath = normalizeFolderPath(path)
+        const entries = await this.getProjectRecursiveTreeEntries(project)
+        const folderExists = folderPath.length === 0 || entries.some((entry) => isEntryInFolder(entry.path, folderPath))
+        if (!folderExists) throw new MissingWorkingFolderError(path)
 
-        const entries = normalizeDirectoryEntries(payload)
-        const files: MarkdownFile[] = []
+        const markdownEntries = entries.filter((entry) => isMarkdownBlob(entry) && isDirectFileInFolder(entry.path, folderPath))
 
-        for (const entry of entries) {
-            const type = requireString(entry.type, 'content.type')
-            const entryPath = requireString(entry.path, 'content.path')
-
-            if (type === 'file' && entryPath.toLowerCase().endsWith('.md')) {
-                files.push(await this.readFile(project, entryPath))
-            }
-        }
-
-        return files
-    }
-
-    private async readRepositoryFilePaths(project: ProjectReference, path: string): Promise<string[]> {
-        const contentPath = path.length > 0 ? `/${encodePath(path)}` : ''
-        const entries = normalizeDirectoryEntries(await this.request(
-            `/repos/${project.owner}/${project.repository}/contents${contentPath}?ref=${encodeURIComponent(project.branch)}`,
-        ))
-        const paths: string[] = []
-
-        for (const entry of entries) {
-            const type = requireString(entry.type, 'content.type')
-            const entryPath = requireString(entry.path, 'content.path')
-
-            if (type === 'dir') {
-                paths.push(...await this.readRepositoryFilePaths(project, entryPath))
-                continue
-            }
-
-            if (type === 'file') paths.push(entryPath.replace(/\\/gu, '/'))
-        }
-
-        return paths
+        return mapWithConcurrency(markdownEntries, GITHUB_STORAGE_CONCURRENCY, async (entry) => this.readBlobFile(project, entry))
     }
 
     private async readFile(project: ProjectReference, path: string) {
@@ -610,6 +621,13 @@ export class GithubStorageService implements StorageService {
         return normalizeFileContent(payload)
     }
 
+    private async readBlobFile(project: ProjectReference, entry: NormalizedGithubTreeEntry): Promise<MarkdownFile> {
+        const requestInit = { headers: { Accept: 'application/vnd.github.raw' } }
+        const content = await this.requestText(`/repos/${project.owner}/${project.repository}/git/blobs/${entry.sha}`, requestInit)
+
+        return { content, path: entry.path, sha: entry.sha }
+    }
+
     private async getBranchHead(branch: string): Promise<GithubBranchHead> {
         const project = this.getCommitProject()
         const pendingCommitHead = this.pendingCommitHeads.get(createPendingHeadKey({ ...project, branch }))
@@ -625,6 +643,28 @@ export class GithubStorageService implements StorageService {
         const gitCommit = await this.getCommit(gitRef.commitSha)
 
         return { commitSha: gitRef.commitSha, treeSha: gitCommit.treeSha }
+    }
+
+    private async getRemoteBranchTreeSha(project: ProjectReference) {
+        const gitRef = normalizeGitRef(await this.request(
+            `/repos/${project.owner}/${project.repository}/git/ref/heads/${encodePath(project.branch)}`,
+        ))
+        const gitCommit = await this.getCommit(gitRef.commitSha)
+
+        return gitCommit.treeSha
+    }
+
+    private async getProjectRecursiveTreeEntries(project: ProjectReference) {
+        const treeSha = await this.getRemoteBranchTreeSha(project)
+        const cacheKey = `${createPendingHeadKey(project)}:${treeSha}`
+        const cachedEntries = this.projectTreeEntriesByHead.get(cacheKey)
+        if (cachedEntries) return cachedEntries
+
+        const response = await this.request(`/repos/${project.owner}/${project.repository}/git/trees/${treeSha}?recursive=1`)
+        const entries = normalizeRecursiveGitTreeEntries(response)
+        this.projectTreeEntriesByHead.set(cacheKey, entries)
+
+        return entries
     }
 
     private async assertFileShasMatch(treeSha: string, files: MarkdownFile[]) {
@@ -648,10 +688,15 @@ export class GithubStorageService implements StorageService {
     }
 
     private async getRecursiveTreeEntries(treeSha: string) {
+        const cachedEntries = this.recursiveTreeEntriesBySha.get(treeSha)
+        if (cachedEntries) return cachedEntries
+
         const project = this.getCommitProject()
         const response = await this.request(`/repos/${project.owner}/${project.repository}/git/trees/${treeSha}?recursive=1`)
+        const treeEntries = normalizeRecursiveGitTree(response)
+        this.recursiveTreeEntriesBySha.set(treeSha, treeEntries)
 
-        return normalizeRecursiveGitTree(response)
+        return treeEntries
     }
 
     private async createBlob(file: MarkdownFile) {
@@ -766,6 +811,26 @@ export class GithubStorageService implements StorageService {
         if (!response.ok) throw new Error(`GitHub storage request failed with status ${response.status}`)
 
         return response.json()
+    }
+
+    private async requestText(path: string, init: RequestInit = {}) {
+        const { accessToken, fetchImplementation } = this.requireDependencies()
+        const response = await fetchImplementation(`${GITHUB_API_URL}${path}`, {
+            ...init,
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+                'X-GitHub-Api-Version': GITHUB_API_VERSION,
+                ...init.headers,
+            },
+        })
+
+        if (response.status === 401) {
+            this.onUnauthorized?.()
+            throw new GithubUnauthorizedError()
+        }
+        if (!response.ok) throw new Error(`GitHub storage request failed with status ${response.status}`)
+
+        return response.text()
     }
 
     private requireDependencies() {

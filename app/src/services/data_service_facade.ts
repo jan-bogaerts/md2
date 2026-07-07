@@ -24,6 +24,7 @@ import { remarkableMetadataPath } from '../data/remarkable_import_metadata'
 import { actionService } from './action_service'
 import { actionRunner } from './action_runner'
 import { agentConversationService, loadAgentConversation } from './agent_conversation_service'
+import { mapWithConcurrency } from './concurrency'
 import { buildRemarkableImport, type RemarkableImportPlan, type RemarkableImportTarget } from './remarkable_import_service'
 import { configService } from './config_service'
 import { markdownParsingService } from './markdown_parsing_service'
@@ -31,6 +32,7 @@ import { register } from './service_injector'
 import { telemetryService } from './telemetry_service'
 
 const ACTION_RELOAD_DEBOUNCE_MS = 150
+const AGENT_CONVERSATION_LOAD_CONCURRENCY = 8
 const JSON_EXTENSION = '.json'
 const ON_STATE_ACTION_ERROR_PATH_PREFIX = 'onState'
 
@@ -94,6 +96,32 @@ interface ResolvedAgentConversations {
     errorsByCardPath: Map<string, AgentConversationError[]>
 }
 
+interface AgentConversationLoadTask {
+    cardPath: string
+    reference: string
+}
+
+type AgentConversationLoadResult =
+    | { cardPath: string; conversation: AgentConversation; error: null }
+    | { cardPath: string; conversation: null; error: AgentConversationError }
+
+async function loadAgentConversationReference(
+    task: AgentConversationLoadTask,
+    project: ProjectReference,
+    storage: StorageService,
+): Promise<AgentConversationLoadResult> {
+    try {
+        const conversation = await loadAgentConversation(storage, project, task.reference)
+        if (conversation.cardPath !== task.cardPath) throw new Error(`Agent log belongs to ${conversation.cardPath}, not ${task.cardPath}`)
+
+        return { cardPath: task.cardPath, conversation, error: null }
+    } catch (error) {
+        const message = error instanceof Error ? error.message : 'Agent log failed to load'
+
+        return { cardPath: task.cardPath, conversation: null, error: { message, path: task.reference } }
+    }
+}
+
 async function resolveAgentConversations(
     cards: ProjectSnapshot['activeCards'],
     project: ProjectReference,
@@ -101,19 +129,18 @@ async function resolveAgentConversations(
 ): Promise<ResolvedAgentConversations> {
     const conversationsByCardPath = new Map<string, AgentConversation[]>()
     const errorsByCardPath = new Map<string, AgentConversationError[]>()
+    const tasks = cards.flatMap((card) => card.header.agentLogReferences.map((reference) => ({ cardPath: card.path, reference })))
+    const results = await mapWithConcurrency(tasks, AGENT_CONVERSATION_LOAD_CONCURRENCY, async (task) => (
+        loadAgentConversationReference(task, project, storage)
+    ))
 
-    for (const card of cards) {
-        for (const reference of card.header.agentLogReferences) {
-            try {
-                const conversation = await loadAgentConversation(storage, project, reference)
-                if (conversation.cardPath !== card.path) throw new Error(`Agent log belongs to ${conversation.cardPath}, not ${card.path}`)
-
-                conversationsByCardPath.set(card.path, [...(conversationsByCardPath.get(card.path) ?? []), conversation])
-            } catch (error) {
-                const message = error instanceof Error ? error.message : 'Agent log failed to load'
-                errorsByCardPath.set(card.path, [...(errorsByCardPath.get(card.path) ?? []), { message, path: reference }])
-            }
+    for (const result of results) {
+        if (result.error) {
+            errorsByCardPath.set(result.cardPath, [...(errorsByCardPath.get(result.cardPath) ?? []), result.error])
+            continue
         }
+
+        conversationsByCardPath.set(result.cardPath, [...(conversationsByCardPath.get(result.cardPath) ?? []), result.conversation])
     }
 
     return { conversationsByCardPath, errorsByCardPath }

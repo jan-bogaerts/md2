@@ -1,7 +1,7 @@
 ---
 id: B-020
 title: storage I/O is fully sequential (no batching or parallelism)
-status: design
+status: ready
 owner: JB
 affects:
 policy:
