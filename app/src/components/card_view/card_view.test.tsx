@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { CardView } from './card_view'
 import { DEFAULT_CARD_TYPES, type AgentConversation, type ProjectCard } from '../../data/data_types'
 import { telemetryService } from '../../services/telemetry_service'
+import { AppThemeProvider } from '../../theme/theme_provider'
 
 function conversation(): AgentConversation {
     return {
@@ -55,15 +56,17 @@ function renderCardView(overrides: Partial<Parameters<typeof CardView>[0]> = {})
     }
 
     render(
-        <CardView
-            cardTypes={DEFAULT_CARD_TYPES}
-            cards={cards}
-            isMobile={false}
-            repositoryFiles={['app/src/app.tsx', 'design/F-1.md']}
-            selectedPath={null}
-            {...handlers}
-            {...overrides}
-        />,
+        <AppThemeProvider>
+            <CardView
+                cardTypes={DEFAULT_CARD_TYPES}
+                cards={cards}
+                isMobile={false}
+                repositoryFiles={['app/src/app.tsx', 'design/F-1.md']}
+                selectedPath={null}
+                {...handlers}
+                {...overrides}
+            />
+        </AppThemeProvider>,
     )
 
     return handlers
@@ -172,23 +175,25 @@ describe('CardView', () => {
 
     it('highlights the card matching the selected path', () => {
         const { container } = render(
-            <CardView
-                cardTypes={DEFAULT_CARD_TYPES}
-                cards={cards}
-                isMobile={false}
-                onAffectsChange={vi.fn()}
-                onBodyChange={vi.fn()}
-                onContinueAgentConversation={vi.fn()}
-                onDeleteCard={vi.fn(async () => undefined)}
-                onMoveCard={vi.fn()}
-                onOpenInFileMode={vi.fn()}
-                onSendAgentInput={vi.fn()}
-                onStartAgentConversation={vi.fn()}
-                onTitleChange={vi.fn()}
-                onTogglePolicy={vi.fn()}
-                repositoryFiles={[]}
-                selectedPath="design/F-2.md"
-            />,
+            <AppThemeProvider>
+                <CardView
+                    cardTypes={DEFAULT_CARD_TYPES}
+                    cards={cards}
+                    isMobile={false}
+                    onAffectsChange={vi.fn()}
+                    onBodyChange={vi.fn()}
+                    onContinueAgentConversation={vi.fn()}
+                    onDeleteCard={vi.fn(async () => undefined)}
+                    onMoveCard={vi.fn()}
+                    onOpenInFileMode={vi.fn()}
+                    onSendAgentInput={vi.fn()}
+                    onStartAgentConversation={vi.fn()}
+                    onTitleChange={vi.fn()}
+                    onTogglePolicy={vi.fn()}
+                    repositoryFiles={[]}
+                    selectedPath="design/F-2.md"
+                />
+            </AppThemeProvider>,
         )
 
         const selected = container.querySelectorAll('[data-selected="true"]')

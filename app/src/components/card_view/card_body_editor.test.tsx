@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { CardBodyEditor } from './card_body_editor'
 import type { ProjectCard } from '../../data/data_types'
+import { AppThemeProvider } from '../../theme/theme_provider'
 
 function card(overrides: Partial<ProjectCard> = {}): ProjectCard {
     return {
@@ -19,18 +20,26 @@ function card(overrides: Partial<ProjectCard> = {}): ProjectCard {
     }
 }
 
+function renderCardBodyEditor(props: Parameters<typeof CardBodyEditor>[0]) {
+    return render(
+        <AppThemeProvider>
+            <CardBodyEditor {...props} />
+        </AppThemeProvider>,
+    )
+}
+
 describe('CardBodyEditor', () => {
     afterEach(cleanup)
 
     it('seeds the editor with the card body only', () => {
-        render(<CardBodyEditor card={card()} onBodyChange={vi.fn()} />)
+        renderCardBodyEditor({ card: card(), onBodyChange: vi.fn() })
 
         expect(screen.getByRole('textbox')).toHaveValue('# Alpha\n\nOriginal body')
     })
 
     it('reports body edits with the card path so the header stays with DataService', () => {
         const onBodyChange = vi.fn()
-        render(<CardBodyEditor card={card()} onBodyChange={onBodyChange} />)
+        renderCardBodyEditor({ card: card(), onBodyChange })
 
         fireEvent.change(screen.getByRole('textbox'), { target: { value: '# Alpha\n\nEdited body' } })
 
@@ -38,7 +47,7 @@ describe('CardBodyEditor', () => {
     })
 
     it('keeps the toolbar sticky on mobile', () => {
-        const { container } = render(<CardBodyEditor card={card()} isMobile onBodyChange={vi.fn()} />)
+        const { container } = renderCardBodyEditor({ card: card(), isMobile: true, onBodyChange: vi.fn() })
 
         expect(container.querySelector('[data-sticky-toolbar="true"]')).not.toBeNull()
     })

@@ -4,6 +4,7 @@ import { useCallback, useState, type ReactNode } from 'react'
 import { TextView } from './text_view'
 import { DEFAULT_CARD_TYPES, type AgentConversation, type ProjectCard } from '../../data/data_types'
 import { telemetryService } from '../../services/telemetry_service'
+import { AppThemeProvider } from '../../theme/theme_provider'
 
 function conversation(): AgentConversation {
     return {
@@ -85,7 +86,11 @@ function renderTextView(overrides: Partial<Parameters<typeof TextView>[0]> = {})
         )
     }
 
-    render(<TextViewHarness />)
+    render(
+        <AppThemeProvider>
+            <TextViewHarness />
+        </AppThemeProvider>,
+    )
 
     return { onBodyChange, onDeleteFile, onHeaderFieldChange }
 }
@@ -182,9 +187,17 @@ describe('TextView', () => {
             onStartAgentConversation: vi.fn(),
             workingFolder: 'design',
         }
-        const { rerender } = render(<TextView {...shared} requestedNonce={0} requestedPath={null} />)
+        const { rerender } = render(
+            <AppThemeProvider>
+                <TextView {...shared} requestedNonce={0} requestedPath={null} />
+            </AppThemeProvider>,
+        )
 
-        rerender(<TextView {...shared} requestedNonce={1} requestedPath="design/F-2-b.md" />)
+        rerender(
+            <AppThemeProvider>
+                <TextView {...shared} requestedNonce={1} requestedPath="design/F-2-b.md" />
+            </AppThemeProvider>,
+        )
 
         expect(screen.getByRole('tab', { name: /Beta/ })).toBeInTheDocument()
     })

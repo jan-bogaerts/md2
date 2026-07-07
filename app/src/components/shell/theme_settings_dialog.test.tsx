@@ -37,6 +37,18 @@ describe('ThemeSettingsDialog', () => {
         expect(window.localStorage.getItem(MARKDOWN_STYLE_STORAGE_KEY)).toBe('handwritten')
     })
 
+    it('updates the markdown preview when selecting another preset', () => {
+        openDialog()
+
+        const preview = screen.getByLabelText('Markdown style preview')
+        const initialClassName = preview.className
+
+        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Preset' }))
+        fireEvent.click(screen.getByRole('option', { name: 'serif' }))
+
+        expect(preview.className).not.toBe(initialClassName)
+    })
+
     it('applies edited colors to the theme', () => {
         openDialog()
 

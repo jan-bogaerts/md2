@@ -6,6 +6,8 @@ import {
     tablePlugin, thematicBreakPlugin, toolbarPlugin,
 } from '@mdxeditor/editor'
 import '@mdxeditor/editor/style.css'
+import { useAppTheme } from '../../theme/use_app_theme'
+import { buildMarkdownContentSx } from './markdown_style_sx'
 
 const DEFAULT_CODE_LANGUAGE = ''
 const CODE_BLOCK_LANGUAGES = { '': 'Plain text', js: 'JavaScript', ts: 'TypeScript', tsx: 'TSX', bash: 'Shell' }
@@ -24,12 +26,15 @@ interface MarkdownEditorProps {
  */
 export function MarkdownEditor(props: MarkdownEditorProps) {
     const { markdown, onChange, stickyToolbar = false } = props
+    const { markdownStyleConfig } = useAppTheme()
+    const markdownContentSx = buildMarkdownContentSx(markdownStyleConfig)
     const stickySx = stickyToolbar
         ? { '& .mdxeditor-toolbar': { position: 'sticky', top: 0, zIndex: 1 } }
         : undefined
+    const editorSx = { ...markdownContentSx, ...stickySx }
 
     return (
-        <Box data-sticky-toolbar={stickyToolbar} sx={stickySx}>
+        <Box data-sticky-toolbar={stickyToolbar} sx={editorSx}>
             <MDXEditor
                 contentEditableClassName="mdxeditor-content"
                 markdown={markdown}

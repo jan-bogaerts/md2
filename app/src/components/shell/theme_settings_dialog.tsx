@@ -12,6 +12,7 @@ import {
     Typography,
 } from '@mui/material'
 import { useMemo, useState } from 'react'
+import { buildMarkdownContentSx } from '../editor/markdown_style_sx'
 import { createAppTheme } from '../../theme/app_theme'
 import {
     COLOR_ROLES,
@@ -42,6 +43,7 @@ export function ThemeSettingsDialog(props: ThemeSettingsDialogProps) {
 
     const previewTheme = useMemo(() => createAppTheme(mode, draftScheme), [mode, draftScheme])
     const markdownPreview = MARKDOWN_STYLE_PRESETS[markdownStyle]
+    const markdownPreviewSx = buildMarkdownContentSx(markdownPreview)
 
     const handleColorChange = (role: ColorRole, variant: (typeof COLOR_VARIANT_KEYS)[number], value: string) => {
         setDraftScheme((current) => ({
@@ -122,13 +124,14 @@ export function ThemeSettingsDialog(props: ThemeSettingsDialogProps) {
                             </MenuItem>
                         ))}
                     </TextField>
-                    <Box sx={{ mt: 2 }}>
-                        <Typography sx={{ fontFamily: markdownPreview.title1.fontFamily, fontSize: markdownPreview.title1.fontSize }}>
-                            Sample heading
-                        </Typography>
-                        <Typography sx={{ fontFamily: markdownPreview.body.fontFamily, fontSize: markdownPreview.body.fontSize }}>
-                            The quick brown fox jumps over the lazy dog.
-                        </Typography>
+                    <Box aria-label="Markdown style preview" sx={{ mt: 2, ...markdownPreviewSx }}>
+                        <Box className="mdxeditor-content">
+                            <Typography component="h1">Sample heading</Typography>
+                            <Typography component="h2">Section heading</Typography>
+                            <Typography component="h3">Detail heading</Typography>
+                            <Typography component="p">The quick brown fox jumps over the lazy dog.</Typography>
+                            <Typography component="blockquote">Caption text</Typography>
+                        </Box>
                     </Box>
                 </Box>
             </DialogContent>

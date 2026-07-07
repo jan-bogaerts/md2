@@ -7,6 +7,7 @@ import { configService } from '../services/config_service'
 import { dataService } from '../services/data_service'
 import { telemetryService } from '../services/telemetry_service'
 import { workspaceNavigationService } from '../services/workspace_navigation_service'
+import { AppThemeProvider } from '../theme/theme_provider'
 import { ProjectWorkspace } from './project_workspace'
 import { ProjectToolbarMenu } from './shell/project_toolbar_menu'
 
@@ -97,7 +98,9 @@ function renderProjectSurface(isGithubAuthenticated = false) {
     }
 
     return render(
-        <ProjectSurface />,
+        <AppThemeProvider>
+            <ProjectSurface />
+        </AppThemeProvider>,
     )
 }
 
