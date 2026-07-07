@@ -1111,19 +1111,20 @@ describe('DataService', () => {
 
                 return vi.fn()
             },
-        } as typeof window.md2Actions
+        } as unknown as typeof window.md2Actions
         const storage = createStorage()
         const service = new DataService()
         service.init({ storage })
 
         await service.openProject({ branch: 'main', id: 'project' })
         if (!scheduledRunCallback) throw new Error('Scheduled run callback not registered')
+        const emitScheduledRun = scheduledRunCallback as (event: AgentRunEvent) => void
 
         const runningConversation: AgentConversation = { ...conversation(), id: 'schedule-1', status: 'running', title: 'Scheduled implement' }
-        scheduledRunCallback({ content: '', conversation: runningConversation, runId: 'schedule-1', type: 'started' })
+        emitScheduledRun({ content: '', conversation: runningConversation, runId: 'schedule-1', type: 'started' })
         expect(service.getState().runningAgents).toEqual([{ id: 'schedule-1', label: 'Scheduled implement' }])
 
-        scheduledRunCallback({
+        emitScheduledRun({
             content: '',
             conversation: { ...runningConversation, completedAt: '2026-01-01T00:02:00.000Z', status: 'completed' },
             runId: 'schedule-1',

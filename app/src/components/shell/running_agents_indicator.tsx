@@ -1,7 +1,7 @@
 ﻿import { Badge, Button, List, ListItem, ListItemText, Popover, Typography } from '@mui/material'
 import Robot from 'mdi-material-ui/Robot'
 import { useState } from 'react'
-import type { RunningAgent } from './running_agent_types'
+import type { RunningAgent } from '../../data/data_types'
 
 interface RunningAgentsIndicatorProps {
     agents: RunningAgent[]

@@ -23,6 +23,7 @@ const GITHUB_API_URL = 'https://api.github.com'
 const GITHUB_API_VERSION = '2022-11-28'
 const GITHUB_PAGE_SIZE = 100
 const PROJECT_CONFIG_PATH = 'md2.config.json'
+export const PROJECT_README_TEMPLATE = '# MD2\n\nProject design folder created by MD2.\n'
 const TEXT_DECODER = new TextDecoder()
 
 interface GithubStorageDependencies {
@@ -93,7 +94,15 @@ interface GithubBranchHead {
     treeSha: string
 }
 
+interface PendingCommitHead {
+    baseSha: string
+    headSha: string
+}
+
 type GithubTreeChange = GithubTreeDelete | GithubTreeFile
+
+const PENDING_COMMIT_HEADS_STORAGE_KEY = 'md2.github.pendingCommitHeads'
+const PENDING_CONFLICT_MESSAGE = 'Unpushed GitHub commits conflict with the current branch. Discard pending commits or resolve the branch manually before opening this project.'
 
 function requireString(value: unknown, fieldName: string) {
     if (typeof value !== 'string' || value.length === 0) throw new Error(`Missing GitHub storage field: ${fieldName}`)
@@ -227,12 +236,42 @@ function createPendingHeadKey(project: ProjectReference) {
     return `${project.owner}/${project.repository}:${project.branch}`
 }
 
+function readStoredPendingCommitHeads() {
+    const storedValue = window.localStorage.getItem(PENDING_COMMIT_HEADS_STORAGE_KEY)
+    if (!storedValue) return new Map<string, PendingCommitHead>()
+
+    const parsedValue = JSON.parse(storedValue) as Record<string, PendingCommitHead>
+
+    return new Map(Object.entries(parsedValue))
+}
+
+function writeStoredPendingCommitHeads(pendingCommitHeads: Map<string, PendingCommitHead>) {
+    const storedValue = Object.fromEntries(pendingCommitHeads)
+
+    if (Object.keys(storedValue).length === 0) {
+        window.localStorage.removeItem(PENDING_COMMIT_HEADS_STORAGE_KEY)
+
+        return
+    }
+
+    window.localStorage.setItem(PENDING_COMMIT_HEADS_STORAGE_KEY, JSON.stringify(storedValue))
+}
+
+export class GithubPendingCommitConflictError extends Error {
+    project: ProjectReference
+
+    constructor(project: ProjectReference) {
+        super(PENDING_CONFLICT_MESSAGE)
+        this.project = project
+    }
+}
+
 export class GithubStorageService implements StorageService {
     private accessToken: string | null
     private activeProject: ProjectReference | null
     private fetchImplementation: typeof fetch | null
     private onUnauthorized: (() => void) | null
-    private pendingCommitHeads: Map<string, string>
+    private pendingCommitHeads: Map<string, PendingCommitHead>
 
     constructor() {
         this.accessToken = null
@@ -247,7 +286,7 @@ export class GithubStorageService implements StorageService {
         this.activeProject = null
         this.fetchImplementation = dependencies.fetchImplementation ?? fetch
         this.onUnauthorized = dependencies.onUnauthorized ?? null
-        this.pendingCommitHeads = new Map()
+        this.pendingCommitHeads = readStoredPendingCommitHeads()
     }
 
     async createProject(project: ProjectReference, workingFolder: string) {
@@ -259,7 +298,7 @@ export class GithubStorageService implements StorageService {
         await this.commit({
             branch: project.branch,
             files: [{
-                content: '# MD2\n\nProject design folder created by MD2.\n',
+                content: PROJECT_README_TEMPLATE,
                 path: `${workingFolder}/README.md`,
             }],
             message: `Create ${workingFolder} workspace`,
@@ -432,13 +471,44 @@ export class GithubStorageService implements StorageService {
         if (accessToken.length === 0) throw new Error('Missing GitHub access token')
 
         this.requireGithubProject(project)
-        const pendingCommitSha = this.pendingCommitHeads.get(createPendingHeadKey(project))
-        if (!pendingCommitSha) return Promise.resolve()
+        const pendingHeadKey = createPendingHeadKey(project)
+        const pendingCommitHead = this.pendingCommitHeads.get(pendingHeadKey)
+        if (!pendingCommitHead) return Promise.resolve()
 
-        await this.updateBranchRef(project.branch, pendingCommitSha)
-        this.pendingCommitHeads.delete(createPendingHeadKey(project))
+        await this.updateBranchRef(project.branch, pendingCommitHead.headSha)
+        this.pendingCommitHeads.delete(pendingHeadKey)
+        writeStoredPendingCommitHeads(this.pendingCommitHeads)
 
         return Promise.resolve()
+    }
+
+    async restorePendingCommits(project: ProjectReference) {
+        this.requireGithubProject(project)
+        const pendingHeadKey = createPendingHeadKey(project)
+        const storedPendingHead = readStoredPendingCommitHeads().get(pendingHeadKey)
+        if (!storedPendingHead) return
+
+        const gitRef = normalizeGitRef(await this.request(
+            `/repos/${project.owner}/${project.repository}/git/ref/heads/${encodePath(project.branch)}`,
+        ))
+        if (gitRef.commitSha !== storedPendingHead.baseSha) throw new GithubPendingCommitConflictError(project)
+
+        const pendingCommit = await this.getOptionalCommit(storedPendingHead.headSha)
+        if (!pendingCommit) throw new GithubPendingCommitConflictError(project)
+
+        this.pendingCommitHeads.set(pendingHeadKey, storedPendingHead)
+    }
+
+    hasPendingCommits(project: ProjectReference) {
+        return this.pendingCommitHeads.has(createPendingHeadKey(project))
+    }
+
+    discardPendingCommits(project: ProjectReference) {
+        const pendingHeadKey = createPendingHeadKey(project)
+        this.pendingCommitHeads.delete(pendingHeadKey)
+        const storedPendingHeads = readStoredPendingCommitHeads()
+        storedPendingHeads.delete(pendingHeadKey)
+        writeStoredPendingCommitHeads(storedPendingHeads)
     }
 
     async findRepository(owner: string, repository: string) {
@@ -542,9 +612,9 @@ export class GithubStorageService implements StorageService {
 
     private async getBranchHead(branch: string): Promise<GithubBranchHead> {
         const project = this.getCommitProject()
-        const pendingCommitSha = this.pendingCommitHeads.get(createPendingHeadKey({ ...project, branch }))
-        if (pendingCommitSha) {
-            const pendingCommit = await this.getCommit(pendingCommitSha)
+        const pendingCommitHead = this.pendingCommitHeads.get(createPendingHeadKey({ ...project, branch }))
+        if (pendingCommitHead) {
+            const pendingCommit = await this.getCommit(pendingCommitHead.headSha)
 
             return { commitSha: pendingCommit.sha, treeSha: pendingCommit.treeSha }
         }
@@ -625,7 +695,13 @@ export class GithubStorageService implements StorageService {
         const tree = await this.createTree(branchHead.treeSha, treeChanges)
         const commit = await this.createCommit(message, tree.sha, branchHead.commitSha)
         const project = this.getCommitProject()
-        this.pendingCommitHeads.set(createPendingHeadKey({ ...project, branch }), commit.sha)
+        const pendingHeadKey = createPendingHeadKey({ ...project, branch })
+        const existingPendingHead = this.pendingCommitHeads.get(pendingHeadKey)
+        this.pendingCommitHeads.set(pendingHeadKey, {
+            baseSha: existingPendingHead?.baseSha ?? branchHead.commitSha,
+            headSha: commit.sha,
+        })
+        writeStoredPendingCommitHeads(this.pendingCommitHeads)
     }
 
     private async updateBranchRef(branch: string, commitSha: string) {
@@ -645,6 +721,14 @@ export class GithubStorageService implements StorageService {
         return normalizeGitCommit(response)
     }
 
+    private async getOptionalCommit(commitSha: string) {
+        const project = this.getCommitProject()
+        const response = await this.request(`/repos/${project.owner}/${project.repository}/git/commits/${commitSha}`, {}, true)
+        if (response === null) return null
+
+        return normalizeGitCommit(response)
+    }
+
     private getCommitProject() {
         if (!this.activeProject) throw new Error('Cannot commit before a GitHub project is loaded')
 
@@ -654,10 +738,6 @@ export class GithubStorageService implements StorageService {
     private requireGithubProject(project: ProjectReference) {
         if (!project.owner) throw new Error('Missing GitHub project owner')
         if (!project.repository) throw new Error('Missing GitHub project repository')
-
-        if (this.activeProject && createPendingHeadKey(this.activeProject) !== createPendingHeadKey(project)) {
-            this.pendingCommitHeads = new Map()
-        }
 
         this.activeProject = project
     }

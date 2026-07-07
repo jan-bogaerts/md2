@@ -52,10 +52,20 @@ export function AppMenu() {
         persistDesktopConfig()
     }
 
-    const handleModelChange = (event: SelectChangeEvent | ChangeEvent<HTMLInputElement>) => {
+    const setModel = (value: string) => {
+        setSelectedModel(value)
+        configService.set('desktop.model', value)
+        persistDesktopConfig()
+    }
+
+    const handleModelSelectChange = (event: SelectChangeEvent) => {
         setSelectedModel(event.target.value)
         configService.set('desktop.model', event.target.value)
         persistDesktopConfig()
+    }
+
+    const handleModelTextChange = (event: ChangeEvent<HTMLInputElement>) => {
+        setModel(event.target.value)
     }
 
     return (
@@ -88,7 +98,7 @@ export function AppMenu() {
                             <Select
                                 aria-label="Default model"
                                 disabled={!desktopAvailable}
-                                onChange={handleModelChange}
+                                onChange={handleModelSelectChange}
                                 value={selectedModel}
                             >
                                 {selectedModels.map((model) => (
@@ -100,7 +110,7 @@ export function AppMenu() {
                         <TextField
                             aria-label="Default model"
                             disabled={!desktopAvailable}
-                            onChange={handleModelChange}
+                            onChange={handleModelTextChange}
                             size="small"
                             sx={{ width: 140 }}
                             value={selectedModel}

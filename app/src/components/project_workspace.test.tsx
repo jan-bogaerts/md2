@@ -224,6 +224,20 @@ describe('ProjectWorkspace', () => {
         expect(pendingClose.defaultPrevented).toBe(true)
     })
 
+    it('confirms close when storage has unpushed commits', async () => {
+        const storage = createResetStorage()
+        storage.hasPendingCommits = vi.fn(() => true)
+        dataService.init({ storage })
+        await dataService.openProject({ branch: 'main', id: 'project' })
+
+        renderProjectSurface()
+
+        const pendingClose = new Event('beforeunload', { cancelable: true })
+        window.dispatchEvent(pendingClose)
+
+        expect(pendingClose.defaultPrevented).toBe(true)
+    })
+
     it('flushes and confirms Electron quit flush requests', async () => {
         const bridge = createBridge()
         let flushRequested: ((requestId: string) => void) | null = null

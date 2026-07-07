@@ -1,7 +1,7 @@
 ---
 id: J-002
 title: refactor oversized modules into focused files, classes and services
-status: design
+status: ready
 owner: JB
 affects:
 policy:

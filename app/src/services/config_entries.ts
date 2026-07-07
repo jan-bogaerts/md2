@@ -1,10 +1,6 @@
 export {
     CONFIG_ENTRIES,
     CONFIG_SECTIONS,
-    ConfigService,
-    REACT_CONFIG_STORAGE_KEY,
-    configService,
-    readStartupSplashPreference,
     type ConfigEntry,
     type ConfigKey,
     type ConfigOption,

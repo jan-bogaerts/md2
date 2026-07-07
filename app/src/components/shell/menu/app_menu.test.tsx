@@ -121,7 +121,7 @@ describe('AppMenu', () => {
 
     it('pushes the current manual project when the Push button is clicked', async () => {
         const bridge = createBridge()
-        bridge.loadProjectConfig = vi.fn(async () => ({ pushMode: 'manual' }))
+        bridge.loadProjectConfig = vi.fn(async () => ({ pushMode: 'manual' as const }))
         window.md2Data = bridge
 
         renderSurface()
@@ -137,7 +137,7 @@ describe('AppMenu', () => {
 
     it('surfaces a push failure through the existing workspace error alert', async () => {
         const bridge = createBridge()
-        bridge.loadProjectConfig = vi.fn(async () => ({ pushMode: 'manual' }))
+        bridge.loadProjectConfig = vi.fn(async () => ({ pushMode: 'manual' as const }))
         bridge.push = vi.fn(async () => {
             throw new Error('push failed')
         })

@@ -1,6 +1,8 @@
 const MODEL_PLACEHOLDER = '{{model}}'
 const SESSION_ID_PLACEHOLDER = '{{sessionId}}'
 
+// App TypeScript source is canonical. Keep behavior in sync; desktop parity test enforces this.
+
 const BUILTIN_AGENT_PROFILES = [
     { command: 'codex', modelArgument: '--model', models: [], name: 'codex' },
     { command: 'claude', modelArgument: '--model', models: [], name: 'claude' },

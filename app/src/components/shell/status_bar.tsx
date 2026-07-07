@@ -2,7 +2,7 @@ import { Box, Chip, Stack, TextField } from '@mui/material'
 import type { ChangeEvent } from 'react'
 import { KeyboardStatus } from './keyboard_status'
 import { RunningAgentsIndicator } from './running_agents_indicator'
-import type { RunningAgent } from './running_agent_types'
+import type { RunningAgent } from '../../data/data_types'
 
 interface StatusBarProps {
     agents: RunningAgent[]

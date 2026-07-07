@@ -1,5 +1,5 @@
-﻿import { describe, expect, it, vi } from 'vitest'
-import { GithubStorageService } from './github_storage_service'
+﻿import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { GithubPendingCommitConflictError, GithubStorageService } from '../services/github_storage_service'
 
 const encodedContent = btoa('# Root')
 const project = { branch: 'main', id: 'owner/repo', owner: 'owner', repository: 'repo' }
@@ -21,6 +21,10 @@ function createStatusResponse(status: number) {
 }
 
 describe('GithubStorageService', () => {
+    beforeEach(() => {
+        window.localStorage.clear()
+    })
+
     it('loads markdown files recursively from the selected branch', async () => {
         const fetchImplementation = vi.fn()
             .mockResolvedValueOnce(createResponse([
@@ -146,6 +150,127 @@ describe('GithubStorageService', () => {
 
         expect(patchCalls).toHaveLength(1)
         expect(patchCalls[0][0]).toContain('/repos/owner/repo/git/refs/heads/main')
+        expect(JSON.parse(patchCalls[0][1].body)).toEqual({ force: false, sha: 'pending-commit' })
+        expect(service.hasPendingCommits(project)).toBe(false)
+        expect(window.localStorage.getItem('md2.github.pendingCommitHeads')).toBeNull()
+    })
+
+    it('persists pending heads and restores them after service recreation', async () => {
+        const firstFetchImplementation = vi.fn()
+            .mockResolvedValueOnce(createResponse([]))
+            .mockResolvedValueOnce(createResponse({ object: { sha: 'base-commit', type: 'commit' }, ref: 'refs/heads/main' }))
+            .mockResolvedValueOnce(createResponse({ sha: 'base-commit', tree: { sha: 'base-tree' } }))
+            .mockResolvedValueOnce(createResponse({ sha: 'blob-1' }))
+            .mockResolvedValueOnce(createResponse({ sha: 'new-tree' }))
+            .mockResolvedValueOnce(createResponse({ sha: 'pending-commit', tree: { sha: 'new-tree' } }))
+        const firstService = new GithubStorageService()
+        firstService.init({ accessToken: 'token', fetchImplementation: firstFetchImplementation })
+
+        await firstService.loadProject(project, 'design')
+        await firstService.commit({
+            branch: 'main',
+            files: [{ content: '# Updated', path: 'design/F-1-root.md' }],
+            message: 'Update root',
+        })
+
+        expect(JSON.parse(window.localStorage.getItem('md2.github.pendingCommitHeads') ?? '{}')).toEqual({'owner/repo:main': { baseSha: 'base-commit', headSha: 'pending-commit' }})
+
+        const secondFetchImplementation = vi.fn()
+            .mockResolvedValueOnce(createResponse({ object: { sha: 'base-commit', type: 'commit' }, ref: 'refs/heads/main' }))
+            .mockResolvedValueOnce(createResponse({ sha: 'pending-commit', tree: { sha: 'new-tree' } }))
+            .mockResolvedValueOnce(createResponse({}))
+        const secondService = new GithubStorageService()
+        secondService.init({ accessToken: 'token', fetchImplementation: secondFetchImplementation })
+
+        await secondService.restorePendingCommits(project)
+        expect(secondService.hasPendingCommits(project)).toBe(true)
+
+        await secondService.push(project)
+
+        const patchCalls = secondFetchImplementation.mock.calls.filter(([, init]) => init.method === 'PATCH')
+        expect(patchCalls).toHaveLength(1)
+        expect(JSON.parse(patchCalls[0][1].body)).toEqual({ force: false, sha: 'pending-commit' })
+    })
+
+    it('uses a restored pending head as the parent for later commits', async () => {
+        window.localStorage.setItem('md2.github.pendingCommitHeads', JSON.stringify({'owner/repo:main': { baseSha: 'base-commit', headSha: 'pending-commit-1' }}))
+        const fetchImplementation = vi.fn()
+            .mockResolvedValueOnce(createResponse({ object: { sha: 'base-commit', type: 'commit' }, ref: 'refs/heads/main' }))
+            .mockResolvedValueOnce(createResponse({ sha: 'pending-commit-1', tree: { sha: 'tree-1' } }))
+            .mockResolvedValueOnce(createResponse({ sha: 'pending-commit-1', tree: { sha: 'tree-1' } }))
+            .mockResolvedValueOnce(createResponse({ sha: 'blob-2' }))
+            .mockResolvedValueOnce(createResponse({ sha: 'tree-2' }))
+            .mockResolvedValueOnce(createResponse({ sha: 'pending-commit-2', tree: { sha: 'tree-2' } }))
+        const service = new GithubStorageService()
+        service.init({ accessToken: 'token', fetchImplementation })
+
+        await service.restorePendingCommits(project)
+        await service.commit({
+            branch: 'main',
+            files: [{ content: '# Second', path: 'design/F-2-added.md' }],
+            message: 'Second pending commit',
+        })
+
+        const commitCalls = fetchImplementation.mock.calls.filter(([url]) => url.includes('/repos/owner/repo/git/commits'))
+        expect(JSON.parse(commitCalls[2][1].body)).toEqual({
+            message: 'Second pending commit',
+            parents: ['pending-commit-1'],
+            tree: 'tree-2',
+        })
+        expect(JSON.parse(window.localStorage.getItem('md2.github.pendingCommitHeads') ?? '{}')).toEqual({'owner/repo:main': { baseSha: 'base-commit', headSha: 'pending-commit-2' }})
+    })
+
+    it('raises a pending conflict when the remote branch moved before restore', async () => {
+        window.localStorage.setItem('md2.github.pendingCommitHeads', JSON.stringify({'owner/repo:main': { baseSha: 'base-commit', headSha: 'pending-commit' }}))
+        const fetchImplementation = vi.fn()
+            .mockResolvedValueOnce(createResponse({ object: { sha: 'remote-commit', type: 'commit' }, ref: 'refs/heads/main' }))
+        const service = new GithubStorageService()
+        service.init({ accessToken: 'token', fetchImplementation })
+
+        await expect(service.restorePendingCommits(project)).rejects.toBeInstanceOf(GithubPendingCommitConflictError)
+        expect(service.hasPendingCommits(project)).toBe(true)
+        expect(fetchImplementation.mock.calls.some(([, init]) => init.method === 'PATCH')).toBe(false)
+    })
+
+    it('discards stored pending commits for one project only', async () => {
+        window.localStorage.setItem('md2.github.pendingCommitHeads', JSON.stringify({
+            'owner/other:main': { baseSha: 'other-base', headSha: 'other-head' },
+            'owner/repo:main': { baseSha: 'base-commit', headSha: 'pending-commit' },
+        }))
+        const service = new GithubStorageService()
+        service.init({ accessToken: 'token', fetchImplementation: vi.fn() })
+
+        service.discardPendingCommits(project)
+
+        expect(service.hasPendingCommits(project)).toBe(false)
+        expect(JSON.parse(window.localStorage.getItem('md2.github.pendingCommitHeads') ?? '{}')).toEqual({'owner/other:main': { baseSha: 'other-base', headSha: 'other-head' }})
+    })
+
+    it('keeps pending heads when switching projects', async () => {
+        const otherProject = { branch: 'main', id: 'owner/other', owner: 'owner', repository: 'other' }
+        const fetchImplementation = vi.fn()
+            .mockResolvedValueOnce(createResponse([]))
+            .mockResolvedValueOnce(createResponse({ object: { sha: 'base-commit', type: 'commit' }, ref: 'refs/heads/main' }))
+            .mockResolvedValueOnce(createResponse({ sha: 'base-commit', tree: { sha: 'base-tree' } }))
+            .mockResolvedValueOnce(createResponse({ sha: 'blob-1' }))
+            .mockResolvedValueOnce(createResponse({ sha: 'new-tree' }))
+            .mockResolvedValueOnce(createResponse({ sha: 'pending-commit', tree: { sha: 'new-tree' } }))
+            .mockResolvedValueOnce(createResponse([]))
+            .mockResolvedValueOnce(createResponse({}))
+        const service = new GithubStorageService()
+        service.init({ accessToken: 'token', fetchImplementation })
+
+        await service.loadProject(project, 'design')
+        await service.commit({
+            branch: 'main',
+            files: [{ content: '# Updated', path: 'design/F-1-root.md' }],
+            message: 'Update root',
+        })
+        await service.loadProject(otherProject, 'design')
+        await service.push(project)
+
+        const patchCalls = fetchImplementation.mock.calls.filter(([, init]) => init.method === 'PATCH')
+        expect(patchCalls).toHaveLength(1)
         expect(JSON.parse(patchCalls[0][1].body)).toEqual({ force: false, sha: 'pending-commit' })
     })
 

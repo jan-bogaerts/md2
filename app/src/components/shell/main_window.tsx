@@ -14,7 +14,7 @@ import { ProjectToolbarMenu } from './project_toolbar_menu'
 import { SearchControl } from './search/search_control'
 import { SplitLayout } from './split_layout'
 import { StatusBar } from './status_bar'
-import type { RunningAgent } from './running_agent_types'
+import type { RunningAgent } from '../../data/data_types'
 
 const MOBILE_DRAWER_WIDTH = 300
 const PANEL_PADDING = 2

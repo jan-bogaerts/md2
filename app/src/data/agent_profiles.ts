@@ -7,6 +7,8 @@ export interface AgentProfile {
     resumeCommand?: string
 }
 
+// Desktop has a standalone CommonJS copy. Keep behavior in sync; desktop parity test enforces this.
+
 export interface AgentSelection {
     agent: string
     model: string
