@@ -1,7 +1,7 @@
 ---
 id: J-005
 title: split data service into scoped collaborators behind the facade
-status: design
+status: ready
 owner: JB
 affects:
 policy:

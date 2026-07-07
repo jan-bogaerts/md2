@@ -1,7 +1,13 @@
 import { resolveCardAssetPath } from '../data/asset_paths'
 import { createCardFile } from '../data/card_naming'
-import type { CardDraft, MarkdownFile, ProjectConfig } from '../data/data_types'
-import type { RemarkableConnectionSettings, RemarkableImportedAsset } from '../data/remarkable_bridge'
+import type { CardDraft, MarkdownFile, ProjectConfig, ProjectReference, StorageService } from '../data/data_types'
+import {
+    getRemarkableBridge,
+    validateRemarkableSettings,
+    type RemarkableBridge,
+    type RemarkableConnectionSettings,
+    type RemarkableImportedAsset,
+} from '../data/remarkable_bridge'
 import {
     parseImportMetadata,
     recordImports,
@@ -33,11 +39,33 @@ export interface BuildRemarkableImportInput {
     target: RemarkableImportTarget
 }
 
+export interface RemarkableImportInput {
+    paths: string[]
+    settings: RemarkableConnectionSettings
+    target: RemarkableImportTarget
+}
+
+export interface ExecuteRemarkableImportInput {
+    bridge: RemarkableBridge | null
+    commitAndMergeFiles: (request: Parameters<StorageService['commit']>[0], fallbackFiles: MarkdownFile[]) => Promise<MarkdownFile[]>
+    config: ProjectConfig
+    files: MarkdownFile[]
+    project: ProjectReference
+    request: RemarkableImportInput
+    storage: StorageService
+}
+
 export interface RemarkableImportPlan {
     cardPath: string
     commitFiles: MarkdownFile[]
     importedAssetPaths: string[]
     message: string
+}
+
+export function getRemarkableMetadataContent(files: MarkdownFile[], config: Pick<ProjectConfig, 'workingFolder'>): string | null {
+    const path = remarkableMetadataPath(config.workingFolder)
+
+    return files.find((file) => file.path === path)?.content ?? null
 }
 
 function fileNameWithoutExtension(name: string) {
@@ -113,4 +141,35 @@ export function buildRemarkableImport(input: BuildRemarkableImportInput): Remark
         importedAssetPaths: assetFiles.map((file) => file.path),
         message,
     }
+}
+
+/**
+ * Import selected Remarkable images beside a target card and commit the card, image assets and
+ * refreshed import metadata together.
+ */
+export async function importRemarkableImages(input: ExecuteRemarkableImportInput): Promise<RemarkableImportPlan> {
+    const bridge = input.bridge ?? getRemarkableBridge()
+    if (!bridge) throw new Error('Remarkable import requires Electron local mode')
+
+    const settings = validateRemarkableSettings(input.request.settings)
+    const assets = await bridge.importFiles({ paths: input.request.paths, settings })
+    const plan = buildRemarkableImport({
+        assets,
+        config: input.config,
+        files: input.files,
+        importedAt: new Date().toISOString(),
+        metadataContent: getRemarkableMetadataContent(input.files, input.config),
+        settings,
+        target: input.request.target,
+    })
+
+    await input.commitAndMergeFiles({
+        branch: input.project.branch,
+        files: plan.commitFiles,
+        message: plan.message,
+    }, plan.commitFiles)
+
+    if (input.config.pushMode === 'auto') await input.storage.push(input.project)
+
+    return plan
 }
