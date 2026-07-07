@@ -574,18 +574,21 @@ describe('GithubStorageService', () => {
     })
 
     it('lists top-level folders from the repository root', async () => {
-        const fetchImplementation = vi.fn().mockResolvedValue(createResponse([
-            { name: 'app', path: 'app', type: 'dir' },
-            { name: 'README.md', path: 'README.md', type: 'file' },
-            { name: 'design', path: 'design', type: 'dir' },
-        ]))
+        const fetchImplementation = vi.fn()
+        queueProjectTree(fetchImplementation, [
+            { path: 'app', sha: 'app-tree', type: 'tree' },
+            { path: 'README.md', sha: 'readme-sha', type: 'blob' },
+            { path: 'app/src', sha: 'src-tree', type: 'tree' },
+            { path: 'design', sha: 'design-tree', type: 'tree' },
+        ])
         const service = new GithubStorageService()
         service.init({ accessToken: 'token', fetchImplementation })
 
         const folders = await service.listTopLevelFolders({ branch: 'main', id: 'owner/repo', owner: 'owner', repository: 'repo' })
 
         expect(folders).toEqual([{ name: 'app', path: 'app' }, { name: 'design', path: 'design' }])
-        expect(fetchImplementation.mock.calls[0][0]).toContain('/repos/owner/repo/contents?ref=main')
+        expect(fetchImplementation.mock.calls[2][0]).toContain('/repos/owner/repo/git/trees/base-tree?recursive=1')
+        expect(fetchImplementation.mock.calls.some(([url]) => url.includes('/repos/owner/repo/contents'))).toBe(false)
     })
 
     it('throws a clear missing-folder error without creating content when loading a missing project folder', async () => {

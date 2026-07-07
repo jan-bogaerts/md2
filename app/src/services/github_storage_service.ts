@@ -15,7 +15,6 @@ import type {
     RepositoryReference,
     StorageProjectFiles,
     StorageService,
-    TopLevelFolderReference,
 } from '../data/data_types'
 import { parseAgentConversationLog } from './agent_conversation_service'
 import { mapWithConcurrency } from './concurrency'
@@ -156,22 +155,6 @@ function normalizeBranches(payload: unknown): BranchReference[] {
     return payload.map((branch) => ({ name: requireString((branch as GithubBranchResponse).name, 'branch.name') }))
 }
 
-function normalizeDirectoryEntries(payload: unknown) {
-    if (!Array.isArray(payload)) throw new Error('Missing GitHub storage field: directory entries')
-
-    return payload as GithubContentResponse[]
-}
-
-function normalizeTopLevelFolders(payload: unknown): TopLevelFolderReference[] {
-    return normalizeDirectoryEntries(payload)
-        .filter((entry) => requireString(entry.type, 'content.type') === 'dir')
-        .map((entry) => {
-            const path = requireString(entry.path, 'content.path')
-
-            return { name: requireString(entry.name, 'content.name'), path }
-        })
-}
-
 function normalizeFileContent(payload: unknown): MarkdownFile {
     const response = payload as GithubContentResponse
     const encoding = requireString(response.encoding, 'content.encoding')
@@ -292,6 +275,10 @@ function isDirectFileInFolder(entryPath: string, folderPath: string) {
     if (!normalizedPath.startsWith(`${folderPath}/`)) return false
 
     return !normalizedPath.slice(folderPath.length + 1).includes('/')
+}
+
+function isTopLevelTree(entry: NormalizedGithubTreeEntry) {
+    return entry.type === 'tree' && !entry.path.includes('/')
 }
 
 function isMarkdownBlob(entry: NormalizedGithubTreeEntry) {
@@ -481,11 +468,11 @@ export class GithubStorageService implements StorageService {
 
     async listTopLevelFolders(project: ProjectReference) {
         this.requireGithubProject(project)
-        const payload = await this.request(
-            `/repos/${project.owner}/${project.repository}/contents?ref=${encodeURIComponent(project.branch)}`,
-        )
+        const entries = await this.getProjectRecursiveTreeEntries(project)
 
-        return normalizeTopLevelFolders(payload)
+        return entries
+            .filter(isTopLevelTree)
+            .map((entry) => ({ name: entry.path, path: entry.path }))
     }
 
     async checkoutBranch(project: ProjectReference, branch: string) {

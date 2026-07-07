@@ -97,6 +97,12 @@ function createDeferred<T>() {
     return { promise, resolve: resolveDeferred }
 }
 
+function waitForWorkerTurn() {
+    return new Promise((resolve) => {
+        window.setTimeout(resolve, 0)
+    })
+}
+
 function createStorage(overrides: Partial<StorageService> = {}): StorageService {
     return {
         checkoutBranch: vi.fn(async (project, branch) => ({ ...project, branch })),
@@ -995,6 +1001,50 @@ describe('DataService', () => {
         await vi.waitFor(() => {
             expect(service.getState().snapshot?.activeCards[0].agentConversations[0].title).toBe('Agent run')
         })
+    })
+
+    it('bounds parallel referenced agent conversation loads', async () => {
+        configService.init()
+        let activeLoads = 0
+        let maxActiveLoads = 0
+        const agentReferences = Array.from({ length: 10 }, (_item, index) => `.md2-agent-logs/${index}.json`)
+        const agentFile: MarkdownFile = {
+            content: [
+                '---',
+                'id: F-1',
+                'title: Root',
+                'status: active',
+                'agents:',
+                ...agentReferences.map((reference) => `  - ${reference}`),
+                '---',
+                '',
+                '# Root',
+            ].join('\n'),
+            path: 'design/F-1-root.md',
+        }
+        const fullProject = createDeferred<StorageProjectFiles>()
+        const storage = createStorage({
+            loadAgentConversation: vi.fn(async (_project, path) => {
+                activeLoads += 1
+                maxActiveLoads = Math.max(maxActiveLoads, activeLoads)
+                await waitForWorkerTurn()
+                activeLoads -= 1
+
+                return { ...conversation(path), id: path }
+            }),
+            loadProject: vi.fn(async () => fullProject.promise),
+            loadProjectRoot: vi.fn(async () => ({ files: [agentFile], workingFolder: 'design' })),
+        })
+        const service = new DataService()
+        service.init({ storage })
+
+        await service.openProject({ branch: 'main', id: 'project' })
+
+        await vi.waitFor(() => {
+            expect(service.getState().snapshot?.activeCards[0].agentConversations).toHaveLength(10)
+        })
+        expect(maxActiveLoads).toBeGreaterThan(1)
+        expect(maxActiveLoads).toBeLessThanOrEqual(8)
     })
 
     it('keeps cards loaded when a referenced agent log is invalid', async () => {
