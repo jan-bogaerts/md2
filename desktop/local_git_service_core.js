@@ -6,6 +6,14 @@ const { promisify } = require('node:util')
 const execFileAsync = promisify(execFile)
 const execAsync = promisify(exec)
 const MARKDOWN_EXTENSION = '.md'
+const PROJECT_ASSET_CONTENT_TYPES = {
+    '.gif': 'image/gif',
+    '.jpeg': 'image/jpeg',
+    '.jpg': 'image/jpeg',
+    '.png': 'image/png',
+    '.svg': 'image/svg+xml',
+    '.webp': 'image/webp',
+}
 const JSON_EXTENSION = '.json'
 const PROJECT_CONFIG_PATH = 'md2.config.json'
 const ACTION_HISTORY_FOLDER = '.md2-action-history'
@@ -485,6 +493,26 @@ async function loadFile(project, filePath) {
     return { content, path: normalizePath(path.relative(rootPath, fullPath)) }
 }
 
+async function loadProjectAsset(project, filePath) {
+    const rootPath = requireRootPath(project)
+    await assertGitRoot(rootPath)
+    if (typeof filePath !== 'string' || filePath.length === 0) throw new Error('Missing project asset path')
+
+    const extension = path.extname(filePath).toLowerCase()
+    const contentType = PROJECT_ASSET_CONTENT_TYPES[extension]
+    if (!contentType) throw new Error(`Unsupported project asset type: ${extension}`)
+
+    const fullPath = ensureInsideRoot(rootPath, path.join(rootPath, filePath))
+    const content = await fs.promises.readFile(fullPath)
+
+    return {
+        content: content.toString('base64'),
+        contentType,
+        encoding: 'base64',
+        path: normalizePath(path.relative(rootPath, fullPath)),
+    }
+}
+
 async function loadActionFiles(project, actionsFolder) {
     const rootPath = requireRootPath(project)
     await assertGitRoot(rootPath)
@@ -644,6 +672,7 @@ module.exports = {
     loadAgentConversation,
     loadActionFiles,
     loadFile,
+    loadProjectAsset,
     loadProject,
     loadProjectRoot,
     loadProjectConfig,

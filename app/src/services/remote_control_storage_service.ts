@@ -19,6 +19,7 @@ import type {
     CommitResult,
     DeleteFileRequest,
     MoveFilesRequest,
+    ProjectAsset,
     ProjectConfig,
     ProjectReference,
     ProjectWatchEvent,
@@ -154,6 +155,10 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
 
     async loadAgentConversation(_project: ProjectReference, path: string): Promise<AgentConversation> {
         return this.request<AgentConversation>('loadAgentConversation', [path])
+    }
+
+    async loadProjectAsset(_project: ProjectReference, path: string): Promise<ProjectAsset> {
+        return this.request<ProjectAsset>('loadProjectAsset', [path])
     }
 
     async loadProject(project: ProjectReference, workingFolder: string): Promise<StorageProjectFiles> {

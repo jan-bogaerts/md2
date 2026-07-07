@@ -14,6 +14,7 @@ function createBridge(overrides: Partial<ElectronDataBridge> = {}): ElectronData
         listRepositoryFiles: vi.fn(),
         listTopLevelFolders: vi.fn(),
         loadFile: vi.fn().mockResolvedValue({ content: '# Root', path: 'design/F-1-card.md' }),
+        loadProjectAsset: vi.fn().mockResolvedValue({ content: 'aWNvbg==', contentType: 'image/png', encoding: 'base64', path: 'actions/icon.png' }),
         loadActionFiles: vi.fn(),
         loadProject: vi.fn(),
         loadProjectRoot: vi.fn(),
@@ -94,5 +95,23 @@ describe('LocalGitStorageService binary write path', () => {
 
         expect(loadFile).toHaveBeenCalledWith(project, 'design/F-1-card.md')
         expect(file).toEqual({ content: '# Root', path: 'design/F-1-card.md' })
+    })
+
+    it('forwards project asset reads to the bridge unchanged', async () => {
+        const loadProjectAsset = vi.fn().mockResolvedValue({
+            content: 'aWNvbg==',
+            contentType: 'image/png',
+            encoding: 'base64',
+            path: 'actions/icon.png',
+        })
+        const bridge = createBridge({ loadProjectAsset })
+        const service = new LocalGitStorageService()
+        service.init({ bridge })
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
+
+        const asset = await service.loadProjectAsset(project, 'actions/icon.png')
+
+        expect(loadProjectAsset).toHaveBeenCalledWith(project, 'actions/icon.png')
+        expect(asset).toEqual({ content: 'aWNvbg==', contentType: 'image/png', encoding: 'base64', path: 'actions/icon.png' })
     })
 })

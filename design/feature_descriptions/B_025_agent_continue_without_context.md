@@ -1,7 +1,7 @@
 ---
 id: B-025
 title: continuing an agent conversation starts a context-free new agent
-status: ready
+status: almost ready
 owner: JB
 affects:
 policy:

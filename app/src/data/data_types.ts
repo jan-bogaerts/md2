@@ -37,6 +37,13 @@ export interface MarkdownFile {
     sha?: string
 }
 
+export interface ProjectAsset {
+    content: string
+    contentType: string
+    encoding: 'base64'
+    path: string
+}
+
 export interface CardHeader {
     affects: string[]
     after: string | null
@@ -230,6 +237,7 @@ export interface StorageService {
     loadActionSchedules?(project: ProjectReference, actionsFolder: string): Promise<ActionSchedule[]>
     cancelActionSchedule?(project: ProjectReference, actionsFolder: string, scheduleId: string): Promise<ActionSchedule[]>
     loadAgentConversation?(project: ProjectReference, path: string): Promise<AgentConversation>
+    loadProjectAsset?(project: ProjectReference, path: string): Promise<ProjectAsset>
     loadProject(project: ProjectReference, workingFolder: string): Promise<StorageProjectFiles>
     loadFile?(project: ProjectReference, path: string): Promise<MarkdownFile>
     loadProjectRoot(project: ProjectReference, workingFolder: string): Promise<StorageProjectFiles>

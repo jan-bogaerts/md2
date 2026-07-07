@@ -185,6 +185,32 @@ function normalizeFileContent(payload: unknown): MarkdownFile {
     }
 }
 
+function contentTypeForPath(path: string) {
+    const extension = path.toLowerCase().split('.').pop()
+    if (extension === 'svg') return 'image/svg+xml'
+    if (extension === 'png') return 'image/png'
+    if (extension === 'jpg' || extension === 'jpeg') return 'image/jpeg'
+    if (extension === 'gif') return 'image/gif'
+    if (extension === 'webp') return 'image/webp'
+
+    return 'application/octet-stream'
+}
+
+function normalizeProjectAsset(payload: unknown) {
+    const response = payload as GithubContentResponse
+    const encoding = requireString(response.encoding, 'content.encoding')
+    if (encoding !== 'base64') throw new Error(`Unsupported GitHub content encoding: ${encoding}`)
+
+    const path = requireString(response.path, 'content.path')
+
+    return {
+        content: requireString(response.content, 'content.content').replace(/\s/gu, ''),
+        contentType: contentTypeForPath(path),
+        encoding: 'base64' as const,
+        path,
+    }
+}
+
 function normalizeGitRef(payload: unknown) {
     const response = payload as GithubGitRefResponse
     const objectType = requireString(response.object?.type, 'gitRef.object.type')
@@ -401,6 +427,15 @@ export class GithubStorageService implements StorageService {
         const file = await this.readFile(project, path)
 
         return parseAgentConversationLog(file.content, path)
+    }
+
+    async loadProjectAsset(project: ProjectReference, path: string) {
+        this.requireGithubProject(project)
+        const payload = await this.request(
+            `/repos/${project.owner}/${project.repository}/contents/${encodePath(path)}?ref=${encodeURIComponent(project.branch)}`,
+        )
+
+        return normalizeProjectAsset(payload)
     }
 
     async loadProjectConfig(project: ProjectReference): Promise<Partial<ProjectConfig> | null> {

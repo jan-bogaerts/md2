@@ -12,6 +12,7 @@ import {
     type AgentRunEvent,
     type CardDraft,
     type MarkdownFile,
+    type ProjectAsset,
     type ProjectConfig,
     type ProjectReference,
     type ProjectWatchEvent,
@@ -297,6 +298,14 @@ export class DataService extends EventTarget {
         if (!this.currentProject) throw new Error('Cannot save project config before a project is open')
 
         await storage.saveProjectConfig(this.currentProject, configService.getProjectConfig())
+    }
+
+    async loadProjectAsset(path: string): Promise<ProjectAsset> {
+        const { storage } = this.requireDependencies()
+        if (!this.currentProject) throw new Error('Cannot load a project asset before a project is open')
+        if (!storage.loadProjectAsset) throw new Error('Project asset loading is not available')
+
+        return storage.loadProjectAsset(this.currentProject, path)
     }
 
     async switchBranch(branch: string) {

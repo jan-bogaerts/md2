@@ -22,6 +22,7 @@ const {
     loadActionSchedules,
     loadAgentConversation,
     loadFile,
+    loadProjectAsset,
     loadProject,
     loadProjectRoot,
     loadProjectConfig,
@@ -92,6 +93,25 @@ describe('local-git-service', () => {
             await expect(loadFile({ branch: 'main', id: 'local', rootPath }, 'design/F-1-root.md')).resolves.toEqual({
                 content: '# Root',
                 path: 'design/F-1-root.md',
+            })
+        } finally {
+            await rm(rootPath, { force: true, recursive: true })
+        }
+    })
+
+    it('loads image assets by repository-relative path as base64', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-local-git-'))
+
+        try {
+            await mkdir(join(rootPath, '.git'))
+            await mkdir(join(rootPath, 'actions'), { recursive: true })
+            await writeFile(join(rootPath, 'actions', 'icon.png'), Buffer.from('icon'))
+
+            await expect(loadProjectAsset({ branch: 'main', id: 'local', rootPath }, 'actions/icon.png')).resolves.toEqual({
+                content: Buffer.from('icon').toString('base64'),
+                contentType: 'image/png',
+                encoding: 'base64',
+                path: 'actions/icon.png',
             })
         } finally {
             await rm(rootPath, { force: true, recursive: true })

@@ -1,6 +1,8 @@
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { CardView } from './card_view'
+import { actionService } from '../../services/action_service'
+import type { ActionFile } from '../../data/action_types'
 import { DEFAULT_CARD_TYPES, type AgentConversation, type ProjectCard } from '../../data/data_types'
 import { telemetryService } from '../../services/telemetry_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
@@ -41,6 +43,10 @@ const cards = [
     card('F-2', 'Second', 'done'),
 ]
 
+function actionFile(definition: unknown): ActionFile {
+    return { content: JSON.stringify(definition), path: 'actions/action.json' }
+}
+
 function renderCardView(overrides: Partial<Parameters<typeof CardView>[0]> = {}) {
     const handlers = {
         onAffectsChange: vi.fn(),
@@ -73,7 +79,10 @@ function renderCardView(overrides: Partial<Parameters<typeof CardView>[0]> = {})
 }
 
 describe('CardView', () => {
-    afterEach(cleanup)
+    afterEach(() => {
+        cleanup()
+        actionService.clear()
+    })
 
     it('groups cards into a column per status with id and title', () => {
         renderCardView()
@@ -149,6 +158,36 @@ describe('CardView', () => {
         expect(handlers.onDeleteCard).not.toHaveBeenCalled()
 
         confirm.mockRestore()
+    })
+
+    it('opens matching actions from the card context menu', () => {
+        actionService.loadFromFiles([
+            actionFile({
+                appliesTo: { type: 'feature' },
+                description: 'Implement',
+                label: 'Implement',
+                name: 'implement',
+                text: 't',
+                type: 'agent',
+            }),
+        ])
+        renderCardView()
+
+        fireEvent.contextMenu(screen.getByText('First'))
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Implement' }))
+
+        const dialog = screen.getByRole('dialog')
+        expect(within(dialog).getByRole('heading', { name: 'Implement' })).toBeInTheDocument()
+        expect(within(dialog).getByRole('button', { name: 'Run' })).toBeInTheDocument()
+    })
+
+    it('opens existing card commands from the icon button menu', () => {
+        const handlers = renderCardView()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Card actions for F-1' }))
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Open in file mode' }))
+
+        expect(handlers.onOpenInFileMode).toHaveBeenCalledWith('design/F-1.md')
     })
 
     it('confirms before deleting from the body dialog', () => {

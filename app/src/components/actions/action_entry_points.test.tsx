@@ -1,8 +1,9 @@
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ActionEntryPoints } from './action_entry_points'
 import { FileTreeView } from '../text_view/file_tree_view'
 import { actionService } from '../../services/action_service'
+import { dataService } from '../../services/data_service'
 import type { ActionFile } from '../../data/action_types'
 import { buildFileTree } from '../../data/file_tree'
 import { cardContext, folderContext } from '../../data/action_context'
@@ -32,6 +33,7 @@ const featureCard = card('F-010', 'design')
 afterEach(() => {
     cleanup()
     actionService.clear()
+    vi.restoreAllMocks()
 })
 
 describe('ActionEntryPoints filtering', () => {
@@ -50,6 +52,47 @@ describe('ActionEntryPoints filtering', () => {
         expect(screen.getByRole('button', { name: 'Implement' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Custom prompt' })).toBeInTheDocument()
         expect(screen.queryByRole('button', { name: 'Fix' })).not.toBeInTheDocument()
+    })
+
+    it('renders configured inline SVG icons on card buttons', async () => {
+        actionService.loadFromFiles([
+            file({ description: 'Review', icon: '<svg viewBox="0 0 1 1"><path d="M0 0h1v1H0z" /></svg>', label: 'Review', name: 'review', text: 't', type: 'cmd' }),
+        ])
+
+        render(<ActionEntryPoints context={cardContext(featureCard, DEFAULT_CARD_TYPES)} variant="icons" />)
+
+        const button = screen.getByRole('button', { name: 'Review' })
+        await waitFor(() => expect(button.querySelector('img')).toBeInTheDocument())
+    })
+
+    it('renders project path icons in menu items', async () => {
+        vi.spyOn(dataService, 'loadProjectAsset').mockResolvedValue({
+            content: 'aWNvbg==',
+            contentType: 'image/png',
+            encoding: 'base64',
+            path: 'actions/icon.png',
+        })
+        actionService.loadFromFiles([
+            file({ description: 'Review', icon: 'actions/icon.png', label: 'Review', name: 'review', text: 't', type: 'cmd' }),
+        ])
+
+        render(<ActionEntryPoints context={cardContext(featureCard, DEFAULT_CARD_TYPES)} variant="menu" />)
+        fireEvent.click(screen.getByRole('button', { name: 'Actions' }))
+
+        const menuItem = screen.getByRole('menuitem', { name: 'Review' })
+        await waitFor(() => expect(menuItem.querySelector('img')).toHaveAttribute('src', 'data:image/png;base64,aWNvbg=='))
+    })
+
+    it('falls back to the default icon for malformed inline SVG', () => {
+        actionService.loadFromFiles([
+            file({ description: 'Review', icon: '<svg><script>alert(1)</script></svg>', label: 'Review', name: 'review', text: 't', type: 'cmd' }),
+        ])
+
+        render(<ActionEntryPoints context={cardContext(featureCard, DEFAULT_CARD_TYPES)} variant="icons" />)
+
+        const button = screen.getByRole('button', { name: 'Review' })
+        expect(button.querySelector('img')).toBeNull()
+        expect(button.querySelector('svg')).toBeInTheDocument()
     })
 
     it('offers the custom prompt action in every context', () => {

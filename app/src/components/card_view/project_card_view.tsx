@@ -2,7 +2,7 @@ import { Badge, Box, Button, Collapse, IconButton, Menu, MenuItem, Popover, Stac
 import { useSortable } from '@dnd-kit/sortable'
 import DotsVertical from 'mdi-material-ui/DotsVertical'
 import { useState } from 'react'
-import type { KeyboardEvent, MouseEvent } from 'react'
+import type { KeyboardEvent, MouseEvent, TouchEvent } from 'react'
 import type { AgentConversation } from '../../data/data_types'
 import type { CardTypeConfig, ProjectCard } from '../../data/data_types'
 import { cardContext } from '../../data/action_context'
@@ -14,6 +14,7 @@ import { PolicyLed } from './policy_led'
 const TYPE_LINE_WIDTH = 4
 const AGENT_LED_SIZE = 10
 const AGENT_POPOVER_WIDTH = 420
+const CARD_LONG_PRESS_MS = 500
 
 export interface CardHandlers {
     onAffectsChange: (path: string, affects: string[]) => void
@@ -38,6 +39,11 @@ interface ProjectCardViewProps extends CardHandlers {
     isSelected: boolean
 }
 
+interface MenuPosition {
+    left: number
+    top: number
+}
+
 /** A single card: type-color line, id + title, policy leds, drag handle and body access. */
 export function ProjectCardView(props: ProjectCardViewProps) {
     const { card, cardTypes, color, isBodyOpen, isMobile, onBodyChange, onContinueAgentConversation, onOpenBody, onOpenInFileMode } = props
@@ -47,7 +53,9 @@ export function ProjectCardView(props: ProjectCardViewProps) {
     const { attributes, isDragging, listeners, setNodeRef, transform, transition } = useSortable({ id: card.path })
     const [agentAnchorElement, setAgentAnchorElement] = useState<HTMLElement | null>(null)
     const [actionsAnchorElement, setActionsAnchorElement] = useState<HTMLElement | null>(null)
+    const [actionsMenuPosition, setActionsMenuPosition] = useState<MenuPosition | null>(null)
     const [isEditingTitle, setIsEditingTitle] = useState(false)
+    const [longPressTimer, setLongPressTimer] = useState<number | null>(null)
     const [titleDraft, setTitleDraft] = useState(card.header.title)
 
     const style = {
@@ -88,7 +96,15 @@ export function ProjectCardView(props: ProjectCardViewProps) {
 
     const openCardActions = (event: MouseEvent<HTMLElement>) => {
         event.stopPropagation()
+        setActionsMenuPosition(null)
         setActionsAnchorElement(event.currentTarget)
+    }
+
+    const openCardContextMenu = (event: MouseEvent<HTMLElement>) => {
+        event.preventDefault()
+        event.stopPropagation()
+        setActionsAnchorElement(null)
+        setActionsMenuPosition({ left: event.clientX, top: event.clientY })
     }
 
     const openAffects = (event: MouseEvent<HTMLElement>) => {
@@ -102,6 +118,43 @@ export function ProjectCardView(props: ProjectCardViewProps) {
 
     const closeCardActions = () => {
         setActionsAnchorElement(null)
+        setActionsMenuPosition(null)
+    }
+
+    const openBodyFromMenu = () => {
+        closeCardActions()
+        onOpenBody(card.path)
+    }
+
+    const openInFileModeFromMenu = () => {
+        closeCardActions()
+        onOpenInFileMode(card.path)
+    }
+
+    const editTitleFromMenu = () => {
+        closeCardActions()
+        setTitleDraft(card.header.title)
+        setIsEditingTitle(true)
+    }
+
+    const clearLongPressTimer = () => {
+        if (longPressTimer !== null) window.clearTimeout(longPressTimer)
+        setLongPressTimer(null)
+    }
+
+    const handleCardTouchStart = (event: TouchEvent<HTMLElement>) => {
+        if (event.touches.length !== 1) return
+
+        const { clientX, clientY } = event.touches[0]
+        const timer = window.setTimeout(() => {
+            setActionsAnchorElement(null)
+            setActionsMenuPosition({ left: clientX, top: clientY })
+        }, CARD_LONG_PRESS_MS)
+        setLongPressTimer(timer)
+    }
+
+    const handleCardTouchEnd = () => {
+        clearLongPressTimer()
     }
 
     const deleteCard = async () => {
@@ -131,6 +184,11 @@ export function ProjectCardView(props: ProjectCardViewProps) {
     return (
         <Box
             data-selected={isSelected ? 'true' : undefined}
+            onContextMenu={openCardContextMenu}
+            onTouchCancel={handleCardTouchEnd}
+            onTouchEnd={handleCardTouchEnd}
+            onTouchMove={handleCardTouchEnd}
+            onTouchStart={handleCardTouchStart}
             ref={setNodeRef}
             sx={{
                 bgcolor: 'background.paper',
@@ -243,7 +301,17 @@ export function ProjectCardView(props: ProjectCardViewProps) {
                     />
                 </Box>
             </Popover>
-            <Menu anchorEl={actionsAnchorElement} onClose={closeCardActions} open={!!actionsAnchorElement}>
+            <Menu
+                anchorEl={actionsAnchorElement}
+                anchorPosition={actionsMenuPosition ?? undefined}
+                anchorReference={actionsMenuPosition ? 'anchorPosition' : 'anchorEl'}
+                onClose={closeCardActions}
+                open={!!actionsAnchorElement || !!actionsMenuPosition}
+            >
+                <ActionEntryPoints context={cardContext(card, cardTypes)} onMenuItemSelected={closeCardActions} variant="menuItems" />
+                <MenuItem onClick={openBodyFromMenu}>Open body</MenuItem>
+                <MenuItem onClick={openInFileModeFromMenu}>Open in file mode</MenuItem>
+                <MenuItem onClick={editTitleFromMenu}>Edit title</MenuItem>
                 <MenuItem onClick={deleteCard}>Delete</MenuItem>
             </Menu>
         </Box>
