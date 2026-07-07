@@ -1,7 +1,7 @@
 ---
 id: J-003
 title: delete dead refactor stubs and collapse rename shims
-status: design
+status: ready
 owner: JB
 affects:
 policy:
