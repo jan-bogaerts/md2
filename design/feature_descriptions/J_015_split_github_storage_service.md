@@ -1,7 +1,7 @@
 ---
 id: J-015
 title: split github_storage_service into focused collaborators
-status: design
+status: ready
 owner: JB
 affects:
 policy:
