@@ -50,6 +50,12 @@ function reportMarkdownWatchConflict(path: string) {
     reportWorkspaceError(`External change ignored for ${path} because the file has unsaved local edits.`)
 }
 
+function backgroundProjectLoadFailureMessage(error: unknown) {
+    const detail = errorMessage(error, 'Unknown error')
+
+    return `Background project data failed to load - search and history may be incomplete. ${detail}`
+}
+
 export class ProjectLoading {
     private readonly context: DataServiceContext
     private readonly loadAgentConversationsInBackground: (
@@ -250,7 +256,10 @@ export class ProjectLoading {
             const currentSnapshot = this.context.getCurrentSnapshot()
             if (currentSnapshot) this.loadAgentConversationsInBackground(currentSnapshot, project, projectLoadToken)
         } catch (error) {
-            console.error('Failed to load full project in background', error)
+            if (!this.shouldApplyProjectLoad(project, projectLoadToken)) return
+
+            reportWorkspaceError(backgroundProjectLoadFailureMessage(error))
+            telemetryService.captureError(error)
         }
     }
 

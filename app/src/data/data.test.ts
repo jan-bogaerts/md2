@@ -92,11 +92,13 @@ function activeCardFile(id: string, options: { after?: string; sha?: string; sta
 
 function createDeferred<T>() {
     let resolveDeferred: (value: T) => void = () => undefined
-    const promise = new Promise<T>((resolve) => {
+    let rejectDeferred: (reason?: unknown) => void = () => undefined
+    const promise = new Promise<T>((resolve, reject) => {
         resolveDeferred = resolve
+        rejectDeferred = reject
     })
 
-    return { promise, resolve: resolveDeferred }
+    return { promise, reject: rejectDeferred, resolve: resolveDeferred }
 }
 
 function waitForWorkerTurn() {
@@ -1040,6 +1042,75 @@ describe('DataService', () => {
         await vi.waitFor(() => {
             expect(service.getState().snapshot?.backgroundCards.map((card) => card.path)).toEqual(['design/history/F-3-old.md'])
         })
+    })
+
+    it('reports background project load failures while keeping the root snapshot available', async () => {
+        configService.init()
+        const error = new Error('network down')
+        const errors: string[] = []
+        const handleWorkspaceError = (event: Event) => {
+            errors.push((event as CustomEvent<string>).detail)
+        }
+        const storage = createStorage({
+            loadProject: vi.fn(async () => {
+                throw error
+            }),
+            loadProjectRoot: vi.fn(async () => ({ files: [files[0]], workingFolder: 'design' })),
+        })
+        const service = new DataService()
+        const captureError = vi.spyOn(telemetryService, 'captureError').mockImplementation(() => undefined)
+        window.addEventListener('md2:workspace-error', handleWorkspaceError)
+
+        try {
+            service.init({ storage })
+            const snapshot = await service.openProject({ branch: 'main', id: 'project' })
+
+            expect(snapshot.activeCards.map((card) => card.path)).toEqual(['design/F-1-root.md'])
+
+            await vi.waitFor(() => {
+                expect(errors).toContain('Background project data failed to load - search and history may be incomplete. network down')
+            })
+
+            expect(captureError).toHaveBeenCalledWith(error)
+            expect(service.getState().snapshot?.activeCards.map((card) => card.path)).toEqual(['design/F-1-root.md'])
+        } finally {
+            window.removeEventListener('md2:workspace-error', handleWorkspaceError)
+            captureError.mockRestore()
+        }
+    })
+
+    it('does not report failures from a superseded background project load', async () => {
+        configService.init()
+        const firstFullProject = createDeferred<StorageProjectFiles>()
+        const errors: string[] = []
+        const handleWorkspaceError = (event: Event) => {
+            errors.push((event as CustomEvent<string>).detail)
+        }
+        const loadProject = vi.fn<StorageService['loadProject']>(async () => firstFullProject.promise)
+        loadProject.mockImplementationOnce(async () => firstFullProject.promise)
+        loadProject.mockImplementationOnce(async () => ({ files: [files[0]], workingFolder: 'design' }))
+        const storage = createStorage({
+            loadProject,
+            loadProjectRoot: vi.fn(async () => ({ files: [files[0]], workingFolder: 'design' })),
+        })
+        const service = new DataService()
+        const captureError = vi.spyOn(telemetryService, 'captureError').mockImplementation(() => undefined)
+        window.addEventListener('md2:workspace-error', handleWorkspaceError)
+
+        try {
+            service.init({ storage })
+            await service.openProject({ branch: 'main', id: 'project' })
+            await service.openProject({ branch: 'main', id: 'other' })
+
+            firstFullProject.reject(new Error('old load failed'))
+            await waitForWorkerTurn()
+
+            expect(errors).toHaveLength(0)
+            expect(captureError).not.toHaveBeenCalled()
+        } finally {
+            window.removeEventListener('md2:workspace-error', handleWorkspaceError)
+            captureError.mockRestore()
+        }
     })
 
     it('imports external root markdown files after the full project load', async () => {
