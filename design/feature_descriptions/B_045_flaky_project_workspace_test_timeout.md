@@ -1,7 +1,7 @@
 ---
 id: B-045
 title: flaky ProjectWorkspace test times out under full-suite load
-status: design
+status: ready
 owner: JB
 affects:
 policy:

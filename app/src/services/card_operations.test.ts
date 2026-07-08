@@ -25,6 +25,20 @@ describe('CardOperations', () => {
         expect(storage.push).toHaveBeenCalledWith({ branch: 'main', id: 'project' })
     })
 
+    it('creates job and bug cards with the type-specific id prefix', async () => {
+        configService.init()
+        const storage = createStorage()
+        const service = new DataService()
+        service.init({ storage })
+
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        await service.cards.createCard({ body: '', title: 'New Job', type: 'job' })
+        await service.cards.createCard({ body: '', title: 'New Bug', type: 'bug' })
+
+        expect(storage.commit).toHaveBeenCalledWith(expect.objectContaining({ files: [expect.objectContaining({ path: 'design/J-1-new-job.md' })] }) as CommitRequest)
+        expect(storage.commit).toHaveBeenCalledWith(expect.objectContaining({ files: [expect.objectContaining({ path: 'design/B-1-new-bug.md' })] }) as CommitRequest)
+    })
+
     it('emits usage events after project and card operations succeed', async () => {
         configService.init()
         const storage = createStorage()

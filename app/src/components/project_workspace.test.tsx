@@ -370,31 +370,6 @@ describe('ProjectWorkspace', () => {
         expect(await screen.findByText('New Card')).toBeInTheDocument()
     })
 
-    it('creates job and bug cards with the type-specific id prefix', async () => {
-        const bridge = createBridge()
-        window.md2Data = bridge
-
-        renderProjectSurface()
-        await openLocalProject()
-        await screen.findByText('Root')
-
-        const createCardOfType = async (typeLabel: string, title: string) => {
-            fireEvent.click(screen.getByRole('button', { name: 'Project' }))
-            fireEvent.click(screen.getByRole('menuitem', { name: 'New card...' }))
-            fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Card type' }))
-            fireEvent.click(await screen.findByRole('option', { name: typeLabel }))
-            fireEvent.change(screen.getByLabelText('New card title'), { target: { value: title } })
-            fireEvent.click(screen.getByRole('button', { name: 'Create card' }))
-            await waitFor(() => expect(screen.queryByRole('dialog', { name: 'New card' })).toBeNull())
-        }
-
-        await createCardOfType('Job', 'New Job')
-        await waitFor(() => expect(bridge.commit).toHaveBeenCalledWith(expect.objectContaining({files: [expect.objectContaining({ path: 'design/J-1-new-job.md' })]})))
-
-        await createCardOfType('Bug', 'New Bug')
-        await waitFor(() => expect(bridge.commit).toHaveBeenCalledWith(expect.objectContaining({files: [expect.objectContaining({ path: 'design/B-1-new-bug.md' })]})))
-    })
-
     it('lists custom configured card types and uses their prefix', async () => {
         const bridge = createBridge()
         bridge.loadProjectConfig = vi.fn(async () => ({cardTypes: [{ color: '#123456', idPrefix: 'T', label: 'Task', type: 'task' }]}))
