@@ -8,6 +8,7 @@ import {
     type TopLevelFolderReference,
 } from '../data/data_types'
 import { createStorageService, writeLastProject, type StorageType } from '../data/project_session'
+import { activateStorageService } from '../data/project_storage_activation'
 import { configureRemoteControlConnection } from '../data/remote_control_connection'
 import { configService } from './config_service'
 import { dataService } from './data_service'
@@ -100,6 +101,7 @@ export class ProjectSessionService extends EventTarget {
             const storage = createStorageService(storageType, accessToken)
             try {
                 dataService.init({ storage })
+                activateStorageService(storageType, storage)
                 await dataService.openProject(project)
                 writeLastProject(storageType, project)
 
@@ -117,6 +119,7 @@ export class ProjectSessionService extends EventTarget {
             const storage = createStorageService(resolution.storageType, accessToken)
             await persistWorkingFolder(storage, resolution.project, folder.path)
             dataService.init({ storage })
+            activateStorageService(resolution.storageType, storage)
             await dataService.openProject(resolution.project)
             writeLastProject(resolution.storageType, resolution.project)
         })
@@ -128,6 +131,7 @@ export class ProjectSessionService extends EventTarget {
             const project = await storage.createWorkingFolderFromTemplate(resolution.project, resolution.configuredWorkingFolder)
             await persistWorkingFolder(storage, project, resolution.configuredWorkingFolder)
             dataService.init({ storage })
+            activateStorageService(resolution.storageType, storage)
             await dataService.openProject(project)
             writeLastProject(resolution.storageType, project)
         })

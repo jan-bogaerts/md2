@@ -59,7 +59,7 @@ function createDataBridge(): ElectronDataBridge {
     }
 }
 
-describe('createStorageService action bridge override', () => {
+describe('createStorageService', () => {
     afterEach(() => {
         setActionBridgeOverride(null)
         delete window.md2Actions
@@ -68,36 +68,34 @@ describe('createStorageService action bridge override', () => {
         window.localStorage.removeItem(REMOTE_CONTROL_TOKEN_KEY)
     })
 
-    it('registers remote storage as the action bridge override', () => {
-        configureRemoteControlConnection({ endpoint: 'ws://127.0.0.1:1234', token: 'token-1' })
-
-        const storage = createStorageService('remote', null)
-
-        expect(getElectronActionBridge()).toBe(storage)
-        expect(window.md2Actions).toBeUndefined()
-    })
-
-    it('clears the remote override when switching to GitHub storage', () => {
+    it('does not register remote storage as the action bridge override', () => {
         const preloadBridge = createActionBridge()
         window.md2Actions = preloadBridge
         configureRemoteControlConnection({ endpoint: 'ws://127.0.0.1:1234', token: 'token-1' })
+
         createStorageService('remote', null)
+
+        expect(getElectronActionBridge()).toBe(preloadBridge)
+        expect(window.md2Actions).toBe(preloadBridge)
+    })
+
+    it('does not clear an existing override when creating GitHub storage', () => {
+        const overrideBridge = createActionBridge()
+        setActionBridgeOverride(overrideBridge)
 
         createStorageService('github', 'token-1')
 
-        expect(getElectronActionBridge()).toBe(preloadBridge)
+        expect(getElectronActionBridge()).toBe(overrideBridge)
     })
 
-    it('clears the remote override when switching to local storage', () => {
-        const preloadBridge = createActionBridge()
-        window.md2Actions = preloadBridge
+    it('does not clear an existing override when creating local storage', () => {
+        const overrideBridge = createActionBridge()
+        setActionBridgeOverride(overrideBridge)
         window.md2Data = createDataBridge()
-        configureRemoteControlConnection({ endpoint: 'ws://127.0.0.1:1234', token: 'token-1' })
-        createStorageService('remote', null)
 
         createStorageService('local', null)
 
-        expect(getElectronActionBridge()).toBe(preloadBridge)
+        expect(getElectronActionBridge()).toBe(overrideBridge)
     })
 })
 

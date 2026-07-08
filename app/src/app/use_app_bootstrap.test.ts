@@ -4,7 +4,40 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { useAppBootstrap } from './use_app_bootstrap'
 import { LAST_PROJECT_STORAGE_KEY } from '../data/project_session'
 import type { ElectronDataBridge } from '../data/electron_data_bridge'
+import { getElectronActionBridge, setActionBridgeOverride, type ElectronActionBridge } from '../data/electron_action_bridge'
 import { configService } from '../services/config_service'
+
+function createActionBridge(): ElectronActionBridge {
+    return {
+        appendActionRunHistory: vi.fn(async () => []),
+        generateDiff: vi.fn(async () => ({ commit: 'commit-1', files: [] })),
+        loadActionRunHistory: vi.fn(async () => []),
+        openInEditor: vi.fn(),
+        runAgent: vi.fn(async () => ({
+            command: 'agent',
+            conversation: {
+                cardPath: 'design/F-1.md',
+                completedAt: '2026-01-01T00:00:00.000Z',
+                continuedFrom: null,
+                events: [],
+                id: 'run-1',
+                messages: [],
+                nativeSessionId: null,
+                path: '.md2-agent-logs/run-1.json',
+                startedAt: '2026-01-01T00:00:00.000Z',
+                status: 'completed' as const,
+                title: 'Run',
+            },
+            exitCode: 0,
+            prompt: 'run',
+            reference: '.md2-agent-logs/run-1.json',
+            runId: 'run-1',
+            stderr: '',
+            stdout: '',
+        })),
+        runCommand: vi.fn(async () => ({ command: 'npm test', exitCode: 0, stderr: '', stdout: 'ok' })),
+    }
+}
 
 function createBridge(): ElectronDataBridge {
     const files = [
@@ -42,7 +75,9 @@ function StrictModeWrapper(props: { children: ReactNode }) {
 describe('useAppBootstrap', () => {
     afterEach(() => {
         configService.clear()
+        setActionBridgeOverride(null)
         window.localStorage.clear()
+        delete window.md2Actions
         delete window.md2Data
     })
 
@@ -85,5 +120,22 @@ describe('useAppBootstrap', () => {
 
         await waitFor(() => expect(result.current.session).not.toBeNull())
         expect(result.current.session?.snapshot.activeCards).toHaveLength(1)
+    })
+
+    it('restores the preload action bridge when loading the last local project', async () => {
+        const staleRemoteBridge = createActionBridge()
+        const preloadBridge = createActionBridge()
+        setActionBridgeOverride(staleRemoteBridge)
+        window.md2Actions = preloadBridge
+        window.md2Data = createBridge()
+        window.localStorage.setItem(LAST_PROJECT_STORAGE_KEY, JSON.stringify({
+            project: { branch: 'main', id: 'local', rootPath: 'C:/repo' },
+            storageType: 'local',
+        }))
+
+        const { result } = renderHook(() => useAppBootstrap(null))
+
+        await waitFor(() => expect(result.current.session).not.toBeNull())
+        expect(getElectronActionBridge()).toBe(preloadBridge)
     })
 })

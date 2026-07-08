@@ -229,7 +229,6 @@ export class ActionRunner {
     private async runMain(action: ActionDefinition, context: ActionContext, options: RunOptions): Promise<string> {
         if (action.type === 'agent') return runAgentAction(this.executionDependencies(), action, context, options)
         if (action.type === 'cmd') return runCommandAction(this.executionDependencies(), action, context, options)
-        if (action.type !== 'cmd') return ''
 
         return ''
     }
