@@ -135,6 +135,15 @@ describe('CardView', () => {
         expect(handlers.onOpenInFileMode).toHaveBeenCalledWith('design/F-1.md')
     })
 
+    it('routes the file-mode action from the card header without opening the dialog', () => {
+        const handlers = renderCardView()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Open F-1 in file mode' }))
+
+        expect(handlers.onOpenInFileMode).toHaveBeenCalledWith('design/F-1.md')
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
+
     it('confirms before deleting from the card actions menu', async () => {
         const handlers = renderCardView()
 

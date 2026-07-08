@@ -1,7 +1,7 @@
 ---
 id: F-039
 title: open-in-file-mode button on the desktop card face
-status: design
+status: ready
 owner: JB
 affects:
 policy:
