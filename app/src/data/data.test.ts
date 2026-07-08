@@ -1427,6 +1427,40 @@ describe('DataService', () => {
         expect(actionService.getState().error).toContain('Invalid action type')
     })
 
+    it('reports all changed action paths when batched watcher events fail validation', async () => {
+        vi.useFakeTimers()
+        configService.init()
+        const validActionFile = { content: JSON.stringify({ description: 'Do', label: 'Do', name: 'do', text: 'run', type: 'cmd' }), path: 'actions/do.json' }
+        const invalidFirstActionFile = { content: JSON.stringify({ description: 'Bad', label: 'Bad', name: 'bad', text: 'run', type: 'bad' }), path: 'actions/bad.json' }
+        const changedSecondActionFile = { content: JSON.stringify({ description: 'More', label: 'More', name: 'more', text: 'run', type: 'cmd' }), path: 'actions/more.json' }
+        const loadActionFiles = vi.fn()
+            .mockResolvedValueOnce([validActionFile])
+            .mockResolvedValueOnce([invalidFirstActionFile, changedSecondActionFile])
+        let watchChange: (event: { changeKind: 'added' | 'changed' | 'removed' | 'unknown'; path: string }) => void = () => {
+            throw new Error('Watcher not registered')
+        }
+        const storage = createStorage({
+            loadActionFiles,
+            watchProject: vi.fn((_project, onChange) => {
+                watchChange = onChange
+
+                return vi.fn()
+            }),
+        })
+        const service = new DataService()
+        service.init({ storage })
+
+        await service.openProject({ branch: 'main', id: 'project' })
+        watchChange({ changeKind: 'changed', path: 'actions/bad.json' })
+        watchChange({ changeKind: 'changed', path: 'actions/more.json' })
+        await vi.advanceTimersByTimeAsync(150)
+
+        expect(actionService.getActions().map((action) => action.name)).toContain('do')
+        expect(actionService.getState().error).toContain('actions/bad.json')
+        expect(actionService.getState().error).toContain('actions/more.json')
+        expect(actionService.getState().error).toContain('Invalid action type')
+    })
+
     it('imports a new external markdown file when the watcher reports it', async () => {
         vi.useFakeTimers()
         configService.init()

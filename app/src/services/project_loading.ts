@@ -57,7 +57,7 @@ export class ProjectLoading {
         project: ProjectReference,
         projectLoadToken: number,
     ) => void
-    private actionReloadChangedPath: string | null = null
+    private actionReloadChangedPaths: Set<string> = new Set()
     private actionReloadTimeout: number | null = null
     private markdownReloadEventsByPath: Map<string, ProjectWatchEvent> = new Map()
     private markdownReloadTimeout: number | null = null
@@ -79,7 +79,7 @@ export class ProjectLoading {
         this.stopProjectWatch()
         this.clearActionReloadTimeout()
         this.clearMarkdownReloadTimeout()
-        this.actionReloadChangedPath = null
+        this.actionReloadChangedPaths.clear()
         this.markdownReloadEventsByPath = new Map()
         this.context.increaseProjectLoadToken()
     }
@@ -102,6 +102,7 @@ export class ProjectLoading {
         const projectLoadToken = this.context.increaseProjectLoadToken()
         this.context.increaseAgentConversationLoadToken()
         this.context.resetAgentConversations()
+        this.actionReloadChangedPaths.clear()
         this.markdownReloadEventsByPath = new Map()
         this.context.setCurrentProject(project)
         const projectConfig = await storage.loadProjectConfig(project)
@@ -277,7 +278,7 @@ export class ProjectLoading {
     }
 
     private scheduleActionReload(changedPath: string) {
-        this.actionReloadChangedPath = changedPath
+        this.actionReloadChangedPaths.add(changedPath)
         this.clearActionReloadTimeout()
         this.actionReloadTimeout = window.setTimeout(() => {
             void this.reloadActionsFromCurrentProject()
@@ -377,12 +378,12 @@ export class ProjectLoading {
         const currentProject = this.context.getCurrentProject()
         if (!currentProject) return
 
-        const changedPath = this.actionReloadChangedPath
-        if (!changedPath) return
+        const changedPaths = [...this.actionReloadChangedPaths]
+        if (changedPaths.length === 0) return
 
         this.clearActionReloadTimeout()
+        this.actionReloadChangedPaths.clear()
         const actionFiles = await storage.loadActionFiles(currentProject, config.actionsFolder)
-        actionService.reloadFromFiles(actionFiles, changedPath)
-        this.actionReloadChangedPath = null
+        actionService.reloadFromFiles(actionFiles, changedPaths)
     }
 }

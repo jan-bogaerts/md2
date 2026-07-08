@@ -40,12 +40,12 @@ export class ActionService extends EventTarget {
     }
 
     /** Reload action files after a watcher event, retaining the previous valid set on validation failure. */
-    reloadFromFiles(files: ActionFile[], changedPath: string) {
+    reloadFromFiles(files: ActionFile[], changedPaths: string[]) {
         try {
             return this.loadFromFiles(files)
         } catch (error) {
             const message = error instanceof Error ? error.message : 'Action reload failed'
-            this.error = `Action reload failed for ${changedPath}: ${message}`
+            this.error = `Action reload failed for ${changedPaths.join(', ')}: ${message}`
             this.dispatchChanged()
 
             return this.actions

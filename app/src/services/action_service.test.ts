@@ -39,7 +39,7 @@ describe('ActionService', () => {
         const service = new ActionService()
         service.loadFromFiles([file(VALID)])
 
-        service.reloadFromFiles([file({ ...VALID, type: 'bad' })], 'actions/action.json')
+        service.reloadFromFiles([file({ ...VALID, type: 'bad' })], ['actions/action.json'])
 
         expect(service.getActions().map((action) => action.name)).toContain('do')
         expect(service.getState().error).toContain('actions/action.json')

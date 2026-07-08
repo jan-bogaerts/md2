@@ -1,7 +1,7 @@
 ---
 id: B-039
 title: action reload debounce remembers only the last changed path
-status: design
+status: ready
 owner: JB
 affects:
 policy:
