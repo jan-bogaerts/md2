@@ -1,7 +1,7 @@
 ---
 id: F-038
 title: resizable splitter for the editor conversation panel
-status: design
+status: ready
 owner: JB
 affects:
 policy:

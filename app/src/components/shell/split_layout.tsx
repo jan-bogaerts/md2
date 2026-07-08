@@ -1,5 +1,5 @@
 import { Box } from '@mui/material'
-import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react'
+import type { KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent, ReactNode } from 'react'
 import { useCallback, useRef, useState } from 'react'
 
 export const SPLIT_WIDTH_STORAGE_KEY = 'md2.splitWidth'
@@ -7,6 +7,7 @@ const MIN_LEFT_WIDTH = 160
 const MAX_LEFT_WIDTH_RATIO = 0.8
 const DEFAULT_LEFT_WIDTH = 280
 const SEPARATOR_WIDTH = 6
+const KEYBOARD_RESIZE_STEP = 24
 
 interface SplitLayoutProps {
     left: ReactNode
@@ -24,15 +25,21 @@ function clampWidth(proposedWidth: number, containerWidth: number): number {
     return Math.min(Math.max(proposedWidth, MIN_LEFT_WIDTH), maxWidth)
 }
 
+function maxWidth(containerWidth: number): number {
+    return Math.max(MIN_LEFT_WIDTH, containerWidth * MAX_LEFT_WIDTH_RATIO)
+}
+
 /** Desktop body layout: a left and right panel separated by a draggable splitter. */
 export function SplitLayout(props: SplitLayoutProps) {
     const { left, right } = props
     const containerRef = useRef<HTMLDivElement>(null)
     const [leftWidth, setLeftWidth] = useState(readStoredWidth)
     const [isDragging, setIsDragging] = useState(false)
+    const [separatorMaxWidth, setSeparatorMaxWidth] = useState<number | undefined>(undefined)
 
     const handlePointerDown = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
         event.preventDefault()
+        if (containerRef.current) setSeparatorMaxWidth(maxWidth(containerRef.current.getBoundingClientRect().width))
         setIsDragging(true)
         event.currentTarget.setPointerCapture?.(event.pointerId)
     }, [])
@@ -41,6 +48,7 @@ export function SplitLayout(props: SplitLayoutProps) {
         if (!isDragging || !containerRef.current) return
 
         const bounds = containerRef.current.getBoundingClientRect()
+        setSeparatorMaxWidth(maxWidth(bounds.width))
         setLeftWidth(clampWidth(event.clientX - bounds.left, bounds.width))
     }, [isDragging])
 
@@ -55,6 +63,26 @@ export function SplitLayout(props: SplitLayoutProps) {
         })
     }, [isDragging])
 
+    const handleSeparatorKeyDown = useCallback((event: ReactKeyboardEvent<HTMLDivElement>) => {
+        if (!containerRef.current) return
+
+        const bounds = containerRef.current.getBoundingClientRect()
+        setSeparatorMaxWidth(maxWidth(bounds.width))
+        const nextWidthByKey: Record<string, number> = {
+            ArrowLeft: leftWidth - KEYBOARD_RESIZE_STEP,
+            ArrowRight: leftWidth + KEYBOARD_RESIZE_STEP,
+            End: maxWidth(bounds.width),
+            Home: MIN_LEFT_WIDTH,
+        }
+        const nextWidth = nextWidthByKey[event.key]
+        if (nextWidth === undefined) return
+
+        event.preventDefault()
+        const clampedWidth = clampWidth(nextWidth, bounds.width)
+        setLeftWidth(clampedWidth)
+        window.localStorage.setItem(SPLIT_WIDTH_STORAGE_KEY, String(Math.round(clampedWidth)))
+    }, [leftWidth])
+
     return (
         <Box ref={containerRef} sx={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
             <Box sx={{ flexShrink: 0, minWidth: 0, overflow: 'auto', width: leftWidth }}>
@@ -63,6 +91,10 @@ export function SplitLayout(props: SplitLayoutProps) {
             <Box
                 aria-label="Resize panels"
                 aria-orientation="vertical"
+                aria-valuemax={separatorMaxWidth}
+                aria-valuemin={MIN_LEFT_WIDTH}
+                aria-valuenow={Math.round(leftWidth)}
+                onKeyDown={handleSeparatorKeyDown}
                 onPointerDown={handlePointerDown}
                 onPointerMove={handlePointerMove}
                 onPointerUp={handlePointerUp}
@@ -74,6 +106,7 @@ export function SplitLayout(props: SplitLayoutProps) {
                     width: SEPARATOR_WIDTH,
                     '&:hover': { bgcolor: 'primary.main' },
                 }}
+                tabIndex={0}
             />
             <Box sx={{ flex: 1, minWidth: 0, overflow: 'auto' }}>
                 {right}

@@ -1,4 +1,5 @@
 import { Badge, Box, Button, Divider, Stack, Typography } from '@mui/material'
+import type { KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent } from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { buildFileTree, fileLabel } from '../../data/file_tree'
 import type { AgentConversation, CardTypeConfig, ProjectCard } from '../../data/data_types'
@@ -12,6 +13,9 @@ import { TabBar, type OpenTab } from './tab_bar'
 import { useOpenTabs } from './use_open_tabs'
 
 const CONVERSATION_PANEL_MIN_HEIGHT = 220
+const CONVERSATION_PANEL_MAX_HEIGHT_RATIO = 0.8
+const CONVERSATION_PANEL_SEPARATOR_HEIGHT = 6
+const CONVERSATION_PANEL_KEYBOARD_STEP = 24
 
 interface TextViewProps {
     activeCards: ProjectCard[]
@@ -36,6 +40,15 @@ function tabLabel(cardsByPath: Map<string, ProjectCard>, path: string): string {
     return card ? fileLabel(card) : path
 }
 
+function conversationPanelMaxHeight(containerHeight: number): number {
+    return Math.max(CONVERSATION_PANEL_MIN_HEIGHT, containerHeight * CONVERSATION_PANEL_MAX_HEIGHT_RATIO)
+}
+
+function clampConversationPanelHeight(proposedHeight: number, containerHeight: number): number {
+    const maxHeight = conversationPanelMaxHeight(containerHeight)
+    return Math.min(Math.max(proposedHeight, CONVERSATION_PANEL_MIN_HEIGHT), maxHeight)
+}
+
 /** Text view: a folder/status tree plus tabbed, editable open files. */
 export function TextView(props: TextViewProps) {
     const {
@@ -55,6 +68,10 @@ export function TextView(props: TextViewProps) {
         workingFolder,
     } = props
     const [isConversationPanelOpen, setIsConversationPanelOpen] = useState(false)
+    const [conversationPanelHeight, setConversationPanelHeight] = useState(CONVERSATION_PANEL_MIN_HEIGHT)
+    const [isConversationPanelDragging, setIsConversationPanelDragging] = useState(false)
+    const [conversationPanelMax, setConversationPanelMax] = useState<number | undefined>(undefined)
+    const editorStackRef = useRef<HTMLDivElement>(null)
     const onDeleteFileRef = useRef(onDeleteFile)
     const onLeftPanelInteractionRef = useRef(onLeftPanelInteraction)
 
@@ -121,6 +138,73 @@ export function TextView(props: TextViewProps) {
         if (activePath) onStartAgentConversation(activePath, prompt)
     }
 
+    const handleConversationPanelPointerDown = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
+        event.preventDefault()
+        if (editorStackRef.current) {
+            const bounds = editorStackRef.current.getBoundingClientRect()
+            setConversationPanelMax(conversationPanelMaxHeight(bounds.height))
+        }
+        setIsConversationPanelDragging(true)
+        event.currentTarget.setPointerCapture?.(event.pointerId)
+    }, [])
+
+    const handleConversationPanelPointerMove = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
+        if (!isConversationPanelDragging || !editorStackRef.current) return
+
+        const bounds = editorStackRef.current.getBoundingClientRect()
+        const proposedHeight = bounds.bottom - event.clientY
+        setConversationPanelMax(conversationPanelMaxHeight(bounds.height))
+        setConversationPanelHeight(clampConversationPanelHeight(proposedHeight, bounds.height))
+    }, [isConversationPanelDragging])
+
+    const handleConversationPanelPointerUp = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
+        if (!isConversationPanelDragging) return
+
+        setIsConversationPanelDragging(false)
+        event.currentTarget.releasePointerCapture?.(event.pointerId)
+    }, [isConversationPanelDragging])
+
+    const handleConversationPanelKeyDown = useCallback((event: ReactKeyboardEvent<HTMLDivElement>) => {
+        if (!editorStackRef.current) return
+
+        const bounds = editorStackRef.current.getBoundingClientRect()
+        setConversationPanelMax(conversationPanelMaxHeight(bounds.height))
+        const nextHeightByKey: Record<string, number> = {
+            ArrowDown: conversationPanelHeight - CONVERSATION_PANEL_KEYBOARD_STEP,
+            ArrowUp: conversationPanelHeight + CONVERSATION_PANEL_KEYBOARD_STEP,
+            End: conversationPanelMaxHeight(bounds.height),
+            Home: CONVERSATION_PANEL_MIN_HEIGHT,
+        }
+        const nextHeight = nextHeightByKey[event.key]
+        if (nextHeight === undefined) return
+
+        event.preventDefault()
+        setConversationPanelHeight(clampConversationPanelHeight(nextHeight, bounds.height))
+    }, [conversationPanelHeight])
+
+    const conversationPanelSeparator = !isMobile ? (
+        <Box
+            aria-label="Resize conversation panel"
+            aria-orientation="horizontal"
+            aria-valuemax={conversationPanelMax}
+            aria-valuemin={CONVERSATION_PANEL_MIN_HEIGHT}
+            aria-valuenow={Math.round(conversationPanelHeight)}
+            onKeyDown={handleConversationPanelKeyDown}
+            onPointerDown={handleConversationPanelPointerDown}
+            onPointerMove={handleConversationPanelPointerMove}
+            onPointerUp={handleConversationPanelPointerUp}
+            role="separator"
+            sx={{
+                bgcolor: isConversationPanelDragging ? 'primary.main' : 'divider',
+                cursor: 'row-resize',
+                flexShrink: 0,
+                height: CONVERSATION_PANEL_SEPARATOR_HEIGHT,
+                '&:hover': { bgcolor: 'primary.main' },
+            }}
+            tabIndex={0}
+        />
+    ) : <Divider />
+
     const editorPane = (
         <Box sx={{ display: 'flex', flex: 1, flexDirection: 'column', minWidth: 0 }}>
             <TabBar activePath={activePath} onActivate={handleActivateTab} onClose={closeTab} tabs={openTabs} />
@@ -145,7 +229,7 @@ export function TextView(props: TextViewProps) {
                     </Typography>
                 ) : null}
             </Stack>
-            <Box sx={{ display: 'flex', flex: 1, flexDirection: 'column', minHeight: 0 }}>
+            <Box ref={editorStackRef} sx={{ display: 'flex', flex: 1, flexDirection: 'column', minHeight: 0 }}>
                 <Box sx={{ flex: 1, overflow: 'auto', p: 2 }}>
                     {activeCard && activePath ? (
                         <>
@@ -172,8 +256,16 @@ export function TextView(props: TextViewProps) {
                 </Box>
                 {isConversationPanelOpen && activeCard ? (
                     <>
-                        <Divider />
-                        <Box sx={{ minHeight: CONVERSATION_PANEL_MIN_HEIGHT, overflow: 'auto', p: 2 }}>
+                        {conversationPanelSeparator}
+                        <Box
+                            sx={{
+                                flexShrink: 0,
+                                height: isMobile ? undefined : conversationPanelHeight,
+                                minHeight: CONVERSATION_PANEL_MIN_HEIGHT,
+                                overflow: 'auto',
+                                p: 2,
+                            }}
+                        >
                             <AgentConversationList
                                 conversations={activeCard.agentConversations}
                                 errors={activeCard.agentConversationErrors}

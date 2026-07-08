@@ -43,4 +43,14 @@ describe('SplitLayout', () => {
 
         expect(window.localStorage.getItem(SPLIT_WIDTH_STORAGE_KEY)).toBe('160')
     })
+
+    it('resizes with keyboard arrows', () => {
+        render(<SplitLayout left={<div>Left</div>} right={<div>Right</div>} />)
+        const separator = screen.getByRole('separator')
+
+        fireEvent.keyDown(separator, { key: 'ArrowRight' })
+
+        expect(window.localStorage.getItem(SPLIT_WIDTH_STORAGE_KEY)).toBe('304')
+        expect(separator).toHaveAttribute('aria-valuenow', '304')
+    })
 })

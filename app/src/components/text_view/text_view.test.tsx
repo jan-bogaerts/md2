@@ -53,6 +53,7 @@ const activeCards = [
     card('design/F-2-b.md', { id: 'F-2', title: 'Beta', status: 'done' }, '# Beta\n\nBody B'),
 ]
 const backgroundCards = [card('design/history/rel1/F-9-old.md', { id: 'F-9', title: 'Old' }, '# Old')]
+const EDITOR_STACK_HEIGHT = 1000
 
 function renderTextView(overrides: Partial<Parameters<typeof TextView>[0]> = {}) {
     const onBodyChange = vi.fn()
@@ -101,7 +102,10 @@ function clickTreeFile(label: string) {
 }
 
 describe('TextView', () => {
-    afterEach(cleanup)
+    afterEach(() => {
+        cleanup()
+        vi.restoreAllMocks()
+    })
 
     it('renders a tree with status groups and special folders', () => {
         renderTextView()
@@ -293,6 +297,85 @@ describe('TextView', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
 
         expect(onContinueAgentConversation).toHaveBeenCalledWith('design/F-1-a.md', agentConversation)
+    })
+
+    it('resizes the editor conversation panel by dragging the desktop separator', () => {
+        vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({
+            bottom: EDITOR_STACK_HEIGHT,
+            height: EDITOR_STACK_HEIGHT,
+            left: 0,
+            right: 0,
+            toJSON: () => ({}),
+            top: 0,
+            width: 0,
+            x: 0,
+            y: 0,
+        })
+        const agentConversation = conversation()
+        renderTextView({ activeCards: [{ ...activeCards[0], agentConversations: [agentConversation] }] })
+
+        clickTreeFile('F-1 Alpha')
+        fireEvent.click(screen.getByRole('button', { name: /Agents/ }))
+        const separator = screen.getByRole('separator', { name: 'Resize conversation panel' })
+        fireEvent.pointerDown(separator, { pointerId: 1 })
+        fireEvent.pointerMove(separator, { clientY: 500, pointerId: 1 })
+        fireEvent.pointerUp(separator, { pointerId: 1 })
+
+        expect(separator).toHaveAttribute('aria-valuenow', '500')
+    })
+
+    it('clamps conversation panel dragging to min and max heights', () => {
+        vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({
+            bottom: EDITOR_STACK_HEIGHT,
+            height: EDITOR_STACK_HEIGHT,
+            left: 0,
+            right: 0,
+            toJSON: () => ({}),
+            top: 0,
+            width: 0,
+            x: 0,
+            y: 0,
+        })
+        const agentConversation = conversation()
+        renderTextView({ activeCards: [{ ...activeCards[0], agentConversations: [agentConversation] }] })
+
+        clickTreeFile('F-1 Alpha')
+        fireEvent.click(screen.getByRole('button', { name: /Agents/ }))
+        const separator = screen.getByRole('separator', { name: 'Resize conversation panel' })
+        fireEvent.pointerDown(separator, { pointerId: 1 })
+        fireEvent.pointerMove(separator, { clientY: 950, pointerId: 1 })
+        fireEvent.pointerUp(separator, { pointerId: 1 })
+
+        expect(separator).toHaveAttribute('aria-valuenow', '220')
+
+        fireEvent.pointerDown(separator, { pointerId: 2 })
+        fireEvent.pointerMove(separator, { clientY: 0, pointerId: 2 })
+        fireEvent.pointerUp(separator, { pointerId: 2 })
+
+        expect(separator).toHaveAttribute('aria-valuenow', '800')
+    })
+
+    it('resizes the editor conversation panel with keyboard arrows', () => {
+        vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({
+            bottom: EDITOR_STACK_HEIGHT,
+            height: EDITOR_STACK_HEIGHT,
+            left: 0,
+            right: 0,
+            toJSON: () => ({}),
+            top: 0,
+            width: 0,
+            x: 0,
+            y: 0,
+        })
+        const agentConversation = conversation()
+        renderTextView({ activeCards: [{ ...activeCards[0], agentConversations: [agentConversation] }] })
+
+        clickTreeFile('F-1 Alpha')
+        fireEvent.click(screen.getByRole('button', { name: /Agents/ }))
+        const separator = screen.getByRole('separator', { name: 'Resize conversation panel' })
+        fireEvent.keyDown(separator, { key: 'ArrowUp' })
+
+        expect(separator).toHaveAttribute('aria-valuenow', '244')
     })
 
     it('shows the header fields of the open file behind a collapsible panel', () => {
