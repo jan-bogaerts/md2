@@ -1,7 +1,7 @@
 ---
 id: J-014
 title: split the monolithic data service test file
-status: design
+status: ready
 owner: JB
 affects:
 policy:
