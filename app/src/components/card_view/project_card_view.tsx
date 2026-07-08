@@ -34,6 +34,7 @@ export interface CardHandlers {
 
 interface ProjectCardViewProps extends CardHandlers {
     card: ProjectCard
+    cardTypeLabel?: string
     cardTypes: CardTypeConfig[]
     color?: string
     isBodyOpen: boolean
@@ -48,7 +49,8 @@ interface MenuPosition {
 
 /** A single card: type-color line, id + title, policy leds, drag handle and body access. */
 export function ProjectCardView(props: ProjectCardViewProps) {
-    const { card, cardTypes, color, isBodyOpen, isMobile, onBodyChange, onContinueAgentConversation, onOpenBody, onOpenInFileMode } = props
+    const { card, cardTypeLabel, cardTypes, color, isBodyOpen, isMobile, onBodyChange } = props
+    const { onContinueAgentConversation, onOpenBody, onOpenInFileMode } = props
     const { onDeleteCard, onOpenAffects, onSendAgentInput, onStartAgentConversation } = props
     const { onTogglePolicy, onTitleChange } = props
     const { isSelected } = props
@@ -293,6 +295,11 @@ export function ProjectCardView(props: ProjectCardViewProps) {
                             </Button>
                         </Box>
                     </Collapse>
+                ) : null}
+                {cardTypeLabel ? (
+                    <Typography color="text.secondary" variant="caption">
+                        {cardTypeLabel}
+                    </Typography>
                 ) : null}
             </Box>
             <Popover

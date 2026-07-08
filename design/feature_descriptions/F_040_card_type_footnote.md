@@ -1,7 +1,7 @@
 ---
 id: F-040
 title: card type shown as footnote text on the card
-status: design
+status: ready
 owner: JB
 affects:
 policy:

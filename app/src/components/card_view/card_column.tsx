@@ -3,10 +3,16 @@ import { useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import type { CardColumn as CardColumnModel } from '../../data/card_ordering'
 import type { CardTypeConfig } from '../../data/data_types'
-import { columnDropId, getCardTypeColor } from './card_drag'
+import { columnDropId } from './card_drag'
 import { ProjectCardView, type CardHandlers } from './project_card_view'
 
 const COLUMN_WIDTH = 320
+
+function getCardTypeConfig(cardTypes: CardTypeConfig[], id: string): CardTypeConfig | undefined {
+    const prefix = id.split('-')[0]
+
+    return cardTypes.find((cardType) => cardType.idPrefix === prefix)
+}
 
 interface CardColumnProps extends CardHandlers {
     cardTypes: CardTypeConfig[]
@@ -40,18 +46,23 @@ export function CardColumn(props: CardColumnProps) {
             </Typography>
             <SortableContext items={column.cards.map((card) => card.path)} strategy={verticalListSortingStrategy}>
                 <Stack ref={setNodeRef} spacing={1} sx={{ minHeight: 24 }}>
-                    {column.cards.map((card) => (
-                        <ProjectCardView
-                            key={card.path}
-                            card={card}
-                            cardTypes={cardTypes}
-                            color={getCardTypeColor(cardTypes, card.header.id)}
-                            isBodyOpen={openBodyPath === card.path}
-                            isMobile={isMobile}
-                            isSelected={selectedPath === card.path}
-                            {...handlers}
-                        />
-                    ))}
+                    {column.cards.map((card) => {
+                        const cardTypeConfig = getCardTypeConfig(cardTypes, card.header.id)
+
+                        return (
+                            <ProjectCardView
+                                key={card.path}
+                                card={card}
+                                cardTypeLabel={cardTypeConfig?.label}
+                                cardTypes={cardTypes}
+                                color={cardTypeConfig?.color}
+                                isBodyOpen={openBodyPath === card.path}
+                                isMobile={isMobile}
+                                isSelected={selectedPath === card.path}
+                                {...handlers}
+                            />
+                        )
+                    })}
                 </Stack>
             </SortableContext>
         </Paper>

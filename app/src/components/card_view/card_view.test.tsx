@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { CardView } from './card_view'
 import { actionService } from '../../services/action_service'
 import type { ActionFile } from '../../data/action_types'
-import { DEFAULT_CARD_TYPES, type AgentConversation, type ProjectCard } from '../../data/data_types'
+import { DEFAULT_CARD_TYPES, type AgentConversation, type CardTypeConfig, type ProjectCard } from '../../data/data_types'
 import { telemetryService } from '../../services/telemetry_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
 
@@ -91,6 +91,27 @@ describe('CardView', () => {
         expect(screen.getByText('done')).toBeInTheDocument()
         expect(screen.getByText('F-1')).toBeInTheDocument()
         expect(screen.getByText('First')).toBeInTheDocument()
+    })
+
+    it('shows card type footnotes for default and custom card types only', () => {
+        const customCardTypes: CardTypeConfig[] = [
+            ...DEFAULT_CARD_TYPES,
+            { color: '#123456', idPrefix: 'R', label: 'Research', type: 'research' },
+        ]
+        renderCardView({
+            cards: [
+                card('F-012', 'Feature card', 'todo'),
+                card('B-003', 'Bug card', 'todo'),
+                card('X-001', 'Unknown card', 'todo'),
+                card('R-007', 'Research card', 'todo'),
+            ],
+            cardTypes: customCardTypes,
+        })
+
+        expect(screen.getByText('Feature')).toBeInTheDocument()
+        expect(screen.getByText('Bug')).toBeInTheDocument()
+        expect(screen.getByText('Research')).toBeInTheDocument()
+        expect(screen.queryByText('Unknown')).not.toBeInTheDocument()
     })
 
     it('renders one policy led per policy flag and toggles on click', () => {
