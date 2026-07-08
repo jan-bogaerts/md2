@@ -1,5 +1,5 @@
 import { Box, Drawer, useMediaQuery, useTheme } from '@mui/material'
-import { useCallback, useState, type ReactNode } from 'react'
+import { useCallback, useMemo, useState, type ReactNode } from 'react'
 import { navigateTo, useAppLocation } from '../../app/app_navigation'
 import type { ProjectSession } from '../../app/use_app_bootstrap'
 import type { UseGithubAuthResult } from '../../auth/use_github_auth'
@@ -39,7 +39,10 @@ export function MainWindow(props: MainWindowProps) {
     const [statusInfo, setStatusInfo] = useState('')
     const { hasPendingCommits } = useProjectState()
     const isConfigPage = location.pathname === '/config'
-    const regexpAgent = isSearchRegexpAgentAvailable() ? createSearchRegexpAgent() : undefined
+    const regexpAgent = useMemo(
+        () => isSearchRegexpAgentAvailable() ? createSearchRegexpAgent() : undefined,
+        [],
+    )
 
     const handleOpenMenu = useCallback(() => {
         setIsMenuOpen(true)

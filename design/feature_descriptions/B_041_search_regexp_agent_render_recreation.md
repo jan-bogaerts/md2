@@ -1,7 +1,7 @@
 ---
 id: B-041
 title: search regexp agent is re-created on every MainWindow render
-status: design
+status: ready
 owner: JB
 affects:
 policy:

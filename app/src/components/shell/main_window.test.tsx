@@ -4,6 +4,7 @@ import type { UseGithubAuthResult } from '../../auth/use_github_auth'
 import type { AgentExecutionRequest, ElectronActionBridge } from '../../data/electron_action_bridge'
 import type { AgentConversation } from '../../data/data_types'
 import { configService } from '../../services/config_service'
+import * as searchRegexpAgent from '../../services/search/search_regexp_agent'
 import { MainWindow } from './main_window'
 
 const auth: UseGithubAuthResult = {
@@ -161,6 +162,17 @@ describe('MainWindow', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Ask agent to build a RegExp' }))
 
         await waitFor(() => expect(screen.getByRole('textbox', { name: 'Search project' })).toHaveValue('Beta'))
+    })
+
+    it('does not recreate the search RegExp agent on window re-render', () => {
+        mockMatchMedia(false)
+        installAgentBridge('Beta')
+        const createSearchRegexpAgent = vi.spyOn(searchRegexpAgent, 'createSearchRegexpAgent')
+        renderWindow()
+
+        fireEvent.change(screen.getByRole('textbox', { name: 'Status' }), { target: { value: 'working' } })
+
+        expect(createSearchRegexpAgent).toHaveBeenCalledTimes(1)
     })
 
     it('reports the RegExp agent as unavailable without the Electron bridge', async () => {
