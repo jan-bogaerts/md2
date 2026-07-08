@@ -1,0 +1,61 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Start Vite Dev Server",
+            "type": "shell",
+            "command": "npm run dev",
+            "options": {
+                "cwd": "${workspaceFolder}/app"
+            },
+            "isBackground": true,
+            "problemMatcher": {
+                "pattern": {
+                    "regexp": "^$",
+                    "file": 1,
+                    "location": 2,
+                    "message": 3
+                },
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": ".*VITE.*",
+                    "endsPattern": "ready in \\d+ ms"
+                }
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "group": "app"
+            }
+        },
+        {
+            "label": "Wait for Vite Dev Server",
+            "type": "shell",
+            "command": "npx wait-on http://localhost:5173",
+            "dependsOn": [
+                "Start Vite Dev Server"
+            ],
+            "presentation": {
+                "reveal": "silent",
+                "panel": "dedicated",
+                "group": "app"
+            }
+        },
+        {
+            "label": "Start Electron",
+            "type": "shell",
+            "command": "npm start",
+            "options": {
+                "cwd": "${workspaceFolder}/desktop"
+            },
+            "dependsOn": [
+                "Wait for Vite Dev Server"
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "group": "app"
+            }
+        }
+    ]
+}

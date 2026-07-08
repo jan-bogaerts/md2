@@ -87,7 +87,7 @@ function collectHeaderFields(header: CardHeader): HeaderField[] {
     }
 
     for (const entry of header.affects) fields.push({ field: 'affects', value: entry })
-    for (const [key, value] of Object.entries(header.policy)) fields.push({ field: `policy.${key}`, value })
+    for (const [key, value] of Object.entries(header.policy)) fields.push({ field: `policy.${key}`, value: value ? 'true' : 'false' })
 
     return fields
 }

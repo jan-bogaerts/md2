@@ -1,7 +1,7 @@
 ---
 id: B-047
 title: card policy values are stringly typed booleans
-status: design
+status: ready
 owner: JB
 affects:
 policy:

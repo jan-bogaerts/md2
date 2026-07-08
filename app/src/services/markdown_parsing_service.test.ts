@@ -68,7 +68,14 @@ describe('markdownParsingService.parseCard', () => {
         const card = markdownParsingService.parseCard({ content, path: 'design/F-2-second.md' }, 'design')
 
         expect(card.header.after).toBe('uuid-1')
-        expect(card.header.policy).toEqual({ checkLinting: 'true', requireTests: 'false' })
+        expect(card.header.policy).toEqual({ checkLinting: true, requireTests: false })
+    })
+
+    it('parses policy values case-insensitively and treats invalid values as false', () => {
+        const content = '---\nid: F-2\ntitle: Second\npolicy:\n  checkLinting: True\n  requireTests: maybe\n---\n\n# Second'
+        const card = markdownParsingService.parseCard({ content, path: 'design/F-2-second.md' }, 'design')
+
+        expect(card.header.policy).toEqual({ checkLinting: true, requireTests: false })
     })
 
     it('parses agent log references into the card header', () => {
@@ -202,7 +209,7 @@ describe('markdownParsingService.setPolicyFlag', () => {
 
         expect(next).toContain('policy:\n  checkLinting: true')
         const reparsed = markdownParsingService.parseCard({ content: next, path: 'design/F-1-root.md' }, 'design')
-        expect(reparsed.header.policy).toEqual({ checkLinting: 'true' })
+        expect(reparsed.header.policy).toEqual({ checkLinting: true })
     })
 })
 
@@ -316,6 +323,21 @@ describe('markdownParsingService.buildCardMarkdown', () => {
         expect(content).toContain('owner:')
         expect(content).toContain('affects:\nagents:\npolicy:')
         expect(content.endsWith('\n\n# Goal\n\n# Tasks')).toBe(true)
+    })
+
+    it('serializes policy booleans as canonical strings', () => {
+        const content = markdownParsingService.buildCardMarkdown(
+            {
+                id: 'F-4',
+                internalId: 'fixed-id',
+                policy: { checkLinting: true, requireTests: false },
+                title: 'New Card',
+            },
+            '# Goal',
+        )
+
+        expect(content).toContain('  checkLinting: true')
+        expect(content).toContain('  requireTests: false')
     })
 
     it('fails fast when required fields are missing', () => {

@@ -1,0 +1,15 @@
+{
+  "name": "md2",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "concurrently -k -n APP,DESKTOP -c blue,green \"npm:dev:app\" \"npm:dev:desktop\"",
+    "dev:app": "npm run dev --prefix app",
+    "dev:desktop": "wait-on http://localhost:5173 && npm start --prefix desktop",
+    "install:all": "npm install --prefix app && npm install --prefix desktop"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.3",
+    "wait-on": "^9.0.10"
+  }
+}

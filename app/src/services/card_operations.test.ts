@@ -109,6 +109,27 @@ describe('CardOperations', () => {
         expect(committed.files[0].content).toContain('checkLinting: false')
     })
 
+    it('toggles a legacy-cased policy flag as enabled and persists canonical false', async () => {
+        configService.init()
+        const policyFiles: MarkdownFile[] = [
+            { content: '---\nid: F-1\ntitle: Root\nstatus: active\npolicy:\n  checkLinting: True\n---\n\n# Root', path: 'design/F-1-root.md' },
+        ]
+        const storage = createStorage({
+            loadProject: vi.fn(async () => ({ files: policyFiles, workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: policyFiles, workingFolder: 'design' })),
+        })
+        const service = new DataService()
+        service.init({ storage })
+
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        service.cards.toggleCardPolicy('design/F-1-root.md', 'checkLinting')
+        await service.cards.flushPendingCommits()
+
+        const committed = (storage.commit as ReturnType<typeof vi.fn>).mock.calls.at(-1)?.[0] as CommitRequest
+        expect(committed.files[0].content).toContain('checkLinting: false')
+        expect(committed.files[0].content).not.toContain('checkLinting: True')
+    })
+
     it('moves a card across columns writing only the affected cards', async () => {
         configService.init()
         const moveFiles: MarkdownFile[] = [

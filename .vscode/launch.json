@@ -5,18 +5,46 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Launch via NPM",
+            "name": "Debug React (Chrome)",
+            "type": "chrome",
             "request": "launch",
-            "runtimeArgs": [
-                "run-script",
-                "debug"
-            ],
-            "runtimeExecutable": "npm",
-            "skipFiles": [
-                "<node_internals>/**"
-            ],
-            "type": "node"
+            "url": "http://localhost:5173",
+            "webRoot": "${workspaceFolder}/app",
+            "preLaunchTask": "Start Vite Dev Server"
         },
-        
+        {
+            "name": "Debug Electron: Main",
+            "type": "node",
+            "request": "launch",
+            "cwd": "${workspaceFolder}/desktop",
+            "runtimeExecutable": "${workspaceFolder}/desktop/node_modules/.bin/electron",
+            "windows": {
+                "runtimeExecutable": "${workspaceFolder}/desktop/node_modules/.bin/electron.cmd"
+            },
+            "args": [
+                ".",
+                "--remote-debugging-port=9222"
+            ],
+            "outputCapture": "std",
+            "preLaunchTask": "Wait for Vite Dev Server"
+        },
+        {
+            "name": "Debug Electron: Renderer",
+            "type": "chrome",
+            "request": "attach",
+            "port": 9222,
+            "webRoot": "${workspaceFolder}/app",
+            "timeout": 30000
+        }
+    ],
+    "compounds": [
+        {
+            "name": "Debug Full App (Electron + React)",
+            "configurations": [
+                "Debug Electron: Main",
+                "Debug Electron: Renderer"
+            ],
+            "stopAll": true
+        }
     ]
 }

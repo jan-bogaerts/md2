@@ -23,7 +23,7 @@ function conversation(): AgentConversation {
     }
 }
 
-function card(id: string, title: string, status: string, policy: Record<string, string> = {}): ProjectCard {
+function card(id: string, title: string, status: string, policy: Record<string, boolean> = {}): ProjectCard {
     return {
         agentConversationErrors: [],
         agentConversations: [],
@@ -39,7 +39,7 @@ function card(id: string, title: string, status: string, policy: Record<string, 
 }
 
 const cards = [
-    card('F-1', 'First', 'todo', { checkLinting: 'true', requireTests: 'false' }),
+    card('F-1', 'First', 'todo', { checkLinting: true, requireTests: false }),
     card('F-2', 'Second', 'done'),
 ]
 
@@ -116,8 +116,10 @@ describe('CardView', () => {
 
     it('renders one policy led per policy flag and toggles on click', () => {
         const handlers = renderCardView()
+        const checkLintingButton = screen.getByRole('button', { name: 'Toggle checkLinting' })
 
-        fireEvent.click(screen.getByRole('button', { name: 'Toggle checkLinting' }))
+        expect(checkLintingButton).toHaveAttribute('aria-pressed', 'true')
+        fireEvent.click(checkLintingButton)
 
         expect(handlers.onTogglePolicy).toHaveBeenCalledWith('design/F-1.md', 'checkLinting')
     })

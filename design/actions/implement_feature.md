@@ -1,6 +1,6 @@
 use /caveman skill
 Read and implement the feature/job described in: 
-`design\feature_descriptions\J_014_split_data_service_tests.md`
+`design\feature_descriptions\J_015_split_github_storage_service.md`
 
 You do not need to look at the git status. This is not your concern.  The worktree is what it is, you only need to touch what is required for the above mentioned job/feature description.
 

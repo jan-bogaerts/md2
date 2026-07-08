@@ -248,7 +248,7 @@ export function ProjectCardView(props: ProjectCardViewProps) {
                         {policyKeys.map((policyKey) => (
                             <PolicyLed
                                 key={policyKey}
-                                enabled={card.header.policy[policyKey] === 'true'}
+                                enabled={card.header.policy[policyKey] ?? false}
                                 onToggle={(key) => onTogglePolicy(card.path, key)}
                                 policyKey={policyKey}
                             />

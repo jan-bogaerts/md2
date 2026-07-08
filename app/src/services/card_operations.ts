@@ -91,7 +91,7 @@ export class CardOperations {
         const { config } = this.dependencies.requireDependencies()
         const existingFile = this.dependencies.requireFile(path)
         const card = markdownParsingService.parseCard(existingFile, config.workingFolder)
-        const enabled = card.header.policy[policyKey] === 'true'
+        const enabled = card.header.policy[policyKey] ?? false
 
         return this.saveFile({
             content: markdownParsingService.setPolicyFlag(existingFile.content, policyKey, !enabled),

@@ -52,7 +52,7 @@ export interface CardHeader {
     id: string
     internalId: string | null
     owner: string | null
-    policy: Record<string, string>
+    policy: Record<string, boolean>
     status: string | null
     title: string
 }

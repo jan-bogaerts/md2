@@ -24,7 +24,7 @@ export interface NewCardHeader {
     id: string
     internalId: string
     owner?: string | null
-    policy?: Record<string, string>
+    policy?: Record<string, boolean>
     status?: string | null
     title: string
 }
@@ -150,6 +150,19 @@ function getMapField(fields: MarkdownHeaderFields, fieldName: string): Record<st
     return value !== null && typeof value === 'object' && !Array.isArray(value) ? value : {}
 }
 
+function parsePolicyMap(fields: MarkdownHeaderFields): Record<string, boolean> {
+    const policy = getMapField(fields, 'policy')
+
+    return Object.fromEntries(Object.entries(policy).map(([key, value]) => [key, parsePolicyValue(value)]))
+}
+
+function parsePolicyValue(value: string) {
+    const normalized = value.toLowerCase()
+
+    // Invalid policy values parse as false until markdown parsing exposes warnings.
+    return normalized === 'true'
+}
+
 function getTitleFromBody(body: string) {
     const titleLine = body.split(/\r?\n/).find((line) => line.startsWith(TITLE_PREFIX))
 
@@ -191,7 +204,7 @@ function parseCardHeader(fields: MarkdownHeaderFields, file: MarkdownFile, body:
         id,
         internalId: getStringField(fields, 'internalId'),
         owner: getStringField(fields, 'owner'),
-        policy: getMapField(fields, 'policy'),
+        policy: parsePolicyMap(fields),
         status,
         title,
     }
@@ -285,7 +298,7 @@ function serializeNewHeader(header: NewCardHeader) {
     lines.push(`owner: ${header.owner ?? ''}`)
     lines.push('affects:', ...affects.map((entry) => `${LIST_ITEM_PREFIX}${entry}`))
     lines.push('agents:', ...agentLogReferences.map((entry) => `${LIST_ITEM_PREFIX}${entry}`))
-    lines.push('policy:', ...Object.entries(policy).map(([key, value]) => `${CHILD_INDENT}${key}: ${value}`))
+    lines.push('policy:', ...Object.entries(policy).map(([key, value]) => `${CHILD_INDENT}${key}: ${value ? 'true' : 'false'}`))
 
     return lines.join('\n')
 }
