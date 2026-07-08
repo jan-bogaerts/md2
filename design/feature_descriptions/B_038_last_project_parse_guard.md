@@ -1,7 +1,7 @@
 ---
 id: B-038
 title: corrupted last-project storage breaks every startup
-status: design
+status: ready
 owner: JB
 affects:
 policy:

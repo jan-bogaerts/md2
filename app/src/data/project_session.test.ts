@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ElectronDataBridge } from './electron_data_bridge'
 import { getElectronActionBridge, setActionBridgeOverride, type ElectronActionBridge } from './electron_action_bridge'
-import { createStorageService } from './project_session'
+import { createStorageService, LAST_PROJECT_STORAGE_KEY, readLastProject } from './project_session'
 import { configureRemoteControlConnection, REMOTE_CONTROL_ENDPOINT_KEY, REMOTE_CONTROL_TOKEN_KEY } from './remote_control_connection'
 
 function createActionBridge(): ElectronActionBridge {
@@ -98,5 +98,39 @@ describe('createStorageService action bridge override', () => {
         createStorageService('local', null)
 
         expect(getElectronActionBridge()).toBe(preloadBridge)
+    })
+})
+
+describe('readLastProject', () => {
+    afterEach(() => {
+        window.localStorage.removeItem(LAST_PROJECT_STORAGE_KEY)
+    })
+
+    it('removes garbage JSON and returns no project', () => {
+        window.localStorage.setItem(LAST_PROJECT_STORAGE_KEY, '{bad-json')
+
+        expect(readLastProject()).toBeNull()
+        expect(window.localStorage.getItem(LAST_PROJECT_STORAGE_KEY)).toBeNull()
+    })
+
+    it('removes invalid project shapes and returns no project', () => {
+        window.localStorage.setItem(LAST_PROJECT_STORAGE_KEY, JSON.stringify({
+            project: { id: 'local' },
+            storageType: 'folder',
+        }))
+
+        expect(readLastProject()).toBeNull()
+        expect(window.localStorage.getItem(LAST_PROJECT_STORAGE_KEY)).toBeNull()
+    })
+
+    it('returns valid stored project data', () => {
+        const lastProject = {
+            project: { branch: 'main', id: 'local', rootPath: 'C:/repo' },
+            storageType: 'local',
+        }
+        window.localStorage.setItem(LAST_PROJECT_STORAGE_KEY, JSON.stringify(lastProject))
+
+        expect(readLastProject()).toEqual(lastProject)
+        expect(JSON.parse(window.localStorage.getItem(LAST_PROJECT_STORAGE_KEY) ?? '{}')).toEqual(lastProject)
     })
 })
