@@ -14,8 +14,8 @@ import { actionRunner } from './action_runner'
 import { actionService } from './action_service'
 import { agentConversationService, loadAgentConversation } from './agent_conversation_service'
 import { mapWithConcurrency } from './concurrency'
+import { type RequiredDataServiceDependencies } from './data_service_context'
 import { markdownParsingService } from './markdown_parsing_service'
-import { type DataServiceContext } from './data_service_context'
 
 const AGENT_CONVERSATION_LOAD_CONCURRENCY = 8
 const ON_STATE_ACTION_ERROR_PATH_PREFIX = 'onState'
@@ -33,6 +33,18 @@ interface AgentConversationLoadTask {
 type AgentConversationLoadResult =
     | { cardPath: string; conversation: AgentConversation; error: null }
     | { cardPath: string; conversation: null; error: AgentConversationError }
+
+export interface AgentIntegrationDeps {
+    beginAgentConversationLoad(): number
+    dispatchChanged(): void
+    isCurrentAgentConversationLoad(agentConversationLoadToken: number): boolean
+    isCurrentLoad(project: ProjectReference, projectLoadToken: number): boolean
+    project(): ProjectReference | null
+    refreshSnapshot(workingFolder: string): void
+    requireDependencies(): RequiredDataServiceDependencies
+    requireFile(path: string): MarkdownFile
+    snapshot(): ProjectSnapshot | null
+}
 
 function isOnStateActionError(error: AgentConversationError) {
     return error.path.startsWith(`${ON_STATE_ACTION_ERROR_PATH_PREFIX}:`)
@@ -80,22 +92,29 @@ async function resolveAgentConversations(
 }
 
 export class AgentIntegration {
-    private readonly context: DataServiceContext
+    private conversationsByCardPath: Map<string, AgentConversation[]> = new Map()
+    private readonly dependencies: AgentIntegrationDeps
+    private errorsByCardPath: Map<string, AgentConversationError[]> = new Map()
     private readonly saveFile: (file: MarkdownFile) => MarkdownFile
     private scheduledRunCleanup: (() => void) | null = null
 
     constructor(
-        context: DataServiceContext,
+        dependencies: AgentIntegrationDeps,
         saveFile: (file: MarkdownFile) => MarkdownFile,
     ) {
-        this.context = context
+        this.dependencies = dependencies
         this.saveFile = saveFile
     }
 
     reset() {
         this.stopScheduledRunWatch()
-        this.context.increaseAgentConversationLoadToken()
-        this.context.resetAgentConversations()
+        this.resetLoadedConversations()
+    }
+
+    resetLoadedConversations() {
+        this.dependencies.beginAgentConversationLoad()
+        this.conversationsByCardPath = new Map()
+        this.errorsByCardPath = new Map()
     }
 
     startScheduledRunWatch() {
@@ -114,8 +133,8 @@ export class AgentIntegration {
     }
 
     async continueAgentConversation(cardPath: string, sourcePath: string) {
-        const { storage } = this.context.requireDependencies()
-        const currentProject = this.context.getCurrentProject()
+        const { storage } = this.dependencies.requireDependencies()
+        const currentProject = this.dependencies.project()
         if (!currentProject) throw new Error('Cannot continue an agent before a project is open')
 
         const result = await agentConversationService.continueConversation(
@@ -130,8 +149,8 @@ export class AgentIntegration {
     }
 
     async startAgentConversation(cardPath: string, prompt: string) {
-        const { storage } = this.context.requireDependencies()
-        const currentProject = this.context.getCurrentProject()
+        const { storage } = this.dependencies.requireDependencies()
+        const currentProject = this.dependencies.project()
         if (!currentProject) throw new Error('Cannot start an agent before a project is open')
 
         const result = await agentConversationService.startConversation(
@@ -146,8 +165,8 @@ export class AgentIntegration {
     }
 
     async sendAgentInput(runId: string, input: string) {
-        const { storage } = this.context.requireDependencies()
-        const currentProject = this.context.getCurrentProject()
+        const { storage } = this.dependencies.requireDependencies()
+        const currentProject = this.dependencies.project()
         if (!currentProject) throw new Error('Cannot send agent input before a project is open')
         if (!storage.sendAgentInput) throw new Error('Sending agent input requires an Electron agent bridge')
 
@@ -159,8 +178,8 @@ export class AgentIntegration {
     }
 
     linkAgentConversation(cardPath: string, conversation: AgentConversation, reference: string) {
-        const { config } = this.context.requireDependencies()
-        const existingFile = this.context.requireFile(cardPath)
+        const { config } = this.dependencies.requireDependencies()
+        const existingFile = this.dependencies.requireFile(cardPath)
         const card = markdownParsingService.parseCard(existingFile, config.workingFolder)
         const nextReferences = [...new Set([...card.header.agentLogReferences, reference])]
         this.upsertAgentConversation(cardPath, conversation)
@@ -174,31 +193,28 @@ export class AgentIntegration {
 
     loadAgentConversationsInBackground(snapshot: ProjectSnapshot, project: ProjectReference, projectLoadToken: number) {
         const cards = [...snapshot.activeCards, ...snapshot.backgroundCards]
-        const agentConversationLoadToken = this.context.increaseAgentConversationLoadToken()
+        const agentConversationLoadToken = this.dependencies.beginAgentConversationLoad()
         void this.resolveAndAttachAgentConversations(cards, project, projectLoadToken, agentConversationLoadToken)
     }
 
     attachAgentConversations(cards: Pick<ProjectSnapshot, 'activeCards' | 'backgroundCards'>) {
-        const errorsByCardPath = this.context.getErrorsByCardPath()
-        const conversationsByCardPath = this.context.getConversationsByCardPath()
-
         return {
             activeCards: cards.activeCards.map((card) => ({
                 ...card,
-                agentConversationErrors: errorsByCardPath.get(card.path) ?? [],
-                agentConversations: conversationsByCardPath.get(card.path) ?? [],
+                agentConversationErrors: this.errorsByCardPath.get(card.path) ?? [],
+                agentConversations: this.conversationsByCardPath.get(card.path) ?? [],
             })),
             backgroundCards: cards.backgroundCards.map((card) => ({
                 ...card,
-                agentConversationErrors: errorsByCardPath.get(card.path) ?? [],
-                agentConversations: conversationsByCardPath.get(card.path) ?? [],
+                agentConversationErrors: this.errorsByCardPath.get(card.path) ?? [],
+                agentConversations: this.conversationsByCardPath.get(card.path) ?? [],
             })),
         }
     }
 
     triggerStateActions(cardPath: string, state: string) {
-        const { config } = this.context.requireDependencies()
-        const card = this.context.getCurrentSnapshot()?.activeCards.find((currentCard) => currentCard.path === cardPath)
+        const { config } = this.dependencies.requireDependencies()
+        const card = this.dependencies.snapshot()?.activeCards.find((currentCard) => currentCard.path === cardPath)
         if (!card) return
 
         const context = cardContext(card, config.cardTypes)
@@ -214,31 +230,24 @@ export class AgentIntegration {
         projectLoadToken: number,
         agentConversationLoadToken: number,
     ) {
-        const { storage } = this.context.requireDependencies()
+        const { config, storage } = this.dependencies.requireDependencies()
         const resolved = await resolveAgentConversations(cards, project, storage)
         if (!this.shouldApplyProjectLoad(project, projectLoadToken)) return
-        if (this.context.getAgentConversationLoadToken() !== agentConversationLoadToken) return
+        if (!this.dependencies.isCurrentAgentConversationLoad(agentConversationLoadToken)) return
 
-        this.context.setConversationsByCardPath(resolved.conversationsByCardPath)
-        this.context.setErrorsByCardPath(this.mergeResolvedAgentErrors(resolved.errorsByCardPath))
-        this.context.refreshSnapshot()
+        this.conversationsByCardPath = resolved.conversationsByCardPath
+        this.errorsByCardPath = this.mergeResolvedAgentErrors(resolved.errorsByCardPath)
+        this.dependencies.refreshSnapshot(config.workingFolder)
     }
 
     private shouldApplyProjectLoad(project: ProjectReference, projectLoadToken: number) {
-        const currentProject = this.context.getCurrentProject()
-
-        return this.context.getProjectLoadToken() === projectLoadToken
-            && currentProject?.branch === project.branch
-            && currentProject.id === project.id
-            && currentProject.owner === project.owner
-            && currentProject.repository === project.repository
-            && currentProject.rootPath === project.rootPath
+        return this.dependencies.isCurrentLoad(project, projectLoadToken)
     }
 
     private mergeResolvedAgentErrors(resolvedErrors: Map<string, AgentConversationError[]>) {
         const errors = new Map(resolvedErrors)
 
-        for (const [cardPath, existingErrors] of this.context.getErrorsByCardPath()) {
+        for (const [cardPath, existingErrors] of this.errorsByCardPath) {
             const onStateErrors = existingErrors.filter(isOnStateActionError)
             if (onStateErrors.length === 0) continue
 
@@ -262,9 +271,9 @@ export class AgentIntegration {
 
     private recordCardAgentError(cardPath: string, actionName: string, message: string) {
         const path = `${ON_STATE_ACTION_ERROR_PATH_PREFIX}:${actionName}`
-        const errorsByCardPath = this.context.getErrorsByCardPath()
-        errorsByCardPath.set(cardPath, [...(errorsByCardPath.get(cardPath) ?? []), { message, path }])
-        this.context.refreshSnapshot()
+        const { config } = this.dependencies.requireDependencies()
+        this.errorsByCardPath.set(cardPath, [...(this.errorsByCardPath.get(cardPath) ?? []), { message, path }])
+        this.dependencies.refreshSnapshot(config.workingFolder)
     }
 
     private handleAgentRunEvent(cardPath: string, event: AgentRunEvent) {
@@ -274,7 +283,7 @@ export class AgentIntegration {
     private handleScheduledRunEvent(event: AgentRunEvent) {
         agentConversationService.observeRunEvent(event, event.conversation.title)
         if (!event.conversation.cardPath) {
-            this.context.dispatchChanged()
+            this.dependencies.dispatchChanged()
             return
         }
 
@@ -282,12 +291,13 @@ export class AgentIntegration {
     }
 
     private upsertAgentConversation(cardPath: string, conversation: AgentConversation) {
-        const conversationsByCardPath = this.context.getConversationsByCardPath()
-        const conversations = conversationsByCardPath.get(cardPath) ?? []
+        const { config } = this.dependencies.requireDependencies()
+        const conversations = this.conversationsByCardPath.get(cardPath) ?? []
         const nextConversations = conversations.some((current) => current.id === conversation.id)
             ? conversations.map((current) => (current.id === conversation.id ? conversation : current))
             : [...conversations, conversation]
-        conversationsByCardPath.set(cardPath, nextConversations)
-        this.context.refreshSnapshot()
+        this.conversationsByCardPath.set(cardPath, nextConversations)
+        this.dependencies.refreshSnapshot(config.workingFolder)
     }
+
 }

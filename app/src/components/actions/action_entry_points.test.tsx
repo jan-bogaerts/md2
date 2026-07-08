@@ -66,7 +66,7 @@ describe('ActionEntryPoints filtering', () => {
     })
 
     it('renders project path icons in menu items', async () => {
-        vi.spyOn(dataService, 'loadProjectAsset').mockResolvedValue({
+        vi.spyOn(dataService.projectLoading, 'loadProjectAsset').mockResolvedValue({
             content: 'aWNvbg==',
             contentType: 'image/png',
             encoding: 'base64',

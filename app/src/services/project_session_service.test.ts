@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+﻿import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ElectronDataBridge } from '../data/electron_data_bridge'
 import { getElectronActionBridge, setActionBridgeOverride, type ElectronActionBridge } from '../data/electron_action_bridge'
 import { LAST_PROJECT_STORAGE_KEY } from '../data/project_session'
@@ -64,7 +64,7 @@ function createDataBridge(): ElectronDataBridge {
 
 function mockProjectOpen() {
     vi.spyOn(dataService, 'init').mockImplementation(() => undefined)
-    vi.spyOn(dataService, 'openProject').mockResolvedValue({
+    vi.spyOn(dataService.projectLoading, 'openProject').mockResolvedValue({
         activeCards: [],
         backgroundCards: [],
         repositoryFiles: [],

@@ -14,7 +14,7 @@ describe('action icon resolution', () => {
     })
 
     it('loads project-relative image paths as data URIs', async () => {
-        const loadProjectAsset = vi.spyOn(dataService, 'loadProjectAsset').mockResolvedValue({
+        const loadProjectAsset = vi.spyOn(dataService.projectLoading, 'loadProjectAsset').mockResolvedValue({
             content: 'aWNvbg==',
             contentType: 'image/png',
             encoding: 'base64',
@@ -28,7 +28,7 @@ describe('action icon resolution', () => {
     })
 
     it('falls back when a path cannot be loaded', async () => {
-        vi.spyOn(dataService, 'loadProjectAsset').mockRejectedValue(new Error('missing'))
+        vi.spyOn(dataService.projectLoading, 'loadProjectAsset').mockRejectedValue(new Error('missing'))
 
         await expect(resolveActionIcon('actions/missing.svg')).resolves.toEqual({ dataUri: null })
     })

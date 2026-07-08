@@ -1,7 +1,7 @@
 ---
 id: J-011
 title: narrow the DataServiceContext shared-state surface
-status: design
+status: ready
 owner: JB
 affects:
 policy:

@@ -344,8 +344,8 @@ describe('DataService', () => {
         const service = new DataService()
         service.init({ storage })
 
-        await service.openProject({ branch: 'main', id: 'project' })
-        await service.createCard({ body: 'Body', title: 'New Card', type: 'feature' })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        await service.cards.createCard({ body: 'Body', title: 'New Card', type: 'feature' })
 
         expect(storage.commit).toHaveBeenCalledWith(expect.objectContaining({ message: 'Create design/F-4-new-card.md' }) as CommitRequest)
         expect(storage.push).toHaveBeenCalledWith({ branch: 'main', id: 'project' })
@@ -363,7 +363,7 @@ describe('DataService', () => {
         const service = new DataService()
         service.init({ storage: githubStorage })
 
-        await expect(service.openProject(githubProject)).rejects.toBeInstanceOf(GithubUnauthorizedError)
+        await expect(service.projectLoading.openProject(githubProject)).rejects.toBeInstanceOf(GithubUnauthorizedError)
         expect(handleUnauthorized).toHaveBeenCalledTimes(1)
     })
 
@@ -395,10 +395,10 @@ describe('DataService', () => {
         const service = new DataService()
         service.init({ storage: githubStorage })
 
-        await service.openProject(githubProject)
-        service.updateCardBody('design/F-1-root.md', '# Root\n\nChanged')
+        await service.projectLoading.openProject(githubProject)
+        service.cards.updateCardBody('design/F-1-root.md', '# Root\n\nChanged')
 
-        await expect(service.flushPendingCommits()).rejects.toBeInstanceOf(GithubUnauthorizedError)
+        await expect(service.cards.flushPendingCommits()).rejects.toBeInstanceOf(GithubUnauthorizedError)
         expect(handleUnauthorized).toHaveBeenCalledTimes(1)
     })
 
@@ -414,7 +414,7 @@ describe('DataService', () => {
         }
         const service = new DataService()
         service.init({ remarkableBridge, storage })
-        await service.openProject({ branch: 'main', id: 'project' })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
 
         const plan = await service.importRemarkableImages({
             paths: ['/img/note.png'],
@@ -439,7 +439,7 @@ describe('DataService', () => {
         const storage = createStorage()
         const service = new DataService()
         service.init({ storage })
-        await service.openProject({ branch: 'main', id: 'project' })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
 
         await expect(service.importRemarkableImages({
             paths: ['/img/note.png'],
@@ -457,8 +457,8 @@ describe('DataService', () => {
         const trackEvent = vi.spyOn(telemetryService, 'trackEvent').mockImplementation(() => undefined)
 
         service.init({ storage })
-        await service.createProject({ branch: 'main', id: 'project' })
-        await service.createCard({ body: 'Body', title: 'New Card', type: 'feature' })
+        await service.projectLoading.createProject({ branch: 'main', id: 'project' })
+        await service.cards.createCard({ body: 'Body', title: 'New Card', type: 'feature' })
 
         expect(trackEvent).toHaveBeenCalledWith('create_project')
         expect(trackEvent).toHaveBeenCalledWith('open_project')
@@ -478,10 +478,10 @@ describe('DataService', () => {
         const trackEvent = vi.spyOn(telemetryService, 'trackEvent').mockImplementation(() => undefined)
 
         service.init({ storage })
-        await service.openProject({ branch: 'main', id: 'project' })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
         trackEvent.mockClear()
 
-        await expect(service.createCard({ body: 'Body', title: 'New Card', type: 'feature' })).rejects.toThrow('commit failed')
+        await expect(service.cards.createCard({ body: 'Body', title: 'New Card', type: 'feature' })).rejects.toThrow('commit failed')
         expect(trackEvent).not.toHaveBeenCalledWith('create_card')
 
         trackEvent.mockRestore()
@@ -493,8 +493,8 @@ describe('DataService', () => {
         const service = new DataService()
         service.init({ storage })
 
-        await service.openProject({ branch: 'main', id: 'project' })
-        await service.createCard({ body: 'Body', title: 'New Card', type: 'feature' })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        await service.cards.createCard({ body: 'Body', title: 'New Card', type: 'feature' })
 
         expect(storage.commit).toHaveBeenCalledTimes(1)
         expect(storage.push).not.toHaveBeenCalled()
@@ -523,8 +523,8 @@ describe('DataService', () => {
         const service = new DataService()
         service.init({ storage })
 
-        await service.openProject({ branch: 'main', id: 'project' })
-        const snapshot = await service.completeRelease('v1')
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        const snapshot = await service.releases.completeRelease('v1')
 
         expect(storage.moveFiles).toHaveBeenCalledWith({
             branch: 'main',
@@ -557,9 +557,9 @@ describe('DataService', () => {
         const service = new DataService()
         service.init({ storage })
 
-        await service.openProject({ branch: 'main', id: 'project' })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
 
-        await expect(service.completeRelease('bad/name')).rejects.toThrow('Release name may contain only')
+        await expect(service.releases.completeRelease('bad/name')).rejects.toThrow('Release name may contain only')
         expect(storage.moveFiles).not.toHaveBeenCalled()
     })
 
@@ -574,9 +574,9 @@ describe('DataService', () => {
         const service = new DataService()
         service.init({ storage })
 
-        await service.openProject({ branch: 'main', id: 'project' })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
 
-        await expect(service.completeRelease('v1')).rejects.toThrow('Release already exists: v1')
+        await expect(service.releases.completeRelease('v1')).rejects.toThrow('Release already exists: v1')
         expect(storage.moveFiles).not.toHaveBeenCalled()
     })
 
@@ -592,8 +592,8 @@ describe('DataService', () => {
         const service = new DataService()
         service.init({ storage })
 
-        await service.openProject({ branch: 'main', id: 'project' })
-        await service.completeRelease('v1')
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        await service.releases.completeRelease('v1')
 
         expect(storage.moveFiles).toHaveBeenCalledTimes(1)
         expect(storage.push).not.toHaveBeenCalled()
@@ -611,9 +611,9 @@ describe('DataService', () => {
         const service = new DataService()
         service.init({ storage })
 
-        await service.openProject({ branch: 'main', id: 'project' })
-        service.toggleCardPolicy('design/F-1-root.md', 'checkLinting')
-        await service.flushPendingCommits()
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        service.cards.toggleCardPolicy('design/F-1-root.md', 'checkLinting')
+        await service.cards.flushPendingCommits()
 
         const committed = (storage.commit as ReturnType<typeof vi.fn>).mock.calls.at(-1)?.[0] as CommitRequest
         expect(committed.files[0].content).toContain('checkLinting: false')
@@ -633,9 +633,9 @@ describe('DataService', () => {
         const service = new DataService()
         service.init({ storage })
 
-        await service.openProject({ branch: 'main', id: 'project' })
-        const updates = service.moveCard('design/B-1-b.md', 'done', 1)
-        await service.flushPendingCommits()
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        const updates = service.cards.moveCard('design/B-1-b.md', 'done', 1)
+        await service.cards.flushPendingCommits()
 
         expect(updates).toContainEqual({ after: 'p', path: 'design/B-1-b.md', status: 'done' })
         const committed = (storage.commit as ReturnType<typeof vi.fn>).mock.calls.at(-1)?.[0] as CommitRequest
@@ -666,8 +666,8 @@ describe('DataService', () => {
         const service = new DataService()
         service.init({ storage })
 
-        await service.openProject({ branch: 'main', id: 'project' })
-        const snapshot = await service.deleteCard('design/B-1-b.md')
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        const snapshot = await service.cards.deleteCard('design/B-1-b.md')
 
         const repairCommit = vi.mocked(storage.commit).mock.calls[0][0]
         expect(repairCommit).toMatchObject({ branch: 'main', message: 'Repair ordering after deleting design/B-1-b.md' })
@@ -700,8 +700,8 @@ describe('DataService', () => {
         const service = new DataService()
         service.init({ storage })
 
-        await service.openProject({ branch: 'main', id: 'project' })
-        await service.deleteCard('design/B-1-b.md')
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        await service.cards.deleteCard('design/B-1-b.md')
 
         expect(storage.commit).not.toHaveBeenCalled()
         expect(storage.deleteFile).toHaveBeenCalledWith(expect.objectContaining({ path: 'design/B-1-b.md', sha: 'sha-b' }))
@@ -723,8 +723,8 @@ describe('DataService', () => {
         const service = new DataService()
         service.init({ storage })
 
-        await service.openProject({ branch: 'main', id: 'project' })
-        await service.deleteCard('design/B-1-b.md')
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        await service.cards.deleteCard('design/B-1-b.md')
 
         expect(storage.deleteFile).toHaveBeenCalledTimes(1)
         expect(storage.push).not.toHaveBeenCalled()
@@ -746,10 +746,10 @@ describe('DataService', () => {
         const service = new DataService()
         service.init({ storage })
 
-        await service.openProject({ branch: 'main', id: 'project' })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
         const beforePaths = service.getState().snapshot?.activeCards.map((card) => card.path)
 
-        await expect(service.deleteCard('design/B-1-b.md')).rejects.toThrow('delete failed')
+        await expect(service.cards.deleteCard('design/B-1-b.md')).rejects.toThrow('delete failed')
 
         expect(service.getState().snapshot?.activeCards.map((card) => card.path)).toEqual(beforePaths)
         expect(storage.push).not.toHaveBeenCalled()
@@ -771,9 +771,9 @@ describe('DataService', () => {
         const service = new DataService()
         service.init({ storage })
 
-        await service.openProject({ branch: 'main', id: 'project' })
-        service.updateCardBody('design/B-1-b.md', '# B\n\nEdited body')
-        await service.deleteCard('design/B-1-b.md')
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        service.cards.updateCardBody('design/B-1-b.md', '# B\n\nEdited body')
+        await service.cards.deleteCard('design/B-1-b.md')
 
         const updateCommit = vi.mocked(storage.commit).mock.calls[0][0]
         expect(updateCommit.files[0].path).toBe('design/B-1-b.md')
@@ -809,8 +809,8 @@ describe('DataService', () => {
         const service = new DataService()
         service.init({ storage })
 
-        await service.openProject({ branch: 'main', id: 'project' })
-        service.moveCard('design/F-2-b.md', 'ready', 0)
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        service.cards.moveCard('design/F-2-b.md', 'ready', 0)
 
         expect(actionRunner.run).toHaveBeenCalledWith(
             expect.objectContaining({ name: 'ready-action' }),
@@ -856,8 +856,8 @@ describe('DataService', () => {
         const service = new DataService()
         service.init({ storage })
 
-        await service.openProject({ branch: 'main', id: 'project' })
-        service.moveCard('design/F-2-b.md', 'ready', 0)
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        service.cards.moveCard('design/F-2-b.md', 'ready', 0)
 
         await vi.waitFor(() => {
             const movedCard = service.getState().snapshot?.activeCards.find((card) => card.path === 'design/F-2-b.md')
@@ -892,8 +892,8 @@ describe('DataService', () => {
         const service = new DataService()
         service.init({ storage })
 
-        await service.openProject({ branch: 'main', id: 'project' })
-        service.moveCard('design/F-2-b.md', 'todo', 0)
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        service.cards.moveCard('design/F-2-b.md', 'todo', 0)
 
         expect(actionRunner.run).not.toHaveBeenCalled()
     })
@@ -904,9 +904,9 @@ describe('DataService', () => {
         const service = new DataService()
         service.init({ storage })
 
-        await service.openProject({ branch: 'main', id: 'project' })
-        service.updateCardTitle('design/F-1-root.md', 'Renamed Root')
-        await service.flushPendingCommits()
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        service.cards.updateCardTitle('design/F-1-root.md', 'Renamed Root')
+        await service.cards.flushPendingCommits()
 
         const committed = (storage.commit as ReturnType<typeof vi.fn>).mock.calls.at(-1)?.[0] as CommitRequest
         expect(committed.files[0].content).toContain('title: Renamed Root')
@@ -925,9 +925,9 @@ describe('DataService', () => {
         const service = new DataService()
         service.init({ storage })
 
-        await service.openProject({ branch: 'main', id: 'project' })
-        service.updateCardHeaderFields('design/F-1-root.md', { status: 'ready' })
-        await service.flushPendingCommits()
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        service.cards.updateCardHeaderFields('design/F-1-root.md', { status: 'ready' })
+        await service.cards.flushPendingCommits()
 
         const committed = (storage.commit as ReturnType<typeof vi.fn>).mock.calls.at(-1)?.[0] as CommitRequest
         expect(committed.files[0].content).toBe('---\ncustomField: keep me\nid: F-1\ntitle: Root\nstatus: ready\n---\n\n# Root')
@@ -939,9 +939,9 @@ describe('DataService', () => {
         const service = new DataService()
         service.init({ storage })
 
-        await service.openProject({ branch: 'main', id: 'project' })
-        service.updateCardBody('design/F-1-root.md', '\n# Root\n\nEdited body')
-        await service.flushPendingCommits()
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        service.cards.updateCardBody('design/F-1-root.md', '\n# Root\n\nEdited body')
+        await service.cards.flushPendingCommits()
 
         const committed = (storage.commit as ReturnType<typeof vi.fn>).mock.calls.at(-1)?.[0] as CommitRequest
         expect(committed.files[0].content.startsWith('---\nid: F-1')).toBe(true)
@@ -969,15 +969,15 @@ describe('DataService', () => {
         const service = new DataService()
         service.init({ storage })
 
-        await service.openProject({ branch: 'main', id: 'project' })
-        service.updateCardBody('design/F-1-root.md', '# Root\n\nFirst edit')
-        await service.flushPendingCommits()
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        service.cards.updateCardBody('design/F-1-root.md', '# Root\n\nFirst edit')
+        await service.cards.flushPendingCommits()
 
         const snapshotCard = service.getState().snapshot?.activeCards[0]
         expect(snapshotCard?.sha).toBe('sha-2')
 
-        service.updateCardBody('design/F-1-root.md', '# Root\n\nSecond edit')
-        await service.flushPendingCommits()
+        service.cards.updateCardBody('design/F-1-root.md', '# Root\n\nSecond edit')
+        await service.cards.flushPendingCommits()
 
         expect(commit).toHaveBeenCalledTimes(2)
         expect(commit.mock.calls[1][0].files[0].sha).toBe('sha-2')
@@ -989,9 +989,9 @@ describe('DataService', () => {
         const service = new DataService()
         service.init({ storage })
 
-        await service.openProject({ branch: 'main', id: 'project' })
-        service.updateCardAffects('design/F-1-root.md', ['app/src/card.tsx'])
-        await service.flushPendingCommits()
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        service.cards.updateCardAffects('design/F-1-root.md', ['app/src/card.tsx'])
+        await service.cards.flushPendingCommits()
 
         const committed = (storage.commit as ReturnType<typeof vi.fn>).mock.calls.at(-1)?.[0] as CommitRequest
         expect(committed.files[0].content).toContain('affects:\n  - app/src/card.tsx')
@@ -1006,7 +1006,7 @@ describe('DataService', () => {
         const service = new DataService()
         service.init({ storage })
 
-        await service.openProject({ branch: 'main', id: 'project' })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
 
         expect(storage.loadActionFiles).toHaveBeenCalledWith({ branch: 'main', id: 'project' }, 'actions')
         expect(actionService.getActions().map((action) => action.name)).toContain('do')
@@ -1029,7 +1029,7 @@ describe('DataService', () => {
             snapshots.push(service.getState().snapshot)
         })
 
-        const openedSnapshot = await service.openProject({ branch: 'main', id: 'project' })
+        const openedSnapshot = await service.projectLoading.openProject({ branch: 'main', id: 'project' })
 
         expect(openedSnapshot.activeCards.map((card) => card.path)).toEqual(['design/F-1-root.md'])
         expect(openedSnapshot.backgroundCards).toHaveLength(0)
@@ -1063,7 +1063,7 @@ describe('DataService', () => {
 
         try {
             service.init({ storage })
-            const snapshot = await service.openProject({ branch: 'main', id: 'project' })
+            const snapshot = await service.projectLoading.openProject({ branch: 'main', id: 'project' })
 
             expect(snapshot.activeCards.map((card) => card.path)).toEqual(['design/F-1-root.md'])
 
@@ -1099,8 +1099,8 @@ describe('DataService', () => {
 
         try {
             service.init({ storage })
-            await service.openProject({ branch: 'main', id: 'project' })
-            await service.openProject({ branch: 'main', id: 'other' })
+            await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+            await service.projectLoading.openProject({ branch: 'main', id: 'other' })
 
             firstFullProject.reject(new Error('old load failed'))
             await waitForWorkerTurn()
@@ -1132,7 +1132,7 @@ describe('DataService', () => {
 
         try {
             service.init({ storage })
-            await service.openProject({ branch: 'main', id: 'project' })
+            await service.projectLoading.openProject({ branch: 'main', id: 'project' })
 
             await vi.waitFor(() => {
                 expect(storage.moveFiles).toHaveBeenCalledWith({
@@ -1171,7 +1171,7 @@ describe('DataService', () => {
         const service = new DataService()
         service.init({ storage })
 
-        await service.openProject({ branch: 'main', id: 'project' })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
         await waitForWorkerTurn()
 
         expect(storage.moveFiles).not.toHaveBeenCalled()
@@ -1196,7 +1196,7 @@ describe('DataService', () => {
 
         try {
             service.init({ storage })
-            await service.openProject({ branch: 'main', id: 'project' })
+            await service.projectLoading.openProject({ branch: 'main', id: 'project' })
 
             await vi.waitFor(() => {
                 expect(errors).toContain('commit failed')
@@ -1228,7 +1228,7 @@ describe('DataService', () => {
         const service = new DataService()
         service.init({ storage })
 
-        const snapshot = await service.openProject({ branch: 'main', id: 'project' })
+        const snapshot = await service.projectLoading.openProject({ branch: 'main', id: 'project' })
 
         expect(snapshot.activeCards[0].agentConversations).toHaveLength(0)
         conversationLoad.resolve(conversation())
@@ -1273,7 +1273,7 @@ describe('DataService', () => {
         const service = new DataService()
         service.init({ storage })
 
-        await service.openProject({ branch: 'main', id: 'project' })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
 
         await vi.waitFor(() => {
             expect(service.getState().snapshot?.activeCards[0].agentConversations).toHaveLength(10)
@@ -1301,7 +1301,7 @@ describe('DataService', () => {
         const service = new DataService()
         service.init({ storage })
 
-        const snapshot = await service.openProject({ branch: 'main', id: 'project' })
+        const snapshot = await service.projectLoading.openProject({ branch: 'main', id: 'project' })
 
         expect(snapshot.activeCards[0].header.title).toBe('Root')
         expect(snapshot.activeCards[0].agentConversationErrors).toEqual([])
@@ -1326,9 +1326,9 @@ describe('DataService', () => {
         const service = new DataService()
         service.init({ storage })
 
-        await service.openProject({ branch: 'main', id: 'project' })
-        await service.continueAgentConversation('design/F-1-root.md', '.md2-agent-logs/one.json')
-        await service.flushPendingCommits()
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        await service.agents.continueAgentConversation('design/F-1-root.md', '.md2-agent-logs/one.json')
+        await service.cards.flushPendingCommits()
 
         const committed = (storage.commit as ReturnType<typeof vi.fn>).mock.calls.at(-1)?.[0] as CommitRequest
         expect(committed.files[0].content).toContain('agents:\n  - .md2-agent-logs/two.json')
@@ -1359,8 +1359,8 @@ describe('DataService', () => {
         const service = new DataService()
         service.init({ storage })
 
-        await service.openProject({ branch: 'main', id: 'project' })
-        await service.continueAgentConversation('design/F-1-root.md', '.md2-agent-logs/one.json')
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        await service.agents.continueAgentConversation('design/F-1-root.md', '.md2-agent-logs/one.json')
 
         expect(storage.startAgentConversation).toHaveBeenCalledWith(
             { branch: 'main', id: 'project' },
@@ -1389,8 +1389,8 @@ describe('DataService', () => {
         const service = new DataService()
         service.init({ storage })
 
-        await service.openProject({ branch: 'main', id: 'project' })
-        await service.continueAgentConversation('design/F-1-root.md', '.md2-agent-logs/one.json')
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        await service.agents.continueAgentConversation('design/F-1-root.md', '.md2-agent-logs/one.json')
         if (!callbacks[0]) throw new Error('Streaming callback not registered')
 
         callbacks[0]({ content: '', conversation: { ...conversation(), id: 'agent-2', status: 'running' }, runId: 'agent-2', type: 'started' })
@@ -1415,7 +1415,7 @@ describe('DataService', () => {
         const service = new DataService()
         service.init({ storage })
 
-        await service.openProject({ branch: 'main', id: 'project' })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
         if (!scheduledRunCallback) throw new Error('Scheduled run callback not registered')
         const emitScheduledRun = scheduledRunCallback as (event: AgentRunEvent) => void
 
@@ -1455,7 +1455,7 @@ describe('DataService', () => {
         const service = new DataService()
         service.init({ storage })
 
-        await service.openProject({ branch: 'main', id: 'project' })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
         watchChange({ changeKind: 'changed', path: 'actions/do.json' })
         await vi.advanceTimersByTimeAsync(150)
 
@@ -1489,7 +1489,7 @@ describe('DataService', () => {
         const service = new DataService()
         service.init({ storage })
 
-        await service.openProject({ branch: 'main', id: 'project' })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
         watchChange({ changeKind: 'changed', path: 'actions/bad.json' })
         await vi.advanceTimersByTimeAsync(150)
 
@@ -1521,7 +1521,7 @@ describe('DataService', () => {
         const service = new DataService()
         service.init({ storage })
 
-        await service.openProject({ branch: 'main', id: 'project' })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
         watchChange({ changeKind: 'changed', path: 'actions/bad.json' })
         watchChange({ changeKind: 'changed', path: 'actions/more.json' })
         await vi.advanceTimersByTimeAsync(150)
@@ -1548,7 +1548,7 @@ describe('DataService', () => {
         })
         const service = new DataService()
         service.init({ storage })
-        await service.openProject({ branch: 'main', id: 'project' })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
 
         watchChange({ changeKind: 'added', path: 'design/free-note.md' })
         await vi.advanceTimersByTimeAsync(150)
@@ -1585,7 +1585,7 @@ describe('DataService', () => {
         })
         const service = new DataService()
         service.init({ storage })
-        await service.openProject({ branch: 'main', id: 'project' })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
 
         watchChange({ changeKind: 'changed', path: 'design/F-1-root.md' })
         await vi.advanceTimersByTimeAsync(150)
@@ -1610,7 +1610,7 @@ describe('DataService', () => {
         })
         const service = new DataService()
         service.init({ storage })
-        await service.openProject({ branch: 'main', id: 'project' })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
 
         watchChange({ changeKind: 'removed', path: 'design/F-1-root.md' })
         await vi.advanceTimersByTimeAsync(150)
@@ -1639,7 +1639,7 @@ describe('DataService', () => {
         })
         const service = new DataService()
         service.init({ storage })
-        await service.openProject({ branch: 'main', id: 'project' })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
 
         watchChange({ changeKind: 'changed', path: 'design/F-1-root.md' })
         watchChange({ changeKind: 'changed', path: 'design/F-1-root.md' })
@@ -1666,7 +1666,7 @@ describe('DataService', () => {
         })
         const service = new DataService()
         service.init({ storage })
-        await service.openProject({ branch: 'main', id: 'project' })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
         watchChange({ changeKind: 'changed', path: 'design/F-1-root.md' })
         await vi.advanceTimersByTimeAsync(150)
 
@@ -1697,9 +1697,9 @@ describe('DataService', () => {
         window.addEventListener('md2:workspace-error', (event) => {
             conflicts.push((event as CustomEvent<string>).detail)
         })
-        await service.openProject({ branch: 'main', id: 'project' })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
 
-        service.updateCardBody('design/F-1-root.md', '# Root\n\nLocal draft')
+        service.cards.updateCardBody('design/F-1-root.md', '# Root\n\nLocal draft')
         watchChange({ changeKind: 'changed', path: 'design/F-1-root.md' })
         await vi.advanceTimersByTimeAsync(150)
 
@@ -1725,17 +1725,17 @@ describe('DataService', () => {
 
         try {
             service.init({ storage })
-            await service.openProject({ branch: 'main', id: 'project' })
-            service.updateCardBody('design/F-1-root.md', '# Root\n\nLocal draft')
+            await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+            service.cards.updateCardBody('design/F-1-root.md', '# Root\n\nLocal draft')
 
-            await expect(service.flushPendingCommits()).rejects.toThrow('network down')
+            await expect(service.cards.flushPendingCommits()).rejects.toThrow('network down')
 
             expect(errors).toContain('network down')
             expect(captureError).toHaveBeenCalledWith(error)
             expect(service.getState().hasPendingCommits).toBe(true)
 
             commit.mockImplementation(async (request) => request.files)
-            await service.flushPendingCommits()
+            await service.cards.flushPendingCommits()
 
             expect(service.getState().hasPendingCommits).toBe(false)
             expect(commit).toHaveBeenCalledTimes(2)

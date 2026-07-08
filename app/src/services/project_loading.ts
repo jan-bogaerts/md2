@@ -1,17 +1,17 @@
 import { ACTION_SCHEDULES_FILE } from '../data/action_schedule_types'
-import type { MarkdownFile, ProjectAsset, ProjectReference, ProjectWatchEvent } from '../data/data_types'
+import type { MarkdownFile, ProjectAsset, ProjectReference, ProjectSnapshot, ProjectWatchEvent, StorageService } from '../data/data_types'
 import { actionService } from './action_service'
 import { configService } from './config_service'
-import { planExternalCardImports } from './external_card_import_service'
-import { telemetryService } from './telemetry_service'
 import {
-    type DataServiceContext,
+    type RequiredDataServiceDependencies,
     errorMessage,
     mergeFiles,
     removeFilesByPath,
     reportWorkspaceError,
     reportWorkspaceNotice,
 } from './data_service_context'
+import { planExternalCardImports } from './external_card_import_service'
+import { telemetryService } from './telemetry_service'
 
 const ACTION_RELOAD_DEBOUNCE_MS = 150
 const JSON_EXTENSION = '.json'
@@ -38,14 +38,6 @@ function isProjectMarkdownPath(path: string, workingFolder: string) {
     return normalizedPath.startsWith(`${normalizedWorkingFolder}/`) && normalizedPath.toLowerCase().endsWith(MARKDOWN_EXTENSION)
 }
 
-function isSameProjectReference(left: ProjectReference | null, right: ProjectReference) {
-    return left?.branch === right.branch
-        && left.id === right.id
-        && left.owner === right.owner
-        && left.repository === right.repository
-        && left.rootPath === right.rootPath
-}
-
 function reportMarkdownWatchConflict(path: string) {
     reportWorkspaceError(`External change ignored for ${path} because the file has unsaved local edits.`)
 }
@@ -56,10 +48,26 @@ function backgroundProjectLoadFailureMessage(error: unknown) {
     return `Background project data failed to load - search and history may be incomplete. ${detail}`
 }
 
+export interface ProjectLoadingDeps {
+    beginProjectLoad(): number
+    commitPathsInFlight(): Set<string>
+    dispatchChanged(): void
+    files(): MarkdownFile[]
+    isCurrentLoad(project: ProjectReference, projectLoadToken: number): boolean
+    project(): ProjectReference | null
+    replaceFiles(files: MarkdownFile[], workingFolder: string): void
+    replaceProject(project: ProjectReference | null): void
+    replaceProjectFiles(files: MarkdownFile[], workingFolder: string, repositoryFiles: string[]): void
+    requireDependencies(): RequiredDataServiceDependencies
+    resetAgentConversations(): void
+    snapshot(): ProjectSnapshot | null
+    storage(): StorageService | null
+}
+
 export class ProjectLoading {
-    private readonly context: DataServiceContext
+    private readonly dependencies: ProjectLoadingDeps
     private readonly loadAgentConversationsInBackground: (
-        snapshot: NonNullable<ReturnType<DataServiceContext['getCurrentSnapshot']>>,
+        snapshot: ProjectSnapshot,
         project: ProjectReference,
         projectLoadToken: number,
     ) => void
@@ -70,14 +78,14 @@ export class ProjectLoading {
     private watchCleanup: (() => void) | null = null
 
     constructor(
-        context: DataServiceContext,
+        dependencies: ProjectLoadingDeps,
         loadAgentConversationsInBackground: (
-            snapshot: NonNullable<ReturnType<DataServiceContext['getCurrentSnapshot']>>,
+            snapshot: ProjectSnapshot,
             project: ProjectReference,
             projectLoadToken: number,
         ) => void,
     ) {
-        this.context = context
+        this.dependencies = dependencies
         this.loadAgentConversationsInBackground = loadAgentConversationsInBackground
     }
 
@@ -87,13 +95,13 @@ export class ProjectLoading {
         this.clearMarkdownReloadTimeout()
         this.actionReloadChangedPaths.clear()
         this.markdownReloadEventsByPath = new Map()
-        this.context.increaseProjectLoadToken()
+        this.dependencies.beginProjectLoad()
     }
 
     async createProject(project: ProjectReference) {
-        const { config, storage } = this.context.requireDependencies()
-        this.context.setCurrentProject(await storage.createProject(project, config.workingFolder))
-        const currentProject = this.context.getCurrentProject()
+        const { config, storage } = this.dependencies.requireDependencies()
+        this.dependencies.replaceProject(await storage.createProject(project, config.workingFolder))
+        const currentProject = this.dependencies.project()
         if (!currentProject) throw new Error('Cannot create a project without a project reference')
 
         await storage.saveProjectConfig(currentProject, config)
@@ -103,14 +111,13 @@ export class ProjectLoading {
     }
 
     async openProject(project: ProjectReference) {
-        const { storage } = this.context.requireDependencies()
+        const { storage } = this.dependencies.requireDependencies()
         this.clearMarkdownReloadTimeout()
-        const projectLoadToken = this.context.increaseProjectLoadToken()
-        this.context.increaseAgentConversationLoadToken()
-        this.context.resetAgentConversations()
+        const projectLoadToken = this.dependencies.beginProjectLoad()
+        this.dependencies.resetAgentConversations()
         this.actionReloadChangedPaths.clear()
         this.markdownReloadEventsByPath = new Map()
-        this.context.setCurrentProject(project)
+        this.dependencies.replaceProject(project)
         const projectConfig = await storage.loadProjectConfig(project)
         configService.loadProjectConfig(projectConfig)
         const config = configService.getProjectConfig()
@@ -119,11 +126,10 @@ export class ProjectLoading {
         actionService.loadFromFiles(actionFiles)
         const projectFiles = await storage.loadProjectRoot(project, config.workingFolder)
         const repositoryFiles: string[] = []
-        this.context.setCurrentFiles(projectFiles.files)
-        this.context.setCurrentSnapshot(this.context.createSnapshot(projectFiles.files, projectFiles.workingFolder, repositoryFiles))
+        this.dependencies.replaceProjectFiles(projectFiles.files, projectFiles.workingFolder, repositoryFiles)
         this.startProjectWatch()
-        this.context.dispatchChanged()
-        const currentSnapshot = this.context.getCurrentSnapshot()
+        this.dependencies.dispatchChanged()
+        const currentSnapshot = this.dependencies.snapshot()
         if (!currentSnapshot) throw new Error('Project snapshot was not created')
 
         this.loadAgentConversationsInBackground(currentSnapshot, project, projectLoadToken)
@@ -134,17 +140,17 @@ export class ProjectLoading {
     }
 
     async saveProjectConfig() {
-        const { storage } = this.context.requireDependencies()
-        const currentProject = this.context.getCurrentProject()
+        const { storage } = this.dependencies.requireDependencies()
+        const currentProject = this.dependencies.project()
         if (!currentProject) throw new Error('Cannot save project config before a project is open')
 
         await storage.saveProjectConfig(currentProject, configService.getProjectConfig())
-        this.context.dispatchChanged()
+        this.dependencies.dispatchChanged()
     }
 
     async loadProjectAsset(path: string): Promise<ProjectAsset> {
-        const { storage } = this.context.requireDependencies()
-        const currentProject = this.context.getCurrentProject()
+        const { storage } = this.dependencies.requireDependencies()
+        const currentProject = this.dependencies.project()
         if (!currentProject) throw new Error('Cannot load a project asset before a project is open')
         if (!storage.loadProjectAsset) throw new Error('Project asset loading is not available')
 
@@ -152,8 +158,8 @@ export class ProjectLoading {
     }
 
     async switchBranch(branch: string) {
-        const { storage } = this.context.requireDependencies()
-        const currentProject = this.context.getCurrentProject()
+        const { storage } = this.dependencies.requireDependencies()
+        const currentProject = this.dependencies.project()
         if (!currentProject) throw new Error('Cannot switch branch before a project is open')
 
         const project = await storage.checkoutBranch(currentProject, branch)
@@ -162,27 +168,26 @@ export class ProjectLoading {
     }
 
     async push() {
-        const { storage } = this.context.requireDependencies()
-        const currentProject = this.context.getCurrentProject()
+        const { storage } = this.dependencies.requireDependencies()
+        const currentProject = this.dependencies.project()
         if (!currentProject) throw new Error('Cannot push before a project is open')
 
         await storage.push(currentProject)
-        this.context.dispatchChanged()
+        this.dependencies.dispatchChanged()
     }
 
     async reloadCurrentProjectSnapshot() {
-        const { config, storage } = this.context.requireDependencies()
-        const currentProject = this.context.getCurrentProject()
+        const { config, storage } = this.dependencies.requireDependencies()
+        const currentProject = this.dependencies.project()
         if (!currentProject) throw new Error('Cannot reload project snapshot before a project is open')
 
         const project = currentProject
-        const projectLoadToken = this.context.increaseProjectLoadToken()
+        const projectLoadToken = this.dependencies.beginProjectLoad()
         const projectFiles = await storage.loadProject(currentProject, config.workingFolder)
         const repositoryFiles = await storage.listRepositoryFiles(currentProject)
-        this.context.setCurrentFiles(projectFiles.files)
-        this.context.setCurrentSnapshot(this.context.createSnapshot(projectFiles.files, projectFiles.workingFolder, repositoryFiles))
-        this.context.dispatchChanged()
-        const currentSnapshot = this.context.getCurrentSnapshot()
+        this.dependencies.replaceProjectFiles(projectFiles.files, projectFiles.workingFolder, repositoryFiles)
+        this.dependencies.dispatchChanged()
+        const currentSnapshot = this.dependencies.snapshot()
         if (currentSnapshot) this.loadAgentConversationsInBackground(currentSnapshot, project, projectLoadToken)
 
         return currentSnapshot
@@ -196,15 +201,15 @@ export class ProjectLoading {
     }
 
     private async importExternalCardFiles(files: MarkdownFile[], workingFolder: string) {
-        const { config, storage } = this.context.requireDependencies()
-        const currentProject = this.context.getCurrentProject()
+        const { config, storage } = this.dependencies.requireDependencies()
+        const currentProject = this.dependencies.project()
         if (!currentProject) return files
 
         const plan = planExternalCardImports(files, workingFolder, config.cardTypes)
         if (plan.moves.length === 0) return files
 
         const importPaths = plan.moves.flatMap((move) => [move.fromPath, move.toPath])
-        const inFlightCommitPaths = this.context.getInFlightCommitPaths()
+        const inFlightCommitPaths = this.dependencies.commitPathsInFlight()
         importPaths.forEach((path) => inFlightCommitPaths.add(path))
 
         try {
@@ -223,7 +228,7 @@ export class ProjectLoading {
         }
 
         if (config.pushMode === 'auto') await storage.push(currentProject)
-        if (config.pushMode === 'manual') this.context.dispatchChanged()
+        if (config.pushMode === 'manual') this.dependencies.dispatchChanged()
 
         reportWorkspaceNotice(importedNoticeMessage(plan.moves.length))
         telemetryService.trackEvent('external_file_import')
@@ -232,7 +237,7 @@ export class ProjectLoading {
     }
 
     private async loadFullProjectInBackground(project: ProjectReference, workingFolder: string, projectLoadToken: number) {
-        const { storage } = this.context.requireDependencies()
+        const { storage } = this.dependencies.requireDependencies()
 
         try {
             const [projectFiles, repositoryFiles] = await Promise.all([
@@ -248,12 +253,10 @@ export class ProjectLoading {
             const removedImportedPaths = projectFiles.files
                 .filter((file) => !importedPaths.has(file.path))
                 .map((file) => file.path)
-            const remainingFiles = removeFilesByPath(this.context.getCurrentFiles(), removedImportedPaths)
-            this.context.setCurrentFiles(mergeFiles(importedFiles, remainingFiles))
-            const snapshot = this.context.createSnapshot(this.context.getCurrentFiles(), projectFiles.workingFolder, repositoryFiles)
-            this.context.setCurrentSnapshot(snapshot)
-            this.context.dispatchChanged()
-            const currentSnapshot = this.context.getCurrentSnapshot()
+            const remainingFiles = removeFilesByPath(this.dependencies.files(), removedImportedPaths)
+            this.dependencies.replaceProjectFiles(mergeFiles(importedFiles, remainingFiles), projectFiles.workingFolder, repositoryFiles)
+            this.dependencies.dispatchChanged()
+            const currentSnapshot = this.dependencies.snapshot()
             if (currentSnapshot) this.loadAgentConversationsInBackground(currentSnapshot, project, projectLoadToken)
         } catch (error) {
             if (!this.shouldApplyProjectLoad(project, projectLoadToken)) return
@@ -264,20 +267,20 @@ export class ProjectLoading {
     }
 
     private shouldApplyProjectLoad(project: ProjectReference, projectLoadToken: number) {
-        return this.context.getProjectLoadToken() === projectLoadToken && isSameProjectReference(this.context.getCurrentProject(), project)
+        return this.dependencies.isCurrentLoad(project, projectLoadToken)
     }
 
     private startProjectWatch() {
         this.stopProjectWatch()
-        const currentProject = this.context.getCurrentProject()
-        const storage = this.context.getStorage()
+        const currentProject = this.dependencies.project()
+        const storage = this.dependencies.storage()
         if (!currentProject || !storage?.watchProject) return
 
         this.watchCleanup = storage.watchProject(currentProject, (event) => this.handleProjectWatchEvent(event))
     }
 
     private handleProjectWatchEvent(event: ProjectWatchEvent) {
-        const { config } = this.context.requireDependencies()
+        const { config } = this.dependencies.requireDependencies()
         if (isActionDefinitionPath(event.path, config.actionsFolder)) {
             this.scheduleActionReload(event.path)
             return
@@ -317,8 +320,8 @@ export class ProjectLoading {
     }
 
     private async reloadMarkdownFilesFromWatchEvents() {
-        const { commitBatcher, storage } = this.context.requireDependencies()
-        const currentProject = this.context.getCurrentProject()
+        const { commitBatcher, storage } = this.dependencies.requireDependencies()
+        const currentProject = this.dependencies.project()
         if (!currentProject || !storage.loadFile) return
 
         this.clearMarkdownReloadTimeout()
@@ -328,7 +331,7 @@ export class ProjectLoading {
         const removedPaths: string[] = []
 
         for (const event of events) {
-            if (this.context.getInFlightCommitPaths().has(event.path)) continue
+            if (this.dependencies.commitPathsInFlight().has(event.path)) continue
             if (commitBatcher.hasPendingFile(event.path)) {
                 reportMarkdownWatchConflict(event.path)
                 continue
@@ -345,7 +348,7 @@ export class ProjectLoading {
                 continue
             }
 
-            const currentFile = this.context.getCurrentFiles().find((file) => file.path === loadedFile.path)
+            const currentFile = this.dependencies.files().find((file) => file.path === loadedFile.path)
             if (currentFile?.content === loadedFile.content) continue
 
             updatedFiles.push(loadedFile)
@@ -353,22 +356,21 @@ export class ProjectLoading {
 
         const removedPathSet = new Set(removedPaths)
         const watchedFiles = mergeFiles(
-            this.context.getCurrentFiles().filter((file) => !removedPathSet.has(file.path)),
+            this.dependencies.files().filter((file) => !removedPathSet.has(file.path)),
             updatedFiles,
         )
-        const importedFiles = await this.importExternalCardFiles(watchedFiles, this.context.requireDependencies().config.workingFolder)
+        const importedFiles = await this.importExternalCardFiles(watchedFiles, this.dependencies.requireDependencies().config.workingFolder)
         if (updatedFiles.length === 0 && removedPaths.length === 0 && importedFiles === watchedFiles) return
 
-        this.context.setCurrentFiles(importedFiles)
         const repositoryFiles = await storage.listRepositoryFiles(currentProject)
-        const { config } = this.context.requireDependencies()
-        this.context.setCurrentSnapshot(this.context.createSnapshot(this.context.getCurrentFiles(), config.workingFolder, repositoryFiles))
-        this.context.dispatchChanged()
+        const { config } = this.dependencies.requireDependencies()
+        this.dependencies.replaceProjectFiles(importedFiles, config.workingFolder, repositoryFiles)
+        this.dependencies.dispatchChanged()
     }
 
     private async loadWatchedMarkdownFile(event: ProjectWatchEvent) {
-        const { storage } = this.context.requireDependencies()
-        const currentProject = this.context.getCurrentProject()
+        const { storage } = this.dependencies.requireDependencies()
+        const currentProject = this.dependencies.project()
         if (!currentProject || !storage.loadFile) return null
 
         try {
@@ -383,8 +385,8 @@ export class ProjectLoading {
     }
 
     private async reloadActionsFromCurrentProject() {
-        const { config, storage } = this.context.requireDependencies()
-        const currentProject = this.context.getCurrentProject()
+        const { config, storage } = this.dependencies.requireDependencies()
+        const currentProject = this.dependencies.project()
         if (!currentProject) return
 
         const changedPaths = [...this.actionReloadChangedPaths]

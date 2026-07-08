@@ -89,7 +89,7 @@ export function ConfigPage(props: ConfigPageProps) {
     const handleSaveClick = async () => {
         try {
             configService.saveDraft()
-            if (configService.hasProjectConfig()) await dataService.saveProjectConfig()
+            if (configService.hasProjectConfig()) await dataService.projectLoading.saveProjectConfig()
             if (configService.hasDesktopConfig()) writeDesktopConfigToBridge(configService.getDesktopValues())
             configService.loadDraft()
             setErrorMessage(null)

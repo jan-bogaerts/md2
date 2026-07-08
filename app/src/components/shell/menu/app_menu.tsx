@@ -38,7 +38,7 @@ export function AppMenu() {
         if (!canPush) return
 
         try {
-            await dataService.push()
+            await dataService.projectLoading.push()
         } catch (error) {
             reportWorkspaceError(error instanceof Error ? error.message : 'Push failed')
         }

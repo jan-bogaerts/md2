@@ -83,11 +83,11 @@ async function defaultAgentRunner(bridge: ElectronActionBridge, request: AgentEx
 }
 
 async function defaultAgentConversationLinker(cardPath: string, result: AgentExecutionResult) {
-    await dataService.linkAgentConversation(cardPath, result.conversation, result.reference)
+    await dataService.agents.linkAgentConversation(cardPath, result.conversation, result.reference)
 }
 
 function defaultAgentRunEventRecorder(cardPath: string, event: AgentRunEvent) {
-    dataService.recordAgentRunEvent(cardPath, event)
+    dataService.agents.recordAgentRunEvent(cardPath, event)
 }
 
 function defaultAgentRunStarter(label: string) {
@@ -99,7 +99,7 @@ function defaultAgentRunFinisher(id: string) {
 }
 
 async function defaultActionWriter(path: string, content: string) {
-    await dataService.saveProjectFile({ content, path }, `Create ${path}`)
+    await dataService.cards.saveProjectFile({ content, path }, `Create ${path}`)
 }
 
 function defaultAgentCommandProvider() {

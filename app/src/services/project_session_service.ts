@@ -102,7 +102,7 @@ export class ProjectSessionService extends EventTarget {
             try {
                 dataService.init({ storage })
                 activateStorageService(storageType, storage)
-                await dataService.openProject(project)
+                await dataService.projectLoading.openProject(project)
                 writeLastProject(storageType, project)
 
                 return null
@@ -120,7 +120,7 @@ export class ProjectSessionService extends EventTarget {
             await persistWorkingFolder(storage, resolution.project, folder.path)
             dataService.init({ storage })
             activateStorageService(resolution.storageType, storage)
-            await dataService.openProject(resolution.project)
+            await dataService.projectLoading.openProject(resolution.project)
             writeLastProject(resolution.storageType, resolution.project)
         })
     }
@@ -132,7 +132,7 @@ export class ProjectSessionService extends EventTarget {
             await persistWorkingFolder(storage, project, resolution.configuredWorkingFolder)
             dataService.init({ storage })
             activateStorageService(resolution.storageType, storage)
-            await dataService.openProject(project)
+            await dataService.projectLoading.openProject(project)
             writeLastProject(resolution.storageType, project)
         })
     }
@@ -143,11 +143,11 @@ export class ProjectSessionService extends EventTarget {
     }
 
     async switchBranch(branch: string) {
-        await this.withLoading('Branch switch failed', () => dataService.switchBranch(branch))
+        await this.withLoading('Branch switch failed', () => dataService.projectLoading.switchBranch(branch))
     }
 
     async push() {
-        await this.withLoading('Push failed', () => dataService.push())
+        await this.withLoading('Push failed', () => dataService.projectLoading.push())
     }
 
     discardGithubPendingCommits(project: ProjectReference, accessToken: string | null) {
@@ -158,11 +158,11 @@ export class ProjectSessionService extends EventTarget {
     }
 
     async completeRelease(releaseName: string) {
-        await this.withLoading('Release completion failed', () => dataService.completeRelease(releaseName))
+        await this.withLoading('Release completion failed', () => dataService.releases.completeRelease(releaseName))
     }
 
     async createCard(draft: CardDraft) {
-        await this.withLoading('Card creation failed', () => dataService.createCard(draft))
+        await this.withLoading('Card creation failed', () => dataService.cards.createCard(draft))
     }
 
     private static async createMissingWorkingFolderResolution(

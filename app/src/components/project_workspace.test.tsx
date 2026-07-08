@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+﻿import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useCallback } from 'react'
 import { MissingWorkingFolderError, type ProjectConfig, type StorageService } from '../data/data_types'
@@ -202,7 +202,7 @@ describe('ProjectWorkspace', () => {
         await openLocalProject()
         await screen.findByText('Root')
 
-        dataService.updateCardBody('design/F-1-root.md', 'Changed while open')
+        dataService.cards.updateCardBody('design/F-1-root.md', 'Changed while open')
         await waitFor(() => expect(dataService.getState().hasPendingCommits).toBe(true))
         document.dispatchEvent(new Event('visibilitychange'))
 
@@ -224,7 +224,7 @@ describe('ProjectWorkspace', () => {
 
         expect(cleanClose.defaultPrevented).toBe(false)
 
-        dataService.updateCardBody('design/F-1-root.md', 'Changed before close')
+        dataService.cards.updateCardBody('design/F-1-root.md', 'Changed before close')
         await waitFor(() => expect(dataService.getState().hasPendingCommits).toBe(true))
 
         const pendingClose = new Event('beforeunload', { cancelable: true })
@@ -237,7 +237,7 @@ describe('ProjectWorkspace', () => {
         const storage = createResetStorage()
         storage.hasPendingCommits = vi.fn(() => true)
         dataService.init({ storage })
-        await dataService.openProject({ branch: 'main', id: 'project' })
+        await dataService.projectLoading.openProject({ branch: 'main', id: 'project' })
 
         renderProjectSurface()
 
@@ -264,7 +264,7 @@ describe('ProjectWorkspace', () => {
         await openLocalProject()
         await screen.findByText('Root')
 
-        dataService.updateCardBody('design/F-1-root.md', 'Changed before quit')
+        dataService.cards.updateCardBody('design/F-1-root.md', 'Changed before quit')
         await waitFor(() => expect(dataService.getState().hasPendingCommits).toBe(true))
         act(() => flushRequested?.('quit-1'))
 

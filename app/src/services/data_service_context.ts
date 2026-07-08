@@ -1,11 +1,7 @@
 import type { CommitBatcher } from '../data/commit_batcher'
 import type {
-    AgentConversation,
-    AgentConversationError,
     MarkdownFile,
     ProjectConfig,
-    ProjectReference,
-    ProjectSnapshot,
     StorageService,
 } from '../data/data_types'
 import type { RemarkableBridge } from '../data/remarkable_bridge'
@@ -24,32 +20,6 @@ export interface RequiredDataServiceDependencies {
     commitBatcher: CommitBatcher
     config: ProjectConfig
     storage: StorageService
-}
-
-export interface DataServiceContext {
-    getAgentConversationLoadToken(): number
-    getConversationsByCardPath(): Map<string, AgentConversation[]>
-    getCurrentFiles(): MarkdownFile[]
-    getCurrentProject(): ProjectReference | null
-    getCurrentSnapshot(): ProjectSnapshot | null
-    getErrorsByCardPath(): Map<string, AgentConversationError[]>
-    getInFlightCommitPaths(): Set<string>
-    getProjectLoadToken(): number
-    getStorage(): StorageService | null
-    createSnapshot(files: MarkdownFile[], workingFolder: string, repositoryFiles: string[]): ProjectSnapshot
-    increaseAgentConversationLoadToken(): number
-    increaseProjectLoadToken(): number
-    refreshSnapshot(): void
-    reloadCurrentProjectSnapshot(): Promise<ProjectSnapshot | null>
-    requireDependencies(): RequiredDataServiceDependencies
-    requireFile(path: string): MarkdownFile
-    resetAgentConversations(): void
-    setConversationsByCardPath(conversationsByCardPath: Map<string, AgentConversation[]>): void
-    setCurrentFiles(files: MarkdownFile[]): void
-    setCurrentProject(project: ProjectReference | null): void
-    setCurrentSnapshot(snapshot: ProjectSnapshot | null): void
-    setErrorsByCardPath(errorsByCardPath: Map<string, AgentConversationError[]>): void
-    dispatchChanged(): void
 }
 
 export function errorMessage(error: unknown, fallback: string) {

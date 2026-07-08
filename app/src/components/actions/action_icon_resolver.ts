@@ -42,7 +42,7 @@ export async function resolveActionIcon(icon: string | null): Promise<ActionIcon
     if (!isProjectIconPath(icon)) return { dataUri: null }
 
     try {
-        const asset = await dataService.loadProjectAsset(icon)
+        const asset = await dataService.projectLoading.loadProjectAsset(icon)
 
         return { dataUri: assetToDataUri(asset.content, asset.contentType) }
     } catch {

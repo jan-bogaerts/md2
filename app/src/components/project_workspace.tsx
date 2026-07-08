@@ -32,12 +32,12 @@ const EMPTY_CARDS: ProjectCard[] = []
 const EMPTY_REPOSITORY_FILES: string[] = []
 
 function flushPendingCommits() {
-    void dataService.flushPendingCommits()
+    void dataService.cards.flushPendingCommits()
 }
 
 async function flushAndConfirmPendingCommits(lifecycleBridge: ElectronLifecycleBridge, requestId: string) {
     try {
-        await dataService.flushPendingCommits()
+        await dataService.cards.flushPendingCommits()
     } finally {
         lifecycleBridge.confirmFlush(requestId)
     }
@@ -157,27 +157,27 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
     }, [])
 
     const handleMoveCard = (path: string, targetStatus: string, targetIndex: number) => {
-        runWorkspaceEdit(() => dataService.moveCard(path, targetStatus, targetIndex), setErrorMessage, `Card move failed: ${path}`)
+        runWorkspaceEdit(() => dataService.cards.moveCard(path, targetStatus, targetIndex), setErrorMessage, `Card move failed: ${path}`)
     }
 
     const handleTogglePolicy = (path: string, policyKey: string) => {
-        runWorkspaceEdit(() => dataService.toggleCardPolicy(path, policyKey), setErrorMessage, `Policy toggle failed: ${path}`)
+        runWorkspaceEdit(() => dataService.cards.toggleCardPolicy(path, policyKey), setErrorMessage, `Policy toggle failed: ${path}`)
     }
 
     const handleTitleChange = (path: string, title: string) => {
-        runWorkspaceEdit(() => dataService.updateCardTitle(path, title), setErrorMessage, `Title update failed: ${path}`)
+        runWorkspaceEdit(() => dataService.cards.updateCardTitle(path, title), setErrorMessage, `Title update failed: ${path}`)
     }
 
     const handleBodyChange = (path: string, body: string) => {
-        runWorkspaceEdit(() => dataService.updateCardBody(path, body), setErrorMessage, `Body update failed: ${path}`)
+        runWorkspaceEdit(() => dataService.cards.updateCardBody(path, body), setErrorMessage, `Body update failed: ${path}`)
     }
 
     const handleAffectsChange = (path: string, affects: string[]) => {
-        runWorkspaceEdit(() => dataService.updateCardAffects(path, affects), setErrorMessage, `Affects update failed: ${path}`)
+        runWorkspaceEdit(() => dataService.cards.updateCardAffects(path, affects), setErrorMessage, `Affects update failed: ${path}`)
     }
 
     const handleHeaderFieldChange = (path: string, key: string, value: string) => {
-        runWorkspaceEdit(() => dataService.updateCardHeaderFields(path, { [key]: value }), setErrorMessage, `Header update failed: ${path}`)
+        runWorkspaceEdit(() => dataService.cards.updateCardHeaderFields(path, { [key]: value }), setErrorMessage, `Header update failed: ${path}`)
     }
 
     const clearDeletedPathState = (path: string) => {
@@ -189,7 +189,7 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
         setErrorMessage(null)
 
         try {
-            await dataService.deleteCard(path)
+            await dataService.cards.deleteCard(path)
             clearDeletedPathState(path)
         } catch (error) {
             setErrorMessage(error instanceof Error ? error.message : `Card delete failed: ${path}`)
@@ -201,7 +201,7 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
         setErrorMessage(null)
 
         try {
-            await dataService.deleteFile(path)
+            await dataService.cards.deleteFile(path)
             clearDeletedPathState(path)
         } catch (error) {
             setErrorMessage(error instanceof Error ? error.message : `File delete failed: ${path}`)
@@ -213,7 +213,7 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
         setErrorMessage(null)
 
         try {
-            await dataService.continueAgentConversation(path, conversation.path)
+            await dataService.agents.continueAgentConversation(path, conversation.path)
         } catch (error) {
             setErrorMessage(error instanceof Error ? error.message : 'Agent continue failed')
         }
@@ -223,7 +223,7 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
         setErrorMessage(null)
 
         try {
-            await dataService.startAgentConversation(path, prompt)
+            await dataService.agents.startAgentConversation(path, prompt)
         } catch (error) {
             setErrorMessage(error instanceof Error ? error.message : 'Agent start failed')
         }
@@ -233,7 +233,7 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
         setErrorMessage(null)
 
         try {
-            await dataService.sendAgentInput(runId, input)
+            await dataService.agents.sendAgentInput(runId, input)
         } catch (error) {
             setErrorMessage(error instanceof Error ? error.message : 'Agent input failed')
         }

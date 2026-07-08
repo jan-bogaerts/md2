@@ -1,39 +1,52 @@
 import { createCardFile } from '../data/card_naming'
 import { computeMove, orderByAfter, UNASSIGNED_STATUS } from '../data/card_ordering'
-import type { CardDraft, MarkdownFile, ProjectSnapshot, StorageService } from '../data/data_types'
+import type { CardDraft, MarkdownFile, ProjectReference, ProjectSnapshot, StorageService } from '../data/data_types'
 import { markdownParsingService } from './markdown_parsing_service'
 import { telemetryService } from './telemetry_service'
 import {
-    type DataServiceContext,
-    mergeFiles,
+    type RequiredDataServiceDependencies,
     reportCommitFlushFailure,
 } from './data_service_context'
 
 type CommitRequest = Parameters<StorageService['commit']>[0]
+
+export interface CardOperationsDeps {
+    commitPathsInFlight(): Set<string>
+    dispatchChanged(): void
+    files(): MarkdownFile[]
+    mergeCommittedFiles(files: MarkdownFile[], workingFolder: string): void
+    project(): ProjectReference | null
+    refreshSnapshot(workingFolder: string): void
+    reloadCurrentProjectSnapshot(): Promise<ProjectSnapshot | null>
+    requireDependencies(): RequiredDataServiceDependencies
+    requireFile(path: string): MarkdownFile
+    replaceFiles(files: MarkdownFile[], workingFolder: string): void
+    snapshot(): ProjectSnapshot | null
+}
 
 function statusOf(card: ProjectSnapshot['activeCards'][number]) {
     return card.header.status ?? UNASSIGNED_STATUS
 }
 
 export class CardOperations {
-    private readonly context: DataServiceContext
+    private readonly dependencies: CardOperationsDeps
     private readonly triggerStateActions: (cardPath: string, state: string) => void
 
     constructor(
-        context: DataServiceContext,
+        dependencies: CardOperationsDeps,
         triggerStateActions: (cardPath: string, state: string) => void,
     ) {
-        this.context = context
+        this.dependencies = dependencies
         this.triggerStateActions = triggerStateActions
     }
 
     async createCard(draft: CardDraft) {
-        const { config, storage } = this.context.requireDependencies()
-        const currentProject = this.context.getCurrentProject()
+        const { config, storage } = this.dependencies.requireDependencies()
+        const currentProject = this.dependencies.project()
         if (!currentProject) throw new Error('Cannot create a card before a project is open')
 
-        const file = createCardFile(this.context.getCurrentFiles(), config.workingFolder, config.cardTypes, config.cardBodyTemplate, draft)
-        this.context.setCurrentFiles([...this.context.getCurrentFiles(), file])
+        const file = createCardFile(this.dependencies.files(), config.workingFolder, config.cardTypes, config.cardBodyTemplate, draft)
+        this.dependencies.replaceFiles([...this.dependencies.files(), file], config.workingFolder)
         await this.commitAndMergeFiles({
             branch: currentProject.branch,
             files: [file],
@@ -42,26 +55,26 @@ export class CardOperations {
 
         if (config.pushMode === 'auto') await storage.push(currentProject)
 
-        this.context.refreshSnapshot()
+        this.dependencies.refreshSnapshot(config.workingFolder)
         telemetryService.trackEvent('create_card')
 
         return file
     }
 
     updateCardBody(path: string, body: string) {
-        const existingFile = this.context.requireFile(path)
+        const existingFile = this.dependencies.requireFile(path)
 
         return this.saveFile({ content: markdownParsingService.replaceBody(existingFile.content, body), path, sha: existingFile.sha })
     }
 
     updateCardAffects(path: string, affects: string[]) {
-        const existingFile = this.context.requireFile(path)
+        const existingFile = this.dependencies.requireFile(path)
 
         return this.saveFile({ content: markdownParsingService.setAffects(existingFile.content, affects), path, sha: existingFile.sha })
     }
 
     updateCardHeaderFields(path: string, updates: Record<string, string>) {
-        const existingFile = this.context.requireFile(path)
+        const existingFile = this.dependencies.requireFile(path)
 
         return this.saveFile({
             content: markdownParsingService.rewriteHeader(existingFile.content, updates),
@@ -75,8 +88,8 @@ export class CardOperations {
     }
 
     toggleCardPolicy(path: string, policyKey: string) {
-        const { config } = this.context.requireDependencies()
-        const existingFile = this.context.requireFile(path)
+        const { config } = this.dependencies.requireDependencies()
+        const existingFile = this.dependencies.requireFile(path)
         const card = markdownParsingService.parseCard(existingFile, config.workingFolder)
         const enabled = card.header.policy[policyKey] === 'true'
 
@@ -88,7 +101,7 @@ export class CardOperations {
     }
 
     moveCard(cardPath: string, targetStatus: string, targetIndex: number) {
-        const activeCards = this.context.getCurrentSnapshot()?.activeCards ?? []
+        const activeCards = this.dependencies.snapshot()?.activeCards ?? []
         const movedCard = activeCards.find((card) => card.path === cardPath)
         const previousStatus = movedCard?.header.status ?? null
         const updates = computeMove(activeCards, cardPath, targetStatus, targetIndex)
@@ -103,36 +116,36 @@ export class CardOperations {
     }
 
     async deleteCard(path: string) {
-        const card = this.context.getCurrentSnapshot()?.activeCards.find((currentCard) => currentCard.path === path)
+        const card = this.dependencies.snapshot()?.activeCards.find((currentCard) => currentCard.path === path)
         if (!card) throw new Error(`Cannot delete an active card that is not loaded: ${path}`)
 
         return this.deleteLoadedFile(path, true)
     }
 
     async deleteFile(path: string) {
-        this.context.requireFile(path)
+        this.dependencies.requireFile(path)
 
-        const activeCard = this.context.getCurrentSnapshot()?.activeCards.some((card) => card.path === path) ?? false
+        const activeCard = this.dependencies.snapshot()?.activeCards.some((card) => card.path === path) ?? false
 
         return this.deleteLoadedFile(path, activeCard)
     }
 
     saveFile(file: MarkdownFile) {
-        const { commitBatcher } = this.context.requireDependencies()
-        const currentProject = this.context.getCurrentProject()
+        const { commitBatcher, config } = this.dependencies.requireDependencies()
+        const currentProject = this.dependencies.project()
         if (!currentProject) throw new Error('Cannot save a file before a project is open')
 
-        const currentFiles = this.context.getCurrentFiles().map((currentFile) => (currentFile.path === file.path ? file : currentFile))
-        this.context.setCurrentFiles(currentFiles)
+        const currentFiles = this.dependencies.files().map((currentFile) => (currentFile.path === file.path ? file : currentFile))
+        this.dependencies.replaceFiles(currentFiles, config.workingFolder)
         commitBatcher.schedule(currentProject.branch, [file], `Update ${file.path}`)
-        this.context.refreshSnapshot()
+        this.dependencies.refreshSnapshot(config.workingFolder)
 
         return file
     }
 
     async saveProjectFile(file: MarkdownFile, message: string) {
-        const { config, storage } = this.context.requireDependencies()
-        const currentProject = this.context.getCurrentProject()
+        const { config, storage } = this.dependencies.requireDependencies()
+        const currentProject = this.dependencies.project()
         if (!currentProject) throw new Error('Cannot save a project file before a project is open')
 
         await this.commitAndMergeFiles({
@@ -151,23 +164,23 @@ export class CardOperations {
     }
 
     async flushPendingCommitBatch() {
-        const { commitBatcher } = this.context.requireDependencies()
+        const { commitBatcher } = this.dependencies.requireDependencies()
         const hadPendingCommits = commitBatcher.hasPending()
 
         try {
             await commitBatcher.flush()
         } catch (error) {
-            reportCommitFlushFailure(error, this.context.dispatchChanged)
+            reportCommitFlushFailure(error, this.dependencies.dispatchChanged)
             throw error
         }
 
-        if (hadPendingCommits) this.context.dispatchChanged()
+        if (hadPendingCommits) this.dependencies.dispatchChanged()
     }
 
     async commitFiles(request: CommitRequest) {
-        const { config, storage } = this.context.requireDependencies()
+        const { config, storage } = this.dependencies.requireDependencies()
         const commitPaths = request.files.map((file) => file.path)
-        const inFlightCommitPaths = this.context.getInFlightCommitPaths()
+        const inFlightCommitPaths = this.dependencies.commitPathsInFlight()
         commitPaths.forEach((path) => inFlightCommitPaths.add(path))
         let updatedFiles: MarkdownFile[] = []
 
@@ -178,19 +191,19 @@ export class CardOperations {
         }
 
         if (updatedFiles.length > 0) {
-            this.context.setCurrentFiles(mergeFiles(this.context.getCurrentFiles(), updatedFiles))
-            this.context.refreshSnapshot()
+            this.dependencies.mergeCommittedFiles(updatedFiles, config.workingFolder)
+            this.dependencies.refreshSnapshot(config.workingFolder)
         }
 
-        const currentProject = this.context.getCurrentProject()
+        const currentProject = this.dependencies.project()
         if (currentProject && config.pushMode === 'auto') await storage.push(currentProject)
-        if (config.pushMode === 'manual') this.context.dispatchChanged()
+        if (config.pushMode === 'manual') this.dependencies.dispatchChanged()
     }
 
     async commitAndMergeFiles(request: CommitRequest, fallbackFiles: MarkdownFile[] = []) {
-        const { storage } = this.context.requireDependencies()
+        const { config, storage } = this.dependencies.requireDependencies()
         const commitPaths = request.files.map((file) => file.path)
-        const inFlightCommitPaths = this.context.getInFlightCommitPaths()
+        const inFlightCommitPaths = this.dependencies.commitPathsInFlight()
         commitPaths.forEach((path) => inFlightCommitPaths.add(path))
         let updatedFiles: MarkdownFile[] = []
 
@@ -202,20 +215,20 @@ export class CardOperations {
         const committedFiles = updatedFiles.length > 0 ? updatedFiles : fallbackFiles
         if (committedFiles.length === 0) return updatedFiles
 
-        this.context.setCurrentFiles(mergeFiles(this.context.getCurrentFiles(), committedFiles))
-        this.context.refreshSnapshot()
+        this.dependencies.mergeCommittedFiles(committedFiles, config.workingFolder)
+        this.dependencies.refreshSnapshot(config.workingFolder)
 
         return updatedFiles
     }
 
     private async deleteLoadedFile(path: string, repairActiveOrdering: boolean) {
-        const { config, storage } = this.context.requireDependencies()
-        const currentProject = this.context.getCurrentProject()
+        const { config, storage } = this.dependencies.requireDependencies()
+        const currentProject = this.dependencies.project()
         if (!currentProject) throw new Error('Cannot delete a file before a project is open')
 
         await this.flushPendingCommitBatch()
 
-        const existingFile = this.context.requireFile(path)
+        const existingFile = this.dependencies.requireFile(path)
         const repairFile = repairActiveOrdering ? this.createDeleteRepairFile(path) : null
 
         if (repairFile) {
@@ -235,13 +248,13 @@ export class CardOperations {
 
         if (config.pushMode === 'auto') await storage.push(currentProject)
 
-        await this.context.reloadCurrentProjectSnapshot()
+        await this.dependencies.reloadCurrentProjectSnapshot()
 
-        return this.context.getCurrentSnapshot()
+        return this.dependencies.snapshot()
     }
 
     private createDeleteRepairFile(path: string): MarkdownFile | null {
-        const activeCards = this.context.getCurrentSnapshot()?.activeCards ?? []
+        const activeCards = this.dependencies.snapshot()?.activeCards ?? []
         const deletedCard = activeCards.find((card) => card.path === path)
         if (!deletedCard) return null
         if (!deletedCard.header.internalId) return null
@@ -251,7 +264,7 @@ export class CardOperations {
         const follower = column[deletedIndex + 1]
         if (!follower || follower.header.after !== deletedCard.header.internalId) return null
 
-        const followerFile = this.context.requireFile(follower.path)
+        const followerFile = this.dependencies.requireFile(follower.path)
 
         return {
             content: markdownParsingService.rewriteHeader(followerFile.content, { after: deletedCard.header.after ?? '' }),
