@@ -1,7 +1,7 @@
 ---
 id: F-036
 title: option to search in actions
-status: design
+status: ready
 owner: JB
 affects:
 policy:

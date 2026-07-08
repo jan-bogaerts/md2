@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { CardHeader, ProjectCard, ProjectSnapshot } from '../../../data/data_types'
+import { actionService } from '../../../services/action_service'
 import { workspaceNavigationService } from '../../../services/workspace_navigation_service'
 import { SearchControl } from './search_control'
 
@@ -44,6 +45,9 @@ function typeQuery(value: string) {
 
 describe('SearchControl', () => {
     afterEach(cleanup)
+    afterEach(() => {
+        actionService.clear()
+    })
 
     it('shows grouped results for a plain text search', () => {
         render(<SearchControl />)
@@ -73,6 +77,23 @@ describe('SearchControl', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Search background file bodies' }))
 
         expect(screen.getByRole('button', { name: /History note/ })).toBeInTheDocument()
+    })
+
+    it('includes actions only when the action toggle is on and opens the action popup', () => {
+        actionService.loadFromFiles([{
+            content: JSON.stringify({ description: 'Searchable action', label: 'Run search job', name: 'search-job', text: 'execute', type: 'cmd' }),
+            path: 'actions/search-job.json',
+        }])
+        render(<SearchControl />)
+
+        typeQuery('Searchable action')
+        expect(screen.queryByText('Actions')).not.toBeInTheDocument()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Search actions' }))
+        fireEvent.click(screen.getByRole('button', { name: /Run search job/ }))
+
+        expect(screen.getByRole('dialog')).toBeInTheDocument()
+        expect(screen.getByRole('heading', { name: 'Run search job' })).toBeInTheDocument()
     })
 
     it('reports an invalid RegExp without clearing the previous results', () => {

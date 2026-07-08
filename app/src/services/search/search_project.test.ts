@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { CardHeader, ProjectCard, ProjectSnapshot } from '../../data/data_types'
-import { InvalidSearchPatternError, defaultSearchRegexpAgent, searchProject } from './search_project'
+import type { ActionDefinition } from '../../data/action_types'
+import { InvalidSearchPatternError, defaultSearchRegexpAgent, searchActions, searchProject } from './search_project'
 
 function makeHeader(overrides: Partial<CardHeader> = {}): CardHeader {
     return {
@@ -54,16 +55,39 @@ const snapshot: ProjectSnapshot = {
     workingFolder: 'design',
 }
 
+function action(overrides: Partial<ActionDefinition> = {}): ActionDefinition {
+    return {
+        after: [],
+        agent: null,
+        appliesTo: null,
+        before: [],
+        builtin: false,
+        description: 'Create release notes from current changes',
+        icon: null,
+        label: 'Release notes',
+        model: null,
+        name: 'release-notes',
+        on: [],
+        onState: null,
+        text: 'Summarize commits for release',
+        type: 'agent',
+        ...overrides,
+    }
+}
+
+const searchOptions = { includeActions: false, includeBackgroundBody: false, mode: 'text' as const }
+
 describe('searchProject', () => {
     it('returns no results for an empty query', () => {
-        const results = searchProject(snapshot, '   ', { includeBackgroundBody: false, mode: 'text' })
+        const results = searchProject(snapshot, '   ', searchOptions)
 
         expect(results.active).toHaveLength(0)
+        expect(results.actions).toHaveLength(0)
         expect(results.backgroundGroups).toHaveLength(0)
     })
 
     it('matches active cards by full body content and marks the body source', () => {
-        const results = searchProject(snapshot, 'brown fox', { includeBackgroundBody: false, mode: 'text' })
+        const results = searchProject(snapshot, 'brown fox', searchOptions)
 
         expect(results.active).toHaveLength(1)
         expect(results.active[0].path).toBe('design/F-1-alpha.md')
@@ -72,7 +96,7 @@ describe('searchProject', () => {
     })
 
     it('matches header fields and reports the header source and field', () => {
-        const results = searchProject(snapshot, 'Beta feature', { includeBackgroundBody: false, mode: 'text' })
+        const results = searchProject(snapshot, 'Beta feature', searchOptions)
 
         expect(results.active).toHaveLength(1)
         expect(results.active[0].source).toBe('header')
@@ -80,21 +104,21 @@ describe('searchProject', () => {
     })
 
     it('searches case-insensitively for plain text', () => {
-        const results = searchProject(snapshot, 'ALPHA FEATURE', { includeBackgroundBody: false, mode: 'text' })
+        const results = searchProject(snapshot, 'ALPHA FEATURE', searchOptions)
 
         expect(results.active).toHaveLength(1)
         expect(results.active[0].path).toBe('design/F-1-alpha.md')
     })
 
     it('searches background cards by header only by default', () => {
-        const results = searchProject(snapshot, 'fox', { includeBackgroundBody: false, mode: 'text' })
+        const results = searchProject(snapshot, 'fox', searchOptions)
 
         expect(results.active).toHaveLength(1)
         expect(results.backgroundGroups).toHaveLength(0)
     })
 
     it('includes background bodies when full search is enabled and groups them by folder', () => {
-        const results = searchProject(snapshot, 'fox', { includeBackgroundBody: true, mode: 'text' })
+        const results = searchProject(snapshot, 'fox', { ...searchOptions, includeBackgroundBody: true })
 
         const folders = results.backgroundGroups.map((group) => group.folder)
         expect(folders).toEqual(['history', 'architecture'])
@@ -102,7 +126,7 @@ describe('searchProject', () => {
     })
 
     it('matches background header fields regardless of the body toggle', () => {
-        const results = searchProject(snapshot, 'archived', { includeBackgroundBody: false, mode: 'text' })
+        const results = searchProject(snapshot, 'archived', searchOptions)
 
         expect(results.backgroundGroups).toHaveLength(1)
         expect(results.backgroundGroups[0].folder).toBe('history')
@@ -110,15 +134,48 @@ describe('searchProject', () => {
     })
 
     it('supports valid RegExp queries', () => {
-        const results = searchProject(snapshot, 'F-\\d', { includeBackgroundBody: false, mode: 'regexp' })
+        const results = searchProject(snapshot, 'F-\\d', { ...searchOptions, mode: 'regexp' })
 
         expect(results.active).toHaveLength(2)
     })
 
     it('throws InvalidSearchPatternError for an invalid RegExp query', () => {
-        expect(() => searchProject(snapshot, '(', { includeBackgroundBody: false, mode: 'regexp' })).toThrow(
+        expect(() => searchProject(snapshot, '(', { ...searchOptions, mode: 'regexp' })).toThrow(
             InvalidSearchPatternError,
         )
+    })
+})
+
+describe('searchActions', () => {
+    it('returns no matches when action search is disabled', () => {
+        const results = searchActions([action()], 'Release notes', searchOptions)
+
+        expect(results).toHaveLength(0)
+    })
+
+    it('matches action label, description, name and text', () => {
+        const actions = [
+            action({ label: 'Deploy service', name: 'one' }),
+            action({ description: 'Runs migration plan', label: 'Migrate', name: 'two' }),
+            action({ label: 'Review', name: 'review-action' }),
+            action({ label: 'Summarize', name: 'four', text: 'Write changelog entry' }),
+        ]
+        const options = { ...searchOptions, includeActions: true }
+
+        expect(searchActions(actions, 'Deploy service', options)[0].field).toBe('label')
+        expect(searchActions(actions, 'migration plan', options)[0].field).toBe('description')
+        expect(searchActions(actions, 'review-action', options)[0].field).toBe('name')
+        expect(searchActions(actions, 'changelog', options)[0].field).toBe('text')
+    })
+
+    it('supports RegExp mode for actions', () => {
+        const results = searchActions([action({ name: 'release-notes' })], 'release-.+', {
+            ...searchOptions,
+            includeActions: true,
+            mode: 'regexp',
+        })
+
+        expect(results[0].field).toBe('name')
     })
 })
 

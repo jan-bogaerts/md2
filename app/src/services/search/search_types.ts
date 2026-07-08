@@ -1,3 +1,4 @@
+import type { ActionDefinition } from '../../data/action_types'
 import type { ProjectCard } from '../../data/data_types'
 
 export type SearchMode = 'text' | 'regexp'
@@ -8,6 +9,8 @@ export type SearchMatchSource = 'header' | 'body'
 export interface SearchOptions {
     /** When true, background cards are also searched by full body content. */
     includeBackgroundBody: boolean
+    /** When true, loaded action definitions are searched. */
+    includeActions: boolean
     mode: SearchMode
 }
 
@@ -28,8 +31,16 @@ export interface BackgroundGroup {
     matches: SearchMatch[]
 }
 
+export interface ActionSearchMatch {
+    action: ActionDefinition
+    context: string
+    field: 'label' | 'description' | 'name' | 'text'
+    title: string
+}
+
 export interface SearchResults {
     active: SearchMatch[]
+    actions: ActionSearchMatch[]
     backgroundGroups: BackgroundGroup[]
 }
 

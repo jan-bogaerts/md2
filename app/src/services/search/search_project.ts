@@ -1,6 +1,7 @@
 import type { CardHeader, ProjectCard, ProjectSnapshot } from '../../data/data_types'
+import type { ActionDefinition } from '../../data/action_types'
 import type {
-    BackgroundGroup, SearchMatch, SearchOptions, SearchRegexpAgent, SearchResults,
+    ActionSearchMatch, BackgroundGroup, SearchMatch, SearchOptions, SearchRegexpAgent, SearchResults,
 } from './search_types'
 
 const CONTEXT_RADIUS = 40
@@ -27,6 +28,11 @@ interface Matcher {
 
 interface HeaderField {
     field: string
+    value: string
+}
+
+interface ActionSearchField {
+    field: ActionSearchMatch['field']
     value: string
 }
 
@@ -116,6 +122,24 @@ function matchCard(card: ProjectCard, matcher: Matcher, searchBody: boolean): Se
     return null
 }
 
+function collectActionFields(action: ActionDefinition): ActionSearchField[] {
+    return [
+        { field: 'label', value: action.label },
+        { field: 'description', value: action.description },
+        { field: 'name', value: action.name },
+        { field: 'text', value: action.text },
+    ]
+}
+
+function matchAction(action: ActionDefinition, matcher: Matcher): ActionSearchMatch | null {
+    for (const { field, value } of collectActionFields(action)) {
+        const location = matcher.find(value)
+        if (location) return { action, context: buildContext(value, location), field, title: action.label }
+    }
+
+    return null
+}
+
 function backgroundGroupKey(path: string, workingFolder: string): string {
     const normalized = path.replace(/\\/gu, '/')
     const prefix = `${workingFolder}/`
@@ -152,7 +176,7 @@ function groupBackgroundMatches(matches: SearchMatch[], workingFolder: string): 
  * Throws {@link InvalidSearchPatternError} for an invalid RegExp-mode query.
  */
 export function searchProject(snapshot: ProjectSnapshot, query: string, options: SearchOptions): SearchResults {
-    if (query.trim().length === 0) return { active: [], backgroundGroups: [] }
+    if (query.trim().length === 0) return { active: [], actions: [], backgroundGroups: [] }
 
     const matcher = createMatcher(query, options)
     const active = snapshot.activeCards
@@ -162,7 +186,21 @@ export function searchProject(snapshot: ProjectSnapshot, query: string, options:
         .map((card) => matchCard(card, matcher, options.includeBackgroundBody))
         .filter((match): match is SearchMatch => match !== null)
 
-    return { active, backgroundGroups: groupBackgroundMatches(backgroundMatches, snapshot.workingFolder) }
+    return { active, actions: [], backgroundGroups: groupBackgroundMatches(backgroundMatches, snapshot.workingFolder) }
+}
+
+/**
+ * Searches loaded action definitions by label, description, name and text.
+ * Throws {@link InvalidSearchPatternError} for an invalid RegExp-mode query.
+ */
+export function searchActions(actions: ActionDefinition[], query: string, options: SearchOptions): ActionSearchMatch[] {
+    if (!options.includeActions || query.trim().length === 0) return []
+
+    const matcher = createMatcher(query, options)
+
+    return actions
+        .map((action) => matchAction(action, matcher))
+        .filter((match): match is ActionSearchMatch => match !== null)
 }
 
 /** Placeholder agent used until real agent execution is wired up; always reports unavailable. */
