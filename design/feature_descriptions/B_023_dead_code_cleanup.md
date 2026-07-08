@@ -13,7 +13,9 @@ policy:
 Assorted dead code, leftovers and small duplications found in the 2026-07 audit. None is user-visible alone, but together they mislead readers and hide real gaps.
 
 ## Items
-Status per item re-verified 2026-07-06:
+Status per item re-verified 2026-07-07 (audit): the re-export shims and the duplicated test file are **deleted**, the README template is now **one constant per side** (`PROJECT_README_TEMPLATE` in `github_storage_service.ts` and `desktop/project_files.js`) as accepted, `splitCards` parses each file **once** (two filter passes remain, acceptable), and `void configRevision` is gone (B-031 done). Still open: the action-reload debounce single-path issue — extracted to its own card, see [[B-039]] — and the duplicated `agent_profiles` module, now covered by [[J-012]].
+
+Original list, re-verified 2026-07-06:
 - ~~**Dead config entries**~~ **done** — `react.showStartupSplash` gates the splash in `app.tsx`, `connection.githubScopes` feeds `github_auth_service` (F-031).
 - ~~**Dead field `MarkdownFile.encoding`**~~ **done** — honored by GitHub `createBlob` and the local commit write path.
 - **Re-export shims from old file moves** (still present): `app/src/data/github_storage_service.ts`, `app/src/data/local_git_storage_service.ts`, `app/src/auth/github_auth_service.ts`, `app/src/components/shell/running_agent_types.ts` are one-line re-exports → update importers and delete.

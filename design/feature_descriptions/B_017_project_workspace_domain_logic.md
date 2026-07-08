@@ -10,6 +10,10 @@ policy:
 ---
 
 ## Problem
+**Updated 2026-07-07:** largely resolved. `projectSessionService` (`app/src/services/project_session_service.ts`) now owns open/create/switch-branch/push/session persistence, `ProjectToolbarMenu` consumes it via `useProjectSession`, and no component calls `createStorageService`/`dataService.init`/`writeLastProject` outside tests. **One residue remains:** the startup restore path in `use_app_bootstrap.ts` still inlines `createStorageService` + `dataService.init` instead of delegating to `projectSessionService`, so "restore last session" has two implementations. Remaining scope: route bootstrap restore through the service (see also [[B-042]] for the related `createStorageService` side-effect cleanup), then move this card to ready.
+
+Original problem, for history:
+
 **Updated 2026-07-06:** the god component moved instead of dissolving. `ProjectWorkspace` was slimmed to view composition, but the domain orchestration now lives in `app/src/components/shell/project_toolbar_menu.tsx` (~736 lines, 22 direct data-service/storage call sites): project open/create for GitHub/local/remote (`createStorageService` + `dataService.init` + `openProject`), session persistence (`writeLastProject`), branch listing/switching, working-folder chooser flow, push, complete-release and the new-card form. The architecture decisions say components do not own domain state/logic — this belongs in services, with components reduced to presentation + hooks. No `projectSessionService` exists yet.
 
 ## Fix
