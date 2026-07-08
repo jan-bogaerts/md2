@@ -1,7 +1,7 @@
 ---
 id: J-013
 title: shrink the ActionRunner dependency-injection surface
-status: design
+status: ready
 owner: JB
 affects:
 policy:

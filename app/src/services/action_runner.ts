@@ -2,12 +2,10 @@ import type { ActionContext } from '../data/action_context'
 import type { ActionDefinition, OnRule } from '../data/action_types'
 import {
     type ActionRunHistoryEntry,
-    type ActionRunHistoryRequest,
     type AgentExecutionResult,
     type AgentExecutionRequest,
     type CommandActionExecutionRequest,
     getElectronActionBridge,
-    type CommandExecutionResult,
     type ElectronActionBridge,
 } from '../data/electron_action_bridge'
 import type { AgentRunEvent, ProjectReference } from '../data/data_types'
@@ -25,7 +23,16 @@ import {
     type ActionRunLogEntry,
     type RunStatus,
 } from './action_run_log'
-import { addFailure, runAgentAction, runCommandAction, type ActionExecutionDependencies, type RunOptions } from './action_execution'
+import {
+    addFailure,
+    type ActionEnvironment,
+    type ActionExecutionDependencies,
+    type ActionExecutionGateway,
+    type ActionRunRecorder,
+    runAgentAction,
+    runCommandAction,
+    type RunOptions,
+} from './action_execution'
 
 export type { ActionRunLogEntry, RunPhase, RunStatus } from './action_run_log'
 export type { ConvertPromptToActionInput } from './action_definition_writer'
@@ -36,28 +43,10 @@ export interface ActionRunResult {
 }
 
 interface ActionRunnerDependencies {
-    agentConversationLinker?: (cardPath: string, result: AgentExecutionResult) => Promise<void>
-    agentConfigProvider?: () => DesktopConfigValues
-    agentCommandProvider?: () => string
-    agentRunFinisher?: (id: string) => void
-    agentRunEventRecorder?: (cardPath: string, event: AgentRunEvent) => void
-    agentRunStarter?: (label: string) => string
-    agentRunner?: (
-        bridge: ElectronActionBridge,
-        request: AgentExecutionRequest,
-        onEvent?: (event: AgentRunEvent) => void,
-    ) => Promise<AgentExecutionResult>
-    actionHistoryAppender?: (
-        bridge: ElectronActionBridge,
-        request: ActionRunHistoryRequest,
-        entry: ActionRunHistoryEntry,
-    ) => Promise<ActionRunHistoryEntry[]>
-    actionHistoryLoader?: (bridge: ElectronActionBridge, request: ActionRunHistoryRequest) => Promise<ActionRunHistoryEntry[]>
     actionWriter?: (path: string, content: string) => Promise<void>
-    actionsFolderProvider?: () => string | null
-    bridgeProvider?: () => ElectronActionBridge | null
-    commandRunner?: (bridge: ElectronActionBridge, request: CommandActionExecutionRequest) => Promise<CommandExecutionResult>
-    projectProvider?: () => ProjectReference | null
+    environment?: ActionEnvironment
+    executionGateway?: ActionExecutionGateway
+    runRecorder?: ActionRunRecorder
 }
 
 export interface ActionRunInput {
@@ -70,7 +59,7 @@ function matchingOnRules(rules: OnRule[], output: string): OnRule[] {
     return rules.filter((rule) => new RegExp(rule.condition, 'u').test(output))
 }
 
-function defaultProjectProvider() {
+function defaultProjectProvider(): ProjectReference | null {
     return dataService.getState().project
 }
 
@@ -102,16 +91,33 @@ async function defaultActionWriter(path: string, content: string) {
     await dataService.cards.saveProjectFile({ content, path }, `Create ${path}`)
 }
 
-function defaultAgentCommandProvider() {
-    return configService.get('desktop.agent')
-}
-
-function defaultAgentConfigProvider() {
+function defaultAgentConfigProvider(): DesktopConfigValues {
     return configService.getDesktopValues()
 }
 
 function defaultActionsFolderProvider() {
     return dataService.getConfig()?.actionsFolder ?? null
+}
+
+const defaultExecutionGateway: ActionExecutionGateway = {
+    getBridge: getElectronActionBridge,
+    runAgent: defaultAgentRunner,
+    runCommand: defaultCommandRunner,
+}
+
+const defaultRunRecorder: ActionRunRecorder = {
+    appendHistory: defaultActionHistoryAppender,
+    finishRun: defaultAgentRunFinisher,
+    linkAgentConversation: defaultAgentConversationLinker,
+    loadHistory: defaultActionHistoryLoader,
+    recordAgentRunEvent: defaultAgentRunEventRecorder,
+    startRun: defaultAgentRunStarter,
+}
+
+const defaultEnvironment: ActionEnvironment = {
+    getActionsFolder: defaultActionsFolderProvider,
+    getAgentConfig: defaultAgentConfigProvider,
+    getProject: defaultProjectProvider,
 }
 
 function actionRunLabel(action: ActionDefinition, context: ActionContext) {
@@ -121,55 +127,21 @@ function actionRunLabel(action: ActionDefinition, context: ActionContext) {
 }
 
 export class ActionRunner {
-    private agentConversationLinker: (cardPath: string, result: AgentExecutionResult) => Promise<void>
-    private actionHistoryAppender: (
-        bridge: ElectronActionBridge,
-        request: ActionRunHistoryRequest,
-        entry: ActionRunHistoryEntry,
-    ) => Promise<ActionRunHistoryEntry[]>
-    private actionHistoryLoader: (bridge: ElectronActionBridge, request: ActionRunHistoryRequest) => Promise<ActionRunHistoryEntry[]>
     private actionWriter: (path: string, content: string) => Promise<void>
-    private actionsFolderProvider: () => string | null
-    private agentConfigProvider: () => DesktopConfigValues
-    private agentCommandProvider: () => string
-    private agentRunFinisher: (id: string) => void
-    private agentRunEventRecorder: (cardPath: string, event: AgentRunEvent) => void
-    private agentRunStarter: (label: string) => string
-    private agentRunner: (
-        bridge: ElectronActionBridge,
-        request: AgentExecutionRequest,
-        onEvent?: (event: AgentRunEvent) => void,
-    ) => Promise<AgentExecutionResult>
-    private bridgeProvider: () => ElectronActionBridge | null
-    private commandRunner: (bridge: ElectronActionBridge, request: CommandActionExecutionRequest) => Promise<CommandExecutionResult>
-    private projectProvider: () => ProjectReference | null
+    private environment: ActionEnvironment
+    private executionGateway: ActionExecutionGateway
+    private runRecorder: ActionRunRecorder
 
     constructor(dependencies: ActionRunnerDependencies = {}) {
-        this.agentConversationLinker = dependencies.agentConversationLinker ?? defaultAgentConversationLinker
-        this.actionHistoryAppender = dependencies.actionHistoryAppender ?? defaultActionHistoryAppender
-        this.actionHistoryLoader = dependencies.actionHistoryLoader ?? defaultActionHistoryLoader
         this.actionWriter = dependencies.actionWriter ?? defaultActionWriter
-        this.actionsFolderProvider = dependencies.actionsFolderProvider ?? defaultActionsFolderProvider
-        this.agentCommandProvider = dependencies.agentCommandProvider ?? defaultAgentCommandProvider
-        this.agentConfigProvider = dependencies.agentConfigProvider ?? (dependencies.agentCommandProvider ? (() => ({
-            agent: 'default',
-            agentSlotCommand: '',
-            agentProfiles: [{ command: this.agentCommandProvider(), name: 'default' }],
-            model: '',
-            projectLocationMode: 'folder',
-        })) : defaultAgentConfigProvider)
-        this.agentRunFinisher = dependencies.agentRunFinisher ?? defaultAgentRunFinisher
-        this.agentRunEventRecorder = dependencies.agentRunEventRecorder ?? defaultAgentRunEventRecorder
-        this.agentRunStarter = dependencies.agentRunStarter ?? defaultAgentRunStarter
-        this.agentRunner = dependencies.agentRunner ?? defaultAgentRunner
-        this.bridgeProvider = dependencies.bridgeProvider ?? getElectronActionBridge
-        this.commandRunner = dependencies.commandRunner ?? defaultCommandRunner
-        this.projectProvider = dependencies.projectProvider ?? defaultProjectProvider
+        this.environment = dependencies.environment ?? defaultEnvironment
+        this.executionGateway = dependencies.executionGateway ?? defaultExecutionGateway
+        this.runRecorder = dependencies.runRecorder ?? defaultRunRecorder
     }
 
     async run(action: ActionDefinition, context: ActionContext, input: ActionRunInput = {}): Promise<ActionRunResult> {
         const state = { failed: false, logs: [] }
-        const runningAgentId = this.agentRunStarter(actionRunLabel(action, context))
+        const runningAgentId = this.runRecorder.startRun(actionRunLabel(action, context))
 
         try {
             await this.runAction(action, context, { agent: input.agent, extraPrompt: input.extraPrompt ?? '', model: input.model, phase: 'main', stack: [], state })
@@ -177,22 +149,22 @@ export class ActionRunner {
 
             return { logs: state.logs, status: state.failed ? 'failed' : 'completed' }
         } finally {
-            this.agentRunFinisher(runningAgentId)
+            this.runRecorder.finishRun(runningAgentId)
         }
     }
 
     async loadHistory(action: ActionDefinition, context: ActionContext): Promise<ActionRunHistoryEntry[]> {
         return loadActionHistory({
             action,
-            actionHistoryLoader: this.actionHistoryLoader,
-            actionsFolder: this.actionsFolderProvider(),
-            bridge: this.bridgeProvider(),
+            actionHistoryLoader: this.runRecorder.loadHistory,
+            actionsFolder: this.environment.getActionsFolder(),
+            bridge: this.executionGateway.getBridge(),
             context,
         })
     }
 
     async convertPromptToAction(input: ConvertPromptToActionInput) {
-        const actionsFolder = this.actionsFolderProvider()
+        const actionsFolder = this.environment.getActionsFolder()
         if (!actionsFolder) throw new Error('Cannot convert prompt before project config is loaded')
 
         const definition = createActionDefinition(input)
@@ -235,15 +207,9 @@ export class ActionRunner {
 
     private executionDependencies(): ActionExecutionDependencies {
         return {
-            actionHistoryAppender: this.actionHistoryAppender,
-            actionsFolderProvider: this.actionsFolderProvider,
-            agentConfigProvider: this.agentConfigProvider,
-            agentConversationLinker: this.agentConversationLinker,
-            agentRunEventRecorder: this.agentRunEventRecorder,
-            agentRunner: this.agentRunner,
-            bridgeProvider: this.bridgeProvider,
-            commandRunner: this.commandRunner,
-            projectProvider: this.projectProvider,
+            environment: this.environment,
+            executionGateway: this.executionGateway,
+            runRecorder: this.runRecorder,
         }
     }
 
@@ -263,7 +229,7 @@ export class ActionRunner {
     }
 
     private async notifyActionCompleted(actionName: string) {
-        const bridge = this.bridgeProvider()
+        const bridge = this.executionGateway.getBridge()
         if (!bridge?.notifyActionCompleted) return
 
         await bridge.notifyActionCompleted(actionName)

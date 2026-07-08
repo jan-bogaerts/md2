@@ -9,7 +9,9 @@ import type {
     ElectronActionBridge,
 } from '../data/electron_action_bridge'
 import type { AgentConversation, AgentRunEvent } from '../data/data_types'
+import type { ActionEnvironment, ActionExecutionGateway, ActionRunRecorder } from './action_execution'
 import { ActionRunner } from './action_runner'
+import type { DesktopConfigValues } from './config_service'
 
 function action(name: string, overrides: Partial<ActionDefinition> = {}): ActionDefinition {
     return {
@@ -40,6 +42,14 @@ const bridge: ElectronActionBridge = {
     runCommand: vi.fn(),
 }
 const context: ActionContext = { file: 'design/F-010.md', kind: 'card', state: 'design', type: 'feature' }
+const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
+const desktopConfig: DesktopConfigValues = {
+    agent: 'codex',
+    agentSlotCommand: '',
+    agentProfiles: [{ command: 'codex', name: 'codex' }],
+    model: '',
+    projectLocationMode: 'folder',
+}
 
 function commandResult(command: string, overrides: Partial<CommandExecutionResult> = {}): CommandExecutionResult {
     return { command, exitCode: 0, stderr: '', stdout: command, ...overrides }
@@ -88,16 +98,47 @@ function noopAgentConversationLinker() {
     return Promise.resolve()
 }
 
+function environment(overrides: Partial<ActionEnvironment> = {}): ActionEnvironment {
+    return {
+        getActionsFolder: () => 'actions',
+        getAgentConfig: () => desktopConfig,
+        getProject: () => project,
+        ...overrides,
+    }
+}
+
+function executionGateway(overrides: Partial<ActionExecutionGateway> = {}): ActionExecutionGateway {
+    return {
+        getBridge: () => bridge,
+        runAgent: vi.fn(async (_bridge: ElectronActionBridge, request: AgentExecutionRequest) => agentResult(request)),
+        runCommand: vi.fn(async (_bridge: ElectronActionBridge, request: CommandActionExecutionRequest) => (
+            commandResult(request.actionName)
+        )),
+        ...overrides,
+    }
+}
+
+function runRecorder(overrides: Partial<ActionRunRecorder> = {}): ActionRunRecorder {
+    return {
+        appendHistory: vi.fn(async () => []),
+        finishRun: vi.fn(),
+        linkAgentConversation: vi.fn(async () => undefined),
+        loadHistory: vi.fn(async () => []),
+        recordAgentRunEvent: vi.fn(),
+        startRun: vi.fn(() => 'running-1'),
+        ...overrides,
+    }
+}
+
 function runner(
     commandRunner = vi.fn(async (_bridge: ElectronActionBridge, request: CommandActionExecutionRequest) => (
         commandResult(request.actionName)
     )),
 ) {
     return new ActionRunner({
-        actionsFolderProvider: () => 'actions',
-        bridgeProvider: () => bridge,
-        commandRunner,
-        projectProvider: () => ({ branch: 'main', id: 'local', rootPath: 'C:/repo' }),
+        environment: environment(),
+        executionGateway: executionGateway({ runCommand: commandRunner }),
+        runRecorder: runRecorder(),
     })
 }
 
@@ -108,11 +149,9 @@ describe('ActionRunner', () => {
         const agentRunFinisher = vi.fn()
         const commandRunner = vi.fn(async () => commandRun.promise)
         const runPromise = new ActionRunner({
-            agentRunFinisher,
-            agentRunStarter,
-            bridgeProvider: () => bridge,
-            commandRunner,
-            projectProvider: () => ({ branch: 'main', id: 'local', rootPath: 'C:/repo' }),
+            environment: environment(),
+            executionGateway: executionGateway({ runCommand: commandRunner }),
+            runRecorder: runRecorder({ finishRun: agentRunFinisher, startRun: agentRunStarter }),
         }).run(action('implement'), context)
 
         expect(agentRunStarter).toHaveBeenCalledWith('implement design/F-010.md')
@@ -201,14 +240,13 @@ describe('ActionRunner', () => {
         const actionHistoryAppender = vi.fn(async () => [])
         const agentConversationLinker = vi.fn(async () => undefined)
         const result = await new ActionRunner({
-            actionHistoryAppender,
-            agentConversationLinker,
-            actionsFolderProvider: () => 'actions',
-            agentCommandProvider: () => 'codex',
-            agentRunEventRecorder,
-            agentRunner,
-            bridgeProvider: () => bridge,
-            projectProvider: () => ({ branch: 'main', id: 'local', rootPath: 'C:/repo' }),
+            environment: environment(),
+            executionGateway: executionGateway({ runAgent: agentRunner }),
+            runRecorder: runRecorder({
+                appendHistory: actionHistoryAppender,
+                linkAgentConversation: agentConversationLinker,
+                recordAgentRunEvent: agentRunEventRecorder,
+            }),
         }).run(action('implement', { text: 'implement {{file}}', type: 'agent' }), context, { extraPrompt: 'focus tests' })
 
         expect(result.status).toBe('completed')
@@ -216,14 +254,14 @@ describe('ActionRunner', () => {
         expect(agentConversationLinker).toHaveBeenCalledWith('design/F-010.md', expect.objectContaining({ reference: '.md2-agent-logs/one.json' }))
         expect(agentRunner).toHaveBeenCalledWith(
             bridge,
-            { agent: 'default', cardPath: 'design/F-010.md', command: 'codex', model: '', prompt: 'implement design/F-010.md\n\nfocus tests', title: 'implement' },
+            { agent: 'codex', cardPath: 'design/F-010.md', command: 'codex', model: '', prompt: 'implement design/F-010.md\n\nfocus tests', title: 'implement' },
             expect.any(Function),
         )
         expect(actionHistoryAppender).toHaveBeenCalledWith(
             bridge,
             { actionName: 'implement', actionsFolder: 'actions', context },
             expect.objectContaining({
-                agent: 'default',
+                agent: 'codex',
                 model: '',
                 output: 'implement design/F-010.md\n\nfocus tests',
                 prompt: 'implement design/F-010.md\n\nfocus tests',
@@ -237,13 +275,15 @@ describe('ActionRunner', () => {
         ))
 
         const result = await new ActionRunner({
-            actionHistoryAppender: vi.fn(async () => []),
-            agentConversationLinker: noopAgentConversationLinker,
-            actionsFolderProvider: () => 'actions',
-            agentCommandProvider: () => 'missing-agent',
-            agentRunner,
-            bridgeProvider: () => bridge,
-            projectProvider: () => ({ branch: 'main', id: 'local', rootPath: 'C:/repo' }),
+            environment: environment({
+                getAgentConfig: () => ({
+                    ...desktopConfig,
+                    agent: 'missing',
+                    agentProfiles: [{ command: 'missing-agent', name: 'missing' }],
+                }),
+            }),
+            executionGateway: executionGateway({ runAgent: agentRunner }),
+            runRecorder: runRecorder({ linkAgentConversation: noopAgentConversationLinker }),
         }).run(action('implement', { text: 'implement', type: 'agent' }), context)
 
         expect(result.status).toBe('failed')
@@ -253,22 +293,20 @@ describe('ActionRunner', () => {
     it('resolves agent and model by run input, action definition, then global default', async () => {
         const agentRunner = vi.fn(async (_bridge: ElectronActionBridge, request: AgentExecutionRequest) => agentResult(request))
         const baseRunner = new ActionRunner({
-            actionHistoryAppender: vi.fn(async () => []),
-            agentConfigProvider: () => ({
-                agent: 'codex',
-                agentSlotCommand: '',
-                agentProfiles: [
-                    { command: 'codex', modelArgument: '--model', models: ['gpt-5', 'gpt-5-mini'], name: 'codex', sessionIdPattern: 'Session: (.+)' },
-                    { command: 'custom --model {{model}}', models: ['fast'], name: 'custom' },
-                ],
-                model: 'gpt-5',
-                projectLocationMode: 'folder',
+            environment: environment({
+                getAgentConfig: () => ({
+                    agent: 'codex',
+                    agentSlotCommand: '',
+                    agentProfiles: [
+                        { command: 'codex', modelArgument: '--model', models: ['gpt-5', 'gpt-5-mini'], name: 'codex', sessionIdPattern: 'Session: (.+)' },
+                        { command: 'custom --model {{model}}', models: ['fast'], name: 'custom' },
+                    ],
+                    model: 'gpt-5',
+                    projectLocationMode: 'folder',
+                }),
             }),
-            agentConversationLinker: noopAgentConversationLinker,
-            actionsFolderProvider: () => 'actions',
-            agentRunner,
-            bridgeProvider: () => bridge,
-            projectProvider: () => ({ branch: 'main', id: 'local', rootPath: 'C:/repo' }),
+            executionGateway: executionGateway({ runAgent: agentRunner }),
+            runRecorder: runRecorder({ linkAgentConversation: noopAgentConversationLinker }),
         })
 
         await baseRunner.run(action('global', { text: 'run', type: 'agent' }), context)
@@ -288,19 +326,15 @@ describe('ActionRunner', () => {
             agentResult(request)
         ))
         const result = await new ActionRunner({
-            actionHistoryAppender: vi.fn(async () => []),
-            agentConversationLinker: noopAgentConversationLinker,
-            actionsFolderProvider: () => 'actions',
-            agentCommandProvider: () => 'codex',
-            agentRunner,
-            bridgeProvider: () => bridge,
-            projectProvider: () => ({ branch: 'main', id: 'local', rootPath: 'C:/repo' }),
+            environment: environment(),
+            executionGateway: executionGateway({ runAgent: agentRunner }),
+            runRecorder: runRecorder({ linkAgentConversation: noopAgentConversationLinker }),
         }).run(action('custom prompt', { text: '{{prompt}}', type: 'agent' }), context, { extraPrompt: 'write docs' })
 
         expect(result.status).toBe('completed')
         expect(agentRunner).toHaveBeenCalledWith(
             bridge,
-            { agent: 'default', cardPath: 'design/F-010.md', command: 'codex', model: '', prompt: 'write docs', title: 'custom prompt' },
+            { agent: 'codex', cardPath: 'design/F-010.md', command: 'codex', model: '', prompt: 'write docs', title: 'custom prompt' },
             expect.any(Function),
         )
     })
@@ -318,14 +352,9 @@ describe('ActionRunner', () => {
         ))
 
         const result = await new ActionRunner({
-            actionHistoryAppender: vi.fn(async () => []),
-            agentConversationLinker: noopAgentConversationLinker,
-            actionsFolderProvider: () => 'actions',
-            agentCommandProvider: () => 'codex',
-            agentRunner,
-            bridgeProvider: () => bridge,
-            commandRunner,
-            projectProvider: () => ({ branch: 'main', id: 'local', rootPath: 'C:/repo' }),
+            environment: environment(),
+            executionGateway: executionGateway({ runAgent: agentRunner, runCommand: commandRunner }),
+            runRecorder: runRecorder({ linkAgentConversation: noopAgentConversationLinker }),
         }).run(main, context)
 
         expect(result.status).toBe('completed')
@@ -337,10 +366,9 @@ describe('ActionRunner', () => {
         const history = [{ completedAt: '2026-07-05T10:00:00.000Z', output: 'done', prompt: 'run', status: 'completed' as const }]
         const actionHistoryLoader = vi.fn(async () => history)
         const entries = await new ActionRunner({
-            actionHistoryLoader,
-            actionsFolderProvider: () => 'actions',
-            bridgeProvider: () => bridge,
-            projectProvider: () => ({ branch: 'main', id: 'local', rootPath: 'C:/repo' }),
+            environment: environment(),
+            executionGateway: executionGateway(),
+            runRecorder: runRecorder({ loadHistory: actionHistoryLoader }),
         }).loadHistory(action('implement', { type: 'agent' }), context)
 
         expect(entries).toEqual(history)
@@ -353,11 +381,9 @@ describe('ActionRunner', () => {
             commandResult('git commit', { stdout: '[main a1b2c3d] Implement feature\n 1 file changed' })
         ))
         const result = await new ActionRunner({
-            actionHistoryAppender,
-            actionsFolderProvider: () => 'actions',
-            bridgeProvider: () => bridge,
-            commandRunner,
-            projectProvider: () => ({ branch: 'main', id: 'local', rootPath: 'C:/repo' }),
+            environment: environment(),
+            executionGateway: executionGateway({ runCommand: commandRunner }),
+            runRecorder: runRecorder({ appendHistory: actionHistoryAppender }),
         }).run(action('commit', { text: 'git commit' }), context)
 
         expect(result.status).toBe('completed')
@@ -381,12 +407,9 @@ describe('ActionRunner', () => {
     it('does not store history for a command action without a commit', async () => {
         const actionHistoryAppender = vi.fn(async () => [])
         await new ActionRunner({
-            actionHistoryAppender,
-            agentConversationLinker: noopAgentConversationLinker,
-            actionsFolderProvider: () => 'actions',
-            bridgeProvider: () => bridge,
-            commandRunner: vi.fn(async () => commandResult('npm run build')),
-            projectProvider: () => ({ branch: 'main', id: 'local', rootPath: 'C:/repo' }),
+            environment: environment(),
+            executionGateway: executionGateway({ runCommand: vi.fn(async () => commandResult('npm run build')) }),
+            runRecorder: runRecorder({ appendHistory: actionHistoryAppender, linkAgentConversation: noopAgentConversationLinker }),
         }).run(action('build', { text: 'npm run build' }), context)
 
         expect(actionHistoryAppender).not.toHaveBeenCalled()
@@ -398,13 +421,9 @@ describe('ActionRunner', () => {
             agentResult(request, { stdout: 'done\n[feature/x 0f1e2d3c4b5a] Add tests' })
         ))
         await new ActionRunner({
-            actionHistoryAppender,
-            agentConversationLinker: noopAgentConversationLinker,
-            actionsFolderProvider: () => 'actions',
-            agentCommandProvider: () => 'codex',
-            agentRunner,
-            bridgeProvider: () => bridge,
-            projectProvider: () => ({ branch: 'main', id: 'local', rootPath: 'C:/repo' }),
+            environment: environment(),
+            executionGateway: executionGateway({ runAgent: agentRunner }),
+            runRecorder: runRecorder({ appendHistory: actionHistoryAppender, linkAgentConversation: noopAgentConversationLinker }),
         }).run(action('implement', { text: 'implement', type: 'agent' }), context)
 
         expect(actionHistoryAppender).toHaveBeenCalledWith(
@@ -421,9 +440,9 @@ describe('ActionRunner', () => {
         })
         const result = await new ActionRunner({
             actionWriter,
-            actionsFolderProvider: () => 'actions',
-            bridgeProvider: () => bridge,
-            projectProvider: () => ({ branch: 'main', id: 'local', rootPath: 'C:/repo' }),
+            environment: environment(),
+            executionGateway: executionGateway(),
+            runRecorder: runRecorder(),
         }).convertPromptToAction({ context, label: 'Review Feature', prompt: 'review {{file}}' })
 
         expect(result.path).toBe('actions/review-feature.json')

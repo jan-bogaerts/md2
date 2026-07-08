@@ -37,24 +37,39 @@ export interface RunOptions {
     state: RunState
 }
 
-export interface ActionExecutionDependencies {
-    actionHistoryAppender: (
-        bridge: ElectronActionBridge,
-        request: ActionRunHistoryRequest,
-        entry: ActionRunHistoryEntry,
-    ) => Promise<ActionRunHistoryEntry[]>
-    actionsFolderProvider: () => string | null
-    agentConfigProvider: () => DesktopConfigValues
-    agentConversationLinker: (cardPath: string, result: AgentExecutionResult) => Promise<void>
-    agentRunEventRecorder: (cardPath: string, event: AgentRunEvent) => void
-    agentRunner: (
+export interface ActionExecutionGateway {
+    getBridge: () => ElectronActionBridge | null
+    runAgent: (
         bridge: ElectronActionBridge,
         request: AgentExecutionRequest,
         onEvent?: (event: AgentRunEvent) => void,
     ) => Promise<AgentExecutionResult>
-    bridgeProvider: () => ElectronActionBridge | null
-    commandRunner: (bridge: ElectronActionBridge, request: CommandActionExecutionRequest) => Promise<CommandExecutionResult>
-    projectProvider: () => ProjectReference | null
+    runCommand: (bridge: ElectronActionBridge, request: CommandActionExecutionRequest) => Promise<CommandExecutionResult>
+}
+
+export interface ActionRunRecorder {
+    appendHistory: (
+        bridge: ElectronActionBridge,
+        request: ActionRunHistoryRequest,
+        entry: ActionRunHistoryEntry,
+    ) => Promise<ActionRunHistoryEntry[]>
+    finishRun: (id: string) => void
+    linkAgentConversation: (cardPath: string, result: AgentExecutionResult) => Promise<void>
+    loadHistory: (bridge: ElectronActionBridge, request: ActionRunHistoryRequest) => Promise<ActionRunHistoryEntry[]>
+    recordAgentRunEvent: (cardPath: string, event: AgentRunEvent) => void
+    startRun: (label: string) => string
+}
+
+export interface ActionEnvironment {
+    getActionsFolder: () => string | null
+    getAgentConfig: () => DesktopConfigValues
+    getProject: () => ProjectReference | null
+}
+
+export interface ActionExecutionDependencies {
+    environment: ActionEnvironment
+    executionGateway: ActionExecutionGateway
+    runRecorder: ActionRunRecorder
 }
 
 export function addFailure(action: ActionDefinition, options: RunOptions, message: string) {
@@ -68,8 +83,8 @@ export async function runCommandAction(
     context: ActionContext,
     options: RunOptions,
 ): Promise<string> {
-    const bridge = dependencies.bridgeProvider()
-    const project = dependencies.projectProvider()
+    const bridge = dependencies.executionGateway.getBridge()
+    const project = dependencies.environment.getProject()
     if (!bridge || !project?.rootPath) {
         addFailure(action, options, 'Command actions require Electron local mode')
 
@@ -77,17 +92,17 @@ export async function runCommandAction(
     }
 
     try {
-        const actionsFolder = dependencies.actionsFolderProvider()
+        const actionsFolder = dependencies.environment.getActionsFolder()
         if (!actionsFolder) throw new Error('Cannot run command action before project config is loaded')
 
         const request = { actionName: action.name, actionsFolder, context, extraInput: options.extraPrompt }
-        const result = await dependencies.commandRunner(bridge, request)
+        const result = await dependencies.executionGateway.runCommand(bridge, request)
         options.state.logs.push(createCommandLog(action, options.phase, result.command, result))
         if (result.exitCode !== 0) options.state.failed = true
         await appendCommandHistory({
             action,
-            actionHistoryAppender: dependencies.actionHistoryAppender,
-            actionsFolder: dependencies.actionsFolderProvider(),
+            actionHistoryAppender: dependencies.runRecorder.appendHistory,
+            actionsFolder: dependencies.environment.getActionsFolder(),
             bridge,
             command: result.command,
             context,
@@ -109,8 +124,8 @@ export async function runAgentAction(
     context: ActionContext,
     options: RunOptions,
 ): Promise<string> {
-    const bridge = dependencies.bridgeProvider()
-    const project = dependencies.projectProvider()
+    const bridge = dependencies.executionGateway.getBridge()
+    const project = dependencies.environment.getProject()
     if (!bridge || !project?.rootPath) {
         addFailure(action, options, 'Agent actions require Electron local mode')
 
@@ -118,7 +133,11 @@ export async function runAgentAction(
     }
 
     try {
-        const resolvedAgent = resolveAgentRun(dependencies.agentConfigProvider(), action, { agent: options.agent, model: options.model })
+        const resolvedAgent = resolveAgentRun(
+            dependencies.environment.getAgentConfig(),
+            action,
+            { agent: options.agent, model: options.model },
+        )
         const command = resolvedAgent.command
         const prompt = resolveAgentPrompt(action, context, project, options.extraPrompt)
         if (!context.file) throw new Error('Agent actions require a file context')
@@ -132,21 +151,21 @@ export async function runAgentAction(
             ...(resolvedAgent.sessionIdPattern ? { sessionIdPattern: resolvedAgent.sessionIdPattern } : {}),
             title: action.label,
         }
-        const result = await dependencies.agentRunner(
+        const result = await dependencies.executionGateway.runAgent(
             bridge,
             request,
-            (event) => dependencies.agentRunEventRecorder(context.file as string, event),
+            (event) => dependencies.runRecorder.recordAgentRunEvent(context.file as string, event),
         )
         options.state.logs.push(createAgentLog(action, options.phase, command, result))
         if (result.exitCode !== 0) options.state.failed = true
-        await dependencies.agentConversationLinker(context.file, result)
+        await dependencies.runRecorder.linkAgentConversation(context.file, result)
         await appendAgentHistory({
             action,
-            actionHistoryAppender: dependencies.actionHistoryAppender,
-            actionsFolder: dependencies.actionsFolderProvider(),
+            actionHistoryAppender: dependencies.runRecorder.appendHistory,
+            actionsFolder: dependencies.environment.getActionsFolder(),
             bridge,
             context,
-            project: dependencies.projectProvider(),
+            project: dependencies.environment.getProject(),
             resolvedAgent,
             result,
         })
