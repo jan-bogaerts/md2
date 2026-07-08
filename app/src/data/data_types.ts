@@ -127,6 +127,7 @@ export type CommitResult = MarkdownFile[]
 
 export interface MoveFile {
     content: string
+    encoding?: FileEncoding
     fromPath: string
     sha?: string
     toPath: string

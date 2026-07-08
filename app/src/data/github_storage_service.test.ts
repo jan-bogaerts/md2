@@ -522,10 +522,14 @@ describe('GithubStorageService', () => {
             .mockResolvedValueOnce(createResponse({ object: { sha: 'base-commit', type: 'commit' }, ref: 'refs/heads/main' }))
             .mockResolvedValueOnce(createResponse({ sha: 'base-commit', tree: { sha: 'base-tree' } }))
             .mockResolvedValueOnce(createResponse({
-                tree: [{ path: 'design/F-1-root.md', sha: 'sha-1', type: 'blob' }],
+                tree: [
+                    { path: 'design/F-1-root.md', sha: 'sha-1', type: 'blob' },
+                    { path: 'design/note.png', sha: 'sha-2', type: 'blob' },
+                ],
                 truncated: false,
             }))
             .mockResolvedValueOnce(createResponse({ sha: 'blob-2' }))
+            .mockResolvedValueOnce(createResponse({ sha: 'blob-3' }))
             .mockResolvedValueOnce(createResponse({ sha: 'new-tree' }))
             .mockResolvedValueOnce(createResponse({ sha: 'pending-commit', tree: { sha: 'new-tree' } }))
         const service = new GithubStorageService()
@@ -540,19 +544,29 @@ describe('GithubStorageService', () => {
                 fromPath: 'design/F-1-root.md',
                 sha: 'sha-1',
                 toPath: 'design/history/v1/F-1-root.md',
+            }, {
+                content: 'aW1hZ2U=',
+                encoding: 'base64',
+                fromPath: 'design/note.png',
+                sha: 'sha-2',
+                toPath: 'design/history/v1/note.png',
             }],
         })
 
+        const blobCalls = fetchImplementation.mock.calls.filter(([url]) => url.includes('/repos/owner/repo/git/blobs'))
         const treeCall = fetchImplementation.mock.calls.find(([url, init]) => (
             url.includes('/repos/owner/repo/git/trees') && init.method === 'POST'
         ))
         const commitCalls = fetchImplementation.mock.calls.filter(([url, init]) => url.includes('/repos/owner/repo/git/commits') && init.method === 'POST')
 
+        expect(JSON.parse(blobCalls[1][1].body)).toEqual({ content: 'aW1hZ2U=', encoding: 'base64' })
         expect(JSON.parse(treeCall?.[1].body)).toEqual({
             base_tree: 'base-tree',
             tree: [
                 { mode: '100644', path: 'design/history/v1/F-1-root.md', sha: 'blob-2', type: 'blob' },
                 { mode: '100644', path: 'design/F-1-root.md', sha: null, type: 'blob' },
+                { mode: '100644', path: 'design/history/v1/note.png', sha: 'blob-3', type: 'blob' },
+                { mode: '100644', path: 'design/note.png', sha: null, type: 'blob' },
             ],
         })
         expect(JSON.parse(commitCalls[0][1].body)).toEqual({

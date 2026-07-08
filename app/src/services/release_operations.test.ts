@@ -62,6 +62,55 @@ describe('ReleaseOperations', () => {
         expect(snapshot.backgroundCards.map((card) => card.path)).toContain('design/history/v1/F-1-root.md')
     })
 
+    it('loads referenced assets and includes them in the release move batch', async () => {
+        configService.init()
+        const releaseFiles: MarkdownFile[] = [
+            { content: '---\nid: F-1\ntitle: Root\nstatus: active\n---\n\n# Root\n\n![note](note.png)', path: 'design/F-1-root.md' },
+        ]
+        const archivedFiles: MarkdownFile[] = [
+            { content: releaseFiles[0].content, path: 'design/history/v1/F-1-root.md' },
+        ]
+        const storage = createStorage({
+            listRepositoryFiles: vi.fn(async () => ['design/F-1-root.md', 'design/note.png']),
+            loadProject: vi.fn()
+                .mockResolvedValueOnce({ files: releaseFiles, workingFolder: 'design' })
+                .mockResolvedValueOnce({ files: archivedFiles, workingFolder: 'design' }),
+            loadProjectAsset: vi.fn(async () => ({
+                content: 'aW1hZ2U=',
+                contentType: 'image/png',
+                encoding: 'base64' as const,
+                path: 'design/note.png',
+            })),
+            loadProjectRoot: vi.fn(async () => ({ files: releaseFiles, workingFolder: 'design' })),
+        })
+        const service = new DataService()
+        service.init({ storage })
+
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        await service.releases.completeRelease('v1')
+
+        expect(storage.loadProjectAsset).toHaveBeenCalledWith({ branch: 'main', id: 'project' }, 'design/note.png')
+        expect(storage.moveFiles).toHaveBeenCalledWith({
+            branch: 'main',
+            message: 'Complete release v1',
+            moves: [
+                {
+                    content: releaseFiles[0].content,
+                    fromPath: 'design/F-1-root.md',
+                    sha: undefined,
+                    toPath: 'design/history/v1/F-1-root.md',
+                },
+                {
+                    content: 'aW1hZ2U=',
+                    encoding: 'base64',
+                    fromPath: 'design/note.png',
+                    sha: undefined,
+                    toPath: 'design/history/v1/note.png',
+                },
+            ],
+        })
+    })
+
     it('rejects invalid release names before moving files', async () => {
         configService.init()
         const storage = createStorage()

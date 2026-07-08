@@ -524,6 +524,7 @@ export class GithubStorageService implements StorageService {
         const treeChanges: GithubTreeChange[] = []
         const blobs = await mapWithConcurrency(request.moves, GITHUB_STORAGE_CONCURRENCY, async (move) => this.createBlob({
             content: move.content,
+            encoding: move.encoding,
             path: move.toPath,
         }))
 

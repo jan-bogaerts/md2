@@ -256,9 +256,10 @@ async function moveFiles(request, project) {
         const sourcePath = ensureInsideRoot(rootPath, path.join(rootPath, move.fromPath))
         const targetPath = ensureInsideRoot(rootPath, path.join(rootPath, move.toPath))
         const targetRepositoryPath = normalizePath(path.relative(rootPath, targetPath))
+        const data = move.encoding === 'base64' ? Buffer.from(move.content, 'base64') : move.content
         await fs.promises.mkdir(path.dirname(targetPath), { recursive: true })
         await runGit(rootPath, ['mv', normalizePath(path.relative(rootPath, sourcePath)), targetRepositoryPath])
-        await fs.promises.writeFile(targetPath, move.content)
+        await fs.promises.writeFile(targetPath, data)
         await runGit(rootPath, ['add', targetRepositoryPath])
     }
 

@@ -1,7 +1,7 @@
 ---
 id: B-046
 title: release archiving leaves card images behind, breaking relative links
-status: design
+status: ready
 owner: JB
 affects:
 policy:
