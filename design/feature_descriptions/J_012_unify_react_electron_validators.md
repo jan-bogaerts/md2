@@ -1,7 +1,7 @@
 ---
 id: J-012
 title: unify duplicated React/Electron validators (agent profiles, action definitions)
-status: design
+status: ready
 owner: JB
 affects:
 policy:

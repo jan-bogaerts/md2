@@ -17,7 +17,7 @@ The first attempt largely **renamed the monoliths instead of splitting them**: e
 
 **Genuinely completed here (keep):**
 - `project_session_service.ts` + `use_project_session.ts`: real extraction; the toolbar menu component makes zero direct data-service calls, so B-017's domain-logic goal is met.
-- Item 8 — `desktop/agent_profiles_parity.test.mjs` genuinely guards the duplicated TS/JS `agent_profiles` implementations.
+- Item 8 — resolved by J-012: React and desktop `agent_profiles` now share one validator implementation.
 - Item 9 — the four old B-023 re-export shims and the duplicated `local_git_storage_service.test.ts` are gone; `PROJECT_README_TEMPLATE` is a shared constant per side.
 
 **Remaining work, per sub-task (do J-003 first; the rest are independent):**

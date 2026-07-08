@@ -13,7 +13,7 @@ policy:
 Assorted dead code, leftovers and small duplications found in the 2026-07 audit. None is user-visible alone, but together they mislead readers and hide real gaps.
 
 ## Items
-Status per item re-verified 2026-07-07 (audit): the re-export shims and the duplicated test file are **deleted**, the README template is now **one constant per side** (`PROJECT_README_TEMPLATE` in `github_storage_service.ts` and `desktop/project_files.js`) as accepted, `splitCards` parses each file **once** (two filter passes remain, acceptable), and `void configRevision` is gone (B-031 done). Still open: the action-reload debounce single-path issue — extracted to its own card, see [[B-039]] — and the duplicated `agent_profiles` module, now covered by [[J-012]].
+Status per item re-verified 2026-07-08 (audit): the re-export shims and the duplicated test file are **deleted**, the README template is now **one constant per side** (`PROJECT_README_TEMPLATE` in `github_storage_service.ts` and `desktop/project_files.js`) as accepted, `splitCards` parses each file **once** (two filter passes remain, acceptable), `void configRevision` is gone (B-031 done), and the duplicated `agent_profiles` module is resolved by shared validators in [[J-012]]. Still open: the action-reload debounce single-path issue — extracted to its own card, see [[B-039]].
 
 Original list, re-verified 2026-07-06:
 - ~~**Dead config entries**~~ **done** — `react.showStartupSplash` gates the splash in `app.tsx`, `connection.githubScopes` feeds `github_auth_service` (F-031).
@@ -24,7 +24,7 @@ Original list, re-verified 2026-07-06:
 - **`splitCards` double pass**: files are filtered and parsed in two passes in `markdown_parsing_service.ts` → parse once, partition by `isActive`.
 - **Action reload debounce keeps one path**: `DataService.scheduleActionReload` remembers only the latest changed path, so two files changed within the 150 ms window report errors against the wrong file → collect a set of changed paths.
 - **`void configRevision` re-render hack** in `ProjectWorkspace` → now tracked as its own bug, see [[B-031]].
-- **Duplicated `agent_profiles` module** (new): `app/src/data/agent_profiles.ts` and `desktop/agent_profiles.js` are parallel implementations → see `J_002_refactor_large_modules.md` item 8.
+- ~~**Duplicated `agent_profiles` module**~~ **done** — React and desktop now import shared validation logic from `shared/`, see [[J-012]].
 
 The shims/duplicate-test/template items are folded into J-002 item 9 so they land with the refactor commits.
 

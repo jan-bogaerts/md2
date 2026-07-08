@@ -1,5 +1,4 @@
-import { readFile } from 'node:fs/promises'
-import { join } from 'node:path'
+import { createRequire } from 'node:module'
 import { describe, expect, it } from 'vitest'
 import {
     BUILTIN_AGENT_PROFILES,
@@ -8,18 +7,13 @@ import {
     validateAgentProfiles,
 } from './agent_profiles'
 
-async function readTypescriptBuiltins() {
-    const sourcePath = join(process.cwd(), '..', 'app', 'src', 'data', 'agent_profiles.ts')
-    const source = await readFile(sourcePath, 'utf8')
-    const match = /export const BUILTIN_AGENT_PROFILES: AgentProfile\[\] = (?<profiles>\[[\s\S]*?\n\])/u.exec(source)
-    if (!match?.groups?.profiles) throw new Error('Cannot read TypeScript built-in agent profiles')
+const require = createRequire(import.meta.url)
+const sharedAgentProfiles = require('../shared/agent_profiles')
 
-    return Function(`"use strict"; return (${match.groups.profiles});`)()
-}
-
-describe('agent_profiles parity', () => {
-    it('keeps desktop built-ins aligned with the TypeScript source', async () => {
-        await expect(readTypescriptBuiltins()).resolves.toEqual(BUILTIN_AGENT_PROFILES)
+describe('agent_profiles shared adapter', () => {
+    it('uses the shared implementation for desktop exports', () => {
+        expect(BUILTIN_AGENT_PROFILES).toBe(sharedAgentProfiles.BUILTIN_AGENT_PROFILES)
+        expect(validateAgentProfiles).toBe(sharedAgentProfiles.validateAgentProfiles)
     })
 
     it('keeps validation and command building behavior covered by shared built-ins', () => {
