@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { markdownParsingService } from './markdown_parsing_service'
 import type { MarkdownFile } from '../data/data_types'
 
@@ -111,6 +111,26 @@ describe('markdownParsingService.splitCards', () => {
 
         expect(cards.activeCards.map((card) => card.path)).toEqual(['design/F-1-root.md', 'design/free note.md'])
         expect(cards.backgroundCards.map((card) => card.path)).toEqual(['design/history/F-3-old.md'])
+    })
+
+    it('parses each markdown file once and skips non-markdown files', () => {
+        const files: MarkdownFile[] = [
+            ROOT_FILE,
+            { content: '# Old', path: 'design/history/F-3-old.md' },
+            { content: '# Imported', path: 'design/free note.md' },
+            { content: '{}', path: 'design/data.json' },
+        ]
+        const parseCard = vi.spyOn(markdownParsingService, 'parseCard')
+
+        markdownParsingService.splitCards(files, 'design')
+
+        expect(parseCard).toHaveBeenCalledTimes(3)
+        expect(parseCard.mock.calls.map(([file]) => file.path)).toEqual([
+            'design/F-1-root.md',
+            'design/free note.md',
+            'design/history/F-3-old.md',
+        ])
+        parseCard.mockRestore()
     })
 })
 

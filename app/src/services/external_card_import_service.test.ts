@@ -1,4 +1,5 @@
 ﻿import { describe, expect, it } from 'vitest'
+import type { MarkdownFile } from '../data/data_types'
 import { DEFAULT_CARD_TYPES } from '../data/data_types'
 import { planExternalCardImports } from './external_card_import_service'
 import { storageFiles } from './test_support/data_service_test_support'
