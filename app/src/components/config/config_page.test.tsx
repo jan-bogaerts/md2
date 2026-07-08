@@ -42,7 +42,7 @@ describe('ConfigPage', () => {
 
         expect(screen.getByRole('switch', { name: 'Startup splash' })).toBeInTheDocument()
         expect(screen.getByLabelText('GitHub scopes')).toBeInTheDocument()
-        expect(screen.getByLabelText('Auto commit delay')).toBeInTheDocument()
+        expect(screen.getByRole('slider', { name: 'Auto commit delay' })).toBeInTheDocument()
         expect(screen.getByText('OAuth scopes requested when connecting GitHub.')).toBeInTheDocument()
     })
 
@@ -98,15 +98,28 @@ describe('ConfigPage', () => {
         expect(configService.get('react.showStartupSplash')).toBe(false)
     })
 
+    it('saves slider draft edits into active config', () => {
+        mockMatchMedia(false)
+        configService.init()
+
+        render(<ConfigPage hash="" />)
+        fireEvent.change(screen.getByRole('slider', { name: 'Auto commit delay' }), { target: { value: '5000' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+        expect(configService.get('react.autoCommitDelayMs')).toBe(5000)
+    })
+
     it('cancels draft edits without changing active config', () => {
         mockMatchMedia(false)
         configService.init()
 
         render(<ConfigPage hash="" />)
         fireEvent.click(screen.getByRole('switch', { name: 'Startup splash' }))
+        fireEvent.change(screen.getByRole('slider', { name: 'Auto commit delay' }), { target: { value: '5000' } })
         fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
 
         expect(configService.get('react.showStartupSplash')).toBe(true)
+        expect(configService.get('react.autoCommitDelayMs')).toBe(30000)
         expect(window.location.pathname).toBe('/')
     })
 

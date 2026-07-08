@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, expectTypeOf, it } from 'vitest'
 import { DEFAULT_CARD_TYPES } from '../data/data_types'
 import { BUILTIN_AGENT_PROFILES, type AgentProfile } from '../data/agent_profiles'
-import { ConfigService, REACT_CONFIG_STORAGE_KEY, readStartupSplashPreference } from './config_service'
+import { CONFIG_ENTRIES, ConfigService, REACT_CONFIG_STORAGE_KEY, readStartupSplashPreference } from './config_service'
 
 describe('ConfigService', () => {
     let service = new ConfigService()
@@ -153,5 +153,12 @@ describe('ConfigService', () => {
         window.localStorage.setItem(REACT_CONFIG_STORAGE_KEY, JSON.stringify({ 'react.showStartupSplash': false }))
 
         expect(readStartupSplashPreference()).toBe(false)
+    })
+
+    it('requires slider number entries to define min and max', () => {
+        const sliderEntries = CONFIG_ENTRIES.filter((entry) => entry.type === 'number' && entry.input === 'slider')
+
+        expect(sliderEntries.length).toBeGreaterThan(0)
+        expect(sliderEntries.every((entry) => entry.min !== undefined && entry.max !== undefined)).toBe(true)
     })
 })

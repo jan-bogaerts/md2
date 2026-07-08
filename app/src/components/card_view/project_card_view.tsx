@@ -1,6 +1,7 @@
 import { Badge, Box, Button, Collapse, IconButton, Menu, MenuItem, Popover, Stack, TextField, Tooltip, Typography } from '@mui/material'
 import { useSortable } from '@dnd-kit/sortable'
 import DotsVertical from 'mdi-material-ui/DotsVertical'
+import FileDocumentOutline from 'mdi-material-ui/FileDocumentOutline'
 import { useState } from 'react'
 import type { KeyboardEvent, MouseEvent, TouchEvent } from 'react'
 import type { AgentConversation } from '../../data/data_types'
@@ -112,6 +113,11 @@ export function ProjectCardView(props: ProjectCardViewProps) {
     const openAffects = (event: MouseEvent<HTMLElement>) => {
         event.stopPropagation()
         onOpenAffects(card.path)
+    }
+
+    const openInFileMode = (event: MouseEvent<HTMLElement>) => {
+        event.stopPropagation()
+        onOpenInFileMode(card.path)
     }
 
     const closeAgentConversations = () => {
@@ -263,6 +269,11 @@ export function ProjectCardView(props: ProjectCardViewProps) {
                                         }}
                                     />
                                 </Badge>
+                            </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Open in file mode">
+                            <IconButton aria-label={`Open ${card.header.id} in file mode`} onClick={openInFileMode} size="small">
+                                <FileDocumentOutline fontSize="small" />
                             </IconButton>
                         </Tooltip>
                         <ActionEntryPoints context={cardContext(card, cardTypes)} variant="icons" />

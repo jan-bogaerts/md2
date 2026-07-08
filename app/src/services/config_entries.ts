@@ -42,6 +42,7 @@ export interface ConfigEntry {
     defaultValue: ConfigValue
     description: string
     editable: boolean
+    input?: 'slider'
     key: ConfigKey
     label: string
     max?: number
@@ -49,6 +50,7 @@ export interface ConfigEntry {
     options?: ConfigOption[]
     section: string
     source: ConfigSource
+    step?: number
     type: ConfigValueType
 }
 
@@ -90,10 +92,12 @@ export const CONFIG_ENTRIES: ConfigEntry[] = [
         editable: true,
         key: 'react.autoCommitDelayMs',
         label: 'Auto commit delay',
+        input: 'slider',
         max: MAX_AUTO_COMMIT_DELAY_MS,
         min: MIN_AUTO_COMMIT_DELAY_MS,
         section: 'react',
         source: 'react',
+        step: 1000,
         type: 'number',
     },
     {

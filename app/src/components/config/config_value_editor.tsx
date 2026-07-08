@@ -1,4 +1,4 @@
-import { FormControl, FormControlLabel, MenuItem, Select, Stack, Switch, TextField, Typography } from '@mui/material'
+import { FormControl, FormControlLabel, MenuItem, Select, Slider, Stack, Switch, TextField, Typography } from '@mui/material'
 import type { SelectChangeEvent } from '@mui/material'
 import type { ChangeEvent } from 'react'
 import { useState } from 'react'
@@ -32,6 +32,10 @@ export function ConfigValueEditor(props: ConfigValueEditorProps) {
         onChange(entry.key, Number(event.target.value))
     }
 
+    const handleSliderChange = (_event: Event, nextValue: number | number[]) => {
+        onChange(entry.key, nextValue)
+    }
+
     const handleStringChange = (event: ChangeEvent<HTMLInputElement>) => {
         onChange(entry.key, event.target.value)
     }
@@ -54,6 +58,10 @@ export function ConfigValueEditor(props: ConfigValueEditorProps) {
 
     const handleAgentProfilesValidityChange = (valid: boolean) => {
         onValidityChange?.(entry.key, valid)
+    }
+
+    if (entry.type === 'number' && entry.input === 'slider' && (entry.min === undefined || entry.max === undefined)) {
+        throw new Error(`Slider config entry ${entry.key} requires min and max`)
     }
 
     const control = entry.type === 'boolean' ? (
@@ -90,6 +98,22 @@ export function ConfigValueEditor(props: ConfigValueEditorProps) {
                 ))}
             </Select>
         </FormControl>
+    ) : entry.type === 'number' && entry.input === 'slider' ? (
+        <Stack spacing={1}>
+            <Typography component="label" htmlFor={entry.key} variant="body2">
+                {entry.label}
+            </Typography>
+            <Slider
+                aria-label={entry.label}
+                disabled={disabled}
+                max={entry.max}
+                min={entry.min}
+                onChange={handleSliderChange}
+                step={entry.step}
+                value={value as number}
+                valueLabelDisplay="auto"
+            />
+        </Stack>
     ) : entry.type === 'number' ? (
         <TextField
             fullWidth

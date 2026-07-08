@@ -1,7 +1,7 @@
 ---
 id: F-037
 title: slider input for bounded numeric config values
-status: design
+status: ready
 owner: JB
 affects:
 policy:
