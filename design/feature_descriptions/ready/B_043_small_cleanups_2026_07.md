@@ -1,7 +1,7 @@
 ---
 id: B-043
 title: small cleanups from the 2026-07 implementation audit
-status: design
+status: ready
 owner: JB
 affects:
 policy:

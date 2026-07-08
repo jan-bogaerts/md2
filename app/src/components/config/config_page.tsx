@@ -56,6 +56,7 @@ export function ConfigPage(props: ConfigPageProps) {
         if (!currentDraft) configService.loadDraft()
 
         return () => {
+            // React StrictMode mounts, unmounts, and remounts effects; delay discard so the remount can cancel it.
             draftDiscardTimeoutRef.current = window.setTimeout(() => {
                 configService.discardDraft()
                 draftDiscardTimeoutRef.current = null

@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { StrictMode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ConfigPage } from './config_page'
@@ -26,6 +26,7 @@ function initConfigFromElectronBridge() {
 describe('ConfigPage', () => {
     afterEach(() => {
         cleanup()
+        vi.useRealTimers()
         configService.clear()
         window.history.pushState(null, '', '/config')
         mockMatchMedia(false)
@@ -58,6 +59,32 @@ describe('ConfigPage', () => {
 
         expect(loadDraft).toHaveBeenCalledTimes(1)
         expect(screen.getByRole('switch', { name: 'Startup splash' })).toBeInTheDocument()
+    })
+
+    it('keeps the draft through StrictMode remount and discards it on real unmount', () => {
+        vi.useFakeTimers()
+        mockMatchMedia(false)
+        configService.init()
+
+        const { unmount } = render(
+            <StrictMode>
+                <ConfigPage hash="" />
+            </StrictMode>,
+        )
+
+        act(() => {
+            vi.runOnlyPendingTimers()
+        })
+
+        expect(configService.getDraft()).not.toBeNull()
+
+        unmount()
+        act(() => {
+            vi.runOnlyPendingTimers()
+        })
+
+        expect(configService.getDraft()).toBeNull()
+        vi.useRealTimers()
     })
 
     it('saves draft edits into active config', () => {

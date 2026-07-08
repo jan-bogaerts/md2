@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useCallback } from 'react'
 import { MissingWorkingFolderError, type ProjectConfig, type StorageService } from '../data/data_types'
@@ -484,7 +484,6 @@ describe('ProjectWorkspace', () => {
     it('deletes a selected card and clears the selected highlight', async () => {
         const bridge = createBridge()
         window.md2Data = bridge
-        const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
 
         renderProjectSurface()
         await openLocalProject()
@@ -495,12 +494,12 @@ describe('ProjectWorkspace', () => {
 
         fireEvent.click(screen.getByRole('button', { name: 'Card actions for F-1' }))
         fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }))
+        const dialog = screen.getByRole('dialog', { name: 'Delete card' })
+        fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }))
 
         await waitFor(() => expect(bridge.deleteFile).toHaveBeenCalled())
         expect(screen.queryByText('Root')).not.toBeInTheDocument()
         expect(document.querySelector('[data-selected="true"]')).toBeNull()
-
-        confirm.mockRestore()
     })
 
     it('shows a clear error when card deletion fails', async () => {
@@ -509,7 +508,6 @@ describe('ProjectWorkspace', () => {
             throw new Error('delete failed')
         })
         window.md2Data = bridge
-        const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
 
         renderProjectSurface()
         await openLocalProject()
@@ -517,11 +515,11 @@ describe('ProjectWorkspace', () => {
 
         fireEvent.click(screen.getByRole('button', { name: 'Card actions for F-1' }))
         fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }))
+        const dialog = screen.getByRole('dialog', { name: 'Delete card' })
+        fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }))
 
         expect(await screen.findByText('delete failed')).toBeInTheDocument()
         expect(screen.getByText('Root')).toBeInTheDocument()
-
-        confirm.mockRestore()
     })
 
     it('filters authenticated GitHub repositories', async () => {

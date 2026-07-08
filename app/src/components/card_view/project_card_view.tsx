@@ -9,6 +9,7 @@ import { cardContext } from '../../data/action_context'
 import { ActionEntryPoints } from '../actions/action_entry_points'
 import { AgentConversationList } from '../agents/agent_conversation_list'
 import { CardBodyEditor } from './card_body_editor'
+import { CardDeleteDialog } from './card_delete_dialog'
 import { PolicyLed } from './policy_led'
 
 const TYPE_LINE_WIDTH = 4
@@ -55,6 +56,7 @@ export function ProjectCardView(props: ProjectCardViewProps) {
     const [actionsAnchorElement, setActionsAnchorElement] = useState<HTMLElement | null>(null)
     const [actionsMenuPosition, setActionsMenuPosition] = useState<MenuPosition | null>(null)
     const [isEditingTitle, setIsEditingTitle] = useState(false)
+    const [deleteCardPath, setDeleteCardPath] = useState<string | null>(null)
     const [longPressTimer, setLongPressTimer] = useState<number | null>(null)
     const [titleDraft, setTitleDraft] = useState(card.header.title)
 
@@ -157,16 +159,13 @@ export function ProjectCardView(props: ProjectCardViewProps) {
         clearLongPressTimer()
     }
 
-    const deleteCard = async () => {
-        closeCardActions()
-        const confirmed = window.confirm(`Delete ${card.path}?`)
-        if (!confirmed) return
+    const closeDeleteCardDialog = () => {
+        setDeleteCardPath(null)
+    }
 
-        try {
-            await onDeleteCard(card.path)
-        } catch {
-            // ProjectWorkspace owns the user-visible delete error.
-        }
+    const openDeleteCardDialog = () => {
+        closeCardActions()
+        setDeleteCardPath(card.path)
     }
 
     const continueAgentConversation = (conversation: AgentConversation) => {
@@ -312,8 +311,9 @@ export function ProjectCardView(props: ProjectCardViewProps) {
                 <MenuItem onClick={openBodyFromMenu}>Open body</MenuItem>
                 <MenuItem onClick={openInFileModeFromMenu}>Open in file mode</MenuItem>
                 <MenuItem onClick={editTitleFromMenu}>Edit title</MenuItem>
-                <MenuItem onClick={deleteCard}>Delete</MenuItem>
+                <MenuItem onClick={openDeleteCardDialog}>Delete</MenuItem>
             </Menu>
+            <CardDeleteDialog cardPath={deleteCardPath} onClose={closeDeleteCardDialog} onDeleteCard={onDeleteCard} />
         </Box>
     )
 }

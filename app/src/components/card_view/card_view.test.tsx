@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { CardView } from './card_view'
 import { actionService } from '../../services/action_service'
@@ -135,29 +135,26 @@ describe('CardView', () => {
         expect(handlers.onOpenInFileMode).toHaveBeenCalledWith('design/F-1.md')
     })
 
-    it('confirms before deleting from the card actions menu', () => {
-        const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
+    it('confirms before deleting from the card actions menu', async () => {
         const handlers = renderCardView()
 
         fireEvent.click(screen.getByRole('button', { name: 'Card actions for F-1' }))
         fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }))
+        const dialog = screen.getByRole('dialog', { name: 'Delete card' })
+        fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }))
 
-        expect(confirm).toHaveBeenCalledWith(expect.stringContaining('design/F-1.md'))
-        expect(handlers.onDeleteCard).toHaveBeenCalledWith('design/F-1.md')
-
-        confirm.mockRestore()
+        await waitFor(() => expect(handlers.onDeleteCard).toHaveBeenCalledWith('design/F-1.md'))
     })
 
     it('does not delete from the card actions menu when confirmation is cancelled', () => {
-        const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false)
         const handlers = renderCardView()
 
         fireEvent.click(screen.getByRole('button', { name: 'Card actions for F-1' }))
         fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }))
+        const dialog = screen.getByRole('dialog', { name: 'Delete card' })
+        fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }))
 
         expect(handlers.onDeleteCard).not.toHaveBeenCalled()
-
-        confirm.mockRestore()
     })
 
     it('opens matching actions from the card context menu', () => {
@@ -190,17 +187,15 @@ describe('CardView', () => {
         expect(handlers.onOpenInFileMode).toHaveBeenCalledWith('design/F-1.md')
     })
 
-    it('confirms before deleting from the body dialog', () => {
-        const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
+    it('confirms before deleting from the body dialog', async () => {
         const handlers = renderCardView()
 
         fireEvent.click(screen.getByText('First'))
         fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete' }))
+        const confirmDialog = screen.getByRole('dialog', { name: 'Delete card' })
+        fireEvent.click(within(confirmDialog).getByRole('button', { name: 'Delete' }))
 
-        expect(confirm).toHaveBeenCalledWith(expect.stringContaining('design/F-1.md'))
-        expect(handlers.onDeleteCard).toHaveBeenCalledWith('design/F-1.md')
-
-        confirm.mockRestore()
+        await waitFor(() => expect(handlers.onDeleteCard).toHaveBeenCalledWith('design/F-1.md'))
     })
 
     it('expands the body inline as an accordion on mobile instead of a dialog', () => {
