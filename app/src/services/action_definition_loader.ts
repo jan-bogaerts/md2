@@ -1,4 +1,4 @@
-import { loadActionDefinitions as loadSharedActionDefinitions } from '../../../shared/action_definitions.js'
+import { loadActionDefinitions as loadSharedActionDefinitions } from '../../../shared/action_definitions.mjs'
 import type { ActionDefinition, ActionFile } from '../data/action_types'
 import type { AgentProfile } from '../data/agent_profiles'
 import { configService } from './config_service'

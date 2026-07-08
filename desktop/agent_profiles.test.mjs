@@ -9,7 +9,7 @@ const {
     defaultModelForProfile,
     resolveAgentCommand,
     validateAgentProfiles,
-} = require('./agent_profiles')
+} = require('./agent_profiles.mjs')
 
 describe('agent profile resolution', () => {
     it('uses profile default model when config model is empty', () => {

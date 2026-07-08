@@ -1,14 +1,12 @@
-import { createRequire } from 'node:module'
 import { describe, expect, it } from 'vitest'
 import {
     BUILTIN_AGENT_PROFILES,
     buildAgentCommand,
     defaultModelForProfile,
     validateAgentProfiles,
-} from './agent_profiles'
+} from './agent_profiles.mjs'
 
-const require = createRequire(import.meta.url)
-const sharedAgentProfiles = require('../shared/agent_profiles')
+const sharedAgentProfiles = await import('../shared/agent_profiles.mjs')
 
 describe('agent_profiles shared adapter', () => {
     it('uses the shared implementation for desktop exports', () => {

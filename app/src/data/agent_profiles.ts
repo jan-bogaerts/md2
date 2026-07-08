@@ -9,6 +9,6 @@ export {
     mergeAgentProfiles,
     validateAgentProfiles,
     validateAgentSelection,
-} from '../../../shared/agent_profiles.js'
+} from '../../../shared/agent_profiles.mjs'
 
-export type { AgentProfile, AgentSelection } from '../../../shared/agent_profiles.js'
+export type { AgentProfile, AgentSelection } from '../../../shared/agent_profiles.mjs'

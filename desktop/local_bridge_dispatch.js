@@ -1,4 +1,4 @@
-const { buildResumeAgentCommand, resolveAgentCommand } = require('./agent_profiles')
+const { buildResumeAgentCommand, resolveAgentCommand } = require('./agent_profiles.mjs')
 const { loadActionDefinitions } = require('./action_scheduler_service')
 
 const PLACEHOLDER_PATTERN = /\{\{\s*(rootProjectFolder|file|prompt)\s*\}\}/gu
