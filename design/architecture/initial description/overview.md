@@ -1,4 +1,4 @@
-# MD2
+# MD²
 
 - React website
 - Login with GitHub credentials.

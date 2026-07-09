@@ -4,6 +4,7 @@ import type { AuthSnapshot } from './github_auth_types'
 
 export interface UseGithubAuthResult extends AuthSnapshot {
     accessToken: string | null
+    isDeviceFlowAvailable: boolean
     login: () => Promise<void>
     logout: () => void
     savePersonalAccessToken: (accessToken: string) => Promise<void>
@@ -34,6 +35,7 @@ export function useGithubAuth(service: GithubAuthService = githubAuthService): U
     return {
         ...snapshot,
         accessToken: service.getAccessToken(),
+        isDeviceFlowAvailable: service.isDeviceFlowAvailable(),
         login: service.login.bind(service),
         logout: service.logout.bind(service),
         savePersonalAccessToken: service.savePersonalAccessToken.bind(service),

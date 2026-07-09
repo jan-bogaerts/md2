@@ -1,23 +1,21 @@
 import {
-    Alert, Button, Divider, Paper, Stack, ToggleButton, ToggleButtonGroup, Typography,
+    Alert, Button, Paper, Stack, ToggleButton, ToggleButtonGroup, Typography,
     useMediaQuery, useTheme,
 } from '@mui/material'
 import type { MouseEvent } from 'react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
     DEFAULT_CARD_TYPES,
     DEFAULT_WORKING_FOLDER,
     type AgentConversation,
     type ProjectCard,
 } from '../data/data_types'
-import { getRemarkableBridge } from '../data/remarkable_bridge'
 import { dataService } from '../services/data_service'
 import { getElectronLifecycleBridge, type ElectronLifecycleBridge } from '../services/electron_lifecycle_bridge'
 import { telemetryService } from '../services/telemetry_service'
 import { workspaceNavigationService, type WorkspaceOpenRequest } from '../services/workspace_navigation_service'
 import { CardView } from './card_view/card_view'
 import { CardViewNavigation } from './card_view/card_view_navigation'
-import { RemarkableImportPanel } from './remarkable_import_panel'
 import { TextView } from './text_view/text_view'
 import { useProjectConfig } from './hooks/use_project_config'
 import { useProjectState } from './hooks/use_project_state'
@@ -73,7 +71,6 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
     const [selectedPath, setSelectedPath] = useState<string | null>(null)
     const [viewMode, setViewMode] = useState<WorkspaceViewMode>('cards')
     const [dismissedBootstrapError, setDismissedBootstrapError] = useState<string | null>(null)
-    const remarkableBridge = useMemo(() => getRemarkableBridge(), [])
     const isProjectOpen = !!project
     const projectConfig = useProjectConfig()
     const cardTypes = projectConfig?.cardTypes ?? DEFAULT_CARD_TYPES
@@ -335,13 +332,6 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
                         <Button onClick={requestOpenProjectDialog} variant="contained">Open project...</Button>
                     </Stack>
                 )}
-
-                {remarkableBridge && isProjectOpen ? (
-                    <>
-                        <Divider />
-                        <RemarkableImportPanel activeCards={activeCards} bridge={remarkableBridge} isProjectOpen={isProjectOpen} />
-                    </>
-                ) : null}
             </Stack>
         </Paper>
     )

@@ -114,6 +114,8 @@ describe('project dialog components', () => {
         render(
             <NewCardDialog
                 cardTypes={DEFAULT_CARD_TYPES}
+                errorMessage={null}
+                isLoading={false}
                 isProjectOpen
                 onClose={vi.fn()}
                 onCreateCard={createCard}
@@ -126,6 +128,25 @@ describe('project dialog components', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Create card' }))
 
         await waitFor(() => expect(createCard).toHaveBeenCalledWith({ body: 'Body', title: 'New Card', type: 'feature' }))
+    })
+
+    it('shows new card errors and disables submit while loading', () => {
+        render(
+            <NewCardDialog
+                cardTypes={DEFAULT_CARD_TYPES}
+                errorMessage="commit failed"
+                isLoading
+                isProjectOpen
+                onClose={vi.fn()}
+                onCreateCard={vi.fn(async () => undefined)}
+                open
+            />,
+        )
+
+        fireEvent.change(screen.getByLabelText('New card title'), { target: { value: 'New Card' } })
+
+        expect(screen.getByText('commit failed')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Create card' })).toBeDisabled()
     })
 
     it('renders the complete release dialog and submits a release name without mounting the menu', async () => {

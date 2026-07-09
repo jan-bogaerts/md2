@@ -7,7 +7,7 @@ export function StartupSplash() {
             <Stack spacing={2} sx={{ alignItems: 'center' }}>
                 <CircularProgress />
                 <Typography color="text.secondary" variant="body1">
-                    Starting MD2...
+                    Starting MD²...
                 </Typography>
             </Stack>
         </Box>

@@ -23,6 +23,10 @@ export interface GithubApiClientDependencies {
     onUnauthorized?: () => void
 }
 
+function getDefaultFetchImplementation() {
+    return globalThis.fetch.bind(globalThis)
+}
+
 export class GithubApiClient {
     private readonly accessToken: string
     private readonly fetchImplementation: typeof fetch
@@ -30,7 +34,7 @@ export class GithubApiClient {
 
     constructor(dependencies: GithubApiClientDependencies) {
         this.accessToken = dependencies.accessToken
-        this.fetchImplementation = dependencies.fetchImplementation ?? fetch
+        this.fetchImplementation = dependencies.fetchImplementation ?? getDefaultFetchImplementation()
         this.onUnauthorized = dependencies.onUnauthorized ?? null
     }
 

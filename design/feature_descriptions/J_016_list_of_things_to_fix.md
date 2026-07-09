@@ -1,0 +1,20 @@
+- `remarkable import` is a card. this needs to be a dialog, opened from an action on the toolbar.
+- on config: only show config data of the active tab (allow routes to go to tab)
+- status bar:
+  - remove input 'status'
+  - show total cards loaded, total currently active
+- menu is not correctly build. check `C:\Users\janbo\Documents\dev\vidsy\vidsy_ai_electron\src\main_window\menu` which is the menu of another app. This app should have a similar approach:
+  - tabs at the top. after the tabs, the search component, after the search, the drag position. No app name.
+  - each tab-bar (C:\Users\janbo\Documents\dev\vidsy\vidsy_ai_electron\src\main_window\menu\menu_tab_component.jsx) is split up in sections (C:\Users\janbo\Documents\dev\vidsy\vidsy_ai_electron\src\main_window\menu\menu_section_component.js).
+  - use buttons and toggles with a vertical layout (C:\Users\janbo\Documents\dev\vidsy\vidsy_ai_electron\src\main_window\menu\menu_styled.js).
+  - tabs:
+    - home:
+      - Open project
+      - switch branch (a select)
+      - complete release
+    - edit:
+      - new card
+      - delete card
+    - options:
+      - select for default agent
+      - light/dark view

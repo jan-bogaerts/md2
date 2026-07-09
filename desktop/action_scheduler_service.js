@@ -1,6 +1,6 @@
 const { exec } = require('node:child_process')
 const { promisify } = require('node:util')
-const { loadActionDefinitions } = require('./action_definitions')
+const { loadActionDefinitions } = require('../shared/action_definitions.mjs')
 const { runScheduledAction } = require('./scheduled_action_runner')
 const { appendActionSchedule, findPendingSchedule, pendingAfterActionSchedules, updateActionScheduleStatus } = require('./schedule_store')
 const { cancelScheduleTimer, clearScheduleTimers, reconcileScheduleTimers } = require('./schedule_timers')

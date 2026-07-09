@@ -110,6 +110,18 @@ describe('GithubAuthService', () => {
         expect(dependencies.requestDeviceCode).toHaveBeenCalledWith({ ...config, scopes: 'public_repo' })
     })
 
+    it('does not start device-flow login without a GitHub client id', async () => {
+        const { dependencies, service } = createService({ config: { ...config, clientId: null } })
+
+        await service.login()
+
+        expect(dependencies.requestDeviceCode).not.toHaveBeenCalled()
+        expect(service.getSnapshot()).toMatchObject({
+            errorMessage: 'Missing required GitHub auth config: GITHUB_CLIENT_ID',
+            status: 'error',
+        })
+    })
+
     it('respects pending and slow-down polling states before token success', async () => {
         const requestAccessToken = vi.fn()
             .mockResolvedValueOnce({ error: 'authorization_pending' })

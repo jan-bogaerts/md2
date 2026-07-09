@@ -29,7 +29,7 @@ export function MainToolbar(props: MainToolbarProps) {
                     </IconButton>
                 ) : null}
                 <Typography component="h1" sx={{ mr: 2 }} variant="h6">
-                    MD2
+                    MD²
                 </Typography>
                 <Box style={NO_DRAG_REGION} sx={{ display: 'flex', flexGrow: 1, justifyContent: 'center', mr: 2 }}>
                     {search}

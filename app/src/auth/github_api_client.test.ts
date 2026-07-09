@@ -1,5 +1,29 @@
 ﻿import { afterEach, describe, expect, it, vi } from 'vitest'
-import { fetchGithubUser, GithubUnauthorizedError } from './github_api_client'
+import { fetchGithubUser, GithubApiClient, GithubUnauthorizedError } from './github_api_client'
+
+describe('GithubApiClient', () => {
+    afterEach(() => {
+        vi.unstubAllGlobals()
+    })
+
+    it('binds the default fetch implementation to the global object', async () => {
+        function fetchImplementation(this: unknown) {
+            if (this !== globalThis) throw new TypeError('Illegal invocation')
+
+            return Promise.resolve({
+                json: async () => ({ id: 1 }),
+                ok: true,
+                status: 200,
+            })
+        }
+
+        vi.stubGlobal('fetch', fetchImplementation)
+
+        const client = new GithubApiClient({ accessToken: 'token' })
+
+        await expect(client.requestJson('/user')).resolves.toEqual({ id: 1 })
+    })
+})
 
 describe('fetchGithubUser', () => {
     afterEach(() => {

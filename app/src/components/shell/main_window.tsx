@@ -7,12 +7,14 @@ import { ConfigPage } from '../config/config_page'
 import { ProjectWorkspace } from '../project_workspace'
 import { useProjectState } from '../hooks/use_project_state'
 import { createSearchRegexpAgent, isSearchRegexpAgentAvailable } from '../../services/search/search_regexp_agent'
+import { getRemarkableBridge } from '../../data/remarkable_bridge'
 import { GithubAuthToolbarButton } from './github_auth_toolbar_button'
 import { LeftPanelSlotProvider } from './left_panel_slot_provider'
 import { LeftPanelTarget } from './left_panel_target'
 import { AppMenu } from './menu/app_menu'
 import { MainToolbar } from './main_toolbar'
 import { ProjectToolbarMenu } from './project_toolbar_menu'
+import { RemarkableImportToolbarButton } from './remarkable_import_toolbar_button'
 import { SearchControl } from './search/search_control'
 import { SplitLayout } from './split_layout'
 import { StatusBar } from './status_bar'
@@ -37,8 +39,11 @@ export function MainWindow(props: MainWindowProps) {
     const isMobile = useMediaQuery(theme.breakpoints.down('md'))
     const [isMenuOpen, setIsMenuOpen] = useState(false)
     const [statusInfo, setStatusInfo] = useState('')
-    const { hasPendingCommits } = useProjectState()
+    const { hasPendingCommits, project, snapshot } = useProjectState()
     const isConfigPage = location.pathname === '/config'
+    const remarkableBridge = useMemo(() => getRemarkableBridge(), [])
+    const activeCards = snapshot?.activeCards ?? []
+    const isProjectOpen = !!project
     const regexpAgent = useMemo(
         () => isSearchRegexpAgentAvailable() ? createSearchRegexpAgent() : undefined,
         [],
@@ -76,6 +81,11 @@ export function MainWindow(props: MainWindowProps) {
                     action={(
                         <>
                             <ProjectToolbarMenu accessToken={auth.accessToken} isGithubAuthenticated={auth.isAuthenticated} />
+                            <RemarkableImportToolbarButton
+                                activeCards={activeCards}
+                                bridge={remarkableBridge}
+                                isProjectOpen={isProjectOpen}
+                            />
                             <AppMenu />
                             <GithubAuthToolbarButton auth={auth} />
                             {toolbarAction}

@@ -125,6 +125,10 @@ export class GithubAuthService extends EventTarget {
         return this.snapshot
     }
 
+    isDeviceFlowAvailable() {
+        return !!this.config?.clientId
+    }
+
     isInitialized() {
         return !!this.config
     }
@@ -145,6 +149,11 @@ export class GithubAuthService extends EventTarget {
 
     async login() {
         const { config, requestDeviceCode } = this.requireDependencies()
+        if (!config.clientId) {
+            this.setSnapshot({ errorMessage: 'Missing required GitHub auth config: GITHUB_CLIENT_ID', status: 'error' })
+            return
+        }
+
         this.cancelPolling()
         this.activeLoginId += 1
         const loginId = this.activeLoginId

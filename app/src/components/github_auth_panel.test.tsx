@@ -14,6 +14,7 @@ const baseSnapshot: AuthSnapshot = {
 }
 
 const panelActions = {
+    isDeviceFlowAvailable: true,
     login: vi.fn(),
     logout: vi.fn(),
     savePersonalAccessToken: vi.fn(),
@@ -34,6 +35,15 @@ describe('GithubAuthPanel', () => {
         expect(screen.getByRole('button', { name: 'Sign in with GitHub' })).toBeInTheDocument()
         expect(screen.getByRole('heading', { name: 'Use a personal access token' })).toBeInTheDocument()
         expect(screen.getByLabelText('Personal access token')).toBeInTheDocument()
+    })
+
+    it('keeps personal access token auth available when device flow is not configured', () => {
+        render(<GithubAuthPanel {...baseSnapshot} {...panelActions} isDeviceFlowAvailable={false} />)
+
+        expect(screen.getByRole('button', { name: 'Sign in with GitHub' })).toBeDisabled()
+        expect(screen.getByText('GitHub device login is not configured. Use a personal access token instead.')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Save token' })).toBeDisabled()
+        expect(screen.getByLabelText('Personal access token')).toBeEnabled()
     })
 
     it('saves the entered personal access token on explicit action', () => {

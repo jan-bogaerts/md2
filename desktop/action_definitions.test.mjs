@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { loadActionDefinitions } from './action_definitions'
+import { loadActionDefinitions } from '../shared/action_definitions.mjs'
 
 function file(name, definition) {
     return { content: JSON.stringify(definition), path: `actions/${name}.json` }

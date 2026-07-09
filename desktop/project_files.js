@@ -13,7 +13,7 @@ const MARKDOWN_EXTENSION = '.md'
 const JSON_EXTENSION = '.json'
 const PROJECT_CONFIG_PATH = 'md2.config.json'
 const GIT_FOLDER = '.git'
-const PROJECT_README_TEMPLATE = '# MD2\n\nProject design folder created by MD2.\n'
+const PROJECT_README_TEMPLATE = '# MD²\n\nProject design folder created by MD².\n'
 const PROJECT_ASSET_CONTENT_TYPES = {
     '.gif': 'image/gif',
     '.jpeg': 'image/jpeg',
@@ -272,7 +272,7 @@ async function saveProjectConfig(project, config) {
     const configPath = ensureInsideRoot(rootPath, path.join(rootPath, PROJECT_CONFIG_PATH))
     await fs.promises.writeFile(configPath, `${JSON.stringify(config, null, 2)}\n`)
     await runGit(rootPath, ['add', PROJECT_CONFIG_PATH])
-    await commitStagedChanges(rootPath, 'Update MD2 project config')
+    await commitStagedChanges(rootPath, 'Update MD² project config')
 }
 
 function watchChangeKind(rootPath, eventType, normalizedPath) {

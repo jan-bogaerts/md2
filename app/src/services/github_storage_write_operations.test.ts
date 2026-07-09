@@ -218,7 +218,7 @@ describe('GithubStorageService', () => {
         const commitCalls = fetchImplementation.mock.calls.filter(([url]) => url.includes('/repos/owner/repo/git/commits'))
 
         expect(JSON.parse(blobCall?.[1].body)).toEqual({
-            content: '# MD2\n\nProject design folder created by MD2.\n',
+            content: '# MD²\n\nProject design folder created by MD².\n',
             encoding: 'utf-8',
         })
         expect(JSON.parse(commitCalls[1][1].body)).toMatchObject({ message: 'Create design workspace' })

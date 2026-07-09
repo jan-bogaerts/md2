@@ -13,6 +13,7 @@ const auth: UseGithubAuthResult = {
     deviceCode: null,
     errorMessage: null,
     isAuthenticated: false,
+    isDeviceFlowAvailable: true,
     isLoadingUser: false,
     login: vi.fn(),
     logout: vi.fn(),

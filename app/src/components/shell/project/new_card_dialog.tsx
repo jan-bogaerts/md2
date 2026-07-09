@@ -1,4 +1,4 @@
-import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, FormControl, InputLabel, MenuItem, Select, Stack, TextField } from '@mui/material'
+import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, FormControl, InputLabel, MenuItem, Select, Stack, TextField } from '@mui/material'
 import type { SelectChangeEvent } from '@mui/material'
 import type { ChangeEvent } from 'react'
 import { useState } from 'react'
@@ -6,6 +6,8 @@ import type { CardDraft, CardTypeConfig } from '../../../data/data_types'
 
 interface NewCardDialogProps {
     cardTypes: CardTypeConfig[]
+    errorMessage: string | null
+    isLoading: boolean
     isProjectOpen: boolean
     open: boolean
     onClose: () => void
@@ -14,7 +16,7 @@ interface NewCardDialogProps {
 
 /** Dialog for creating a new project card. */
 export function NewCardDialog(props: NewCardDialogProps) {
-    const { cardTypes, isProjectOpen, onClose, onCreateCard, open } = props
+    const { cardTypes, errorMessage, isLoading, isProjectOpen, onClose, onCreateCard, open } = props
     const [body, setBody] = useState('')
     const [title, setTitle] = useState('')
     const [type, setType] = useState('feature')
@@ -36,7 +38,11 @@ export function NewCardDialog(props: NewCardDialogProps) {
         if (!isProjectOpen || title.length === 0 || selectedType.length === 0) return
 
         const draft: CardDraft = { body, title, type: selectedType }
-        await onCreateCard(draft)
+        try {
+            await onCreateCard(draft)
+        } catch {
+            return
+        }
         setBody('')
         setTitle('')
         setType('feature')
@@ -47,6 +53,7 @@ export function NewCardDialog(props: NewCardDialogProps) {
             <DialogTitle>New card</DialogTitle>
             <DialogContent>
                 <Stack spacing={2} sx={{ pt: 1 }}>
+                    {errorMessage ? <Alert severity="error">{errorMessage}</Alert> : null}
                     <FormControl size="small">
                         <InputLabel id="card-type-label">Card type</InputLabel>
                         <Select label="Card type" labelId="card-type-label" onChange={handleTypeChange} value={selectedType}>
@@ -66,7 +73,7 @@ export function NewCardDialog(props: NewCardDialogProps) {
             </DialogContent>
             <DialogActions>
                 <Button onClick={onClose}>Cancel</Button>
-                <Button disabled={!isProjectOpen || title.length === 0 || selectedType.length === 0} onClick={handleCreateClick} variant="contained">
+                <Button disabled={!isProjectOpen || title.length === 0 || selectedType.length === 0 || isLoading} onClick={handleCreateClick} variant="contained">
                     Create card
                 </Button>
             </DialogActions>

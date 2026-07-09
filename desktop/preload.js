@@ -151,7 +151,7 @@ function isAllowedOrigin() {
 }
 
 if (!isAllowedOrigin()) {
-    exposeWarning(`MD2 desktop bridges blocked for origin: ${window.location.origin}`)
+    exposeWarning(`MD² desktop bridges blocked for origin: ${window.location.origin}`)
 } else {
     const githubAuthBridge = {
         requestAccessToken: (request) => ipcRenderer.invoke(GITHUB_AUTH_REQUEST_ACCESS_TOKEN_CHANNEL, request),

@@ -370,6 +370,27 @@ describe('ProjectWorkspace', () => {
         expect(await screen.findByText('New Card')).toBeInTheDocument()
     })
 
+    it('shows card creation failures in the new card dialog', async () => {
+        const bridge = createBridge()
+        bridge.commit = vi.fn(async () => {
+            throw new Error('commit failed')
+        })
+        window.md2Data = bridge
+
+        renderProjectSurface()
+        await openLocalProject()
+        await screen.findByText('Root')
+
+        fireEvent.click(screen.getByRole('button', { name: 'Project' }))
+        fireEvent.click(screen.getByRole('menuitem', { name: 'New card...' }))
+        fireEvent.change(screen.getByLabelText('New card title'), { target: { value: 'New Card' } })
+        fireEvent.change(screen.getByLabelText('New card body'), { target: { value: 'Body' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Create card' }))
+
+        expect(await screen.findByText('commit failed')).toBeInTheDocument()
+        expect(screen.getByRole('dialog', { name: 'New card' })).toBeInTheDocument()
+    })
+
     it('lists custom configured card types and uses their prefix', async () => {
         const bridge = createBridge()
         bridge.loadProjectConfig = vi.fn(async () => ({cardTypes: [{ color: '#123456', idPrefix: 'T', label: 'Task', type: 'task' }]}))

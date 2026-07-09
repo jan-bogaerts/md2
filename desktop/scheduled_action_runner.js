@@ -1,5 +1,5 @@
 const { resolveAgentCommand } = require('./agent_profiles.mjs')
-const { loadActionDefinitions } = require('./action_definitions')
+const { loadActionDefinitions } = require('../shared/action_definitions.mjs')
 
 const PLACEHOLDER_PATTERN = /\{\{\s*(rootProjectFolder|file|prompt)\s*\}\}/gu
 const PROMPT_PLACEHOLDER_PATTERN = /\{\{\s*prompt\s*\}\}/u

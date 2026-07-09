@@ -2,7 +2,7 @@
   "name": "desktop",
   "version": "1.0.0",
   "private": true,
-  "description": "MD2 Electron host shell",
+  "description": "MD² Electron host shell",
   "main": "main.js",
   "scripts": {
     "lint": "eslint .",

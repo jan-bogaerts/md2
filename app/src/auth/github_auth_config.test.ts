@@ -16,7 +16,13 @@ describe('readGithubAuthConfig', () => {
         })
     })
 
-    it('fails fast when the GitHub client id is missing', () => {
-        expect(() => readGithubAuthConfig({})).toThrow('Missing required GitHub auth config: GITHUB_CLIENT_ID')
+    it('allows missing GitHub client id for personal access token auth', () => {
+        const config = readGithubAuthConfig({})
+
+        expect(config).toEqual({
+            clientId: null,
+            oauthProxyUrl: null,
+            scopes: 'repo',
+        })
     })
 })

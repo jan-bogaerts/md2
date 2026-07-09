@@ -37,7 +37,7 @@ const {
 async function initializeGitRepository(rootPath) {
     await execFileAsync('git', ['init'], { cwd: rootPath })
     await execFileAsync('git', ['config', 'user.email', 'md2@example.test'], { cwd: rootPath })
-    await execFileAsync('git', ['config', 'user.name', 'MD2 Test'], { cwd: rootPath })
+    await execFileAsync('git', ['config', 'user.name', 'MD² Test'], { cwd: rootPath })
 }
 
 async function commitCount(rootPath) {
@@ -157,7 +157,7 @@ describe('local-git-service', () => {
         try {
             await initializeGitRepository(rootPath)
             await mkdir(join(rootPath, 'design'))
-            await writeFile(join(rootPath, 'design', 'README.md'), '# MD2\n\nProject design folder created by MD2.\n')
+            await writeFile(join(rootPath, 'design', 'README.md'), '# MD²\n\nProject design folder created by MD².\n')
             await execFileAsync('git', ['add', 'design/README.md'], { cwd: rootPath })
             await execFileAsync('git', ['commit', '-m', 'Seed workspace'], { cwd: rootPath })
 

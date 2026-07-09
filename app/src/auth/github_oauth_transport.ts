@@ -105,8 +105,14 @@ async function requestViaBrowserProxy(config: GithubAuthConfig, endpointPath: st
     return postJson(buildProxyUrl(config.oauthProxyUrl, endpointPath), body)
 }
 
+function requireClientId(config: GithubAuthConfig) {
+    if (!config.clientId) throw new Error('Missing required GitHub auth config: GITHUB_CLIENT_ID')
+
+    return config.clientId
+}
+
 export async function requestGithubDeviceCode(config: GithubAuthConfig) {
-    const request: GithubDeviceCodeRequest = { clientId: config.clientId, scope: config.scopes }
+    const request: GithubDeviceCodeRequest = { clientId: requireClientId(config), scope: config.scopes }
     const bridge = getGithubAuthBridge()
     const payload = bridge
         ? await bridge.requestDeviceCode(request)
@@ -116,7 +122,7 @@ export async function requestGithubDeviceCode(config: GithubAuthConfig) {
 }
 
 export async function requestGithubAccessToken(config: GithubAuthConfig, deviceCode: string) {
-    const request: GithubAccessTokenRequest = { clientId: config.clientId, deviceCode }
+    const request: GithubAccessTokenRequest = { clientId: requireClientId(config), deviceCode }
     const bridge = getGithubAuthBridge()
     const payload = bridge
         ? await bridge.requestAccessToken(request)

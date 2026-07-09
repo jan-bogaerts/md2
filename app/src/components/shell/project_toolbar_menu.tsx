@@ -112,6 +112,8 @@ export function ProjectToolbarMenu(props: ProjectToolbarMenuProps) {
             />
             <NewCardDialog
                 cardTypes={actions.cardTypes}
+                errorMessage={actions.errorMessage}
+                isLoading={actions.isLoading}
                 isProjectOpen={actions.isProjectOpen}
                 onClose={actions.closeDialog}
                 onCreateCard={actions.createCard}

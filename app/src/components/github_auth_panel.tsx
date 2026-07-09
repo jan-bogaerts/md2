@@ -7,6 +7,7 @@ const AUTH_PANEL_PADDING = 4
 const CODE_LETTER_SPACING = 3
 
 interface GithubAuthPanelProps extends AuthSnapshot {
+    isDeviceFlowAvailable: boolean
     login: () => Promise<void>
     logout: () => void
     savePersonalAccessToken: (accessToken: string) => Promise<void>
@@ -28,6 +29,7 @@ export function GithubAuthPanel(props: GithubAuthPanelProps) {
         deviceCode,
         errorMessage,
         isAuthenticated,
+        isDeviceFlowAvailable,
         isLoadingUser,
         login,
         logout,
@@ -38,7 +40,7 @@ export function GithubAuthPanel(props: GithubAuthPanelProps) {
     const [personalAccessToken, setPersonalAccessToken] = useState('')
 
     const statusMessage = getStatusMessage(status)
-    const isLoginDisabled = status === 'requesting-code' || status === 'waiting'
+    const isLoginDisabled = !isDeviceFlowAvailable || status === 'requesting-code' || status === 'waiting'
     const isSaveTokenDisabled = personalAccessToken.trim().length === 0 || isLoadingUser
 
     const handleLoginClick = () => {
@@ -76,7 +78,7 @@ export function GithubAuthPanel(props: GithubAuthPanelProps) {
                 <Stack spacing={3}>
                     <Box>
                         <Typography component="h1" variant="h4" gutterBottom>
-                            MD2
+                            MD²
                         </Typography>
                         <Typography color="text.secondary" variant="body1">
                             {signedInText}
@@ -113,7 +115,7 @@ export function GithubAuthPanel(props: GithubAuthPanelProps) {
             <Stack spacing={3}>
                 <Box>
                     <Typography component="h1" variant="h4" gutterBottom>
-                        MD2
+                        MD²
                     </Typography>
                     <Typography color="text.secondary" variant="body1">
                         Sign in to read and write markdown files from a GitHub repository.
@@ -123,6 +125,11 @@ export function GithubAuthPanel(props: GithubAuthPanelProps) {
                 <Button disabled={isLoginDisabled} onClick={handleLoginClick} size="large" variant="contained">
                     Sign in with GitHub
                 </Button>
+                {!isDeviceFlowAvailable ? (
+                    <Alert severity="info">
+                        GitHub device login is not configured. Use a personal access token instead.
+                    </Alert>
+                ) : null}
 
                 <Divider />
 

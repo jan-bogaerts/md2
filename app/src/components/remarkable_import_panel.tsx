@@ -1,6 +1,6 @@
 import {
     Alert, Button, Checkbox, Chip, Divider, FormControlLabel, List, ListItem, ListItemButton, ListItemText,
-    MenuItem, Paper, Radio, RadioGroup, Stack, TextField, Typography,
+    MenuItem, Radio, RadioGroup, Stack, TextField, Typography,
 } from '@mui/material'
 import type { ChangeEvent } from 'react'
 import { useMemo, useState } from 'react'
@@ -17,8 +17,6 @@ import type { RemarkableImportInput } from '../services/data_service'
 import { convertRemarkableImagesToText, isAgentExecutionAvailable } from '../services/remarkable_convert_service'
 import type { RemarkableImportPlan, RemarkableImportTarget } from '../services/remarkable_import_service'
 
-const PANEL_RADIUS = 2
-const PANEL_PADDING = 3
 const DEFAULT_PORT = 22
 
 const STATUS_LABEL: Record<RemarkableFileDiff['status'], string> = {
@@ -86,9 +84,9 @@ export function RemarkableImportPanel(props: RemarkableImportPanelProps) {
 
     if (!bridge) {
         return (
-            <Paper elevation={0} sx={{ border: 1, borderColor: 'divider', borderRadius: PANEL_RADIUS, p: PANEL_PADDING }}>
+            <Stack spacing={2}>
                 <Alert severity="info">Remarkable import requires Electron local mode.</Alert>
-            </Paper>
+            </Stack>
         )
     }
 
@@ -169,80 +167,78 @@ export function RemarkableImportPanel(props: RemarkableImportPanelProps) {
     const handleTextChange = (setter: (value: string) => void) => (event: ChangeEvent<HTMLInputElement>) => setter(event.target.value)
 
     return (
-        <Paper elevation={0} sx={{ border: 1, borderColor: 'divider', borderRadius: PANEL_RADIUS, p: PANEL_PADDING }}>
-            <Stack spacing={2}>
-                <Typography component="h2" variant="h6">Remarkable import</Typography>
+        <Stack spacing={2}>
+            <Typography component="h2" variant="h6">Remarkable import</Typography>
 
-                <Stack direction={{ sm: 'row', xs: 'column' }} spacing={2}>
-                    <TextField label="Host" name="host" onChange={handleTextChange(setHost)} size="small" value={host} />
-                    <TextField label="Port" name="port" onChange={handleTextChange(setPort)} size="small" value={port} />
-                    <TextField label="Username" name="username" onChange={handleTextChange(setUsername)} size="small" value={username} />
-                </Stack>
-                <Stack direction={{ sm: 'row', xs: 'column' }} spacing={2}>
-                    <TextField label="Password" name="password" onChange={handleTextChange(setPassword)} size="small" type="password" value={password} />
-                    <TextField label="Private key path" name="privateKeyPath" onChange={handleTextChange(setPrivateKeyPath)} size="small" value={privateKeyPath} />
-                    <TextField label="Image folder" name="imageFolder" onChange={handleTextChange(setImageFolder)} size="small" value={imageFolder} />
-                </Stack>
-                <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
-                    <Button disabled={busy} onClick={handleTest} variant="outlined">Test connection</Button>
-                    <Button disabled={busy} onClick={handleList} variant="outlined">List files</Button>
-                    {connectionStatus ? <Typography color="text.secondary" variant="body2">{connectionStatus}</Typography> : null}
-                </Stack>
-
-                <Divider />
-
-                <List dense>
-                    {files.map((entry) => (
-                        <ListItem
-                            disablePadding
-                            key={entry.file.path}
-                            secondaryAction={<Chip color={STATUS_COLOR[entry.status]} label={STATUS_LABEL[entry.status]} size="small" />}
-                        >
-                            <ListItemButton onClick={() => toggleSelect(entry.file.path)}>
-                                <Checkbox checked={selected.has(entry.file.path)} edge="start" tabIndex={-1} />
-                                <ListItemText primary={entry.file.name} secondary={formatModified(entry.file.modifiedTime)} />
-                            </ListItemButton>
-                        </ListItem>
-                    ))}
-                </List>
-
-                <Divider />
-
-                <RadioGroup onChange={(event) => setTargetMode(event.target.value as TargetMode)} row value={targetMode}>
-                    <FormControlLabel control={<Radio />} label="Existing card" value="existing" />
-                    <FormControlLabel control={<Radio />} label="New feature card" value="new" />
-                </RadioGroup>
-                {targetMode === 'existing' ? (
-                    <TextField
-                        label="Target card"
-                        onChange={handleTextChange(setExistingCardPath)}
-                        select
-                        size="small"
-                        value={existingCardPath}
-                    >
-                        {activeCards.map((card) => (
-                            <MenuItem key={card.path} value={card.path}>
-                                {card.header.id} — {card.header.title}
-                            </MenuItem>
-                        ))}
-                    </TextField>
-                ) : (
-                    <TextField label="New card title" name="newCardTitle" onChange={handleTextChange(setNewCardTitle)} size="small" value={newCardTitle} />
-                )}
-
-                <Stack direction="row" spacing={2}>
-                    <Button disabled={busy || !isProjectOpen} onClick={handleImport} variant="contained">
-                        Import selected
-                    </Button>
-                    {agentAvailable && lastImport ? (
-                        <Button disabled={busy} onClick={handleConvert} variant="outlined">
-                            Convert images to text
-                        </Button>
-                    ) : null}
-                </Stack>
-
-                {error ? <Alert severity="error">{error}</Alert> : null}
+            <Stack direction={{ sm: 'row', xs: 'column' }} spacing={2}>
+                <TextField label="Host" name="host" onChange={handleTextChange(setHost)} size="small" value={host} />
+                <TextField label="Port" name="port" onChange={handleTextChange(setPort)} size="small" value={port} />
+                <TextField label="Username" name="username" onChange={handleTextChange(setUsername)} size="small" value={username} />
             </Stack>
-        </Paper>
+            <Stack direction={{ sm: 'row', xs: 'column' }} spacing={2}>
+                <TextField label="Password" name="password" onChange={handleTextChange(setPassword)} size="small" type="password" value={password} />
+                <TextField label="Private key path" name="privateKeyPath" onChange={handleTextChange(setPrivateKeyPath)} size="small" value={privateKeyPath} />
+                <TextField label="Image folder" name="imageFolder" onChange={handleTextChange(setImageFolder)} size="small" value={imageFolder} />
+            </Stack>
+            <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
+                <Button disabled={busy} onClick={handleTest} variant="outlined">Test connection</Button>
+                <Button disabled={busy} onClick={handleList} variant="outlined">List files</Button>
+                {connectionStatus ? <Typography color="text.secondary" variant="body2">{connectionStatus}</Typography> : null}
+            </Stack>
+
+            <Divider />
+
+            <List dense sx={{ maxHeight: 240, overflow: 'auto' }}>
+                {files.map((entry) => (
+                    <ListItem
+                        disablePadding
+                        key={entry.file.path}
+                        secondaryAction={<Chip color={STATUS_COLOR[entry.status]} label={STATUS_LABEL[entry.status]} size="small" />}
+                    >
+                        <ListItemButton onClick={() => toggleSelect(entry.file.path)}>
+                            <Checkbox checked={selected.has(entry.file.path)} edge="start" tabIndex={-1} />
+                            <ListItemText primary={entry.file.name} secondary={formatModified(entry.file.modifiedTime)} />
+                        </ListItemButton>
+                    </ListItem>
+                ))}
+            </List>
+
+            <Divider />
+
+            <RadioGroup onChange={(event) => setTargetMode(event.target.value as TargetMode)} row value={targetMode}>
+                <FormControlLabel control={<Radio />} label="Existing card" value="existing" />
+                <FormControlLabel control={<Radio />} label="New feature card" value="new" />
+            </RadioGroup>
+            {targetMode === 'existing' ? (
+                <TextField
+                    label="Target card"
+                    onChange={handleTextChange(setExistingCardPath)}
+                    select
+                    size="small"
+                    value={existingCardPath}
+                >
+                    {activeCards.map((card) => (
+                        <MenuItem key={card.path} value={card.path}>
+                            {card.header.id} — {card.header.title}
+                        </MenuItem>
+                    ))}
+                </TextField>
+            ) : (
+                <TextField label="New card title" name="newCardTitle" onChange={handleTextChange(setNewCardTitle)} size="small" value={newCardTitle} />
+            )}
+
+            <Stack direction="row" spacing={2}>
+                <Button disabled={busy || !isProjectOpen} onClick={handleImport} variant="contained">
+                    Import selected
+                </Button>
+                {agentAvailable && lastImport ? (
+                    <Button disabled={busy} onClick={handleConvert} variant="outlined">
+                        Convert images to text
+                    </Button>
+                ) : null}
+            </Stack>
+
+            {error ? <Alert severity="error">{error}</Alert> : null}
+        </Stack>
     )
 }

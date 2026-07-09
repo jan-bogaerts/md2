@@ -1,7 +1,7 @@
 const DEFAULT_GITHUB_SCOPES = 'repo'
 
 export interface GithubAuthConfig {
-    clientId: string
+    clientId: string | null
     oauthProxyUrl: string | null
     scopes: string
 }
@@ -12,14 +12,6 @@ export interface GithubAuthEnv {
     readonly GITHUB_OAUTH_SCOPES?: string
 }
 
-function getRequiredEnvValue(env: GithubAuthEnv, key: keyof GithubAuthEnv) {
-    const value = env[key]?.trim()
-
-    if (!value) throw new Error(`Missing required GitHub auth config: ${key}`)
-
-    return value
-}
-
 function getOptionalEnvValue(env: GithubAuthEnv, key: keyof GithubAuthEnv) {
     const value = env[key]?.trim()
 
@@ -28,7 +20,7 @@ function getOptionalEnvValue(env: GithubAuthEnv, key: keyof GithubAuthEnv) {
 
 export function readGithubAuthConfig(env: GithubAuthEnv = import.meta.env as unknown as GithubAuthEnv): GithubAuthConfig {
     return {
-        clientId: getRequiredEnvValue(env, 'GITHUB_CLIENT_ID'),
+        clientId: getOptionalEnvValue(env, 'GITHUB_CLIENT_ID'),
         oauthProxyUrl: getOptionalEnvValue(env, 'GITHUB_OAUTH_PROXY_URL'),
         scopes: getOptionalEnvValue(env, 'GITHUB_OAUTH_SCOPES') ?? DEFAULT_GITHUB_SCOPES,
     }

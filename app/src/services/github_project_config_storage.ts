@@ -33,7 +33,7 @@ export class GithubProjectConfigStorage {
                 path: PROJECT_CONFIG_PATH,
                 sha: existingFile?.sha,
             }],
-            message: 'Update MD2 project config',
+            message: 'Update MD² project config',
         })
     }
 }

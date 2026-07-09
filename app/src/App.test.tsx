@@ -13,9 +13,11 @@ vi.mock('./auth/use_github_auth', () => ({
         deviceCode: null,
         errorMessage: null,
         isAuthenticated: false,
+        isDeviceFlowAvailable: true,
         isLoadingUser: false,
         login: vi.fn(),
         logout: vi.fn(),
+        savePersonalAccessToken: vi.fn(),
         status: 'idle',
         user: null,
     }),
@@ -101,7 +103,7 @@ describe('App', () => {
     it('shows the startup splash while bootstrapping by default', () => {
         render(<App />)
 
-        expect(screen.getByText('Starting MD2...')).toBeInTheDocument()
+        expect(screen.getByText('Starting MD²...')).toBeInTheDocument()
     })
 
     it('skips the startup splash when the preference is disabled', () => {
@@ -109,7 +111,7 @@ describe('App', () => {
 
         render(<App />)
 
-        expect(screen.queryByText('Starting MD2...')).not.toBeInTheDocument()
+        expect(screen.queryByText('Starting MD²...')).not.toBeInTheDocument()
     })
 
     it('shows a dismissible restore error when the last project fails to open', async () => {

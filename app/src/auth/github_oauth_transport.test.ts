@@ -56,4 +56,8 @@ describe('githubOAuthTransport', () => {
             expect.objectContaining({ method: 'POST' }),
         )
     })
+
+    it('requires a client id for device-flow login', async () => {
+        await expect(requestGithubDeviceCode({ ...config, clientId: null })).rejects.toThrow('Missing required GitHub auth config: GITHUB_CLIENT_ID')
+    })
 })
