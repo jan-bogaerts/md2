@@ -1,0 +1,52 @@
+- generic [ref=f2e3]:
+  - banner [ref=f2e4]:
+    - generic [ref=f2e5]:
+      - tablist "Application menu" [ref=f2e9]:
+        - tab "Home" [selected] [ref=f2e10] [cursor=pointer]
+        - tab "Edit" [ref=f2e11] [cursor=pointer]
+        - tab "Format" [ref=f2e12] [cursor=pointer]
+        - tab "Options" [ref=f2e13] [cursor=pointer]
+      - textbox "Search project" [ref=f2e23]:
+        - /placeholder: Search
+    - tabpanel [ref=f2e26]:
+      - generic [ref=f2e27]:
+        - generic [ref=f2e29]:
+          - generic [ref=f2e30]:
+            - generic "Open project" [ref=f2e31]:
+              - button "Open project" [ref=f2e32] [cursor=pointer]
+            - generic "Switch branch" [ref=f2e35]:
+              - generic [ref=f2e36]:
+                - combobox "Switch branch" [disabled] [ref=f2e37]
+                - textbox [disabled]
+                - group
+            - generic "Complete release" [ref=f2e38]:
+              - button "Complete release" [disabled]
+          - generic [ref=f2e39]: Project
+        - generic [ref=f2e41]:
+          - group [ref=f2e43]:
+            - button "Cards view" [pressed] [ref=f2e44] [cursor=pointer]
+            - button "Text view" [ref=f2e47] [cursor=pointer]
+          - generic [ref=f2e50]: View
+        - generic [ref=f2e52]:
+          - button "GitHub account" [ref=f2e54] [cursor=pointer]
+          - generic [ref=f2e57]: Account
+  - generic [ref=f2e58]:
+    - paragraph [ref=f2e61]: No project navigation available.
+    - separator "Resize panels" [ref=f2e62]
+    - region "Project workspace" [ref=f2e65]:
+      - region "Project workspace content" [ref=f2e66]:
+        - generic [ref=f2e67]:
+          - heading "No project open" [level=2] [ref=f2e68]
+          - paragraph [ref=f2e69]: Open a GitHub repository or local folder to work with project cards.
+          - button "Open project..." [ref=f2e70] [cursor=pointer]
+  - contentinfo [ref=f2e71]:
+    - generic [ref=f2e72]:
+      - paragraph [ref=f2e73]: "Total cards loaded: 0"
+      - paragraph [ref=f2e74]: "Currently active: 0"
+    - generic [ref=f2e75]:
+      - generic [ref=f2e76]:
+        - generic [ref=f2e77]: Caps Off
+        - generic [ref=f2e79]: INS
+      - 'button "Running agents: 0" [ref=f2e81] [cursor=pointer]':
+        - generic [ref=f2e82]: "0"
+        - text: Agents

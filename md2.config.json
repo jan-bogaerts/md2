@@ -1,0 +1,28 @@
+{
+  "actionsFolder": "actions",
+  "cardBodyTemplate": "# Goal\n\n# Current status\n\n# Details\n\n# Tasks",
+  "cardTypes": [
+    {
+      "color": "#1976d2",
+      "idPrefix": "F",
+      "label": "Feature",
+      "type": "feature"
+    },
+    {
+      "color": "#9c27b0",
+      "idPrefix": "J",
+      "label": "Job",
+      "type": "job"
+    },
+    {
+      "color": "#d32f2f",
+      "idPrefix": "B",
+      "label": "Bug",
+      "type": "bug"
+    }
+  ],
+  "diffCommand": "git show {{commit}}",
+  "projectFolder": "design",
+  "pushMode": "auto",
+  "workingFolder": "feature_descriptions"
+}
