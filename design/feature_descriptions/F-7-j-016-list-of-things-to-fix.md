@@ -1,3 +1,10 @@
+---
+id: F-7
+internalId: 9abb9cb4-e2ad-4c7d-bd7d-bf54e47dd097
+status: new
+title: J 016 list of things to fix
+---
+
 - `remarkable import` is a card. this needs to be a dialog, opened from an action on the toolbar.
 - on config: only show config data of the active tab (allow routes to go to tab)
 - status bar:

@@ -1,5 +1,5 @@
 ---
-id: B-048
+id: F-5
 title: confirm or fix two small deviations from the architecture notes
 status: design
 owner: JB
@@ -7,6 +7,7 @@ affects:
 policy:
   checkLinting: true
   requireTests: false
+internalId: 36656a01-af3e-47f4-b72b-5fbfdd3520af
 ---
 
 ## Problem

@@ -1,5 +1,5 @@
 ---
-id: B-046
+id: F-3
 title: release archiving leaves card images behind, breaking relative links
 status: ready
 owner: JB
@@ -7,6 +7,7 @@ affects:
 policy:
   checkLinting: true
   requireTests: true
+internalId: 8502bfd7-024f-4686-8c38-bb4727f9fcf2
 ---
 
 ## Problem

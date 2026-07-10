@@ -1,5 +1,5 @@
 ---
-id: B-014
+id: F-1
 title: prompts vs actions folder inconsistency
 status: design
 owner: JB
@@ -7,6 +7,7 @@ affects:
 policy:
   checkLinting: true
   requireTests: true
+internalId: be0b7a8d-e97f-4e99-bd42-8737cd0600fa
 ---
 
 ## Problem

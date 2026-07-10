@@ -1,5 +1,5 @@
 ---
-id: B-017
+id: F-2
 title: ProjectWorkspace owns domain workflows (god component)
 status: design
 owner: JB
@@ -7,6 +7,7 @@ affects:
 policy:
   checkLinting: true
   requireTests: true
+internalId: 45fcfe50-d9ee-4756-a3f7-b2719d8fc2e6
 ---
 
 ## Problem
