@@ -9,6 +9,7 @@ function isSameProjectConfig(first: ProjectConfig | null, second: ProjectConfig 
         && first?.cardBodyTemplate === second?.cardBodyTemplate
         && first?.cardTypes === second?.cardTypes
         && first?.diffCommand === second?.diffCommand
+        && first?.projectFolder === second?.projectFolder
         && first?.pushMode === second?.pushMode
         && first?.workingFolder === second?.workingFolder
 }

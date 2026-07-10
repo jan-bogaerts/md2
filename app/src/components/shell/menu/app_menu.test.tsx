@@ -1,15 +1,29 @@
-﻿import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { useCallback } from 'react'
+import type { UseGithubAuthResult } from '../../../auth/use_github_auth'
 import type { StorageService } from '../../../data/data_types'
 import type { ElectronDataBridge } from '../../../data/electron_data_bridge'
 import { configService } from '../../../services/config_service'
 import { dataService } from '../../../services/data_service'
-import { ProjectToolbarMenu } from '../project_toolbar_menu'
-import { ProjectWorkspace } from '../../project_workspace'
-import { LeftPanelSlotProvider } from '../left_panel_slot_provider'
-import { LeftPanelTarget } from '../left_panel_target'
+import { workspaceViewService } from '../../../services/workspace_view_service'
+import { AppThemeProvider } from '../../../theme/theme_provider'
+import { DialogDisplay } from '../../dialog_display'
 import { AppMenu } from './app_menu'
+
+const auth: UseGithubAuthResult = {
+    accessToken: null,
+    authMethod: null,
+    deviceCode: null,
+    errorMessage: null,
+    isAuthenticated: false,
+    isDeviceFlowAvailable: true,
+    isLoadingUser: false,
+    login: vi.fn(),
+    logout: vi.fn(),
+    savePersonalAccessToken: vi.fn(),
+    status: 'idle',
+    user: null,
+}
 
 function createBridge(): ElectronDataBridge {
     return {
@@ -55,31 +69,26 @@ function createResetStorage(): StorageService {
     }
 }
 
-function renderSurface() {
-    function Surface() {
-        const handleLeftPanelInteraction = useCallback(() => undefined, [])
-
-        return (
-            <LeftPanelSlotProvider>
-                <ProjectToolbarMenu accessToken="token" isGithubAuthenticated={false} />
-                <AppMenu />
-                <LeftPanelTarget fallback="No project navigation available." />
-                <ProjectWorkspace
-                    bootstrapError={null}
-                    onLeftPanelInteraction={handleLeftPanelInteraction}
-                />
-            </LeftPanelSlotProvider>
-        )
-    }
-
+function renderMenu() {
     return render(
-        <Surface />,
+        <AppThemeProvider>
+            <DialogDisplay />
+            <AppMenu
+                accessToken="token"
+                auth={auth}
+                extraActions={null}
+                isGithubAuthenticated={false}
+                isMobile={false}
+                onOpenConfig={vi.fn()}
+                onOpenMobileMenu={vi.fn()}
+                search={<input aria-label="Search project" />}
+            />
+        </AppThemeProvider>,
     )
 }
 
 async function openLocalProject() {
-    fireEvent.click(screen.getByRole('button', { name: 'Project' }))
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Open project...' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Open project' }))
     await screen.findByRole('heading', { name: 'Open project' })
     fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Source' }))
     fireEvent.click(await screen.findByRole('option', { name: 'Local' }))
@@ -93,6 +102,9 @@ describe('AppMenu', () => {
     beforeEach(() => {
         configService.init({ desktopConfig: null })
         dataService.init({ storage: createResetStorage() })
+        workspaceViewService.setViewMode('cards')
+        const { selectedPath } = workspaceViewService.getSnapshot()
+        if (selectedPath) workspaceViewService.clearSelectedPath(selectedPath)
     })
 
     afterEach(() => {
@@ -103,53 +115,33 @@ describe('AppMenu', () => {
         vi.restoreAllMocks()
     })
 
-    it('hides the Push button when no project is open', () => {
-        renderSurface()
+    it('renders the requested top-level menu tabs and home sections', () => {
+        renderMenu()
 
-        expect(screen.queryByRole('button', { name: 'Push' })).toBeNull()
-        expect(dataService.getState().project).toBeNull()
+        expect(screen.getByRole('tab', { name: 'Home' })).toBeInTheDocument()
+        expect(screen.getByRole('tab', { name: 'Edit' })).toBeInTheDocument()
+        expect(screen.getByRole('tab', { name: 'Format' })).toBeInTheDocument()
+        expect(screen.getByRole('tab', { name: 'Options' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Open project' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'GitHub account' })).toBeInTheDocument()
     })
 
-    it('hides the Push button when the open project uses auto push mode', async () => {
+    it('opens a local project from the Home project section', async () => {
         const bridge = createBridge()
         window.md2Data = bridge
 
-        renderSurface()
+        renderMenu()
         await openLocalProject()
 
-        expect(screen.queryByRole('button', { name: 'Push' })).toBeNull()
+        expect(dataService.getState().project?.id).toBe('local')
     })
 
-    it('pushes the current manual project when the Push button is clicked', async () => {
-        const bridge = createBridge()
-        bridge.loadProjectConfig = vi.fn(async () => ({ pushMode: 'manual' as const }))
-        window.md2Data = bridge
+    it('updates the shared workspace view mode from the Home view toggle', () => {
+        renderMenu()
 
-        renderSurface()
-        await openLocalProject()
+        fireEvent.click(screen.getByRole('button', { name: 'Text view' }))
 
-        const pushButton = screen.getByRole('button', { name: 'Push' })
-        expect(pushButton).not.toBeDisabled()
-
-        fireEvent.click(pushButton)
-
-        await waitFor(() => expect(bridge.push).toHaveBeenCalled())
-    })
-
-    it('surfaces a push failure through the existing workspace error alert', async () => {
-        const bridge = createBridge()
-        bridge.loadProjectConfig = vi.fn(async () => ({ pushMode: 'manual' as const }))
-        bridge.push = vi.fn(async () => {
-            throw new Error('push failed')
-        })
-        window.md2Data = bridge
-
-        renderSurface()
-        await openLocalProject()
-
-        fireEvent.click(screen.getByRole('button', { name: 'Push' }))
-
-        expect(await screen.findByText('push failed')).toBeInTheDocument()
+        expect(workspaceViewService.getSnapshot().viewMode).toBe('text')
     })
 
     it('refreshes selected agent and model when config changes elsewhere', async () => {
@@ -167,7 +159,8 @@ describe('AppMenu', () => {
             },
         })
 
-        render(<AppMenu />)
+        renderMenu()
+        fireEvent.click(screen.getByRole('tab', { name: 'Options' }))
 
         expect(screen.getByRole('combobox', { name: 'Default agent' })).toHaveTextContent('codex')
         expect(screen.getByRole('combobox', { name: 'Default model' })).toHaveTextContent('gpt-5')

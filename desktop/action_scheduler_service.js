@@ -7,6 +7,7 @@ const { cancelScheduleTimer, clearScheduleTimers, reconcileScheduleTimers } = re
 
 const execAsync = promisify(exec)
 const DEFAULT_ACTIONS_FOLDER = 'actions'
+const DEFAULT_PROJECT_FOLDER = ''
 
 function createScheduleId() {
     return `schedule-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
@@ -41,6 +42,17 @@ function defaultAgentSlotCommandProvider(agentConfigProvider) {
     const config = agentConfigProvider ? agentConfigProvider() : null
 
     return config?.agentSlotCommand ?? ''
+}
+
+function normalizeFolderPath(folderPath) {
+    return folderPath.replace(/\\/gu, '/').replace(/^\/+|\/+$/gu, '')
+}
+
+function resolveProjectFolderPath(projectFolder, folderPath) {
+    const normalizedProjectFolder = normalizeFolderPath(projectFolder)
+    const normalizedFolderPath = normalizeFolderPath(folderPath)
+
+    return normalizedProjectFolder.length > 0 ? `${normalizedProjectFolder}/${normalizedFolderPath}` : normalizedFolderPath
 }
 
 async function defaultCommandRunner(command, rootPath) {
@@ -273,15 +285,16 @@ class ActionSchedulerService {
 
     async loadActionsFolder() {
         const config = await this.localGitService.loadProjectConfig(this.requireCurrentProject())
+        const projectFolder = typeof config?.projectFolder === 'string' ? config.projectFolder : DEFAULT_PROJECT_FOLDER
         if (config?.actionsFolder !== undefined) {
             if (typeof config.actionsFolder !== 'string' || config.actionsFolder.length === 0) {
                 throw new Error('Invalid project actionsFolder')
             }
 
-            return config.actionsFolder
+            return resolveProjectFolderPath(projectFolder, config.actionsFolder)
         }
 
-        return DEFAULT_ACTIONS_FOLDER
+        return resolveProjectFolderPath(projectFolder, DEFAULT_ACTIONS_FOLDER)
     }
 
     requireCurrentProject() {

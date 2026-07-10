@@ -1,9 +1,8 @@
-import { Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, Stack, TextField } from '@mui/material'
+import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Stack, TextField } from '@mui/material'
 import type { ChangeEvent } from 'react'
 import { useState } from 'react'
 
 interface CompleteReleaseDialogProps {
-    errorMessage: string | null
     isLoading: boolean
     open: boolean
     onClose: () => void
@@ -12,7 +11,7 @@ interface CompleteReleaseDialogProps {
 
 /** Dialog for confirming and naming release completion. */
 export function CompleteReleaseDialog(props: CompleteReleaseDialogProps) {
-    const { errorMessage, isLoading, onClose, onCompleteRelease, open } = props
+    const { isLoading, onClose, onCompleteRelease, open } = props
     const [releaseName, setReleaseName] = useState('')
 
     const handleReleaseNameChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -31,7 +30,6 @@ export function CompleteReleaseDialog(props: CompleteReleaseDialogProps) {
             <DialogTitle>Complete release</DialogTitle>
             <DialogContent>
                 <Stack spacing={2} sx={{ pt: 1 }}>
-                    {errorMessage ? <Alert severity="error">{errorMessage}</Alert> : null}
                     <TextField label="Release name" onChange={handleReleaseNameChange} size="small" value={releaseName} />
                 </Stack>
             </DialogContent>

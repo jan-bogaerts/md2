@@ -13,6 +13,7 @@ import {
 } from '../data/remarkable_bridge'
 import { diffDeviceFiles, remarkableDeviceKey, parseImportMetadata, type RemarkableFileDiff } from '../data/remarkable_import_metadata'
 import { dataService } from '../services/data_service'
+import { dialogService } from '../services/dialog_service'
 import type { RemarkableImportInput } from '../services/data_service'
 import { convertRemarkableImagesToText, isAgentExecutionAvailable } from '../services/remarkable_convert_service'
 import type { RemarkableImportPlan, RemarkableImportTarget } from '../services/remarkable_import_service'
@@ -73,7 +74,6 @@ export function RemarkableImportPanel(props: RemarkableImportPanelProps) {
     const [targetMode, setTargetMode] = useState<TargetMode>('existing')
     const [existingCardPath, setExistingCardPath] = useState('')
     const [newCardTitle, setNewCardTitle] = useState('')
-    const [error, setError] = useState<string | null>(null)
     const [busy, setBusy] = useState(false)
     const [lastImport, setLastImport] = useState<LastImport | null>(null)
 
@@ -94,11 +94,10 @@ export function RemarkableImportPanel(props: RemarkableImportPanelProps) {
 
     const runGuarded = async (message: string, run: () => Promise<void>) => {
         setBusy(true)
-        setError(null)
         try {
             await run()
         } catch (caught) {
-            setError(caught instanceof Error ? caught.message : message)
+            dialogService.error(caught, { fallbackMessage: message })
         } finally {
             setBusy(false)
         }
@@ -237,8 +236,6 @@ export function RemarkableImportPanel(props: RemarkableImportPanelProps) {
                     </Button>
                 ) : null}
             </Stack>
-
-            {error ? <Alert severity="error">{error}</Alert> : null}
         </Stack>
     )
 }

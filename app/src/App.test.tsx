@@ -97,6 +97,7 @@ describe('App', () => {
         render(<App />)
 
         await screen.findByRole('button', { name: 'GitHub account' })
+        fireEvent.click(screen.getByRole('tab', { name: 'Options' }))
         expect(screen.getByRole('button', { name: 'Switch to dark theme' })).toBeInTheDocument()
     })
 

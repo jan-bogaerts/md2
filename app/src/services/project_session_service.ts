@@ -1,5 +1,6 @@
 import {
     MISSING_WORKING_FOLDER_ERROR,
+    resolveProjectConfigPaths,
     type BranchReference,
     type CardDraft,
     type ProjectReference,
@@ -12,6 +13,7 @@ import { activateStorageService } from '../data/project_storage_activation'
 import { configureRemoteControlConnection } from '../data/remote_control_connection'
 import { configService } from './config_service'
 import { dataService } from './data_service'
+import { dialogService } from './dialog_service'
 import { GithubPendingCommitConflictError, GithubStorageService } from './github_storage_service'
 import { register } from './service_injector'
 
@@ -19,6 +21,7 @@ export interface MissingWorkingFolderResolution {
     configuredWorkingFolder: string
     folders: TopLevelFolderReference[]
     project: ProjectReference
+    resolvedWorkingFolder: string
     storageType: StorageType
 }
 
@@ -109,7 +112,7 @@ export class ProjectSessionService extends EventTarget {
             } catch (error) {
                 if (!isMissingWorkingFolderError(error)) throw error
 
-                return ProjectSessionService.createMissingWorkingFolderResolution(storage, storageType, project, error.workingFolder)
+                return ProjectSessionService.createMissingWorkingFolderResolution(storage, storageType, project)
             }
         })
     }
@@ -128,7 +131,7 @@ export class ProjectSessionService extends EventTarget {
     async createWorkingFolder(resolution: MissingWorkingFolderResolution, accessToken: string | null) {
         await this.withLoading('Working folder creation failed', async () => {
             const storage = createStorageService(resolution.storageType, accessToken)
-            const project = await storage.createWorkingFolderFromTemplate(resolution.project, resolution.configuredWorkingFolder)
+            const project = await storage.createWorkingFolderFromTemplate(resolution.project, resolution.resolvedWorkingFolder)
             await persistWorkingFolder(storage, project, resolution.configuredWorkingFolder)
             dataService.init({ storage })
             activateStorageService(resolution.storageType, storage)
@@ -169,14 +172,27 @@ export class ProjectSessionService extends EventTarget {
         storage: StorageService,
         storageType: StorageType,
         project: ProjectReference,
-        workingFolder: string,
     ) {
+        const config = configService.getProjectConfig()
+        const resolvedConfig = resolveProjectConfigPaths(config)
         try {
             const folders = await storage.listTopLevelFolders(project)
 
-            return { configuredWorkingFolder: workingFolder, folders, project, storageType }
+            return {
+                configuredWorkingFolder: config.workingFolder,
+                folders,
+                project,
+                resolvedWorkingFolder: resolvedConfig.workingFolder,
+                storageType,
+            }
         } catch {
-            return { configuredWorkingFolder: workingFolder, folders: EMPTY_TOP_LEVEL_FOLDERS, project, storageType }
+            return {
+                configuredWorkingFolder: config.workingFolder,
+                folders: EMPTY_TOP_LEVEL_FOLDERS,
+                project,
+                resolvedWorkingFolder: resolvedConfig.workingFolder,
+                storageType,
+            }
         }
     }
 
@@ -194,6 +210,7 @@ export class ProjectSessionService extends EventTarget {
                 pendingGithubConflictProject: error instanceof GithubPendingCommitConflictError ? error.project : null,
             }
             this.dispatchChanged()
+            dialogService.error(error, { fallbackMessage })
             throw error
         } finally {
             if (this.state.isLoading) {

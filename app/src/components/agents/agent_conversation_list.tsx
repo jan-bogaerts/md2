@@ -1,7 +1,8 @@
-import { Alert, Box, Button, Chip, Divider, List, ListItem, ListItemText, Stack, TextField, Typography } from '@mui/material'
-import { useState } from 'react'
+import { Box, Button, Chip, Divider, List, ListItem, ListItemText, Stack, TextField, Typography } from '@mui/material'
+import { useEffect, useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import type { AgentConversation, AgentConversationError } from '../../data/data_types'
+import { dialogService } from '../../services/dialog_service'
 
 interface AgentConversationListProps {
     conversations: AgentConversation[]
@@ -26,6 +27,10 @@ function statusColor(status: AgentConversation['status']) {
 
 function lastMessage(conversation: AgentConversation) {
     return conversation.messages.at(-1)?.content ?? ''
+}
+
+function errorKey(error: AgentConversationError) {
+    return `${error.path}:${error.message}`
 }
 
 function ConversationItem(props: ConversationItemProps) {
@@ -86,12 +91,23 @@ function ConversationItem(props: ConversationItemProps) {
     )
 }
 
-/** Shows persisted agent conversations plus load/start errors for a card. */
+/** Shows persisted agent conversations and reports load/start errors for a card. */
 export function AgentConversationList(props: AgentConversationListProps) {
     const { conversations, errors, onContinue, onSendInput, onStart } = props
     const [prompt, setPrompt] = useState('')
+    const reportedErrorKeysRef = useRef<Set<string>>(new Set())
     const hasConversations = conversations.length > 0
     const hasErrors = errors.length > 0
+
+    useEffect(() => {
+        const nextErrorKeys = new Set(errors.map(errorKey))
+        for (const error of errors) {
+            const key = errorKey(error)
+            if (!reportedErrorKeysRef.current.has(key)) dialogService.error(`${error.path}: ${error.message}`)
+        }
+
+        reportedErrorKeysRef.current = nextErrorKeys
+    }, [errors])
 
     const handlePromptChange = (event: ChangeEvent<HTMLInputElement>) => {
         setPrompt(event.target.value)
@@ -112,15 +128,6 @@ export function AgentConversationList(props: AgentConversationListProps) {
                     Start
                 </Button>
             </Stack>
-            {hasErrors ? (
-                <Stack spacing={1}>
-                    {errors.map((error) => (
-                        <Alert key={`${error.path}:${error.message}`} severity="error">
-                            {error.path}: {error.message}
-                        </Alert>
-                    ))}
-                </Stack>
-            ) : null}
             {hasConversations ? (
                 <List dense disablePadding>
                     {conversations.map((conversation, index) => (
@@ -130,6 +137,11 @@ export function AgentConversationList(props: AgentConversationListProps) {
                         </Box>
                     ))}
                 </List>
+            ) : null}
+            {!hasConversations && hasErrors ? (
+                <Typography color="text.secondary" variant="body2">
+                    Agent conversation errors reported.
+                </Typography>
             ) : null}
             {!hasConversations && !hasErrors ? (
                 <Typography color="text.secondary" variant="body2">

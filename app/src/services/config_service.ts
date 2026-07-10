@@ -10,6 +10,8 @@ import {
     requireConfigEntry,
     type ConfigEntry,
     type ConfigKey,
+    type ConfigSource,
+    type ConfigValue,
     type ConfigValueTypes,
     type ConfigValues,
     type DesktopConfigValues,
@@ -57,6 +59,17 @@ function requireBoolean(value: unknown, fieldName: string) {
     return value
 }
 
+function normalizeConfigPath(value: string, fieldName: string, allowEmpty = false) {
+    const normalized = value.replace(/\\/gu, '/').replace(/^\/+|\/+$/gu, '')
+    if (!allowEmpty && normalized.length === 0) throw new Error(`Missing config field: ${fieldName}`)
+    if (/^[a-zA-Z]:/u.test(value) || value.startsWith('/') || value.startsWith('\\')) {
+        throw new Error(`Config path ${fieldName} must be repository-relative`)
+    }
+    if (normalized.split('/').includes('..')) throw new Error(`Config path ${fieldName} must stay inside the project folder`)
+
+    return normalized
+}
+
 function validateCardTypes(value: unknown): CardTypeConfig[] {
     if (!Array.isArray(value) || value.length === 0) throw new Error('Missing config field: project.cardTypes')
 
@@ -96,6 +109,14 @@ function validateValue<K extends ConfigKey>(key: K, value: unknown): ConfigValue
     }
     if (entry.type === 'json' && key === 'project.cardTypes') return validateCardTypes(value) as ConfigValueTypes[K]
     if (entry.type === 'json' && key === 'desktop.agentProfiles') return validateDesktopAgentProfiles(value) as ConfigValueTypes[K]
+    if (key === 'project.projectFolder') {
+        if (typeof value !== 'string') throw new Error(`Missing config field: ${entry.key}`)
+
+        return normalizeConfigPath(value, entry.key, true) as ConfigValueTypes[K]
+    }
+    if (key === 'project.workingFolder' || key === 'project.actionsFolder') {
+        return normalizeConfigPath(requireString(value, entry.key), entry.key) as ConfigValueTypes[K]
+    }
     if (key === 'desktop.model' || key === 'desktop.agentSlotCommand') {
         if (typeof value !== 'string') throw new Error(`Missing config field: ${entry.key}`)
 
@@ -115,9 +136,16 @@ function readProjectConfig(values: ConfigValues): ProjectConfig {
         cardBodyTemplate: values['project.cardBodyTemplate'],
         cardTypes: values['project.cardTypes'],
         diffCommand: values['project.diffCommand'],
+        projectFolder: values['project.projectFolder'],
         pushMode: values['project.pushMode'],
         workingFolder: values['project.workingFolder'],
     }
+}
+
+function isConfigValueEqual(first: ConfigValue, second: ConfigValue) {
+    if (Object.is(first, second)) return true
+
+    return JSON.stringify(first) === JSON.stringify(second)
 }
 
 export class ConfigService extends EventTarget {
@@ -202,6 +230,7 @@ export class ConfigService extends EventTarget {
 
         if (projectConfig?.workingFolder !== undefined) nextValues = mergeValue(nextValues, 'project.workingFolder', projectConfig.workingFolder)
         if (projectConfig?.actionsFolder !== undefined) nextValues = mergeValue(nextValues, 'project.actionsFolder', projectConfig.actionsFolder)
+        if (projectConfig?.projectFolder !== undefined) nextValues = mergeValue(nextValues, 'project.projectFolder', projectConfig.projectFolder)
         if (projectConfig?.diffCommand !== undefined) nextValues = mergeValue(nextValues, 'project.diffCommand', projectConfig.diffCommand)
         if (projectConfig?.pushMode !== undefined) nextValues = mergeValue(nextValues, 'project.pushMode', projectConfig.pushMode)
         if (projectConfig?.cardBodyTemplate !== undefined) {
@@ -248,6 +277,12 @@ export class ConfigService extends EventTarget {
         const draft = this.requireDraft()
         this.draftValues = mergeValue(draft, key, value)
         this.dispatchChanged()
+    }
+
+    hasDraftChangesForSource(source: ConfigSource) {
+        const draft = this.requireDraft()
+
+        return CONFIG_ENTRIES.some((entry) => entry.source === source && !isConfigValueEqual(draft[entry.key], this.values[entry.key]))
     }
 
     saveDraft() {

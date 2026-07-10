@@ -103,6 +103,11 @@ npm run lint-fix
 - Verify actual field types before normalizing. Do not add coercion defensively. Only normalize when the inspected code path shows mixed types are real, and prefer doing it at the input boundary rather than at arbitrary comparison sites.
 - avoid magic numbers, use named constants instead
 
+## react component style guide
+- dialogs have buttons in the bottom right corner
+- use the `dialogService` to show errors, warnings,...
+
+
 ## Testing
 
 ### Agent Responsibilities

@@ -106,7 +106,9 @@ describe('GithubStorageService', () => {
         const service = new GithubStorageService()
         service.init({ accessToken: 'token', fetchImplementation, onUnauthorized: handleUnauthorized })
 
-        await expect(service.listBranches(project)).rejects.toThrow('GitHub storage request failed with status 500')
+        await expect(service.listBranches(project)).rejects.toThrow(
+            'GitHub storage request failed with status 500 for GET /repos/owner/repo/branches',
+        )
         expect(handleUnauthorized).not.toHaveBeenCalled()
     })
 

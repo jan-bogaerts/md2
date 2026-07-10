@@ -1,24 +1,33 @@
-﻿import { useEffect, useState } from 'react'
+import { useSyncExternalStore } from 'react'
 import { dataService, type DataService, type DataServiceState } from '../../services/data_service'
 
-function getChangedState(event: Event): DataServiceState {
-    return (event as CustomEvent<DataServiceState>).detail
+const snapshots = new WeakMap<DataService, DataServiceState>()
+
+function isSameDataServiceState(first: DataServiceState, second: DataServiceState) {
+    return first.hasPendingCommits === second.hasPendingCommits
+        && first.project === second.project
+        && first.runningAgents === second.runningAgents
+        && first.snapshot === second.snapshot
+}
+
+function getProjectStateSnapshot(service: DataService): DataServiceState {
+    const nextSnapshot = service.getState()
+    const currentSnapshot = snapshots.get(service)
+    if (currentSnapshot && isSameDataServiceState(currentSnapshot, nextSnapshot)) return currentSnapshot
+
+    snapshots.set(service, nextSnapshot)
+
+    return nextSnapshot
 }
 
 export function useProjectState(service: DataService = dataService): DataServiceState {
-    const [state, setState] = useState(service.getState())
+    return useSyncExternalStore(
+        (onStoreChange) => {
+            service.addEventListener('changed', onStoreChange)
 
-    useEffect(() => {
-        const handleChanged = (event: Event) => {
-            setState(getChangedState(event))
-        }
-
-        service.addEventListener('changed', handleChanged)
-
-        return () => {
-            service.removeEventListener('changed', handleChanged)
-        }
-    }, [service])
-
-    return state
+            return () => service.removeEventListener('changed', onStoreChange)
+        },
+        () => getProjectStateSnapshot(service),
+        () => getProjectStateSnapshot(service),
+    )
 }

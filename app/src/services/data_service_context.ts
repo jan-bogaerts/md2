@@ -4,12 +4,11 @@ import type {
     ProjectConfig,
     StorageService,
 } from '../data/data_types'
+import { resolveProjectConfigPaths } from '../data/data_types'
 import type { RemarkableBridge } from '../data/remarkable_bridge'
 import { configService } from './config_service'
+import { dialogService } from './dialog_service'
 import { telemetryService } from './telemetry_service'
-
-export const WORKSPACE_ERROR_EVENT = 'md2:workspace-error'
-export const WORKSPACE_NOTICE_EVENT = 'md2:workspace-notice'
 
 export interface DataServiceDependencies {
     remarkableBridge?: RemarkableBridge
@@ -27,11 +26,11 @@ export function errorMessage(error: unknown, fallback: string) {
 }
 
 export function reportWorkspaceError(message: string) {
-    window.dispatchEvent(new CustomEvent<string>(WORKSPACE_ERROR_EVENT, { detail: message }))
+    dialogService.error(message)
 }
 
 export function reportWorkspaceNotice(message: string) {
-    window.dispatchEvent(new CustomEvent<string>(WORKSPACE_NOTICE_EVENT, { detail: message }))
+    dialogService.success(message)
 }
 
 /** Merge committed files into loaded files: replace matching paths, append new paths. */
@@ -61,5 +60,5 @@ export function reportCommitFlushFailure(error: unknown, dispatchChanged: () => 
 export function getProjectConfigOrNull(storage: StorageService | null): ProjectConfig | null {
     if (!storage) return null
 
-    return configService.getProjectConfig()
+    return resolveProjectConfigPaths(configService.getProjectConfig())
 }

@@ -1,8 +1,13 @@
-import { Alert, Button, Snackbar, Tooltip } from '@mui/material'
+import { Button, Tooltip } from '@mui/material'
 import { useEffect, useMemo, useState } from 'react'
-import { getElectronRemoteControlBridge, type RemoteControlStatus } from '../../data/electron_remote_control_bridge'
+import { getElectronRemoteControlBridge, type ElectronRemoteControlBridge, type RemoteControlStatus } from '../../data/electron_remote_control_bridge'
+import { dialogService } from '../../services/dialog_service'
 
 const INITIAL_STATUS: RemoteControlStatus = { active: false, clientCount: 0, endpoint: null, token: null }
+
+interface MountState {
+    isMounted: boolean
+}
 
 function statusLabel(status: RemoteControlStatus) {
     if (!status.active) return 'Remote off'
@@ -16,28 +21,34 @@ function tooltipLabel(status: RemoteControlStatus) {
     return status.token ? `${status.endpoint} token ${status.token}` : status.endpoint
 }
 
+async function loadRemoteControlStatus(
+    bridge: ElectronRemoteControlBridge,
+    mountState: MountState,
+    setStatus: (status: RemoteControlStatus) => void,
+) {
+    try {
+        const nextStatus = await bridge.getStatus()
+        if (mountState.isMounted) setStatus(nextStatus)
+    } catch (error) {
+        if (mountState.isMounted) dialogService.error(error, { fallbackMessage: 'Remote-control status failed' })
+    }
+}
+
 /** Toolbar control that starts/stops the Electron WebSocket remote-control endpoint. */
 export function RemoteControlButton() {
     const bridge = useMemo(() => getElectronRemoteControlBridge(), [])
-    const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [isBusy, setIsBusy] = useState(false)
     const [status, setStatus] = useState<RemoteControlStatus>(INITIAL_STATUS)
 
     useEffect(() => {
         if (!bridge) return undefined
 
-        let isMounted = true
+        const mountState = { isMounted: true }
         const unsubscribe = bridge.onStatusChange(setStatus)
-        void bridge.getStatus()
-            .then((nextStatus) => {
-                if (isMounted) setStatus(nextStatus)
-            })
-            .catch((error: unknown) => {
-                if (isMounted) setErrorMessage(error instanceof Error ? error.message : 'Remote-control status failed')
-            })
+        void loadRemoteControlStatus(bridge, mountState, setStatus)
 
         return () => {
-            isMounted = false
+            mountState.isMounted = false
             unsubscribe()
         }
     }, [bridge])
@@ -46,35 +57,23 @@ export function RemoteControlButton() {
 
     const handleClick = async () => {
         setIsBusy(true)
-        setErrorMessage(null)
 
         try {
             setStatus(status.active ? await bridge.stop() : await bridge.start())
         } catch (error) {
-            setErrorMessage(error instanceof Error ? error.message : 'Remote-control toggle failed')
+            dialogService.error(error, { fallbackMessage: 'Remote-control toggle failed' })
         } finally {
             setIsBusy(false)
         }
     }
 
-    const handleCloseError = () => {
-        setErrorMessage(null)
-    }
-
     return (
-        <>
-            <Tooltip title={tooltipLabel(status)}>
-                <span>
-                    <Button color={status.active ? 'success' : 'inherit'} disabled={isBusy} onClick={handleClick} size="small" variant="outlined">
-                        {statusLabel(status)}
-                    </Button>
-                </span>
-            </Tooltip>
-            <Snackbar autoHideDuration={6000} onClose={handleCloseError} open={!!errorMessage}>
-                <Alert onClose={handleCloseError} severity="error" variant="filled">
-                    {errorMessage}
-                </Alert>
-            </Snackbar>
-        </>
+        <Tooltip title={tooltipLabel(status)}>
+            <span>
+                <Button color={status.active ? 'success' : 'inherit'} disabled={isBusy} onClick={handleClick} size="small" variant="outlined">
+                    {statusLabel(status)}
+                </Button>
+            </span>
+        </Tooltip>
     )
 }

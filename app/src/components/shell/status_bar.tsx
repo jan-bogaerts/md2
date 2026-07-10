@@ -1,23 +1,18 @@
-import { Box, Chip, Stack, TextField } from '@mui/material'
-import type { ChangeEvent } from 'react'
+import { Box, Chip, Stack, Typography } from '@mui/material'
 import { KeyboardStatus } from './keyboard_status'
 import { RunningAgentsIndicator } from './running_agents_indicator'
 import type { RunningAgent } from '../../data/data_types'
 
 interface StatusBarProps {
+    activeCardCount: number
     agents: RunningAgent[]
     hasPendingCommits: boolean
-    info: string
-    onInfoChange: (info: string) => void
+    totalCardCount: number
 }
 
-/** Desktop status bar: editable info, keyboard status and the running-agents indicator. */
+/** Desktop status bar: card counts, keyboard status and the running-agents indicator. */
 export function StatusBar(props: StatusBarProps) {
-    const { agents, hasPendingCommits, info, onInfoChange } = props
-
-    const handleInfoChange = (event: ChangeEvent<HTMLInputElement>) => {
-        onInfoChange(event.target.value)
-    }
+    const { activeCardCount, agents, hasPendingCommits, totalCardCount } = props
 
     return (
         <Box
@@ -33,14 +28,14 @@ export function StatusBar(props: StatusBarProps) {
                 py: 0.5,
             }}
         >
-            <TextField
-                label="Status"
-                onChange={handleInfoChange}
-                size="small"
-                sx={{ maxWidth: 360 }}
-                value={info}
-                variant="standard"
-            />
+            <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
+                <Typography color="text.secondary" variant="body2">
+                    Total cards loaded: {totalCardCount}
+                </Typography>
+                <Typography color="text.secondary" variant="body2">
+                    Currently active: {activeCardCount}
+                </Typography>
+            </Stack>
             <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
                 {hasPendingCommits ? <Chip color="warning" label="Unsaved changes" size="small" variant="outlined" /> : null}
                 <KeyboardStatus />

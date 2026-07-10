@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { DiffView } from './diff_view'
 import { resolveClickedLine } from './diff_line_mapping'
 import type { ActionRunHistoryEntry, DiffFile, DiffResult } from '../../data/electron_action_bridge'
+import { DialogDisplay } from '../dialog_display'
 
 function diffFile(overrides: Partial<DiffFile> = {}): DiffFile {
     return {
@@ -60,8 +61,14 @@ describe('DiffView', () => {
         const generateDiff = vi.fn(async () => {
             throw new Error('Diff command failed: fatal: bad object')
         })
-        render(<DiffView entry={entry} generateDiff={generateDiff} openDiffLine={vi.fn()} />)
+        render(
+            <>
+                <DialogDisplay />
+                <DiffView entry={entry} generateDiff={generateDiff} openDiffLine={vi.fn()} />
+            </>,
+        )
 
-        await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Diff command failed: fatal: bad object'))
+        await waitFor(() => expect(screen.getByText('Diff command failed: fatal: bad object')).toBeInTheDocument())
+        expect(screen.getByText('Diff unavailable.')).toBeInTheDocument()
     })
 })

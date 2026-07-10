@@ -190,6 +190,10 @@ function createWindow() {
     })
 
     window.loadURL(appUrl)
+
+    if (!app.isPackaged) {
+        window.webContents.openDevTools()
+    }
 }
 
 async function stopAndQuit() {

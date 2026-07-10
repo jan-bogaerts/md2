@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { GithubAuthPanel } from './github_auth_panel'
 import type { AuthSnapshot } from '../auth/github_auth_types'
+import { DialogDisplay } from './dialog_display'
 
 const baseSnapshot: AuthSnapshot = {
     authMethod: null,
@@ -40,10 +41,17 @@ describe('GithubAuthPanel', () => {
     it('keeps personal access token auth available when device flow is not configured', () => {
         render(<GithubAuthPanel {...baseSnapshot} {...panelActions} isDeviceFlowAvailable={false} />)
 
-        expect(screen.getByRole('button', { name: 'Sign in with GitHub' })).toBeDisabled()
-        expect(screen.getByText('GitHub device login is not configured. Use a personal access token instead.')).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Sign in with GitHub' })).toBeNull()
+        expect(screen.queryByText('GitHub device login is not configured. Use a personal access token instead.')).toBeNull()
+        expect(screen.queryByText('Authorization in progress')).toBeNull()
         expect(screen.getByRole('button', { name: 'Save token' })).toBeDisabled()
         expect(screen.getByLabelText('Personal access token')).toBeEnabled()
+    })
+
+    it('shows authorization progress while validating a personal access token', () => {
+        render(<GithubAuthPanel {...baseSnapshot} {...panelActions} isLoadingUser />)
+
+        expect(screen.getByText('Authorization in progress')).toBeInTheDocument()
     })
 
     it('saves the entered personal access token on explicit action', () => {
@@ -55,16 +63,19 @@ describe('GithubAuthPanel', () => {
         expect(panelActions.savePersonalAccessToken).toHaveBeenCalledWith('pat-token')
     })
 
-    it('shows personal access token validation errors inline', () => {
+    it('reports personal access token validation errors through the dialog display', async () => {
         render(
-            <GithubAuthPanel
-                {...baseSnapshot}
-                {...panelActions}
-                errorMessage="GitHub access token is no longer authorized"
-            />,
+            <>
+                <DialogDisplay />
+                <GithubAuthPanel
+                    {...baseSnapshot}
+                    {...panelActions}
+                    errorMessage="GitHub access token is no longer authorized"
+                />
+            </>,
         )
 
-        expect(screen.getByText('GitHub access token is no longer authorized')).toBeInTheDocument()
+        expect(await screen.findByText('GitHub access token is no longer authorized')).toBeInTheDocument()
     })
 
     it('shows the device code and verification URL while waiting', () => {

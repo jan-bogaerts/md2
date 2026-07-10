@@ -1,29 +1,27 @@
 import {
-    Alert, Button, Paper, Stack, ToggleButton, ToggleButtonGroup, Typography,
+    Box, Button, Paper, Stack, Typography,
     useMediaQuery, useTheme,
 } from '@mui/material'
-import type { MouseEvent } from 'react'
 import { useEffect, useState } from 'react'
 import {
     DEFAULT_CARD_TYPES,
     DEFAULT_WORKING_FOLDER,
     type AgentConversation,
     type ProjectCard,
+    type ProjectReference,
 } from '../data/data_types'
 import { dataService } from '../services/data_service'
+import { dialogService } from '../services/dialog_service'
 import { getElectronLifecycleBridge, type ElectronLifecycleBridge } from '../services/electron_lifecycle_bridge'
 import { telemetryService } from '../services/telemetry_service'
+import { workspaceViewService } from '../services/workspace_view_service'
 import { workspaceNavigationService, type WorkspaceOpenRequest } from '../services/workspace_navigation_service'
 import { CardView } from './card_view/card_view'
-import { CardViewNavigation } from './card_view/card_view_navigation'
 import { TextView } from './text_view/text_view'
 import { useProjectConfig } from './hooks/use_project_config'
 import { useProjectState } from './hooks/use_project_state'
-import { requestOpenProjectDialog, WORKSPACE_ERROR_EVENT, WORKSPACE_NOTICE_EVENT } from './project_command_events'
-import { LeftPanelSlot } from './shell/left_panel_slot'
-
-type WorkspaceViewMode = 'cards' | 'text'
-type ErrorSetter = (message: string | null) => void
+import { useWorkspaceView } from './hooks/use_workspace_view'
+import { requestOpenProjectDialog } from './project_command_events'
 
 const WORKSPACE_PANEL_PADDING = 3
 const EMPTY_CARDS: ProjectCard[] = []
@@ -41,43 +39,43 @@ async function flushAndConfirmPendingCommits(lifecycleBridge: ElectronLifecycleB
     }
 }
 
-function runWorkspaceEdit(action: () => void, setErrorMessage: ErrorSetter, fallbackMessage: string) {
-    setErrorMessage(null)
-
+function runWorkspaceEdit(action: () => void, fallbackMessage: string) {
     try {
         action()
     } catch (error) {
-        setErrorMessage(error instanceof Error ? error.message : fallbackMessage)
+        dialogService.error(error, { fallbackMessage })
     }
 }
 
+function workspaceProjectKey(project: ProjectReference | null) {
+    if (!project) return null
+
+    return `${project.id}:${project.branch}`
+}
+
 interface ProjectWorkspaceProps {
-    bootstrapError: string | null
     onLeftPanelInteraction: () => void
 }
 
 export function ProjectWorkspace(props: ProjectWorkspaceProps) {
-    const { bootstrapError, onLeftPanelInteraction } = props
+    const { onLeftPanelInteraction } = props
     const { project, snapshot } = useProjectState()
     const theme = useTheme()
     const isMobile = useMediaQuery(theme.breakpoints.down('md'))
     const activeCards = snapshot?.activeCards ?? EMPTY_CARDS
     const backgroundCards = snapshot?.backgroundCards ?? EMPTY_CARDS
     const repositoryFiles = snapshot?.repositoryFiles ?? EMPTY_REPOSITORY_FILES
-    const [errorMessage, setErrorMessage] = useState<string | null>(null)
-    const [noticeMessage, setNoticeMessage] = useState<string | null>(null)
     const [requestedPath, setRequestedPath] = useState<string | null>(null)
     const [requestedNonce, setRequestedNonce] = useState(0)
-    const [selectedPath, setSelectedPath] = useState<string | null>(null)
-    const [viewMode, setViewMode] = useState<WorkspaceViewMode>('cards')
-    const [dismissedBootstrapError, setDismissedBootstrapError] = useState<string | null>(null)
+    const { selectedPath, viewMode } = useWorkspaceView()
     const isProjectOpen = !!project
     const projectConfig = useProjectConfig()
     const cardTypes = projectConfig?.cardTypes ?? DEFAULT_CARD_TYPES
     const workingFolder = snapshot?.workingFolder ?? projectConfig?.workingFolder ?? DEFAULT_WORKING_FOLDER
-    const bootstrapErrorMessage = bootstrapError && bootstrapError !== dismissedBootstrapError
-        ? `Could not restore last project: ${bootstrapError}`
-        : null
+
+    useEffect(() => {
+        workspaceViewService.syncProject(workspaceProjectKey(project))
+    }, [project])
 
     useEffect(() => {
         const handleBeforeUnload = (event: BeforeUnloadEvent) => {
@@ -122,7 +120,7 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
             const { path } = (event as CustomEvent<WorkspaceOpenRequest>).detail
             // Reveal the card/file without changing the current view mode: highlight it in card view
             // and queue it as a text-view tab for when that view is shown.
-            setSelectedPath(path)
+            workspaceViewService.selectPath(path)
             setRequestedPath(path)
             setRequestedNonce((nonce) => nonce + 1)
             telemetryService.trackEvent('navigation')
@@ -133,196 +131,137 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
         return () => workspaceNavigationService.removeEventListener('open', handleNavigationOpen)
     }, [])
 
-    useEffect(() => {
-        const handleWorkspaceError = (event: Event) => {
-            setErrorMessage((event as CustomEvent<string>).detail)
-        }
-
-        window.addEventListener(WORKSPACE_ERROR_EVENT, handleWorkspaceError)
-
-        return () => window.removeEventListener(WORKSPACE_ERROR_EVENT, handleWorkspaceError)
-    }, [])
-
-    useEffect(() => {
-        const handleWorkspaceNotice = (event: Event) => {
-            setNoticeMessage((event as CustomEvent<string>).detail)
-        }
-
-        window.addEventListener(WORKSPACE_NOTICE_EVENT, handleWorkspaceNotice)
-
-        return () => window.removeEventListener(WORKSPACE_NOTICE_EVENT, handleWorkspaceNotice)
-    }, [])
-
     const handleMoveCard = (path: string, targetStatus: string, targetIndex: number) => {
-        runWorkspaceEdit(() => dataService.cards.moveCard(path, targetStatus, targetIndex), setErrorMessage, `Card move failed: ${path}`)
+        runWorkspaceEdit(() => dataService.cards.moveCard(path, targetStatus, targetIndex), `Card move failed: ${path}`)
     }
 
     const handleTogglePolicy = (path: string, policyKey: string) => {
-        runWorkspaceEdit(() => dataService.cards.toggleCardPolicy(path, policyKey), setErrorMessage, `Policy toggle failed: ${path}`)
+        runWorkspaceEdit(() => dataService.cards.toggleCardPolicy(path, policyKey), `Policy toggle failed: ${path}`)
     }
 
     const handleTitleChange = (path: string, title: string) => {
-        runWorkspaceEdit(() => dataService.cards.updateCardTitle(path, title), setErrorMessage, `Title update failed: ${path}`)
+        runWorkspaceEdit(() => dataService.cards.updateCardTitle(path, title), `Title update failed: ${path}`)
     }
 
     const handleBodyChange = (path: string, body: string) => {
-        runWorkspaceEdit(() => dataService.cards.updateCardBody(path, body), setErrorMessage, `Body update failed: ${path}`)
+        runWorkspaceEdit(() => dataService.cards.updateCardBody(path, body), `Body update failed: ${path}`)
     }
 
     const handleAffectsChange = (path: string, affects: string[]) => {
-        runWorkspaceEdit(() => dataService.cards.updateCardAffects(path, affects), setErrorMessage, `Affects update failed: ${path}`)
+        runWorkspaceEdit(() => dataService.cards.updateCardAffects(path, affects), `Affects update failed: ${path}`)
     }
 
     const handleHeaderFieldChange = (path: string, key: string, value: string) => {
-        runWorkspaceEdit(() => dataService.cards.updateCardHeaderFields(path, { [key]: value }), setErrorMessage, `Header update failed: ${path}`)
+        runWorkspaceEdit(() => dataService.cards.updateCardHeaderFields(path, { [key]: value }), `Header update failed: ${path}`)
     }
 
     const clearDeletedPathState = (path: string) => {
-        setSelectedPath((currentPath) => (currentPath === path ? null : currentPath))
+        workspaceViewService.clearSelectedPath(path)
         setRequestedPath((currentPath) => (currentPath === path ? null : currentPath))
     }
 
     const handleDeleteCard = async (path: string) => {
-        setErrorMessage(null)
-
         try {
             await dataService.cards.deleteCard(path)
             clearDeletedPathState(path)
         } catch (error) {
-            setErrorMessage(error instanceof Error ? error.message : `Card delete failed: ${path}`)
+            dialogService.error(error, { fallbackMessage: `Card delete failed: ${path}` })
             throw error
         }
     }
 
     const handleDeleteFile = async (path: string) => {
-        setErrorMessage(null)
-
         try {
             await dataService.cards.deleteFile(path)
             clearDeletedPathState(path)
         } catch (error) {
-            setErrorMessage(error instanceof Error ? error.message : `File delete failed: ${path}`)
+            dialogService.error(error, { fallbackMessage: `File delete failed: ${path}` })
             throw error
         }
     }
 
     const handleContinueAgentConversation = async (path: string, conversation: AgentConversation) => {
-        setErrorMessage(null)
-
         try {
             await dataService.agents.continueAgentConversation(path, conversation.path)
         } catch (error) {
-            setErrorMessage(error instanceof Error ? error.message : 'Agent continue failed')
+            dialogService.error(error, { fallbackMessage: 'Agent continue failed' })
         }
     }
 
     const handleStartAgentConversation = async (path: string, prompt: string) => {
-        setErrorMessage(null)
-
         try {
             await dataService.agents.startAgentConversation(path, prompt)
         } catch (error) {
-            setErrorMessage(error instanceof Error ? error.message : 'Agent start failed')
+            dialogService.error(error, { fallbackMessage: 'Agent start failed' })
         }
     }
 
     const handleSendAgentInput = async (runId: string, input: string) => {
-        setErrorMessage(null)
-
         try {
             await dataService.agents.sendAgentInput(runId, input)
         } catch (error) {
-            setErrorMessage(error instanceof Error ? error.message : 'Agent input failed')
+            dialogService.error(error, { fallbackMessage: 'Agent input failed' })
         }
     }
 
     const handleOpenInFileMode = (path: string) => {
+        workspaceViewService.selectPath(path)
         setRequestedPath(path)
         setRequestedNonce((nonce) => nonce + 1)
-        setViewMode('text')
+        workspaceViewService.setViewMode('text')
         telemetryService.trackEvent('navigation')
-    }
-
-    const handleViewModeChange = (_event: MouseEvent<HTMLElement>, nextMode: WorkspaceViewMode | null) => {
-        if (!nextMode || nextMode === viewMode) return
-
-        setViewMode(nextMode)
-        telemetryService.trackEvent('navigation')
-    }
-
-    const handleDismissBootstrapError = () => {
-        setDismissedBootstrapError(bootstrapError)
-    }
-
-    const handleDismissNotice = () => {
-        setNoticeMessage(null)
     }
 
     return (
-        <Paper elevation={0} sx={{ border: 1, borderColor: 'divider', borderRadius: 2, p: WORKSPACE_PANEL_PADDING }}>
-            <Stack spacing={3}>
-                {bootstrapErrorMessage ? (
-                    <Alert onClose={handleDismissBootstrapError} severity="error">{bootstrapErrorMessage}</Alert>
-                ) : null}
-                {errorMessage ? <Alert severity="error">{errorMessage}</Alert> : null}
-                {noticeMessage ? <Alert onClose={handleDismissNotice} severity="success">{noticeMessage}</Alert> : null}
-
+        <Paper
+            aria-label="Project workspace"
+            component="section"
+            elevation={0}
+            sx={{ border: 1, borderColor: 'divider', borderRadius: 2, display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden', p: WORKSPACE_PANEL_PADDING }}
+        >
+            <Box
+                aria-label="Project workspace content"
+                role="region"
+                sx={{ display: 'flex', flex: 1, flexDirection: 'column', minHeight: 0, overflow: 'auto' }}
+                tabIndex={0}
+            >
                 {isProjectOpen ? (
-                    <Stack spacing={2}>
-                        <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
-                            <Typography component="h2" variant="h6">
-                                {viewMode === 'cards' ? 'Active cards' : 'Files'}
-                            </Typography>
-                            <ToggleButtonGroup exclusive onChange={handleViewModeChange} size="small" value={viewMode}>
-                                <ToggleButton value="cards">Cards</ToggleButton>
-                                <ToggleButton value="text">Text</ToggleButton>
-                            </ToggleButtonGroup>
-                        </Stack>
-                        {viewMode === 'cards' ? (
-                            <>
-                                <LeftPanelSlot>
-                                    <CardViewNavigation cards={activeCards} onNavigate={onLeftPanelInteraction} />
-                                </LeftPanelSlot>
-                                <CardView
-                                    cardTypes={cardTypes}
-                                    cards={activeCards}
-                                    isMobile={isMobile}
-                                    onAffectsChange={handleAffectsChange}
-                                    onBodyChange={handleBodyChange}
-                                    onContinueAgentConversation={handleContinueAgentConversation}
-                                    onDeleteCard={handleDeleteCard}
-                                    onMoveCard={handleMoveCard}
-                                    onOpenInFileMode={handleOpenInFileMode}
-                                    onSendAgentInput={handleSendAgentInput}
-                                    onStartAgentConversation={handleStartAgentConversation}
-                                    onTitleChange={handleTitleChange}
-                                    onTogglePolicy={handleTogglePolicy}
-                                    repositoryFiles={repositoryFiles}
-                                    selectedPath={selectedPath}
-                                />
-                            </>
-                        ) : (
-                            <TextView
-                                activeCards={activeCards}
-                                backgroundCards={backgroundCards}
-                                cardTypes={cardTypes}
-                                isMobile={isMobile}
-                                onLeftPanelInteraction={onLeftPanelInteraction}
-                                onBodyChange={handleBodyChange}
-                                onContinueAgentConversation={handleContinueAgentConversation}
-                                onDeleteFile={handleDeleteFile}
-                                onHeaderFieldChange={handleHeaderFieldChange}
-                                onSendAgentInput={handleSendAgentInput}
-                                onStartAgentConversation={handleStartAgentConversation}
-                                requestedNonce={requestedNonce}
-                                requestedPath={requestedPath}
-                                workingFolder={workingFolder}
-                            />
-                        )}
-                        <Typography color="text.secondary" variant="body2">
-                            Background cards loaded: {backgroundCards.length}
-                        </Typography>
-                    </Stack>
+                    viewMode === 'cards' ? (
+                        <CardView
+                            cardTypes={cardTypes}
+                            cards={activeCards}
+                            isMobile={isMobile}
+                            onAffectsChange={handleAffectsChange}
+                            onBodyChange={handleBodyChange}
+                            onContinueAgentConversation={handleContinueAgentConversation}
+                            onDeleteCard={handleDeleteCard}
+                            onMoveCard={handleMoveCard}
+                            onOpenInFileMode={handleOpenInFileMode}
+                            onSendAgentInput={handleSendAgentInput}
+                            onStartAgentConversation={handleStartAgentConversation}
+                            onTitleChange={handleTitleChange}
+                            onTogglePolicy={handleTogglePolicy}
+                            repositoryFiles={repositoryFiles}
+                            selectedPath={selectedPath}
+                        />
+                    ) : (
+                        <TextView
+                            activeCards={activeCards}
+                            backgroundCards={backgroundCards}
+                            cardTypes={cardTypes}
+                            isMobile={isMobile}
+                            onLeftPanelInteraction={onLeftPanelInteraction}
+                            onBodyChange={handleBodyChange}
+                            onContinueAgentConversation={handleContinueAgentConversation}
+                            onDeleteFile={handleDeleteFile}
+                            onHeaderFieldChange={handleHeaderFieldChange}
+                            onSendAgentInput={handleSendAgentInput}
+                            onStartAgentConversation={handleStartAgentConversation}
+                            requestedNonce={requestedNonce}
+                            requestedPath={requestedPath}
+                            workingFolder={workingFolder}
+                        />
+                    )
                 ) : (
                     <Stack spacing={2} sx={{ alignItems: 'flex-start', py: 6 }}>
                         <Typography component="h2" variant="h6">No project open</Typography>
@@ -332,7 +271,7 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
                         <Button onClick={requestOpenProjectDialog} variant="contained">Open project...</Button>
                     </Stack>
                 )}
-            </Stack>
+            </Box>
         </Paper>
     )
 }

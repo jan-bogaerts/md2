@@ -22,6 +22,31 @@ describe('ConfigValueEditor', () => {
         render(<ConfigValueEditor entry={entry} onChange={handleChange} value={30000} />)
 
         expect(screen.getByRole('spinbutton', { name: 'Auto commit delay' })).toBeInTheDocument()
+        expect(screen.getByRole('spinbutton', { name: 'Auto commit delay' })).toHaveAccessibleDescription(entry.description)
+    })
+
+    it('associates select labels and descriptions with an outlined field', () => {
+        const entry: ConfigEntry = {
+            defaultValue: 'repo',
+            description: 'OAuth scopes requested when connecting GitHub.',
+            editable: true,
+            key: 'connection.githubScopes',
+            label: 'GitHub scopes',
+            options: [
+                { label: 'Repository access', value: 'repo' },
+                { label: 'Public repository access', value: 'public_repo' },
+            ],
+            section: 'connection',
+            source: 'connection',
+            type: 'select',
+        }
+        const handleChange = vi.fn()
+
+        render(<ConfigValueEditor entry={entry} onChange={handleChange} value="repo" />)
+
+        const select = screen.getByRole('combobox', { name: 'GitHub scopes' })
+        expect(select).toHaveAccessibleDescription(entry.description)
+        expect(select.closest('.MuiOutlinedInput-root')).toBeInTheDocument()
     })
 
     it('renders slider entries with configured bounds and updates draft value', () => {
@@ -48,5 +73,43 @@ describe('ConfigValueEditor', () => {
         expect(slider).toHaveAttribute('aria-valuemax', '120000')
         expect(slider).toHaveAttribute('aria-valuemin', '1000')
         expect(handleChange).toHaveBeenCalledWith('react.autoCommitDelayMs', 5000)
+    })
+
+    it('renders card templates as multiline monospace fields', () => {
+        const entry: ConfigEntry = {
+            defaultValue: '## Context',
+            description: 'Markdown inserted into new cards before the typed body.',
+            editable: true,
+            key: 'project.cardBodyTemplate',
+            label: 'Card body template',
+            section: 'project',
+            source: 'project',
+            type: 'string',
+        }
+
+        render(<ConfigValueEditor entry={entry} onChange={vi.fn()} value="## Context" />)
+
+        const field = screen.getByRole('textbox', { name: 'Card body template' })
+        expect(field.tagName).toBe('TEXTAREA')
+        expect(field).toHaveAccessibleDescription(entry.description)
+        expect(window.getComputedStyle(field).fontFamily).toBe('monospace')
+    })
+
+    it('renders placeholder tokens as code in helper text', () => {
+        const entry: ConfigEntry = {
+            defaultValue: 'git show {{commit}}',
+            description: 'Command template using {{commit}} and {{file}}.',
+            editable: true,
+            key: 'project.diffCommand',
+            label: 'Diff command',
+            section: 'project',
+            source: 'project',
+            type: 'string',
+        }
+
+        render(<ConfigValueEditor entry={entry} onChange={vi.fn()} value="git show {{commit}}" />)
+
+        expect(screen.getByText('{{commit}}').tagName).toBe('CODE')
+        expect(screen.getByText('{{file}}').tagName).toBe('CODE')
     })
 })

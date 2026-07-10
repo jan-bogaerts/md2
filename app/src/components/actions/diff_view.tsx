@@ -2,6 +2,7 @@ import { Box, Typography } from '@mui/material'
 import { useEffect, useState } from 'react'
 import DiffViewer from 'react-diff-viewer-continued'
 import type { ActionRunHistoryEntry, DiffFile, DiffResult, OpenInEditorRequest } from '../../data/electron_action_bridge'
+import { dialogService } from '../../services/dialog_service'
 import { generateDiff as defaultGenerateDiff, openDiffLine as defaultOpenDiffLine } from '../../services/diff_service'
 import { resolveClickedLine } from './diff_line_mapping'
 
@@ -53,19 +54,22 @@ export function DiffView(props: DiffViewProps) {
     const generateDiff = props.generateDiff ?? defaultGenerateDiff
     const openDiffLine = props.openDiffLine ?? defaultOpenDiffLine
     const [result, setResult] = useState<DiffResult | null>(null)
-    const [error, setError] = useState<string | null>(null)
+    const [isUnavailable, setIsUnavailable] = useState(false)
 
     useEffect(() => {
         let isActive = true
 
         async function loadDiff() {
-            setError(null)
+            setIsUnavailable(false)
             setResult(null)
             try {
                 const diff = await generateDiff(entry)
                 if (isActive) setResult(diff)
             } catch (loadError) {
-                if (isActive) setError(loadError instanceof Error ? loadError.message : 'Could not load diff')
+                if (isActive) {
+                    setIsUnavailable(true)
+                    dialogService.error(loadError, { fallbackMessage: 'Could not load diff' })
+                }
             }
         }
 
@@ -80,14 +84,14 @@ export function DiffView(props: DiffViewProps) {
         try {
             await openDiffLine(request)
         } catch (openError) {
-            setError(openError instanceof Error ? openError.message : 'Could not open VS Code')
+            dialogService.error(openError, { fallbackMessage: 'Could not open VS Code' })
         }
     }
 
-    if (error) {
+    if (isUnavailable) {
         return (
-            <Typography color="error" role="alert" variant="caption">
-                {error}
+            <Typography color="text.secondary" variant="caption">
+                Diff unavailable.
             </Typography>
         )
     }

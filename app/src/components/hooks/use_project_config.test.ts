@@ -9,6 +9,7 @@ const firstConfig: ProjectConfig = {
     cardBodyTemplate: '',
     cardTypes: [{ color: '#111111', idPrefix: 'F', label: 'Feature', type: 'feature' }],
     diffCommand: 'git show {{commit}}',
+    projectFolder: '',
     pushMode: 'auto',
     workingFolder: 'design',
 }

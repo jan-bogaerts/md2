@@ -1,12 +1,12 @@
 import { Box } from '@mui/material'
 import {
-    BlockTypeSelect, BoldItalicUnderlineToggles, CreateLink, InsertCodeBlock, InsertImage, InsertTable,
-    InsertThematicBreak, ListsToggle, MDXEditor, Separator, UndoRedo, codeBlockPlugin, codeMirrorPlugin,
+    MDXEditor, codeBlockPlugin, codeMirrorPlugin,
     headingsPlugin, imagePlugin, linkDialogPlugin, linkPlugin, listsPlugin, markdownShortcutPlugin, quotePlugin,
     tablePlugin, thematicBreakPlugin, toolbarPlugin,
 } from '@mdxeditor/editor'
 import '@mdxeditor/editor/style.css'
 import { useAppTheme } from '../../theme/use_app_theme'
+import { MarkdownFormatToolbarPortal } from './markdown_format_toolbar_portal'
 import { buildMarkdownContentSx } from './markdown_style_sx'
 
 const DEFAULT_CODE_LANGUAGE = ''
@@ -53,21 +53,7 @@ export function MarkdownEditor(props: MarkdownEditorProps) {
                     markdownShortcutPlugin(),
                     toolbarPlugin({
                         toolbarContents: () => (
-                            <>
-                                <UndoRedo />
-                                <Separator />
-                                <BoldItalicUnderlineToggles />
-                                <Separator />
-                                <ListsToggle />
-                                <BlockTypeSelect />
-                                <Separator />
-                                <CreateLink />
-                                <InsertImage />
-                                <Separator />
-                                <InsertTable />
-                                <InsertThematicBreak />
-                                <InsertCodeBlock />
-                            </>
+                            <MarkdownFormatToolbarPortal stickyToolbar={stickyToolbar} />
                         ),
                     }),
                 ]}

@@ -40,9 +40,13 @@ export function ProjectToolbarMenu(props: ProjectToolbarMenuProps) {
 
     const handleProjectButtonClick = (event: MouseEvent<HTMLButtonElement>) => setAnchorElement(event.currentTarget)
     const handleCloseMenu = () => setAnchorElement(null)
-    const handlePushClick = () => {
+    const handlePushClick = async () => {
         setAnchorElement(null)
-        void actions.push()
+        try {
+            await actions.push()
+        } catch {
+            // ProjectSessionService emits the user-visible error.
+        }
     }
     const handleOpenReleaseDialog = () => openDialog('release')
     const handleOpenCardDialog = () => openDialog('card')
@@ -70,7 +74,6 @@ export function ProjectToolbarMenu(props: ProjectToolbarMenuProps) {
             </Menu>
             <ProjectOpenDialog
                 branches={actions.branches}
-                errorMessage={actions.errorMessage}
                 isGithubAuthenticated={isGithubAuthenticated}
                 isLoading={actions.isLoading}
                 isLocalAvailable={actions.isLocalAvailable}
@@ -95,7 +98,6 @@ export function ProjectToolbarMenu(props: ProjectToolbarMenuProps) {
             />
             <BranchSwitchDialog
                 branches={actions.branches}
-                errorMessage={actions.errorMessage}
                 isLoading={actions.isLoading}
                 onBranchChange={actions.setSwitchBranch}
                 onClose={actions.closeDialog}
@@ -104,7 +106,6 @@ export function ProjectToolbarMenu(props: ProjectToolbarMenuProps) {
                 selectedBranch={actions.switchBranch}
             />
             <CompleteReleaseDialog
-                errorMessage={actions.errorMessage}
                 isLoading={actions.isLoading}
                 onClose={actions.closeDialog}
                 onCompleteRelease={actions.completeRelease}
@@ -112,7 +113,6 @@ export function ProjectToolbarMenu(props: ProjectToolbarMenuProps) {
             />
             <NewCardDialog
                 cardTypes={actions.cardTypes}
-                errorMessage={actions.errorMessage}
                 isLoading={actions.isLoading}
                 isProjectOpen={actions.isProjectOpen}
                 onClose={actions.closeDialog}

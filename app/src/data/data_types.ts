@@ -4,6 +4,7 @@ import { DEFAULT_COLOR_SCHEME } from '../theme/theme_config'
 
 export const DEFAULT_WORKING_FOLDER = 'design'
 export const DEFAULT_ACTIONS_FOLDER = 'actions'
+export const DEFAULT_PROJECT_FOLDER = ''
 export const DEFAULT_DIFF_COMMAND = 'git show {{commit}}'
 export const AUTO_COMMIT_DELAY_MS = 30000
 
@@ -23,6 +24,7 @@ export interface ProjectConfig {
     cardBodyTemplate: string
     cardTypes: CardTypeConfig[]
     diffCommand: string
+    projectFolder: string
     pushMode: PushMode
     workingFolder: string
 }
@@ -270,11 +272,31 @@ export const DEFAULT_CARD_TYPES: CardTypeConfig[] = [
 
 export const DEFAULT_CARD_BODY_TEMPLATE = '# Goal\n\n# Current status\n\n# Details\n\n# Tasks'
 
+function normalizeFolderPath(folderPath: string) {
+    return folderPath.replace(/\\/gu, '/').replace(/^\/+|\/+$/gu, '')
+}
+
+function joinProjectFolderPath(projectFolder: string, folderPath: string) {
+    const normalizedProjectFolder = normalizeFolderPath(projectFolder)
+    const normalizedFolderPath = normalizeFolderPath(folderPath)
+
+    return normalizedProjectFolder.length > 0 ? `${normalizedProjectFolder}/${normalizedFolderPath}` : normalizedFolderPath
+}
+
+export function resolveProjectConfigPaths(config: ProjectConfig): ProjectConfig {
+    return {
+        ...config,
+        actionsFolder: joinProjectFolderPath(config.projectFolder, config.actionsFolder),
+        workingFolder: joinProjectFolderPath(config.projectFolder, config.workingFolder),
+    }
+}
+
 export const DEFAULT_PROJECT_CONFIG: ProjectConfig = {
     actionsFolder: DEFAULT_ACTIONS_FOLDER,
     cardBodyTemplate: DEFAULT_CARD_BODY_TEMPLATE,
     cardTypes: DEFAULT_CARD_TYPES,
     diffCommand: DEFAULT_DIFF_COMMAND,
+    projectFolder: DEFAULT_PROJECT_FOLDER,
     pushMode: 'auto',
     workingFolder: DEFAULT_WORKING_FOLDER,
 }

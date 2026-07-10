@@ -292,7 +292,7 @@ describe('GithubStorageService', () => {
             branch: 'main',
             files: [{ content: '# Second', path: 'design/F-2-added.md' }],
             message: 'Second pending commit',
-        })).rejects.toThrow('GitHub storage request failed with status 500')
+        })).rejects.toThrow('GitHub storage request failed with status 500 for POST /repos/owner/repo/git/trees')
 
         const patchCallsBeforePush = fetchImplementation.mock.calls.filter(([, init]) => init.method === 'PATCH')
         expect(patchCallsBeforePush).toHaveLength(0)

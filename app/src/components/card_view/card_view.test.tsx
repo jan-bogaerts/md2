@@ -93,6 +93,12 @@ describe('CardView', () => {
         expect(screen.getByText('First')).toBeInTheDocument()
     })
 
+    it('shows an empty unassigned column when there are no active cards', () => {
+        renderCardView({ cards: [] })
+
+        expect(screen.getByLabelText('Card columns')).toHaveTextContent('Unassigned')
+    })
+
     it('shows card type footnotes for default and custom card types only', () => {
         const customCardTypes: CardTypeConfig[] = [
             ...DEFAULT_CARD_TYPES,

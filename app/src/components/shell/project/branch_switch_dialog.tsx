@@ -1,10 +1,9 @@
-import { Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, FormControl, InputLabel, MenuItem, Select, Stack } from '@mui/material'
+import { Button, Dialog, DialogActions, DialogContent, DialogTitle, FormControl, InputLabel, MenuItem, Select, Stack } from '@mui/material'
 import type { SelectChangeEvent } from '@mui/material'
 import type { BranchReference } from '../../../data/data_types'
 
 interface BranchSwitchDialogProps {
     branches: BranchReference[]
-    errorMessage: string | null
     isLoading: boolean
     open: boolean
     selectedBranch: string
@@ -15,7 +14,7 @@ interface BranchSwitchDialogProps {
 
 /** Dialog for switching the currently open project branch. */
 export function BranchSwitchDialog(props: BranchSwitchDialogProps) {
-    const { branches, errorMessage, isLoading, onBranchChange, onClose, onSwitchBranch, open, selectedBranch } = props
+    const { branches, isLoading, onBranchChange, onClose, onSwitchBranch, open, selectedBranch } = props
 
     const handleBranchChange = (event: SelectChangeEvent) => {
         onBranchChange(event.target.value)
@@ -30,7 +29,6 @@ export function BranchSwitchDialog(props: BranchSwitchDialogProps) {
             <DialogTitle>Switch branch</DialogTitle>
             <DialogContent>
                 <Stack spacing={2} sx={{ pt: 1 }}>
-                    {errorMessage ? <Alert severity="error">{errorMessage}</Alert> : null}
                     <FormControl disabled={branches.length === 0 || isLoading} size="small">
                         <InputLabel id="switch-branch-label">Branch</InputLabel>
                         <Select label="Branch" labelId="switch-branch-label" onChange={handleBranchChange} value={selectedBranch}>

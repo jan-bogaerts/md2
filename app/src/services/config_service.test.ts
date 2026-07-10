@@ -19,6 +19,7 @@ describe('ConfigService', () => {
         expect(service.getProjectConfig()).toMatchObject({
             actionsFolder: 'ops',
             cardBodyTemplate: '# Goal\n\n# Current status\n\n# Details\n\n# Tasks',
+            projectFolder: '',
             pushMode: 'manual',
             workingFolder: 'docs',
         })
@@ -42,6 +43,20 @@ describe('ConfigService', () => {
         service.loadProjectConfig(null)
 
         expect(service.getProjectConfig().actionsFolder).toBe('actions')
+    })
+
+    it('loads the configured project folder', () => {
+        service.init()
+        service.loadProjectConfig({ projectFolder: 'projects/demo' })
+
+        expect(service.getProjectConfig().projectFolder).toBe('projects/demo')
+    })
+
+    it('rejects folder paths that escape the project folder', () => {
+        service.init()
+
+        expect(() => service.loadProjectConfig({ projectFolder: '../outside' })).toThrow('must stay inside the project folder')
+        expect(() => service.loadProjectConfig({ workingFolder: '../outside' })).toThrow('must stay inside the project folder')
     })
 
     it('rejects invalid project config values', () => {
@@ -68,6 +83,24 @@ describe('ConfigService', () => {
         service.saveDraft()
 
         expect(service.getProjectConfig().pushMode).toBe('manual')
+    })
+
+    it('detects draft changes by config source', () => {
+        service.init()
+        service.loadProjectConfig(null)
+        service.loadDraft()
+
+        expect(service.hasDraftChangesForSource('react')).toBe(false)
+        expect(service.hasDraftChangesForSource('project')).toBe(false)
+
+        service.setDraftValue('react.showStartupSplash', false)
+
+        expect(service.hasDraftChangesForSource('react')).toBe(true)
+        expect(service.hasDraftChangesForSource('project')).toBe(false)
+
+        service.setDraftValue('project.pushMode', 'manual')
+
+        expect(service.hasDraftChangesForSource('project')).toBe(true)
     })
 
     it('shows desktop entries and loads desktop values when desktop config is available', () => {

@@ -2,9 +2,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { UseGithubAuthResult } from '../../auth/use_github_auth'
 import type { AgentExecutionRequest, ElectronActionBridge } from '../../data/electron_action_bridge'
-import type { AgentConversation } from '../../data/data_types'
+import type { AgentConversation, MarkdownFile, StorageService } from '../../data/data_types'
 import { configService } from '../../services/config_service'
+import { dataService } from '../../services/data_service'
 import * as searchRegexpAgent from '../../services/search/search_regexp_agent'
+import { workspaceViewService } from '../../services/workspace_view_service'
+import { AppThemeProvider } from '../../theme/theme_provider'
+import { DialogDisplay } from '../dialog_display'
 import { MainWindow } from './main_window'
 
 const auth: UseGithubAuthResult = {
@@ -22,17 +26,23 @@ const auth: UseGithubAuthResult = {
     user: null,
 }
 
-function renderWindow(overrides?: Partial<Parameters<typeof MainWindow>[0]>) {
-    return render(
-        <MainWindow
-            agents={[]}
-            auth={auth}
-            bootstrapError={null}
-            session={null}
-            toolbarAction={<button type="button">Action</button>}
-            {...overrides}
-        />,
+function mainWindowElement(overrides?: Partial<Parameters<typeof MainWindow>[0]>) {
+    return (
+        <AppThemeProvider>
+            <DialogDisplay />
+            <MainWindow
+                agents={[]}
+                auth={auth}
+                session={null}
+                toolbarAction={<button type="button">Action</button>}
+                {...overrides}
+            />
+        </AppThemeProvider>
     )
+}
+
+function renderWindow(overrides?: Partial<Parameters<typeof MainWindow>[0]>) {
+    return render(mainWindowElement(overrides))
 }
 
 function conversation(request: AgentExecutionRequest): AgentConversation {
@@ -74,7 +84,38 @@ function installAgentBridge(stdout: string) {
     return bridge
 }
 
+function createStorage(files: MarkdownFile[] = []): StorageService {
+    return {
+        checkoutBranch: vi.fn(async (project, branch) => ({ ...project, branch })),
+        commit: vi.fn(async () => []),
+        createProject: vi.fn(async (project) => project),
+        createWorkingFolderFromTemplate: vi.fn(async (project) => project),
+        deleteFile: vi.fn(),
+        listBranches: vi.fn(async () => []),
+        listRepositories: vi.fn(async () => []),
+        listRepositoryFiles: vi.fn(async () => []),
+        listTopLevelFolders: vi.fn(async () => []),
+        loadActionFiles: vi.fn(async () => []),
+        loadProject: vi.fn(async () => ({ files, workingFolder: 'design' })),
+        loadProjectRoot: vi.fn(async () => ({ files, workingFolder: 'design' })),
+        loadProjectConfig: vi.fn(async () => null),
+        moveFiles: vi.fn(),
+        push: vi.fn(),
+        saveProjectConfig: vi.fn(),
+    }
+}
+
+async function openProjectWithCards() {
+    const files = [
+        { content: '---\nid: F-1\ntitle: Root\nstatus: active\naffects:\n---\n\n# Root', path: 'design/F-1-root.md' },
+        { content: '# Old', path: 'design/history/F-2-old.md' },
+    ]
+    dataService.init({ storage: createStorage(files) })
+    await dataService.projectLoading.openProject({ branch: 'main', id: 'project' })
+}
+
 function typeQuery(value: string) {
+    fireEvent.focus(screen.getByRole('textbox', { name: 'Search project' }))
     fireEvent.change(screen.getByRole('textbox', { name: 'Search project' }), { target: { value } })
 }
 
@@ -94,13 +135,16 @@ function mockMatchMedia(matches: boolean) {
 describe('MainWindow', () => {
     beforeEach(() => {
         configService.init({ desktopConfig: null })
+        dataService.init({ storage: createStorage() })
     })
 
     afterEach(() => {
         cleanup()
+        dataService.init({ storage: createStorage() })
         configService.clear()
         delete window.md2Actions
         window.history.pushState(null, '', '/')
+        workspaceViewService.setViewMode('cards')
         mockMatchMedia(false)
     })
 
@@ -109,11 +153,36 @@ describe('MainWindow', () => {
         renderWindow()
 
         expect(screen.getByRole('button', { name: 'GitHub account' })).toBeInTheDocument()
-        expect(screen.getByRole('button', { name: 'Project' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Open project' })).toBeInTheDocument()
         expect(screen.getByRole('heading', { name: 'No project open' })).toBeInTheDocument()
         expect(screen.getByText('No project navigation available.')).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Running agents: 0' })).toBeInTheDocument()
         expect(screen.queryByRole('button', { name: 'Open menu' })).toBeNull()
+    })
+
+    it('shows card columns without a left navigation panel in card view', async () => {
+        mockMatchMedia(false)
+        await openProjectWithCards()
+        renderWindow()
+
+        expect(screen.getByLabelText('Card columns')).toHaveTextContent('active')
+        expect(screen.getByText('Root')).toBeInTheDocument()
+        expect(screen.getByText('Total cards loaded: 2')).toBeInTheDocument()
+        expect(screen.getByText('Currently active: 1')).toBeInTheDocument()
+        expect(screen.queryByText('No project navigation available.')).toBeNull()
+        expect(screen.queryByRole('separator', { name: 'Resize panels' })).toBeNull()
+    })
+
+    it('switches from card view to text view on desktop without resetting back to cards', async () => {
+        mockMatchMedia(false)
+        await openProjectWithCards()
+        renderWindow()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Text view' }))
+
+        expect(await screen.findByLabelText('File tree')).toBeInTheDocument()
+        expect(screen.queryByRole('heading', { name: 'Files' })).toBeNull()
+        expect(screen.getByRole('separator', { name: 'Resize panels' })).toBeInTheDocument()
     })
 
     it('moves the left panel content into a hamburger drawer on mobile', () => {
@@ -139,7 +208,8 @@ describe('MainWindow', () => {
         mockMatchMedia(false)
         renderWindow()
 
-        fireEvent.click(screen.getByRole('button', { name: 'Open config' }))
+        fireEvent.click(screen.getByRole('tab', { name: 'Options' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Config' }))
 
         expect(screen.getByRole('heading', { name: 'Config' })).toBeInTheDocument()
         expect(window.location.pathname).toBe('/config')
@@ -169,9 +239,9 @@ describe('MainWindow', () => {
         mockMatchMedia(false)
         installAgentBridge('Beta')
         const createSearchRegexpAgent = vi.spyOn(searchRegexpAgent, 'createSearchRegexpAgent')
-        renderWindow()
+        const { rerender } = renderWindow()
 
-        fireEvent.change(screen.getByRole('textbox', { name: 'Status' }), { target: { value: 'working' } })
+        rerender(mainWindowElement({ toolbarAction: <button type="button">Changed</button> }))
 
         expect(createSearchRegexpAgent).toHaveBeenCalledTimes(1)
     })

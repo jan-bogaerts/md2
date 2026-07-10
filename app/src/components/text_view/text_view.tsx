@@ -294,7 +294,7 @@ export function TextView(props: TextViewProps) {
                     />
                 </Box>
             </LeftPanelSlot>
-            <Box sx={{ display: 'flex', minHeight: 0 }}>
+            <Box sx={{ display: 'flex', flex: 1, minHeight: 0 }}>
                 {editorPane}
             </Box>
         </>

@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { CardHeader, ProjectCard, ProjectSnapshot } from '../../../data/data_types'
 import { actionService } from '../../../services/action_service'
 import { workspaceNavigationService } from '../../../services/workspace_navigation_service'
+import { DialogDisplay } from '../../dialog_display'
 import { SearchControl } from './search_control'
 
 function makeHeader(overrides: Partial<CardHeader> = {}): CardHeader {
@@ -39,7 +40,12 @@ const snapshot: ProjectSnapshot = {
 
 vi.mock('../../hooks/use_project_state', () => ({ useProjectState: () => ({ project: null, runningAgents: [], snapshot }) }))
 
+function focusSearch() {
+    fireEvent.focus(screen.getByRole('textbox', { name: 'Search project' }))
+}
+
 function typeQuery(value: string) {
+    focusSearch()
     fireEvent.change(screen.getByRole('textbox', { name: 'Search project' }), { target: { value } })
 }
 
@@ -47,6 +53,20 @@ describe('SearchControl', () => {
     afterEach(cleanup)
     afterEach(() => {
         actionService.clear()
+    })
+
+    it('shows the search controls in a dropdown only while search is focused', () => {
+        render(<SearchControl />)
+
+        expect(screen.queryByRole('button', { name: 'RegExp mode' })).not.toBeInTheDocument()
+
+        focusSearch()
+
+        expect(screen.getByRole('region', { name: 'Search dropdown' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'RegExp mode' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Search background file bodies' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Search actions' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Ask agent to build a RegExp' })).toBeInTheDocument()
     })
 
     it('shows grouped results for a plain text search', () => {
@@ -97,8 +117,14 @@ describe('SearchControl', () => {
     })
 
     it('reports an invalid RegExp without clearing the previous results', () => {
-        render(<SearchControl />)
+        render(
+            <>
+                <DialogDisplay />
+                <SearchControl />
+            </>,
+        )
 
+        focusSearch()
         fireEvent.click(screen.getByRole('button', { name: 'RegExp mode' }))
         typeQuery('feature')
         expect(screen.getByRole('button', { name: /Alpha feature/ })).toBeInTheDocument()
@@ -135,7 +161,12 @@ describe('SearchControl', () => {
 
     it('surfaces an agent failure without changing the current query', async () => {
         const regexpAgent = vi.fn().mockRejectedValue(new Error('agent offline'))
-        render(<SearchControl regexpAgent={regexpAgent} />)
+        render(
+            <>
+                <DialogDisplay />
+                <SearchControl regexpAgent={regexpAgent} />
+            </>,
+        )
 
         typeQuery('alpha only')
         fireEvent.click(screen.getByRole('button', { name: 'Ask agent to build a RegExp' }))

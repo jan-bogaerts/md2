@@ -23,6 +23,21 @@ describe('GithubApiClient', () => {
 
         await expect(client.requestJson('/user')).resolves.toEqual({ id: 1 })
     })
+
+    it('includes the GitHub error detail and request target for forbidden write failures', async () => {
+        const fetchImplementation = vi.fn().mockResolvedValue(new Response(
+            JSON.stringify({ message: 'Resource not accessible by personal access token' }),
+            { status: 403 },
+        ))
+        const client = new GithubApiClient({ accessToken: 'token', fetchImplementation })
+
+        await expect(client.requestJson('/repos/owner/repo/git/refs/heads/main', {
+            body: JSON.stringify({ sha: 'commit' }),
+            method: 'PATCH',
+        })).rejects.toThrow(
+            'GitHub storage request failed with status 403 for PATCH /repos/owner/repo/git/refs/heads/main: Resource not accessible by personal access token. Check that the token has Contents read/write access, repository write access, and permission to push to this branch.',
+        )
+    })
 })
 
 describe('fetchGithubUser', () => {

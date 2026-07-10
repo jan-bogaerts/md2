@@ -17,6 +17,10 @@ export class GithubUnauthorizedError extends Error {
     }
 }
 
+interface GithubErrorResponse {
+    message?: unknown
+}
+
 export interface GithubApiClientDependencies {
     accessToken: string
     fetchImplementation?: typeof fetch
@@ -51,7 +55,7 @@ export class GithubApiClient {
         })
 
         if (allowNotFound && response.status === 404) return null
-        this.assertSuccessfulResponse(response, init)
+        await this.assertSuccessfulResponse(path, response, init)
 
         return response.json()
     }
@@ -66,12 +70,12 @@ export class GithubApiClient {
             },
         })
 
-        this.assertSuccessfulResponse(response, init)
+        await this.assertSuccessfulResponse(path, response, init)
 
         return response.text()
     }
 
-    private assertSuccessfulResponse(response: Response, init: RequestInit) {
+    private async assertSuccessfulResponse(path: string, response: Response, init: RequestInit) {
         if ((init.method === 'PATCH' || init.method === 'PUT') && (response.status === 409 || response.status === 422)) {
             throw new Error('The file changed remotely. Reload or refresh the project before saving again.')
         }
@@ -79,8 +83,38 @@ export class GithubApiClient {
             this.onUnauthorized?.()
             throw new GithubUnauthorizedError()
         }
-        if (!response.ok) throw new Error(`GitHub storage request failed with status ${response.status}`)
+        if (!response.ok) throw new Error(await buildGithubStorageErrorMessage(path, response, init))
     }
+}
+
+function githubRequestLabel(path: string, init: RequestInit) {
+    return `${init.method ?? 'GET'} ${path}`
+}
+
+async function readGithubErrorMessage(response: Response): Promise<string | null> {
+    try {
+        const errorResponse = await response.clone().json() as GithubErrorResponse
+        if (typeof errorResponse.message === 'string' && errorResponse.message.length > 0) return errorResponse.message
+    } catch {
+        return null
+    }
+
+    return null
+}
+
+function isWriteRequest(init: RequestInit) {
+    return init.method === 'DELETE' || init.method === 'PATCH' || init.method === 'POST' || init.method === 'PUT'
+}
+
+async function buildGithubStorageErrorMessage(path: string, response: Response, init: RequestInit) {
+    const detail = await readGithubErrorMessage(response)
+    const requestLabel = githubRequestLabel(path, init)
+    const baseMessage = `GitHub storage request failed with status ${response.status} for ${requestLabel}`
+    const detailMessage = detail ? `${baseMessage}: ${detail}` : baseMessage
+    if (response.status !== 403) return detailMessage
+    if (!isWriteRequest(init)) return `${detailMessage}. Check that the token can access this repository.`
+
+    return `${detailMessage}. Check that the token has Contents read/write access, repository write access, and permission to push to this branch.`
 }
 
 function requireString(value: unknown, fieldName: string) {

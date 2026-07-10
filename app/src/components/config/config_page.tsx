@@ -1,12 +1,17 @@
-import { Alert, Box, Button, Divider, Stack, Tab, Tabs, Typography, useMediaQuery, useTheme } from '@mui/material'
+import { Box, Button, Stack, Tab, Tabs, Typography, useMediaQuery, useTheme } from '@mui/material'
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { navigateTo } from '../../app/app_navigation'
 import { CONFIG_SECTIONS, configService, type ConfigKey } from '../../services/config_service'
 import { writeDesktopConfigToBridge } from '../../services/config_persistence'
 import { dataService } from '../../services/data_service'
-import { ConfigValueEditor } from './config_value_editor'
+import { dialogService } from '../../services/dialog_service'
+import { ConnectionConfigSection } from './connection_config_section'
+import { DesktopConfigSection } from './desktop_config_section'
+import { ProjectConfigSection } from './project_config_section'
+import { ReactConfigSection } from './react_config_section'
 
 const CONFIG_PAGE_PADDING = 3
+const CONFIG_FORM_MAX_WIDTH = 720
 const CONFIG_SIDEBAR_WIDTH = 220
 const DRAFT_DISCARD_DELAY_MS = 0
 
@@ -14,11 +19,13 @@ interface ConfigPageProps {
     hash: string
 }
 
-function getActiveSection(hash: string) {
-    const section = hash.replace('#', '')
-    if (CONFIG_SECTIONS.some((item) => item.id === section)) return section
+function getActiveSection(hash: string, sections: typeof CONFIG_SECTIONS) {
+    if (sections.length === 0) throw new Error('Config page requires at least one visible section')
 
-    return CONFIG_SECTIONS[0].id
+    const section = hash.replace('#', '')
+    if (sections.some((item) => item.id === section)) return section
+
+    return sections[0].id
 }
 
 function getConfigDraftSnapshot() {
@@ -36,7 +43,6 @@ export function ConfigPage(props: ConfigPageProps) {
     const theme = useTheme()
     const isMobile = useMediaQuery(theme.breakpoints.down('md'))
     const draft = useSyncExternalStore(subscribeToConfigChanges, getConfigDraftSnapshot)
-    const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [invalidConfigKeys, setInvalidConfigKeys] = useState<Set<ConfigKey>>(() => new Set())
     const draftDiscardTimeoutRef = useRef<number | null>(null)
     const entries = configService.getEntries()
@@ -44,7 +50,7 @@ export function ConfigPage(props: ConfigPageProps) {
         () => CONFIG_SECTIONS.filter((section) => entries.some((entry) => entry.section === section.id)),
         [entries],
     )
-    const activeSection = getActiveSection(hash)
+    const activeSection = getActiveSection(hash, visibleSections)
 
     useEffect(() => {
         if (draftDiscardTimeoutRef.current !== null) {
@@ -67,9 +73,8 @@ export function ConfigPage(props: ConfigPageProps) {
     const handleValueChange = (key: ConfigKey, value: unknown) => {
         try {
             configService.setDraftValue(key, value)
-            setErrorMessage(null)
         } catch (error) {
-            setErrorMessage(error instanceof Error ? error.message : 'Invalid config value')
+            dialogService.error(error, { fallbackMessage: 'Invalid config value' })
         }
     }
 
@@ -88,13 +93,14 @@ export function ConfigPage(props: ConfigPageProps) {
 
     const handleSaveClick = async () => {
         try {
+            const shouldSaveProjectConfig = configService.hasDraftChangesForSource('project')
+            const shouldSaveDesktopConfig = configService.hasDraftChangesForSource('desktop')
             configService.saveDraft()
-            if (configService.hasProjectConfig()) await dataService.projectLoading.saveProjectConfig()
-            if (configService.hasDesktopConfig()) writeDesktopConfigToBridge(configService.getDesktopValues())
             configService.loadDraft()
-            setErrorMessage(null)
+            if (shouldSaveProjectConfig && configService.hasProjectConfig()) await dataService.projectLoading.saveProjectConfig()
+            if (shouldSaveDesktopConfig && configService.hasDesktopConfig()) writeDesktopConfigToBridge(configService.getDesktopValues())
         } catch (error) {
-            setErrorMessage(error instanceof Error ? error.message : 'Config save failed')
+            dialogService.error(error, { fallbackMessage: 'Config save failed' })
         }
     }
 
@@ -104,6 +110,13 @@ export function ConfigPage(props: ConfigPageProps) {
     }
 
     if (!draft) return null
+
+    const sectionProps = {
+        draft,
+        entries,
+        onChange: handleValueChange,
+        onValidityChange: handleValidityChange,
+    }
 
     const sectionTabs = (
         <Tabs
@@ -123,7 +136,7 @@ export function ConfigPage(props: ConfigPageProps) {
         <Box sx={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'auto' }}>
             {!isMobile ? <Box sx={{ borderRight: 1, borderColor: 'divider', flexShrink: 0, width: CONFIG_SIDEBAR_WIDTH }}>{sectionTabs}</Box> : null}
             <Box sx={{ flex: 1, minWidth: 0, p: CONFIG_PAGE_PADDING }}>
-                <Stack spacing={3}>
+                <Stack spacing={3} sx={{ maxWidth: CONFIG_FORM_MAX_WIDTH }}>
                     <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ alignItems: { sm: 'center' } }}>
                         <Typography component="h2" sx={{ flexGrow: 1 }} variant="h5">
                             Config
@@ -137,29 +150,11 @@ export function ConfigPage(props: ConfigPageProps) {
                     </Stack>
 
                     {isMobile ? sectionTabs : null}
-                    {errorMessage ? <Alert severity="error">{errorMessage}</Alert> : null}
 
-                    {visibleSections.map((section) => (
-                        <Box component="section" id={section.id} key={section.id} sx={{ scrollMarginTop: CONFIG_PAGE_PADDING }}>
-                            <Stack spacing={2}>
-                                <Typography component="h3" sx={{ fontWeight: 700, textDecoration: 'underline' }} variant="h6">
-                                    {section.label}
-                                </Typography>
-                                {entries.filter((entry) => entry.section === section.id).map((entry) => (
-                                    <ConfigValueEditor
-                                        disabled={entry.source === 'desktop' && !configService.hasDesktopConfig()}
-                                        entry={entry}
-                                        key={entry.key}
-                                        onChange={handleValueChange}
-                                        onValidityChange={handleValidityChange}
-                                        value={draft[entry.key]}
-                                        values={draft}
-                                    />
-                                ))}
-                                <Divider />
-                            </Stack>
-                        </Box>
-                    ))}
+                    {activeSection === 'react' ? <ReactConfigSection {...sectionProps} /> : null}
+                    {activeSection === 'connection' ? <ConnectionConfigSection {...sectionProps} /> : null}
+                    {activeSection === 'project' ? <ProjectConfigSection {...sectionProps} /> : null}
+                    {activeSection === 'desktop' ? <DesktopConfigSection {...sectionProps} disabled={!configService.hasDesktopConfig()} /> : null}
                 </Stack>
             </Box>
         </Box>

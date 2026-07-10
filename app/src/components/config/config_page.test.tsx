@@ -1,9 +1,11 @@
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { StrictMode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ConfigPage } from './config_page'
 import { configService } from '../../services/config_service'
 import { BUILTIN_AGENT_PROFILES } from '../../data/agent_profiles'
+import { dataService } from '../../services/data_service'
+import { dialogService } from '../../services/dialog_service'
 
 function mockMatchMedia(matches: boolean) {
     window.matchMedia = ((query: string) => ({
@@ -41,9 +43,22 @@ describe('ConfigPage', () => {
         render(<ConfigPage hash="" />)
 
         expect(screen.getByRole('switch', { name: 'Startup splash' })).toBeInTheDocument()
-        expect(screen.getByLabelText('GitHub scopes')).toBeInTheDocument()
         expect(screen.getByRole('slider', { name: 'Auto commit delay' })).toBeInTheDocument()
+        expect(screen.getByText('Delay before editor changes are committed after typing stops.')).toBeInTheDocument()
+        expect(screen.getByRole('region', { name: 'React app' })).toHaveClass('MuiPaper-outlined')
+        expect(screen.queryByLabelText('GitHub scopes')).toBeNull()
+    })
+
+    it('renders only the section selected by the hash route', () => {
+        mockMatchMedia(false)
+        configService.init()
+
+        render(<ConfigPage hash="#connection" />)
+
+        expect(screen.getByLabelText('GitHub scopes')).toBeInTheDocument()
         expect(screen.getByText('OAuth scopes requested when connecting GitHub.')).toBeInTheDocument()
+        expect(screen.queryByRole('switch', { name: 'Startup splash' })).toBeNull()
+        expect(screen.getByRole('tab', { name: 'React app' })).toHaveAttribute('href', '#react')
     })
 
     it('loads the config draft once under StrictMode', () => {
@@ -107,6 +122,68 @@ describe('ConfigPage', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
         expect(configService.get('react.autoCommitDelayMs')).toBe(5000)
+    })
+
+    it('does not save project config when only React config changed', () => {
+        mockMatchMedia(false)
+        configService.init()
+        configService.loadProjectConfig(null)
+        const saveProjectConfig = vi.spyOn(dataService.projectLoading, 'saveProjectConfig').mockResolvedValue()
+
+        render(<ConfigPage hash="" />)
+        fireEvent.click(screen.getByRole('switch', { name: 'Startup splash' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+        expect(saveProjectConfig).not.toHaveBeenCalled()
+        saveProjectConfig.mockRestore()
+    })
+
+    it('saves project config when project config changed', () => {
+        mockMatchMedia(false)
+        configService.init()
+        configService.loadProjectConfig(null)
+        const saveProjectConfig = vi.spyOn(dataService.projectLoading, 'saveProjectConfig').mockResolvedValue()
+
+        render(<ConfigPage hash="#project" />)
+        configService.setDraftValue('project.pushMode', 'manual')
+        fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+        expect(saveProjectConfig).toHaveBeenCalledTimes(1)
+        saveProjectConfig.mockRestore()
+    })
+
+    it('keeps the config page visible while project config save is pending', () => {
+        mockMatchMedia(false)
+        configService.init()
+        configService.loadProjectConfig(null)
+        const saveProjectConfig = vi.spyOn(dataService.projectLoading, 'saveProjectConfig').mockReturnValue(new Promise(() => undefined))
+
+        render(<ConfigPage hash="#project" />)
+        configService.setDraftValue('project.pushMode', 'manual')
+        fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+        expect(screen.getByRole('tablist', { name: 'Config sections' })).toBeInTheDocument()
+        expect(screen.getByLabelText('Push mode')).toBeInTheDocument()
+        saveProjectConfig.mockRestore()
+    })
+
+    it('reports project config save errors through the dialog service', async () => {
+        mockMatchMedia(false)
+        configService.init()
+        configService.loadProjectConfig(null)
+        const saveProjectConfig = vi.spyOn(dataService.projectLoading, 'saveProjectConfig').mockRejectedValue(new Error('GitHub save failed'))
+        const reportError = vi.spyOn(dialogService, 'error')
+
+        render(<ConfigPage hash="#project" />)
+        configService.setDraftValue('project.pushMode', 'manual')
+        fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+        await waitFor(() => {
+            expect(reportError).toHaveBeenCalledWith(expect.any(Error), { fallbackMessage: 'Config save failed' })
+        })
+
+        reportError.mockRestore()
+        saveProjectConfig.mockRestore()
     })
 
     it('cancels draft edits without changing active config', () => {

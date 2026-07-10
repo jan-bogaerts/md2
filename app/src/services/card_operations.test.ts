@@ -2,8 +2,23 @@
 import type { CommitRequest, MarkdownFile, StorageService } from '../data/data_types'
 import { configService } from './config_service'
 import { DataService } from './data_service'
+import { DIALOG_SERVICE_EVENT, dialogService, type DialogServiceMessage, type DialogSeverity } from './dialog_service'
 import { telemetryService } from './telemetry_service'
 import { activeCardFile, createStorage } from './test_support/data_service_test_support'
+
+function recordDialogMessages(severity: DialogSeverity) {
+    const messages: string[] = []
+    const handleDialogMessage = (event: Event) => {
+        const message = (event as CustomEvent<DialogServiceMessage>).detail
+        if (message.severity === severity) messages.push(message.message)
+    }
+    dialogService.addEventListener(DIALOG_SERVICE_EVENT, handleDialogMessage)
+
+    return {
+        messages,
+        stop: () => dialogService.removeEventListener(DIALOG_SERVICE_EVENT, handleDialogMessage),
+    }
+}
 
 describe('CardOperations', () => {
     afterEach(() => {
@@ -23,6 +38,38 @@ describe('CardOperations', () => {
 
         expect(storage.commit).toHaveBeenCalledWith(expect.objectContaining({ message: 'Create design/F-4-new-card.md' }) as CommitRequest)
         expect(storage.push).toHaveBeenCalledWith({ branch: 'main', id: 'project' })
+    })
+
+    it('keeps a created card when auto-push fails after the commit succeeds', async () => {
+        configService.init()
+        const pushError = new Error('GitHub denied write access')
+        const storage = createStorage({
+            push: vi.fn(async () => {
+                throw pushError
+            }),
+        })
+        const service = new DataService()
+        const errors = recordDialogMessages('error')
+        const captureError = vi.spyOn(telemetryService, 'captureError').mockImplementation(() => undefined)
+        const trackEvent = vi.spyOn(telemetryService, 'trackEvent').mockImplementation(() => undefined)
+
+        try {
+            service.init({ storage })
+            await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+            const file = await service.cards.createCard({ body: 'Body', title: 'New Card', type: 'feature' })
+
+            expect(file.path).toBe('design/F-4-new-card.md')
+            expect(service.getState().snapshot?.activeCards.some((card) => card.path === file.path)).toBe(true)
+            expect(errors.messages).toContain(
+                'Card created locally, but GitHub push failed. Use Push after resolving the GitHub access problem. GitHub denied write access',
+            )
+            expect(captureError).toHaveBeenCalledWith(pushError)
+            expect(trackEvent).toHaveBeenCalledWith('create_card')
+        } finally {
+            captureError.mockRestore()
+            trackEvent.mockRestore()
+            errors.stop()
+        }
     })
 
     it('creates job and bug cards with the type-specific id prefix', async () => {
@@ -403,12 +450,8 @@ describe('CardOperations', () => {
         })
         const storage = createStorage({ commit })
         const service = new DataService()
-        const errors: string[] = []
-        const handleWorkspaceError = (event: Event) => {
-            errors.push((event as CustomEvent<string>).detail)
-        }
+        const errors = recordDialogMessages('error')
         const captureError = vi.spyOn(telemetryService, 'captureError').mockImplementation(() => undefined)
-        window.addEventListener('md2:workspace-error', handleWorkspaceError)
 
         try {
             service.init({ storage })
@@ -417,7 +460,7 @@ describe('CardOperations', () => {
 
             await expect(service.cards.flushPendingCommits()).rejects.toThrow('network down')
 
-            expect(errors).toContain('network down')
+            expect(errors.messages).toContain('network down')
             expect(captureError).toHaveBeenCalledWith(error)
             expect(service.getState().hasPendingCommits).toBe(true)
 
@@ -427,7 +470,7 @@ describe('CardOperations', () => {
             expect(service.getState().hasPendingCommits).toBe(false)
             expect(commit).toHaveBeenCalledTimes(2)
         } finally {
-            window.removeEventListener('md2:workspace-error', handleWorkspaceError)
+            errors.stop()
         }
     })
 })

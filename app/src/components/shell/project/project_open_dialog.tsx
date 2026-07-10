@@ -1,5 +1,4 @@
 import {
-    Alert,
     Button,
     Dialog,
     DialogActions,
@@ -34,7 +33,6 @@ interface LocalProjectResult {
 
 interface ProjectOpenDialogProps {
     branches: BranchReference[]
-    errorMessage: string | null
     isGithubAuthenticated: boolean
     isLoading: boolean
     isLocalAvailable: boolean
@@ -83,7 +81,6 @@ function repositoryMatchesFilter(repository: RepositoryReference, filter: string
 export function ProjectOpenDialog(props: ProjectOpenDialogProps) {
     const {
         branches,
-        errorMessage,
         isGithubAuthenticated,
         isLoading,
         isLocalAvailable,
@@ -228,17 +225,15 @@ export function ProjectOpenDialog(props: ProjectOpenDialogProps) {
             <DialogTitle>Open project</DialogTitle>
             <DialogContent>
                 <Stack spacing={2} sx={{ pt: 1 }}>
-                    {errorMessage ? (
-                        <Alert
-                            action={pendingGithubConflictProject ? (
-                                <Button color="inherit" onClick={onDiscardGithubPendingCommits} size="small">
-                                    Discard pending commits
-                                </Button>
-                            ) : null}
-                            severity="error"
-                        >
-                            {errorMessage}
-                        </Alert>
+                    {pendingGithubConflictProject ? (
+                        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ alignItems: { sm: 'center' } }}>
+                            <Typography color="text.secondary" sx={{ flex: 1 }} variant="body2">
+                                Unpushed GitHub commits conflict with this branch.
+                            </Typography>
+                            <Button onClick={onDiscardGithubPendingCommits} size="small" variant="outlined">
+                                Discard pending commits
+                            </Button>
+                        </Stack>
                     ) : null}
                     <FormControl size="small">
                         <InputLabel id="project-source-label">Source</InputLabel>

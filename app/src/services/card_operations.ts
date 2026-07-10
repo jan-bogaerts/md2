@@ -4,8 +4,10 @@ import type { CardDraft, MarkdownFile, ProjectReference, ProjectSnapshot, Storag
 import { markdownParsingService } from './markdown_parsing_service'
 import { telemetryService } from './telemetry_service'
 import {
+    errorMessage,
     type RequiredDataServiceDependencies,
     reportCommitFlushFailure,
+    reportWorkspaceError,
 } from './data_service_context'
 
 type CommitRequest = Parameters<StorageService['commit']>[0]
@@ -26,6 +28,13 @@ export interface CardOperationsDeps {
 
 function statusOf(card: ProjectSnapshot['activeCards'][number]) {
     return card.header.status ?? UNASSIGNED_STATUS
+}
+
+function reportAutoPushFailure(error: unknown) {
+    const detail = errorMessage(error, 'GitHub push failed')
+
+    reportWorkspaceError(`Card created locally, but GitHub push failed. Use Push after resolving the GitHub access problem. ${detail}`)
+    telemetryService.captureError(error)
 }
 
 export class CardOperations {
@@ -53,7 +62,13 @@ export class CardOperations {
             message: `Create ${file.path}`,
         }, [file])
 
-        if (config.pushMode === 'auto') await storage.push(currentProject)
+        if (config.pushMode === 'auto') {
+            try {
+                await storage.push(currentProject)
+            } catch (error) {
+                reportAutoPushFailure(error)
+            }
+        }
 
         this.dependencies.refreshSnapshot(config.workingFolder)
         telemetryService.trackEvent('create_card')

@@ -10,6 +10,7 @@ import {
 } from '../../../data/data_types'
 import { getElectronDataBridge } from '../../../data/electron_data_bridge'
 import type { StorageType } from '../../../data/project_session'
+import { dialogService } from '../../../services/dialog_service'
 import { projectSessionService, type MissingWorkingFolderResolution } from '../../../services/project_session_service'
 import { useProjectConfig } from '../../hooks/use_project_config'
 import { useProjectSession } from '../../hooks/use_project_session'
@@ -63,8 +64,7 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
     const loadRepositories = useCallback(async () => {
         try {
             setRepositories(await projectSessionService.listRepositories(accessToken))
-        } catch (error) {
-            projectSessionService.setError(error instanceof Error ? error.message : 'Repository list failed')
+        } catch {
             setRepositories(EMPTY_REPOSITORIES)
         }
     }, [accessToken])
@@ -77,8 +77,8 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
             const nextBranches = await projectSessionService.listBranches(storageType, project, accessToken)
             setBranches(nextBranches)
             setSwitchBranch(branchValue(nextBranches, project.branch))
-        } catch (error) {
-            projectSessionService.setError(error instanceof Error ? error.message : 'Branch list failed')
+        } catch {
+            // ProjectSessionService emits the user-visible error.
         }
     }, [accessToken, project])
 
@@ -114,8 +114,7 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
             setBranches(nextBranches)
 
             return nextBranches
-        } catch (error) {
-            projectSessionService.setError(error instanceof Error ? error.message : 'Branch list failed')
+        } catch {
             setBranches(EMPTY_BRANCHES)
 
             return EMPTY_BRANCHES
@@ -125,17 +124,23 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
     const chooseLocalFolder = async () => {
         if (!electronBridge) return null
 
+        let nextProject: ProjectReference | null
         try {
-            const nextProject = await electronBridge.openProjectFolder()
-            if (!nextProject) return null
+            nextProject = await electronBridge.openProjectFolder()
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: 'Local project selection failed' })
 
+            return null
+        }
+
+        if (!nextProject) return null
+
+        try {
             const nextBranches = await projectSessionService.listBranches('local', nextProject, accessToken)
             setBranches(nextBranches)
 
             return { branches: nextBranches, project: nextProject }
-        } catch (error) {
-            projectSessionService.setError(error instanceof Error ? error.message : 'Local project selection failed')
-
+        } catch {
             return null
         }
     }
@@ -146,9 +151,7 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
             setBranches(result.branches)
 
             return result
-        } catch (error) {
-            projectSessionService.setError(error instanceof Error ? error.message : 'Manual repository branch list failed')
-
+        } catch {
             return null
         }
     }
@@ -160,14 +163,24 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
     }
 
     const loadRemoteBranches = async (endpoint: string, token: string, rootPath: string, branch: string) => {
+        let remoteProject: ProjectReference
         try {
-            projectSessionService.configureRemote(endpoint, token)
-            const nextBranches = await projectSessionService.listBranches('remote', createRemoteProject(rootPath, branch), accessToken)
+            remoteProject = createRemoteProject(rootPath, branch)
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: 'Remote branch list failed' })
+            setBranches(EMPTY_BRANCHES)
+
+            return EMPTY_BRANCHES
+        }
+
+        projectSessionService.configureRemote(endpoint, token)
+
+        try {
+            const nextBranches = await projectSessionService.listBranches('remote', remoteProject, accessToken)
             setBranches(nextBranches)
 
             return nextBranches
-        } catch (error) {
-            projectSessionService.setError(error instanceof Error ? error.message : 'Remote branch list failed')
+        } catch {
             setBranches(EMPTY_BRANCHES)
 
             return EMPTY_BRANCHES
@@ -186,8 +199,8 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
             }
 
             closeDialog()
-        } catch (error) {
-            projectSessionService.setError(error instanceof Error ? error.message : 'Project load failed')
+        } catch {
+            // ProjectSessionService emits the user-visible error.
         }
     }
 
@@ -198,8 +211,8 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
             const selectedBranch = branch || branchValue(fallbackBranches, result.repository.branch)
             setBranches(fallbackBranches)
             await openProject('github', { ...result.repository, branch: selectedBranch })
-        } catch (error) {
-            projectSessionService.setError(error instanceof Error ? error.message : 'GitHub project load failed')
+        } catch {
+            // ProjectSessionService emits the user-visible error.
         }
     }
 
@@ -214,8 +227,8 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
         try {
             await projectSessionService.openWorkingFolder(missingWorkingFolder, folder, accessToken)
             closeDialog()
-        } catch (error) {
-            projectSessionService.setError(error instanceof Error ? error.message : 'Working folder selection failed')
+        } catch {
+            // ProjectSessionService emits the user-visible error.
         }
     }
 
@@ -225,8 +238,8 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
         try {
             await projectSessionService.createWorkingFolder(missingWorkingFolder, accessToken)
             closeDialog()
-        } catch (error) {
-            projectSessionService.setError(error instanceof Error ? error.message : 'Working folder creation failed')
+        } catch {
+            // ProjectSessionService emits the user-visible error.
         }
     }
 
@@ -234,8 +247,8 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
         try {
             await projectSessionService.switchBranch(branch)
             closeDialog()
-        } catch (error) {
-            projectSessionService.setError(error instanceof Error ? error.message : 'Branch switch failed')
+        } catch {
+            // ProjectSessionService emits the user-visible error.
         }
     }
 
@@ -244,8 +257,8 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
         try {
             await projectSessionService.completeRelease(releaseName)
             closeDialog()
-        } catch (error) {
-            projectSessionService.setError(error instanceof Error ? error.message : 'Release completion failed')
+        } catch {
+            // ProjectSessionService emits the user-visible error.
         } finally {
             setIsReleaseCompleting(false)
         }
@@ -267,11 +280,11 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
         createCard,
         createRemoteProject,
         createWorkingFolder,
-        errorMessage: projectSession.errorMessage,
         isLoading: projectSession.isLoading,
         isLocalAvailable: !!electronBridge,
         isProjectOpen: !!project,
         isReleaseCompleting,
+        loadSwitchBranches,
         loadManualBranches,
         loadRemoteBranches,
         loadRepositoryBranches,

@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, IconButton, Tooltip } from '@mui/material'
+import { Button, Dialog, DialogActions, DialogContent, IconButton, Tooltip } from '@mui/material'
 import Github from 'mdi-material-ui/Github'
 import { useState } from 'react'
 import type { UseGithubAuthResult } from '../../auth/use_github_auth'
@@ -32,6 +32,9 @@ export function GithubAuthToolbarButton(props: GithubAuthToolbarButtonProps) {
                 <DialogContent>
                     <GithubAuthPanel {...auth} />
                 </DialogContent>
+                <DialogActions>
+                    <Button onClick={handleCloseDialog}>Close</Button>
+                </DialogActions>
             </Dialog>
         </>
     )

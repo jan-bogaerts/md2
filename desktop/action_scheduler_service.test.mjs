@@ -32,7 +32,7 @@ function createSchedule(id, actionName, trigger) {
     }
 }
 
-function createLocalGitService(initialSchedules, actionFiles = [createAction()]) {
+function createLocalGitService(initialSchedules, actionFiles = [createAction()], projectConfig = { actionsFolder: 'actions' }) {
     let schedules = initialSchedules
     const histories = []
 
@@ -54,7 +54,7 @@ function createLocalGitService(initialSchedules, actionFiles = [createAction()])
         histories,
         loadActionFiles: vi.fn(async () => actionFiles),
         loadActionSchedules: vi.fn(async () => schedules),
-        loadProjectConfig: vi.fn(async () => ({ actionsFolder: 'actions' })),
+        loadProjectConfig: vi.fn(async () => projectConfig),
         runCommand: vi.fn(async (_project, command) => ({ command, exitCode: 0, stderr: '', stdout: 'done' })),
         saveActionSchedules: vi.fn(async (_project, _actionsFolder, nextSchedules) => {
             schedules = nextSchedules
@@ -87,6 +87,22 @@ describe('ActionSchedulerService', () => {
         await scheduler.startProject(project)
 
         expect(setTimeout).toHaveBeenCalledWith(expect.any(Function), 5000)
+    })
+
+    it('loads schedules and actions from the actions folder inside the configured project folder', async () => {
+        const schedule = createSchedule('schedule-1', 'implement', { timestamp: '2026-07-06T09:59:00.000Z', type: 'at' })
+        const localGitService = createLocalGitService([schedule], [createAction()], {
+            actionsFolder: 'actions',
+            projectFolder: 'projects/demo',
+        })
+        const scheduler = createScheduler(localGitService)
+
+        await scheduler.startProject(project)
+        await scheduler.fireSchedule('schedule-1')
+
+        expect(localGitService.loadActionSchedules).toHaveBeenCalledWith(project, 'projects/demo/actions')
+        expect(localGitService.loadActionFiles).toHaveBeenCalledWith(project, 'projects/demo/actions')
+        expect(localGitService.histories).toHaveLength(0)
     })
 
     it('fires a due schedule and marks it done', async () => {

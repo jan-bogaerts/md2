@@ -3,8 +3,23 @@ import type { StorageProjectFiles, StorageService } from '../data/data_types'
 import { actionService } from './action_service'
 import { configService } from './config_service'
 import { DataService } from './data_service'
+import { DIALOG_SERVICE_EVENT, dialogService, type DialogServiceMessage, type DialogSeverity } from './dialog_service'
 import { telemetryService } from './telemetry_service'
 import { createDeferred, createStorage, files, storageFiles, waitForWorkerTurn } from './test_support/data_service_test_support'
+
+function recordDialogMessages(severity: DialogSeverity) {
+    const messages: string[] = []
+    const handleDialogMessage = (event: Event) => {
+        const message = (event as CustomEvent<DialogServiceMessage>).detail
+        if (message.severity === severity) messages.push(message.message)
+    }
+    dialogService.addEventListener(DIALOG_SERVICE_EVENT, handleDialogMessage)
+
+    return {
+        messages,
+        stop: () => dialogService.removeEventListener(DIALOG_SERVICE_EVENT, handleDialogMessage),
+    }
+}
 
 describe('ProjectLoading', () => {
     afterEach(() => {
@@ -23,6 +38,32 @@ describe('ProjectLoading', () => {
 
         expect(storage.loadActionFiles).toHaveBeenCalledWith({ branch: 'main', id: 'project' }, 'actions')
         expect(actionService.getActions().map((action) => action.name)).toContain('do')
+    })
+
+    it('loads project files and actions from folders inside the configured project folder', async () => {
+        configService.init()
+        const projectFile = { ...files[0], path: 'projects/demo/design/F-1-root.md' }
+        const actionFile = {
+            content: JSON.stringify({ description: 'Do', label: 'Do', name: 'do', text: 'run', type: 'cmd' }),
+            path: 'projects/demo/actions/do.json',
+        }
+        const storage = createStorage({
+            loadActionFiles: vi.fn(async () => [actionFile]),
+            loadProject: vi.fn(async () => ({ files: [projectFile], workingFolder: 'design' })),
+            loadProjectConfig: vi.fn(async () => ({ actionsFolder: 'actions', projectFolder: 'projects/demo', workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: [projectFile], workingFolder: 'design' })),
+        })
+        const service = new DataService()
+        service.init({ storage })
+
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+
+        expect(storage.loadActionFiles).toHaveBeenCalledWith({ branch: 'main', id: 'project' }, 'projects/demo/actions')
+        expect(storage.loadProjectRoot).toHaveBeenCalledWith({ branch: 'main', id: 'project' }, 'projects/demo/design')
+        expect(storage.loadProject).toHaveBeenCalledWith({ branch: 'main', id: 'project' }, 'projects/demo/design')
+        expect(service.getState().snapshot?.workingFolder).toBe('projects/demo/design')
+        expect(service.getState().snapshot?.activeCards.map((card) => card.path)).toEqual(['projects/demo/design/F-1-root.md'])
+        expect(service.getConfig()?.actionsFolder).toBe('projects/demo/actions')
     })
 
     it('dispatches the root snapshot before loading background subfolder and history cards', async () => {
@@ -60,10 +101,7 @@ describe('ProjectLoading', () => {
     it('reports background project load failures while keeping the root snapshot available', async () => {
         configService.init()
         const error = new Error('network down')
-        const errors: string[] = []
-        const handleWorkspaceError = (event: Event) => {
-            errors.push((event as CustomEvent<string>).detail)
-        }
+        const errors = recordDialogMessages('error')
         const storage = createStorage({
             loadProject: vi.fn(async () => {
                 throw error
@@ -72,7 +110,6 @@ describe('ProjectLoading', () => {
         })
         const service = new DataService()
         const captureError = vi.spyOn(telemetryService, 'captureError').mockImplementation(() => undefined)
-        window.addEventListener('md2:workspace-error', handleWorkspaceError)
 
         try {
             service.init({ storage })
@@ -81,13 +118,13 @@ describe('ProjectLoading', () => {
             expect(snapshot.activeCards.map((card) => card.path)).toEqual(['design/F-1-root.md'])
 
             await vi.waitFor(() => {
-                expect(errors).toContain('Background project data failed to load - search and history may be incomplete. network down')
+                expect(errors.messages).toContain('Background project data failed to load - search and history may be incomplete. network down')
             })
 
             expect(captureError).toHaveBeenCalledWith(error)
             expect(service.getState().snapshot?.activeCards.map((card) => card.path)).toEqual(['design/F-1-root.md'])
         } finally {
-            window.removeEventListener('md2:workspace-error', handleWorkspaceError)
+            errors.stop()
             captureError.mockRestore()
         }
     })
@@ -95,10 +132,7 @@ describe('ProjectLoading', () => {
     it('does not report failures from a superseded background project load', async () => {
         configService.init()
         const firstFullProject = createDeferred<StorageProjectFiles>()
-        const errors: string[] = []
-        const handleWorkspaceError = (event: Event) => {
-            errors.push((event as CustomEvent<string>).detail)
-        }
+        const errors = recordDialogMessages('error')
         const loadProject = vi.fn<StorageService['loadProject']>(async () => firstFullProject.promise)
         loadProject.mockImplementationOnce(async () => firstFullProject.promise)
         loadProject.mockImplementationOnce(async () => ({ files: [files[0]], workingFolder: 'design' }))
@@ -108,7 +142,6 @@ describe('ProjectLoading', () => {
         })
         const service = new DataService()
         const captureError = vi.spyOn(telemetryService, 'captureError').mockImplementation(() => undefined)
-        window.addEventListener('md2:workspace-error', handleWorkspaceError)
 
         try {
             service.init({ storage })
@@ -118,10 +151,10 @@ describe('ProjectLoading', () => {
             firstFullProject.reject(new Error('old load failed'))
             await waitForWorkerTurn()
 
-            expect(errors).toHaveLength(0)
+            expect(errors.messages).toHaveLength(0)
             expect(captureError).not.toHaveBeenCalled()
         } finally {
-            window.removeEventListener('md2:workspace-error', handleWorkspaceError)
+            errors.stop()
             captureError.mockRestore()
         }
     })
@@ -131,17 +164,13 @@ describe('ProjectLoading', () => {
         const externalFile = { content: '# Notes\n\nBody', path: 'design/notes.md', sha: 'sha-notes' }
         const rootFiles = [files[0], externalFile]
         const fullFiles = [files[0], files[1], externalFile]
-        const notices: string[] = []
-        const handleNotice = (event: Event) => {
-            notices.push((event as CustomEvent<string>).detail)
-        }
+        const notices = recordDialogMessages('success')
         const trackEvent = vi.spyOn(telemetryService, 'trackEvent').mockImplementation(() => undefined)
         const storage = createStorage({
             loadProject: vi.fn(async () => ({ files: fullFiles, workingFolder: 'design' })),
             loadProjectRoot: vi.fn(async () => ({ files: rootFiles, workingFolder: 'design' })),
         })
         const service = new DataService()
-        window.addEventListener('md2:workspace-notice', handleNotice)
 
         try {
             service.init({ storage })
@@ -163,10 +192,10 @@ describe('ProjectLoading', () => {
             expect(importedCard?.header).toMatchObject({ id: 'F-4', status: 'new', title: 'Notes' })
             expect(importedCard?.header.internalId).toBeTruthy()
             expect(service.getState().snapshot?.activeCards.some((card) => card.path === 'design/notes.md')).toBe(false)
-            expect(notices).toContain('Imported 1 external file as new cards.')
+            expect(notices.messages).toContain('Imported 1 external file as new cards.')
             expect(trackEvent).toHaveBeenCalledWith('external_file_import')
         } finally {
-            window.removeEventListener('md2:workspace-notice', handleNotice)
+            notices.stop()
             trackEvent.mockRestore()
         }
     })
@@ -193,10 +222,7 @@ describe('ProjectLoading', () => {
     it('reports import failures and keeps source files loaded unchanged', async () => {
         configService.init()
         const externalFile = { content: '# Notes\n\nBody', path: 'design/notes.md', sha: 'sha-notes' }
-        const errors: string[] = []
-        const handleWorkspaceError = (event: Event) => {
-            errors.push((event as CustomEvent<string>).detail)
-        }
+        const errors = recordDialogMessages('error')
         const storage = createStorage({
             loadProject: vi.fn(async () => ({ files: [...storageFiles, externalFile], workingFolder: 'design' })),
             loadProjectRoot: vi.fn(async () => ({ files: [files[0], externalFile], workingFolder: 'design' })),
@@ -205,21 +231,20 @@ describe('ProjectLoading', () => {
             }),
         })
         const service = new DataService()
-        window.addEventListener('md2:workspace-error', handleWorkspaceError)
 
         try {
             service.init({ storage })
             await service.projectLoading.openProject({ branch: 'main', id: 'project' })
 
             await vi.waitFor(() => {
-                expect(errors).toContain('commit failed')
+                expect(errors.messages).toContain('commit failed')
             })
 
             expect(service.getState().snapshot?.activeCards.some((card) => card.path === 'design/notes.md')).toBe(true)
             expect(service.getState().snapshot?.activeCards.some((card) => card.path === 'design/F-4-notes.md')).toBe(false)
             expect(storage.push).not.toHaveBeenCalled()
         } finally {
-            window.removeEventListener('md2:workspace-error', handleWorkspaceError)
+            errors.stop()
         }
     })
 
@@ -483,18 +508,19 @@ describe('ProjectLoading', () => {
         })
         const service = new DataService()
         service.init({ storage })
-        const conflicts: string[] = []
-        window.addEventListener('md2:workspace-error', (event) => {
-            conflicts.push((event as CustomEvent<string>).detail)
-        })
+        const conflicts = recordDialogMessages('error')
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
 
-        service.cards.updateCardBody('design/F-1-root.md', '# Root\n\nLocal draft')
-        watchChange({ changeKind: 'changed', path: 'design/F-1-root.md' })
-        await vi.advanceTimersByTimeAsync(150)
+        try {
+            service.cards.updateCardBody('design/F-1-root.md', '# Root\n\nLocal draft')
+            watchChange({ changeKind: 'changed', path: 'design/F-1-root.md' })
+            await vi.advanceTimersByTimeAsync(150)
 
-        expect(conflicts[0]).toContain('External change ignored for design/F-1-root.md')
-        const card = service.getState().snapshot?.activeCards.find((candidate) => candidate.path === 'design/F-1-root.md')
-        expect(card?.content).toContain('Local draft')
+            expect(conflicts.messages[0]).toContain('External change ignored for design/F-1-root.md')
+            const card = service.getState().snapshot?.activeCards.find((candidate) => candidate.path === 'design/F-1-root.md')
+            expect(card?.content).toContain('Local draft')
+        } finally {
+            conflicts.stop()
+        }
     })
 })

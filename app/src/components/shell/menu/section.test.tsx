@@ -23,7 +23,7 @@ describe('Section', () => {
             </Section>,
         )
 
-        const wrapper = container.firstElementChild
+        const wrapper = container.firstElementChild?.firstElementChild
         expect(wrapper?.children).toHaveLength(2)
 
         const [buttonGroup, labelElement] = Array.from(wrapper?.children ?? [])

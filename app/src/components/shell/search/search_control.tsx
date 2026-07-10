@@ -1,5 +1,5 @@
-import { Alert, Box, IconButton, InputAdornment, Paper, TextField, ToggleButton, Tooltip } from '@mui/material'
-import type { ChangeEvent } from 'react'
+import { Box, IconButton, InputAdornment, Paper, TextField, ToggleButton, Tooltip } from '@mui/material'
+import type { ChangeEvent, FocusEvent } from 'react'
 import { useState } from 'react'
 import AutoFix from 'mdi-material-ui/AutoFix'
 import FileSearchOutline from 'mdi-material-ui/FileSearchOutline'
@@ -11,6 +11,7 @@ import type { ActionDefinition } from '../../../data/action_types'
 import { ActionPopup } from '../../actions/action_popup'
 import { useActions } from '../../hooks/use_actions'
 import { useProjectState } from '../../hooks/use_project_state'
+import { dialogService } from '../../../services/dialog_service'
 import { InvalidSearchPatternError, defaultSearchRegexpAgent, searchActions, searchProject } from '../../../services/search/search_project'
 import type { SearchMode, SearchRegexpAgent, SearchResults as SearchResultsData } from '../../../services/search/search_types'
 import { workspaceNavigationService } from '../../../services/workspace_navigation_service'
@@ -19,6 +20,7 @@ import { SearchResults } from './search_results'
 
 const RESULTS_MAX_HEIGHT = 420
 const RESULTS_WIDTH = 460
+const DROPDOWN_TOP_OFFSET = 4
 const EMPTY_RESULTS: SearchResultsData = { active: [], actions: [], backgroundGroups: [] }
 const SEARCH_ACTION_CONTEXT: ActionContext = { folder: '', kind: 'folder' }
 
@@ -37,20 +39,19 @@ export function SearchControl(props: SearchControlProps) {
     const [includeBackgroundBody, setIncludeBackgroundBody] = useState(false)
     const [includeActions, setIncludeActions] = useState(false)
     const [results, setResults] = useState<SearchResultsData>(EMPTY_RESULTS)
-    const [validationError, setValidationError] = useState<string | null>(null)
-    const [agentError, setAgentError] = useState<string | null>(null)
+    const [isSearchFocused, setIsSearchFocused] = useState(false)
     const [isDismissed, setIsDismissed] = useState(false)
     const [isAgentBusy, setIsAgentBusy] = useState(false)
     const [actionStack, setActionStack] = useState<ActionDefinition[]>([])
 
-    const errorMessage = validationError ?? agentError
-    const isOpen = query.trim().length > 0 && !isDismissed
+    const hasQuery = query.trim().length > 0
+    const isDropdownOpen = isSearchFocused && !isDismissed
+    const shouldShowResults = hasQuery
 
     // Runs the search and, on an invalid expression, keeps the previous results while surfacing the error.
     const applySearch = (nextQuery: string, nextMode: SearchMode, nextIncludeBackgroundBody: boolean, nextIncludeActions: boolean) => {
         if (nextQuery.trim().length === 0 || !snapshot) {
             setResults(EMPTY_RESULTS)
-            setValidationError(null)
 
             return
         }
@@ -60,17 +61,27 @@ export function SearchControl(props: SearchControlProps) {
             const cardResults = searchProject(snapshot, nextQuery, options)
             const actionResults = searchActions(actions, nextQuery, options)
             setResults({ ...cardResults, actions: actionResults })
-            setValidationError(null)
         } catch (error) {
-            setValidationError(error instanceof InvalidSearchPatternError ? error.message : 'Search failed')
+            dialogService.error(error, { fallbackMessage: error instanceof InvalidSearchPatternError ? error.message : 'Search failed' })
         }
+    }
+
+    const handleSearchFocus = () => {
+        setIsSearchFocused(true)
+        setIsDismissed(false)
+    }
+
+    const handleControlBlur = (event: FocusEvent<HTMLDivElement>) => {
+        const nextFocusedElement = event.relatedTarget
+        if (nextFocusedElement instanceof Node && event.currentTarget.contains(nextFocusedElement)) return
+
+        setIsSearchFocused(false)
     }
 
     const handleQueryChange = (event: ChangeEvent<HTMLInputElement>) => {
         const nextQuery = event.target.value
         setQuery(nextQuery)
         setIsDismissed(false)
-        setAgentError(null)
         applySearch(nextQuery, mode, includeBackgroundBody, includeActions)
     }
 
@@ -96,10 +107,9 @@ export function SearchControl(props: SearchControlProps) {
     }
 
     const handleAskAgent = async () => {
-        if (query.trim().length === 0) return
+        if (!hasQuery) return
 
         setIsAgentBusy(true)
-        setAgentError(null)
         try {
             const expression = await regexpAgent(query)
             setMode('regexp')
@@ -108,7 +118,7 @@ export function SearchControl(props: SearchControlProps) {
             applySearch(expression, 'regexp', includeBackgroundBody, includeActions)
         } catch (error) {
             // Agent failures must not change the current query.
-            setAgentError(error instanceof Error ? error.message : 'Agent request failed')
+            dialogService.error(error, { fallbackMessage: 'Agent request failed' })
         } finally {
             setIsAgentBusy(false)
         }
@@ -131,11 +141,12 @@ export function SearchControl(props: SearchControlProps) {
     const currentAction = actionStack.at(-1) ?? null
 
     return (
-        <Box sx={{ maxWidth: RESULTS_WIDTH, position: 'relative', width: '100%' }}>
-            <Box style={NO_DRAG_REGION} sx={{ alignItems: 'center', display: 'flex', gap: 1 }}>
+        <Box onBlur={handleControlBlur} sx={{ maxWidth: RESULTS_WIDTH, position: 'relative', width: '100%' }}>
+            <Box style={NO_DRAG_REGION}>
                 <TextField
                     fullWidth
                     onChange={handleQueryChange}
+                    onFocus={handleSearchFocus}
                     placeholder="Search"
                     size="small"
                     slotProps={{
@@ -150,64 +161,73 @@ export function SearchControl(props: SearchControlProps) {
                     }}
                     value={query}
                 />
-                <Tooltip title="RegExp mode">
-                    <ToggleButton
-                        aria-label="RegExp mode"
-                        onChange={handleToggleRegexp}
-                        selected={mode === 'regexp'}
-                        size="small"
-                        value="regexp"
-                    >
-                        <Regex fontSize="small" />
-                    </ToggleButton>
-                </Tooltip>
-                <Tooltip title="Search background file bodies">
-                    <ToggleButton
-                        aria-label="Search background file bodies"
-                        onChange={handleToggleBackgroundBody}
-                        selected={includeBackgroundBody}
-                        size="small"
-                        value="background-body"
-                    >
-                        <FileSearchOutline fontSize="small" />
-                    </ToggleButton>
-                </Tooltip>
-                <Tooltip title="Search actions">
-                    <ToggleButton
-                        aria-label="Search actions"
-                        onChange={handleToggleActions}
-                        selected={includeActions}
-                        size="small"
-                        value="actions"
-                    >
-                        <LightningBolt fontSize="small" />
-                    </ToggleButton>
-                </Tooltip>
-                <Tooltip title="Ask agent to build a RegExp">
-                    <span>
-                        <IconButton
-                            aria-label="Ask agent to build a RegExp"
-                            disabled={isAgentBusy || query.trim().length === 0}
-                            onClick={handleAskAgent}
-                            size="small"
-                        >
-                            <AutoFix fontSize="small" />
-                        </IconButton>
-                    </span>
-                </Tooltip>
             </Box>
-            {errorMessage ? (
-                <Alert severity="error" style={NO_DRAG_REGION} sx={{ mt: 0.5 }}>
-                    {errorMessage}
-                </Alert>
-            ) : null}
-            {isOpen ? (
+            {isDropdownOpen ? (
                 <Paper
+                    aria-label="Search dropdown"
                     elevation={4}
+                    role="region"
                     style={NO_DRAG_REGION}
-                    sx={{ left: 0, maxHeight: RESULTS_MAX_HEIGHT, overflow: 'auto', position: 'absolute', right: 0, top: '100%', zIndex: 'modal' }}
+                    sx={{
+                        left: 0,
+                        maxHeight: RESULTS_MAX_HEIGHT,
+                        overflow: 'auto',
+                        position: 'absolute',
+                        right: 0,
+                        top: `calc(100% + ${DROPDOWN_TOP_OFFSET}px)`,
+                        zIndex: 'modal',
+                    }}
                 >
-                    <SearchResults onActionSelect={handleSelectAction} onSelect={handleSelect} results={results} />
+                    <Box aria-label="Search options" role="group" sx={{ alignItems: 'center', display: 'flex', gap: 1, p: 1 }}>
+                        <Tooltip title="RegExp mode">
+                            <ToggleButton
+                                aria-label="RegExp mode"
+                                onChange={handleToggleRegexp}
+                                selected={mode === 'regexp'}
+                                size="small"
+                                value="regexp"
+                            >
+                                <Regex fontSize="small" />
+                            </ToggleButton>
+                        </Tooltip>
+                        <Tooltip title="Search background file bodies">
+                            <ToggleButton
+                                aria-label="Search background file bodies"
+                                onChange={handleToggleBackgroundBody}
+                                selected={includeBackgroundBody}
+                                size="small"
+                                value="background-body"
+                            >
+                                <FileSearchOutline fontSize="small" />
+                            </ToggleButton>
+                        </Tooltip>
+                        <Tooltip title="Search actions">
+                            <ToggleButton
+                                aria-label="Search actions"
+                                onChange={handleToggleActions}
+                                selected={includeActions}
+                                size="small"
+                                value="actions"
+                            >
+                                <LightningBolt fontSize="small" />
+                            </ToggleButton>
+                        </Tooltip>
+                        <Tooltip title="Ask agent to build a RegExp">
+                            <span>
+                                <IconButton
+                                    aria-label="Ask agent to build a RegExp"
+                                    disabled={isAgentBusy || !hasQuery}
+                                    onClick={handleAskAgent}
+                                    size="small"
+                                >
+                                    <AutoFix fontSize="small" />
+                                </IconButton>
+                            </span>
+                        </Tooltip>
+                    </Box>
+                    {shouldShowResults ? (
+                        <SearchResults onActionSelect={handleSelectAction} onSelect={handleSelect} results={results} />
+                    ) : null}
                 </Paper>
             ) : null}
             {currentAction ? (

@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 import type { ActionRunHistoryEntry } from '../../data/electron_action_bridge'
+import { DialogDisplay } from '../dialog_display'
 import { ActionRunHistory } from './action_run_history'
 
 describe('ActionRunHistory', () => {
@@ -13,10 +14,16 @@ describe('ActionRunHistory', () => {
         expect(screen.getByText('No previous runs')).toBeInTheDocument()
     })
 
-    it('renders history load errors', () => {
-        render(<ActionRunHistory entries={[]} error="Could not load run history" />)
+    it('reports history load errors through the dialog display', async () => {
+        render(
+            <>
+                <DialogDisplay />
+                <ActionRunHistory entries={[]} error="Could not load run history" />
+            </>,
+        )
 
-        expect(screen.getByText('Could not load run history')).toBeInTheDocument()
+        expect(await screen.findByText('Could not load run history')).toBeInTheDocument()
+        expect(screen.getByText('Run history unavailable.')).toBeInTheDocument()
     })
 
     it('renders agent and model labels', () => {

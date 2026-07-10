@@ -2,7 +2,7 @@ import { Stack } from '@mui/material'
 import { DndContext, PointerSensor, closestCorners, useSensor, useSensors } from '@dnd-kit/core'
 import type { DragEndEvent } from '@dnd-kit/core'
 import { useMemo, useState } from 'react'
-import { groupByStatus } from '../../data/card_ordering'
+import { groupByStatus, UNASSIGNED_STATUS } from '../../data/card_ordering'
 import type { AgentConversation, CardTypeConfig, ProjectCard } from '../../data/data_types'
 import { telemetryService } from '../../services/telemetry_service'
 import { AffectsEditorDialog } from './affects_editor_dialog'
@@ -49,7 +49,12 @@ export function CardView(props: CardViewProps) {
         repositoryFiles,
         selectedPath,
     } = props
-    const columns = useMemo(() => groupByStatus(cards), [cards])
+    const columns = useMemo(() => {
+        const groupedColumns = groupByStatus(cards)
+        if (groupedColumns.length > 0) return groupedColumns
+
+        return [{ cards: [], status: UNASSIGNED_STATUS }]
+    }, [cards])
     const [openBodyPath, setOpenBodyPath] = useState<string | null>(null)
     const [openAffectsPath, setOpenAffectsPath] = useState<string | null>(null)
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: DRAG_ACTIVATION_DISTANCE } }))
@@ -92,6 +97,7 @@ export function CardView(props: CardViewProps) {
     return (
         <DndContext collisionDetection={closestCorners} onDragEnd={handleDragEnd} sensors={sensors}>
             <Stack
+                aria-label="Card columns"
                 direction={isMobile ? 'column' : 'row'}
                 spacing={2}
                 sx={{ alignItems: 'flex-start', overflowX: isMobile ? 'visible' : 'auto', pb: 1 }}

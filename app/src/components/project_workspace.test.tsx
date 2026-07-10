@@ -7,7 +7,9 @@ import { configService } from '../services/config_service'
 import { dataService } from '../services/data_service'
 import { telemetryService } from '../services/telemetry_service'
 import { workspaceNavigationService } from '../services/workspace_navigation_service'
+import { workspaceViewService } from '../services/workspace_view_service'
 import { AppThemeProvider } from '../theme/theme_provider'
+import { DialogDisplay } from './dialog_display'
 import { ProjectWorkspace } from './project_workspace'
 import { ProjectToolbarMenu } from './shell/project_toolbar_menu'
 import { LeftPanelSlotProvider } from './shell/left_panel_slot_provider'
@@ -93,10 +95,10 @@ function renderProjectSurface(isGithubAuthenticated = false) {
 
         return (
             <LeftPanelSlotProvider>
+                <DialogDisplay />
                 <ProjectToolbarMenu accessToken="token" isGithubAuthenticated={isGithubAuthenticated} />
                 <LeftPanelTarget fallback="No project navigation available." />
                 <ProjectWorkspace
-                    bootstrapError={null}
                     onLeftPanelInteraction={handleLeftPanelInteraction}
                 />
             </LeftPanelSlotProvider>
@@ -157,6 +159,7 @@ describe('ProjectWorkspace', () => {
     beforeEach(() => {
         configService.init({ desktopConfig: null })
         dataService.init({ storage: createResetStorage() })
+        workspaceViewService.setViewMode('cards')
     })
 
     afterEach(() => {
@@ -190,7 +193,19 @@ describe('ProjectWorkspace', () => {
         expect(screen.getByText('F-1')).toBeInTheDocument()
         expect(screen.getAllByText('active').length).toBeGreaterThan(0)
         expect(screen.getByLabelText('Card columns')).toHaveTextContent('active')
-        expect(screen.getByText('Background cards loaded: 1')).toBeInTheDocument()
+        expect(screen.queryByText('Background cards loaded: 1')).toBeNull()
+    })
+
+    it('keeps the workspace paper fixed while its content scrolls without a header', async () => {
+        window.md2Data = createBridge()
+
+        renderProjectSurface()
+        await openLocalProject()
+        await screen.findByText('Root')
+
+        expect(screen.getByRole('region', { name: 'Project workspace' })).toHaveStyle({ overflow: 'hidden' })
+        expect(screen.getByRole('region', { name: 'Project workspace content' })).toHaveStyle({ overflow: 'auto' })
+        expect(screen.queryByRole('heading', { name: 'Active cards' })).toBeNull()
     })
 
     it('flushes pending commits when the app is hidden', async () => {
@@ -427,7 +442,7 @@ describe('ProjectWorkspace', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Complete release' }))
 
         await waitFor(() => expect(bridge.moveFiles).toHaveBeenCalled())
-        expect(await screen.findByText('Background cards loaded: 2')).toBeInTheDocument()
+        expect(screen.queryByText('Background cards loaded: 2')).toBeNull()
     })
 
     it('opens a card in the text view as a tab from the card body dialog', async () => {
@@ -442,20 +457,17 @@ describe('ProjectWorkspace', () => {
         expect(screen.getByLabelText('File tree')).toBeInTheDocument()
     })
 
-    it('switches to the text view from the view toggle', async () => {
+    it('renders the text view selected by the workspace view service', async () => {
         window.md2Data = createBridge()
-        const trackEvent = vi.spyOn(telemetryService, 'trackEvent').mockImplementation(() => undefined)
 
         renderProjectSurface()
         await openLocalProject()
         await screen.findByText('Root')
 
-        fireEvent.click(screen.getByRole('button', { name: 'Text' }))
+        act(() => workspaceViewService.setViewMode('text'))
 
         expect(screen.getByLabelText('File tree')).toBeInTheDocument()
-        expect(trackEvent).toHaveBeenCalledWith('navigation')
-
-        trackEvent.mockRestore()
+        expect(screen.queryByRole('heading', { name: 'Files' })).toBeNull()
     })
 
     it('reveals a navigated card and keeps the current card view', async () => {
@@ -468,7 +480,8 @@ describe('ProjectWorkspace', () => {
 
         act(() => workspaceNavigationService.open('design/F-1-root.md'))
 
-        expect(screen.getByRole('heading', { name: 'Active cards' })).toBeInTheDocument()
+        expect(screen.getByLabelText('Card columns')).toBeInTheDocument()
+        expect(screen.queryByRole('heading', { name: 'Active cards' })).toBeNull()
         const selected = document.querySelector('[data-selected="true"]')
         expect(selected).not.toBeNull()
         expect(selected).toHaveTextContent('Root')
@@ -565,14 +578,13 @@ describe('ProjectWorkspace', () => {
         renderProjectSurface(true)
         await openProjectDialog()
 
-        expect(await screen.findByText('GitHub storage request failed with status 403')).toBeInTheDocument()
+        expect(await screen.findByText(/GitHub storage request failed with status 403 for GET \/user\/repos/u)).toBeInTheDocument()
 
         fireEvent.change(screen.getByLabelText('Owner'), { target: { value: 'octo' } })
         fireEvent.change(screen.getByRole('textbox', { name: 'Repository' }), { target: { value: 'demo' } })
         fireEvent.click(screen.getByRole('button', { name: 'Load branches' }))
 
         await waitFor(() => expect(screen.getByRole('combobox', { name: 'Branch' })).toHaveTextContent('trunk'))
-        expect(screen.queryByText('GitHub storage request failed with status 403')).toBeNull()
         expect(consoleWarn).not.toHaveBeenCalled()
     })
 
@@ -607,12 +619,13 @@ describe('ProjectWorkspace', () => {
         fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Repository' }))
         fireEvent.click(await screen.findByRole('option', { name: 'octo/demo' }))
 
-        expect(await screen.findByText('GitHub storage request failed with status 500')).toBeInTheDocument()
+        expect(await screen.findByText(
+            'GitHub storage request failed with status 500 for GET /repos/octo/demo/branches',
+        )).toBeInTheDocument()
 
         fireEvent.click(screen.getByRole('button', { name: 'Load branches' }))
 
         await waitFor(() => expect(screen.getByRole('combobox', { name: 'Branch' })).toHaveTextContent('trunk'))
-        expect(screen.queryByText('GitHub storage request failed with status 500')).toBeNull()
         expect(consoleWarn).not.toHaveBeenCalled()
     })
 

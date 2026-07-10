@@ -21,7 +21,6 @@ describe('project dialog components', () => {
         render(
             <ProjectOpenDialog
                 branches={BRANCHES}
-                errorMessage={null}
                 isGithubAuthenticated
                 isLoading={false}
                 isLocalAvailable
@@ -56,7 +55,6 @@ describe('project dialog components', () => {
         render(
             <ProjectOpenDialog
                 branches={[]}
-                errorMessage={null}
                 isGithubAuthenticated
                 isLoading={false}
                 isLocalAvailable
@@ -114,7 +112,6 @@ describe('project dialog components', () => {
         render(
             <NewCardDialog
                 cardTypes={DEFAULT_CARD_TYPES}
-                errorMessage={null}
                 isLoading={false}
                 isProjectOpen
                 onClose={vi.fn()}
@@ -130,11 +127,10 @@ describe('project dialog components', () => {
         await waitFor(() => expect(createCard).toHaveBeenCalledWith({ body: 'Body', title: 'New Card', type: 'feature' }))
     })
 
-    it('shows new card errors and disables submit while loading', () => {
+    it('disables new card submit while loading', () => {
         render(
             <NewCardDialog
                 cardTypes={DEFAULT_CARD_TYPES}
-                errorMessage="commit failed"
                 isLoading
                 isProjectOpen
                 onClose={vi.fn()}
@@ -145,7 +141,6 @@ describe('project dialog components', () => {
 
         fireEvent.change(screen.getByLabelText('New card title'), { target: { value: 'New Card' } })
 
-        expect(screen.getByText('commit failed')).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Create card' })).toBeDisabled()
     })
 
@@ -154,7 +149,6 @@ describe('project dialog components', () => {
 
         render(
             <CompleteReleaseDialog
-                errorMessage={null}
                 isLoading={false}
                 onClose={vi.fn()}
                 onCompleteRelease={completeRelease}
@@ -172,7 +166,6 @@ describe('project dialog components', () => {
         render(
             <BranchSwitchDialog
                 branches={BRANCHES}
-                errorMessage={null}
                 isLoading={false}
                 onBranchChange={vi.fn()}
                 onClose={vi.fn()}

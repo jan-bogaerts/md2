@@ -1,6 +1,7 @@
-import { useState, type ChangeEvent } from 'react'
+import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { Alert, Avatar, Box, Button, CircularProgress, Divider, Link, Paper, Stack, TextField, Typography } from '@mui/material'
 import type { AuthSnapshot } from '../auth/github_auth_types'
+import { dialogService } from '../services/dialog_service'
 
 const AUTH_PANEL_RADIUS = 2
 const AUTH_PANEL_PADDING = 4
@@ -40,8 +41,26 @@ export function GithubAuthPanel(props: GithubAuthPanelProps) {
     const [personalAccessToken, setPersonalAccessToken] = useState('')
 
     const statusMessage = getStatusMessage(status)
-    const isLoginDisabled = !isDeviceFlowAvailable || status === 'requesting-code' || status === 'waiting'
+    const statusSeverity = status === 'waiting' || status === 'requesting-code' ? 'info' : 'error'
+    const serviceErrorMessage = statusMessage && statusSeverity === 'error' ? errorMessage ?? statusMessage : errorMessage
+    const isDeviceLoginInProgress = status === 'requesting-code' || status === 'waiting'
+    const isAuthorizationInProgress = isDeviceLoginInProgress || isLoadingUser
+    const isLoginDisabled = isDeviceLoginInProgress || isLoadingUser
     const isSaveTokenDisabled = personalAccessToken.trim().length === 0 || isLoadingUser
+    const reportedServiceErrorRef = useRef<string | null>(null)
+
+    useEffect(() => {
+        if (!serviceErrorMessage) {
+            reportedServiceErrorRef.current = null
+
+            return
+        }
+
+        if (serviceErrorMessage === reportedServiceErrorRef.current) return
+
+        dialogService.error(serviceErrorMessage)
+        reportedServiceErrorRef.current = serviceErrorMessage
+    }, [serviceErrorMessage])
 
     const handleLoginClick = () => {
         void login()
@@ -103,8 +122,6 @@ export function GithubAuthPanel(props: GithubAuthPanelProps) {
                             {logoutLabel}
                         </Button>
                     </Stack>
-
-                    {errorMessage ? <Alert severity="warning">{errorMessage}</Alert> : null}
                 </Stack>
             </Paper>
         )
@@ -122,13 +139,10 @@ export function GithubAuthPanel(props: GithubAuthPanelProps) {
                     </Typography>
                 </Box>
 
-                <Button disabled={isLoginDisabled} onClick={handleLoginClick} size="large" variant="contained">
-                    Sign in with GitHub
-                </Button>
-                {!isDeviceFlowAvailable ? (
-                    <Alert severity="info">
-                        GitHub device login is not configured. Use a personal access token instead.
-                    </Alert>
+                {isDeviceFlowAvailable ? (
+                    <Button disabled={isLoginDisabled} onClick={handleLoginClick} size="large" variant="contained">
+                        Sign in with GitHub
+                    </Button>
                 ) : null}
 
                 <Divider />
@@ -149,6 +163,8 @@ export function GithubAuthPanel(props: GithubAuthPanelProps) {
                             </span>
                         )}
                         label="Personal access token"
+                        placeholder="Enter token here"
+                        slotProps={{ inputLabel: { shrink: true } }}
                         onChange={handlePersonalAccessTokenChange}
                         size="small"
                         type="password"
@@ -159,8 +175,8 @@ export function GithubAuthPanel(props: GithubAuthPanelProps) {
                     </Button>
                 </Stack>
 
-                {statusMessage ? (
-                    <Alert severity={status === 'waiting' || status === 'requesting-code' ? 'info' : 'error'}>
+                {statusMessage && statusSeverity === 'info' ? (
+                    <Alert severity="info">
                         {statusMessage}
                     </Alert>
                 ) : null}
@@ -188,10 +204,7 @@ export function GithubAuthPanel(props: GithubAuthPanelProps) {
                         </Stack>
                     </Stack>
                 ) : null}
-
-                {errorMessage ? <Alert severity="error">{errorMessage}</Alert> : null}
-
-                {isLoginDisabled ? (
+                {isAuthorizationInProgress ? (
                     <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
                         <CircularProgress size={20} />
                         <Typography color="text.secondary" variant="body2">

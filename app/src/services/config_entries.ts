@@ -3,6 +3,7 @@ import {
     DEFAULT_CARD_BODY_TEMPLATE,
     DEFAULT_CARD_TYPES,
     DEFAULT_DIFF_COMMAND,
+    DEFAULT_PROJECT_FOLDER,
     DEFAULT_WORKING_FOLDER,
     type CardTypeConfig,
     type PushMode,
@@ -23,6 +24,7 @@ export interface ConfigValueTypes {
     'project.cardBodyTemplate': string
     'project.cardTypes': CardTypeConfig[]
     'project.diffCommand': string
+    'project.projectFolder': string
     'project.pushMode': PushMode
     'project.workingFolder': string
     'react.autoCommitDelayMs': number
@@ -115,8 +117,18 @@ export const CONFIG_ENTRIES: ConfigEntry[] = [
         type: 'select',
     },
     {
+        defaultValue: DEFAULT_PROJECT_FOLDER,
+        description: 'Project root folder containing actions, history, and the working folder. Leave empty to use the repository root.',
+        editable: true,
+        key: 'project.projectFolder',
+        label: 'Project folder',
+        section: 'project',
+        source: 'project',
+        type: 'string',
+    },
+    {
         defaultValue: DEFAULT_WORKING_FOLDER,
-        description: 'Folder that contains active design and job markdown files.',
+        description: 'Folder inside the project folder that contains active design and job markdown files.',
         editable: true,
         key: 'project.workingFolder',
         label: 'Working folder',
@@ -126,7 +138,7 @@ export const CONFIG_ENTRIES: ConfigEntry[] = [
     },
     {
         defaultValue: DEFAULT_ACTIONS_FOLDER,
-        description: 'Folder that contains the project action json definitions.',
+        description: 'Folder inside the project folder that contains the project action json definitions.',
         editable: true,
         key: 'project.actionsFolder',
         label: 'Actions folder',
@@ -237,6 +249,7 @@ export const CONFIG_ENTRIES: ConfigEntry[] = [
 const CONFIG_ENTRY_BY_KEY = new Map(CONFIG_ENTRIES.map((entry) => [entry.key, entry]))
 
 export const PROJECT_KEYS: ConfigKey[] = [
+    'project.projectFolder',
     'project.workingFolder',
     'project.actionsFolder',
     'project.diffCommand',

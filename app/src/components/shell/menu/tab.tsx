@@ -11,7 +11,7 @@ export function Tab(props: TabProps) {
     const { children } = props
 
     return (
-        <Stack direction="row" spacing={2}>
+        <Stack direction="row" spacing={1.25} sx={{ alignItems: 'stretch', minHeight: 72, overflowX: 'auto' }}>
             {children}
         </Stack>
     )

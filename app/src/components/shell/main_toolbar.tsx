@@ -1,48 +1,42 @@
-import { AppBar, Box, IconButton, Toolbar, Tooltip, Typography } from '@mui/material'
+import { AppBar, Box, IconButton, Toolbar } from '@mui/material'
 import type { ReactNode } from 'react'
-import Cog from 'mdi-material-ui/Cog'
 import Menu from 'mdi-material-ui/Menu'
 import { DRAG_REGION, NO_DRAG_REGION } from './drag_region'
 
 interface MainToolbarProps {
-    action: ReactNode
     isMobile: boolean
-    onOpenConfig: () => void
     onOpenMenu: () => void
+    panel: ReactNode
     search: ReactNode
+    tabs: ReactNode
 }
 
 /**
- * Top application toolbar; collapses its left-panel access into a hamburger button on mobile.
- * The bar itself is a draggable region for the borderless desktop window, while all interactive
- * controls (menu, search, config, action) opt out of dragging.
+ * Top application toolbar; hosts menu tabs, search, and the desktop drag region.
+ * Interactive controls opt out of dragging so the remaining row space can move the window.
  */
 export function MainToolbar(props: MainToolbarProps) {
-    const { action, isMobile, onOpenConfig, onOpenMenu, search } = props
+    const { isMobile, onOpenMenu, panel, search, tabs } = props
 
     return (
         <AppBar color="default" elevation={1} position="static">
-            <Toolbar style={DRAG_REGION} variant="dense">
+            <Toolbar disableGutters style={DRAG_REGION} sx={{ minHeight: 40, px: 1 }} variant="dense">
                 {isMobile ? (
                     <IconButton aria-label="Open menu" edge="start" onClick={onOpenMenu} style={NO_DRAG_REGION} sx={{ mr: 1 }}>
                         <Menu />
                     </IconButton>
                 ) : null}
-                <Typography component="h1" sx={{ mr: 2 }} variant="h6">
-                    MD²
-                </Typography>
-                <Box style={NO_DRAG_REGION} sx={{ display: 'flex', flexGrow: 1, justifyContent: 'center', mr: 2 }}>
+                <Box style={NO_DRAG_REGION} sx={{ alignSelf: 'stretch', display: 'flex', flexShrink: 0 }}>
+                    {tabs}
+                </Box>
+                <Box style={NO_DRAG_REGION} sx={{ display: 'flex', flex: isMobile ? 1 : '0 0 420px', ml: 2, minWidth: 180 }}>
                     {search}
                 </Box>
-                <Box style={NO_DRAG_REGION} sx={{ alignItems: 'center', display: 'flex' }}>
-                    <Tooltip title="Config">
-                        <IconButton aria-label="Open config" onClick={onOpenConfig}>
-                            <Cog />
-                        </IconButton>
-                    </Tooltip>
-                    {action}
-                </Box>
+                <Box sx={{ flex: 1, minWidth: 40 }} />
             </Toolbar>
+            <Box style={NO_DRAG_REGION}>
+                {panel}
+            </Box>
         </AppBar>
     )
 }

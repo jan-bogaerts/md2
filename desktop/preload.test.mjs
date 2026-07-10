@@ -152,4 +152,11 @@ describe('electron main isolation settings', () => {
         expect(source).toContain('await flushRendererPendingCommits()')
         expect(source.indexOf('await flushRendererPendingCommits()')).toBeLessThan(source.indexOf('await remoteControlService.stop()'))
     })
+
+    it('opens renderer developer tools when Electron runs unpackaged', () => {
+        const source = readFileSync(mainPath, 'utf8')
+
+        expect(source).toContain('if (!app.isPackaged)')
+        expect(source).toContain('window.webContents.openDevTools()')
+    })
 })

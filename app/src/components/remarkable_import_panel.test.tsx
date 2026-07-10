@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ProjectCard } from '../data/data_types'
 import type { RemarkableBridge, RemarkableDeviceFile } from '../data/remarkable_bridge'
 import { recordImports, remarkableDeviceKey, serializeImportMetadata, parseImportMetadata } from '../data/remarkable_import_metadata'
+import { DialogDisplay } from './dialog_display'
 import { RemarkableImportPanel } from './remarkable_import_panel'
 
 const DEVICE_FILE: RemarkableDeviceFile = { modifiedTime: '2026-07-01T10:00:00.000Z', name: 'note.png', path: '/img/note.png' }
@@ -163,13 +164,16 @@ describe('RemarkableImportPanel', () => {
     it('shows an error when importing with nothing selected', async () => {
         const onImport = vi.fn()
         render(
-            <RemarkableImportPanel
-                activeCards={[card()]}
-                bridge={createBridge()}
-                isProjectOpen
-                metadataContent={null}
-                onImport={onImport}
-            />,
+            <>
+                <DialogDisplay />
+                <RemarkableImportPanel
+                    activeCards={[card()]}
+                    bridge={createBridge()}
+                    isProjectOpen
+                    metadataContent={null}
+                    onImport={onImport}
+                />
+            </>,
         )
 
         fillSettings()
@@ -181,7 +185,12 @@ describe('RemarkableImportPanel', () => {
 
     it('surfaces a connection failure as an error', async () => {
         const bridge = createBridge({ testConnection: vi.fn(async () => ({ message: 'SSH refused', ok: false })) })
-        render(<RemarkableImportPanel activeCards={[card()]} bridge={bridge} isProjectOpen metadataContent={null} />)
+        render(
+            <>
+                <DialogDisplay />
+                <RemarkableImportPanel activeCards={[card()]} bridge={bridge} isProjectOpen metadataContent={null} />
+            </>,
+        )
 
         fillSettings()
         fireEvent.click(screen.getByRole('button', { name: 'Test connection' }))

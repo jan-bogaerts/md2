@@ -1,5 +1,5 @@
 import { ACTION_SCHEDULES_FILE } from '../data/action_schedule_types'
-import type { MarkdownFile, ProjectAsset, ProjectReference, ProjectSnapshot, ProjectWatchEvent, StorageService } from '../data/data_types'
+import { resolveProjectConfigPaths, type MarkdownFile, type ProjectAsset, type ProjectReference, type ProjectSnapshot, type ProjectWatchEvent, type StorageService } from '../data/data_types'
 import { actionService } from './action_service'
 import { configService } from './config_service'
 import {
@@ -100,11 +100,12 @@ export class ProjectLoading {
 
     async createProject(project: ProjectReference) {
         const { config, storage } = this.dependencies.requireDependencies()
+        const rawConfig = configService.getProjectConfig()
         this.dependencies.replaceProject(await storage.createProject(project, config.workingFolder))
         const currentProject = this.dependencies.project()
         if (!currentProject) throw new Error('Cannot create a project without a project reference')
 
-        await storage.saveProjectConfig(currentProject, config)
+        await storage.saveProjectConfig(currentProject, rawConfig)
         telemetryService.trackEvent('create_project')
 
         return this.openProject(currentProject)
@@ -120,13 +121,13 @@ export class ProjectLoading {
         this.dependencies.replaceProject(project)
         const projectConfig = await storage.loadProjectConfig(project)
         configService.loadProjectConfig(projectConfig)
-        const config = configService.getProjectConfig()
+        const config = resolveProjectConfigPaths(configService.getProjectConfig())
         if (config.pushMode === 'manual') await storage.restorePendingCommits?.(project)
         const actionFiles = await storage.loadActionFiles(project, config.actionsFolder)
         actionService.loadFromFiles(actionFiles)
         const projectFiles = await storage.loadProjectRoot(project, config.workingFolder)
         const repositoryFiles: string[] = []
-        this.dependencies.replaceProjectFiles(projectFiles.files, projectFiles.workingFolder, repositoryFiles)
+        this.dependencies.replaceProjectFiles(projectFiles.files, config.workingFolder, repositoryFiles)
         this.startProjectWatch()
         this.dependencies.dispatchChanged()
         const currentSnapshot = this.dependencies.snapshot()
@@ -185,7 +186,7 @@ export class ProjectLoading {
         const projectLoadToken = this.dependencies.beginProjectLoad()
         const projectFiles = await storage.loadProject(currentProject, config.workingFolder)
         const repositoryFiles = await storage.listRepositoryFiles(currentProject)
-        this.dependencies.replaceProjectFiles(projectFiles.files, projectFiles.workingFolder, repositoryFiles)
+        this.dependencies.replaceProjectFiles(projectFiles.files, config.workingFolder, repositoryFiles)
         this.dependencies.dispatchChanged()
         const currentSnapshot = this.dependencies.snapshot()
         if (currentSnapshot) this.loadAgentConversationsInBackground(currentSnapshot, project, projectLoadToken)
@@ -246,7 +247,7 @@ export class ProjectLoading {
             ])
             if (!this.shouldApplyProjectLoad(project, projectLoadToken)) return
 
-            const importedFiles = await this.importExternalCardFiles(projectFiles.files, projectFiles.workingFolder)
+            const importedFiles = await this.importExternalCardFiles(projectFiles.files, workingFolder)
             if (!this.shouldApplyProjectLoad(project, projectLoadToken)) return
 
             const importedPaths = new Set(importedFiles.map((file) => file.path))
@@ -254,7 +255,7 @@ export class ProjectLoading {
                 .filter((file) => !importedPaths.has(file.path))
                 .map((file) => file.path)
             const remainingFiles = removeFilesByPath(this.dependencies.files(), removedImportedPaths)
-            this.dependencies.replaceProjectFiles(mergeFiles(importedFiles, remainingFiles), projectFiles.workingFolder, repositoryFiles)
+            this.dependencies.replaceProjectFiles(mergeFiles(importedFiles, remainingFiles), workingFolder, repositoryFiles)
             this.dependencies.dispatchChanged()
             const currentSnapshot = this.dependencies.snapshot()
             if (currentSnapshot) this.loadAgentConversationsInBackground(currentSnapshot, project, projectLoadToken)

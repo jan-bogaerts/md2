@@ -1,5 +1,5 @@
 import { CommitBatcher } from '../data/commit_batcher'
-import type { ProjectConfig, ProjectReference, ProjectSnapshot, RunningAgent, StorageService } from '../data/data_types'
+import { resolveProjectConfigPaths, type ProjectConfig, type ProjectReference, type ProjectSnapshot, type RunningAgent, type StorageService } from '../data/data_types'
 import type { RemarkableBridge } from '../data/remarkable_bridge'
 import { agentConversationService } from './agent_conversation_service'
 import { CardOperations, type CardOperationsDeps } from './card_operations'
@@ -180,7 +180,7 @@ export class DataService extends EventTarget {
     private requireDependencies() {
         if (!this.storage) throw new Error('Data service storage is not initialized')
         if (!this.commitBatcher) throw new Error('Data service commit batcher is not initialized')
-        const config = configService.getProjectConfig()
+        const config = resolveProjectConfigPaths(configService.getProjectConfig())
         return { commitBatcher: this.commitBatcher, config, storage: this.storage }
     }
     private dispatchChanged() {

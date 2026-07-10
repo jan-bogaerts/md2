@@ -1,6 +1,7 @@
 import { Box, Button, Stack, Typography } from '@mui/material'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { ActionRunHistoryEntry } from '../../data/electron_action_bridge'
+import { dialogService } from '../../services/dialog_service'
 import { DiffView } from './diff_view'
 
 interface HistoryEntryRowProps {
@@ -40,6 +41,20 @@ function HistoryEntryRow(props: HistoryEntryRowProps) {
 /** Presentation-only list of previous action runs. */
 export function ActionRunHistory(props: ActionRunHistoryProps) {
     const { entries, error } = props
+    const reportedErrorRef = useRef<string | null>(null)
+
+    useEffect(() => {
+        if (!error) {
+            reportedErrorRef.current = null
+
+            return
+        }
+
+        if (error === reportedErrorRef.current) return
+
+        dialogService.error(error)
+        reportedErrorRef.current = error
+    }, [error])
 
     return (
         <Box>
@@ -47,8 +62,8 @@ export function ActionRunHistory(props: ActionRunHistoryProps) {
                 Run history
             </Typography>
             {error ? (
-                <Typography color="error" variant="caption">
-                    {error}
+                <Typography color="text.secondary" variant="caption">
+                    Run history unavailable.
                 </Typography>
             ) : null}
             {entries.length > 0 ? (
