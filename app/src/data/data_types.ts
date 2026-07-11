@@ -1,6 +1,7 @@
 import type { ActionFile } from './action_types'
 import type { ActionSchedule } from './action_schedule_types'
 import { DEFAULT_COLOR_SCHEME } from '../theme/theme_config'
+import type { ProjectBackgroundShade } from '../theme/project_background_shade'
 
 export const DEFAULT_WORKING_FOLDER = 'active'
 export const DEFAULT_ACTIONS_FOLDER = 'actions'
@@ -27,6 +28,7 @@ export interface StateConfig {
 
 export interface ProjectConfig {
     actionsFolder: string
+    backgroundShade: ProjectBackgroundShade
     cardBodyTemplate: string
     cardTypes: CardTypeConfig[]
     diffCommand: string
@@ -318,6 +320,7 @@ export function resolveProjectConfigPaths(config: ProjectConfig): ProjectConfig 
 
 export const DEFAULT_PROJECT_CONFIG: ProjectConfig = {
     actionsFolder: DEFAULT_ACTIONS_FOLDER,
+    backgroundShade: 'neutral',
     cardBodyTemplate: DEFAULT_CARD_BODY_TEMPLATE,
     cardTypes: DEFAULT_CARD_TYPES,
     diffCommand: DEFAULT_DIFF_COMMAND,

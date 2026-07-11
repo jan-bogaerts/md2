@@ -40,7 +40,14 @@ describe('DataService', () => {
         const handleUnauthorized = vi.fn()
         const fetchImplementation = vi.fn(async (input: RequestInfo | URL, init: RequestInit = {}) => {
             const url = String(input)
-            if (url.includes('/contents/md2.config.json')) return createGithubStatusResponse(404)
+            if (url.includes('/contents/md2.config.json')) {
+                return createGithubResponse({
+                    content: btoa(JSON.stringify({ backgroundShade: 'blue', projectFolder: '', workingFolder: 'design' })),
+                    encoding: 'base64',
+                    path: 'md2.config.json',
+                    sha: 'config-sha',
+                })
+            }
             if (url.includes('/git/ref/heads/main')) {
                 return createGithubResponse({ object: { sha: 'base-commit', type: 'commit' }, ref: 'refs/heads/main' })
             }

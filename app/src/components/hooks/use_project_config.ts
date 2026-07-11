@@ -6,6 +6,7 @@ const snapshots = new WeakMap<DataService, ProjectConfig | null>()
 
 function isSameProjectConfig(first: ProjectConfig | null, second: ProjectConfig | null) {
     return first?.actionsFolder === second?.actionsFolder
+        && first?.backgroundShade === second?.backgroundShade
         && first?.cardBodyTemplate === second?.cardBodyTemplate
         && first?.cardTypes === second?.cardTypes
         && first?.diffCommand === second?.diffCommand

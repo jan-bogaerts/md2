@@ -170,6 +170,22 @@ describe('ConfigPage', () => {
         saveProjectConfig.mockRestore()
     })
 
+    it('offers the allowed background shades in the Project section', () => {
+        mockMatchMedia(false)
+        configService.init()
+        configService.loadProjectConfig(null)
+
+        render(<ConfigPage hash="#project" />)
+        fireEvent.mouseDown(screen.getByLabelText('Background shade'))
+
+        expect(screen.getByRole('option', { name: 'Neutral' })).toBeInTheDocument()
+        expect(screen.getByRole('option', { name: 'Blue' })).toBeInTheDocument()
+        expect(screen.getByRole('option', { name: 'Green' })).toBeInTheDocument()
+        expect(screen.getByRole('option', { name: 'Red' })).toBeInTheDocument()
+        expect(screen.getByRole('option', { name: 'Purple' })).toBeInTheDocument()
+        expect(screen.getByRole('option', { name: 'Amber' })).toBeInTheDocument()
+    })
+
     it('edits project columns as ordered JSON definitions', () => {
         mockMatchMedia(false)
         configService.init()

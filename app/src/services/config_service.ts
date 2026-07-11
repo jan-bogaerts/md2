@@ -157,6 +157,7 @@ function mergeValue<K extends ConfigKey>(values: ConfigValues, key: K, value: un
 function readProjectConfig(values: ConfigValues): ProjectConfig {
     return {
         actionsFolder: values['project.actionsFolder'],
+        backgroundShade: values['project.backgroundShade'],
         cardBodyTemplate: values['project.cardBodyTemplate'],
         cardTypes: values['project.cardTypes'],
         diffCommand: values['project.diffCommand'],
@@ -248,6 +249,9 @@ export class ConfigService extends EventTarget {
 
     loadProjectConfig(projectConfig: Partial<ProjectConfig> | null) {
         this.requireInitialized()
+        if (projectConfig !== null && projectConfig.backgroundShade === undefined) {
+            throw new Error('Missing config field: project.backgroundShade')
+        }
         let nextValues = this.values
         for (const key of PROJECT_KEYS) {
             nextValues = { ...nextValues, [key]: requireConfigEntry(key).defaultValue }
@@ -255,6 +259,9 @@ export class ConfigService extends EventTarget {
 
         if (projectConfig?.workingFolder !== undefined) nextValues = mergeValue(nextValues, 'project.workingFolder', projectConfig.workingFolder)
         if (projectConfig?.actionsFolder !== undefined) nextValues = mergeValue(nextValues, 'project.actionsFolder', projectConfig.actionsFolder)
+        if (projectConfig?.backgroundShade !== undefined) {
+            nextValues = mergeValue(nextValues, 'project.backgroundShade', projectConfig.backgroundShade)
+        }
         if (projectConfig?.projectFolder !== undefined) nextValues = mergeValue(nextValues, 'project.projectFolder', projectConfig.projectFolder)
         if (projectConfig?.diffCommand !== undefined) nextValues = mergeValue(nextValues, 'project.diffCommand', projectConfig.diffCommand)
         if (projectConfig?.pushMode !== undefined) nextValues = mergeValue(nextValues, 'project.pushMode', projectConfig.pushMode)

@@ -66,7 +66,6 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
     const activeCards = snapshot?.activeCards ?? EMPTY_CARDS
     const backgroundCards = snapshot?.backgroundCards ?? EMPTY_CARDS
     const repositoryFiles = snapshot?.repositoryFiles ?? EMPTY_REPOSITORY_FILES
-    const [requestedPath, setRequestedPath] = useState<string | null>(null)
     const [requestedNonce, setRequestedNonce] = useState(0)
     const { selectedPath, viewMode } = useWorkspaceView()
     const isProjectOpen = !!project
@@ -123,7 +122,6 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
             // Reveal the card/file without changing the current view mode: highlight it in card view
             // and queue it as a text-view tab for when that view is shown.
             workspaceViewService.selectPath(path)
-            setRequestedPath(path)
             setRequestedNonce((nonce) => nonce + 1)
             telemetryService.trackEvent('navigation')
         }
@@ -159,7 +157,6 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
 
     const clearDeletedPathState = (path: string) => {
         workspaceViewService.clearSelectedPath(path)
-        setRequestedPath((currentPath) => (currentPath === path ? null : currentPath))
     }
 
     const handleDeleteCard = async (path: string) => {
@@ -208,7 +205,6 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
 
     const handleOpenInFileMode = (path: string) => {
         workspaceViewService.selectPath(path)
-        setRequestedPath(path)
         setRequestedNonce((nonce) => nonce + 1)
         workspaceViewService.setViewMode('text')
         telemetryService.trackEvent('navigation')
@@ -271,7 +267,7 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
                             onSendAgentInput={handleSendAgentInput}
                             onStartAgentConversation={handleStartAgentConversation}
                             requestedNonce={requestedNonce}
-                            requestedPath={requestedPath}
+                            requestedPath={selectedPath}
                             states={states}
                             workingFolder={workingFolder}
                         />

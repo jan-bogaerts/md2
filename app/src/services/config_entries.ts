@@ -11,6 +11,7 @@ import {
     type StateConfig,
 } from '../data/data_types'
 import { BUILTIN_AGENT_PROFILES, type AgentProfile } from '../data/agent_profiles'
+import type { ProjectBackgroundShade } from '../theme/project_background_shade'
 
 export type ConfigSource = 'react' | 'connection' | 'desktop' | 'project'
 export type ConfigValueType = 'boolean' | 'number' | 'select' | 'string' | 'json'
@@ -23,6 +24,7 @@ export interface ConfigValueTypes {
     'desktop.model': string
     'desktop.projectLocationMode': string
     'project.actionsFolder': string
+    'project.backgroundShade': ProjectBackgroundShade
     'project.cardBodyTemplate': string
     'project.cardTypes': CardTypeConfig[]
     'project.diffCommand': string
@@ -150,6 +152,24 @@ export const CONFIG_ENTRIES: ConfigEntry[] = [
         type: 'string',
     },
     {
+        defaultValue: 'neutral',
+        description: 'Subtle background tint used to distinguish this project from other open app instances.',
+        editable: true,
+        key: 'project.backgroundShade',
+        label: 'Background shade',
+        options: [
+            { label: 'Neutral', value: 'neutral' },
+            { label: 'Blue', value: 'blue' },
+            { label: 'Green', value: 'green' },
+            { label: 'Red', value: 'red' },
+            { label: 'Purple', value: 'purple' },
+            { label: 'Amber', value: 'amber' },
+        ],
+        section: 'project',
+        source: 'project',
+        type: 'select',
+    },
+    {
         defaultValue: DEFAULT_DIFF_COMMAND,
         description: 'Command template used to render a commit diff. Placeholders: {{rootProjectFolder}}, {{commit}}, {{branch}}, {{file}}.',
         editable: true,
@@ -265,6 +285,7 @@ export const PROJECT_KEYS: ConfigKey[] = [
     'project.projectFolder',
     'project.workingFolder',
     'project.actionsFolder',
+    'project.backgroundShade',
     'project.diffCommand',
     'project.pushMode',
     'project.cardBodyTemplate',

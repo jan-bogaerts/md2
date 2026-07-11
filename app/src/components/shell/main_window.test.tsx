@@ -98,7 +98,7 @@ function createStorage(files: MarkdownFile[] = []): StorageService {
         loadActionFiles: vi.fn(async () => []),
         loadProject: vi.fn(async () => ({ files, workingFolder: 'design' })),
         loadProjectRoot: vi.fn(async () => ({ files, workingFolder: 'design' })),
-        loadProjectConfig: vi.fn(async () => null),
+        loadProjectConfig: vi.fn(async () => ({ backgroundShade: 'blue' as const, projectFolder: '', workingFolder: 'design' })),
         moveFiles: vi.fn(),
         push: vi.fn(),
         saveProjectConfig: vi.fn(),

@@ -53,7 +53,7 @@ function createBridge(): ElectronDataBridge {
             files: files.filter((file) => !file.path.slice('design/'.length).includes('/')),
             workingFolder: 'design',
         })),
-        loadProjectConfig: vi.fn(async () => ({ projectFolder: '', workingFolder: 'design' })),
+        loadProjectConfig: vi.fn(async () => ({ backgroundShade: 'blue' as const, projectFolder: '', workingFolder: 'design' })),
         moveFiles: vi.fn(async (request) => {
             for (const move of request.moves) {
                 const existingIndex = files.findIndex((file) => file.path === move.fromPath)
@@ -342,7 +342,7 @@ describe('ProjectWorkspace', () => {
             { name: 'docs', path: 'docs' },
             { name: 'notes', path: 'notes' },
         ])
-        bridge.loadProjectConfig = vi.fn(async () => savedConfig ?? { projectFolder: '', workingFolder: 'missing' })
+        bridge.loadProjectConfig = vi.fn(async () => savedConfig ?? { backgroundShade: 'blue' as const, projectFolder: '', workingFolder: 'missing' })
         const loadProject = vi.fn(async (_project, workingFolder) => {
             if (workingFolder === 'missing') throw new MissingWorkingFolderError(workingFolder)
 
@@ -386,7 +386,7 @@ describe('ProjectWorkspace', () => {
         const bridge = createBridge()
         let isCreated = false
         bridge.listTopLevelFolders = vi.fn(async () => [{ name: 'docs', path: 'docs' }])
-        bridge.loadProjectConfig = vi.fn(async () => ({ projectFolder: '', workingFolder: 'missing' }))
+        bridge.loadProjectConfig = vi.fn(async () => ({ backgroundShade: 'blue' as const, projectFolder: '', workingFolder: 'missing' }))
         const loadProject = vi.fn(async (_project, workingFolder) => {
             if (!isCreated) throw new MissingWorkingFolderError(workingFolder)
 
@@ -427,8 +427,8 @@ describe('ProjectWorkspace', () => {
 
         fireEvent.click(screen.getByRole('button', { name: 'Project' }))
         fireEvent.click(screen.getByRole('menuitem', { name: 'New card...' }))
-        fireEvent.change(screen.getByLabelText('New card title'), { target: { value: 'New Card' } })
-        fireEvent.change(screen.getByLabelText('New card body'), { target: { value: 'Body' } })
+        fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'New Card' } })
+        fireEvent.change(within(screen.getByRole('group', { name: 'Body' })).getByRole('textbox'), { target: { value: 'Body' } })
         fireEvent.click(screen.getByRole('button', { name: 'Create card' }))
 
         await waitFor(() => expect(bridge.commit).toHaveBeenCalledWith(expect.objectContaining({files: [expect.objectContaining({ path: 'design/F-3-new-card.md' })]})))
@@ -448,8 +448,8 @@ describe('ProjectWorkspace', () => {
 
         fireEvent.click(screen.getByRole('button', { name: 'Project' }))
         fireEvent.click(screen.getByRole('menuitem', { name: 'New card...' }))
-        fireEvent.change(screen.getByLabelText('New card title'), { target: { value: 'New Card' } })
-        fireEvent.change(screen.getByLabelText('New card body'), { target: { value: 'Body' } })
+        fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'New Card' } })
+        fireEvent.change(within(screen.getByRole('group', { name: 'Body' })).getByRole('textbox'), { target: { value: 'Body' } })
         fireEvent.click(screen.getByRole('button', { name: 'Create card' }))
 
         expect(await screen.findByText('commit failed')).toBeInTheDocument()
@@ -458,7 +458,12 @@ describe('ProjectWorkspace', () => {
 
     it('lists custom configured card types and uses their prefix', async () => {
         const bridge = createBridge()
-        bridge.loadProjectConfig = vi.fn(async () => ({cardTypes: [{ color: '#123456', idPrefix: 'T', label: 'Task', type: 'task' }]}))
+        bridge.loadProjectConfig = vi.fn(async () => ({
+            backgroundShade: 'blue' as const,
+            cardTypes: [{ color: '#123456', idPrefix: 'T', label: 'Task', type: 'task' }],
+            projectFolder: '',
+            workingFolder: 'design',
+        }))
         window.md2Data = bridge
 
         renderProjectSurface()
@@ -472,7 +477,7 @@ describe('ProjectWorkspace', () => {
         expect(screen.queryByRole('option', { name: 'Feature' })).toBeNull()
 
         fireEvent.click(screen.getByRole('option', { name: 'Task' }))
-        fireEvent.change(screen.getByLabelText('New card title'), { target: { value: 'New Task' } })
+        fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'New Task' } })
         fireEvent.click(screen.getByRole('button', { name: 'Create card' }))
 
         await waitFor(() => expect(bridge.commit).toHaveBeenCalledWith(expect.objectContaining({files: [expect.objectContaining({ path: 'design/T-1-new-task.md' })]})))
@@ -502,6 +507,17 @@ describe('ProjectWorkspace', () => {
         await openLocalProject()
         fireEvent.click(await screen.findByRole('button', { name: 'Drag F-1' }))
         fireEvent.click(await screen.findByRole('button', { name: 'Open in file mode' }))
+
+        expect(await screen.findByRole('tab', { name: /Root/ })).toBeInTheDocument()
+        expect(screen.getByLabelText('File tree')).toBeInTheDocument()
+    })
+
+    it('opens a card in the text view as a tab from the card file-mode icon', async () => {
+        window.md2Data = createBridge()
+
+        renderProjectSurface()
+        await openLocalProject()
+        fireEvent.click(await screen.findByRole('button', { name: 'Open F-1 in file mode' }))
 
         expect(await screen.findByRole('tab', { name: /Root/ })).toBeInTheDocument()
         expect(screen.getByLabelText('File tree')).toBeInTheDocument()

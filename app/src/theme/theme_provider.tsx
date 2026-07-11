@@ -5,6 +5,7 @@ import { getElectronThemeBridge } from './electron_theme_bridge'
 import { AppThemeContext, type AppThemeContextValue } from './theme_context'
 import { MARKDOWN_STYLE_PRESETS } from './theme_config'
 import { useThemeSettings } from './use_theme_settings'
+import { useProjectConfig } from '../components/hooks/use_project_config'
 
 interface AppThemeProviderProps {
     children: ReactNode
@@ -20,8 +21,10 @@ export function AppThemeProvider(props: AppThemeProviderProps) {
     const { children } = props
     const settings = useThemeSettings()
     const { mode, colorScheme, markdownStyle } = settings
+    const projectConfig = useProjectConfig()
+    const backgroundShade = projectConfig?.backgroundShade ?? 'neutral'
 
-    const theme = useMemo(() => createAppTheme(mode, colorScheme), [mode, colorScheme])
+    const theme = useMemo(() => createAppTheme(mode, colorScheme, backgroundShade), [mode, colorScheme, backgroundShade])
 
     useEffect(() => {
         getElectronThemeBridge()?.setThemeMode(mode)

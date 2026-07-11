@@ -14,10 +14,11 @@ describe('ConfigService', () => {
 
     it('merges project config over defaults', () => {
         service.init()
-        service.loadProjectConfig({ actionsFolder: 'ops', pushMode: 'manual', workingFolder: 'docs' })
+        service.loadProjectConfig({ actionsFolder: 'ops', backgroundShade: 'green', pushMode: 'manual', workingFolder: 'docs' })
 
         expect(service.getProjectConfig()).toMatchObject({
             actionsFolder: 'ops',
+            backgroundShade: 'green',
             cardBodyTemplate: '# Goal\n\n# Current status\n\n# Details\n\n# Tasks',
             projectFolder: 'design',
             pushMode: 'manual',
@@ -48,7 +49,7 @@ describe('ConfigService', () => {
 
     it('loads the configured project folder', () => {
         service.init()
-        service.loadProjectConfig({ projectFolder: 'projects/demo' })
+        service.loadProjectConfig({ backgroundShade: 'blue', projectFolder: 'projects/demo' })
 
         expect(service.getProjectConfig().projectFolder).toBe('projects/demo')
     })
@@ -56,15 +57,27 @@ describe('ConfigService', () => {
     it('rejects folder paths that escape the project folder', () => {
         service.init()
 
-        expect(() => service.loadProjectConfig({ projectFolder: '../outside' })).toThrow('must stay inside the project folder')
-        expect(() => service.loadProjectConfig({ workingFolder: '../outside' })).toThrow('must stay inside the project folder')
+        expect(() => service.loadProjectConfig({ backgroundShade: 'blue', projectFolder: '../outside' })).toThrow('must stay inside the project folder')
+        expect(() => service.loadProjectConfig({ backgroundShade: 'blue', workingFolder: '../outside' })).toThrow('must stay inside the project folder')
     })
 
     it('rejects invalid project config values', () => {
         service.init()
 
-        expect(() => service.loadProjectConfig({ pushMode: 'sometimes' as never })).toThrow('Invalid config value')
-        expect(() => service.loadProjectConfig({ states: [{ alwaysVisible: true, state: 'new' }, { alwaysVisible: false, state: 'new' }] })).toThrow('duplicate states')
+        expect(() => service.loadProjectConfig({ backgroundShade: 'blue', pushMode: 'sometimes' as never })).toThrow('Invalid config value')
+        expect(() => service.loadProjectConfig({ backgroundShade: 'blue', states: [{ alwaysVisible: true, state: 'new' }, { alwaysVisible: false, state: 'new' }] })).toThrow('duplicate states')
+    })
+
+    it('requires a background shade in stored project config', () => {
+        service.init()
+
+        expect(() => service.loadProjectConfig({ workingFolder: 'docs' })).toThrow('Missing config field: project.backgroundShade')
+    })
+
+    it('rejects unsupported project background shades', () => {
+        service.init()
+
+        expect(() => service.loadProjectConfig({ backgroundShade: 'cyan' as never })).toThrow('Invalid config value')
     })
 
     it('loads project states in their configured order', () => {
@@ -74,7 +87,7 @@ describe('ConfigService', () => {
             { alwaysVisible: false, state: 'shipped' },
         ]
 
-        service.loadProjectConfig({ states })
+        service.loadProjectConfig({ backgroundShade: 'purple', states })
 
         expect(service.getProjectConfig().states).toEqual([
             states[0],

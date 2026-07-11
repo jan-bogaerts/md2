@@ -36,7 +36,7 @@ describe('ProjectLoading', () => {
         ]
         const storage = createStorage({
             loadProject: vi.fn(async () => ({ files: rootFiles, workingFolder: 'design' })),
-            loadProjectConfig: vi.fn(async () => ({ workingFolder: 'design' })),
+            loadProjectConfig: vi.fn(async () => ({ backgroundShade: 'blue' as const, projectFolder: '', workingFolder: 'design' })),
             loadProjectRoot: vi.fn(async () => ({ files: rootFiles, workingFolder: 'design' })),
         })
         const service = new DataService()
@@ -67,10 +67,25 @@ describe('ProjectLoading', () => {
         expect(service.getConfig()?.states).toEqual(DEFAULT_STATES)
     })
 
+    it('assigns and saves a visible shade when opening a project without config', async () => {
+        configService.init()
+        const storage = createStorage({ loadProjectConfig: vi.fn(async () => null) })
+        const service = new DataService()
+        service.init({ storage })
+
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+
+        expect(service.getConfig()?.backgroundShade).toMatch(/^(amber|blue|green|purple|red)$/u)
+        expect(storage.saveProjectConfig).toHaveBeenCalledWith(
+            { branch: 'main', id: 'project' },
+            expect.objectContaining({ backgroundShade: expect.stringMatching(/^(amber|blue|green|purple|red)$/u) }),
+        )
+    })
+
     it('keeps configured project states instead of deriving card states', async () => {
         configService.init()
         const configuredStates = [{ alwaysVisible: true, state: 'configured' }]
-        const storage = createStorage({loadProjectConfig: vi.fn(async () => ({ states: configuredStates }))})
+        const storage = createStorage({loadProjectConfig: vi.fn(async () => ({ backgroundShade: 'blue' as const, projectFolder: '', states: configuredStates, workingFolder: 'design' }))})
         const service = new DataService()
         service.init({ storage })
 
@@ -103,7 +118,7 @@ describe('ProjectLoading', () => {
         const storage = createStorage({
             loadActionFiles: vi.fn(async () => [actionFile]),
             loadProject: vi.fn(async () => ({ files: [projectFile], workingFolder: 'design' })),
-            loadProjectConfig: vi.fn(async () => ({ actionsFolder: 'actions', projectFolder: 'projects/demo', workingFolder: 'design' })),
+            loadProjectConfig: vi.fn(async () => ({ actionsFolder: 'actions', backgroundShade: 'blue' as const, projectFolder: 'projects/demo', workingFolder: 'design' })),
             loadProjectRoot: vi.fn(async () => ({ files: [projectFile], workingFolder: 'design' })),
         })
         const service = new DataService()

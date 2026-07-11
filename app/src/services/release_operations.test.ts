@@ -147,7 +147,7 @@ describe('ReleaseOperations', () => {
             loadProject: vi.fn()
                 .mockResolvedValueOnce({ files: storageFiles, workingFolder: 'design' })
                 .mockResolvedValueOnce({ files: archivedFiles, workingFolder: 'design' }),
-            loadProjectConfig: vi.fn(async () => ({ pushMode: 'manual' as const })),
+            loadProjectConfig: vi.fn(async () => ({ backgroundShade: 'blue' as const, projectFolder: '', pushMode: 'manual' as const, workingFolder: 'design' })),
         })
         const service = new DataService()
         service.init({ storage })

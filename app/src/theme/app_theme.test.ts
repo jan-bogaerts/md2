@@ -33,6 +33,20 @@ describe('createAppTheme', () => {
         expect(theme.palette.primary.dark).toBe('#333333')
     })
 
+    it('applies the selected project background shade in light mode', () => {
+        const theme = createAppTheme('light', DEFAULT_COLOR_SCHEME, 'green')
+
+        expect(theme.palette.background.default).toBe('#f1f7f3')
+        expect(theme.palette.background.paper).toBe('#fbfefc')
+    })
+
+    it('applies the selected project background shade in dark mode', () => {
+        const theme = createAppTheme('dark', DEFAULT_COLOR_SCHEME, 'red')
+
+        expect(theme.palette.background.default).toBe('#1b1416')
+        expect(theme.palette.background.paper).toBe('#261d20')
+    })
+
     it('applies the flat, round-cornered look regardless of mode', () => {
         const light = createAppTheme('light')
         const dark = createAppTheme('dark')

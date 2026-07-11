@@ -1,26 +1,45 @@
 import { createTheme, type PaletteMode, type Theme } from '@mui/material'
 import { DEFAULT_COLOR_SCHEME, type ColorSchemeConfig } from './theme_config'
+import type { ProjectBackgroundShade } from './project_background_shade'
 
 const APP_BORDER_RADIUS = 8
 
+const LIGHT_PROJECT_BACKGROUNDS: Record<ProjectBackgroundShade, { default: string; paper: string }> = {
+    amber: { default: '#faf7ef', paper: '#fffefa' },
+    blue: { default: '#f1f5fa', paper: '#fbfdff' },
+    green: { default: '#f1f7f3', paper: '#fbfefc' },
+    neutral: { default: '#f4f6f8', paper: '#ffffff' },
+    purple: { default: '#f7f3fa', paper: '#fefcff' },
+    red: { default: '#faf3f3', paper: '#fffdfd' },
+}
+
+const DARK_PROJECT_BACKGROUNDS: Record<ProjectBackgroundShade, { default: string; paper: string }> = {
+    amber: { default: '#1b1812', paper: '#242016' },
+    blue: { default: '#101821', paper: '#19232e' },
+    green: { default: '#111a17', paper: '#1a2521' },
+    neutral: { default: '#10151c', paper: '#1a212b' },
+    purple: { default: '#19151d', paper: '#231d29' },
+    red: { default: '#1b1416', paper: '#261d20' },
+}
+
 const LIGHT_PALETTE = {
-    background: { default: '#f4f6f8', paper: '#ffffff' },
     divider: '#e3e8ef',
     text: { disabled: '#9aa4b2', primary: '#1c2536', secondary: '#4b5565' },
 }
 
 const DARK_PALETTE = {
-    background: { default: '#10151c', paper: '#1a212b' },
     divider: '#2a3441',
     text: { disabled: '#697586', primary: '#e6eaf0', secondary: '#9aa4b2' },
 }
 
-function paletteForMode(mode: PaletteMode, colorScheme: ColorSchemeConfig) {
+function paletteForMode(mode: PaletteMode, colorScheme: ColorSchemeConfig, backgroundShade: ProjectBackgroundShade) {
     const isDark = mode === 'dark'
     const modePalette = isDark ? DARK_PALETTE : LIGHT_PALETTE
+    const background = isDark ? DARK_PROJECT_BACKGROUNDS[backgroundShade] : LIGHT_PROJECT_BACKGROUNDS[backgroundShade]
 
     return {
         ...modePalette,
+        background,
         action: {
             hover: isDark ? '#151c25' : '#eceff3',
             selected: isDark ? '#202a36' : '#f0f3f7',
@@ -44,11 +63,15 @@ function paletteForMode(mode: PaletteMode, colorScheme: ColorSchemeConfig) {
 }
 
 /** Build the complete shared MUI theme for the selected palette mode. */
-export function createAppTheme(mode: PaletteMode, colorScheme: ColorSchemeConfig = DEFAULT_COLOR_SCHEME): Theme {
+export function createAppTheme(
+    mode: PaletteMode,
+    colorScheme: ColorSchemeConfig = DEFAULT_COLOR_SCHEME,
+    backgroundShade: ProjectBackgroundShade = 'neutral',
+): Theme {
     const isDark = mode === 'dark'
 
     return createTheme({
-        palette: paletteForMode(mode, colorScheme),
+        palette: paletteForMode(mode, colorScheme, backgroundShade),
         shape: { borderRadius: APP_BORDER_RADIUS },
         typography: {
             button: { fontWeight: 600, textTransform: 'none' },

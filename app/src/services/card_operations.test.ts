@@ -125,7 +125,7 @@ describe('CardOperations', () => {
 
     it('leaves commits unpushed in manual mode', async () => {
         configService.init()
-        const storage = createStorage({ loadProjectConfig: vi.fn(async () => ({ pushMode: 'manual' as const })) })
+        const storage = createStorage({loadProjectConfig: vi.fn(async () => ({ backgroundShade: 'blue' as const, projectFolder: '', pushMode: 'manual' as const, workingFolder: 'design' }))})
         const service = new DataService()
         service.init({ storage })
 
@@ -276,7 +276,7 @@ describe('CardOperations', () => {
                 .mockResolvedValueOnce({ files: deletionFiles, workingFolder: 'design' })
                 .mockResolvedValueOnce({ files: [deletionFiles[0]], workingFolder: 'design' }),
             loadProjectRoot: vi.fn(async () => ({ files: deletionFiles, workingFolder: 'design' })),
-            loadProjectConfig: vi.fn(async () => ({ pushMode: 'manual' as const })),
+            loadProjectConfig: vi.fn(async () => ({ backgroundShade: 'blue' as const, projectFolder: '', pushMode: 'manual' as const, workingFolder: 'design' })),
         })
         const service = new DataService()
         service.init({ storage })

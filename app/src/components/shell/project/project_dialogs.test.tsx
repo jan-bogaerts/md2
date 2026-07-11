@@ -1,6 +1,7 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { DEFAULT_CARD_TYPES, type BranchReference, type ProjectReference, type RepositoryReference } from '../../../data/data_types'
+import { AppThemeProvider } from '../../../theme/theme_provider'
 import { BranchSwitchDialog } from './branch_switch_dialog'
 import { CompleteReleaseDialog } from './complete_release_dialog'
 import { NewCardDialog } from './new_card_dialog'
@@ -199,10 +200,17 @@ describe('project dialog components', () => {
                 onCreateCard={createCard}
                 open
             />,
+            { wrapper: AppThemeProvider },
         )
 
-        fireEvent.change(screen.getByLabelText('New card title'), { target: { value: 'New Card' } })
-        fireEvent.change(screen.getByLabelText('New card body'), { target: { value: 'Body' } })
+        expect(screen.getByText('Add a card to the board')).toBeInTheDocument()
+        expect(screen.getByText('Markdown supported')).toBeInTheDocument()
+        expect(screen.getByText('Adds to')).toBeInTheDocument()
+        expect(screen.getByRole('combobox', { name: 'Card type' })).toHaveTextContent('Feature')
+        expect(within(screen.getByRole('group', { name: 'Body' })).getByTestId('mdx-editor-toolbar')).toBeInTheDocument()
+
+        fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'New Card' } })
+        fireEvent.change(within(screen.getByRole('group', { name: 'Body' })).getByRole('textbox'), { target: { value: 'Body' } })
         fireEvent.click(screen.getByRole('button', { name: 'Create card' }))
 
         await waitFor(() => expect(createCard).toHaveBeenCalledWith({ body: 'Body', title: 'New Card', type: 'feature' }))
@@ -218,11 +226,35 @@ describe('project dialog components', () => {
                 onCreateCard={vi.fn(async () => undefined)}
                 open
             />,
+            { wrapper: AppThemeProvider },
         )
 
-        fireEvent.change(screen.getByLabelText('New card title'), { target: { value: 'New Card' } })
+        fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'New Card' } })
 
         expect(screen.getByRole('button', { name: 'Create card' })).toBeDisabled()
+    })
+
+    it('submits a new card from the body with the control-enter shortcut', async () => {
+        const createCard = vi.fn(async () => undefined)
+
+        render(
+            <NewCardDialog
+                cardTypes={DEFAULT_CARD_TYPES}
+                isLoading={false}
+                isProjectOpen
+                onClose={vi.fn()}
+                onCreateCard={createCard}
+                open
+            />,
+            { wrapper: AppThemeProvider },
+        )
+
+        fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Keyboard card' } })
+        const bodyEditor = within(screen.getByRole('group', { name: 'Body' })).getByRole('textbox')
+        fireEvent.change(bodyEditor, { target: { value: 'Shortcut body' } })
+        fireEvent.keyDown(bodyEditor, { ctrlKey: true, key: 'Enter' })
+
+        await waitFor(() => expect(createCard).toHaveBeenCalledWith({ body: 'Shortcut body', title: 'Keyboard card', type: 'feature' }))
     })
 
     it('renders the complete release dialog and submits a release name without mounting the menu', async () => {

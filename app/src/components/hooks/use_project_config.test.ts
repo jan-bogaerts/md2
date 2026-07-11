@@ -6,6 +6,7 @@ import { useProjectConfig } from './use_project_config'
 
 const firstConfig: ProjectConfig = {
     actionsFolder: 'actions',
+    backgroundShade: 'blue',
     cardBodyTemplate: '',
     cardTypes: [{ color: '#111111', idPrefix: 'F', label: 'Feature', type: 'feature' }],
     diffCommand: 'git show {{commit}}',
@@ -17,6 +18,7 @@ const firstConfig: ProjectConfig = {
 
 const secondConfig: ProjectConfig = {
     ...firstConfig,
+    backgroundShade: 'green',
     pushMode: 'manual',
     workingFolder: 'docs',
 }
@@ -48,6 +50,7 @@ describe('useProjectConfig', () => {
         })
 
         expect(result.current?.workingFolder).toBe('docs')
+        expect(result.current?.backgroundShade).toBe('green')
         expect(result.current?.pushMode).toBe('manual')
     })
 })

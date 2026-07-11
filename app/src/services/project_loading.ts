@@ -13,6 +13,7 @@ import {
 } from './data_service_context'
 import { planExternalCardImports } from './external_card_import_service'
 import { telemetryService } from './telemetry_service'
+import { createRandomProjectBackgroundShade } from '../theme/project_background_shade'
 
 const ACTION_RELOAD_DEBOUNCE_MS = 150
 const JSON_EXTENSION = '.json'
@@ -108,7 +109,7 @@ export class ProjectLoading {
 
     async createProject(project: ProjectReference) {
         const { config, storage } = this.dependencies.requireDependencies()
-        const rawConfig = configService.getProjectConfig()
+        const rawConfig = { ...configService.getProjectConfig(), backgroundShade: createRandomProjectBackgroundShade() }
         this.dependencies.replaceProject(await storage.createProject(project, config.workingFolder))
         const currentProject = this.dependencies.project()
         if (!currentProject) throw new Error('Cannot create a project without a project reference')
@@ -129,6 +130,10 @@ export class ProjectLoading {
         this.dependencies.replaceProject(project)
         const projectConfig = await storage.loadProjectConfig(project)
         configService.loadProjectConfig(projectConfig)
+        if (projectConfig === null) {
+            configService.set('project.backgroundShade', createRandomProjectBackgroundShade())
+            await storage.saveProjectConfig(project, configService.getProjectConfig())
+        }
         const config = resolveProjectConfigPaths(configService.getProjectConfig())
         if (config.pushMode === 'manual') await storage.restorePendingCommits?.(project)
         const actionFiles = await storage.loadActionFiles(project, config.actionsFolder)

@@ -22,8 +22,8 @@ export function StatusBar(props: StatusBarProps) {
             sx={{
                 alignItems: 'center',
                 bgcolor: 'background.paper',
-                borderColor: 'divider',
                 borderTop: 1,
+                borderColor: 'divider',
                 color: 'text.secondary',
                 display: 'flex',
                 flexShrink: 0,
