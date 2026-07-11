@@ -46,6 +46,7 @@ function renderPopup(overrides: Partial<Parameters<typeof ActionPopup>[0]> = {})
     render(
         <ActionPopup
             action={action('Implement')}
+            anchorElement={document.body}
             context={context}
             loadHistory={loadHistory}
             onClose={onClose}
@@ -269,16 +270,10 @@ describe('ActionPopup', () => {
         expect(onNavigate).toHaveBeenCalledWith(after)
     })
 
-    it('places the resize handle in the corner set by popup position', () => {
-        renderPopup({ resizeCorner: 'lower-left' })
-
-        expect(screen.getByRole('separator', { name: 'Resize action popup' })).toHaveAttribute('data-corner', 'lower-left')
-    })
-
     it('grows the popup when the resize handle is dragged', () => {
         renderPopup()
         const handle = screen.getByRole('separator', { name: 'Resize action popup' })
-        const paper = document.querySelector('.MuiDialog-paper') as HTMLElement
+        const paper = document.querySelector('.MuiPopover-paper') as HTMLElement
 
         fireEvent.pointerDown(handle, { clientX: 0, clientY: 0, pointerId: 1 })
         fireEvent.pointerMove(window, { clientX: 100, clientY: 60, pointerId: 1 })

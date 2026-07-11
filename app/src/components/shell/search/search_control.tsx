@@ -43,6 +43,7 @@ export function SearchControl(props: SearchControlProps) {
     const [isDismissed, setIsDismissed] = useState(false)
     const [isAgentBusy, setIsAgentBusy] = useState(false)
     const [actionStack, setActionStack] = useState<ActionDefinition[]>([])
+    const [controlElement, setControlElement] = useState<HTMLDivElement | null>(null)
 
     const hasQuery = query.trim().length > 0
     const isDropdownOpen = isSearchFocused && !isDismissed
@@ -138,10 +139,14 @@ export function SearchControl(props: SearchControlProps) {
         setActionStack((current) => [...current, action])
     }
 
+    const closeActionPopup = () => {
+        setActionStack([])
+    }
+
     const currentAction = actionStack.at(-1) ?? null
 
     return (
-        <Box onBlur={handleControlBlur} sx={{ maxWidth: RESULTS_WIDTH, position: 'relative', width: '100%' }}>
+        <Box onBlur={handleControlBlur} ref={setControlElement} sx={{ maxWidth: RESULTS_WIDTH, position: 'relative', width: '100%' }}>
             <Box style={NO_DRAG_REGION}>
                 <TextField
                     fullWidth
@@ -259,8 +264,9 @@ export function SearchControl(props: SearchControlProps) {
             {currentAction ? (
                 <ActionPopup
                     action={currentAction}
+                    anchorElement={controlElement}
                     context={SEARCH_ACTION_CONTEXT}
-                    onClose={() => setActionStack([])}
+                    onClose={closeActionPopup}
                     onNavigate={handleNavigateAction}
                 />
             ) : null}

@@ -32,14 +32,14 @@ describe('CardBodyEditor', () => {
     afterEach(cleanup)
 
     it('seeds the editor with the card body only', () => {
-        renderCardBodyEditor({ card: card(), onBodyChange: vi.fn() })
+        renderCardBodyEditor({ card: card(), isFullscreen: false, onBodyChange: vi.fn(), onToggleFullscreen: vi.fn() })
 
         expect(screen.getByRole('textbox')).toHaveValue('# Alpha\n\nOriginal body')
     })
 
     it('reports body edits with the card path so the header stays with DataService', () => {
         const onBodyChange = vi.fn()
-        renderCardBodyEditor({ card: card(), onBodyChange })
+        renderCardBodyEditor({ card: card(), isFullscreen: false, onBodyChange, onToggleFullscreen: vi.fn() })
 
         fireEvent.change(screen.getByRole('textbox'), { target: { value: '# Alpha\n\nEdited body' } })
 
@@ -47,7 +47,13 @@ describe('CardBodyEditor', () => {
     })
 
     it('keeps the toolbar sticky on mobile', () => {
-        const { container } = renderCardBodyEditor({ card: card(), isMobile: true, onBodyChange: vi.fn() })
+        const { container } = renderCardBodyEditor({
+            card: card(),
+            isFullscreen: false,
+            isMobile: true,
+            onBodyChange: vi.fn(),
+            onToggleFullscreen: vi.fn(),
+        })
 
         expect(container.querySelector('[data-sticky-toolbar="true"]')).not.toBeNull()
     })

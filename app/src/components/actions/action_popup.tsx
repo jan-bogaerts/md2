@@ -1,6 +1,8 @@
-import { Box, Button, Dialog, Divider, Stack, Typography } from '@mui/material'
+import { Box, Button, Divider, Stack, Typography } from '@mui/material'
+import { useId } from 'react'
 import type { ActionContext } from '../../data/action_context'
 import type { ActionDefinition } from '../../data/action_types'
+import { ResizablePopover } from '../resizable_popover'
 import {
     statusColor,
     type ConvertPromptToAction,
@@ -8,7 +10,6 @@ import {
     type RunAction,
     type ScheduleAction,
 } from './action_popup_defaults'
-import { ActionPopupResizeHandle, type ResizeCorner } from './action_popup_resize_handle'
 import { RelatedActions } from './action_related_actions'
 import { ActionRunHistory } from './action_run_history'
 import { ActionRunStatus } from './action_run_status'
@@ -18,14 +19,13 @@ import { useActionPopupController } from './use_action_popup_controller'
 
 interface ActionPopupProps {
     action: ActionDefinition
+    anchorElement: HTMLElement | null
     context: ActionContext
     /** Open a new popup for a related (`before`/`after`) action with the same context. */
     onNavigate: (action: ActionDefinition) => void
     onClose: () => void
     convertPromptToAction?: ConvertPromptToAction
     loadHistory?: LoadHistory
-    /** Lower corner to place the resize handle; defaults to lower-right. */
-    resizeCorner?: ResizeCorner
     runAction?: RunAction
     scheduleAction?: ScheduleAction
 }
@@ -35,18 +35,22 @@ interface ActionPopupProps {
  * a `Run` command and shortcuts to the action's `before` and `after` actions.
  */
 export function ActionPopup(props: ActionPopupProps) {
-    const { action, onClose, onNavigate } = props
+    const { action, anchorElement, onClose, onNavigate } = props
     const controller = useActionPopupController(props)
+    const titleId = useId()
 
     return (
-        <Dialog
+        <ResizablePopover
+            anchorElement={anchorElement}
+            initialSize={{ height: 320, width: 420 }}
+            labelId={titleId}
             onClose={onClose}
-            open
-            slotProps={{ paper: { style: { height: controller.size.height, width: controller.size.width }, sx: { m: 2, position: 'relative' } } }}
+            open={!!anchorElement}
+            resizeLabel="Resize action popup"
         >
             <Stack spacing={2} sx={{ flex: 1, minHeight: 0, overflow: 'auto', p: 2 }}>
                 <Box>
-                    <Typography variant="h6">{action.label}</Typography>
+                    <Typography id={titleId} variant="h6">{action.label}</Typography>
                     {action.description ? (
                         <Typography color="text.secondary" variant="body2">
                             {action.description}
@@ -109,8 +113,6 @@ export function ActionPopup(props: ActionPopupProps) {
                 <RelatedActions actions={action.before} label="Before" onNavigate={onNavigate} />
                 <RelatedActions actions={action.after} label="After" onNavigate={onNavigate} />
             </Stack>
-
-            <ActionPopupResizeHandle corner={controller.resizeCorner} onPointerDown={controller.startResize} />
-        </Dialog>
+        </ResizablePopover>
     )
 }

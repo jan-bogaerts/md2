@@ -333,7 +333,12 @@ export function ProjectCardView(props: ProjectCardViewProps) {
                 onClose={closeCardActions}
                 open={!!actionsAnchorElement || !!actionsMenuPosition}
             >
-                <ActionEntryPoints context={cardContext(card, cardTypes)} onMenuItemSelected={closeCardActions} variant="menuItems" />
+                <ActionEntryPoints
+                    context={cardContext(card, cardTypes)}
+                    onMenuItemSelected={closeCardActions}
+                    popupAnchorElement={node.current}
+                    variant="menuItems"
+                />
                 {policyKeys.map((policyKey) => (
                     <CardPolicyMenuItem
                         key={policyKey}

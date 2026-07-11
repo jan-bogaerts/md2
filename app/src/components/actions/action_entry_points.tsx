@@ -2,6 +2,7 @@ import { Button, IconButton, ListItemIcon, Menu, MenuItem, Stack, Tooltip } from
 import DotsVertical from 'mdi-material-ui/DotsVertical'
 import Play from 'mdi-material-ui/Play'
 import { useEffect, useMemo, useState } from 'react'
+import type { MouseEvent } from 'react'
 import { actionsForContext, type ActionContext } from '../../data/action_context'
 import type { ActionDefinition } from '../../data/action_types'
 import { useActions } from '../hooks/use_actions'
@@ -15,6 +16,7 @@ export type ActionEntryVariant = 'button' | 'icons' | 'menu' | 'menuItems'
 interface ActionEntryPointsProps {
     context: ActionContext
     onMenuItemSelected?: () => void
+    popupAnchorElement?: HTMLElement | null
     variant: ActionEntryVariant
 }
 
@@ -27,10 +29,11 @@ const DEFAULT_ICON_SOURCE: ActionIconSource = { dataUri: null }
  * related action with the same context.
  */
 export function ActionEntryPoints(props: ActionEntryPointsProps) {
-    const { context, onMenuItemSelected, variant } = props
+    const { context, onMenuItemSelected, popupAnchorElement, variant } = props
     const { actions } = useActions()
     const [iconSources, setIconSources] = useState<Record<string, ActionIconSource>>({})
     const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null)
+    const [popupAnchor, setPopupAnchor] = useState<HTMLElement | null>(null)
     const [stack, setStack] = useState<ActionDefinition[]>([])
 
     const matching = useMemo(() => actionsForContext(actions, context), [actions, context])
@@ -54,9 +57,10 @@ export function ActionEntryPoints(props: ActionEntryPointsProps) {
 
     if (matching.length === 0) return null
 
-    const open = (action: ActionDefinition) => {
+    const open = (action: ActionDefinition, anchorElement: HTMLElement) => {
         setMenuAnchor(null)
         onMenuItemSelected?.()
+        setPopupAnchor(anchorElement)
         setStack([action])
     }
 
@@ -67,14 +71,22 @@ export function ActionEntryPoints(props: ActionEntryPointsProps) {
     const current = stack.at(-1) ?? null
     const iconSourceFor = (action: ActionDefinition) => iconSources[action.name] ?? DEFAULT_ICON_SOURCE
 
+    const closePopup = () => {
+        setPopupAnchor(null)
+        setStack([])
+    }
+
     const popup = current ? (
-        <ActionPopup action={current} context={context} onClose={() => setStack([])} onNavigate={navigate} />
+        <ActionPopup action={current} anchorElement={popupAnchor} context={context} onClose={closePopup} onNavigate={navigate} />
     ) : null
 
     const menuItems = (
         <>
             {matching.map((action) => (
-                <MenuItem key={action.name} onClick={() => open(action)}>
+                <MenuItem
+                    key={action.name}
+                    onClick={(event) => open(action, popupAnchorElement ?? menuAnchor ?? event.currentTarget)}
+                >
                     <ListItemIcon>
                         <ActionIcon fontSize="small" source={iconSourceFor(action)} />
                     </ListItemIcon>
@@ -92,8 +104,8 @@ export function ActionEntryPoints(props: ActionEntryPointsProps) {
             ?? matching.find((action) => !action.builtin)
             ?? matching[0]
 
-        const handleRun = () => {
-            open(primaryAction)
+        const handleRun = (event: MouseEvent<HTMLButtonElement>) => {
+            open(primaryAction, event.currentTarget)
         }
 
         return (
@@ -131,7 +143,7 @@ export function ActionEntryPoints(props: ActionEntryPointsProps) {
         <Stack direction="row" spacing={0.25} sx={{ flexShrink: 0 }}>
             {matching.map((action) => (
                 <Tooltip key={action.name} title={action.label}>
-                    <IconButton aria-label={action.label} onClick={() => open(action)} size="small">
+                    <IconButton aria-label={action.label} onClick={(event) => open(action, event.currentTarget)} size="small">
                         <ActionIcon fontSize="small" source={iconSourceFor(action)} />
                     </IconButton>
                 </Tooltip>

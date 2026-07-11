@@ -17,9 +17,7 @@ import {
     type RunAction,
     type ScheduleAction,
 } from './action_popup_defaults'
-import type { ResizeCorner } from './action_popup_resize_handle'
 import { createScheduleTrigger, type ScheduleTriggerType } from './action_schedule_trigger'
-import { useActionPopupResize } from './use_action_popup_resize'
 
 const DEFAULT_CONVERT_LABEL_LENGTH = 40
 
@@ -28,7 +26,6 @@ interface ActionPopupControllerInput {
     context: ActionContext
     convertPromptToAction?: ConvertPromptToAction
     loadHistory?: LoadHistory
-    resizeCorner?: ResizeCorner
     runAction?: RunAction
     scheduleAction?: ScheduleAction
 }
@@ -41,7 +38,6 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
     const configuredModel = useConfigValueOrFallback('desktop.model', '')
     const convertPromptToAction = input.convertPromptToAction ?? defaultConvertPromptToAction
     const loadHistory = input.loadHistory ?? defaultLoadHistory
-    const resizeCorner = input.resizeCorner ?? 'lower-right'
     const runAction = input.runAction ?? defaultRunAction
     const scheduleAction = input.scheduleAction ?? defaultScheduleAction
     const agentProfiles = mergeAgentProfiles(configuredAgentProfiles)
@@ -62,7 +58,6 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
     const [scheduleOpen, setScheduleOpen] = useState(false)
     const [scheduleTimestamp, setScheduleTimestamp] = useState('')
     const [scheduleTriggerType, setScheduleTriggerType] = useState<ScheduleTriggerType>('at')
-    const { size, startResize } = useActionPopupResize(resizeCorner)
     const agent = agentOverride ?? defaultAgent
     const model = modelOverride ?? defaultModel
     const selectedAgentProfile = findAgentProfile(agentProfiles, agent)
@@ -192,7 +187,6 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
         history,
         historyError,
         model,
-        resizeCorner,
         runResult,
         runStatus,
         scheduleAfterActionName,
@@ -201,7 +195,5 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
         scheduleTimestamp,
         scheduleTriggerType,
         selectedAgentModels,
-        size,
-        startResize,
     }
 }

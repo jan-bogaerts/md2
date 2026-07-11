@@ -186,7 +186,8 @@ describe('CardView', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Drag F-1' }))
 
         const dialog = screen.getByRole('dialog')
-        expect(within(dialog).getByText('F-1 First')).toBeInTheDocument()
+        expect(within(dialog).getByText('F-1')).toBeInTheDocument()
+        expect(within(dialog).getByRole('textbox', { name: 'Card title' })).toHaveValue('First')
         expect(within(dialog).getByDisplayValue(/Body of F-1/)).toBeInTheDocument()
         expect(trackEvent).toHaveBeenCalledWith('navigation')
 
@@ -200,6 +201,26 @@ describe('CardView', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Open in file mode' }))
 
         expect(handlers.onOpenInFileMode).toHaveBeenCalledWith('design/F-1.md')
+    })
+
+    it('edits the title from the card popup and commits on Enter', () => {
+        const handlers = renderCardView()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Drag F-1' }))
+        const titleInput = within(screen.getByRole('dialog')).getByRole('textbox', { name: 'Card title' })
+        fireEvent.change(titleInput, { target: { value: 'Renamed in popup' } })
+        fireEvent.keyDown(titleInput, { key: 'Enter' })
+
+        expect(handlers.onTitleChange).toHaveBeenCalledWith('design/F-1.md', 'Renamed in popup')
+    })
+
+    it('expands and restores the card popup from the formatting toolbar', () => {
+        renderCardView()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Drag F-1' }))
+        fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Fullscreen' }))
+
+        expect(within(screen.getByRole('dialog')).getByRole('button', { name: 'Exit fullscreen' })).toBeInTheDocument()
     })
 
     it('routes the file-mode action from the card header without opening the popup', () => {
@@ -282,6 +303,7 @@ describe('CardView', () => {
         const dialog = screen.getByRole('dialog')
         expect(within(dialog).getByDisplayValue(/Body of F-1/)).toBeInTheDocument()
         expect(within(dialog).getByRole('button', { name: 'Affects' })).toBeInTheDocument()
+        expect(screen.getByRole('separator', { name: 'Resize card details popup' })).toBeInTheDocument()
     })
 
     it('highlights the card matching the selected path', () => {

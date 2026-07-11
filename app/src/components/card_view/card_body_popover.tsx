@@ -1,10 +1,22 @@
-import { Box, Button, Popover, Stack, Typography } from '@mui/material'
+import { alpha, Box, Button, IconButton, InputBase, Tooltip, Typography } from '@mui/material'
+import type { ChangeEvent, KeyboardEvent } from 'react'
 import { useState } from 'react'
+import Close from 'mdi-material-ui/Close'
+import DeleteOutline from 'mdi-material-ui/DeleteOutline'
+import FileDocumentOutline from 'mdi-material-ui/FileDocumentOutline'
+import FolderSearchOutline from 'mdi-material-ui/FolderSearchOutline'
 import type { ProjectCard } from '../../data/data_types'
+import { ResizablePopover } from '../resizable_popover'
 import { CardBodyEditor } from './card_body_editor'
 import { CardDeleteDialog } from './card_delete_dialog'
 
-const CARD_BODY_POPOVER_WIDTH = 720
+const CARD_BODY_POPOVER_WIDTH = 760
+const FULLSCREEN_INSET = 16
+
+interface TitleEdit {
+    path: string | null
+    title: string
+}
 
 interface CardBodyPopoverProps {
     anchorElement: HTMLElement | null
@@ -15,15 +27,37 @@ interface CardBodyPopoverProps {
     onDeleteCard: (path: string) => Promise<void>
     onOpenAffects: (path: string) => void
     onOpenInFileMode: (path: string) => void
+    onTitleChange: (path: string, title: string) => void
 }
 
-/** Card body editor anchored to the card that opened it. */
+/** Card details editor anchored to the card that opened it. */
 export function CardBodyPopover(props: CardBodyPopoverProps) {
-    const { anchorElement, card, isMobile, onBodyChange, onClose, onDeleteCard, onOpenAffects, onOpenInFileMode } = props
+    const {
+        anchorElement,
+        card,
+        isMobile,
+        onBodyChange,
+        onClose,
+        onDeleteCard,
+        onOpenAffects,
+        onOpenInFileMode,
+        onTitleChange,
+    } = props
     const [deleteCardPath, setDeleteCardPath] = useState<string | null>(null)
+    const [isFullscreen, setIsFullscreen] = useState(false)
+    const [titleEdit, setTitleEdit] = useState<TitleEdit>({ path: null, title: '' })
+    const titleDraft = titleEdit.path === card?.path ? titleEdit.title : card?.header.title ?? ''
+
+    const handleClose = () => {
+        setIsFullscreen(false)
+        setTitleEdit({ path: null, title: '' })
+        onClose()
+    }
 
     const openInFileMode = () => {
-        if (card) onOpenInFileMode(card.path)
+        if (!card) return
+        setIsFullscreen(false)
+        onOpenInFileMode(card.path)
     }
 
     const closeDeleteCardDialog = () => {
@@ -39,42 +73,168 @@ export function CardBodyPopover(props: CardBodyPopoverProps) {
         if (card) onOpenAffects(card.path)
     }
 
-    const titleId = card ? `card-body-popover-${card.header.internalId}` : undefined
+    const handleTitleChange = (event: ChangeEvent<HTMLInputElement>) => {
+        if (!card) return
+        setTitleEdit({ path: card.path, title: event.target.value })
+    }
+
+    const commitTitle = () => {
+        if (!card) return
+        const nextTitle = titleDraft.trim()
+        if (nextTitle.length === 0) {
+            setTitleEdit({ path: card.path, title: card.header.title })
+            return
+        }
+        if (nextTitle !== card.header.title) onTitleChange(card.path, nextTitle)
+    }
+
+    const handleTitleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+        if (event.key === 'Enter') commitTitle()
+        if (event.key === 'Escape' && card) setTitleEdit({ path: card.path, title: card.header.title })
+    }
+
+    const toggleFullscreen = () => {
+        setIsFullscreen((current) => !current)
+    }
+
+    const deleteCard = async (path: string) => {
+        setIsFullscreen(false)
+        await onDeleteCard(path)
+    }
+
+    const titleId = card ? `card-body-popover-${card.header.internalId}` : 'card-body-popover'
+    const isAgentRunning = card?.agentConversations.some((conversation) => conversation.status === 'running') ?? false
+    const statusLabel = isAgentRunning ? 'Running' : 'Idle'
+    const fullscreenSize = `calc(100vw - ${FULLSCREEN_INSET * 2}px)`
+    const fullscreenHeight = `calc(100vh - ${FULLSCREEN_INSET * 2}px)`
 
     return (
         <>
-            <Popover
-                anchorEl={anchorElement}
-                anchorOrigin={{ horizontal: 'left', vertical: 'bottom' }}
-                onClose={onClose}
+            <ResizablePopover
+                anchorElement={anchorElement}
+                initialSize={{ width: CARD_BODY_POPOVER_WIDTH }}
+                labelId={titleId}
+                onClose={handleClose}
                 open={!!card && !!anchorElement}
-                slotProps={{
-                    paper: {
-                        'aria-labelledby': titleId,
-                        role: 'dialog',
-                        sx: { maxHeight: 'calc(100vh - 32px)', maxWidth: 'calc(100vw - 32px)', width: CARD_BODY_POPOVER_WIDTH },
-                    },
+                paperSx={{
+                    backgroundColor: 'background.paper',
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    borderRadius: '14px',
+                    boxShadow: '0 24px 60px rgba(16, 24, 40, 0.28)',
+                    flexDirection: 'column',
+                    height: isFullscreen ? `${fullscreenHeight} !important` : undefined,
+                    left: isFullscreen ? `${FULLSCREEN_INSET}px !important` : undefined,
+                    maxHeight: isFullscreen ? 'none' : undefined,
+                    maxWidth: isFullscreen ? 'none' : undefined,
+                    top: isFullscreen ? `${FULLSCREEN_INSET}px !important` : undefined,
+                    transform: isFullscreen ? 'none !important' : undefined,
+                    width: isFullscreen ? `${fullscreenSize} !important` : undefined,
                 }}
-                transformOrigin={{ horizontal: 'left', vertical: 'top' }}
+                resizeLabel="Resize card details popup"
             >
                 {card ? (
-                    <Stack spacing={2} sx={{ p: 2 }}>
-                        <Typography id={titleId} variant="h6">
-                            {card.header.id} {card.header.title}
-                        </Typography>
-                        <Box sx={{ minHeight: 0, overflow: 'auto' }}>
-                            <CardBodyEditor card={card} isMobile={isMobile} onBodyChange={onBodyChange} />
+                    <>
+                        <Box
+                            sx={{
+                                alignItems: 'center',
+                                borderBottom: '1px solid',
+                                borderColor: 'divider',
+                                display: 'flex',
+                                flexShrink: 0,
+                                gap: '10px',
+                                padding: '12px 16px 12px 20px',
+                            }}
+                        >
+                            <Typography id={titleId} sx={{ position: 'absolute', transform: 'scale(0)' }}>
+                                {card.header.id} card details
+                            </Typography>
+                            <Box
+                                component="span"
+                                sx={(theme) => ({
+                                    backgroundColor: alpha(theme.palette.primary.main, theme.palette.mode === 'dark' ? 0.16 : 0.1),
+                                    borderRadius: '5px',
+                                    color: 'primary.main',
+                                    flexShrink: 0,
+                                    fontFamily: '"Roboto Mono", ui-monospace, monospace',
+                                    fontSize: 12,
+                                    fontWeight: 600,
+                                    padding: '3px 8px',
+                                })}
+                            >
+                                {card.header.id}
+                            </Box>
+                            <InputBase
+                                aria-label="Card title"
+                                onBlur={commitTitle}
+                                onChange={handleTitleChange}
+                                onKeyDown={handleTitleKeyDown}
+                                placeholder="Card title"
+                                sx={(theme) => ({
+                                    '&:focus-within': {
+                                        backgroundColor: 'background.paper',
+                                        borderColor: 'primary.main',
+                                        boxShadow: `0 0 0 3px ${alpha(theme.palette.primary.main, 0.12)}`,
+                                    },
+                                    '&:hover:not(:focus-within)': { backgroundColor: 'action.hover' },
+                                    '& input': { height: '34px', padding: '0 10px' },
+                                    backgroundColor: 'transparent',
+                                    border: '1px solid transparent',
+                                    borderRadius: '8px',
+                                    color: 'text.primary',
+                                    flex: 1,
+                                    fontSize: 16,
+                                    fontWeight: 700,
+                                    minWidth: 0,
+                                })}
+                                value={titleDraft}
+                            />
+                            <Box sx={{ alignItems: 'center', color: 'text.disabled', display: 'flex', flexShrink: 0, fontSize: 11.5, gap: '5px' }}>
+                                <Box sx={{ backgroundColor: 'text.disabled', borderRadius: '50%', height: 7, width: 7 }} />
+                                {statusLabel}
+                            </Box>
+                            <Box sx={{ backgroundColor: 'divider', flexShrink: 0, height: 20, width: '1px' }} />
+                            <Box sx={{ alignItems: 'center', color: 'text.disabled', display: 'flex', flexShrink: 0, fontSize: 11.5, gap: '5px' }}>
+                                <Box sx={{ backgroundColor: 'success.main', borderRadius: '50%', height: 7, width: 7 }} />
+                                Saved
+                            </Box>
+                            <Tooltip title="Close">
+                                <IconButton aria-label="Close card details" onClick={handleClose} size="small" sx={{ height: 30, ml: '4px', width: 30 }}>
+                                    <Close sx={{ fontSize: 17 }} />
+                                </IconButton>
+                            </Tooltip>
                         </Box>
-                        <Stack direction="row" spacing={1} sx={{ justifyContent: 'flex-end' }}>
-                            <Button color="error" onClick={openDeleteCardDialog}>Delete</Button>
-                            <Button onClick={openAffects}>Affects</Button>
-                            <Button onClick={openInFileMode}>Open in file mode</Button>
-                            <Button onClick={onClose}>Close</Button>
-                        </Stack>
-                    </Stack>
+
+                        <CardBodyEditor
+                            card={card}
+                            isFullscreen={isFullscreen}
+                            isMobile={isMobile}
+                            onBodyChange={onBodyChange}
+                            onToggleFullscreen={toggleFullscreen}
+                        />
+
+                        <Box
+                            sx={{
+                                alignItems: 'center',
+                                backgroundColor: 'background.default',
+                                borderTop: '1px solid',
+                                borderColor: 'divider',
+                                display: 'flex',
+                                flexShrink: 0,
+                                gap: '8px',
+                                padding: '12px 16px',
+                            }}
+                        >
+                            <Button color="error" onClick={openDeleteCardDialog} startIcon={<DeleteOutline />} variant="outlined">Delete</Button>
+                            <Button onClick={openAffects} startIcon={<FolderSearchOutline />} variant="outlined">Affects</Button>
+                            <Button onClick={openInFileMode} startIcon={<FileDocumentOutline />} variant="outlined">Open in file mode</Button>
+                            <Box sx={{ flex: 1 }} />
+                            <Button onClick={handleClose} variant="contained">Close</Button>
+                        </Box>
+                    </>
                 ) : null}
-            </Popover>
-            <CardDeleteDialog cardPath={deleteCardPath} onClose={closeDeleteCardDialog} onDeleteCard={onDeleteCard} />
+            </ResizablePopover>
+            <CardDeleteDialog cardPath={deleteCardPath} onClose={closeDeleteCardDialog} onDeleteCard={deleteCard} />
         </>
     )
 }

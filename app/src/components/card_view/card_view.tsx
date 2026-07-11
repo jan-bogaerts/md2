@@ -141,6 +141,7 @@ export function CardView(props: CardViewProps) {
                 onDeleteCard={handleDeleteCard}
                 onOpenAffects={handleOpenAffects}
                 onOpenInFileMode={handleOpenInFileMode}
+                onTitleChange={onTitleChange}
             />
             <AffectsEditorDialog
                 card={affectsCard}

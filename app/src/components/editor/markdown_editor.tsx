@@ -5,6 +5,7 @@ import {
     tablePlugin, thematicBreakPlugin, toolbarPlugin,
 } from '@mdxeditor/editor'
 import '@mdxeditor/editor/style.css'
+import type { ReactNode } from 'react'
 import { useAppTheme } from '../../theme/use_app_theme'
 import { MarkdownFormatToolbarControls } from './markdown_format_toolbar_controls'
 import { buildMarkdownContentSx } from './markdown_style_sx'
@@ -16,6 +17,7 @@ interface MarkdownEditorProps {
     markdown: string
     onChange: (markdown: string) => void
     stickyToolbar?: boolean
+    toolbarContents?: () => ReactNode
 }
 
 /**
@@ -25,7 +27,7 @@ interface MarkdownEditorProps {
  * On mobile the formatting toolbar stays sticky at the top of the scroll area.
  */
 export function MarkdownEditor(props: MarkdownEditorProps) {
-    const { markdown, onChange, stickyToolbar = false } = props
+    const { markdown, onChange, stickyToolbar = false, toolbarContents = MarkdownFormatToolbarControls } = props
     const { markdownStyleConfig } = useAppTheme()
     const markdownContentSx = buildMarkdownContentSx(markdownStyleConfig)
     const stickySx = stickyToolbar
@@ -51,7 +53,7 @@ export function MarkdownEditor(props: MarkdownEditorProps) {
                     codeBlockPlugin({ defaultCodeBlockLanguage: DEFAULT_CODE_LANGUAGE }),
                     codeMirrorPlugin({ codeBlockLanguages: CODE_BLOCK_LANGUAGES }),
                     markdownShortcutPlugin(),
-                    toolbarPlugin({toolbarContents: MarkdownFormatToolbarControls}),
+                    toolbarPlugin({ toolbarContents }),
                 ]}
             />
         </Box>
