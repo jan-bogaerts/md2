@@ -100,6 +100,8 @@ function dependencySourceMapNoiseFilter(): Plugin {
 }
 
 export default defineConfig({
+    base: './',
+    build: {sourcemap: false},
     plugins: [react(), dependencySourceMapNoiseFilter()],
     resolve: {
         alias: [

@@ -16,8 +16,10 @@ import {
 import type { SelectChangeEvent } from '@mui/material'
 import type { ChangeEvent } from 'react'
 import { useState } from 'react'
-import type { BranchReference, ProjectReference, RepositoryReference, TopLevelFolderReference } from '../../../data/data_types'
-import { WorkingFolderChooserDialog, type WorkingFolderResolution } from './working_folder_chooser_dialog'
+import { DEFAULT_PROJECT_FOLDER, type BranchReference, type ProjectReference, type RepositoryReference, type TopLevelFolderReference } from '../../../data/data_types'
+import type { ProjectOpenResolution } from '../../../services/project_session_service'
+import { ProjectFolderSetupForm } from './project_folder_setup_form'
+import { WorkingFolderChooserDialog } from './working_folder_chooser_dialog'
 
 type ProjectSource = 'github' | 'remote'
 
@@ -31,12 +33,13 @@ interface ProjectOpenDialogProps {
     isDesktopMode: boolean
     isGithubAuthenticated: boolean
     isLoading: boolean
-    missingWorkingFolder: WorkingFolderResolution | null
+    projectOpenResolution: ProjectOpenResolution | null
     open: boolean
     pendingGithubConflictProject: ProjectReference | null
     repositories: RepositoryReference[]
     onBranchChange: (branch: string) => void
     onClose: () => void
+    onCreateProjectFolders: (projectFolder: string) => void
     onCreateRemoteProject: (rootPath: string, branch: string) => ProjectReference
     onCreateWorkingFolder: () => void
     onDiscardGithubPendingCommits: () => void
@@ -77,9 +80,9 @@ export function ProjectOpenDialog(props: ProjectOpenDialogProps) {
         isDesktopMode,
         isGithubAuthenticated,
         isLoading,
-        missingWorkingFolder,
         onBranchChange,
         onClose,
+        onCreateProjectFolders,
         onCreateRemoteProject,
         onCreateWorkingFolder,
         onDiscardGithubPendingCommits,
@@ -92,10 +95,12 @@ export function ProjectOpenDialog(props: ProjectOpenDialogProps) {
         onUseWorkingFolder,
         open,
         pendingGithubConflictProject,
+        projectOpenResolution,
         repositories,
     } = props
     const [githubOwner, setGithubOwner] = useState('')
     const [githubRepository, setGithubRepository] = useState('')
+    const [projectFolder, setProjectFolder] = useState(DEFAULT_PROJECT_FOLDER)
     const [repositoryFilter, setRepositoryFilter] = useState('')
     const [remoteEndpoint, setRemoteEndpoint] = useState('')
     const [remoteRootPath, setRemoteRootPath] = useState('')
@@ -103,6 +108,8 @@ export function ProjectOpenDialog(props: ProjectOpenDialogProps) {
     const [selectedBranch, setSelectedBranch] = useState('')
     const [selectedRepositoryId, setSelectedRepositoryId] = useState('')
     const [source, setSource] = useState<ProjectSource>('github')
+    const projectFolderSetup = projectOpenResolution?.kind === 'project-folder-setup' ? projectOpenResolution : null
+    const missingWorkingFolder = projectOpenResolution?.kind === 'missing-working-folder' ? projectOpenResolution : null
     const filteredRepositories = repositories.filter((repository) => repositoryMatchesFilter(repository, repositoryFilter))
     const filteredRepositoryIds = filteredRepositories.map(({ id }) => id)
     const isRemoteComplete = remoteEndpoint.length > 0 && remoteToken.length > 0 && remoteRootPath.length > 0
@@ -193,9 +200,22 @@ export function ProjectOpenDialog(props: ProjectOpenDialogProps) {
         void onOpenRemote(remoteEndpoint, remoteToken, project)
     }
 
+    const handleProjectFolderChange = (value: string) => {
+        setProjectFolder(value)
+    }
+
+    const handleCreateProjectFoldersClick = () => {
+        onCreateProjectFolders(projectFolder)
+    }
+
+    const handleClose = () => {
+        setProjectFolder(DEFAULT_PROJECT_FOLDER)
+        onClose()
+    }
+
     return (
-        <Dialog fullWidth maxWidth="sm" onClose={onClose} open={open}>
-            <DialogTitle>Open project</DialogTitle>
+        <Dialog fullWidth maxWidth="sm" onClose={handleClose} open={open}>
+            <DialogTitle>{projectFolderSetup ? 'Create project' : 'Open project'}</DialogTitle>
             <DialogContent>
                 <Stack spacing={2} sx={{ pt: 1 }}>
                     {pendingGithubConflictProject ? (
@@ -208,14 +228,14 @@ export function ProjectOpenDialog(props: ProjectOpenDialogProps) {
                             </Button>
                         </Stack>
                     ) : null}
-                    {!isDesktopMode ? <FormControl size="small">
+                    {!projectOpenResolution && !isDesktopMode ? <FormControl size="small">
                         <InputLabel id="project-source-label">Source</InputLabel>
                         <Select label="Source" labelId="project-source-label" onChange={handleSourceChange} value={source}>
                             <MenuItem value="github">GitHub</MenuItem>
                             <MenuItem value="remote">Remote</MenuItem>
                         </Select>
                     </FormControl> : null}
-                    {!isDesktopMode && source === 'github' ? (
+                    {!projectOpenResolution && !isDesktopMode && source === 'github' ? (
                         <>
                             <TextField disabled={!isGithubAuthenticated} label="Filter repositories" onChange={handleRepositoryFilterChange} size="small" value={repositoryFilter} />
                             <FormControl disabled={!isGithubAuthenticated || repositories.length === 0} size="small">
@@ -236,7 +256,7 @@ export function ProjectOpenDialog(props: ProjectOpenDialogProps) {
                                 Load branches
                             </Button>
                         </>
-                    ) : !isDesktopMode ? (
+                    ) : !projectOpenResolution && !isDesktopMode ? (
                         <>
                             <TextField label="Endpoint" onChange={handleRemoteEndpointChange} size="small" value={remoteEndpoint} />
                             <TextField label="Token" onChange={handleRemoteTokenChange} size="small" type="password" value={remoteToken} />
@@ -251,7 +271,7 @@ export function ProjectOpenDialog(props: ProjectOpenDialogProps) {
                             </Button>
                         </>
                     ) : null}
-                    {!isDesktopMode && source !== 'remote' ? (
+                    {!projectOpenResolution && !isDesktopMode && source !== 'remote' ? (
                         branches.length > 0 ? (
                             <FormControl size="small">
                                 <InputLabel id="open-branch-label">Branch</InputLabel>
@@ -262,6 +282,13 @@ export function ProjectOpenDialog(props: ProjectOpenDialogProps) {
                         ) : (
                             <TextField label="Branch" onChange={handleBranchTextChange} size="small" value={selectedBranch} />
                         )
+                    ) : null}
+                    {projectFolderSetup ? (
+                        <ProjectFolderSetupForm
+                            folders={projectFolderSetup.folders}
+                            onProjectFolderChange={handleProjectFolderChange}
+                            projectFolder={projectFolder}
+                        />
                     ) : null}
                     {missingWorkingFolder ? (
                         <WorkingFolderChooserDialog
@@ -274,12 +301,16 @@ export function ProjectOpenDialog(props: ProjectOpenDialogProps) {
                 </Stack>
             </DialogContent>
             <DialogActions>
-                <Button onClick={onClose}>Cancel</Button>
-                {!isDesktopMode && source === 'github' ? (
+                <Button onClick={handleClose}>Cancel</Button>
+                {projectFolderSetup ? (
+                    <Button disabled={projectFolder.trim().length === 0 || isLoading} onClick={handleCreateProjectFoldersClick} variant="contained">
+                        Create
+                    </Button>
+                ) : !projectOpenResolution && !isDesktopMode && source === 'github' ? (
                     <Button disabled={!isGithubAuthenticated || githubOwner.length === 0 || githubRepository.length === 0 || isLoading} onClick={handleOpenGithubClick} variant="contained">
                         Open GitHub
                     </Button>
-                ) : !isDesktopMode && source === 'remote' ? (
+                ) : !projectOpenResolution && !isDesktopMode && source === 'remote' ? (
                     <Button
                         disabled={!isRemoteComplete || isLoading}
                         onClick={handleOpenRemoteClick}

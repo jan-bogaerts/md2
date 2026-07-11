@@ -1,10 +1,14 @@
-import { Box, IconButton, Tab, Tabs } from '@mui/material'
+import { Box, IconButton, Tab, Tabs, useTheme } from '@mui/material'
+import { alpha } from '@mui/material/styles'
 import Close from 'mdi-material-ui/Close'
-import type { SyntheticEvent } from 'react'
+import type { MouseEvent, SyntheticEvent } from 'react'
 
 export interface OpenTab {
+    color: string | null
+    id: string | null
     label: string
     path: string
+    title: string
 }
 
 interface TabBarProps {
@@ -14,39 +18,81 @@ interface TabBarProps {
     tabs: OpenTab[]
 }
 
-/** Horizontal bar of open-file tabs with per-tab close buttons. */
+/** Horizontal bar of compact open-file tabs with card identity and close buttons. */
 export function TabBar(props: TabBarProps) {
     const { activePath, onActivate, onClose, tabs } = props
+    const theme = useTheme()
 
     const handleChange = (_event: SyntheticEvent, value: string) => {
         onActivate(value)
     }
 
+    const handleClose = (event: MouseEvent<HTMLButtonElement>) => {
+        event.stopPropagation()
+        const path = event.currentTarget.dataset.path
+        if (!path) throw new Error('Missing path for tab close button')
+
+        onClose(path)
+    }
+
     return (
-        <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+        <Box sx={{ borderBottom: 1, borderColor: 'divider', minHeight: 40 }}>
             <Tabs
                 onChange={handleChange}
                 scrollButtons="auto"
+                sx={{
+                    minHeight: 40,
+                    '& .MuiTabs-indicator': { height: 2 },
+                    '& .MuiTab-root': {
+                        color: 'text.secondary',
+                        minHeight: 40,
+                        minWidth: 0,
+                        px: 1.5,
+                        py: 0,
+                        textTransform: 'none',
+                    },
+                    '& .MuiTab-root.Mui-selected': { color: 'text.primary' },
+                }}
                 value={activePath ?? false}
                 variant="scrollable"
             >
                 {tabs.map((tab) => (
                     <Tab
+                        aria-label={tab.label}
                         key={tab.path}
                         component="div"
                         label={(
-                            <Box sx={{ alignItems: 'center', display: 'flex', gap: 0.5 }}>
-                                <span>{tab.label}</span>
+                            <Box sx={{ alignItems: 'center', display: 'flex', gap: 1, maxWidth: 240, minWidth: 0 }}>
+                                {tab.id ? (
+                                    <Box
+                                        component="span"
+                                        sx={{
+                                            bgcolor: alpha(tab.color ?? theme.palette.primary.main, 0.16),
+                                            borderRadius: '5px',
+                                            color: tab.color ?? 'primary.main',
+                                            flexShrink: 0,
+                                            fontFamily: '"Roboto Mono", ui-monospace, monospace',
+                                            fontSize: 11.5,
+                                            fontWeight: 600,
+                                            px: 0.875,
+                                            py: 0.25,
+                                        }}
+                                    >
+                                        {tab.id}
+                                    </Box>
+                                ) : null}
+                                <Box component="span" sx={{ fontSize: 12.5, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                    {tab.title}
+                                </Box>
                                 <IconButton
                                     aria-label={`Close ${tab.label}`}
                                     component="span"
-                                    onClick={(event) => {
-                                        event.stopPropagation()
-                                        onClose(tab.path)
-                                    }}
+                                    data-path={tab.path}
+                                    onClick={handleClose}
                                     size="small"
+                                    sx={{ color: 'text.disabled', flexShrink: 0, height: 20, width: 20 }}
                                 >
-                                    <Close fontSize="small" />
+                                    <Close sx={{ fontSize: 15 }} />
                                 </IconButton>
                             </Box>
                         )}

@@ -53,7 +53,7 @@ function createBridge(): ElectronDataBridge {
             files: files.filter((file) => !file.path.slice('design/'.length).includes('/')),
             workingFolder: 'design',
         })),
-        loadProjectConfig: vi.fn(async () => null),
+        loadProjectConfig: vi.fn(async () => ({ projectFolder: '', workingFolder: 'design' })),
         moveFiles: vi.fn(async (request) => {
             for (const move of request.moves) {
                 const existingIndex = files.findIndex((file) => file.path === move.fromPath)
@@ -222,6 +222,28 @@ describe('ProjectWorkspace', () => {
         expect(dataService.getState().project).toBeNull()
     })
 
+    it('creates default project folders and config when a local repository has no config', async () => {
+        const bridge = createBridge()
+        bridge.loadProjectConfig = vi.fn(async () => null)
+        bridge.listTopLevelFolders = vi.fn(async () => [{ name: 'docs', path: 'docs' }])
+        window.md2Data = bridge
+
+        renderProjectSurface(false)
+        requestLocalProject()
+
+        expect(await screen.findByRole('dialog', { name: 'Create project' })).toBeInTheDocument()
+        expect(screen.getByLabelText('Project folder')).toHaveValue('design')
+        fireEvent.change(screen.getByLabelText('Project folder'), { target: { value: 'docs' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Create' }))
+
+        await waitFor(() => expect(bridge.createWorkingFolderFromTemplate).toHaveBeenCalledWith(expect.any(Object), 'docs/active'))
+        await waitFor(() => expect(bridge.saveProjectConfig).toHaveBeenCalledWith(expect.any(Object), expect.objectContaining({
+            projectFolder: 'docs',
+            workingFolder: 'active',
+        })))
+        await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Create project' })).toBeNull())
+    })
+
     it('keeps the workspace paper fixed while its content scrolls without a header', async () => {
         window.md2Data = createBridge()
 
@@ -320,7 +342,7 @@ describe('ProjectWorkspace', () => {
             { name: 'docs', path: 'docs' },
             { name: 'notes', path: 'notes' },
         ])
-        bridge.loadProjectConfig = vi.fn(async () => savedConfig ?? { workingFolder: 'missing' })
+        bridge.loadProjectConfig = vi.fn(async () => savedConfig ?? { projectFolder: '', workingFolder: 'missing' })
         const loadProject = vi.fn(async (_project, workingFolder) => {
             if (workingFolder === 'missing') throw new MissingWorkingFolderError(workingFolder)
 
@@ -364,7 +386,7 @@ describe('ProjectWorkspace', () => {
         const bridge = createBridge()
         let isCreated = false
         bridge.listTopLevelFolders = vi.fn(async () => [{ name: 'docs', path: 'docs' }])
-        bridge.loadProjectConfig = vi.fn(async () => ({ workingFolder: 'missing' }))
+        bridge.loadProjectConfig = vi.fn(async () => ({ projectFolder: '', workingFolder: 'missing' }))
         const loadProject = vi.fn(async (_project, workingFolder) => {
             if (!isCreated) throw new MissingWorkingFolderError(workingFolder)
 

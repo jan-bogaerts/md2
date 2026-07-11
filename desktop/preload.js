@@ -145,6 +145,15 @@ function exposeWarning(message) {
 }
 
 function isAllowedOrigin() {
+    const trustedLocation = readArgumentValue('md2-bridge-trusted-location')
+    if (trustedLocation) {
+        const currentUrl = new URL(window.location.href)
+        const trustedUrl = new URL(decodeURIComponent(trustedLocation))
+        currentUrl.hash = ''
+        trustedUrl.hash = ''
+        if (currentUrl.href === trustedUrl.href) return true
+    }
+
     const allowedOrigins = readArgumentJson('md2-bridge-allowed-origins', [])
 
     return allowedOrigins.includes(window.location.origin)

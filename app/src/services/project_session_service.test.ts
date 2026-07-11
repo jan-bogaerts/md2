@@ -52,7 +52,7 @@ function createDataBridge(): ElectronDataBridge {
         loadActionFiles: vi.fn(async () => []),
         loadFile: vi.fn(async (_project, path) => ({ content: '', path })),
         loadProject: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
-        loadProjectConfig: vi.fn(async () => null),
+        loadProjectConfig: vi.fn(async () => ({ projectFolder: '', workingFolder: 'design' })),
         loadProjectRoot: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
         moveFiles: vi.fn(),
         openProjectFolder: vi.fn(async () => null),

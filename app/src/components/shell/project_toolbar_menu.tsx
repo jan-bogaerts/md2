@@ -54,6 +54,9 @@ export function ProjectToolbarMenu(props: ProjectToolbarMenuProps) {
     }
     const handleOpenReleaseDialog = () => openDialog('release')
     const handleOpenCardDialog = () => openDialog('card')
+    const handleCreateProjectFolders = (projectFolder: string) => {
+        void actions.createProjectFolders(projectFolder)
+    }
     const handleDiscardGithubPendingCommits = () => {
         if (!actions.pendingGithubConflictProject) return
 
@@ -81,7 +84,8 @@ export function ProjectToolbarMenu(props: ProjectToolbarMenuProps) {
                 isDesktopMode={actions.isDesktopMode}
                 isGithubAuthenticated={isGithubAuthenticated}
                 isLoading={actions.isLoading}
-                missingWorkingFolder={actions.missingWorkingFolder}
+                onCreateProjectFolders={handleCreateProjectFolders}
+                projectOpenResolution={actions.projectOpenResolution}
                 onBranchChange={() => undefined}
                 onClose={actions.closeDialog}
                 onCreateRemoteProject={actions.createRemoteProject}

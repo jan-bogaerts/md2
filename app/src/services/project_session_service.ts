@@ -1,4 +1,5 @@
 import {
+    DEFAULT_PROJECT_CONFIG,
     MISSING_WORKING_FOLDER_ERROR,
     resolveProjectConfigPaths,
     type BranchReference,
@@ -20,12 +21,22 @@ import { markdownParsingService } from './markdown_parsing_service'
 import { register } from './service_injector'
 
 export interface MissingWorkingFolderResolution {
+    kind: 'missing-working-folder'
     configuredWorkingFolder: string
     folders: TopLevelFolderReference[]
     project: ProjectReference
     resolvedWorkingFolder: string
     storageType: StorageType
 }
+
+export interface ProjectFolderSetupResolution {
+    folders: TopLevelFolderReference[]
+    kind: 'project-folder-setup'
+    project: ProjectReference
+    storageType: 'github' | 'local'
+}
+
+export type ProjectOpenResolution = MissingWorkingFolderResolution | ProjectFolderSetupResolution
 
 export interface ProjectSessionState {
     errorMessage: string | null
@@ -63,6 +74,24 @@ async function persistWorkingFolder(storage: StorageService, project: ProjectRef
     }
     configService.loadProjectConfig(nextConfig)
     await storage.saveProjectConfig(project, nextConfig)
+}
+
+function requireProjectFolder(projectFolder: string) {
+    const normalizedFolder = projectFolder.trim().replace(/\\/gu, '/')
+    if (normalizedFolder.length === 0) throw new Error('Project folder is required')
+    if (normalizedFolder === '.' || normalizedFolder === '..' || normalizedFolder.includes('/')) {
+        throw new Error('Project folder must be a root folder name')
+    }
+
+    return normalizedFolder
+}
+
+async function listTopLevelFolders(storage: StorageService, project: ProjectReference) {
+    try {
+        return await storage.listTopLevelFolders(project)
+    } catch {
+        return EMPTY_TOP_LEVEL_FOLDERS
+    }
 }
 
 export class ProjectSessionService extends EventTarget {
@@ -108,9 +137,16 @@ export class ProjectSessionService extends EventTarget {
         storageType: StorageType,
         project: ProjectReference,
         accessToken: string | null,
-    ): Promise<MissingWorkingFolderResolution | null> {
+    ): Promise<ProjectOpenResolution | null> {
         return this.withLoading('Project load failed', async () => {
             const storage = createStorageService(storageType, accessToken)
+            const projectConfig = await storage.loadProjectConfig(project)
+            if ((storageType === 'github' || storageType === 'local') && projectConfig === null) {
+                const folders = await listTopLevelFolders(storage, project)
+
+                return { folders, kind: 'project-folder-setup', project, storageType }
+            }
+
             try {
                 dataService.init({ storage })
                 activateStorageService(storageType, storage)
@@ -142,6 +178,22 @@ export class ProjectSessionService extends EventTarget {
             const storage = createStorageService(resolution.storageType, accessToken)
             const project = await storage.createWorkingFolderFromTemplate(resolution.project, resolution.resolvedWorkingFolder)
             await persistWorkingFolder(storage, project, resolution.configuredWorkingFolder)
+            dataService.init({ storage })
+            activateStorageService(resolution.storageType, storage)
+            await dataService.projectLoading.openProject(project)
+            writeLastProject(resolution.storageType, project)
+        })
+    }
+
+    async createProjectFolders(resolution: ProjectFolderSetupResolution, projectFolder: string, accessToken: string | null) {
+        await this.withLoading('Project folder creation failed', async () => {
+            const storage = createStorageService(resolution.storageType, accessToken)
+            const normalizedProjectFolder = requireProjectFolder(projectFolder)
+            const projectConfig = { ...DEFAULT_PROJECT_CONFIG, projectFolder: normalizedProjectFolder }
+            const resolvedConfig = resolveProjectConfigPaths(projectConfig)
+            const project = await storage.createWorkingFolderFromTemplate(resolution.project, resolvedConfig.workingFolder)
+            await storage.saveProjectConfig(project, projectConfig)
+            configService.loadProjectConfig(projectConfig)
             dataService.init({ storage })
             activateStorageService(resolution.storageType, storage)
             await dataService.projectLoading.openProject(project)
@@ -181,27 +233,18 @@ export class ProjectSessionService extends EventTarget {
         storage: StorageService,
         storageType: StorageType,
         project: ProjectReference,
-    ) {
+    ): Promise<MissingWorkingFolderResolution> {
         const config = configService.getProjectConfig()
         const resolvedConfig = resolveProjectConfigPaths(config)
-        try {
-            const folders = await storage.listTopLevelFolders(project)
+        const folders = await listTopLevelFolders(storage, project)
 
-            return {
-                configuredWorkingFolder: config.workingFolder,
-                folders,
-                project,
-                resolvedWorkingFolder: resolvedConfig.workingFolder,
-                storageType,
-            }
-        } catch {
-            return {
-                configuredWorkingFolder: config.workingFolder,
-                folders: EMPTY_TOP_LEVEL_FOLDERS,
-                project,
-                resolvedWorkingFolder: resolvedConfig.workingFolder,
-                storageType,
-            }
+        return {
+            configuredWorkingFolder: config.workingFolder,
+            folders,
+            kind: 'missing-working-folder',
+            project,
+            resolvedWorkingFolder: resolvedConfig.workingFolder,
+            storageType,
         }
     }
 

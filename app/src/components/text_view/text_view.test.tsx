@@ -2,7 +2,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { useCallback } from 'react'
 import { TextView } from './text_view'
-import { DEFAULT_CARD_TYPES, type AgentConversation, type ProjectCard } from '../../data/data_types'
+import { DEFAULT_CARD_TYPES, DEFAULT_STATES, type AgentConversation, type ProjectCard } from '../../data/data_types'
 import { telemetryService } from '../../services/telemetry_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import { LeftPanelSlotProvider } from '../shell/left_panel_slot_provider'
@@ -80,6 +80,7 @@ function renderTextView(overrides: Partial<Parameters<typeof TextView>[0]> = {})
                     onStartAgentConversation={vi.fn()}
                     requestedNonce={0}
                     requestedPath={null}
+                    states={DEFAULT_STATES}
                     workingFolder="design"
                     {...overrides}
                 />
@@ -98,7 +99,7 @@ function renderTextView(overrides: Partial<Parameters<typeof TextView>[0]> = {})
 
 /** Click a file leaf inside the tree region (avoids matching the same label in an open tab). */
 function clickTreeFile(label: string) {
-    fireEvent.click(within(screen.getByLabelText('File tree')).getByText(label))
+    fireEvent.click(within(screen.getByLabelText('File tree')).getByRole('button', { name: label }))
 }
 
 describe('TextView', () => {
@@ -114,7 +115,8 @@ describe('TextView', () => {
         expect(tree.getByText('todo')).toBeInTheDocument()
         expect(tree.getByText('done')).toBeInTheDocument()
         expect(tree.getByText('history')).toBeInTheDocument()
-        expect(tree.getByText('F-1 Alpha')).toBeInTheDocument()
+        expect(tree.getByRole('button', { name: 'todo 1' })).toBeInTheDocument()
+        expect(tree.getByRole('button', { name: 'F-1 Alpha' })).toBeInTheDocument()
     })
 
     it('opens a file in a tab when its tree node is clicked', () => {
@@ -123,7 +125,9 @@ describe('TextView', () => {
 
         clickTreeFile('F-1 Alpha')
 
-        expect(screen.getByRole('tab', { name: /Alpha/ })).toBeInTheDocument()
+        const tab = screen.getByRole('tab', { name: /Alpha/ })
+        expect(within(tab).getByText('F-1')).toBeInTheDocument()
+        expect(within(tab).getByText('Alpha')).toBeInTheDocument()
         expect(screen.getByDisplayValue(/Body A/)).toBeInTheDocument()
         expect(trackEvent).toHaveBeenCalledWith('navigation')
 
@@ -188,6 +192,7 @@ describe('TextView', () => {
             onLeftPanelInteraction: vi.fn(),
             onSendAgentInput: vi.fn(),
             onStartAgentConversation: vi.fn(),
+            states: DEFAULT_STATES,
             workingFolder: 'design',
         }
         const { rerender } = render(
@@ -225,6 +230,7 @@ describe('TextView', () => {
             onStartAgentConversation: vi.fn(),
             requestedNonce: 0,
             requestedPath: null,
+            states: DEFAULT_STATES,
             workingFolder: 'design',
         }
         const { rerender } = render(
@@ -236,8 +242,8 @@ describe('TextView', () => {
             </AppThemeProvider>,
         )
 
-        expect(within(screen.getByLabelText('File tree')).getByText('F-1 Alpha')).toBeInTheDocument()
-        expect(within(screen.getByLabelText('File tree')).queryByText('F-2 Beta')).toBeNull()
+        expect(within(screen.getByLabelText('File tree')).getByRole('button', { name: 'F-1 Alpha' })).toBeInTheDocument()
+        expect(within(screen.getByLabelText('File tree')).queryByRole('button', { name: 'F-2 Beta' })).toBeNull()
 
         rerender(
             <AppThemeProvider>
@@ -248,7 +254,7 @@ describe('TextView', () => {
             </AppThemeProvider>,
         )
 
-        expect(within(screen.getByLabelText('File tree')).getByText('F-2 Beta')).toBeInTheDocument()
+        expect(within(screen.getByLabelText('File tree')).getByRole('button', { name: 'F-2 Beta' })).toBeInTheDocument()
     })
 
     it('publishes the tree as left-panel content on mobile', () => {
@@ -278,7 +284,7 @@ describe('TextView', () => {
         renderTextView()
 
         expect(screen.queryByRole('button', { name: /Browse files/ })).not.toBeInTheDocument()
-        expect(within(screen.getByLabelText('File tree')).getByText('F-1 Alpha')).toBeInTheDocument()
+        expect(within(screen.getByLabelText('File tree')).getByRole('button', { name: 'F-1 Alpha' })).toBeInTheDocument()
     })
 
     it('opens the editor conversation panel and continues the active card conversation', () => {

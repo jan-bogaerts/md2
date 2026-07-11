@@ -272,6 +272,7 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
                             onStartAgentConversation={handleStartAgentConversation}
                             requestedNonce={requestedNonce}
                             requestedPath={requestedPath}
+                            states={states}
                             workingFolder={workingFolder}
                         />
                     )

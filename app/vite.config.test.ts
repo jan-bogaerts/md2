@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { sanitizeOptimizedDependencySourceMap } from './vite.config'
+import viteConfig, { sanitizeOptimizedDependencySourceMap } from './vite.config'
+
+describe('production build configuration', () => {
+    it('uses relative asset paths without source maps for packaged loading', () => {
+        expect(viteConfig).toMatchObject({
+            base: './',
+            build: { sourcemap: false },
+        })
+    })
+})
 
 describe('sanitizeOptimizedDependencySourceMap', () => {
     it('removes nested source map directives from optimized dependency sources', () => {

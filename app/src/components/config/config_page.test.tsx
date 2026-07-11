@@ -1,6 +1,7 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { StrictMode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { defaultColumnAccent } from '../../data/data_types'
 import { ConfigPage } from './config_page'
 import { configService } from '../../services/config_service'
 import { BUILTIN_AGENT_PROFILES } from '../../data/agent_profiles'
@@ -169,13 +170,13 @@ describe('ConfigPage', () => {
         saveProjectConfig.mockRestore()
     })
 
-    it('edits project states as ordered JSON definitions', () => {
+    it('edits project columns as ordered JSON definitions', () => {
         mockMatchMedia(false)
         configService.init()
         configService.loadProjectConfig(null)
 
         render(<ConfigPage hash="#project" />)
-        const statesEditor = screen.getByRole('textbox', { name: 'States' })
+        const statesEditor = screen.getByRole('textbox', { name: 'Columns' })
         const states = [
             { alwaysVisible: true, state: 'backlog' },
             { alwaysVisible: false, state: 'done' },
@@ -183,7 +184,10 @@ describe('ConfigPage', () => {
         fireEvent.change(statesEditor, { target: { value: JSON.stringify(states) } })
         fireEvent.blur(statesEditor)
 
-        expect(configService.getDraft()?.['project.states']).toEqual(states)
+        expect(configService.getDraft()?.['project.states']).toEqual(states.map((state, index) => ({
+            ...state,
+            color: defaultColumnAccent(index),
+        })))
     })
 
     it('keeps the config page visible while project config save is pending', () => {

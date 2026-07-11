@@ -10,7 +10,9 @@ const preloadPath = join(currentDirectory, 'preload.js')
 
 function createPreloadHarness(options = {}) {
     const origin = options.origin ?? 'http://localhost:5173'
+    const href = options.href ?? `${origin}/`
     const allowedOrigins = options.allowedOrigins ?? ['http://localhost:5173']
+    const trustedLocation = options.trustedLocation ?? 'http://localhost:5173'
     const desktopConfig = options.desktopConfig ?? { agent: 'codex', agentProfiles: [{ command: 'codex', name: 'codex' }], model: '' }
     const body = {
         appendChild: vi.fn(),
@@ -24,7 +26,7 @@ function createPreloadHarness(options = {}) {
             textContent: '',
         })),
     }
-    const window = { addEventListener: vi.fn(), location: { origin } }
+    const window = { addEventListener: vi.fn(), location: { href, origin } }
     const exposed = {}
     const contextBridge = {
         exposeInMainWorld: vi.fn((name, bridge) => {
@@ -38,6 +40,7 @@ function createPreloadHarness(options = {}) {
     }
     const argv = [
         `--md2-bridge-allowed-origins=${encodeURIComponent(JSON.stringify(allowedOrigins))}`,
+        `--md2-bridge-trusted-location=${encodeURIComponent(trustedLocation)}`,
         `--md2-desktop-config=${encodeURIComponent(JSON.stringify(desktopConfig))}`,
     ]
     const mockedModules = { electron }
@@ -49,6 +52,7 @@ function createPreloadHarness(options = {}) {
         exports: module.exports,
         process: { argv },
         require: fakeRequire,
+        URL,
         window,
     })
     const script = new vm.Script(readFileSync(preloadPath, 'utf8'), { filename: preloadPath })
@@ -126,7 +130,10 @@ describe('preload desktop agent bridge', () => {
     })
 
     it('blocks privileged bridges and renders a warning for disallowed origins', () => {
-        const { document, electron, exposed } = createPreloadHarness({ origin: 'https://evil.example' })
+        const { document, electron, exposed } = createPreloadHarness({
+            href: 'https://evil.example/',
+            origin: 'https://evil.example',
+        })
 
         expect(electron.contextBridge.exposeInMainWorld).not.toHaveBeenCalled()
         expect(exposed.md2Data).toBeUndefined()
@@ -134,6 +141,25 @@ describe('preload desktop agent bridge', () => {
         expect(exposed.md2Config).toBeUndefined()
         expect(document.body.innerHTML).toBe('')
         expect(document.body.appendChild).toHaveBeenCalled()
+    })
+
+    it('exposes bridges only to the exact packaged renderer file', () => {
+        const trustedLocation = 'file:///C:/Program%20Files/MD2/resources/app.asar/renderer/index.html'
+        const allowed = createPreloadHarness({
+            allowedOrigins: [],
+            href: `${trustedLocation}#board`,
+            origin: 'null',
+            trustedLocation,
+        })
+        const blocked = createPreloadHarness({
+            allowedOrigins: [],
+            href: 'file:///C:/Temp/untrusted.html',
+            origin: 'null',
+            trustedLocation,
+        })
+
+        expect(allowed.exposed.md2Data).toBeDefined()
+        expect(blocked.exposed.md2Data).toBeUndefined()
     })
 
     it('keeps desktop config cached while persisting updates through IPC', () => {

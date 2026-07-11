@@ -2,7 +2,7 @@ import { Badge, Box, Button, Divider, Stack, Typography } from '@mui/material'
 import type { KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent } from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { buildFileTree, fileLabel } from '../../data/file_tree'
-import type { AgentConversation, CardTypeConfig, ProjectCard } from '../../data/data_types'
+import { defaultColumnAccent, type AgentConversation, type CardTypeConfig, type ProjectCard, type StateConfig } from '../../data/data_types'
 import { telemetryService } from '../../services/telemetry_service'
 import { AgentConversationList } from '../agents/agent_conversation_list'
 import { MarkdownEditor } from '../editor/markdown_editor'
@@ -31,13 +31,23 @@ interface TextViewProps {
     onStartAgentConversation: (path: string, prompt: string) => void
     requestedNonce: number
     requestedPath: string | null
+    states: StateConfig[]
     workingFolder: string
 }
 
-function tabLabel(cardsByPath: Map<string, ProjectCard>, path: string): string {
-    const card = cardsByPath.get(path)
+function cardTypeColor(card: ProjectCard, cardTypes: CardTypeConfig[]) {
+    const idPrefix = card.header.id.split('-')[0]
+    const cardType = cardTypes.find((candidate) => candidate.idPrefix === idPrefix)
 
-    return card ? fileLabel(card) : path
+    return cardType?.color ?? null
+}
+
+function tabData(cardsByPath: Map<string, ProjectCard>, cardTypes: CardTypeConfig[], path: string): OpenTab {
+    const card = cardsByPath.get(path)
+    const label = card ? fileLabel(card) : path
+    const id = card && label.startsWith(`${card.header.id} `) ? card.header.id : null
+
+    return { color: card ? cardTypeColor(card, cardTypes) : null, id, label, path, title: id ? label.slice(id.length + 1) : label }
 }
 
 function conversationPanelMaxHeight(containerHeight: number): number {
@@ -65,6 +75,7 @@ export function TextView(props: TextViewProps) {
         onStartAgentConversation,
         requestedNonce,
         requestedPath,
+        states,
         workingFolder,
     } = props
     const [isConversationPanelOpen, setIsConversationPanelOpen] = useState(false)
@@ -87,6 +98,15 @@ export function TextView(props: TextViewProps) {
     }, [activeCards, backgroundCards])
     const availablePaths = useMemo(() => [...cardsByPath.keys()], [cardsByPath])
     const { activePath, activateTab, closeTab, openTab, tabs } = useOpenTabs(availablePaths)
+    const statusColors = useMemo(() => new Map(
+        tree
+            .filter((node) => node.kind === 'status')
+            .map((node, index) => {
+                const configuredState = states.find(({ state }) => state === node.label)
+
+                return [node.label, configuredState?.color ?? defaultColumnAccent(index)]
+            }),
+    ), [states, tree])
 
     useEffect(() => {
         onDeleteFileRef.current = onDeleteFile
@@ -98,7 +118,7 @@ export function TextView(props: TextViewProps) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [requestedNonce])
 
-    const openTabs: OpenTab[] = tabs.map((path) => ({ label: tabLabel(cardsByPath, path), path }))
+    const openTabs = tabs.map((path) => tabData(cardsByPath, cardTypes, path))
     const activeCard = activePath ? cardsByPath.get(activePath) ?? null : null
 
     const handleSelect = useCallback((path: string) => {
@@ -283,7 +303,7 @@ export function TextView(props: TextViewProps) {
     return (
         <>
             <LeftPanelSlot>
-                <Box aria-label="File tree" sx={{ overflow: 'auto' }}>
+                <Box aria-label="File tree" sx={{ bgcolor: 'action.hover', minHeight: '100%', mx: -2, overflow: 'auto' }}>
                     <FileTreeView
                         cardTypes={cardTypes}
                         cardsByPath={cardsByPath}
@@ -291,6 +311,7 @@ export function TextView(props: TextViewProps) {
                         onDeleteFile={handleDeleteFile}
                         onSelect={handleSelect}
                         selectedPath={activePath}
+                        statusColors={statusColors}
                     />
                 </Box>
             </LeftPanelSlot>

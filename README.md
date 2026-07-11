@@ -37,3 +37,5 @@ npm run lint
 npm run lint-fix
 npm run test
 ```
+
+Signed Windows release instructions: [`desktop/BUILDING_WINDOWS.md`](desktop/BUILDING_WINDOWS.md).

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_CARD_TYPES, DEFAULT_COLUMN_ACCENTS, DEFAULT_STATES, defaultColumnAccent } from './data_types'
+import { DEFAULT_CARD_TYPES, DEFAULT_COLUMN_ACCENTS, DEFAULT_PROJECT_CONFIG, DEFAULT_STATES, defaultColumnAccent } from './data_types'
 import { DEFAULT_COLOR_SCHEME } from '../theme/theme_config'
 
 describe('DEFAULT_CARD_TYPES', () => {
@@ -31,5 +31,12 @@ describe('DEFAULT_STATES', () => {
 
     it('repeats the default accent sequence for additional columns', () => {
         expect(defaultColumnAccent(DEFAULT_COLUMN_ACCENTS.length)).toBe(DEFAULT_COLUMN_ACCENTS[0])
+    })
+})
+
+describe('DEFAULT_PROJECT_CONFIG', () => {
+    it('starts new projects under design with an active working folder', () => {
+        expect(DEFAULT_PROJECT_CONFIG.projectFolder).toBe('design')
+        expect(DEFAULT_PROJECT_CONFIG.workingFolder).toBe('active')
     })
 })

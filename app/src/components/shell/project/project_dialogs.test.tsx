@@ -24,9 +24,10 @@ describe('project dialog components', () => {
                 isDesktopMode={false}
                 isGithubAuthenticated
                 isLoading={false}
-                missingWorkingFolder={null}
+                projectOpenResolution={null}
                 onBranchChange={vi.fn()}
                 onClose={vi.fn()}
+                onCreateProjectFolders={vi.fn()}
                 onCreateRemoteProject={vi.fn((rootPath, branch) => ({ branch, id: rootPath, rootPath }))}
                 onCreateWorkingFolder={vi.fn()}
                 onDiscardGithubPendingCommits={vi.fn()}
@@ -56,9 +57,10 @@ describe('project dialog components', () => {
                 isDesktopMode={false}
                 isGithubAuthenticated
                 isLoading={false}
-                missingWorkingFolder={null}
+                projectOpenResolution={null}
                 onBranchChange={vi.fn()}
                 onClose={vi.fn()}
+                onCreateProjectFolders={vi.fn()}
                 onCreateRemoteProject={vi.fn((rootPath, branch) => ({ branch, id: rootPath, rootPath }))}
                 onCreateWorkingFolder={vi.fn()}
                 onDiscardGithubPendingCommits={vi.fn()}
@@ -109,14 +111,17 @@ describe('project dialog components', () => {
                 isDesktopMode
                 isGithubAuthenticated={false}
                 isLoading={false}
-                missingWorkingFolder={{
+                projectOpenResolution={{
                     configuredWorkingFolder: 'missing',
                     folders: [{ name: 'docs', path: 'docs' }],
+                    kind: 'missing-working-folder',
                     project: PROJECT,
+                    resolvedWorkingFolder: 'missing',
                     storageType: 'local',
                 }}
                 onBranchChange={vi.fn()}
                 onClose={vi.fn()}
+                onCreateProjectFolders={vi.fn()}
                 onCreateRemoteProject={vi.fn((rootPath, branch) => ({ branch, id: rootPath, rootPath }))}
                 onCreateWorkingFolder={vi.fn()}
                 onDiscardGithubPendingCommits={vi.fn()}
@@ -137,6 +142,49 @@ describe('project dialog components', () => {
         expect(screen.queryByRole('combobox', { name: 'Source' })).toBeNull()
         expect(screen.queryByRole('button', { name: 'Open GitHub' })).toBeNull()
         expect(screen.queryByRole('button', { name: 'Open Remote' })).toBeNull()
+    })
+
+    it('creates a missing-config project from a selected or entered root folder', async () => {
+        const createProjectFolders = vi.fn()
+        render(
+            <ProjectOpenDialog
+                branches={[]}
+                isDesktopMode
+                isGithubAuthenticated={false}
+                isLoading={false}
+                onBranchChange={vi.fn()}
+                onClose={vi.fn()}
+                onCreateProjectFolders={createProjectFolders}
+                onCreateRemoteProject={vi.fn((rootPath, branch) => ({ branch, id: rootPath, rootPath }))}
+                onCreateWorkingFolder={vi.fn()}
+                onDiscardGithubPendingCommits={vi.fn()}
+                onLoadManualBranches={vi.fn(async () => ({ branches: BRANCHES, repository: REPOSITORIES[0] }))}
+                onLoadRemoteBranches={vi.fn(async () => BRANCHES)}
+                onOpenGithub={vi.fn()}
+                onOpenRemote={vi.fn()}
+                onRepositoryChange={vi.fn(async () => BRANCHES)}
+                onSourceChange={vi.fn()}
+                onUseWorkingFolder={vi.fn()}
+                open
+                pendingGithubConflictProject={null}
+                projectOpenResolution={{
+                    folders: [{ name: 'docs', path: 'docs' }],
+                    kind: 'project-folder-setup',
+                    project: PROJECT,
+                    storageType: 'local',
+                }}
+                repositories={[]}
+            />,
+        )
+
+        expect(screen.getByRole('dialog', { name: 'Create project' })).toBeInTheDocument()
+        expect(screen.getByLabelText('Project folder')).toHaveValue('design')
+        expect(screen.queryByRole('combobox', { name: 'Source' })).toBeNull()
+
+        fireEvent.change(screen.getByLabelText('Project folder'), { target: { value: 'docs' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Create' }))
+
+        await waitFor(() => expect(createProjectFolders).toHaveBeenCalledWith('docs'))
     })
 
     it('renders the new card dialog and submits a draft without mounting the menu', async () => {

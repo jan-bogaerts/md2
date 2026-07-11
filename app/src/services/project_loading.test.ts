@@ -1,5 +1,5 @@
 ﻿import { afterEach, describe, expect, it, vi } from 'vitest'
-import { DEFAULT_STATES, type StorageProjectFiles, type StorageService } from '../data/data_types'
+import { DEFAULT_STATES, defaultColumnAccent, type StorageProjectFiles, type StorageService } from '../data/data_types'
 import { actionService } from './action_service'
 import { configService } from './config_service'
 import { DataService } from './data_service'
@@ -45,11 +45,11 @@ describe('ProjectLoading', () => {
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
 
         expect(service.getConfig()?.states).toEqual([
-            { alwaysVisible: true, state: 'design' },
-            { alwaysVisible: true, state: 'ready for implementation' },
-            { alwaysVisible: true, state: 'new' },
-            { alwaysVisible: true, state: 'in progress' },
-            { alwaysVisible: true, state: 'done' },
+            { alwaysVisible: true, color: defaultColumnAccent(1), state: 'design' },
+            { alwaysVisible: true, color: defaultColumnAccent(2), state: 'ready for implementation' },
+            { alwaysVisible: true, color: defaultColumnAccent(0), state: 'new' },
+            { alwaysVisible: true, color: defaultColumnAccent(3), state: 'in progress' },
+            { alwaysVisible: true, color: defaultColumnAccent(4), state: 'done' },
         ])
     })
 
@@ -76,7 +76,9 @@ describe('ProjectLoading', () => {
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
 
-        expect(service.getConfig()?.states).toEqual(configuredStates)
+        expect(service.getConfig()?.states).toEqual([
+            { ...configuredStates[0], color: defaultColumnAccent(0) },
+        ])
     })
     it('loads action files from the configured actions folder into the action service on open', async () => {
         configService.init()

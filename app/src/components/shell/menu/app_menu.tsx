@@ -98,6 +98,10 @@ export function AppMenu(props: AppMenuProps) {
         actions.openProjectDialog()
     }
 
+    const handleCreateProjectFolders = (projectFolder: string) => {
+        void actions.createProjectFolders(projectFolder)
+    }
+
     const handleLoadBranches = () => {
         void actions.loadSwitchBranches()
     }
@@ -291,7 +295,8 @@ export function AppMenu(props: AppMenuProps) {
                 isDesktopMode={actions.isDesktopMode}
                 isGithubAuthenticated={isGithubAuthenticated}
                 isLoading={actions.isLoading}
-                missingWorkingFolder={actions.missingWorkingFolder}
+                onCreateProjectFolders={handleCreateProjectFolders}
+                projectOpenResolution={actions.projectOpenResolution}
                 onBranchChange={() => undefined}
                 onClose={actions.closeDialog}
                 onCreateRemoteProject={actions.createRemoteProject}

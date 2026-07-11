@@ -27,7 +27,7 @@ function createFakeStore(initial = {}) {
 }
 
 describe('resolveAppUrl', () => {
-    it('defaults to the Vite dev server URL', () => {
+    it('defaults to the local Vite development server', () => {
         expect(resolveAppUrl({})).toBe(DEFAULT_APP_URL)
     })
 

@@ -11,7 +11,7 @@ import {
 import { getElectronDataBridge } from '../../../data/electron_data_bridge'
 import type { StorageType } from '../../../data/project_session'
 import { dialogService } from '../../../services/dialog_service'
-import { projectSessionService, type MissingWorkingFolderResolution } from '../../../services/project_session_service'
+import { projectSessionService, type ProjectOpenResolution } from '../../../services/project_session_service'
 import { useProjectConfig } from '../../hooks/use_project_config'
 import { useProjectSession } from '../../hooks/use_project_session'
 import { useProjectState } from '../../hooks/use_project_state'
@@ -48,7 +48,7 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
     const electronBridge = useMemo(() => getElectronDataBridge(), [])
     const [branches, setBranches] = useState<BranchReference[]>(EMPTY_BRANCHES)
     const [isReleaseCompleting, setIsReleaseCompleting] = useState(false)
-    const [missingWorkingFolder, setMissingWorkingFolder] = useState<MissingWorkingFolderResolution | null>(null)
+    const [projectOpenResolution, setProjectOpenResolution] = useState<ProjectOpenResolution | null>(null)
     const [repositories, setRepositories] = useState<RepositoryReference[]>(EMPTY_REPOSITORIES)
     const [switchBranch, setSwitchBranch] = useState(project?.branch ?? '')
     const activeCards = snapshot?.activeCards ?? []
@@ -57,17 +57,17 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
 
     const closeDialog = useCallback(() => {
         onCloseDialog()
-        setMissingWorkingFolder(null)
+        setProjectOpenResolution(null)
         projectSessionService.setError(null)
     }, [onCloseDialog])
 
     const openProject = useCallback(async (storageType: StorageType, nextProject: ProjectReference) => {
-        setMissingWorkingFolder(null)
+        setProjectOpenResolution(null)
 
         try {
             const resolution = await projectSessionService.openProject(storageType, nextProject, accessToken)
             if (resolution) {
-                setMissingWorkingFolder(resolution)
+                setProjectOpenResolution(resolution)
                 onOpenDialog('open')
 
                 return
@@ -158,7 +158,7 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
 
     const clearOpenDialogState = () => {
         setBranches(EMPTY_BRANCHES)
-        setMissingWorkingFolder(null)
+        setProjectOpenResolution(null)
     }
 
     const loadRepositoryBranches = async (repository: RepositoryReference) => {
@@ -234,10 +234,10 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
     }
 
     const openWorkingFolder = async (folder: TopLevelFolderReference) => {
-        if (!missingWorkingFolder) return
+        if (projectOpenResolution?.kind !== 'missing-working-folder') return
 
         try {
-            await projectSessionService.openWorkingFolder(missingWorkingFolder, folder, accessToken)
+            await projectSessionService.openWorkingFolder(projectOpenResolution, folder, accessToken)
             closeDialog()
         } catch {
             // ProjectSessionService emits the user-visible error.
@@ -245,10 +245,21 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
     }
 
     const createWorkingFolder = async () => {
-        if (!missingWorkingFolder) return
+        if (projectOpenResolution?.kind !== 'missing-working-folder') return
 
         try {
-            await projectSessionService.createWorkingFolder(missingWorkingFolder, accessToken)
+            await projectSessionService.createWorkingFolder(projectOpenResolution, accessToken)
+            closeDialog()
+        } catch {
+            // ProjectSessionService emits the user-visible error.
+        }
+    }
+
+    const createProjectFolders = async (projectFolder: string) => {
+        if (projectOpenResolution?.kind !== 'project-folder-setup') return
+
+        try {
+            await projectSessionService.createProjectFolders(projectOpenResolution, projectFolder, accessToken)
             closeDialog()
         } catch {
             // ProjectSessionService emits the user-visible error.
@@ -289,6 +300,7 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
         closeDialog,
         completeRelease,
         createCard,
+        createProjectFolders,
         createRemoteProject,
         createWorkingFolder,
         isLoading: projectSession.isLoading,
@@ -299,7 +311,7 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
         loadManualBranches,
         loadRemoteBranches,
         loadRepositoryBranches,
-        missingWorkingFolder,
+        projectOpenResolution,
         openBranchDialog,
         openGithubProject,
         openWorkingFolder,

@@ -97,6 +97,16 @@ describe('CardView', () => {
         expect(screen.getByText('First')).toBeInTheDocument()
     })
 
+    it('lets desktop columns flex between their minimum and maximum widths', () => {
+        renderCardView()
+
+        const columnStyle = window.getComputedStyle(screen.getByLabelText('todo column'))
+
+        expect(columnStyle.flexGrow).toBe('1')
+        expect(columnStyle.minWidth).toBe('200px')
+        expect(columnStyle.maxWidth).toBe('320px')
+    })
+
     it('shows always-visible columns without cards and hides other empty columns in config order', () => {
         renderCardView({
             cards: [],

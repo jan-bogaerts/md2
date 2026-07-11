@@ -69,7 +69,7 @@ export function MainToolbar(props: MainToolbarProps) {
                 </Box>
                 <Box
                     style={NO_DRAG_REGION}
-                    sx={{ display: 'flex', flex: isMobile ? 1 : `0 0 ${SEARCH_WIDTH}px`, ml: 0.5, minWidth: 180 }}
+                    sx={{ display: 'flex', flex: isMobile ? 1 : `0 0 ${SEARCH_WIDTH}px`, ml: 0.5, minWidth: 180, mr: isMobile ? 0 : '130px'}}
                 >
                     {search}
                 </Box>

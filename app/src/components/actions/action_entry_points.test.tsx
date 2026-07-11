@@ -183,6 +183,7 @@ describe('entry-point placement in the file tree', () => {
                 onDeleteFile={async () => undefined}
                 onSelect={() => {}}
                 selectedPath={null}
+                statusColors={new Map([['todo', '#9c4dcc']])}
             />,
         )
 

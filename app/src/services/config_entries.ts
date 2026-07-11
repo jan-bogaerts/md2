@@ -198,7 +198,7 @@ export const CONFIG_ENTRIES: ConfigEntry[] = [
         description: 'Board columns in display order. Fields: state, alwaysVisible, color.',
         editable: true,
         key: 'project.states',
-        label: 'States',
+        label: 'Columns',
         section: 'project',
         source: 'project',
         type: 'json',

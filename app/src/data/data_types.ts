@@ -2,9 +2,9 @@ import type { ActionFile } from './action_types'
 import type { ActionSchedule } from './action_schedule_types'
 import { DEFAULT_COLOR_SCHEME } from '../theme/theme_config'
 
-export const DEFAULT_WORKING_FOLDER = 'design'
+export const DEFAULT_WORKING_FOLDER = 'active'
 export const DEFAULT_ACTIONS_FOLDER = 'actions'
-export const DEFAULT_PROJECT_FOLDER = ''
+export const DEFAULT_PROJECT_FOLDER = 'design'
 export const DEFAULT_DIFF_COMMAND = 'git show {{commit}}'
 export const AUTO_COMMIT_DELAY_MS = 30000
 

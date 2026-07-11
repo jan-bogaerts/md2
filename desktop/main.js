@@ -1,7 +1,14 @@
-const { app, BrowserWindow, dialog, ipcMain, nativeTheme } = require('electron')
+const { app, BrowserWindow, dialog, ipcMain, nativeTheme, shell } = require('electron')
+const { existsSync } = require('node:fs')
 const path = require('node:path')
+
+const desktopEnvironmentPath = app.isPackaged
+    ? path.join(process.resourcesPath, '.env')
+    : path.join(__dirname, '.env')
+if (existsSync(desktopEnvironmentPath)) process.loadEnvFile(desktopEnvironmentPath)
+
 const Store = require('electron-store')
-const { readDesktopConfig, resolveAppUrl, resolveBridgeAllowedOrigins, writeDesktopConfig } = require('./config')
+const { readDesktopConfig, resolveBridgeAllowedOrigins, writeDesktopConfig } = require('./config')
 const { AgentRunnerService } = require('./agent_runner_service')
 const { ActionSchedulerService } = require('./action_scheduler_service')
 const diffService = require('./diff_service')
@@ -12,6 +19,7 @@ const { RemoteControlService } = require('./remote_control_service')
 const remarkableService = require('./remarkable_service')
 const { flush, registerProcessErrorHandlers, startElectronTelemetry, trackEvent } = require('./telemetry')
 const { THEME_MODE_STORE_KEY, resolveThemeMode, resolveTitleBarOverlay } = require('./theme')
+const { registerNavigationGuards, resolveRendererTarget } = require('./renderer_security')
 const {
     CONFIG_GET_DESKTOP_CHANNEL,
     CONFIG_SET_DESKTOP_CHANNEL,
@@ -33,7 +41,6 @@ const {
     THEME_SET_MODE_CHANNEL,
 } = require('./ipc_channels')
 
-const appUrl = resolveAppUrl()
 const QUIT_FLUSH_TIMEOUT_MS = 5000
 const EVENT_METHODS = new Set(['runAgent', 'startAgentConversation'])
 const SUBSCRIPTION_METHODS = new Set(['onScheduledActionRun', 'watchProject'])
@@ -160,17 +167,22 @@ function registerThemeBridge() {
 function createWindow() {
     const mode = resolveThemeMode(store.get(THEME_MODE_STORE_KEY))
     const desktopConfig = readDesktopConfig(store)
-    const bridgeAllowedOrigins = resolveBridgeAllowedOrigins(desktopConfig, appUrl)
+    const rendererTarget = resolveRendererTarget(app.isPackaged)
+    const bridgeAllowedOrigins = rendererTarget.type === 'url'
+        ? resolveBridgeAllowedOrigins(desktopConfig, rendererTarget.url)
+        : []
     nativeTheme.themeSource = mode
 
     const window = new BrowserWindow({
         width: 1280,
         height: 900,
+        icon: path.join(__dirname, 'build', 'md2.ico'),
         titleBarStyle: 'hidden',
         titleBarOverlay: resolveTitleBarOverlay(mode),
         webPreferences: {
             additionalArguments: [
                 `--md2-bridge-allowed-origins=${encodeURIComponent(JSON.stringify(bridgeAllowedOrigins))}`,
+                `--md2-bridge-trusted-location=${encodeURIComponent(rendererTarget.trustedLocation)}`,
                 `--md2-desktop-config=${encodeURIComponent(JSON.stringify(desktopConfig))}`,
             ],
             preload: path.join(__dirname, 'preload.js'),
@@ -180,7 +192,12 @@ function createWindow() {
         },
     })
 
-    window.loadURL(appUrl)
+    registerNavigationGuards(window.webContents, rendererTarget.trustedLocation, (url) => shell.openExternal(url))
+    if (rendererTarget.type === 'file') {
+        void window.loadFile(rendererTarget.filePath)
+    } else {
+        void window.loadURL(rendererTarget.url)
+    }
 
     if (!app.isPackaged) {
         window.webContents.openDevTools()

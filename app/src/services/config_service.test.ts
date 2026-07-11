@@ -19,7 +19,7 @@ describe('ConfigService', () => {
         expect(service.getProjectConfig()).toMatchObject({
             actionsFolder: 'ops',
             cardBodyTemplate: '# Goal\n\n# Current status\n\n# Details\n\n# Tasks',
-            projectFolder: '',
+            projectFolder: 'design',
             pushMode: 'manual',
             workingFolder: 'docs',
         })
