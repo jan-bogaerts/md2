@@ -18,6 +18,21 @@ describe('action definition writer helpers', () => {
         })
     })
 
+    it('preserves selected agent settings in a reusable action definition', () => {
+        const definition = createActionDefinition({ agent: 'codex', context, label: 'Fix tests', model: 'gpt-5', prompt: 'fix tests' })
+
+        expect(definition).toEqual({
+            agent: 'codex',
+            appliesTo: { type: 'feature' },
+            description: 'Custom prompt action: Fix tests',
+            label: 'Fix tests',
+            model: 'gpt-5',
+            name: 'fix-tests',
+            text: 'fix tests',
+            type: 'agent',
+        })
+    })
+
     it('builds action file paths', () => {
         expect(actionFilePath('actions', 'review-feature')).toBe('actions/review-feature.json')
     })

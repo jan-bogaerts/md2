@@ -107,7 +107,9 @@ export class CardOperations {
     }
 
     updateCardTitle(path: string, title: string) {
-        return this.updateCardHeaderFields(path, { title })
+        const existingFile = this.dependencies.requireFile(path)
+
+        return this.saveFile({ content: markdownParsingService.setCardTitle(existingFile.content, title), path, sha: existingFile.sha })
     }
 
     toggleCardPolicy(path: string, policyKey: string) {

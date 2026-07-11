@@ -242,7 +242,7 @@ export interface StorageService {
     createWorkingFolderFromTemplate(project: ProjectReference, workingFolder: string): Promise<ProjectReference>
     deleteFile(request: DeleteFileRequest): Promise<void>
     discardPendingCommits?(project: ProjectReference): void
-    hasPendingCommits?(project: ProjectReference): boolean
+    hasPendingPush?(project: ProjectReference): boolean
     listBranches(project: ProjectReference): Promise<BranchReference[]>
     listRepositories(): Promise<RepositoryReference[]>
     loadActionFiles(project: ProjectReference, actionsFolder: string): Promise<ActionFile[]>
@@ -258,6 +258,7 @@ export interface StorageService {
     resolveProject?(project: ProjectReference): Promise<ProjectReference>
     listRepositoryFiles(project: ProjectReference): Promise<string[]>
     listTopLevelFolders(project: ProjectReference): Promise<TopLevelFolderReference[]>
+    loadPendingPush?(project: ProjectReference): Promise<void>
     moveFiles(request: MoveFilesRequest): Promise<void>
     push(project: ProjectReference): Promise<void>
     saveActionSchedules?(project: ProjectReference, actionsFolder: string, schedules: ActionSchedule[]): Promise<ActionSchedule[]>

@@ -1,6 +1,8 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { DndContext } from '@dnd-kit/core'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { CardView } from './card_view'
+import { CardColumn } from './card_column'
 import { actionService } from '../../services/action_service'
 import type { ActionFile } from '../../data/action_types'
 import { DEFAULT_CARD_TYPES, type AgentConversation, type CardTypeConfig, type ProjectCard } from '../../data/data_types'
@@ -47,19 +49,25 @@ function actionFile(definition: unknown): ActionFile {
     return { content: JSON.stringify(definition), path: 'actions/action.json' }
 }
 
-function renderCardView(overrides: Partial<Parameters<typeof CardView>[0]> = {}) {
-    const handlers = {
-        onAffectsChange: vi.fn(),
-        onBodyChange: vi.fn(),
+function createColumnHandlers() {
+    return {
         onContinueAgentConversation: vi.fn(),
         onDeleteCard: vi.fn(async () => undefined),
-        onMoveCard: vi.fn(),
+        onOpenBody: vi.fn(),
         onOpenInFileMode: vi.fn(),
         onSendAgentInput: vi.fn(),
         onStartAgentConversation: vi.fn(),
         onTitleChange: vi.fn(),
         onTogglePolicy: vi.fn(),
     }
+}
+
+function createCardHandlers() {
+    return { ...createColumnHandlers(), onAffectsChange: vi.fn(), onBodyChange: vi.fn(), onMoveCard: vi.fn() }
+}
+
+function renderCardView(overrides: Partial<Parameters<typeof CardView>[0]> = {}) {
+    const handlers = createCardHandlers()
 
     render(
         <AppThemeProvider>
@@ -120,6 +128,33 @@ describe('CardView', () => {
         expect(screen.getByLabelText('new column')).toHaveTextContent('Drop a card here')
         expect(screen.getByLabelText('done column')).toHaveTextContent('Drop a card here')
         expect(screen.queryByText('design')).not.toBeInTheDocument()
+    })
+
+    it('inserts a card-sized drop position between target-column cards', () => {
+        const handlers = createColumnHandlers()
+        render(
+            <AppThemeProvider>
+                <DndContext>
+                    <CardColumn
+                        cardTypes={DEFAULT_CARD_TYPES}
+                        column={{ cards: [card('F-1', 'First', 'done'), card('F-2', 'Second', 'done')], color: '#123456', status: 'done' }}
+                        dropPreviewHeight={123}
+                        dropPreviewIndex={1}
+                        isMobile={false}
+                        openBodyPath={null}
+                        selectedPath={null}
+                        {...handlers}
+                    />
+                </DndContext>
+            </AppThemeProvider>,
+        )
+
+        const firstCard = screen.getByRole('button', { name: 'Drag F-1' })
+        const secondCard = screen.getByRole('button', { name: 'Drag F-2' })
+        const dropPosition = screen.getByLabelText('Card drop position')
+        expect(firstCard.compareDocumentPosition(dropPosition) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+        expect(dropPosition.compareDocumentPosition(secondCard) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+        expect(dropPosition).toHaveStyle({ minHeight: '123px' })
     })
 
     it('shows ids above titles without card type footnotes or an affects control', () => {

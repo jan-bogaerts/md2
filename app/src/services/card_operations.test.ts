@@ -204,6 +204,38 @@ describe('CardOperations', () => {
         expect(movedContent).toContain('after: p')
     })
 
+    it('keeps the window receiver when scheduling a card move', async () => {
+        configService.init()
+        const setTimeoutSpy = vi.spyOn(window, 'setTimeout').mockImplementation(function mockSetTimeout(this: Window) {
+            if (this !== window) throw new TypeError('Illegal invocation')
+
+            return 1
+        })
+        const clearTimeoutSpy = vi.spyOn(window, 'clearTimeout').mockImplementation(function mockClearTimeout(this: Window) {
+            if (this !== window) throw new TypeError('Illegal invocation')
+        })
+        const moveFiles: MarkdownFile[] = [
+            { content: '---\nid: A\ninternalId: a\ntitle: A\nstatus: todo\n---\n\n# A', path: 'design/A-1-a.md' },
+            { content: '---\nid: B\ninternalId: b\ntitle: B\nstatus: todo\nafter: a\n---\n\n# B', path: 'design/B-1-b.md' },
+        ]
+        const storage = createStorage({
+            loadProject: vi.fn(async () => ({ files: moveFiles, workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: moveFiles, workingFolder: 'design' })),
+        })
+        const service = new DataService()
+
+        try {
+            service.init({ storage })
+            await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+
+            expect(() => service.cards.moveCard('design/B-1-b.md', 'todo', 0)).not.toThrow()
+            await service.cards.flushPendingCommits()
+        } finally {
+            setTimeoutSpy.mockRestore()
+            clearTimeoutSpy.mockRestore()
+        }
+    })
+
     it('repairs ordering after deleting a middle card', async () => {
         configService.init()
         const deletionFiles = [
@@ -353,6 +385,7 @@ describe('CardOperations', () => {
 
         const committed = (storage.commit as ReturnType<typeof vi.fn>).mock.calls.at(-1)?.[0] as CommitRequest
         expect(committed.files[0].content).toContain('title: Renamed Root')
+        expect(committed.files[0].content).toContain('# Renamed Root')
     })
 
     it('edits a header field while preserving unknown header fields unchanged', async () => {
@@ -462,12 +495,12 @@ describe('CardOperations', () => {
 
             expect(errors.messages).toContain('network down')
             expect(captureError).toHaveBeenCalledWith(error)
-            expect(service.getState().hasPendingCommits).toBe(true)
+            expect(service.getState().hasPendingSave).toBe(true)
 
             commit.mockImplementation(async (request) => request.files)
             await service.cards.flushPendingCommits()
 
-            expect(service.getState().hasPendingCommits).toBe(false)
+            expect(service.getState().hasPendingSave).toBe(false)
             expect(commit).toHaveBeenCalledTimes(2)
         } finally {
             errors.stop()

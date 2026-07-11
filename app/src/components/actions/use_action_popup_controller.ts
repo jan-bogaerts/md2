@@ -160,12 +160,32 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
         setConvertMessage(null)
         try {
             const label = actionLabel.trim().length > 0 ? actionLabel : extraPrompt.trim().slice(0, DEFAULT_CONVERT_LABEL_LENGTH)
-            const result = await convertPromptToAction({ context, label, prompt: extraPrompt })
+            const convertInput = {
+                ...(agent ? { agent } : {}),
+                context,
+                label,
+                ...(model ? { model } : {}),
+                prompt: extraPrompt,
+            }
+            const result = await convertPromptToAction(convertInput)
             setConvertMessage(`Saved ${result.path}`)
+
+            return true
         } catch (error) {
             setConvertMessage(error instanceof Error ? error.message : 'Could not convert prompt to action')
+
+            return false
         }
     }
+
+    const handleSaveAndRun = async () => {
+        const saved = await handleConvertToAction()
+        if (!saved) return
+
+        await handleRun()
+    }
+
+    const saveDisabled = actionLabel.trim().length === 0 || runStatus === 'running'
 
     return {
         actionLabel,
@@ -179,6 +199,7 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
         handleExtraPromptChange,
         handleModelChange,
         handleRun,
+        handleSaveAndRun,
         handleScheduleAction,
         handleScheduleAfterActionNameChange,
         handleScheduleTimestampChange,
@@ -189,6 +210,7 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
         model,
         runResult,
         runStatus,
+        saveDisabled,
         scheduleAfterActionName,
         scheduleMessage,
         scheduleOpen,

@@ -113,8 +113,8 @@ export class GithubStorageService implements StorageService {
         return this.writer.restorePendingCommits(project)
     }
 
-    hasPendingCommits(project: ProjectReference) {
-        return this.writer.hasPendingCommits(project)
+    hasPendingPush(project: ProjectReference) {
+        return this.writer.hasPendingPush(project)
     }
 
     discardPendingCommits(project: ProjectReference) {

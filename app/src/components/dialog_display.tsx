@@ -60,16 +60,16 @@ export function DialogDisplay() {
                 >
                     {snackbarMessage ? (
                         <SelectableAlertMessage message={snackbarMessage.message} />
-                    ) : snackbarMessage?.message}
+                    ) : null}
                 </Alert>
             </Snackbar>
-            <Dialog aria-labelledby="dialog-service-title" disableEscapeKeyDown open={!!dialogMessage}>
+            <Dialog aria-labelledby="dialog-service-title" open={!!dialogMessage}>
                 <DialogTitle id="dialog-service-title">{dialogMessage?.title ?? 'Message'}</DialogTitle>
                 <DialogContent>
                     <Alert severity={dialogSeverity}>
                         {dialogMessage ? (
                             <SelectableAlertMessage message={dialogMessage.message} />
-                        ) : dialogMessage?.message}
+                        ) : null}
                     </Alert>
                 </DialogContent>
                 <DialogActions>

@@ -241,7 +241,10 @@ export class ProjectSessionService extends EventTarget {
     }
 
     async push() {
-        await this.withLoading('Push failed', () => dataService.projectLoading.push())
+        await this.withLoading('Push failed', async () => {
+            await dataService.cards.flushPendingCommits()
+            await dataService.projectLoading.push()
+        })
     }
 
     discardGithubPendingCommits(project: ProjectReference, accessToken: string | null) {

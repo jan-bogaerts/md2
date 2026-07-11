@@ -249,9 +249,6 @@ export class ConfigService extends EventTarget {
 
     loadProjectConfig(projectConfig: Partial<ProjectConfig> | null) {
         this.requireInitialized()
-        if (projectConfig !== null && projectConfig.backgroundShade === undefined) {
-            throw new Error('Missing config field: project.backgroundShade')
-        }
         let nextValues = this.values
         for (const key of PROJECT_KEYS) {
             nextValues = { ...nextValues, [key]: requireConfigEntry(key).defaultValue }

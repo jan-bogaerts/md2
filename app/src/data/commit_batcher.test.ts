@@ -6,7 +6,14 @@ describe('CommitBatcher', () => {
     it('batches typing commits until the delay expires', async () => {
         vi.useFakeTimers()
         const commit = vi.fn<CommitCallback>(async () => undefined)
-        const batcher = new CommitBatcher({ clearDelay: window.clearTimeout, commit, delayMs: 30000, setDelay: window.setTimeout })
+        const onPendingChange = vi.fn()
+        const batcher = new CommitBatcher({
+            clearDelay: window.clearTimeout,
+            commit,
+            delayMs: 30000,
+            onPendingChange,
+            setDelay: window.setTimeout,
+        })
 
         batcher.schedule('main', [{ content: 'one', path: 'design/F-1-root.md' }], 'Update root')
         batcher.schedule('main', [{ content: 'two', path: 'design/F-1-root.md' }], 'Update root')
@@ -16,12 +23,19 @@ describe('CommitBatcher', () => {
 
         expect(commit).toHaveBeenCalledTimes(1)
         expect(commit.mock.calls[0][0]).toMatchObject({ files: [{ content: 'two', path: 'design/F-1-root.md' }], message: 'Update root' })
+        expect(onPendingChange).toHaveBeenCalledTimes(2)
         vi.useRealTimers()
     })
 
     it('flushes one logical change with the exact message on close', async () => {
         const commit = vi.fn<CommitCallback>(async () => undefined)
-        const batcher = new CommitBatcher({ clearDelay: window.clearTimeout, commit, delayMs: 30000, setDelay: window.setTimeout })
+        const batcher = new CommitBatcher({
+            clearDelay: window.clearTimeout,
+            commit,
+            delayMs: 30000,
+            onPendingChange: vi.fn(),
+            setDelay: window.setTimeout,
+        })
 
         batcher.schedule('main', [{ content: 'one', path: 'design/F-1-root.md' }], 'Update root')
         expect(batcher.hasPending()).toBe(true)
@@ -45,6 +59,7 @@ describe('CommitBatcher', () => {
             commit,
             delayMs: 30000,
             onFlushError,
+            onPendingChange: vi.fn(),
             setDelay: window.setTimeout,
         })
 
@@ -63,7 +78,13 @@ describe('CommitBatcher', () => {
 
     it('combines distinct messages for a multi-file batch', async () => {
         const commit = vi.fn<CommitCallback>(async () => undefined)
-        const batcher = new CommitBatcher({ clearDelay: window.clearTimeout, commit, delayMs: 30000, setDelay: window.setTimeout })
+        const batcher = new CommitBatcher({
+            clearDelay: window.clearTimeout,
+            commit,
+            delayMs: 30000,
+            onPendingChange: vi.fn(),
+            setDelay: window.setTimeout,
+        })
 
         batcher.schedule('main', [{ content: 'one', path: 'design/F-1-root.md' }], 'Update design/F-1-root.md')
         batcher.schedule('main', [{ content: 'two', path: 'design/F-2-child.md' }], 'Update design/F-2-child.md')
@@ -81,7 +102,13 @@ describe('CommitBatcher', () => {
 
     it('deduplicates repeated messages for the same path', async () => {
         const commit = vi.fn<CommitCallback>(async () => undefined)
-        const batcher = new CommitBatcher({ clearDelay: window.clearTimeout, commit, delayMs: 30000, setDelay: window.setTimeout })
+        const batcher = new CommitBatcher({
+            clearDelay: window.clearTimeout,
+            commit,
+            delayMs: 30000,
+            onPendingChange: vi.fn(),
+            setDelay: window.setTimeout,
+        })
 
         batcher.schedule('main', [{ content: 'one', path: 'design/F-1-root.md' }], 'Update design/F-1-root.md')
         batcher.schedule('main', [{ content: 'two', path: 'design/F-1-root.md' }], 'Update design/F-1-root.md')

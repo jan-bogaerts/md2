@@ -245,6 +245,24 @@ describe('markdownParsingService.setAffects', () => {
     })
 })
 
+describe('markdownParsingService.setCardTitle', () => {
+    it('keeps the header title and first body heading synchronized', () => {
+        const content = '---\nid: F-1\ntitle: Root\n---\n\n# Root\n\n## Context\n\nBody'
+        const next = markdownParsingService.setCardTitle(content, 'Renamed Root')
+
+        expect(next).toContain('title: Renamed Root')
+        expect(next).toContain('\n# Renamed Root\n\n## Context')
+    })
+
+    it('leaves a body without a title heading unchanged', () => {
+        const content = '---\nid: F-1\ntitle: Root\n---\n\nBody without a heading'
+        const next = markdownParsingService.setCardTitle(content, 'Renamed Root')
+
+        expect(next).toContain('title: Renamed Root')
+        expect(next.endsWith('\n\nBody without a heading')).toBe(true)
+    })
+})
+
 describe('markdownParsingService line-ending preservation', () => {
     const CRLF_CONTENT = '---\r\nid: F-1\r\ntitle: Root\r\nstatus: active\r\npolicy:\r\n  checkLinting: true\r\n---\r\n\r\n# Root\r\n\r\nBody text'
 

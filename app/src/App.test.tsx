@@ -30,6 +30,7 @@ function createFailingBridge(): ElectronDataBridge {
         createProject: vi.fn(async (project) => project),
         createWorkingFolderFromTemplate: vi.fn(async (project) => project),
         deleteFile: vi.fn(),
+        hasPendingPush: vi.fn(async () => false),
         listBranches: vi.fn(async () => [{ name: 'main' }]),
         listRepositoryFiles: vi.fn(async () => []),
         listTopLevelFolders: vi.fn(async () => []),
@@ -58,6 +59,7 @@ function createResetStorage(): StorageService {
         createProject: vi.fn(async (project) => project),
         createWorkingFolderFromTemplate: vi.fn(async (project) => project),
         deleteFile: vi.fn(),
+        hasPendingPush: vi.fn(() => false),
         listBranches: vi.fn(async () => []),
         listRepositories: vi.fn(async () => []),
         listRepositoryFiles: vi.fn(async () => []),
@@ -98,7 +100,6 @@ describe('App', () => {
         render(<App />)
 
         await screen.findByRole('button', { name: 'GitHub account' })
-        fireEvent.click(screen.getByRole('tab', { name: 'Options' }))
         expect(screen.getByRole('button', { name: 'Switch to dark theme' })).toBeInTheDocument()
     })
 

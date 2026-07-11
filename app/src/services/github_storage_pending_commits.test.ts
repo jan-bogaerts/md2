@@ -33,7 +33,7 @@ describe('GithubStorageService', () => {
         expect(patchCalls).toHaveLength(1)
         expect(patchCalls[0][0]).toContain('/repos/owner/repo/git/refs/heads/main')
         expect(JSON.parse(patchCalls[0][1].body)).toEqual({ force: false, sha: 'pending-commit' })
-        expect(service.hasPendingCommits(project)).toBe(false)
+        expect(service.hasPendingPush(project)).toBe(false)
         expect(window.localStorage.getItem('md2.github.pendingCommitHeads')).toBeNull()
     })
 
@@ -66,7 +66,7 @@ describe('GithubStorageService', () => {
         secondService.init({ accessToken: 'token', fetchImplementation: secondFetchImplementation })
 
         await secondService.restorePendingCommits(project)
-        expect(secondService.hasPendingCommits(project)).toBe(true)
+        expect(secondService.hasPendingPush(project)).toBe(true)
 
         await secondService.push(project)
 
@@ -218,7 +218,7 @@ describe('GithubStorageService', () => {
         service.init({ accessToken: 'token', fetchImplementation })
 
         await expect(service.restorePendingCommits(project)).rejects.toBeInstanceOf(GithubPendingCommitConflictError)
-        expect(service.hasPendingCommits(project)).toBe(true)
+        expect(service.hasPendingPush(project)).toBe(true)
         expect(fetchImplementation.mock.calls.some(([, init]) => init.method === 'PATCH')).toBe(false)
     })
 
@@ -232,7 +232,7 @@ describe('GithubStorageService', () => {
 
         service.discardPendingCommits(project)
 
-        expect(service.hasPendingCommits(project)).toBe(false)
+        expect(service.hasPendingPush(project)).toBe(false)
         expect(JSON.parse(window.localStorage.getItem('md2.github.pendingCommitHeads') ?? '{}')).toEqual({'owner/other:main': { baseSha: 'other-base', headSha: 'other-head' }})
     })
 

@@ -26,9 +26,11 @@ interface LocalGitStorageDependencies {
 
 export class LocalGitStorageService implements StorageService {
     private bridge: ElectronDataBridge | null
+    private readonly pendingPushBranches: Set<string>
 
     constructor() {
         this.bridge = null
+        this.pendingPushBranches = new Set()
     }
 
     init(dependencies: LocalGitStorageDependencies = {}) {
@@ -153,30 +155,45 @@ export class LocalGitStorageService implements StorageService {
         return this.requireBridge().listTopLevelFolders(project)
     }
 
+    async loadPendingPush(project: ProjectReference) {
+        const hasPendingPush = await this.requireBridge().hasPendingPush(project)
+        if (hasPendingPush) this.pendingPushBranches.add(project.branch)
+        else this.pendingPushBranches.delete(project.branch)
+    }
+
     async checkoutBranch(project: ProjectReference, branch: string): Promise<ProjectReference> {
         return this.requireBridge().checkoutBranch(project, branch)
     }
 
     async commit(request: CommitRequest): Promise<CommitResult> {
         await this.requireBridge().commit(request)
+        this.pendingPushBranches.add(request.branch)
 
         return []
     }
 
     async deleteFile(request: DeleteFileRequest): Promise<void> {
         await this.requireBridge().deleteFile(request)
+        this.pendingPushBranches.add(request.branch)
     }
 
     async moveFiles(request: MoveFilesRequest): Promise<void> {
         await this.requireBridge().moveFiles(request)
+        this.pendingPushBranches.add(request.branch)
     }
 
     async push(project: ProjectReference): Promise<void> {
         await this.requireBridge().push(project)
+        this.pendingPushBranches.delete(project.branch)
     }
 
     async saveProjectConfig(project: ProjectReference, config: ProjectConfig): Promise<void> {
         await this.requireBridge().saveProjectConfig(project, config)
+        this.pendingPushBranches.add(project.branch)
+    }
+
+    hasPendingPush(project: ProjectReference) {
+        return this.pendingPushBranches.has(project.branch)
     }
 
     watchProject(project: ProjectReference, onChange: (event: ProjectWatchEvent) => void) {

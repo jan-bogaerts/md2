@@ -17,7 +17,8 @@ import { telemetryService } from './telemetry_service'
 export type { RemarkableImportInput }
 
 export interface DataServiceState {
-    hasPendingCommits: boolean
+    hasPendingPush: boolean
+    hasPendingSave: boolean
     project: ProjectReference | null
     runningAgents: RunningAgent[]
     snapshot: ProjectSnapshot | null
@@ -60,23 +61,25 @@ export class DataService extends EventTarget {
         this.agents.startScheduledRunWatch()
         const delayMs = configService.get('react.autoCommitDelayMs')
         this.commitBatcher = new CommitBatcher({
-            clearDelay: window.clearTimeout,
+            clearDelay: (delayId) => window.clearTimeout(delayId),
             commit: (request) => this.cards.commitFiles(request),
             delayMs,
             onFlushError: (error) => this.reportCommitFlushFailure(error),
-            setDelay: window.setTimeout,
+            onPendingChange: () => this.dispatchChanged(),
+            setDelay: (callback, delay) => window.setTimeout(callback, delay),
         })
         this.dispatchChanged()
     }
 
     getState(): DataServiceState {
         const currentProject = this.projectState.project
-        const hasStoragePendingCommits = currentProject
-            ? this.storage?.hasPendingCommits?.(currentProject) ?? false
+        const hasPendingPush = currentProject
+            ? this.storage?.hasPendingPush?.(currentProject) ?? false
             : false
 
         return {
-            hasPendingCommits: (this.commitBatcher?.hasPending() ?? false) || hasStoragePendingCommits,
+            hasPendingPush,
+            hasPendingSave: this.commitBatcher?.hasPending() ?? false,
             project: currentProject,
             runningAgents: agentConversationService.getRunningAgents(),
             snapshot: this.projectState.snapshot,

@@ -25,6 +25,7 @@ const DATA_METHODS = [
     'createProject',
     'createWorkingFolderFromTemplate',
     'deleteFile',
+    'hasPendingPush',
     'listBranches',
     'listRepositoryFiles',
     'listTopLevelFolders',

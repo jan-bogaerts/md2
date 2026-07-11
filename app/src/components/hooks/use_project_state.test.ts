@@ -5,7 +5,8 @@ import type { DataService, DataServiceState } from '../../services/data_service'
 import { useProjectState } from './use_project_state'
 
 const emptyState: DataServiceState = {
-    hasPendingCommits: false,
+    hasPendingPush: false,
+    hasPendingSave: false,
     project: null,
     runningAgents: [],
     snapshot: null,
@@ -14,7 +15,8 @@ const emptyState: DataServiceState = {
 const loadedProject: ProjectReference = { branch: 'main', id: 'project' }
 
 const loadedState: DataServiceState = {
-    hasPendingCommits: false,
+    hasPendingPush: false,
+    hasPendingSave: false,
     project: loadedProject,
     runningAgents: [],
     snapshot: { activeCards: [], backgroundCards: [], repositoryFiles: [], workingFolder: 'design' },

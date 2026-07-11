@@ -7,6 +7,7 @@ import { CompleteReleaseDialog } from './project/complete_release_dialog'
 import { NewCardDialog } from './project/new_card_dialog'
 import { ProjectOpenDialog } from './project/project_open_dialog'
 import { useProjectToolbarMenuActions } from './project/use_project_toolbar_menu_actions'
+import { useProjectState } from '../hooks/use_project_state'
 
 type ProjectDialogMode = 'open' | 'branch' | 'card' | 'release'
 
@@ -20,6 +21,7 @@ export function ProjectToolbarMenu(props: ProjectToolbarMenuProps) {
     const { accessToken, isGithubAuthenticated } = props
     const [anchorElement, setAnchorElement] = useState<HTMLElement | null>(null)
     const [dialogMode, setDialogMode] = useState<ProjectDialogMode | null>(null)
+    const { hasPendingPush, hasPendingSave } = useProjectState()
     const isMenuOpen = !!anchorElement
 
     const openDialog = useCallback((mode: ProjectDialogMode) => {
@@ -71,7 +73,9 @@ export function ProjectToolbarMenu(props: ProjectToolbarMenuProps) {
             <Menu anchorEl={anchorElement} id="project-menu" onClose={handleCloseMenu} open={isMenuOpen}>
                 <MenuItem onClick={handleOpenProject}>Open project...</MenuItem>
                 {actions.isProjectOpen ? <MenuItem onClick={actions.openBranchDialog}>Switch branch...</MenuItem> : null}
-                {actions.isProjectOpen && actions.pushMode === 'manual' ? <MenuItem onClick={handlePushClick}>Push</MenuItem> : null}
+                {actions.isProjectOpen && actions.pushMode === 'manual' ? (
+                    <MenuItem disabled={actions.isLoading || (!hasPendingPush && !hasPendingSave)} onClick={handlePushClick}>Push</MenuItem>
+                ) : null}
                 {actions.isProjectOpen ? (
                     <MenuItem disabled={actions.isReleaseCompleting || actions.activeCards.length === 0} onClick={handleOpenReleaseDialog}>
                         Complete release...

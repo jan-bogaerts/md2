@@ -174,6 +174,21 @@ describe('ActionPopup', () => {
         await waitFor(() => expect(runAction).toHaveBeenCalledWith(expect.objectContaining({ name: 'Implement' }), context, expectedInput))
     })
 
+    it('runs the card popup with Control+Enter from the extra prompt', async () => {
+        const selectedAction = action('Implement', { type: 'agent' })
+        const { runAction } = renderPopup({
+            action: selectedAction,
+            actions: [selectedAction],
+            onAddAction: vi.fn(),
+            onSelectAction: vi.fn(),
+        })
+
+        fireEvent.change(screen.getByLabelText('Extra prompt'), { target: { value: 'focus tests' } })
+        fireEvent.keyDown(screen.getByLabelText('Extra prompt'), { ctrlKey: true, key: 'Enter' })
+
+        await waitFor(() => expect(runAction).toHaveBeenCalledWith(selectedAction, context, { extraPrompt: 'focus tests' }))
+    })
+
     it('passes selected agent and model when running an agent action', async () => {
         configService.init({
             desktopConfig: {
@@ -256,6 +271,82 @@ describe('ActionPopup', () => {
 
         await waitFor(() => expect(screen.getByText('Saved actions/custom-review.json')).toBeInTheDocument())
         expect(convertPromptToAction).toHaveBeenCalledWith({ context, label: 'Custom review', prompt: 'review this file' })
+    })
+
+    it('saves and runs a named custom action', async () => {
+        const convertPromptToAction = vi.fn(async () => ({ path: 'actions/custom-review.json' }))
+        const { runAction } = renderPopup({
+            action: action('Custom prompt', { text: '{{prompt}}', type: 'agent' }),
+            convertPromptToAction,
+            showSaveControls: true,
+        })
+
+        fireEvent.change(screen.getByLabelText('Extra prompt'), { target: { value: 'review this file' } })
+        fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Custom review' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Save and run' }))
+
+        await waitFor(() => expect(runAction).toHaveBeenCalledWith(
+            expect.objectContaining({ name: 'Custom prompt' }),
+            context,
+            { extraPrompt: 'review this file' },
+        ))
+        expect(convertPromptToAction).toHaveBeenCalledWith({ context, label: 'Custom review', prompt: 'review this file' })
+    })
+
+    it('saves selected agent settings when Run creates a card popup preset', async () => {
+        configService.init({
+            desktopConfig: {
+                agent: 'codex',
+                agentSlotCommand: '',
+                agentProfiles: [{ command: 'codex', modelArgument: '--model', models: ['gpt-5'], name: 'codex' }],
+                model: 'gpt-5',
+                projectLocationMode: 'folder',
+            },
+        })
+        const customPrompt = action('Custom prompt', { text: '{{prompt}}', type: 'agent' })
+        const convertPromptToAction = vi.fn(async () => ({ path: 'actions/custom-review.json' }))
+        const { runAction } = renderPopup({
+            action: customPrompt,
+            actions: [customPrompt],
+            convertPromptToAction,
+            onAddAction: vi.fn(),
+            onSelectAction: vi.fn(),
+            showSaveControls: true,
+        })
+
+        fireEvent.change(screen.getByLabelText('Preset name'), { target: { value: 'Custom review' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Run' }))
+
+        await waitFor(() => expect(runAction).toHaveBeenCalledWith(
+            customPrompt,
+            context,
+            { agent: 'codex', extraPrompt: '', model: 'gpt-5' },
+        ))
+        expect(convertPromptToAction).toHaveBeenCalledWith({
+            agent: 'codex',
+            context,
+            label: 'Custom review',
+            model: 'gpt-5',
+            prompt: '',
+        })
+    })
+
+    it('does not run a named custom action when saving fails', async () => {
+        const convertPromptToAction = vi.fn(async () => {
+            throw new Error('Could not save action')
+        })
+        const { runAction } = renderPopup({
+            action: action('Custom prompt', { text: '{{prompt}}', type: 'agent' }),
+            convertPromptToAction,
+            showSaveControls: true,
+        })
+
+        fireEvent.change(screen.getByLabelText('Extra prompt'), { target: { value: 'review this file' } })
+        fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Custom review' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Save and run' }))
+
+        await waitFor(() => expect(screen.getByText('Could not save action')).toBeInTheDocument())
+        expect(runAction).not.toHaveBeenCalled()
     })
 
     it('shows before and after shortcuts and navigates to them with the same context', () => {

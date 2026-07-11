@@ -83,6 +83,7 @@ function createLocalBridgeDispatch(dependencies) {
             localGitService.createWorkingFolderFromTemplate(project, workingFolder)
         ),
         deleteFile: (request) => localGitService.deleteFile(request, currentLocalProject),
+        hasPendingPush: (project) => localGitService.hasPendingPush(project),
         listBranches: (project) => localGitService.listBranches(project),
         listRepositoryFiles: (project) => localGitService.listRepositoryFiles(project),
         listTopLevelFolders: (project) => localGitService.listTopLevelFolders(project),

@@ -135,7 +135,10 @@ export class ProjectLoading {
             await storage.saveProjectConfig(project, configService.getProjectConfig())
         }
         const config = resolveProjectConfigPaths(configService.getProjectConfig())
-        if (config.pushMode === 'manual') await storage.restorePendingCommits?.(project)
+        if (config.pushMode === 'manual') {
+            await storage.restorePendingCommits?.(project)
+            await storage.loadPendingPush?.(project)
+        }
         const actionFiles = await storage.loadActionFiles(project, config.actionsFolder)
         actionService.loadFromFiles(actionFiles)
         const projectFiles = await storage.loadProjectRoot(project, config.workingFolder)

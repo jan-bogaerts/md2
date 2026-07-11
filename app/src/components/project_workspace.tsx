@@ -80,7 +80,8 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
 
     useEffect(() => {
         const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-            if (dataService.getState().hasPendingCommits) {
+            const { hasPendingPush, hasPendingSave } = dataService.getState()
+            if (hasPendingPush || hasPendingSave) {
                 event.preventDefault()
                 event.returnValue = ''
             }
@@ -93,7 +94,7 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
         }
 
         const handleBlur = () => {
-            if (dataService.getState().hasPendingCommits) flushPendingCommits()
+            if (dataService.getState().hasPendingSave) flushPendingCommits()
         }
 
         document.addEventListener('visibilitychange', handleVisibilityChange)

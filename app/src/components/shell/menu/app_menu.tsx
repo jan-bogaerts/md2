@@ -5,6 +5,7 @@ import { useCallback, useState } from 'react'
 import CardsOutline from 'mdi-material-ui/CardsOutline'
 import CheckCircleOutline from 'mdi-material-ui/CheckCircleOutline'
 import Cog from 'mdi-material-ui/Cog'
+import ContentSaveOutline from 'mdi-material-ui/ContentSaveOutline'
 import FileDocumentPlusOutline from 'mdi-material-ui/FileDocumentPlusOutline'
 import FolderOpen from 'mdi-material-ui/FolderOpen'
 import TextBoxOutline from 'mdi-material-ui/TextBoxOutline'
@@ -32,7 +33,7 @@ import { MenuSelect } from './menu_select'
 import { Section } from './section'
 import { Tab } from './tab'
 
-type AppMenuTab = 'home' | 'options'
+type AppMenuTab = 'home' | 'agents'
 type ProjectDialogMode = 'open' | 'branch' | 'card' | 'release'
 
 interface AppMenuProps {
@@ -48,7 +49,7 @@ interface AppMenuProps {
 
 const MENU_TABS: { label: string; value: AppMenuTab }[] = [
     { label: 'Home', value: 'home' },
-    { label: 'Options', value: 'options' },
+    { label: 'Agents', value: 'agents' },
 ]
 
 function persistDesktopConfig() {
@@ -57,10 +58,10 @@ function persistDesktopConfig() {
     writeDesktopConfigToBridge(configService.getDesktopValues())
 }
 
-/** Tabbed app menu hosting project, account and options actions. */
+/** Tabbed app menu hosting project, account and agent actions. */
 export function AppMenu(props: AppMenuProps) {
     const { accessToken, auth, extraActions, isGithubAuthenticated, isMobile, onOpenConfig, onOpenMobileMenu, search } = props
-    const { project } = useProjectState()
+    const { hasPendingPush, hasPendingSave, project } = useProjectState()
     const { viewMode } = useWorkspaceView()
     const [currentTab, setCurrentTab] = useState<AppMenuTab>('home')
     const [dialogMode, setDialogMode] = useState<ProjectDialogMode | null>(null)
@@ -116,6 +117,14 @@ export function AppMenu(props: AppMenuProps) {
 
     const handleOpenCardDialog = () => {
         openDialog('card')
+    }
+
+    const handleSave = async () => {
+        try {
+            await actions.push()
+        } catch {
+            // ProjectSessionService emits the user-visible error.
+        }
     }
 
     const handleViewModeChange = (_event: ReactMouseEvent<HTMLElement>, nextMode: WorkspaceViewMode | null) => {
@@ -189,13 +198,22 @@ export function AppMenu(props: AppMenuProps) {
                             onOpen={handleLoadBranches}
                             value={selectedBranch}
                         />
-                        <MenuIconButton
-                            disabled={!actions.isProjectOpen || actions.activeCards.length === 0 || actions.isReleaseCompleting}
-                            label="Complete release"
-                            onClick={handleOpenReleaseDialog}
-                        >
-                            <CheckCircleOutline fontSize="small" />
+                        {actions.pushMode === 'manual' ? (
+                            <MenuIconButton
+                                disabled={!actions.isProjectOpen || actions.isLoading || (!hasPendingPush && !hasPendingSave)}
+                                label="Push"
+                                onClick={handleSave}
+                            >
+                                <ContentSaveOutline fontSize="small" />
+                            </MenuIconButton>
+                        ) : null}
+                    </Section>
+                    <Divider flexItem orientation="vertical" sx={{ my: 1.5 }} />
+                    <Section label="Settings">
+                        <MenuIconButton label="Config" onClick={onOpenConfig}>
+                            <Cog fontSize="small" />
                         </MenuIconButton>
+                        {extraActions}
                     </Section>
                     <Divider flexItem orientation="vertical" sx={{ my: 1.5 }} />
                     <Section label="View">
@@ -228,6 +246,13 @@ export function AppMenu(props: AppMenuProps) {
                         </ToggleButtonGroup>
                     </Section>
                     <Divider flexItem orientation="vertical" sx={{ my: 1.5 }} />
+                    <MenuIconButton
+                        disabled={!actions.isProjectOpen || actions.activeCards.length === 0 || actions.isReleaseCompleting}
+                        label="Complete release"
+                        onClick={handleOpenReleaseDialog}
+                    >
+                        <CheckCircleOutline fontSize="small" />
+                    </MenuIconButton>
                     <Button
                         disabled={!actions.isProjectOpen}
                         onClick={handleOpenCardDialog}
@@ -244,7 +269,7 @@ export function AppMenu(props: AppMenuProps) {
                     </Section>
                 </Tab>
             </Box>
-            <Box role="tabpanel" sx={{ display: currentTab === 'options' ? 'block' : 'none' }}>
+            <Box role="tabpanel" sx={{ display: currentTab === 'agents' ? 'block' : 'none' }}>
                 <Tab>
                     <Section label="Setup">
                         <MenuSelect
@@ -283,10 +308,7 @@ export function AppMenu(props: AppMenuProps) {
                                 />
                             </Tooltip>
                         )}
-                        <MenuIconButton label="Config" onClick={onOpenConfig}>
-                            <Cog fontSize="small" />
-                        </MenuIconButton>
-                        {extraActions}
+                        <Button disabled size="small" variant="outlined">Add chatbot</Button>
                     </Section>
                 </Tab>
             </Box>

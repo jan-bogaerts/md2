@@ -280,6 +280,10 @@ function frameDocument(headerLines: string[], body: string, lineEnding: string) 
     return `${HEADER_DELIMITER}${lineEnding}${headerLines.join(lineEnding)}${lineEnding}${HEADER_DELIMITER}${lineEnding}${body}`
 }
 
+function replaceCardBodyTitle(body: string, title: string) {
+    return body.replace(/^# .*$/m, `${TITLE_PREFIX}${title}`)
+}
+
 function serializeNewHeader(header: NewCardHeader) {
     if (!header.id) throw new Error('Cannot generate a card without an id')
     if (!header.internalId) throw new Error('Cannot generate a card without an internalId')
@@ -364,6 +368,13 @@ export const markdownParsingService = {
         if (hasHeader) return frameDocument(nextLines, body, lineEnding)
 
         return frameDocument(nextLines, `${lineEnding}${content}`, lineEnding)
+    },
+
+    setCardTitle(content: string, title: string) {
+        const contentWithHeaderTitle = this.rewriteHeader(content, { title })
+        const { body, rawHeader } = splitHeader(contentWithHeaderTitle)
+
+        return frameDocument(rawHeader.split('\n'), replaceCardBodyTitle(body, title), detectLineEnding(contentWithHeaderTitle))
     },
 
     setPolicyFlag(content: string, key: string, enabled: boolean) {

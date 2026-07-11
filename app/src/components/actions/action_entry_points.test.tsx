@@ -139,7 +139,47 @@ describe('ActionEntryPoints popup', () => {
 
         fireEvent.click(screen.getByRole('button', { name: 'Run' }))
 
-        expect(within(screen.getByRole('dialog')).getByRole('heading', { name: 'Implement' })).toBeInTheDocument()
+        const dialog = within(screen.getByRole('dialog'))
+        expect(dialog.getByText('Implement', { selector: 'p' })).toBeInTheDocument()
+        expect(dialog.getAllByRole('button', { name: 'Close' })).toHaveLength(2)
+
+        const actionGroup = dialog.getByRole('group', { name: 'Actions' })
+        const actionButtons = within(actionGroup).getAllByRole('button')
+        expect(actionButtons.map((button) => button.textContent)).toEqual(['Create branch', 'Run lint', 'Implement', 'Custom prompt'])
+        expect(dialog.getByRole('button', { name: 'Implement' })).toHaveAttribute('aria-pressed', 'true')
+    })
+
+    it('selects one card action at a time from the Run popup', () => {
+        render(<ActionEntryPoints context={cardContext(featureCard, DEFAULT_CARD_TYPES)} variant="button" />)
+
+        fireEvent.click(screen.getByRole('button', { name: 'Run' }))
+        const dialog = within(screen.getByRole('dialog'))
+        const actionGroup = within(dialog.getByRole('group', { name: 'Actions' }))
+        fireEvent.click(actionGroup.getByRole('button', { name: 'Run lint' }))
+
+        expect(dialog.getByText('Lint')).toBeInTheDocument()
+        expect(actionGroup.getByRole('button', { name: 'Run lint' })).toHaveAttribute('aria-pressed', 'true')
+        expect(actionGroup.getByRole('button', { name: 'Implement' })).toHaveAttribute('aria-pressed', 'false')
+    })
+
+    it('shows custom-action save controls after the plus button is clicked', () => {
+        render(<ActionEntryPoints context={cardContext(featureCard, DEFAULT_CARD_TYPES)} variant="button" />)
+
+        fireEvent.click(screen.getByRole('button', { name: 'Run' }))
+        const dialog = within(screen.getByRole('dialog'))
+        fireEvent.click(dialog.getByRole('button', { name: 'Add action' }))
+
+        expect(dialog.getByText('Send a custom prompt to the agent.')).toBeInTheDocument()
+        expect(dialog.getByLabelText('Preset name')).toHaveFocus()
+        expect(dialog.getByRole('button', { name: 'Run' })).toBeDisabled()
+
+        fireEvent.change(dialog.getByLabelText('Extra prompt'), { target: { value: 'Review this feature' } })
+        fireEvent.change(dialog.getByLabelText('Preset name'), { target: { value: 'Review feature' } })
+
+        expect(dialog.getByRole('button', { name: 'Run' })).toBeEnabled()
+
+        fireEvent.click(dialog.getByRole('button', { name: 'Add action' }))
+        expect(dialog.queryByLabelText('Preset name')).not.toBeInTheDocument()
     })
 
     it('opens a popup from the overflow menu entry point', () => {

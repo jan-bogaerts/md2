@@ -7,6 +7,7 @@ import { promisify } from 'node:util'
 import { describe, expect, it } from 'vitest'
 
 const execFileAsync = promisify(execFile)
+const GIT_INTEGRATION_TEST_TIMEOUT_MS = 15000
 
 const require = createRequire(import.meta.url)
 const {
@@ -15,6 +16,7 @@ const {
     commit,
     createWorkingFolderFromTemplate,
     deleteFile,
+    hasPendingPush,
     listRepositoryFiles,
     listTopLevelFolders,
     loadActionFiles,
@@ -47,6 +49,37 @@ async function commitCount(rootPath) {
 }
 
 describe('local-git-service', () => {
+    it('detects commits ahead of the configured upstream', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-local-git-'))
+        const remotePath = await mkdtemp(join(tmpdir(), 'md2-local-git-remote-'))
+
+        try {
+            await execFileAsync('git', ['init', '--bare'], { cwd: remotePath })
+            await initializeGitRepository(rootPath)
+            await execFileAsync('git', ['checkout', '-b', 'main'], { cwd: rootPath })
+            await writeFile(join(rootPath, 'README.md'), '# Project')
+            await execFileAsync('git', ['add', 'README.md'], { cwd: rootPath })
+            await execFileAsync('git', ['commit', '-m', 'Initial commit'], { cwd: rootPath })
+            const project = { branch: 'main', id: 'local', rootPath }
+
+            await expect(hasPendingPush(project)).resolves.toBe(true)
+
+            await execFileAsync('git', ['remote', 'add', 'origin', remotePath], { cwd: rootPath })
+            await execFileAsync('git', ['push', '--set-upstream', 'origin', 'main'], { cwd: rootPath })
+
+            await expect(hasPendingPush(project)).resolves.toBe(false)
+
+            await writeFile(join(rootPath, 'README.md'), '# Changed project')
+            await execFileAsync('git', ['add', 'README.md'], { cwd: rootPath })
+            await execFileAsync('git', ['commit', '-m', 'Update project'], { cwd: rootPath })
+
+            await expect(hasPendingPush(project)).resolves.toBe(true)
+        } finally {
+            await rm(rootPath, { force: true, recursive: true })
+            await rm(remotePath, { force: true, recursive: true })
+        }
+    }, GIT_INTEGRATION_TEST_TIMEOUT_MS)
+
     it('loads markdown files from the working folder and subfolders', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-local-git-'))
 

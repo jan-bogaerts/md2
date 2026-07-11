@@ -208,7 +208,6 @@ describe('MainWindow', () => {
         mockMatchMedia(false)
         renderWindow()
 
-        fireEvent.click(screen.getByRole('tab', { name: 'Options' }))
         fireEvent.click(screen.getByRole('button', { name: 'Config' }))
 
         expect(screen.getByRole('heading', { name: 'Config' })).toBeInTheDocument()
@@ -219,7 +218,6 @@ describe('MainWindow', () => {
         mockMatchMedia(false)
         renderWindow()
 
-        fireEvent.click(screen.getByRole('tab', { name: 'Options' }))
         fireEvent.click(screen.getByRole('button', { name: 'Config' }))
         fireEvent.click(screen.getByRole('switch', { name: 'Startup splash' }))
         fireEvent.click(screen.getByRole('button', { name: 'Save' }))

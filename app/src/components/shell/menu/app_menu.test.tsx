@@ -32,6 +32,7 @@ function createBridge(): ElectronDataBridge {
         createProject: vi.fn(async (project) => project),
         createWorkingFolderFromTemplate: vi.fn(async (project) => project),
         deleteFile: vi.fn(),
+        hasPendingPush: vi.fn(async () => false),
         listBranches: vi.fn(async () => [{ name: 'main' }]),
         listRepositoryFiles: vi.fn(async () => []),
         listTopLevelFolders: vi.fn(async () => [{ name: 'design', path: 'design' }]),
@@ -116,12 +117,21 @@ describe('AppMenu', () => {
         expect(screen.getByRole('tab', { name: 'Home' })).toBeInTheDocument()
         expect(screen.queryByRole('tab', { name: 'Edit' })).not.toBeInTheDocument()
         expect(screen.queryByRole('tab', { name: 'Format' })).not.toBeInTheDocument()
-        expect(screen.getByRole('tab', { name: 'Options' })).toBeInTheDocument()
+        expect(screen.getByRole('tab', { name: 'Agents' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Open project' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Config' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Cards view' })).toHaveTextContent('Board')
         expect(screen.getByRole('button', { name: 'Text view' })).toHaveTextContent('List')
         expect(screen.getByRole('button', { name: 'New card' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'GitHub account' })).toBeInTheDocument()
+
+        const settingsSection = screen.getByRole('group', { name: 'Settings' })
+        const viewSection = screen.getByRole('group', { name: 'View' })
+        expect(settingsSection.compareDocumentPosition(viewSection) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+
+        const completeReleaseButton = screen.getByRole('button', { name: 'Complete release' })
+        const newCardButton = screen.getByRole('button', { name: 'New card' })
+        expect(completeReleaseButton.compareDocumentPosition(newCardButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     })
 
     it('opens a local project from the Home project section', async () => {
@@ -158,7 +168,7 @@ describe('AppMenu', () => {
         })
 
         renderMenu()
-        fireEvent.click(screen.getByRole('tab', { name: 'Options' }))
+        fireEvent.click(screen.getByRole('tab', { name: 'Agents' }))
 
         expect(screen.getByRole('combobox', { name: 'Default agent' })).toHaveTextContent('codex')
         expect(screen.getByRole('combobox', { name: 'Default model' })).toHaveTextContent('gpt-5')
@@ -170,5 +180,45 @@ describe('AppMenu', () => {
 
         await waitFor(() => expect(screen.getByRole('combobox', { name: 'Default agent' })).toHaveTextContent('local'))
         expect(screen.getByRole('combobox', { name: 'Default model' })).toHaveTextContent('local-model')
+    })
+
+    it('shows the chatbot placeholder on the Agents tab', () => {
+        renderMenu()
+        fireEvent.click(screen.getByRole('tab', { name: 'Agents' }))
+
+        expect(screen.getByRole('button', { name: 'Add chatbot' })).toBeDisabled()
+    })
+
+    it('flushes pending changes before pushing in manual push mode', async () => {
+        const bridge = createBridge()
+        const files = [{ content: '---\nid: F-1\ninternalId: f-1\ntitle: Root\nstatus: active\n---\n\n# Root', path: 'design/F-1-root.md' }]
+        bridge.loadProjectConfig = vi.fn(async () => ({
+            backgroundShade: 'blue' as const,
+            projectFolder: '',
+            pushMode: 'manual' as const,
+            workingFolder: 'design',
+        }))
+        bridge.loadProject = vi.fn(async () => ({ files, workingFolder: 'design' }))
+        bridge.loadProjectRoot = vi.fn(async () => ({ files, workingFolder: 'design' }))
+        window.md2Data = bridge
+
+        renderMenu()
+        await openLocalProject()
+        const pushButton = screen.getByRole('button', { name: 'Push' })
+        expect(pushButton).toBeDisabled()
+
+        act(() => {
+            dataService.cards.updateCardBody('design/F-1-root.md', 'Changed before push')
+        })
+
+        await waitFor(() => expect(pushButton).toBeEnabled())
+        fireEvent.click(pushButton)
+
+        await waitFor(() => expect(bridge.commit).toHaveBeenCalled())
+        await waitFor(() => expect(bridge.push).toHaveBeenCalledWith(expect.objectContaining({ id: 'local' })))
+        const commit = vi.mocked(bridge.commit)
+        const push = vi.mocked(bridge.push)
+        expect(commit.mock.invocationCallOrder[0]).toBeLessThan(push.mock.invocationCallOrder[0])
+        expect(pushButton).toBeDisabled()
     })
 })

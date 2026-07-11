@@ -68,10 +68,12 @@ describe('ConfigService', () => {
         expect(() => service.loadProjectConfig({ backgroundShade: 'blue', states: [{ alwaysVisible: true, state: 'new' }, { alwaysVisible: false, state: 'new' }] })).toThrow('duplicate states')
     })
 
-    it('requires a background shade in stored project config', () => {
+    it('uses the default background shade when stored project config omits it', () => {
         service.init()
 
-        expect(() => service.loadProjectConfig({ workingFolder: 'docs' })).toThrow('Missing config field: project.backgroundShade')
+        service.loadProjectConfig({ workingFolder: 'docs' })
+
+        expect(service.getProjectConfig().backgroundShade).toBe('neutral')
     })
 
     it('rejects unsupported project background shades', () => {

@@ -71,7 +71,7 @@ export function ProjectCardView(props: ProjectCardViewProps) {
     const assignee = card.header.owner ?? card.header.author ?? card.header.id
     const dragTranslation = transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : ''
     const style = {
-        opacity: isDragging ? 0.9 : 1,
+        opacity: isDragging ? 0 : 1,
         transform: `${dragTranslation}${isDragging ? ' rotate(2deg)' : ''}`.trim() || undefined,
         transition,
     }

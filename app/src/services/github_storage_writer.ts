@@ -133,7 +133,7 @@ export class GithubStorageWriter {
         this.context.pendingCommitHeads.set(pendingHeadKey, storedPendingHead)
     }
 
-    hasPendingCommits(project: ProjectReference) {
+    hasPendingPush(project: ProjectReference) {
         return this.context.pendingCommitHeads.has(createPendingHeadKey(project))
     }
 

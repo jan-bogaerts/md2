@@ -4,7 +4,7 @@ import Play from 'mdi-material-ui/Play'
 import { useEffect, useMemo, useState } from 'react'
 import type { MouseEvent } from 'react'
 import { actionsForContext, type ActionContext } from '../../data/action_context'
-import type { ActionDefinition } from '../../data/action_types'
+import { CUSTOM_PROMPT_ACTION_NAME, type ActionDefinition } from '../../data/action_types'
 import { useActions } from '../hooks/use_actions'
 import { ActionIcon } from './action_icon'
 import { resolveActionIcon, type ActionIconSource } from './action_icon_resolver'
@@ -34,9 +34,16 @@ export function ActionEntryPoints(props: ActionEntryPointsProps) {
     const [iconSources, setIconSources] = useState<Record<string, ActionIconSource>>({})
     const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null)
     const [popupAnchor, setPopupAnchor] = useState<HTMLElement | null>(null)
+    const [showSaveControls, setShowSaveControls] = useState(false)
     const [stack, setStack] = useState<ActionDefinition[]>([])
 
-    const matching = useMemo(() => actionsForContext(actions, context), [actions, context])
+    const matching = useMemo(() => {
+        const contextActions = actionsForContext(actions, context)
+        const customPrompt = contextActions.find((action) => action.name === CUSTOM_PROMPT_ACTION_NAME)
+        const configuredActions = contextActions.filter((action) => action.name !== CUSTOM_PROMPT_ACTION_NAME)
+
+        return customPrompt ? [...configuredActions, customPrompt] : configuredActions
+    }, [actions, context])
 
     useEffect(() => {
         let isActive = true
@@ -65,7 +72,21 @@ export function ActionEntryPoints(props: ActionEntryPointsProps) {
     }
 
     const navigate = (action: ActionDefinition) => {
+        setShowSaveControls(false)
         setStack((current) => [...current, action])
+    }
+
+    const selectAction = (action: ActionDefinition) => {
+        setShowSaveControls(false)
+        setStack([action])
+    }
+
+    const addAction = () => {
+        const customPrompt = matching.find((action) => action.name === CUSTOM_PROMPT_ACTION_NAME)
+        if (!customPrompt) throw new Error('Missing custom prompt action')
+
+        setShowSaveControls((current) => !current)
+        setStack([customPrompt])
     }
 
     const current = stack.at(-1) ?? null
@@ -73,11 +94,24 @@ export function ActionEntryPoints(props: ActionEntryPointsProps) {
 
     const closePopup = () => {
         setPopupAnchor(null)
+        setShowSaveControls(false)
         setStack([])
     }
 
     const popup = current ? (
-        <ActionPopup action={current} anchorElement={popupAnchor} context={context} onClose={closePopup} onNavigate={navigate} />
+        <ActionPopup
+            action={current}
+            anchorElement={popupAnchor}
+            context={context}
+            onClose={closePopup}
+            onNavigate={navigate}
+            {...(variant === 'button' ? {
+                actions: matching,
+                onAddAction: addAction,
+                onSelectAction: selectAction,
+                showSaveControls,
+            } : {})}
+        />
     ) : null
 
     const menuItems = (
@@ -105,6 +139,7 @@ export function ActionEntryPoints(props: ActionEntryPointsProps) {
             ?? matching[0]
 
         const handleRun = (event: MouseEvent<HTMLButtonElement>) => {
+            setShowSaveControls(false)
             open(primaryAction, event.currentTarget)
         }
 

@@ -10,6 +10,7 @@ function createBridge(overrides: Partial<ElectronDataBridge> = {}): ElectronData
         createProject: vi.fn(),
         createWorkingFolderFromTemplate: vi.fn(),
         deleteFile: vi.fn().mockResolvedValue(undefined),
+        hasPendingPush: vi.fn().mockResolvedValue(false),
         listBranches: vi.fn(),
         listRepositoryFiles: vi.fn(),
         listTopLevelFolders: vi.fn(),
@@ -61,6 +62,39 @@ describe('LocalGitStorageService binary write path', () => {
         expect(commit).toHaveBeenCalledWith(request)
         expect(commit.mock.calls[0][0].files[1].encoding).toBe('base64')
         expect(result).toEqual([])
+    })
+
+    it('tracks committed changes until the branch is pushed', async () => {
+        const service = new LocalGitStorageService()
+        service.init({ bridge: createBridge() })
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
+        const request: CommitRequest = {
+            branch: 'main',
+            files: [{ content: '# Card', path: 'design/F-1-card.md' }],
+            message: 'Update card',
+        }
+
+        expect(service.hasPendingPush(project)).toBe(false)
+
+        await service.commit(request)
+
+        expect(service.hasPendingPush(project)).toBe(true)
+
+        await service.push(project)
+
+        expect(service.hasPendingPush(project)).toBe(false)
+    })
+
+    it('restores pending push state from the local repository', async () => {
+        const hasPendingPush = vi.fn().mockResolvedValue(true)
+        const service = new LocalGitStorageService()
+        service.init({ bridge: createBridge({ hasPendingPush }) })
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
+
+        await service.loadPendingPush(project)
+
+        expect(hasPendingPush).toHaveBeenCalledWith(project)
+        expect(service.hasPendingPush(project)).toBe(true)
     })
 
     it('forwards file moves to the bridge unchanged', async () => {

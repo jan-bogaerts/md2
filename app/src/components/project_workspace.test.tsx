@@ -38,6 +38,7 @@ function createBridge(): ElectronDataBridge {
             const existingIndex = files.findIndex((file) => file.path === request.path)
             if (existingIndex >= 0) files.splice(existingIndex, 1)
         }),
+        hasPendingPush: vi.fn(async () => false),
         listBranches: vi.fn(async () => [{ name: 'main' }, { name: 'feature' }]),
         listRepositoryFiles: vi.fn(async () => ['app/src/app.tsx', 'design/F-1-root.md']),
         listTopLevelFolders: vi.fn(async () => [{ name: 'design', path: 'design' }]),
@@ -76,6 +77,7 @@ function createResetStorage(): StorageService {
         createProject: vi.fn(async (project) => project),
         createWorkingFolderFromTemplate: vi.fn(async (project) => project),
         deleteFile: vi.fn(),
+        hasPendingPush: vi.fn(() => false),
         listBranches: vi.fn(async () => []),
         listRepositories: vi.fn(async () => []),
         listRepositoryFiles: vi.fn(async () => []),
@@ -266,11 +268,11 @@ describe('ProjectWorkspace', () => {
         await screen.findByText('Root')
 
         dataService.cards.updateCardBody('design/F-1-root.md', 'Changed while open')
-        await waitFor(() => expect(dataService.getState().hasPendingCommits).toBe(true))
+        await waitFor(() => expect(dataService.getState().hasPendingSave).toBe(true))
         document.dispatchEvent(new Event('visibilitychange'))
 
         await waitFor(() => expect(bridge.commit).toHaveBeenCalledWith(expect.objectContaining({files: [expect.objectContaining({ path: 'design/F-1-root.md' })]})))
-        expect(dataService.getState().hasPendingCommits).toBe(false)
+        expect(dataService.getState().hasPendingSave).toBe(false)
 
         visibilityState.mockRestore()
     })
@@ -288,7 +290,7 @@ describe('ProjectWorkspace', () => {
         expect(cleanClose.defaultPrevented).toBe(false)
 
         dataService.cards.updateCardBody('design/F-1-root.md', 'Changed before close')
-        await waitFor(() => expect(dataService.getState().hasPendingCommits).toBe(true))
+        await waitFor(() => expect(dataService.getState().hasPendingSave).toBe(true))
 
         const pendingClose = new Event('beforeunload', { cancelable: true })
         window.dispatchEvent(pendingClose)
@@ -298,7 +300,7 @@ describe('ProjectWorkspace', () => {
 
     it('confirms close when storage has unpushed commits', async () => {
         const storage = createResetStorage()
-        storage.hasPendingCommits = vi.fn(() => true)
+        storage.hasPendingPush = vi.fn(() => true)
         dataService.init({ storage })
         await dataService.projectLoading.openProject({ branch: 'main', id: 'project' })
 
@@ -328,7 +330,7 @@ describe('ProjectWorkspace', () => {
         await screen.findByText('Root')
 
         dataService.cards.updateCardBody('design/F-1-root.md', 'Changed before quit')
-        await waitFor(() => expect(dataService.getState().hasPendingCommits).toBe(true))
+        await waitFor(() => expect(dataService.getState().hasPendingSave).toBe(true))
         act(() => flushRequested?.('quit-1'))
 
         await waitFor(() => expect(bridge.commit).toHaveBeenCalled())

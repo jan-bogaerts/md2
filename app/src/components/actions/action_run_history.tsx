@@ -1,4 +1,5 @@
 import { Box, Button, Stack, Typography } from '@mui/material'
+import ClockOutline from 'mdi-material-ui/ClockOutline'
 import { useEffect, useRef, useState } from 'react'
 import type { ActionRunHistoryEntry } from '../../data/electron_action_bridge'
 import { dialogService } from '../../services/dialog_service'
@@ -9,6 +10,7 @@ interface HistoryEntryRowProps {
 }
 
 interface ActionRunHistoryProps {
+    compact?: boolean
     entries: ActionRunHistoryEntry[]
     error: string | null
 }
@@ -40,7 +42,7 @@ function HistoryEntryRow(props: HistoryEntryRowProps) {
 
 /** Presentation-only list of previous action runs. */
 export function ActionRunHistory(props: ActionRunHistoryProps) {
-    const { entries, error } = props
+    const { compact = false, entries, error } = props
     const reportedErrorRef = useRef<string | null>(null)
 
     useEffect(() => {
@@ -57,8 +59,8 @@ export function ActionRunHistory(props: ActionRunHistoryProps) {
     }, [error])
 
     return (
-        <Box>
-            <Typography color="text.secondary" variant="caption">
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: compact ? 1 : 0 }}>
+            <Typography color="text.secondary" sx={compact ? { fontSize: 12, fontWeight: 600 } : undefined} variant="caption">
                 Run history
             </Typography>
             {error ? (
@@ -72,6 +74,25 @@ export function ActionRunHistory(props: ActionRunHistoryProps) {
                         <HistoryEntryRow entry={entry} key={`${entry.completedAt}-${entry.status}-${index}`} />
                     ))}
                 </Stack>
+            ) : compact ? (
+                <Box
+                    sx={{
+                        alignItems: 'center',
+                        border: '1.5px dashed',
+                        borderColor: (theme) => theme.palette.mode === 'dark' ? '#364152' : '#d5dbe3',
+                        borderRadius: '10px',
+                        color: 'text.disabled',
+                        display: 'flex',
+                        fontSize: 12.5,
+                        gap: 1,
+                        justifyContent: 'center',
+                        px: 1.5,
+                        py: 1.75,
+                    }}
+                >
+                    <ClockOutline sx={{ fontSize: 14 }} />
+                    No previous runs
+                </Box>
             ) : (
                 <Typography color="text.secondary" variant="caption">
                     No previous runs

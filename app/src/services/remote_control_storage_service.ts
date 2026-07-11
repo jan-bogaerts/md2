@@ -76,6 +76,7 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
     private connectPromise: Promise<void> | null
     private endpoint: string
     private nextId: number
+    private readonly pendingPushBranches: Set<string>
     private pending: Map<string, PendingRequest>
     private requestAgentEvents: Map<string, (event: AgentRunEvent) => void>
     private requestWatchEvents: Map<string, (event: ProjectWatchEvent) => void>
@@ -88,6 +89,7 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         this.connectPromise = null
         this.endpoint = ''
         this.nextId = 1
+        this.pendingPushBranches = new Set()
         this.pending = new Map()
         this.requestAgentEvents = new Map()
         this.requestWatchEvents = new Map()
@@ -110,7 +112,10 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
     }
 
     async commit(request: CommitRequest): Promise<CommitResult> {
-        return this.request<CommitResult>('commit', [request])
+        const result = await this.request<CommitResult>('commit', [request])
+        this.pendingPushBranches.add(request.branch)
+
+        return result
     }
 
     async createProject(project: ProjectReference, workingFolder: string): Promise<ProjectReference> {
@@ -123,6 +128,7 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
 
     async deleteFile(request: DeleteFileRequest): Promise<void> {
         await this.request('deleteFile', [request])
+        this.pendingPushBranches.add(request.branch)
     }
 
     async listBranches(project: ProjectReference): Promise<BranchReference[]> {
@@ -175,12 +181,20 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         return this.request<TopLevelFolderReference[]>('listTopLevelFolders', [project])
     }
 
+    async loadPendingPush(project: ProjectReference) {
+        const hasPendingPush = await this.request<boolean>('hasPendingPush', [project])
+        if (hasPendingPush) this.pendingPushBranches.add(project.branch)
+        else this.pendingPushBranches.delete(project.branch)
+    }
+
     async moveFiles(request: MoveFilesRequest): Promise<void> {
         await this.request('moveFiles', [request])
+        this.pendingPushBranches.add(request.branch)
     }
 
     async push(project: ProjectReference): Promise<void> {
         await this.request('push', [project])
+        this.pendingPushBranches.delete(project.branch)
     }
 
     async saveActionSchedules(project: ProjectReference, actionsFolder: string, schedules: ActionSchedule[]): Promise<ActionSchedule[]> {
@@ -189,6 +203,11 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
 
     async saveProjectConfig(project: ProjectReference, config: ProjectConfig): Promise<void> {
         await this.request('saveProjectConfig', [project, config])
+        this.pendingPushBranches.add(project.branch)
+    }
+
+    hasPendingPush(project: ProjectReference) {
+        return this.pendingPushBranches.has(project.branch)
     }
 
     async sendAgentInput(_project: ProjectReference, runId: string, input: string): Promise<void> {

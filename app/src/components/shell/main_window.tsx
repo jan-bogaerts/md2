@@ -33,7 +33,7 @@ export function MainWindow(props: MainWindowProps) {
     const theme = useTheme()
     const isMobile = useMediaQuery(theme.breakpoints.down('md'))
     const [isMenuOpen, setIsMenuOpen] = useState(false)
-    const { hasPendingCommits, project, snapshot } = useProjectState()
+    const { hasPendingPush, hasPendingSave, project, snapshot } = useProjectState()
     const { viewMode } = useWorkspaceView()
     const isConfigPage = location.pathname === '/config'
     const shouldShowNavigationPanel = !project || viewMode === 'text'
@@ -111,7 +111,8 @@ export function MainWindow(props: MainWindowProps) {
                         <StatusBar
                             activeCardCount={activeCardCount}
                             agents={agents}
-                            hasPendingCommits={hasPendingCommits}
+                            hasPendingPush={hasPendingPush}
+                            hasPendingSave={hasPendingSave}
                             totalCardCount={totalCardCount}
                         />
                     </>

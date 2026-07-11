@@ -25,6 +25,7 @@ export interface ElectronDataBridge {
     createProject(project: ProjectReference, workingFolder: string): Promise<ProjectReference>
     createWorkingFolderFromTemplate(project: ProjectReference, workingFolder: string): Promise<ProjectReference>
     deleteFile(request: DeleteFileRequest): Promise<void>
+    hasPendingPush(project: ProjectReference): Promise<boolean>
     loadAgentConversation?(path: string): Promise<AgentConversation>
     loadActionFiles(project: ProjectReference, actionsFolder: string): Promise<ActionFile[]>
     loadActionSchedules?(project: ProjectReference, actionsFolder: string): Promise<ActionSchedule[]>

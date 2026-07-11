@@ -21,6 +21,7 @@ function createDispatch(options = {}) {
         assertGitRoot: vi.fn(),
         checkoutBranch: vi.fn(async (project, branch) => ({ ...project, branch })),
         commit: vi.fn(async () => []),
+        hasPendingPush: vi.fn(async () => false),
         loadFile: vi.fn(async () => ({ content: '# Root', path: 'design/F-1.md' })),
         loadActionFiles: vi.fn(async () => [{
             content: JSON.stringify({
@@ -53,6 +54,14 @@ function createDispatch(options = {}) {
 }
 
 describe('createLocalBridgeDispatch', () => {
+    it('forwards pending push checks to the local Git service', async () => {
+        const { dispatch, localGitService } = createDispatch()
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
+
+        await expect(dispatch.dataBridge.hasPendingPush(project)).resolves.toBe(false)
+        expect(localGitService.hasPendingPush).toHaveBeenCalledWith(project)
+    })
+
     it('opens a selected folder as a normalized project and establishes it for project operations', async () => {
         const openProjectFolder = vi.fn(async () => 'C:/repo/nested')
         const { actionSchedulerService, dispatch, localGitService } = createDispatch({ openProjectFolder })

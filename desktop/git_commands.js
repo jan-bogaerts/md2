@@ -136,6 +136,18 @@ async function checkoutBranch(project, branch) {
     return { ...project, branch }
 }
 
+async function hasPendingPush(project) {
+    const rootPath = requireRootPath(project)
+    if (!project.branch) throw new Error('Missing project branch')
+
+    const branchRef = `refs/heads/${project.branch}`
+    const upstream = await runGit(rootPath, ['for-each-ref', '--format=%(upstream)', branchRef])
+    const revisionRange = upstream.length > 0 ? `${upstream}..HEAD` : 'HEAD'
+    const commitCount = await runGit(rootPath, ['rev-list', '--count', revisionRange])
+
+    return Number.parseInt(commitCount, 10) > 0
+}
+
 async function push(project) {
     await runGit(requireRootPath(project), ['push'])
 }
@@ -146,6 +158,7 @@ module.exports = {
     commitStagedChanges,
     ensureInsideRoot,
     hasStagedChanges,
+    hasPendingPush,
     listBranches,
     push,
     resolveLocalProject,
