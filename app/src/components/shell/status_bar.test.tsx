@@ -8,9 +8,12 @@ describe('StatusBar', () => {
     it('renders card counts, keyboard status and the agents indicator', () => {
         render(<StatusBar activeCardCount={2} agents={[]} hasPendingCommits={false} totalCardCount={5} />)
 
-        expect(screen.getByText('Total cards loaded: 5')).toBeInTheDocument()
-        expect(screen.getByText('Currently active: 2')).toBeInTheDocument()
-        expect(screen.getByText('Caps Off')).toBeInTheDocument()
+        expect(screen.getByText('5')).toBeInTheDocument()
+        expect(screen.getByText('cards')).toBeInTheDocument()
+        expect(screen.getByText('2')).toBeInTheDocument()
+        expect(screen.getByText('active')).toBeInTheDocument()
+        expect(screen.getByText('Synced just now')).toBeInTheDocument()
+        expect(screen.getByText('INS')).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Running agents: 0' })).toBeInTheDocument()
     })
 
@@ -20,9 +23,9 @@ describe('StatusBar', () => {
         expect(screen.queryByRole('textbox', { name: 'Status' })).toBeNull()
     })
 
-    it('shows pending commits as unsaved changes', () => {
+    it('shows pending commits in the synchronization indicator', () => {
         render(<StatusBar activeCardCount={0} agents={[]} hasPendingCommits totalCardCount={0} />)
 
-        expect(screen.getByText('Unsaved changes')).toBeInTheDocument()
+        expect(screen.getByText('Changes pending')).toBeInTheDocument()
     })
 })

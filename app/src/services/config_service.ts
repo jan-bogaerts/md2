@@ -1,6 +1,8 @@
 import {
+    defaultColumnAccent,
     type CardTypeConfig,
     type ProjectConfig,
+    type StateConfig,
 } from '../data/data_types'
 import { validateAgentProfiles, type AgentProfile } from '../data/agent_profiles'
 import {
@@ -85,6 +87,27 @@ function validateCardTypes(value: unknown): CardTypeConfig[] {
     })
 }
 
+function validateStates(value: unknown): StateConfig[] {
+    if (!Array.isArray(value) || value.length === 0) throw new Error('Missing config field: project.states')
+
+    const states = value.map((stateConfig, index) => {
+        const item = stateConfig as Partial<StateConfig>
+        const color = item.color === undefined || item.color === null || item.color === ''
+            ? defaultColumnAccent(index)
+            : requireString(item.color, `project.states[${index}].color`)
+
+        return {
+            alwaysVisible: requireBoolean(item.alwaysVisible, `project.states[${index}].alwaysVisible`),
+            color,
+            state: requireString(item.state, `project.states[${index}].state`),
+        }
+    })
+    const uniqueStates = new Set(states.map(({ state }) => state))
+    if (uniqueStates.size !== states.length) throw new Error('Config field project.states contains duplicate states')
+
+    return states
+}
+
 function validateDesktopAgentProfiles(value: unknown): AgentProfile[] {
     return validateAgentProfiles(value)
 }
@@ -108,6 +131,7 @@ function validateValue<K extends ConfigKey>(key: K, value: unknown): ConfigValue
         return numberValue as ConfigValueTypes[K]
     }
     if (entry.type === 'json' && key === 'project.cardTypes') return validateCardTypes(value) as ConfigValueTypes[K]
+    if (entry.type === 'json' && key === 'project.states') return validateStates(value) as ConfigValueTypes[K]
     if (entry.type === 'json' && key === 'desktop.agentProfiles') return validateDesktopAgentProfiles(value) as ConfigValueTypes[K]
     if (key === 'project.projectFolder') {
         if (typeof value !== 'string') throw new Error(`Missing config field: ${entry.key}`)
@@ -138,6 +162,7 @@ function readProjectConfig(values: ConfigValues): ProjectConfig {
         diffCommand: values['project.diffCommand'],
         projectFolder: values['project.projectFolder'],
         pushMode: values['project.pushMode'],
+        states: values['project.states'],
         workingFolder: values['project.workingFolder'],
     }
 }
@@ -237,6 +262,7 @@ export class ConfigService extends EventTarget {
             nextValues = mergeValue(nextValues, 'project.cardBodyTemplate', projectConfig.cardBodyTemplate)
         }
         if (projectConfig?.cardTypes !== undefined) nextValues = mergeValue(nextValues, 'project.cardTypes', projectConfig.cardTypes)
+        if (projectConfig?.states !== undefined) nextValues = mergeValue(nextValues, 'project.states', projectConfig.states)
 
         this.values = nextValues
         this.projectLoaded = true

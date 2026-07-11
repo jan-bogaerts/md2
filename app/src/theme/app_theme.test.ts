@@ -7,12 +7,17 @@ describe('createAppTheme', () => {
         const theme = createAppTheme('light')
 
         expect(theme.palette.mode).toBe('light')
+        expect(theme.palette.background.default).toBe('#f4f6f8')
+        expect(theme.palette.background.paper).toBe('#ffffff')
     })
 
     it('builds a dark theme', () => {
         const theme = createAppTheme('dark')
 
         expect(theme.palette.mode).toBe('dark')
+        expect(theme.palette.background.default).toBe('#10151c')
+        expect(theme.palette.background.paper).toBe('#1a212b')
+        expect(theme.palette.action.hover).toBe('#151c25')
     })
 
     it('feeds the color scheme roles into the palette', () => {

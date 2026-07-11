@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { computeMove, groupByStatus, orderByAfter } from './card_ordering'
-import type { ProjectCard } from './data_types'
+import { buildCardColumns, computeMove, deriveStatesFromCards, groupByStatus, mergeStatesWithDefaults, orderByAfter } from './card_ordering'
+import { defaultColumnAccent, type ProjectCard } from './data_types'
 
 function card(internalId: string, options: { after?: string | null; status?: string } = {}): ProjectCard {
     return {
@@ -55,6 +55,63 @@ describe('groupByStatus', () => {
         expect(columns.map((column) => column.status)).toEqual(['todo', 'done'])
         expect(paths(columns[0].cards)).toEqual(['a', 'b'])
         expect(paths(columns[1].cards)).toEqual(['p'])
+    })
+})
+
+describe('buildCardColumns', () => {
+    it('uses config order and hides empty states unless always visible', () => {
+        const cards = [card('a', { status: 'in progress' }), card('b', { status: 'done' })]
+        const states = [
+            { alwaysVisible: true, color: '#111111', state: 'new' },
+            { alwaysVisible: false, color: '#222222', state: 'done' },
+            { alwaysVisible: false, state: 'design' },
+            { alwaysVisible: true, color: '#444444', state: 'in progress' },
+        ]
+
+        const columns = buildCardColumns(cards, states)
+
+        expect(columns.map((column) => column.status)).toEqual(['new', 'done', 'in progress'])
+        expect(columns.map((column) => column.color)).toEqual(['#111111', '#222222', '#444444'])
+        expect(columns.map((column) => paths(column.cards))).toEqual([[], ['b'], ['a']])
+    })
+
+    it('does not create columns for card states absent from config', () => {
+        expect(buildCardColumns([card('a', { status: 'unsupported' })], [
+            { alwaysVisible: true, state: 'new' },
+        ])).toEqual([{ cards: [], color: defaultColumnAccent(0), status: 'new' }])
+    })
+})
+
+describe('deriveStatesFromCards', () => {
+    it('derives distinct non-empty states in first-seen order as non-persistent columns', () => {
+        const cards = [
+            card('a', { status: 'design' }),
+            card('b', { status: 'ready' }),
+            card('c', { status: 'design' }),
+        ]
+
+        expect(deriveStatesFromCards(cards)).toEqual([
+            { alwaysVisible: false, color: defaultColumnAccent(0), state: 'design' },
+            { alwaysVisible: false, color: defaultColumnAccent(1), state: 'ready' },
+        ])
+    })
+})
+
+describe('mergeStatesWithDefaults', () => {
+    it('keeps discovered order, uses matching default definitions and appends missing defaults', () => {
+        const states = [
+            { alwaysVisible: false, state: 'custom' },
+            { alwaysVisible: false, state: 'design' },
+        ]
+
+        expect(mergeStatesWithDefaults(states)).toEqual([
+            { alwaysVisible: false, color: defaultColumnAccent(0), state: 'custom' },
+            { alwaysVisible: true, color: defaultColumnAccent(1), state: 'design' },
+            { alwaysVisible: true, color: defaultColumnAccent(0), state: 'new' },
+            { alwaysVisible: true, color: defaultColumnAccent(2), state: 'ready for implementation' },
+            { alwaysVisible: true, color: defaultColumnAccent(3), state: 'in progress' },
+            { alwaysVisible: true, color: defaultColumnAccent(4), state: 'done' },
+        ])
     })
 })
 

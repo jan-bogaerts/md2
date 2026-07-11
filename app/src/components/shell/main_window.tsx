@@ -60,7 +60,16 @@ export function MainWindow(props: MainWindowProps) {
         <LeftPanelTarget fallback="No project navigation available." />
     )
     const rightPanel = (
-        <Box sx={{ boxSizing: 'border-box', display: 'flex', height: '100%', minHeight: 0, overflow: 'hidden', p: PANEL_PADDING }}>
+        <Box
+            sx={{
+                boxSizing: 'border-box',
+                display: 'flex',
+                height: '100%',
+                minHeight: 0,
+                overflow: 'hidden',
+                p: viewMode === 'cards' ? 0 : PANEL_PADDING,
+            }}
+        >
             <ProjectWorkspace
                 key={session?.project.id ?? 'no-project'}
                 onLeftPanelInteraction={handleCloseMenu}

@@ -1,4 +1,5 @@
-﻿import { Badge, Button, List, ListItem, ListItemText, Popover, Typography } from '@mui/material'
+import { Button, List, ListItem, ListItemText, Popover, Typography } from '@mui/material'
+import { alpha } from '@mui/material/styles'
 import Robot from 'mdi-material-ui/Robot'
 import { useState } from 'react'
 import type { RunningAgent } from '../../data/data_types'
@@ -24,16 +25,21 @@ export function RunningAgentsIndicator(props: RunningAgentsIndicatorProps) {
         <>
             <Button
                 aria-label={`Running agents: ${agents.length}`}
-                color="inherit"
                 onClick={handleOpen}
                 size="small"
-                startIcon={(
-                    <Badge badgeContent={agents.length} color="primary" showZero>
-                        <Robot fontSize="small" />
-                    </Badge>
-                )}
+                startIcon={<Robot sx={{ fontSize: '14px !important' }} />}
+                sx={{
+                    bgcolor: (theme) => alpha(theme.palette.primary.main, 0.14),
+                    borderRadius: 99,
+                    color: 'primary.main',
+                    fontSize: 11.5,
+                    height: 22,
+                    minWidth: 0,
+                    px: 1.25,
+                    '&:hover': { bgcolor: (theme) => alpha(theme.palette.primary.main, 0.22) },
+                }}
             >
-                Agents
+                {agents.length} {agents.length === 1 ? 'agent' : 'agents'}
             </Button>
             <Popover
                 anchorEl={anchorElement}

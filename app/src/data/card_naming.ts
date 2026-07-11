@@ -48,6 +48,7 @@ export function createCardFile(
     workingFolder: string,
     cardTypes: CardTypeConfig[],
     cardBodyTemplate: string,
+    initialState: string,
     draft: CardDraft,
 ): MarkdownFile {
     const cardTypeConfig = getCardTypeConfig(cardTypes, draft)
@@ -56,7 +57,7 @@ export function createCardFile(
     const titleSlug = slugifyTitle(draft.title)
     const internalId = markdownParsingService.generateInternalId()
     const content = markdownParsingService.buildCardMarkdown(
-        { affects: [], id, internalId, policy: {}, status: 'new', title: draft.title },
+        { affects: [], id, internalId, policy: {}, status: initialState, title: draft.title },
         buildCardBody(cardBodyTemplate, draft),
     )
 

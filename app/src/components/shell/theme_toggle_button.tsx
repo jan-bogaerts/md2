@@ -10,8 +10,8 @@ export function ThemeToggleButton() {
 
     return (
         <Tooltip title={themeLabel}>
-            <IconButton aria-label={themeLabel} edge="end" onClick={toggleMode}>
-                {mode === 'light' ? <WeatherNight /> : <WeatherSunny />}
+            <IconButton aria-label={themeLabel} onClick={toggleMode} size="small" sx={{ height: 34, width: 34 }}>
+                {mode === 'light' ? <WeatherNight fontSize="small" /> : <WeatherSunny fontSize="small" />}
             </IconButton>
         </Tooltip>
     )

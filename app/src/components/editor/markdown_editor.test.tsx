@@ -53,6 +53,12 @@ describe('MarkdownEditor', () => {
         expect(onChange).toHaveBeenCalledWith('edited')
     })
 
+    it('renders the formatting toolbar inside the markdown editor', () => {
+        renderEditor()
+
+        expect(screen.getByTestId('mdx-editor')).toContainElement(screen.getByTestId('mdx-editor-toolbar'))
+    })
+
     it('marks the toolbar sticky when requested for mobile layout', () => {
         const { container, rerender } = render(
             <AppThemeProvider>

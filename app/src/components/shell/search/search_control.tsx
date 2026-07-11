@@ -147,19 +147,45 @@ export function SearchControl(props: SearchControlProps) {
                     fullWidth
                     onChange={handleQueryChange}
                     onFocus={handleSearchFocus}
-                    placeholder="Search"
+                    placeholder="Search cards…"
                     size="small"
                     slotProps={{
                         htmlInput: { 'aria-label': 'Search project' },
                         input: {
+                            endAdornment: (
+                                <InputAdornment position="end">
+                                    <Box
+                                        component="span"
+                                        sx={{
+                                            border: 1,
+                                            borderColor: 'divider',
+                                            borderRadius: 0.5,
+                                            color: 'text.disabled',
+                                            fontSize: 10.5,
+                                            lineHeight: 1.4,
+                                            px: 0.75,
+                                        }}
+                                    >
+                                        ⌘K
+                                    </Box>
+                                </InputAdornment>
+                            ),
                             startAdornment: (
                                 <InputAdornment position="start">
                                     <Magnify fontSize="small" />
                                 </InputAdornment>
                             ),
+                            sx: {
+                                bgcolor: 'background.default',
+                                borderRadius: 99,
+                                fontSize: 13,
+                                height: 32,
+                                '& fieldset': { borderColor: 'divider' },
+                            },
                         },
                     }}
                     value={query}
+                    variant="outlined"
                 />
             </Box>
             {isDropdownOpen ? (

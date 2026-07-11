@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components -- test-only module, fast refresh does not apply */
-import { forwardRef, useImperativeHandle, type ChangeEvent } from 'react'
+import { forwardRef, useImperativeHandle, type ChangeEvent, type ReactNode } from 'react'
 
 /**
  * Lightweight stand-in for `@mdxeditor/editor` used in jsdom tests. The real
@@ -13,12 +13,18 @@ interface StubEditorProps {
     contentEditableClassName?: string
     markdown: string
     onChange?: (markdown: string) => void
+    plugins?: StubPlugin[]
     readOnly?: boolean
+}
+
+interface StubPlugin {
+    toolbarContents?: () => ReactNode
 }
 
 export const MDXEditor = forwardRef<{ setMarkdown: (markdown: string) => void }, StubEditorProps>(
     function MDXEditorStub(props, ref) {
-        const { markdown, onChange, readOnly } = props
+        const { markdown, onChange, plugins = [], readOnly } = props
+        const toolbar = plugins.find(({ toolbarContents }) => !!toolbarContents)
 
         useImperativeHandle(ref, () => ({ setMarkdown: () => {} }), [])
 
@@ -26,7 +32,12 @@ export const MDXEditor = forwardRef<{ setMarkdown: (markdown: string) => void },
             onChange?.(event.target.value)
         }
 
-        return <textarea onChange={handleChange} readOnly={readOnly} role="textbox" value={markdown} />
+        return (
+            <div data-testid="mdx-editor">
+                {toolbar?.toolbarContents ? <div data-testid="mdx-editor-toolbar">{toolbar.toolbarContents()}</div> : null}
+                <textarea onChange={handleChange} readOnly={readOnly} role="textbox" value={markdown} />
+            </div>
+        )
     },
 )
 
@@ -44,7 +55,7 @@ export const imagePlugin = noopPlugin
 export const tablePlugin = noopPlugin
 export const codeBlockPlugin = noopPlugin
 export const codeMirrorPlugin = noopPlugin
-export const toolbarPlugin = noopPlugin
+export const toolbarPlugin = (plugin: StubPlugin) => plugin
 
 /** Toolbar controls render nothing in the stub. */
 const NoopControl = () => null

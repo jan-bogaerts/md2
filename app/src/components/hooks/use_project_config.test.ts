@@ -11,6 +11,7 @@ const firstConfig: ProjectConfig = {
     diffCommand: 'git show {{commit}}',
     projectFolder: '',
     pushMode: 'auto',
+    states: [{ alwaysVisible: true, state: 'design' }],
     workingFolder: 'design',
 }
 

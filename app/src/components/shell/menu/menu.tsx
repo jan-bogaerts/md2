@@ -10,7 +10,7 @@ export function Menu(props: MenuProps) {
     const { children } = props
 
     return (
-        <Box sx={{ bgcolor: 'background.paper', borderTop: 1, borderColor: 'divider', px: 1, py: 0.75 }}>
+        <Box sx={{ bgcolor: 'background.paper', borderTop: 1, borderColor: 'divider', height: 52, px: 1.5 }}>
             {children}
         </Box>
     )

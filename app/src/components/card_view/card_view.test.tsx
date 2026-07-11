@@ -69,6 +69,10 @@ function renderCardView(overrides: Partial<Parameters<typeof CardView>[0]> = {})
                 isMobile={false}
                 repositoryFiles={['app/src/app.tsx', 'design/F-1.md']}
                 selectedPath={null}
+                states={[
+                    { alwaysVisible: false, state: 'todo' },
+                    { alwaysVisible: false, state: 'done' },
+                ]}
                 {...handlers}
                 {...overrides}
             />
@@ -93,13 +97,22 @@ describe('CardView', () => {
         expect(screen.getByText('First')).toBeInTheDocument()
     })
 
-    it('shows an empty unassigned column when there are no active cards', () => {
-        renderCardView({ cards: [] })
+    it('shows always-visible columns without cards and hides other empty columns in config order', () => {
+        renderCardView({
+            cards: [],
+            states: [
+                { alwaysVisible: true, state: 'new' },
+                { alwaysVisible: false, state: 'design' },
+                { alwaysVisible: true, state: 'done' },
+            ],
+        })
 
-        expect(screen.getByLabelText('Card columns')).toHaveTextContent('Unassigned')
+        expect(screen.getByLabelText('new column')).toHaveTextContent('Drop a card here')
+        expect(screen.getByLabelText('done column')).toHaveTextContent('Drop a card here')
+        expect(screen.queryByText('design')).not.toBeInTheDocument()
     })
 
-    it('shows card type footnotes for default and custom card types only', () => {
+    it('shows ids above titles without card type footnotes or an affects control', () => {
         const customCardTypes: CardTypeConfig[] = [
             ...DEFAULT_CARD_TYPES,
             { color: '#123456', idPrefix: 'R', label: 'Research', type: 'research' },
@@ -114,15 +127,29 @@ describe('CardView', () => {
             cardTypes: customCardTypes,
         })
 
-        expect(screen.getByText('Feature')).toBeInTheDocument()
-        expect(screen.getByText('Bug')).toBeInTheDocument()
-        expect(screen.getByText('Research')).toBeInTheDocument()
-        expect(screen.queryByText('Unknown')).not.toBeInTheDocument()
+        const id = screen.getByText('F-012')
+        const title = screen.getByText('Feature card')
+
+        expect(id.compareDocumentPosition(title) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+        expect(screen.queryByText('Feature')).not.toBeInTheDocument()
+        expect(screen.queryByText('Bug')).not.toBeInTheDocument()
+        expect(screen.queryByText('Research')).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Affects' })).not.toBeInTheDocument()
+    })
+
+    it('uses an empty transparent full-card button as the drag surface', () => {
+        renderCardView()
+
+        const dragButton = screen.getByRole('button', { name: 'Drag F-1' })
+
+        expect(dragButton).toBeEmptyDOMElement()
+        expect(dragButton).toHaveStyle({ backgroundColor: 'rgba(0, 0, 0, 0)', inset: '0', position: 'absolute' })
     })
 
     it('renders one policy led per policy flag and toggles on click', () => {
         const handlers = renderCardView()
-        const checkLintingButton = screen.getByRole('button', { name: 'Toggle checkLinting' })
+        fireEvent.click(screen.getByRole('button', { name: 'Card actions for F-1' }))
+        const checkLintingButton = screen.getByRole('menuitem', { name: 'Toggle checkLinting' })
 
         expect(checkLintingButton).toHaveAttribute('aria-pressed', 'true')
         fireEvent.click(checkLintingButton)
@@ -130,10 +157,11 @@ describe('CardView', () => {
         expect(handlers.onTogglePolicy).toHaveBeenCalledWith('design/F-1.md', 'checkLinting')
     })
 
-    it('edits the title inline on double-click and commits on Enter', () => {
+    it('edits the title from the card actions and commits on Enter', () => {
         const handlers = renderCardView()
 
-        fireEvent.doubleClick(screen.getByText('First'))
+        fireEvent.click(screen.getByRole('button', { name: 'Card actions for F-1' }))
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Edit title' }))
         const input = screen.getByDisplayValue('First')
         fireEvent.change(input, { target: { value: 'Renamed' } })
         fireEvent.keyDown(input, { key: 'Enter' })
@@ -141,11 +169,11 @@ describe('CardView', () => {
         expect(handlers.onTitleChange).toHaveBeenCalledWith('design/F-1.md', 'Renamed')
     })
 
-    it('opens the body in a dialog on desktop when a card is clicked', () => {
+    it('opens the body in a card-relative popup on desktop when the card surface is clicked', () => {
         const trackEvent = vi.spyOn(telemetryService, 'trackEvent').mockImplementation(() => undefined)
         renderCardView()
 
-        fireEvent.click(screen.getByText('First'))
+        fireEvent.click(screen.getByRole('button', { name: 'Drag F-1' }))
 
         const dialog = screen.getByRole('dialog')
         expect(within(dialog).getByText('F-1 First')).toBeInTheDocument()
@@ -155,16 +183,16 @@ describe('CardView', () => {
         trackEvent.mockRestore()
     })
 
-    it('routes the file-mode action from the dialog to the callback', () => {
+    it('routes the file-mode action from the popup to the callback', () => {
         const handlers = renderCardView()
 
-        fireEvent.click(screen.getByText('First'))
+        fireEvent.click(screen.getByRole('button', { name: 'Drag F-1' }))
         fireEvent.click(screen.getByRole('button', { name: 'Open in file mode' }))
 
         expect(handlers.onOpenInFileMode).toHaveBeenCalledWith('design/F-1.md')
     })
 
-    it('routes the file-mode action from the card header without opening the dialog', () => {
+    it('routes the file-mode action from the card header without opening the popup', () => {
         const handlers = renderCardView()
 
         fireEvent.click(screen.getByRole('button', { name: 'Open F-1 in file mode' }))
@@ -225,10 +253,10 @@ describe('CardView', () => {
         expect(handlers.onOpenInFileMode).toHaveBeenCalledWith('design/F-1.md')
     })
 
-    it('confirms before deleting from the body dialog', async () => {
+    it('confirms before deleting from the body popup', async () => {
         const handlers = renderCardView()
 
-        fireEvent.click(screen.getByText('First'))
+        fireEvent.click(screen.getByRole('button', { name: 'Drag F-1' }))
         fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete' }))
         const confirmDialog = screen.getByRole('dialog', { name: 'Delete card' })
         fireEvent.click(within(confirmDialog).getByRole('button', { name: 'Delete' }))
@@ -236,13 +264,14 @@ describe('CardView', () => {
         await waitFor(() => expect(handlers.onDeleteCard).toHaveBeenCalledWith('design/F-1.md'))
     })
 
-    it('expands the body inline as an accordion on mobile instead of a dialog', () => {
+    it('opens the card-relative popup on mobile', () => {
         renderCardView({ isMobile: true })
 
-        fireEvent.click(screen.getByText('First'))
+        fireEvent.click(screen.getByRole('button', { name: 'Drag F-1' }))
 
-        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-        expect(screen.getByDisplayValue(/Body of F-1/)).toBeInTheDocument()
+        const dialog = screen.getByRole('dialog')
+        expect(within(dialog).getByDisplayValue(/Body of F-1/)).toBeInTheDocument()
+        expect(within(dialog).getByRole('button', { name: 'Affects' })).toBeInTheDocument()
     })
 
     it('highlights the card matching the selected path', () => {
@@ -264,6 +293,10 @@ describe('CardView', () => {
                     onTogglePolicy={vi.fn()}
                     repositoryFiles={[]}
                     selectedPath="design/F-2.md"
+                    states={[
+                        { alwaysVisible: false, state: 'todo' },
+                        { alwaysVisible: false, state: 'done' },
+                    ]}
                 />
             </AppThemeProvider>,
         )
@@ -297,10 +330,12 @@ describe('CardView', () => {
         expect(handlers.onStartAgentConversation).toHaveBeenCalledWith('design/F-1.md', 'implement this card')
     })
 
-    it('saves affects changes from the card dialog', () => {
+    it('shows the affects control in the card popup and saves changes', () => {
         const handlers = renderCardView({ repositoryFiles: ['app/src/app.tsx', 'design/F-1.md'] })
 
-        fireEvent.click(screen.getAllByRole('button', { name: 'Affects' })[0])
+        expect(screen.queryByRole('button', { name: 'Affects' })).not.toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: 'Drag F-1' }))
+        fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Affects' }))
         fireEvent.change(screen.getByRole('combobox', { name: 'Add affected file' }), { target: { value: 'app/src/app.tsx' } })
         fireEvent.click(screen.getByRole('button', { name: 'Add' }))
         fireEvent.click(screen.getByRole('button', { name: 'Save' }))

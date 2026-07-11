@@ -52,10 +52,10 @@ export const COLOR_ROLES: ColorRole[] = ['primary', 'secondary']
 
 export const MARKDOWN_SECTIONS: MarkdownSection[] = ['title1', 'title2', 'title3', 'body', 'caption']
 
-/** Default color scheme; role variants mirror MUI's default primary/secondary tones. */
+/** Default color scheme used by the polished light and dark application palettes. */
 export const DEFAULT_COLOR_SCHEME: ColorSchemeConfig = {
-    primary: { light: '#42a5f5', regular: '#1976d2', dark: '#1565c0' },
-    secondary: { light: '#ba68c8', regular: '#9c27b0', dark: '#7b1fa2' },
+    primary: { light: '#5b9be8', regular: '#1565c0', dark: '#0d47a1' },
+    secondary: { light: '#c77ff2', regular: '#7b1fa2', dark: '#5e167d' },
 }
 
 const MODERN_FONT = '"Inter", "Segoe UI", "Roboto", sans-serif'

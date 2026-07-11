@@ -19,6 +19,12 @@ export interface CardTypeConfig {
     type: CardType
 }
 
+export interface StateConfig {
+    alwaysVisible: boolean
+    color?: string
+    state: string
+}
+
 export interface ProjectConfig {
     actionsFolder: string
     cardBodyTemplate: string
@@ -26,6 +32,7 @@ export interface ProjectConfig {
     diffCommand: string
     projectFolder: string
     pushMode: PushMode
+    states: StateConfig[]
     workingFolder: string
 }
 
@@ -264,10 +271,27 @@ export interface StorageService {
 
 const BUG_CARD_COLOR = '#d32f2f'
 
+export const DEFAULT_COLUMN_ACCENTS = ['#9c4dcc', '#29a8e0', '#ed6c02', '#f9a825', '#43a047']
+
+/** Resolve the repeating default accent assigned by configured column position. */
+export function defaultColumnAccent(index: number) {
+    if (!Number.isInteger(index) || index < 0) throw new Error(`Invalid column index: ${index}`)
+
+    return DEFAULT_COLUMN_ACCENTS[index % DEFAULT_COLUMN_ACCENTS.length]
+}
+
 export const DEFAULT_CARD_TYPES: CardTypeConfig[] = [
     { color: DEFAULT_COLOR_SCHEME.primary.regular, idPrefix: 'F', label: 'Feature', type: 'feature' },
     { color: DEFAULT_COLOR_SCHEME.secondary.regular, idPrefix: 'J', label: 'Job', type: 'job' },
     { color: BUG_CARD_COLOR, idPrefix: 'B', label: 'Bug', type: 'bug' },
+]
+
+export const DEFAULT_STATES: StateConfig[] = [
+    { alwaysVisible: true, color: defaultColumnAccent(0), state: 'new' },
+    { alwaysVisible: true, color: defaultColumnAccent(1), state: 'design' },
+    { alwaysVisible: true, color: defaultColumnAccent(2), state: 'ready for implementation' },
+    { alwaysVisible: true, color: defaultColumnAccent(3), state: 'in progress' },
+    { alwaysVisible: true, color: defaultColumnAccent(4), state: 'done' },
 ]
 
 export const DEFAULT_CARD_BODY_TEMPLATE = '# Goal\n\n# Current status\n\n# Details\n\n# Tasks'
@@ -298,5 +322,6 @@ export const DEFAULT_PROJECT_CONFIG: ProjectConfig = {
     diffCommand: DEFAULT_DIFF_COMMAND,
     projectFolder: DEFAULT_PROJECT_FOLDER,
     pushMode: 'auto',
+    states: DEFAULT_STATES,
     workingFolder: DEFAULT_WORKING_FOLDER,
 }

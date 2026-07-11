@@ -11,7 +11,7 @@ describe('external card imports', () => {
             { content: '# First note\n\nBody', path: 'design/notes.md', sha: 'sha-notes' },
             { content: '---\nowner: JB\n---\n\n# Second note', path: 'design/second.md', sha: 'sha-second' },
         ]
-        const plan = planExternalCardImports(importFiles, 'design', DEFAULT_CARD_TYPES)
+        const plan = planExternalCardImports(importFiles, 'design', DEFAULT_CARD_TYPES, 'new')
 
         expect(plan.moves.map((move) => move.toPath)).toEqual(['design/F-4-first-note.md', 'design/F-5-second-note.md'])
         expect(plan.moves[0]).toMatchObject({ fromPath: 'design/notes.md', sha: 'sha-notes' })
@@ -29,7 +29,7 @@ describe('external card imports', () => {
                 content: '---\nid: F-4\ninternalId: uuid-4\ntitle: Done\nstatus: ready\n---\n\n# Done',
                 path: 'design/F-4-done.md',
             },
-        ], 'design', DEFAULT_CARD_TYPES)
+        ], 'design', DEFAULT_CARD_TYPES, 'new')
 
         expect(plan.moves).toEqual([])
     })

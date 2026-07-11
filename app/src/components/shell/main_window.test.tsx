@@ -167,8 +167,8 @@ describe('MainWindow', () => {
 
         expect(screen.getByLabelText('Card columns')).toHaveTextContent('active')
         expect(screen.getByText('Root')).toBeInTheDocument()
-        expect(screen.getByText('Total cards loaded: 2')).toBeInTheDocument()
-        expect(screen.getByText('Currently active: 1')).toBeInTheDocument()
+        expect(screen.getByRole('contentinfo')).toHaveTextContent('2cards')
+        expect(screen.getByRole('contentinfo')).toHaveTextContent('1active')
         expect(screen.queryByText('No project navigation available.')).toBeNull()
         expect(screen.queryByRole('separator', { name: 'Resize panels' })).toBeNull()
     })
@@ -213,6 +213,23 @@ describe('MainWindow', () => {
 
         expect(screen.getByRole('heading', { name: 'Config' })).toBeInTheDocument()
         expect(window.location.pathname).toBe('/config')
+    })
+
+    it('closes the config page and confirms a successful save', async () => {
+        mockMatchMedia(false)
+        renderWindow()
+
+        fireEvent.click(screen.getByRole('tab', { name: 'Options' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Config' }))
+        fireEvent.click(screen.getByRole('switch', { name: 'Startup splash' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+        await waitFor(() => {
+            expect(screen.queryByRole('heading', { name: 'Config' })).toBeNull()
+            expect(screen.getByRole('alert')).toHaveTextContent('Config saved')
+        })
+        expect(window.location.pathname).toBe('/')
+        expect(configService.get('react.showStartupSplash')).toBe(false)
     })
 
     it('opens the config page directly from the URL', () => {

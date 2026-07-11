@@ -1,4 +1,4 @@
-import { Box, Stack, Typography } from '@mui/material'
+import { Box } from '@mui/material'
 import type { ReactNode } from 'react'
 
 interface SectionProps {
@@ -6,20 +6,13 @@ interface SectionProps {
     label: string
 }
 
-/** A labeled group of icon buttons/toggles within a menu tab; the label is shown below the group. */
+/** An accessible toolbar group; its visible controls are explained with tooltips. */
 export function Section(props: SectionProps) {
     const { children, label } = props
 
     return (
-        <Box sx={{ borderRight: 1, borderColor: 'divider', pr: 1.25 }}>
-            <Stack sx={{ alignItems: 'center', gap: 0.5 }}>
-                <Stack direction="row" spacing={0.75} sx={{ alignItems: 'center', minHeight: 40 }}>
-                    {children}
-                </Stack>
-                <Typography color="text.secondary" variant="caption">
-                    {label}
-                </Typography>
-            </Stack>
+        <Box aria-label={label} role="group" sx={{ alignItems: 'center', display: 'flex', gap: 0.75 }}>
+            {children}
         </Box>
     )
 }

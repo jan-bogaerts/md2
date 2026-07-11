@@ -10,7 +10,7 @@ describe('cardNaming', () => {
     })
 
     it('creates cards with configured id and filename convention', () => {
-        const file = createCardFile(files, 'design', DEFAULT_CARD_TYPES, DEFAULT_CARD_BODY_TEMPLATE, {
+        const file = createCardFile(files, 'design', DEFAULT_CARD_TYPES, DEFAULT_CARD_BODY_TEMPLATE, 'new', {
             body: 'Body',
             title: 'New Card',
             type: 'feature',
@@ -25,12 +25,12 @@ describe('cardNaming', () => {
     })
 
     it('generates the id prefix and number per card type', () => {
-        const job = createCardFile(files, 'design', DEFAULT_CARD_TYPES, DEFAULT_CARD_BODY_TEMPLATE, {
+        const job = createCardFile(files, 'design', DEFAULT_CARD_TYPES, DEFAULT_CARD_BODY_TEMPLATE, 'new', {
             body: '',
             title: 'Job Card',
             type: 'job',
         })
-        const bug = createCardFile(files, 'design', DEFAULT_CARD_TYPES, DEFAULT_CARD_BODY_TEMPLATE, {
+        const bug = createCardFile(files, 'design', DEFAULT_CARD_TYPES, DEFAULT_CARD_BODY_TEMPLATE, 'new', {
             body: '',
             title: 'Bug Card',
             type: 'bug',
@@ -51,7 +51,7 @@ describe('cardNaming', () => {
 
     it('creates cards for custom configured types', () => {
         const customTypes = [{ color: '#123456', idPrefix: 'T', label: 'Task', type: 'task' }]
-        const file = createCardFile(files, 'design', customTypes, DEFAULT_CARD_BODY_TEMPLATE, {
+        const file = createCardFile(files, 'design', customTypes, DEFAULT_CARD_BODY_TEMPLATE, 'backlog', {
             body: '',
             title: 'Custom Card',
             type: 'task',
@@ -59,10 +59,11 @@ describe('cardNaming', () => {
 
         expect(file.path).toBe('design/T-1-custom-card.md')
         expect(file.content).toContain('id: T-1')
+        expect(file.content).toContain('status: backlog')
     })
 
     it('creates cards with a generated internal id that is separate from filename id', () => {
-        const file = createCardFile(files, 'design', DEFAULT_CARD_TYPES, DEFAULT_CARD_BODY_TEMPLATE, {
+        const file = createCardFile(files, 'design', DEFAULT_CARD_TYPES, DEFAULT_CARD_BODY_TEMPLATE, 'new', {
             body: '',
             title: 'New Card',
             type: 'feature',

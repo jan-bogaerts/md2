@@ -4,9 +4,11 @@ import {
     DEFAULT_CARD_TYPES,
     DEFAULT_DIFF_COMMAND,
     DEFAULT_PROJECT_FOLDER,
+    DEFAULT_STATES,
     DEFAULT_WORKING_FOLDER,
     type CardTypeConfig,
     type PushMode,
+    type StateConfig,
 } from '../data/data_types'
 import { BUILTIN_AGENT_PROFILES, type AgentProfile } from '../data/agent_profiles'
 
@@ -26,6 +28,7 @@ export interface ConfigValueTypes {
     'project.diffCommand': string
     'project.projectFolder': string
     'project.pushMode': PushMode
+    'project.states': StateConfig[]
     'project.workingFolder': string
     'react.autoCommitDelayMs': number
     'react.showStartupSplash': boolean
@@ -33,7 +36,7 @@ export interface ConfigValueTypes {
 
 export type ConfigKey = keyof ConfigValueTypes
 
-export type ConfigValue = boolean | number | string | AgentProfile[] | CardTypeConfig[]
+export type ConfigValue = boolean | number | string | AgentProfile[] | CardTypeConfig[] | StateConfig[]
 
 export interface ConfigOption {
     label: string
@@ -191,6 +194,16 @@ export const CONFIG_ENTRIES: ConfigEntry[] = [
         type: 'json',
     },
     {
+        defaultValue: DEFAULT_STATES,
+        description: 'Board columns in display order. Fields: state, alwaysVisible, color.',
+        editable: true,
+        key: 'project.states',
+        label: 'States',
+        section: 'project',
+        source: 'project',
+        type: 'json',
+    },
+    {
         defaultValue: 'codex',
         description: 'Default local agent profile used by desktop actions.',
         editable: true,
@@ -256,6 +269,7 @@ export const PROJECT_KEYS: ConfigKey[] = [
     'project.pushMode',
     'project.cardBodyTemplate',
     'project.cardTypes',
+    'project.states',
 ]
 
 export const LOCAL_STORAGE_KEYS: ConfigKey[] = CONFIG_ENTRIES.filter(

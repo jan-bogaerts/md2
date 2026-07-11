@@ -8,6 +8,7 @@ import {
     type StorageService,
     type TopLevelFolderReference,
 } from '../data/data_types'
+import { deriveStatesFromCards, mergeStatesWithDefaults } from '../data/card_ordering'
 import { createStorageService, writeLastProject, type StorageType } from '../data/project_session'
 import { activateStorageService } from '../data/project_storage_activation'
 import { configureRemoteControlConnection } from '../data/remote_control_connection'
@@ -15,6 +16,7 @@ import { configService } from './config_service'
 import { dataService } from './data_service'
 import { dialogService } from './dialog_service'
 import { GithubPendingCommitConflictError, GithubStorageService } from './github_storage_service'
+import { markdownParsingService } from './markdown_parsing_service'
 import { register } from './service_injector'
 
 export interface MissingWorkingFolderResolution {
@@ -51,7 +53,14 @@ function createGithubStorage(accessToken: string | null) {
 async function persistWorkingFolder(storage: StorageService, project: ProjectReference, workingFolder: string) {
     const projectConfig = await storage.loadProjectConfig(project)
     configService.loadProjectConfig(projectConfig)
-    const nextConfig = { ...configService.getProjectConfig(), workingFolder }
+    let nextConfig = { ...configService.getProjectConfig(), workingFolder }
+    if (projectConfig?.states === undefined) {
+        const resolvedConfig = resolveProjectConfigPaths(nextConfig)
+        const projectFiles = await storage.loadProjectRoot(project, resolvedConfig.workingFolder)
+        const { activeCards } = markdownParsingService.splitCards(projectFiles.files, resolvedConfig.workingFolder)
+        const derivedStates = deriveStatesFromCards(activeCards)
+        nextConfig = { ...nextConfig, states: mergeStatesWithDefaults(derivedStates) }
+    }
     configService.loadProjectConfig(nextConfig)
     await storage.saveProjectConfig(project, nextConfig)
 }

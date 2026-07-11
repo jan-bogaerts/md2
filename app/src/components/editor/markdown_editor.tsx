@@ -6,7 +6,7 @@ import {
 } from '@mdxeditor/editor'
 import '@mdxeditor/editor/style.css'
 import { useAppTheme } from '../../theme/use_app_theme'
-import { MarkdownFormatToolbarPortal } from './markdown_format_toolbar_portal'
+import { MarkdownFormatToolbarControls } from './markdown_format_toolbar_controls'
 import { buildMarkdownContentSx } from './markdown_style_sx'
 
 const DEFAULT_CODE_LANGUAGE = ''
@@ -51,11 +51,7 @@ export function MarkdownEditor(props: MarkdownEditorProps) {
                     codeBlockPlugin({ defaultCodeBlockLanguage: DEFAULT_CODE_LANGUAGE }),
                     codeMirrorPlugin({ codeBlockLanguages: CODE_BLOCK_LANGUAGES }),
                     markdownShortcutPlugin(),
-                    toolbarPlugin({
-                        toolbarContents: () => (
-                            <MarkdownFormatToolbarPortal stickyToolbar={stickyToolbar} />
-                        ),
-                    }),
+                    toolbarPlugin({toolbarContents: MarkdownFormatToolbarControls}),
                 ]}
             />
         </Box>

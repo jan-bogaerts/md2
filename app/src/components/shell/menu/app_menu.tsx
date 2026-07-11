@@ -1,24 +1,19 @@
-import { Box, MenuItem, Tab as MuiTab, Tabs, TextField, ToggleButton, ToggleButtonGroup, Tooltip } from '@mui/material'
+import { Box, Button, Divider, MenuItem, Tab as MuiTab, Tabs, TextField, ToggleButton, ToggleButtonGroup, Tooltip } from '@mui/material'
 import type { SelectChangeEvent } from '@mui/material'
 import type { ChangeEvent, MouseEvent as ReactMouseEvent, ReactNode, SyntheticEvent } from 'react'
 import { useCallback, useState } from 'react'
 import CardsOutline from 'mdi-material-ui/CardsOutline'
 import CheckCircleOutline from 'mdi-material-ui/CheckCircleOutline'
 import Cog from 'mdi-material-ui/Cog'
-import Delete from 'mdi-material-ui/Delete'
 import FileDocumentPlusOutline from 'mdi-material-ui/FileDocumentPlusOutline'
 import FolderOpen from 'mdi-material-ui/FolderOpen'
 import TextBoxOutline from 'mdi-material-ui/TextBoxOutline'
 import { defaultModelForProfile, findAgentProfile, mergeAgentProfiles } from '../../../data/agent_profiles'
 import { configService } from '../../../services/config_service'
 import { writeDesktopConfigToBridge } from '../../../services/config_persistence'
-import { dataService } from '../../../services/data_service'
-import { dialogService } from '../../../services/dialog_service'
 import { projectSessionService } from '../../../services/project_session_service'
 import { workspaceViewService, type WorkspaceViewMode } from '../../../services/workspace_view_service'
 import type { UseGithubAuthResult } from '../../../auth/use_github_auth'
-import { MarkdownFormatToolbarHost } from '../../editor/markdown_format_toolbar_host'
-import { CardDeleteDialog } from '../../card_view/card_delete_dialog'
 import { useConfigValue, useHasDesktopConfig } from '../../hooks/use_config_value'
 import { useProjectState } from '../../hooks/use_project_state'
 import { useWorkspaceView } from '../../hooks/use_workspace_view'
@@ -31,13 +26,13 @@ import { NewCardDialog } from '../project/new_card_dialog'
 import { ProjectOpenDialog } from '../project/project_open_dialog'
 import { useProjectToolbarMenuActions } from '../project/use_project_toolbar_menu_actions'
 import { Menu } from './menu'
+import { BranchMenuSelect } from './branch_menu_select'
 import { MenuIconButton } from './menu_icon_button'
 import { MenuSelect } from './menu_select'
 import { Section } from './section'
 import { Tab } from './tab'
-import { ThemeModeToggle } from './theme_mode_toggle'
 
-type AppMenuTab = 'home' | 'edit' | 'format' | 'options'
+type AppMenuTab = 'home' | 'options'
 type ProjectDialogMode = 'open' | 'branch' | 'card' | 'release'
 
 interface AppMenuProps {
@@ -53,8 +48,6 @@ interface AppMenuProps {
 
 const MENU_TABS: { label: string; value: AppMenuTab }[] = [
     { label: 'Home', value: 'home' },
-    { label: 'Edit', value: 'edit' },
-    { label: 'Format', value: 'format' },
     { label: 'Options', value: 'options' },
 ]
 
@@ -64,16 +57,13 @@ function persistDesktopConfig() {
     writeDesktopConfigToBridge(configService.getDesktopValues())
 }
 
-/** Tabbed app menu hosting project, edit, format, account and options actions. */
+/** Tabbed app menu hosting project, account and options actions. */
 export function AppMenu(props: AppMenuProps) {
     const { accessToken, auth, extraActions, isGithubAuthenticated, isMobile, onOpenConfig, onOpenMobileMenu, search } = props
-    const { project, snapshot } = useProjectState()
-    const { selectedPath, viewMode } = useWorkspaceView()
+    const { project } = useProjectState()
+    const { viewMode } = useWorkspaceView()
     const [currentTab, setCurrentTab] = useState<AppMenuTab>('home')
     const [dialogMode, setDialogMode] = useState<ProjectDialogMode | null>(null)
-    const [deleteCardPath, setDeleteCardPath] = useState<string | null>(null)
-    const activeCards = snapshot?.activeCards ?? []
-    const selectedActiveCard = activeCards.find((card) => card.path === selectedPath)
     const agentProfiles = mergeAgentProfiles(useConfigValue('desktop.agentProfiles'))
     const selectedAgent = useConfigValue('desktop.agent')
     const selectedProfile = findAgentProfile(agentProfiles, selectedAgent)
@@ -124,24 +114,6 @@ export function AppMenu(props: AppMenuProps) {
         openDialog('card')
     }
 
-    const handleOpenDeleteDialog = () => {
-        if (selectedActiveCard) setDeleteCardPath(selectedActiveCard.path)
-    }
-
-    const handleCloseDeleteDialog = () => {
-        setDeleteCardPath(null)
-    }
-
-    const handleDeleteCard = async (path: string) => {
-        try {
-            await dataService.cards.deleteCard(path)
-            workspaceViewService.clearSelectedPath(path)
-        } catch (error) {
-            dialogService.error(error, { fallbackMessage: `Card delete failed: ${path}` })
-            throw error
-        }
-    }
-
     const handleViewModeChange = (_event: ReactMouseEvent<HTMLElement>, nextMode: WorkspaceViewMode | null) => {
         if (!nextMode) return
 
@@ -180,12 +152,20 @@ export function AppMenu(props: AppMenuProps) {
             aria-label="Application menu"
             onChange={handleTabChange}
             scrollButtons={false}
-            sx={{ minHeight: 40 }}
+            sx={{
+                minHeight: 44,
+                '& .MuiTabs-indicator': { height: 2 },
+            }}
             value={currentTab}
             variant="scrollable"
         >
             {MENU_TABS.map((tab) => (
-                <MuiTab key={tab.value} label={tab.label} sx={{ minHeight: 40, textTransform: 'none' }} value={tab.value} />
+                <MuiTab
+                    key={tab.value}
+                    label={tab.label}
+                    sx={{ fontSize: 13.5, minHeight: 44, minWidth: 0, px: 1.5, textTransform: 'none' }}
+                    value={tab.value}
+                />
             ))}
         </Tabs>
     )
@@ -198,18 +178,13 @@ export function AppMenu(props: AppMenuProps) {
                         <MenuIconButton label="Open project" onClick={handleOpenProject}>
                             <FolderOpen fontSize="small" />
                         </MenuIconButton>
-                        <MenuSelect
+                        <BranchMenuSelect
+                            branches={branchOptions}
                             disabled={!actions.isProjectOpen || actions.isLoading}
-                            label="Switch branch"
-                            minWidth={150}
                             onChange={handleBranchChange}
                             onOpen={handleLoadBranches}
                             value={selectedBranch}
-                        >
-                            {branchOptions.map((branch) => (
-                                <MenuItem key={branch.name} value={branch.name}>{branch.name}</MenuItem>
-                            ))}
-                        </MenuSelect>
+                        />
                         <MenuIconButton
                             disabled={!actions.isProjectOpen || actions.activeCards.length === 0 || actions.isReleaseCompleting}
                             label="Complete release"
@@ -218,41 +193,50 @@ export function AppMenu(props: AppMenuProps) {
                             <CheckCircleOutline fontSize="small" />
                         </MenuIconButton>
                     </Section>
+                    <Divider flexItem orientation="vertical" sx={{ my: 1.5 }} />
                     <Section label="View">
-                        <ToggleButtonGroup exclusive onChange={handleViewModeChange} size="small" value={viewMode}>
+                        <ToggleButtonGroup
+                            exclusive
+                            onChange={handleViewModeChange}
+                            size="small"
+                            sx={{
+                                bgcolor: 'action.selected',
+                                borderRadius: 1,
+                                gap: 0.25,
+                                p: 0.375,
+                                '& .MuiToggleButtonGroup-grouped': { border: 0, borderRadius: '6px !important', height: 28, px: 1.25 },
+                                '& .Mui-selected': { bgcolor: 'background.paper', boxShadow: '0 1px 2px rgba(16,24,40,0.1)' },
+                            }}
+                            value={viewMode}
+                        >
                             <Tooltip title="Cards view">
                                 <ToggleButton aria-label="Cards view" value="cards">
                                     <CardsOutline fontSize="small" />
+                                    <Box component="span" sx={{ ml: 0.75 }}>Board</Box>
                                 </ToggleButton>
                             </Tooltip>
                             <Tooltip title="Text view">
                                 <ToggleButton aria-label="Text view" value="text">
                                     <TextBoxOutline fontSize="small" />
+                                    <Box component="span" sx={{ ml: 0.75 }}>List</Box>
                                 </ToggleButton>
                             </Tooltip>
                         </ToggleButtonGroup>
                     </Section>
+                    <Divider flexItem orientation="vertical" sx={{ my: 1.5 }} />
+                    <Button
+                        disabled={!actions.isProjectOpen}
+                        onClick={handleOpenCardDialog}
+                        size="small"
+                        startIcon={<FileDocumentPlusOutline fontSize="small" />}
+                        sx={{ height: 34, px: 1.75 }}
+                        variant="contained"
+                    >
+                        New card
+                    </Button>
+                    <Box sx={{ flex: 1 }} />
                     <Section label="Account">
                         <GithubAuthToolbarButton auth={auth} />
-                    </Section>
-                </Tab>
-            </Box>
-            <Box role="tabpanel" sx={{ display: currentTab === 'edit' ? 'block' : 'none' }}>
-                <Tab>
-                    <Section label="Card">
-                        <MenuIconButton disabled={!actions.isProjectOpen} label="New card" onClick={handleOpenCardDialog}>
-                            <FileDocumentPlusOutline fontSize="small" />
-                        </MenuIconButton>
-                        <MenuIconButton disabled={!selectedActiveCard} label="Delete card" onClick={handleOpenDeleteDialog}>
-                            <Delete fontSize="small" />
-                        </MenuIconButton>
-                    </Section>
-                </Tab>
-            </Box>
-            <Box role="tabpanel" sx={{ display: currentTab === 'format' ? 'block' : 'none' }}>
-                <Tab>
-                    <Section label="Markdown">
-                        <MarkdownFormatToolbarHost />
                     </Section>
                 </Tab>
             </Box>
@@ -299,9 +283,6 @@ export function AppMenu(props: AppMenuProps) {
                             <Cog fontSize="small" />
                         </MenuIconButton>
                         {extraActions}
-                    </Section>
-                    <Section label="View">
-                        <ThemeModeToggle />
                     </Section>
                 </Tab>
             </Box>
@@ -352,7 +333,6 @@ export function AppMenu(props: AppMenuProps) {
                 onCreateCard={actions.createCard}
                 open={dialogMode === 'card'}
             />
-            <CardDeleteDialog cardPath={deleteCardPath} onClose={handleCloseDeleteDialog} onDeleteCard={handleDeleteCard} />
         </Menu>
     )
 

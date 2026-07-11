@@ -3,13 +3,12 @@ import { describe, expect, it } from 'vitest'
 import { SelectableAlertMessage } from './selectable_alert_message'
 
 describe('SelectableAlertMessage', () => {
-    it('renders alert text in a read-only selectable textbox', () => {
+    it('renders alert text in a selectable div', () => {
         render(<SelectableAlertMessage message="Save failed" />)
 
-        const message = screen.getByRole('textbox', { name: 'Error message' })
+        const message = screen.getByText('Save failed')
 
-        expect(message).toHaveValue('Save failed')
-        expect(message).toHaveAttribute('readonly')
+        expect(message.tagName).toBe('DIV')
         expect(message).toHaveStyle({ cursor: 'text', height: '1.5em', userSelect: 'text' })
     })
 })

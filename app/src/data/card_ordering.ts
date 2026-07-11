@@ -1,9 +1,14 @@
-import type { ProjectCard } from './data_types'
+import { DEFAULT_STATES, defaultColumnAccent, type ProjectCard, type StateConfig } from './data_types'
 
 /** A status column with its cards already ordered by the `after` chain. */
 export interface CardColumn {
     cards: ProjectCard[]
     status: string
+}
+
+/** Board column with its resolved configured accent. */
+export interface BoardColumn extends CardColumn {
+    color: string
 }
 
 /** A minimal header change produced by a drag: the fields a move rewrites. */
@@ -77,6 +82,38 @@ export function groupByStatus(cards: ProjectCard[]): CardColumn[] {
     }
 
     return order.map((status) => ({ cards: orderByAfter(buckets.get(status) ?? []), status }))
+}
+
+/** Build board columns in configured state order, omitting empty states unless they are always visible. */
+export function buildCardColumns(cards: ProjectCard[], states: StateConfig[]): BoardColumn[] {
+    return states
+        .map(({ color, state }, index) => ({
+            cards: orderByAfter(cards.filter((card) => statusOf(card) === state)),
+            color: color ?? defaultColumnAccent(index),
+            status: state,
+        }))
+        .filter((column, index) => states[index].alwaysVisible || column.cards.length > 0)
+}
+
+/** Derive state definitions from the distinct non-empty card states in first-seen order. */
+export function deriveStatesFromCards(cards: ProjectCard[]): StateConfig[] {
+    const states = cards
+        .map((card) => statusOf(card))
+        .filter((state, index, values) => state.length > 0 && values.indexOf(state) === index)
+
+    return states.map((state, index) => ({ alwaysVisible: false, color: defaultColumnAccent(index), state }))
+}
+
+/** Keep discovered state order and append missing default state definitions. */
+export function mergeStatesWithDefaults(states: StateConfig[]): StateConfig[] {
+    const defaultsByState = new Map(DEFAULT_STATES.map((stateConfig) => [stateConfig.state, stateConfig]))
+    const mergedStates = states.map((stateConfig, index) => defaultsByState.get(stateConfig.state) ?? {
+        ...stateConfig,
+        color: stateConfig.color ?? defaultColumnAccent(index),
+    })
+    const mergedStateNames = new Set(mergedStates.map(({ state }) => state))
+
+    return [...mergedStates, ...DEFAULT_STATES.filter(({ state }) => !mergedStateNames.has(state))]
 }
 
 function clamp(value: number, min: number, max: number) {

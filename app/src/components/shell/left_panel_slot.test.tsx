@@ -36,7 +36,11 @@ function renderColumnSlot(cards: ProjectCard[]) {
             <LeftPanelSlotProvider>
                 <LeftPanelTarget fallback="No project navigation available." />
                 <LeftPanelSlot>
-                    <CardViewNavigation cards={cards} onNavigate={vi.fn()} />
+                    <CardViewNavigation
+                        cards={cards}
+                        onNavigate={vi.fn()}
+                        states={[{ alwaysVisible: false, state: 'todo' }]}
+                    />
                 </LeftPanelSlot>
             </LeftPanelSlotProvider>
         </AppThemeProvider>,
@@ -57,7 +61,14 @@ describe('LeftPanelSlot', () => {
                 <LeftPanelSlotProvider>
                     <LeftPanelTarget fallback="No project navigation available." />
                     <LeftPanelSlot>
-                        <CardViewNavigation cards={[card('F-1', 'todo'), card('F-2', 'done')]} onNavigate={vi.fn()} />
+                        <CardViewNavigation
+                            cards={[card('F-1', 'todo'), card('F-2', 'done')]}
+                            onNavigate={vi.fn()}
+                            states={[
+                                { alwaysVisible: false, state: 'todo' },
+                                { alwaysVisible: false, state: 'done' },
+                            ]}
+                        />
                     </LeftPanelSlot>
                 </LeftPanelSlotProvider>
             </AppThemeProvider>,

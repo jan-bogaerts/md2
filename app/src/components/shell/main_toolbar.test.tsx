@@ -1,5 +1,6 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { AppThemeProvider } from '../../theme/theme_provider'
 import { MainToolbar } from './main_toolbar'
 
 const search = <input aria-label="Search project" />
@@ -15,13 +16,15 @@ function appRegion(element: HTMLElement) {
 
 function renderToolbar(isMobile = false, onOpenMenu = vi.fn()) {
     return render(
-        <MainToolbar
-            isMobile={isMobile}
-            onOpenMenu={onOpenMenu}
-            panel={panel}
-            search={search}
-            tabs={tabs}
-        />,
+        <AppThemeProvider>
+            <MainToolbar
+                isMobile={isMobile}
+                onOpenMenu={onOpenMenu}
+                panel={panel}
+                search={search}
+                tabs={tabs}
+            />
+        </AppThemeProvider>,
     )
 }
 

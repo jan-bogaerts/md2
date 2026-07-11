@@ -54,7 +54,15 @@ export class CardOperations {
         const currentProject = this.dependencies.project()
         if (!currentProject) throw new Error('Cannot create a card before a project is open')
 
-        const file = createCardFile(this.dependencies.files(), config.workingFolder, config.cardTypes, config.cardBodyTemplate, draft)
+        const initialState = config.states[0].state
+        const file = createCardFile(
+            this.dependencies.files(),
+            config.workingFolder,
+            config.cardTypes,
+            config.cardBodyTemplate,
+            initialState,
+            draft,
+        )
         this.dependencies.replaceFiles([...this.dependencies.files(), file], config.workingFolder)
         await this.commitAndMergeFiles({
             branch: currentProject.branch,

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, expectTypeOf, it } from 'vitest'
-import { DEFAULT_CARD_TYPES } from '../data/data_types'
+import { DEFAULT_CARD_TYPES, DEFAULT_STATES, defaultColumnAccent } from '../data/data_types'
 import { BUILTIN_AGENT_PROFILES, type AgentProfile } from '../data/agent_profiles'
 import { CONFIG_ENTRIES, ConfigService, REACT_CONFIG_STORAGE_KEY, readStartupSplashPreference } from './config_service'
 
@@ -24,6 +24,7 @@ describe('ConfigService', () => {
             workingFolder: 'docs',
         })
         expect(service.getProjectConfig().cardTypes).toEqual(DEFAULT_CARD_TYPES)
+        expect(service.getProjectConfig().states).toEqual(DEFAULT_STATES)
     })
 
     it('narrows config values by key at compile time', () => {
@@ -63,6 +64,22 @@ describe('ConfigService', () => {
         service.init()
 
         expect(() => service.loadProjectConfig({ pushMode: 'sometimes' as never })).toThrow('Invalid config value')
+        expect(() => service.loadProjectConfig({ states: [{ alwaysVisible: true, state: 'new' }, { alwaysVisible: false, state: 'new' }] })).toThrow('duplicate states')
+    })
+
+    it('loads project states in their configured order', () => {
+        service.init()
+        const states = [
+            { alwaysVisible: true, color: '#123456', state: 'backlog' },
+            { alwaysVisible: false, state: 'shipped' },
+        ]
+
+        service.loadProjectConfig({ states })
+
+        expect(service.getProjectConfig().states).toEqual([
+            states[0],
+            { ...states[1], color: defaultColumnAccent(1) },
+        ])
     })
 
     it('keeps active values unchanged when a draft is discarded', () => {

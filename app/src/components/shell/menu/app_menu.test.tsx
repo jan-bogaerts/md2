@@ -119,10 +119,13 @@ describe('AppMenu', () => {
         renderMenu()
 
         expect(screen.getByRole('tab', { name: 'Home' })).toBeInTheDocument()
-        expect(screen.getByRole('tab', { name: 'Edit' })).toBeInTheDocument()
-        expect(screen.getByRole('tab', { name: 'Format' })).toBeInTheDocument()
+        expect(screen.queryByRole('tab', { name: 'Edit' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('tab', { name: 'Format' })).not.toBeInTheDocument()
         expect(screen.getByRole('tab', { name: 'Options' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Open project' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Cards view' })).toHaveTextContent('Board')
+        expect(screen.getByRole('button', { name: 'Text view' })).toHaveTextContent('List')
+        expect(screen.getByRole('button', { name: 'New card' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'GitHub account' })).toBeInTheDocument()
     })
 

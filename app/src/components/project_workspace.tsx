@@ -5,6 +5,7 @@ import {
 import { useEffect, useState } from 'react'
 import {
     DEFAULT_CARD_TYPES,
+    DEFAULT_STATES,
     DEFAULT_WORKING_FOLDER,
     type AgentConversation,
     type ProjectCard,
@@ -71,6 +72,7 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
     const isProjectOpen = !!project
     const projectConfig = useProjectConfig()
     const cardTypes = projectConfig?.cardTypes ?? DEFAULT_CARD_TYPES
+    const states = projectConfig?.states ?? DEFAULT_STATES
     const workingFolder = snapshot?.workingFolder ?? projectConfig?.workingFolder ?? DEFAULT_WORKING_FOLDER
 
     useEffect(() => {
@@ -217,7 +219,17 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
             aria-label="Project workspace"
             component="section"
             elevation={0}
-            sx={{ border: 1, borderColor: 'divider', borderRadius: 2, display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden', p: WORKSPACE_PANEL_PADDING }}
+            sx={{
+                bgcolor: viewMode === 'cards' ? 'background.default' : 'background.paper',
+                border: viewMode === 'cards' ? 0 : 1,
+                borderColor: 'divider',
+                borderRadius: viewMode === 'cards' ? 0 : 2,
+                display: 'flex',
+                flex: 1,
+                minHeight: 0,
+                overflow: 'hidden',
+                p: viewMode === 'cards' ? 0 : WORKSPACE_PANEL_PADDING,
+            }}
         >
             <Box
                 aria-label="Project workspace content"
@@ -243,6 +255,7 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
                             onTogglePolicy={handleTogglePolicy}
                             repositoryFiles={repositoryFiles}
                             selectedPath={selectedPath}
+                            states={states}
                         />
                     ) : (
                         <TextView

@@ -296,7 +296,7 @@ describe('ProjectWorkspace', () => {
         ])
         bridge.loadProjectConfig = vi.fn(async () => savedConfig ?? { workingFolder: 'missing' })
         const loadProject = vi.fn(async (_project, workingFolder) => {
-            if (!savedConfig) throw new MissingWorkingFolderError(workingFolder)
+            if (workingFolder === 'missing') throw new MissingWorkingFolderError(workingFolder)
 
             return {
                 files: [{ content: '---\nid: F-1\ntitle: Root\nstatus: active\naffects:\n---\n\n# Root', path: `${workingFolder}/F-1-root.md` }],
@@ -323,7 +323,17 @@ describe('ProjectWorkspace', () => {
 
         fireEvent.click(screen.getByRole('button', { name: 'Use folder docs' }))
 
-        await waitFor(() => expect(bridge.saveProjectConfig).toHaveBeenCalledWith(expect.any(Object), expect.objectContaining({ workingFolder: 'docs' })))
+        await waitFor(() => expect(bridge.saveProjectConfig).toHaveBeenCalledWith(expect.any(Object), expect.objectContaining({
+            states: [
+                { alwaysVisible: false, state: 'active' },
+                { alwaysVisible: true, state: 'new' },
+                { alwaysVisible: true, state: 'design' },
+                { alwaysVisible: true, state: 'ready for implementation' },
+                { alwaysVisible: true, state: 'in progress' },
+                { alwaysVisible: true, state: 'done' },
+            ],
+            workingFolder: 'docs',
+        })))
         expect(bridge.createWorkingFolderFromTemplate).not.toHaveBeenCalled()
         expect(await screen.findByText('Root')).toBeInTheDocument()
     })
@@ -445,12 +455,12 @@ describe('ProjectWorkspace', () => {
         expect(screen.queryByText('Background cards loaded: 2')).toBeNull()
     })
 
-    it('opens a card in the text view as a tab from the card body dialog', async () => {
+    it('opens a card in the text view as a tab from the card body popup', async () => {
         window.md2Data = createBridge()
 
         renderProjectSurface()
         await openLocalProject()
-        fireEvent.click(await screen.findByText('Root'))
+        fireEvent.click(await screen.findByRole('button', { name: 'Drag F-1' }))
         fireEvent.click(await screen.findByRole('button', { name: 'Open in file mode' }))
 
         expect(await screen.findByRole('tab', { name: /Root/ })).toBeInTheDocument()

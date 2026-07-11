@@ -53,9 +53,15 @@ function isExternalImportCandidate(file: MarkdownFile, workingFolder: string) {
     return !markdownParsingService.followsCardNamingConvention(file.path)
 }
 
-function buildImportedContent(file: MarkdownFile, id: string, title: string, parsed: ReturnType<typeof markdownParsingService.parse>) {
+function buildImportedContent(
+    file: MarkdownFile,
+    id: string,
+    initialState: string,
+    title: string,
+    parsed: ReturnType<typeof markdownParsingService.parse>,
+) {
     const internalId = stringField(parsed.header, 'internalId') ?? markdownParsingService.generateInternalId()
-    const status = stringField(parsed.header, 'status') ?? 'new'
+    const status = stringField(parsed.header, 'status') ?? initialState
 
     return markdownParsingService.rewriteHeader(file.content, { id, internalId, status, title })
 }
@@ -64,7 +70,12 @@ function importedPath(workingFolder: string, id: string, title: string) {
     return `${workingFolder}/${id}-${slugifyTitle(title)}${MARKDOWN_EXTENSION}`
 }
 
-export function planExternalCardImports(files: MarkdownFile[], workingFolder: string, cardTypes: CardTypeConfig[]): ExternalCardImportPlan {
+export function planExternalCardImports(
+    files: MarkdownFile[],
+    workingFolder: string,
+    cardTypes: CardTypeConfig[],
+    initialState: string,
+): ExternalCardImportPlan {
     const cardType = getFeatureCardType(cardTypes)
     const candidates = files.filter((file) => isExternalImportCandidate(file, workingFolder))
     let nextNumber = getNextCardNumber(files, cardType.idPrefix)
@@ -76,7 +87,7 @@ export function planExternalCardImports(files: MarkdownFile[], workingFolder: st
         const title = importTitle(file, parsed.header, parsed.body)
         const id = `${cardType.idPrefix}-${nextNumber}`
         const path = importedPath(workingFolder, id, title)
-        const content = buildImportedContent(file, id, title, parsed)
+        const content = buildImportedContent(file, id, initialState, title, parsed)
         const importedFile = { content, path }
         moves.push({ content, fromPath: file.path, sha: file.sha, toPath: path })
         importedFiles.push(importedFile)

@@ -1,7 +1,9 @@
-import { Box, Chip, Stack, Typography } from '@mui/material'
+import { Box, Stack, Typography } from '@mui/material'
+import CardsOutline from 'mdi-material-ui/CardsOutline'
+import Sync from 'mdi-material-ui/Sync'
+import type { RunningAgent } from '../../data/data_types'
 import { KeyboardStatus } from './keyboard_status'
 import { RunningAgentsIndicator } from './running_agents_indicator'
-import type { RunningAgent } from '../../data/data_types'
 
 interface StatusBarProps {
     activeCardCount: number
@@ -10,7 +12,7 @@ interface StatusBarProps {
     totalCardCount: number
 }
 
-/** Desktop status bar: card counts, keyboard status and the running-agents indicator. */
+/** Compact desktop status bar for board totals, synchronization and agents. */
 export function StatusBar(props: StatusBarProps) {
     const { activeCardCount, agents, hasPendingCommits, totalCardCount } = props
 
@@ -19,28 +21,43 @@ export function StatusBar(props: StatusBarProps) {
             component="footer"
             sx={{
                 alignItems: 'center',
+                bgcolor: 'background.paper',
                 borderColor: 'divider',
                 borderTop: 1,
+                color: 'text.secondary',
                 display: 'flex',
+                flexShrink: 0,
+                fontSize: 11.5,
                 gap: 2,
-                justifyContent: 'space-between',
-                px: 2,
-                py: 0.5,
+                height: 32,
+                px: 1.75,
             }}
         >
-            <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
-                <Typography color="text.secondary" variant="body2">
-                    Total cards loaded: {totalCardCount}
+            <Stack direction="row" spacing={0.75} sx={{ alignItems: 'center' }}>
+                <CardsOutline sx={{ color: 'text.secondary', fontSize: 14 }} />
+                <Typography component="span" sx={{ color: 'text.primary', fontSize: 'inherit', fontWeight: 600 }}>
+                    {totalCardCount}
                 </Typography>
-                <Typography color="text.secondary" variant="body2">
-                    Currently active: {activeCardCount}
+                <Box component="span">cards</Box>
+            </Stack>
+            <Stack direction="row" spacing={0.75} sx={{ alignItems: 'center' }}>
+                <Box sx={{ bgcolor: 'success.main', borderRadius: '50%', height: 7, width: 7 }} />
+                <Typography component="span" sx={{ color: 'text.primary', fontSize: 'inherit', fontWeight: 600 }}>
+                    {activeCardCount}
                 </Typography>
+                <Box component="span">active</Box>
             </Stack>
-            <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
-                {hasPendingCommits ? <Chip color="warning" label="Unsaved changes" size="small" variant="outlined" /> : null}
-                <KeyboardStatus />
-                <RunningAgentsIndicator agents={agents} />
+            <Stack
+                direction="row"
+                spacing={0.75}
+                sx={{ alignItems: 'center', color: hasPendingCommits ? 'warning.main' : 'text.secondary' }}
+            >
+                <Sync sx={{ fontSize: 14 }} />
+                <Box component="span">{hasPendingCommits ? 'Changes pending' : 'Synced just now'}</Box>
             </Stack>
+            <Box sx={{ flex: 1 }} />
+            <KeyboardStatus />
+            <RunningAgentsIndicator agents={agents} />
         </Box>
     )
 }

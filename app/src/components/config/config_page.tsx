@@ -99,6 +99,8 @@ export function ConfigPage(props: ConfigPageProps) {
             configService.loadDraft()
             if (shouldSaveProjectConfig && configService.hasProjectConfig()) await dataService.projectLoading.saveProjectConfig()
             if (shouldSaveDesktopConfig && configService.hasDesktopConfig()) writeDesktopConfigToBridge(configService.getDesktopValues())
+            dialogService.success('Config saved')
+            navigateTo('/')
         } catch (error) {
             dialogService.error(error, { fallbackMessage: 'Config save failed' })
         }
@@ -133,9 +135,27 @@ export function ConfigPage(props: ConfigPageProps) {
     )
 
     return (
-        <Box sx={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'auto' }}>
-            {!isMobile ? <Box sx={{ borderRight: 1, borderColor: 'divider', flexShrink: 0, width: CONFIG_SIDEBAR_WIDTH }}>{sectionTabs}</Box> : null}
-            <Box sx={{ flex: 1, minWidth: 0, p: CONFIG_PAGE_PADDING }}>
+        <Box
+            aria-label="Config page"
+            component="section"
+            sx={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}
+        >
+            {!isMobile ? (
+                <Box
+                    aria-label="Config section navigation"
+                    component="nav"
+                    sx={{ borderRight: 1, borderColor: 'divider', flexShrink: 0, minHeight: 0, overflow: 'auto', width: CONFIG_SIDEBAR_WIDTH }}
+                    tabIndex={0}
+                >
+                    {sectionTabs}
+                </Box>
+            ) : null}
+            <Box
+                aria-label="Config section content"
+                role="region"
+                sx={{ flex: 1, minHeight: 0, minWidth: 0, overflow: 'auto', p: CONFIG_PAGE_PADDING }}
+                tabIndex={0}
+            >
                 <Stack spacing={3} sx={{ maxWidth: CONFIG_FORM_MAX_WIDTH }}>
                     <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ alignItems: { sm: 'center' } }}>
                         <Typography component="h2" sx={{ flexGrow: 1 }} variant="h5">

@@ -1,5 +1,6 @@
 import { ACTION_SCHEDULES_FILE } from '../data/action_schedule_types'
-import { resolveProjectConfigPaths, type MarkdownFile, type ProjectAsset, type ProjectReference, type ProjectSnapshot, type ProjectWatchEvent, type StorageService } from '../data/data_types'
+import { deriveStatesFromCards, mergeStatesWithDefaults } from '../data/card_ordering'
+import { resolveProjectConfigPaths, type MarkdownFile, type ProjectAsset, type ProjectConfig, type ProjectReference, type ProjectSnapshot, type ProjectWatchEvent, type StorageService } from '../data/data_types'
 import { actionService } from './action_service'
 import { configService } from './config_service'
 import {
@@ -46,6 +47,13 @@ function backgroundProjectLoadFailureMessage(error: unknown) {
     const detail = errorMessage(error, 'Unknown error')
 
     return `Background project data failed to load - search and history may be incomplete. ${detail}`
+}
+
+function initializeMissingProjectStates(projectConfig: Partial<ProjectConfig> | null, snapshot: ProjectSnapshot) {
+    if (projectConfig?.states !== undefined) return
+
+    const derivedStates = deriveStatesFromCards(snapshot.activeCards)
+    configService.set('project.states', mergeStatesWithDefaults(derivedStates))
 }
 
 export interface ProjectLoadingDeps {
@@ -129,9 +137,10 @@ export class ProjectLoading {
         const repositoryFiles: string[] = []
         this.dependencies.replaceProjectFiles(projectFiles.files, config.workingFolder, repositoryFiles)
         this.startProjectWatch()
-        this.dependencies.dispatchChanged()
         const currentSnapshot = this.dependencies.snapshot()
         if (!currentSnapshot) throw new Error('Project snapshot was not created')
+        initializeMissingProjectStates(projectConfig, currentSnapshot)
+        this.dependencies.dispatchChanged()
 
         this.loadAgentConversationsInBackground(currentSnapshot, project, projectLoadToken)
         void this.loadFullProjectInBackground(project, config.workingFolder, projectLoadToken)
@@ -206,7 +215,7 @@ export class ProjectLoading {
         const currentProject = this.dependencies.project()
         if (!currentProject) return files
 
-        const plan = planExternalCardImports(files, workingFolder, config.cardTypes)
+        const plan = planExternalCardImports(files, workingFolder, config.cardTypes, config.states[0].state)
         if (plan.moves.length === 0) return files
 
         const importPaths = plan.moves.flatMap((move) => [move.fromPath, move.toPath])

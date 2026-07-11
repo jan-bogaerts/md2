@@ -15,7 +15,7 @@ import { projectSessionService, type MissingWorkingFolderResolution } from '../.
 import { useProjectConfig } from '../../hooks/use_project_config'
 import { useProjectSession } from '../../hooks/use_project_session'
 import { useProjectState } from '../../hooks/use_project_state'
-import { OPEN_PROJECT_DIALOG_EVENT } from '../../project_command_events'
+import { OPEN_NEW_CARD_DIALOG_EVENT, OPEN_PROJECT_DIALOG_EVENT } from '../../project_command_events'
 
 type ProjectDialogMode = 'open' | 'branch' | 'card' | 'release'
 
@@ -92,6 +92,16 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
 
         return () => window.removeEventListener(OPEN_PROJECT_DIALOG_EVENT, handleOpenProjectDialog)
     }, [isGithubAuthenticated, loadRepositories, onOpenDialog])
+
+    useEffect(() => {
+        const handleOpenNewCardDialog = () => {
+            if (project) onOpenDialog('card')
+        }
+
+        window.addEventListener(OPEN_NEW_CARD_DIALOG_EVENT, handleOpenNewCardDialog)
+
+        return () => window.removeEventListener(OPEN_NEW_CARD_DIALOG_EVENT, handleOpenNewCardDialog)
+    }, [onOpenDialog, project])
 
     const openProjectDialog = () => {
         onOpenDialog('open')

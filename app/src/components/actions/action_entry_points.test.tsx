@@ -134,6 +134,14 @@ describe('ActionEntryPoints popup', () => {
         expect(within(dialog).getByRole('heading', { name: 'Implement' })).toBeInTheDocument()
     })
 
+    it('opens the first context-specific action from the compact Run button', () => {
+        render(<ActionEntryPoints context={cardContext(featureCard, DEFAULT_CARD_TYPES)} variant="button" />)
+
+        fireEvent.click(screen.getByRole('button', { name: 'Run' }))
+
+        expect(within(screen.getByRole('dialog')).getByRole('heading', { name: 'Implement' })).toBeInTheDocument()
+    })
+
     it('opens a popup from the overflow menu entry point', () => {
         render(<ActionEntryPoints context={cardContext(featureCard, DEFAULT_CARD_TYPES)} variant="menu" />)
 

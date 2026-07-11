@@ -113,6 +113,23 @@ describe('ConfigPage', () => {
         expect(configService.get('react.showStartupSplash')).toBe(false)
     })
 
+    it('reports success and closes the config page after saving', async () => {
+        mockMatchMedia(false)
+        configService.init()
+        const reportSuccess = vi.spyOn(dialogService, 'success')
+
+        render(<ConfigPage hash="" />)
+        fireEvent.click(screen.getByRole('switch', { name: 'Startup splash' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+        await waitFor(() => {
+            expect(reportSuccess).toHaveBeenCalledWith('Config saved')
+            expect(window.location.pathname).toBe('/')
+        })
+
+        reportSuccess.mockRestore()
+    })
+
     it('saves slider draft edits into active config', () => {
         mockMatchMedia(false)
         configService.init()
@@ -152,6 +169,23 @@ describe('ConfigPage', () => {
         saveProjectConfig.mockRestore()
     })
 
+    it('edits project states as ordered JSON definitions', () => {
+        mockMatchMedia(false)
+        configService.init()
+        configService.loadProjectConfig(null)
+
+        render(<ConfigPage hash="#project" />)
+        const statesEditor = screen.getByRole('textbox', { name: 'States' })
+        const states = [
+            { alwaysVisible: true, state: 'backlog' },
+            { alwaysVisible: false, state: 'done' },
+        ]
+        fireEvent.change(statesEditor, { target: { value: JSON.stringify(states) } })
+        fireEvent.blur(statesEditor)
+
+        expect(configService.getDraft()?.['project.states']).toEqual(states)
+    })
+
     it('keeps the config page visible while project config save is pending', () => {
         mockMatchMedia(false)
         configService.init()
@@ -181,6 +215,7 @@ describe('ConfigPage', () => {
         await waitFor(() => {
             expect(reportError).toHaveBeenCalledWith(expect.any(Error), { fallbackMessage: 'Config save failed' })
         })
+        expect(window.location.pathname).toBe('/config')
 
         reportError.mockRestore()
         saveProjectConfig.mockRestore()
@@ -200,7 +235,7 @@ describe('ConfigPage', () => {
         expect(window.location.pathname).toBe('/')
     })
 
-    it('uses vertical section tabs on desktop', () => {
+    it('scrolls desktop section tabs separately from the active section content', () => {
         mockMatchMedia(false)
         configService.init({
             desktopConfig: {
@@ -215,6 +250,9 @@ describe('ConfigPage', () => {
 
         render(<ConfigPage hash="#project" />)
 
+        expect(screen.getByRole('region', { name: 'Config page' })).toHaveStyle({ overflow: 'hidden' })
+        expect(screen.getByRole('navigation', { name: 'Config section navigation' })).toHaveStyle({ overflow: 'auto' })
+        expect(screen.getByRole('region', { name: 'Config section content' })).toHaveStyle({ overflow: 'auto' })
         expect(screen.getByRole('tablist', { name: 'Config sections' })).toHaveAttribute('aria-orientation', 'vertical')
         expect(screen.getByRole('tab', { name: 'Project' })).toHaveAttribute('href', '#project')
         expect(screen.getByRole('tab', { name: 'Desktop' })).toBeInTheDocument()

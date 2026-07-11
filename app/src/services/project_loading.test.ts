@@ -1,5 +1,5 @@
 ﻿import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { StorageProjectFiles, StorageService } from '../data/data_types'
+import { DEFAULT_STATES, type StorageProjectFiles, type StorageService } from '../data/data_types'
 import { actionService } from './action_service'
 import { configService } from './config_service'
 import { DataService } from './data_service'
@@ -26,6 +26,57 @@ describe('ProjectLoading', () => {
         vi.useRealTimers()
         delete window.md2Actions
         configService.clear()
+    })
+
+    it('derives project states from active cards when config does not define them', async () => {
+        configService.init()
+        const rootFiles = [
+            { ...files[0], content: files[0].content.replace('status: active', 'status: design') },
+            { content: '---\nid: F-2\ntitle: Ready\nstatus: ready for implementation\n---\n', path: 'design/F-2-ready.md' },
+        ]
+        const storage = createStorage({
+            loadProject: vi.fn(async () => ({ files: rootFiles, workingFolder: 'design' })),
+            loadProjectConfig: vi.fn(async () => ({ workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: rootFiles, workingFolder: 'design' })),
+        })
+        const service = new DataService()
+        service.init({ storage })
+
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+
+        expect(service.getConfig()?.states).toEqual([
+            { alwaysVisible: true, state: 'design' },
+            { alwaysVisible: true, state: 'ready for implementation' },
+            { alwaysVisible: true, state: 'new' },
+            { alwaysVisible: true, state: 'in progress' },
+            { alwaysVisible: true, state: 'done' },
+        ])
+    })
+
+    it('uses default states when config and active cards have no states', async () => {
+        configService.init()
+        const storage = createStorage({
+            loadProject: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
+        })
+        const service = new DataService()
+        service.init({ storage })
+
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+
+        expect(service.getConfig()?.states).toEqual(DEFAULT_STATES)
+    })
+
+    it('keeps configured project states instead of deriving card states', async () => {
+        configService.init()
+        const configuredStates = [{ alwaysVisible: true, state: 'configured' }]
+        const storage = createStorage({loadProjectConfig: vi.fn(async () => ({ states: configuredStates }))})
+        const service = new DataService()
+        service.init({ storage })
+
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+
+        expect(service.getConfig()?.states).toEqual(configuredStates)
     })
     it('loads action files from the configured actions folder into the action service on open', async () => {
         configService.init()
@@ -189,7 +240,7 @@ describe('ProjectLoading', () => {
             })
 
             const importedCard = service.getState().snapshot?.activeCards.find((card) => card.path === 'design/F-4-notes.md')
-            expect(importedCard?.header).toMatchObject({ id: 'F-4', status: 'new', title: 'Notes' })
+            expect(importedCard?.header).toMatchObject({ id: 'F-4', status: 'active', title: 'Notes' })
             expect(importedCard?.header.internalId).toBeTruthy()
             expect(service.getState().snapshot?.activeCards.some((card) => card.path === 'design/notes.md')).toBe(false)
             expect(notices.messages).toContain('Imported 1 external file as new cards.')
@@ -377,7 +428,7 @@ describe('ProjectLoading', () => {
             })],
         })
         const card = service.getState().snapshot?.activeCards.find((candidate) => candidate.path === 'design/F-4-new-external-note.md')
-        expect(card?.header.status).toBe('new')
+        expect(card?.header.status).toBe('active')
         expect(card?.header.internalId).toBeTruthy()
     })
 

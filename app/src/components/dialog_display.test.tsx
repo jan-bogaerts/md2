@@ -18,11 +18,9 @@ describe('DialogDisplay', () => {
             dialogService.error('Save failed')
         })
 
-        const message = screen.getByRole('textbox', { name: 'Error message' })
+        const message = screen.getByText('Save failed')
 
         expect(message).toBeInTheDocument()
-        expect(message).toHaveValue('Save failed')
-        expect(message).toHaveAttribute('readonly')
         expect(screen.queryByRole('dialog')).toBeNull()
     })
 
@@ -34,7 +32,7 @@ describe('DialogDisplay', () => {
             dialogService.error('Save failed')
         })
 
-        const message = screen.getByRole('textbox', { name: 'Error message' })
+        const message = screen.getByText('Save failed')
 
         await act(async () => {
             await vi.advanceTimersByTimeAsync(SNACKBAR_TIMEOUT_PROBE_MS)
@@ -44,7 +42,7 @@ describe('DialogDisplay', () => {
 
         fireEvent.click(screen.getByRole('button', { name: 'Close' }))
 
-        expect(screen.queryByRole('textbox', { name: 'Error message' })).toBeNull()
+        expect(screen.queryByText('Save failed')).toBeNull()
     })
 
     it('shows critical errors as a blocking dialog', async () => {
@@ -55,11 +53,9 @@ describe('DialogDisplay', () => {
         })
 
         expect(await screen.findByRole('dialog', { name: 'Startup blocked' })).toBeInTheDocument()
-        const message = screen.getByRole('textbox', { name: 'Error message' })
+        const message = screen.getByText('Startup failed')
 
         expect(message).toBeInTheDocument()
-        expect(message).toHaveValue('Startup failed')
-        expect(message).toHaveAttribute('readonly')
 
         fireEvent.click(screen.getByRole('button', { name: 'OK' }))
 

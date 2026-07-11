@@ -1,12 +1,12 @@
-import { Stack } from '@mui/material'
+import { Box } from '@mui/material'
 import { DndContext, PointerSensor, closestCorners, useSensor, useSensors } from '@dnd-kit/core'
 import type { DragEndEvent } from '@dnd-kit/core'
 import { useMemo, useState } from 'react'
-import { groupByStatus, UNASSIGNED_STATUS } from '../../data/card_ordering'
-import type { AgentConversation, CardTypeConfig, ProjectCard } from '../../data/data_types'
+import { buildCardColumns } from '../../data/card_ordering'
+import type { AgentConversation, CardTypeConfig, ProjectCard, StateConfig } from '../../data/data_types'
 import { telemetryService } from '../../services/telemetry_service'
 import { AffectsEditorDialog } from './affects_editor_dialog'
-import { CardBodyDialog } from './card_body_dialog'
+import { CardBodyPopover } from './card_body_popover'
 import { CardColumn } from './card_column'
 import { resolveDrop } from './card_drag'
 
@@ -28,9 +28,10 @@ interface CardViewProps {
     onTitleChange: (path: string, title: string) => void
     repositoryFiles: string[]
     selectedPath: string | null
+    states: StateConfig[]
 }
 
-/** Card view: status columns of draggable cards with body dialog/accordion access. */
+/** Card view: status columns of draggable cards with card-anchored body popup access. */
 export function CardView(props: CardViewProps) {
     const {
         cardTypes,
@@ -48,20 +49,24 @@ export function CardView(props: CardViewProps) {
         onTitleChange,
         repositoryFiles,
         selectedPath,
+        states,
     } = props
-    const columns = useMemo(() => {
-        const groupedColumns = groupByStatus(cards)
-        if (groupedColumns.length > 0) return groupedColumns
-
-        return [{ cards: [], status: UNASSIGNED_STATUS }]
-    }, [cards])
+    const columns = useMemo(() => buildCardColumns(cards, states), [cards, states])
     const [openBodyPath, setOpenBodyPath] = useState<string | null>(null)
+    const [bodyAnchorElement, setBodyAnchorElement] = useState<HTMLElement | null>(null)
     const [openAffectsPath, setOpenAffectsPath] = useState<string | null>(null)
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: DRAG_ACTIVATION_DISTANCE } }))
 
-    const handleOpenBody = (path: string) => {
-        setOpenBodyPath((current) => (current === path ? null : path))
+    const handleOpenBody = (path: string, anchorElement: HTMLElement) => {
+        const isClosing = openBodyPath === path
+        setOpenBodyPath(isClosing ? null : path)
+        setBodyAnchorElement(isClosing ? null : anchorElement)
         telemetryService.trackEvent('navigation')
+    }
+
+    const handleCloseBody = () => {
+        setOpenBodyPath(null)
+        setBodyAnchorElement(null)
     }
 
     const handleOpenAffects = (path: string) => {
@@ -81,14 +86,14 @@ export function CardView(props: CardViewProps) {
     }
 
     const handleOpenInFileMode = (path: string) => {
-        setOpenBodyPath(null)
+        handleCloseBody()
         onOpenInFileMode(path)
     }
 
     const handleDeleteCard = async (path: string) => {
         await onDeleteCard(path)
-        if (openBodyPath === path) setOpenBodyPath(null)
-        if (openAffectsPath === path) setOpenAffectsPath(null)
+        if (openBodyPath === path) handleCloseBody()
+        if (openAffectsPath === path) handleCloseAffects()
     }
 
     const openCard = cards.find((card) => card.path === openBodyPath) ?? null
@@ -96,11 +101,17 @@ export function CardView(props: CardViewProps) {
 
     return (
         <DndContext collisionDetection={closestCorners} onDragEnd={handleDragEnd} sensors={sensors}>
-            <Stack
+            <Box
                 aria-label="Card columns"
-                direction={isMobile ? 'column' : 'row'}
-                spacing={2}
-                sx={{ alignItems: 'flex-start', overflowX: isMobile ? 'visible' : 'auto', pb: 1 }}
+                sx={{
+                    alignItems: 'flex-start',
+                    display: 'flex',
+                    flexDirection: isMobile ? 'column' : 'row',
+                    gap: 2,
+                    height: '100%',
+                    overflowX: isMobile ? 'visible' : 'auto',
+                    p: 2.5,
+                }}
             >
                 {columns.map((column) => (
                     <CardColumn
@@ -108,12 +119,9 @@ export function CardView(props: CardViewProps) {
                         cardTypes={cardTypes}
                         column={column}
                         isMobile={isMobile}
-                        onAffectsChange={onAffectsChange}
-                        onBodyChange={onBodyChange}
                         onContinueAgentConversation={onContinueAgentConversation}
                         onDeleteCard={handleDeleteCard}
                         onOpenBody={handleOpenBody}
-                        onOpenAffects={handleOpenAffects}
                         onOpenInFileMode={handleOpenInFileMode}
                         onSendAgentInput={onSendAgentInput}
                         onStartAgentConversation={onStartAgentConversation}
@@ -123,16 +131,17 @@ export function CardView(props: CardViewProps) {
                         selectedPath={selectedPath}
                     />
                 ))}
-            </Stack>
-            {isMobile ? null : (
-                <CardBodyDialog
-                    card={openCard}
-                    onBodyChange={onBodyChange}
-                    onClose={() => setOpenBodyPath(null)}
-                    onDeleteCard={handleDeleteCard}
-                    onOpenInFileMode={handleOpenInFileMode}
-                />
-            )}
+            </Box>
+            <CardBodyPopover
+                anchorElement={bodyAnchorElement}
+                card={openCard}
+                isMobile={isMobile}
+                onBodyChange={onBodyChange}
+                onClose={handleCloseBody}
+                onDeleteCard={handleDeleteCard}
+                onOpenAffects={handleOpenAffects}
+                onOpenInFileMode={handleOpenInFileMode}
+            />
             <AffectsEditorDialog
                 card={affectsCard}
                 onClose={handleCloseAffects}

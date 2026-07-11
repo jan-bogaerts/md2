@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_CARD_TYPES, type MarkdownFile } from '../data/data_types'
+import { DEFAULT_CARD_TYPES, DEFAULT_STATES, type MarkdownFile } from '../data/data_types'
 import type { RemarkableConnectionSettings, RemarkableImportedAsset } from '../data/remarkable_bridge'
 import { parseImportMetadata, remarkableDeviceKey, remarkableMetadataPath } from '../data/remarkable_import_metadata'
 import { buildRemarkableImport, type BuildRemarkableImportInput } from './remarkable_import_service'
@@ -12,7 +12,7 @@ const SETTINGS: RemarkableConnectionSettings = {
     username: 'root',
 }
 
-const CONFIG = { cardBodyTemplate: '# Goal', cardTypes: DEFAULT_CARD_TYPES, workingFolder: 'design' }
+const CONFIG = { cardBodyTemplate: '# Goal', cardTypes: DEFAULT_CARD_TYPES, states: DEFAULT_STATES, workingFolder: 'design' }
 
 function asset(name: string, overrides: Partial<RemarkableImportedAsset> = {}): RemarkableImportedAsset {
     return { content: btoa(name), modifiedTime: '2026-07-01T10:00:00.000Z', name, sourcePath: `/img/${name}`, ...overrides }

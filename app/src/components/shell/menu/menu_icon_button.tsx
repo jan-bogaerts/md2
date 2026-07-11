@@ -15,7 +15,7 @@ export function MenuIconButton(props: MenuIconButtonProps) {
     return (
         <Tooltip title={label}>
             <span>
-                <IconButton aria-label={label} disabled={disabled} onClick={onClick} size="small">
+                <IconButton aria-label={label} disabled={disabled} onClick={onClick} size="small" sx={{ height: 34, width: 34 }}>
                     {children}
                 </IconButton>
             </span>

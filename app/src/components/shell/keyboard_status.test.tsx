@@ -14,10 +14,10 @@ function dispatchKeyDown(init: KeyboardEventInit, capsLock = false) {
 describe('KeyboardStatus', () => {
     afterEach(cleanup)
 
-    it('shows caps and insert as off by default', () => {
+    it('shows the insert keycap without an inactive caps indicator by default', () => {
         render(<KeyboardStatus />)
 
-        expect(screen.getByText('Caps Off')).toBeInTheDocument()
+        expect(screen.queryByText('CAPS')).not.toBeInTheDocument()
         expect(screen.getByText('INS')).toBeInTheDocument()
     })
 
@@ -26,7 +26,7 @@ describe('KeyboardStatus', () => {
 
         dispatchKeyDown({ key: 'a' }, true)
 
-        expect(screen.getByText('Caps On')).toBeInTheDocument()
+        expect(screen.getByText('CAPS')).toBeInTheDocument()
     })
 
     it('toggles overwrite mode when Insert is pressed', () => {

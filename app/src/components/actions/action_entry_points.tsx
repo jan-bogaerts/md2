@@ -1,5 +1,6 @@
-import { IconButton, ListItemIcon, Menu, MenuItem, Stack, Tooltip } from '@mui/material'
+import { Button, IconButton, ListItemIcon, Menu, MenuItem, Stack, Tooltip } from '@mui/material'
 import DotsVertical from 'mdi-material-ui/DotsVertical'
+import Play from 'mdi-material-ui/Play'
 import { useEffect, useMemo, useState } from 'react'
 import { actionsForContext, type ActionContext } from '../../data/action_context'
 import type { ActionDefinition } from '../../data/action_types'
@@ -9,7 +10,7 @@ import { resolveActionIcon, type ActionIconSource } from './action_icon_resolver
 import { ActionPopup } from './action_popup'
 
 /** How entry points are rendered: inline icon buttons (cards) or a single overflow menu (files/folders). */
-export type ActionEntryVariant = 'icons' | 'menu' | 'menuItems'
+export type ActionEntryVariant = 'button' | 'icons' | 'menu' | 'menuItems'
 
 interface ActionEntryPointsProps {
     context: ActionContext
@@ -85,6 +86,31 @@ export function ActionEntryPoints(props: ActionEntryPointsProps) {
     )
 
     if (variant === 'menuItems') return menuItems
+
+    if (variant === 'button') {
+        const primaryAction = matching.find((action) => !action.builtin && action.appliesTo !== null)
+            ?? matching.find((action) => !action.builtin)
+            ?? matching[0]
+
+        const handleRun = () => {
+            open(primaryAction)
+        }
+
+        return (
+            <>
+                <Button
+                    onClick={handleRun}
+                    size="small"
+                    startIcon={<Play sx={{ fontSize: '13px !important' }} />}
+                    sx={{ borderRadius: 99, fontSize: 11.5, height: 26, minWidth: 0, px: 1.25 }}
+                    variant="outlined"
+                >
+                    Run
+                </Button>
+                {popup}
+            </>
+        )
+    }
 
     if (variant === 'menu') {
         return (

@@ -1,30 +1,24 @@
-import { Badge, Box, Button, Collapse, IconButton, Menu, MenuItem, Popover, Stack, TextField, Tooltip, Typography } from '@mui/material'
+import { Avatar, Box, IconButton, Menu, MenuItem, Popover, Stack, TextField, Tooltip, Typography, useTheme } from '@mui/material'
+import { alpha } from '@mui/material/styles'
 import { useSortable } from '@dnd-kit/sortable'
 import DotsVertical from 'mdi-material-ui/DotsVertical'
 import FileDocumentOutline from 'mdi-material-ui/FileDocumentOutline'
 import { useState } from 'react'
-import type { KeyboardEvent, MouseEvent, TouchEvent } from 'react'
-import type { AgentConversation } from '../../data/data_types'
-import type { CardTypeConfig, ProjectCard } from '../../data/data_types'
+import type { ChangeEvent, KeyboardEvent, MouseEvent, TouchEvent } from 'react'
+import type { AgentConversation, CardTypeConfig, ProjectCard } from '../../data/data_types'
 import { cardContext } from '../../data/action_context'
 import { ActionEntryPoints } from '../actions/action_entry_points'
 import { AgentConversationList } from '../agents/agent_conversation_list'
-import { CardBodyEditor } from './card_body_editor'
 import { CardDeleteDialog } from './card_delete_dialog'
-import { PolicyLed } from './policy_led'
+import { CardPolicyMenuItem } from './card_policy_menu_item'
 
-const TYPE_LINE_WIDTH = 4
-const AGENT_LED_SIZE = 10
 const AGENT_POPOVER_WIDTH = 420
 const CARD_LONG_PRESS_MS = 500
 
 export interface CardHandlers {
-    onAffectsChange: (path: string, affects: string[]) => void
-    onBodyChange: (path: string, body: string) => void
     onContinueAgentConversation: (cardPath: string, conversation: AgentConversation) => void
     onDeleteCard: (path: string) => Promise<void>
-    onOpenAffects: (path: string) => void
-    onOpenBody: (path: string) => void
+    onOpenBody: (path: string, anchorElement: HTMLElement) => void
     onOpenInFileMode: (path: string) => void
     onSendAgentInput: (runId: string, input: string) => void
     onStartAgentConversation: (cardPath: string, prompt: string) => void
@@ -34,11 +28,9 @@ export interface CardHandlers {
 
 interface ProjectCardViewProps extends CardHandlers {
     card: ProjectCard
-    cardTypeLabel?: string
     cardTypes: CardTypeConfig[]
     color?: string
     isBodyOpen: boolean
-    isMobile: boolean
     isSelected: boolean
 }
 
@@ -47,14 +39,24 @@ interface MenuPosition {
     top: number
 }
 
-/** A single card: type-color line, id + title, policy leds, drag handle and body access. */
+function initialsFor(value: string) {
+    const parts = value.trim().split(/\s+/u)
+    if (parts.length === 1 && parts[0].length <= 2) return parts[0].toUpperCase()
+
+    const initials = parts.map((part) => part[0]).join('')
+
+    return (initials || '?').slice(0, 2).toUpperCase()
+}
+
+/** A three-row draggable card with compact metadata and consolidated actions. */
 export function ProjectCardView(props: ProjectCardViewProps) {
-    const { card, cardTypeLabel, cardTypes, color, isBodyOpen, isMobile, onBodyChange } = props
+    const { card, cardTypes, color, isBodyOpen, isSelected } = props
     const { onContinueAgentConversation, onOpenBody, onOpenInFileMode } = props
-    const { onDeleteCard, onOpenAffects, onSendAgentInput, onStartAgentConversation } = props
+    const { onDeleteCard, onSendAgentInput, onStartAgentConversation } = props
     const { onTogglePolicy, onTitleChange } = props
-    const { isSelected } = props
-    const { attributes, isDragging, listeners, setNodeRef, transform, transition } = useSortable({ id: card.path })
+    const theme = useTheme()
+    const sortable = useSortable({ id: card.path })
+    const { attributes, isDragging, listeners, node, setActivatorNodeRef, setNodeRef, transform, transition } = sortable
     const [agentAnchorElement, setAgentAnchorElement] = useState<HTMLElement | null>(null)
     const [actionsAnchorElement, setActionsAnchorElement] = useState<HTMLElement | null>(null)
     const [actionsMenuPosition, setActionsMenuPosition] = useState<MenuPosition | null>(null)
@@ -62,17 +64,16 @@ export function ProjectCardView(props: ProjectCardViewProps) {
     const [deleteCardPath, setDeleteCardPath] = useState<string | null>(null)
     const [longPressTimer, setLongPressTimer] = useState<number | null>(null)
     const [titleDraft, setTitleDraft] = useState(card.header.title)
-
+    const accentColor = color ?? theme.palette.primary.main
+    const accentBackground = alpha(accentColor, 0.16)
+    const isAgentRunning = card.agentConversations.some((conversation) => conversation.status === 'running')
+    const statusLabel = isAgentRunning ? 'Running' : 'Idle'
+    const assignee = card.header.owner ?? card.header.author ?? card.header.id
+    const dragTranslation = transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : ''
     const style = {
-        opacity: isDragging ? 0.5 : 1,
-        transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
+        opacity: isDragging ? 0.9 : 1,
+        transform: `${dragTranslation}${isDragging ? ' rotate(2deg)' : ''}`.trim() || undefined,
         transition,
-    }
-
-    const startEditingTitle = (event: MouseEvent) => {
-        event.stopPropagation()
-        setTitleDraft(card.header.title)
-        setIsEditingTitle(true)
     }
 
     const commitTitle = () => {
@@ -86,8 +87,12 @@ export function ProjectCardView(props: ProjectCardViewProps) {
         if (event.key === 'Escape') setIsEditingTitle(false)
     }
 
-    const handleCardClick = () => {
-        if (!isEditingTitle) onOpenBody(card.path)
+    const handleTitleDraftChange = (event: ChangeEvent<HTMLInputElement>) => {
+        setTitleDraft(event.target.value)
+    }
+
+    const handleCardClick = (event: MouseEvent<HTMLElement>) => {
+        if (!isEditingTitle) onOpenBody(card.path, event.currentTarget)
     }
 
     const stopClick = (event: MouseEvent) => {
@@ -112,11 +117,6 @@ export function ProjectCardView(props: ProjectCardViewProps) {
         setActionsMenuPosition({ left: event.clientX, top: event.clientY })
     }
 
-    const openAffects = (event: MouseEvent<HTMLElement>) => {
-        event.stopPropagation()
-        onOpenAffects(card.path)
-    }
-
     const openInFileMode = (event: MouseEvent<HTMLElement>) => {
         event.stopPropagation()
         onOpenInFileMode(card.path)
@@ -133,7 +133,8 @@ export function ProjectCardView(props: ProjectCardViewProps) {
 
     const openBodyFromMenu = () => {
         closeCardActions()
-        onOpenBody(card.path)
+        if (!node.current) throw new Error(`Missing card element: ${card.path}`)
+        onOpenBody(card.path, node.current)
     }
 
     const openInFileModeFromMenu = () => {
@@ -185,8 +186,6 @@ export function ProjectCardView(props: ProjectCardViewProps) {
     }
 
     const policyKeys = Object.keys(card.header.policy)
-    const agentSignalCount = card.agentConversations.length + card.agentConversationErrors.length
-    const hasAgentSignal = agentSignalCount > 0
 
     return (
         <Box
@@ -199,108 +198,117 @@ export function ProjectCardView(props: ProjectCardViewProps) {
             ref={setNodeRef}
             sx={{
                 bgcolor: 'background.paper',
-                border: isSelected ? 2 : 1,
+                border: 1,
                 borderColor: isSelected ? 'primary.main' : 'divider',
-                borderRadius: 1,
-                display: 'flex',
+                borderRadius: 1.25,
+                boxShadow: isDragging ? 'var(--md2-card-drag-shadow)' : 'var(--md2-card-shadow)',
                 overflow: 'hidden',
+                position: 'relative',
+                '&:hover': { borderColor: 'text.disabled', boxShadow: 'var(--md2-card-hover-shadow)' },
                 ...style,
             }}
         >
-            <Box sx={{ bgcolor: color ?? 'transparent', flexShrink: 0, width: TYPE_LINE_WIDTH }} />
-            <Box sx={{ flex: 1, minWidth: 0, p: 1 }}>
-                <Stack direction="row" spacing={1} sx={{ alignItems: 'flex-start' }}>
-                    <Tooltip title="Drag to reorder">
+            <Box
+                {...attributes}
+                {...listeners}
+                aria-expanded={isBodyOpen}
+                aria-haspopup="dialog"
+                aria-label={`Drag ${card.header.id}`}
+                component="button"
+                onClick={handleCardClick}
+                ref={setActivatorNodeRef}
+                sx={{
+                    bgcolor: 'transparent',
+                    border: 0,
+                    cursor: isDragging ? 'grabbing' : 'pointer',
+                    inset: 0,
+                    position: 'absolute',
+                    touchAction: 'none',
+                    zIndex: 1,
+                    '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: -2 },
+                }}
+                type="button"
+            />
+            <Box sx={{ bgcolor: accentColor, bottom: 0, left: 0, position: 'absolute', top: 0, width: 4 }} />
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0, p: '10px 12px 10px 14px', pointerEvents: 'none' }}>
+                <Stack direction="row" spacing={1} sx={{ alignItems: 'center', minHeight: 24, position: 'relative', zIndex: 2 }}>
+                    <Box
+                        component="span"
+                        sx={{
+                            bgcolor: accentBackground,
+                            borderRadius: '5px',
+                            color: accentColor,
+                            fontFamily: '"Roboto Mono", ui-monospace, monospace',
+                            fontSize: 11.5,
+                            fontWeight: 600,
+                            px: 0.875,
+                            py: 0.25,
+                        }}
+                    >
+                        {card.header.id}
+                    </Box>
+                    <Box component="span" sx={{ alignItems: 'center', color: 'text.secondary', display: 'flex', fontSize: 11, gap: 0.625 }}>
+                        <Box sx={{ bgcolor: isAgentRunning ? 'success.main' : 'text.disabled', borderRadius: '50%', height: 7, width: 7 }} />
+                        {statusLabel}
+                    </Box>
+                    <Box sx={{ flex: 1 }} />
+                    <Tooltip title="Card actions">
                         <IconButton
-                            aria-label={`Drag ${card.header.id}`}
+                            aria-label={`Card actions for ${card.header.id}`}
+                            onClick={openCardActions}
                             size="small"
-                            sx={{ cursor: 'grab', touchAction: 'none' }}
-                            {...attributes}
-                            {...listeners}
+                            sx={{ color: 'text.disabled', height: 24, pointerEvents: 'auto', width: 24 }}
                         >
-                            <Box aria-hidden component="span">⠿</Box>
+                            <DotsVertical sx={{ fontSize: 16 }} />
                         </IconButton>
                     </Tooltip>
-                    <Box
-                        onClick={handleCardClick}
-                        sx={{ cursor: 'pointer', flex: 1, minWidth: 0 }}
-                    >
-                        {isEditingTitle ? (
-                            <TextField
-                                autoFocus
-                                onBlur={commitTitle}
-                                onChange={(event) => setTitleDraft(event.target.value)}
-                                onClick={stopClick}
-                                onKeyDown={handleTitleKeyDown}
-                                size="small"
-                                value={titleDraft}
-                            />
-                        ) : (
-                            <Typography onDoubleClick={startEditingTitle} variant="subtitle2">
-                                <Box component="span" sx={{ color: 'text.secondary', mr: 0.5 }}>
-                                    {card.header.id}
-                                </Box>
-                                {card.header.title}
-                            </Typography>
-                        )}
-                    </Box>
-                    <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center', flexShrink: 0, pt: 0.5 }}>
-                        {policyKeys.map((policyKey) => (
-                            <PolicyLed
-                                key={policyKey}
-                                enabled={card.header.policy[policyKey] ?? false}
-                                onToggle={(key) => onTogglePolicy(card.path, key)}
-                                policyKey={policyKey}
-                            />
-                        ))}
-                        <Button onClick={openAffects} size="small">
-                            Affects
-                        </Button>
-                        <Tooltip title="Agent conversations">
-                            <IconButton aria-label={`Agent conversations for ${card.header.id}`} onClick={openAgentConversations} size="small">
-                                <Badge badgeContent={agentSignalCount} color="primary">
-                                    <Box
-                                        component="span"
-                                        sx={{
-                                            bgcolor: hasAgentSignal
-                                                ? card.agentConversationErrors.length > 0 ? 'error.main' : 'success.main'
-                                                : 'text.disabled',
-                                            borderRadius: '50%',
-                                            height: AGENT_LED_SIZE,
-                                            width: AGENT_LED_SIZE,
-                                        }}
-                                    />
-                                </Badge>
-                            </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Open in file mode">
-                            <IconButton aria-label={`Open ${card.header.id} in file mode`} onClick={openInFileMode} size="small">
-                                <FileDocumentOutline fontSize="small" />
-                            </IconButton>
-                        </Tooltip>
-                        <ActionEntryPoints context={cardContext(card, cardTypes)} variant="icons" />
-                        <Tooltip title="Card actions">
-                            <IconButton aria-label={`Card actions for ${card.header.id}`} onClick={openCardActions} size="small">
-                                <DotsVertical fontSize="small" />
-                            </IconButton>
-                        </Tooltip>
-                    </Stack>
                 </Stack>
-                {isMobile ? (
-                    <Collapse in={isBodyOpen} unmountOnExit>
-                        <Box onClick={stopClick} sx={{ pt: 1 }}>
-                            <CardBodyEditor card={card} isMobile={isMobile} onBodyChange={onBodyChange} />
-                            <Button onClick={() => onOpenInFileMode(card.path)} size="small" sx={{ mt: 1 }}>
-                                Open in file mode
-                            </Button>
-                        </Box>
-                    </Collapse>
-                ) : null}
-                {cardTypeLabel ? (
-                    <Typography color="text.secondary" variant="caption">
-                        {cardTypeLabel}
+                {isEditingTitle ? (
+                    <Box sx={{ pointerEvents: 'auto', position: 'relative', zIndex: 2 }}>
+                        <TextField
+                            autoFocus
+                            fullWidth
+                            onBlur={commitTitle}
+                            onChange={handleTitleDraftChange}
+                            onClick={stopClick}
+                            onKeyDown={handleTitleKeyDown}
+                            size="small"
+                            value={titleDraft}
+                        />
+                    </Box>
+                ) : (
+                    <Typography sx={{ color: 'text.primary', fontSize: 13.5, fontWeight: 500, lineHeight: 1.4 }}>
+                        {card.header.title}
                     </Typography>
-                ) : null}
+                )}
+                <Stack direction="row" spacing={0.75} sx={{ alignItems: 'center', minHeight: 26, position: 'relative', zIndex: 2 }}>
+                    <Box sx={{ pointerEvents: 'auto' }}>
+                        <ActionEntryPoints context={cardContext(card, cardTypes)} variant="button" />
+                    </Box>
+                    <Tooltip title="Open in file mode">
+                        <IconButton
+                            aria-label={`Open ${card.header.id} in file mode`}
+                            onClick={openInFileMode}
+                            size="small"
+                            sx={{ border: 1, borderColor: 'divider', borderRadius: '50%', height: 26, pointerEvents: 'auto', width: 26 }}
+                        >
+                            <FileDocumentOutline sx={{ fontSize: 14 }} />
+                        </IconButton>
+                    </Tooltip>
+                    <Box sx={{ flex: 1 }} />
+                    <Tooltip title="Agent conversations">
+                        <IconButton
+                            aria-label={`Agent conversations for ${card.header.id}`}
+                            onClick={openAgentConversations}
+                            size="small"
+                            sx={{ borderRadius: '50%', height: 26, pointerEvents: 'auto', width: 26 }}
+                        >
+                            <Avatar sx={{ bgcolor: accentColor, color: '#ffffff', fontSize: 9.5, fontWeight: 600, height: 22, width: 22 }}>
+                                {initialsFor(assignee)}
+                            </Avatar>
+                        </IconButton>
+                    </Tooltip>
+                </Stack>
             </Box>
             <Popover
                 anchorEl={agentAnchorElement}
@@ -326,6 +334,16 @@ export function ProjectCardView(props: ProjectCardViewProps) {
                 open={!!actionsAnchorElement || !!actionsMenuPosition}
             >
                 <ActionEntryPoints context={cardContext(card, cardTypes)} onMenuItemSelected={closeCardActions} variant="menuItems" />
+                {policyKeys.map((policyKey) => (
+                    <CardPolicyMenuItem
+                        key={policyKey}
+                        cardPath={card.path}
+                        enabled={card.header.policy[policyKey] ?? false}
+                        onSelected={closeCardActions}
+                        onToggle={onTogglePolicy}
+                        policyKey={policyKey}
+                    />
+                ))}
                 <MenuItem onClick={openBodyFromMenu}>Open body</MenuItem>
                 <MenuItem onClick={openInFileModeFromMenu}>Open in file mode</MenuItem>
                 <MenuItem onClick={editTitleFromMenu}>Edit title</MenuItem>

@@ -28,6 +28,7 @@ const MONOSPACE_CONFIG_KEYS = new Set<ConfigEntry['key']>([
     'project.cardBodyTemplate',
     'project.cardTypes',
     'project.diffCommand',
+    'project.states',
 ])
 
 interface ConfigValueEditorProps {

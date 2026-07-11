@@ -31,7 +31,7 @@ export type RemarkableImportTarget = ExistingCardTarget | NewCardTarget
 
 export interface BuildRemarkableImportInput {
     assets: RemarkableImportedAsset[]
-    config: Pick<ProjectConfig, 'cardBodyTemplate' | 'cardTypes' | 'workingFolder'>
+    config: Pick<ProjectConfig, 'cardBodyTemplate' | 'cardTypes' | 'states' | 'workingFolder'>
     files: MarkdownFile[]
     importedAt: string
     metadataContent: string | null
@@ -90,7 +90,14 @@ function resolveTargetCard(input: BuildRemarkableImportInput): MarkdownFile {
         return existing
     }
 
-    return createCardFile(input.files, input.config.workingFolder, input.config.cardTypes, input.config.cardBodyTemplate, target.draft)
+    return createCardFile(
+        input.files,
+        input.config.workingFolder,
+        input.config.cardTypes,
+        input.config.cardBodyTemplate,
+        input.config.states[0].state,
+        target.draft,
+    )
 }
 
 /**

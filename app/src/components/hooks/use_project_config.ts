@@ -11,6 +11,7 @@ function isSameProjectConfig(first: ProjectConfig | null, second: ProjectConfig 
         && first?.diffCommand === second?.diffCommand
         && first?.projectFolder === second?.projectFolder
         && first?.pushMode === second?.pushMode
+        && first?.states === second?.states
         && first?.workingFolder === second?.workingFolder
 }
 
