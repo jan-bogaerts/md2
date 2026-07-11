@@ -21,12 +21,11 @@ describe('project dialog components', () => {
         render(
             <ProjectOpenDialog
                 branches={BRANCHES}
+                isDesktopMode={false}
                 isGithubAuthenticated
                 isLoading={false}
-                isLocalAvailable
                 missingWorkingFolder={null}
                 onBranchChange={vi.fn()}
-                onChooseLocalFolder={vi.fn(async () => ({ branches: BRANCHES, project: PROJECT }))}
                 onClose={vi.fn()}
                 onCreateRemoteProject={vi.fn((rootPath, branch) => ({ branch, id: rootPath, rootPath }))}
                 onCreateWorkingFolder={vi.fn()}
@@ -34,7 +33,6 @@ describe('project dialog components', () => {
                 onLoadManualBranches={vi.fn(async () => ({ branches: BRANCHES, repository: REPOSITORIES[0] }))}
                 onLoadRemoteBranches={vi.fn(async () => BRANCHES)}
                 onOpenGithub={vi.fn()}
-                onOpenLocal={vi.fn()}
                 onOpenRemote={vi.fn()}
                 onRepositoryChange={vi.fn(async () => BRANCHES)}
                 onSourceChange={vi.fn()}
@@ -55,12 +53,11 @@ describe('project dialog components', () => {
         render(
             <ProjectOpenDialog
                 branches={[]}
+                isDesktopMode={false}
                 isGithubAuthenticated
                 isLoading={false}
-                isLocalAvailable
                 missingWorkingFolder={null}
                 onBranchChange={vi.fn()}
-                onChooseLocalFolder={vi.fn(async () => ({ branches: BRANCHES, project: PROJECT }))}
                 onClose={vi.fn()}
                 onCreateRemoteProject={vi.fn((rootPath, branch) => ({ branch, id: rootPath, rootPath }))}
                 onCreateWorkingFolder={vi.fn()}
@@ -68,7 +65,6 @@ describe('project dialog components', () => {
                 onLoadManualBranches={vi.fn(async () => ({ branches: BRANCHES, repository: REPOSITORIES[0] }))}
                 onLoadRemoteBranches={vi.fn(async () => BRANCHES)}
                 onOpenGithub={openGithub}
-                onOpenLocal={vi.fn()}
                 onOpenRemote={vi.fn()}
                 onRepositoryChange={vi.fn(async () => BRANCHES)}
                 onSourceChange={vi.fn()}
@@ -104,6 +100,43 @@ describe('project dialog components', () => {
 
         expect(screen.getByText('Working folder is missing: missing')).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Use folder docs' })).toBeInTheDocument()
+    })
+
+    it('shows only working-folder recovery when Electron project loading needs a folder choice', () => {
+        render(
+            <ProjectOpenDialog
+                branches={[]}
+                isDesktopMode
+                isGithubAuthenticated={false}
+                isLoading={false}
+                missingWorkingFolder={{
+                    configuredWorkingFolder: 'missing',
+                    folders: [{ name: 'docs', path: 'docs' }],
+                    project: PROJECT,
+                    storageType: 'local',
+                }}
+                onBranchChange={vi.fn()}
+                onClose={vi.fn()}
+                onCreateRemoteProject={vi.fn((rootPath, branch) => ({ branch, id: rootPath, rootPath }))}
+                onCreateWorkingFolder={vi.fn()}
+                onDiscardGithubPendingCommits={vi.fn()}
+                onLoadManualBranches={vi.fn(async () => ({ branches: BRANCHES, repository: REPOSITORIES[0] }))}
+                onLoadRemoteBranches={vi.fn(async () => BRANCHES)}
+                onOpenGithub={vi.fn()}
+                onOpenRemote={vi.fn()}
+                onRepositoryChange={vi.fn(async () => BRANCHES)}
+                onSourceChange={vi.fn()}
+                onUseWorkingFolder={vi.fn()}
+                open
+                pendingGithubConflictProject={null}
+                repositories={REPOSITORIES}
+            />,
+        )
+
+        expect(screen.getByText('Working folder is missing: missing')).toBeInTheDocument()
+        expect(screen.queryByRole('combobox', { name: 'Source' })).toBeNull()
+        expect(screen.queryByRole('button', { name: 'Open GitHub' })).toBeNull()
+        expect(screen.queryByRole('button', { name: 'Open Remote' })).toBeNull()
     })
 
     it('renders the new card dialog and submits a draft without mounting the menu', async () => {

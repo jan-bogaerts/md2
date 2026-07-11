@@ -5,6 +5,7 @@ const { promisify } = require('node:util')
 
 const execFileAsync = promisify(execFile)
 const execAsync = promisify(exec)
+const DETACHED_HEAD_BRANCH = 'HEAD (detached)'
 
 function requireRootPath(project) {
     if (!project || typeof project.rootPath !== 'string' || project.rootPath.length === 0) {
@@ -38,6 +39,42 @@ async function runGit(rootPath, args) {
     const { stdout } = await execFileAsync('git', args, { cwd: rootPath })
 
     return stdout.trim()
+}
+
+async function readCurrentBranch(rootPath) {
+    try {
+        return await runGit(rootPath, ['symbolic-ref', '--quiet', '--short', 'HEAD'])
+    } catch (error) {
+        if (error && typeof error === 'object' && error.code === 1) return DETACHED_HEAD_BRANCH
+
+        throw error
+    }
+}
+
+function gitErrorMessage(error) {
+    if (error && typeof error === 'object' && typeof error.stderr === 'string' && error.stderr.trim().length > 0) {
+        return error.stderr.trim()
+    }
+    if (error instanceof Error) return error.message
+
+    return 'Unknown Git error'
+}
+
+/** Resolve a selected path to its Git work-tree root and checked-out branch. */
+async function resolveLocalProject(selectedPath) {
+    if (typeof selectedPath !== 'string' || selectedPath.length === 0) throw new Error('Missing selected project folder')
+
+    try {
+        const isInsideWorkTree = await runGit(selectedPath, ['rev-parse', '--is-inside-work-tree'])
+        if (isInsideWorkTree !== 'true') throw new Error('Selected folder is not inside a Git work tree')
+
+        const rootPath = path.resolve(await runGit(selectedPath, ['rev-parse', '--show-toplevel']))
+        const branch = await readCurrentBranch(rootPath)
+
+        return { branch, id: rootPath, rootPath }
+    } catch (error) {
+        throw new Error(`Local Git project validation failed for "${selectedPath}": ${gitErrorMessage(error)}`, { cause: error })
+    }
 }
 
 async function hasStagedChanges(rootPath) {
@@ -111,6 +148,7 @@ module.exports = {
     hasStagedChanges,
     listBranches,
     push,
+    resolveLocalProject,
     requireRootPath,
     runCommand,
     runGit,

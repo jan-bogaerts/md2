@@ -39,6 +39,7 @@ export interface ElectronDataBridge {
     moveFiles(request: MoveFilesRequest): Promise<void>
     openProjectFolder(): Promise<ProjectReference | null>
     push(project: ProjectReference): Promise<void>
+    resolveProject(project: ProjectReference): Promise<ProjectReference>
     saveActionSchedules?(project: ProjectReference, actionsFolder: string, schedules: ActionSchedule[]): Promise<ActionSchedule[]>
     saveProjectConfig(project: ProjectReference, config: ProjectConfig): Promise<void>
     sendAgentInput?(runId: string, input: string): Promise<void>

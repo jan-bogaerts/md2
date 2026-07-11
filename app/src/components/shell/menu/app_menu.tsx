@@ -288,12 +288,11 @@ export function AppMenu(props: AppMenuProps) {
             </Box>
             <ProjectOpenDialog
                 branches={actions.branches}
+                isDesktopMode={actions.isDesktopMode}
                 isGithubAuthenticated={isGithubAuthenticated}
                 isLoading={actions.isLoading}
-                isLocalAvailable={actions.isLocalAvailable}
                 missingWorkingFolder={actions.missingWorkingFolder}
                 onBranchChange={() => undefined}
-                onChooseLocalFolder={actions.chooseLocalFolder}
                 onClose={actions.closeDialog}
                 onCreateRemoteProject={actions.createRemoteProject}
                 onCreateWorkingFolder={() => void actions.createWorkingFolder()}
@@ -301,7 +300,6 @@ export function AppMenu(props: AppMenuProps) {
                 onLoadManualBranches={actions.loadManualBranches}
                 onLoadRemoteBranches={actions.loadRemoteBranches}
                 onOpenGithub={actions.openGithubProject}
-                onOpenLocal={(localProject, branch) => void actions.openLocalProject(localProject, branch)}
                 onOpenRemote={actions.openRemoteProject}
                 onRepositoryChange={actions.loadRepositoryBranches}
                 onSourceChange={actions.clearOpenDialogState}

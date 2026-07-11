@@ -43,6 +43,7 @@ function createBridge(): ElectronDataBridge {
         moveFiles: vi.fn(),
         openProjectFolder: vi.fn(async () => ({ branch: 'main', id: 'local', rootPath: 'C:/repo' })),
         push: vi.fn(),
+        resolveProject: vi.fn(async (project) => project),
         saveProjectConfig: vi.fn(),
         watchProject: vi.fn(() => vi.fn()),
     }
@@ -89,12 +90,6 @@ function renderMenu() {
 
 async function openLocalProject() {
     fireEvent.click(screen.getByRole('button', { name: 'Open project' }))
-    await screen.findByRole('heading', { name: 'Open project' })
-    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Source' }))
-    fireEvent.click(await screen.findByRole('option', { name: 'Local' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Choose local folder...' }))
-    await waitFor(() => expect(screen.getByRole('combobox', { name: 'Branch' })).toHaveTextContent('main'))
-    fireEvent.click(screen.getByRole('button', { name: 'Open Local' }))
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Open project' })).toBeNull())
 }
 

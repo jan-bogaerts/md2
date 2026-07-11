@@ -31,14 +31,6 @@ function resolveRunAgentRequest(config, request) {
     }
 }
 
-function createLocalProject(rootPath) {
-    return {
-        branch: 'main',
-        id: rootPath,
-        rootPath,
-    }
-}
-
 function resolvePlaceholders(text, context, project, extraInput) {
     return text.replace(PLACEHOLDER_PATTERN, (_match, name) => {
         if (name === 'rootProjectFolder') {
@@ -119,14 +111,20 @@ function createLocalBridgeDispatch(dependencies) {
             const rootPath = await openProjectFolder()
             if (!rootPath) return null
 
-            const project = createLocalProject(rootPath)
-            await localGitService.assertGitRoot(project.rootPath)
+            const project = await localGitService.resolveLocalProject(rootPath)
             currentLocalProject = project
             if (actionSchedulerService) await actionSchedulerService.startProject(project)
 
             return project
         },
         push: (project) => localGitService.push(project),
+        resolveProject: async (project) => {
+            const resolvedProject = await localGitService.resolveLocalProject(project.rootPath)
+            currentLocalProject = resolvedProject
+            if (actionSchedulerService) await actionSchedulerService.startProject(resolvedProject)
+
+            return resolvedProject
+        },
         saveActionSchedules: (project, actionsFolder, schedules) => localGitService.saveActionSchedules(project, actionsFolder, schedules),
         saveProjectConfig: (project, config) => localGitService.saveProjectConfig(project, config),
         sendAgentInput: (runId, input) => agentRunnerService.sendInput(runId, input),
@@ -196,4 +194,4 @@ function createLocalBridgeDispatch(dependencies) {
     }
 }
 
-module.exports = { createLocalBridgeDispatch, createLocalProject }
+module.exports = { createLocalBridgeDispatch }

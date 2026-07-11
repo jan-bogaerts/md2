@@ -22,6 +22,7 @@ function createBridge(overrides: Partial<ElectronDataBridge> = {}): ElectronData
         moveFiles: vi.fn().mockResolvedValue(undefined),
         openProjectFolder: vi.fn(),
         push: vi.fn().mockResolvedValue(undefined),
+        resolveProject: vi.fn(),
         saveProjectConfig: vi.fn(),
         watchProject: vi.fn().mockReturnValue(() => undefined),
         ...overrides,
@@ -29,6 +30,17 @@ function createBridge(overrides: Partial<ElectronDataBridge> = {}): ElectronData
 }
 
 describe('LocalGitStorageService binary write path', () => {
+    it('forwards stored project revalidation to the bridge', async () => {
+        const project = { branch: 'main', id: 'C:/nested', rootPath: 'C:/nested' }
+        const resolvedProject = { branch: 'topic', id: 'C:/repo', rootPath: 'C:/repo' }
+        const resolveProject = vi.fn().mockResolvedValue(resolvedProject)
+        const service = new LocalGitStorageService()
+        service.init({ bridge: createBridge({ resolveProject }) })
+
+        await expect(service.resolveProject(project)).resolves.toEqual(resolvedProject)
+        expect(resolveProject).toHaveBeenCalledWith(project)
+    })
+
     it('forwards base64 asset files to the bridge unchanged', async () => {
         const commit = vi.fn().mockResolvedValue([])
         const bridge = createBridge({ commit })

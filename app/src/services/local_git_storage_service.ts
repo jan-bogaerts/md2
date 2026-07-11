@@ -43,6 +43,10 @@ export class LocalGitStorageService implements StorageService {
         return this.requireBridge().openProjectFolder()
     }
 
+    async resolveProject(project: ProjectReference) {
+        return this.requireBridge().resolveProject(project)
+    }
+
     async createProject(project: ProjectReference, workingFolder: string): Promise<ProjectReference> {
         return this.requireBridge().createProject(project, workingFolder)
     }

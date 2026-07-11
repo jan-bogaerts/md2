@@ -1,7 +1,6 @@
 const { contextBridge, ipcRenderer } = require('electron')
 
 const CONFIG_SET_DESKTOP_CHANNEL = 'md2-config:set-desktop'
-const DATA_OPEN_PROJECT_FOLDER_CHANNEL = 'md2-data:open-project-folder'
 const GITHUB_AUTH_REQUEST_ACCESS_TOKEN_CHANNEL = 'md2-github-auth:request-access-token'
 const GITHUB_AUTH_REQUEST_DEVICE_CODE_CHANNEL = 'md2-github-auth:request-device-code'
 const LIFECYCLE_FLUSH_DONE_CHANNEL = 'md2-lifecycle:flush-pending-commits-done'
@@ -40,6 +39,7 @@ const DATA_METHODS = [
     'moveFiles',
     'openProjectFolder',
     'push',
+    'resolveProject',
     'saveActionSchedules',
     'saveProjectConfig',
     'sendAgentInput',
@@ -192,7 +192,6 @@ if (!isAllowedOrigin()) {
     }
     const dataBridge = {
         ...createBridge(DATA_METHODS),
-        openProjectFolder: () => ipcRenderer.invoke(DATA_OPEN_PROJECT_FOLDER_CHANNEL),
         watchProject: (project, callback) => subscribeBridge('watchProject', [project], callback),
     }
     const actionBridge = {

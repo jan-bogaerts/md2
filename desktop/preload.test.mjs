@@ -34,7 +34,7 @@ function createPreloadHarness(options = {}) {
     }
     const electron = {
         contextBridge,
-        ipcRenderer: { invoke: vi.fn(), on: vi.fn(), removeListener: vi.fn(), send: vi.fn() },
+        ipcRenderer: { invoke: vi.fn(async () => null), on: vi.fn(), removeListener: vi.fn(), send: vi.fn() },
     }
     const argv = [
         `--md2-bridge-allowed-origins=${encodeURIComponent(JSON.stringify(allowedOrigins))}`,
@@ -93,6 +93,19 @@ describe('preload desktop agent bridge', () => {
         expect(callback).toHaveBeenCalledWith({ endpoint: 'ws://localhost:3555', running: true })
         expect(electron.ipcRenderer.removeListener).toHaveBeenCalledWith('md2-remote-control:status', listener)
         expect(exposed.md2RemoteControl.ipcRenderer).toBeUndefined()
+    })
+
+    it('routes folder selection through the validated local bridge dispatcher', async () => {
+        const { electron, exposed } = createPreloadHarness()
+
+        await exposed.md2Data.openProjectFolder()
+
+        expect(electron.ipcRenderer.invoke).toHaveBeenCalledWith('md2-local-bridge:invoke', {
+            eventId: null,
+            method: 'openProjectFolder',
+            params: [],
+        })
+        expect(electron.ipcRenderer.invoke).not.toHaveBeenCalledWith('md2-data:open-project-folder')
     })
 
     it('wraps lifecycle flush requests and confirmations without exposing ipcRenderer', () => {

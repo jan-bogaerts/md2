@@ -19,29 +19,23 @@ import { useState } from 'react'
 import type { BranchReference, ProjectReference, RepositoryReference, TopLevelFolderReference } from '../../../data/data_types'
 import { WorkingFolderChooserDialog, type WorkingFolderResolution } from './working_folder_chooser_dialog'
 
-type ProjectSource = 'github' | 'local' | 'remote'
+type ProjectSource = 'github' | 'remote'
 
 interface GithubBranchesResult {
     branches: BranchReference[]
     repository: RepositoryReference
 }
 
-interface LocalProjectResult {
-    branches: BranchReference[]
-    project: ProjectReference
-}
-
 interface ProjectOpenDialogProps {
     branches: BranchReference[]
+    isDesktopMode: boolean
     isGithubAuthenticated: boolean
     isLoading: boolean
-    isLocalAvailable: boolean
     missingWorkingFolder: WorkingFolderResolution | null
     open: boolean
     pendingGithubConflictProject: ProjectReference | null
     repositories: RepositoryReference[]
     onBranchChange: (branch: string) => void
-    onChooseLocalFolder: () => Promise<LocalProjectResult | null>
     onClose: () => void
     onCreateRemoteProject: (rootPath: string, branch: string) => ProjectReference
     onCreateWorkingFolder: () => void
@@ -49,7 +43,6 @@ interface ProjectOpenDialogProps {
     onLoadManualBranches: (owner: string, repository: string) => Promise<GithubBranchesResult | null>
     onLoadRemoteBranches: (endpoint: string, token: string, rootPath: string, branch: string) => Promise<BranchReference[]>
     onOpenGithub: (owner: string, repository: string, branch: string) => Promise<void>
-    onOpenLocal: (project: ProjectReference, branch: string) => void
     onOpenRemote: (endpoint: string, token: string, project: ProjectReference) => Promise<void>
     onRepositoryChange: (repository: RepositoryReference) => Promise<BranchReference[]>
     onSourceChange: () => void
@@ -81,12 +74,11 @@ function repositoryMatchesFilter(repository: RepositoryReference, filter: string
 export function ProjectOpenDialog(props: ProjectOpenDialogProps) {
     const {
         branches,
+        isDesktopMode,
         isGithubAuthenticated,
         isLoading,
-        isLocalAvailable,
         missingWorkingFolder,
         onBranchChange,
-        onChooseLocalFolder,
         onClose,
         onCreateRemoteProject,
         onCreateWorkingFolder,
@@ -94,7 +86,6 @@ export function ProjectOpenDialog(props: ProjectOpenDialogProps) {
         onLoadManualBranches,
         onLoadRemoteBranches,
         onOpenGithub,
-        onOpenLocal,
         onOpenRemote,
         onRepositoryChange,
         onSourceChange,
@@ -105,7 +96,6 @@ export function ProjectOpenDialog(props: ProjectOpenDialogProps) {
     } = props
     const [githubOwner, setGithubOwner] = useState('')
     const [githubRepository, setGithubRepository] = useState('')
-    const [localProject, setLocalProject] = useState<ProjectReference | null>(null)
     const [repositoryFilter, setRepositoryFilter] = useState('')
     const [remoteEndpoint, setRemoteEndpoint] = useState('')
     const [remoteRootPath, setRemoteRootPath] = useState('')
@@ -122,7 +112,6 @@ export function ProjectOpenDialog(props: ProjectOpenDialogProps) {
 
     const handleSourceChange = (event: SelectChangeEvent) => {
         setSource(event.target.value as ProjectSource)
-        setLocalProject(null)
         setSelectedBranch('')
         setSelectedRepositoryId('')
         onSourceChange()
@@ -176,16 +165,6 @@ export function ProjectOpenDialog(props: ProjectOpenDialogProps) {
         onBranchChange(branch)
     }
 
-    const handleChooseLocalFolderClick = async () => {
-        const result = await onChooseLocalFolder()
-        if (!result) return
-
-        setLocalProject(result.project)
-        const branch = branchValue(result.branches, result.project.branch)
-        setSelectedBranch(branch)
-        onBranchChange(branch)
-    }
-
     const handleLoadManualBranchesClick = async () => {
         const result = await onLoadManualBranches(githubOwner, githubRepository)
         if (!result) return
@@ -205,12 +184,6 @@ export function ProjectOpenDialog(props: ProjectOpenDialogProps) {
 
     const handleOpenGithubClick = () => {
         void onOpenGithub(githubOwner, githubRepository, selectedBranch)
-    }
-
-    const handleOpenLocalClick = () => {
-        if (!localProject || selectedBranch.length === 0) return
-
-        onOpenLocal(localProject, selectedBranch)
     }
 
     const handleOpenRemoteClick = () => {
@@ -235,15 +208,14 @@ export function ProjectOpenDialog(props: ProjectOpenDialogProps) {
                             </Button>
                         </Stack>
                     ) : null}
-                    <FormControl size="small">
+                    {!isDesktopMode ? <FormControl size="small">
                         <InputLabel id="project-source-label">Source</InputLabel>
                         <Select label="Source" labelId="project-source-label" onChange={handleSourceChange} value={source}>
                             <MenuItem value="github">GitHub</MenuItem>
-                            {isLocalAvailable ? <MenuItem value="local">Local</MenuItem> : null}
                             <MenuItem value="remote">Remote</MenuItem>
                         </Select>
-                    </FormControl>
-                    {source === 'github' ? (
+                    </FormControl> : null}
+                    {!isDesktopMode && source === 'github' ? (
                         <>
                             <TextField disabled={!isGithubAuthenticated} label="Filter repositories" onChange={handleRepositoryFilterChange} size="small" value={repositoryFilter} />
                             <FormControl disabled={!isGithubAuthenticated || repositories.length === 0} size="small">
@@ -264,11 +236,7 @@ export function ProjectOpenDialog(props: ProjectOpenDialogProps) {
                                 Load branches
                             </Button>
                         </>
-                    ) : source === 'local' ? (
-                        <Button disabled={!isLocalAvailable || isLoading} onClick={handleChooseLocalFolderClick} variant="outlined">
-                            Choose local folder...
-                        </Button>
-                    ) : (
+                    ) : !isDesktopMode ? (
                         <>
                             <TextField label="Endpoint" onChange={handleRemoteEndpointChange} size="small" value={remoteEndpoint} />
                             <TextField label="Token" onChange={handleRemoteTokenChange} size="small" type="password" value={remoteToken} />
@@ -282,8 +250,8 @@ export function ProjectOpenDialog(props: ProjectOpenDialogProps) {
                                 Load remote branches
                             </Button>
                         </>
-                    )}
-                    {source !== 'remote' ? (
+                    ) : null}
+                    {!isDesktopMode && source !== 'remote' ? (
                         branches.length > 0 ? (
                             <FormControl size="small">
                                 <InputLabel id="open-branch-label">Branch</InputLabel>
@@ -307,11 +275,11 @@ export function ProjectOpenDialog(props: ProjectOpenDialogProps) {
             </DialogContent>
             <DialogActions>
                 <Button onClick={onClose}>Cancel</Button>
-                {source === 'github' ? (
+                {!isDesktopMode && source === 'github' ? (
                     <Button disabled={!isGithubAuthenticated || githubOwner.length === 0 || githubRepository.length === 0 || isLoading} onClick={handleOpenGithubClick} variant="contained">
                         Open GitHub
                     </Button>
-                ) : source === 'remote' ? (
+                ) : !isDesktopMode && source === 'remote' ? (
                     <Button
                         disabled={!isRemoteComplete || isLoading}
                         onClick={handleOpenRemoteClick}
@@ -319,11 +287,7 @@ export function ProjectOpenDialog(props: ProjectOpenDialogProps) {
                     >
                         Open Remote
                     </Button>
-                ) : (
-                    <Button disabled={!localProject || selectedBranch.length === 0 || isLoading} onClick={handleOpenLocalClick} variant="contained">
-                        Open Local
-                    </Button>
-                )}
+                ) : null}
             </DialogActions>
         </Dialog>
     )

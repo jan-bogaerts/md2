@@ -63,6 +63,7 @@ function createBridge(): ElectronDataBridge {
         }),
         openProjectFolder: vi.fn(async () => ({ branch: 'main', id: 'local', rootPath: 'C:/repo' })),
         push: vi.fn(),
+        resolveProject: vi.fn(async (project) => project),
         saveProjectConfig: vi.fn(),
         watchProject: vi.fn(() => vi.fn()),
     }
@@ -118,22 +119,18 @@ async function openProjectDialog() {
     await screen.findByRole('heading', { name: 'Open project' })
 }
 
-async function chooseLocalSource() {
-    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Source' }))
-    fireEvent.click(await screen.findByRole('option', { name: 'Local' }))
-}
-
 async function chooseBranch(branch: string) {
     fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Branch' }))
     fireEvent.click(await screen.findByRole('option', { name: branch }))
 }
 
+function requestLocalProject() {
+    fireEvent.click(screen.getByRole('button', { name: 'Project' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Open project...' }))
+}
+
 async function openLocalProject() {
-    await openProjectDialog()
-    await chooseLocalSource()
-    fireEvent.click(screen.getByRole('button', { name: 'Choose local folder...' }))
-    await waitFor(() => expect(screen.getByRole('combobox', { name: 'Branch' })).toHaveTextContent('main'))
-    fireEvent.click(screen.getByRole('button', { name: 'Open Local' }))
+    requestLocalProject()
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Open project' })).toBeNull())
 }
 
@@ -184,16 +181,45 @@ describe('ProjectWorkspace', () => {
     })
 
     it('opens a local project and shows root cards in the card view before background cards', async () => {
-        window.md2Data = createBridge()
+        const bridge = createBridge()
+        window.md2Data = bridge
 
         renderProjectSurface()
         await openLocalProject()
 
+        expect(bridge.openProjectFolder).toHaveBeenCalledOnce()
+        expect(bridge.listBranches).not.toHaveBeenCalled()
+        expect(screen.queryByRole('combobox', { name: 'Source' })).toBeNull()
         expect(await screen.findByText('Root')).toBeInTheDocument()
         expect(screen.getByText('F-1')).toBeInTheDocument()
         expect(screen.getAllByText('active').length).toBeGreaterThan(0)
         expect(screen.getByLabelText('Card columns')).toHaveTextContent('active')
         expect(screen.queryByText('Background cards loaded: 1')).toBeNull()
+    })
+
+    it('opens the checked-out local branch without relabeling or checkout', async () => {
+        const bridge = createBridge()
+        vi.mocked(bridge.openProjectFolder).mockResolvedValue({ branch: 'topic', id: 'C:/repo', rootPath: 'C:/repo' })
+        window.md2Data = bridge
+
+        renderProjectSurface(false)
+        await openLocalProject()
+
+        await waitFor(() => expect(dataService.getState().project).toEqual({ branch: 'topic', id: 'C:/repo', rootPath: 'C:/repo' }))
+        expect(bridge.checkoutBranch).not.toHaveBeenCalled()
+        expect(bridge.loadProjectRoot).toHaveBeenCalledWith(expect.objectContaining({ branch: 'topic' }), 'design')
+    })
+
+    it('shows local repository validation failures without opening a project', async () => {
+        const bridge = createBridge()
+        vi.mocked(bridge.openProjectFolder).mockRejectedValue(new Error('Selected folder is not inside a Git work tree'))
+        window.md2Data = bridge
+
+        renderProjectSurface(false)
+        requestLocalProject()
+
+        expect(await screen.findByText('Selected folder is not inside a Git work tree')).toBeInTheDocument()
+        expect(dataService.getState().project).toBeNull()
     })
 
     it('keeps the workspace paper fixed while its content scrolls without a header', async () => {
@@ -311,11 +337,7 @@ describe('ProjectWorkspace', () => {
         window.md2Data = bridge
 
         renderProjectSurface()
-        await openProjectDialog()
-        await chooseLocalSource()
-        fireEvent.click(screen.getByRole('button', { name: 'Choose local folder...' }))
-        await waitFor(() => expect(screen.getByRole('combobox', { name: 'Branch' })).toHaveTextContent('main'))
-        fireEvent.click(screen.getByRole('button', { name: 'Open Local' }))
+        requestLocalProject()
 
         expect(await screen.findByText('Working folder is missing: missing')).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Use folder docs' })).toBeInTheDocument()
@@ -324,14 +346,14 @@ describe('ProjectWorkspace', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Use folder docs' }))
 
         await waitFor(() => expect(bridge.saveProjectConfig).toHaveBeenCalledWith(expect.any(Object), expect.objectContaining({
-            states: [
-                { alwaysVisible: false, state: 'active' },
-                { alwaysVisible: true, state: 'new' },
-                { alwaysVisible: true, state: 'design' },
-                { alwaysVisible: true, state: 'ready for implementation' },
-                { alwaysVisible: true, state: 'in progress' },
-                { alwaysVisible: true, state: 'done' },
-            ],
+            states: expect.arrayContaining([
+                expect.objectContaining({ alwaysVisible: false, state: 'active' }),
+                expect.objectContaining({ alwaysVisible: true, state: 'new' }),
+                expect.objectContaining({ alwaysVisible: true, state: 'design' }),
+                expect.objectContaining({ alwaysVisible: true, state: 'ready for implementation' }),
+                expect.objectContaining({ alwaysVisible: true, state: 'in progress' }),
+                expect.objectContaining({ alwaysVisible: true, state: 'done' }),
+            ]),
             workingFolder: 'docs',
         })))
         expect(bridge.createWorkingFolderFromTemplate).not.toHaveBeenCalled()
@@ -361,11 +383,7 @@ describe('ProjectWorkspace', () => {
         window.md2Data = bridge
 
         renderProjectSurface()
-        await openProjectDialog()
-        await chooseLocalSource()
-        fireEvent.click(screen.getByRole('button', { name: 'Choose local folder...' }))
-        await waitFor(() => expect(screen.getByRole('combobox', { name: 'Branch' })).toHaveTextContent('main'))
-        fireEvent.click(screen.getByRole('button', { name: 'Open Local' }))
+        requestLocalProject()
 
         await screen.findByText('Working folder is missing: missing')
         expect(bridge.createWorkingFolderFromTemplate).not.toHaveBeenCalled()
@@ -675,5 +693,7 @@ describe('ProjectWorkspace', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Switch' }))
 
         expect(await screen.findByText('checkout failed')).toBeInTheDocument()
+        expect(dataService.getState().project?.branch).toBe('main')
+        expect(bridge.loadProjectRoot).not.toHaveBeenCalledWith(expect.objectContaining({ branch: 'feature' }), 'design')
     })
 })

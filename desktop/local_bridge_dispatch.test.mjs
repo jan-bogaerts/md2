@@ -4,7 +4,7 @@ import { createRequire } from 'node:module'
 const require = createRequire(import.meta.url)
 const { createLocalBridgeDispatch } = require('./local_bridge_dispatch')
 
-function createDispatch() {
+function createDispatch(options = {}) {
     const actionSchedulerService = {
         handleActionCompleted: vi.fn(),
         registerActionSchedule: vi.fn(async () => ({ id: 'schedule-1' })),
@@ -35,6 +35,7 @@ function createDispatch() {
         loadProjectAsset: vi.fn(async () => ({ content: 'aWNvbg==', contentType: 'image/png', encoding: 'base64', path: 'actions/icon.png' })),
         loadProject: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
         loadProjectRoot: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
+        resolveLocalProject: vi.fn(async () => ({ branch: 'topic', id: 'C:/repo', rootPath: 'C:/repo' })),
         runCommand: vi.fn(async () => ({ exitCode: 0, stderr: '', stdout: 'ok' })),
         watchProject: vi.fn(() => vi.fn()),
     }
@@ -44,6 +45,7 @@ function createDispatch() {
         desktopConfigStore: {},
         diffService: { generateDiff: vi.fn(), openInEditor: vi.fn() },
         localGitService,
+        openProjectFolder: options.openProjectFolder,
         readDesktopConfig: () => ({ agent: 'codex', agentProfiles: [{ command: 'codex', name: 'codex' }], model: '' }),
     })
 
@@ -51,6 +53,42 @@ function createDispatch() {
 }
 
 describe('createLocalBridgeDispatch', () => {
+    it('opens a selected folder as a normalized project and establishes it for project operations', async () => {
+        const openProjectFolder = vi.fn(async () => 'C:/repo/nested')
+        const { actionSchedulerService, dispatch, localGitService } = createDispatch({ openProjectFolder })
+
+        const project = await dispatch.dataBridge.openProjectFolder()
+        await dispatch.dataBridge.commit({ branch: 'topic', files: [], message: 'Update' })
+
+        expect(localGitService.resolveLocalProject).toHaveBeenCalledWith('C:/repo/nested')
+        expect(project).toEqual({ branch: 'topic', id: 'C:/repo', rootPath: 'C:/repo' })
+        expect(actionSchedulerService.startProject).toHaveBeenCalledWith(project)
+        expect(localGitService.commit).toHaveBeenCalledWith(expect.any(Object), project)
+    })
+
+    it('leaves the current project unchanged when folder selection is cancelled', async () => {
+        const { dispatch, localGitService } = createDispatch({ openProjectFolder: vi.fn(async () => null) })
+        const currentProject = { branch: 'main', id: 'current', rootPath: 'C:/current' }
+        await dispatch.dataBridge.loadProject(currentProject, 'design')
+
+        await expect(dispatch.dataBridge.openProjectFolder()).resolves.toBeNull()
+        await dispatch.dataBridge.commit({ branch: 'main', files: [], message: 'Update' })
+
+        expect(localGitService.resolveLocalProject).not.toHaveBeenCalled()
+        expect(localGitService.commit).toHaveBeenCalledWith(expect.any(Object), currentProject)
+    })
+
+    it('revalidates and normalizes a stored local project', async () => {
+        const { actionSchedulerService, dispatch, localGitService } = createDispatch()
+        const storedProject = { branch: 'main', id: 'C:/repo/nested', rootPath: 'C:/repo/nested' }
+
+        const project = await dispatch.dataBridge.resolveProject(storedProject)
+
+        expect(localGitService.resolveLocalProject).toHaveBeenCalledWith(storedProject.rootPath)
+        expect(project).toEqual({ branch: 'topic', id: 'C:/repo', rootPath: 'C:/repo' })
+        expect(actionSchedulerService.startProject).toHaveBeenCalledWith(project)
+    })
+
     it('keeps loaded project state for data and action methods', async () => {
         const { dispatch, localGitService } = createDispatch()
         const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }

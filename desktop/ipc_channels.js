@@ -1,6 +1,5 @@
 const CONFIG_GET_DESKTOP_CHANNEL = 'md2-config:get-desktop'
 const CONFIG_SET_DESKTOP_CHANNEL = 'md2-config:set-desktop'
-const DATA_OPEN_PROJECT_FOLDER_CHANNEL = 'md2-data:open-project-folder'
 const GITHUB_AUTH_REQUEST_ACCESS_TOKEN_CHANNEL = 'md2-github-auth:request-access-token'
 const GITHUB_AUTH_REQUEST_DEVICE_CODE_CHANNEL = 'md2-github-auth:request-device-code'
 const LIFECYCLE_FLUSH_DONE_CHANNEL = 'md2-lifecycle:flush-pending-commits-done'
@@ -21,7 +20,6 @@ const THEME_SET_MODE_CHANNEL = 'md2-theme:set-mode'
 module.exports = {
     CONFIG_GET_DESKTOP_CHANNEL,
     CONFIG_SET_DESKTOP_CHANNEL,
-    DATA_OPEN_PROJECT_FOLDER_CHANNEL,
     GITHUB_AUTH_REQUEST_ACCESS_TOKEN_CHANNEL,
     GITHUB_AUTH_REQUEST_DEVICE_CODE_CHANNEL,
     LIFECYCLE_FLUSH_DONE_CHANNEL,

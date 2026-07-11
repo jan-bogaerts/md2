@@ -15,7 +15,6 @@ const { THEME_MODE_STORE_KEY, resolveThemeMode, resolveTitleBarOverlay } = requi
 const {
     CONFIG_GET_DESKTOP_CHANNEL,
     CONFIG_SET_DESKTOP_CHANNEL,
-    DATA_OPEN_PROJECT_FOLDER_CHANNEL,
     GITHUB_AUTH_REQUEST_ACCESS_TOKEN_CHANNEL,
     GITHUB_AUTH_REQUEST_DEVICE_CODE_CHANNEL,
     LIFECYCLE_FLUSH_DONE_CHANNEL,
@@ -72,14 +71,6 @@ async function openProjectFolder(window) {
     if (result.canceled || result.filePaths.length === 0) return null
 
     return result.filePaths[0]
-}
-
-function registerDataBridge() {
-    ipcMain.handle(DATA_OPEN_PROJECT_FOLDER_CHANNEL, async (event) => {
-        const window = BrowserWindow.fromWebContents(event.sender)
-
-        return openProjectFolder(window)
-    })
 }
 
 function subscriptionKey(webContents, subscriptionId) {
@@ -253,7 +244,6 @@ async function flushRendererPendingCommits() {
 app.whenReady().then(async () => {
     await electronTelemetryStarted
     registerConfigBridge()
-    registerDataBridge()
     registerGithubAuthBridge()
     registerLocalBridge()
     registerRemarkableBridge()

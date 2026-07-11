@@ -253,6 +253,7 @@ export interface StorageService {
     loadProjectRoot(project: ProjectReference, workingFolder: string): Promise<StorageProjectFiles>
     loadProjectConfig(project: ProjectReference): Promise<Partial<ProjectConfig> | null>
     restorePendingCommits?(project: ProjectReference): Promise<void>
+    resolveProject?(project: ProjectReference): Promise<ProjectReference>
     listRepositoryFiles(project: ProjectReference): Promise<string[]>
     listTopLevelFolders(project: ProjectReference): Promise<TopLevelFolderReference[]>
     moveFiles(request: MoveFilesRequest): Promise<void>

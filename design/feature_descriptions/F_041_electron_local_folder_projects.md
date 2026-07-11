@@ -1,7 +1,7 @@
 ---
 id: F-041
 title: Electron local-folder project mode
-status: design
+status: ready
 owner: JB
 affects:
 policy:
@@ -67,4 +67,3 @@ The project-opening boundary is inconsistent:
 - `design\feature_descriptions\ready\F_027_repository_branch_selection.md`
 - `design\feature_descriptions\ready\B_029_desktop_bridge_security_hardening.md`
 - `design\architecture\initial description\desktop app.md`
-

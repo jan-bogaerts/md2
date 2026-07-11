@@ -61,6 +61,39 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
         projectSessionService.setError(null)
     }, [onCloseDialog])
 
+    const openProject = useCallback(async (storageType: StorageType, nextProject: ProjectReference) => {
+        setMissingWorkingFolder(null)
+
+        try {
+            const resolution = await projectSessionService.openProject(storageType, nextProject, accessToken)
+            if (resolution) {
+                setMissingWorkingFolder(resolution)
+                onOpenDialog('open')
+
+                return
+            }
+
+            closeDialog()
+        } catch {
+            // ProjectSessionService emits the user-visible error.
+        }
+    }, [accessToken, closeDialog, onOpenDialog])
+
+    const openElectronProject = useCallback(async () => {
+        if (!electronBridge) return
+
+        let nextProject: ProjectReference | null
+        try {
+            nextProject = await electronBridge.openProjectFolder()
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: 'Local project selection failed' })
+
+            return
+        }
+
+        if (nextProject) await openProject('local', nextProject)
+    }, [electronBridge, openProject])
+
     const loadRepositories = useCallback(async () => {
         try {
             setRepositories(await projectSessionService.listRepositories(accessToken))
@@ -84,6 +117,11 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
 
     useEffect(() => {
         const handleOpenProjectDialog = () => {
+            if (electronBridge) {
+                void openElectronProject()
+                return
+            }
+
             onOpenDialog('open')
             if (isGithubAuthenticated) void loadRepositories()
         }
@@ -91,7 +129,7 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
         window.addEventListener(OPEN_PROJECT_DIALOG_EVENT, handleOpenProjectDialog)
 
         return () => window.removeEventListener(OPEN_PROJECT_DIALOG_EVENT, handleOpenProjectDialog)
-    }, [isGithubAuthenticated, loadRepositories, onOpenDialog])
+    }, [electronBridge, isGithubAuthenticated, loadRepositories, onOpenDialog, openElectronProject])
 
     useEffect(() => {
         const handleOpenNewCardDialog = () => {
@@ -104,6 +142,11 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
     }, [onOpenDialog, project])
 
     const openProjectDialog = () => {
+        if (electronBridge) {
+            void openElectronProject()
+            return
+        }
+
         onOpenDialog('open')
         if (isGithubAuthenticated) void loadRepositories()
     }
@@ -128,30 +171,6 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
             setBranches(EMPTY_BRANCHES)
 
             return EMPTY_BRANCHES
-        }
-    }
-
-    const chooseLocalFolder = async () => {
-        if (!electronBridge) return null
-
-        let nextProject: ProjectReference | null
-        try {
-            nextProject = await electronBridge.openProjectFolder()
-        } catch (error) {
-            dialogService.error(error, { fallbackMessage: 'Local project selection failed' })
-
-            return null
-        }
-
-        if (!nextProject) return null
-
-        try {
-            const nextBranches = await projectSessionService.listBranches('local', nextProject, accessToken)
-            setBranches(nextBranches)
-
-            return { branches: nextBranches, project: nextProject }
-        } catch {
-            return null
         }
     }
 
@@ -194,23 +213,6 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
             setBranches(EMPTY_BRANCHES)
 
             return EMPTY_BRANCHES
-        }
-    }
-
-    const openProject = async (storageType: StorageType, nextProject: ProjectReference) => {
-        setMissingWorkingFolder(null)
-
-        try {
-            const resolution = await projectSessionService.openProject(storageType, nextProject, accessToken)
-            if (resolution) {
-                setMissingWorkingFolder(resolution)
-
-                return
-            }
-
-            closeDialog()
-        } catch {
-            // ProjectSessionService emits the user-visible error.
         }
     }
 
@@ -283,7 +285,6 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
         activeCards,
         branches,
         cardTypes,
-        chooseLocalFolder,
         clearOpenDialogState,
         closeDialog,
         completeRelease,
@@ -291,7 +292,7 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
         createRemoteProject,
         createWorkingFolder,
         isLoading: projectSession.isLoading,
-        isLocalAvailable: !!electronBridge,
+        isDesktopMode: !!electronBridge,
         isProjectOpen: !!project,
         isReleaseCompleting,
         loadSwitchBranches,
@@ -302,7 +303,6 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
         openBranchDialog,
         openGithubProject,
         openWorkingFolder,
-        openLocalProject: (localProject: ProjectReference, branch: string) => openProject('local', { ...localProject, branch }),
         openProjectDialog,
         openRemoteProject,
         pendingGithubConflictProject: projectSession.pendingGithubConflictProject,

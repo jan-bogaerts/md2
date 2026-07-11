@@ -40,6 +40,10 @@ export function ProjectToolbarMenu(props: ProjectToolbarMenuProps) {
 
     const handleProjectButtonClick = (event: MouseEvent<HTMLButtonElement>) => setAnchorElement(event.currentTarget)
     const handleCloseMenu = () => setAnchorElement(null)
+    const handleOpenProject = () => {
+        setAnchorElement(null)
+        actions.openProjectDialog()
+    }
     const handlePushClick = async () => {
         setAnchorElement(null)
         try {
@@ -62,7 +66,7 @@ export function ProjectToolbarMenu(props: ProjectToolbarMenuProps) {
                 Project
             </Button>
             <Menu anchorEl={anchorElement} id="project-menu" onClose={handleCloseMenu} open={isMenuOpen}>
-                <MenuItem onClick={actions.openProjectDialog}>Open project...</MenuItem>
+                <MenuItem onClick={handleOpenProject}>Open project...</MenuItem>
                 {actions.isProjectOpen ? <MenuItem onClick={actions.openBranchDialog}>Switch branch...</MenuItem> : null}
                 {actions.isProjectOpen && actions.pushMode === 'manual' ? <MenuItem onClick={handlePushClick}>Push</MenuItem> : null}
                 {actions.isProjectOpen ? (
@@ -74,12 +78,11 @@ export function ProjectToolbarMenu(props: ProjectToolbarMenuProps) {
             </Menu>
             <ProjectOpenDialog
                 branches={actions.branches}
+                isDesktopMode={actions.isDesktopMode}
                 isGithubAuthenticated={isGithubAuthenticated}
                 isLoading={actions.isLoading}
-                isLocalAvailable={actions.isLocalAvailable}
                 missingWorkingFolder={actions.missingWorkingFolder}
                 onBranchChange={() => undefined}
-                onChooseLocalFolder={actions.chooseLocalFolder}
                 onClose={actions.closeDialog}
                 onCreateRemoteProject={actions.createRemoteProject}
                 onCreateWorkingFolder={() => void actions.createWorkingFolder()}
@@ -87,7 +90,6 @@ export function ProjectToolbarMenu(props: ProjectToolbarMenuProps) {
                 onLoadManualBranches={actions.loadManualBranches}
                 onLoadRemoteBranches={actions.loadRemoteBranches}
                 onOpenGithub={actions.openGithubProject}
-                onOpenLocal={(localProject, branch) => void actions.openLocalProject(localProject, branch)}
                 onOpenRemote={actions.openRemoteProject}
                 onRepositoryChange={actions.loadRepositoryBranches}
                 onSourceChange={actions.clearOpenDialogState}

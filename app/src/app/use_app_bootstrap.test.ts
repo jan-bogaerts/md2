@@ -61,6 +61,7 @@ function createBridge(): ElectronDataBridge {
         moveFiles: vi.fn(),
         openProjectFolder: vi.fn(async () => ({ branch: 'main', id: 'local', rootPath: 'C:/repo' })),
         push: vi.fn(),
+        resolveProject: vi.fn(async (project) => project),
         saveProjectConfig: vi.fn(),
         watchProject: vi.fn(() => vi.fn()),
     }
@@ -110,7 +111,9 @@ describe('useAppBootstrap', () => {
     })
 
     it('loads the last local project before becoming ready', async () => {
-        window.md2Data = createBridge()
+        const bridge = createBridge()
+        vi.mocked(bridge.resolveProject).mockResolvedValue({ branch: 'topic', id: 'C:/repo', rootPath: 'C:/repo' })
+        window.md2Data = bridge
         window.localStorage.setItem(LAST_PROJECT_STORAGE_KEY, JSON.stringify({
             project: { branch: 'main', id: 'local', rootPath: 'C:/repo' },
             storageType: 'local',
@@ -119,7 +122,25 @@ describe('useAppBootstrap', () => {
         const { result } = renderHook(() => useAppBootstrap(null))
 
         await waitFor(() => expect(result.current.session).not.toBeNull())
+        expect(bridge.resolveProject).toHaveBeenCalledWith({ branch: 'main', id: 'local', rootPath: 'C:/repo' })
+        expect(result.current.session?.project.branch).toBe('topic')
         expect(result.current.session?.snapshot.activeCards).toHaveLength(1)
+    })
+
+    it('finishes startup without a project when local repository revalidation fails', async () => {
+        const bridge = createBridge()
+        vi.mocked(bridge.resolveProject).mockRejectedValue(new Error('Stored project folder is no longer a Git work tree'))
+        window.md2Data = bridge
+        window.localStorage.setItem(LAST_PROJECT_STORAGE_KEY, JSON.stringify({
+            project: { branch: 'main', id: 'local', rootPath: 'C:/missing' },
+            storageType: 'local',
+        }))
+
+        const { result } = renderHook(() => useAppBootstrap(null))
+
+        await waitFor(() => expect(result.current.phase).toBe('ready'))
+        expect(result.current.session).toBeNull()
+        expect(result.current.error).toBe('Stored project folder is no longer a Git work tree')
     })
 
     it('restores the preload action bridge when loading the last local project', async () => {

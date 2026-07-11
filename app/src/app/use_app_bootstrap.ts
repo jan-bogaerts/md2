@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
-import { createStorageService, readLastProject, type StorageType } from '../data/project_session'
+import { createStorageService, readLastProject, writeLastProject, type LastProject, type StorageType } from '../data/project_session'
 import { activateStorageService } from '../data/project_storage_activation'
-import type { ProjectReference, ProjectSnapshot } from '../data/data_types'
+import type { ProjectReference, ProjectSnapshot, StorageService } from '../data/data_types'
 import { configService } from '../services/config_service'
 import { dataService } from '../services/data_service'
 import { readDesktopConfigFromBridge } from '../services/config_persistence'
@@ -29,6 +29,13 @@ function ensureConfigServiceInitialized() {
     configService.init({ desktopConfig })
 }
 
+async function resolveRestoredProject(lastProject: LastProject, storage: StorageService) {
+    if (lastProject.storageType !== 'local') return lastProject.project
+    if (!storage.resolveProject) throw new Error('Local project validation is not available')
+
+    return storage.resolveProject(lastProject.project)
+}
+
 /** Start services and open the last project. Returns null when there is nothing to restore. */
 async function loadLastProjectSession(accessToken: string | null): Promise<ProjectSession | null> {
     ensureConfigServiceInitialized()
@@ -37,12 +44,14 @@ async function loadLastProjectSession(accessToken: string | null): Promise<Proje
     if (lastProject.storageType === 'github' && !accessToken) return null
 
     const storage = createStorageService(lastProject.storageType, accessToken)
+    const project = await resolveRestoredProject(lastProject, storage)
     dataService.init({ storage })
     activateStorageService(lastProject.storageType, storage)
     try {
-        const snapshot = await dataService.projectLoading.openProject(lastProject.project)
+        const snapshot = await dataService.projectLoading.openProject(project)
+        writeLastProject(lastProject.storageType, project)
 
-        return { project: lastProject.project, snapshot, storageType: lastProject.storageType }
+        return { project, snapshot, storageType: lastProject.storageType }
     } catch (error) {
         dataService.init({ storage })
         throw error
