@@ -16,6 +16,7 @@ const CODE_BLOCK_LANGUAGES = { '': 'Plain text', js: 'JavaScript', ts: 'TypeScri
 interface MarkdownEditorProps {
     markdown: string
     onChange: (markdown: string) => void
+    overlayContainer?: HTMLElement | null
     stickyToolbar?: boolean
     toolbarContents?: () => ReactNode
 }
@@ -27,7 +28,7 @@ interface MarkdownEditorProps {
  * On mobile the formatting toolbar stays sticky at the top of the scroll area.
  */
 export function MarkdownEditor(props: MarkdownEditorProps) {
-    const { markdown, onChange, stickyToolbar = false, toolbarContents = MarkdownFormatToolbarControls } = props
+    const { markdown, onChange, overlayContainer, stickyToolbar = false, toolbarContents = MarkdownFormatToolbarControls } = props
     const { markdownStyleConfig } = useAppTheme()
     const markdownContentSx = buildMarkdownContentSx(markdownStyleConfig)
     const stickySx = stickyToolbar
@@ -41,6 +42,7 @@ export function MarkdownEditor(props: MarkdownEditorProps) {
                 contentEditableClassName="mdxeditor-content"
                 markdown={markdown}
                 onChange={onChange}
+                overlayContainer={overlayContainer}
                 plugins={[
                     headingsPlugin(),
                     listsPlugin(),

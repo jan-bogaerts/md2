@@ -14,7 +14,6 @@ const { ActionSchedulerService } = require('./action_scheduler_service')
 const diffService = require('./diff_service')
 const { createLocalBridgeDispatch } = require('./local_bridge_dispatch')
 const localGitService = require('./local_git_service')
-const { requestGithubAccessToken, requestGithubDeviceCode } = require('./github_oauth_proxy')
 const { RemoteControlService } = require('./remote_control_service')
 const remarkableService = require('./remarkable_service')
 const { flush, registerProcessErrorHandlers, startElectronTelemetry, trackEvent } = require('./telemetry')
@@ -23,8 +22,6 @@ const { registerNavigationGuards, resolveRendererTarget } = require('./renderer_
 const {
     CONFIG_GET_DESKTOP_CHANNEL,
     CONFIG_SET_DESKTOP_CHANNEL,
-    GITHUB_AUTH_REQUEST_ACCESS_TOKEN_CHANNEL,
-    GITHUB_AUTH_REQUEST_DEVICE_CODE_CHANNEL,
     LIFECYCLE_FLUSH_DONE_CHANNEL,
     LIFECYCLE_FLUSH_REQUEST_CHANNEL,
     LOCAL_BRIDGE_EVENT_CHANNEL,
@@ -42,6 +39,7 @@ const {
 } = require('./ipc_channels')
 
 const QUIT_FLUSH_TIMEOUT_MS = 5000
+const QUIT_WATCHDOG_TIMEOUT_MS = 10000
 const EVENT_METHODS = new Set(['runAgent', 'startAgentConversation'])
 const SUBSCRIPTION_METHODS = new Set(['onScheduledActionRun', 'watchProject'])
 
@@ -127,11 +125,6 @@ function registerConfigBridge() {
     ipcMain.handle(CONFIG_SET_DESKTOP_CHANNEL, (_event, values) => writeDesktopConfig(store, values))
 }
 
-function registerGithubAuthBridge() {
-    ipcMain.handle(GITHUB_AUTH_REQUEST_ACCESS_TOKEN_CHANNEL, (_event, request) => requestGithubAccessToken(request))
-    ipcMain.handle(GITHUB_AUTH_REQUEST_DEVICE_CODE_CHANNEL, (_event, request) => requestGithubDeviceCode(request))
-}
-
 function broadcastRemoteControlStatus(status) {
     for (const window of BrowserWindow.getAllWindows()) {
         window.webContents.send(REMOTE_CONTROL_STATUS_CHANNEL, status)
@@ -208,13 +201,23 @@ async function stopAndQuit() {
     if (isQuittingAfterTelemetry) return
 
     isQuittingAfterTelemetry = true
-    await flushRendererPendingCommits()
-    await remoteControlService.stop()
-    actionSchedulerService.stop()
-    agentRunnerService.stopAll()
-    await trackEvent('electron_stop')
-    await flush()
-    app.quit()
+    // before-quit already called preventDefault(); if cleanup below rejects or hangs the app
+    // can never quit. Force-exit watchdog guarantees the process terminates regardless.
+    const watchdog = setTimeout(() => app.exit(0), QUIT_WATCHDOG_TIMEOUT_MS)
+
+    try {
+        await flushRendererPendingCommits()
+        await remoteControlService.stop()
+        actionSchedulerService.stop()
+        agentRunnerService.stopAll()
+        await trackEvent('electron_stop')
+        await flush()
+    } catch {
+        // Shutdown cleanup must never block quit.
+    } finally {
+        clearTimeout(watchdog)
+        app.quit()
+    }
 }
 
 function waitForRendererFlush(browserWindow, requestId) {
@@ -261,7 +264,6 @@ async function flushRendererPendingCommits() {
 app.whenReady().then(async () => {
     await electronTelemetryStarted
     registerConfigBridge()
-    registerGithubAuthBridge()
     registerLocalBridge()
     registerRemarkableBridge()
     registerRemoteControlBridge()

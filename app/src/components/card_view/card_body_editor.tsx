@@ -10,6 +10,7 @@ interface CardBodyEditorProps {
     isFullscreen: boolean
     onBodyChange: (path: string, body: string) => void
     onToggleFullscreen: () => void
+    overlayContainer?: HTMLElement | null
 }
 
 /**
@@ -18,7 +19,7 @@ interface CardBodyEditorProps {
  * the frontmatter/header block via the shared parsing service.
  */
 export function CardBodyEditor(props: CardBodyEditorProps) {
-    const { card, isFullscreen, isMobile = false, onBodyChange, onToggleFullscreen } = props
+    const { card, isFullscreen, isMobile = false, onBodyChange, onToggleFullscreen, overlayContainer } = props
     const ToolbarContents = useCallback(
         () => <CardPopupToolbarControls isFullscreen={isFullscreen} onToggleFullscreen={onToggleFullscreen} />,
         [isFullscreen, onToggleFullscreen],
@@ -71,6 +72,7 @@ export function CardBodyEditor(props: CardBodyEditorProps) {
                 key={card.path}
                 markdown={card.content}
                 onChange={(body) => onBodyChange(card.path, body)}
+                overlayContainer={overlayContainer}
                 stickyToolbar={isMobile}
                 toolbarContents={ToolbarContents}
             />

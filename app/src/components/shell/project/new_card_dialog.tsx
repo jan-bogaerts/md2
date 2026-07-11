@@ -99,6 +99,7 @@ interface NewCardDialogProps {
 export function NewCardDialog(props: NewCardDialogProps) {
     const { cardTypes, isLoading, isProjectOpen, onClose, onCreateCard, open } = props
     const [body, setBody] = useState('')
+    const [dialogPaperElement, setDialogPaperElement] = useState<HTMLDivElement | null>(null)
     const [title, setTitle] = useState('')
     const [type, setType] = useState('feature')
     const selectedType = cardTypes.some((typeConfig) => typeConfig.type === type) ? type : cardTypes[0]?.type ?? ''
@@ -146,6 +147,7 @@ export function NewCardDialog(props: NewCardDialogProps) {
             slotProps={{
                 backdrop: { sx: { backdropFilter: 'blur(2px)', backgroundColor: 'rgba(16, 24, 40, 0.45)' } },
                 paper: {
+                    ref: setDialogPaperElement,
                     sx: {
                         border: 1,
                         borderColor: 'divider',
@@ -238,7 +240,7 @@ export function NewCardDialog(props: NewCardDialogProps) {
                             role="group"
                             sx={markdownEditorFrameSx}
                         >
-                            <MarkdownEditor markdown={body} onChange={setBody} />
+                            <MarkdownEditor markdown={body} onChange={setBody} overlayContainer={dialogPaperElement} />
                         </Box>
                     </Stack>
                 </DialogContent>

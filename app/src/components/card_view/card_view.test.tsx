@@ -224,6 +224,9 @@ describe('CardView', () => {
         expect(within(dialog).getByText('F-1')).toBeInTheDocument()
         expect(within(dialog).getByRole('textbox', { name: 'Card title' })).toHaveValue('First')
         expect(within(dialog).getByDisplayValue(/Body of F-1/)).toBeInTheDocument()
+        expect(within(dialog).getByTestId('block-type-select')).toBeInTheDocument()
+        expect(within(dialog).getByTestId('insert-code-block')).toBeInTheDocument()
+        expect(within(dialog).getByTestId('mdx-editor-overlay')).toBeInTheDocument()
         expect(trackEvent).toHaveBeenCalledWith('navigation')
 
         trackEvent.mockRestore()

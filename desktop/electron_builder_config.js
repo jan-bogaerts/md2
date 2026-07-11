@@ -42,7 +42,6 @@ function createBuilderConfig(env = process.env) {
                     '!build_windows.js',
                     '!electron_builder_config.js',
                     '!start_electron.js',
-                    '!start_github_oauth_cors_server.js',
                     '!test_sftp_server.mjs',
                     '!verify_windows_package.mjs',
                 ],

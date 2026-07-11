@@ -1,5 +1,6 @@
 /* eslint-disable react-refresh/only-export-components -- test-only module, fast refresh does not apply */
 import { forwardRef, useImperativeHandle, type ChangeEvent, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 
 /**
  * Lightweight stand-in for `@mdxeditor/editor` used in jsdom tests. The real
@@ -13,6 +14,7 @@ interface StubEditorProps {
     contentEditableClassName?: string
     markdown: string
     onChange?: (markdown: string) => void
+    overlayContainer?: HTMLElement | null
     plugins?: StubPlugin[]
     readOnly?: boolean
 }
@@ -23,7 +25,7 @@ interface StubPlugin {
 
 export const MDXEditor = forwardRef<{ setMarkdown: (markdown: string) => void }, StubEditorProps>(
     function MDXEditorStub(props, ref) {
-        const { markdown, onChange, plugins = [], readOnly } = props
+        const { markdown, onChange, overlayContainer, plugins = [], readOnly } = props
         const toolbar = plugins.find(({ toolbarContents }) => !!toolbarContents)
 
         useImperativeHandle(ref, () => ({ setMarkdown: () => {} }), [])
@@ -35,6 +37,7 @@ export const MDXEditor = forwardRef<{ setMarkdown: (markdown: string) => void },
         return (
             <div data-testid="mdx-editor">
                 {toolbar?.toolbarContents ? <div data-testid="mdx-editor-toolbar">{toolbar.toolbarContents()}</div> : null}
+                {overlayContainer ? createPortal(<div data-testid="mdx-editor-overlay" />, overlayContainer) : null}
                 <textarea onChange={handleChange} readOnly={readOnly} role="textbox" value={markdown} />
             </div>
         )
@@ -63,10 +66,10 @@ const NoopControl = () => null
 export const UndoRedo = NoopControl
 export const BoldItalicUnderlineToggles = NoopControl
 export const ListsToggle = NoopControl
-export const BlockTypeSelect = NoopControl
+export const BlockTypeSelect = () => <span data-testid="block-type-select" />
 export const CreateLink = NoopControl
 export const InsertImage = NoopControl
 export const InsertTable = NoopControl
 export const InsertThematicBreak = NoopControl
-export const InsertCodeBlock = NoopControl
+export const InsertCodeBlock = () => <span data-testid="insert-code-block" />
 export const Separator = NoopControl

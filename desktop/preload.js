@@ -1,8 +1,6 @@
 const { contextBridge, ipcRenderer } = require('electron')
 
 const CONFIG_SET_DESKTOP_CHANNEL = 'md2-config:set-desktop'
-const GITHUB_AUTH_REQUEST_ACCESS_TOKEN_CHANNEL = 'md2-github-auth:request-access-token'
-const GITHUB_AUTH_REQUEST_DEVICE_CODE_CHANNEL = 'md2-github-auth:request-device-code'
 const LIFECYCLE_FLUSH_DONE_CHANNEL = 'md2-lifecycle:flush-pending-commits-done'
 const LIFECYCLE_FLUSH_REQUEST_CHANNEL = 'md2-lifecycle:flush-pending-commits'
 const LOCAL_BRIDGE_EVENT_CHANNEL = 'md2-local-bridge:event'
@@ -163,10 +161,6 @@ function isAllowedOrigin() {
 if (!isAllowedOrigin()) {
     exposeWarning(`MD² desktop bridges blocked for origin: ${window.location.origin}`)
 } else {
-    const githubAuthBridge = {
-        requestAccessToken: (request) => ipcRenderer.invoke(GITHUB_AUTH_REQUEST_ACCESS_TOKEN_CHANNEL, request),
-        requestDeviceCode: (request) => ipcRenderer.invoke(GITHUB_AUTH_REQUEST_DEVICE_CODE_CHANNEL, request),
-    }
     const themeBridge = { setThemeMode: (mode) => ipcRenderer.send(THEME_SET_MODE_CHANNEL, mode) }
     const lifecycleBridge = {
         confirmFlush: (requestId) => ipcRenderer.send(LIFECYCLE_FLUSH_DONE_CHANNEL, requestId),
@@ -209,7 +203,6 @@ if (!isAllowedOrigin()) {
         onScheduledActionRun: (callback) => subscribeBridge('onScheduledActionRun', [], callback),
     }
 
-    contextBridge.exposeInMainWorld('md2GithubAuth', githubAuthBridge)
     contextBridge.exposeInMainWorld('md2Theme', themeBridge)
     contextBridge.exposeInMainWorld('md2Lifecycle', lifecycleBridge)
     contextBridge.exposeInMainWorld('md2Config', configBridge)

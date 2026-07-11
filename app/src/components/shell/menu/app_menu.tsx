@@ -308,6 +308,7 @@ export function AppMenu(props: AppMenuProps) {
                                 />
                             </Tooltip>
                         )}
+                        <Button disabled size="small" variant="outlined">Add action</Button>
                         <Button disabled size="small" variant="outlined">Add chatbot</Button>
                     </Section>
                 </Tab>

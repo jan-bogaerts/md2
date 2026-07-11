@@ -7,7 +7,6 @@
   "scripts": {
     "lint": "eslint .",
     "lint-fix": "eslint . --fix",
-    "oauth-proxy": "node start_github_oauth_cors_server.js",
     "package:windows": "electron-builder --config electron-builder.config.cjs --win nsis --x64",
     "postpackage:windows": "node verify_windows_package.mjs",
     "start": "node start_electron.js",

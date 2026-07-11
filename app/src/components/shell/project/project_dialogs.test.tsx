@@ -207,7 +207,11 @@ describe('project dialog components', () => {
         expect(screen.getByText('Markdown supported')).toBeInTheDocument()
         expect(screen.getByText('Adds to')).toBeInTheDocument()
         expect(screen.getByRole('combobox', { name: 'Card type' })).toHaveTextContent('Feature')
-        expect(within(screen.getByRole('group', { name: 'Body' })).getByTestId('mdx-editor-toolbar')).toBeInTheDocument()
+        const bodyGroup = within(screen.getByRole('group', { name: 'Body' }))
+        expect(bodyGroup.getByTestId('mdx-editor-toolbar')).toBeInTheDocument()
+        expect(bodyGroup.getByTestId('block-type-select')).toBeInTheDocument()
+        expect(bodyGroup.getByTestId('insert-code-block')).toBeInTheDocument()
+        expect(within(screen.getByRole('dialog', { name: 'New card' })).getByTestId('mdx-editor-overlay')).toBeInTheDocument()
 
         fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'New Card' } })
         fireEvent.change(within(screen.getByRole('group', { name: 'Body' })).getByRole('textbox'), { target: { value: 'Body' } })

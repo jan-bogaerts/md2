@@ -81,7 +81,10 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
     useEffect(() => {
         const handleBeforeUnload = (event: BeforeUnloadEvent) => {
             const { hasPendingPush, hasPendingSave } = dataService.getState()
-            if (hasPendingPush || hasPendingSave) {
+            // In Electron, vetoing beforeunload silently cancels the window close (no confirm
+            // dialog), leaving the app unclosable. The main process flushes pending commits on
+            // quit instead, so only prompt in a plain browser build.
+            if ((hasPendingPush || hasPendingSave) && !getElectronLifecycleBridge()) {
                 event.preventDefault()
                 event.returnValue = ''
             }

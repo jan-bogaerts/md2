@@ -45,6 +45,7 @@ export function CardBodyPopover(props: CardBodyPopoverProps) {
     } = props
     const [deleteCardPath, setDeleteCardPath] = useState<string | null>(null)
     const [isFullscreen, setIsFullscreen] = useState(false)
+    const [popupContentElement, setPopupContentElement] = useState<HTMLDivElement | null>(null)
     const [titleEdit, setTitleEdit] = useState<TitleEdit>({ path: null, title: '' })
     const titleDraft = titleEdit.path === card?.path ? titleEdit.title : card?.header.title ?? ''
 
@@ -134,7 +135,7 @@ export function CardBodyPopover(props: CardBodyPopoverProps) {
                 resizeLabel="Resize card details popup"
             >
                 {card ? (
-                    <>
+                    <Box ref={setPopupContentElement} sx={{ display: 'flex', flex: 1, flexDirection: 'column', minHeight: 0 }}>
                         <Box
                             sx={{
                                 alignItems: 'center',
@@ -211,6 +212,7 @@ export function CardBodyPopover(props: CardBodyPopoverProps) {
                             isMobile={isMobile}
                             onBodyChange={onBodyChange}
                             onToggleFullscreen={toggleFullscreen}
+                            overlayContainer={popupContentElement}
                         />
 
                         <Box
@@ -231,7 +233,7 @@ export function CardBodyPopover(props: CardBodyPopoverProps) {
                             <Box sx={{ flex: 1 }} />
                             <Button onClick={handleClose} variant="contained">Close</Button>
                         </Box>
-                    </>
+                    </Box>
                 ) : null}
             </ResizablePopover>
             <CardDeleteDialog cardPath={deleteCardPath} onClose={closeDeleteCardDialog} onDeleteCard={deleteCard} />
