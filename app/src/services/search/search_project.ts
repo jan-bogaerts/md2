@@ -123,12 +123,15 @@ function matchCard(card: ProjectCard, matcher: Matcher, searchBody: boolean): Se
 }
 
 function collectActionFields(action: ActionDefinition): ActionSearchField[] {
-    return [
+    const fields: ActionSearchField[] = [
         { field: 'label', value: action.label },
         { field: 'description', value: action.description },
         { field: 'name', value: action.name },
-        { field: 'text', value: action.text },
     ]
+    if (action.prompt) fields.push({ field: 'text', value: action.prompt })
+    if (action.command) fields.push({ field: 'text', value: action.command })
+
+    return fields
 }
 
 function matchAction(action: ActionDefinition, matcher: Matcher): ActionSearchMatch | null {
@@ -199,6 +202,7 @@ export function searchActions(actions: ActionDefinition[], query: string, option
     const matcher = createMatcher(query, options)
 
     return actions
+        .filter((action) => !action.builtin)
         .map((action) => matchAction(action, matcher))
         .filter((match): match is ActionSearchMatch => match !== null)
 }

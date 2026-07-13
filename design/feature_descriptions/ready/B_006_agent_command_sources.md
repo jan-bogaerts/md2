@@ -10,18 +10,25 @@ policy:
 ---
 
 ## Problem
-`ActionRunner` resolves the agent command from `configService.get('desktop.agent')` (React-side, editable in `/config`), while the conversation-continue path resolves it in `desktop/preload.js` via `resolveDesktopConfig()` (env vars). Editing the agent in the config page changes action runs but **not** "continue conversation" runs; after a restart both diverge from what the user saw in the UI (React config isn't persisted either — see F-031/B-005).
+
+Action starts and conversation continuation currently resolve agent configuration through different paths. Moving action orchestration to Electron must also remove React-side executable-command resolution.
 
 ## Fix
-- Make the desktop-persisted config the single source of truth (per F-031: `electron-store` + `setDesktopConfig` bridge).
-- `preload.js` `continueAgentConversation` reads the stored value; React's `desktop.agent` entry reads/writes the same store through the bridge.
-- Remove the env-only `resolveDesktopConfig` usage from the continue path (env stays as first-run default seeding the store).
+
+- Make persisted desktop config the single source of truth.
+- Resolve supported agent commands only in Electron for action starts and conversation continuation.
+- React sends action id, context, and supported run-specific selection; it never sends an agent executable command.
+- Keep environment values as first-run defaults only.
 
 ## acceptance criteria
-- Changing the agent in `/config` affects both action runs and conversation continues, immediately and after restart.
-- Only one code path resolves the agent command on the desktop side.
-- Tests assert the continue bridge uses the stored/bridged value, not `process.env`.
+
+- Changing supported agent configuration affects action runs and continuation immediately and after restart.
+- Only one Electron-side path resolves executable agent commands.
+- Renderer bridge requests contain no executable agent command.
+- Tests cover both entry points and persisted config resolution.
 
 ## see also
-- `design\feature_descriptions\F_031_config_persistence.md`
-- `design\feature_descriptions\F_012_agents.md`
+
+- `design\feature_descriptions\ready\F_010c_command_execution_and_chaining.md`
+- `design\feature_descriptions\ready\F_012_agents.md`
+- `design\feature_descriptions\ready\F_031_config_persistence.md`

@@ -23,7 +23,7 @@ function executionProject(project: ProjectReference, result: CommandExecutionRes
 }
 
 export interface CommitMetadataInput {
-    actionName: string
+    actionId: string
     completedAt: string
     context: ActionContext
     output: string
@@ -39,7 +39,7 @@ export function extractCommitMetadata(input: CommitMetadataInput): CommitMetadat
     const filePaths = input.context.file ? [input.context.file] : []
 
     return {
-        actionName: input.actionName,
+        actionId: input.actionId,
         branch,
         commit: match[2],
         completedAt: input.completedAt,
@@ -72,7 +72,7 @@ export async function loadActionHistory(input: LoadActionHistoryInput): Promise<
     if (!input.bridge || !input.actionsFolder) return []
 
     return input.actionHistoryLoader(input.bridge, {
-        actionName: input.action.name,
+        actionId: input.action.id,
         actionsFolder: input.actionsFolder,
         context: input.context,
     })
@@ -107,7 +107,7 @@ export async function appendAgentHistory(input: AppendAgentHistoryInput) {
         ? executionProject(input.project, input.result)
         : null
     const commit = resultProject
-        ? extractCommitMetadata({ actionName: input.action.name, completedAt, context: input.context, output, project: resultProject })
+        ? extractCommitMetadata({ actionId: input.action.id, completedAt, context: input.context, output, project: resultProject })
         : null
     const entry: ActionRunHistoryEntry = {
         agent: input.resolvedAgent.agent,
@@ -118,7 +118,7 @@ export async function appendAgentHistory(input: AppendAgentHistoryInput) {
         status: statusFromExitCode(input.result.exitCode),
         ...(commit ? { commit } : {}),
     }
-    const request = { actionName: input.action.name, actionsFolder: input.actionsFolder, context: input.context }
+    const request = { actionId: input.action.id, actionsFolder: input.actionsFolder, context: input.context }
     await input.actionHistoryAppender(input.bridge, request, entry)
 }
 
@@ -142,7 +142,7 @@ export async function appendCommandHistory(input: AppendCommandHistoryInput) {
     const completedAt = new Date().toISOString()
     const output = combineOutput(input.result)
     const commit = extractCommitMetadata({
-        actionName: input.action.name,
+        actionId: input.action.id,
         completedAt,
         context: input.context,
         output,
@@ -160,6 +160,6 @@ export async function appendCommandHistory(input: AppendCommandHistoryInput) {
         prompt: '',
         status: statusFromExitCode(input.result.exitCode),
     }
-    const request = { actionName: input.action.name, actionsFolder: input.actionsFolder, context: input.context }
+    const request = { actionId: input.action.id, actionsFolder: input.actionsFolder, context: input.context }
     await input.actionHistoryAppender(input.bridge, request, entry)
 }

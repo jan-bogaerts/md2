@@ -11,9 +11,10 @@ describe('action definition writer helpers', () => {
         expect(definition).toEqual({
             appliesTo: { type: 'feature' },
             description: 'Custom prompt action: Review Feature',
+            id: expect.any(String),
             label: 'Review Feature',
             name: 'review-feature',
-            text: 'review {{file}}',
+            prompt: 'review {{file}}',
             type: 'agent',
         })
     })
@@ -25,10 +26,11 @@ describe('action definition writer helpers', () => {
             agent: 'codex',
             appliesTo: { type: 'feature' },
             description: 'Custom prompt action: Fix tests',
+            id: expect.any(String),
             label: 'Fix tests',
             model: 'gpt-5',
             name: 'fix-tests',
-            text: 'fix tests',
+            prompt: 'fix tests',
             type: 'agent',
         })
     })

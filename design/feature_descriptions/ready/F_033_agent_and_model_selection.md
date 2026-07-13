@@ -9,6 +9,8 @@ policy:
   requireTests: true
 ---
 
+> **Future extension.** Extensible/user-defined agent profiles are outside the current F-010 action-runner migration. The current execution design supports the built-in Codex/Claude capability flow; this feature extends it later without changing ID-based Electron execution.
+
 ## Goal
 Full agent selection per the architecture: "Set default agent from menu, or configurable on the action definition or when the action is started." Additionally allow selecting the **model** the agent should use (e.g. `codex --model …`, `claude --model …`), with the same three levels: global default, per action definition, per run.
 
@@ -22,7 +24,7 @@ Far short of the spec. The only selection point is the global `desktop.agent` co
   2. `agent` / `model` fields on the action definition json (extend loader validation in `app/src/services/action_definition_loader.ts`),
   3. global default, settable from the app menu (`app/src/components/shell/menu/app_menu.tsx`) and from the config page.
 - Persist agent profiles and the default agent/model in the desktop config store (`desktop/config.js`); keep the React config service as the read/write surface so web mode still displays (but disables) desktop-only entries.
-- `ActionRunner` resolves the effective agent profile + model per run and passes the final command line to the bridge; the run history entry records which agent/model executed.
+- The Electron action runner resolves the effective agent profile and model after loading the action by `id`; the renderer sends only the run-specific selection. Run history records the effective agent/model.
 - Replace the two-option `desktop.agent` select with the profile list; keep `MD2_AGENT` as an override for the default profile's command.
 - The built-in `custom prompt` action and Remarkable convert action use the same resolution path.
 

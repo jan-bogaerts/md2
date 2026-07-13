@@ -283,9 +283,10 @@ describe('CardView', () => {
             actionFile({
                 appliesTo: { type: 'feature' },
                 description: 'Implement',
+                id: 'action-implement',
                 label: 'Implement',
                 name: 'implement',
-                text: 't',
+                prompt: 't',
                 type: 'agent',
             }),
         ])

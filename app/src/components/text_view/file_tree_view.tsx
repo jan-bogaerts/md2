@@ -1,7 +1,9 @@
 import {
-    Box, Button, Chip, Collapse, IconButton, List, ListItemButton, ListItemIcon,
-    Menu, MenuItem, Stack, Tooltip, Typography, useTheme,
+    Box, Chip, Collapse, IconButton, List, ListItemButton, ListItemIcon,
+    Menu, MenuItem, Tooltip, Typography, useTheme,
 } from '@mui/material'
+import CreateNewFolderOutlinedIcon from '@mui/icons-material/CreateNewFolderOutlined'
+import NoteAddOutlinedIcon from '@mui/icons-material/NoteAddOutlined'
 import { alpha } from '@mui/material/styles'
 import ChevronDown from 'mdi-material-ui/ChevronDown'
 import ChevronRight from 'mdi-material-ui/ChevronRight'
@@ -381,32 +383,80 @@ export function FileTreeView(props: FileTreeViewProps) {
     }
 
     return (
-        <>
-            <Stack direction="row" spacing={0.75} sx={{ borderBottom: 1, borderColor: 'divider', px: 1, py: 1 }}>
-                <Button onClick={requestToolbarFolder} size="small" startIcon={<FolderPlusOutline />}>
-                    New folder
-                </Button>
-                <Button onClick={requestToolbarMarkdownFile} size="small" startIcon={<FileDocumentPlusOutline />}>
-                    New Markdown file
-                </Button>
-            </Stack>
-            <List component="nav" dense disablePadding sx={{ py: 1 }}>
-                {nodes.map((node) => (
-                    <TreeNodeRow
-                        key={node.id}
-                        cardTypes={cardTypes}
-                        cardsByPath={cardsByPath}
-                        depth={0}
-                        node={node}
-                        onDeleteFile={onDeleteFile}
-                        onRequestCreate={requestCreate}
-                        onSelect={onSelect}
-                        onSelectNode={handleSelectNode}
-                        selectedNodeId={effectiveSelectedNodeId}
-                        statusColors={statusColors}
-                    />
-                ))}
-            </List>
+        <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
+            <Box
+                sx={{
+                    alignItems: 'center',
+                    borderBottom: 1,
+                    borderColor: 'divider',
+                    boxSizing: 'border-box',
+                    display: 'flex',
+                    flexShrink: 0,
+                    gap: 1,
+                    height: 40,
+                    pl: 2,
+                    pr: 1,
+                }}
+            >
+                <Typography
+                    sx={{ color: 'text.primary', fontWeight: 700, letterSpacing: '0.7px', lineHeight: 1 }}
+                    variant="overline"
+                >
+                    CARDS
+                </Typography>
+                <Box sx={{ flex: 1 }} />
+                <Tooltip title="New folder">
+                    <IconButton
+                        aria-label="New folder"
+                        onClick={requestToolbarFolder}
+                        size="small"
+                        sx={{
+                            borderRadius: '7px',
+                            color: 'text.secondary',
+                            height: 28,
+                            width: 28,
+                            '&:hover': { bgcolor: 'background.paper', color: 'primary.main' },
+                        }}
+                    >
+                        <CreateNewFolderOutlinedIcon sx={{ fontSize: 18 }} />
+                    </IconButton>
+                </Tooltip>
+                <Tooltip title="New Markdown file">
+                    <IconButton
+                        aria-label="New Markdown file"
+                        onClick={requestToolbarMarkdownFile}
+                        size="small"
+                        sx={{
+                            borderRadius: '7px',
+                            color: 'text.secondary',
+                            height: 28,
+                            width: 28,
+                            '&:hover': { bgcolor: 'background.paper', color: 'primary.main' },
+                        }}
+                    >
+                        <NoteAddOutlinedIcon sx={{ fontSize: 18 }} />
+                    </IconButton>
+                </Tooltip>
+            </Box>
+            <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', px: 1, py: 1.5 }}>
+                <List component="nav" dense disablePadding>
+                    {nodes.map((node) => (
+                        <TreeNodeRow
+                            key={node.id}
+                            cardTypes={cardTypes}
+                            cardsByPath={cardsByPath}
+                            depth={0}
+                            node={node}
+                            onDeleteFile={onDeleteFile}
+                            onRequestCreate={requestCreate}
+                            onSelect={onSelect}
+                            onSelectNode={handleSelectNode}
+                            selectedNodeId={effectiveSelectedNodeId}
+                            statusColors={statusColors}
+                        />
+                    ))}
+                </List>
+            </Box>
             {creationRequest ? (
                 <CreateTreeItemDialog
                     kind={creationRequest.kind}
@@ -416,6 +466,6 @@ export function FileTreeView(props: FileTreeViewProps) {
                     parentDirectory={creationRequest.parentDirectory}
                 />
             ) : null}
-        </>
+        </Box>
     )
 }

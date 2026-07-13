@@ -2,18 +2,22 @@ import { Badge, Box, Button, Divider, Stack, Typography } from '@mui/material'
 import type { KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent } from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { buildFileTree, fileLabel } from '../../data/file_tree'
+import type { ActionDefinition } from '../../data/action_types'
 import { getCardIdPrefix } from '../../data/card_identifiers'
 import { defaultColumnAccent, type AgentConversation, type CardTypeConfig, type ProjectCard, type StateConfig } from '../../data/data_types'
 import { telemetryService } from '../../services/telemetry_service'
+import { actionDefinitionRevision } from '../../services/action_service'
 import { agentAcknowledgementService } from '../../services/agent_acknowledgement_service'
 import { markdownParsingService } from '../../services/markdown_parsing_service'
 import { AgentConversationList } from '../agents/agent_conversation_list'
+import { ActionEditor } from '../actions/action_editor'
 import { MarkdownEditor } from '../editor/markdown_editor'
 import { LeftPanelSlot } from '../shell/left_panel_slot'
 import { FileTreeView } from './file_tree_view'
 import { HeaderEditorPanel } from './header_editor_panel'
 import { TabBar, type OpenTab, type OpenTabKind } from './tab_bar'
 import { useOpenTabs } from './use_open_tabs'
+import { useActions } from '../hooks/use_actions'
 
 const CONVERSATION_PANEL_MIN_HEIGHT = 220
 const CONVERSATION_PANEL_MAX_HEIGHT_RATIO = 0.8
@@ -66,7 +70,17 @@ function tabKind(card: ProjectCard, actionsFolder: string): OpenTabKind {
     return 'markdown'
 }
 
-function tabData(cardsByPath: Map<string, ProjectCard>, cardTypes: CardTypeConfig[], actionsFolder: string, path: string): OpenTab {
+function tabData(
+    actionsByPath: Map<string, ActionDefinition>,
+    cardsByPath: Map<string, ProjectCard>,
+    cardTypes: CardTypeConfig[],
+    actionsFolder: string,
+    path: string,
+): OpenTab {
+    const action = actionsByPath.get(path)
+    if (action) {
+        return { color: null, id: null, kind: 'action', label: action.label, path, title: action.label }
+    }
     const card = cardsByPath.get(path)
     const label = card ? fileLabel(card) : path
     const id = card && label.startsWith(`${card.header.id} `) ? card.header.id : null
@@ -119,6 +133,7 @@ export function TextView(props: TextViewProps) {
         workingFolder, projectId,
     } = props
     const [isConversationPanelOpen, setIsConversationPanelOpen] = useState(false)
+    const { actions } = useActions()
     const [conversationPanelHeight, setConversationPanelHeight] = useState(CONVERSATION_PANEL_MIN_HEIGHT)
     const [isConversationPanelDragging, setIsConversationPanelDragging] = useState(false)
     const [conversationPanelMax, setConversationPanelMax] = useState<number | undefined>(undefined)
@@ -131,17 +146,23 @@ export function TextView(props: TextViewProps) {
         [actionsFolder, projectFolder, workingFolder],
     )
     const tree = useMemo(() => buildFileTree(activeCards, backgroundCards, workingFolder, {
+        actions,
         projectFolder,
         repositoryFiles,
         specialFolderPaths,
-    }), [activeCards, backgroundCards, projectFolder, repositoryFiles, specialFolderPaths, workingFolder])
+    }), [actions, activeCards, backgroundCards, projectFolder, repositoryFiles, specialFolderPaths, workingFolder])
+    const actionsByPath = useMemo(() => new Map(
+        actions
+            .filter((action): action is ActionDefinition & { sourcePath: string } => action.sourcePath !== null)
+            .map((action) => [action.sourcePath, action]),
+    ), [actions])
     const cardsByPath = useMemo(() => {
         const map = new Map<string, ProjectCard>()
         for (const card of [...activeCards, ...backgroundCards]) map.set(card.path, card)
 
         return map
     }, [activeCards, backgroundCards])
-    const availablePaths = useMemo(() => [...cardsByPath.keys()], [cardsByPath])
+    const availablePaths = useMemo(() => [...cardsByPath.keys(), ...actionsByPath.keys()], [actionsByPath, cardsByPath])
     const { activePath, activateTab, closeTab, openTab, tabs } = useOpenTabs(availablePaths)
     const statusColors = useMemo(() => new Map(
         tree
@@ -163,8 +184,9 @@ export function TextView(props: TextViewProps) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [requestedNonce])
 
-    const openTabs = tabs.map((path) => tabData(cardsByPath, cardTypes, actionsFolder, path))
+    const openTabs = tabs.map((path) => tabData(actionsByPath, cardsByPath, cardTypes, actionsFolder, path))
     const activeCard = activePath ? cardsByPath.get(activePath) ?? null : null
+    const activeAction = activePath ? actionsByPath.get(activePath) ?? null : null
 
     useEffect(() => {
         if (!isConversationPanelOpen || !activeCard || !projectId) return
@@ -278,41 +300,51 @@ export function TextView(props: TextViewProps) {
 
     const editorPane = (
         <Box sx={{ display: 'flex', flex: 1, flexDirection: 'column', minWidth: 0 }}>
-            {activeCard ? (
+            {activeCard || activeAction ? (
                 <>
                     <TabBar activePath={activePath} onActivate={handleActivateTab} onClose={closeTab} tabs={openTabs} />
-                    <Stack direction="row" spacing={1} sx={{ alignItems: 'center', borderBottom: 1, borderColor: 'divider', px: 2, py: 1 }}>
-                        <Button
-                            onClick={handleToggleConversationPanel}
-                            size="small"
-                            variant={isConversationPanelOpen ? 'contained' : 'outlined'}
-                        >
-                            <Badge
-                                badgeContent={activeCard.agentConversations.length + activeCard.agentConversationErrors.length}
-                                color="primary"
-                                sx={{ mr: 1 }}
+                    {activeCard ? (
+                        <Stack direction="row" spacing={1} sx={{ alignItems: 'center', borderBottom: 1, borderColor: 'divider', px: 2, py: 1 }}>
+                            <Button
+                                onClick={handleToggleConversationPanel}
+                                size="small"
+                                variant={isConversationPanelOpen ? 'contained' : 'outlined'}
                             >
+                                <Badge
+                                    badgeContent={activeCard.agentConversations.length + activeCard.agentConversationErrors.length}
+                                    color="primary"
+                                    sx={{ mr: 1 }}
+                                >
                                 Agents
-                            </Badge>
-                        </Button>
-                        <Typography color="text.secondary" variant="body2">
-                            {fileLabel(activeCard)}
-                        </Typography>
-                    </Stack>
+                                </Badge>
+                            </Button>
+                            <Typography color="text.secondary" variant="body2">
+                                {fileLabel(activeCard)}
+                            </Typography>
+                        </Stack>
+                    ) : null}
                 </>
             ) : null}
             <Box ref={editorStackRef} sx={{ display: 'flex', flex: 1, flexDirection: 'column', minHeight: 0 }}>
                 <Box
                     sx={{
-                        alignItems: activeCard ? undefined : 'center',
-                        display: activeCard ? 'block' : 'flex',
+                        alignItems: activeCard || activeAction ? undefined : 'center',
+                        display: activeCard || activeAction ? 'block' : 'flex',
                         flex: 1,
                         justifyContent: activeCard ? undefined : 'center',
                         overflow: 'auto',
                         p: 2,
                     }}
                 >
-                    {activeCard && activePath ? (
+                    {activeAction ? (
+                        <ActionEditor
+                            key={actionDefinitionRevision(activeAction)}
+                            action={activeAction}
+                            actions={actions}
+                            repositoryFiles={repositoryFiles}
+                            states={states.map(({ state }) => state)}
+                        />
+                    ) : activeCard && activePath ? (
                         <>
                             {Object.keys(activeCard.headerFields).length > 0 ? (
                                 <HeaderEditorPanel
@@ -364,7 +396,10 @@ export function TextView(props: TextViewProps) {
     return (
         <>
             <LeftPanelSlot>
-                <Box aria-label="File tree" sx={{ bgcolor: 'action.hover', minHeight: '100%', mx: -2, overflow: 'auto' }}>
+                <Box
+                    aria-label="File tree"
+                    sx={{ bgcolor: 'action.hover', display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}
+                >
                     <FileTreeView
                         cardTypes={cardTypes}
                         cardsByPath={cardsByPath}

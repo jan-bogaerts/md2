@@ -15,8 +15,8 @@ interface ActionSelectorProps {
 export function ActionSelector(props: ActionSelectorProps) {
     const { adding, actions, onAdd, onSelect, selectedAction } = props
 
-    const handleChange = (_event: MouseEvent<HTMLElement>, actionName: string | null) => {
-        const action = actions.find((candidate) => candidate.name === actionName)
+    const handleChange = (_event: MouseEvent<HTMLElement>, actionId: string | null) => {
+        const action = actions.find((candidate) => candidate.id === actionId)
         if (action) onSelect(action)
     }
 
@@ -52,10 +52,10 @@ export function ActionSelector(props: ActionSelectorProps) {
                             },
                         },
                     }}
-                    value={selectedAction.name}
+                    value={selectedAction.id}
                 >
                     {actions.map((action) => (
-                        <ToggleButton key={action.name} value={action.name}>
+                        <ToggleButton key={action.id} value={action.id}>
                             {action.label}
                         </ToggleButton>
                     ))}

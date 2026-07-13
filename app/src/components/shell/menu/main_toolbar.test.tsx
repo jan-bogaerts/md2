@@ -40,7 +40,7 @@ describe('MainToolbar', () => {
     it('renders the application icon', () => {
         renderToolbar()
 
-        expect(screen.getByRole('img', { name: 'MD² application icon' })).toHaveAttribute('src', './favicon.svg')
+        expect(screen.getByRole('img', { name: 'MD² application icon' })).toHaveAttribute('src', '/favicon.svg')
     })
 
     it('opens the menu from the hamburger button on mobile', () => {

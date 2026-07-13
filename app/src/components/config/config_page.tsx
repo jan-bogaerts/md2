@@ -1,7 +1,7 @@
 import { Box, Button, Stack, Tab, Tabs, Typography, useMediaQuery, useTheme } from '@mui/material'
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { navigateTo } from '../../app/app_navigation'
-import { CONFIG_SECTIONS, configService, type ConfigKey } from '../../services/config_service'
+import { CONFIG_SECTIONS, configService, type ConfigEntry, type ConfigKey } from '../../services/config_service'
 import { writeDesktopConfigToBridge } from '../../services/config_persistence'
 import { dataService } from '../../services/data_service'
 import { dialogService } from '../../services/dialog_service'
@@ -10,11 +10,26 @@ import { ProjectConfigSection } from './project_config_section'
 import { ReactConfigSection } from './react_config_section'
 import { getElectronDataBridge } from '../../data/electron_data_bridge'
 import { worktreeService } from '../../services/worktree_service'
+import { useAppTheme } from '../../theme/use_app_theme'
+import {
+    cloneMarkdownStyleConfig,
+    isMarkdownStyleConfig,
+    isMarkdownStylePresetName,
+    type MarkdownStyleConfig,
+    type MarkdownStyleName,
+} from '../../theme/theme_config'
+import { MarkdownConfigSection } from './markdown_config_section'
 
 const CONFIG_PAGE_PADDING = 3
 const CONFIG_FORM_MAX_WIDTH = 720
 const CONFIG_SIDEBAR_WIDTH = 220
 const DRAFT_DISCARD_DELAY_MS = 0
+const MARKDOWN_CONFIG_SECTION = { id: 'markdown', label: 'Markdown' }
+
+interface MarkdownStyleDraft {
+    config: MarkdownStyleConfig
+    name: MarkdownStyleName
+}
 
 interface ConfigPageProps {
     hash: string
@@ -27,6 +42,13 @@ function getActiveSection(hash: string, sections: typeof CONFIG_SECTIONS) {
     if (sections.some((item) => item.id === section)) return section
 
     return sections[0].id
+}
+
+function getVisibleSections(entries: ConfigEntry[]) {
+    return CONFIG_SECTIONS.flatMap((section) => {
+        const visibleSection = entries.some((entry) => entry.section === section.id) ? [section] : []
+        return section.id === 'react' ? [...visibleSection, MARKDOWN_CONFIG_SECTION] : visibleSection
+    })
 }
 
 function getConfigDraftSnapshot() {
@@ -43,15 +65,25 @@ export function ConfigPage(props: ConfigPageProps) {
     const { hash } = props
     const theme = useTheme()
     const isMobile = useMediaQuery(theme.breakpoints.down('md'))
+    const {
+        markdownStyle,
+        markdownStyleConfig,
+        setCustomMarkdownStyle,
+        setMarkdownStyle,
+    } = useAppTheme()
     const draft = useSyncExternalStore(subscribeToConfigChanges, getConfigDraftSnapshot)
     const [invalidConfigKeys, setInvalidConfigKeys] = useState<Set<ConfigKey>>(() => new Set())
+    const [markdownStyleDraft, setMarkdownStyleDraft] = useState<MarkdownStyleDraft>(() => ({
+        config: cloneMarkdownStyleConfig(markdownStyleConfig),
+        name: markdownStyle,
+    }))
     const draftDiscardTimeoutRef = useRef<number | null>(null)
     const entries = configService.getEntries()
-    const visibleSections = useMemo(
-        () => CONFIG_SECTIONS.filter((section) => entries.some((entry) => entry.section === section.id)),
-        [entries],
-    )
+    const visibleSections = useMemo(() => getVisibleSections(entries), [entries])
     const activeSection = getActiveSection(hash, visibleSections)
+    const markdownStyleChanged = markdownStyleDraft.name !== markdownStyle
+        || JSON.stringify(markdownStyleDraft.config) !== JSON.stringify(markdownStyleConfig)
+    const markdownStyleValid = isMarkdownStyleConfig(markdownStyleDraft.config)
 
     useEffect(() => {
         if (draftDiscardTimeoutRef.current !== null) {
@@ -108,6 +140,10 @@ export function ConfigPage(props: ConfigPageProps) {
         })
     }
 
+    const handleMarkdownStyleChange = (name: MarkdownStyleName, config: MarkdownStyleConfig) => {
+        setMarkdownStyleDraft({ config, name })
+    }
+
     const handleSaveClick = async () => {
         try {
             const shouldSaveProjectConfig = configService.hasDraftChangesForSource('project')
@@ -122,6 +158,10 @@ export function ConfigPage(props: ConfigPageProps) {
             }
             configService.saveDraft()
             configService.loadDraft()
+            if (markdownStyleChanged && markdownStyleDraft.name === 'custom') setCustomMarkdownStyle(markdownStyleDraft.config)
+            else if (markdownStyleChanged && isMarkdownStylePresetName(markdownStyleDraft.name)) {
+                setMarkdownStyle(markdownStyleDraft.name)
+            }
             if (shouldSaveProjectConfig && configService.hasProjectConfig()) await dataService.projectLoading.saveProjectConfig()
             if (shouldSaveDesktopConfig && configService.hasDesktopConfig()) writeDesktopConfigToBridge(configService.getDesktopValues())
             dialogService.success('Config saved')
@@ -188,7 +228,7 @@ export function ConfigPage(props: ConfigPageProps) {
                         <Button onClick={handleCancelClick} variant="outlined">
                             Cancel
                         </Button>
-                        <Button disabled={invalidConfigKeys.size > 0} onClick={handleSaveClick} variant="contained">
+                        <Button disabled={invalidConfigKeys.size > 0 || !markdownStyleValid} onClick={handleSaveClick} variant="contained">
                             Save
                         </Button>
                     </Stack>
@@ -196,6 +236,13 @@ export function ConfigPage(props: ConfigPageProps) {
                     {isMobile ? sectionTabs : null}
 
                     {activeSection === 'react' ? <ReactConfigSection {...sectionProps} /> : null}
+                    {activeSection === 'markdown' ? (
+                        <MarkdownConfigSection
+                            config={markdownStyleDraft.config}
+                            name={markdownStyleDraft.name}
+                            onChange={handleMarkdownStyleChange}
+                        />
+                    ) : null}
                     {activeSection === 'project' ? <ProjectConfigSection {...sectionProps} /> : null}
                     {activeSection === 'desktop' ? <DesktopConfigSection {...sectionProps} disabled={!configService.hasDesktopConfig()} /> : null}
                 </Stack>

@@ -1,7 +1,6 @@
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 import { AppThemeProvider } from '../../theme/theme_provider'
-import { MARKDOWN_STYLE_STORAGE_KEY } from '../../theme/use_theme_settings'
 import { ThemeControls } from './theme_controls'
 
 function openDialog() {
@@ -26,27 +25,6 @@ describe('ThemeSettingsDialog', () => {
         expect(within(dialog).getByText('Color scheme')).toBeInTheDocument()
         expect(within(dialog).getByLabelText('Color scheme preview')).toBeInTheDocument()
         expect(within(dialog).getByRole('button', { name: 'Primary' })).toBeInTheDocument()
-    })
-
-    it('persists the selected markdown style preset', () => {
-        openDialog()
-
-        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Preset' }))
-        fireEvent.click(screen.getByRole('option', { name: 'handwritten' }))
-
-        expect(window.localStorage.getItem(MARKDOWN_STYLE_STORAGE_KEY)).toBe('handwritten')
-    })
-
-    it('updates the markdown preview when selecting another preset', () => {
-        openDialog()
-
-        const preview = screen.getByLabelText('Markdown style preview')
-        const initialClassName = preview.className
-
-        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Preset' }))
-        fireEvent.click(screen.getByRole('option', { name: 'serif' }))
-
-        expect(preview.className).not.toBe(initialClassName)
     })
 
     it('applies edited colors to the theme', () => {

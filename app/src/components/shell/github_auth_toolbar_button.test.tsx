@@ -19,6 +19,32 @@ describe('GithubAuthToolbarButton', () => {
         cleanup()
     })
 
+    it('shows one GitHub icon button while signed out', () => {
+        render(<GithubAuthToolbarButton auth={auth} />)
+
+        expect(screen.getAllByRole('button', { name: 'GitHub account' })).toHaveLength(1)
+        expect(screen.queryByRole('img')).toBeNull()
+    })
+
+    it('shows the GitHub user image instead of a second account button while signed in', () => {
+        const signedInAuth: UseGithubAuthResult = {
+            ...auth,
+            isAuthenticated: true,
+            status: 'authenticated',
+            user: {
+                avatarUrl: 'https://avatars.githubusercontent.com/u/1',
+                htmlUrl: 'https://github.com/jb',
+                id: 1,
+                login: 'jb',
+                name: 'JB',
+            },
+        }
+        render(<GithubAuthToolbarButton auth={signedInAuth} />)
+
+        expect(screen.getAllByRole('button', { name: 'GitHub account' })).toHaveLength(1)
+        expect(screen.getByRole('img', { name: 'jb' })).toHaveAttribute('src', signedInAuth.user?.avatarUrl)
+    })
+
     it('closes the GitHub account dialog without starting an auth action', async () => {
         const signedInAuth: UseGithubAuthResult = {
             ...auth,

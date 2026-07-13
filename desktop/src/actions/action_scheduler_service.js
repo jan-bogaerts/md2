@@ -21,7 +21,7 @@ function createFailureEntry(message) {
 
 function validateRegistrationRequest(request) {
     if (!request || typeof request !== 'object') throw new Error('Missing action schedule registration request')
-    if (typeof request.actionName !== 'string' || request.actionName.length === 0) throw new Error('Missing action schedule actionName')
+    if (typeof request.actionId !== 'string' || request.actionId.length === 0) throw new Error('Missing action schedule actionId')
     if (!request.context || typeof request.context !== 'object') throw new Error('Missing action schedule context')
     if (!request.trigger || typeof request.trigger !== 'object') throw new Error('Missing action schedule trigger')
 
@@ -114,7 +114,7 @@ class ActionSchedulerService {
         const actionsFolder = await this.requireActionsFolder()
         const schedules = await this.localGitService.loadActionSchedules(project, actionsFolder)
         const schedule = {
-            actionName: registration.actionName,
+            actionId: registration.actionId,
             context: registration.context,
             createdAt: new Date().toISOString(),
             id: createScheduleId(),
@@ -151,11 +151,11 @@ class ActionSchedulerService {
         await this.reconcile()
     }
 
-    async handleActionCompleted(actionName) {
-        if (typeof actionName !== 'string' || actionName.length === 0) throw new Error('Missing completed action name')
+    async handleActionCompleted(actionId) {
+        if (typeof actionId !== 'string' || actionId.length === 0) throw new Error('Missing completed action id')
 
         const schedules = await this.loadSchedulesForReconcile()
-        const matchingSchedules = pendingAfterActionSchedules(schedules, actionName)
+        const matchingSchedules = pendingAfterActionSchedules(schedules, actionId)
 
         for (const schedule of matchingSchedules) await this.fireSchedule(schedule.id)
     }
@@ -206,7 +206,7 @@ class ActionSchedulerService {
             await this.runScheduledAction(schedule)
             await this.updateScheduleStatus(scheduleId, 'done')
             this.emitScheduleRunEvent(schedule, 'closed', 'Scheduled action completed')
-            await this.handleActionCompleted(schedule.actionName)
+            await this.handleActionCompleted(schedule.actionId)
         } finally {
             this.runningScheduleIds.delete(scheduleId)
         }
@@ -246,7 +246,7 @@ class ActionSchedulerService {
             agentCommandProvider: this.agentCommandProvider,
             agentConfigProvider: this.agentConfigProvider,
             agentRunnerService: this.agentRunnerService,
-            appendHistory: (actionName, context, entry, project) => this.appendHistory(actionName, context, entry, project),
+            appendHistory: (actionId, context, entry, project) => this.appendHistory(actionId, context, entry, project),
             localGitService: this.localGitService,
             project: this.requireCurrentProject(),
         }
@@ -256,11 +256,11 @@ class ActionSchedulerService {
         if (!schedule) return
 
         const entry = createFailureEntry(message)
-        await this.appendHistory(schedule.actionName, schedule.context, entry)
+        await this.appendHistory(schedule.actionId, schedule.context, entry)
     }
 
-    async appendHistory(actionName, context, entry, project = this.requireCurrentProject()) {
-        const request = { actionName, actionsFolder: await this.requireActionsFolder(), context }
+    async appendHistory(actionId, context, entry, project = this.requireCurrentProject()) {
+        const request = { actionId, actionsFolder: await this.requireActionsFolder(), context }
         await this.localGitService.appendActionRunHistory(project, request, entry)
     }
 
@@ -278,7 +278,7 @@ class ActionSchedulerService {
             path: '',
             startedAt: timestamp,
             status,
-            title: `Scheduled ${schedule.actionName}`,
+            title: `Scheduled ${schedule.actionId}`,
         }
         const event = { content, conversation, runId: schedule.id, type }
 

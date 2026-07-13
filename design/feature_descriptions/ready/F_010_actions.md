@@ -39,7 +39,7 @@ The existing implementation uses a React-side `ActionRunner`, name-based action 
 - For agent actions, show extra prompt input and the supported per-run agent/model/thinking-level choices. Extensible agent profiles remain a future feature.
 - The renderer sends only `{ actionId, context, runInput }`. Electron reloads and validates the persisted definition by `id`, resolves placeholders, and executes the complete chain.
 - Execute `onBefore` -> main -> matching `on` actions -> `onAfter` in configured order. Reject cycles before execution.
-- If `onBefore` fails, stop before main and fail the run. Main or matched-`on` failure fails the run. If main and `on` succeed but an `onAfter` action fails, mark that linked action failed and the selected run `okButNotAfter`.
+- Stop the chain on the first failure. `onBefore` failure prevents main. Main failure prevents `on` and `onAfter`. A matched-`on` failure prevents remaining `on` and all `onAfter`. `onAfter` starts only after main and every matched `on` succeed; its failure stops later `onAfter`, fails that linked action, and finishes the selected run as `okButNotAfter`.
 - `Cancel` stops the active Electron process and remaining chain and marks the run cancelled.
 - When `needsWorkTree` is set, Electron prepares the worktree described in `design\architecture\initial description\writings\Running actions\running_actions.md`. It does not automatically commit, push, merge, cherry-pick, or transfer changes.
 - A card keeps its current action in memory. While set, all action entry points for that card are disabled. Completion, failure, or cancellation clears it and publishes an event; it is never persisted.

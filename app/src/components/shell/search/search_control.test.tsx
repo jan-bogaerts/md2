@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { CardHeader, ProjectCard, ProjectSnapshot } from '../../../data/data_types'
 import { actionService } from '../../../services/action_service'
 import { workspaceNavigationService } from '../../../services/workspace_navigation_service'
+import { workspaceViewService } from '../../../services/workspace_view_service'
 import { DialogDisplay } from '../../dialog_display'
 import { SearchControl } from './search_control'
 
@@ -53,6 +54,7 @@ describe('SearchControl', () => {
     afterEach(cleanup)
     afterEach(() => {
         actionService.clear()
+        workspaceViewService.setViewMode('cards')
     })
 
     it('shows the search controls in a dropdown only while search is focused', () => {
@@ -112,7 +114,10 @@ describe('SearchControl', () => {
 
     it('includes actions only when the action toggle is on and opens the action popup', () => {
         actionService.loadFromFiles([{
-            content: JSON.stringify({ description: 'Searchable action', label: 'Run search job', name: 'search-job', text: 'execute', type: 'cmd' }),
+            content: JSON.stringify({
+                command: 'execute', description: 'Searchable action', id: 'action-search-job',
+                label: 'Run search job', name: 'search-job', type: 'command',
+            }),
             path: 'actions/search-job.json',
         }])
         render(<SearchControl />)
@@ -125,6 +130,29 @@ describe('SearchControl', () => {
 
         expect(screen.getByRole('dialog')).toBeInTheDocument()
         expect(screen.getByRole('heading', { name: 'Run search job' })).toBeInTheDocument()
+    })
+
+    it('opens action search results in an editor tab from text view', () => {
+        const listener = vi.fn()
+        workspaceNavigationService.addEventListener('open', listener)
+        workspaceViewService.setViewMode('text')
+        actionService.loadFromFiles([{
+            content: JSON.stringify({
+                command: 'execute', description: 'Searchable action', id: 'action-search-job',
+                label: 'Run search job', name: 'search-job', type: 'command',
+            }),
+            path: 'actions/search-job.json',
+        }])
+        render(<SearchControl />)
+
+        typeQuery('Searchable action')
+        fireEvent.click(screen.getByRole('button', { name: 'Search actions' }))
+        fireEvent.click(screen.getByRole('button', { name: /Run search job/ }))
+
+        const event = listener.mock.calls[0][0] as CustomEvent<{ path: string }>
+        expect(event.detail.path).toBe('actions/search-job.json')
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+        workspaceNavigationService.removeEventListener('open', listener)
     })
 
     it('reports an invalid RegExp without clearing the previous results', () => {

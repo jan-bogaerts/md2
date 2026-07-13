@@ -16,7 +16,7 @@ describe('useActions', () => {
         expect(result.current.actions.map((action) => action.name)).toEqual([CUSTOM_PROMPT_ACTION_NAME])
 
         act(() => {
-            service.loadFromFiles([file({ description: 'Do', label: 'Do', name: 'do', text: 'run', type: 'cmd' })])
+            service.loadFromFiles([file({ command: 'run', description: 'Do', id: 'do', label: 'Do', name: 'do', type: 'command' })])
         })
 
         expect(result.current.actions.map((action) => action.name)).toContain('do')

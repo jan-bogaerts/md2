@@ -57,22 +57,26 @@ const snapshot: ProjectSnapshot = {
 
 function action(overrides: Partial<ActionDefinition> = {}): ActionDefinition {
     return {
-        after: [],
         agent: null,
         appliesTo: null,
-        before: [],
         builtin: false,
+        command: null,
         description: 'Create release notes from current changes',
         icon: null,
+        id: 'action-release-notes',
         label: 'Release notes',
         model: null,
         name: 'release-notes',
+        needsWorkTree: false,
         on: [],
+        onAfter: [],
+        onBefore: [],
         onState: null,
-        text: 'Summarize commits for release',
+        prompt: 'Summarize commits for release',
+        sourcePath: 'actions/release-notes.json',
+        thinkingLevel: null,
         type: 'agent',
         ...overrides,
-        runIn: overrides.runIn ?? 'project',
     }
 }
 
@@ -159,7 +163,7 @@ describe('searchActions', () => {
             action({ label: 'Deploy service', name: 'one' }),
             action({ description: 'Runs migration plan', label: 'Migrate', name: 'two' }),
             action({ label: 'Review', name: 'review-action' }),
-            action({ label: 'Summarize', name: 'four', text: 'Write changelog entry' }),
+            action({ label: 'Summarize', name: 'four', prompt: 'Write changelog entry' }),
         ]
         const options = { ...searchOptions, includeActions: true }
 

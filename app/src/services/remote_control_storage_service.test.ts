@@ -55,7 +55,7 @@ function lastSocket() {
 }
 
 function commandRequest() {
-    return { actionName: 'test', actionsFolder: 'actions', context: { file: 'design/F-1.md', kind: 'card' as const }, extraInput: '' }
+    return { actionId: 'action-test', actionsFolder: 'actions', context: { file: 'design/F-1.md', kind: 'card' as const }, extraInput: '' }
 }
 
 async function flushPromises() {

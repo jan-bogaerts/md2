@@ -4,17 +4,13 @@ import type { AgentProfile } from '../data/agent_profiles'
 import { configService } from './config_service'
 
 interface ActionDefinitionLoaderDependencies {
-    defaultAgent?: string
     profiles?: AgentProfile[]
 }
 
 function defaultLoaderDependencies(): ActionDefinitionLoaderDependencies {
     if (!configService.isInitialized()) return {}
 
-    return {
-        defaultAgent: configService.get('desktop.agent'),
-        profiles: configService.get('desktop.agentProfiles'),
-    }
+    return {profiles: configService.get('desktop.agentProfiles')}
 }
 
 /**

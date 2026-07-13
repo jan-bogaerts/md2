@@ -1,6 +1,6 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { StrictMode } from 'react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { defaultColumnAccent } from '../../data/data_types'
 import { ConfigPage } from './config_page'
 import { configService } from '../../services/config_service'
@@ -8,6 +8,18 @@ import { BUILTIN_AGENT_PROFILES } from '../../data/agent_profiles'
 import { dataService } from '../../services/data_service'
 import { dialogService } from '../../services/dialog_service'
 import { worktreeService } from '../../services/worktree_service'
+import { CUSTOM_MARKDOWN_STYLE_STORAGE_KEY, MARKDOWN_STYLE_STORAGE_KEY } from '../../theme/use_theme_settings'
+import { MARKDOWN_STYLE_PRESETS, type MarkdownStyleConfig, type MarkdownStylePresetName } from '../../theme/theme_config'
+
+const useAppThemeMock = vi.hoisted(() => vi.fn())
+
+vi.mock('../../theme/use_app_theme', () => ({ useAppTheme: useAppThemeMock }))
+
+function renderConfigPage(hash: string, strict = false) {
+    const configPage = <ConfigPage hash={hash} />
+
+    return render(strict ? <StrictMode>{configPage}</StrictMode> : configPage)
+}
 
 function mockMatchMedia(matches: boolean) {
     window.matchMedia = ((query: string) => ({
@@ -28,6 +40,20 @@ function initConfigFromElectronBridge() {
 }
 
 describe('ConfigPage', () => {
+    beforeEach(() => {
+        useAppThemeMock.mockReturnValue({
+            markdownStyle: 'modern',
+            markdownStyleConfig: MARKDOWN_STYLE_PRESETS.modern,
+            setCustomMarkdownStyle: (config: MarkdownStyleConfig) => {
+                window.localStorage.setItem(MARKDOWN_STYLE_STORAGE_KEY, 'custom')
+                window.localStorage.setItem(CUSTOM_MARKDOWN_STYLE_STORAGE_KEY, JSON.stringify(config))
+            },
+            setMarkdownStyle: (preset: MarkdownStylePresetName) => {
+                window.localStorage.setItem(MARKDOWN_STYLE_STORAGE_KEY, preset)
+            },
+        })
+    })
+
     afterEach(() => {
         cleanup()
         vi.useRealTimers()
@@ -44,7 +70,7 @@ describe('ConfigPage', () => {
         mockMatchMedia(false)
         configService.init()
 
-        render(<ConfigPage hash="" />)
+        renderConfigPage('')
 
         expect(screen.getByRole('switch', { name: 'Startup splash' })).toBeInTheDocument()
         expect(screen.getByRole('slider', { name: 'Auto commit delay' })).toBeInTheDocument()
@@ -57,11 +83,69 @@ describe('ConfigPage', () => {
         mockMatchMedia(false)
         configService.init()
 
-        render(<ConfigPage hash="#desktop" />)
+        renderConfigPage('#desktop')
 
         expect(screen.getByLabelText('Default agent')).toBeInTheDocument()
         expect(screen.queryByRole('switch', { name: 'Startup splash' })).toBeNull()
         expect(screen.getByRole('tab', { name: 'React app' })).toHaveAttribute('href', '#react')
+    })
+
+    it('renders global markdown settings in a dedicated tab', () => {
+        mockMatchMedia(false)
+        configService.init()
+
+        renderConfigPage('#markdown')
+
+        expect(screen.getByRole('tab', { name: 'Markdown' })).toHaveAttribute('href', '#markdown')
+        expect(screen.getByRole('region', { name: 'Markdown' })).toBeInTheDocument()
+        expect(screen.getByLabelText('Markdown style preview')).toBeInTheDocument()
+        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Style' }))
+        expect(screen.getByRole('option', { name: 'Custom' })).toBeInTheDocument()
+    })
+
+    it('switches edited presets to custom and saves the style in local storage', () => {
+        mockMatchMedia(false)
+        configService.init()
+
+        renderConfigPage('#markdown')
+        fireEvent.click(screen.getByRole('button', { name: 'Body' }))
+        fireEvent.change(screen.getByRole('textbox', { name: 'Font size for Body' }), { target: { value: '1.2rem' } })
+
+        expect(screen.getByRole('combobox', { name: 'Style' })).toHaveTextContent('Custom')
+        fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+        expect(window.localStorage.getItem(MARKDOWN_STYLE_STORAGE_KEY)).toBe('custom')
+        expect(JSON.parse(window.localStorage.getItem(CUSTOM_MARKDOWN_STYLE_STORAGE_KEY)!).body.fontSize).toBe('1.2rem')
+    })
+
+    it('discards unsaved markdown style edits', () => {
+        mockMatchMedia(false)
+        configService.init()
+
+        renderConfigPage('#markdown')
+        fireEvent.click(screen.getByRole('button', { name: 'Body' }))
+        fireEvent.change(screen.getByRole('textbox', { name: 'Font size for Body' }), { target: { value: '1.2rem' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+
+        expect(window.localStorage.getItem(MARKDOWN_STYLE_STORAGE_KEY)).toBeNull()
+        expect(window.localStorage.getItem(CUSTOM_MARKDOWN_STYLE_STORAGE_KEY)).toBeNull()
+    })
+
+    it('keeps custom settings when replacing them is not confirmed', () => {
+        mockMatchMedia(false)
+        configService.init()
+        const confirmReplace = vi.spyOn(window, 'confirm').mockReturnValue(false)
+
+        renderConfigPage('#markdown')
+        fireEvent.click(screen.getByRole('button', { name: 'Body' }))
+        fireEvent.change(screen.getByRole('textbox', { name: 'Font size for Body' }), { target: { value: '1.2rem' } })
+        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Style' }))
+        fireEvent.click(screen.getByRole('option', { name: 'Serif' }))
+
+        expect(confirmReplace).toHaveBeenCalledWith('Replace custom Markdown settings with the selected predefined style?')
+        expect(screen.getByRole('combobox', { name: 'Style' })).toHaveTextContent('Custom')
+        expect(screen.getByRole('textbox', { name: 'Font size for Body' })).toHaveValue('1.2rem')
+        confirmReplace.mockRestore()
     })
 
     it('loads the config draft once under StrictMode', () => {
@@ -69,11 +153,7 @@ describe('ConfigPage', () => {
         configService.init()
         const loadDraft = vi.spyOn(configService, 'loadDraft')
 
-        render(
-            <StrictMode>
-                <ConfigPage hash="" />
-            </StrictMode>,
-        )
+        renderConfigPage('', true)
 
         expect(loadDraft).toHaveBeenCalledTimes(1)
         expect(screen.getByRole('switch', { name: 'Startup splash' })).toBeInTheDocument()
@@ -84,11 +164,7 @@ describe('ConfigPage', () => {
         mockMatchMedia(false)
         configService.init()
 
-        const { unmount } = render(
-            <StrictMode>
-                <ConfigPage hash="" />
-            </StrictMode>,
-        )
+        const { unmount } = renderConfigPage('', true)
 
         act(() => {
             vi.runOnlyPendingTimers()
@@ -109,7 +185,7 @@ describe('ConfigPage', () => {
         mockMatchMedia(false)
         configService.init()
 
-        render(<ConfigPage hash="" />)
+        renderConfigPage('')
         fireEvent.click(screen.getByRole('switch', { name: 'Startup splash' }))
         fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
@@ -121,7 +197,7 @@ describe('ConfigPage', () => {
         configService.init()
         const reportSuccess = vi.spyOn(dialogService, 'success')
 
-        render(<ConfigPage hash="" />)
+        renderConfigPage('')
         fireEvent.click(screen.getByRole('switch', { name: 'Startup splash' }))
         fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
@@ -137,7 +213,7 @@ describe('ConfigPage', () => {
         mockMatchMedia(false)
         configService.init()
 
-        render(<ConfigPage hash="" />)
+        renderConfigPage('')
         fireEvent.change(screen.getByRole('slider', { name: 'Auto commit delay' }), { target: { value: '5000' } })
         fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
@@ -150,7 +226,7 @@ describe('ConfigPage', () => {
         configService.loadProjectConfig(null)
         const saveProjectConfig = vi.spyOn(dataService.projectLoading, 'saveProjectConfig').mockResolvedValue()
 
-        render(<ConfigPage hash="" />)
+        renderConfigPage('')
         fireEvent.click(screen.getByRole('switch', { name: 'Startup splash' }))
         fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
@@ -164,7 +240,7 @@ describe('ConfigPage', () => {
         configService.loadProjectConfig(null)
         const saveProjectConfig = vi.spyOn(dataService.projectLoading, 'saveProjectConfig').mockResolvedValue()
 
-        render(<ConfigPage hash="#project" />)
+        renderConfigPage('#project')
         configService.setDraftValue('project.pushMode', 'manual')
         fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
@@ -177,7 +253,7 @@ describe('ConfigPage', () => {
         configService.init()
         configService.loadProjectConfig(null)
 
-        render(<ConfigPage hash="#project" />)
+        renderConfigPage('#project')
         fireEvent.mouseDown(screen.getByLabelText('Background shade'))
 
         expect(screen.getByRole('option', { name: 'Neutral' })).toBeInTheDocument()
@@ -194,7 +270,7 @@ describe('ConfigPage', () => {
         configService.loadProjectConfig({ workingFolder: 'design' })
         const reportWarning = vi.spyOn(dialogService, 'warning')
 
-        render(<ConfigPage hash="#project" />)
+        renderConfigPage('#project')
         fireEvent.mouseDown(screen.getByLabelText('Card separator'))
         fireEvent.click(screen.getByRole('option', { name: 'Underscore (_)' }))
 
@@ -212,7 +288,7 @@ describe('ConfigPage', () => {
         const updateCardSeparator = vi.spyOn(dataService.projectLoading, 'updateCardSeparator').mockResolvedValue(2)
         const saveProjectConfig = vi.spyOn(dataService.projectLoading, 'saveProjectConfig').mockResolvedValue()
 
-        render(<ConfigPage hash="#project" />)
+        renderConfigPage('#project')
         fireEvent.mouseDown(screen.getByLabelText('Card separator'))
         fireEvent.click(screen.getByRole('option', { name: 'Underscore (_)' }))
         fireEvent.click(screen.getByRole('button', { name: 'Save' }))
@@ -233,7 +309,7 @@ describe('ConfigPage', () => {
         configService.init()
         configService.loadProjectConfig(null)
 
-        render(<ConfigPage hash="#project" />)
+        renderConfigPage('#project')
         const statesEditor = screen.getByRole('textbox', { name: 'Columns' })
         const states = [
             { alwaysVisible: true, state: 'backlog' },
@@ -254,7 +330,7 @@ describe('ConfigPage', () => {
         configService.loadProjectConfig(null)
         const saveProjectConfig = vi.spyOn(dataService.projectLoading, 'saveProjectConfig').mockReturnValue(new Promise(() => undefined))
 
-        render(<ConfigPage hash="#project" />)
+        renderConfigPage('#project')
         configService.setDraftValue('project.pushMode', 'manual')
         fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
@@ -270,7 +346,7 @@ describe('ConfigPage', () => {
         const saveProjectConfig = vi.spyOn(dataService.projectLoading, 'saveProjectConfig').mockRejectedValue(new Error('GitHub save failed'))
         const reportError = vi.spyOn(dialogService, 'error')
 
-        render(<ConfigPage hash="#project" />)
+        renderConfigPage('#project')
         configService.setDraftValue('project.pushMode', 'manual')
         fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
@@ -287,7 +363,7 @@ describe('ConfigPage', () => {
         mockMatchMedia(false)
         configService.init()
 
-        render(<ConfigPage hash="" />)
+        renderConfigPage('')
         fireEvent.click(screen.getByRole('switch', { name: 'Startup splash' }))
         fireEvent.change(screen.getByRole('slider', { name: 'Auto commit delay' }), { target: { value: '5000' } })
         fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
@@ -310,7 +386,7 @@ describe('ConfigPage', () => {
         })
         configService.loadProjectConfig(null)
 
-        render(<ConfigPage hash="#project" />)
+        renderConfigPage('#project')
 
         expect(screen.getByRole('region', { name: 'Config page' })).toHaveStyle({ overflow: 'hidden' })
         expect(screen.getByRole('navigation', { name: 'Config section navigation' })).toHaveStyle({ overflow: 'auto' })
@@ -324,7 +400,7 @@ describe('ConfigPage', () => {
         mockMatchMedia(true)
         configService.init()
 
-        render(<ConfigPage hash="#connection" />)
+        renderConfigPage('#connection')
 
         expect(screen.getByRole('tablist', { name: 'Config sections' })).not.toHaveAttribute('aria-orientation', 'vertical')
     })
@@ -344,7 +420,7 @@ describe('ConfigPage', () => {
         }
         initConfigFromElectronBridge()
 
-        render(<ConfigPage hash="#desktop" />)
+        renderConfigPage('#desktop')
         configService.setDraftValue('desktop.agent', 'claude')
         fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
@@ -374,7 +450,7 @@ describe('ConfigPage', () => {
         }
         initConfigFromElectronBridge()
 
-        render(<ConfigPage hash="#desktop" />)
+        renderConfigPage('#desktop')
         fireEvent.click(screen.getByRole('button', { name: 'Add profile' }))
 
         expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled()
@@ -422,7 +498,7 @@ describe('ConfigPage', () => {
         }
         initConfigFromElectronBridge()
 
-        render(<ConfigPage hash="#desktop" />)
+        renderConfigPage('#desktop')
 
         expect(screen.getAllByText('Built-in')).toHaveLength(2)
 
@@ -456,7 +532,7 @@ describe('ConfigPage', () => {
         }
         initConfigFromElectronBridge()
 
-        render(<ConfigPage hash="#desktop" />)
+        renderConfigPage('#desktop')
         fireEvent.click(screen.getByRole('button', { name: 'Add profile' }))
 
         expect(screen.getByText(/Name is required/)).toBeInTheDocument()
@@ -495,7 +571,7 @@ describe('ConfigPage', () => {
         }
         initConfigFromElectronBridge()
 
-        render(<ConfigPage hash="#desktop" />)
+        renderConfigPage('#desktop')
 
         expect(configService.get('desktop.agent')).toBe('claude')
         expect(configService.get('desktop.agentSlotCommand')).toBe('slot-command')
@@ -510,7 +586,7 @@ describe('ConfigPage', () => {
         mockMatchMedia(false)
         configService.init()
 
-        render(<ConfigPage hash="#desktop" />)
+        renderConfigPage('#desktop')
 
         expect(screen.getByRole('tab', { name: 'Desktop' })).toBeInTheDocument()
         expect(screen.getByLabelText('Default agent')).toHaveAttribute('aria-disabled', 'true')
@@ -522,7 +598,7 @@ describe('ConfigPage', () => {
         mockMatchMedia(false)
         configService.init()
 
-        render(<ConfigPage hash="" />)
+        renderConfigPage('')
         fireEvent.click(screen.getByRole('switch', { name: 'Startup splash' }))
         fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 

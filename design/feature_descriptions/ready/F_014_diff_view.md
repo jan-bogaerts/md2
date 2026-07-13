@@ -16,7 +16,7 @@ Show a diff view (react-diff-viewer) for action logs that contain a commit numbe
 Not implemented. `react-diff-viewer-continued` is installed, but there is no action log model yet, no stored commit metadata on logs, no diff command runner and no Electron API for opening VS Code at a file line.
 
 ## implementation details
-- Extend the F-010 action log model with optional commit metadata: commit hash, repository root, branch, related file paths and the action run that produced it.
+- Extend the F-010 action log model with optional commit metadata: commit hash, repository root, branch, related file paths, execution id, and producing action id.
 - Store commit metadata only when an action explicitly reports or creates a commit; missing commit data means no diff view is shown.
 - Add a configurable diff command template, executed by Electron in local mode, with placeholders for `rootProjectFolder`, `commit`, `branch` and selected file path.
 - Return normalized diff data to React instead of letting React run shell commands. Fail fast on missing commit hash, missing local project root, command failure or output that cannot be parsed.

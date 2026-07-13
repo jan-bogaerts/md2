@@ -4,9 +4,13 @@ import {
     DEFAULT_COLOR_SCHEME,
     DEFAULT_MARKDOWN_STYLE_PRESET,
     MARKDOWN_SECTIONS,
+    MARKDOWN_STYLE_NAMES,
     MARKDOWN_STYLE_PRESET_NAMES,
     MARKDOWN_STYLE_PRESETS,
+    cloneMarkdownStyleConfig,
     isColorSchemeConfig,
+    isMarkdownStyleConfig,
+    isMarkdownStyleName,
     isMarkdownStylePresetName,
 } from './theme_config'
 
@@ -24,6 +28,21 @@ describe('theme_config', () => {
                 expect(MARKDOWN_STYLE_PRESETS[name][section].fontFamily).toBeTruthy()
             })
         })
+    })
+
+    it('includes custom as a selectable style without treating it as a preset', () => {
+        expect(MARKDOWN_STYLE_NAMES).toEqual(['modern', 'classic', 'serif', 'sans-serif', 'handwritten', 'custom'])
+        expect(isMarkdownStyleName('custom')).toBe(true)
+        expect(isMarkdownStylePresetName('custom')).toBe(false)
+    })
+
+    it('validates and clones complete custom markdown styles', () => {
+        const clone = cloneMarkdownStyleConfig(MARKDOWN_STYLE_PRESETS.modern)
+
+        expect(isMarkdownStyleConfig(clone)).toBe(true)
+        expect(clone).not.toBe(MARKDOWN_STYLE_PRESETS.modern)
+        expect(clone.body.formatting).not.toBe(MARKDOWN_STYLE_PRESETS.modern.body.formatting)
+        expect(isMarkdownStyleConfig({ ...clone, table: { ...clone.table, fontSize: '' } })).toBe(false)
     })
 
     it('defines light/regular/dark variants for every color role', () => {

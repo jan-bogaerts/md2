@@ -11,19 +11,20 @@ const now = Date.parse('2026-07-06T10:00:00.000Z')
 function createAction(name = 'implement') {
     return {
         content: JSON.stringify({
+            command: 'echo done',
             description: `${name} description`,
+            id: name,
             label: name,
             name,
-            text: 'echo done',
-            type: 'cmd',
+            type: 'command',
         }),
         path: `actions/${name}.json`,
     }
 }
 
-function createSchedule(id, actionName, trigger) {
+function createSchedule(id, actionId, trigger) {
     return {
-        actionName,
+        actionId,
         context,
         createdAt: '2026-07-06T09:00:00.000Z',
         id,
@@ -138,7 +139,7 @@ describe('ActionSchedulerService', () => {
     })
 
     it('fires afterAction schedules when the named action completes', async () => {
-        const schedule = createSchedule('schedule-1', 'implement', { actionName: 'build', type: 'afterAction' })
+        const schedule = createSchedule('schedule-1', 'implement', { actionId: 'build', type: 'afterAction' })
         const localGitService = createLocalGitService([schedule])
         const scheduler = createScheduler(localGitService)
 
@@ -183,9 +184,9 @@ describe('ActionSchedulerService', () => {
         })
 
         await scheduler.startProject(project)
-        await scheduler.registerActionSchedule({ actionName: 'implement', context, trigger: { type: 'agentSlot' } })
+        await scheduler.registerActionSchedule({ actionId: 'implement', context, trigger: { type: 'agentSlot' } })
         agentSlotCommand = 'second-slot-command'
-        await scheduler.registerActionSchedule({ actionName: 'implement', context, trigger: { type: 'agentSlot' } })
+        await scheduler.registerActionSchedule({ actionId: 'implement', context, trigger: { type: 'agentSlot' } })
 
         expect(commandRunner).toHaveBeenNthCalledWith(1, 'first-slot-command', project.rootPath)
         expect(commandRunner).toHaveBeenNthCalledWith(2, 'second-slot-command', project.rootPath)
@@ -202,7 +203,7 @@ describe('ActionSchedulerService', () => {
 
         expect(localGitService.histories[0]).toMatchObject({
             entry: { output: 'Missing desktop.agentSlotCommand for agentSlot action schedule', status: 'failed' },
-            request: { actionName: 'implement', actionsFolder: 'actions', context },
+            request: { actionId: 'implement', actionsFolder: 'actions', context },
         })
         expect(localGitService.schedules()).toEqual([{ ...schedule, status: 'done' }])
     })
@@ -236,7 +237,7 @@ describe('ActionSchedulerService', () => {
 
         expect(localGitService.histories[0]).toMatchObject({
             entry: { output: 'Scheduled action no longer exists: missing', status: 'failed' },
-            request: { actionName: 'missing', actionsFolder: 'actions', context },
+            request: { actionId: 'missing', actionsFolder: 'actions', context },
         })
         expect(localGitService.runCommand).toHaveBeenCalledWith(project, 'echo done')
         expect(localGitService.schedules()).toEqual([

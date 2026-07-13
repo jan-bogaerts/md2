@@ -27,8 +27,9 @@ export function resolveAgentPrompt(
     project: ProjectReference,
     extraPrompt: string,
 ): string {
-    const resolvedText = resolvePlaceholders(action.text, context, project, extraPrompt)
-    if (PROMPT_PLACEHOLDER_PATTERN.test(action.text)) return resolvedText
+    if (!action.prompt) throw new Error(`Missing prompt for agent action "${action.name}"`)
+    const resolvedText = resolvePlaceholders(action.prompt, context, project, extraPrompt)
+    if (PROMPT_PLACEHOLDER_PATTERN.test(action.prompt)) return resolvedText
     if (extraPrompt.trim().length === 0) return resolvedText
 
     return `${resolvedText}\n\n${extraPrompt}`

@@ -27,7 +27,7 @@ React currently owns the manual/state-triggered `ActionRunner`, chain traversal,
 - Delegate agent-process lifecycle to the Electron agent runner while retaining chain ownership in the Electron action runner.
 - Execute `onBefore` in order, then main, then ordered matching `on` rules, then `onAfter`.
 - Evaluate each `on.condition` as a regular expression against main output and execute its `actionId` when it matches.
-- If `onBefore` fails, stop before main and fail the selected run. Main or matched-`on` failure fails the selected run. If main and `on` succeeded but an `onAfter` action fails, fail that linked action and finish the selected run as `okButNotAfter`.
+- Stop the chain on the first failure. `onBefore` failure prevents main. Main failure prevents `on` and `onAfter`. A matched-`on` failure prevents remaining `on` and all `onAfter`. `onAfter` starts only after main and every matched `on` succeed; its failure stops later `onAfter`, fails that linked action, and finishes the selected run as `okButNotAfter`.
 - Emit execution events containing execution id, root action id, current action id, phase, status, and output/error data so all UI surfaces and the global running indicator consume one stream.
 - Keep execution states separate from schedule states. Execution uses `running`, `completed`, `failed`, `cancelled`, and `okButNotAfter`.
 - Add an Electron cancellation method by execution id. It stops the active command or agent process, prevents remaining chain phases from starting, emits `cancelled`, and performs normal completion cleanup.

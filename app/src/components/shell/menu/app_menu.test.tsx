@@ -3,8 +3,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { UseGithubAuthResult } from '../../../auth/use_github_auth'
 import type { StorageService } from '../../../data/data_types'
 import type { ElectronDataBridge } from '../../../data/electron_data_bridge'
+import type { ActionDefinition } from '../../../data/action_types'
+import { actionService } from '../../../services/action_service'
 import { configService } from '../../../services/config_service'
 import { dataService } from '../../../services/data_service'
+import { workspaceNavigationService } from '../../../services/workspace_navigation_service'
 import { workspaceViewService } from '../../../services/workspace_view_service'
 import { AppThemeProvider } from '../../../theme/theme_provider'
 import { DialogDisplay } from '../../dialog_display'
@@ -149,6 +152,26 @@ describe('AppMenu', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Text view' }))
 
         expect(workspaceViewService.getSnapshot().viewMode).toBe('text')
+    })
+
+    it('creates a valid action and opens its text-view tab from the Run tab', async () => {
+        window.md2Data = createBridge()
+        const created = actionService.createDefinition('actions')
+        const createDefinition = vi.spyOn(actionService, 'createDefinition').mockReturnValue(created)
+        const saveDefinition = vi.spyOn(actionService, 'saveDefinition').mockResolvedValue({} as ActionDefinition)
+        const listener = vi.fn()
+        workspaceNavigationService.addEventListener('open', listener)
+        renderMenu()
+        await openLocalProject()
+
+        fireEvent.click(screen.getByRole('tab', { name: 'Run' }))
+        fireEvent.click(screen.getByRole('button', { name: 'New action' }))
+
+        await waitFor(() => expect(saveDefinition).toHaveBeenCalledWith(created.path, created.definition))
+        expect(createDefinition).toHaveBeenCalledWith(expect.stringContaining('actions'))
+        expect(workspaceViewService.getSnapshot().viewMode).toBe('text')
+        expect((listener.mock.calls[0][0] as CustomEvent<{ path: string }>).detail.path).toBe(created.path)
+        workspaceNavigationService.removeEventListener('open', listener)
     })
 
     it('refreshes selected agent and model when config changes elsewhere', async () => {

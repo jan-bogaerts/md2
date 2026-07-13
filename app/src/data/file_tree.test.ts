@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { buildFileTree, fileLabel, type FileTreeOptions, type TreeNode } from './file_tree'
 import type { ProjectCard } from './data_types'
+import type { ActionDefinition } from './action_types'
 
 function card(path: string, overrides: Partial<ProjectCard['header']> = {}): ProjectCard {
     return {
@@ -32,6 +33,7 @@ function findChild(nodes: TreeNode[], label: string): TreeNode | undefined {
 
 function treeOptions(overrides: Partial<FileTreeOptions> = {}): FileTreeOptions {
     return {
+        actions: [],
         projectFolder: 'design',
         repositoryFiles: [],
         specialFolderPaths: ['design/actions', 'design/active', 'design/history'],
@@ -40,6 +42,20 @@ function treeOptions(overrides: Partial<FileTreeOptions> = {}): FileTreeOptions 
 }
 
 describe('buildFileTree', () => {
+    it('uses loaded action objects and their source metadata in the actions folder', () => {
+        const action = {
+            builtin: false,
+            id: 'review-id',
+            label: 'Review code',
+            sourcePath: 'design/actions/review.json',
+        } as ActionDefinition
+
+        const tree = buildFileTree([], [], 'design/active', treeOptions({ actions: [action] }))
+        const actionsFolder = findChild(tree, 'actions')
+
+        expect(actionsFolder?.children).toContainEqual(expect.objectContaining({kind: 'file', label: 'Review code', path: 'design/actions/review.json'}))
+    })
+
     it('groups active cards into a status node per distinct status', () => {
         const active = [
             card('design/active/F-1-a.md', { id: 'F-1', title: 'Alpha', status: 'todo' }),

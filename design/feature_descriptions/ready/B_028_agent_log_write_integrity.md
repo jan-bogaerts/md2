@@ -24,7 +24,7 @@ Additionally, run ids are collision-prone: `agent-${Date.now()}-${this.processes
 - Use `crypto.randomUUID()` for run ids (keep the `agent-` prefix if the id shape matters to consumers).
 
 ## acceptance criteria
-- A run producing many rapid output chunks ends with a valid, parseable JSON log whose final status is `completed`/`failed`, never `running`.
+- A run producing many rapid output chunks ends with valid JSON whose final status is `completed`, `failed`, or `cancelled`, never `running`.
 - No partially written/truncated log can be observed by a concurrent reader (atomic replace).
 - Two agent runs started in the same millisecond get distinct ids and distinct log files.
 - Tests cover write serialization order (final write wins), throttling, atomic replace, and id uniqueness.

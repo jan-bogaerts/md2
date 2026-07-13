@@ -4,21 +4,25 @@ import type { AgentConversation } from '../data/data_types'
 import { createAgentLog, createCommandLog, createFailureLog, statusFromExitCode } from './action_run_log'
 
 const action: ActionDefinition = {
-    after: [],
     agent: null,
     appliesTo: null,
-    before: [],
     builtin: false,
+    command: 'implement',
     description: 'description',
     icon: null,
+    id: 'action-implement',
     label: 'Implement',
     model: null,
     name: 'implement',
+    needsWorkTree: false,
     on: [],
+    onAfter: [],
+    onBefore: [],
     onState: null,
-    runIn: 'project',
-    text: 'implement',
-    type: 'cmd',
+    prompt: null,
+    sourcePath: 'actions/implement.json',
+    thinkingLevel: null,
+    type: 'command',
 }
 
 const conversation: AgentConversation = {

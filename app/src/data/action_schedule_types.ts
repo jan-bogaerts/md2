@@ -14,7 +14,7 @@ export interface AgentSlotActionScheduleTrigger {
 }
 
 export interface AfterActionScheduleTrigger {
-    actionName: string
+    actionId: string
     type: 'afterAction'
 }
 
@@ -24,7 +24,7 @@ export type ActionScheduleTrigger =
     | AtActionScheduleTrigger
 
 export interface ActionSchedule {
-    actionName: string
+    actionId: string
     context: ActionContext
     createdAt: string
     id: string
@@ -77,7 +77,7 @@ function parseScheduleTrigger(value: unknown): ActionScheduleTrigger {
 
     if (type === 'at') return { timestamp: requireScheduleString(trigger.timestamp, 'trigger.timestamp'), type }
     if (type === 'agentSlot') return { type }
-    if (type === 'afterAction') return { actionName: requireScheduleString(trigger.actionName, 'trigger.actionName'), type }
+    if (type === 'afterAction') return { actionId: requireScheduleString(trigger.actionId, 'trigger.actionId'), type }
 
     throw new Error(`Invalid action schedule file: unsupported trigger type ${type}`)
 }
@@ -94,7 +94,7 @@ function parseActionSchedule(value: unknown): ActionSchedule {
     const schedule = requireScheduleObject(value, 'schedule')
 
     return {
-        actionName: requireScheduleString(schedule.actionName, 'actionName'),
+        actionId: requireScheduleString(schedule.actionId, 'actionId'),
         context: parseScheduleContext(schedule.context),
         createdAt: requireScheduleString(schedule.createdAt, 'createdAt'),
         id: requireScheduleString(schedule.id, 'id'),

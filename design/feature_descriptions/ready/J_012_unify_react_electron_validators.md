@@ -13,7 +13,7 @@ policy:
 Two formats are validated by parallel, hand-synced implementations on both sides of the process boundary:
 
 - **Agent profiles**: `app/src/data/agent_profiles.ts` (TypeScript) and `desktop/agent_profiles.js` (CommonJS) — already flagged in B-023/J-002 item 8, still duplicated.
-- **Action definitions**: `app/src/services/action_definition_loader.ts` and `desktop/action_definitions.js` re-implement the same rules (required fields, type whitelist, sub-action refs, cycle detection).
+- **Action definitions**: React editing/loading and Electron execution must share canonical validation for stable `id`, `agent | command`, `prompt`/`command`, `onBefore`/`on`/`onAfter` id links, `onState`, `needsWorkTree`, and cycle detection.
 
 Divergence has real consequences: a definition the React loader accepts but the desktop scheduler rejects fails only at scheduled-run time, with no UI warning; a profile shape accepted by one side and not the other breaks agent selection depending on where it is read. Every rule change must be made twice and can silently drift.
 
@@ -22,7 +22,7 @@ Pick one of two strategies and apply it to both formats:
 1. **Shared module (preferred)**: create a dependency-free shared package/folder (e.g. `shared/` with plain `.js` + `.d.ts`, or a TS source compiled to CJS in the desktop build step) containing the validation/normalization logic; both `app` and `desktop` import it. The desktop currently has no build step, so plain JS with type declarations consumed by the app is the low-friction option.
 2. **Single-side validation**: make the desktop authoritative and have the React side call it through the bridge (works when connected, but web-only GitHub mode still needs local validation — which is why option 1 is preferred).
 
-Also add a contract test: one fixture set of valid/invalid profiles and action files asserted against both loaders until the duplication is actually gone.
+Also add a contract test covering one valid/invalid fixture set. Include rejection of legacy `cmd`, `text`, `before`, `after`, `runIn`, inline links, and name links.
 
 ## acceptance criteria
 - Exactly one implementation of profile validation and one of action-definition validation exists (or a contract test proves behavioral equality as an interim step).

@@ -10,7 +10,7 @@ const completedAt = '2026-01-01T00:00:00.000Z'
 describe('extractCommitMetadata', () => {
     it('extracts commit metadata from a git commit summary line', () => {
         const metadata = extractCommitMetadata({
-            actionName: 'commit',
+            actionId: 'action-commit',
             completedAt,
             context,
             output: '[feature/x a1b2c3d] Add tests',
@@ -18,7 +18,7 @@ describe('extractCommitMetadata', () => {
         })
 
         expect(metadata).toEqual({
-            actionName: 'commit',
+            actionId: 'action-commit',
             branch: 'feature/x',
             commit: 'a1b2c3d',
             completedAt,
@@ -29,7 +29,7 @@ describe('extractCommitMetadata', () => {
 
     it('removes the root commit suffix from the branch name', () => {
         const metadata = extractCommitMetadata({
-            actionName: 'commit',
+            actionId: 'action-commit',
             completedAt,
             context,
             output: '[main (root-commit) 0f1e2d3c4b5a] Initial commit',
@@ -41,14 +41,14 @@ describe('extractCommitMetadata', () => {
     })
 
     it('returns null without a commit summary line', () => {
-        const metadata = extractCommitMetadata({ actionName: 'build', completedAt, context, output: 'build ok', project })
+        const metadata = extractCommitMetadata({ actionId: 'action-build', completedAt, context, output: 'build ok', project })
 
         expect(metadata).toBeNull()
     })
 
     it('returns null without a local project root', () => {
         const metadata = extractCommitMetadata({
-            actionName: 'commit',
+            actionId: 'action-commit',
             completedAt,
             context,
             output: '[main a1b2c3d] Add tests',

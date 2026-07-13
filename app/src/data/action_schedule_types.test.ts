@@ -4,12 +4,12 @@ import { createActionScheduleFile, parseActionScheduleFile, type ActionSchedule 
 describe('action schedule types', () => {
     it('parses explicit schedule files', () => {
         const schedule: ActionSchedule = {
-            actionName: 'implement',
+            actionId: 'action-implement',
             context: { file: 'design/F-022.md', kind: 'card', type: 'feature' },
             createdAt: '2026-07-06T10:00:00.000Z',
             id: 'schedule-1',
             status: 'pending',
-            trigger: { actionName: 'review', type: 'afterAction' },
+            trigger: { actionId: 'action-review', type: 'afterAction' },
         }
 
         expect(parseActionScheduleFile({ schedules: [schedule] })).toEqual({ schedules: [schedule] })
@@ -17,6 +17,6 @@ describe('action schedule types', () => {
     })
 
     it('rejects schedules with missing required fields', () => {
-        expect(() => parseActionScheduleFile({ schedules: [{ id: 'schedule-1' }] })).toThrow('missing actionName')
+        expect(() => parseActionScheduleFile({ schedules: [{ id: 'schedule-1' }] })).toThrow('missing actionId')
     })
 })

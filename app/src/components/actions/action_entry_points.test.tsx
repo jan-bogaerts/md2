@@ -9,8 +9,16 @@ import { buildFileTree } from '../../data/file_tree'
 import { cardContext, folderContext } from '../../data/action_context'
 import { DEFAULT_CARD_TYPES, type ProjectCard } from '../../data/data_types'
 
-function file(definition: unknown): ActionFile {
-    return { content: JSON.stringify(definition), path: 'actions/action.json' }
+function file(definition: { id: string }): ActionFile {
+    return { content: JSON.stringify(definition), path: `actions/${definition.id}.json` }
+}
+
+function agentDefinition(id: string, overrides: Record<string, unknown> = {}) {
+    return { description: id, id, label: id, name: id, prompt: 't', type: 'agent', ...overrides }
+}
+
+function commandDefinition(id: string, overrides: Record<string, unknown> = {}) {
+    return { command: 't', description: id, id, label: id, name: id, type: 'command', ...overrides }
 }
 
 function card(id: string, status: string | null, title = id): ProjectCard {
@@ -39,10 +47,8 @@ afterEach(() => {
 describe('ActionEntryPoints filtering', () => {
     beforeEach(() => {
         actionService.loadFromFiles([
-            file([
-                { appliesTo: { type: 'feature' }, description: 'Implement', label: 'Implement', name: 'implement', text: 't', type: 'agent' },
-                { appliesTo: { type: 'bug' }, description: 'Fix', label: 'Fix', name: 'fix', text: 't', type: 'cmd' },
-            ]),
+            file(agentDefinition('implement', { appliesTo: { type: 'feature' }, label: 'Implement' })),
+            file(commandDefinition('fix', { appliesTo: { type: 'bug' }, label: 'Fix' })),
         ])
     })
 
@@ -56,7 +62,7 @@ describe('ActionEntryPoints filtering', () => {
 
     it('renders configured inline SVG icons on card buttons', async () => {
         actionService.loadFromFiles([
-            file({ description: 'Review', icon: '<svg viewBox="0 0 1 1"><path d="M0 0h1v1H0z" /></svg>', label: 'Review', name: 'review', text: 't', type: 'cmd' }),
+            file(commandDefinition('review', { icon: '<svg viewBox="0 0 1 1"><path d="M0 0h1v1H0z" /></svg>', label: 'Review' })),
         ])
 
         render(<ActionEntryPoints context={cardContext(featureCard, DEFAULT_CARD_TYPES)} variant="icons" />)
@@ -73,7 +79,7 @@ describe('ActionEntryPoints filtering', () => {
             path: 'actions/icon.png',
         })
         actionService.loadFromFiles([
-            file({ description: 'Review', icon: 'actions/icon.png', label: 'Review', name: 'review', text: 't', type: 'cmd' }),
+            file(commandDefinition('review', { icon: 'actions/icon.png', label: 'Review' })),
         ])
 
         render(<ActionEntryPoints context={cardContext(featureCard, DEFAULT_CARD_TYPES)} variant="menu" />)
@@ -85,7 +91,7 @@ describe('ActionEntryPoints filtering', () => {
 
     it('falls back to the default icon for malformed inline SVG', () => {
         actionService.loadFromFiles([
-            file({ description: 'Review', icon: '<svg><script>alert(1)</script></svg>', label: 'Review', name: 'review', text: 't', type: 'cmd' }),
+            file(commandDefinition('review', { icon: '<svg><script>alert(1)</script></svg>', label: 'Review' })),
         ])
 
         render(<ActionEntryPoints context={cardContext(featureCard, DEFAULT_CARD_TYPES)} variant="icons" />)
@@ -107,20 +113,9 @@ describe('ActionEntryPoints filtering', () => {
 describe('ActionEntryPoints popup', () => {
     beforeEach(() => {
         actionService.loadFromFiles([
-            file([
-                { description: 'Branch', label: 'Create branch', name: 'branch', text: 't', type: 'cmd' },
-                { description: 'Lint', label: 'Run lint', name: 'lint', text: 't', type: 'cmd' },
-                {
-                    after: ['lint'],
-                    appliesTo: { type: 'feature' },
-                    before: ['branch'],
-                    description: 'Implement',
-                    label: 'Implement',
-                    name: 'implement',
-                    text: 't',
-                    type: 'agent',
-                },
-            ]),
+            file(commandDefinition('branch', { label: 'Create branch' })),
+            file(commandDefinition('lint', { description: 'Lint', label: 'Run lint' })),
+            file(agentDefinition('implement', {appliesTo: { type: 'feature' }, description: 'Implement', label: 'Implement', onAfter: ['lint'], onBefore: ['branch']})),
         ])
     })
 
@@ -213,6 +208,7 @@ describe('entry-point placement in the file tree', () => {
         const background = [card('F-9', null, 'Old')]
         background[0] = { ...background[0], path: 'design/history/F-9.md' }
         const tree = buildFileTree(active, background, 'design/active', {
+            actions: [],
             projectFolder: 'design',
             repositoryFiles: [],
             specialFolderPaths: ['design/actions', 'design/active', 'design/history'],

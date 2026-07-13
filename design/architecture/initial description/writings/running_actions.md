@@ -94,9 +94,10 @@
 ## Chain failure results
 
 - If an `onBefore` action fails, stop the chain before the selected action and mark the selected run as `failed`.
-- If the selected action fails, mark the selected run as `failed`.
-- If a matched `on` action fails, mark the selected run as `failed`.
-- `onAfter` actions are post-actions. If the selected action and its matched `on` actions succeeded but an `onAfter` action fails, mark that linked action as `failed` and the selected run as `okButNotAfter`.
+- If the selected action fails, stop the chain, mark the selected run as `failed`, and do not run `on` or `onAfter` actions.
+- Matching `on` actions run in order after the selected action succeeds. If one fails, stop the chain, mark the selected run as `failed`, and do not run remaining `on` or `onAfter` actions.
+- `onAfter` actions start only after the selected action and every matching `on` action succeed.
+- If an `onAfter` action fails, stop the chain before later `onAfter` actions, mark the failed linked action as `failed`, and mark the selected run as `okButNotAfter`.
 - Failure details remain attached to the action and phase that failed.
 
 ## Availability and errors

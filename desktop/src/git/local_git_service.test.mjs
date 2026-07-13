@@ -354,7 +354,7 @@ describe('local-git-service', () => {
     it('persists and loads action run history for the same action and context', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-local-git-'))
         const request = {
-            actionName: 'implement',
+            actionId: 'implement',
             actionsFolder: 'actions',
             context: { file: 'design/F-010.md', kind: 'card', type: 'feature' },
         }
@@ -389,7 +389,7 @@ describe('local-git-service', () => {
     it('persists and loads action schedules from the actions folder', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-local-git-'))
         const schedule = {
-            actionName: 'implement',
+            actionId: 'implement',
             context: { file: 'design/F-022.md', kind: 'card', type: 'feature' },
             createdAt: '2026-07-06T10:00:00.000Z',
             id: 'schedule-1',
@@ -424,7 +424,7 @@ describe('local-git-service', () => {
     it('cancels pending schedules by updating the schedule file', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-local-git-'))
         const schedule = {
-            actionName: 'implement',
+            actionId: 'implement',
             context: { file: 'design/F-022.md', kind: 'card', type: 'feature' },
             createdAt: '2026-07-06T10:00:00.000Z',
             id: 'schedule-1',
@@ -455,7 +455,7 @@ describe('local-git-service', () => {
             await mkdir(join(rootPath, 'actions'))
             await writeFile(join(rootPath, 'actions', '.md2-schedules.json'), '{"schedules":[{"id":"schedule-1"}]}')
 
-            await expect(loadActionSchedules({ branch: 'main', id: 'local', rootPath }, 'actions')).rejects.toThrow('missing actionName')
+            await expect(loadActionSchedules({ branch: 'main', id: 'local', rootPath }, 'actions')).rejects.toThrow('missing actionId')
         } finally {
             await rm(rootPath, { force: true, recursive: true })
         }

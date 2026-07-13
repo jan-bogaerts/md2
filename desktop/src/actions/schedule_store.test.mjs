@@ -17,7 +17,7 @@ const context = { file: 'design/F-022.md', kind: 'card', type: 'feature' }
 
 function createSchedule(id = 'schedule-1', trigger = { timestamp: '2026-07-06T11:00:00.000Z', type: 'at' }) {
     return {
-        actionName: 'implement',
+        actionId: 'implement',
         context,
         createdAt: '2026-07-06T10:00:00.000Z',
         id,
@@ -35,7 +35,7 @@ describe('schedule store', () => {
     })
 
     it('rejects schedules with missing required fields', () => {
-        expect(() => parseActionScheduleFile({ schedules: [{ id: 'schedule-1' }] })).toThrow('missing actionName')
+        expect(() => parseActionScheduleFile({ schedules: [{ id: 'schedule-1' }] })).toThrow('missing actionId')
     })
 
     it('appends schedules through the validated file model', () => {
@@ -53,8 +53,8 @@ describe('schedule store', () => {
     })
 
     it('finds pending schedules and pending after-action schedules', () => {
-        const afterActionSchedule = createSchedule('schedule-1', { actionName: 'build', type: 'afterAction' })
-        const doneSchedule = { ...createSchedule('schedule-2', { actionName: 'build', type: 'afterAction' }), status: 'done' }
+        const afterActionSchedule = createSchedule('schedule-1', { actionId: 'build', type: 'afterAction' })
+        const doneSchedule = { ...createSchedule('schedule-2', { actionId: 'build', type: 'afterAction' }), status: 'done' }
 
         expect(findPendingSchedule([afterActionSchedule], 'schedule-1')).toEqual(afterActionSchedule)
         expect(pendingAfterActionSchedules([afterActionSchedule, doneSchedule], 'build')).toEqual([afterActionSchedule])

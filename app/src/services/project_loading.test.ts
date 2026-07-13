@@ -8,6 +8,10 @@ import { telemetryService } from './telemetry_service'
 import { GLOBAL_PROGRESS_EVENT, globalProgressService, type GlobalProgress } from './global_progress_service'
 import { createDeferred, createStorage, files, storageFiles, waitForWorkerTurn } from './test_support/data_service_test_support'
 
+function actionDefinition(id: string, overrides: Record<string, unknown> = {}) {
+    return { command: 'run', description: id, id: `action-${id}`, label: id, name: id, type: 'command', ...overrides }
+}
+
 function recordDialogMessages(severity: DialogSeverity) {
     const messages: string[] = []
     const handleDialogMessage = (event: Event) => {
@@ -134,7 +138,7 @@ describe('ProjectLoading', () => {
     })
     it('loads action files from the configured actions folder into the action service on open', async () => {
         configService.init()
-        const actionFile = { content: JSON.stringify({ description: 'Do', label: 'Do', name: 'do', text: 'run', type: 'cmd' }), path: 'actions/do.json' }
+        const actionFile = { content: JSON.stringify(actionDefinition('do')), path: 'actions/do.json' }
         const storage = createStorage({ loadActionFiles: vi.fn(async () => [actionFile]) })
         const service = new DataService()
         service.init({ storage })
@@ -150,7 +154,7 @@ describe('ProjectLoading', () => {
         const projectFile = { ...files[0], path: 'projects/demo/design/F-1-root.md' }
         const projectNote = { content: '# Project note', path: 'projects/demo/notes/project-note.md' }
         const actionFile = {
-            content: JSON.stringify({ description: 'Do', label: 'Do', name: 'do', text: 'run', type: 'cmd' }),
+            content: JSON.stringify(actionDefinition('do')),
             path: 'projects/demo/actions/do.json',
         }
         const storage = createStorage({
@@ -360,7 +364,7 @@ describe('ProjectLoading', () => {
     it('reloads actions when the local actions folder watcher reports json changes', async () => {
         vi.useFakeTimers()
         configService.init()
-        const actionFile = { content: JSON.stringify({ description: 'Do', label: 'Do', name: 'do', text: 'run', type: 'cmd' }), path: 'actions/do.json' }
+        const actionFile = { content: JSON.stringify(actionDefinition('do')), path: 'actions/do.json' }
         const loadActionFiles = vi.fn()
             .mockResolvedValueOnce([])
             .mockResolvedValueOnce([actionFile])
@@ -394,8 +398,8 @@ describe('ProjectLoading', () => {
     it('surfaces action reload validation errors without dropping the previous valid actions', async () => {
         vi.useFakeTimers()
         configService.init()
-        const validActionFile = { content: JSON.stringify({ description: 'Do', label: 'Do', name: 'do', text: 'run', type: 'cmd' }), path: 'actions/do.json' }
-        const invalidActionFile = { content: JSON.stringify({ description: 'Bad', label: 'Bad', name: 'bad', text: 'run', type: 'bad' }), path: 'actions/bad.json' }
+        const validActionFile = { content: JSON.stringify(actionDefinition('do')), path: 'actions/do.json' }
+        const invalidActionFile = { content: JSON.stringify(actionDefinition('bad', { type: 'bad' })), path: 'actions/bad.json' }
         const loadActionFiles = vi.fn()
             .mockResolvedValueOnce([validActionFile])
             .mockResolvedValueOnce([invalidActionFile])
@@ -425,9 +429,9 @@ describe('ProjectLoading', () => {
     it('reports all changed action paths when batched watcher events fail validation', async () => {
         vi.useFakeTimers()
         configService.init()
-        const validActionFile = { content: JSON.stringify({ description: 'Do', label: 'Do', name: 'do', text: 'run', type: 'cmd' }), path: 'actions/do.json' }
-        const invalidFirstActionFile = { content: JSON.stringify({ description: 'Bad', label: 'Bad', name: 'bad', text: 'run', type: 'bad' }), path: 'actions/bad.json' }
-        const changedSecondActionFile = { content: JSON.stringify({ description: 'More', label: 'More', name: 'more', text: 'run', type: 'cmd' }), path: 'actions/more.json' }
+        const validActionFile = { content: JSON.stringify(actionDefinition('do')), path: 'actions/do.json' }
+        const invalidFirstActionFile = { content: JSON.stringify(actionDefinition('bad', { type: 'bad' })), path: 'actions/bad.json' }
+        const changedSecondActionFile = { content: JSON.stringify(actionDefinition('more')), path: 'actions/more.json' }
         const loadActionFiles = vi.fn()
             .mockResolvedValueOnce([validActionFile])
             .mockResolvedValueOnce([invalidFirstActionFile, changedSecondActionFile])

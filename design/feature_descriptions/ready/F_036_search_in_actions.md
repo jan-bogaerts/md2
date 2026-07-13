@@ -10,22 +10,22 @@ policy:
 ---
 
 ## Goal
-Add the optional "search in actions" capability from the search design: when enabled, the search control also matches loaded action definitions (label, description, name, text) and shows them as a separate result group.
+Add optional action search over loaded definitions: label, description, name, prompt, and command.
 
 ## Current state
 Search only covers project cards: `searchProject` (`app/src/services/search/search_project.ts`) matches active/background card headers and bodies. `SearchOptions` (`app/src/services/search/search_types.ts`) has no action flag and `actionService.getActions()` is never consulted by search. The architecture note (`design\architecture\initial description\search.md`) lists this as "perhaps also option to search in actions".
 
 ## implementation details
 - Extend `SearchOptions` with `includeActions: boolean` (default off) and add a toggle to the search options popover in `SearchControl`, next to the existing background-body toggle.
-- Add a pure `searchActions(actions, query, options)` in the search module matching `label`, `description`, `name` and `text` with the same text/regexp matcher used for cards, reusing `buildContext` for snippets.
+- Add a pure `searchActions(actions, query, options)` matching `label`, `description`, `name`, `prompt`, and `command` with the same text/regexp matcher used for cards.
 - Extend `SearchResults` with an `actions: ActionSearchMatch[]` group rendered below the background groups in `SearchResults`, titled "Actions".
-- Clicking an action result opens the action popup for that action with an empty context (or the built-in file-less context), mirroring how card results navigate.
+- In card view, selecting an action result opens its popup by action id with the current supported context. In text view, it opens the action editor tab, matching the action-editor navigation contract.
 - Keep the search module free of service imports: `MainWindow`/`SearchControl` passes the current actions in, same pattern as the snapshot.
 
 ## acceptance criteria
 - With the toggle off, results are unchanged from today.
-- With the toggle on, a query matching an action's label/description/name/text shows the action under an "Actions" group; text and regexp modes both work.
-- Clicking an action result opens its action popup.
+- With the toggle on, a query matching an action's label, description, name, prompt, or command shows it under `Actions`; text and regexp modes both work.
+- Selecting a result follows the card-view popup/text-view editor navigation contract.
 - Tests cover matching per field, regexp mode, and the off-by-default behavior.
 
 ## see also

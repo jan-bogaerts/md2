@@ -6,14 +6,14 @@ export type ScheduleTriggerType = ActionScheduleTrigger['type']
 export function createScheduleTrigger(
     type: ScheduleTriggerType,
     timestampInput: string,
-    afterActionNameInput: string,
+    afterActionIdInput: string,
 ): ActionScheduleTrigger {
     if (type === 'agentSlot') return { type: 'agentSlot' }
     if (type === 'afterAction') {
-        const actionName = afterActionNameInput.trim()
-        if (actionName.length === 0) throw new Error('Action name is required for after action schedules')
+        const actionId = afterActionIdInput.trim()
+        if (actionId.length === 0) throw new Error('Action id is required for after action schedules')
 
-        return { actionName, type: 'afterAction' }
+        return { actionId, type: 'afterAction' }
     }
 
     const timestamp = timestampInput.trim()

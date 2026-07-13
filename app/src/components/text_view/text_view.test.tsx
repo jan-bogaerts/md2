@@ -5,6 +5,8 @@ import { TextView } from './text_view'
 import { DEFAULT_CARD_TYPES, DEFAULT_STATES, type AgentConversation, type ProjectCard } from '../../data/data_types'
 import { telemetryService } from '../../services/telemetry_service'
 import { openFilesService } from '../../services/open_files_service'
+import { actionService } from '../../services/action_service'
+import { configService } from '../../services/config_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import { LeftPanelSlotProvider } from '../shell/left_panel_slot_provider'
 import { LeftPanelTarget } from '../shell/left_panel_target'
@@ -112,11 +114,14 @@ function clickTreeFile(label: string) {
 
 describe('TextView', () => {
     beforeEach(() => {
+        configService.init()
         openFilesService.clear()
     })
 
     afterEach(() => {
         cleanup()
+        actionService.clear()
+        configService.clear()
         vi.restoreAllMocks()
     })
 
@@ -134,11 +139,15 @@ describe('TextView', () => {
         renderTextView()
         const tree = within(screen.getByLabelText('File tree'))
 
+        expect(tree.getByText('CARDS')).toBeInTheDocument()
         expect(tree.getByText('todo')).toBeInTheDocument()
         expect(tree.getByText('done')).toBeInTheDocument()
         expect(tree.getByText('history')).toBeInTheDocument()
         expect(tree.getByRole('button', { name: 'todo 1' })).toBeInTheDocument()
         expect(tree.getByRole('button', { name: 'F-1 Alpha' })).toBeInTheDocument()
+        expect(tree.getByRole('button', { name: 'New folder' })).not.toHaveTextContent('New folder')
+        expect(tree.getByRole('button', { name: 'New Markdown file' })).not.toHaveTextContent('New Markdown file')
+        expect(tree.getByRole('navigation').parentElement).toHaveStyle({ overflowY: 'auto' })
     })
 
     it('creates a root folder from the tree toolbar when no item is selected', async () => {
@@ -235,6 +244,24 @@ describe('TextView', () => {
         expect(within(screen.getByRole('tab', { name: 'Implement' })).getByRole('img', { name: 'Action file' })).toBeInTheDocument()
         expect(within(screen.getByRole('tab', { name: 'F-1 Alpha' })).getByRole('img', { name: 'Card' })).toBeInTheDocument()
         expect(within(screen.getByRole('tab', { name: 'Notes' })).getByRole('img', { name: 'Markdown file' })).toBeInTheDocument()
+    })
+
+    it('opens JSON-backed action objects in the structured action editor', () => {
+        actionService.loadFromFiles([{
+            content: JSON.stringify({
+                description: 'Review the selected file', id: 'review-id', label: 'Review code',
+                name: 'review', prompt: 'Review {{file}}', type: 'agent',
+            }),
+            path: 'design/actions/review.json',
+        }])
+        renderTextView()
+
+        clickTreeFile('Review code')
+
+        expect(screen.getByRole('tab', { name: 'Review code' })).toBeInTheDocument()
+        expect(screen.getByRole('heading', { name: 'Action definition' })).toBeInTheDocument()
+        expect(screen.getByLabelText('ID')).toHaveValue('review-id')
+        expect(screen.queryByText(/"description":/u)).not.toBeInTheDocument()
     })
 
     it('focuses the existing tab instead of duplicating when a file is reopened', () => {

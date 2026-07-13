@@ -1,5 +1,5 @@
 import { CommitBatcher } from '../data/commit_batcher'
-import { resolveProjectConfigPaths, type ProjectConfig, type ProjectReference, type ProjectSnapshot, type RunningAgent, type StorageService } from '../data/data_types'
+import { resolveProjectConfigPaths, type MarkdownFile, type ProjectConfig, type ProjectReference, type ProjectSnapshot, type RunningAgent, type StorageService } from '../data/data_types'
 import type { RemarkableBridge } from '../data/remarkable_bridge'
 import { agentConversationService } from './agent_conversation_service'
 import { CardOperations, type CardOperationsDeps } from './card_operations'
@@ -93,6 +93,15 @@ export class DataService extends EventTarget {
 
     getConfig(): ProjectConfig | null {
         return getProjectConfigOrNull(this.storage)
+    }
+    async persistActionFile(file: MarkdownFile) {
+        const { config, storage } = this.requireDependencies()
+        const currentProject = this.projectState.project
+        if (!currentProject) throw new Error('Cannot save an action before a project is open')
+
+        await storage.commit({ branch: currentProject.branch, files: [file], message: `Update ${file.path}` })
+        if (config.pushMode === 'auto') await storage.push(currentProject)
+        this.dispatchChanged()
     }
     getRemarkableMetadataContent(): string | null {
         const config = this.getConfig()

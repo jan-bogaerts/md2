@@ -1,66 +1,69 @@
 import type { AgentProfile } from './agent_profiles.mjs'
 
-export type ActionType = 'agent' | 'cmd'
-export type ActionRunTarget = 'card' | 'project'
+export type ActionType = 'agent' | 'command'
+export type ActionAppliesTo = Record<string, string>
 
 export interface ActionFile {
     content: string
     path: string
 }
 
-export type ActionAppliesTo = Record<string, string>
-export type RawSubAction = string | RawActionDefinition
-
 export interface RawOnRule {
-    action: RawSubAction
+    actionId: string
     condition: string
 }
 
 export interface RawActionDefinition {
-    after?: RawSubAction[]
     agent?: string
     appliesTo?: ActionAppliesTo
-    before?: RawSubAction[]
-    description?: string
+    command?: string
+    description: string
     icon?: string
-    label?: string
+    id: string
+    label: string
     model?: string
-    name?: string
+    name: string
+    needsWorkTree?: boolean
     on?: RawOnRule[]
+    onAfter?: string[]
+    onBefore?: string[]
     onState?: string
-    runIn?: string
-    text?: string
-    type?: string
+    prompt?: string
+    thinkingLevel?: string
+    type: ActionType
 }
 
-export interface OnRule {
+export interface OnRule extends RawOnRule {
     action: ActionDefinition
-    condition: string
 }
 
 export interface ActionDefinition {
-    after: ActionDefinition[]
     agent: string | null
     appliesTo: ActionAppliesTo | null
-    before: ActionDefinition[]
     builtin: boolean
+    command: string | null
     description: string
     icon: string | null
+    id: string
     label: string
     model: string | null
     name: string
+    needsWorkTree: boolean
     on: OnRule[]
+    onAfter: ActionDefinition[]
+    onBefore: ActionDefinition[]
     onState: string | null
-    runIn: ActionRunTarget
-    text: string
+    prompt: string | null
+    sourcePath: string | null
+    thinkingLevel: string | null
     type: ActionType
 }
 
 export interface ActionDefinitionLoaderDependencies {
-    defaultAgent?: string
     profiles?: AgentProfile[]
 }
 
+export const CUSTOM_PROMPT_ACTION_ID: string
 export const CUSTOM_PROMPT_ACTION_NAME: string
 export const BUILTIN_CUSTOM_PROMPT: ActionDefinition
 export function loadActionDefinitions(files: ActionFile[], dependencies?: ActionDefinitionLoaderDependencies): ActionDefinition[]

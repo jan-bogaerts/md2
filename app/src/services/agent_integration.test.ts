@@ -24,12 +24,13 @@ describe('AgentIntegration', () => {
         const actionFile = {
             content: JSON.stringify({
                 appliesTo: { type: 'feature' },
+                command: 'run',
                 description: 'Ready',
+                id: 'action-ready',
                 label: 'Ready',
                 name: 'ready-action',
                 onState: 'ready',
-                text: 'run',
-                type: 'cmd',
+                type: 'command',
             }),
             path: 'actions/ready.json',
         }
@@ -71,12 +72,13 @@ describe('AgentIntegration', () => {
         const actionFile = {
             content: JSON.stringify({
                 appliesTo: { type: 'feature' },
+                command: 'run',
                 description: 'Ready',
+                id: 'action-ready',
                 label: 'Ready',
                 name: 'ready-action',
                 onState: 'ready',
-                text: 'run',
-                type: 'cmd',
+                type: 'command',
             }),
             path: 'actions/ready.json',
         }
@@ -107,12 +109,13 @@ describe('AgentIntegration', () => {
         ]
         const actionFile = {
             content: JSON.stringify({
+                command: 'run',
                 description: 'Todo',
+                id: 'action-todo',
                 label: 'Todo',
                 name: 'todo-action',
                 onState: 'todo',
-                text: 'run',
-                type: 'cmd',
+                type: 'command',
             }),
             path: 'actions/todo.json',
         }

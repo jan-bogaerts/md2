@@ -10,18 +10,27 @@ policy:
 ---
 
 ## Problem
-Only `AgentConversationService.continueConversation` registers in `runningAgents`; agent/cmd actions executed through `ActionRunner` never appear in the shell indicator. Worse, `onState`-triggered runs are fired from `DataService.moveCard` with `void actionRunner.run(...)` — they are completely invisible: no indicator, no popup, and errors are swallowed.
+
+Only some conversation paths register in the global running list. Manual, state-triggered, scheduled, command, agent, and continuation runs can therefore disagree across the shell indicator, card, popup, and conversation panel.
 
 ## Fix
-- Register every `ActionRunner.run` invocation as a running agent/action for its duration (label = action label + context file), via `agentConversationService` or a small shared run-registry service.
-- For `onState` triggers: don't `void` the promise — record the result, surface failures (workspace alert or the card's agent led), and write to the action run history like popup-initiated runs already do.
-- The indicator popup lists these runs with their phase/status; supersede with the live registry from F-023 when that lands.
+
+- Drive the global indicator from the Electron action runner's start, phase, output, and terminal event stream.
+- Include manual, `onState`, scheduled, command, agent, continuation, and cancellation events. Identify runs by execution id and actions by stable action id.
+- The indicator shows the root action, currently executing linked action, context, phase, and status.
+- For `onState`, attach a failed terminal event to the related card and clear its in-memory `currentAction`.
+- Do not create a second UI-owned execution registry or runner.
 
 ## acceptance criteria
-- Running any action (popup, onState, continue) increments the shell running count for the duration of the run.
-- A failed onState-triggered action produces a visible error tied to the card.
-- Tests cover registry add/remove around runs and onState failure surfacing.
+
+- Starting any action increments the global running count until Electron reports a terminal execution state.
+- Chain phase changes update the listed current action and phase without changing the root execution id.
+- Cancellation removes the run after its cancelled terminal event.
+- A failed `onState` action produces a visible error tied to the card and clears its current action.
+- Tests cover every execution entry point and completed, failed, cancelled, and `okButNotAfter` terminal events.
 
 ## see also
-- `design\feature_descriptions\F_010e_state_triggers_and_watching.md`
-- `design\feature_descriptions\F_023_agent_streaming.md`
+
+- `design\architecture\initial description\writings\Running actions\running_actions.md`
+- `design\feature_descriptions\ready\F_010e_state_triggers_and_watching.md`
+- `design\feature_descriptions\ready\F_023_agent_streaming.md`

@@ -1,4 +1,5 @@
 import { groupByStatus, UNASSIGNED_STATUS } from './card_ordering'
+import type { ActionDefinition } from './action_types'
 import type { ProjectCard } from './data_types'
 
 /** The kinds of node the text-view tree can contain. */
@@ -15,6 +16,7 @@ export interface TreeNode {
 }
 
 export interface FileTreeOptions {
+    actions: ActionDefinition[]
     projectFolder: string
     repositoryFiles: string[]
     specialFolderPaths: string[]
@@ -102,6 +104,7 @@ function ensureFolderSegments(root: TreeNode, segments: string[], specialFolderP
 }
 
 function buildFolderRoots(
+    actions: ActionDefinition[],
     backgroundCards: ProjectCard[],
     projectFolder: string,
     repositoryFiles: string[],
@@ -130,6 +133,17 @@ function buildFolderRoots(
         })
     }
 
+    for (const action of actions) {
+        if (!action.sourcePath || action.builtin) continue
+        const segments = relativeSegmentsInside(action.sourcePath, projectFolder)
+        if (segments.length === 0) continue
+        const parent = ensureFolderSegments(root, segments.slice(0, -1), specialFolderPaths)
+        parent.children.push({
+            children: [], directoryPath: parent.directoryPath, id: action.sourcePath,
+            kind: 'file', label: action.label, path: action.sourcePath,
+        })
+    }
+
     return root
 }
 
@@ -143,9 +157,9 @@ export function buildFileTree(
     workingFolder: string,
     options: FileTreeOptions,
 ): TreeNode[] {
-    const { projectFolder, repositoryFiles, specialFolderPaths } = options
+    const { actions, projectFolder, repositoryFiles, specialFolderPaths } = options
     const specialPathSet = new Set(specialFolderPaths)
-    const root = buildFolderRoots(backgroundCards, projectFolder, repositoryFiles, specialPathSet)
+    const root = buildFolderRoots(actions, backgroundCards, projectFolder, repositoryFiles, specialPathSet)
     const statusGroups = buildStatusGroups(activeCards, projectFolder)
     if (workingFolder === projectFolder) return [...statusGroups, ...root.children]
 

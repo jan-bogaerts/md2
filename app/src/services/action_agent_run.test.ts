@@ -5,22 +5,26 @@ import { resolveAgentRun } from './action_agent_run'
 
 function action(overrides: Partial<ActionDefinition> = {}): ActionDefinition {
     return {
-        after: [],
         agent: null,
         appliesTo: null,
-        before: [],
         builtin: false,
+        command: null,
         description: 'description',
         icon: null,
+        id: 'action-implement',
         label: 'Implement',
         model: null,
         name: 'implement',
+        needsWorkTree: false,
         on: [],
+        onAfter: [],
+        onBefore: [],
         onState: null,
-        text: 'implement',
+        prompt: 'implement',
+        sourcePath: 'actions/implement.json',
+        thinkingLevel: null,
         type: 'agent',
         ...overrides,
-        runIn: overrides.runIn ?? 'project',
     }
 }
 

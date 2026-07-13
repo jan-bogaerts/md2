@@ -1,6 +1,6 @@
 ---
 id: B-029
-title: desktop bridge still grants arbitrary shell execution to the loaded web app
+title: renderer can supply executable action data
 status: ready
 owner: JB
 affects:
@@ -10,32 +10,31 @@ policy:
 ---
 
 ## Problem
-B-015 enabled `contextIsolation`, but the fix is superficial with respect to the threat it described. The Electron window loads a **configurable, remotely deployed URL** (J-001), and the preload bridge exposes to that page:
 
-- `md2Actions.runCommand(command)` — executes an arbitrary shell string in the project root (`local_git_service.runCommand`);
-- `md2Data.startAgentConversation` / `md2Actions.runAgent` — spawn arbitrary configured commands with attacker-controllable prompts;
-- the full filesystem/git surface of `md2Data`.
+Action orchestration currently lives in React. The renderer resolves action objects, traverses their chains, and passes execution data to Electron. Command execution already reloads a definition by action name, but agent requests can still contain prompt and command data, and action names are used as identifiers. Renaming an action can break links, schedules, and history.
 
-Any compromise of the deployed site (or of a dependency it ships, or a misconfigured `MD2_APP_URL`) is still full remote code execution — the exact scenario B-015 called out. `sandbox: false` also keeps the renderer unsandboxed because preload itself needs Node (it spawns processes and touches the filesystem directly).
-
-Related: the remote-control WebSocket passes its auth token as a URL query parameter (`desktop/remote_control_service.js` `isAuthorized`), which leaks into proxy/access logs if the server is ever bound beyond loopback.
+The required boundary is simpler: actions only run in Electron, and Electron owns the complete action runner.
 
 ## Fix
-Layered, in order of value:
 
-1. **Origin gate in preload.** Before calling any `contextBridge.exposeInMainWorld`, check `window.location.origin` against an allow-list from desktop config (default: the origin of the configured app URL). A non-matching origin gets no privileged bridges at all.
-2. **Stop accepting raw command strings from the renderer.** The desktop side can read action definitions itself: change the bridge so the renderer passes `{ actionName, context, extraInput }` and the desktop resolves the command text and placeholders from the actions folder on disk. `runCommand(rawString)` becomes an internal function; if a raw escape hatch is kept, gate it behind an explicit desktop-config opt-in (default off).
-3. **Move Node work out of preload so it can be sandboxed.** Relocate `local_git_service`, `agent_runner_service`, scheduler and diff execution into the main process behind `ipcMain.handle`; preload shrinks to thin `ipcRenderer.invoke` wrappers and `sandbox: true` becomes possible. (The main process already instantiates these services for remote control — consolidate on that instance instead of the parallel preload-owned set.)
-4. **Remote-control token transport.** Accept the token via `Sec-WebSocket-Protocol` or a first authentication message instead of the query string; keep rejecting unauthenticated upgrades.
+- Move manual and state-triggered action orchestration from React to the Electron action runner used by every execution entry point.
+- Change start requests to `{ actionId, context, runInput }`. Change cancellation and live-input requests to use the Electron execution id.
+- Electron loads and validates the persisted definition by stable `id`, resolves `onBefore`, `on`, and `onAfter` ids, prepares `needsWorkTree`, resolves placeholders, and starts command or agent processes.
+- Do not expose a bridge method that accepts a raw command, persisted prompt template, resolved definition, or chain supplied by the renderer.
+- Use the same Electron runner for schedules so no second execution implementation can accept a different shape.
+- Keep this feature limited to action ownership, ID lookup, and the action bridge shape.
 
 ## acceptance criteria
-- Loading any page whose origin is not allow-listed yields a window without `md2Data`/`md2Actions`/`md2Config` and a visible warning.
-- A compromised renderer cannot execute a shell string of its choosing: command actions run only from definitions present in the project's actions folder.
-- The window runs with `sandbox: true` and preload contains no direct `child_process`/`fs` usage.
-- Remote-control clients authenticate without the token appearing in the URL; connections without the token are still rejected.
-- Tests cover the origin gate, action-name-based command resolution (unknown name rejected), and the new token handshake.
+
+- A renderer can start an action only by persisted action id plus context and run-specific input.
+- Unknown action ids and invalid definitions are rejected before any process starts.
+- Renaming an action does not break execution, linked actions, or schedules.
+- Manual, state-triggered, and scheduled runs use the same Electron action runner.
+- No renderer-facing method accepts arbitrary shell text or a persisted agent prompt template.
+- Tests cover id lookup, rejected executable input, chain resolution in Electron, and identical runner use from all entry points.
 
 ## see also
-- `design\feature_descriptions\B_015_electron_context_isolation.md`
-- `design\feature_descriptions\F_032_remote_control_bridge.md`
-- `design\architecture\initial description\desktop app.md`
+
+- `design\architecture\initial description\writings\Running actions\running_actions.md`
+- `design\feature_descriptions\ready\F_010c_command_execution_and_chaining.md`
+- `design\feature_descriptions\ready\F_013_desktop_app.md`

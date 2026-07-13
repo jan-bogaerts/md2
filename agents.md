@@ -106,6 +106,7 @@ npm run lint-fix
 ## react component style guide
 - dialogs have buttons in the bottom right corner
 - use the `dialogService` to show errors, warnings,...
+- for styling, read and use this guide: `design\STYLE_GUIDE.md`
 
 
 ## Testing

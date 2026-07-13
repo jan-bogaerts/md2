@@ -25,8 +25,8 @@ function resolvePlaceholders(text, context, project, extraPrompt) {
 }
 
 function resolveAgentPrompt(action, context, project, extraPrompt) {
-    const resolvedText = resolvePlaceholders(action.text, context, project, extraPrompt)
-    if (PROMPT_PLACEHOLDER_PATTERN.test(action.text)) return resolvedText
+    const resolvedText = resolvePlaceholders(action.prompt, context, project, extraPrompt)
+    if (PROMPT_PLACEHOLDER_PATTERN.test(action.prompt)) return resolvedText
     if (extraPrompt.trim().length === 0) return resolvedText
 
     return `${resolvedText}\n\n${extraPrompt}`
@@ -40,7 +40,7 @@ function extractCommitMetadata(input) {
     const filePaths = input.context.file ? [input.context.file] : []
 
     return {
-        actionName: input.actionName,
+        actionId: input.actionId,
         branch,
         commit: match[2],
         completedAt: input.completedAt,
@@ -77,7 +77,7 @@ async function runCommandAction(action, context, options, dependencies) {
         action,
         context,
         (project) => {
-            const command = resolvePlaceholders(action.text, context, project, options.extraPrompt)
+            const command = resolvePlaceholders(action.command, context, project, options.extraPrompt)
 
             return dependencies.localGitService.runCommand(project, command)
         },
@@ -85,11 +85,11 @@ async function runCommandAction(action, context, options, dependencies) {
     const output = combineOutput(result)
     const completedAt = new Date().toISOString()
     const executionProject = { ...dependencies.project, branch: result.branch, rootPath: result.repositoryRoot }
-    const commit = extractCommitMetadata({ actionName: action.name, completedAt, context, output, project: executionProject })
+    const commit = extractCommitMetadata({ actionId: action.id, completedAt, context, output, project: executionProject })
 
     if (commit) {
         const entry = { command: result.command, commit, completedAt, output, prompt: '', status: statusFromExitCode(result.exitCode) }
-        await dependencies.appendHistory(action.name, context, entry, executionProject)
+        await dependencies.appendHistory(action.id, context, entry, executionProject)
     }
 
     if (result.exitCode !== 0) throw new Error(`${action.label} failed with exit code ${result.exitCode}`)
@@ -127,36 +127,36 @@ async function runAgentAction(action, context, options, dependencies) {
         status: statusFromExitCode(result.exitCode),
     }
     const executionProject = { ...dependencies.project, branch: result.branch, rootPath: result.repositoryRoot }
-    await dependencies.appendHistory(action.name, context, entry, executionProject)
+    await dependencies.appendHistory(action.id, context, entry, executionProject)
     if (result.exitCode !== 0) throw new Error(`${action.label} failed with exit code ${result.exitCode}`)
 
     return output
 }
 
 async function runMain(action, context, options, dependencies) {
-    if (action.type === 'cmd') return runCommandAction(action, context, options, dependencies)
+    if (action.type === 'command') return runCommandAction(action, context, options, dependencies)
     if (action.type === 'agent') return runAgentAction(action, context, options, dependencies)
 
     return ''
 }
 
 async function runAction(action, context, options, dependencies) {
-    if (options.stack.includes(action.name)) throw new Error(`Circular action call rejected: ${[...options.stack, action.name].join(' -> ')}`)
+    if (options.stack.includes(action.id)) throw new Error(`Circular action call rejected: ${[...options.stack, action.id].join(' -> ')}`)
 
-    const stack = [...options.stack, action.name]
-    for (const beforeAction of action.before) await runAction(beforeAction, context, { ...options, stack }, dependencies)
+    const stack = [...options.stack, action.id]
+    for (const beforeAction of action.onBefore) await runAction(beforeAction, context, { ...options, stack }, dependencies)
 
     const output = await runMain(action, context, { ...options, stack }, dependencies)
     const matches = matchingOnRules(action.on, output)
     for (const rule of matches) await runAction(rule.action, context, { ...options, stack }, dependencies)
 
-    for (const afterAction of action.after) await runAction(afterAction, context, { ...options, stack }, dependencies)
+    for (const afterAction of action.onAfter) await runAction(afterAction, context, { ...options, stack }, dependencies)
 }
 
 async function runScheduledAction(schedule, dependencies) {
     const actions = await loadActions(dependencies)
-    const action = actions.find((candidate) => candidate.name === schedule.actionName)
-    if (!action) throw new Error(`Scheduled action no longer exists: ${schedule.actionName}`)
+    const action = actions.find((candidate) => candidate.id === schedule.actionId)
+    if (!action) throw new Error(`Scheduled action no longer exists: ${schedule.actionId}`)
 
     await runAction(action, schedule.context, { extraPrompt: '', stack: [] }, dependencies)
 }

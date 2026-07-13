@@ -33,7 +33,7 @@ describe('action-files', () => {
     it('persists and loads action run history for the same action and context', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-action-files-'))
         const request = {
-            actionName: 'implement',
+            actionId: 'implement',
             actionsFolder: 'actions',
             context: { file: 'design/F-010.md', kind: 'card', type: 'feature' },
         }

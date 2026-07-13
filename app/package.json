@@ -38,6 +38,7 @@
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
     "@mdxeditor/editor": "^4.0.4",
+    "@mui/icons-material": "^9.2.0",
     "@mui/material": "^9.2.0",
     "@sentry/react": "^10.63.0",
     "mdi-material-ui": "^8.0.0",

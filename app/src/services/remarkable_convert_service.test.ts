@@ -33,9 +33,9 @@ describe('convertRemarkableImagesToText', () => {
 
         const [action, context] = run.mock.calls[0]
         expect(action.type).toBe('agent')
-        expect(action.text).toContain('design/a.png')
-        expect(action.text).toContain('design/b.png')
-        expect(action.text).toContain('{{file}}')
+        expect(action.prompt).toContain('design/a.png')
+        expect(action.prompt).toContain('design/b.png')
+        expect(action.prompt).toContain('{{file}}')
         expect(context).toEqual({ file: 'design/F-1-card.md', kind: 'card', type: 'feature' })
     })
 })

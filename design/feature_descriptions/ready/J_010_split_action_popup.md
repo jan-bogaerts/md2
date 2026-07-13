@@ -10,7 +10,7 @@ policy:
 ---
 
 ## Goal
-Item 7 of J-002. `app/src/components/actions/action_popup.tsx` is ~495 lines. Extract the schedule form and the run-history list into subcomponents so the popup keeps run/convert/agent-model selection and resize behavior only. Pure refactor — **no behavior change**.
+Item 7 of J-002. Extract schedule and history presentation so the popup keeps ID-based related navigation, run/cancel controls, conversion, supported run-specific selection, and resize behavior.
 
 Depends on: J-003 (unused `action_schedule_form.tsx`/`action_run_history.tsx`/`action_schedule_trigger.ts` duplicates deleted, component back at `action_popup.tsx`) — this task recreates those filenames by **moving** the inline implementations.
 

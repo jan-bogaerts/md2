@@ -17,7 +17,7 @@ Depends on: J-003 (pass-through `git_commands.js`/`project_files.js`/`action_fil
 ## implementation details
 - `desktop/git_commands.js` — runGit/hasStagedChanges/commitStagedChanges, branch list/checkout, push, assertGitRoot; the path guards (`ensureInsideRoot`, `requireRootPath`) move here and are re-exported where needed.
 - `desktop/project_files.js` — load project/root/config, read/write/delete/move files, working-folder template, watchProject.
-- `desktop/action_files.js` — action definition loading, schedules load/save/cancel, run-history load/append, agent-conversation log reads.
+- `desktop/action_files.js` — canonical ID-based action loading, ID-based schedules load/save/cancel, run-history load/append by action/execution id, and agent-conversation log reads.
 - `local_git_service.js` remains as the aggregator: `module.exports = { ...gitCommands, ...projectFiles, ...actionFiles }` — bridge contracts and existing requires do not change.
 - One module extraction per commit; each commit **moves** the functions out of the aggregator (the first attempt left the logic inline and made the three files re-export lists — that is the failure mode to avoid).
 - Run the desktop test suite after each commit; move tests alongside the code they cover where they are function-specific.

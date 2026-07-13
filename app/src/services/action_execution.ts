@@ -3,7 +3,7 @@ import type { ActionDefinition } from '../data/action_types'
 import type {
     ActionRunHistoryEntry,
     ActionRunHistoryRequest,
-    AgentExecutionRequest,
+    AgentActionExecutionRequest,
     AgentExecutionResult,
     CommandActionExecutionRequest,
     CommandExecutionResult,
@@ -13,7 +13,6 @@ import type { AgentRunEvent, ProjectReference } from '../data/data_types'
 import type { DesktopConfigValues } from './config_service'
 import { appendAgentHistory, appendCommandHistory } from './action_history'
 import { resolveAgentRun } from './action_agent_run'
-import { resolveAgentPrompt } from './action_text'
 import { dialogService } from './dialog_service'
 import {
     combineOutput,
@@ -42,7 +41,7 @@ export interface ActionExecutionGateway {
     getBridge: () => ElectronActionBridge | null
     runAgent: (
         bridge: ElectronActionBridge,
-        request: AgentExecutionRequest,
+        request: AgentActionExecutionRequest,
         onEvent?: (event: AgentRunEvent) => void,
     ) => Promise<AgentExecutionResult>
     runCommand: (bridge: ElectronActionBridge, request: CommandActionExecutionRequest) => Promise<CommandExecutionResult>
@@ -97,7 +96,7 @@ export async function runCommandAction(
         const actionsFolder = dependencies.environment.getActionsFolder()
         if (!actionsFolder) throw new Error('Cannot run command action before project config is loaded')
 
-        const request = { actionName: action.name, actionsFolder, context, extraInput: options.extraPrompt }
+        const request = { actionId: action.id, actionsFolder, context, extraInput: options.extraPrompt }
         const result = await dependencies.executionGateway.runCommand(bridge, request)
         options.state.logs.push(createCommandLog(action, options.phase, result.command, result))
         if (result.exitCode !== 0) options.state.failed = true
@@ -144,21 +143,15 @@ export async function runAgentAction(
             { agent: options.agent, model: options.model },
         )
         const command = resolvedAgent.command
-        const prompt = resolveAgentPrompt(action, context, project, options.extraPrompt)
         if (!context.file) throw new Error('Agent actions require a file context')
 
         const request = {
-            actionName: action.name,
+            actionId: action.id,
             agent: resolvedAgent.agent,
             actionsFolder,
-            cardPath: context.file,
-            command,
             context,
             extraInput: options.extraPrompt,
             model: resolvedAgent.model,
-            prompt,
-            ...(resolvedAgent.sessionIdPattern ? { sessionIdPattern: resolvedAgent.sessionIdPattern } : {}),
-            title: action.label,
         }
         const result = await dependencies.executionGateway.runAgent(
             bridge,

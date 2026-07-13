@@ -12,21 +12,25 @@ import { DEFAULT_CARD_TYPES, type ProjectCard } from './data_types'
 
 function action(name: string, appliesTo: ActionDefinition['appliesTo']): ActionDefinition {
     return {
-        after: [],
         agent: null,
         appliesTo,
-        before: [],
         builtin: false,
+        command: 'run',
         description: name,
         icon: null,
+        id: `action-${name}`,
         label: name,
         model: null,
         name,
+        needsWorkTree: false,
         on: [],
+        onAfter: [],
+        onBefore: [],
         onState: null,
-        runIn: 'project',
-        text: 'run',
-        type: 'cmd',
+        prompt: null,
+        sourcePath: `actions/${name}.json`,
+        thinkingLevel: null,
+        type: 'command',
     }
 }
 

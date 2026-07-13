@@ -10,12 +10,12 @@ describe('createScheduleTrigger', () => {
         expect(createScheduleTrigger('agentSlot', '', '')).toEqual({ type: 'agentSlot' })
     })
 
-    it('creates an after action trigger from trimmed action name input', () => {
-        expect(createScheduleTrigger('afterAction', '', ' Run tests ')).toEqual({ actionName: 'Run tests', type: 'afterAction' })
+    it('creates an after action trigger from trimmed action id input', () => {
+        expect(createScheduleTrigger('afterAction', '', ' action-tests ')).toEqual({ actionId: 'action-tests', type: 'afterAction' })
     })
 
     it('fails when required input is missing', () => {
         expect(() => createScheduleTrigger('at', '', '')).toThrow('Timestamp is required for time schedules')
-        expect(() => createScheduleTrigger('afterAction', '', '')).toThrow('Action name is required for after action schedules')
+        expect(() => createScheduleTrigger('afterAction', '', '')).toThrow('Action id is required for after action schedules')
     })
 })

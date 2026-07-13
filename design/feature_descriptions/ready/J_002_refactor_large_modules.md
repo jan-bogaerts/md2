@@ -26,7 +26,7 @@ The first attempt largely **renamed the monoliths instead of splitting them**: e
 - **J-005** — split `data_service.ts` into scoped collaborators behind the facade (item 2).
 - **J-006** — split `desktop/local_git_service.js` into git/project/action modules + aggregator (item 3).
 - **J-007** — split `desktop/action_scheduler_service.js` into store + timers + service (item 4).
-- **J-008** — extract action runner history/text helpers (item 5).
+- **J-008** — move action-runner helpers to Electron as part of the single-runner design (item 5).
 - **J-009** — split `config_service.ts` into entries + persistence + service (item 6).
 - **J-010** — extract action popup schedule form + run history subcomponents (item 7).
 

@@ -13,21 +13,28 @@ export interface CommandExecutionResult {
 }
 
 export interface AgentExecutionRequest {
-    actionName?: string
-    actionsFolder?: string
-    agent?: string
     cardPath: string
     command: string
-    model?: string
     prompt: string
-    context?: ActionContext
-    extraInput?: string
+    agent?: string
+    model?: string
     sessionIdPattern?: string
     title?: string
 }
 
+export interface AgentActionExecutionRequest {
+    actionId: string
+    actionsFolder: string
+    context: ActionContext
+    extraInput: string
+    agent?: string
+    model?: string
+}
+
+export type AgentRunRequest = AgentActionExecutionRequest | AgentExecutionRequest
+
 export interface CommandActionExecutionRequest {
-    actionName: string
+    actionId: string
     actionsFolder: string
     context: ActionContext
     extraInput: string
@@ -41,23 +48,23 @@ export interface AgentExecutionResult extends CommandExecutionResult {
 }
 
 export interface ActionRunHistoryRequest {
-    actionName: string
+    actionId: string
     actionsFolder: string
     context: ActionContext
 }
 
 export interface ActionScheduleRegistrationRequest {
-    actionName: string
+    actionId: string
     context: ActionContext
     trigger: ActionScheduleTrigger
 }
 
 /** Commit produced by an action run; presence enables the diff view for a log entry. */
 export interface CommitMetadata {
+    actionId: string
     branch: string
     commit: string
     completedAt: string
-    actionName: string
     filePaths: string[]
     repositoryRoot: string
 }
@@ -111,11 +118,11 @@ export interface ElectronActionBridge {
     appendActionRunHistory(request: ActionRunHistoryRequest, entry: ActionRunHistoryEntry): Promise<ActionRunHistoryEntry[]>
     generateDiff(request: DiffRequest): Promise<DiffResult>
     loadActionRunHistory(request: ActionRunHistoryRequest): Promise<ActionRunHistoryEntry[]>
-    notifyActionCompleted?(actionName: string): Promise<void>
+    notifyActionCompleted?(actionId: string): Promise<void>
     onScheduledActionRun?(callback: (event: AgentRunEvent) => void): () => void
     openInEditor(request: OpenInEditorRequest): Promise<void>
     registerActionSchedule?(request: ActionScheduleRegistrationRequest): Promise<void>
-    runAgent(request: AgentExecutionRequest, callback?: (event: AgentRunEvent) => void): Promise<AgentExecutionResult>
+    runAgent(request: AgentRunRequest, callback?: (event: AgentRunEvent) => void): Promise<AgentExecutionResult>
     runCommand(request: CommandActionExecutionRequest): Promise<CommandExecutionResult>
 }
 

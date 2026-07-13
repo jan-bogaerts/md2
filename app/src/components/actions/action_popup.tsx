@@ -134,8 +134,8 @@ export function ActionPopup(props: ActionPopupProps) {
                         />
                     ) : null}
                     <ActionRunHistory compact entries={controller.history} error={controller.historyError} />
-                    <RelatedActions actions={action.before} label="Before" onNavigate={onNavigate} />
-                    <RelatedActions actions={action.after} label="After" onNavigate={onNavigate} />
+                    <RelatedActions actions={action.onBefore} label="Before" onNavigate={onNavigate} />
+                    <RelatedActions actions={action.onAfter} label="After" onNavigate={onNavigate} />
                 </Stack>
                 <Box sx={{ alignItems: 'center', bgcolor: 'background.default', borderTop: 1, borderColor: 'divider', display: 'flex', gap: 1, px: 2, py: 1.5 }}>
                     <Button
@@ -258,8 +258,8 @@ export function ActionPopup(props: ActionPopupProps) {
 
                 <ActionRunHistory entries={controller.history} error={controller.historyError} />
 
-                <RelatedActions actions={action.before} label="Before" onNavigate={onNavigate} />
-                <RelatedActions actions={action.after} label="After" onNavigate={onNavigate} />
+                <RelatedActions actions={action.onBefore} label="Before" onNavigate={onNavigate} />
+                <RelatedActions actions={action.onAfter} label="After" onNavigate={onNavigate} />
             </Stack>
         </ResizablePopover>
     )

@@ -4,6 +4,7 @@ import { getElectronActionBridge } from '../data/electron_action_bridge'
 import { actionRunner, type ActionRunResult } from './action_runner'
 
 const CONVERT_ACTION_NAME = 'convert-remarkable-images-to-text'
+const CONVERT_ACTION_ID = 'md2.convert-remarkable-images-to-text'
 const CONVERT_ACTION_LABEL = 'Convert Remarkable images to text'
 
 export interface ConvertRemarkableImagesInput {
@@ -26,20 +27,24 @@ function buildConvertAction(imagePaths: string[]): ActionDefinition {
     const imageList = imagePaths.map((path) => `- ${path}`).join('\n')
 
     return {
-        after: [],
         agent: null,
         appliesTo: null,
-        before: [],
         builtin: true,
+        command: null,
         description: 'Transcribe imported Remarkable images and append the text to the card.',
         icon: null,
+        id: CONVERT_ACTION_ID,
         label: CONVERT_ACTION_LABEL,
         model: null,
         name: CONVERT_ACTION_NAME,
+        needsWorkTree: false,
         on: [],
+        onAfter: [],
+        onBefore: [],
         onState: null,
-        runIn: 'project',
-        text: `Convert the following Remarkable images to text and append the transcription to {{file}}:\n${imageList}`,
+        prompt: `Convert the following Remarkable images to text and append the transcription to {{file}}:\n${imageList}`,
+        sourcePath: null,
+        thinkingLevel: null,
         type: 'agent',
     }
 }

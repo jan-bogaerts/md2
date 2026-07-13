@@ -3,7 +3,7 @@ import type { ActionDefinition, OnRule } from '../data/action_types'
 import {
     type ActionRunHistoryEntry,
     type AgentExecutionResult,
-    type AgentExecutionRequest,
+    type AgentActionExecutionRequest,
     type CommandActionExecutionRequest,
     getElectronActionBridge,
     type ElectronActionBridge,
@@ -67,7 +67,11 @@ async function defaultCommandRunner(bridge: ElectronActionBridge, request: Comma
     return bridge.runCommand(request)
 }
 
-async function defaultAgentRunner(bridge: ElectronActionBridge, request: AgentExecutionRequest, onEvent?: (event: AgentRunEvent) => void) {
+async function defaultAgentRunner(
+    bridge: ElectronActionBridge,
+    request: AgentActionExecutionRequest,
+    onEvent?: (event: AgentRunEvent) => void,
+) {
     return bridge.runAgent(request, onEvent)
 }
 
@@ -155,7 +159,7 @@ export class ActionRunner {
 
         try {
             await this.runAction(action, context, { agent: input.agent, extraPrompt: input.extraPrompt ?? '', model: input.model, phase: 'main', stack: [], state })
-            await this.notifyActionCompleted(action.name)
+            await this.notifyActionCompleted(action.id)
             await this.environment.refreshProject?.()
 
             return { logs: state.logs, status: state.failed ? 'failed' : 'completed' }
@@ -187,22 +191,22 @@ export class ActionRunner {
     }
 
     private async runAction(action: ActionDefinition, context: ActionContext, options: RunOptions): Promise<string> {
-        if (options.stack.includes(action.name)) {
-            addFailure(action, options, `Circular action call rejected: ${[...options.stack, action.name].join(' -> ')}`)
+        if (options.stack.includes(action.id)) {
+            addFailure(action, options, `Circular action call rejected: ${[...options.stack, action.id].join(' -> ')}`)
 
             return ''
         }
 
-        const stack = [...options.stack, action.name]
+        const stack = [...options.stack, action.id]
 
-        for (const beforeAction of action.before) {
+        for (const beforeAction of action.onBefore) {
             await this.runAction(beforeAction, context, { ...options, phase: 'before', stack })
         }
 
         const output = await this.runMain(action, context, { ...options, stack })
         await this.runOnMatches(action, context, output, { ...options, stack })
 
-        for (const afterAction of action.after) {
+        for (const afterAction of action.onAfter) {
             await this.runAction(afterAction, context, { ...options, phase: 'after', stack })
         }
 
@@ -211,7 +215,7 @@ export class ActionRunner {
 
     private async runMain(action: ActionDefinition, context: ActionContext, options: RunOptions): Promise<string> {
         if (action.type === 'agent') return runAgentAction(this.executionDependencies(), action, context, options)
-        if (action.type === 'cmd') return runCommandAction(this.executionDependencies(), action, context, options)
+        if (action.type === 'command') return runCommandAction(this.executionDependencies(), action, context, options)
 
         return ''
     }
@@ -239,11 +243,11 @@ export class ActionRunner {
         }
     }
 
-    private async notifyActionCompleted(actionName: string) {
+    private async notifyActionCompleted(actionId: string) {
         const bridge = this.executionGateway.getBridge()
         if (!bridge?.notifyActionCompleted) return
 
-        await bridge.notifyActionCompleted(actionName)
+        await bridge.notifyActionCompleted(actionId)
     }
 
 }

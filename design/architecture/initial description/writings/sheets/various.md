@@ -2,9 +2,6 @@
 
 
 
-- show icon in tabs when in text-view to show what type it is: action, card, regular md file
-
-
 - Markdown styles need to be
   editable
   -> predefined names are
@@ -39,3 +36,4 @@
   changing -> old files need to be
   renamed -> show dialog with
   warning
+- show icon in tabs when in text-view to show what type it is: action, card, regular md file

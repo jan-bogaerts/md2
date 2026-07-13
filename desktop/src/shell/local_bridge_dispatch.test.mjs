@@ -23,13 +23,14 @@ function createDispatch(options = {}) {
         commit: vi.fn(async () => []),
         hasPendingPush: vi.fn(async () => false),
         loadFile: vi.fn(async () => ({ content: '# Root', path: 'design/F-1.md' })),
-        loadActionFiles: vi.fn(async () => [{
+        loadActionFiles: vi.fn(async () => options.actionFiles ?? [{
             content: JSON.stringify({
+                command: 'npm test {{file}} {{prompt}}',
                 description: 'Run tests',
+                id: 'test',
                 label: 'Test',
                 name: 'test',
-                text: 'npm test {{file}} {{prompt}}',
-                type: 'cmd',
+                type: 'command',
             }),
             path: 'actions/test.json',
         }]),
@@ -115,7 +116,7 @@ describe('createLocalBridgeDispatch', () => {
         await dispatch.dataBridge.loadProject(project, 'design')
         await dispatch.dataBridge.commit({ branch: 'main', files: [], message: 'Update' })
         await dispatch.actionBridge.runCommand({
-            actionName: 'test',
+            actionId: 'test',
             actionsFolder: 'actions',
             context: { file: 'design/F-1.md', kind: 'card' },
             extraInput: 'focus',
@@ -127,17 +128,39 @@ describe('createLocalBridgeDispatch', () => {
         expect(localGitService.runCommand).toHaveBeenCalledWith(project, 'npm test design/F-1.md focus')
     })
 
-    it('rejects unknown command action names', async () => {
+    it('rejects unknown command action ids', async () => {
         const { dispatch } = createDispatch()
         const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
 
         await dispatch.dataBridge.loadProject(project, 'design')
         await expect(dispatch.actionBridge.runCommand({
-            actionName: 'missing',
+            actionId: 'missing',
             actionsFolder: 'actions',
             context: { file: 'design/F-1.md', kind: 'card' },
             extraInput: '',
         })).rejects.toThrow('Unknown action: missing')
+    })
+
+    it('resolves persisted agent prompts inside Electron from an id-only action request', async () => {
+        const actionFiles = [{
+            content: JSON.stringify({
+                description: 'Review files', id: 'review', label: 'Review', name: 'review',
+                prompt: 'Review {{file}}', type: 'agent',
+            }),
+            path: 'actions/review.json',
+        }]
+        const { agentRunnerService, dispatch } = createDispatch({ actionFiles })
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
+        await dispatch.dataBridge.loadProject(project, 'design')
+
+        await dispatch.actionBridge.runAgent({
+            actionId: 'review', actionsFolder: 'actions', context: { file: 'design/F-1.md', kind: 'card' },
+            extraInput: 'Focus tests',
+        }, vi.fn())
+
+        expect(agentRunnerService.run).toHaveBeenCalledWith(project, expect.objectContaining({
+            cardPath: 'design/F-1.md', command: 'codex', prompt: 'Review design/F-1.md\n\nFocus tests', title: 'Review',
+        }), expect.any(Function))
     })
 
     it('invokes shared method table for remote control', async () => {

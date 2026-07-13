@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
+import { CUSTOM_PROMPT_ACTION_ID, CUSTOM_PROMPT_ACTION_NAME, type ActionFile } from '../data/action_types'
 import { loadActionDefinitions } from './action_definition_loader'
-import { CUSTOM_PROMPT_ACTION_NAME } from '../data/action_types'
-import type { ActionFile } from '../data/action_types'
 
 function file(name: string, definition: unknown): ActionFile {
     return { content: JSON.stringify(definition), path: `actions/${name}.json` }
@@ -9,105 +8,100 @@ function file(name: string, definition: unknown): ActionFile {
 
 const IMPLEMENT = {
     description: 'Implement this feature',
+    id: 'action-implement',
     label: 'Implement',
     name: 'implement',
-    text: 'use /implement-feature on {{file}}',
+    prompt: 'use /implement-feature on {{file}}',
     type: 'agent',
 }
 
+const LINT = {
+    command: 'npm run lint',
+    description: 'Lint',
+    id: 'action-lint',
+    label: 'Lint',
+    name: 'lint',
+    type: 'command',
+}
+
 describe('loadActionDefinitions', () => {
-    it('parses a valid definition with all optional fields', () => {
+    it('parses canonical fields, source metadata, and optional values', () => {
         const actions = loadActionDefinitions([file('implement', {
             ...IMPLEMENT,
-            appliesTo: { state: 'design', type: 'feature' },
             agent: 'codex',
+            appliesTo: { state: 'design', type: 'feature' },
             icon: 'icon.svg',
             model: 'gpt-5',
+            needsWorkTree: true,
             onState: 'implementing',
-        })], {profiles: [{ command: 'codex', modelArgument: '--model', models: ['gpt-5'], name: 'codex' }]})
-        const implement = actions.find((action) => action.name === 'implement')
+            thinkingLevel: 'high',
+        })], { profiles: [{ command: 'codex', modelArgument: '--model', models: ['gpt-5'], name: 'codex' }] })
+        const implement = actions.find(({ id }) => id === IMPLEMENT.id)
 
         expect(implement).toMatchObject({
-            agent: 'codex',
-            appliesTo: { state: 'design', type: 'feature' },
-            builtin: false,
-            icon: 'icon.svg',
-            model: 'gpt-5',
-            onState: 'implementing',
-            type: 'agent',
+            agent: 'codex', appliesTo: { state: 'design', type: 'feature' }, builtin: false,
+            icon: 'icon.svg', model: 'gpt-5', needsWorkTree: true, onState: 'implementing',
+            sourcePath: 'actions/implement.json', thinkingLevel: 'high', type: 'agent',
         })
     })
 
-    it('always includes the built-in custom prompt action', () => {
-        const actions = loadActionDefinitions([])
-        const builtin = actions.find((action) => action.name === CUSTOM_PROMPT_ACTION_NAME)
+    it('always includes reserved built-in custom prompt action', () => {
+        const builtin = loadActionDefinitions([]).find(({ id }) => id === CUSTOM_PROMPT_ACTION_ID)
 
-        expect(builtin?.builtin).toBe(true)
-        expect(builtin?.type).toBe('agent')
+        expect(builtin).toMatchObject({ builtin: true, name: CUSTOM_PROMPT_ACTION_NAME, sourcePath: null, type: 'agent' })
     })
 
-    it('resolves inline and by-name refs to the same underlying definition', () => {
-        const runLint = { description: 'Lint', label: 'Lint', name: 'runLint', text: 'npm run lint', type: 'cmd' }
+    it('resolves ID links and regular-expression rules to shared definitions', () => {
         const actions = loadActionDefinitions([
-            file('implement', { ...IMPLEMENT, after: ['runLint'] }),
-            file('check', { description: 'Check', label: 'Check', name: 'check', text: 'echo', type: 'cmd', before: [runLint] }),
+            file('lint', LINT),
+            file('implement', {
+                ...IMPLEMENT,
+                on: [{ actionId: LINT.id, condition: 'error' }],
+                onAfter: [LINT.id],
+                onBefore: [LINT.id],
+            }),
         ])
-        const fromRef = actions.find((action) => action.name === 'implement')?.after[0]
-        const fromInline = actions.find((action) => action.name === 'check')?.before[0]
-        const registered = actions.find((action) => action.name === 'runLint')
+        const implement = actions.find(({ id }) => id === IMPLEMENT.id)
+        const lint = actions.find(({ id }) => id === LINT.id)
 
-        expect(fromRef).toBe(registered)
-        expect(fromInline).toBe(registered)
+        expect(implement?.onBefore[0]).toBe(lint)
+        expect(implement?.on[0]).toMatchObject({ action: lint, actionId: LINT.id, condition: 'error' })
+        expect(implement?.onAfter[0]).toBe(lint)
     })
 
-    it('resolves on-rule actions to shared definitions', () => {
-        const retry = { description: 'Retry', label: 'Retry', name: 'retry', text: 'retry', type: 'cmd' }
-        const actions = loadActionDefinitions([
-            file('retry', retry),
-            file('implement', { ...IMPLEMENT, on: [{ action: 'retry', condition: 'error' }] }),
-        ])
-        const rule = actions.find((action) => action.name === 'implement')?.on[0]
-
-        expect(rule?.condition).toBe('error')
-        expect(rule?.action).toBe(actions.find((action) => action.name === 'retry'))
+    it.each([
+        ['invalid json', [{ content: '{ not json', path: 'actions/bad.json' }], /Invalid action json/u],
+        ['missing id', [file('implement', { ...IMPLEMENT, id: undefined })], /field id/u],
+        ['missing prompt', [file('implement', { ...IMPLEMENT, prompt: undefined })], /field prompt/u],
+        ['invalid type', [file('implement', { ...IMPLEMENT, type: 'shell' })], /Invalid action type/u],
+        ['unknown id', [file('implement', { ...IMPLEMENT, onBefore: ['missing'] })], /Unknown action id/u],
+        ['invalid regexp', [file('implement', { ...IMPLEMENT, on: [{ actionId: LINT.id, condition: '[' }] })], /Invalid regular expression/u],
+        ['legacy field', [file('implement', { ...IMPLEMENT, text: 'legacy' })], /Legacy action field text/u],
+        ['legacy type', [file('lint', { ...LINT, type: 'cmd' })], /Legacy action type cmd/u],
+        ['array file', [file('implement', [IMPLEMENT])], /one definition/u],
+    ])('rejects %s', (_label, files, expected) => {
+        expect(() => loadActionDefinitions(files as ActionFile[])).toThrow(expected as RegExp)
     })
 
-    it('throws on invalid json', () => {
-        expect(() => loadActionDefinitions([{ content: '{ not json', path: 'actions/bad.json' }])).toThrow(/Invalid action json/u)
+    it('rejects duplicate IDs and names, including built-in reservations', () => {
+        expect(() => loadActionDefinitions([file('a', IMPLEMENT), file('b', { ...LINT, id: IMPLEMENT.id })])).toThrow(/Duplicate action id/u)
+        expect(() => loadActionDefinitions([file('a', IMPLEMENT), file('b', { ...LINT, name: IMPLEMENT.name })])).toThrow(/Duplicate action name/u)
+        expect(() => loadActionDefinitions([file('a', { ...IMPLEMENT, id: CUSTOM_PROMPT_ACTION_ID })])).toThrow(/Duplicate action id/u)
+        expect(() => loadActionDefinitions([file('a', { ...IMPLEMENT, name: CUSTOM_PROMPT_ACTION_NAME })])).toThrow(/Duplicate action name/u)
     })
 
-    it('throws on a missing required field', () => {
-        const withoutText = { description: 'x', label: 'x', name: 'implement', type: 'agent' }
-        expect(() => loadActionDefinitions([file('implement', withoutText)])).toThrow(/text/u)
-    })
-
-    it('throws on an invalid type', () => {
-        expect(() => loadActionDefinitions([file('implement', { ...IMPLEMENT, type: 'shell' })])).toThrow(/Invalid action type/u)
-    })
-
-    it('throws on an unknown agent profile', () => {
+    it('rejects invalid agent, model, and thinking-level combinations', () => {
+        expect(() => loadActionDefinitions([file('implement', { ...IMPLEMENT, model: 'gpt-5' })])).toThrow(/model requires agent/u)
         expect(() => loadActionDefinitions([file('implement', { ...IMPLEMENT, agent: 'missing' })], { profiles: [] })).toThrow(/Unknown agent profile/u)
-    })
-
-    it('throws on an unknown model for the selected agent profile', () => {
         expect(() => loadActionDefinitions([file('implement', { ...IMPLEMENT, agent: 'codex', model: 'bad' })], {profiles: [{ command: 'codex', models: ['gpt-5'], name: 'codex' }]})).toThrow(/Unknown model/u)
+        expect(() => loadActionDefinitions([file('implement', { ...IMPLEMENT, agent: 'codex', thinkingLevel: 'high' })], {profiles: [{ command: 'codex', name: 'codex' }]})).toThrow(/thinkingLevel requires agent and model/u)
     })
 
-    it('throws on an unknown ref', () => {
-        expect(() => loadActionDefinitions([file('implement', { ...IMPLEMENT, before: ['missing'] })])).toThrow(/Unknown action ref/u)
-    })
-
-    it('throws on a duplicate name', () => {
-        expect(() => loadActionDefinitions([file('a', IMPLEMENT), file('b', IMPLEMENT)])).toThrow(/Duplicate action name/u)
-    })
-
-    it('rejects reuse of the reserved built-in name', () => {
-        expect(() => loadActionDefinitions([file('x', { ...IMPLEMENT, name: CUSTOM_PROMPT_ACTION_NAME })])).toThrow(/reserved/u)
-    })
-
-    it('detects a circular reference across actions', () => {
-        const first = { description: 'A', label: 'A', name: 'a', text: 'a', type: 'cmd', before: ['b'] }
-        const second = { description: 'B', label: 'B', name: 'b', text: 'b', type: 'cmd', before: ['a'] }
-        expect(() => loadActionDefinitions([file('a', first), file('b', second)])).toThrow(/Circular action reference/u)
+    it('detects self references and circular ID chains', () => {
+        expect(() => loadActionDefinitions([file('a', { ...IMPLEMENT, onBefore: [IMPLEMENT.id] })])).toThrow(/Circular action reference/u)
+        expect(() => loadActionDefinitions([
+            file('a', { ...IMPLEMENT, onBefore: [LINT.id] }),
+            file('b', { ...LINT, onAfter: [IMPLEMENT.id] }),
+        ])).toThrow(/Circular action reference/u)
     })
 })

@@ -18,10 +18,10 @@ Stub only. `desktop/remote_control_service.js` is a hand-rolled WebSocket **echo
 ## implementation details
 - Replace the hand-rolled frame handling with the `ws` package (fragmentation, ping/pong, large payloads handled correctly).
 - Define a small JSON-RPC-style message protocol: `{ id, method, params }` requests and `{ id, result | error }` responses, plus server-push events (`watchProject` changes, agent run events) as `{ event, payload }` messages.
-- On the Electron side, route incoming methods to the same service functions the preload uses (`local_git_service`, `agent_runner_service`, `diff_service`) — extract the method table so preload and remote control share one dispatch map instead of duplicating it.
+- On the Electron side, route incoming methods to the same services used by preload. Action starts carry `{ actionId, context, runInput }` and delegate to the Electron action runner; remote clients never send executable action data.
 - On the React side, add a `RemoteControlStorageService` implementing `StorageService` (and the action/agent bridge interfaces) over a WebSocket connection, selected when the app is not running inside Electron and the user enters a remote endpoint.
 - Add authentication: the server generates a one-time token shown in the desktop UI; the remote client must present it on connect. Refuse non-loopback binds unless a token is set.
-- Streamed agent events (`started`, `stdout`, `stderr`, `closed`) must be forwarded as push events keyed by `runId` so the remote UI gets the same live conversation updates as the local one.
+- Forward Electron action events as push events keyed by execution id so remote UI gets the same phase, output, cancellation, and conversation updates as local UI.
 - Keep the existing start/stop/status IPC and toolbar button; extend status with the token/endpoint the user needs to connect.
 
 ## acceptance criteria

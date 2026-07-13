@@ -18,8 +18,12 @@ export function LeftPanelTarget(props: LeftPanelTargetProps) {
     }, [setTargetElement])
 
     return (
-        <Box sx={{ p: PANEL_PADDING }}>
-            <Box data-left-panel-target="true" ref={handleTargetElement} />
+        <Box sx={{ boxSizing: 'border-box', height: '100%', minHeight: 0, p: slotCount === 0 ? PANEL_PADDING : 0 }}>
+            <Box
+                data-left-panel-target="true"
+                ref={handleTargetElement}
+                sx={{ height: slotCount > 0 ? '100%' : undefined, minHeight: 0 }}
+            />
             {slotCount === 0 ? (
                 <Typography color="text.secondary" variant="body2">
                     {fallback}

@@ -15,6 +15,7 @@ import { dialogService } from '../../../services/dialog_service'
 import { InvalidSearchPatternError, defaultSearchRegexpAgent, searchActions, searchProject } from '../../../services/search/search_project'
 import type { SearchMode, SearchRegexpAgent, SearchResults as SearchResultsData } from '../../../services/search/search_types'
 import { workspaceNavigationService } from '../../../services/workspace_navigation_service'
+import { useWorkspaceView } from '../../hooks/use_workspace_view'
 import { NO_DRAG_REGION } from '../drag_region'
 import { SearchResults } from './search_results'
 
@@ -35,6 +36,7 @@ export function SearchControl(props: SearchControlProps) {
     const { isMobile = false, regexpAgent = defaultSearchRegexpAgent } = props
     const { snapshot } = useProjectState()
     const { actions } = useActions()
+    const { viewMode } = useWorkspaceView()
     const [query, setQuery] = useState('')
     const [mode, setMode] = useState<SearchMode>('text')
     const [includeBackgroundBody, setIncludeBackgroundBody] = useState(false)
@@ -146,6 +148,13 @@ export function SearchControl(props: SearchControlProps) {
     }
 
     const handleSelectAction = (action: ActionDefinition) => {
+        if (viewMode === 'text') {
+            if (!action.sourcePath) throw new Error(`Action cannot be opened in text view: ${action.id}`)
+            workspaceNavigationService.open(action.sourcePath)
+            setIsDismissed(true)
+            return
+        }
+
         setActionStack([action])
         setIsDismissed(true)
     }

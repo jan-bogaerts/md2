@@ -6,22 +6,26 @@ import { resolveAgentPrompt, resolvePlaceholders } from './action_text'
 
 function action(overrides: Partial<ActionDefinition> = {}): ActionDefinition {
     return {
-        after: [],
         agent: null,
         appliesTo: null,
-        before: [],
         builtin: false,
+        command: null,
         description: 'description',
         icon: null,
+        id: 'action-implement',
         label: 'Implement',
         model: null,
         name: 'implement',
+        needsWorkTree: false,
         on: [],
+        onAfter: [],
+        onBefore: [],
         onState: null,
-        text: 'implement {{file}}',
+        prompt: 'implement {{file}}',
+        sourcePath: 'actions/implement.json',
+        thinkingLevel: null,
         type: 'agent',
         ...overrides,
-        runIn: overrides.runIn ?? 'project',
     }
 }
 
@@ -50,19 +54,19 @@ describe('resolvePlaceholders', () => {
 
 describe('resolveAgentPrompt', () => {
     it('appends extra prompt when the action text has no prompt placeholder', () => {
-        const prompt = resolveAgentPrompt(action({ text: 'implement {{file}}' }), context, project, 'focus tests')
+        const prompt = resolveAgentPrompt(action({ prompt: 'implement {{file}}' }), context, project, 'focus tests')
 
         expect(prompt).toBe('implement design/F-010.md\n\nfocus tests')
     })
 
     it('inserts extra prompt into the prompt placeholder without appending it again', () => {
-        const prompt = resolveAgentPrompt(action({ text: 'custom {{prompt}}' }), context, project, 'write docs')
+        const prompt = resolveAgentPrompt(action({ prompt: 'custom {{prompt}}' }), context, project, 'write docs')
 
         expect(prompt).toBe('custom write docs')
     })
 
     it('does not append empty extra prompt text', () => {
-        const prompt = resolveAgentPrompt(action({ text: 'implement {{file}}' }), context, project, '   ')
+        const prompt = resolveAgentPrompt(action({ prompt: 'implement {{file}}' }), context, project, '   ')
 
         expect(prompt).toBe('implement design/F-010.md')
     })

@@ -6,40 +6,30 @@ function file(name, definition) {
 }
 
 const IMPLEMENT = {
-    description: 'Implement this feature',
-    label: 'Implement',
-    name: 'implement',
-    text: 'use /implement-feature on {{file}}',
-    type: 'agent',
+    description: 'Implement this feature', id: 'action-implement', label: 'Implement',
+    name: 'implement', prompt: 'use /implement-feature on {{file}}', type: 'agent',
+}
+const LINT = {
+    command: 'npm run lint', description: 'Lint', id: 'action-lint', label: 'Lint', name: 'lint', type: 'command',
 }
 
 describe('loadActionDefinitions', () => {
-    it('parses valid definitions and resolves shared refs', () => {
-        const runLint = { description: 'Lint', label: 'Lint', name: 'runLint', text: 'npm run lint', type: 'cmd' }
+    it('parses canonical definitions and resolves shared ID links', () => {
         const actions = loadActionDefinitions([
-            file('implement', { ...IMPLEMENT, after: ['runLint'] }),
-            file('lint', runLint),
+            file('implement', { ...IMPLEMENT, onAfter: [LINT.id] }),
+            file('lint', LINT),
         ])
-        const implement = actions.find((action) => action.name === 'implement')
-        const lint = actions.find((action) => action.name === 'runLint')
+        const implement = actions.find(({ id }) => id === IMPLEMENT.id)
+        const lint = actions.find(({ id }) => id === LINT.id)
 
-        expect(implement?.after[0]).toBe(lint)
+        expect(implement.onAfter[0]).toBe(lint)
+        expect(implement.sourcePath).toBe('actions/implement.json')
     })
 
-    it('rejects invalid definitions with the shared validator', () => {
+    it('rejects legacy, invalid, unknown, and circular definitions through shared validator', () => {
         expect(() => loadActionDefinitions([file('implement', { ...IMPLEMENT, type: 'shell' })])).toThrow(/Invalid action type/u)
-        expect(() => loadActionDefinitions([file('implement', { ...IMPLEMENT, before: ['missing'] })])).toThrow(/Unknown action ref/u)
-        expect(() => loadActionDefinitions([file('implement', { ...IMPLEMENT, runIn: 'workspace' })])).toThrow(/Invalid runIn/u)
-    })
-
-    it('defaults runIn to project and preserves card targets independently in chains', () => {
-        const actions = loadActionDefinitions([
-            file('implement', { ...IMPLEMENT, before: ['prepare'], runIn: 'card' }),
-            file('prepare', { ...IMPLEMENT, name: 'prepare' }),
-        ])
-        const implement = actions.find((action) => action.name === 'implement')
-
-        expect(implement.runIn).toBe('card')
-        expect(implement.before[0].runIn).toBe('project')
+        expect(() => loadActionDefinitions([file('implement', { ...IMPLEMENT, onBefore: ['missing'] })])).toThrow(/Unknown action id/u)
+        expect(() => loadActionDefinitions([file('implement', { ...IMPLEMENT, text: 'legacy' })])).toThrow(/Legacy action field text/u)
+        expect(() => loadActionDefinitions([file('implement', { ...IMPLEMENT, onBefore: [IMPLEMENT.id] })])).toThrow(/Circular action reference/u)
     })
 })

@@ -31,10 +31,11 @@ export function createActionDefinition(input: ConvertPromptToActionInput): RawAc
         ...(input.agent ? { agent: input.agent } : {}),
         appliesTo: input.context.type ? { type: input.context.type } : undefined,
         description: description && description.length > 0 ? description : `Custom prompt action: ${input.label.trim()}`,
+        id: crypto.randomUUID(),
         label: input.label.trim(),
         ...(input.model ? { model: input.model } : {}),
         name,
-        text: input.prompt,
+        prompt: input.prompt,
         type: 'agent',
     }
 }

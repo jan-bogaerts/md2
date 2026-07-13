@@ -14,9 +14,13 @@ import { configService } from '../../../services/config_service'
 import { writeDesktopConfigToBridge } from '../../../services/config_persistence'
 import { projectSessionService } from '../../../services/project_session_service'
 import { workspaceViewService, type WorkspaceViewMode } from '../../../services/workspace_view_service'
+import { workspaceNavigationService } from '../../../services/workspace_navigation_service'
+import { actionService } from '../../../services/action_service'
+import { dialogService } from '../../../services/dialog_service'
 import type { UseGithubAuthResult } from '../../../auth/use_github_auth'
 import { useConfigValue, useHasDesktopConfig } from '../../hooks/use_config_value'
 import { useProjectState } from '../../hooks/use_project_state'
+import { useProjectConfig } from '../../hooks/use_project_config'
 import { useWorkspaceView } from '../../hooks/use_workspace_view'
 import { MainToolbar } from './main_toolbar'
 import { GithubAuthToolbarButton } from '../github_auth_toolbar_button'
@@ -62,6 +66,7 @@ function persistDesktopConfig() {
 export function AppMenu(props: AppMenuProps) {
     const { accessToken, auth, extraActions, isGithubAuthenticated, isMobile, onOpenConfig, onOpenMobileMenu, search } = props
     const { hasPendingPush, hasPendingSave, project } = useProjectState()
+    const projectConfig = useProjectConfig()
     const { viewMode } = useWorkspaceView()
     const [currentTab, setCurrentTab] = useState<AppMenuTab>('home')
     const [dialogMode, setDialogMode] = useState<ProjectDialogMode | null>(null)
@@ -152,6 +157,19 @@ export function AppMenu(props: AppMenuProps) {
 
     const handleModelTextChange = (event: ChangeEvent<HTMLInputElement>) => {
         setModel(event.target.value)
+    }
+
+    const handleCreateAction = async () => {
+        if (!projectConfig) throw new Error('Cannot create an action before project config is loaded')
+
+        try {
+            const { definition, path } = actionService.createDefinition(projectConfig.actionsFolder)
+            await actionService.saveDefinition(path, definition)
+            workspaceViewService.setViewMode('text')
+            workspaceNavigationService.open(path)
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: 'Action creation failed' })
+        }
     }
 
     const handleDiscardGithubPendingCommits = () => {
@@ -308,7 +326,7 @@ export function AppMenu(props: AppMenuProps) {
                                 />
                             </Tooltip>
                         )}
-                        <Button disabled size="small" variant="outlined">Add action</Button>
+                        <Button disabled={!project} onClick={handleCreateAction} size="small" variant="outlined">New action</Button>
                         <Button disabled size="small" variant="outlined">Add chatbot</Button>
                     </Section>
                 </Tab>

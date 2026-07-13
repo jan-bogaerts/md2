@@ -18,7 +18,7 @@ Agent runs are batch: `runProcessWithInput` in `desktop/local_git_service.js` bu
 ## implementation details
 - Replace the fire-and-forget spawn with a managed agent process registry in the desktop app: each run gets an id, spawn handle, log file path and status.
 - Stream stdout/stderr chunks to the renderer through preload callbacks (e.g. `onAgentOutput(runId, chunk, channel)`), and expose `sendAgentInput(runId, text)` to forward stdin.
-- Write the conversation JSON incrementally: create it with status `running` when the process starts, append messages as chunks arrive (throttled), and finalize with `completed`/`failed` and `completedAt` on exit.
+- Write conversation JSON incrementally: create it as `running`, append ordered events, and finalize as `completed`, `failed`, or `cancelled` with `completedAt`.
 - Update `agent_conversation_service.ts` to track running agents from Electron action-runner events so manual, scheduled, `onState`, and continuation runs all appear in the shell indicator.
 - The conversation UI (card popover and editor bottom panel) shows live output for running conversations and offers the one-click `continue` when finished.
 - Keep chain orchestration in the Electron action runner. It awaits the agent phase while React observes intermediate events from the same execution id.
@@ -29,7 +29,7 @@ Agent runs are batch: `runProcessWithInput` in `desktop/local_git_service.js` bu
 - Starting an agent action shows the run as `running` in the shell indicator and in the card/editor conversation UI.
 - stdout/stderr appear incrementally in the conversation view while the agent runs.
 - Text entered while the conversation is running is forwarded to that agent's stdin. Text submitted after completion starts or resumes a linked run instead.
-- The persisted conversation JSON has status `running` during execution and `completed`/`failed` afterwards, with ordered messages.
+- Persisted conversation status is `running` during execution and `completed`, `failed`, or `cancelled` afterwards, with ordered messages.
 - Agent runs started by actions and by `onState` triggers appear in the running-agents indicator.
 - Killing/closing the desktop app terminates running agent processes without corrupting log files.
 - Tests cover the process registry, incremental log writes, action-runner events, live stdin, post-completion continuation, cancellation and indicator updates.

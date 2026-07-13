@@ -130,16 +130,21 @@ describe('MarkdownEditor', () => {
                 fontSize: MARKDOWN_STYLE_PRESETS.handwritten.title1.fontSize,
                 fontStyle: 'normal',
                 fontWeight: 700,
+                textDecoration: 'none',
             },
-            '& .mdxeditor-content p, & .mdxeditor-content ul, & .mdxeditor-content ol, & .mdxeditor-content li': {
+            '& .mdxeditor-content p': {
                 fontFamily: MARKDOWN_STYLE_PRESETS.handwritten.body.fontFamily,
                 fontSize: MARKDOWN_STYLE_PRESETS.handwritten.body.fontSize,
             },
-            '& .mdxeditor-content blockquote, & .mdxeditor-content small': {
-                fontFamily: MARKDOWN_STYLE_PRESETS.handwritten.caption.fontFamily,
-                fontSize: MARKDOWN_STYLE_PRESETS.handwritten.caption.fontSize,
+            '& .mdxeditor-content a': {textDecoration: 'underline'},
+            '& .mdxeditor-content blockquote, & .mdxeditor-content blockquote p': {
+                fontFamily: MARKDOWN_STYLE_PRESETS.handwritten.blockquote.fontFamily,
+                fontSize: MARKDOWN_STYLE_PRESETS.handwritten.blockquote.fontSize,
                 fontStyle: 'italic',
             },
+            '& .mdxeditor-content :not(pre) > code': {fontFamily: MARKDOWN_STYLE_PRESETS.handwritten.inlineCode.fontFamily},
+            '& .mdxeditor-content pre, & .mdxeditor-content pre code': {fontFamily: MARKDOWN_STYLE_PRESETS.handwritten.codeBlock.fontFamily},
+            '& .mdxeditor-content table, & .mdxeditor-content th, & .mdxeditor-content td': {fontFamily: MARKDOWN_STYLE_PRESETS.handwritten.table.fontFamily},
         })
     })
 

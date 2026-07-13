@@ -62,10 +62,10 @@ function contextHistoryKey(context) {
     return safeHistorySegment(`${kind}_${file || folder || 'context'}`)
 }
 
-function historyFilePath(rootPath, actionsFolder, actionName, context) {
+function historyFilePath(rootPath, actionsFolder, actionId, context) {
     const actionsFolderPath = ensureInsideRoot(rootPath, path.join(rootPath, actionsFolder))
     const historyFolderPath = ensureInsideRoot(rootPath, path.join(actionsFolderPath, ACTION_HISTORY_FOLDER))
-    const fileName = `${safeHistorySegment(actionName)}_${contextHistoryKey(context)}.json`
+    const fileName = `${safeHistorySegment(actionId)}_${contextHistoryKey(context)}.json`
 
     return ensureInsideRoot(rootPath, path.join(historyFolderPath, fileName))
 }
@@ -148,11 +148,11 @@ async function loadActionFiles(project, actionsFolder) {
 async function loadActionRunHistory(project, request) {
     const rootPath = requireRootPath(project)
     await assertGitRoot(rootPath)
-    if (!request || typeof request.actionName !== 'string' || request.actionName.length === 0) throw new Error('Missing action history actionName')
+    if (!request || typeof request.actionId !== 'string' || request.actionId.length === 0) throw new Error('Missing action history actionId')
     if (!request.context || typeof request.context !== 'object') throw new Error('Missing action history context')
     if (typeof request.actionsFolder !== 'string' || request.actionsFolder.length === 0) throw new Error('Missing action history actionsFolder')
 
-    const filePath = historyFilePath(rootPath, request.actionsFolder, request.actionName, request.context)
+    const filePath = historyFilePath(rootPath, request.actionsFolder, request.actionId, request.context)
 
     return readJsonArray(filePath)
 }
@@ -160,11 +160,11 @@ async function loadActionRunHistory(project, request) {
 async function appendActionRunHistory(project, request, entry) {
     const rootPath = requireRootPath(project)
     await assertGitRoot(rootPath)
-    if (!request || typeof request.actionName !== 'string' || request.actionName.length === 0) throw new Error('Missing action history actionName')
+    if (!request || typeof request.actionId !== 'string' || request.actionId.length === 0) throw new Error('Missing action history actionId')
     if (!request.context || typeof request.context !== 'object') throw new Error('Missing action history context')
     if (typeof request.actionsFolder !== 'string' || request.actionsFolder.length === 0) throw new Error('Missing action history actionsFolder')
 
-    const filePath = historyFilePath(rootPath, request.actionsFolder, request.actionName, request.context)
+    const filePath = historyFilePath(rootPath, request.actionsFolder, request.actionId, request.context)
     const entries = await readJsonArray(filePath)
     const nextEntries = [...entries, entry]
     await fs.promises.mkdir(path.dirname(filePath), { recursive: true })

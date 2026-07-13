@@ -26,7 +26,7 @@ export async function defaultScheduleAction(action: ActionDefinition, context: A
     const bridge = getElectronActionBridge()
     if (!bridge?.registerActionSchedule) throw new Error('Scheduling actions requires Electron local mode')
 
-    await bridge.registerActionSchedule({ actionName: action.name, context, trigger })
+    await bridge.registerActionSchedule({ actionId: action.id, context, trigger })
 }
 
 export function statusColor(status: PopupRunStatus) {

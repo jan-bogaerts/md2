@@ -50,14 +50,14 @@ function resolvePlaceholders(text, context, project, extraInput) {
 
 function validateActionCommandRequest(request) {
     if (!request || typeof request !== 'object') throw new Error('Missing command action request')
-    if (typeof request.actionName !== 'string' || request.actionName.length === 0) throw new Error('Missing command actionName')
+    if (typeof request.actionId !== 'string' || request.actionId.length === 0) throw new Error('Missing command actionId')
     if (typeof request.actionsFolder !== 'string' || request.actionsFolder.length === 0) throw new Error('Missing command actionsFolder')
     if (!request.context || typeof request.context !== 'object') throw new Error('Missing command context')
 }
 
 function resolveActionPrompt(action, context, project, extraInput) {
-    const resolvedText = resolvePlaceholders(action.text, context, project, extraInput)
-    if (PROMPT_PLACEHOLDER_PATTERN.test(action.text) || extraInput.trim().length === 0) return resolvedText
+    const resolvedText = resolvePlaceholders(action.prompt, context, project, extraInput)
+    if (PROMPT_PLACEHOLDER_PATTERN.test(action.prompt) || extraInput.trim().length === 0) return resolvedText
 
     return `${resolvedText}\n\n${extraInput}`
 }
@@ -79,13 +79,13 @@ function createLocalBridgeDispatch(dependencies) {
 
     async function loadRequestAction(request) {
         if (!request || typeof request !== 'object') throw new Error('Missing action request')
-        if (typeof request.actionName !== 'string' || request.actionName.length === 0) throw new Error('Missing actionName')
+        if (typeof request.actionId !== 'string' || request.actionId.length === 0) throw new Error('Missing actionId')
         if (typeof request.actionsFolder !== 'string' || request.actionsFolder.length === 0) throw new Error('Missing actionsFolder')
 
         const files = await localGitService.loadActionFiles(currentLocalProject, request.actionsFolder)
         const actions = loadActionDefinitions(files, readDesktopConfig(desktopConfigStore))
-        const action = actions.find((candidate) => candidate.name === request.actionName)
-        if (!action) throw new Error(`Unknown action: ${request.actionName}`)
+        const action = actions.find((candidate) => candidate.id === request.actionId)
+        if (!action) throw new Error(`Unknown action: ${request.actionId}`)
 
         return action
     }
@@ -227,10 +227,10 @@ function createLocalBridgeDispatch(dependencies) {
 
             return localGitService.loadActionRunHistory(project, request)
         },
-        notifyActionCompleted: (actionName) => {
+        notifyActionCompleted: (actionId) => {
             if (!actionSchedulerService) throw new Error('Action scheduler is not available')
 
-            return actionSchedulerService.handleActionCompleted(actionName)
+            return actionSchedulerService.handleActionCompleted(actionId)
         },
         onScheduledActionRun: (callback) => {
             if (!actionSchedulerService) throw new Error('Action scheduler is not available')
@@ -245,15 +245,15 @@ function createLocalBridgeDispatch(dependencies) {
         },
         runAgent: async (request, callback) => {
             const agentRequest = resolveRunAgentRequest(readDesktopConfig(desktopConfigStore), request)
-            if (!request.actionName) return agentRunnerService.run(currentLocalProject, agentRequest, callback)
+            if (!request.actionId) return agentRunnerService.run(currentLocalProject, agentRequest, callback)
             if (!actionWorktreeExecutionService) throw new Error('Action worktree execution service is not available')
 
             const action = await loadRequestAction(request)
-            if (action.type !== 'agent') throw new Error(`Action is not an agent: ${request.actionName}`)
+            if (action.type !== 'agent') throw new Error(`Action is not an agent: ${request.actionId}`)
 
             return actionWorktreeExecutionService.execute(currentLocalProject, action, request.context, (project) => {
                 const prompt = resolveActionPrompt(action, request.context, project, request.extraInput ?? '')
-                const executionRequest = { ...agentRequest, prompt }
+                const executionRequest = { ...agentRequest, cardPath: request.context.file, prompt, title: action.label }
 
                 return agentRunnerService.run(project, executionRequest, callback)
             })
@@ -262,10 +262,10 @@ function createLocalBridgeDispatch(dependencies) {
             validateActionCommandRequest(request)
             if (!actionWorktreeExecutionService) throw new Error('Action worktree execution service is not available')
             const action = await loadRequestAction(request)
-            if (action.type !== 'cmd') throw new Error(`Action is not a command: ${request.actionName}`)
+            if (action.type !== 'command') throw new Error(`Action is not a command: ${request.actionId}`)
 
             return actionWorktreeExecutionService.execute(currentLocalProject, action, request.context, (project) => {
-                const command = resolvePlaceholders(action.text, request.context, project, request.extraInput ?? '')
+                const command = resolvePlaceholders(action.command, request.context, project, request.extraInput ?? '')
 
                 return localGitService.runCommand(project, command)
             })

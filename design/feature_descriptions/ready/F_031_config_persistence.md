@@ -20,7 +20,7 @@ Persist all config scopes, not only project values: React-app settings survive r
 ## implementation details
 - React scope: persist `react.*` (and `connection.*`) values to localStorage under a single key; `ConfigService.init` merges stored values over defaults; `saveDraft` writes them back.
 - Desktop scope: replace env-only config with `electron-store` persistence (the store already exists for theme). Preload exposes `getDesktopConfig`/`setDesktopConfig`; `saveDraft` pushes desktop values through the bridge. Env vars remain as initial defaults on first run.
-- Make the desktop config the single source of truth for the agent command: `preload.js` `continueAgentConversation` must read the stored value (kept in sync via `setDesktopConfig`), matching what `ActionRunner` uses.
+- Make desktop config the single source of truth for supported agent commands. The Electron action runner and conversation continuation resolve the same stored value; React never constructs the executable command.
 - Wire up or remove the dead entries: `react.showStartupSplash` gates the `StartupSplash` rendering in `app.tsx`; `connection.githubScopes` feeds `readGithubAuthConfig`'s scopes (env value stays the fail-fast fallback) — or drop both entries if not wanted.
 - Validation and draft flow stay as they are; only the persistence sinks change.
 

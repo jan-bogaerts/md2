@@ -45,7 +45,7 @@ describe('ActionRunHistory', () => {
         const entries: ActionRunHistoryEntry[] = [{
             command: 'git commit',
             commit: {
-                actionName: 'commit',
+                actionId: 'action-commit',
                 branch: 'main',
                 commit: 'abc1234',
                 completedAt: '2026-07-05T10:00:00.000Z',

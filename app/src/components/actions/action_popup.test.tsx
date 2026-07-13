@@ -8,22 +8,26 @@ import { configService } from '../../services/config_service'
 
 function action(name: string, overrides: Partial<ActionDefinition> = {}): ActionDefinition {
     return {
-        after: [],
         agent: null,
         appliesTo: null,
-        before: [],
         builtin: false,
+        command: 'run',
         description: `${name} description`,
         icon: null,
+        id: `action-${name.toLowerCase().replaceAll(' ', '-')}`,
         label: name,
         model: null,
         name,
+        needsWorkTree: false,
         on: [],
+        onAfter: [],
+        onBefore: [],
         onState: null,
-        text: 'run',
-        type: 'cmd',
+        prompt: null,
+        sourcePath: `actions/${name}.json`,
+        thinkingLevel: null,
+        type: 'command',
         ...overrides,
-        runIn: overrides.runIn ?? 'project',
     }
 }
 
@@ -115,7 +119,7 @@ describe('ActionPopup', () => {
         await waitFor(() => expect(scheduleAction).toHaveBeenCalledWith(
             expect.objectContaining({ name: 'Implement' }),
             context,
-            { actionName: 'Run tests', type: 'afterAction' },
+            { actionId: 'Run tests', type: 'afterAction' },
         ))
     })
 
@@ -230,7 +234,7 @@ describe('ActionPopup', () => {
         const commitEntry = {
             command: 'git commit',
             commit: {
-                actionName: 'commit',
+                actionId: 'action-commit',
                 branch: 'main',
                 commit: 'abc1234',
                 completedAt: '2026-07-05T10:00:00.000Z',
@@ -264,7 +268,7 @@ describe('ActionPopup', () => {
 
     it('converts extra prompt input to an action file', async () => {
         const convertPromptToAction = vi.fn(async () => ({ path: 'actions/custom-review.json' }))
-        renderPopup({ action: action('Custom prompt', { text: '{{prompt}}', type: 'agent' }), convertPromptToAction })
+        renderPopup({ action: action('Custom prompt', { command: null, prompt: '{{prompt}}', type: 'agent' }), convertPromptToAction })
 
         fireEvent.change(screen.getByLabelText('Extra prompt'), { target: { value: 'review this file' } })
         fireEvent.change(screen.getByLabelText('Action label'), { target: { value: 'Custom review' } })
@@ -277,7 +281,7 @@ describe('ActionPopup', () => {
     it('saves and runs a named custom action', async () => {
         const convertPromptToAction = vi.fn(async () => ({ path: 'actions/custom-review.json' }))
         const { runAction } = renderPopup({
-            action: action('Custom prompt', { text: '{{prompt}}', type: 'agent' }),
+            action: action('Custom prompt', { command: null, prompt: '{{prompt}}', type: 'agent' }),
             convertPromptToAction,
             showSaveControls: true,
         })
@@ -304,7 +308,7 @@ describe('ActionPopup', () => {
                 projectLocationMode: 'folder',
             },
         })
-        const customPrompt = action('Custom prompt', { text: '{{prompt}}', type: 'agent' })
+        const customPrompt = action('Custom prompt', { command: null, prompt: '{{prompt}}', type: 'agent' })
         const convertPromptToAction = vi.fn(async () => ({ path: 'actions/custom-review.json' }))
         const { runAction } = renderPopup({
             action: customPrompt,
@@ -337,7 +341,7 @@ describe('ActionPopup', () => {
             throw new Error('Could not save action')
         })
         const { runAction } = renderPopup({
-            action: action('Custom prompt', { text: '{{prompt}}', type: 'agent' }),
+            action: action('Custom prompt', { command: null, prompt: '{{prompt}}', type: 'agent' }),
             convertPromptToAction,
             showSaveControls: true,
         })
@@ -353,7 +357,7 @@ describe('ActionPopup', () => {
     it('shows before and after shortcuts and navigates to them with the same context', () => {
         const before = action('Create branch')
         const after = action('Run tests')
-        const { onNavigate } = renderPopup({ action: action('Implement', { after: [after], before: [before] }) })
+        const { onNavigate } = renderPopup({ action: action('Implement', { onAfter: [after], onBefore: [before] }) })
 
         fireEvent.click(screen.getByRole('button', { name: 'Create branch' }))
         expect(onNavigate).toHaveBeenCalledWith(before)
