@@ -18,10 +18,15 @@ function loadTelemetry() {
     return require('./telemetry')
 }
 
-function startTelemetry(telemetry, environment = { MD2_APTABASE_APP_KEY: 'aptabase-key', MD2_SENTRY_DSN: 'sentry-dsn' }) {
+function startTelemetry(
+    telemetry,
+    environment = { MD2_APTABASE_APP_KEY: 'aptabase-key', MD2_SENTRY_DSN: 'sentry-dsn' },
+    isDevelopment = false,
+) {
     return telemetry.startElectronTelemetry({
         aptabaseClient: telemetryMocks.aptabase,
         environment,
+        isDevelopment,
         sentryClient: telemetryMocks.sentry,
     })
 }
@@ -63,6 +68,17 @@ describe('desktop telemetry', () => {
         expect(telemetryMocks.aptabase.initialize).not.toHaveBeenCalled()
         expect(telemetryMocks.aptabase.trackEvent).not.toHaveBeenCalled()
         expect(telemetryMocks.sentry.captureException).not.toHaveBeenCalled()
+    })
+
+    it('does not initialize Sentry in development', async () => {
+        const telemetry = loadTelemetry()
+
+        await startTelemetry(telemetry, undefined, true)
+        telemetry.captureError(new Error('boom'))
+
+        expect(telemetryMocks.sentry.init).not.toHaveBeenCalled()
+        expect(telemetryMocks.sentry.captureException).not.toHaveBeenCalled()
+        expect(telemetryMocks.aptabase.initialize).toHaveBeenCalledWith('aptabase-key')
     })
 
     it('captures main-process errors and flushes stop telemetry', async () => {

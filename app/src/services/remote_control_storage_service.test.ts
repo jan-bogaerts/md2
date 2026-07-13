@@ -54,8 +54,8 @@ function lastSocket() {
     return socket
 }
 
-function commandRequest() {
-    return { actionId: 'action-test', actionsFolder: 'actions', context: { file: 'design/F-1.md', kind: 'card' as const }, extraInput: '' }
+function actionStartRequest() {
+    return { actionId: 'action-test', context: { file: 'design/F-1.md', kind: 'card' as const }, runInput: {} }
 }
 
 async function flushPromises() {
@@ -90,7 +90,7 @@ describe('RemoteControlStorageService', () => {
     it('rejects error responses', async () => {
         installWebSocket()
         const service = createService()
-        const request = service.runCommand(commandRequest())
+        const request = service.startAction(actionStartRequest())
         const socket = lastSocket()
 
         socket.open()
@@ -153,7 +153,7 @@ describe('RemoteControlStorageService', () => {
     it('fails pending requests clearly when the socket closes', async () => {
         installWebSocket()
         const service = createService()
-        const request = service.runCommand(commandRequest())
+        const request = service.startAction(actionStartRequest())
         const socket = lastSocket()
 
         socket.open()
@@ -191,15 +191,15 @@ describe('RemoteControlStorageService', () => {
     it('sends the token as WebSocket protocol instead of a query parameter', async () => {
         installWebSocket()
         const service = createService()
-        const request = service.runCommand(commandRequest())
+        const request = service.startAction(actionStartRequest())
         const socket = lastSocket()
 
         socket.open()
         await flushPromises()
         const sentRequest = JSON.parse(socket.sent[0]) as { id: string }
-        socket.receive({ id: sentRequest.id, result: { command: 'npm test', exitCode: 0, stderr: '', stdout: 'ok' } })
+        socket.receive({ id: sentRequest.id, result: 'action-1' })
 
-        await expect(request).resolves.toEqual({ command: 'npm test', exitCode: 0, stderr: '', stdout: 'ok' })
+        await expect(request).resolves.toBe('action-1')
         expect(socket.url).toBe('ws://127.0.0.1:1234')
         expect(socket.protocol).toBe('token-1')
     })

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { ActionContext } from '../data/action_context'
 import type { ActionDefinition } from '../data/action_types'
-import type { ActionRunResult } from './action_runner'
+import type { ActionRunResult } from '../data/action_run_types'
 import { convertRemarkableImagesToText } from './remarkable_convert_service'
 
 type RunFn = (action: ActionDefinition, context: ActionContext) => Promise<ActionRunResult>

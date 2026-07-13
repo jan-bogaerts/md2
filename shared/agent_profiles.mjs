@@ -1,6 +1,7 @@
 export const MODEL_PLACEHOLDER = '{{model}}'
 export const SESSION_ID_PLACEHOLDER = '{{sessionId}}'
 export const THINKING_LEVELS = ['none', 'low', 'medium', 'high', 'max']
+export const DEFAULT_AGENT_PROFILE_NAME = 'codex'
 
 const CODEX_MAX_THINKING_LEVEL = 'xhigh'
 

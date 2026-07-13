@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 const require = createRequire(import.meta.url)
 const { ActionSchedulerService } = require('./action_scheduler_service')
+const { ActionRunnerService } = require('./action_runner_service')
 
 const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
 const context = { file: 'design/F-022.md', kind: 'card', type: 'feature' }
@@ -88,21 +89,48 @@ function createLocalGitService(initialSchedules, actionFiles = [createAction()],
 }
 
 function createScheduler(localGitService, timerDependencies = {}) {
+    const actionWorktreeExecutionService = timerDependencies.actionWorktreeExecutionService ?? {
+        execute: vi.fn(async (primaryProject, _action, _context, runner) => ({
+            ...await runner(primaryProject),
+            branch: primaryProject.branch,
+            repositoryRoot: primaryProject.rootPath,
+        })),
+    }
+    const configuredAgentRunnerService = timerDependencies.agentRunnerService ?? { run: vi.fn() }
+    const agentRunnerService = {
+        sendInput: vi.fn(),
+        start: vi.fn(async (executionProject, request, onEvent, onComplete) => {
+            void configuredAgentRunnerService.run(executionProject, request, onEvent).then((result) => onComplete(result.exitCode, {
+                conversation: { id: 'agent-1' }, reference: '.md2-agent-logs/one.json', stderr: result.stderr, stdout: result.stdout,
+            }))
+
+            return { runId: 'agent-1' }
+        }),
+        stop: vi.fn(),
+    }
+    const agentConfigProvider = timerDependencies.agentConfigProvider ?? (() => ({ agent: 'codex', agentProfiles: [], model: '' }))
+    const actionRunnerService = new ActionRunnerService({
+        actionWorktreeExecutionService,
+        agentConfigProvider,
+        agentRunnerService,
+        commandRunner: (executionProject, command) => localGitService.runCommand(executionProject, command),
+        localGitService,
+    })
+
     return new ActionSchedulerService({
-        actionWorktreeExecutionService: {
-            execute: vi.fn(async (primaryProject, _action, _context, runner) => ({
-                ...await runner(primaryProject),
-                branch: primaryProject.branch,
-                repositoryRoot: primaryProject.rootPath,
-            })),
-        },
+        actionRunnerService,
+        actionWorktreeExecutionService,
         agentCommandProvider: () => 'agent-command',
-        agentRunnerService: { run: vi.fn() },
+        agentRunnerService,
         clearTimeout: vi.fn(),
         localGitService,
         now: () => now,
         setTimeout: vi.fn(() => 'timer'),
         ...timerDependencies,
+        actionRunnerService,
+        actionWorktreeExecutionService,
+        agentConfigProvider,
+        agentRunnerService,
     })
 }
 
@@ -229,21 +257,18 @@ describe('ActionSchedulerService', () => {
         expect(localGitService.schedules()).toEqual([{ ...schedule, status: 'done' }])
     })
 
-    it('emits scheduled run events while firing a schedule', async () => {
+    it('emits shared action execution events while firing a schedule', async () => {
         const schedule = createSchedule('schedule-1', 'implement', { timestamp: '2026-07-06T09:59:00.000Z', type: 'at' })
         const localGitService = createLocalGitService([schedule])
         const scheduler = createScheduler(localGitService)
         const events = []
 
-        scheduler.subscribeRunEvents((event) => events.push(event))
+        scheduler.actionRunnerService.subscribe((event) => events.push(event))
         await scheduler.startProject(project)
         await scheduler.fireSchedule('schedule-1')
 
-        expect(events.map((event) => event.type)).toEqual(['started', 'closed'])
-        expect(events[0]).toMatchObject({
-            conversation: { cardPath: 'design/F-022.md', id: 'schedule-1', status: 'running', title: 'Scheduled implement' },
-            runId: 'schedule-1',
-        })
+        expect(events.filter((event) => event.type === 'execution').map((event) => event.status)).toEqual(['running', 'completed'])
+        expect(events[0]).toMatchObject({ actionId: 'implement', rootActionId: 'implement' })
     })
 
     it('applies a scheduled action thinking level and records it in history', async () => {
@@ -260,7 +285,7 @@ describe('ActionSchedulerService', () => {
 
         expect(agentRunner).toHaveBeenCalledWith(project, expect.objectContaining({
             command: 'codex --model GPT 5.5 -c model_reasoning_effort=high',
-        }))
+        }), expect.any(Function))
         expect(localGitService.histories[0]).toMatchObject({
             entry: { agent: 'codex', model: 'GPT 5.5', thinkingLevel: 'high' },
             request: { actionId: 'implement', actionsFolder: 'actions', context },
@@ -279,7 +304,7 @@ describe('ActionSchedulerService', () => {
         await scheduler.startProject(project)
         await scheduler.fireSchedule('schedule-1')
 
-        expect(agentRunner).toHaveBeenCalledWith(project, expect.objectContaining({ command: 'codex --model GPT 5.5' }))
+        expect(agentRunner).toHaveBeenCalledWith(project, expect.objectContaining({ command: 'codex --model GPT 5.5' }), expect.any(Function))
         expect(localGitService.histories[0].entry).toMatchObject({ thinkingLevel: 'none' })
     })
 
@@ -343,7 +368,7 @@ describe('ActionSchedulerService', () => {
         await scheduler.fireSchedule('schedule-2')
 
         expect(localGitService.histories[0]).toMatchObject({
-            entry: { output: 'Scheduled action no longer exists: missing', status: 'failed' },
+            entry: { output: 'Unknown action: missing', status: 'failed' },
             request: { actionId: 'missing', actionsFolder: 'actions', context },
         })
         expect(localGitService.runCommand).toHaveBeenCalledWith(project, 'echo done')

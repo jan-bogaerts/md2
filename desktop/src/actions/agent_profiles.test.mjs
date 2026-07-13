@@ -63,9 +63,26 @@ describe('agent profile resolution', () => {
         expect(resolveAgentCommand({ ...config, thinkingLevel: undefined })).toMatchObject({ command: 'codex', thinkingLevel: 'none' })
     })
 
-    it('does not expose the removed system built-in profile', () => {
+    it('falls back to the default profile when the configured profile is missing', () => {
         expect(BUILTIN_AGENT_PROFILES.map((profile) => profile.name)).not.toContain('system')
-        expect(() => resolveAgentCommand({ agent: 'system', agentProfiles: BUILTIN_AGENT_PROFILES, model: '' })).toThrow('Unknown agent profile: system')
+        expect(resolveAgentCommand({ agent: 'system', agentProfiles: BUILTIN_AGENT_PROFILES, model: '' })).toMatchObject({
+            agent: 'codex', model: BUILTIN_AGENT_PROFILES[0].models[0],
+        })
+    })
+
+    it('ignores stale action overrides when their agent profile is missing', () => {
+        const config = {
+            agent: 'claude',
+            agentProfiles: BUILTIN_AGENT_PROFILES,
+            model: 'sonnet',
+            thinkingLevel: 'medium',
+        }
+
+        expect(resolveAgentCommand(config, {
+            agent: 'missing', model: 'removed-model', thinkingLevel: 'high',
+        })).toMatchObject({
+            agent: 'claude', command: 'claude --model sonnet --effort medium', model: 'sonnet', thinkingLevel: 'medium',
+        })
     })
 
     it('still resolves user-defined free-form command profiles', () => {

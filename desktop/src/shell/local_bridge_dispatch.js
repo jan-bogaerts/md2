@@ -1,9 +1,9 @@
 const { buildResumeAgentCommand, resolveAgentCommand } = require('../actions/agent_profiles.mjs')
 const { loadActionDefinitions } = require('../actions/action_scheduler_service')
 
-const PLACEHOLDER_PATTERN = /\{\{\s*(rootProjectFolder|file|prompt)\s*\}\}/gu
-const PROMPT_PLACEHOLDER_PATTERN = /\{\{\s*prompt\s*\}\}/u
 const WORKTREE_AGENT_REFERENCE_PATTERN = /^worktree:([1-9]\d*):(.*)$/u
+const SEARCH_AGENT_CARD_PATH = '.md2-search-regexp'
+const SEARCH_AGENT_PROMPT_PREFIX = 'Return only a single JavaScript-compatible regular expression pattern (no explanation, no surrounding text or markdown) that matches the following search request:\n\n'
 
 function resolveStartAgentRequest(config, request) {
     const resolved = resolveAgentCommand(config)
@@ -18,66 +18,18 @@ function resolveStartAgentRequest(config, request) {
     }
 }
 
-function resolveRunAgentRequest(config, request, action = null) {
-    if (!request || typeof request !== 'object') throw new Error('Missing agent request')
-
-    const resolved = resolveAgentCommand(config, {
-        ...(typeof request.agent === 'string' && request.agent.length > 0
-            ? { agent: request.agent }
-            : (typeof action?.agent === 'string' && action.agent.length > 0 ? { agent: action.agent } : {})),
-        ...(typeof request.model === 'string'
-            ? { model: request.model }
-            : (typeof action?.model === 'string' ? { model: action.model } : {})),
-        ...(request.thinkingLevel !== undefined
-            ? { thinkingLevel: request.thinkingLevel }
-            : (typeof action?.thinkingLevel === 'string' ? { thinkingLevel: action.thinkingLevel } : {})),
-    })
+function resolveSearchAgent(config) {
+    const resolved = resolveAgentCommand(config)
 
     return {
-        ...request,
-        agent: resolved.agent,
         command: resolved.command,
-        model: resolved.model,
-        thinkingLevel: resolved.thinkingLevel,
         ...(resolved.profile.sessionIdPattern ? { sessionIdPattern: resolved.profile.sessionIdPattern } : {}),
     }
 }
 
-function withAgentMetadata(result, request) {
-    return { ...result, agent: request.agent, model: request.model, thinkingLevel: request.thinkingLevel }
-}
-
-function resolvePlaceholders(text, context, project, extraInput) {
-    return text.replace(PLACEHOLDER_PATTERN, (_match, name) => {
-        if (name === 'rootProjectFolder') {
-            if (!project.rootPath) throw new Error('Cannot resolve rootProjectFolder without a local project rootPath')
-
-            return project.rootPath
-        }
-
-        if (name === 'prompt') return extraInput
-        if (!context.file) throw new Error('Cannot resolve file placeholder without a file context')
-
-        return context.file
-    })
-}
-
-function validateActionCommandRequest(request) {
-    if (!request || typeof request !== 'object') throw new Error('Missing command action request')
-    if (typeof request.actionId !== 'string' || request.actionId.length === 0) throw new Error('Missing command actionId')
-    if (typeof request.actionsFolder !== 'string' || request.actionsFolder.length === 0) throw new Error('Missing command actionsFolder')
-    if (!request.context || typeof request.context !== 'object') throw new Error('Missing command context')
-}
-
-function resolveActionPrompt(action, context, project, extraInput) {
-    const resolvedText = resolvePlaceholders(action.prompt, context, project, extraInput)
-    if (PROMPT_PLACEHOLDER_PATTERN.test(action.prompt) || extraInput.trim().length === 0) return resolvedText
-
-    return `${resolvedText}\n\n${extraInput}`
-}
-
 function createLocalBridgeDispatch(dependencies) {
     const {
+        actionRunnerService,
         actionSchedulerService,
         actionWorktreeExecutionService,
         agentExecutableAvailability,
@@ -233,11 +185,6 @@ function createLocalBridgeDispatch(dependencies) {
     }
 
     const actionBridge = {
-        appendActionRunHistory: async (request, entry) => {
-            const project = await resolveActionProject(request)
-
-            return localGitService.appendActionRunHistory(project, request, entry)
-        },
         generateDiff: async (request) => {
             const project = await resolveRepositoryProject(request.repositoryRoot)
             const result = await diffService.generateDiff(project, request)
@@ -249,15 +196,15 @@ function createLocalBridgeDispatch(dependencies) {
 
             return localGitService.loadActionRunHistory(project, request)
         },
-        notifyActionCompleted: (actionId) => {
-            if (!actionSchedulerService) throw new Error('Action scheduler is not available')
+        cancelActionExecution: (executionId) => {
+            if (!actionRunnerService) throw new Error('Action runner is not available')
 
-            return actionSchedulerService.handleActionCompleted(actionId)
+            return actionRunnerService.cancel(executionId)
         },
-        onScheduledActionRun: (callback) => {
-            if (!actionSchedulerService) throw new Error('Action scheduler is not available')
+        onActionExecution: (callback) => {
+            if (!actionRunnerService) throw new Error('Action runner is not available')
 
-            return actionSchedulerService.subscribeRunEvents(callback)
+            return actionRunnerService.subscribe(callback)
         },
         openInEditor: async (request) => diffService.openInEditor(await resolveRepositoryProject(request.repositoryRoot), request),
         registerActionSchedule: (request) => {
@@ -265,38 +212,30 @@ function createLocalBridgeDispatch(dependencies) {
 
             return actionSchedulerService.registerActionSchedule(request)
         },
-        runAgent: async (request, callback) => {
-            if (!request?.actionId) {
-                const agentRequest = resolveRunAgentRequest(readDesktopConfig(desktopConfigStore), request)
-                const result = await agentRunnerService.run(currentLocalProject, agentRequest, callback)
+        runSearchRegexpAgent: async (input, callback) => {
+            if (typeof input !== 'string' || input.length === 0) throw new Error('Missing regular expression search input')
 
-                return withAgentMetadata(result, agentRequest)
+            const resolved = resolveSearchAgent(readDesktopConfig(desktopConfigStore))
+            const request = {
+                cardPath: SEARCH_AGENT_CARD_PATH,
+                command: resolved.command,
+                prompt: `${SEARCH_AGENT_PROMPT_PREFIX}${input}`,
+                ...(resolved.sessionIdPattern ? { sessionIdPattern: resolved.sessionIdPattern } : {}),
+                title: 'Search RegExp',
             }
-            if (!actionWorktreeExecutionService) throw new Error('Action worktree execution service is not available')
+            const result = await agentRunnerService.run(currentLocalProject, request, callback)
 
-            const action = await loadRequestAction(request)
-            if (action.type !== 'agent') throw new Error(`Action is not an agent: ${request.actionId}`)
-            const agentRequest = resolveRunAgentRequest(readDesktopConfig(desktopConfigStore), request, action)
-
-            return actionWorktreeExecutionService.execute(currentLocalProject, action, request.context, async (project) => {
-                const prompt = resolveActionPrompt(action, request.context, project, request.extraInput ?? '')
-                const executionRequest = { ...agentRequest, cardPath: request.context.file, prompt, title: action.label }
-                const result = await agentRunnerService.run(project, executionRequest, callback)
-
-                return withAgentMetadata(result, agentRequest)
-            })
+            return result.stdout
         },
-        runCommand: async (request) => {
-            validateActionCommandRequest(request)
-            if (!actionWorktreeExecutionService) throw new Error('Action worktree execution service is not available')
-            const action = await loadRequestAction(request)
-            if (action.type !== 'command') throw new Error(`Action is not a command: ${request.actionId}`)
+        sendActionInput: (executionId, input) => {
+            if (!actionRunnerService) throw new Error('Action runner is not available')
 
-            return actionWorktreeExecutionService.execute(currentLocalProject, action, request.context, (project) => {
-                const command = resolvePlaceholders(action.command, request.context, project, request.extraInput ?? '')
+            return actionRunnerService.sendInput(executionId, input)
+        },
+        startAction: (request) => {
+            if (!actionRunnerService) throw new Error('Action runner is not available')
 
-                return localGitService.runCommand(project, command)
-            })
+            return actionRunnerService.start(request)
         },
     }
 

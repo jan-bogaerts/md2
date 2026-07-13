@@ -10,33 +10,14 @@ import { agentCapabilitiesService } from '../services/agent_capabilities_service
 
 function createActionBridge(): ElectronActionBridge {
     return {
-        appendActionRunHistory: vi.fn(async () => []),
+        cancelActionExecution: vi.fn(async () => {}),
         generateDiff: vi.fn(async () => ({ commit: 'commit-1', files: [] })),
         loadActionRunHistory: vi.fn(async () => []),
+        onActionExecution: vi.fn(() => () => {}),
         openInEditor: vi.fn(),
-        runAgent: vi.fn(async () => ({
-            command: 'agent',
-            conversation: {
-                cardPath: 'design/F-1.md',
-                completedAt: '2026-01-01T00:00:00.000Z',
-                continuedFrom: null,
-                events: [],
-                id: 'run-1',
-                messages: [],
-                nativeSessionId: null,
-                path: '.md2-agent-logs/run-1.json',
-                startedAt: '2026-01-01T00:00:00.000Z',
-                status: 'completed' as const,
-                title: 'Run',
-            },
-            exitCode: 0,
-            prompt: 'run',
-            reference: '.md2-agent-logs/run-1.json',
-            runId: 'run-1',
-            stderr: '',
-            stdout: '',
-        })),
-        runCommand: vi.fn(async () => ({ command: 'npm test', exitCode: 0, stderr: '', stdout: 'ok' })),
+        runSearchRegexpAgent: vi.fn(async () => ''),
+        sendActionInput: vi.fn(async () => {}),
+        startAction: vi.fn(async () => 'action-1'),
     }
 }
 

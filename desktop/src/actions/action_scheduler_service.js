@@ -1,7 +1,6 @@
 const { exec } = require('node:child_process')
 const { promisify } = require('node:util')
 const { loadActionDefinitions } = require('../../../shared/action_definitions.mjs')
-const { runScheduledAction } = require('./scheduled_action_runner')
 const { appendActionSchedule, findPendingSchedule, pendingAfterActionSchedules, updateActionScheduleStatus } = require('./schedule_store')
 const { cancelScheduleTimer, clearScheduleTimers, reconcileScheduleTimers } = require('./schedule_timers')
 
@@ -32,10 +31,6 @@ function requireProject(project) {
     if (!project || typeof project.rootPath !== 'string' || project.rootPath.length === 0) throw new Error('Missing scheduler project')
 
     return project
-}
-
-function defaultAgentCommandProvider() {
-    return process.env.MD2_AGENT
 }
 
 function defaultAgentSlotCommandProvider(agentConfigProvider) {
@@ -69,10 +64,8 @@ async function defaultCommandRunner(command, rootPath) {
 
 class ActionSchedulerService {
     constructor(dependencies) {
-        this.agentCommandProvider = dependencies?.agentCommandProvider ?? defaultAgentCommandProvider
-        this.actionWorktreeExecutionService = dependencies?.actionWorktreeExecutionService
+        this.actionRunnerService = dependencies?.actionRunnerService
         this.agentConfigProvider = dependencies?.agentConfigProvider ?? null
-        this.agentRunnerService = dependencies?.agentRunnerService
         this.agentSlotCommandProvider = dependencies?.agentSlotCommandProvider
             ?? (() => defaultAgentSlotCommandProvider(this.agentConfigProvider))
         this.clearTimeout = dependencies?.clearTimeout ?? clearTimeout
@@ -82,7 +75,6 @@ class ActionSchedulerService {
         this.setTimeout = dependencies?.setTimeout ?? setTimeout
         this.project = null
         this.actionsFolder = null
-        this.runEventListeners = new Set()
         this.runningScheduleIds = new Set()
         this.timers = new Map()
     }
@@ -90,6 +82,7 @@ class ActionSchedulerService {
     async startProject(project) {
         this.project = requireProject(project)
         this.actionsFolder = await this.loadActionsFolder()
+        this.actionRunnerService.startProject(this.project, this.actionsFolder)
         await this.reconcile()
     }
 
@@ -98,14 +91,6 @@ class ActionSchedulerService {
         this.runningScheduleIds.clear()
         this.project = null
         this.actionsFolder = null
-    }
-
-    subscribeRunEvents(listener) {
-        if (typeof listener !== 'function') throw new Error('Missing scheduler run event listener')
-
-        this.runEventListeners.add(listener)
-
-        return () => this.runEventListeners.delete(listener)
     }
 
     async registerActionSchedule(request) {
@@ -201,12 +186,9 @@ class ActionSchedulerService {
             const schedule = await this.findPendingSchedule(scheduleId)
             if (!schedule) return
 
-            this.emitScheduleRunEvent(schedule, 'started', 'Scheduled action started')
             await this.updateScheduleStatus(scheduleId, 'running')
             await this.runScheduledAction(schedule)
             await this.updateScheduleStatus(scheduleId, 'done')
-            this.emitScheduleRunEvent(schedule, 'closed', 'Scheduled action completed')
-            await this.handleActionCompleted(schedule.actionId)
         } finally {
             this.runningScheduleIds.delete(scheduleId)
         }
@@ -233,22 +215,12 @@ class ActionSchedulerService {
 
     async runScheduledAction(schedule) {
         try {
-            await runScheduledAction(schedule, await this.createRunnerDependencies())
+            const request = { actionId: schedule.actionId, context: schedule.context, runInput: {} }
+            const executionId = await this.actionRunnerService.start(request)
+            const result = await this.actionRunnerService.wait(executionId)
+            if (result.status !== 'completed' && result.status !== 'okButNotAfter') throw new Error(result.failure ?? 'Scheduled action failed')
         } catch (error) {
             await this.recordSchedulerFailure(schedule, error instanceof Error ? error.message : 'Scheduled action failed')
-        }
-    }
-
-    async createRunnerDependencies() {
-        return {
-            actionWorktreeExecutionService: this.actionWorktreeExecutionService,
-            actionsFolder: await this.requireActionsFolder(),
-            agentCommandProvider: this.agentCommandProvider,
-            agentConfigProvider: this.agentConfigProvider,
-            agentRunnerService: this.agentRunnerService,
-            appendHistory: (actionId, context, entry, project) => this.appendHistory(actionId, context, entry, project),
-            localGitService: this.localGitService,
-            project: this.requireCurrentProject(),
         }
     }
 
@@ -262,27 +234,6 @@ class ActionSchedulerService {
     async appendHistory(actionId, context, entry, project = this.requireCurrentProject()) {
         const request = { actionId, actionsFolder: await this.requireActionsFolder(), context }
         await this.localGitService.appendActionRunHistory(project, request, entry)
-    }
-
-    emitScheduleRunEvent(schedule, type, content) {
-        if (this.runEventListeners.size === 0) return
-
-        const timestamp = new Date().toISOString()
-        const status = type === 'closed' ? 'completed' : 'running'
-        const conversation = {
-            cardPath: schedule.context.file ?? '',
-            completedAt: type === 'closed' ? timestamp : null,
-            events: [{ content, id: `${schedule.id}-${type}`, timestamp, type }],
-            id: schedule.id,
-            messages: [],
-            path: '',
-            startedAt: timestamp,
-            status,
-            title: `Scheduled ${schedule.actionId}`,
-        }
-        const event = { content, conversation, runId: schedule.id, type }
-
-        for (const listener of this.runEventListeners) listener(event)
     }
 
     async loadActionsFolder() {

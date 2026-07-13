@@ -1,4 +1,4 @@
-import { validateAgentSelection } from './agent_profiles.mjs'
+import { findAgentProfile, validateAgentSelection } from './agent_profiles.mjs'
 
 const ACTION_TYPES = ['agent', 'command']
 const LEGACY_FIELDS = ['after', 'before', 'runIn', 'text']
@@ -116,7 +116,10 @@ function validateAgentFields(raw, dependencies, source) {
     }
     if (raw.agent === undefined) return
 
-    validateAgentSelection(dependencies.profiles ?? [], { agent: raw.agent, model: raw.model ?? '' }, source)
+    const profiles = dependencies.profiles ?? []
+    if (!findAgentProfile(profiles, raw.agent)) return
+
+    validateAgentSelection(profiles, { agent: raw.agent, model: raw.model ?? '' }, source)
 }
 
 function validateRawDefinition(value, source, dependencies) {

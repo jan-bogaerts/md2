@@ -155,6 +155,9 @@ export function ActionPopup(props: ActionPopupProps) {
                         Close
                     </Button>
                     <Box sx={{ flex: 1 }} />
+                    {controller.runStatus === 'running' ? (
+                        <Button onClick={controller.handleCancel} size="small" variant="outlined">Cancel</Button>
+                    ) : null}
                     <Button
                         disabled={controller.runStatus === 'running'}
                         onClick={controller.handleToggleSchedule}
@@ -209,9 +212,11 @@ export function ActionPopup(props: ActionPopupProps) {
                     <Button disabled={controller.runStatus === 'running'} onClick={controller.handleToggleSchedule} variant="outlined">
                         Schedule
                     </Button>
-                    <Button disabled={controller.runStatus === 'running'} onClick={controller.handleRun} variant="contained">
-                        Run
-                    </Button>
+                    {controller.runStatus === 'running' ? (
+                        <Button onClick={controller.handleCancel} variant="outlined">Cancel</Button>
+                    ) : (
+                        <Button onClick={controller.handleRun} variant="contained">Run</Button>
+                    )}
                     <Button onClick={onClose}>Close</Button>
                 </Stack>
 

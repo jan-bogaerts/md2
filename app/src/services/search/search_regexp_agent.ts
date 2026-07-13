@@ -1,30 +1,14 @@
-import { type AgentExecutionRequest, type ElectronActionBridge, getElectronActionBridge } from '../../data/electron_action_bridge'
-import { buildAgentCommand, defaultModelForProfile, findAgentProfile } from '../../data/agent_profiles'
+import { type ElectronActionBridge, getElectronActionBridge } from '../../data/electron_action_bridge'
 import type { AgentRunEvent } from '../../data/data_types'
 import { agentConversationService } from '../agent_conversation_service'
-import { configService } from '../config_service'
 import type { SearchRegexpAgent } from './search_types'
 
-// Synthetic card path: never a real project file, only used by the desktop agent runner for log naming.
-const SEARCH_CARD_PATH = '.md2-search-regexp'
-const PROMPT_PREFIX =
-    'Return only a single JavaScript-compatible regular expression pattern (no explanation, no surrounding text or markdown) that matches the following search request:\n\n'
 const CODE_FENCE_PATTERN = /^```[^\n]*\n([\s\S]*?)\n?```$/u
 const REGEX_LITERAL_PATTERN = /^\/(.+)\/[a-z]*$/u
 
 export interface SearchRegexpAgentDependencies {
     bridgeProvider?: () => ElectronActionBridge | null
-    commandProvider?: () => string
     runEventObserver?: (event: AgentRunEvent) => void
-}
-
-function defaultCommandProvider() {
-    const config = configService.getDesktopValues()
-    const profile = findAgentProfile(config.agentProfiles, config.agent)
-    if (!profile) throw new Error(`Unknown agent profile: ${config.agent}`)
-    const model = config.model || defaultModelForProfile(profile)
-
-    return buildAgentCommand(profile, model)
 }
 
 function defaultRunEventObserver(event: AgentRunEvent) {
@@ -59,17 +43,14 @@ export function isSearchRegexpAgentAvailable(bridgeProvider: () => ElectronActio
 
 export function createSearchRegexpAgent(dependencies: SearchRegexpAgentDependencies = {}): SearchRegexpAgent {
     const bridgeProvider = dependencies.bridgeProvider ?? getElectronActionBridge
-    const commandProvider = dependencies.commandProvider ?? defaultCommandProvider
     const runEventObserver = dependencies.runEventObserver ?? defaultRunEventObserver
 
     return async (naturalQuery: string) => {
         const bridge = bridgeProvider()
         if (!bridge) throw new Error('RegExp agent is not available')
 
-        const prompt = `${PROMPT_PREFIX}${naturalQuery}`
-        const request: AgentExecutionRequest = { cardPath: SEARCH_CARD_PATH, command: commandProvider(), prompt, title: 'Search RegExp' }
-        const result = await bridge.runAgent(request, runEventObserver)
+        const result = await bridge.runSearchRegexpAgent(naturalQuery, runEventObserver)
 
-        return extractRegexpExpression(result.stdout)
+        return extractRegexpExpression(result)
     }
 }

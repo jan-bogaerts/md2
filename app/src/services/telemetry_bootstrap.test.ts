@@ -50,6 +50,7 @@ describe('startReactTelemetry', () => {
     beforeEach(() => {
         vi.resetModules()
         vi.stubEnv('APTABASE_APP_KEY', 'aptabase-key')
+        vi.stubEnv('PROD', true)
         vi.stubEnv('SENTRY_DSN', 'sentry-dsn')
         telemetryMocks.aptabaseInit.mockClear()
         telemetryMocks.aptabaseTrackEvent.mockClear()
@@ -82,6 +83,16 @@ describe('startReactTelemetry', () => {
         startReactTelemetry()
 
         expect(telemetryMocks.aptabaseTrackEvent).toHaveBeenCalledWith('react_start', { runtime: 'react_electron' })
+    })
+
+    it('does not initialize Sentry in development', async () => {
+        vi.stubEnv('PROD', false)
+        const { startReactTelemetry } = await import('./telemetry_bootstrap')
+
+        startReactTelemetry()
+
+        expect(telemetryMocks.sentryInit).not.toHaveBeenCalled()
+        expect(telemetryMocks.aptabaseInit).toHaveBeenCalledWith('aptabase-key')
     })
 
     it('captures global errors and emits stop on unload without details', async () => {

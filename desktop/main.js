@@ -12,6 +12,7 @@ const { readDesktopConfig, resolveBridgeAllowedOrigins, writeDesktopConfig } = r
 const { AgentRunnerService } = require('./src/actions/agent_runner_service')
 const { loadAgentExecutableAvailability } = require('./src/actions/agent_executable_availability')
 const { ActionSchedulerService } = require('./src/actions/action_scheduler_service')
+const { ActionRunnerService } = require('./src/actions/action_runner_service')
 const diffService = require('./src/git/diff_service')
 const { createLocalBridgeDispatch } = require('./src/shell/local_bridge_dispatch')
 const localGitService = require('./src/git/local_git_service')
@@ -49,8 +50,8 @@ const {
 
 const QUIT_FLUSH_TIMEOUT_MS = 5000
 const QUIT_WATCHDOG_TIMEOUT_MS = 10000
-const EVENT_METHODS = new Set(['runAgent', 'startAgentConversation'])
-const SUBSCRIPTION_METHODS = new Set(['onScheduledActionRun', 'watchProject'])
+const EVENT_METHODS = new Set(['runSearchRegexpAgent', 'startAgentConversation'])
+const SUBSCRIPTION_METHODS = new Set(['onActionExecution', 'watchProject'])
 
 const store = new Store()
 Store.initRenderer()
@@ -60,13 +61,20 @@ const actionWorktreeExecutionService = new ActionWorktreeExecutionService({
     runGit: localGitService.runGit,
     worktreeService,
 })
-const actionSchedulerService = new ActionSchedulerService({
+const actionRunnerService = new ActionRunnerService({
     actionWorktreeExecutionService,
     agentConfigProvider: () => readDesktopConfig(store),
     agentRunnerService,
     localGitService,
 })
+const actionSchedulerService = new ActionSchedulerService({
+    actionRunnerService,
+    agentConfigProvider: () => readDesktopConfig(store),
+    localGitService,
+})
+actionRunnerService.setActionCompleted((actionId) => actionSchedulerService.handleActionCompleted(actionId))
 const localBridgeDispatch = createLocalBridgeDispatch({
+    actionRunnerService,
     actionSchedulerService,
     actionWorktreeExecutionService,
     agentExecutableAvailability: loadAgentExecutableAvailability,
@@ -80,7 +88,7 @@ const localBridgeDispatch = createLocalBridgeDispatch({
     worktreeService,
 })
 const remoteControlService = new RemoteControlService(localBridgeDispatch)
-const electronTelemetryStarted = startElectronTelemetry()
+const electronTelemetryStarted = startElectronTelemetry({ isDevelopment: !app.isPackaged })
 const subscriptionCleanups = new Map()
 let isQuittingAfterTelemetry = false
 
@@ -170,7 +178,7 @@ function registerRemarkableBridge() {
 function registerRemoteControlBridge() {
     remoteControlService.setStatusListener(broadcastRemoteControlStatus)
 
-    ipcMain.handle(REMOTE_CONTROL_START_CHANNEL, async () => remoteControlService.start())
+    ipcMain.handle(REMOTE_CONTROL_START_CHANNEL, async () => remoteControlService.start({ host: '0.0.0.0' }))
     ipcMain.handle(REMOTE_CONTROL_STOP_CHANNEL, async () => remoteControlService.stop())
     ipcMain.handle(REMOTE_CONTROL_GET_STATUS_CHANNEL, () => remoteControlService.getStatus())
 }
@@ -255,6 +263,7 @@ async function stopAndQuit() {
         await flushRendererPendingCommits()
         await remoteControlService.stop()
         actionSchedulerService.stop()
+        actionRunnerService.stop()
         agentRunnerService.stopAll()
         await trackEvent('electron_stop')
         await flush()

@@ -90,7 +90,7 @@ async function startElectronTelemetry(options = {}) {
     sentry = options.sentryClient ?? loadSentryClient()
     const environment = options.environment ?? process.env
     const sentryDsn = environment.MD2_SENTRY_DSN
-    sentryEnabled = !!sentry && hasValue(sentryDsn)
+    sentryEnabled = !options.isDevelopment && !!sentry && hasValue(sentryDsn)
 
     if (sentryEnabled) {
         try {

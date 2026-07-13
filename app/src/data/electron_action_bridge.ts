@@ -1,56 +1,8 @@
 import type { ActionContext } from './action_context'
 import type { ActionScheduleTrigger } from './action_schedule_types'
-import type { AgentConversation, AgentRunEvent } from './data_types'
+import type { AgentRunEvent } from './data_types'
 import type { ThinkingLevel } from './agent_profiles'
-
-export interface CommandExecutionResult {
-    branch?: string
-    command: string
-    executionWorktree?: number | null
-    exitCode: number
-    repositoryRoot?: string
-    stderr: string
-    stdout: string
-}
-
-export interface AgentExecutionRequest {
-    cardPath: string
-    command: string
-    prompt: string
-    agent?: string
-    model?: string
-    sessionIdPattern?: string
-    title?: string
-}
-
-export interface AgentActionExecutionRequest {
-    actionId: string
-    actionsFolder: string
-    context: ActionContext
-    extraInput: string
-    agent?: string
-    model?: string
-    thinkingLevel?: ThinkingLevel
-}
-
-export type AgentRunRequest = AgentActionExecutionRequest | AgentExecutionRequest
-
-export interface CommandActionExecutionRequest {
-    actionId: string
-    actionsFolder: string
-    context: ActionContext
-    extraInput: string
-}
-
-export interface AgentExecutionResult extends CommandExecutionResult {
-    agent?: string
-    conversation: AgentConversation
-    model?: string
-    prompt: string
-    reference: string
-    runId: string
-    thinkingLevel?: ThinkingLevel
-}
+import type { ActionExecutionEvent, ActionStartRequest } from './action_run_types'
 
 export interface ActionRunHistoryRequest {
     actionId: string
@@ -121,15 +73,15 @@ export interface OpenInEditorRequest {
 }
 
 export interface ElectronActionBridge {
-    appendActionRunHistory(request: ActionRunHistoryRequest, entry: ActionRunHistoryEntry): Promise<ActionRunHistoryEntry[]>
+    cancelActionExecution(executionId: string): Promise<void>
     generateDiff(request: DiffRequest): Promise<DiffResult>
     loadActionRunHistory(request: ActionRunHistoryRequest): Promise<ActionRunHistoryEntry[]>
-    notifyActionCompleted?(actionId: string): Promise<void>
-    onScheduledActionRun?(callback: (event: AgentRunEvent) => void): () => void
+    onActionExecution(callback: (event: ActionExecutionEvent) => void): () => void
     openInEditor(request: OpenInEditorRequest): Promise<void>
     registerActionSchedule?(request: ActionScheduleRegistrationRequest): Promise<void>
-    runAgent(request: AgentRunRequest, callback?: (event: AgentRunEvent) => void): Promise<AgentExecutionResult>
-    runCommand(request: CommandActionExecutionRequest): Promise<CommandExecutionResult>
+    runSearchRegexpAgent(input: string, callback?: (event: AgentRunEvent) => void): Promise<string>
+    sendActionInput(executionId: string, input: string): Promise<void>
+    startAction(request: ActionStartRequest): Promise<string>
 }
 
 declare global {

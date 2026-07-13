@@ -1,6 +1,6 @@
 use /caveman skill
 Read and implement the feature/job described in: 
-`design\architecture\initial description\writings\running_actions.md`
+`design\feature_descriptions\F_043_remote_control_lan_discovery.md`
 
 You do not need to look at the git status. This is not your concern.  The worktree is what it is, you only need to touch what is required for the above mentioned job/feature description.
 

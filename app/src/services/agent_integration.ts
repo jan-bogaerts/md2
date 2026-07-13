@@ -1,5 +1,6 @@
 import { cardContext, type ActionContext } from '../data/action_context'
 import type { ActionDefinition } from '../data/action_types'
+import type { ActionExecutionEvent } from '../data/action_run_types'
 import { getElectronActionBridge } from '../data/electron_action_bridge'
 import {
     type AgentConversation,
@@ -10,9 +11,9 @@ import {
     type ProjectSnapshot,
     type StorageService,
 } from '../data/data_types'
-import { actionRunner } from './action_runner'
 import { actionService } from './action_service'
 import { agentConversationService, loadAgentConversation } from './agent_conversation_service'
+import { runElectronAction } from './electron_action_runner'
 import { mapWithConcurrency } from './concurrency'
 import { type RequiredDataServiceDependencies } from './data_service_context'
 import { markdownParsingService } from './markdown_parsing_service'
@@ -92,6 +93,7 @@ async function resolveAgentConversations(
 }
 
 export class AgentIntegration {
+    private actionRunIds: Map<string, string> = new Map()
     private conversationsByCardPath: Map<string, AgentConversation[]> = new Map()
     private readonly dependencies: AgentIntegrationDeps
     private errorsByCardPath: Map<string, AgentConversationError[]> = new Map()
@@ -120,9 +122,9 @@ export class AgentIntegration {
     startScheduledRunWatch() {
         this.stopScheduledRunWatch()
         const bridge = getElectronActionBridge()
-        if (!bridge?.onScheduledActionRun) return
+        if (!bridge?.onActionExecution) return
 
-        this.scheduledRunCleanup = bridge.onScheduledActionRun((event) => this.handleScheduledRunEvent(event))
+        this.scheduledRunCleanup = bridge.onActionExecution((event) => this.handleActionExecutionEvent(event))
     }
 
     stopScheduledRunWatch() {
@@ -130,6 +132,8 @@ export class AgentIntegration {
 
         this.scheduledRunCleanup()
         this.scheduledRunCleanup = null
+        for (const runningAgentId of this.actionRunIds.values()) agentConversationService.finishRunningAgent(runningAgentId)
+        this.actionRunIds.clear()
     }
 
     async continueAgentConversation(cardPath: string, sourcePath: string) {
@@ -259,7 +263,7 @@ export class AgentIntegration {
 
     private async runStateAction(action: ActionDefinition, context: ActionContext, cardPath: string) {
         try {
-            const result = await actionRunner.run(action, context)
+            const result = await runElectronAction(action, context)
             if (result.status === 'completed') return
 
             const failedLog = result.logs.find((log) => log.status === 'failed')
@@ -280,14 +284,31 @@ export class AgentIntegration {
         this.upsertAgentConversation(cardPath, event.conversation)
     }
 
-    private handleScheduledRunEvent(event: AgentRunEvent) {
-        agentConversationService.observeRunEvent(event, event.conversation.title)
-        if (!event.conversation.cardPath) {
+    private handleActionExecutionEvent(event: ActionExecutionEvent) {
+        if (event.type === 'execution') this.handleActionExecutionStatus(event)
+        if (!event.agentEvent) return
+
+        agentConversationService.observeRunEvent(event.agentEvent, event.agentEvent.conversation.title)
+        if (!event.agentEvent.conversation.cardPath) {
             this.dependencies.dispatchChanged()
             return
         }
 
-        this.recordAgentRunEvent(event.conversation.cardPath, event)
+        this.recordAgentRunEvent(event.agentEvent.conversation.cardPath, event.agentEvent)
+    }
+
+    private handleActionExecutionStatus(event: ActionExecutionEvent) {
+        if (event.status === 'running' && !this.actionRunIds.has(event.executionId)) {
+            this.actionRunIds.set(event.executionId, agentConversationService.startRunningAgent(`Action ${event.rootActionId}`))
+            return
+        }
+        if (event.status === 'running') return
+
+        const runningAgentId = this.actionRunIds.get(event.executionId)
+        if (!runningAgentId) return
+
+        agentConversationService.finishRunningAgent(runningAgentId)
+        this.actionRunIds.delete(event.executionId)
     }
 
     private upsertAgentConversation(cardPath: string, conversation: AgentConversation) {

@@ -1,16 +1,16 @@
 import { describe, expect, it, vi } from 'vitest'
-import type { AgentExecutionRequest, AgentExecutionResult, ElectronActionBridge } from '../../data/electron_action_bridge'
+import type { ElectronActionBridge } from '../../data/electron_action_bridge'
 import type { AgentConversation, AgentRunEvent } from '../../data/data_types'
 import { createSearchRegexpAgent, extractRegexpExpression, isSearchRegexpAgentAvailable } from './search_regexp_agent'
 
-function conversation(request: AgentExecutionRequest): AgentConversation {
+function conversation(): AgentConversation {
     return {
-        cardPath: request.cardPath,
+        cardPath: '.md2-search-regexp',
         completedAt: '2026-01-01T00:01:00.000Z',
         continuedFrom: null,
         events: [],
         id: 'agent-1',
-        messages: [{ content: request.prompt, id: 'm1', role: 'stdout', timestamp: '2026-01-01T00:01:00.000Z' }],
+        messages: [],
         nativeSessionId: null,
         path: '.md2-agent-logs/one.json',
         startedAt: '2026-01-01T00:00:00.000Z',
@@ -19,150 +19,82 @@ function conversation(request: AgentExecutionRequest): AgentConversation {
     }
 }
 
-function agentResult(request: AgentExecutionRequest, overrides: Partial<AgentExecutionResult> = {}): AgentExecutionResult {
+function makeBridge(runSearchRegexpAgent: ElectronActionBridge['runSearchRegexpAgent']): ElectronActionBridge {
     return {
-        command: request.command,
-        conversation: conversation(request),
-        exitCode: 0,
-        prompt: request.prompt,
-        reference: '.md2-agent-logs/one.json',
-        runId: 'agent-1',
-        stderr: '',
-        stdout: request.prompt,
-        ...overrides,
+        cancelActionExecution: vi.fn(async () => {}),
+        generateDiff: vi.fn(async () => ({ commit: '', files: [] })),
+        loadActionRunHistory: vi.fn(async () => []),
+        onActionExecution: vi.fn(() => () => {}),
+        openInEditor: vi.fn(async () => {}),
+        runSearchRegexpAgent,
+        sendActionInput: vi.fn(async () => {}),
+        startAction: vi.fn(async () => 'action-1'),
     }
 }
 
-function makeBridge(runAgent: ElectronActionBridge['runAgent']): ElectronActionBridge {
-    return {
-        appendActionRunHistory: vi.fn(async () => []),
-        generateDiff: vi.fn(async () => ({ commit: '', files: [] })),
-        loadActionRunHistory: vi.fn(async () => []),
-        openInEditor: vi.fn(async () => {}),
-        runAgent,
-        runCommand: vi.fn(async () => ({ command: '', exitCode: 0, stderr: '', stdout: '' })),
-    }
+function emitAgentEvents(callback?: (event: AgentRunEvent) => void) {
+    callback?.({ content: '', conversation: conversation(), runId: 'agent-1', type: 'started' })
+    callback?.({ content: '', conversation: conversation(), runId: 'agent-1', type: 'closed' })
 }
 
 describe('extractRegexpExpression', () => {
-    it('returns the pattern unchanged for a plain valid pattern string', () => {
+    it('returns a plain valid pattern', () => {
         expect(extractRegexpExpression('foo.*bar')).toBe('foo.*bar')
     })
 
-    it('unwraps a fenced code block with a language tag on the opening fence', () => {
+    it('unwraps fenced code blocks', () => {
         expect(extractRegexpExpression('```regex\nfoo.*bar\n```')).toBe('foo.*bar')
-    })
-
-    it('unwraps a fenced code block without a language tag on the opening fence', () => {
         expect(extractRegexpExpression('```\nfoo.*bar\n```')).toBe('foo.*bar')
     })
 
-    it('unwraps a /pattern/flags regex-literal wrapper and drops the flags', () => {
+    it('unwraps regex literals and drops flags', () => {
         expect(extractRegexpExpression('/foo.*bar/gi')).toBe('foo.*bar')
     })
 
-    it('throws a clear message for an empty result', () => {
+    it('rejects empty and invalid expressions', () => {
         expect(() => extractRegexpExpression('')).toThrow('Agent returned an empty regular expression')
-    })
-
-    it('throws a clear message for a whitespace-only result', () => {
         expect(() => extractRegexpExpression('   \n  ')).toThrow('Agent returned an empty regular expression')
-    })
-
-    it('throws a clear message for a syntactically invalid regular expression', () => {
         expect(() => extractRegexpExpression('(unmatched')).toThrow(/Agent returned an invalid regular expression/)
     })
 })
 
 describe('isSearchRegexpAgentAvailable', () => {
-    it('returns true when the injected bridgeProvider returns a non-null bridge', () => {
+    it('reflects Electron bridge availability', () => {
         expect(isSearchRegexpAgentAvailable(() => makeBridge(vi.fn()))).toBe(true)
-    })
-
-    it('returns false when the injected bridgeProvider returns null', () => {
         expect(isSearchRegexpAgentAvailable(() => null)).toBe(false)
     })
 })
 
 describe('createSearchRegexpAgent', () => {
-    it('throws when the bridge is not available and never calls runAgent', async () => {
-        const runAgent = vi.fn()
-        const commandProvider = vi.fn(() => 'test-agent')
+    it('rejects unavailable Electron execution', async () => {
         const runEventObserver = vi.fn()
-        const agent = createSearchRegexpAgent({ bridgeProvider: () => null, commandProvider, runEventObserver })
+        const agent = createSearchRegexpAgent({ bridgeProvider: () => null, runEventObserver })
 
         await expect(agent('find the beta card')).rejects.toThrow('RegExp agent is not available')
-        expect(runAgent).not.toHaveBeenCalled()
-        expect(commandProvider).not.toHaveBeenCalled()
         expect(runEventObserver).not.toHaveBeenCalled()
     })
 
-    it('runs the agent with the expected request and returns the extracted expression', async () => {
-        const runAgent = vi.fn(async (request: AgentExecutionRequest, callback?: (event: AgentRunEvent) => void) => {
-            callback?.({ content: '', conversation: conversation(request), runId: 'agent-1', type: 'started' })
-            callback?.({ content: '', conversation: conversation(request), runId: 'agent-1', type: 'closed' })
+    it('sends only natural-language input and extracts the returned expression', async () => {
+        const runSearchRegexpAgent = vi.fn(async (_input: string, callback?: (event: AgentRunEvent) => void) => {
+            emitAgentEvents(callback)
 
-            return agentResult(request, { stdout: '```\nfoo.*bar\n```' })
+            return '```\nfoo.*bar\n```'
         })
-        const bridge = makeBridge(runAgent)
-        const commandProvider = vi.fn(() => 'test-agent-cmd')
         const runEventObserver = vi.fn()
-        const agent = createSearchRegexpAgent({ bridgeProvider: () => bridge, commandProvider, runEventObserver })
+        const agent = createSearchRegexpAgent({ bridgeProvider: () => makeBridge(runSearchRegexpAgent), runEventObserver })
 
-        const expression = await agent('find the beta card')
-
-        expect(expression).toBe('foo.*bar')
-        expect(runAgent).toHaveBeenCalledWith(
-            expect.objectContaining({
-                cardPath: '.md2-search-regexp',
-                command: 'test-agent-cmd',
-                prompt: expect.stringContaining('find the beta card'),
-                title: 'Search RegExp',
-            }),
-            runEventObserver,
-        )
+        await expect(agent('find the beta card')).resolves.toBe('foo.*bar')
+        expect(runSearchRegexpAgent).toHaveBeenCalledWith('find the beta card', runEventObserver)
+        expect(runEventObserver.mock.calls.map((call) => call[0].type)).toEqual(['started', 'closed'])
     })
 
-    it('forwards every event emitted by runAgent to the injected runEventObserver in order', async () => {
-        const runAgent = vi.fn(async (request: AgentExecutionRequest, callback?: (event: AgentRunEvent) => void) => {
-            callback?.({ content: '', conversation: conversation(request), runId: 'agent-1', type: 'started' })
-            callback?.({ content: '', conversation: conversation(request), runId: 'agent-1', type: 'closed' })
-
-            return agentResult(request, { stdout: 'foo.*bar' })
-        })
-        const bridge = makeBridge(runAgent)
-        const runEventObserver = vi.fn()
-        const agent = createSearchRegexpAgent({ bridgeProvider: () => bridge, commandProvider: () => 'test-agent', runEventObserver })
-
-        await agent('find the beta card')
-
-        expect(runEventObserver).toHaveBeenCalledTimes(2)
-        expect(runEventObserver.mock.calls[0][0]).toMatchObject({ type: 'started' })
-        expect(runEventObserver.mock.calls[1][0]).toMatchObject({ type: 'closed' })
-    })
-
-    it('propagates a rejection from runAgent unchanged', async () => {
-        const runAgent = vi.fn(async () => {
+    it('propagates execution and extraction errors', async () => {
+        const failedBridge = makeBridge(vi.fn(async () => {
             throw new Error('agent process crashed')
-        })
-        const bridge = makeBridge(runAgent)
-        const agent = createSearchRegexpAgent({ bridgeProvider: () => bridge, commandProvider: () => 'test-agent', runEventObserver: vi.fn() })
+        }))
+        const invalidBridge = makeBridge(vi.fn(async () => 'Sorry, I cannot comply with (this request'))
 
-        await expect(agent('find the beta card')).rejects.toThrow('agent process crashed')
-    })
-
-    it('propagates the extraction error when stdout is not a valid expression', async () => {
-        const runAgent = vi.fn(async (request: AgentExecutionRequest, callback?: (event: AgentRunEvent) => void) => {
-            callback?.({ content: '', conversation: conversation(request), runId: 'agent-1', type: 'started' })
-            callback?.({ content: '', conversation: conversation(request), runId: 'agent-1', type: 'closed' })
-
-            return agentResult(request, { stdout: 'Sorry, I cannot comply with (this request' })
-        })
-        const bridge = makeBridge(runAgent)
-        const runEventObserver = vi.fn()
-        const agent = createSearchRegexpAgent({ bridgeProvider: () => bridge, commandProvider: () => 'test-agent', runEventObserver })
-
-        await expect(agent('find the beta card')).rejects.toThrow(/Agent returned an invalid regular expression/)
-        expect(runEventObserver).toHaveBeenCalledTimes(2)
+        await expect(createSearchRegexpAgent({ bridgeProvider: () => failedBridge })('find cards')).rejects.toThrow('agent process crashed')
+        await expect(createSearchRegexpAgent({ bridgeProvider: () => invalidBridge })('find cards')).rejects.toThrow(/invalid regular expression/)
     })
 })

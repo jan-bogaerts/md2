@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createRequire } from 'node:module'
+import os from 'node:os'
 import WebSocket from 'ws'
 
 const require = createRequire(import.meta.url)
@@ -169,6 +170,24 @@ describe('RemoteControlService', () => {
         await service.stop()
 
         await expect(waitForClose(socket)).resolves.toBeDefined()
-        expect(service.getStatus()).toEqual({ active: false, clientCount: 0, endpoint: null, token: null })
+        expect(service.getStatus()).toEqual({ active: false, clientCount: 0, endpoint: null, hostnameEndpoint: null, ipEndpoints: [], token: null })
+    })
+
+    it('reports hostname and IP endpoints when bound to the LAN', async () => {
+        service = new RemoteControlService(createDispatcher())
+        const status = await service.start({ host: '0.0.0.0' })
+        const port = service.server.address().port
+
+        expect(status.hostnameEndpoint).toBe(`ws://${os.hostname().toLowerCase()}.local:${port}`)
+        expect(status.endpoint).toBe(status.hostnameEndpoint)
+        expect(Array.isArray(status.ipEndpoints)).toBe(true)
+        for (const endpoint of status.ipEndpoints) expect(endpoint).toMatch(/^ws:\/\/\d+\.\d+\.\d+\.\d+:\d+$/)
+    })
+
+    it('requires a token for non-loopback binds', async () => {
+        service = new RemoteControlService(createDispatcher())
+
+        await expect(service.start({ host: '0.0.0.0', token: '' })).resolves.toMatchObject({ token: expect.any(String) })
+        expect(service.getStatus().token).toEqual(expect.any(String))
     })
 })

@@ -92,9 +92,19 @@ describe('loadActionDefinitions', () => {
 
     it('rejects invalid agent, model, and thinking-level combinations', () => {
         expect(() => loadActionDefinitions([file('implement', { ...IMPLEMENT, model: 'gpt-5' })])).toThrow(/model requires agent/u)
-        expect(() => loadActionDefinitions([file('implement', { ...IMPLEMENT, agent: 'missing' })], { profiles: [] })).toThrow(/Unknown agent profile/u)
         expect(() => loadActionDefinitions([file('implement', { ...IMPLEMENT, agent: 'codex', model: 'bad' })], {profiles: [{ command: 'codex', models: ['gpt-5'], name: 'codex' }]})).toThrow(/Unknown model/u)
         expect(() => loadActionDefinitions([file('implement', { ...IMPLEMENT, agent: 'codex', thinkingLevel: 'high' })], {profiles: [{ command: 'codex', models: ['gpt-5'], name: 'codex' }]})).toThrow(/thinkingLevel requires agent and model/u)
+    })
+
+    it('loads an action whose agent profile is no longer configured', () => {
+        const actions = loadActionDefinitions([file('implement', {
+            ...IMPLEMENT,
+            agent: 'missing',
+            model: 'removed-model',
+            thinkingLevel: 'high',
+        })], { profiles: [] })
+
+        expect(actions.find(({ id }) => id === IMPLEMENT.id)).toMatchObject({ agent: 'missing', model: 'removed-model', thinkingLevel: 'high' })
     })
 
     it('detects self references and circular ID chains', () => {

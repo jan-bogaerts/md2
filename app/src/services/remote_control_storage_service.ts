@@ -1,12 +1,9 @@
 import type { ActionFile } from '../data/action_types'
+import type { ActionExecutionEvent, ActionStartRequest } from '../data/action_run_types'
 import type { ActionSchedule } from '../data/action_schedule_types'
 import type {
     ActionRunHistoryEntry,
     ActionRunHistoryRequest,
-    AgentExecutionRequest,
-    AgentExecutionResult,
-    CommandActionExecutionRequest,
-    CommandExecutionResult,
     DiffRequest,
     DiffResult,
     ElectronActionBridge,
@@ -67,6 +64,12 @@ interface WatchProjectPayload {
     subscriptionId: string
 }
 
+interface ActionExecutionPayload {
+    event: ActionExecutionEvent
+    requestId: string
+    subscriptionId: string
+}
+
 const SOCKET_OPEN_STATE = 1
 
 function isResponse(message: RemoteControlResponse | RemoteControlEvent): message is RemoteControlResponse {
@@ -74,12 +77,14 @@ function isResponse(message: RemoteControlResponse | RemoteControlEvent): messag
 }
 
 export class RemoteControlStorageService implements StorageService, ElectronActionBridge {
+    private actionExecutionCallbacks: Map<string, (event: ActionExecutionEvent) => void>
     private connectPromise: Promise<void> | null
     private endpoint: string
     private nextId: number
     private readonly pendingPushBranches: Set<string>
     private pending: Map<string, PendingRequest>
     private requestAgentEvents: Map<string, (event: AgentRunEvent) => void>
+    private requestActionExecutionEvents: Map<string, (event: ActionExecutionEvent) => void>
     private requestWatchEvents: Map<string, (event: ProjectWatchEvent) => void>
     private runAgentEvents: Map<string, (event: AgentRunEvent) => void>
     private socket: WebSocket | null
@@ -87,12 +92,14 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
     private watchCallbacks: Map<string, (event: ProjectWatchEvent) => void>
 
     constructor() {
+        this.actionExecutionCallbacks = new Map()
         this.connectPromise = null
         this.endpoint = ''
         this.nextId = 1
         this.pendingPushBranches = new Set()
         this.pending = new Map()
         this.requestAgentEvents = new Map()
+        this.requestActionExecutionEvents = new Map()
         this.requestWatchEvents = new Map()
         this.runAgentEvents = new Map()
         this.socket = null
@@ -259,8 +266,8 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         }
     }
 
-    async appendActionRunHistory(request: ActionRunHistoryRequest, entry: ActionRunHistoryEntry): Promise<ActionRunHistoryEntry[]> {
-        return this.request<ActionRunHistoryEntry[]>('appendActionRunHistory', [request, entry])
+    async cancelActionExecution(executionId: string): Promise<void> {
+        await this.request('cancelActionExecution', [executionId])
     }
 
     async generateDiff(request: DiffRequest): Promise<DiffResult> {
@@ -271,16 +278,39 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         return this.request<ActionRunHistoryEntry[]>('loadActionRunHistory', [request])
     }
 
+    onActionExecution(callback: (event: ActionExecutionEvent) => void): () => void {
+        const id = this.createRequestId()
+        let subscriptionId: string | null = null
+        this.requestActionExecutionEvents.set(id, callback)
+        void this.sendRequest<{ subscriptionId: string }>({ id, method: 'onActionExecution', params: [] }).then((result) => {
+            subscriptionId = result.subscriptionId
+            this.actionExecutionCallbacks.set(result.subscriptionId, callback)
+            this.requestActionExecutionEvents.delete(id)
+        })
+
+        return () => {
+            this.requestActionExecutionEvents.delete(id)
+            if (!subscriptionId) return
+
+            this.actionExecutionCallbacks.delete(subscriptionId)
+            void this.request('unsubscribe', [subscriptionId])
+        }
+    }
+
     async openInEditor(request: OpenInEditorRequest): Promise<void> {
         await this.request('openInEditor', [request])
     }
 
-    async runAgent(request: AgentExecutionRequest, callback?: (event: AgentRunEvent) => void): Promise<AgentExecutionResult> {
-        return this.requestWithAgentEvents<AgentExecutionResult>('runAgent', [request], callback)
+    async runSearchRegexpAgent(input: string, callback?: (event: AgentRunEvent) => void): Promise<string> {
+        return this.requestWithAgentEvents<string>('runSearchRegexpAgent', [input], callback)
     }
 
-    async runCommand(request: CommandActionExecutionRequest): Promise<CommandExecutionResult> {
-        return this.request<CommandExecutionResult>('runCommand', [request])
+    async sendActionInput(executionId: string, input: string): Promise<void> {
+        await this.request('sendActionInput', [executionId, input])
+    }
+
+    async startAction(request: ActionStartRequest): Promise<string> {
+        return this.request<string>('startAction', [request])
     }
 
     private async requestWithAgentEvents<T>(method: string, params: unknown[], onEvent?: (event: AgentRunEvent) => void): Promise<T> {
@@ -369,12 +399,22 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
     }
 
     private handleEvent(message: RemoteControlEvent) {
+        if (message.event === 'actionExecution') {
+            this.handleActionExecutionEvent(message.payload as ActionExecutionPayload)
+            return
+        }
         if (message.event === 'watchProject') {
             this.handleWatchProjectEvent(message.payload as WatchProjectPayload)
             return
         }
 
         if (message.event === 'agentRun') this.handleAgentRunEvent(message.payload as AgentRunPayload)
+    }
+
+    private handleActionExecutionEvent(payload: ActionExecutionPayload) {
+        const callback = this.actionExecutionCallbacks.get(payload.subscriptionId)
+            ?? this.requestActionExecutionEvents.get(payload.requestId)
+        callback?.(payload.event)
     }
 
     private handleWatchProjectEvent(payload: WatchProjectPayload) {
@@ -392,7 +432,9 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         const error = new Error('Remote-control connection closed')
         for (const pending of this.pending.values()) pending.reject(error)
         this.pending.clear()
+        this.actionExecutionCallbacks.clear()
         this.requestAgentEvents.clear()
+        this.requestActionExecutionEvents.clear()
         this.requestWatchEvents.clear()
         this.runAgentEvents.clear()
         this.watchCallbacks.clear()

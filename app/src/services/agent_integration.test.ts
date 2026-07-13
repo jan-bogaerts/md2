@@ -1,16 +1,17 @@
 ﻿import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { AgentConversation, AgentRunEvent, CommitRequest, MarkdownFile, StorageProjectFiles } from '../data/data_types'
-import { actionRunner } from './action_runner'
+import type { ActionExecutionEvent } from '../data/action_run_types'
+import { runElectronAction } from './electron_action_runner'
 import { configService } from './config_service'
 import { DataService } from './data_service'
 import { conversation, createDeferred, createStorage, waitForWorkerTurn } from './test_support/data_service_test_support'
 
-vi.mock('./action_runner', () => ({ actionRunner: { run: vi.fn(async () => ({ logs: [], status: 'completed' })) } }))
+vi.mock('./electron_action_runner', () => ({ runElectronAction: vi.fn(async () => ({ logs: [], status: 'completed' })) }))
 
 describe('AgentIntegration', () => {
     afterEach(() => {
         vi.useRealTimers()
-        vi.mocked(actionRunner.run).mockClear()
+        vi.mocked(runElectronAction).mockClear()
         delete window.md2Actions
         configService.clear()
     })
@@ -45,7 +46,7 @@ describe('AgentIntegration', () => {
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
         service.cards.moveCard('design/F-2-b.md', 'ready', 0)
 
-        expect(actionRunner.run).toHaveBeenCalledWith(
+        expect(runElectronAction).toHaveBeenCalledWith(
             expect.objectContaining({ name: 'ready-action' }),
             expect.objectContaining({ file: 'design/F-2-b.md', kind: 'card', state: 'ready', type: 'feature' }),
         )
@@ -83,7 +84,7 @@ describe('AgentIntegration', () => {
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
         service.cards.moveCard('design/F-1-a.md', 'ready', 0)
 
-        expect(actionRunner.run).toHaveBeenCalledWith(
+        expect(runElectronAction).toHaveBeenCalledWith(
             expect.objectContaining({ name: 'implement-action', thinkingLevel: 'high' }),
             expect.objectContaining({ file: 'design/F-1-a.md', kind: 'card', state: 'ready', type: 'feature' }),
         )
@@ -91,7 +92,7 @@ describe('AgentIntegration', () => {
 
     it('surfaces failed onState actions on the moved card', async () => {
         configService.init()
-        vi.mocked(actionRunner.run).mockResolvedValueOnce({
+        vi.mocked(runElectronAction).mockResolvedValueOnce({
             logs: [{
                 actionName: 'ready-action',
                 command: 'run',
@@ -168,7 +169,7 @@ describe('AgentIntegration', () => {
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
         service.cards.moveCard('design/F-2-b.md', 'todo', 0)
 
-        expect(actionRunner.run).not.toHaveBeenCalled()
+        expect(runElectronAction).not.toHaveBeenCalled()
     })
 
     it('loads referenced agent conversations onto cards', async () => {
@@ -364,9 +365,9 @@ describe('AgentIntegration', () => {
 
     it('reports desktop-owned scheduled action runs in running agent state', async () => {
         configService.init()
-        let scheduledRunCallback: ((event: AgentRunEvent) => void) | null = null
+        let scheduledRunCallback: ((event: ActionExecutionEvent) => void) | null = null
         window.md2Actions = {
-            onScheduledActionRun: (callback: (event: AgentRunEvent) => void) => {
+            onActionExecution: (callback: (event: ActionExecutionEvent) => void) => {
                 scheduledRunCallback = callback
 
                 return vi.fn()
@@ -378,18 +379,12 @@ describe('AgentIntegration', () => {
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
         if (!scheduledRunCallback) throw new Error('Scheduled run callback not registered')
-        const emitScheduledRun = scheduledRunCallback as (event: AgentRunEvent) => void
+        const emitScheduledRun = scheduledRunCallback as (event: ActionExecutionEvent) => void
 
-        const runningConversation: AgentConversation = { ...conversation(), id: 'schedule-1', status: 'running', title: 'Scheduled implement' }
-        emitScheduledRun({ content: '', conversation: runningConversation, runId: 'schedule-1', type: 'started' })
-        expect(service.getState().runningAgents).toEqual([{ id: 'schedule-1', label: 'Scheduled implement' }])
+        emitScheduledRun({ actionId: 'implement', executionId: 'schedule-1', phase: 'main', rootActionId: 'implement', status: 'running', type: 'execution' })
+        expect(service.getState().runningAgents).toEqual([expect.objectContaining({ label: 'Action implement' })])
 
-        emitScheduledRun({
-            content: '',
-            conversation: { ...runningConversation, completedAt: '2026-01-01T00:02:00.000Z', status: 'completed' },
-            runId: 'schedule-1',
-            type: 'closed',
-        })
+        emitScheduledRun({ actionId: 'implement', executionId: 'schedule-1', phase: 'main', rootActionId: 'implement', status: 'completed', type: 'execution' })
 
         expect(service.getState().runningAgents).toHaveLength(0)
     })

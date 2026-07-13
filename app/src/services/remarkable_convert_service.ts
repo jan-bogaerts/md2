@@ -1,7 +1,8 @@
 import type { ActionContext } from '../data/action_context'
 import type { ActionDefinition } from '../data/action_types'
+import type { ActionRunResult } from '../data/action_run_types'
 import { getElectronActionBridge } from '../data/electron_action_bridge'
-import { actionRunner, type ActionRunResult } from './action_runner'
+import { runElectronAction } from './electron_action_runner'
 
 const CONVERT_ACTION_NAME = 'convert-remarkable-images-to-text'
 const CONVERT_ACTION_ID = 'md2.convert-remarkable-images-to-text'
@@ -62,7 +63,8 @@ export async function convertRemarkableImagesToText(
     if (!isAgentAvailable()) throw new Error('Image-to-text conversion requires an available agent')
     if (input.imagePaths.length === 0) throw new Error('No imported images to convert')
 
-    const run = dependencies.run ?? ((action, context) => actionRunner.run(action, context))
+    const imageList = input.imagePaths.map((path) => `- ${path}`).join('\n')
+    const run = dependencies.run ?? ((action, context) => runElectronAction(action, context, { extraPrompt: imageList }))
     const context: ActionContext = { file: input.cardPath, kind: 'card', ...(input.cardType ? { type: input.cardType } : {}) }
 
     return run(buildConvertAction(input.imagePaths), context)

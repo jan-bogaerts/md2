@@ -1,8 +1,8 @@
 ﻿import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { UseGithubAuthResult } from '../../auth/use_github_auth'
-import type { AgentExecutionRequest, ElectronActionBridge } from '../../data/electron_action_bridge'
-import type { AgentConversation, MarkdownFile, StorageService } from '../../data/data_types'
+import type { ElectronActionBridge } from '../../data/electron_action_bridge'
+import type { MarkdownFile, StorageService } from '../../data/data_types'
 import { configService } from '../../services/config_service'
 import { dataService } from '../../services/data_service'
 import * as searchRegexpAgent from '../../services/search/search_regexp_agent'
@@ -41,39 +41,16 @@ function renderWindow(overrides?: Partial<Parameters<typeof MainWindow>[0]>) {
     return render(mainWindowElement(overrides))
 }
 
-function conversation(request: AgentExecutionRequest): AgentConversation {
-    return {
-        cardPath: request.cardPath,
-        completedAt: '2026-01-01T00:01:00.000Z',
-        continuedFrom: null,
-        events: [],
-        id: 'agent-1',
-        messages: [{ content: request.prompt, id: 'm1', role: 'stdout', timestamp: '2026-01-01T00:01:00.000Z' }],
-        nativeSessionId: null,
-        path: '.md2-agent-logs/one.json',
-        startedAt: '2026-01-01T00:00:00.000Z',
-        status: 'completed',
-        title: 'Search RegExp',
-    }
-}
-
 function installAgentBridge(stdout: string) {
     const bridge: ElectronActionBridge = {
-        appendActionRunHistory: vi.fn(async () => []),
+        cancelActionExecution: vi.fn(async () => {}),
         generateDiff: vi.fn(async () => ({ commit: '', files: [] })),
         loadActionRunHistory: vi.fn(async () => []),
+        onActionExecution: vi.fn(() => () => {}),
         openInEditor: vi.fn(async () => {}),
-        runAgent: vi.fn(async (request: AgentExecutionRequest) => ({
-            command: request.command,
-            conversation: conversation(request),
-            exitCode: 0,
-            prompt: request.prompt,
-            reference: '.md2-agent-logs/one.json',
-            runId: 'agent-1',
-            stderr: '',
-            stdout,
-        })),
-        runCommand: vi.fn(async () => ({ command: '', exitCode: 0, stderr: '', stdout: '' })),
+        runSearchRegexpAgent: vi.fn(async () => stdout),
+        sendActionInput: vi.fn(async () => {}),
+        startAction: vi.fn(async () => 'action-1'),
     }
     window.md2Actions = bridge
 

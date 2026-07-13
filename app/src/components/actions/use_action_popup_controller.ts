@@ -10,13 +10,15 @@ import {
     type ThinkingLevel,
     validateThinkingLevel,
 } from '../../data/agent_profiles'
-import type { ActionRunResult } from '../../services/action_runner'
+import type { ActionRunResult } from '../../data/action_run_types'
 import { useConfigValueOrFallback } from '../hooks/use_config_value'
 import {
+    defaultCancelAction,
     defaultConvertPromptToAction,
     defaultLoadHistory,
     defaultRunAction,
     defaultScheduleAction,
+    type CancelAction,
     type ConvertPromptToAction,
     type LoadHistory,
     type PopupRunStatus,
@@ -29,6 +31,7 @@ const DEFAULT_CONVERT_LABEL_LENGTH = 40
 
 interface ActionPopupControllerInput {
     action: ActionDefinition
+    cancelAction?: CancelAction
     context: ActionContext
     convertPromptToAction?: ConvertPromptToAction
     loadHistory?: LoadHistory
@@ -43,6 +46,7 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
     const configuredAgentProfiles = useConfigValueOrFallback('desktop.agentProfiles', [])
     const configuredModel = useConfigValueOrFallback('desktop.model', '')
     const convertPromptToAction = input.convertPromptToAction ?? defaultConvertPromptToAction
+    const cancelAction = input.cancelAction ?? defaultCancelAction
     const loadHistory = input.loadHistory ?? defaultLoadHistory
     const runAction = input.runAction ?? defaultRunAction
     const scheduleAction = input.scheduleAction ?? defaultScheduleAction
@@ -55,6 +59,7 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
     const [agentOverride, setAgentOverride] = useState<string | null>(null)
     const [convertMessage, setConvertMessage] = useState<string | null>(null)
     const [extraPrompt, setExtraPrompt] = useState('')
+    const [executionId, setExecutionId] = useState<string | null>(null)
     const [history, setHistory] = useState<ActionRunHistoryEntry[]>([])
     const [historyError, setHistoryError] = useState<string | null>(null)
     const [modelOverride, setModelOverride] = useState<string | null>(null)
@@ -100,9 +105,10 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
             const runInput = action.type === 'agent'
                 ? { ...(agent ? { agent } : {}), extraPrompt, ...(model ? { model } : {}), thinkingLevel }
                 : { extraPrompt }
-            const result = await runAction(action, context, runInput)
+            const result = await runAction(action, context, runInput, setExecutionId)
             setRunResult(result)
             setRunStatus(result.status)
+            setExecutionId(null)
             setHistory(await loadHistory(action, context))
         } catch (error) {
             const message = error instanceof Error ? error.message : 'Action run failed'
@@ -112,6 +118,12 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
             })
             setRunStatus('failed')
         }
+    }
+
+    const handleCancel = async () => {
+        if (!executionId) return
+
+        await cancelAction(executionId)
     }
 
     const handleToggleSchedule = () => {
@@ -212,6 +224,7 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
         convertMessage,
         extraPrompt,
         handleActionLabelChange,
+        handleCancel,
         handleAgentChange,
         handleConvertToAction,
         handleExtraPromptChange,

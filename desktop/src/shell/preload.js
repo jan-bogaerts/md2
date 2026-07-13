@@ -51,16 +51,16 @@ const DATA_METHODS = [
     'stopAgent',
 ]
 const ACTION_METHODS = [
-    'appendActionRunHistory',
+    'cancelActionExecution',
     'generateDiff',
     'loadActionRunHistory',
-    'notifyActionCompleted',
     'openInEditor',
     'registerActionSchedule',
-    'runAgent',
-    'runCommand',
+    'runSearchRegexpAgent',
+    'sendActionInput',
+    'startAction',
 ]
-const EVENT_METHODS = new Set(['runAgent', 'startAgentConversation'])
+const EVENT_METHODS = new Set(['runSearchRegexpAgent', 'startAgentConversation'])
 
 let nextEventId = 1
 let desktopConfig = readArgumentJson('md2-desktop-config', {})
@@ -205,7 +205,7 @@ if (!isAllowedOrigin()) {
     }
     const actionBridge = {
         ...createBridge(ACTION_METHODS),
-        onScheduledActionRun: (callback) => subscribeBridge('onScheduledActionRun', [], callback),
+        onActionExecution: (callback) => subscribeBridge('onActionExecution', [], callback),
     }
 
     contextBridge.exposeInMainWorld('md2Theme', themeBridge)

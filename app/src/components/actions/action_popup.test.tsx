@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ActionPopup } from './action_popup'
 import type { ActionDefinition } from '../../data/action_types'
 import type { ActionContext } from '../../data/action_context'
-import type { ActionRunResult } from '../../services/action_runner'
+import type { ActionRunResult } from '../../data/action_run_types'
 import { configService } from '../../services/config_service'
 
 function action(name: string, overrides: Partial<ActionDefinition> = {}): ActionDefinition {
@@ -154,7 +154,7 @@ describe('ActionPopup', () => {
         expect(screen.getByRole('status')).toHaveTextContent('running')
         await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('completed'))
         expect(screen.getByRole('status')).toHaveTextContent('main: Implement completed')
-        expect(runAction).toHaveBeenCalledWith(expect.objectContaining({ name: 'Implement' }), context, { extraPrompt: '' })
+        expect(runAction).toHaveBeenCalledWith(expect.objectContaining({ name: 'Implement' }), context, { extraPrompt: '' }, expect.any(Function))
     })
 
     it('shows failed agent run details from the run log', async () => {
@@ -188,7 +188,7 @@ describe('ActionPopup', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Run' }))
 
         const expectedInput = { extraPrompt: 'focus tests', thinkingLevel: 'none' }
-        await waitFor(() => expect(runAction).toHaveBeenCalledWith(expect.objectContaining({ name: 'Implement' }), context, expectedInput))
+        await waitFor(() => expect(runAction).toHaveBeenCalledWith(expect.objectContaining({ name: 'Implement' }), context, expectedInput, expect.any(Function)))
     })
 
     it('runs the card popup with Control+Enter from the extra prompt', async () => {
@@ -203,7 +203,7 @@ describe('ActionPopup', () => {
         fireEvent.change(screen.getByLabelText('Extra prompt'), { target: { value: 'focus tests' } })
         fireEvent.keyDown(screen.getByLabelText('Extra prompt'), { ctrlKey: true, key: 'Enter' })
 
-        await waitFor(() => expect(runAction).toHaveBeenCalledWith(selectedAction, context, { extraPrompt: 'focus tests', thinkingLevel: 'none' }))
+        await waitFor(() => expect(runAction).toHaveBeenCalledWith(selectedAction, context, { extraPrompt: 'focus tests', thinkingLevel: 'none' }, expect.any(Function)))
     })
 
     it('passes selected agent and model when running an agent action', async () => {
@@ -222,7 +222,7 @@ describe('ActionPopup', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Run' }))
 
         const expectedInput = { agent: 'codex', extraPrompt: 'focus tests', model: 'gpt-5-mini', thinkingLevel: 'none' }
-        await waitFor(() => expect(runAction).toHaveBeenCalledWith(expect.objectContaining({ name: 'Implement' }), context, expectedInput))
+        await waitFor(() => expect(runAction).toHaveBeenCalledWith(expect.objectContaining({ name: 'Implement' }), context, expectedInput, expect.any(Function)))
     })
 
     it('preselects definition thinking level without changing definition for a run override', async () => {
@@ -237,6 +237,7 @@ describe('ActionPopup', () => {
             selectedAction,
             context,
             { extraPrompt: '', thinkingLevel: 'low' },
+            expect.any(Function),
         ))
         expect(selectedAction.thinkingLevel).toBe('high')
     })
@@ -263,6 +264,7 @@ describe('ActionPopup', () => {
             expect.objectContaining({ name: 'Implement' }),
             context,
             { agent: 'claude', extraPrompt: '', model: 'sonnet', thinkingLevel: 'none' },
+            expect.any(Function),
         ))
     })
 
@@ -284,6 +286,7 @@ describe('ActionPopup', () => {
             expect.objectContaining({ name: 'Implement' }),
             context,
             { extraPrompt: '' },
+            expect.any(Function),
         ))
     })
 
@@ -379,6 +382,7 @@ describe('ActionPopup', () => {
             expect.objectContaining({ name: 'Custom prompt' }),
             context,
             { extraPrompt: 'review this file', thinkingLevel: 'none' },
+            expect.any(Function),
         ))
         expect(convertPromptToAction).toHaveBeenCalledWith({ context, label: 'Custom review', prompt: 'review this file' })
     })
@@ -411,6 +415,7 @@ describe('ActionPopup', () => {
             customPrompt,
             context,
             { agent: 'codex', extraPrompt: '', model: 'gpt-5', thinkingLevel: 'none' },
+            expect.any(Function),
         ))
         expect(convertPromptToAction).toHaveBeenCalledWith({
             agent: 'codex',

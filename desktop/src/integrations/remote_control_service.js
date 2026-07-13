@@ -1,5 +1,6 @@
 const crypto = require('node:crypto')
 const http = require('node:http')
+const os = require('node:os')
 const { WebSocketServer } = require('ws')
 
 const DEFAULT_HOST = '127.0.0.1'
@@ -7,13 +8,15 @@ const DEFAULT_PORT = 0
 const SOCKET_OPEN_STATE = 1
 const REMOTE_CONTROL_STOP_CODE = 1001
 const UNAUTHORIZED_STATUS = 401
-const AGENT_EVENT_METHODS = new Set(['runAgent', 'startAgentConversation'])
+const AGENT_EVENT_METHODS = new Set(['runSearchRegexpAgent', 'startAgentConversation'])
 
 function createInactiveState() {
     return {
         active: false,
         clientCount: 0,
         endpoint: null,
+        hostnameEndpoint: null,
+        ipEndpoints: [],
         token: null,
     }
 }
@@ -24,6 +27,20 @@ function createToken() {
 
 function isLoopbackHost(host) {
     return host === '127.0.0.1' || host === 'localhost' || host === '::1'
+}
+
+/** LAN-reachable IPv4 addresses, skipping internal (loopback) and link-local (169.254.x) interfaces. */
+function lanIpv4Addresses() {
+    const addresses = []
+    for (const entries of Object.values(os.networkInterfaces())) {
+        for (const entry of entries ?? []) {
+            if (entry.family !== 'IPv4' || entry.internal) continue
+            if (entry.address.startsWith('169.254.')) continue
+            addresses.push(entry.address)
+        }
+    }
+
+    return addresses
 }
 
 function sendJson(socket, message) {
@@ -67,11 +84,16 @@ class RemoteControlService {
 
         const address = this.server.address()
         const port = address && typeof address === 'object' ? address.port : this.port
+        const loopback = isLoopbackHost(this.host)
+        const hostnameEndpoint = loopback ? null : `ws://${os.hostname().toLowerCase()}.local:${port}`
+        const ipEndpoints = loopback ? [] : lanIpv4Addresses().map((ip) => `ws://${ip}:${port}`)
 
         return {
             active: true,
             clientCount: this.clientCount,
-            endpoint: `ws://${this.host}:${port}`,
+            endpoint: hostnameEndpoint ?? `ws://${this.host}:${port}`,
+            hostnameEndpoint,
+            ipEndpoints,
             token: this.token,
         }
     }
@@ -200,6 +222,7 @@ class RemoteControlService {
 
     async invoke(client, method, params, id) {
         if (method === 'unsubscribe') return this.unsubscribe(client, params)
+        if (method === 'onActionExecution') return this.onActionExecution(client, id)
         if (method === 'watchProject') return this.watchProject(client, params, id)
         if (!this.dispatcher) throw new Error('Remote-control dispatch is not configured')
         if (AGENT_EVENT_METHODS.has(method)) {
@@ -217,6 +240,18 @@ class RemoteControlService {
         const cleanup = this.dispatcher.invoke('watchProject', [
             params[0],
             (event) => sendJson(client, { event: 'watchProject', payload: { event, requestId: id, subscriptionId } }),
+        ])
+        this.addSubscription(client, subscriptionId, cleanup)
+
+        return { subscriptionId }
+    }
+
+    onActionExecution(client, id) {
+        if (!this.dispatcher) throw new Error('Remote-control dispatch is not configured')
+
+        const subscriptionId = crypto.randomUUID()
+        const cleanup = this.dispatcher.invoke('onActionExecution', [
+            (event) => sendJson(client, { event: 'actionExecution', payload: { event, requestId: id, subscriptionId } }),
         ])
         this.addSubscription(client, subscriptionId, cleanup)
 

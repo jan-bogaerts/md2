@@ -42,7 +42,7 @@ export function startReactTelemetry() {
             sentry: { captureException: Sentry.captureException, flush: Sentry.flush, init: Sentry.init },
         },
         runtime: getReactRuntime(),
-        sentryDsn: import.meta.env.SENTRY_DSN,
+        sentryDsn: import.meta.env.PROD ? import.meta.env.SENTRY_DSN : undefined,
     })
     telemetryService.trackEvent('react_start')
 

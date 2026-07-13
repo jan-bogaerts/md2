@@ -1,6 +1,7 @@
 import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Stack, TextField, Typography } from '@mui/material'
 import type { ChangeEvent } from 'react'
 import { useState } from 'react'
+import { parseRemoteConnectString } from '../../data/remote_connect_string'
 import { tryReadRemoteControlConnection, type RemoteControlConnectionSettings } from '../../data/remote_control_connection'
 
 interface RemoteConnectDialogProps {
@@ -31,7 +32,17 @@ export function RemoteConnectDialog(props: RemoteConnectDialogProps) {
         }
     }
 
-    const handleEndpointChange = (event: ChangeEvent<HTMLInputElement>) => setEndpoint(event.target.value)
+    const handleEndpointChange = (event: ChangeEvent<HTMLInputElement>) => {
+        // A pasted connect string (http://host:port/#token) fills both endpoint and token in one step.
+        const connect = parseRemoteConnectString(event.target.value)
+        if (connect) {
+            setEndpoint(connect.endpoint)
+            setToken(connect.token)
+            return
+        }
+
+        setEndpoint(event.target.value)
+    }
     const handleTokenChange = (event: ChangeEvent<HTMLInputElement>) => setToken(event.target.value)
     const handleConnectClick = () => onConnect({ endpoint, token })
 

@@ -1,5 +1,5 @@
 import { Box, Stack, Typography } from '@mui/material'
-import type { ActionRunResult } from '../../services/action_runner'
+import type { ActionRunResult } from '../../data/action_run_types'
 
 interface ActionRunStatusProps {
     color: string
