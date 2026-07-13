@@ -138,7 +138,7 @@ export function CardBodyPopover(props: CardBodyPopoverProps) {
                     <Box ref={setPopupContentElement} sx={{ display: 'flex', flex: 1, flexDirection: 'column', minHeight: 0 }}>
                         <Box
                             sx={{
-                                alignItems: 'center',
+                                alignItems: 'baseline',
                                 borderBottom: '1px solid',
                                 borderColor: 'divider',
                                 display: 'flex',
@@ -147,7 +147,21 @@ export function CardBodyPopover(props: CardBodyPopoverProps) {
                                 padding: '12px 16px 12px 20px',
                             }}
                         >
-                            <Typography id={titleId} sx={{ position: 'absolute', transform: 'scale(0)' }}>
+                            {/* Visually hidden; provides the dialog's accessible name via aria-labelledby. */}
+                            <Typography
+                                id={titleId}
+                                sx={{
+                                    border: 0,
+                                    clip: 'rect(0 0 0 0)',
+                                    height: '1px',
+                                    margin: '-1px',
+                                    overflow: 'hidden',
+                                    padding: 0,
+                                    position: 'absolute',
+                                    whiteSpace: 'nowrap',
+                                    width: '1px',
+                                }}
+                            >
                                 {card.header.id} card details
                             </Typography>
                             <Box

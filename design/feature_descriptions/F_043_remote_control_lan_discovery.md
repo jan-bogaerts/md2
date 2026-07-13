@@ -1,7 +1,7 @@
 ---
 id: F-043
 title: LAN-reachable remote control with hostname display, copy button and QR code
-status: ready
+status: design
 owner: JB
 affects:
 policy:

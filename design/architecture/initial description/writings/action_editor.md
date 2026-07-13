@@ -7,7 +7,7 @@
 - The action service owns the loaded action objects and is the source of truth for display. JSON serialization only happens when a valid action is saved.
 - Each loaded action object retains its source-file path as service metadata. The tree and tabs use the action objects and this metadata, not reparsed JSON strings.
 - Action definitions can be edited in both web and desktop mode.
-- Running actions is a separate concern described in [Running actions](<../Running actions/running_actions.md>).
+- Running actions is a separate concern described in [Running actions](<running_actions.md>).
 
 ## Opening actions
 
@@ -47,7 +47,7 @@
 | `on` | Optional ordered list of regular-expression conditions paired with an action `id`. A matching action runs against this action's output. |
 | `onAfter` | Optional ordered list of action `id` values to run after this action. |
 | `onState` | Optional card state that starts this action when a card receives that state. |
-| `needsWorkTree` | Optional boolean. When set, Electron prepares a dedicated Git worktree before execution. |
+| `needsWorkTree` | Optional boolean. When set, execution requires card context with a valid worktree assignment from the configured worktree list. |
 | `agent` | Optional agent override. When omitted, the application default agent is used. Required when `model` or `thinkingLevel` is set. |
 | `model` | Optional model override for the explicitly selected `agent`. |
 | `thinkingLevel` | Optional thinking-level override for the explicitly selected `agent` and `model`. |
@@ -68,13 +68,13 @@
 
 ## Agent capabilities
 
-- Selecting an agent retrieves its available models from the agent provider API.
-- OpenAI-backed agents retrieve models through the OpenAI API; Claude-backed agents retrieve models through the Claude API.
-- `model` remains disabled until an explicit `agent` is selected and its models have loaded.
-- Selecting a model retrieves the available thinking levels for that agent and model from the same provider API.
-- `thinkingLevel` remains disabled until an explicit `agent` and `model` are selected and the thinking levels have loaded.
-- Provider calls, loading state, and capability errors are owned by an agent-capabilities service rather than by the editor component.
-- A capability error is shown next to the affected control and does not silently substitute static values.
+- Each configured agent profile owns its available model list. Built-in Codex and Claude profiles provide default model lists.
+- Model discovery does not call OpenAI or Claude provider APIs and does not require provider API credentials.
+- `model` remains disabled until an explicit `agent` with a valid, non-empty model list is selected.
+- Thinking-level choices are the fixed values `none`, `low`, `medium`, `high`, and `max`. `none` means no thinking-level override.
+- `thinkingLevel` remains disabled until an explicit `agent` and `model` are selected.
+- Agent availability, profile models, fixed thinking levels, and capability errors are owned by an agent-capabilities service rather than by the editor component.
+- Missing or malformed profile capabilities are shown next to the affected control and are not replaced silently.
 
 ## Validation and saving
 

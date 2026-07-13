@@ -3,7 +3,7 @@
 ## Responsibility
 
 - The execution UI starts actions and shows their live and previous results.
-- Editing an action definition remains the responsibility of the [Action editor](<../Action editor/action_editor.md>).
+- Editing an action definition remains the responsibility of the [Action editor](<action_editor.md>).
 - Actions can only execute through Electron. The Electron-side action runner owns definition lookup, validation, placeholder resolution, chaining, process execution, cancellation, and execution status.
 - The action popup and conversational panel use the same live execution state.
 - Persisted action history is displayed by these surfaces but its storage model is outside this document.
@@ -21,8 +21,9 @@
 
 - On app start:
   - check whether the supported Codex and Claude executables are available and enable or disable them accordingly;
-  - retrieve their available models through the relevant provider API.
-- Extensible agent profiles are a future feature and do not change this execution flow.
+  - load each agent's model list from its configured profile.
+- Built-in Codex and Claude profiles provide default model lists. Profiles can override those lists without requiring a provider API or API credentials.
+- Thinking-level choices are `none`, `low`, `medium`, `high`, and `max`. `none` means that no thinking-level override is passed to the agent.
 - Before an action starts, mark it as `running` so every execution surface can show its state.
 - For an agent action:
   - resolve placeholders in its `prompt`;
@@ -41,11 +42,10 @@
 
 - An action definition can set `needsWorkTree` when it must run in a dedicated Git worktree.
 - When `needsWorkTree` is not set, the action runs in the currently opened project folder.
-- For card context:
-  - use the worktree already assigned to the card when one exists;
-  - otherwise derive the proposed branch name from the card id and title, create the worktree, and assign it to the card.
-- Without card context, ask the user for the branch name before creating the worktree.
-- If Git preparation fails, including a branch collision or invalid branch name, show the Git error and allow the user to enter a custom branch name and retry.
+- When `needsWorkTree` is set, the action requires card context and a valid worktree assignment on that card.
+- The card's one-based worktree value selects a folder from the configured worktree list.
+- A missing assignment, invalid index, unavailable folder, or non-card context rejects the run before a process starts and shows the validation error.
+- Action execution never creates, registers, or assigns a worktree.
 - Worktree preparation does not automatically commit, push, merge, cherry-pick, or transfer changes. Those operations only happen when the user defines and runs explicit actions for them; their failures are normal action failures shown in the execution UI.
 
 ## Card execution state

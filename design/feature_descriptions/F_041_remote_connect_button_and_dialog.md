@@ -1,7 +1,7 @@
 ---
 id: F-041
 title: web app connect button with prefilled connection dialog
-status: ready
+status: design
 owner: JB
 affects:
 policy:

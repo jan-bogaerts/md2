@@ -36,12 +36,12 @@ The existing implementation uses a React-side `ActionRunner`, name-based action 
 - Keep the loaded definitions in the action service for editing, display, filtering, and search. React does not orchestrate or execute them.
 - Show compact entry points near matching cards, files, and folders based on `appliesTo`.
 - Open a resizable popup for the selected action id and context. Show `Run`, `Cancel` while running, and a `Schedule` entry point that delegates to [[F-022]].
-- For agent actions, show extra prompt input and the supported per-run agent/model/thinking-level choices. Extensible agent profiles remain a future feature.
+- For agent actions, show extra prompt input and the supported per-run agent/model/thinking-level choices. Model choices come from configured profiles with built-in defaults; thinking choices are `none`, `low`, `medium`, `high`, and `max`.
 - The renderer sends only `{ actionId, context, runInput }`. Electron reloads and validates the persisted definition by `id`, resolves placeholders, and executes the complete chain.
 - Execute `onBefore` -> main -> matching `on` actions -> `onAfter` in configured order. Reject cycles before execution.
 - Stop the chain on the first failure. `onBefore` failure prevents main. Main failure prevents `on` and `onAfter`. A matched-`on` failure prevents remaining `on` and all `onAfter`. `onAfter` starts only after main and every matched `on` succeed; its failure stops later `onAfter`, fails that linked action, and finishes the selected run as `okButNotAfter`.
 - `Cancel` stops the active Electron process and remaining chain and marks the run cancelled.
-- When `needsWorkTree` is set, Electron prepares the worktree described in `design\architecture\initial description\writings\Running actions\running_actions.md`. It does not automatically commit, push, merge, cherry-pick, or transfer changes.
+- When `needsWorkTree` is set, Electron requires card context and resolves the card's valid assignment from the configured worktree list. It does not create a worktree or automatically commit, push, merge, cherry-pick, or transfer changes.
 - A card keeps its current action in memory. While set, all action entry points for that card are disabled. Completion, failure, or cancellation clears it and publishes an event; it is never persisted.
 - Trigger `onState` actions through the same Electron runner.
 - Watch the actions folder in local Electron mode and publish validated definition changes to React.
@@ -58,7 +58,7 @@ The existing implementation uses a React-side `ActionRunner`, name-based action 
 - `onBefore`, main, `on`, and `onAfter` ordering and failure results follow this specification.
 - A running action can be cancelled and reports running, completed, failed, cancelled, or `okButNotAfter` clearly.
 - A card with a current action disables every action entry point until Electron reports a terminal state.
-- `needsWorkTree` prepares a worktree and reports Git errors with a custom-branch retry without performing implicit integration operations.
+- `needsWorkTree` uses a valid card-assigned worktree, rejects missing or invalid assignments and non-card contexts, and performs no implicit creation or integration operations.
 - Adding, editing, or removing local definitions updates the UI without restarting.
 
 ## see also

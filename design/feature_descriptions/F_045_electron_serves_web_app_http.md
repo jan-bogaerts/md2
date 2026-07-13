@@ -1,7 +1,7 @@
 ---
 id: F-045
 title: electron serves the bundled web app over LAN http for phone remote control
-status: ready
+status: design
 owner: JB
 affects:
 policy:

@@ -16,7 +16,7 @@
     - For agent actions, the output is the latest response.
   - `onAfter`: optional ordered list of action `id` values.
   - `onState`: optional card state that triggers the action.
-  - `needsWorkTree`: optional boolean that asks Electron to prepare a dedicated Git worktree.
+  - `needsWorkTree`: optional boolean that requires card context with a valid worktree assignment from the configured worktree list.
   - `icon`: optional path or SVG used for action entry points.
   - `appliesTo`: optional structured filters that determine when the action is available.
   - optional agent, model, and thinking-level overrides.
