@@ -1,7 +1,7 @@
 ---
 id: F-042
 title: electron accept button and connection status display
-status: design
+status: ready
 owner: JB
 affects:
 policy:

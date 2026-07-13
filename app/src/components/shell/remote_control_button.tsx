@@ -1,58 +1,22 @@
 import { Button, Tooltip } from '@mui/material'
-import { useEffect, useMemo, useState } from 'react'
-import { getElectronRemoteControlBridge, type ElectronRemoteControlBridge, type RemoteControlStatus } from '../../data/electron_remote_control_bridge'
+import { useState } from 'react'
+import type { RemoteControlStatus } from '../../data/electron_remote_control_bridge'
 import { dialogService } from '../../services/dialog_service'
 import { RemoteConnectButton } from './remote_connect_button'
+import { useRemoteControlStatus } from './use_remote_control_status'
 
-const INITIAL_STATUS: RemoteControlStatus = { active: false, clientCount: 0, endpoint: null, token: null }
-
-interface MountState {
-    isMounted: boolean
-}
-
-function statusLabel(status: RemoteControlStatus) {
-    if (!status.active) return 'Remote off'
-
-    return status.clientCount > 0 ? `Remote ${status.clientCount}` : 'Remote on'
+function buttonLabel(status: RemoteControlStatus) {
+    return status.active ? 'Stop accepting' : 'Accept'
 }
 
 function tooltipLabel(status: RemoteControlStatus) {
-    if (!status.endpoint) return 'Remote control is stopped'
-
-    return status.token ? `${status.endpoint} token ${status.token}` : status.endpoint
-}
-
-async function loadRemoteControlStatus(
-    bridge: ElectronRemoteControlBridge,
-    mountState: MountState,
-    setStatus: (status: RemoteControlStatus) => void,
-) {
-    try {
-        const nextStatus = await bridge.getStatus()
-        if (mountState.isMounted) setStatus(nextStatus)
-    } catch (error) {
-        if (mountState.isMounted) dialogService.error(error, { fallbackMessage: 'Remote-control status failed' })
-    }
+    return status.active ? 'stop accepting external connections' : 'accept external connection for web control'
 }
 
 /** Toolbar control: starts/stops the Electron remote-control endpoint, or connects to one from the browser. */
 export function RemoteControlButton() {
-    const bridge = useMemo(() => getElectronRemoteControlBridge(), [])
+    const { bridge, status, setStatus } = useRemoteControlStatus()
     const [isBusy, setIsBusy] = useState(false)
-    const [status, setStatus] = useState<RemoteControlStatus>(INITIAL_STATUS)
-
-    useEffect(() => {
-        if (!bridge) return undefined
-
-        const mountState = { isMounted: true }
-        const unsubscribe = bridge.onStatusChange(setStatus)
-        void loadRemoteControlStatus(bridge, mountState, setStatus)
-
-        return () => {
-            mountState.isMounted = false
-            unsubscribe()
-        }
-    }, [bridge])
 
     if (!bridge) return <RemoteConnectButton />
 
@@ -72,7 +36,7 @@ export function RemoteControlButton() {
         <Tooltip title={tooltipLabel(status)}>
             <span>
                 <Button color={status.active ? 'success' : 'inherit'} disabled={isBusy} onClick={handleClick} size="small" variant="outlined">
-                    {statusLabel(status)}
+                    {buttonLabel(status)}
                 </Button>
             </span>
         </Tooltip>
