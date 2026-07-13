@@ -1,5 +1,5 @@
 ---
-id: F-041
+id: F-7
 title: Electron local-folder project mode
 status: ready
 owner: JB
@@ -7,6 +7,7 @@ affects:
 policy:
   checkLinting: true
   requireTests: true
+internalId: b1fa4c6c-d86c-4917-a5ab-85742a793cef
 ---
 
 ## Goal

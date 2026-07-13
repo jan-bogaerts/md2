@@ -1,5 +1,5 @@
 ---
-id: F-042
+id: F-8
 title: Signed Windows Electron package with bundled React app
 status: design
 owner: JB
@@ -7,6 +7,7 @@ affects:
 policy:
   checkLinting: true
   requireTests: true
+internalId: 964fdcac-159c-49dc-af83-79f532e9651d
 ---
 
 ## Goal

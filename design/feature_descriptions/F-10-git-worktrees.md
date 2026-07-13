@@ -1,12 +1,13 @@
 ---
-id: F-044
+id: F-10
 title: Git worktrees
-status: design
+status: ready
 owner: JB
 affects:
 policy:
   checkLinting: true
   requireTests: true
+internalId: 85f226c7-ca58-4a90-a80b-f783769f0fb9
 ---
 
 ## Goal
@@ -22,7 +23,7 @@ Allow the Electron app to register linked Git worktree folders for the open loca
 ## Current state
 - Electron opens one local Git root and stores it as `currentLocalProject`. File, action, agent, diff, schedule, commit and watch operations use that root.
 - Commands and agents always run with the primary worktree as `cwd`; `{{rootProjectFolder}}` resolves to that path.
-- Project config is saved to repository-root `md2.config.json`. Absolute worktree paths cannot be stored there safely because they are machine-specific and would be committed.
+- Project config is saved to repository-root `md2.config.json`. No ignored local project file exists for machine-specific worktree paths.
 - Card data comes from markdown frontmatter. No worktree assignment exists.
 - `ProjectCardView` uses its lower-right avatar as an Agent conversations button and owns a conversation popover. The same conversation component is still used in text view, while conversation logs also support action history and running-agent state.
 - Agent state currently distinguishes `running`, `completed`, and `failed`. No reliable `waiting for input` event or `done but unseen` acknowledgement exists.
@@ -30,15 +31,19 @@ Allow the Electron app to register linked Git worktree folders for the open loca
 ## Implementation details
 
 ### Worktree registration and persistence
-- Store worktree registrations in Electron-local, project-scoped storage keyed by the repository's canonical Git common directory. Do not add absolute paths to `md2.config.json`.
-- Store each entry as a stable ID plus canonical folder path. List position supplies the one-based display number; assignment must use the stable ID so deletion or reordering cannot retarget a card.
-- Store card-to-worktree assignments in the same local project storage, keyed by `internalId`. Fail clearly when a card has no `internalId`; do not write machine-specific worktree data into card markdown.
+- Store the ordered folder list as a JSON array of folder-path strings in `.md2-worktrees.json` in the primary project root. Load it together with the project.
+- Add `/.md2-worktrees.json` to the project root `.gitignore`. Create `.gitignore` when missing and append the entry when absent. Never stage or commit `.md2-worktrees.json`.
+- Do not store the folder list in `md2.config.json`, Electron Store, or another registry.
+- List position is identity: first folder is worktree `1`, second is worktree `2`, and so on.
+- Store a card's one-based worktree index in card markdown frontmatter as `worktree: <number>`. A missing `worktree` field means the primary worktree.
+- Parse `worktree` as a positive integer. Invalid values remain visible as card errors instead of falling back to the primary worktree.
 - On add and project restore, validate with Git that the folder:
   - is a worktree root;
   - belongs to the same Git common directory as the primary worktree;
   - is not the primary worktree or an already registered folder; and
   - has a named branch suitable for integration, not detached `HEAD`.
-- Detect stale/moved folders when opening a project. Keep them visible as invalid entries with a clear error until removed or replaced; do not silently assign their cards elsewhere.
+- Load and validate `.md2-worktrees.json` during project loading. Invalid JSON fails project-local worktree loading with a clear error; a missing file means an empty list.
+- Detect stale/moved folders when opening a project. Keep their list entries and show affected cards as invalid; do not silently run those cards in the primary worktree.
 
 ### Config UI
 - Add a dedicated worktree list to Config > Project below the existing project values. This is an Electron-only control even though it appears in the Project tab.
@@ -46,14 +51,17 @@ Allow the Electron app to register linked Git worktree folders for the open loca
 - Show a trash button only while its row is hovered or keyboard-focused. Removing an entry only unregisters it. It must never delete the folder, worktree, branch, or commits.
 - Put a `+` button at the bottom. It opens an Electron directory-selection dialog, validates the selection, then appends it.
 - Cancelling the folder dialog changes nothing and shows no error.
-- When an entry has assigned cards, removal must name the affected cards and require confirmation. Confirming leaves those cards unassigned.
-- Config-page Save persists draft list changes and applies confirmed removals; Cancel discards list additions/removals. Card assignments made from board cards persist independently.
+- Removing an entry changes only the list. Do not rewrite card frontmatter assignments.
+- Config-page Save writes the ordered folder list to `.md2-worktrees.json`; Cancel discards list additions/removals. Card assignment changes write the card's `worktree` frontmatter through the normal card save path.
 
 ### Card assignment and indicator
 - Replace the lower-right Agent conversations button in board cards with a new `CardWorktreeIndicator` component.
-- For an assigned linked worktree, show its current one-based list number. List numbers are presentation only.
+- For an assigned linked worktree, show the one-based index stored by the card.
 - Clicking the component opens an assignment menu containing Primary/unassigned plus every valid linked worktree with its number and folder path.
 - Keep assignment available through keyboard navigation and expose a label containing card ID, assigned folder and agent state.
+- When the stored index is outside the current list bounds, show the index in red with a tooltip explaining that the configured worktree does not exist.
+- When the indexed folder is missing or is no longer a valid linked worktree, show the index in red with a tooltip containing the folder path and validation error.
+- An invalid assignment remains selected and visible. Do not silently clear it or use the primary worktree.
 - The component also renders aggregate card-agent state:
   - spinner: at least one agent is running;
   - distinct waiting state: at least one agent is waiting for user input;
@@ -69,7 +77,7 @@ Allow the Electron app to register linked Git worktree folders for the open loca
 - `runIn: "project"` runs with the primary worktree as `cwd`. For an assigned card, a successful run then transfers that run's changes to the card worktree.
 - `runIn: "card"` requires card context and a valid card assignment, then runs with the card worktree as `cwd`. Missing assignment or non-card context fails clearly; do not fall back to the primary worktree.
 - Resolve `{{rootProjectFolder}}`, file paths, agent logs, action history and diff metadata against the selected execution worktree.
-- Send only a registered worktree ID over the renderer bridge. Electron resolves and revalidates its path; the renderer cannot provide an arbitrary execution directory.
+- Send the card's worktree index over the renderer bridge. Electron resolves it against the loaded `.md2-worktrees.json` list and revalidates the selected folder before execution.
 - Serialize action integration per repository so concurrent runs cannot mix change sets.
 
 ### Transfer from primary to card worktree
@@ -85,10 +93,11 @@ Allow the Electron app to register linked Git worktree folders for the open loca
 - Same repository but same checked-out branch: reject registration with Git's branch/worktree explanation.
 - Folder belongs to another clone of the same remote: reject it; matching remote URLs do not mean a shared worktree repository.
 - Worktree path is nested, moved, deleted, detached, locked or prunable: report exact invalid state and disable assignment/execution.
-- Removing entry before it shifts visible indices; stable IDs keep remaining card assignments correct.
+- Removing an entry shifts later indices because list position is the reference. Cards retain their stored number and resolve against the updated list.
+- Stored index is zero, negative, non-integer or outside list bounds: show red indicator and block card-worktree execution.
+- Indexed folder is missing or invalid: show red indicator and block card-worktree execution.
 - Dirty primary or card worktree: block project-to-card transfer before action start.
-- Card renamed or moved: retain assignment through `internalId`.
-- Card deleted: remove its local assignment.
+- Card renamed or moved: retain its `worktree` frontmatter value.
 - Action creates no changes: finish successfully without a commit or cherry-pick.
 - Action creates untracked files: include them in generated action commit after clean-start validation.
 - Action or another process changes `HEAD` concurrently: stop integration and report repository changed during run.
@@ -96,11 +105,11 @@ Allow the Electron app to register linked Git worktree folders for the open loca
 
 ## Testing implications
 - Add Git-service integration tests using temporary repositories and real `git worktree add` commands: common-directory validation, distinct branches, detached worktrees, stale paths, clean checks, commit capture, ordered cherry-pick and conflict abort.
-- Add Electron bridge tests for directory selection, registered-ID path resolution, arbitrary-path rejection, restore validation and repository-level execution serialization.
-- Add config persistence tests proving worktree paths stay out of `md2.config.json` and remain scoped to the correct local repository.
-- Add Config > Project tests for list display, hover/focus delete control, add/cancel, invalid selections, removal confirmation, Save and Cancel.
-- Add markdown/data tests proving card assignment survives rename/move through `internalId` and is removed with the card.
-- Add card tests for assignment menu, one-based display, stable assignment after deletion, accessibility labels and each agent-state decoration.
+- Add Electron bridge tests for directory selection, index-to-path resolution, out-of-bounds rejection, restore validation and repository-level execution serialization.
+- Add local-file tests for `.md2-worktrees.json`: project-load timing, ordered path persistence, missing file, invalid JSON and `.gitignore` creation/update.
+- Add Config > Project tests for list display, hover/focus delete control, add/cancel, invalid selections, removal behavior, Save and Cancel.
+- Add markdown/data tests for parsing, writing and preserving numeric `worktree` frontmatter.
+- Add card tests for assignment menu, one-based display, red out-of-bounds/missing-folder states, error tooltips, accessibility labels and each agent-state decoration.
 - Update card-view tests after removing board conversation props/popover. Keep text-view conversation tests.
 - Add shared action-definition parity tests for `runIn`, plus action-runner tests for primary/card selection, missing assignment, chained actions and scheduled actions.
 - Add regression tests proving a failed/conflicted transfer does not silently reset either worktree or retarget a card.
@@ -108,9 +117,10 @@ Allow the Electron app to register linked Git worktree folders for the open loca
 
 ## Acceptance criteria
 - Electron users can add, view and unregister valid linked worktree folders from Config > Project using a native folder picker.
-- Worktree folders and card assignments remain local to the machine and are not written to committed project config or card markdown.
+- Worktree folders are stored in project-root `.md2-worktrees.json`, loaded with the project, ignored by Git and absent from `md2.config.json`.
+- Card assignments are stored as one-based `worktree` indices in card markdown frontmatter.
 - Cards can be assigned to valid linked worktrees and show the correct one-based list number in the lower-right component.
-- Deleting another list entry never changes which worktree a card targets.
+- An out-of-bounds index or missing/invalid folder shows the stored index in red with an explanatory tooltip and cannot run card-worktree actions.
 - Board cards no longer show or carry board-only Agent conversations button/popover code; text-view conversations and action logs still work.
 - Card indicator represents running, waiting-for-input and completed/failed-unseen agent states once explicit events are available.
 - Actions run from the worktree selected by `runIn`; card-scoped execution without a valid assignment fails visibly.

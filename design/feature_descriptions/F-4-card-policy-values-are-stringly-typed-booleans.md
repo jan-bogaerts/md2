@@ -1,5 +1,5 @@
 ---
-id: B-047
+id: F-4
 title: card policy values are stringly typed booleans
 status: ready
 owner: JB
@@ -7,6 +7,7 @@ affects:
 policy:
   checkLinting: true
   requireTests: true
+internalId: f7d83a96-b24d-4889-8531-a3002a65f7de
 ---
 
 ## Problem

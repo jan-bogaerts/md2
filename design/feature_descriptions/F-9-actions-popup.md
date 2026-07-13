@@ -1,5 +1,5 @@
 ---
-id: F-043
+id: F-9
 title: actions popup
 status: design
 owner: JB
@@ -7,6 +7,7 @@ affects:
 policy:
   checkLinting: true
   requireTests: true
+internalId: 50de9d63-791e-4f7d-ae4a-10cc69c5fb6e
 ---
 
 ## Goal
