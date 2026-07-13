@@ -11,10 +11,10 @@ export async function generateDiff(entry: ActionRunHistoryEntry): Promise<DiffRe
     if (!bridge) throw new Error('Diff view requires Electron local mode')
     if (!entry.commit) throw new Error('Action log entry has no commit to diff')
 
-    const { branch, commit, filePaths } = entry.commit
+    const { branch, commit, filePaths, repositoryRoot } = entry.commit
     const template = configService.get('project.diffCommand')
 
-    return bridge.generateDiff({ branch, commit, filePath: filePaths[0] ?? '', template })
+    return bridge.generateDiff({ branch, commit, filePath: filePaths[0] ?? '', repositoryRoot, template })
 }
 
 /** Open VS Code at a project file and line clicked in the diff view. */

@@ -3,7 +3,7 @@ import type { CardHeader, MarkdownFile, ProjectCard } from '../data/data_types'
 const HEADER_DELIMITER = '---'
 const MARKDOWN_EXTENSION = '.md'
 const DEFAULT_IMPORTED_STATUS = 'new'
-const DEFAULT_IMPORTED_ID = 'F-0'
+const DEFAULT_IMPORTED_ID = 'F_0'
 const TITLE_PREFIX = '# '
 const LIST_ITEM_PREFIX = '  - '
 const CHILD_INDENT = '  '
@@ -163,6 +163,19 @@ function parsePolicyValue(value: string) {
     return normalized === 'true'
 }
 
+function parseWorktree(fields: MarkdownHeaderFields) {
+    const value = fields.worktree
+    if (value === undefined) return { worktree: null, worktreeError: null, worktreeValue: null }
+    if (typeof value !== 'string' || !/^[1-9]\d*$/u.test(value)) {
+        return { worktree: null, worktreeError: `Invalid worktree value: ${String(value)}`, worktreeValue: String(value) }
+    }
+
+    const worktree = Number.parseInt(value, 10)
+    if (!Number.isSafeInteger(worktree)) return { worktree: null, worktreeError: `Invalid worktree value: ${value}`, worktreeValue: value }
+
+    return { worktree, worktreeError: null, worktreeValue: value }
+}
+
 function getTitleFromBody(body: string) {
     const titleLine = body.split(/\r?\n/).find((line) => line.startsWith(TITLE_PREFIX))
 
@@ -186,15 +199,16 @@ function isRootWorkingFolderFile(path: string, workingFolder: string) {
 }
 
 function followsCardNamingConvention(path: string) {
-    return /^[A-Z]+-\d+-.+\.md$/u.test(getFileName(path))
+    return /^[A-Z]+([_-])\d+\1.+\.md$/u.test(getFileName(path))
 }
 
 function parseCardHeader(fields: MarkdownHeaderFields, file: MarkdownFile, body: string): CardHeader {
     const fileName = getFileName(file.path)
-    const fileId = fileName.match(/^([A-Z]+-\d+)-/u)?.[1] ?? null
+    const fileId = fileName.match(/^([A-Z]+([_-])\d+)\2/u)?.[1] ?? null
     const id = getStringField(fields, 'id') ?? fileId ?? DEFAULT_IMPORTED_ID
     const title = getStringField(fields, 'title') ?? getTitleFromBody(body)
     const status = getStringField(fields, 'status') ?? (followsCardNamingConvention(file.path) ? null : DEFAULT_IMPORTED_STATUS)
+    const worktree = parseWorktree(fields)
 
     return {
         affects: getListField(fields, 'affects'),
@@ -207,6 +221,7 @@ function parseCardHeader(fields: MarkdownHeaderFields, file: MarkdownFile, body:
         policy: parsePolicyMap(fields),
         status,
         title,
+        ...worktree,
     }
 }
 
@@ -218,6 +233,16 @@ function rewriteHeaderLine(lines: string[], key: string, value: string) {
 
     const updated = [...lines]
     updated[targetIndex] = `${key}: ${value}`
+
+    return updated
+}
+
+function removeHeaderField(lines: string[], key: string) {
+    const keyIndex = lines.findIndex((line) => isHeaderKeyLine(line, key))
+    if (keyIndex === -1) return lines
+
+    const updated = [...lines]
+    updated.splice(keyIndex, childBlockEndIndex(lines, keyIndex) - keyIndex)
 
     return updated
 }
@@ -404,6 +429,23 @@ export const markdownParsingService = {
         const lineEnding = detectLineEnding(content)
         const startingLines = hasHeader ? rawHeader.split('\n') : []
         const nextLines = rewriteListLines(startingLines, 'affects', affects)
+
+        if (hasHeader) return frameDocument(nextLines, body, lineEnding)
+
+        return frameDocument(nextLines, `${lineEnding}${content}`, lineEnding)
+    },
+
+    setWorktree(content: string, worktree: number | null) {
+        if (worktree !== null && (!Number.isSafeInteger(worktree) || worktree <= 0)) {
+            throw new Error(`Invalid card worktree index: ${worktree}`)
+        }
+
+        const { body, hasHeader, rawHeader } = splitHeader(content)
+        const lineEnding = detectLineEnding(content)
+        const startingLines = hasHeader ? rawHeader.split('\n') : []
+        const nextLines = worktree === null
+            ? removeHeaderField(startingLines, 'worktree')
+            : rewriteHeaderLine(startingLines, 'worktree', String(worktree))
 
         if (hasHeader) return frameDocument(nextLines, body, lineEnding)
 

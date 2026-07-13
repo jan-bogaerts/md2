@@ -72,6 +72,7 @@ function action(overrides: Partial<ActionDefinition> = {}): ActionDefinition {
         text: 'Summarize commits for release',
         type: 'agent',
         ...overrides,
+        runIn: overrides.runIn ?? 'project',
     }
 }
 

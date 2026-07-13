@@ -67,6 +67,13 @@ function createLocalGitService(initialSchedules, actionFiles = [createAction()],
 
 function createScheduler(localGitService, timerDependencies = {}) {
     return new ActionSchedulerService({
+        actionWorktreeExecutionService: {
+            execute: vi.fn(async (primaryProject, _action, _context, runner) => ({
+                ...await runner(primaryProject),
+                branch: primaryProject.branch,
+                repositoryRoot: primaryProject.rootPath,
+            })),
+        },
         agentCommandProvider: () => 'agent-command',
         agentRunnerService: { run: vi.fn() },
         clearTimeout: vi.fn(),

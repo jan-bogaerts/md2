@@ -27,6 +27,7 @@ function action(name: string, overrides: Partial<ActionDefinition> = {}): Action
         name,
         on: [],
         onState: null,
+        runIn: 'project',
         text: name,
         type: 'cmd',
         ...overrides,
@@ -35,7 +36,7 @@ function action(name: string, overrides: Partial<ActionDefinition> = {}): Action
 
 const bridge: ElectronActionBridge = {
     appendActionRunHistory: vi.fn(async () => []),
-    generateDiff: vi.fn(async () => ({ commit: '', files: [] })),
+    generateDiff: vi.fn(async () => ({ commit: '', files: [], repositoryRoot: 'C:/repo' })),
     loadActionRunHistory: vi.fn(async () => []),
     openInEditor: vi.fn(async () => {}),
     runAgent: vi.fn(),
@@ -52,7 +53,10 @@ const desktopConfig: DesktopConfigValues = {
 }
 
 function commandResult(command: string, overrides: Partial<CommandExecutionResult> = {}): CommandExecutionResult {
-    return { command, exitCode: 0, stderr: '', stdout: command, ...overrides }
+    return {
+        branch: 'main', command, executionWorktree: null, exitCode: 0,
+        repositoryRoot: 'C:/repo', stderr: '', stdout: command, ...overrides,
+    }
 }
 
 function conversation(request: AgentExecutionRequest): AgentConversation {
@@ -73,11 +77,14 @@ function conversation(request: AgentExecutionRequest): AgentConversation {
 
 function agentResult(request: AgentExecutionRequest, overrides: Partial<AgentExecutionResult> = {}): AgentExecutionResult {
     return {
+        branch: 'main',
         command: request.command,
         conversation: conversation(request),
+        executionWorktree: null,
         exitCode: 0,
         prompt: request.prompt,
         reference: '.md2-agent-logs/one.json',
+        repositoryRoot: 'C:/repo',
         runId: 'agent-1',
         stderr: '',
         stdout: request.prompt,
@@ -254,7 +261,11 @@ describe('ActionRunner', () => {
         expect(agentConversationLinker).toHaveBeenCalledWith('design/F-010.md', expect.objectContaining({ reference: '.md2-agent-logs/one.json' }))
         expect(agentRunner).toHaveBeenCalledWith(
             bridge,
-            { agent: 'codex', cardPath: 'design/F-010.md', command: 'codex', model: '', prompt: 'implement design/F-010.md\n\nfocus tests', title: 'implement' },
+            expect.objectContaining({
+                actionName: 'implement', actionsFolder: 'actions', agent: 'codex', cardPath: 'design/F-010.md',
+                command: 'codex', context, extraInput: 'focus tests', model: '',
+                prompt: 'implement design/F-010.md\n\nfocus tests', title: 'implement',
+            }),
             expect.any(Function),
         )
         expect(actionHistoryAppender).toHaveBeenCalledWith(
@@ -334,7 +345,10 @@ describe('ActionRunner', () => {
         expect(result.status).toBe('completed')
         expect(agentRunner).toHaveBeenCalledWith(
             bridge,
-            { agent: 'codex', cardPath: 'design/F-010.md', command: 'codex', model: '', prompt: 'write docs', title: 'custom prompt' },
+            expect.objectContaining({
+                actionName: 'custom prompt', actionsFolder: 'actions', agent: 'codex', cardPath: 'design/F-010.md',
+                context, extraInput: 'write docs', prompt: 'write docs', title: 'custom prompt',
+            }),
             expect.any(Function),
         )
     })

@@ -4,6 +4,7 @@ import {
     type ProjectConfig,
     type StateConfig,
 } from '../data/data_types'
+import { LEGACY_CARD_SEPARATOR } from '../data/card_identifiers'
 import { validateAgentProfiles, type AgentProfile } from '../data/agent_profiles'
 import {
     CONFIG_ENTRIES,
@@ -159,6 +160,7 @@ function readProjectConfig(values: ConfigValues): ProjectConfig {
         actionsFolder: values['project.actionsFolder'],
         backgroundShade: values['project.backgroundShade'],
         cardBodyTemplate: values['project.cardBodyTemplate'],
+        cardSeparator: values['project.cardSeparator'],
         cardTypes: values['project.cardTypes'],
         diffCommand: values['project.diffCommand'],
         projectFolder: values['project.projectFolder'],
@@ -254,6 +256,10 @@ export class ConfigService extends EventTarget {
             nextValues = { ...nextValues, [key]: requireConfigEntry(key).defaultValue }
         }
 
+        if (projectConfig && projectConfig.cardSeparator === undefined) {
+            nextValues = mergeValue(nextValues, 'project.cardSeparator', LEGACY_CARD_SEPARATOR)
+        }
+
         if (projectConfig?.workingFolder !== undefined) nextValues = mergeValue(nextValues, 'project.workingFolder', projectConfig.workingFolder)
         if (projectConfig?.actionsFolder !== undefined) nextValues = mergeValue(nextValues, 'project.actionsFolder', projectConfig.actionsFolder)
         if (projectConfig?.backgroundShade !== undefined) {
@@ -264,6 +270,9 @@ export class ConfigService extends EventTarget {
         if (projectConfig?.pushMode !== undefined) nextValues = mergeValue(nextValues, 'project.pushMode', projectConfig.pushMode)
         if (projectConfig?.cardBodyTemplate !== undefined) {
             nextValues = mergeValue(nextValues, 'project.cardBodyTemplate', projectConfig.cardBodyTemplate)
+        }
+        if (projectConfig?.cardSeparator !== undefined) {
+            nextValues = mergeValue(nextValues, 'project.cardSeparator', projectConfig.cardSeparator)
         }
         if (projectConfig?.cardTypes !== undefined) nextValues = mergeValue(nextValues, 'project.cardTypes', projectConfig.cardTypes)
         if (projectConfig?.states !== undefined) nextValues = mergeValue(nextValues, 'project.states', projectConfig.states)

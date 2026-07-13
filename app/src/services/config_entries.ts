@@ -12,12 +12,12 @@ import {
 } from '../data/data_types'
 import { BUILTIN_AGENT_PROFILES, type AgentProfile } from '../data/agent_profiles'
 import type { ProjectBackgroundShade } from '../theme/project_background_shade'
+import { DEFAULT_CARD_SEPARATOR, type CardSeparator } from '../data/card_identifiers'
 
-export type ConfigSource = 'react' | 'connection' | 'desktop' | 'project'
+export type ConfigSource = 'react' | 'desktop' | 'project'
 export type ConfigValueType = 'boolean' | 'number' | 'select' | 'string' | 'json'
 
 export interface ConfigValueTypes {
-    'connection.githubScopes': string
     'desktop.agent': string
     'desktop.agentSlotCommand': string
     'desktop.agentProfiles': AgentProfile[]
@@ -26,6 +26,7 @@ export interface ConfigValueTypes {
     'project.actionsFolder': string
     'project.backgroundShade': ProjectBackgroundShade
     'project.cardBodyTemplate': string
+    'project.cardSeparator': CardSeparator
     'project.cardTypes': CardTypeConfig[]
     'project.diffCommand': string
     'project.projectFolder': string
@@ -73,7 +74,6 @@ export interface DesktopConfigValues {
 
 export const CONFIG_SECTIONS = [
     { id: 'react', label: 'React app' },
-    { id: 'connection', label: 'Connection' },
     { id: 'project', label: 'Project' },
     { id: 'desktop', label: 'Desktop' },
 ]
@@ -106,20 +106,6 @@ export const CONFIG_ENTRIES: ConfigEntry[] = [
         source: 'react',
         step: 1000,
         type: 'number',
-    },
-    {
-        defaultValue: 'repo',
-        description: 'OAuth scopes requested when connecting GitHub.',
-        editable: true,
-        key: 'connection.githubScopes',
-        label: 'GitHub scopes',
-        options: [
-            { label: 'Repository access', value: 'repo' },
-            { label: 'Public repository access', value: 'public_repo' },
-        ],
-        section: 'connection',
-        source: 'connection',
-        type: 'select',
     },
     {
         defaultValue: DEFAULT_PROJECT_FOLDER,
@@ -202,6 +188,20 @@ export const CONFIG_ENTRIES: ConfigEntry[] = [
         section: 'project',
         source: 'project',
         type: 'string',
+    },
+    {
+        defaultValue: DEFAULT_CARD_SEPARATOR,
+        description: 'Character used between the card ID prefix, number, and title in generated card file names.',
+        editable: true,
+        key: 'project.cardSeparator',
+        label: 'Card separator',
+        options: [
+            { label: 'Underscore (_)', value: '_' },
+            { label: 'Hyphen (-)', value: '-' },
+        ],
+        section: 'project',
+        source: 'project',
+        type: 'select',
     },
     {
         defaultValue: DEFAULT_CARD_TYPES,
@@ -289,12 +289,13 @@ export const PROJECT_KEYS: ConfigKey[] = [
     'project.diffCommand',
     'project.pushMode',
     'project.cardBodyTemplate',
+    'project.cardSeparator',
     'project.cardTypes',
     'project.states',
 ]
 
 export const LOCAL_STORAGE_KEYS: ConfigKey[] = CONFIG_ENTRIES.filter(
-    (entry) => entry.source === 'react' || entry.source === 'connection',
+    (entry) => entry.source === 'react',
 ).map((entry) => entry.key)
 
 export function createDefaultValues(): ConfigValues {

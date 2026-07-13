@@ -5,6 +5,7 @@ import { MissingWorkingFolderError, type ProjectConfig, type StorageService } fr
 import type { ElectronDataBridge } from '../data/electron_data_bridge'
 import { configService } from '../services/config_service'
 import { dataService } from '../services/data_service'
+import { openFilesService } from '../services/open_files_service'
 import { telemetryService } from '../services/telemetry_service'
 import { workspaceNavigationService } from '../services/workspace_navigation_service'
 import { workspaceViewService } from '../services/workspace_view_service'
@@ -55,6 +56,7 @@ function createBridge(): ElectronDataBridge {
             workingFolder: 'design',
         })),
         loadProjectConfig: vi.fn(async () => ({ backgroundShade: 'blue' as const, projectFolder: '', workingFolder: 'design' })),
+        loadWorktrees: vi.fn(async () => []),
         moveFiles: vi.fn(async (request) => {
             for (const move of request.moves) {
                 const existingIndex = files.findIndex((file) => file.path === move.fromPath)
@@ -66,6 +68,8 @@ function createBridge(): ElectronDataBridge {
         push: vi.fn(),
         resolveProject: vi.fn(async (project) => project),
         saveProjectConfig: vi.fn(),
+        saveWorktrees: vi.fn(async () => []),
+        selectWorktreeFolder: vi.fn(async () => null),
         watchProject: vi.fn(() => vi.fn()),
     }
 }
@@ -158,6 +162,7 @@ describe('ProjectWorkspace', () => {
     beforeEach(() => {
         configService.init({ desktopConfig: null })
         dataService.init({ storage: createResetStorage() })
+        openFilesService.clear()
         workspaceViewService.setViewMode('cards')
     })
 
@@ -180,6 +185,12 @@ describe('ProjectWorkspace', () => {
         expect(screen.queryByLabelText('Owner')).toBeNull()
         expect(screen.queryByLabelText('Repository')).toBeNull()
         expect(screen.queryByRole('button', { name: 'Open Local' })).toBeNull()
+        expect(screen.getByRole('heading', { name: 'No project open' }).parentElement).toHaveStyle({
+            alignItems: 'center',
+            flex: '1 1 0%',
+            justifyContent: 'center',
+            textAlign: 'center',
+        })
     })
 
     it('opens a local project and shows root cards in the card view before background cards', async () => {
@@ -538,6 +549,25 @@ describe('ProjectWorkspace', () => {
         expect(screen.queryByRole('heading', { name: 'Files' })).toBeNull()
     })
 
+    it('restores open files after switching from text view to cards and back', async () => {
+        window.md2Data = createBridge()
+
+        renderProjectSurface()
+        await openLocalProject()
+        act(() => workspaceViewService.setViewMode('text'))
+        const tree = within(await screen.findByLabelText('File tree'))
+        fireEvent.click(tree.getByRole('button', { name: 'F-1 Root' }))
+        fireEvent.click(tree.getByRole('button', { name: 'F-2 Old' }))
+        expect(screen.getAllByRole('tab')).toHaveLength(2)
+
+        act(() => workspaceViewService.setViewMode('cards'))
+        expect(screen.queryByRole('tab')).toBeNull()
+        act(() => workspaceViewService.setViewMode('text'))
+
+        expect(await screen.findByRole('tab', { name: /Root/ })).toBeInTheDocument()
+        expect(screen.getByRole('tab', { name: /Old/ })).toBeInTheDocument()
+    })
+
     it('reveals a navigated card and keeps the current card view', async () => {
         window.md2Data = createBridge()
         const trackEvent = vi.spyOn(telemetryService, 'trackEvent').mockImplementation(() => undefined)
@@ -713,7 +743,7 @@ describe('ProjectWorkspace', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Switch' }))
 
         await waitFor(() => expect(bridge.checkoutBranch).toHaveBeenCalledWith(expect.objectContaining({ branch: 'main' }), 'feature'))
-        await waitFor(() => expect(bridge.loadProject).toHaveBeenLastCalledWith(expect.objectContaining({ branch: 'feature' }), 'design'))
+        await waitFor(() => expect(bridge.loadProject).toHaveBeenLastCalledWith(expect.objectContaining({ branch: 'feature' }), ''))
     })
 
     it('shows branch switch failures in the switch dialog', async () => {

@@ -1,5 +1,5 @@
 const { resolveAgentCommand } = require('./agent_profiles.mjs')
-const { loadActionDefinitions } = require('../shared/action_definitions.mjs')
+const { loadActionDefinitions } = require('../../../shared/action_definitions.mjs')
 
 const PLACEHOLDER_PATTERN = /\{\{\s*(rootProjectFolder|file|prompt)\s*\}\}/gu
 const PROMPT_PLACEHOLDER_PATTERN = /\{\{\s*prompt\s*\}\}/u
@@ -71,15 +71,25 @@ async function loadActions(dependencies) {
 }
 
 async function runCommandAction(action, context, options, dependencies) {
-    const command = resolvePlaceholders(action.text, context, dependencies.project, options.extraPrompt)
-    const result = await dependencies.localGitService.runCommand(dependencies.project, command)
+    if (!dependencies.actionWorktreeExecutionService) throw new Error('Missing action worktree execution service')
+    const result = await dependencies.actionWorktreeExecutionService.execute(
+        dependencies.project,
+        action,
+        context,
+        (project) => {
+            const command = resolvePlaceholders(action.text, context, project, options.extraPrompt)
+
+            return dependencies.localGitService.runCommand(project, command)
+        },
+    )
     const output = combineOutput(result)
     const completedAt = new Date().toISOString()
-    const commit = extractCommitMetadata({ actionName: action.name, completedAt, context, output, project: dependencies.project })
+    const executionProject = { ...dependencies.project, branch: result.branch, rootPath: result.repositoryRoot }
+    const commit = extractCommitMetadata({ actionName: action.name, completedAt, context, output, project: executionProject })
 
     if (commit) {
-        const entry = { command, commit, completedAt, output, prompt: '', status: statusFromExitCode(result.exitCode) }
-        await dependencies.appendHistory(action.name, context, entry)
+        const entry = { command: result.command, commit, completedAt, output, prompt: '', status: statusFromExitCode(result.exitCode) }
+        await dependencies.appendHistory(action.name, context, entry, executionProject)
     }
 
     if (result.exitCode !== 0) throw new Error(`${action.label} failed with exit code ${result.exitCode}`)
@@ -94,9 +104,18 @@ async function runAgentAction(action, context, options, dependencies) {
     if (!context.file) throw new Error('Agent actions require a file context')
     if (!dependencies.agentRunnerService) throw new Error('Missing agent runner service')
 
-    const prompt = resolveAgentPrompt(action, context, dependencies.project, options.extraPrompt)
-    const request = { cardPath: context.file, command, prompt, title: action.label }
-    const result = await dependencies.agentRunnerService.run(dependencies.project, request)
+    if (!dependencies.actionWorktreeExecutionService) throw new Error('Missing action worktree execution service')
+    const result = await dependencies.actionWorktreeExecutionService.execute(
+        dependencies.project,
+        action,
+        context,
+        (project) => {
+            const prompt = resolveAgentPrompt(action, context, project, options.extraPrompt)
+            const request = { cardPath: context.file, command, prompt, title: action.label }
+
+            return dependencies.agentRunnerService.run(project, request)
+        },
+    )
     const output = combineOutput(result)
     const completedAt = new Date().toISOString()
     const entry = {
@@ -107,7 +126,8 @@ async function runAgentAction(action, context, options, dependencies) {
         prompt: result.prompt,
         status: statusFromExitCode(result.exitCode),
     }
-    await dependencies.appendHistory(action.name, context, entry)
+    const executionProject = { ...dependencies.project, branch: result.branch, rootPath: result.repositoryRoot }
+    await dependencies.appendHistory(action.name, context, entry, executionProject)
     if (result.exitCode !== 0) throw new Error(`${action.label} failed with exit code ${result.exitCode}`)
 
     return output

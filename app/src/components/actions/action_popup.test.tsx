@@ -23,6 +23,7 @@ function action(name: string, overrides: Partial<ActionDefinition> = {}): Action
         text: 'run',
         type: 'cmd',
         ...overrides,
+        runIn: overrides.runIn ?? 'project',
     }
 }
 

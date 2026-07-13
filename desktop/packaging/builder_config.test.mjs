@@ -2,7 +2,7 @@ import { createRequire } from 'node:module'
 import { describe, expect, it } from 'vitest'
 
 const require = createRequire(import.meta.url)
-const { APP_ID, EXECUTABLE_NAME, PRODUCT_NAME, createBuilderConfig, createSigntoolOptions } = require('./electron_builder_config')
+const { APP_ID, EXECUTABLE_NAME, PRODUCT_NAME, createBuilderConfig, createSigntoolOptions } = require('./builder_config')
 
 describe('electron-builder configuration', () => {
     it('defines signed Windows x64 NSIS metadata and bundled runtime inputs', () => {

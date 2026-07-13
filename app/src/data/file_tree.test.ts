@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildFileTree, fileLabel, type TreeNode } from './file_tree'
+import { buildFileTree, fileLabel, type FileTreeOptions, type TreeNode } from './file_tree'
 import type { ProjectCard } from './data_types'
 
 function card(path: string, overrides: Partial<ProjectCard['header']> = {}): ProjectCard {
@@ -30,33 +30,52 @@ function findChild(nodes: TreeNode[], label: string): TreeNode | undefined {
     return nodes.find((node) => node.label === label)
 }
 
+function treeOptions(overrides: Partial<FileTreeOptions> = {}): FileTreeOptions {
+    return {
+        projectFolder: 'design',
+        repositoryFiles: [],
+        specialFolderPaths: ['design/actions', 'design/active', 'design/history'],
+        ...overrides,
+    }
+}
+
 describe('buildFileTree', () => {
     it('groups active cards into a status node per distinct status', () => {
         const active = [
-            card('design/F-1-a.md', { id: 'F-1', title: 'Alpha', status: 'todo' }),
-            card('design/F-2-b.md', { id: 'F-2', title: 'Beta', status: 'done' }),
-            card('design/F-3-c.md', { id: 'F-3', title: 'Gamma', status: 'todo' }),
+            card('design/active/F-1-a.md', { id: 'F-1', title: 'Alpha', status: 'todo' }),
+            card('design/active/F-2-b.md', { id: 'F-2', title: 'Beta', status: 'done' }),
+            card('design/active/F-3-c.md', { id: 'F-3', title: 'Gamma', status: 'todo' }),
         ]
 
-        const tree = buildFileTree(active, [], 'design')
+        const tree = buildFileTree(active, [], 'design/active', treeOptions())
 
-        const todo = findChild(tree, 'todo')
-        const done = findChild(tree, 'done')
+        const workingFolder = findChild(tree, 'active')
+        const todo = findChild(workingFolder?.children ?? [], 'todo')
+        const done = findChild(workingFolder?.children ?? [], 'done')
+        expect(workingFolder?.kind).toBe('special')
         expect(todo?.kind).toBe('status')
+        expect(todo?.directoryPath).toBe('design')
         expect(todo?.children.map((child) => child.label)).toEqual(['F-1 Alpha', 'F-3 Gamma'])
-        expect(done?.children.map((child) => child.path)).toEqual(['design/F-2-b.md'])
+        expect(done?.children.map((child) => child.path)).toEqual(['design/active/F-2-b.md'])
+        expect(done?.children[0].directoryPath).toBe('design')
     })
 
     it('labels a status node with no status as Unassigned', () => {
-        const tree = buildFileTree([card('design/F-9-x.md', { id: 'F-9', title: 'Nine' })], [], 'design')
+        const tree = buildFileTree(
+            [card('design/active/F-9-x.md', { id: 'F-9', title: 'Nine' })],
+            [],
+            'design/active',
+            treeOptions(),
+        )
+        const workingFolder = findChild(tree, 'active')
 
-        expect(findChild(tree, 'Unassigned')?.kind).toBe('status')
+        expect(findChild(workingFolder?.children ?? [], 'Unassigned')?.kind).toBe('status')
     })
 
-    it('nests background files into real subfolders under the working folder', () => {
+    it('nests background files into regular folders under the project folder', () => {
         const background = [card('design/notes/deep/thoughts.md', { title: 'Untitled' })]
 
-        const tree = buildFileTree([], background, 'design')
+        const tree = buildFileTree([], background, 'design/active', treeOptions())
 
         const notes = findChild(tree, 'notes')
         expect(notes?.kind).toBe('folder')
@@ -68,34 +87,47 @@ describe('buildFileTree', () => {
     it('marks configured top-level folders as special', () => {
         const background = [
             card('design/history/rel1/F-2-old.md', { id: 'F-2', title: 'Old' }),
+            card('design/actions/prompt.md', { title: 'Untitled' }),
             card('design/architecture/data.md', { title: 'Untitled' }),
             card('design/notes/plain.md', { title: 'Untitled' }),
         ]
 
-        const tree = buildFileTree([], background, 'design')
+        const tree = buildFileTree([], background, 'design/active', treeOptions())
 
         expect(findChild(tree, 'history')?.kind).toBe('special')
-        expect(findChild(tree, 'architecture')?.kind).toBe('special')
+        expect(findChild(tree, 'actions')?.kind).toBe('special')
+        expect(findChild(tree, 'active')?.kind).toBe('special')
+        expect(findChild(tree, 'architecture')?.kind).toBe('folder')
         expect(findChild(tree, 'notes')?.kind).toBe('folder')
     })
 
     it('honors a custom special-folder list', () => {
         const background = [card('design/history/x.md'), card('design/vault/y.md')]
 
-        const tree = buildFileTree([], background, 'design', { specialFolders: ['vault'] })
+        const tree = buildFileTree([], background, 'design/active', treeOptions({ specialFolderPaths: ['design/vault'] }))
 
         expect(findChild(tree, 'history')?.kind).toBe('folder')
         expect(findChild(tree, 'vault')?.kind).toBe('special')
     })
 
-    it('places status groups before folder roots', () => {
+    it('places status groups before real subfolders inside the working folder', () => {
         const tree = buildFileTree(
-            [card('design/F-1-a.md', { id: 'F-1', title: 'Alpha', status: 'todo' })],
-            [card('design/history/old.md')],
-            'design',
+            [card('design/active/F-1-a.md', { id: 'F-1', title: 'Alpha', status: 'todo' })],
+            [card('design/active/notes/old.md')],
+            'design/active',
+            treeOptions(),
         )
+        const workingFolder = findChild(tree, 'active')
 
-        expect(tree.map((node) => node.kind)).toEqual(['status', 'special'])
+        expect(workingFolder?.children.map((node) => node.kind)).toEqual(['status', 'folder'])
+    })
+
+    it('includes folders represented by repository files without Markdown cards', () => {
+        const tree = buildFileTree([], [], 'design/active', treeOptions({repositoryFiles: ['app/src/app.tsx', 'design/empty/.gitkeep', 'design/assets/image.png']}))
+
+        expect(findChild(tree, 'empty')).toMatchObject({ directoryPath: 'design/empty', kind: 'folder' })
+        expect(findChild(tree, 'assets')).toMatchObject({ directoryPath: 'design/assets', kind: 'folder' })
+        expect(findChild(tree, 'app')).toBeUndefined()
     })
 })
 

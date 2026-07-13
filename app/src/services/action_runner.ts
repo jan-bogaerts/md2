@@ -72,7 +72,12 @@ async function defaultAgentRunner(bridge: ElectronActionBridge, request: AgentEx
 }
 
 async function defaultAgentConversationLinker(cardPath: string, result: AgentExecutionResult) {
-    await dataService.agents.linkAgentConversation(cardPath, result.conversation, result.reference)
+    if (result.executionWorktree === undefined) throw new Error('Agent result is missing execution worktree metadata')
+
+    const reference = result.executionWorktree === null
+        ? result.reference
+        : `worktree:${result.executionWorktree}:${result.reference}`
+    await dataService.agents.linkAgentConversation(cardPath, result.conversation, reference)
 }
 
 function defaultAgentRunEventRecorder(cardPath: string, event: AgentRunEvent) {
@@ -99,6 +104,10 @@ function defaultActionsFolderProvider() {
     return dataService.getConfig()?.actionsFolder ?? null
 }
 
+async function defaultProjectRefresher() {
+    await dataService.projectLoading.reloadCurrentProjectSnapshot()
+}
+
 const defaultExecutionGateway: ActionExecutionGateway = {
     getBridge: getElectronActionBridge,
     runAgent: defaultAgentRunner,
@@ -118,6 +127,7 @@ const defaultEnvironment: ActionEnvironment = {
     getActionsFolder: defaultActionsFolderProvider,
     getAgentConfig: defaultAgentConfigProvider,
     getProject: defaultProjectProvider,
+    refreshProject: defaultProjectRefresher,
 }
 
 function actionRunLabel(action: ActionDefinition, context: ActionContext) {
@@ -146,6 +156,7 @@ export class ActionRunner {
         try {
             await this.runAction(action, context, { agent: input.agent, extraPrompt: input.extraPrompt ?? '', model: input.model, phase: 'main', stack: [], state })
             await this.notifyActionCompleted(action.name)
+            await this.environment.refreshProject?.()
 
             return { logs: state.logs, status: state.failed ? 'failed' : 'completed' }
         } finally {

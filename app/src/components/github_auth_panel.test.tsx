@@ -5,8 +5,6 @@ import type { AuthSnapshot } from '../auth/github_auth_types'
 import { DialogDisplay } from './dialog_display'
 
 const baseSnapshot: AuthSnapshot = {
-    authMethod: null,
-    deviceCode: null,
     errorMessage: null,
     isAuthenticated: false,
     isLoadingUser: false,
@@ -15,8 +13,6 @@ const baseSnapshot: AuthSnapshot = {
 }
 
 const panelActions = {
-    isDeviceFlowAvailable: true,
-    login: vi.fn(),
     logout: vi.fn(),
     savePersonalAccessToken: vi.fn(),
 }
@@ -30,28 +26,17 @@ describe('GithubAuthPanel', () => {
         cleanup()
     })
 
-    it('shows the sign-in action for signed-out users', () => {
+    it('shows the personal access token field for signed-out users', () => {
         render(<GithubAuthPanel {...baseSnapshot} {...panelActions} />)
 
-        expect(screen.getByRole('button', { name: 'Sign in with GitHub' })).toBeInTheDocument()
-        expect(screen.getByRole('heading', { name: 'Use a personal access token' })).toBeInTheDocument()
         expect(screen.getByLabelText('Personal access token')).toBeInTheDocument()
-    })
-
-    it('keeps personal access token auth available when device flow is not configured', () => {
-        render(<GithubAuthPanel {...baseSnapshot} {...panelActions} isDeviceFlowAvailable={false} />)
-
-        expect(screen.queryByRole('button', { name: 'Sign in with GitHub' })).toBeNull()
-        expect(screen.queryByText('GitHub device login is not configured. Use a personal access token instead.')).toBeNull()
-        expect(screen.queryByText('Authorization in progress')).toBeNull()
         expect(screen.getByRole('button', { name: 'Save token' })).toBeDisabled()
-        expect(screen.getByLabelText('Personal access token')).toBeEnabled()
     })
 
-    it('shows authorization progress while validating a personal access token', () => {
+    it('disables the token field while validating a personal access token', () => {
         render(<GithubAuthPanel {...baseSnapshot} {...panelActions} isLoadingUser />)
 
-        expect(screen.getByText('Authorization in progress')).toBeInTheDocument()
+        expect(screen.getByLabelText('Personal access token')).toBeDisabled()
     })
 
     it('saves the entered personal access token on explicit action', () => {
@@ -78,32 +63,11 @@ describe('GithubAuthPanel', () => {
         expect(await screen.findByText('GitHub access token is no longer authorized')).toBeInTheDocument()
     })
 
-    it('shows the device code and verification URL while waiting', () => {
+    it('shows personal access token identity and remove action for authenticated users', () => {
         render(
             <GithubAuthPanel
                 {...baseSnapshot}
                 {...panelActions}
-                deviceCode={{
-                    deviceCode: 'device-code',
-                    expiresIn: 900,
-                    interval: 5,
-                    userCode: 'ABCD-1234',
-                    verificationUri: 'https://github.com/login/device',
-                }}
-                status="waiting"
-            />,
-        )
-
-        expect(screen.getByText('ABCD-1234')).toBeInTheDocument()
-        expect(screen.getByRole('link', { name: 'https://github.com/login/device' })).toBeInTheDocument()
-    })
-
-    it('shows GitHub identity for device-flow authenticated users', () => {
-        render(
-            <GithubAuthPanel
-                {...baseSnapshot}
-                {...panelActions}
-                authMethod="device"
                 isAuthenticated
                 status="authenticated"
                 user={{
@@ -117,30 +81,8 @@ describe('GithubAuthPanel', () => {
         )
 
         expect(screen.getByText('JB')).toBeInTheDocument()
-        expect(screen.getByText('Signed in with GitHub device flow.')).toBeInTheDocument()
-        expect(screen.getByRole('link', { name: '@jb' })).toBeInTheDocument()
-        expect(screen.getByRole('button', { name: 'Log out' })).toBeInTheDocument()
-    })
-
-    it('shows personal access token identity and remove action for PAT auth', () => {
-        render(
-            <GithubAuthPanel
-                {...baseSnapshot}
-                {...panelActions}
-                authMethod="pat"
-                isAuthenticated
-                status="authenticated"
-                user={{
-                    avatarUrl: null,
-                    htmlUrl: 'https://github.com/jb',
-                    id: 1,
-                    login: 'jb',
-                    name: 'JB',
-                }}
-            />,
-        )
-
         expect(screen.getByText('Signed in with personal access token.')).toBeInTheDocument()
+        expect(screen.getByRole('link', { name: '@jb' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Remove token' })).toBeInTheDocument()
     })
 })

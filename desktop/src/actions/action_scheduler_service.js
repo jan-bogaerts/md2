@@ -1,6 +1,6 @@
 const { exec } = require('node:child_process')
 const { promisify } = require('node:util')
-const { loadActionDefinitions } = require('../shared/action_definitions.mjs')
+const { loadActionDefinitions } = require('../../../shared/action_definitions.mjs')
 const { runScheduledAction } = require('./scheduled_action_runner')
 const { appendActionSchedule, findPendingSchedule, pendingAfterActionSchedules, updateActionScheduleStatus } = require('./schedule_store')
 const { cancelScheduleTimer, clearScheduleTimers, reconcileScheduleTimers } = require('./schedule_timers')
@@ -70,6 +70,7 @@ async function defaultCommandRunner(command, rootPath) {
 class ActionSchedulerService {
     constructor(dependencies) {
         this.agentCommandProvider = dependencies?.agentCommandProvider ?? defaultAgentCommandProvider
+        this.actionWorktreeExecutionService = dependencies?.actionWorktreeExecutionService
         this.agentConfigProvider = dependencies?.agentConfigProvider ?? null
         this.agentRunnerService = dependencies?.agentRunnerService
         this.agentSlotCommandProvider = dependencies?.agentSlotCommandProvider
@@ -240,11 +241,12 @@ class ActionSchedulerService {
 
     async createRunnerDependencies() {
         return {
+            actionWorktreeExecutionService: this.actionWorktreeExecutionService,
             actionsFolder: await this.requireActionsFolder(),
             agentCommandProvider: this.agentCommandProvider,
             agentConfigProvider: this.agentConfigProvider,
             agentRunnerService: this.agentRunnerService,
-            appendHistory: (actionName, context, entry) => this.appendHistory(actionName, context, entry),
+            appendHistory: (actionName, context, entry, project) => this.appendHistory(actionName, context, entry, project),
             localGitService: this.localGitService,
             project: this.requireCurrentProject(),
         }
@@ -257,9 +259,9 @@ class ActionSchedulerService {
         await this.appendHistory(schedule.actionName, schedule.context, entry)
     }
 
-    async appendHistory(actionName, context, entry) {
+    async appendHistory(actionName, context, entry, project = this.requireCurrentProject()) {
         const request = { actionName, actionsFolder: await this.requireActionsFolder(), context }
-        await this.localGitService.appendActionRunHistory(this.requireCurrentProject(), request, entry)
+        await this.localGitService.appendActionRunHistory(project, request, entry)
     }
 
     emitScheduleRunEvent(schedule, type, content) {

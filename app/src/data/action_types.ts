@@ -1,4 +1,5 @@
 export type ActionType = 'agent' | 'cmd'
+export type ActionRunTarget = 'card' | 'project'
 
 /** A raw json action file loaded from the project actions folder. */
 export interface ActionFile {
@@ -31,6 +32,7 @@ export interface RawActionDefinition {
     name?: string
     on?: RawOnRule[]
     onState?: string
+    runIn?: string
     text?: string
     type?: string
 }
@@ -55,6 +57,7 @@ export interface ActionDefinition {
     name: string
     on: OnRule[]
     onState: string | null
+    runIn: ActionRunTarget
     text: string
     type: ActionType
 }
@@ -75,6 +78,7 @@ export const BUILTIN_CUSTOM_PROMPT: ActionDefinition = {
     name: CUSTOM_PROMPT_ACTION_NAME,
     on: [],
     onState: null,
+    runIn: 'project',
     text: '{{prompt}}',
     type: 'agent',
 }

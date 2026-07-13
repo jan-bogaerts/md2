@@ -15,6 +15,13 @@ export const COMMIT_LINE_PATTERN = /^\[(.+?) ([0-9a-f]{7,40})\]/mu
 
 const ROOT_COMMIT_SUFFIX = ' (root-commit)'
 
+function executionProject(project: ProjectReference, result: CommandExecutionResult): ProjectReference {
+    if (!result.branch) throw new Error('Action result is missing execution branch')
+    if (!result.repositoryRoot) throw new Error('Action result is missing execution repository root')
+
+    return { ...project, branch: result.branch, rootPath: result.repositoryRoot }
+}
+
 export interface CommitMetadataInput {
     actionName: string
     completedAt: string
@@ -96,8 +103,11 @@ export async function appendAgentHistory(input: AppendAgentHistoryInput) {
 
     const completedAt = new Date().toISOString()
     const output = combineOutput(input.result)
-    const commit = input.project
-        ? extractCommitMetadata({ actionName: input.action.name, completedAt, context: input.context, output, project: input.project })
+    const resultProject = input.project
+        ? executionProject(input.project, input.result)
+        : null
+    const commit = resultProject
+        ? extractCommitMetadata({ actionName: input.action.name, completedAt, context: input.context, output, project: resultProject })
         : null
     const entry: ActionRunHistoryEntry = {
         agent: input.resolvedAgent.agent,
@@ -136,7 +146,7 @@ export async function appendCommandHistory(input: AppendCommandHistoryInput) {
         completedAt,
         context: input.context,
         output,
-        project: input.project,
+        project: executionProject(input.project, input.result),
     })
     if (!commit) return
 

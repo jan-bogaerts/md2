@@ -1,10 +1,20 @@
-import type { MarkdownFile, ProjectReference, ProjectSnapshot } from '../data/data_types'
+import type { MarkdownFile, ProjectCard, ProjectReference, ProjectSnapshot } from '../data/data_types'
 import { markdownParsingService } from './markdown_parsing_service'
 import { mergeFiles } from './data_service_context'
 
 type CardCollections = Pick<ProjectSnapshot, 'activeCards' | 'backgroundCards'>
 
 type AttachAgentConversations = (cards: CardCollections) => CardCollections
+
+/** Cache entry tying a produced card to the inputs it was derived from. */
+interface CardCacheEntry {
+    card: ProjectCard
+    fileContent: string
+}
+
+function isSameArray<T>(previous: readonly T[], next: readonly T[]) {
+    return previous.length === next.length && next.every((item, index) => previous[index] === item)
+}
 
 function isSameProjectReference(left: ProjectReference | null, right: ProjectReference) {
     return left?.branch === right.branch
@@ -21,6 +31,7 @@ export class ProjectState {
     private currentSnapshot: ProjectSnapshot | null = null
     private readonly inFlightCommitPaths: Set<string> = new Set()
     private projectLoadToken = 0
+    private cardCacheByPath = new Map<string, CardCacheEntry>()
     private readonly attachAgentConversations: AttachAgentConversations
 
     constructor(attachAgentConversations: AttachAgentConversations) {
@@ -39,6 +50,7 @@ export class ProjectState {
         this.currentProject = null
         this.currentSnapshot = null
         this.inFlightCommitPaths.clear()
+        this.cardCacheByPath.clear()
     }
 
     replaceProject(project: ProjectReference | null) {
@@ -90,8 +102,53 @@ export class ProjectState {
     }
 
     private createSnapshot(files: MarkdownFile[], workingFolder: string, repositoryFiles: string[]): ProjectSnapshot {
-        const cards = markdownParsingService.splitCards(files, workingFolder)
+        const cards = this.attachAgentConversations(markdownParsingService.splitCards(files, workingFolder))
+        const fileContentByPath = new Map(files.map((file) => [file.path, file.content]))
+        const nextCache = new Map<string, CardCacheEntry>()
+        const activeCards = cards.activeCards.map((card) => this.reuseUnchangedCard(card, fileContentByPath, nextCache))
+        const backgroundCards = cards.backgroundCards.map((card) => this.reuseUnchangedCard(card, fileContentByPath, nextCache))
+        this.cardCacheByPath = nextCache
 
-        return { ...this.attachAgentConversations(cards), repositoryFiles, workingFolder }
+        const previous = this.currentSnapshot
+        const snapshot: ProjectSnapshot = {
+            activeCards: previous && isSameArray(previous.activeCards, activeCards) ? previous.activeCards : activeCards,
+            backgroundCards: previous && isSameArray(previous.backgroundCards, backgroundCards)
+                ? previous.backgroundCards
+                : backgroundCards,
+            repositoryFiles,
+            workingFolder,
+        }
+        const isSameSnapshot = previous
+            && previous.activeCards === snapshot.activeCards
+            && previous.backgroundCards === snapshot.backgroundCards
+            && previous.repositoryFiles === repositoryFiles
+            && previous.workingFolder === workingFolder
+
+        return isSameSnapshot ? previous : snapshot
+    }
+
+    /**
+     * Returns the previously produced card object when everything it derives
+     * from is unchanged, so React memos keyed on card identity stay stable
+     * across snapshot rebuilds.
+     */
+    private reuseUnchangedCard(
+        card: ProjectCard,
+        fileContentByPath: Map<string, string>,
+        nextCache: Map<string, CardCacheEntry>,
+    ): ProjectCard {
+        const cached = this.cardCacheByPath.get(card.path)
+        const fileContent = fileContentByPath.get(card.path) ?? ''
+        const isUnchanged = cached
+            && cached.fileContent === fileContent
+            && cached.card.sha === card.sha
+            && cached.card.isActive === card.isActive
+            && isSameArray(cached.card.agentConversations, card.agentConversations)
+            && isSameArray(cached.card.agentConversationErrors, card.agentConversationErrors)
+        const nextCard = isUnchanged && cached ? cached.card : card
+
+        nextCache.set(card.path, { card: nextCard, fileContent })
+
+        return nextCard
     }
 }

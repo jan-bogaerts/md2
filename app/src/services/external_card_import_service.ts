@@ -1,4 +1,5 @@
 import { getNextCardNumber, slugifyTitle } from '../data/card_naming'
+import { buildCardId, type CardSeparator } from '../data/card_identifiers'
 import type { CardTypeConfig, MarkdownFile, MoveFile } from '../data/data_types'
 import { markdownParsingService, type HeaderValue, type MarkdownHeaderFields } from './markdown_parsing_service'
 
@@ -66,13 +67,14 @@ function buildImportedContent(
     return markdownParsingService.rewriteHeader(file.content, { id, internalId, status, title })
 }
 
-function importedPath(workingFolder: string, id: string, title: string) {
-    return `${workingFolder}/${id}-${slugifyTitle(title)}${MARKDOWN_EXTENSION}`
+function importedPath(workingFolder: string, id: string, title: string, cardSeparator: CardSeparator) {
+    return `${workingFolder}/${id}${cardSeparator}${slugifyTitle(title, cardSeparator)}${MARKDOWN_EXTENSION}`
 }
 
 export function planExternalCardImports(
     files: MarkdownFile[],
     workingFolder: string,
+    cardSeparator: CardSeparator,
     cardTypes: CardTypeConfig[],
     initialState: string,
 ): ExternalCardImportPlan {
@@ -85,8 +87,8 @@ export function planExternalCardImports(
     for (const file of candidates) {
         const parsed = markdownParsingService.parse(file.content)
         const title = importTitle(file, parsed.header, parsed.body)
-        const id = `${cardType.idPrefix}-${nextNumber}`
-        const path = importedPath(workingFolder, id, title)
+        const id = buildCardId(cardType.idPrefix, nextNumber, cardSeparator)
+        const path = importedPath(workingFolder, id, title, cardSeparator)
         const content = buildImportedContent(file, id, initialState, title, parsed)
         const importedFile = { content, path }
         moves.push({ content, fromPath: file.path, sha: file.sha, toPath: path })

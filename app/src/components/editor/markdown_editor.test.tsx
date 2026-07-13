@@ -4,6 +4,7 @@ import { AppThemeProvider } from '../../theme/theme_provider'
 import { MARKDOWN_STYLE_PRESETS } from '../../theme/theme_config'
 import { useAppTheme } from '../../theme/use_app_theme'
 import { MarkdownEditor } from './markdown_editor'
+import { flushMarkdownEditors } from './markdown_editor_flush'
 import { buildMarkdownContentSx } from './markdown_style_sx'
 
 function renderEditor(markdown = '') {
@@ -40,7 +41,7 @@ describe('MarkdownEditor', () => {
         expect(screen.getByRole('textbox')).toHaveValue('# Title\n\nBody')
     })
 
-    it('propagates edits as markdown through onChange', () => {
+    it('does not propagate edits while typing', () => {
         const onChange = vi.fn()
         render(
             <AppThemeProvider>
@@ -50,7 +51,50 @@ describe('MarkdownEditor', () => {
 
         fireEvent.change(screen.getByRole('textbox'), { target: { value: 'edited' } })
 
-        expect(onChange).toHaveBeenCalledWith('edited')
+        expect(onChange).not.toHaveBeenCalled()
+    })
+
+    it('flushes pending edits through onChange on unmount', () => {
+        const onChange = vi.fn()
+        const { unmount } = render(
+            <AppThemeProvider>
+                <MarkdownEditor markdown="original" onChange={onChange} />
+            </AppThemeProvider>,
+        )
+
+        fireEvent.change(screen.getByRole('textbox'), { target: { value: 'edited' } })
+        unmount()
+
+        expect(onChange).toHaveBeenCalledExactlyOnceWith('edited')
+    })
+
+    it('flushes pending edits when the app-level flush runs', () => {
+        const onChange = vi.fn()
+        render(
+            <AppThemeProvider>
+                <MarkdownEditor markdown="original" onChange={onChange} />
+            </AppThemeProvider>,
+        )
+
+        fireEvent.change(screen.getByRole('textbox'), { target: { value: 'edited' } })
+        flushMarkdownEditors()
+
+        expect(onChange).toHaveBeenCalledExactlyOnceWith('edited')
+    })
+
+    it('does not flush again when the content did not change since the last flush', () => {
+        const onChange = vi.fn()
+        const { unmount } = render(
+            <AppThemeProvider>
+                <MarkdownEditor markdown="original" onChange={onChange} />
+            </AppThemeProvider>,
+        )
+
+        fireEvent.change(screen.getByRole('textbox'), { target: { value: 'edited' } })
+        flushMarkdownEditors()
+        unmount()
+
+        expect(onChange).toHaveBeenCalledExactlyOnceWith('edited')
     })
 
     it('renders the formatting toolbar inside the markdown editor', () => {

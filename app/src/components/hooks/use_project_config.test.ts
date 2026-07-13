@@ -8,6 +8,7 @@ const firstConfig: ProjectConfig = {
     actionsFolder: 'actions',
     backgroundShade: 'blue',
     cardBodyTemplate: '',
+    cardSeparator: '_',
     cardTypes: [{ color: '#111111', idPrefix: 'F', label: 'Feature', type: 'feature' }],
     diffCommand: 'git show {{commit}}',
     projectFolder: '',

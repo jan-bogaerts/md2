@@ -9,6 +9,8 @@ policy:
   requireTests: true
 ---
 
+> **UPDATE 2026-07-11 — device-flow / OAuth login removed.** Auth is now personal-access-token only (see [[F_035_github_pat_fallback]]); the OAuth CORS proxy was dropped (see [[F_034_github_oauth_cors_proxy]]). Any device-flow, `client_id`, scopes, or OAuth-proxy detail below is historical.
+
 ## Goal
 Allow the user to log in with GitHub credentials so the app can read and write markdown files stored in a GitHub repository.
 

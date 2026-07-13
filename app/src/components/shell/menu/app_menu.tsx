@@ -18,7 +18,7 @@ import type { UseGithubAuthResult } from '../../../auth/use_github_auth'
 import { useConfigValue, useHasDesktopConfig } from '../../hooks/use_config_value'
 import { useProjectState } from '../../hooks/use_project_state'
 import { useWorkspaceView } from '../../hooks/use_workspace_view'
-import { MainToolbar } from '../main_toolbar'
+import { MainToolbar } from './main_toolbar'
 import { GithubAuthToolbarButton } from '../github_auth_toolbar_button'
 import { NO_DRAG_REGION } from '../drag_region'
 import { BranchSwitchDialog } from '../project/branch_switch_dialog'
@@ -49,7 +49,7 @@ interface AppMenuProps {
 
 const MENU_TABS: { label: string; value: AppMenuTab }[] = [
     { label: 'Home', value: 'home' },
-    { label: 'Agents', value: 'agents' },
+    { label: 'Run', value: 'agents' },
 ]
 
 function persistDesktopConfig() {

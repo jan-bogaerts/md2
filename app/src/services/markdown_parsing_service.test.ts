@@ -58,7 +58,7 @@ describe('markdownParsingService.parseCard', () => {
         const card = markdownParsingService.parseCard({ content: '# Imported', path: 'design/free note.md' }, 'design')
 
         expect(markdownParsingService.followsCardNamingConvention(card.path)).toBe(false)
-        expect(card.header.id).toBe('F-0')
+        expect(card.header.id).toBe('F_0')
         expect(card.header.status).toBe('new')
         expect(card.header.title).toBe('Imported')
     })
@@ -242,6 +242,32 @@ describe('markdownParsingService.setAffects', () => {
 
         expect(next).toContain('affects:\n---')
         expect(next).not.toContain('old.ts')
+    })
+})
+
+describe('markdownParsingService worktree frontmatter', () => {
+    it('parses and rewrites a positive one-based worktree index', () => {
+        const content = '---\nid: F-1\nworktree: 2\n---\n# Card\n'
+        const card = markdownParsingService.parseCard({ content, path: 'design/F-1-card.md' }, 'design')
+
+        expect(card.header).toMatchObject({ worktree: 2, worktreeError: null, worktreeValue: '2' })
+        expect(markdownParsingService.setWorktree(content, 3)).toContain('worktree: 3')
+    })
+
+    it.each(['0', '-1', '1.5', 'two'])('keeps invalid worktree value %s visible as an error', (value) => {
+        const content = `---\nid: F-1\nworktree: ${value}\n---\n# Card\n`
+        const card = markdownParsingService.parseCard({ content, path: 'design/F-1-card.md' }, 'design')
+
+        expect(card.header).toMatchObject({ worktree: null, worktreeValue: value })
+        expect(card.header.worktreeError).toContain(value)
+    })
+
+    it('removes worktree frontmatter when assigning Primary', () => {
+        const content = '---\nid: F-1\nworktree: 2\nstatus: design\n---\n# Card\n'
+        const next = markdownParsingService.setWorktree(content, null)
+
+        expect(next).not.toContain('worktree:')
+        expect(next).toContain('status: design')
     })
 })
 

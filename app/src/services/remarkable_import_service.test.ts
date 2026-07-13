@@ -12,7 +12,7 @@ const SETTINGS: RemarkableConnectionSettings = {
     username: 'root',
 }
 
-const CONFIG = { cardBodyTemplate: '# Goal', cardTypes: DEFAULT_CARD_TYPES, states: DEFAULT_STATES, workingFolder: 'design' }
+const CONFIG = { cardBodyTemplate: '# Goal', cardSeparator: '_' as const, cardTypes: DEFAULT_CARD_TYPES, states: DEFAULT_STATES, workingFolder: 'design' }
 
 function asset(name: string, overrides: Partial<RemarkableImportedAsset> = {}): RemarkableImportedAsset {
     return { content: btoa(name), modifiedTime: '2026-07-01T10:00:00.000Z', name, sourcePath: `/img/${name}`, ...overrides }
@@ -86,8 +86,8 @@ describe('buildRemarkableImport into a new feature card', () => {
 
         const cardFile = plan.commitFiles.find((file) => file.path === plan.cardPath)
 
-        expect(plan.cardPath).toBe('design/F-2-scanned-notes.md')
-        expect(plan.message).toContain('Create design/F-2-scanned-notes.md')
+        expect(plan.cardPath).toBe('design/F_2_scanned_notes.md')
+        expect(plan.message).toContain('Create design/F_2_scanned_notes.md')
         expect(cardFile?.content).toContain('![note](note.png)')
     })
 })

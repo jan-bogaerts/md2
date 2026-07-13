@@ -1,5 +1,6 @@
 import type { ActionDefinition } from './action_types'
 import type { CardTypeConfig, ProjectCard } from './data_types'
+import { getCardIdPrefix } from './card_identifiers'
 
 /** The kind of item an action entry point is attached to. */
 export type ActionContextKind = 'card' | 'file' | 'folder'
@@ -18,12 +19,14 @@ export interface ActionContext {
     /** Folder name for folder contexts. */
     folder?: string
     kind: ActionContextKind
+    worktree?: string
+    worktreeError?: string
     [key: string]: string | undefined
 }
 
 /** Resolve the configured card type for a card id via its prefix (e.g. `F-005` → `feature`). */
 export function getCardType(cardTypes: CardTypeConfig[], id: string): string | undefined {
-    const prefix = id.split('-')[0]
+    const prefix = getCardIdPrefix(id)
 
     return cardTypes.find((cardType) => cardType.idPrefix === prefix)?.type
 }
@@ -34,6 +37,8 @@ export function cardContext(card: ProjectCard, cardTypes: CardTypeConfig[]): Act
     const type = getCardType(cardTypes, card.header.id)
     if (type) context.type = type
     if (card.header.status) context.state = card.header.status
+    if (card.header.worktreeValue) context.worktree = card.header.worktreeValue
+    if (card.header.worktreeError) context.worktreeError = card.header.worktreeError
 
     return context
 }

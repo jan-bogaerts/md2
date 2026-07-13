@@ -20,6 +20,7 @@ describe('ConfigService', () => {
             actionsFolder: 'ops',
             backgroundShade: 'green',
             cardBodyTemplate: '# Goal\n\n# Current status\n\n# Details\n\n# Tasks',
+            cardSeparator: '-',
             projectFolder: 'design',
             pushMode: 'manual',
             workingFolder: 'docs',
@@ -45,6 +46,25 @@ describe('ConfigService', () => {
         service.loadProjectConfig(null)
 
         expect(service.getProjectConfig().actionsFolder).toBe('actions')
+    })
+
+    it('defaults new projects to underscore and identifies existing configs without the key as legacy hyphen projects', () => {
+        service.init()
+        service.loadProjectConfig(null)
+
+        expect(service.getProjectConfig().cardSeparator).toBe('_')
+
+        service.loadProjectConfig({ workingFolder: 'design' })
+
+        expect(service.getProjectConfig().cardSeparator).toBe('-')
+    })
+
+    it('loads a configured card separator and rejects unsupported values', () => {
+        service.init()
+        service.loadProjectConfig({ cardSeparator: '-' })
+
+        expect(service.getProjectConfig().cardSeparator).toBe('-')
+        expect(() => service.loadProjectConfig({ cardSeparator: '.' as never })).toThrow('Invalid config value')
     })
 
     it('loads the configured project folder', () => {
@@ -154,18 +174,18 @@ describe('ConfigService', () => {
         expect(service.get('desktop.agentSlotCommand')).toBe('slot-command')
     })
 
-    it('persists react and connection values across instances, simulating a reload', () => {
+    it('persists react values across instances, simulating a reload', () => {
         service.init()
         service.loadDraft()
         service.setDraftValue('react.autoCommitDelayMs', 5000)
-        service.setDraftValue('connection.githubScopes', 'public_repo')
+        service.setDraftValue('react.showStartupSplash', false)
         service.saveDraft()
 
         const reloaded = new ConfigService()
         reloaded.init()
 
         expect(reloaded.get('react.autoCommitDelayMs')).toBe(5000)
-        expect(reloaded.get('connection.githubScopes')).toBe('public_repo')
+        expect(reloaded.get('react.showStartupSplash')).toBe(false)
 
         reloaded.clear()
     })
@@ -181,13 +201,13 @@ describe('ConfigService', () => {
     it('ignores an out-of-range persisted value and keeps its default, without affecting other keys', () => {
         window.localStorage.setItem(
             REACT_CONFIG_STORAGE_KEY,
-            JSON.stringify({ 'react.autoCommitDelayMs': 999999999, 'connection.githubScopes': 'public_repo' }),
+            JSON.stringify({ 'react.autoCommitDelayMs': 999999999, 'react.showStartupSplash': false }),
         )
 
         service.init()
 
         expect(service.get('react.autoCommitDelayMs')).toBe(30000)
-        expect(service.get('connection.githubScopes')).toBe('public_repo')
+        expect(service.get('react.showStartupSplash')).toBe(false)
     })
 
     it('returns the current desktop values from getDesktopValues', () => {

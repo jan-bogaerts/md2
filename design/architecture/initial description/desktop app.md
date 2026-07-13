@@ -12,7 +12,10 @@
   - via preload.js → for desktop usage
   - WebSocket: when "remote control" is activated, the Electron app starts a WebSocket server that the React app can connect to.
 
-- The Electron app is responsible for running the agents.
-  - `stdin`, `stderr` & `stdout` are read, text is stored in logs, logs are linked to the card (ref to log is stored in card).
-  - The React app is sent the output & errors.
-  - Input is sent to `stdin`.
+- The Electron app owns the action runner for command and agent actions.
+  - The renderer requests execution by action `id`, context, and run-specific input.
+  - Electron reloads and validates the persisted definition, resolves linked action ids and placeholders, and executes the complete `onBefore`/main/`on`/`onAfter` chain.
+  - `stdin`, `stderr`, and `stdout` are read; text is stored in logs, and agent logs are linked to the card.
+  - React receives execution and output events for display.
+  - Live conversation input is sent to the active agent through `stdin`.
+  - Cancellation stops the active Electron process and chain.

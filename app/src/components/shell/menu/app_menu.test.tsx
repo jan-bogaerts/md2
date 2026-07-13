@@ -12,13 +12,9 @@ import { AppMenu } from './app_menu'
 
 const auth: UseGithubAuthResult = {
     accessToken: null,
-    authMethod: null,
-    deviceCode: null,
     errorMessage: null,
     isAuthenticated: false,
-    isDeviceFlowAvailable: true,
     isLoadingUser: false,
-    login: vi.fn(),
     logout: vi.fn(),
     savePersonalAccessToken: vi.fn(),
     status: 'idle',
@@ -41,11 +37,14 @@ function createBridge(): ElectronDataBridge {
         loadProject: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
         loadProjectRoot: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
         loadProjectConfig: vi.fn(async () => ({ backgroundShade: 'blue' as const, projectFolder: '', workingFolder: 'design' })),
+        loadWorktrees: vi.fn(async () => []),
         moveFiles: vi.fn(),
         openProjectFolder: vi.fn(async () => ({ branch: 'main', id: 'local', rootPath: 'C:/repo' })),
         push: vi.fn(),
         resolveProject: vi.fn(async (project) => project),
         saveProjectConfig: vi.fn(),
+        saveWorktrees: vi.fn(async () => []),
+        selectWorktreeFolder: vi.fn(async () => null),
         watchProject: vi.fn(() => vi.fn()),
     }
 }
@@ -117,7 +116,7 @@ describe('AppMenu', () => {
         expect(screen.getByRole('tab', { name: 'Home' })).toBeInTheDocument()
         expect(screen.queryByRole('tab', { name: 'Edit' })).not.toBeInTheDocument()
         expect(screen.queryByRole('tab', { name: 'Format' })).not.toBeInTheDocument()
-        expect(screen.getByRole('tab', { name: 'Agents' })).toBeInTheDocument()
+        expect(screen.getByRole('tab', { name: 'Run' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Open project' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Config' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Cards view' })).toHaveTextContent('Board')
@@ -168,7 +167,7 @@ describe('AppMenu', () => {
         })
 
         renderMenu()
-        fireEvent.click(screen.getByRole('tab', { name: 'Agents' }))
+        fireEvent.click(screen.getByRole('tab', { name: 'Run' }))
 
         expect(screen.getByRole('combobox', { name: 'Default agent' })).toHaveTextContent('codex')
         expect(screen.getByRole('combobox', { name: 'Default model' })).toHaveTextContent('gpt-5')
@@ -184,7 +183,7 @@ describe('AppMenu', () => {
 
     it('shows the chatbot placeholder on the Agents tab', () => {
         renderMenu()
-        fireEvent.click(screen.getByRole('tab', { name: 'Agents' }))
+        fireEvent.click(screen.getByRole('tab', { name: 'Run' }))
 
         expect(screen.getByRole('button', { name: 'Add chatbot' })).toBeDisabled()
     })

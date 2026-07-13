@@ -5,7 +5,7 @@ import vm from 'node:vm'
 import { describe, expect, it, vi } from 'vitest'
 
 const currentDirectory = dirname(fileURLToPath(import.meta.url))
-const mainPath = join(currentDirectory, 'main.js')
+const mainPath = join(currentDirectory, '..', '..', 'main.js')
 const preloadPath = join(currentDirectory, 'preload.js')
 
 function createPreloadHarness(options = {}) {
@@ -66,12 +66,11 @@ describe('preload desktop agent bridge', () => {
     it('exposes only the named desktop bridges through contextBridge', () => {
         const { electron, exposed, window } = createPreloadHarness()
 
-        expect(electron.contextBridge.exposeInMainWorld).toHaveBeenCalledTimes(8)
+        expect(electron.contextBridge.exposeInMainWorld).toHaveBeenCalledTimes(7)
         expect(Object.keys(exposed).sort()).toEqual([
             'md2Actions',
             'md2Config',
             'md2Data',
-            'md2GithubAuth',
             'md2Lifecycle',
             'md2Remarkable',
             'md2RemoteControl',

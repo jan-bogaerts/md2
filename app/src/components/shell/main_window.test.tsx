@@ -13,13 +13,9 @@ import { MainWindow } from './main_window'
 
 const auth: UseGithubAuthResult = {
     accessToken: null,
-    authMethod: null,
-    deviceCode: null,
     errorMessage: null,
     isAuthenticated: false,
-    isDeviceFlowAvailable: true,
     isLoadingUser: false,
-    login: vi.fn(),
     logout: vi.fn(),
     savePersonalAccessToken: vi.fn(),
     status: 'idle',
@@ -189,10 +185,23 @@ describe('MainWindow', () => {
         mockMatchMedia(true)
         renderWindow()
 
-        expect(screen.queryByRole('button', { name: 'Sign in with GitHub' })).toBeNull()
+        expect(screen.queryByLabelText('Personal access token')).toBeNull()
+        expect(screen.queryByRole('button', { name: /Switch to (dark|light) theme/ })).toBeNull()
         fireEvent.click(screen.getByRole('button', { name: 'Open menu' }))
         expect(screen.getByText('No project navigation available.')).toBeInTheDocument()
-        expect(screen.queryByRole('button', { name: 'Sign in with GitHub' })).toBeNull()
+        expect(screen.getByRole('button', { name: /Switch to (dark|light) theme/ })).toBeInTheDocument()
+        expect(screen.queryByLabelText('Personal access token')).toBeNull()
+    })
+
+    it('opens mobile search from a toolbar icon', () => {
+        mockMatchMedia(true)
+        renderWindow()
+
+        expect(screen.queryByRole('textbox', { name: 'Search project' })).toBeNull()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Search' }))
+
+        expect(screen.getByRole('textbox', { name: 'Search project' })).toHaveFocus()
     })
 
     it('keeps GitHub authentication reachable from the toolbar', () => {
@@ -201,7 +210,7 @@ describe('MainWindow', () => {
 
         fireEvent.click(screen.getByRole('button', { name: 'GitHub account' }))
 
-        expect(screen.getByRole('button', { name: 'Sign in with GitHub' })).toBeInTheDocument()
+        expect(screen.getByLabelText('Personal access token')).toBeInTheDocument()
     })
 
     it('opens the config page from the toolbar', () => {
@@ -231,12 +240,12 @@ describe('MainWindow', () => {
     })
 
     it('opens the config page directly from the URL', () => {
-        window.history.pushState(null, '', '/config#connection')
+        window.history.pushState(null, '', '/config#desktop')
         mockMatchMedia(false)
         renderWindow()
 
         expect(screen.getByRole('heading', { name: 'Config' })).toBeInTheDocument()
-        expect(screen.getByRole('tab', { name: 'Connection' })).toBeInTheDocument()
+        expect(screen.getByRole('tab', { name: 'Desktop' })).toBeInTheDocument()
     })
 
     it('populates the search query from a real agent run when the Electron bridge is available', async () => {

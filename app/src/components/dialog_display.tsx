@@ -3,6 +3,7 @@ import type { SyntheticEvent } from 'react'
 import { useEffect, useState } from 'react'
 import { DIALOG_SERVICE_EVENT, dialogService, type DialogServiceMessage } from '../services/dialog_service'
 import { SelectableAlertMessage } from './selectable_alert_message'
+import { GlobalProgressBackdrop } from './global_progress_backdrop'
 
 const SNACKBAR_AUTO_HIDE_MS = 6000
 const IMMEDIATE_TRANSITION_MS = 0
@@ -45,6 +46,7 @@ export function DialogDisplay() {
 
     return (
         <>
+            <GlobalProgressBackdrop />
             <Snackbar
                 autoHideDuration={snackbarAutoHideDuration}
                 key={snackbarMessage?.id ?? 'dialog-service-snackbar'}

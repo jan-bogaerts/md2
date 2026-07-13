@@ -10,27 +10,37 @@ policy:
 ---
 
 ## Goal
-Define the action definition model and load action json files from the project's actions folder into a singleton app service exposed to React through a hook, failing fast on invalid definitions and circular calls. Foundation slice of `design\feature_descriptions\F_010_actions.md` — no UI and no execution yet.
+
+Define the canonical ID-based action model and load project action JSON into the action service exposed to React, failing fast on invalid definitions and circular calls. This slice provides loading and display data; execution belongs to the Electron runner in [[F-010c]].
 
 ## Current state
-Not implemented. The app loads markdown files through GitHub or the Electron local-Git bridge, but there is no action definition model, action loader, action service, React hook, `custom prompt` built-in, validation or circular-call check. The actions folder is recognized as a special folder type ([[F-003]]) but its contents are not parsed.
+
+The shared loader currently uses action names as identity, accepts `agent | cmd`, stores executable content in `text`, supports inline/by-name `before`/`after`/`on` references, and includes `runIn`. Both React and Electron consume that resolved shape.
 
 ## implementation details
-- Add a typed action model for json definitions with `name`, `label`, `description`, `type` (`agent` | `cmd`), `text`, and optional `icon`, `appliesTo`, `before`, `after`, `on` and `onState`. Sub-actions in `before`/`after`/`on` may be inline definitions or string refs to other actions by `name`.
-- Load actions from the configured project actions folder when a project opens.
-- Register a built-in `custom prompt` agent action in the model, independent of any project action files, so later slices can always offer it.
-- Validate on load and fail fast with a clear error on: invalid json, missing required fields, unknown action refs, duplicate `name`, or circular calls through `before`/`after`/`on`.
-- Hold the loaded action list in a singleton app service and expose it to React through a hook. This slice only reads/exposes definitions; running and displaying them come later.
-- Do not silently fall back to partial behavior when any definition is invalid.
+
+- Replace the legacy model with required `id`, `name`, `label`, `description`, and `type` (`agent` | `command`).
+- Require `prompt` for agent actions and `command` for command actions.
+- Support optional `icon`, `appliesTo`, `onBefore`, `on`, `onAfter`, `onState`, `needsWorkTree`, `agent`, `model`, and `thinkingLevel`.
+- `id` is stable identity. `name` and `label` can change without changing links or execution requests.
+- `onBefore` and `onAfter` are ordered action-id lists. `on` is an ordered list of `{ condition, actionId }` entries.
+- Do not accept inline action definitions or action-name references. Do not add compatibility normalization for the old shape.
+- Give the built-in custom-prompt action a stable reserved id and keep it independent of project files.
+- Validate invalid JSON, missing or type-incompatible fields, duplicate ids, duplicate names, unknown action ids, self-references, invalid regular expressions, invalid action types, and circular calls through every link field.
+- Load definitions from the configured actions folder on project open. Keep the previous valid set when a hot reload fails.
+- Use one shared validator for React and Electron so the editor and Electron runner accept the same definitions.
 
 ## acceptance criteria
-- Opening a project loads valid action json files from the configured actions folder and exposes them to React through the action hook.
-- The built-in `custom prompt` action is present in the exposed action set.
-- Invalid json, missing required fields, unknown action refs, duplicate names and circular references each produce a clear load error and prevent partial loading.
-- Inline and by-name sub-action references resolve to the same underlying definitions.
-- Tests cover model parsing, ref resolution, each validation failure and circular-call detection.
+
+- Opening a project loads valid ID-based definitions and exposes them through the action service/hook.
+- Renaming an action leaves every `onBefore`, `on`, and `onAfter` link valid.
+- The built-in custom-prompt action is present with a stable reserved id.
+- Legacy `cmd`, `text`, `before`, `after`, `runIn`, inline links, and name links fail validation clearly.
+- Every listed validation failure names the source definition and prevents partial replacement of the valid action set.
+- Shared fixture tests cover parsing, ID resolution, field validation, regular expressions, and cycle detection in both React and Electron.
 
 ## see also
+
 - `design\architecture\initial description\actions.md`
-- `design\architecture\initial description\data management.md`
-- `design\architecture\initial description\overview.md`
+- `design\architecture\initial description\writings\Action editor\action_editor.md`
+- `design\feature_descriptions\ready\F_010_actions.md`

@@ -5,13 +5,9 @@ import { GithubAuthToolbarButton } from './github_auth_toolbar_button'
 
 const auth: UseGithubAuthResult = {
     accessToken: null,
-    authMethod: null,
-    deviceCode: null,
     errorMessage: null,
     isAuthenticated: false,
-    isDeviceFlowAvailable: true,
     isLoadingUser: false,
-    login: vi.fn(),
     logout: vi.fn(),
     savePersonalAccessToken: vi.fn(),
     status: 'idle',
@@ -26,7 +22,6 @@ describe('GithubAuthToolbarButton', () => {
     it('closes the GitHub account dialog without starting an auth action', async () => {
         const signedInAuth: UseGithubAuthResult = {
             ...auth,
-            authMethod: 'pat',
             isAuthenticated: true,
             status: 'authenticated',
             user: {
@@ -43,7 +38,6 @@ describe('GithubAuthToolbarButton', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Close' }))
 
         await waitFor(() => expect(screen.queryByRole('button', { name: 'Remove token' })).toBeNull())
-        expect(signedInAuth.login).not.toHaveBeenCalled()
         expect(signedInAuth.logout).not.toHaveBeenCalled()
         expect(signedInAuth.savePersonalAccessToken).not.toHaveBeenCalled()
     })

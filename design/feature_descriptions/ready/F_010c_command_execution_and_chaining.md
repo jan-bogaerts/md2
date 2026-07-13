@@ -1,6 +1,6 @@
 ---
 id: F-010c
-title: command execution and chaining
+title: Electron action execution and chaining
 status: ready
 owner: JB
 affects:
@@ -10,28 +10,44 @@ policy:
 ---
 
 ## Goal
-Run `cmd` actions through Electron with placeholders resolved from context, and orchestrate `before`, main action, `on` output matches and `after` in a deterministic order with clear logs and status. Execution/runner slice of `design\feature_descriptions\F_010_actions.md`, building on [[F-010a]] and [[F-010b]].
+
+Move the complete action runner to Electron. Electron resolves a persisted action by stable id, prepares its worktree when requested, executes command or agent actions, orchestrates `onBefore`/main/`on`/`onAfter`, streams phase-specific events, and supports cancellation.
 
 ## Current state
-[[F-010a]] exposes validated action definitions and [[F-010b]] provides entry points and a popup with a `Run` command, but `Run` has no execution backing. There is no preload bridge for running actions, no placeholder resolution and no chaining/orchestration or run logs.
+
+React currently owns the manual/state-triggered `ActionRunner`, chain traversal, output matching, status aggregation, and history callbacks. It asks Electron to execute individual command or agent phases by action name. Electron has a separate chain implementation for scheduled actions. The two paths can diverge.
 
 ## implementation details
-- Add preload bridge methods to run `cmd` actions. Commands execute from preload unless a command requires main-owned Electron APIs, in which case route through main. Require Electron/local mode.
-- Resolve placeholders in `text` at run time from the selected context, at minimum `rootProjectFolder` and `file`.
-- Execute the chain in deterministic order: `before` sub-actions → main action → `on` condition→action matches → `after` sub-actions. `on` conditions are regular expressions matched against the action's output.
-- Run `after` even when the main action fails; return errors in the action log/status rather than throwing away results.
-- Enforce the circular-call check from [[F-010a]] at run time and reject cycles.
-- Produce a run log/status exposing running, completed and failed states for the popup (from [[F-010b]]) to display.
+
+- Add one Electron `ActionRunner` used by manual, `onState`, scheduled, and related-action runs.
+- The renderer-facing start method accepts only `{ actionId, context, runInput }` and returns an execution id. It does not accept `command`, `prompt`, definitions, or linked actions.
+- Electron loads action files through the shared validator, resolves the persisted action and every link by `id`, and rejects unknown or invalid definitions before starting.
+- Resolve `rootProjectFolder`, `file`, and supported run-input placeholders in Electron.
+- Execute command actions in Electron and treat process-start errors or non-zero exits as failure.
+- Delegate agent-process lifecycle to the Electron agent runner while retaining chain ownership in the Electron action runner.
+- Execute `onBefore` in order, then main, then ordered matching `on` rules, then `onAfter`.
+- Evaluate each `on.condition` as a regular expression against main output and execute its `actionId` when it matches.
+- If `onBefore` fails, stop before main and fail the selected run. Main or matched-`on` failure fails the selected run. If main and `on` succeeded but an `onAfter` action fails, fail that linked action and finish the selected run as `okButNotAfter`.
+- Emit execution events containing execution id, root action id, current action id, phase, status, and output/error data so all UI surfaces and the global running indicator consume one stream.
+- Keep execution states separate from schedule states. Execution uses `running`, `completed`, `failed`, `cancelled`, and `okButNotAfter`.
+- Add an Electron cancellation method by execution id. It stops the active command or agent process, prevents remaining chain phases from starting, emits `cancelled`, and performs normal completion cleanup.
+- If the definition has `needsWorkTree`, prepare it before chain execution as specified by `running_actions.md`. Do not perform implicit commit, push, merge, cherry-pick, or change transfer.
+- Remove the React `ActionRunner` and the separate scheduled chain runner after every caller uses the Electron runner.
 
 ## acceptance criteria
-- Running a `cmd` action executes through Electron with `rootProjectFolder` and `file` placeholders resolved for the selected context.
-- The popup reports running, completed and failed states clearly from the run log/status.
-- `before`, `after` and `on` chains run in the specified deterministic order and reject circular references.
-- `after` runs even when the main action fails, and failures are reported clearly in the log/status.
-- `on` regular-expression matches on output trigger their paired actions.
-- Tests cover placeholder resolution, chain ordering, `after`-on-failure, `on` matching and circular-call rejection at run time.
+
+- Manual, state-triggered, scheduled, and related-action runs share one Electron action runner.
+- Renaming an action does not break execution or any linked action.
+- No renderer bridge method accepts a raw command, prompt template, or resolved action definition.
+- Command and agent placeholders are resolved in Electron from the persisted definition and context.
+- Chain order, output matching, cycle rejection, and failure results follow this specification.
+- Every event identifies the root action, current linked action, phase, and execution status.
+- Cancelling a run stops its active process, starts no later phase, clears the card's current action, and reports `cancelled`.
+- Tests cover ID lookup, renderer-input rejection, placeholders, all chain phases, each failure result, cancellation during command and agent phases, and reuse by the scheduler.
 
 ## see also
-- `design\architecture\initial description\actions.md`
+
+- `design\architecture\initial description\writings\Running actions\running_actions.md`
 - `design\architecture\initial description\desktop app.md`
-- `design\architecture\initial description\data management.md`
+- `design\feature_descriptions\ready\F_010a_action_model_and_loading.md`
+- `design\feature_descriptions\ready\F_022_scheduled_actions.md`

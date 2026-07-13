@@ -14,7 +14,7 @@ function BranchValue(props: { branch: string }) {
     const { branch } = props
 
     return (
-        <Box sx={{ alignItems: 'center', display: 'flex', gap: 1, minWidth: 0 }}>
+        <Box sx={{ alignItems: 'baseline', display: 'flex', gap: 1, minWidth: 0 }}>
             <Box sx={{ bgcolor: 'success.main', borderRadius: '50%', flexShrink: 0, height: 8, width: 8 }} />
             <Typography noWrap sx={{ fontSize: 13, fontWeight: 600 }}>{branch}</Typography>
             <Chip

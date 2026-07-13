@@ -1,9 +1,14 @@
 # Agents
 
-- outputs of agents are stored in json files
-- md files reference the outputs of the agents
-- UI elements (cards / editor) can show the conversations of the agents
-  - can be continued → new agent is started (by election app)
-  - when the conversation is shown, always provide a `single click` way to "continue" -> send "continue" text to agent
-- on cards, show a led to indicate actions; when clicked/pressed, show list of conversations.
-- for editor: button in toolbar; when pressed, horizontal splitter is used, bottom section shows active conversation
+- Agent processes only run through Electron.
+- Agent outputs are stored in JSON conversation logs referenced by Markdown files.
+- Cards and the editor can show the conversations associated with the current card or file.
+- While an agent is running:
+  - stdout and stderr are streamed into the visible conversation;
+  - text submitted by the user is forwarded to the active process through stdin;
+  - cancelling the action stops the Electron process and marks the run cancelled.
+- After an agent finishes, submitted conversation input starts or resumes a linked agent run. It is not sent to the completed process.
+- Every finished conversation provides a single-click `Continue` action that sends `continue` as the continuation input.
+- On cards, an indicator shows running actions and available conversations.
+- In the editor, a toolbar button opens the conversational panel below the active file. Desktop uses a horizontal splitter; mobile uses a fixed layout.
+- The global running-actions indicator is defined by `design\feature_descriptions\ready\F_004_app_layout.md` and `design\feature_descriptions\ready\B_009_running_agents_visibility.md`.

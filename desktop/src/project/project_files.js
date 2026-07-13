@@ -7,7 +7,7 @@ const {
     ensureInsideRoot,
     requireRootPath,
     runGit,
-} = require('./git_commands')
+} = require('../git/git_commands')
 
 const MARKDOWN_EXTENSION = '.md'
 const JSON_EXTENSION = '.json'

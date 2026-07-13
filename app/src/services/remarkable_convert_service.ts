@@ -38,6 +38,7 @@ function buildConvertAction(imagePaths: string[]): ActionDefinition {
         name: CONVERT_ACTION_NAME,
         on: [],
         onState: null,
+        runIn: 'project',
         text: `Convert the following Remarkable images to text and append the transcription to {{file}}:\n${imageList}`,
         type: 'agent',
     }

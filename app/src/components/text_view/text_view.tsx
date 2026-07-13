@@ -2,22 +2,27 @@ import { Badge, Box, Button, Divider, Stack, Typography } from '@mui/material'
 import type { KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent } from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { buildFileTree, fileLabel } from '../../data/file_tree'
+import { getCardIdPrefix } from '../../data/card_identifiers'
 import { defaultColumnAccent, type AgentConversation, type CardTypeConfig, type ProjectCard, type StateConfig } from '../../data/data_types'
 import { telemetryService } from '../../services/telemetry_service'
+import { agentAcknowledgementService } from '../../services/agent_acknowledgement_service'
+import { markdownParsingService } from '../../services/markdown_parsing_service'
 import { AgentConversationList } from '../agents/agent_conversation_list'
 import { MarkdownEditor } from '../editor/markdown_editor'
 import { LeftPanelSlot } from '../shell/left_panel_slot'
 import { FileTreeView } from './file_tree_view'
 import { HeaderEditorPanel } from './header_editor_panel'
-import { TabBar, type OpenTab } from './tab_bar'
+import { TabBar, type OpenTab, type OpenTabKind } from './tab_bar'
 import { useOpenTabs } from './use_open_tabs'
 
 const CONVERSATION_PANEL_MIN_HEIGHT = 220
 const CONVERSATION_PANEL_MAX_HEIGHT_RATIO = 0.8
 const CONVERSATION_PANEL_SEPARATOR_HEIGHT = 6
 const CONVERSATION_PANEL_KEYBOARD_STEP = 24
+const HISTORY_FOLDER_NAME = 'history'
 
 interface TextViewProps {
+    actionsFolder: string
     activeCards: ProjectCard[]
     backgroundCards: ProjectCard[]
     cardTypes: CardTypeConfig[]
@@ -25,33 +30,63 @@ interface TextViewProps {
     onLeftPanelInteraction: () => void
     onBodyChange: (path: string, body: string) => void
     onContinueAgentConversation: (path: string, conversation: AgentConversation) => void
+    onCreateFolder: (parentDirectory: string, name: string) => Promise<void>
+    onCreateMarkdownFile: (parentDirectory: string, name: string) => Promise<void>
     onDeleteFile: (path: string) => Promise<void>
     onHeaderFieldChange: (path: string, key: string, value: string) => void
     onSendAgentInput: (runId: string, input: string) => void
     onStartAgentConversation: (path: string, prompt: string) => void
+    projectFolder: string
+    projectId?: string
     requestedNonce: number
     requestedPath: string | null
+    repositoryFiles: string[]
     states: StateConfig[]
     workingFolder: string
 }
 
 function cardTypeColor(card: ProjectCard, cardTypes: CardTypeConfig[]) {
-    const idPrefix = card.header.id.split('-')[0]
+    const idPrefix = getCardIdPrefix(card.header.id)
     const cardType = cardTypes.find((candidate) => candidate.idPrefix === idPrefix)
 
     return cardType?.color ?? null
 }
 
-function tabData(cardsByPath: Map<string, ProjectCard>, cardTypes: CardTypeConfig[], path: string): OpenTab {
+function isPathInFolder(path: string, folder: string) {
+    const normalizedPath = path.replace(/\\/gu, '/')
+    const normalizedFolder = folder.replace(/\\/gu, '/').replace(/\/+$/u, '')
+
+    return normalizedPath.startsWith(`${normalizedFolder}/`)
+}
+
+function tabKind(card: ProjectCard, actionsFolder: string): OpenTabKind {
+    if (isPathInFolder(card.path, actionsFolder)) return 'action'
+    if (typeof card.headerFields.id === 'string' || markdownParsingService.followsCardNamingConvention(card.path)) return 'card'
+
+    return 'markdown'
+}
+
+function tabData(cardsByPath: Map<string, ProjectCard>, cardTypes: CardTypeConfig[], actionsFolder: string, path: string): OpenTab {
     const card = cardsByPath.get(path)
     const label = card ? fileLabel(card) : path
     const id = card && label.startsWith(`${card.header.id} `) ? card.header.id : null
 
-    return { color: card ? cardTypeColor(card, cardTypes) : null, id, label, path, title: id ? label.slice(id.length + 1) : label }
+    return {
+        color: card ? cardTypeColor(card, cardTypes) : null,
+        id,
+        kind: card ? tabKind(card, actionsFolder) : 'markdown',
+        label,
+        path,
+        title: id ? label.slice(id.length + 1) : label,
+    }
 }
 
 function conversationPanelMaxHeight(containerHeight: number): number {
     return Math.max(CONVERSATION_PANEL_MIN_HEIGHT, containerHeight * CONVERSATION_PANEL_MAX_HEIGHT_RATIO)
+}
+
+function folderPath(parentFolder: string, childFolder: string) {
+    return parentFolder.length > 0 ? `${parentFolder}/${childFolder}` : childFolder
 }
 
 function clampConversationPanelHeight(proposedHeight: number, containerHeight: number): number {
@@ -62,6 +97,7 @@ function clampConversationPanelHeight(proposedHeight: number, containerHeight: n
 /** Text view: a folder/status tree plus tabbed, editable open files. */
 export function TextView(props: TextViewProps) {
     const {
+        actionsFolder,
         activeCards,
         backgroundCards,
         cardTypes,
@@ -69,14 +105,18 @@ export function TextView(props: TextViewProps) {
         onLeftPanelInteraction,
         onBodyChange,
         onContinueAgentConversation,
+        onCreateFolder,
+        onCreateMarkdownFile,
         onDeleteFile,
         onHeaderFieldChange,
         onSendAgentInput,
         onStartAgentConversation,
+        projectFolder,
         requestedNonce,
         requestedPath,
+        repositoryFiles,
         states,
-        workingFolder,
+        workingFolder, projectId,
     } = props
     const [isConversationPanelOpen, setIsConversationPanelOpen] = useState(false)
     const [conversationPanelHeight, setConversationPanelHeight] = useState(CONVERSATION_PANEL_MIN_HEIGHT)
@@ -86,10 +126,15 @@ export function TextView(props: TextViewProps) {
     const onDeleteFileRef = useRef(onDeleteFile)
     const onLeftPanelInteractionRef = useRef(onLeftPanelInteraction)
 
-    const tree = useMemo(
-        () => buildFileTree(activeCards, backgroundCards, workingFolder),
-        [activeCards, backgroundCards, workingFolder],
+    const specialFolderPaths = useMemo(
+        () => [actionsFolder, workingFolder, folderPath(projectFolder, HISTORY_FOLDER_NAME)],
+        [actionsFolder, projectFolder, workingFolder],
     )
+    const tree = useMemo(() => buildFileTree(activeCards, backgroundCards, workingFolder, {
+        projectFolder,
+        repositoryFiles,
+        specialFolderPaths,
+    }), [activeCards, backgroundCards, projectFolder, repositoryFiles, specialFolderPaths, workingFolder])
     const cardsByPath = useMemo(() => {
         const map = new Map<string, ProjectCard>()
         for (const card of [...activeCards, ...backgroundCards]) map.set(card.path, card)
@@ -118,8 +163,14 @@ export function TextView(props: TextViewProps) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [requestedNonce])
 
-    const openTabs = tabs.map((path) => tabData(cardsByPath, cardTypes, path))
+    const openTabs = tabs.map((path) => tabData(cardsByPath, cardTypes, actionsFolder, path))
     const activeCard = activePath ? cardsByPath.get(activePath) ?? null : null
+
+    useEffect(() => {
+        if (!isConversationPanelOpen || !activeCard || !projectId) return
+
+        agentAcknowledgementService.acknowledge(projectId, activeCard.path, activeCard.agentConversations)
+    }, [activeCard, isConversationPanelOpen, projectId])
 
     const handleSelect = useCallback((path: string) => {
         openTab(path)
@@ -227,30 +278,40 @@ export function TextView(props: TextViewProps) {
 
     const editorPane = (
         <Box sx={{ display: 'flex', flex: 1, flexDirection: 'column', minWidth: 0 }}>
-            <TabBar activePath={activePath} onActivate={handleActivateTab} onClose={closeTab} tabs={openTabs} />
-            <Stack direction="row" spacing={1} sx={{ alignItems: 'center', borderBottom: 1, borderColor: 'divider', px: 2, py: 1 }}>
-                <Button
-                    disabled={!activeCard}
-                    onClick={handleToggleConversationPanel}
-                    size="small"
-                    variant={isConversationPanelOpen ? 'contained' : 'outlined'}
-                >
-                    <Badge
-                        badgeContent={(activeCard?.agentConversations.length ?? 0) + (activeCard?.agentConversationErrors.length ?? 0)}
-                        color="primary"
-                        sx={{ mr: 1 }}
-                    >
-                        Agents
-                    </Badge>
-                </Button>
-                {activeCard ? (
-                    <Typography color="text.secondary" variant="body2">
-                        {fileLabel(activeCard)}
-                    </Typography>
-                ) : null}
-            </Stack>
+            {activeCard ? (
+                <>
+                    <TabBar activePath={activePath} onActivate={handleActivateTab} onClose={closeTab} tabs={openTabs} />
+                    <Stack direction="row" spacing={1} sx={{ alignItems: 'center', borderBottom: 1, borderColor: 'divider', px: 2, py: 1 }}>
+                        <Button
+                            onClick={handleToggleConversationPanel}
+                            size="small"
+                            variant={isConversationPanelOpen ? 'contained' : 'outlined'}
+                        >
+                            <Badge
+                                badgeContent={activeCard.agentConversations.length + activeCard.agentConversationErrors.length}
+                                color="primary"
+                                sx={{ mr: 1 }}
+                            >
+                                Agents
+                            </Badge>
+                        </Button>
+                        <Typography color="text.secondary" variant="body2">
+                            {fileLabel(activeCard)}
+                        </Typography>
+                    </Stack>
+                </>
+            ) : null}
             <Box ref={editorStackRef} sx={{ display: 'flex', flex: 1, flexDirection: 'column', minHeight: 0 }}>
-                <Box sx={{ flex: 1, overflow: 'auto', p: 2 }}>
+                <Box
+                    sx={{
+                        alignItems: activeCard ? undefined : 'center',
+                        display: activeCard ? 'block' : 'flex',
+                        flex: 1,
+                        justifyContent: activeCard ? undefined : 'center',
+                        overflow: 'auto',
+                        p: 2,
+                    }}
+                >
                     {activeCard && activePath ? (
                         <>
                             {Object.keys(activeCard.headerFields).length > 0 ? (
@@ -262,7 +323,7 @@ export function TextView(props: TextViewProps) {
                                 />
                             ) : null}
                             <MarkdownEditor
-                                key={activePath}
+                                key={activeCard.path}
                                 markdown={activeCard.content}
                                 onChange={handleEditorChange}
                                 stickyToolbar={isMobile}
@@ -308,8 +369,11 @@ export function TextView(props: TextViewProps) {
                         cardTypes={cardTypes}
                         cardsByPath={cardsByPath}
                         nodes={tree}
+                        onCreateFolder={onCreateFolder}
+                        onCreateMarkdownFile={onCreateMarkdownFile}
                         onDeleteFile={handleDeleteFile}
                         onSelect={handleSelect}
+                        projectFolder={projectFolder}
                         selectedPath={activePath}
                         statusColors={statusColors}
                     />

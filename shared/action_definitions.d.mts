@@ -1,6 +1,7 @@
 import type { AgentProfile } from './agent_profiles.mjs'
 
 export type ActionType = 'agent' | 'cmd'
+export type ActionRunTarget = 'card' | 'project'
 
 export interface ActionFile {
     content: string
@@ -27,6 +28,7 @@ export interface RawActionDefinition {
     name?: string
     on?: RawOnRule[]
     onState?: string
+    runIn?: string
     text?: string
     type?: string
 }
@@ -49,6 +51,7 @@ export interface ActionDefinition {
     name: string
     on: OnRule[]
     onState: string | null
+    runIn: ActionRunTarget
     text: string
     type: ActionType
 }

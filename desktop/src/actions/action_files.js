@@ -6,7 +6,7 @@ const {
     assertGitRoot,
     ensureInsideRoot,
     requireRootPath,
-} = require('./git_commands')
+} = require('../git/git_commands')
 const {
     ACTION_SCHEDULES_FILE,
     cancelPendingActionSchedule,

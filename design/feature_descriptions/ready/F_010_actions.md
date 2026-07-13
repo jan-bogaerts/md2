@@ -9,55 +9,62 @@ policy:
   requireTests: true
 ---
 
-> **Split for implementation.** This feature is too large to build in one pass and has been divided into ordered sub-features. Implement these instead; this file is kept as the umbrella spec.
-> - [[F-010a]] action model and loading — model, loader, validation, circular-call check, service + hook
-> - [[F-010b]] action entry points and popup — `appliesTo` filtering, entry-point UI, resizable popup, `before`/`after` shortcuts
-> - [[F-010c]] command execution and chaining — preload bridge, placeholders, `before`/main/`on`/`after` ordering, logs/status
-> - [[F-010d]] agent actions — agent flow, extra-prompt input, run history, `convert to action`
-> - [[F-010e]] state triggers and folder watching — `onState` triggers, actions-folder hot-reload
+> **Split for implementation.** Implement the ordered sub-features instead of this umbrella feature.
+> - [[F-010a]] action model and loading - stable ids, model, loader, validation, circular-call check, service and hook
+> - [[F-010b]] action entry points and popup - `appliesTo`, entry points, popup, run/cancel controls, related-action links
+> - [[F-010c]] Electron action execution and chaining - Electron runner, placeholders, `onBefore`/main/`on`/`onAfter`, logs and status
+> - [[F-010d]] agent actions - agent flow, extra prompt, conversation input, run history and `convert to action`
+> - [[F-010e]] state triggers and folder watching - `onState`, card current-action state and hot reload
 >
-> Dependency order is strict a → b → c → d/e (d and e both build on c; either order once c lands).
+> Dependency order is a -> b -> c -> d/e. D and E both build on C.
 
 ## Goal
-Load action definitions (json) from the project's actions folder, show context-sensitive action entry points, and run actions from a dedicated action popup via the Electron app: agent or cmd type, custom prompt action, placeholders, before/after sub-actions, condition->action pairs on output, circular-call checking, state-change triggers (`onState`), and context-sensitive UI display via `appliesTo`.
+
+Load ID-based JSON action definitions from the project's actions folder, show context-sensitive action entry points, and execute actions only through an Electron-side action runner. Support agent and command actions, the built-in custom-prompt action, placeholders, `onBefore`/`on`/`onAfter` chaining, `onState`, `needsWorkTree`, cancellation, and `appliesTo`.
 
 ## Current state
-Not implemented. The current app can load markdown files through GitHub or the Electron local-Git bridge, but there is no action definition model, actions bridge, runner, action popup, logs, `appliesTo` filtering or `onState` trigger handling.
+
+The existing implementation uses a React-side `ActionRunner`, name-based action lookup, `agent | cmd`, `text`, `before`/`after`, inline/by-name references, and a separate Electron scheduled-action runner. The implementation must move orchestration to Electron and migrate to the canonical model below without legacy-shape fallback.
 
 ## implementation details
-- Add an action model for json definitions with `name`, `label`, `description`, `type`, `text`, optional `icon`, `appliesTo`, `before`, `after`, `on` and `onState`.
-- Add a built-in `custom prompt` agent action that is always available for matching action contexts, independent of project action files.
-- Load actions from the configured project actions folder when a project opens; fail fast on invalid json, missing required fields, unknown action refs or circular calls.
-- Keep action state in a singleton app service and expose it to React through a hook. React displays compact action entry points close to the matching card/file/folder based on `appliesTo`.
-- Open a popup when the user activates an action entry point. The popup is the execution surface for the selected action and context.
-- Make the action popup resizable, with resize handles placed on the lower-left or lower-right corner based on popup position.
-- Show a `Run` command in the popup to start the selected action.
-- For `agent` actions, show an input dialog for extra prompt text before running. If the action was previously triggered for the selected context, show its run history in the popup.
-- Always show shortcuts from the popup to the action's `before` and `after` actions. Activating a shortcut opens a new action popup for that related action and the same context.
-- When the user enters custom input, offer `convert to action` so the custom prompt can become a stored action definition.
-- Add preload bridge methods for running actions. Command actions execute from preload unless a command requires main-owned Electron APIs; agent actions start the configured agent command/prompt flow.
-- Resolve placeholders at run time from the selected context, at minimum `rootProjectFolder` and `file`.
-- Execute `before`, main action, `on` output matches and `after` in a deterministic order. `after` runs even when the main action fails; errors are returned in the action log/status.
-- Trigger actions with `onState` when a card state changes to the configured value.
-- Watch the actions folder in local-Electron mode and notify React when definitions change.
+
+- Define actions with required stable `id`, editable `name`, `label`, `description`, and `type` (`agent` | `command`). Agent actions require `prompt`; command actions require `command`.
+- Add optional `icon`, `appliesTo`, `onBefore`, `on`, `onAfter`, `onState`, `needsWorkTree`, `agent`, `model`, and `thinkingLevel`.
+- Persist `onBefore` and `onAfter` as ordered action `id` lists. Persist `on` as ordered `{ condition, actionId }` entries. Do not support inline linked definitions or name-based references.
+- Register a built-in `custom prompt` agent action with its own stable reserved `id`, independent of project files.
+- Load actions when a project opens. Fail fast on invalid JSON, missing fields, duplicate ids, unknown action ids, invalid regular expressions, or circular calls.
+- Keep the loaded definitions in the action service for editing, display, filtering, and search. React does not orchestrate or execute them.
+- Show compact entry points near matching cards, files, and folders based on `appliesTo`.
+- Open a resizable popup for the selected action id and context. Show `Run`, `Cancel` while running, and a `Schedule` entry point that delegates to [[F-022]].
+- For agent actions, show extra prompt input and the supported per-run agent/model/thinking-level choices. Extensible agent profiles remain a future feature.
+- The renderer sends only `{ actionId, context, runInput }`. Electron reloads and validates the persisted definition by `id`, resolves placeholders, and executes the complete chain.
+- Execute `onBefore` -> main -> matching `on` actions -> `onAfter` in configured order. Reject cycles before execution.
+- If `onBefore` fails, stop before main and fail the run. Main or matched-`on` failure fails the run. If main and `on` succeed but an `onAfter` action fails, mark that linked action failed and the selected run `okButNotAfter`.
+- `Cancel` stops the active Electron process and remaining chain and marks the run cancelled.
+- When `needsWorkTree` is set, Electron prepares the worktree described in `design\architecture\initial description\writings\Running actions\running_actions.md`. It does not automatically commit, push, merge, cherry-pick, or transfer changes.
+- A card keeps its current action in memory. While set, all action entry points for that card are disabled. Completion, failure, or cancellation clears it and publishes an event; it is never persisted.
+- Trigger `onState` actions through the same Electron runner.
+- Watch the actions folder in local Electron mode and publish validated definition changes to React.
 
 ## acceptance criteria
-- Opening a project loads valid action json files from the configured actions folder and exposes them to the React UI.
-- Invalid action definitions show a clear load error and do not silently fall back to partial behavior.
-- Actions are shown only for contexts matching `appliesTo`.
-- The built-in `custom prompt` action is always available for contexts where actions can run.
-- Activating an action opens a resizable popup for that action and context.
-- The action popup can run the selected action and reports running, completed and failed states clearly.
-- Agent action popups support extra prompt input and show previous run history for the same action/context when available.
-- Action popups expose shortcuts to `before` and `after` actions, and each shortcut opens a new popup for that related action.
-- Entering custom prompt input exposes a `convert to action` path for storing it as a reusable action.
-- Running a command action executes through Electron with placeholders resolved for the selected file/project.
-- `before`, `after` and `on` action chains run in order, reject circular references and report failures clearly.
-- Changing a card to a state configured by `onState` triggers the matching action.
-- Adding, editing or removing local action definitions updates the available UI actions without restarting the app.
+
+- Opening a project loads valid ID-based action JSON and exposes it to React.
+- Legacy `cmd`/`text`/`before`/`after`/name-reference and inline-reference shapes are rejected rather than normalized.
+- Invalid definitions report the source and do not replace the previous valid action set.
+- Actions appear only in contexts matching `appliesTo`; the built-in custom-prompt action remains available in supported contexts.
+- Activating an entry point opens a resizable popup bound to the action id and context.
+- React cannot execute or orchestrate an action. Manual, state-triggered, and scheduled runs use the same Electron-side action runner.
+- Command and agent definitions are resolved by id in Electron; renaming an action does not break links, schedules, or execution.
+- `onBefore`, main, `on`, and `onAfter` ordering and failure results follow this specification.
+- A running action can be cancelled and reports running, completed, failed, cancelled, or `okButNotAfter` clearly.
+- A card with a current action disables every action entry point until Electron reports a terminal state.
+- `needsWorkTree` prepares a worktree and reports Git errors with a custom-branch retry without performing implicit integration operations.
+- Adding, editing, or removing local definitions updates the UI without restarting.
 
 ## see also
+
 - `design\architecture\initial description\actions.md`
 - `design\architecture\initial description\action_popup.md`
-- `design\architecture\initial description\overview.md`
-- `design\architecture\initial description\data management.md`
+- `design\architecture\initial description\writings\Running actions\running_actions.md`
+- `design\architecture\initial description\writings\Action editor\action_editor.md`
+- `design\feature_descriptions\ready\F_022_scheduled_actions.md`

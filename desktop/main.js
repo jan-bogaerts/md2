@@ -1,4 +1,4 @@
-const { app, BrowserWindow, dialog, ipcMain, nativeTheme, shell } = require('electron')
+const { app, BrowserWindow, Menu, dialog, ipcMain, nativeTheme, shell } = require('electron')
 const { existsSync } = require('node:fs')
 const path = require('node:path')
 
@@ -8,17 +8,25 @@ const desktopEnvironmentPath = app.isPackaged
 if (existsSync(desktopEnvironmentPath)) process.loadEnvFile(desktopEnvironmentPath)
 
 const Store = require('electron-store')
-const { readDesktopConfig, resolveBridgeAllowedOrigins, writeDesktopConfig } = require('./config')
-const { AgentRunnerService } = require('./agent_runner_service')
-const { ActionSchedulerService } = require('./action_scheduler_service')
-const diffService = require('./diff_service')
-const { createLocalBridgeDispatch } = require('./local_bridge_dispatch')
-const localGitService = require('./local_git_service')
-const { RemoteControlService } = require('./remote_control_service')
-const remarkableService = require('./remarkable_service')
-const { flush, registerProcessErrorHandlers, startElectronTelemetry, trackEvent } = require('./telemetry')
-const { THEME_MODE_STORE_KEY, resolveThemeMode, resolveTitleBarOverlay } = require('./theme')
-const { registerNavigationGuards, resolveRendererTarget } = require('./renderer_security')
+const { readDesktopConfig, resolveBridgeAllowedOrigins, writeDesktopConfig } = require('./src/shell/config')
+const { AgentRunnerService } = require('./src/actions/agent_runner_service')
+const { ActionSchedulerService } = require('./src/actions/action_scheduler_service')
+const diffService = require('./src/git/diff_service')
+const { createLocalBridgeDispatch } = require('./src/shell/local_bridge_dispatch')
+const localGitService = require('./src/git/local_git_service')
+const { RemoteControlService } = require('./src/integrations/remote_control_service')
+const remarkableService = require('./src/integrations/remarkable_service')
+const { WorktreeService } = require('./src/git/worktree_service')
+const { ActionWorktreeExecutionService } = require('./src/actions/action_worktree_execution_service')
+const { flush, registerProcessErrorHandlers, startElectronTelemetry, trackEvent } = require('./src/integrations/telemetry')
+const { THEME_MODE_STORE_KEY, resolveThemeMode, resolveTitleBarOverlay } = require('./src/shell/theme')
+const { registerNavigationGuards, resolveRendererTarget } = require('./src/shell/renderer_security')
+const {
+    SPELL_CHECKER_LANGUAGES_STORE_KEY,
+    applyStoredSpellCheckerLanguages,
+    refreshSpellCheck,
+    registerSpellCheckContextMenu,
+} = require('./src/integrations/spellcheck')
 const {
     CONFIG_GET_DESKTOP_CHANNEL,
     CONFIG_SET_DESKTOP_CHANNEL,
@@ -36,7 +44,7 @@ const {
     REMOTE_CONTROL_STATUS_CHANNEL,
     REMOTE_CONTROL_STOP_CHANNEL,
     THEME_SET_MODE_CHANNEL,
-} = require('./ipc_channels')
+} = require('./src/shell/ipc_channels')
 
 const QUIT_FLUSH_TIMEOUT_MS = 5000
 const QUIT_WATCHDOG_TIMEOUT_MS = 10000
@@ -46,19 +54,28 @@ const SUBSCRIPTION_METHODS = new Set(['onScheduledActionRun', 'watchProject'])
 const store = new Store()
 Store.initRenderer()
 const agentRunnerService = new AgentRunnerService()
+const worktreeService = new WorktreeService({ runGit: localGitService.runGit })
+const actionWorktreeExecutionService = new ActionWorktreeExecutionService({
+    runGit: localGitService.runGit,
+    worktreeService,
+})
 const actionSchedulerService = new ActionSchedulerService({
+    actionWorktreeExecutionService,
     agentConfigProvider: () => readDesktopConfig(store),
     agentRunnerService,
     localGitService,
 })
 const localBridgeDispatch = createLocalBridgeDispatch({
     actionSchedulerService,
+    actionWorktreeExecutionService,
     agentRunnerService,
     desktopConfigStore: store,
     diffService,
     localGitService,
     openProjectFolder: () => openProjectFolder(BrowserWindow.getFocusedWindow()),
+    openWorktreeFolder: () => openWorktreeFolder(BrowserWindow.getFocusedWindow()),
     readDesktopConfig,
+    worktreeService,
 })
 const remoteControlService = new RemoteControlService(localBridgeDispatch)
 const electronTelemetryStarted = startElectronTelemetry()
@@ -71,6 +88,17 @@ async function openProjectFolder(window) {
     const result = await dialog.showOpenDialog(window, {
         properties: ['openDirectory'],
         title: 'Open local Git project',
+    })
+
+    if (result.canceled || result.filePaths.length === 0) return null
+
+    return result.filePaths[0]
+}
+
+async function openWorktreeFolder(window) {
+    const result = await dialog.showOpenDialog(window, {
+        properties: ['openDirectory'],
+        title: 'Register linked Git worktree',
     })
 
     if (result.canceled || result.filePaths.length === 0) return null
@@ -160,7 +188,7 @@ function registerThemeBridge() {
 function createWindow() {
     const mode = resolveThemeMode(store.get(THEME_MODE_STORE_KEY))
     const desktopConfig = readDesktopConfig(store)
-    const rendererTarget = resolveRendererTarget(app.isPackaged)
+    const rendererTarget = resolveRendererTarget(app.isPackaged, __dirname)
     const bridgeAllowedOrigins = rendererTarget.type === 'url'
         ? resolveBridgeAllowedOrigins(desktopConfig, rendererTarget.url)
         : []
@@ -178,7 +206,7 @@ function createWindow() {
                 `--md2-bridge-trusted-location=${encodeURIComponent(rendererTarget.trustedLocation)}`,
                 `--md2-desktop-config=${encodeURIComponent(JSON.stringify(desktopConfig))}`,
             ],
-            preload: path.join(__dirname, 'preload.js'),
+            preload: path.join(__dirname, 'src', 'shell', 'preload.js'),
             nodeIntegration: false,
             contextIsolation: true,
             sandbox: true,
@@ -186,6 +214,22 @@ function createWindow() {
     })
 
     registerNavigationGuards(window.webContents, rendererTarget.trustedLocation, (url) => shell.openExternal(url))
+    const spellCheckerSession = window.webContents.session
+    applyStoredSpellCheckerLanguages(spellCheckerSession, store.get(SPELL_CHECKER_LANGUAGES_STORE_KEY))
+    registerSpellCheckContextMenu(window.webContents, (template) => Menu.buildFromTemplate(template), {
+        getActiveLanguages: () => spellCheckerSession.getSpellCheckerLanguages(),
+        getAvailableLanguages: () => spellCheckerSession.availableSpellCheckerLanguages,
+        setActiveLanguages: (languages) => {
+            spellCheckerSession.setSpellCheckerLanguages(languages)
+            store.set(SPELL_CHECKER_LANGUAGES_STORE_KEY, languages)
+            refreshSpellCheck(window.webContents)
+        },
+    })
+    // A newly selected language may still be downloading its dictionary when
+    // the switch happens; refresh again once Chromium finishes loading it.
+    const handleDictionaryInitialized = () => refreshSpellCheck(window.webContents)
+    spellCheckerSession.on('spellcheck-dictionary-initialized', handleDictionaryInitialized)
+    window.on('closed', () => spellCheckerSession.removeListener('spellcheck-dictionary-initialized', handleDictionaryInitialized))
     if (rendererTarget.type === 'file') {
         void window.loadFile(rendererTarget.filePath)
     } else {

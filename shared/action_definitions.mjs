@@ -1,6 +1,7 @@
 import { validateAgentSelection } from './agent_profiles.mjs'
 
 const ACTION_TYPES = ['agent', 'cmd']
+const ACTION_RUN_TARGETS = ['project', 'card']
 export const CUSTOM_PROMPT_ACTION_NAME = 'custom prompt'
 
 export const BUILTIN_CUSTOM_PROMPT = {
@@ -16,6 +17,7 @@ export const BUILTIN_CUSTOM_PROMPT = {
     name: CUSTOM_PROMPT_ACTION_NAME,
     on: [],
     onState: null,
+    runIn: 'project',
     text: '{{prompt}}',
     type: 'agent',
 }
@@ -32,6 +34,15 @@ function requireString(value, fieldName) {
 
 function requireActionType(value, name) {
     if (typeof value !== 'string' || !ACTION_TYPES.includes(value)) throw new Error(`Invalid action type for "${name}": ${String(value)}`)
+
+    return value
+}
+
+function readRunIn(value, name) {
+    if (value === undefined) return 'project'
+    if (typeof value !== 'string' || !ACTION_RUN_TARGETS.includes(value)) {
+        throw new Error(`Invalid runIn for "${name}": ${String(value)}`)
+    }
 
     return value
 }
@@ -99,6 +110,7 @@ function validateRawDefinition(value, source) {
         name,
         on: readOnRules(value.on, name),
         onState: value.onState,
+        runIn: readRunIn(value.runIn, name),
         text: value.text,
         type: value.type,
     }
@@ -188,6 +200,7 @@ export function loadActionDefinitions(files, dependencies = {}) {
             name: raw.name,
             on: [],
             onState: raw.onState ?? null,
+            runIn: raw.runIn,
             text: raw.text,
             type: raw.type,
         })

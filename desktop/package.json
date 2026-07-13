@@ -8,7 +8,7 @@
     "lint": "eslint .",
     "lint-fix": "eslint . --fix",
     "package:windows": "electron-builder --config electron-builder.config.cjs --win nsis --x64",
-    "postpackage:windows": "node verify_windows_package.mjs",
+    "postpackage:windows": "node packaging/verify_windows_package.mjs",
     "start": "node start_electron.js",
     "test": "vitest run"
   },

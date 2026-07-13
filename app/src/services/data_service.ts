@@ -13,6 +13,7 @@ import { getRemarkableMetadataContent, importRemarkableImages, type RemarkableIm
 import type { RemarkableImportPlan } from './remarkable_import_service'
 import { register } from './service_injector'
 import { telemetryService } from './telemetry_service'
+import { worktreeService } from './worktree_service'
 
 export type { RemarkableImportInput }
 
@@ -58,6 +59,10 @@ export class DataService extends EventTarget {
         this.projectState.resetLoadedProject()
         this.remarkableBridge = dependencies.remarkableBridge ?? null
         this.storage = dependencies.storage
+        worktreeService.init({
+            projectProvider: () => this.projectState.project,
+            storageProvider: () => this.storage,
+        })
         this.agents.startScheduledRunWatch()
         const delayMs = configService.get('react.autoCommitDelayMs')
         this.commitBatcher = new CommitBatcher({
@@ -149,6 +154,7 @@ export class DataService extends EventTarget {
             commitPathsInFlight: () => this.projectState.commitPathsInFlight,
             dispatchChanged: () => this.dispatchChanged(),
             files: () => this.projectState.files,
+            flushPendingCommits: () => this.cards.flushPendingCommits(),
             isCurrentLoad: (project, projectLoadToken) => this.projectState.isCurrentLoad(project, projectLoadToken),
             project: () => this.projectState.project,
             replaceFiles: (files, workingFolder) => this.projectState.replaceFiles(files, workingFolder),

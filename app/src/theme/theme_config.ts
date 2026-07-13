@@ -17,21 +17,36 @@ export interface ColorRoleVariants {
 /** The full editable color scheme: one set of variants per role. */
 export type ColorSchemeConfig = Record<ColorRole, ColorRoleVariants>
 
-/** Markdown sections that can be styled independently. */
-export type MarkdownSection = 'title1' | 'title2' | 'title3' | 'body' | 'caption'
+/** Markdown elements that can be styled independently. */
+export type MarkdownSection =
+    | 'title1'
+    | 'title2'
+    | 'title3'
+    | 'body'
+    | 'caption'
+    | 'link'
+    | 'list'
+    | 'blockquote'
+    | 'inlineCode'
+    | 'codeBlock'
+    | 'table'
 
-/** Font weight/style formatting flags for a markdown section. */
+/** Font formatting flags for a markdown section. */
 export interface MarkdownSectionFormatting {
     bold: boolean
     italic: boolean
+    underline: boolean
 }
 
 /** Style applied to one markdown section. */
 export interface MarkdownSectionStyle {
+    color: string
     fontFamily: string
     fontSize: string
-    color: string
     formatting: MarkdownSectionFormatting
+    lineHeight: string
+    marginBottom: string
+    marginTop: string
 }
 
 /** Style config mapping every markdown section to its style. */
@@ -39,6 +54,9 @@ export type MarkdownStyleConfig = Record<MarkdownSection, MarkdownSectionStyle>
 
 /** Identifiers of the pre-built markdown style presets shipped with the app. */
 export type MarkdownStylePresetName = 'modern' | 'classic' | 'serif' | 'sans-serif' | 'handwritten'
+
+/** Every selectable markdown style, including the user-edited global style. */
+export type MarkdownStyleName = MarkdownStylePresetName | 'custom'
 
 export const MARKDOWN_STYLE_PRESET_NAMES: MarkdownStylePresetName[] = [
     'modern',
@@ -48,9 +66,23 @@ export const MARKDOWN_STYLE_PRESET_NAMES: MarkdownStylePresetName[] = [
     'handwritten',
 ]
 
+export const MARKDOWN_STYLE_NAMES: MarkdownStyleName[] = [...MARKDOWN_STYLE_PRESET_NAMES, 'custom']
+
 export const COLOR_ROLES: ColorRole[] = ['primary', 'secondary']
 
-export const MARKDOWN_SECTIONS: MarkdownSection[] = ['title1', 'title2', 'title3', 'body', 'caption']
+export const MARKDOWN_SECTIONS: MarkdownSection[] = [
+    'title1',
+    'title2',
+    'title3',
+    'body',
+    'caption',
+    'link',
+    'list',
+    'blockquote',
+    'inlineCode',
+    'codeBlock',
+    'table',
+]
 
 /** Default color scheme used by the polished light and dark application palettes. */
 export const DEFAULT_COLOR_SCHEME: ColorSchemeConfig = {
@@ -63,16 +95,37 @@ const CLASSIC_FONT = '"Georgia", "Times New Roman", serif'
 const SERIF_FONT = '"Merriweather", "Georgia", serif'
 const SANS_SERIF_FONT = '"Helvetica Neue", "Arial", sans-serif'
 const HANDWRITTEN_FONT = '"Caveat", "Comic Sans MS", cursive'
-
+const MONOSPACE_FONT = '"Cascadia Code", "Consolas", monospace'
 const INHERIT_COLOR = 'inherit'
+
+function createFormatting(bold: boolean, italic: boolean, underline: boolean): MarkdownSectionFormatting {
+    return { bold, italic, underline }
+}
+
+function createSectionStyle(
+    fontFamily: string,
+    fontSize: string,
+    lineHeight: string,
+    marginTop: string,
+    marginBottom: string,
+    formatting: MarkdownSectionFormatting,
+): MarkdownSectionStyle {
+    return { color: INHERIT_COLOR, fontFamily, fontSize, formatting, lineHeight, marginBottom, marginTop }
+}
 
 function buildMarkdownStyle(fontFamily: string): MarkdownStyleConfig {
     return {
-        title1: { fontFamily, fontSize: '2rem', color: INHERIT_COLOR, formatting: { bold: true, italic: false } },
-        title2: { fontFamily, fontSize: '1.5rem', color: INHERIT_COLOR, formatting: { bold: true, italic: false } },
-        title3: { fontFamily, fontSize: '1.25rem', color: INHERIT_COLOR, formatting: { bold: true, italic: false } },
-        body: { fontFamily, fontSize: '1rem', color: INHERIT_COLOR, formatting: { bold: false, italic: false } },
-        caption: { fontFamily, fontSize: '0.85rem', color: INHERIT_COLOR, formatting: { bold: false, italic: true } },
+        title1: createSectionStyle(fontFamily, '2rem', '1.2', '0', '0.5em', createFormatting(true, false, false)),
+        title2: createSectionStyle(fontFamily, '1.5rem', '1.25', '1em', '0.5em', createFormatting(true, false, false)),
+        title3: createSectionStyle(fontFamily, '1.25rem', '1.3', '1em', '0.5em', createFormatting(true, false, false)),
+        body: createSectionStyle(fontFamily, '1rem', '1.6', '0', '1em', createFormatting(false, false, false)),
+        caption: createSectionStyle(fontFamily, '0.85rem', '1.4', '0', '0.75em', createFormatting(false, true, false)),
+        link: createSectionStyle(fontFamily, 'inherit', 'inherit', '0', '0', createFormatting(false, false, true)),
+        list: createSectionStyle(fontFamily, '1rem', '1.6', '0', '1em', createFormatting(false, false, false)),
+        blockquote: createSectionStyle(fontFamily, '1rem', '1.6', '0', '1em', createFormatting(false, true, false)),
+        inlineCode: createSectionStyle(MONOSPACE_FONT, '0.9em', 'inherit', '0', '0', createFormatting(false, false, false)),
+        codeBlock: createSectionStyle(MONOSPACE_FONT, '0.9rem', '1.5', '0', '1em', createFormatting(false, false, false)),
+        table: createSectionStyle(fontFamily, '0.95rem', '1.5', '0', '1em', createFormatting(false, false, false)),
     }
 }
 
@@ -90,6 +143,53 @@ export const DEFAULT_MARKDOWN_STYLE_PRESET: MarkdownStylePresetName = 'modern'
 /** Type guard for a persisted markdown style preset name. */
 export function isMarkdownStylePresetName(value: unknown): value is MarkdownStylePresetName {
     return typeof value === 'string' && MARKDOWN_STYLE_PRESET_NAMES.includes(value as MarkdownStylePresetName)
+}
+
+/** Type guard for a persisted markdown style name. */
+export function isMarkdownStyleName(value: unknown): value is MarkdownStyleName {
+    return value === 'custom' || isMarkdownStylePresetName(value)
+}
+
+function isMarkdownSectionFormatting(value: unknown): value is MarkdownSectionFormatting {
+    if (typeof value !== 'object' || value === null) return false
+    const candidate = value as Record<string, unknown>
+
+    return typeof candidate.bold === 'boolean'
+        && typeof candidate.italic === 'boolean'
+        && typeof candidate.underline === 'boolean'
+}
+
+function isNonEmptyString(value: unknown): value is string {
+    return typeof value === 'string' && value.trim().length > 0
+}
+
+function isMarkdownSectionStyle(value: unknown): value is MarkdownSectionStyle {
+    if (typeof value !== 'object' || value === null) return false
+    const candidate = value as Record<string, unknown>
+
+    return isNonEmptyString(candidate.color)
+        && isNonEmptyString(candidate.fontFamily)
+        && isNonEmptyString(candidate.fontSize)
+        && isMarkdownSectionFormatting(candidate.formatting)
+        && isNonEmptyString(candidate.lineHeight)
+        && isNonEmptyString(candidate.marginBottom)
+        && isNonEmptyString(candidate.marginTop)
+}
+
+/** Type guard for custom markdown styles restored from local storage. */
+export function isMarkdownStyleConfig(value: unknown): value is MarkdownStyleConfig {
+    if (typeof value !== 'object' || value === null) return false
+    const candidate = value as Record<string, unknown>
+
+    return MARKDOWN_SECTIONS.every((section) => isMarkdownSectionStyle(candidate[section]))
+}
+
+/** Create an editable copy without sharing nested formatting objects with a preset. */
+export function cloneMarkdownStyleConfig(value: MarkdownStyleConfig): MarkdownStyleConfig {
+    return MARKDOWN_SECTIONS.reduce((result, section) => ({
+        ...result,
+        [section]: { ...value[section], formatting: { ...value[section].formatting } },
+    }), {} as MarkdownStyleConfig)
 }
 
 function isColorRoleVariants(value: unknown): value is ColorRoleVariants {

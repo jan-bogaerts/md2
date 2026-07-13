@@ -9,6 +9,8 @@ policy:
   requireTests: true
 ---
 
+> **UPDATE 2026-07-11 — `connection.*` config removed.** The `connection` config source/section and its only entry `connection.githubScopes` were dropped along with GitHub OAuth (see [[F_034_github_oauth_cors_proxy]]). localStorage-persisted config is now `react.*` only; references to `connection.*` below are historical.
+
 ## Goal
 Persist all config scopes, not only project values: React-app settings survive reloads via localStorage, desktop settings are written back to the desktop app (not just read from env vars), and every visible config entry actually has an effect.
 

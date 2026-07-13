@@ -1,6 +1,6 @@
-import { Box, IconButton, InputAdornment, Paper, TextField, ToggleButton, Tooltip } from '@mui/material'
-import type { ChangeEvent, FocusEvent } from 'react'
-import { useState } from 'react'
+import { Box, IconButton, InputAdornment, Paper, Popover, TextField, ToggleButton, Tooltip } from '@mui/material'
+import type { ChangeEvent, FocusEvent, MouseEvent } from 'react'
+import { useEffect, useState } from 'react'
 import AutoFix from 'mdi-material-ui/AutoFix'
 import FileSearchOutline from 'mdi-material-ui/FileSearchOutline'
 import LightningBolt from 'mdi-material-ui/LightningBolt'
@@ -25,13 +25,14 @@ const EMPTY_RESULTS: SearchResultsData = { active: [], actions: [], backgroundGr
 const SEARCH_ACTION_CONTEXT: ActionContext = { folder: '', kind: 'folder' }
 
 interface SearchControlProps {
+    isMobile?: boolean
     /** Builds a RegExp from the current query; defaults to the not-yet-available agent. */
     regexpAgent?: SearchRegexpAgent
 }
 
 /** Top-shell search: plain/RegExp text search over the loaded project with grouped, navigable results. */
 export function SearchControl(props: SearchControlProps) {
-    const { regexpAgent = defaultSearchRegexpAgent } = props
+    const { isMobile = false, regexpAgent = defaultSearchRegexpAgent } = props
     const { snapshot } = useProjectState()
     const { actions } = useActions()
     const [query, setQuery] = useState('')
@@ -44,10 +45,15 @@ export function SearchControl(props: SearchControlProps) {
     const [isAgentBusy, setIsAgentBusy] = useState(false)
     const [actionStack, setActionStack] = useState<ActionDefinition[]>([])
     const [controlElement, setControlElement] = useState<HTMLDivElement | null>(null)
+    const [searchAnchorElement, setSearchAnchorElement] = useState<HTMLElement | null>(null)
 
     const hasQuery = query.trim().length > 0
     const isDropdownOpen = isSearchFocused && !isDismissed
     const shouldShowResults = hasQuery
+
+    useEffect(() => {
+        if (searchAnchorElement && controlElement) controlElement.querySelector<HTMLInputElement>('input')?.focus()
+    }, [controlElement, searchAnchorElement])
 
     // Runs the search and, on an invalid expression, keeps the previous results while surfacing the error.
     const applySearch = (nextQuery: string, nextMode: SearchMode, nextIncludeBackgroundBody: boolean, nextIncludeActions: boolean) => {
@@ -70,6 +76,15 @@ export function SearchControl(props: SearchControlProps) {
     const handleSearchFocus = () => {
         setIsSearchFocused(true)
         setIsDismissed(false)
+    }
+
+    const handleSearchPopoverOpen = (event: MouseEvent<HTMLElement>) => {
+        setSearchAnchorElement(event.currentTarget)
+    }
+
+    const handleSearchPopoverClose = () => {
+        setSearchAnchorElement(null)
+        setIsSearchFocused(false)
     }
 
     const handleControlBlur = (event: FocusEvent<HTMLDivElement>) => {
@@ -145,7 +160,7 @@ export function SearchControl(props: SearchControlProps) {
 
     const currentAction = actionStack.at(-1) ?? null
 
-    return (
+    const searchPanel = (
         <Box onBlur={handleControlBlur} ref={setControlElement} sx={{ maxWidth: RESULTS_WIDTH, position: 'relative', width: '100%' }}>
             <Box style={NO_DRAG_REGION}>
                 <TextField
@@ -271,5 +286,33 @@ export function SearchControl(props: SearchControlProps) {
                 />
             ) : null}
         </Box>
+    )
+
+    if (!isMobile) return searchPanel
+
+    return (
+        <>
+            <Tooltip title="Search">
+                <IconButton
+                    aria-label="Search"
+                    onClick={handleSearchPopoverOpen}
+                    size="small"
+                    sx={{ height: 34, width: 34 }}
+                >
+                    <Magnify />
+                </IconButton>
+            </Tooltip>
+            <Popover
+                anchorEl={searchAnchorElement}
+                anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+                disableAutoFocus
+                onClose={handleSearchPopoverClose}
+                open={!!searchAnchorElement}
+                slotProps={{paper: { sx: { mt: 0.5, overflow: 'visible', p: 1, width: `min(${RESULTS_WIDTH}px, calc(100vw - 32px))` } }}}
+                transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+            >
+                {searchPanel}
+            </Popover>
+        </>
     )
 }

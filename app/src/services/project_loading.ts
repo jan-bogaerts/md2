@@ -1,5 +1,6 @@
 import { ACTION_SCHEDULES_FILE } from '../data/action_schedule_types'
 import { deriveStatesFromCards, mergeStatesWithDefaults } from '../data/card_ordering'
+import type { CardSeparator } from '../data/card_identifiers'
 import { resolveProjectConfigPaths, type MarkdownFile, type ProjectAsset, type ProjectConfig, type ProjectReference, type ProjectSnapshot, type ProjectWatchEvent, type StorageService } from '../data/data_types'
 import { actionService } from './action_service'
 import { configService } from './config_service'
@@ -14,6 +15,9 @@ import {
 import { planExternalCardImports } from './external_card_import_service'
 import { telemetryService } from './telemetry_service'
 import { createRandomProjectBackgroundShade } from '../theme/project_background_shade'
+import { worktreeService } from './worktree_service'
+import { planCardSeparatorMigration } from './card_separator_migration'
+import { globalProgressService } from './global_progress_service'
 
 const ACTION_RELOAD_DEBOUNCE_MS = 150
 const JSON_EXTENSION = '.json'
@@ -33,11 +37,12 @@ function isActionDefinitionPath(path: string, actionsFolder: string) {
     return normalizedPath.startsWith(`${normalizedActionsFolder}/`) && normalizedPath.toLowerCase().endsWith(JSON_EXTENSION)
 }
 
-function isProjectMarkdownPath(path: string, workingFolder: string) {
+function isProjectMarkdownPath(path: string, projectFolder: string) {
     const normalizedPath = path.replace(/\\/gu, '/')
-    const normalizedWorkingFolder = workingFolder.replace(/\\/gu, '/').replace(/\/$/u, '')
+    const normalizedProjectFolder = projectFolder.replace(/\\/gu, '/').replace(/\/$/u, '')
+    if (normalizedProjectFolder.length === 0) return normalizedPath.toLowerCase().endsWith(MARKDOWN_EXTENSION)
 
-    return normalizedPath.startsWith(`${normalizedWorkingFolder}/`) && normalizedPath.toLowerCase().endsWith(MARKDOWN_EXTENSION)
+    return normalizedPath.startsWith(`${normalizedProjectFolder}/`) && normalizedPath.toLowerCase().endsWith(MARKDOWN_EXTENSION)
 }
 
 function reportMarkdownWatchConflict(path: string) {
@@ -62,6 +67,7 @@ export interface ProjectLoadingDeps {
     commitPathsInFlight(): Set<string>
     dispatchChanged(): void
     files(): MarkdownFile[]
+    flushPendingCommits(): Promise<void>
     isCurrentLoad(project: ProjectReference, projectLoadToken: number): boolean
     project(): ProjectReference | null
     replaceFiles(files: MarkdownFile[], workingFolder: string): void
@@ -130,6 +136,7 @@ export class ProjectLoading {
         this.dependencies.replaceProject(project)
         const projectConfig = await storage.loadProjectConfig(project)
         configService.loadProjectConfig(projectConfig)
+        await worktreeService.load(project)
         if (projectConfig === null) {
             configService.set('project.backgroundShade', createRandomProjectBackgroundShade())
             await storage.saveProjectConfig(project, configService.getProjectConfig())
@@ -151,7 +158,7 @@ export class ProjectLoading {
         this.dependencies.dispatchChanged()
 
         this.loadAgentConversationsInBackground(currentSnapshot, project, projectLoadToken)
-        void this.loadFullProjectInBackground(project, config.workingFolder, projectLoadToken)
+        void this.loadFullProjectInBackground(project, config.projectFolder, config.workingFolder, projectLoadToken)
         telemetryService.trackEvent('open_project')
 
         return currentSnapshot
@@ -164,6 +171,47 @@ export class ProjectLoading {
 
         await storage.saveProjectConfig(currentProject, configService.getProjectConfig())
         this.dependencies.dispatchChanged()
+    }
+
+    async updateCardSeparator(previousSeparator: CardSeparator, nextSeparator: CardSeparator) {
+        if (previousSeparator === nextSeparator) return 0
+
+        const { config, storage } = this.dependencies.requireDependencies()
+        const currentProject = this.dependencies.project()
+        if (!currentProject) throw new Error('Cannot rename card files before a project is open')
+
+        await this.dependencies.flushPendingCommits()
+        const projectFiles = await storage.loadProject(currentProject, config.projectFolder)
+        const moves = planCardSeparatorMigration(projectFiles.files, previousSeparator, nextSeparator)
+        if (moves.length === 0) return 0
+
+        globalProgressService.start('Preparing card file names', moves.length)
+        try {
+            for (const [index, move] of moves.entries()) {
+                globalProgressService.update(index, `Renaming ${move.fromPath}`)
+                const inFlightCommitPaths = this.dependencies.commitPathsInFlight()
+                inFlightCommitPaths.add(move.fromPath)
+                inFlightCommitPaths.add(move.toPath)
+                try {
+                    await storage.moveFiles({
+                        branch: currentProject.branch,
+                        message: `Rename card file ${index + 1} of ${moves.length}`,
+                        moves: [move],
+                    })
+                } finally {
+                    inFlightCommitPaths.delete(move.fromPath)
+                    inFlightCommitPaths.delete(move.toPath)
+                }
+                globalProgressService.update(index + 1, `Renamed ${move.toPath}`)
+            }
+
+            if (config.pushMode === 'auto') await storage.push(currentProject)
+            await this.reloadCurrentProjectSnapshot()
+
+            return moves.length
+        } finally {
+            globalProgressService.finish()
+        }
     }
 
     async loadProjectAsset(path: string): Promise<ProjectAsset> {
@@ -201,7 +249,7 @@ export class ProjectLoading {
 
         const project = currentProject
         const projectLoadToken = this.dependencies.beginProjectLoad()
-        const projectFiles = await storage.loadProject(currentProject, config.workingFolder)
+        const projectFiles = await storage.loadProject(currentProject, config.projectFolder)
         const repositoryFiles = await storage.listRepositoryFiles(currentProject)
         this.dependencies.replaceProjectFiles(projectFiles.files, config.workingFolder, repositoryFiles)
         this.dependencies.dispatchChanged()
@@ -223,7 +271,7 @@ export class ProjectLoading {
         const currentProject = this.dependencies.project()
         if (!currentProject) return files
 
-        const plan = planExternalCardImports(files, workingFolder, config.cardTypes, config.states[0].state)
+        const plan = planExternalCardImports(files, workingFolder, config.cardSeparator, config.cardTypes, config.states[0].state)
         if (plan.moves.length === 0) return files
 
         const importPaths = plan.moves.flatMap((move) => [move.fromPath, move.toPath])
@@ -254,12 +302,17 @@ export class ProjectLoading {
         return mergeFiles(removeFilesByPath(files, plan.moves.map((move) => move.fromPath)), plan.importedFiles)
     }
 
-    private async loadFullProjectInBackground(project: ProjectReference, workingFolder: string, projectLoadToken: number) {
+    private async loadFullProjectInBackground(
+        project: ProjectReference,
+        projectFolder: string,
+        workingFolder: string,
+        projectLoadToken: number,
+    ) {
         const { storage } = this.dependencies.requireDependencies()
 
         try {
             const [projectFiles, repositoryFiles] = await Promise.all([
-                storage.loadProject(project, workingFolder),
+                storage.loadProject(project, projectFolder),
                 storage.listRepositoryFiles(project),
             ])
             if (!this.shouldApplyProjectLoad(project, projectLoadToken)) return
@@ -304,7 +357,7 @@ export class ProjectLoading {
             return
         }
 
-        if (isProjectMarkdownPath(event.path, config.workingFolder)) this.scheduleMarkdownReload(event)
+        if (isProjectMarkdownPath(event.path, config.projectFolder)) this.scheduleMarkdownReload(event)
     }
 
     private scheduleActionReload(changedPath: string) {

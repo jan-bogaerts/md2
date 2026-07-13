@@ -25,13 +25,12 @@ describe('config persistence', () => {
         expect(readStoredReactValues()).toEqual({})
     })
 
-    it('writes only react and connection scoped values', () => {
+    it('writes only react scoped values', () => {
         const values = { ...createDefaultValues(), 'react.autoCommitDelayMs': 5000, 'desktop.agent': 'claude' }
 
         writeStoredReactValues(values)
 
         expect(JSON.parse(window.localStorage.getItem(REACT_CONFIG_STORAGE_KEY) ?? '{}')).toEqual({
-            'connection.githubScopes': 'repo',
             'react.autoCommitDelayMs': 5000,
             'react.showStartupSplash': true,
         })

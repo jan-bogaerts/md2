@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { loadActionDefinitions } from '../shared/action_definitions.mjs'
+import { loadActionDefinitions } from '../../../shared/action_definitions.mjs'
 
 function file(name, definition) {
     return { content: JSON.stringify(definition), path: `actions/${name}.json` }
@@ -29,5 +29,17 @@ describe('loadActionDefinitions', () => {
     it('rejects invalid definitions with the shared validator', () => {
         expect(() => loadActionDefinitions([file('implement', { ...IMPLEMENT, type: 'shell' })])).toThrow(/Invalid action type/u)
         expect(() => loadActionDefinitions([file('implement', { ...IMPLEMENT, before: ['missing'] })])).toThrow(/Unknown action ref/u)
+        expect(() => loadActionDefinitions([file('implement', { ...IMPLEMENT, runIn: 'workspace' })])).toThrow(/Invalid runIn/u)
+    })
+
+    it('defaults runIn to project and preserves card targets independently in chains', () => {
+        const actions = loadActionDefinitions([
+            file('implement', { ...IMPLEMENT, before: ['prepare'], runIn: 'card' }),
+            file('prepare', { ...IMPLEMENT, name: 'prepare' }),
+        ])
+        const implement = actions.find((action) => action.name === 'implement')
+
+        expect(implement.runIn).toBe('card')
+        expect(implement.before[0].runIn).toBe('project')
     })
 })

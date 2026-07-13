@@ -4,7 +4,7 @@ const DEFAULT_AGENT_SLOT_COMMAND = ''
 const DEFAULT_DESKTOP_MODEL = ''
 const DEFAULT_PROJECT_LOCATION_MODE = 'folder'
 const DESKTOP_CONFIG_STORE_KEY = 'desktopConfig'
-const { BUILTIN_AGENT_PROFILES, validateAgentProfiles } = require('./agent_profiles.mjs')
+const { BUILTIN_AGENT_PROFILES, validateAgentProfiles } = require('../actions/agent_profiles.mjs')
 
 function resolveAppUrl(env = process.env) {
     return env.MD2_APP_URL || DEFAULT_APP_URL

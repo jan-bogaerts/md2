@@ -5,6 +5,8 @@ import {
 import { useEffect, useState } from 'react'
 import {
     DEFAULT_CARD_TYPES,
+    DEFAULT_ACTIONS_FOLDER,
+    DEFAULT_PROJECT_FOLDER,
     DEFAULT_STATES,
     DEFAULT_WORKING_FOLDER,
     type AgentConversation,
@@ -14,10 +16,12 @@ import {
 import { dataService } from '../services/data_service'
 import { dialogService } from '../services/dialog_service'
 import { getElectronLifecycleBridge, type ElectronLifecycleBridge } from '../services/electron_lifecycle_bridge'
+import { openFilesService } from '../services/open_files_service'
 import { telemetryService } from '../services/telemetry_service'
 import { workspaceViewService } from '../services/workspace_view_service'
 import { workspaceNavigationService, type WorkspaceOpenRequest } from '../services/workspace_navigation_service'
 import { CardView } from './card_view/card_view'
+import { flushMarkdownEditors } from './editor/markdown_editor_flush'
 import { TextView } from './text_view/text_view'
 import { useProjectConfig } from './hooks/use_project_config'
 import { useProjectState } from './hooks/use_project_state'
@@ -29,11 +33,13 @@ const EMPTY_CARDS: ProjectCard[] = []
 const EMPTY_REPOSITORY_FILES: string[] = []
 
 function flushPendingCommits() {
+    flushMarkdownEditors()
     void dataService.cards.flushPendingCommits()
 }
 
 async function flushAndConfirmPendingCommits(lifecycleBridge: ElectronLifecycleBridge, requestId: string) {
     try {
+        flushMarkdownEditors()
         await dataService.cards.flushPendingCommits()
     } finally {
         lifecycleBridge.confirmFlush(requestId)
@@ -72,14 +78,19 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
     const projectConfig = useProjectConfig()
     const cardTypes = projectConfig?.cardTypes ?? DEFAULT_CARD_TYPES
     const states = projectConfig?.states ?? DEFAULT_STATES
-    const workingFolder = snapshot?.workingFolder ?? projectConfig?.workingFolder ?? DEFAULT_WORKING_FOLDER
+    const projectFolder = projectConfig?.projectFolder ?? DEFAULT_PROJECT_FOLDER
+    const actionsFolder = projectConfig?.actionsFolder ?? `${DEFAULT_PROJECT_FOLDER}/${DEFAULT_ACTIONS_FOLDER}`
+    const workingFolder = snapshot?.workingFolder ?? projectConfig?.workingFolder ?? `${DEFAULT_PROJECT_FOLDER}/${DEFAULT_WORKING_FOLDER}`
 
     useEffect(() => {
-        workspaceViewService.syncProject(workspaceProjectKey(project))
+        const projectKey = workspaceProjectKey(project)
+        openFilesService.syncProject(projectKey)
+        workspaceViewService.syncProject(projectKey)
     }, [project])
 
     useEffect(() => {
         const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+            flushMarkdownEditors()
             const { hasPendingPush, hasPendingSave } = dataService.getState()
             // In Electron, vetoing beforeunload silently cancels the window close (no confirm
             // dialog), leaving the app unclosable. The main process flushes pending commits on
@@ -97,6 +108,7 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
         }
 
         const handleBlur = () => {
+            flushMarkdownEditors()
             if (dataService.getState().hasPendingSave) flushPendingCommits()
         }
 
@@ -155,6 +167,10 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
         runWorkspaceEdit(() => dataService.cards.updateCardAffects(path, affects), `Affects update failed: ${path}`)
     }
 
+    const handleWorktreeChange = (path: string, worktree: number | null) => {
+        runWorkspaceEdit(() => dataService.cards.updateCardWorktree(path, worktree), `Worktree assignment failed: ${path}`)
+    }
+
     const handleHeaderFieldChange = (path: string, key: string, value: string) => {
         runWorkspaceEdit(() => dataService.cards.updateCardHeaderFields(path, { [key]: value }), `Header update failed: ${path}`)
     }
@@ -166,6 +182,7 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
     const handleDeleteCard = async (path: string) => {
         try {
             await dataService.cards.deleteCard(path)
+            openFilesService.closeFile(path)
             clearDeletedPathState(path)
         } catch (error) {
             dialogService.error(error, { fallbackMessage: `Card delete failed: ${path}` })
@@ -179,6 +196,24 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
             clearDeletedPathState(path)
         } catch (error) {
             dialogService.error(error, { fallbackMessage: `File delete failed: ${path}` })
+            throw error
+        }
+    }
+
+    const handleCreateFolder = async (parentDirectory: string, name: string) => {
+        try {
+            await dataService.cards.createFolder(parentDirectory, name)
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: `Folder creation failed: ${name}` })
+            throw error
+        }
+    }
+
+    const handleCreateMarkdownFile = async (parentDirectory: string, name: string) => {
+        try {
+            await dataService.cards.createMarkdownFile(parentDirectory, name)
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: `Markdown file creation failed: ${name}` })
             throw error
         }
     }
@@ -245,20 +280,20 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
                             isMobile={isMobile}
                             onAffectsChange={handleAffectsChange}
                             onBodyChange={handleBodyChange}
-                            onContinueAgentConversation={handleContinueAgentConversation}
                             onDeleteCard={handleDeleteCard}
                             onMoveCard={handleMoveCard}
                             onOpenInFileMode={handleOpenInFileMode}
-                            onSendAgentInput={handleSendAgentInput}
-                            onStartAgentConversation={handleStartAgentConversation}
                             onTitleChange={handleTitleChange}
                             onTogglePolicy={handleTogglePolicy}
+                            onWorktreeChange={handleWorktreeChange}
+                            primaryPath={project.rootPath ?? project.id}
                             repositoryFiles={repositoryFiles}
                             selectedPath={selectedPath}
                             states={states}
                         />
                     ) : (
                         <TextView
+                            actionsFolder={actionsFolder}
                             activeCards={activeCards}
                             backgroundCards={backgroundCards}
                             cardTypes={cardTypes}
@@ -266,18 +301,26 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
                             onLeftPanelInteraction={onLeftPanelInteraction}
                             onBodyChange={handleBodyChange}
                             onContinueAgentConversation={handleContinueAgentConversation}
+                            onCreateFolder={handleCreateFolder}
+                            onCreateMarkdownFile={handleCreateMarkdownFile}
                             onDeleteFile={handleDeleteFile}
                             onHeaderFieldChange={handleHeaderFieldChange}
                             onSendAgentInput={handleSendAgentInput}
                             onStartAgentConversation={handleStartAgentConversation}
+                            projectFolder={projectFolder}
+                            projectId={project.rootPath ?? project.id}
                             requestedNonce={requestedNonce}
                             requestedPath={selectedPath}
+                            repositoryFiles={repositoryFiles}
                             states={states}
                             workingFolder={workingFolder}
                         />
                     )
                 ) : (
-                    <Stack spacing={2} sx={{ alignItems: 'flex-start', py: 6 }}>
+                    <Stack
+                        spacing={2}
+                        sx={{ alignItems: 'center', flex: 1, justifyContent: 'center', px: 3, textAlign: 'center' }}
+                    >
                         <Typography component="h2" variant="h6">No project open</Typography>
                         <Typography color="text.secondary" variant="body2">
                             Open a GitHub repository or local folder to work with project cards.

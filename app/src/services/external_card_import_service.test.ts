@@ -11,11 +11,11 @@ describe('external card imports', () => {
             { content: '# First note\n\nBody', path: 'design/notes.md', sha: 'sha-notes' },
             { content: '---\nowner: JB\n---\n\n# Second note', path: 'design/second.md', sha: 'sha-second' },
         ]
-        const plan = planExternalCardImports(importFiles, 'design', DEFAULT_CARD_TYPES, 'new')
+        const plan = planExternalCardImports(importFiles, 'design', '_', DEFAULT_CARD_TYPES, 'new')
 
-        expect(plan.moves.map((move) => move.toPath)).toEqual(['design/F-4-first-note.md', 'design/F-5-second-note.md'])
+        expect(plan.moves.map((move) => move.toPath)).toEqual(['design/F_4_first_note.md', 'design/F_5_second_note.md'])
         expect(plan.moves[0]).toMatchObject({ fromPath: 'design/notes.md', sha: 'sha-notes' })
-        expect(plan.importedFiles[0].content).toContain('id: F-4')
+        expect(plan.importedFiles[0].content).toContain('id: F_4')
         expect(plan.importedFiles[0].content).toContain('internalId:')
         expect(plan.importedFiles[0].content).toContain('title: First note')
         expect(plan.importedFiles[0].content).toContain('status: new')
@@ -29,7 +29,7 @@ describe('external card imports', () => {
                 content: '---\nid: F-4\ninternalId: uuid-4\ntitle: Done\nstatus: ready\n---\n\n# Done',
                 path: 'design/F-4-done.md',
             },
-        ], 'design', DEFAULT_CARD_TYPES, 'new')
+        ], 'design', '_', DEFAULT_CARD_TYPES, 'new')
 
         expect(plan.moves).toEqual([])
     })

@@ -1,4 +1,4 @@
-import * as agentProfiles from '../shared/agent_profiles.mjs'
+import * as agentProfiles from '../../../shared/agent_profiles.mjs'
 
 export const {
     BUILTIN_AGENT_PROFILES,

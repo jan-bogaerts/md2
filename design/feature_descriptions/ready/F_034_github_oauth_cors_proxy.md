@@ -9,6 +9,8 @@ policy:
   requireTests: true
 ---
 
+> **REMOVED 2026-07-11 — historical record only.** GitHub OAuth / device-flow support was removed entirely; GitHub auth is now personal-access-token only (see [[F_035_github_pat_fallback]]). The CORS proxy this card describes (`desktop/github_oauth_cors_server.js`, `desktop/github_oauth_proxy.js`, `oauthProxyUrl`/`GITHUB_OAUTH_PROXY_URL`) no longer exists. Nothing below is implemented or planned.
+
 ## Goal
 Let the web (non-Electron) build of MD² complete GitHub device-flow login without any user-facing backend concept. The client already implements the device flow correctly (`app/src/auth/github_oauth_transport.ts`, `app/src/services/github_auth_service.ts`) and already has a fallback path for it: when there is no Electron auth bridge, `requestViaBrowserProxy` posts to `{oauthProxyUrl}/github/oauth/device/code` and `{oauthProxyUrl}/github/oauth/access_token`. The only missing piece is that proxy. GitHub's device-flow endpoints (`github.com/login/device/code`, `github.com/login/oauth/access_token`) don't send CORS headers, so a browser can't call them directly — a small stateless relay is required, not a full backend. No client secret is involved; device flow only needs the public `client_id`.
 

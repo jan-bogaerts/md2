@@ -1,0 +1,50 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - button "Open menu" [ref=e6] [cursor=pointer]
+      - generic [ref=e9]: M²
+      - tablist "Application menu" [ref=e14]:
+        - tab "Home" [selected] [ref=e15] [cursor=pointer]
+        - tab "Agents" [ref=e16] [cursor=pointer]
+      - button "Switch to dark theme" [ref=e19] [cursor=pointer]
+      - generic [ref=e26]:
+        - textbox "Search project" [ref=e30]:
+          - /placeholder: Search cards…
+        - generic [ref=e31]: ⌘K
+        - group
+    - tabpanel [ref=e35]:
+      - generic [ref=e36]:
+        - group "Project" [ref=e37]:
+          - generic "Open project" [ref=e38]:
+            - button "Open project" [ref=e39] [cursor=pointer]
+          - generic "Switch branch" [ref=e42]:
+            - generic [ref=e43]:
+              - combobox "Switch branch" [disabled] [ref=e44]
+              - textbox [disabled]
+              - group
+        - separator [ref=e45]
+        - group "Settings" [ref=e46]:
+          - generic "Config" [ref=e47]:
+            - button "Config" [ref=e48] [cursor=pointer]
+        - separator [ref=e51]
+        - group "View" [ref=e52]:
+          - group [ref=e53]:
+            - button "Cards view" [pressed] [ref=e54] [cursor=pointer]:
+              - generic [ref=e57]: Board
+            - button "Text view" [ref=e58] [cursor=pointer]:
+              - generic [ref=e61]: List
+        - separator [ref=e62]
+        - generic "Complete release" [ref=e63]:
+          - button "Complete release" [disabled]
+        - button "New card" [disabled]
+        - group "Account" [ref=e64]:
+          - generic [ref=e65]:
+            - button "GitHub account" [ref=e66] [cursor=pointer]
+            - button "GitHub profile" [ref=e69] [cursor=pointer]:
+              - generic [ref=e70]: "?"
+  - region "Project workspace" [ref=e73]:
+    - region "Project workspace content" [ref=e74]:
+      - generic [ref=e75]:
+        - heading "No project open" [level=2] [ref=e76]
+        - paragraph [ref=e77]: Open a GitHub repository or local folder to work with project cards.
+        - button "Open project..." [ref=e78] [cursor=pointer]

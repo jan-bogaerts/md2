@@ -82,7 +82,8 @@ export function DiffView(props: DiffViewProps) {
 
     const handleOpenLine = async (request: OpenInEditorRequest) => {
         try {
-            await openDiffLine(request)
+            if (!result?.repositoryRoot) throw new Error('Diff result is missing execution repository root')
+            await openDiffLine({ ...request, repositoryRoot: result.repositoryRoot })
         } catch (openError) {
             dialogService.error(openError, { fallbackMessage: 'Could not open VS Code' })
         }

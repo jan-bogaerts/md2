@@ -10,23 +10,35 @@ policy:
 ---
 
 ## Goal
-Trigger actions when a card changes to the state configured by `onState`, and watch the actions folder in local-Electron mode so adding, editing or removing definitions updates the available actions without restarting the app. Reactive slice of `design\feature_descriptions\F_010_actions.md`, building on [[F-010a]] and [[F-010c]].
+
+Trigger ID-based actions through Electron when a card receives the configured `onState`, keep a card's current action in memory while it runs, and hot-reload action definitions without restarting.
 
 ## Current state
-[[F-010a]] loads actions once on project open and [[F-010c]]/[[F-010d]] run them from the UI, but definitions are static after load and nothing responds to card state changes. There is no `onState` trigger handling and no watcher on the actions folder to hot-reload definitions.
+
+State changes call the React `ActionRunner` with a resolved action object. Definition watching reloads the legacy name-based model. Cards have no single current-action field that disables every entry point during execution.
 
 ## implementation details
-- Handle the `onState` field: when a card's state changes to the configured value (e.g. dragged to a status column in [[F-005]]), trigger the matching action for that card's context through the runner from [[F-010c]].
-- Watch the configured actions folder in local-Electron mode; on add/edit/remove of definition files, re-validate through [[F-010a]] and publish the updated action list to React.
-- Debounce reloads and surface validation errors from changed files without dropping the previously valid action set silently.
+
+- When a card changes to an `onState` value, request the matching action `id` through the Electron action runner with the card context.
+- Use the same execution and error events as popup and scheduled runs; do not start a renderer-side chain.
+- Before the run, set the card's in-memory `currentAction` to the root action id and publish the state change to the UI.
+- While `currentAction` is set, disable every action entry point for that card.
+- On completed, failed, cancelled, or `okButNotAfter`, clear `currentAction` and publish another update.
+- Do not persist `currentAction`; project/app startup begins with no current actions.
+- Watch the configured actions folder in Electron. On add/edit/remove, revalidate the complete canonical ID-based set and publish it to React.
+- Debounce reloads, retain the previous valid set after validation failure, and report the actual invalid source file.
 
 ## acceptance criteria
-- Changing a card to a state configured by `onState` triggers the matching action with the card's context.
-- Adding, editing or removing local action definitions updates the available UI actions without restarting the app.
-- Reloads re-run [[F-010a]] validation and report errors on changed files clearly.
-- Tests cover `onState` trigger dispatch and add/change/remove-driven action-list updates.
+
+- A matching state change starts the action by id through Electron.
+- State-triggered runs appear in the same execution UI and global running indicator as manual runs.
+- A card with a current action disables all its actions; every terminal execution result clears it.
+- Restarting the app does not restore a stale current action.
+- Definition add/change/remove updates the UI without restarting and never falls back to the legacy shape.
+- Tests cover state dispatch, current-action set/clear for every terminal state, disabled entry points, and multi-file reload/error attribution.
 
 ## see also
-- `design\architecture\initial description\actions.md`
-- `design\architecture\initial description\data management.md`
-- `design\architecture\initial description\overview.md`
+
+- `design\architecture\initial description\writings\Running actions\running_actions.md`
+- `design\feature_descriptions\ready\F_010a_action_model_and_loading.md`
+- `design\feature_descriptions\ready\B_009_running_agents_visibility.md`

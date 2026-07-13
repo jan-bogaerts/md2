@@ -16,6 +16,7 @@ const action: ActionDefinition = {
     name: 'implement',
     on: [],
     onState: null,
+    runIn: 'project',
     text: 'implement',
     type: 'cmd',
 }

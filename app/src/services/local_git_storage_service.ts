@@ -17,6 +17,7 @@ import type {
     StorageProjectFiles,
     StorageService,
     TopLevelFolderReference,
+    WorktreeRecord,
 } from '../data/data_types'
 import { getElectronDataBridge, type ElectronDataBridge } from '../data/electron_data_bridge'
 
@@ -137,6 +138,13 @@ export class LocalGitStorageService implements StorageService {
         return this.requireBridge().loadProjectConfig(project)
     }
 
+    async loadWorktrees(project: ProjectReference): Promise<WorktreeRecord[]> {
+        const bridge = this.requireBridge()
+        if (!bridge.loadWorktrees) throw new Error('Electron local Git bridge cannot load worktrees')
+
+        return bridge.loadWorktrees(project)
+    }
+
     async listBranches(project: ProjectReference): Promise<BranchReference[]> {
         return this.requireBridge().listBranches(project)
     }
@@ -190,6 +198,20 @@ export class LocalGitStorageService implements StorageService {
     async saveProjectConfig(project: ProjectReference, config: ProjectConfig): Promise<void> {
         await this.requireBridge().saveProjectConfig(project, config)
         this.pendingPushBranches.add(project.branch)
+    }
+
+    async saveWorktrees(project: ProjectReference, folders: string[]): Promise<WorktreeRecord[]> {
+        const bridge = this.requireBridge()
+        if (!bridge.saveWorktrees) throw new Error('Electron local Git bridge cannot save worktrees')
+
+        return bridge.saveWorktrees(project, folders)
+    }
+
+    async selectWorktreeFolder(registeredFolders: string[]): Promise<WorktreeRecord | null> {
+        const bridge = this.requireBridge()
+        if (!bridge.selectWorktreeFolder) throw new Error('Electron local Git bridge cannot select worktrees')
+
+        return bridge.selectWorktreeFolder(registeredFolders)
     }
 
     hasPendingPush(project: ProjectReference) {

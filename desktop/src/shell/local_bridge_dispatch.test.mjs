@@ -40,14 +40,24 @@ function createDispatch(options = {}) {
         runCommand: vi.fn(async () => ({ exitCode: 0, stderr: '', stdout: 'ok' })),
         watchProject: vi.fn(() => vi.fn()),
     }
+    const actionWorktreeExecutionService = {
+        execute: vi.fn(async (primaryProject, _action, _context, runner) => ({
+            ...await runner(primaryProject),
+            branch: primaryProject.branch,
+            repositoryRoot: primaryProject.rootPath,
+        })),
+        resolve: vi.fn(async (primaryProject) => ({ executionProject: primaryProject, transferRecord: null })),
+    }
     const dispatch = createLocalBridgeDispatch({
         actionSchedulerService,
+        actionWorktreeExecutionService,
         agentRunnerService,
         desktopConfigStore: {},
         diffService: { generateDiff: vi.fn(), openInEditor: vi.fn() },
         localGitService,
         openProjectFolder: options.openProjectFolder,
         readDesktopConfig: () => ({ agent: 'codex', agentProfiles: [{ command: 'codex', name: 'codex' }], model: '' }),
+        worktreeService: { resolvePath: vi.fn() },
     })
 
     return { actionSchedulerService, agentRunnerService, dispatch, localGitService }
@@ -127,7 +137,7 @@ describe('createLocalBridgeDispatch', () => {
             actionsFolder: 'actions',
             context: { file: 'design/F-1.md', kind: 'card' },
             extraInput: '',
-        })).rejects.toThrow('Unknown command action: missing')
+        })).rejects.toThrow('Unknown action: missing')
     })
 
     it('invokes shared method table for remote control', async () => {

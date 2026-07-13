@@ -1,6 +1,7 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { dialogService } from '../services/dialog_service'
+import { globalProgressService } from '../services/global_progress_service'
 import { DialogDisplay } from './dialog_display'
 
 const SNACKBAR_TIMEOUT_PROBE_MS = 7000
@@ -8,6 +9,7 @@ const SNACKBAR_TIMEOUT_PROBE_MS = 7000
 describe('DialogDisplay', () => {
     afterEach(() => {
         cleanup()
+        globalProgressService.finish()
         vi.useRealTimers()
     })
 
@@ -60,5 +62,31 @@ describe('DialogDisplay', () => {
         fireEvent.click(screen.getByRole('button', { name: 'OK' }))
 
         expect(screen.queryByRole('dialog', { name: 'Startup blocked' })).toBeNull()
+    })
+
+    it('shows global operation information and determinate progress in a backdrop', () => {
+        render(<DialogDisplay />)
+
+        act(() => {
+            globalProgressService.start('Renaming first card', 2)
+        })
+
+        expect(screen.getByRole('status', { name: 'Updating files' })).toBeInTheDocument()
+        expect(screen.getByLabelText('Working')).toBeInTheDocument()
+        expect(screen.getByText('0 of 2')).toBeInTheDocument()
+
+        act(() => {
+            globalProgressService.update(1, 'Renaming second card')
+        })
+
+        expect(screen.getByText('Renaming second card')).toBeInTheDocument()
+        expect(screen.getByText('1 of 2')).toBeInTheDocument()
+        expect(screen.getByLabelText('File update progress')).toHaveAttribute('aria-valuenow', '50')
+
+        act(() => {
+            globalProgressService.finish()
+        })
+
+        expect(screen.queryByRole('status', { name: 'Updating files' })).toBeNull()
     })
 })

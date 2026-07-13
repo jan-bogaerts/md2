@@ -14,10 +14,9 @@ import {
 import { GithubStorageGitData } from './github_storage_git_data'
 import { GithubStorageLoader } from './github_storage_loader'
 import type { GithubStorageDependencies } from './github_storage_types'
-import { PROJECT_README_TEMPLATE } from './github_storage_types'
 import { GithubStorageWriter } from './github_storage_writer'
 
-export { GithubPendingCommitConflictError, PROJECT_README_TEMPLATE }
+export { GithubPendingCommitConflictError }
 
 export class GithubStorageService implements StorageService {
     private readonly configStorage: GithubProjectConfigStorage

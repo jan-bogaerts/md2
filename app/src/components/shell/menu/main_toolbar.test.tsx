@@ -1,6 +1,6 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { AppThemeProvider } from '../../theme/theme_provider'
+import { AppThemeProvider } from '../../../theme/theme_provider'
 import { MainToolbar } from './main_toolbar'
 
 const search = <input aria-label="Search project" />
@@ -35,6 +35,12 @@ describe('MainToolbar', () => {
         renderToolbar()
 
         expect(screen.queryByRole('button', { name: 'Open menu' })).toBeNull()
+    })
+
+    it('renders the application icon', () => {
+        renderToolbar()
+
+        expect(screen.getByRole('img', { name: 'MD² application icon' })).toHaveAttribute('src', './favicon.svg')
     })
 
     it('opens the menu from the hamburger button on mobile', () => {

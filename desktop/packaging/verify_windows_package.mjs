@@ -5,16 +5,16 @@ import { rename } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
-import packageJson from './package.json' with { type: 'json' }
+import packageJson from '../package.json' with { type: 'json' }
 
 const execFileAsync = promisify(execFile)
 const currentDirectory = path.dirname(fileURLToPath(import.meta.url))
-const releaseRoot = path.resolve(currentDirectory, '..', 'release')
+const releaseRoot = path.resolve(currentDirectory, '..', '..', 'release')
 const REQUIRED_ASAR_ENTRIES = [
     'desktop/main.js',
-    'desktop/preload.js',
+    'desktop/src/shell/preload.js',
     'desktop/renderer/index.html',
-    'desktop/renderer_security.js',
+    'desktop/src/shell/renderer_security.js',
     'shared/action_definitions.mjs',
     'node_modules/@aptabase/electron/package.json',
     'node_modules/@sentry/electron/package.json',

@@ -1,7 +1,7 @@
 const { spawn } = require('node:child_process')
 const path = require('node:path')
 
-const repositoryRoot = path.resolve(__dirname, '..')
+const repositoryRoot = path.resolve(__dirname, '..', '..')
 
 function runNpm(args, spawnImplementation = spawn) {
     return new Promise((resolve, reject) => {

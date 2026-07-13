@@ -19,9 +19,9 @@ import CardsOutline from 'mdi-material-ui/CardsOutline'
 import Close from 'mdi-material-ui/Close'
 import Plus from 'mdi-material-ui/Plus'
 import type { ChangeEvent, FormEvent, KeyboardEvent } from 'react'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import type { CardDraft, CardTypeConfig } from '../../../data/data_types'
-import { MarkdownEditor } from '../../editor/markdown_editor'
+import { MarkdownEditor, type MarkdownEditorHandle } from '../../editor/markdown_editor'
 
 const CONTROL_HEIGHT = 42
 const DIALOG_WIDTH = 480
@@ -98,7 +98,10 @@ interface NewCardDialogProps {
 /** Dialog for creating a new project card. */
 export function NewCardDialog(props: NewCardDialogProps) {
     const { cardTypes, isLoading, isProjectOpen, onClose, onCreateCard, open } = props
+    // The editor is uncontrolled while typing; `body` only keeps the draft across
+    // dialog close/reopen (populated by the editor's flush on unmount).
     const [body, setBody] = useState('')
+    const bodyEditorRef = useRef<MarkdownEditorHandle>(null)
     const [dialogPaperElement, setDialogPaperElement] = useState<HTMLDivElement | null>(null)
     const [title, setTitle] = useState('')
     const [type, setType] = useState('feature')
@@ -116,12 +119,13 @@ export function NewCardDialog(props: NewCardDialogProps) {
     const handleCreateClick = async () => {
         if (isSubmitDisabled) return
 
-        const draft: CardDraft = { body, title, type: selectedType }
+        const draft: CardDraft = { body: bodyEditorRef.current?.getMarkdown() ?? body, title, type: selectedType }
         try {
             await onCreateCard(draft)
         } catch {
             return
         }
+        bodyEditorRef.current?.setMarkdown('')
         setBody('')
         setTitle('')
         setType('feature')
@@ -240,7 +244,7 @@ export function NewCardDialog(props: NewCardDialogProps) {
                             role="group"
                             sx={markdownEditorFrameSx}
                         >
-                            <MarkdownEditor markdown={body} onChange={setBody} overlayContainer={dialogPaperElement} />
+                            <MarkdownEditor markdown={body} onChange={setBody} overlayContainer={dialogPaperElement} ref={bodyEditorRef} />
                         </Box>
                     </Stack>
                 </DialogContent>

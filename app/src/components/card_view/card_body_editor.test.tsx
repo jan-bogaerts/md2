@@ -37,11 +37,13 @@ describe('CardBodyEditor', () => {
         expect(screen.getByRole('textbox')).toHaveValue('# Alpha\n\nOriginal body')
     })
 
-    it('reports body edits with the card path so the header stays with DataService', () => {
+    it('reports body edits with the card path when the editor unmounts (popup close)', () => {
         const onBodyChange = vi.fn()
-        renderCardBodyEditor({ card: card(), isFullscreen: false, onBodyChange, onToggleFullscreen: vi.fn() })
+        const { unmount } = renderCardBodyEditor({ card: card(), isFullscreen: false, onBodyChange, onToggleFullscreen: vi.fn() })
 
         fireEvent.change(screen.getByRole('textbox'), { target: { value: '# Alpha\n\nEdited body' } })
+        expect(onBodyChange).not.toHaveBeenCalled()
+        unmount()
 
         expect(onBodyChange).toHaveBeenCalledWith('design/F-1-a.md', '# Alpha\n\nEdited body')
     })

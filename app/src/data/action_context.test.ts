@@ -24,6 +24,7 @@ function action(name: string, appliesTo: ActionDefinition['appliesTo']): ActionD
         name,
         on: [],
         onState: null,
+        runIn: 'project',
         text: 'run',
         type: 'cmd',
     }
@@ -47,6 +48,7 @@ function card(id: string, status: string | null): ProjectCard {
 describe('getCardType', () => {
     it('maps an id prefix to the configured card type', () => {
         expect(getCardType(DEFAULT_CARD_TYPES, 'F-010')).toBe('feature')
+        expect(getCardType(DEFAULT_CARD_TYPES, 'F_010')).toBe('feature')
         expect(getCardType(DEFAULT_CARD_TYPES, 'J-3')).toBe('job')
         expect(getCardType(DEFAULT_CARD_TYPES, 'B-7')).toBe('bug')
     })

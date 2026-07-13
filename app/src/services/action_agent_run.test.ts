@@ -20,6 +20,7 @@ function action(overrides: Partial<ActionDefinition> = {}): ActionDefinition {
         text: 'implement',
         type: 'agent',
         ...overrides,
+        runIn: overrides.runIn ?? 'project',
     }
 }
 

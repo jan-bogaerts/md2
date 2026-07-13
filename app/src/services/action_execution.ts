@@ -14,6 +14,7 @@ import type { DesktopConfigValues } from './config_service'
 import { appendAgentHistory, appendCommandHistory } from './action_history'
 import { resolveAgentRun } from './action_agent_run'
 import { resolveAgentPrompt } from './action_text'
+import { dialogService } from './dialog_service'
 import {
     combineOutput,
     createAgentLog,
@@ -64,6 +65,7 @@ export interface ActionEnvironment {
     getActionsFolder: () => string | null
     getAgentConfig: () => DesktopConfigValues
     getProject: () => ProjectReference | null
+    refreshProject?: () => Promise<unknown>
 }
 
 export interface ActionExecutionDependencies {
@@ -112,6 +114,7 @@ export async function runCommandAction(
 
         return combineOutput(result)
     } catch (error) {
+        dialogService.error(error, { fallbackMessage: 'Command action failed' })
         addFailure(action, options, error instanceof Error ? error.message : 'Command action failed')
 
         return ''
@@ -133,6 +136,8 @@ export async function runAgentAction(
     }
 
     try {
+        const actionsFolder = dependencies.environment.getActionsFolder()
+        if (!actionsFolder) throw new Error('Cannot run agent action before project config is loaded')
         const resolvedAgent = resolveAgentRun(
             dependencies.environment.getAgentConfig(),
             action,
@@ -143,9 +148,13 @@ export async function runAgentAction(
         if (!context.file) throw new Error('Agent actions require a file context')
 
         const request = {
+            actionName: action.name,
             agent: resolvedAgent.agent,
+            actionsFolder,
             cardPath: context.file,
             command,
+            context,
+            extraInput: options.extraPrompt,
             model: resolvedAgent.model,
             prompt,
             ...(resolvedAgent.sessionIdPattern ? { sessionIdPattern: resolvedAgent.sessionIdPattern } : {}),
@@ -172,6 +181,7 @@ export async function runAgentAction(
 
         return combineOutput(result)
     } catch (error) {
+        dialogService.error(error, { fallbackMessage: 'Agent action failed' })
         addFailure(action, options, error instanceof Error ? error.message : 'Agent action failed')
 
         return ''

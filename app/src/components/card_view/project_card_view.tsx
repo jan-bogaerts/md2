@@ -1,29 +1,26 @@
-import { Avatar, Box, IconButton, Menu, MenuItem, Popover, Stack, TextField, Tooltip, Typography, useTheme } from '@mui/material'
+import { Box, IconButton, Menu, MenuItem, Stack, TextField, Tooltip, Typography, useTheme } from '@mui/material'
 import { alpha } from '@mui/material/styles'
 import { useSortable } from '@dnd-kit/sortable'
 import DotsVertical from 'mdi-material-ui/DotsVertical'
 import FileDocumentOutline from 'mdi-material-ui/FileDocumentOutline'
 import { useState } from 'react'
 import type { ChangeEvent, KeyboardEvent, MouseEvent, TouchEvent } from 'react'
-import type { AgentConversation, CardTypeConfig, ProjectCard } from '../../data/data_types'
+import type { CardTypeConfig, ProjectCard, WorktreeRecord } from '../../data/data_types'
 import { cardContext } from '../../data/action_context'
 import { ActionEntryPoints } from '../actions/action_entry_points'
-import { AgentConversationList } from '../agents/agent_conversation_list'
 import { CardDeleteDialog } from './card_delete_dialog'
 import { CardPolicyMenuItem } from './card_policy_menu_item'
+import { CardWorktreeIndicator } from './card_worktree_indicator'
 
-const AGENT_POPOVER_WIDTH = 420
 const CARD_LONG_PRESS_MS = 500
 
 export interface CardHandlers {
-    onContinueAgentConversation: (cardPath: string, conversation: AgentConversation) => void
     onDeleteCard: (path: string) => Promise<void>
     onOpenBody: (path: string, anchorElement: HTMLElement) => void
     onOpenInFileMode: (path: string) => void
-    onSendAgentInput: (runId: string, input: string) => void
-    onStartAgentConversation: (cardPath: string, prompt: string) => void
     onTogglePolicy: (path: string, policyKey: string) => void
     onTitleChange: (path: string, title: string) => void
+    onWorktreeChange: (path: string, worktree: number | null) => void
 }
 
 interface ProjectCardViewProps extends CardHandlers {
@@ -32,6 +29,8 @@ interface ProjectCardViewProps extends CardHandlers {
     color?: string
     isBodyOpen: boolean
     isSelected: boolean
+    primaryPath: string
+    worktrees: WorktreeRecord[]
 }
 
 interface MenuPosition {
@@ -39,25 +38,14 @@ interface MenuPosition {
     top: number
 }
 
-function initialsFor(value: string) {
-    const parts = value.trim().split(/\s+/u)
-    if (parts.length === 1 && parts[0].length <= 2) return parts[0].toUpperCase()
-
-    const initials = parts.map((part) => part[0]).join('')
-
-    return (initials || '?').slice(0, 2).toUpperCase()
-}
-
 /** A three-row draggable card with compact metadata and consolidated actions. */
 export function ProjectCardView(props: ProjectCardViewProps) {
-    const { card, cardTypes, color, isBodyOpen, isSelected } = props
-    const { onContinueAgentConversation, onOpenBody, onOpenInFileMode } = props
-    const { onDeleteCard, onSendAgentInput, onStartAgentConversation } = props
-    const { onTogglePolicy, onTitleChange } = props
+    const { card, cardTypes, color, isBodyOpen, isSelected, primaryPath, worktrees } = props
+    const { onOpenBody, onOpenInFileMode } = props
+    const { onDeleteCard, onTogglePolicy, onTitleChange, onWorktreeChange } = props
     const theme = useTheme()
     const sortable = useSortable({ id: card.path })
     const { attributes, isDragging, listeners, node, setActivatorNodeRef, setNodeRef, transform, transition } = sortable
-    const [agentAnchorElement, setAgentAnchorElement] = useState<HTMLElement | null>(null)
     const [actionsAnchorElement, setActionsAnchorElement] = useState<HTMLElement | null>(null)
     const [actionsMenuPosition, setActionsMenuPosition] = useState<MenuPosition | null>(null)
     const [isEditingTitle, setIsEditingTitle] = useState(false)
@@ -68,7 +56,6 @@ export function ProjectCardView(props: ProjectCardViewProps) {
     const accentBackground = alpha(accentColor, 0.16)
     const isAgentRunning = card.agentConversations.some((conversation) => conversation.status === 'running')
     const statusLabel = isAgentRunning ? 'Running' : 'Idle'
-    const assignee = card.header.owner ?? card.header.author ?? card.header.id
     const dragTranslation = transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : ''
     const style = {
         opacity: isDragging ? 0 : 1,
@@ -99,11 +86,6 @@ export function ProjectCardView(props: ProjectCardViewProps) {
         event.stopPropagation()
     }
 
-    const openAgentConversations = (event: MouseEvent<HTMLElement>) => {
-        event.stopPropagation()
-        setAgentAnchorElement(event.currentTarget)
-    }
-
     const openCardActions = (event: MouseEvent<HTMLElement>) => {
         event.stopPropagation()
         setActionsMenuPosition(null)
@@ -120,10 +102,6 @@ export function ProjectCardView(props: ProjectCardViewProps) {
     const openInFileMode = (event: MouseEvent<HTMLElement>) => {
         event.stopPropagation()
         onOpenInFileMode(card.path)
-    }
-
-    const closeAgentConversations = () => {
-        setAgentAnchorElement(null)
     }
 
     const closeCardActions = () => {
@@ -177,18 +155,11 @@ export function ProjectCardView(props: ProjectCardViewProps) {
         setDeleteCardPath(card.path)
     }
 
-    const continueAgentConversation = (conversation: AgentConversation) => {
-        onContinueAgentConversation(card.path, conversation)
-    }
-
-    const startAgentConversation = (prompt: string) => {
-        onStartAgentConversation(card.path, prompt)
-    }
-
     const policyKeys = Object.keys(card.header.policy)
 
     return (
         <Box
+            data-card-path={card.path}
             data-selected={isSelected ? 'true' : undefined}
             onContextMenu={openCardContextMenu}
             onTouchCancel={handleCardTouchEnd}
@@ -296,36 +267,14 @@ export function ProjectCardView(props: ProjectCardViewProps) {
                         </IconButton>
                     </Tooltip>
                     <Box sx={{ flex: 1 }} />
-                    <Tooltip title="Agent conversations">
-                        <IconButton
-                            aria-label={`Agent conversations for ${card.header.id}`}
-                            onClick={openAgentConversations}
-                            size="small"
-                            sx={{ borderRadius: '50%', height: 26, pointerEvents: 'auto', width: 26 }}
-                        >
-                            <Avatar sx={{ bgcolor: accentColor, color: '#ffffff', fontSize: 9.5, fontWeight: 600, height: 22, width: 22 }}>
-                                {initialsFor(assignee)}
-                            </Avatar>
-                        </IconButton>
-                    </Tooltip>
+                    <CardWorktreeIndicator
+                        card={card}
+                        onAssign={onWorktreeChange}
+                        primaryPath={primaryPath}
+                        worktrees={worktrees}
+                    />
                 </Stack>
             </Box>
-            <Popover
-                anchorEl={agentAnchorElement}
-                anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-                onClose={closeAgentConversations}
-                open={!!agentAnchorElement}
-            >
-                <Box sx={{ maxWidth: '90vw', p: 2, width: AGENT_POPOVER_WIDTH }}>
-                    <AgentConversationList
-                        conversations={card.agentConversations}
-                        errors={card.agentConversationErrors}
-                        onContinue={continueAgentConversation}
-                        onSendInput={onSendAgentInput}
-                        onStart={startAgentConversation}
-                    />
-                </Box>
-            </Popover>
             <Menu
                 anchorEl={actionsAnchorElement}
                 anchorPosition={actionsMenuPosition ?? undefined}

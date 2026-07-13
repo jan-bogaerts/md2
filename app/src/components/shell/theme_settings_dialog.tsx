@@ -5,22 +5,17 @@ import {
     DialogActions,
     DialogContent,
     DialogTitle,
-    MenuItem,
     Stack,
     TextField,
     ThemeProvider,
     Typography,
 } from '@mui/material'
 import { useMemo, useState } from 'react'
-import { buildMarkdownContentSx } from '../editor/markdown_style_sx'
 import { createAppTheme } from '../../theme/app_theme'
 import {
     COLOR_ROLES,
-    MARKDOWN_STYLE_PRESETS,
-    MARKDOWN_STYLE_PRESET_NAMES,
     type ColorRole,
     type ColorSchemeConfig,
-    type MarkdownStylePresetName,
 } from '../../theme/theme_config'
 import { useAppTheme } from '../../theme/use_app_theme'
 
@@ -35,25 +30,19 @@ function roleLabel(role: ColorRole): string {
     return role.charAt(0).toUpperCase() + role.slice(1)
 }
 
-/** Settings dialog: edit the color scheme with a live preview and pick a markdown style preset. */
+/** Settings dialog: edit the application color scheme with a live preview. */
 export function ThemeSettingsDialog(props: ThemeSettingsDialogProps) {
     const { open, onClose } = props
-    const { mode, colorScheme, markdownStyle, setColorScheme, setMarkdownStyle } = useAppTheme()
+    const { mode, colorScheme, setColorScheme } = useAppTheme()
     const [draftScheme, setDraftScheme] = useState<ColorSchemeConfig>(colorScheme)
 
     const previewTheme = useMemo(() => createAppTheme(mode, draftScheme), [mode, draftScheme])
-    const markdownPreview = MARKDOWN_STYLE_PRESETS[markdownStyle]
-    const markdownPreviewSx = buildMarkdownContentSx(markdownPreview)
 
     const handleColorChange = (role: ColorRole, variant: (typeof COLOR_VARIANT_KEYS)[number], value: string) => {
         setDraftScheme((current) => ({
             ...current,
             [role]: { ...current[role], [variant]: value },
         }))
-    }
-
-    const handleMarkdownStyleChange = (event: { target: { value: string } }) => {
-        setMarkdownStyle(event.target.value as MarkdownStylePresetName)
     }
 
     const handleApply = () => {
@@ -105,34 +94,6 @@ export function ThemeSettingsDialog(props: ThemeSettingsDialogProps) {
                             </Button>
                         </Stack>
                     </ThemeProvider>
-                </Box>
-
-                <Box sx={{ mt: 3 }}>
-                    <Typography gutterBottom variant="subtitle1">
-                        Markdown style
-                    </Typography>
-                    <TextField
-                        fullWidth
-                        label="Preset"
-                        onChange={handleMarkdownStyleChange}
-                        select
-                        value={markdownStyle}
-                    >
-                        {MARKDOWN_STYLE_PRESET_NAMES.map((name) => (
-                            <MenuItem key={name} value={name}>
-                                {name}
-                            </MenuItem>
-                        ))}
-                    </TextField>
-                    <Box aria-label="Markdown style preview" sx={{ mt: 2, ...markdownPreviewSx }}>
-                        <Box className="mdxeditor-content">
-                            <Typography component="h1">Sample heading</Typography>
-                            <Typography component="h2">Section heading</Typography>
-                            <Typography component="h3">Detail heading</Typography>
-                            <Typography component="p">The quick brown fox jumps over the lazy dog.</Typography>
-                            <Typography component="blockquote">Caption text</Typography>
-                        </Box>
-                    </Box>
                 </Box>
             </DialogContent>
             <DialogActions>

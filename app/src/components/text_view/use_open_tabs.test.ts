@@ -1,8 +1,13 @@
 import { act, renderHook } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
+import { openFilesService } from '../../services/open_files_service'
 import { useOpenTabs } from './use_open_tabs'
 
 describe('useOpenTabs', () => {
+    beforeEach(() => {
+        openFilesService.clear()
+    })
+
     it('opens a file as a new active tab', () => {
         const { result } = renderHook(() => useOpenTabs())
 
@@ -95,5 +100,17 @@ describe('useOpenTabs', () => {
 
         expect(result.current.tabs).toEqual(['b.md'])
         expect(result.current.activePath).toBe('b.md')
+    })
+
+    it('restores open tabs after the hook unmounts and mounts again', () => {
+        const first = renderHook(() => useOpenTabs())
+        act(() => first.result.current.openTab('a.md'))
+        act(() => first.result.current.openTab('b.md'))
+        first.unmount()
+
+        const second = renderHook(() => useOpenTabs())
+
+        expect(second.result.current.tabs).toEqual(['a.md', 'b.md'])
+        expect(second.result.current.activePath).toBe('b.md')
     })
 })

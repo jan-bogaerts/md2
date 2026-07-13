@@ -40,6 +40,61 @@ describe('CardOperations', () => {
         expect(storage.push).toHaveBeenCalledWith({ branch: 'main', id: 'project' })
     })
 
+    it('creates a Markdown file in the requested project-tree folder', async () => {
+        configService.init()
+        const storage = createStorage({
+            loadProject: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
+            loadProjectConfig: vi.fn(async () => ({ projectFolder: 'design', workingFolder: 'active' })),
+            loadProjectRoot: vi.fn(async () => ({ files: [], workingFolder: 'design/active' })),
+        })
+        const service = new DataService()
+        service.init({ storage })
+
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        const file = await service.cards.createMarkdownFile('design/notes', 'meeting-notes')
+
+        expect(file).toEqual({ content: '', path: 'design/notes/meeting-notes.md' })
+        expect(storage.commit).toHaveBeenCalledWith({
+            branch: 'main',
+            files: [file],
+            message: 'Create design/notes/meeting-notes.md',
+        })
+        expect(service.getState().snapshot?.backgroundCards.some((card) => card.path === file.path)).toBe(true)
+        expect(storage.push).toHaveBeenCalledWith({ branch: 'main', id: 'project' })
+    })
+
+    it('creates a physical folder through a committed placeholder and reloads repository paths', async () => {
+        configService.init()
+        let folderCreated = false
+        const commit = vi.fn<StorageService['commit']>(async () => {
+            folderCreated = true
+            return []
+        })
+        const storage = createStorage({
+            commit,
+            listRepositoryFiles: vi.fn(async () => (
+                folderCreated ? ['design/notes/.gitkeep'] : ['design/active/F-1-root.md']
+            )),
+            loadProject: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
+            loadProjectConfig: vi.fn(async () => ({ projectFolder: 'design', workingFolder: 'active' })),
+            loadProjectRoot: vi.fn(async () => ({ files: [], workingFolder: 'design/active' })),
+        })
+        const service = new DataService()
+        service.init({ storage })
+
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        const folderPath = await service.cards.createFolder('design', 'notes')
+
+        expect(folderPath).toBe('design/notes')
+        expect(commit).toHaveBeenCalledWith({
+            branch: 'main',
+            files: [{ content: '', path: 'design/notes/.gitkeep' }],
+            message: 'Create design/notes',
+        })
+        expect(service.getState().snapshot?.repositoryFiles).toContain('design/notes/.gitkeep')
+        expect(storage.push).toHaveBeenCalledWith({ branch: 'main', id: 'project' })
+    })
+
     it('keeps a created card when auto-push fails after the commit succeeds', async () => {
         configService.init()
         const pushError = new Error('GitHub denied write access')

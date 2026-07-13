@@ -1,11 +1,17 @@
 import { Box, IconButton, Tab, Tabs, useTheme } from '@mui/material'
 import { alpha } from '@mui/material/styles'
+import CardsOutline from 'mdi-material-ui/CardsOutline'
 import Close from 'mdi-material-ui/Close'
+import FileDocumentOutline from 'mdi-material-ui/FileDocumentOutline'
+import LightningBolt from 'mdi-material-ui/LightningBolt'
 import type { MouseEvent, SyntheticEvent } from 'react'
+
+export type OpenTabKind = 'action' | 'card' | 'markdown'
 
 export interface OpenTab {
     color: string | null
     id: string | null
+    kind: OpenTabKind
     label: string
     path: string
     title: string
@@ -63,6 +69,9 @@ export function TabBar(props: TabBarProps) {
                         component="div"
                         label={(
                             <Box sx={{ alignItems: 'center', display: 'flex', gap: 1, maxWidth: 240, minWidth: 0 }}>
+                                {tab.kind === 'action' ? <LightningBolt sx={{ flexShrink: 0, fontSize: 16 }} titleAccess="Action file" /> : null}
+                                {tab.kind === 'card' ? <CardsOutline sx={{ flexShrink: 0, fontSize: 16 }} titleAccess="Card" /> : null}
+                                {tab.kind === 'markdown' ? <FileDocumentOutline sx={{ flexShrink: 0, fontSize: 16 }} titleAccess="Markdown file" /> : null}
                                 {tab.id ? (
                                     <Box
                                         component="span"

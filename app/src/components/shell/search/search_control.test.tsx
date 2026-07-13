@@ -69,6 +69,17 @@ describe('SearchControl', () => {
         expect(screen.getByRole('button', { name: 'Ask agent to build a RegExp' })).toBeInTheDocument()
     })
 
+    it('shows a focused search popover from the mobile search icon', () => {
+        render(<SearchControl isMobile />)
+
+        expect(screen.queryByRole('textbox', { name: 'Search project' })).toBeNull()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Search' }))
+
+        expect(screen.getByRole('textbox', { name: 'Search project' })).toHaveFocus()
+        expect(screen.getByRole('region', { name: 'Search dropdown' })).toBeInTheDocument()
+    })
+
     it('shows grouped results for a plain text search', () => {
         render(<SearchControl />)
 

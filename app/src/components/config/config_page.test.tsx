@@ -7,6 +7,7 @@ import { configService } from '../../services/config_service'
 import { BUILTIN_AGENT_PROFILES } from '../../data/agent_profiles'
 import { dataService } from '../../services/data_service'
 import { dialogService } from '../../services/dialog_service'
+import { worktreeService } from '../../services/worktree_service'
 
 function mockMatchMedia(matches: boolean) {
     window.matchMedia = ((query: string) => ({
@@ -31,10 +32,12 @@ describe('ConfigPage', () => {
         cleanup()
         vi.useRealTimers()
         configService.clear()
+        worktreeService.clear()
         window.history.pushState(null, '', '/config')
         mockMatchMedia(false)
         window.localStorage.clear()
         delete window.md2Config
+        delete window.md2Data
     })
 
     it('renders typed editors with descriptions', () => {
@@ -54,10 +57,9 @@ describe('ConfigPage', () => {
         mockMatchMedia(false)
         configService.init()
 
-        render(<ConfigPage hash="#connection" />)
+        render(<ConfigPage hash="#desktop" />)
 
-        expect(screen.getByLabelText('GitHub scopes')).toBeInTheDocument()
-        expect(screen.getByText('OAuth scopes requested when connecting GitHub.')).toBeInTheDocument()
+        expect(screen.getByLabelText('Default agent')).toBeInTheDocument()
         expect(screen.queryByRole('switch', { name: 'Startup splash' })).toBeNull()
         expect(screen.getByRole('tab', { name: 'React app' })).toHaveAttribute('href', '#react')
     })
@@ -184,6 +186,46 @@ describe('ConfigPage', () => {
         expect(screen.getByRole('option', { name: 'Red' })).toBeInTheDocument()
         expect(screen.getByRole('option', { name: 'Purple' })).toBeInTheDocument()
         expect(screen.getByRole('option', { name: 'Amber' })).toBeInTheDocument()
+    })
+
+    it('warns when the card separator is changed', () => {
+        mockMatchMedia(false)
+        configService.init()
+        configService.loadProjectConfig({ workingFolder: 'design' })
+        const reportWarning = vi.spyOn(dialogService, 'warning')
+
+        render(<ConfigPage hash="#project" />)
+        fireEvent.mouseDown(screen.getByLabelText('Card separator'))
+        fireEvent.click(screen.getByRole('option', { name: 'Underscore (_)' }))
+
+        expect(reportWarning).toHaveBeenCalledWith(
+            'Saving this change will rename existing card files and update their IDs.',
+            { critical: true, title: 'Card files will be renamed' },
+        )
+        reportWarning.mockRestore()
+    })
+
+    it('renames card files before saving a changed separator', async () => {
+        mockMatchMedia(false)
+        configService.init()
+        configService.loadProjectConfig({ workingFolder: 'design' })
+        const updateCardSeparator = vi.spyOn(dataService.projectLoading, 'updateCardSeparator').mockResolvedValue(2)
+        const saveProjectConfig = vi.spyOn(dataService.projectLoading, 'saveProjectConfig').mockResolvedValue()
+
+        render(<ConfigPage hash="#project" />)
+        fireEvent.mouseDown(screen.getByLabelText('Card separator'))
+        fireEvent.click(screen.getByRole('option', { name: 'Underscore (_)' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+        await waitFor(() => {
+            expect(updateCardSeparator).toHaveBeenCalledWith('-', '_')
+            expect(saveProjectConfig).toHaveBeenCalledTimes(1)
+        })
+        expect(updateCardSeparator.mock.invocationCallOrder[0]).toBeLessThan(saveProjectConfig.mock.invocationCallOrder[0])
+        expect(configService.get('project.cardSeparator')).toBe('_')
+
+        updateCardSeparator.mockRestore()
+        saveProjectConfig.mockRestore()
     })
 
     it('edits project columns as ordered JSON definitions', () => {

@@ -303,6 +303,17 @@ class AgentRunnerService {
         emitRunEvent(run, 'error', message)
     }
 
+    handleState(runId, state) {
+        if (state !== 'waiting' && state !== 'resumed') throw new Error(`Invalid agent state event: ${String(state)}`)
+
+        const run = this.requireRun(runId)
+        const timestamp = new Date().toISOString()
+        const event = createEvent(`${runId}-${state}-${run.conversation.events.length}`, state, '', timestamp)
+        run.conversation.events.push(event)
+        void queueConversationPersist(run)
+        emitRunEvent(run, state, '')
+    }
+
     async handleClose(runId, exitCode) {
         const run = this.processes.get(runId)
         if (!run) return

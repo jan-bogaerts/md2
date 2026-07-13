@@ -3,24 +3,32 @@ import type { PaletteMode } from '@mui/material'
 import {
     DEFAULT_COLOR_SCHEME,
     DEFAULT_MARKDOWN_STYLE_PRESET,
+    MARKDOWN_STYLE_PRESETS,
+    cloneMarkdownStyleConfig,
     isColorSchemeConfig,
-    isMarkdownStylePresetName,
+    isMarkdownStyleConfig,
+    isMarkdownStyleName,
     type ColorSchemeConfig,
+    type MarkdownStyleConfig,
+    type MarkdownStyleName,
     type MarkdownStylePresetName,
 } from './theme_config'
 
 export const THEME_MODE_STORAGE_KEY = 'md2.themeMode'
 export const COLOR_SCHEME_STORAGE_KEY = 'md2.colorScheme'
 export const MARKDOWN_STYLE_STORAGE_KEY = 'md2.markdownStyle'
+export const CUSTOM_MARKDOWN_STYLE_STORAGE_KEY = 'md2.customMarkdownStyle'
 
 /** The full set of persisted theme settings plus their mutators. */
 export interface UseThemeSettingsResult {
     mode: PaletteMode
     colorScheme: ColorSchemeConfig
-    markdownStyle: MarkdownStylePresetName
+    markdownStyle: MarkdownStyleName
+    markdownStyleConfig: MarkdownStyleConfig
     toggleMode: () => void
     setColorScheme: (colorScheme: ColorSchemeConfig) => void
     setMarkdownStyle: (preset: MarkdownStylePresetName) => void
+    setCustomMarkdownStyle: (markdownStyleConfig: MarkdownStyleConfig) => void
 }
 
 function isPaletteMode(value: string | null): value is PaletteMode {
@@ -51,10 +59,34 @@ function readInitialColorScheme(): ColorSchemeConfig {
     return DEFAULT_COLOR_SCHEME
 }
 
-/** Resolve the initial markdown style preset from storage, falling back to the default. */
-function readInitialMarkdownStyle(): MarkdownStylePresetName {
+interface InitialMarkdownStyle {
+    config: MarkdownStyleConfig
+    name: MarkdownStyleName
+}
+
+function readCustomMarkdownStyle(): MarkdownStyleConfig | null {
+    const stored = window.localStorage.getItem(CUSTOM_MARKDOWN_STYLE_STORAGE_KEY)
+    if (stored === null) return null
+
+    try {
+        const parsed = JSON.parse(stored)
+        return isMarkdownStyleConfig(parsed) ? parsed : null
+    } catch {
+        return null
+    }
+}
+
+/** Resolve the initial markdown style from storage, falling back to the default preset. */
+function readInitialMarkdownStyle(): InitialMarkdownStyle {
     const stored = window.localStorage.getItem(MARKDOWN_STYLE_STORAGE_KEY)
-    return isMarkdownStylePresetName(stored) ? stored : DEFAULT_MARKDOWN_STYLE_PRESET
+    if (isMarkdownStyleName(stored)) {
+        if (stored !== 'custom') return { config: MARKDOWN_STYLE_PRESETS[stored], name: stored }
+
+        const customConfig = readCustomMarkdownStyle()
+        if (customConfig) return { config: customConfig, name: stored }
+    }
+
+    return { config: MARKDOWN_STYLE_PRESETS[DEFAULT_MARKDOWN_STYLE_PRESET], name: DEFAULT_MARKDOWN_STYLE_PRESET }
 }
 
 /**
@@ -65,7 +97,9 @@ function readInitialMarkdownStyle(): MarkdownStylePresetName {
 export function useThemeSettings(): UseThemeSettingsResult {
     const [mode, setMode] = useState<PaletteMode>(readInitialMode)
     const [colorScheme, setColorSchemeState] = useState<ColorSchemeConfig>(readInitialColorScheme)
-    const [markdownStyle, setMarkdownStyleState] = useState<MarkdownStylePresetName>(readInitialMarkdownStyle)
+    const [initialMarkdownStyle] = useState<InitialMarkdownStyle>(readInitialMarkdownStyle)
+    const [markdownStyle, setMarkdownStyleState] = useState<MarkdownStyleName>(initialMarkdownStyle.name)
+    const [markdownStyleConfig, setMarkdownStyleConfig] = useState<MarkdownStyleConfig>(initialMarkdownStyle.config)
 
     const toggleMode = useCallback(() => {
         setMode((currentMode) => {
@@ -83,10 +117,37 @@ export function useThemeSettings(): UseThemeSettingsResult {
     const setMarkdownStyle = useCallback((preset: MarkdownStylePresetName) => {
         window.localStorage.setItem(MARKDOWN_STYLE_STORAGE_KEY, preset)
         setMarkdownStyleState(preset)
+        setMarkdownStyleConfig(MARKDOWN_STYLE_PRESETS[preset])
+    }, [])
+
+    const setCustomMarkdownStyle = useCallback((nextMarkdownStyleConfig: MarkdownStyleConfig) => {
+        const config = cloneMarkdownStyleConfig(nextMarkdownStyleConfig)
+        window.localStorage.setItem(MARKDOWN_STYLE_STORAGE_KEY, 'custom')
+        window.localStorage.setItem(CUSTOM_MARKDOWN_STYLE_STORAGE_KEY, JSON.stringify(config))
+        setMarkdownStyleState('custom')
+        setMarkdownStyleConfig(config)
     }, [])
 
     return useMemo(
-        () => ({ mode, colorScheme, markdownStyle, toggleMode, setColorScheme, setMarkdownStyle }),
-        [mode, colorScheme, markdownStyle, toggleMode, setColorScheme, setMarkdownStyle],
+        () => ({
+            mode,
+            colorScheme,
+            markdownStyle,
+            markdownStyleConfig,
+            toggleMode,
+            setColorScheme,
+            setMarkdownStyle,
+            setCustomMarkdownStyle,
+        }),
+        [
+            mode,
+            colorScheme,
+            markdownStyle,
+            markdownStyleConfig,
+            toggleMode,
+            setColorScheme,
+            setMarkdownStyle,
+            setCustomMarkdownStyle,
+        ],
     )
 }

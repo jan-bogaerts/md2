@@ -9,6 +9,8 @@ policy:
   requireTests: true
 ---
 
+> **UPDATE 2026-07-11 — PAT is now the *only* GitHub auth method.** The device-flow / OAuth path this card was a fallback *alongside* was removed entirely (see [[F_034_github_oauth_cors_proxy]], [[F_001_github_authentication]]). The `authMethod: 'device' | 'pat'` marker and the "Sign in with GitHub" device-flow UI described below are gone; `GithubAuthPanel` offers only the token field.
+
 ## Goal
 Give users a zero-infrastructure way to authenticate against GitHub storage by pasting a personal access token (PAT), alongside the device-flow login. Useful for self-hosters, development, and as a backup if the OAuth proxy (`F_034`) is ever unreachable.
 

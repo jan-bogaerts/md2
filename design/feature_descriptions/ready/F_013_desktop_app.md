@@ -10,7 +10,7 @@ policy:
 ---
 
 ## Goal
-Build the Electron app that hosts the React app and bridges it to the file system and local Git (via preload.js and a WebSocket server for "remote control"), and that runs the agents, capturing stdin/stdout/stderr into logs linked to cards.
+Build the Electron app that hosts React, bridges it to the file system and local Git, and owns the action runner for command and agent actions, including chaining, process control, streaming, stdin, cancellation, and card-linked logs.
 
 ## Current state
 Electron already opens the React app in a `BrowserWindow`, loads the configured app URL, disables context isolation, and exposes a preload bridge as `window.md2Data`. The local Git path supports opening a `.git` folder, loading markdown files, creating the working folder, switching branches, committing, pushing and watching markdown changes. React detects the Electron bridge and can open a local project through `ProjectWorkspace`.
@@ -22,7 +22,9 @@ Remote control is not implemented yet: there is no WebSocket server or toolbar f
 - Keep preload as the only React-facing desktop API; expose explicit bridge methods and run local desktop capabilities there when Electron main ownership is not required.
 - Use the existing local Git service for filesystem and Git operations, including root-path validation and project-root escape checks.
 - Add a remote-control command in the React toolbar that asks Electron to start/stop a WebSocket server and reports connection state back to the UI.
-- Add an agent runner in Electron that starts configured commands, streams stdout/stderr to React, accepts stdin input, and persists logs as json files linked from the active card.
+- Add one Electron action runner that loads persisted definitions by action `id`, executes `onBefore`/main/`on`/`onAfter`, and delegates agent process lifecycle to the Electron agent runner.
+- The action bridge accepts action id, context, and run-specific input only. It does not accept executable definition data from React.
+- Start command and agent processes in Electron, stream stdout/stderr to React, accept live agent stdin, support cancellation by execution id, and persist agent logs as JSON linked from the active card.
 - Reuse data-management storage boundaries: React calls storage/data services, while preload owns local filesystem, Git and process execution unless a capability requires the main process.
 - Surface failures from folder selection, Git commands, file watching, WebSocket startup and agent execution as user-visible errors.
 
@@ -31,7 +33,8 @@ Remote control is not implemented yet: there is no WebSocket server or toolbar f
 - The renderer can open a local `.git` project through `window.md2Data`.
 - Local project load, branch checkout, commit, push and markdown file watching work through the Electron bridge.
 - The app can start and stop remote-control mode from the UI, and Electron exposes a WebSocket endpoint only while remote control is active.
-- Agent commands run from Electron, with stdout/stderr streamed to the UI and stdin forwarded from the UI.
+- Manual, state-triggered, and scheduled actions resolve by id and run through the same Electron action runner.
+- Command and agent processes run from Electron, with stdout/stderr streamed to the UI, live agent stdin forwarded, and cancellation supported.
 - Agent logs are persisted and referenced from the related card so conversations can be reopened later.
 - Desktop bridge, remote-control and agent failures are shown in the UI with clear error messages.
 

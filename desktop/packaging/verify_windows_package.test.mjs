@@ -4,10 +4,10 @@ import { assertAppContentIsReleaseSafe, assertPackageEntries, resolveArtifactPat
 
 const validEntries = [
     'desktop/main.js',
-    'desktop/preload.js',
+    'desktop/src/shell/preload.js',
     'desktop/renderer/index.html',
     'desktop/renderer/assets/index.js',
-    'desktop/renderer_security.js',
+    'desktop/src/shell/renderer_security.js',
     'shared/action_definitions.mjs',
     'node_modules/@aptabase/electron/package.json',
     'node_modules/@sentry/electron/package.json',

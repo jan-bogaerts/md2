@@ -5,6 +5,7 @@ import { configService } from './config_service'
 import { DataService } from './data_service'
 import { DIALOG_SERVICE_EVENT, dialogService, type DialogServiceMessage, type DialogSeverity } from './dialog_service'
 import { telemetryService } from './telemetry_service'
+import { GLOBAL_PROGRESS_EVENT, globalProgressService, type GlobalProgress } from './global_progress_service'
 import { createDeferred, createStorage, files, storageFiles, waitForWorkerTurn } from './test_support/data_service_test_support'
 
 function recordDialogMessages(severity: DialogSeverity) {
@@ -26,6 +27,7 @@ describe('ProjectLoading', () => {
         vi.useRealTimers()
         delete window.md2Actions
         configService.clear()
+        globalProgressService.finish()
     })
 
     it('derives project states from active cards when config does not define them', async () => {
@@ -82,6 +84,41 @@ describe('ProjectLoading', () => {
         )
     })
 
+    it('renames card files one at a time while publishing global progress', async () => {
+        configService.init()
+        const storage = createStorage({loadProjectConfig: vi.fn(async () => ({ backgroundShade: 'blue' as const, cardSeparator: '-' as const, projectFolder: '', workingFolder: 'design' }))})
+        const service = new DataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        const progressStates: Array<GlobalProgress | null> = []
+        const handleProgress = (event: Event) => {
+            progressStates.push((event as CustomEvent<GlobalProgress | null>).detail)
+        }
+        globalProgressService.addEventListener(GLOBAL_PROGRESS_EVENT, handleProgress)
+
+        const renamedCount = await service.projectLoading.updateCardSeparator('-', '_')
+
+        globalProgressService.removeEventListener(GLOBAL_PROGRESS_EVENT, handleProgress)
+        expect(renamedCount).toBe(2)
+        expect(storage.moveFiles).toHaveBeenCalledTimes(2)
+        expect(storage.moveFiles).toHaveBeenNthCalledWith(1, expect.objectContaining({
+            moves: [expect.objectContaining({
+                content: expect.stringContaining('id: F_1'),
+                fromPath: 'design/F-1-root.md',
+                toPath: 'design/F_1_root.md',
+            })],
+        }))
+        expect(storage.moveFiles).toHaveBeenNthCalledWith(2, expect.objectContaining({
+            moves: [expect.objectContaining({
+                fromPath: 'design/history/F-3-old.md',
+                toPath: 'design/history/F_3_old.md',
+            })],
+        }))
+        expect(progressStates).toContainEqual(expect.objectContaining({ completed: 1, total: 2 }))
+        expect(progressStates.at(-1)).toBeNull()
+        expect(storage.push).toHaveBeenCalledWith({ branch: 'main', id: 'project' })
+    })
+
     it('keeps configured project states instead of deriving card states', async () => {
         configService.init()
         const configuredStates = [{ alwaysVisible: true, state: 'configured' }]
@@ -111,13 +148,14 @@ describe('ProjectLoading', () => {
     it('loads project files and actions from folders inside the configured project folder', async () => {
         configService.init()
         const projectFile = { ...files[0], path: 'projects/demo/design/F-1-root.md' }
+        const projectNote = { content: '# Project note', path: 'projects/demo/notes/project-note.md' }
         const actionFile = {
             content: JSON.stringify({ description: 'Do', label: 'Do', name: 'do', text: 'run', type: 'cmd' }),
             path: 'projects/demo/actions/do.json',
         }
         const storage = createStorage({
             loadActionFiles: vi.fn(async () => [actionFile]),
-            loadProject: vi.fn(async () => ({ files: [projectFile], workingFolder: 'design' })),
+            loadProject: vi.fn(async () => ({ files: [projectFile, projectNote], workingFolder: 'projects/demo' })),
             loadProjectConfig: vi.fn(async () => ({ actionsFolder: 'actions', backgroundShade: 'blue' as const, projectFolder: 'projects/demo', workingFolder: 'design' })),
             loadProjectRoot: vi.fn(async () => ({ files: [projectFile], workingFolder: 'design' })),
         })
@@ -128,9 +166,12 @@ describe('ProjectLoading', () => {
 
         expect(storage.loadActionFiles).toHaveBeenCalledWith({ branch: 'main', id: 'project' }, 'projects/demo/actions')
         expect(storage.loadProjectRoot).toHaveBeenCalledWith({ branch: 'main', id: 'project' }, 'projects/demo/design')
-        expect(storage.loadProject).toHaveBeenCalledWith({ branch: 'main', id: 'project' }, 'projects/demo/design')
+        expect(storage.loadProject).toHaveBeenCalledWith({ branch: 'main', id: 'project' }, 'projects/demo')
         expect(service.getState().snapshot?.workingFolder).toBe('projects/demo/design')
         expect(service.getState().snapshot?.activeCards.map((card) => card.path)).toEqual(['projects/demo/design/F-1-root.md'])
+        await vi.waitFor(() => {
+            expect(service.getState().snapshot?.backgroundCards.map((card) => card.path)).toEqual(['projects/demo/notes/project-note.md'])
+        })
         expect(service.getConfig()?.actionsFolder).toBe('projects/demo/actions')
     })
 
@@ -157,7 +198,7 @@ describe('ProjectLoading', () => {
         expect(openedSnapshot.backgroundCards).toHaveLength(0)
         expect(snapshots.filter((snapshot) => snapshot !== null)[0]?.backgroundCards).toHaveLength(0)
         expect(storage.loadProjectRoot).toHaveBeenCalledWith({ branch: 'main', id: 'project' }, 'design')
-        expect(storage.loadProject).toHaveBeenCalledWith({ branch: 'main', id: 'project' }, 'design')
+        expect(storage.loadProject).toHaveBeenCalledWith({ branch: 'main', id: 'project' }, '')
 
         fullProject.resolve({ files: [files[0], backgroundFile], workingFolder: 'design' })
 

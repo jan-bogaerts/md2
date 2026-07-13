@@ -124,6 +124,34 @@ describe('AgentRunnerService', () => {
         }
     })
 
+    it('emits and persists only explicit waiting and resumed state signals', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-runner-'))
+        const service = new AgentRunnerService()
+        const events = []
+        const command = 'node -e "process.stdin.on(\'data\', data => { if (String(data).includes(\'done\')) process.exit(0) })"'
+
+        try {
+            await prepareProject(rootPath)
+            const result = await service.start(
+                createProject(rootPath),
+                { cardPath: 'design/F-1.md', command, prompt: 'hello' },
+                (event) => events.push(event),
+            )
+
+            service.handleState(result.runId, 'waiting')
+            service.handleOutput(result.runId, 'stdout', Buffer.from('ordinary output asking a question'))
+            service.handleState(result.runId, 'resumed')
+            service.sendInput(result.runId, 'done')
+            await waitForEvent(events, 'closed')
+
+            const content = JSON.parse(await readFile(join(rootPath, result.reference), 'utf8'))
+            expect(events.map(({ type }) => type).filter((type) => type === 'waiting' || type === 'resumed')).toEqual(['waiting', 'resumed'])
+            expect(content.events.map(({ type }) => type)).toEqual(expect.arrayContaining(['waiting', 'resumed']))
+        } finally {
+            await rm(rootPath, { force: true, recursive: true })
+        }
+    })
+
     it('includes spawn error events in the final stderr result', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-runner-'))
         const service = new AgentRunnerService()

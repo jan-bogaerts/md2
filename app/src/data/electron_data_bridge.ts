@@ -17,6 +17,7 @@ import type {
     StartAgentConversationResult,
     StorageProjectFiles,
     TopLevelFolderReference,
+    WorktreeRecord,
 } from './data_types'
 
 export interface ElectronDataBridge {
@@ -34,6 +35,7 @@ export interface ElectronDataBridge {
     loadProject(project: ProjectReference, workingFolder: string): Promise<StorageProjectFiles>
     loadProjectRoot(project: ProjectReference, workingFolder: string): Promise<StorageProjectFiles>
     loadProjectConfig(project: ProjectReference): Promise<Partial<ProjectConfig> | null>
+    loadWorktrees?(project: ProjectReference): Promise<WorktreeRecord[]>
     listRepositoryFiles(project: ProjectReference): Promise<string[]>
     listBranches(project: ProjectReference): Promise<BranchReference[]>
     listTopLevelFolders(project: ProjectReference): Promise<TopLevelFolderReference[]>
@@ -43,6 +45,8 @@ export interface ElectronDataBridge {
     resolveProject(project: ProjectReference): Promise<ProjectReference>
     saveActionSchedules?(project: ProjectReference, actionsFolder: string, schedules: ActionSchedule[]): Promise<ActionSchedule[]>
     saveProjectConfig(project: ProjectReference, config: ProjectConfig): Promise<void>
+    saveWorktrees?(project: ProjectReference, folders: string[]): Promise<WorktreeRecord[]>
+    selectWorktreeFolder?(registeredFolders: string[]): Promise<WorktreeRecord | null>
     sendAgentInput?(runId: string, input: string): Promise<void>
     startAgentConversation?(
         request: StartAgentConversationRequest,

@@ -5,10 +5,11 @@ import { CONFIG_SECTIONS, configService, type ConfigKey } from '../../services/c
 import { writeDesktopConfigToBridge } from '../../services/config_persistence'
 import { dataService } from '../../services/data_service'
 import { dialogService } from '../../services/dialog_service'
-import { ConnectionConfigSection } from './connection_config_section'
 import { DesktopConfigSection } from './desktop_config_section'
 import { ProjectConfigSection } from './project_config_section'
 import { ReactConfigSection } from './react_config_section'
+import { getElectronDataBridge } from '../../data/electron_data_bridge'
+import { worktreeService } from '../../services/worktree_service'
 
 const CONFIG_PAGE_PADDING = 3
 const CONFIG_FORM_MAX_WIDTH = 720
@@ -60,18 +61,34 @@ export function ConfigPage(props: ConfigPageProps) {
 
         const currentDraft = configService.getDraft()
         if (!currentDraft) configService.loadDraft()
+        if (getElectronDataBridge() && configService.hasProjectConfig() && !worktreeService.getDraft()) {
+            worktreeService.loadDraft()
+        }
 
         return () => {
             // React StrictMode mounts, unmounts, and remounts effects; delay discard so the remount can cancel it.
             draftDiscardTimeoutRef.current = window.setTimeout(() => {
                 configService.discardDraft()
+                worktreeService.discardDraft()
                 draftDiscardTimeoutRef.current = null
             }, DRAFT_DISCARD_DELAY_MS)
         }
     }, [])
 
+    if (!draft) return null
+
     const handleValueChange = (key: ConfigKey, value: unknown) => {
         try {
+            if (
+                key === 'project.cardSeparator'
+                && value !== draft[key]
+                && value !== configService.get('project.cardSeparator')
+            ) {
+                dialogService.warning(
+                    'Saving this change will rename existing card files and update their IDs.',
+                    { critical: true, title: 'Card files will be renamed' },
+                )
+            }
             configService.setDraftValue(key, value)
         } catch (error) {
             dialogService.error(error, { fallbackMessage: 'Invalid config value' })
@@ -95,6 +112,14 @@ export function ConfigPage(props: ConfigPageProps) {
         try {
             const shouldSaveProjectConfig = configService.hasDraftChangesForSource('project')
             const shouldSaveDesktopConfig = configService.hasDraftChangesForSource('desktop')
+            const previousCardSeparator = configService.get('project.cardSeparator')
+            const nextCardSeparator = draft['project.cardSeparator']
+            const shouldUpdateCardSeparator = configService.hasProjectConfig()
+                && previousCardSeparator !== nextCardSeparator
+            if (worktreeService.getDraft()) await worktreeService.saveDraft()
+            if (shouldUpdateCardSeparator) {
+                await dataService.projectLoading.updateCardSeparator(previousCardSeparator, nextCardSeparator)
+            }
             configService.saveDraft()
             configService.loadDraft()
             if (shouldSaveProjectConfig && configService.hasProjectConfig()) await dataService.projectLoading.saveProjectConfig()
@@ -108,10 +133,9 @@ export function ConfigPage(props: ConfigPageProps) {
 
     const handleCancelClick = () => {
         configService.discardDraft()
+        worktreeService.discardDraft()
         navigateTo('/')
     }
-
-    if (!draft) return null
 
     const sectionProps = {
         draft,
@@ -172,7 +196,6 @@ export function ConfigPage(props: ConfigPageProps) {
                     {isMobile ? sectionTabs : null}
 
                     {activeSection === 'react' ? <ReactConfigSection {...sectionProps} /> : null}
-                    {activeSection === 'connection' ? <ConnectionConfigSection {...sectionProps} /> : null}
                     {activeSection === 'project' ? <ProjectConfigSection {...sectionProps} /> : null}
                     {activeSection === 'desktop' ? <DesktopConfigSection {...sectionProps} disabled={!configService.hasDesktopConfig()} /> : null}
                 </Stack>

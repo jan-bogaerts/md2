@@ -2,6 +2,7 @@ import type { ActionFile } from './action_types'
 import type { ActionSchedule } from './action_schedule_types'
 import { DEFAULT_COLOR_SCHEME } from '../theme/theme_config'
 import type { ProjectBackgroundShade } from '../theme/project_background_shade'
+import { DEFAULT_CARD_SEPARATOR, type CardSeparator } from './card_identifiers'
 
 export const DEFAULT_WORKING_FOLDER = 'active'
 export const DEFAULT_ACTIONS_FOLDER = 'actions'
@@ -30,6 +31,7 @@ export interface ProjectConfig {
     actionsFolder: string
     backgroundShade: ProjectBackgroundShade
     cardBodyTemplate: string
+    cardSeparator: CardSeparator
     cardTypes: CardTypeConfig[]
     diffCommand: string
     projectFolder: string
@@ -66,6 +68,9 @@ export interface CardHeader {
     policy: Record<string, boolean>
     status: string | null
     title: string
+    worktree?: number | null
+    worktreeError?: string | null
+    worktreeValue?: string | null
 }
 
 export interface ProjectCard {
@@ -99,6 +104,13 @@ export interface ProjectReference {
     owner?: string
     repository?: string
     rootPath?: string
+}
+
+export interface WorktreeRecord {
+    branch: string | null
+    error: string | null
+    path: string
+    valid: boolean
 }
 
 export interface RepositoryReference extends ProjectReference {
@@ -254,6 +266,7 @@ export interface StorageService {
     loadFile?(project: ProjectReference, path: string): Promise<MarkdownFile>
     loadProjectRoot(project: ProjectReference, workingFolder: string): Promise<StorageProjectFiles>
     loadProjectConfig(project: ProjectReference): Promise<Partial<ProjectConfig> | null>
+    loadWorktrees?(project: ProjectReference): Promise<WorktreeRecord[]>
     restorePendingCommits?(project: ProjectReference): Promise<void>
     resolveProject?(project: ProjectReference): Promise<ProjectReference>
     listRepositoryFiles(project: ProjectReference): Promise<string[]>
@@ -263,6 +276,8 @@ export interface StorageService {
     push(project: ProjectReference): Promise<void>
     saveActionSchedules?(project: ProjectReference, actionsFolder: string, schedules: ActionSchedule[]): Promise<ActionSchedule[]>
     saveProjectConfig(project: ProjectReference, config: ProjectConfig): Promise<void>
+    saveWorktrees?(project: ProjectReference, folders: string[]): Promise<WorktreeRecord[]>
+    selectWorktreeFolder?(registeredFolders: string[]): Promise<WorktreeRecord | null>
     sendAgentInput?(project: ProjectReference, runId: string, input: string): Promise<void>
     startAgentConversation?(
         project: ProjectReference,
@@ -323,6 +338,7 @@ export const DEFAULT_PROJECT_CONFIG: ProjectConfig = {
     actionsFolder: DEFAULT_ACTIONS_FOLDER,
     backgroundShade: 'neutral',
     cardBodyTemplate: DEFAULT_CARD_BODY_TEMPLATE,
+    cardSeparator: DEFAULT_CARD_SEPARATOR,
     cardTypes: DEFAULT_CARD_TYPES,
     diffCommand: DEFAULT_DIFF_COMMAND,
     projectFolder: DEFAULT_PROJECT_FOLDER,

@@ -1,4 +1,4 @@
-import { Box, Drawer, useMediaQuery, useTheme } from '@mui/material'
+import { Box, Divider, Drawer, Typography, useMediaQuery, useTheme } from '@mui/material'
 import { useCallback, useMemo, useState, type ReactNode } from 'react'
 import { navigateTo, useAppLocation } from '../../app/app_navigation'
 import type { ProjectSession } from '../../app/use_app_bootstrap'
@@ -11,6 +11,7 @@ import { createSearchRegexpAgent, isSearchRegexpAgentAvailable } from '../../ser
 import { LeftPanelSlotProvider } from './left_panel_slot_provider'
 import { LeftPanelTarget } from './left_panel_target'
 import { AppMenu } from './menu/app_menu'
+import { ThemeModeToggle } from './menu/theme_mode_toggle'
 import { SearchControl } from './search/search_control'
 import { SplitLayout } from './split_layout'
 import { StatusBar } from './status_bar'
@@ -88,17 +89,26 @@ export function MainWindow(props: MainWindowProps) {
                     isMobile={isMobile}
                     onOpenConfig={handleOpenConfig}
                     onOpenMobileMenu={handleOpenMenu}
-                    search={<SearchControl regexpAgent={regexpAgent} />}
+                    search={<SearchControl isMobile={isMobile} regexpAgent={regexpAgent} />}
                 />
                 {isConfigPage ? (
                     <ConfigPage hash={location.hash} />
                 ) : isMobile ? (
                     <>
-                        {shouldShowNavigationPanel ? (
-                            <Drawer onClose={handleCloseMenu} open={isMenuOpen}>
-                                <Box sx={{ overflow: 'auto', width: MOBILE_DRAWER_WIDTH }}>{leftPanel}</Box>
-                            </Drawer>
-                        ) : null}
+                        <Drawer onClose={handleCloseMenu} open={isMenuOpen}>
+                            <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', width: MOBILE_DRAWER_WIDTH }}>
+                                <Box sx={{ alignItems: 'center', display: 'flex', justifyContent: 'space-between', p: 1.5 }}>
+                                    <Typography sx={{ fontWeight: 600 }} variant="body2">Theme</Typography>
+                                    <ThemeModeToggle />
+                                </Box>
+                                {shouldShowNavigationPanel ? (
+                                    <>
+                                        <Divider />
+                                        <Box sx={{ flex: 1, overflow: 'auto' }}>{leftPanel}</Box>
+                                    </>
+                                ) : null}
+                            </Box>
+                        </Drawer>
                         <Box sx={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>{rightPanel}</Box>
                     </>
                 ) : (

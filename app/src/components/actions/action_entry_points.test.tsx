@@ -208,29 +208,37 @@ describe('entry-point placement in the file tree', () => {
         actionService.loadFromFiles([])
     })
 
-    it('places an Actions menu on folder and file rows but not on status groups', () => {
-        const active = [card('F-1', 'todo', 'Alpha')]
+    it('places an Actions menu on status, folder, and file rows', () => {
+        const active = [{ ...card('F-1', 'todo', 'Alpha'), path: 'design/active/F-1.md' }]
         const background = [card('F-9', null, 'Old')]
         background[0] = { ...background[0], path: 'design/history/F-9.md' }
-        const tree = buildFileTree(active, background, 'design')
+        const tree = buildFileTree(active, background, 'design/active', {
+            projectFolder: 'design',
+            repositoryFiles: [],
+            specialFolderPaths: ['design/actions', 'design/active', 'design/history'],
+        })
         const cardsByPath = new Map(active.concat(background).map((entry) => [entry.path, entry]))
+        const createFolder = vi.fn(async () => undefined)
+        const createMarkdownFile = vi.fn(async () => undefined)
 
         render(
             <FileTreeView
                 cardTypes={DEFAULT_CARD_TYPES}
                 cardsByPath={cardsByPath}
                 nodes={tree}
+                onCreateFolder={createFolder}
+                onCreateMarkdownFile={createMarkdownFile}
                 onDeleteFile={async () => undefined}
                 onSelect={() => {}}
+                projectFolder="design"
                 selectedPath={null}
                 statusColors={new Map([['todo', '#9c4dcc']])}
             />,
         )
 
-        // history folder + file leaf both expose an Actions menu; the status group ("todo") does not.
         const actionMenus = screen.getAllByRole('button', { name: 'Actions' })
-        expect(actionMenus.length).toBeGreaterThanOrEqual(2)
-        const todoRow = screen.getByText('todo').closest('div')
-        expect(todoRow && within(todoRow).queryByRole('button', { name: 'Actions' })).toBeNull()
+        expect(actionMenus.length).toBeGreaterThanOrEqual(3)
+        const todoRow = screen.getByRole('button', { name: 'todo 1' }).parentElement
+        expect(todoRow && within(todoRow).getByRole('button', { name: 'Actions' })).toBeInTheDocument()
     })
 })

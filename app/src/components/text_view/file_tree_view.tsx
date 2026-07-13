@@ -1,16 +1,24 @@
-import { Box, Chip, Collapse, IconButton, List, ListItemButton, Tooltip, Typography, useTheme } from '@mui/material'
+import {
+    Box, Button, Chip, Collapse, IconButton, List, ListItemButton, ListItemIcon,
+    Menu, MenuItem, Stack, Tooltip, Typography, useTheme,
+} from '@mui/material'
 import { alpha } from '@mui/material/styles'
 import ChevronDown from 'mdi-material-ui/ChevronDown'
 import ChevronRight from 'mdi-material-ui/ChevronRight'
 import DeleteOutline from 'mdi-material-ui/DeleteOutline'
+import DotsVertical from 'mdi-material-ui/DotsVertical'
+import FileDocumentPlusOutline from 'mdi-material-ui/FileDocumentPlusOutline'
 import FileDocumentOutline from 'mdi-material-ui/FileDocumentOutline'
 import FolderOutline from 'mdi-material-ui/FolderOutline'
+import FolderPlusOutline from 'mdi-material-ui/FolderPlusOutline'
 import StarOutline from 'mdi-material-ui/StarOutline'
-import { useState } from 'react'
+import { type MouseEvent, useState } from 'react'
 import { fileContext, folderContext, type ActionContext } from '../../data/action_context'
+import { getCardIdPrefix } from '../../data/card_identifiers'
 import type { CardTypeConfig, ProjectCard } from '../../data/data_types'
 import type { TreeNode, TreeNodeKind } from '../../data/file_tree'
 import { ActionEntryPoints } from '../actions/action_entry_points'
+import { CreateTreeItemDialog, type CreateTreeItemKind } from './create_tree_item_dialog'
 
 const BASE_INDENT = 1
 const INDENT_STEP = 2
@@ -21,10 +29,18 @@ interface FileTreeViewProps {
     cardTypes: CardTypeConfig[]
     cardsByPath: Map<string, ProjectCard>
     nodes: TreeNode[]
+    onCreateFolder: (parentDirectory: string, name: string) => Promise<void>
+    onCreateMarkdownFile: (parentDirectory: string, name: string) => Promise<void>
     onDeleteFile: (path: string) => Promise<void>
     onSelect: (path: string) => void
+    projectFolder: string
     selectedPath: string | null
     statusColors: Map<string, string>
+}
+
+interface CreationRequest {
+    kind: CreateTreeItemKind
+    parentDirectory: string
 }
 
 /** The action context for a tree node, or null for nodes that can't run actions (status groups). */
@@ -40,7 +56,7 @@ function nodeContext(node: TreeNode, cardTypes: CardTypeConfig[], cardsByPath: M
 }
 
 function cardTypeColor(card: ProjectCard | undefined, cardTypes: CardTypeConfig[], fallback: string) {
-    const idPrefix = card?.header.id.split('-')[0]
+    const idPrefix = card ? getCardIdPrefix(card.header.id) : undefined
     const cardType = cardTypes.find((candidate) => candidate.idPrefix === idPrefix)
 
     return cardType?.color ?? fallback
@@ -52,14 +68,33 @@ function BranchIcon(props: { kind: TreeNodeKind }) {
     return <FolderOutline sx={{ fontSize: 16 }} />
 }
 
-interface TreeNodeRowProps extends Omit<FileTreeViewProps, 'nodes'> {
+function findTreeNode(nodes: TreeNode[], id: string): TreeNode | null {
+    for (const node of nodes) {
+        if (node.id === id) return node
+
+        const descendant = findTreeNode(node.children, id)
+        if (descendant) return descendant
+    }
+
+    return null
+}
+
+interface TreeNodeRowProps extends Omit<FileTreeViewProps, 'nodes' | 'onCreateFolder' | 'onCreateMarkdownFile' | 'projectFolder' | 'selectedPath'> {
     depth: number
     node: TreeNode
+    onRequestCreate: (kind: CreateTreeItemKind, parentDirectory: string) => void
+    onSelectNode: (node: TreeNode) => void
+    selectedNodeId: string | null
 }
 
 function TreeNodeRow(props: TreeNodeRowProps) {
-    const { cardTypes, cardsByPath, depth, node, onDeleteFile, onSelect, selectedPath, statusColors } = props
+    const {
+        cardTypes, cardsByPath, depth, node, onDeleteFile, onRequestCreate, onSelect,
+        onSelectNode, selectedNodeId, statusColors,
+    } = props
     const [isOpen, setIsOpen] = useState(true)
+    const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null)
+    const [menuPosition, setMenuPosition] = useState<{ left: number, top: number } | null>(null)
     const theme = useTheme()
     const indent = BASE_INDENT + depth * INDENT_STEP
     const context = nodeContext(node, cardTypes, cardsByPath)
@@ -68,13 +103,45 @@ function TreeNodeRow(props: TreeNodeRowProps) {
     const visibleId = card && node.label.startsWith(`${card.header.id} `) ? card.header.id : null
     const visibleTitle = visibleId ? node.label.slice(visibleId.length + 1) : node.label
     const statusColor = statusColors.get(node.label)
+    const isSelected = node.id === selectedNodeId
 
     const selectFile = () => {
+        onSelectNode(node)
         if (node.path) onSelect(node.path)
     }
 
     const toggleOpen = () => {
+        onSelectNode(node)
         setIsOpen((open) => !open)
+    }
+
+    const closeMenu = () => {
+        setMenuAnchor(null)
+        setMenuPosition(null)
+    }
+
+    const openMenu = (event: MouseEvent<HTMLButtonElement>) => {
+        event.stopPropagation()
+        onSelectNode(node)
+        setMenuAnchor(event.currentTarget)
+        setMenuPosition(null)
+    }
+
+    const openContextMenu = (event: MouseEvent<HTMLElement>) => {
+        event.preventDefault()
+        onSelectNode(node)
+        setMenuAnchor(null)
+        setMenuPosition({ left: event.clientX, top: event.clientY })
+    }
+
+    const requestFolder = () => {
+        closeMenu()
+        onRequestCreate('folder', node.directoryPath)
+    }
+
+    const requestMarkdownFile = () => {
+        closeMenu()
+        onRequestCreate('markdownFile', node.directoryPath)
     }
 
     const deleteFile = async () => {
@@ -90,12 +157,45 @@ function TreeNodeRow(props: TreeNodeRowProps) {
         }
     }
 
-    const entryPoints = context ? <ActionEntryPoints context={context} variant="menu" /> : null
+    const itemMenu = (
+        <>
+            <Tooltip title="Actions">
+                <IconButton aria-label="Actions" onClick={openMenu} size="small">
+                    <DotsVertical fontSize="small" />
+                </IconButton>
+            </Tooltip>
+            <Menu
+                anchorEl={menuAnchor}
+                anchorPosition={menuPosition ?? undefined}
+                anchorReference={menuPosition ? 'anchorPosition' : 'anchorEl'}
+                onClose={closeMenu}
+                open={!!menuAnchor || !!menuPosition}
+            >
+                <MenuItem onClick={requestFolder}>
+                    <ListItemIcon><FolderPlusOutline fontSize="small" /></ListItemIcon>
+                    New folder
+                </MenuItem>
+                <MenuItem onClick={requestMarkdownFile}>
+                    <ListItemIcon><FileDocumentPlusOutline fontSize="small" /></ListItemIcon>
+                    New Markdown file
+                </MenuItem>
+                {context ? (
+                    <ActionEntryPoints
+                        context={context}
+                        onMenuItemSelected={closeMenu}
+                        popupAnchorElement={menuAnchor}
+                        variant="menuItems"
+                    />
+                ) : null}
+            </Menu>
+        </>
+    )
 
     if (node.kind === 'file') {
         return (
             <Box
-                data-selected={node.path === selectedPath ? 'true' : undefined}
+                data-selected={isSelected ? 'true' : undefined}
+                onContextMenu={openContextMenu}
                 sx={{
                     alignItems: 'center',
                     borderRadius: 0.875,
@@ -111,7 +211,7 @@ function TreeNodeRow(props: TreeNodeRowProps) {
             >
                 <ListItemButton
                     onClick={selectFile}
-                    selected={node.path === selectedPath}
+                    selected={isSelected}
                     sx={{
                         borderRadius: 0.875,
                         flex: 1,
@@ -153,7 +253,7 @@ function TreeNodeRow(props: TreeNodeRowProps) {
                             <DeleteOutline sx={{ fontSize: 16 }} />
                         </IconButton>
                     </Tooltip>
-                    {entryPoints}
+                    {itemMenu}
                 </Box>
             </Box>
         )
@@ -162,6 +262,8 @@ function TreeNodeRow(props: TreeNodeRowProps) {
     return (
         <>
             <Box
+                data-selected={isSelected ? 'true' : undefined}
+                onContextMenu={openContextMenu}
                 sx={{
                     alignItems: 'center',
                     borderRadius: 0.75,
@@ -171,11 +273,23 @@ function TreeNodeRow(props: TreeNodeRowProps) {
                     '& .rowActions': { opacity: 0, transition: 'opacity 120ms' },
                     '&:focus-within .rowActions, &:hover .rowActions': { opacity: 1 },
                     '&:hover': { bgcolor: 'action.selected' },
+                    '&[data-selected="true"]': { bgcolor: alpha(theme.palette.primary.main, 0.12) },
                 }}
             >
                 <ListItemButton
                     onClick={toggleOpen}
-                    sx={{ borderRadius: 0.75, flex: 1, gap: 0.75, minHeight: GROUP_ROW_HEIGHT, minWidth: 0, pl: indent, pr: 0.5, py: 0 }}
+                    selected={isSelected}
+                    sx={{
+                        borderRadius: 0.75,
+                        flex: 1,
+                        gap: 0.75,
+                        minHeight: GROUP_ROW_HEIGHT,
+                        minWidth: 0,
+                        pl: indent,
+                        pr: 0.5,
+                        py: 0,
+                        '&.Mui-selected, &.Mui-selected:hover': { bgcolor: 'transparent' },
+                    }}
                 >
                     {isOpen ? <ChevronDown sx={{ color: 'text.secondary', fontSize: 18 }} /> : <ChevronRight sx={{ color: 'text.secondary', fontSize: 18 }} />}
                     {statusColor ? (
@@ -196,7 +310,7 @@ function TreeNodeRow(props: TreeNodeRowProps) {
                     />
                 </ListItemButton>
                 <Box className="rowActions" sx={{ alignItems: 'center', display: 'flex', flexShrink: 0, pr: 0.5 }}>
-                    {entryPoints}
+                    {itemMenu}
                 </Box>
             </Box>
             <Collapse in={isOpen} timeout="auto" unmountOnExit>
@@ -209,8 +323,10 @@ function TreeNodeRow(props: TreeNodeRowProps) {
                             depth={depth + 1}
                             node={child}
                             onDeleteFile={onDeleteFile}
+                            onRequestCreate={onRequestCreate}
                             onSelect={onSelect}
-                            selectedPath={selectedPath}
+                            onSelectNode={onSelectNode}
+                            selectedNodeId={selectedNodeId}
                             statusColors={statusColors}
                         />
                     ))}
@@ -222,23 +338,84 @@ function TreeNodeRow(props: TreeNodeRowProps) {
 
 /** Recursive status/folder tree with compact card rows and hover-only actions. */
 export function FileTreeView(props: FileTreeViewProps) {
-    const { cardTypes, cardsByPath, nodes, onDeleteFile, onSelect, selectedPath, statusColors } = props
+    const {
+        cardTypes, cardsByPath, nodes, onCreateFolder, onCreateMarkdownFile, onDeleteFile,
+        onSelect, projectFolder, selectedPath, statusColors,
+    } = props
+    const [creationRequest, setCreationRequest] = useState<CreationRequest | null>(null)
+    const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
+
+    const handleSelectNode = (node: TreeNode) => {
+        setSelectedNodeId(node.path ? null : node.id)
+    }
+
+    const requestCreate = (kind: CreateTreeItemKind, parentDirectory: string) => {
+        setCreationRequest({ kind, parentDirectory })
+    }
+
+    const effectiveSelectedNodeId = selectedNodeId ?? selectedPath
+    const selectedNode = effectiveSelectedNodeId ? findTreeNode(nodes, effectiveSelectedNodeId) : null
+    const toolbarParentDirectory = selectedNode?.directoryPath ?? projectFolder
+
+    const requestToolbarFolder = () => {
+        requestCreate('folder', toolbarParentDirectory)
+    }
+
+    const requestToolbarMarkdownFile = () => {
+        requestCreate('markdownFile', toolbarParentDirectory)
+    }
+
+    const closeCreationDialog = () => {
+        setCreationRequest(null)
+    }
+
+    const createItem = async (name: string) => {
+        if (!creationRequest) throw new Error('Missing tree creation request')
+
+        if (creationRequest.kind === 'folder') {
+            await onCreateFolder(creationRequest.parentDirectory, name)
+            return
+        }
+
+        await onCreateMarkdownFile(creationRequest.parentDirectory, name)
+    }
 
     return (
-        <List component="nav" dense disablePadding sx={{ py: 1 }}>
-            {nodes.map((node) => (
-                <TreeNodeRow
-                    key={node.id}
-                    cardTypes={cardTypes}
-                    cardsByPath={cardsByPath}
-                    depth={0}
-                    node={node}
-                    onDeleteFile={onDeleteFile}
-                    onSelect={onSelect}
-                    selectedPath={selectedPath}
-                    statusColors={statusColors}
+        <>
+            <Stack direction="row" spacing={0.75} sx={{ borderBottom: 1, borderColor: 'divider', px: 1, py: 1 }}>
+                <Button onClick={requestToolbarFolder} size="small" startIcon={<FolderPlusOutline />}>
+                    New folder
+                </Button>
+                <Button onClick={requestToolbarMarkdownFile} size="small" startIcon={<FileDocumentPlusOutline />}>
+                    New Markdown file
+                </Button>
+            </Stack>
+            <List component="nav" dense disablePadding sx={{ py: 1 }}>
+                {nodes.map((node) => (
+                    <TreeNodeRow
+                        key={node.id}
+                        cardTypes={cardTypes}
+                        cardsByPath={cardsByPath}
+                        depth={0}
+                        node={node}
+                        onDeleteFile={onDeleteFile}
+                        onRequestCreate={requestCreate}
+                        onSelect={onSelect}
+                        onSelectNode={handleSelectNode}
+                        selectedNodeId={effectiveSelectedNodeId}
+                        statusColors={statusColors}
+                    />
+                ))}
+            </List>
+            {creationRequest ? (
+                <CreateTreeItemDialog
+                    kind={creationRequest.kind}
+                    onClose={closeCreationDialog}
+                    onCreate={createItem}
+                    open
+                    parentDirectory={creationRequest.parentDirectory}
                 />
-            ))}
-        </List>
+            ) : null}
+        </>
     )
 }

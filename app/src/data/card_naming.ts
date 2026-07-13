@@ -1,20 +1,20 @@
 ﻿import { markdownParsingService } from '../services/markdown_parsing_service'
 import type { CardDraft, CardTypeConfig, MarkdownFile } from './data_types'
+import { buildCardId, type CardSeparator } from './card_identifiers'
 
 const MARKDOWN_EXTENSION = '.md'
-const TITLE_SEPARATOR = '-'
 const DEFAULT_TITLE_SLUG = 'untitled'
 
 function escapeRegExp(value: string) {
     return value.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')
 }
 
-export function slugifyTitle(title: string) {
+export function slugifyTitle(title: string, cardSeparator: CardSeparator) {
     const slug = title
         .trim()
         .toLowerCase()
-        .replace(/[^a-z0-9]+/gu, TITLE_SEPARATOR)
-        .replace(/^-|-$/gu, '')
+        .replace(/[^a-z0-9]+/gu, cardSeparator)
+        .replace(new RegExp(`^[${escapeRegExp(cardSeparator)}]|[${escapeRegExp(cardSeparator)}]$`, 'gu'), '')
 
     return slug.length > 0 ? slug : DEFAULT_TITLE_SLUG
 }
@@ -28,7 +28,7 @@ function getCardTypeConfig(cardTypes: CardTypeConfig[], draft: CardDraft) {
 }
 
 export function getNextCardNumber(files: MarkdownFile[], idPrefix: string) {
-    const idPattern = new RegExp(`(?:^|/)${escapeRegExp(idPrefix)}-(\\d+)-.+\\.md$`, 'u')
+    const idPattern = new RegExp(`(?:^|/)${escapeRegExp(idPrefix)}[-_](\\d+)[-_].+\\.md$`, 'u')
     const numbers = files
         .map((file) => file.path.match(idPattern)?.[1])
         .filter((number): number is string => !!number)
@@ -46,6 +46,7 @@ function buildCardBody(template: string, draft: CardDraft) {
 export function createCardFile(
     files: MarkdownFile[],
     workingFolder: string,
+    cardSeparator: CardSeparator,
     cardTypes: CardTypeConfig[],
     cardBodyTemplate: string,
     initialState: string,
@@ -53,8 +54,8 @@ export function createCardFile(
 ): MarkdownFile {
     const cardTypeConfig = getCardTypeConfig(cardTypes, draft)
     const number = getNextCardNumber(files, cardTypeConfig.idPrefix)
-    const id = `${cardTypeConfig.idPrefix}-${number}`
-    const titleSlug = slugifyTitle(draft.title)
+    const id = buildCardId(cardTypeConfig.idPrefix, number, cardSeparator)
+    const titleSlug = slugifyTitle(draft.title, cardSeparator)
     const internalId = markdownParsingService.generateInternalId()
     const content = markdownParsingService.buildCardMarkdown(
         { affects: [], id, internalId, policy: {}, status: initialState, title: draft.title },
@@ -63,6 +64,6 @@ export function createCardFile(
 
     return {
         content,
-        path: `${workingFolder}/${id}-${titleSlug}${MARKDOWN_EXTENSION}`,
+        path: `${workingFolder}/${id}${cardSeparator}${titleSlug}${MARKDOWN_EXTENSION}`,
     }
 }

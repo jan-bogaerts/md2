@@ -1,38 +1,18 @@
-﻿import { readGithubAuthConfig, type GithubAuthConfig } from '../auth/github_auth_config'
 import { fetchGithubUser, GithubUnauthorizedError } from '../auth/github_api_client'
 import {
-    AUTH_METHOD_STORAGE_KEY,
     AUTH_TOKEN_STORAGE_KEY,
-    GITHUB_AUTH_POLLING_FALLBACK_SECONDS,
-    GITHUB_AUTH_SLOW_DOWN_SECONDS,
-    SECONDS_TO_MILLISECONDS,
     type AuthSnapshot,
     type AuthStorage,
-    type GithubAuthMethod,
-    type GithubDeviceCode,
-    type GithubOAuthErrorResponse,
-    type GithubTokenResponse,
     type GithubUser,
 } from '../auth/github_auth_types'
-import { requestGithubAccessToken, requestGithubDeviceCode } from '../auth/github_oauth_transport'
-import { configService } from './config_service'
 import { register } from './service_injector'
 
-type DelayId = ReturnType<typeof window.setTimeout>
-
 export interface GithubAuthServiceDependencies {
-    clearDelay: (delayId: DelayId) => void
-    config: GithubAuthConfig
     fetchUser: (accessToken: string) => Promise<GithubUser>
-    requestAccessToken: (config: GithubAuthConfig, deviceCode: string) => Promise<GithubTokenResponse | GithubOAuthErrorResponse>
-    requestDeviceCode: (config: GithubAuthConfig) => Promise<GithubDeviceCode | GithubOAuthErrorResponse>
-    setDelay: (callback: () => void, delayMs: number) => DelayId
     storage: AuthStorage
 }
 
 const INITIAL_AUTH_SNAPSHOT: AuthSnapshot = {
-    authMethod: null,
-    deviceCode: null,
     errorMessage: null,
     isAuthenticated: false,
     isLoadingUser: false,
@@ -40,25 +20,8 @@ const INITIAL_AUTH_SNAPSHOT: AuthSnapshot = {
     user: null,
 }
 
-function isOAuthError(payload: GithubTokenResponse | GithubDeviceCode | GithubOAuthErrorResponse): payload is GithubOAuthErrorResponse {
-    return 'error' in payload
-}
-
-function buildAuthErrorMessage(error: GithubOAuthErrorResponse) {
-    return error.errorDescription ?? `GitHub authorization failed: ${error.error}`
-}
-
 function getStoredAccessToken(storage: AuthStorage) {
     return storage.getItem(AUTH_TOKEN_STORAGE_KEY)
-}
-
-function getStoredAuthMethod(storage: AuthStorage): GithubAuthMethod | null {
-    const storedMethod = storage.getItem(AUTH_METHOD_STORAGE_KEY)
-
-    if (storedMethod === 'device' || storedMethod === 'pat') return storedMethod
-    if (storedMethod === null) return null
-
-    throw new Error(`Unsupported GitHub auth method: ${storedMethod}`)
 }
 
 function getErrorMessage(error: unknown) {
@@ -69,32 +32,16 @@ function getErrorMessage(error: unknown) {
 
 export class GithubAuthService extends EventTarget {
     private accessToken: string | null
-    private activeDeviceCode: GithubDeviceCode | null
-    private activeLoginId
-    private clearDelay: ((delayId: DelayId) => void) | null
-    private config: GithubAuthConfig | null
     private fetchUser: ((accessToken: string) => Promise<GithubUser>) | null
-    private pollingDelayId: DelayId | null
-    private pollingIntervalSeconds
-    private requestAccessToken: GithubAuthServiceDependencies['requestAccessToken'] | null
-    private requestDeviceCode: GithubAuthServiceDependencies['requestDeviceCode'] | null
-    private setDelay: ((callback: () => void, delayMs: number) => DelayId) | null
+    private initialized: boolean
     private snapshot
     private storage: AuthStorage | null
 
     constructor() {
         super()
         this.accessToken = null
-        this.activeDeviceCode = null
-        this.activeLoginId = 0
-        this.clearDelay = null
-        this.config = null
         this.fetchUser = null
-        this.pollingDelayId = null
-        this.pollingIntervalSeconds = GITHUB_AUTH_POLLING_FALLBACK_SECONDS
-        this.requestAccessToken = null
-        this.requestDeviceCode = null
-        this.setDelay = null
+        this.initialized = false
         this.snapshot = INITIAL_AUTH_SNAPSHOT
         this.storage = null
         register('githubAuthService', this)
@@ -102,16 +49,8 @@ export class GithubAuthService extends EventTarget {
 
     init(dependencies: GithubAuthServiceDependencies) {
         this.accessToken = null
-        this.activeDeviceCode = null
-        this.activeLoginId = 0
-        this.clearDelay = dependencies.clearDelay
-        this.config = dependencies.config
         this.fetchUser = dependencies.fetchUser
-        this.pollingDelayId = null
-        this.pollingIntervalSeconds = GITHUB_AUTH_POLLING_FALLBACK_SECONDS
-        this.requestAccessToken = dependencies.requestAccessToken
-        this.requestDeviceCode = dependencies.requestDeviceCode
-        this.setDelay = dependencies.setDelay
+        this.initialized = true
         this.snapshot = INITIAL_AUTH_SNAPSHOT
         this.storage = dependencies.storage
         this.dispatchChanged()
@@ -125,12 +64,8 @@ export class GithubAuthService extends EventTarget {
         return this.snapshot
     }
 
-    isDeviceFlowAvailable() {
-        return !!this.config?.clientId
-    }
-
     isInitialized() {
-        return !!this.config
+        return this.initialized
     }
 
     async restoreSession() {
@@ -139,52 +74,13 @@ export class GithubAuthService extends EventTarget {
 
         if (!storedToken) return
 
-        const authMethod = getStoredAuthMethod(storage)
-        if (!authMethod) throw new Error('Missing GitHub auth method')
-
         this.accessToken = storedToken
-        this.setSnapshot({ authMethod, errorMessage: null, isAuthenticated: true, isLoadingUser: true, status: 'authenticated' })
+        this.setSnapshot({ errorMessage: null, isAuthenticated: true, isLoadingUser: true, status: 'authenticated' })
         await this.loadCurrentUser(storedToken)
-    }
-
-    async login() {
-        const { config, requestDeviceCode } = this.requireDependencies()
-        if (!config.clientId) {
-            this.setSnapshot({ errorMessage: 'Missing required GitHub auth config: GITHUB_CLIENT_ID', status: 'error' })
-            return
-        }
-
-        this.cancelPolling()
-        this.activeLoginId += 1
-        const loginId = this.activeLoginId
-        this.activeDeviceCode = null
-        this.pollingIntervalSeconds = GITHUB_AUTH_POLLING_FALLBACK_SECONDS
-        this.setSnapshot({ deviceCode: null, errorMessage: null, status: 'requesting-code' })
-
-        try {
-            const deviceCode = await requestDeviceCode({ ...config, scopes: GithubAuthService.resolveScopes(config.scopes) })
-
-            if (loginId !== this.activeLoginId) return
-
-            if (isOAuthError(deviceCode)) {
-                this.setSnapshot({ errorMessage: buildAuthErrorMessage(deviceCode), status: 'error' })
-                return
-            }
-
-            this.activeDeviceCode = deviceCode
-            this.pollingIntervalSeconds = deviceCode.interval
-            this.setSnapshot({ deviceCode, errorMessage: null, status: 'waiting' })
-            this.scheduleTokenPoll(loginId, this.pollingIntervalSeconds)
-        } catch (error) {
-            this.setSnapshot({ errorMessage: getErrorMessage(error), status: 'error' })
-        }
     }
 
     logout() {
         this.clearToken()
-        this.cancelPolling()
-        this.activeDeviceCode = null
-        this.activeLoginId += 1
         this.setSnapshot({ ...INITIAL_AUTH_SNAPSHOT })
     }
 
@@ -192,17 +88,13 @@ export class GithubAuthService extends EventTarget {
         const personalAccessToken = accessToken.trim()
         const { fetchUser } = this.requireDependencies()
 
-        this.cancelPolling()
-        this.activeDeviceCode = null
-        this.activeLoginId += 1
-        this.setSnapshot({ deviceCode: null, errorMessage: null, isLoadingUser: true, status: 'idle' })
+        this.setSnapshot({ errorMessage: null, isLoadingUser: true, status: 'idle' })
 
         try {
             const user = await fetchUser(personalAccessToken)
 
-            this.persistToken(personalAccessToken, 'pat')
+            this.persistToken(personalAccessToken)
             this.setSnapshot({
-                authMethod: 'pat',
                 errorMessage: null,
                 isAuthenticated: true,
                 isLoadingUser: false,
@@ -211,7 +103,6 @@ export class GithubAuthService extends EventTarget {
             })
         } catch (error) {
             this.setSnapshot({
-                authMethod: null,
                 errorMessage: getErrorMessage(error),
                 isAuthenticated: false,
                 isLoadingUser: false,
@@ -223,8 +114,6 @@ export class GithubAuthService extends EventTarget {
 
     handleUnauthorized() {
         this.clearToken()
-        this.cancelPolling()
-        this.activeLoginId += 1
         this.setSnapshot({
             ...INITIAL_AUTH_SNAPSHOT,
             errorMessage: 'GitHub authorization expired. Sign in again.',
@@ -259,103 +148,16 @@ export class GithubAuthService extends EventTarget {
         }
     }
 
-    private async pollAccessToken(loginId: number) {
-        const { config, requestAccessToken } = this.requireDependencies()
-        const deviceCode = this.activeDeviceCode
-
-        if (!deviceCode || loginId !== this.activeLoginId) return
-
-        try {
-            const tokenResponse = await requestAccessToken(config, deviceCode.deviceCode)
-
-            if (loginId !== this.activeLoginId) return
-
-            if (isOAuthError(tokenResponse)) {
-                this.handleTokenPollingError(loginId, tokenResponse)
-                return
-            }
-
-            this.persistToken(tokenResponse.accessToken, 'device')
-            this.setSnapshot({
-                authMethod: 'device',
-                errorMessage: null,
-                isAuthenticated: true,
-                isLoadingUser: true,
-                status: 'authenticated',
-            })
-            await this.loadCurrentUser(tokenResponse.accessToken)
-        } catch (error) {
-            this.setSnapshot({ errorMessage: getErrorMessage(error), status: 'error' })
-        }
-    }
-
-    private handleTokenPollingError(loginId: number, error: GithubOAuthErrorResponse) {
-        if (error.error === 'authorization_pending') {
-            this.scheduleTokenPoll(loginId, this.pollingIntervalSeconds)
-            return
-        }
-
-        if (error.error === 'slow_down') {
-            this.pollingIntervalSeconds += GITHUB_AUTH_SLOW_DOWN_SECONDS
-            this.scheduleTokenPoll(loginId, this.pollingIntervalSeconds)
-            return
-        }
-
-        if (error.error === 'expired_token') {
-            this.cancelPolling()
-            this.setSnapshot({ errorMessage: buildAuthErrorMessage(error), status: 'expired' })
-            return
-        }
-
-        if (error.error === 'access_denied') {
-            this.cancelPolling()
-            this.setSnapshot({ errorMessage: buildAuthErrorMessage(error), status: 'denied' })
-            return
-        }
-
-        this.cancelPolling()
-        this.setSnapshot({ errorMessage: buildAuthErrorMessage(error), status: 'error' })
-    }
-
-    private scheduleTokenPoll(loginId: number, intervalSeconds: number) {
-        const { setDelay } = this.requireDependencies()
-        this.cancelPolling()
-        const delayMs = intervalSeconds * SECONDS_TO_MILLISECONDS
-        this.pollingDelayId = setDelay(this.createTokenPollCallback(loginId), delayMs)
-    }
-
-    private createTokenPollCallback(loginId: number) {
-        return () => {
-            void this.pollAccessToken(loginId)
-        }
-    }
-
-    private cancelPolling() {
-        const { clearDelay } = this.requireDependencies()
-        if (this.pollingDelayId === null) return
-
-        clearDelay(this.pollingDelayId)
-        this.pollingDelayId = null
-    }
-
-    private static resolveScopes(fallbackScopes: string): string {
-        if (!configService.isInitialized()) return fallbackScopes
-
-        return configService.get('connection.githubScopes')
-    }
-
-    private persistToken(accessToken: string, authMethod: GithubAuthMethod) {
+    private persistToken(accessToken: string) {
         const { storage } = this.requireDependencies()
         this.accessToken = accessToken
         storage.setItem(AUTH_TOKEN_STORAGE_KEY, accessToken)
-        storage.setItem(AUTH_METHOD_STORAGE_KEY, authMethod)
     }
 
     private clearToken() {
         const { storage } = this.requireDependencies()
         this.accessToken = null
         storage.removeItem(AUTH_TOKEN_STORAGE_KEY)
-        storage.removeItem(AUTH_METHOD_STORAGE_KEY)
     }
 
     private setSnapshot(snapshot: Partial<AuthSnapshot>) {
@@ -368,21 +170,11 @@ export class GithubAuthService extends EventTarget {
     }
 
     private requireDependencies() {
-        if (!this.clearDelay) throw new Error('GitHub auth service delay clearing is not initialized')
-        if (!this.config) throw new Error('GitHub auth service config is not initialized')
         if (!this.fetchUser) throw new Error('GitHub auth service user fetcher is not initialized')
-        if (!this.requestAccessToken) throw new Error('GitHub auth service access token request is not initialized')
-        if (!this.requestDeviceCode) throw new Error('GitHub auth service device code request is not initialized')
-        if (!this.setDelay) throw new Error('GitHub auth service delay scheduling is not initialized')
         if (!this.storage) throw new Error('GitHub auth service storage is not initialized')
 
         return {
-            clearDelay: this.clearDelay,
-            config: this.config,
             fetchUser: this.fetchUser,
-            requestAccessToken: this.requestAccessToken,
-            requestDeviceCode: this.requestDeviceCode,
-            setDelay: this.setDelay,
             storage: this.storage,
         }
     }
@@ -396,12 +188,7 @@ export function createGithubAuthService() {
 
 export function initDefaultGithubAuthService(service: GithubAuthService) {
     service.init({
-        clearDelay: window.clearTimeout,
-        config: readGithubAuthConfig(),
         fetchUser: fetchGithubUser,
-        requestAccessToken: requestGithubAccessToken,
-        requestDeviceCode: requestGithubDeviceCode,
-        setDelay: window.setTimeout,
         storage: window.localStorage,
     })
 

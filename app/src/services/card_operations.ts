@@ -1,6 +1,7 @@
 import { createCardFile } from '../data/card_naming'
 import { computeMove, orderByAfter, UNASSIGNED_STATUS } from '../data/card_ordering'
 import type { CardDraft, MarkdownFile, ProjectReference, ProjectSnapshot, StorageService } from '../data/data_types'
+import { newFolderPath, newMarkdownFilePath } from '../data/project_tree_paths'
 import { markdownParsingService } from './markdown_parsing_service'
 import { telemetryService } from './telemetry_service'
 import {
@@ -11,6 +12,7 @@ import {
 } from './data_service_context'
 
 type CommitRequest = Parameters<StorageService['commit']>[0]
+const FOLDER_PLACEHOLDER_NAME = '.gitkeep'
 
 export interface CardOperationsDeps {
     commitPathsInFlight(): Set<string>
@@ -30,11 +32,26 @@ function statusOf(card: ProjectSnapshot['activeCards'][number]) {
     return card.header.status ?? UNASSIGNED_STATUS
 }
 
-function reportAutoPushFailure(error: unknown) {
+function reportAutoPushFailure(error: unknown, createdItem: string) {
     const detail = errorMessage(error, 'GitHub push failed')
 
-    reportWorkspaceError(`Card created locally, but GitHub push failed. Use Push after resolving the GitHub access problem. ${detail}`)
+    reportWorkspaceError(`${createdItem} created locally, but GitHub push failed. Use Push after resolving the GitHub access problem. ${detail}`)
     telemetryService.captureError(error)
+}
+
+async function pushCreatedItem(
+    storage: StorageService,
+    project: ProjectReference,
+    shouldPush: boolean,
+    createdItem: string,
+) {
+    if (!shouldPush) return
+
+    try {
+        await storage.push(project)
+    } catch (error) {
+        reportAutoPushFailure(error, createdItem)
+    }
 }
 
 export class CardOperations {
@@ -58,6 +75,7 @@ export class CardOperations {
         const file = createCardFile(
             this.dependencies.files(),
             config.workingFolder,
+            config.cardSeparator,
             config.cardTypes,
             config.cardBodyTemplate,
             initialState,
@@ -74,12 +92,49 @@ export class CardOperations {
             try {
                 await storage.push(currentProject)
             } catch (error) {
-                reportAutoPushFailure(error)
+                reportAutoPushFailure(error, 'Card')
             }
         }
 
         this.dependencies.refreshSnapshot(config.workingFolder)
         telemetryService.trackEvent('create_card')
+
+        return file
+    }
+
+    async createFolder(parentDirectory: string, name: string) {
+        const { config, storage } = this.dependencies.requireDependencies()
+        const currentProject = this.dependencies.project()
+        if (!currentProject) throw new Error('Cannot create a folder before a project is open')
+
+        const folderPath = newFolderPath(parentDirectory, name, config.projectFolder)
+        this.requireAvailablePath(folderPath)
+        const placeholderFile = { content: '', path: `${folderPath}/${FOLDER_PLACEHOLDER_NAME}` }
+        await storage.commit({
+            branch: currentProject.branch,
+            files: [placeholderFile],
+            message: `Create ${folderPath}`,
+        })
+        await pushCreatedItem(storage, currentProject, config.pushMode === 'auto', 'Folder')
+        await this.dependencies.reloadCurrentProjectSnapshot()
+
+        return folderPath
+    }
+
+    async createMarkdownFile(parentDirectory: string, name: string) {
+        const { config, storage } = this.dependencies.requireDependencies()
+        const currentProject = this.dependencies.project()
+        if (!currentProject) throw new Error('Cannot create a Markdown file before a project is open')
+
+        const path = newMarkdownFilePath(parentDirectory, name, config.projectFolder)
+        this.requireAvailablePath(path)
+        const file = { content: '', path }
+        await this.commitAndMergeFiles({
+            branch: currentProject.branch,
+            files: [file],
+            message: `Create ${path}`,
+        }, [file])
+        await pushCreatedItem(storage, currentProject, config.pushMode === 'auto', 'Markdown file')
 
         return file
     }
@@ -110,6 +165,12 @@ export class CardOperations {
         const existingFile = this.dependencies.requireFile(path)
 
         return this.saveFile({ content: markdownParsingService.setCardTitle(existingFile.content, title), path, sha: existingFile.sha })
+    }
+
+    updateCardWorktree(path: string, worktree: number | null) {
+        const existingFile = this.dependencies.requireFile(path)
+
+        return this.saveFile({ content: markdownParsingService.setWorktree(existingFile.content, worktree), path, sha: existingFile.sha })
     }
 
     toggleCardPolicy(path: string, policyKey: string) {
@@ -161,9 +222,10 @@ export class CardOperations {
         if (!currentProject) throw new Error('Cannot save a file before a project is open')
 
         const currentFiles = this.dependencies.files().map((currentFile) => (currentFile.path === file.path ? file : currentFile))
+        // replaceFiles already rebuilds the snapshot; only the change event is still needed.
         this.dependencies.replaceFiles(currentFiles, config.workingFolder)
         commitBatcher.schedule(currentProject.branch, [file], `Update ${file.path}`)
-        this.dependencies.refreshSnapshot(config.workingFolder)
+        this.dependencies.dispatchChanged()
 
         return file
     }
@@ -276,6 +338,22 @@ export class CardOperations {
         await this.dependencies.reloadCurrentProjectSnapshot()
 
         return this.dependencies.snapshot()
+    }
+
+    private requireAvailablePath(path: string) {
+        const snapshot = this.dependencies.snapshot()
+        if (!snapshot) throw new Error('Cannot create a project item before project files are loaded')
+
+        const normalizedPath = path.toLowerCase()
+        const existingPaths = [
+            ...this.dependencies.files().map((file) => file.path),
+            ...snapshot.repositoryFiles,
+        ].map((existingPath) => existingPath.replace(/\\/gu, '/').toLowerCase())
+        const pathExists = existingPaths.some((existingPath) => (
+            existingPath === normalizedPath
+            || existingPath.startsWith(`${normalizedPath}/`)
+        ))
+        if (pathExists) throw new Error(`A project item already exists at ${path}`)
     }
 
     private createDeleteRepairFile(path: string): MarkdownFile | null {

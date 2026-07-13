@@ -3,18 +3,25 @@ import type { ActionScheduleTrigger } from './action_schedule_types'
 import type { AgentConversation, AgentRunEvent } from './data_types'
 
 export interface CommandExecutionResult {
+    branch?: string
     command: string
+    executionWorktree?: number | null
     exitCode: number
+    repositoryRoot?: string
     stderr: string
     stdout: string
 }
 
 export interface AgentExecutionRequest {
+    actionName?: string
+    actionsFolder?: string
     agent?: string
     cardPath: string
     command: string
     model?: string
     prompt: string
+    context?: ActionContext
+    extraInput?: string
     sessionIdPattern?: string
     title?: string
 }
@@ -71,6 +78,7 @@ export interface DiffRequest {
     branch: string
     commit: string
     filePath: string
+    repositoryRoot: string
     template: string
 }
 
@@ -89,12 +97,14 @@ export interface DiffFile {
 export interface DiffResult {
     commit: string
     files: DiffFile[]
+    repositoryRoot?: string
 }
 
 /** Request to open VS Code at a project file and line clicked in the diff view. */
 export interface OpenInEditorRequest {
     line: number
     path: string
+    repositoryRoot?: string
 }
 
 export interface ElectronActionBridge {

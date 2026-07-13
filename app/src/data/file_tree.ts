@@ -7,6 +7,7 @@ export type TreeNodeKind = 'status' | 'folder' | 'special' | 'file'
 /** A single node in the text-view tree. `path` is set only on file leaves. */
 export interface TreeNode {
     children: TreeNode[]
+    directoryPath: string
     id: string
     kind: TreeNodeKind
     label: string
@@ -14,11 +15,10 @@ export interface TreeNode {
 }
 
 export interface FileTreeOptions {
-    specialFolders?: string[]
+    projectFolder: string
+    repositoryFiles: string[]
+    specialFolderPaths: string[]
 }
-
-/** Default special-folder names, recognized inside the working folder (see F-003). */
-export const DEFAULT_SPECIAL_FOLDERS = ['history', 'architecture', 'prompts']
 
 const UNASSIGNED_STATUS_LABEL = 'Unassigned'
 const DEFAULT_IMPORTED_ID = 'F-0'
@@ -38,24 +38,17 @@ export function fileLabel(card: ProjectCard): string {
     return getFileName(card.path)
 }
 
-/** Strip the working-folder prefix and normalize separators to `/`. */
-function relativeSegments(path: string, workingFolder: string): string[] {
-    const normalized = path.replace(/\\/g, '/')
-    const prefix = `${workingFolder}/`
-    const remaining = normalized.startsWith(prefix) ? normalized.slice(prefix.length) : normalized
-
-    return remaining.split('/').filter((segment) => segment.length > 0)
-}
-
 /** Find or create a folder child under `parent`, returning the child node. */
-function ensureFolder(parent: TreeNode, segment: string, isSpecial: boolean): TreeNode {
+function ensureFolder(parent: TreeNode, segment: string, specialFolderPaths: Set<string>): TreeNode {
     const existing = parent.children.find((child) => child.kind !== 'file' && child.label === segment)
     if (existing) return existing
 
+    const directoryPath = parent.directoryPath.length > 0 ? `${parent.directoryPath}/${segment}` : segment
     const folder: TreeNode = {
         children: [],
+        directoryPath,
         id: `${parent.id}/${segment}`,
-        kind: isSpecial ? 'special' : 'folder',
+        kind: specialFolderPaths.has(directoryPath) ? 'special' : 'folder',
         label: segment,
         path: null,
     }
@@ -65,15 +58,17 @@ function ensureFolder(parent: TreeNode, segment: string, isSpecial: boolean): Tr
 }
 
 /** Build the status-group roots from the active (root working-folder) cards. */
-function buildStatusGroups(activeCards: ProjectCard[]): TreeNode[] {
+function buildStatusGroups(activeCards: ProjectCard[], projectFolder: string): TreeNode[] {
     return groupByStatus(activeCards).map((column) => ({
         children: column.cards.map((card) => ({
             children: [],
+            directoryPath: projectFolder,
             id: card.path,
             kind: 'file' as const,
             label: fileLabel(card),
             path: card.path,
         })),
+        directoryPath: projectFolder,
         id: `status:${column.status}`,
         kind: 'status' as const,
         label: column.status === UNASSIGNED_STATUS ? UNASSIGNED_STATUS_LABEL : column.status,
@@ -86,21 +81,48 @@ function buildStatusGroups(activeCards: ProjectCard[]): TreeNode[] {
  * files). The first path segment names a top-level folder; when it matches a
  * configured special-folder name the node is marked `special`.
  */
-function buildFolderRoots(backgroundCards: ProjectCard[], workingFolder: string, specialFolders: string[]): TreeNode[] {
-    const root: TreeNode = { children: [], id: 'root', kind: 'folder', label: '', path: null }
+function relativeSegmentsInside(path: string, parentFolder: string): string[] {
+    const normalized = path.replace(/\\/g, '/')
+    const normalizedParent = parentFolder.replace(/\\/g, '/').replace(/\/$/u, '')
+    if (normalizedParent.length === 0) return normalized.split('/').filter((segment) => segment.length > 0)
+
+    const prefix = `${normalizedParent}/`
+    if (!normalized.startsWith(prefix)) return []
+
+    const segments = normalized.slice(prefix.length).split('/').filter((segment) => segment.length > 0)
+
+    return segments
+}
+
+function ensureFolderSegments(root: TreeNode, segments: string[], specialFolderPaths: Set<string>) {
+    let parent = root
+    for (const segment of segments) parent = ensureFolder(parent, segment, specialFolderPaths)
+
+    return parent
+}
+
+function buildFolderRoots(
+    backgroundCards: ProjectCard[],
+    projectFolder: string,
+    repositoryFiles: string[],
+    specialFolderPaths: Set<string>,
+): TreeNode {
+    const root: TreeNode = { children: [], directoryPath: projectFolder, id: 'root', kind: 'folder', label: '', path: null }
+
+    for (const repositoryFile of repositoryFiles) {
+        const segments = relativeSegmentsInside(repositoryFile, projectFolder)
+        ensureFolderSegments(root, segments.slice(0, -1), specialFolderPaths)
+    }
 
     for (const card of backgroundCards) {
-        const segments = relativeSegments(card.path, workingFolder)
+        const segments = relativeSegmentsInside(card.path, projectFolder)
         if (segments.length === 0) continue
 
-        let parent = root
-        for (let index = 0; index < segments.length - 1; index += 1) {
-            const isSpecial = index === 0 && specialFolders.includes(segments[index])
-            parent = ensureFolder(parent, segments[index], isSpecial)
-        }
+        const parent = ensureFolderSegments(root, segments.slice(0, -1), specialFolderPaths)
 
         parent.children.push({
             children: [],
+            directoryPath: parent.directoryPath,
             id: card.path,
             kind: 'file',
             label: fileLabel(card),
@@ -108,7 +130,7 @@ function buildFolderRoots(backgroundCards: ProjectCard[], workingFolder: string,
         })
     }
 
-    return root.children
+    return root
 }
 
 /**
@@ -119,12 +141,19 @@ export function buildFileTree(
     activeCards: ProjectCard[],
     backgroundCards: ProjectCard[],
     workingFolder: string,
-    options: FileTreeOptions = {},
+    options: FileTreeOptions,
 ): TreeNode[] {
-    const specialFolders = options.specialFolders ?? DEFAULT_SPECIAL_FOLDERS
+    const { projectFolder, repositoryFiles, specialFolderPaths } = options
+    const specialPathSet = new Set(specialFolderPaths)
+    const root = buildFolderRoots(backgroundCards, projectFolder, repositoryFiles, specialPathSet)
+    const statusGroups = buildStatusGroups(activeCards, projectFolder)
+    if (workingFolder === projectFolder) return [...statusGroups, ...root.children]
 
-    return [
-        ...buildStatusGroups(activeCards),
-        ...buildFolderRoots(backgroundCards, workingFolder, specialFolders),
-    ]
+    const workingFolderSegments = relativeSegmentsInside(workingFolder, projectFolder)
+    if (workingFolderSegments.length === 0) throw new Error(`Working folder is outside the project folder: ${workingFolder}`)
+
+    const workingFolderNode = ensureFolderSegments(root, workingFolderSegments, specialPathSet)
+    workingFolderNode.children.unshift(...statusGroups)
+
+    return root.children
 }

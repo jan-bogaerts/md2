@@ -27,24 +27,24 @@ describe('ConfigValueEditor', () => {
 
     it('associates select labels and descriptions with an outlined field', () => {
         const entry: ConfigEntry = {
-            defaultValue: 'repo',
-            description: 'OAuth scopes requested when connecting GitHub.',
+            defaultValue: 'auto',
+            description: 'Push commits automatically or wait for an explicit push.',
             editable: true,
-            key: 'connection.githubScopes',
-            label: 'GitHub scopes',
+            key: 'project.pushMode',
+            label: 'Push mode',
             options: [
-                { label: 'Repository access', value: 'repo' },
-                { label: 'Public repository access', value: 'public_repo' },
+                { label: 'Auto push', value: 'auto' },
+                { label: 'Manual push', value: 'manual' },
             ],
-            section: 'connection',
-            source: 'connection',
+            section: 'project',
+            source: 'project',
             type: 'select',
         }
         const handleChange = vi.fn()
 
-        render(<ConfigValueEditor entry={entry} onChange={handleChange} value="repo" />)
+        render(<ConfigValueEditor entry={entry} onChange={handleChange} value="auto" />)
 
-        const select = screen.getByRole('combobox', { name: 'GitHub scopes' })
+        const select = screen.getByRole('combobox', { name: 'Push mode' })
         expect(select).toHaveAccessibleDescription(entry.description)
         expect(select.closest('.MuiOutlinedInput-root')).toBeInTheDocument()
     })

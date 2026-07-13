@@ -10,12 +10,9 @@ import { dataService } from './services/data_service'
 vi.mock('./auth/use_github_auth', () => ({
     useGithubAuth: () => ({
         accessToken: null,
-        deviceCode: null,
         errorMessage: null,
         isAuthenticated: false,
-        isDeviceFlowAvailable: true,
         isLoadingUser: false,
-        login: vi.fn(),
         logout: vi.fn(),
         savePersonalAccessToken: vi.fn(),
         status: 'idle',
@@ -43,11 +40,14 @@ function createFailingBridge(): ElectronDataBridge {
             throw new Error('repository folder moved')
         }),
         loadProjectConfig: vi.fn(async () => null),
+        loadWorktrees: vi.fn(async () => []),
         moveFiles: vi.fn(),
         openProjectFolder: vi.fn(async () => null),
         push: vi.fn(),
         resolveProject: vi.fn(async (project) => project),
         saveProjectConfig: vi.fn(),
+        saveWorktrees: vi.fn(async () => []),
+        selectWorktreeFolder: vi.fn(async () => null),
         watchProject: vi.fn(() => vi.fn()),
     }
 }
@@ -93,7 +93,7 @@ describe('App', () => {
 
         fireEvent.click(await screen.findByRole('button', { name: 'GitHub account' }))
 
-        expect(screen.getByRole('button', { name: 'Sign in with GitHub' })).toBeInTheDocument()
+        expect(screen.getByLabelText('Personal access token')).toBeInTheDocument()
     })
 
     it('renders the toolbar theme toggle', async () => {

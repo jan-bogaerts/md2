@@ -21,6 +21,7 @@ function action(overrides: Partial<ActionDefinition> = {}): ActionDefinition {
         text: 'implement {{file}}',
         type: 'agent',
         ...overrides,
+        runIn: overrides.runIn ?? 'project',
     }
 }
 

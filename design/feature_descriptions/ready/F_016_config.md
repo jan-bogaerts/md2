@@ -9,6 +9,8 @@ policy:
   requireTests: true
 ---
 
+> **NOTE 2026-07-11:** The `window.md2GithubAuth` bridge and GitHub OAuth proxy referenced below were removed with OAuth (see [[F_034_github_oauth_cors_proxy]]). GitHub auth is now PAT-only and the `connection` config section no longer exists.
+
 ## Goal
 Provide a browsable `/config` page with sections and quick-jump tabs, typed value editors with descriptions, explicit save/cancel, and a global config service that merges values from React-app, desktop-app and project-level sources depending on the connection setup.
 
