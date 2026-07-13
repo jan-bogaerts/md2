@@ -200,6 +200,21 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
         }
     }
 
+    const handleDeleteFolder = async (path: string) => {
+        try {
+            await dataService.cards.deleteFolder(path)
+            const folderPrefix = `${path.replace(/\/+$/u, '')}/`
+            for (const openPath of openFilesService.getSnapshot().paths) {
+                if (openPath.startsWith(folderPrefix)) openFilesService.closeFile(openPath)
+            }
+            const selectedPath = workspaceViewService.getSnapshot().selectedPath
+            if (selectedPath?.startsWith(folderPrefix)) clearDeletedPathState(selectedPath)
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: `Folder delete failed: ${path}` })
+            throw error
+        }
+    }
+
     const handleCreateFolder = async (parentDirectory: string, name: string) => {
         try {
             await dataService.cards.createFolder(parentDirectory, name)
@@ -304,6 +319,7 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
                             onCreateFolder={handleCreateFolder}
                             onCreateMarkdownFile={handleCreateMarkdownFile}
                             onDeleteFile={handleDeleteFile}
+                            onDeleteFolder={handleDeleteFolder}
                             onHeaderFieldChange={handleHeaderFieldChange}
                             onSendAgentInput={handleSendAgentInput}
                             onStartAgentConversation={handleStartAgentConversation}
@@ -325,7 +341,7 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
                         <Typography color="text.secondary" variant="body2">
                             Open a GitHub repository or local folder to work with project cards.
                         </Typography>
-                        <Button onClick={requestOpenProjectDialog} variant="contained">Open project...</Button>
+                        <Button onClick={() => requestOpenProjectDialog()} variant="contained">Open project...</Button>
                     </Stack>
                 )}
             </Box>

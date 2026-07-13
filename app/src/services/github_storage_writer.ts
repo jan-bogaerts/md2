@@ -1,4 +1,4 @@
-import type { CommitRequest, DeleteFileRequest, MarkdownFile, MoveFilesRequest, ProjectReference } from '../data/data_types'
+import type { CommitRequest, DeleteFileRequest, DeleteFolderRequest, MarkdownFile, MoveFilesRequest, ProjectReference } from '../data/data_types'
 import { mapWithConcurrency } from './concurrency'
 import {
     deleteStoredPendingCommitHead,
@@ -72,6 +72,18 @@ export class GithubStorageWriter {
         const branchHead = await this.gitData.getBranchHead(request.branch)
         await this.gitData.assertPathShasMatch(branchHead.treeSha, [{ path: request.path, sha: request.sha }])
         await this.createPendingCommit(request.branch, request.message, branchHead, [{ path: request.path, sha: null }])
+    }
+
+    async deleteFolder(request: DeleteFolderRequest) {
+        const branchHead = await this.gitData.getBranchHead(request.branch)
+        const folderPrefix = `${request.path.replace(/\/+$/u, '')}/`
+        const entries = await this.gitData.getRecursiveTreeEntries(branchHead.treeSha)
+        const treeChanges: GithubTreeChange[] = [...entries.keys()]
+            .filter((path) => path.startsWith(folderPrefix))
+            .map((path) => ({ path, sha: null }))
+        if (treeChanges.length === 0) throw new Error(`Cannot delete missing or empty folder: ${request.path}`)
+
+        await this.createPendingCommit(request.branch, request.message, branchHead, treeChanges)
     }
 
     async moveFiles(request: MoveFilesRequest) {

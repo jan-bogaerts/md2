@@ -15,7 +15,7 @@ import { projectSessionService, type ProjectOpenResolution } from '../../../serv
 import { useProjectConfig } from '../../hooks/use_project_config'
 import { useProjectSession } from '../../hooks/use_project_session'
 import { useProjectState } from '../../hooks/use_project_state'
-import { OPEN_NEW_CARD_DIALOG_EVENT, OPEN_PROJECT_DIALOG_EVENT } from '../../project_command_events'
+import { OPEN_NEW_CARD_DIALOG_EVENT, OPEN_PROJECT_DIALOG_EVENT, type OpenProjectDialogDetail, type ProjectDialogSource } from '../../project_command_events'
 
 type ProjectDialogMode = 'open' | 'branch' | 'card' | 'release'
 
@@ -49,6 +49,7 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
     const [branches, setBranches] = useState<BranchReference[]>(EMPTY_BRANCHES)
     const [isReleaseCompleting, setIsReleaseCompleting] = useState(false)
     const [projectOpenResolution, setProjectOpenResolution] = useState<ProjectOpenResolution | null>(null)
+    const [initialProjectSource, setInitialProjectSource] = useState<ProjectDialogSource | null>(null)
     const [repositories, setRepositories] = useState<RepositoryReference[]>(EMPTY_REPOSITORIES)
     const [switchBranch, setSwitchBranch] = useState(project?.branch ?? '')
     const activeCards = snapshot?.activeCards ?? []
@@ -116,12 +117,14 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
     }, [accessToken, project])
 
     useEffect(() => {
-        const handleOpenProjectDialog = () => {
+        const handleOpenProjectDialog = (event: Event) => {
             if (electronBridge) {
                 void openElectronProject()
                 return
             }
 
+            const detail = (event as CustomEvent<OpenProjectDialogDetail>).detail
+            setInitialProjectSource(detail?.source ?? null)
             onOpenDialog('open')
             if (isGithubAuthenticated) void loadRepositories()
         }
@@ -147,6 +150,7 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
             return
         }
 
+        setInitialProjectSource(null)
         onOpenDialog('open')
         if (isGithubAuthenticated) void loadRepositories()
     }
@@ -299,6 +303,7 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
         clearOpenDialogState,
         closeDialog,
         completeRelease,
+        initialProjectSource,
         createCard,
         createProjectFolders,
         createRemoteProject,

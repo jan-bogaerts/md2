@@ -92,8 +92,8 @@ describe('readDesktopConfig', () => {
             [DESKTOP_CONFIG_STORE_KEY]: {
                 agent: 'custom',
                 agentProfiles: [
-                    { command: 'stored-codex', name: 'codex' },
-                    { command: 'stored-custom', name: 'custom' },
+                    { command: 'stored-codex', models: ['GPT 5.5'], name: 'codex' },
+                    { command: 'stored-custom', models: ['custom-model'], name: 'custom' },
                 ],
             },
         })

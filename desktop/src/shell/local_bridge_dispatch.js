@@ -18,19 +18,33 @@ function resolveStartAgentRequest(config, request) {
     }
 }
 
-function resolveRunAgentRequest(config, request) {
+function resolveRunAgentRequest(config, request, action = null) {
     if (!request || typeof request !== 'object') throw new Error('Missing agent request')
 
     const resolved = resolveAgentCommand(config, {
-        ...(typeof request.agent === 'string' && request.agent.length > 0 ? { agent: request.agent } : {}),
-        ...(typeof request.model === 'string' ? { model: request.model } : {}),
+        ...(typeof request.agent === 'string' && request.agent.length > 0
+            ? { agent: request.agent }
+            : (typeof action?.agent === 'string' && action.agent.length > 0 ? { agent: action.agent } : {})),
+        ...(typeof request.model === 'string'
+            ? { model: request.model }
+            : (typeof action?.model === 'string' ? { model: action.model } : {})),
+        ...(request.thinkingLevel !== undefined
+            ? { thinkingLevel: request.thinkingLevel }
+            : (typeof action?.thinkingLevel === 'string' ? { thinkingLevel: action.thinkingLevel } : {})),
     })
 
     return {
         ...request,
+        agent: resolved.agent,
         command: resolved.command,
+        model: resolved.model,
+        thinkingLevel: resolved.thinkingLevel,
         ...(resolved.profile.sessionIdPattern ? { sessionIdPattern: resolved.profile.sessionIdPattern } : {}),
     }
+}
+
+function withAgentMetadata(result, request) {
+    return { ...result, agent: request.agent, model: request.model, thinkingLevel: request.thinkingLevel }
 }
 
 function resolvePlaceholders(text, context, project, extraInput) {
@@ -66,6 +80,7 @@ function createLocalBridgeDispatch(dependencies) {
     const {
         actionSchedulerService,
         actionWorktreeExecutionService,
+        agentExecutableAvailability,
         agentRunnerService,
         desktopConfigStore,
         diffService,
@@ -83,7 +98,8 @@ function createLocalBridgeDispatch(dependencies) {
         if (typeof request.actionsFolder !== 'string' || request.actionsFolder.length === 0) throw new Error('Missing actionsFolder')
 
         const files = await localGitService.loadActionFiles(currentLocalProject, request.actionsFolder)
-        const actions = loadActionDefinitions(files, readDesktopConfig(desktopConfigStore))
+        const { agentProfiles } = readDesktopConfig(desktopConfigStore)
+        const actions = loadActionDefinitions(files, { profiles: agentProfiles })
         const action = actions.find((candidate) => candidate.id === request.actionId)
         if (!action) throw new Error(`Unknown action: ${request.actionId}`)
 
@@ -137,6 +153,7 @@ function createLocalBridgeDispatch(dependencies) {
             localGitService.createWorkingFolderFromTemplate(project, workingFolder)
         ),
         deleteFile: (request) => localGitService.deleteFile(request, currentLocalProject),
+        deleteFolder: (request) => localGitService.deleteFolder(request, currentLocalProject),
         hasPendingPush: (project) => localGitService.hasPendingPush(project),
         listBranches: (project) => localGitService.listBranches(project),
         listRepositoryFiles: (project) => localGitService.listRepositoryFiles(project),
@@ -149,6 +166,11 @@ function createLocalBridgeDispatch(dependencies) {
             const conversation = await localGitService.loadAgentConversation(resolved.project, resolved.path)
 
             return { ...conversation, path: reference }
+        },
+        loadAgentAvailability: () => {
+            const { agentProfiles } = readDesktopConfig(desktopConfigStore)
+
+            return agentExecutableAvailability(agentProfiles)
         },
         loadFile: (project, path) => localGitService.loadFile(project, path),
         loadProjectAsset: (project, path) => localGitService.loadProjectAsset(project, path),
@@ -244,18 +266,24 @@ function createLocalBridgeDispatch(dependencies) {
             return actionSchedulerService.registerActionSchedule(request)
         },
         runAgent: async (request, callback) => {
-            const agentRequest = resolveRunAgentRequest(readDesktopConfig(desktopConfigStore), request)
-            if (!request.actionId) return agentRunnerService.run(currentLocalProject, agentRequest, callback)
+            if (!request?.actionId) {
+                const agentRequest = resolveRunAgentRequest(readDesktopConfig(desktopConfigStore), request)
+                const result = await agentRunnerService.run(currentLocalProject, agentRequest, callback)
+
+                return withAgentMetadata(result, agentRequest)
+            }
             if (!actionWorktreeExecutionService) throw new Error('Action worktree execution service is not available')
 
             const action = await loadRequestAction(request)
             if (action.type !== 'agent') throw new Error(`Action is not an agent: ${request.actionId}`)
+            const agentRequest = resolveRunAgentRequest(readDesktopConfig(desktopConfigStore), request, action)
 
-            return actionWorktreeExecutionService.execute(currentLocalProject, action, request.context, (project) => {
+            return actionWorktreeExecutionService.execute(currentLocalProject, action, request.context, async (project) => {
                 const prompt = resolveActionPrompt(action, request.context, project, request.extraInput ?? '')
                 const executionRequest = { ...agentRequest, cardPath: request.context.file, prompt, title: action.label }
+                const result = await agentRunnerService.run(project, executionRequest, callback)
 
-                return agentRunnerService.run(project, executionRequest, callback)
+                return withAgentMetadata(result, agentRequest)
             })
         },
         runCommand: async (request) => {

@@ -87,6 +87,7 @@ function createStorage(files: MarkdownFile[] = []): StorageService {
         createProject: vi.fn(async (project) => project),
         createWorkingFolderFromTemplate: vi.fn(async (project) => project),
         deleteFile: vi.fn(),
+        deleteFolder: vi.fn(),
         listBranches: vi.fn(async () => []),
         listRepositories: vi.fn(async () => []),
         listRepositoryFiles: vi.fn(async () => []),

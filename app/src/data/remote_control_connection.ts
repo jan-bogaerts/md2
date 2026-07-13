@@ -11,6 +11,14 @@ export function configureRemoteControlConnection(settings: RemoteControlConnecti
     window.localStorage.setItem(REMOTE_CONTROL_TOKEN_KEY, settings.token)
 }
 
+export function tryReadRemoteControlConnection(): RemoteControlConnectionSettings | null {
+    const endpoint = window.localStorage.getItem(REMOTE_CONTROL_ENDPOINT_KEY)
+    const token = window.localStorage.getItem(REMOTE_CONTROL_TOKEN_KEY)
+    if (!endpoint || !token) return null
+
+    return { endpoint, token }
+}
+
 export function readRemoteControlConnection(): RemoteControlConnectionSettings {
     const endpoint = window.localStorage.getItem(REMOTE_CONTROL_ENDPOINT_KEY)
     const token = window.localStorage.getItem(REMOTE_CONTROL_TOKEN_KEY)

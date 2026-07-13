@@ -18,8 +18,8 @@ interface AgentProfilesEditorProps {
 
 interface AgentProfileRowProps {
     disabled: boolean
+    removable: boolean
     profile: AgentProfile
-    readOnly: boolean
     onEdit: (name: string) => void
     onRemove: (name: string) => void
 }
@@ -66,7 +66,7 @@ function toAgentProfile(form: AgentProfileFormState): AgentProfile {
         command: form.command.trim(),
         ...(form.defaultModel.trim().length > 0 ? { defaultModel: form.defaultModel.trim() } : {}),
         ...(form.modelArgument.trim().length > 0 ? { modelArgument: form.modelArgument.trim() } : {}),
-        ...(models.length > 0 ? { models } : {}),
+        models,
         name: form.name.trim(),
         ...(form.resumeCommand.trim().length > 0 ? { resumeCommand: form.resumeCommand.trim() } : {}),
         ...(form.sessionIdPattern.trim().length > 0 ? { sessionIdPattern: form.sessionIdPattern.trim() } : {}),
@@ -110,6 +110,8 @@ function validateForm(form: AgentProfileFormState, usedNames: string[]) {
     if (name.length === 0) errors.push('Name is required.')
     if (usedNames.includes(name)) errors.push(`Duplicate agent profile: ${name}`)
     if (command.length === 0) errors.push('Command is required.')
+    if (models.length === 0) errors.push('At least one model is required.')
+    if (new Set(models).size !== models.length) errors.push('Model names must be unique.')
     if (defaultModel.length > 0 && models.length > 0 && !models.includes(defaultModel)) {
         errors.push(`Default model must be one of: ${models.join(', ')}`)
     }
@@ -130,7 +132,7 @@ function isBuiltinName(name: string) {
 }
 
 function AgentProfileRow(props: AgentProfileRowProps) {
-    const { disabled, onEdit, onRemove, profile, readOnly } = props
+    const { disabled, onEdit, onRemove, profile, removable } = props
 
     const editProfile = () => {
         onEdit(profile.name)
@@ -149,18 +151,16 @@ function AgentProfileRow(props: AgentProfileRowProps) {
                         {profile.command}
                     </Typography>
                 </Box>
-                {readOnly ? (
-                    <Typography color="text.secondary" variant="body2">Built-in</Typography>
-                ) : (
-                    <Stack direction="row" spacing={1}>
-                        <Button disabled={disabled} onClick={editProfile} size="small" startIcon={<Pencil />} variant="outlined">
-                            Edit
-                        </Button>
-                        <Button color="error" disabled={disabled} onClick={removeProfile} size="small" startIcon={<DeleteOutline />} variant="outlined">
+                <Stack direction="row" spacing={1}>
+                    <Button aria-label={`Edit ${profile.name}`} disabled={disabled} onClick={editProfile} size="small" startIcon={<Pencil />} variant="outlined">
+                        Edit
+                    </Button>
+                    {removable ? (
+                        <Button aria-label={`Remove ${profile.name}`} color="error" disabled={disabled} onClick={removeProfile} size="small" startIcon={<DeleteOutline />} variant="outlined">
                             Remove
                         </Button>
-                    </Stack>
-                )}
+                    ) : <Typography color="text.secondary" variant="body2">Built-in</Typography>}
+                </Stack>
             </Stack>
         </Box>
     )
@@ -218,6 +218,9 @@ export function AgentProfilesEditor(props: AgentProfilesEditorProps) {
     const [form, setForm] = useState<AgentProfileFormState | null>(null)
     const storedBuiltinProfiles = value.filter((profile) => isBuiltinName(profile.name))
     const userProfiles = value.filter((profile) => !isBuiltinName(profile.name))
+    const builtinProfiles = BUILTIN_AGENT_PROFILES.map((profile) => (
+        storedBuiltinProfiles.find((storedProfile) => storedProfile.name === profile.name) ?? profile
+    ))
     const usedNames = useMemo(
         () => [...BUILTIN_AGENT_PROFILES, ...userProfiles]
             .map((profile) => profile.name)
@@ -236,7 +239,7 @@ export function AgentProfilesEditor(props: AgentProfilesEditorProps) {
     }
 
     const editProfile = (name: string) => {
-        const profile = userProfiles.find((item) => item.name === name)
+        const profile = [...builtinProfiles, ...userProfiles].find((item) => item.name === name)
         if (!profile) return
 
         setEditingName(name)
@@ -256,8 +259,8 @@ export function AgentProfilesEditor(props: AgentProfilesEditorProps) {
         if (!form || errors.length > 0) return
 
         const nextProfile = toAgentProfile(form)
-        const retainedProfiles = userProfiles.filter((profile) => profile.name !== editingName)
-        onChange([...storedBuiltinProfiles, ...retainedProfiles, nextProfile])
+        const retainedProfiles = value.filter((profile) => profile.name !== editingName)
+        onChange([...retainedProfiles, nextProfile])
         cancelEdit()
     }
 
@@ -269,14 +272,14 @@ export function AgentProfilesEditor(props: AgentProfilesEditorProps) {
     return (
         <Stack spacing={2}>
             <Stack spacing={1}>
-                {BUILTIN_AGENT_PROFILES.map((profile) => (
+                {builtinProfiles.map((profile) => (
                     <AgentProfileRow
                         disabled={disabled}
                         key={profile.name}
                         onEdit={editProfile}
                         onRemove={removeProfile}
                         profile={profile}
-                        readOnly
+                        removable={false}
                     />
                 ))}
                 {userProfiles.map((profile) => (
@@ -286,7 +289,7 @@ export function AgentProfilesEditor(props: AgentProfilesEditorProps) {
                         onEdit={editProfile}
                         onRemove={removeProfile}
                         profile={profile}
-                        readOnly={false}
+                        removable
                     />
                 ))}
             </Stack>

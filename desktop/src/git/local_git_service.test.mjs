@@ -16,6 +16,7 @@ const {
     commit,
     createWorkingFolderFromTemplate,
     deleteFile,
+    deleteFolder,
     hasPendingPush,
     listRepositoryFiles,
     listTopLevelFolders,
@@ -598,6 +599,33 @@ describe('local-git-service', () => {
             const log = await execFileAsync('git', ['log', '-1', '--pretty=%s'], { cwd: rootPath })
             expect(status.stdout).toBe('')
             expect(log.stdout.trim()).toBe('Delete obsolete card')
+        } finally {
+            await rm(rootPath, { force: true, recursive: true })
+        }
+    })
+
+    it('deletes folders recursively with git rm and commits the deletion', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-local-git-'))
+
+        try {
+            await initializeGitRepository(rootPath)
+            await mkdir(join(rootPath, 'design', 'notes', 'nested'), { recursive: true })
+            await writeFile(join(rootPath, 'design', 'notes', '.gitkeep'), '')
+            await writeFile(join(rootPath, 'design', 'notes', 'nested', 'info.txt'), 'Info')
+            await execFileAsync('git', ['add', 'design/notes'], { cwd: rootPath })
+            await execFileAsync('git', ['commit', '-m', 'Seed notes'], { cwd: rootPath })
+
+            await deleteFolder({
+                branch: 'main',
+                message: 'Delete design/notes',
+                path: 'design/notes',
+            }, { branch: 'main', id: 'local', rootPath })
+
+            await expect(readFile(join(rootPath, 'design', 'notes', 'nested', 'info.txt'), 'utf8')).rejects.toThrow()
+            const status = await execFileAsync('git', ['status', '--short'], { cwd: rootPath })
+            const log = await execFileAsync('git', ['log', '-1', '--pretty=%s'], { cwd: rootPath })
+            expect(status.stdout).toBe('')
+            expect(log.stdout.trim()).toBe('Delete design/notes')
         } finally {
             await rm(rootPath, { force: true, recursive: true })
         }

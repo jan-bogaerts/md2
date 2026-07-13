@@ -178,7 +178,7 @@ export class GithubStorageGitData {
         return normalizeGitCommit(response)
     }
 
-    private async getRecursiveTreeEntries(treeSha: string) {
+    async getRecursiveTreeEntries(treeSha: string) {
         const cachedEntries = this.context.recursiveTreeEntriesBySha.get(treeSha)
         if (cachedEntries) return cachedEntries
 

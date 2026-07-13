@@ -34,6 +34,7 @@ interface FileTreeViewProps {
     onCreateFolder: (parentDirectory: string, name: string) => Promise<void>
     onCreateMarkdownFile: (parentDirectory: string, name: string) => Promise<void>
     onDeleteFile: (path: string) => Promise<void>
+    onDeleteFolder: (path: string) => Promise<void>
     onSelect: (path: string) => void
     projectFolder: string
     selectedPath: string | null
@@ -91,7 +92,7 @@ interface TreeNodeRowProps extends Omit<FileTreeViewProps, 'nodes' | 'onCreateFo
 
 function TreeNodeRow(props: TreeNodeRowProps) {
     const {
-        cardTypes, cardsByPath, depth, node, onDeleteFile, onRequestCreate, onSelect,
+        cardTypes, cardsByPath, depth, node, onDeleteFile, onDeleteFolder, onRequestCreate, onSelect,
         onSelectNode, selectedNodeId, statusColors,
     } = props
     const [isOpen, setIsOpen] = useState(true)
@@ -106,6 +107,7 @@ function TreeNodeRow(props: TreeNodeRowProps) {
     const visibleTitle = visibleId ? node.label.slice(visibleId.length + 1) : node.label
     const statusColor = statusColors.get(node.label)
     const isSelected = node.id === selectedNodeId
+    const isDeletableFolder = node.kind === 'folder'
 
     const selectFile = () => {
         onSelectNode(node)
@@ -159,6 +161,20 @@ function TreeNodeRow(props: TreeNodeRowProps) {
         }
     }
 
+    const deleteFolder = async () => {
+        if (!isDeletableFolder) return
+
+        closeMenu()
+        const confirmed = window.confirm(`Delete ${node.directoryPath} and all files inside it?`)
+        if (!confirmed) return
+
+        try {
+            await onDeleteFolder(node.directoryPath)
+        } catch {
+            // ProjectWorkspace owns the user-visible delete error.
+        }
+    }
+
     const itemMenu = (
         <>
             <Tooltip title="Actions">
@@ -181,6 +197,12 @@ function TreeNodeRow(props: TreeNodeRowProps) {
                     <ListItemIcon><FileDocumentPlusOutline fontSize="small" /></ListItemIcon>
                     New Markdown file
                 </MenuItem>
+                {isDeletableFolder ? (
+                    <MenuItem onClick={deleteFolder} sx={{ color: 'error.main' }}>
+                        <ListItemIcon><DeleteOutline color="error" fontSize="small" /></ListItemIcon>
+                        Delete folder
+                    </MenuItem>
+                ) : null}
                 {context ? (
                     <ActionEntryPoints
                         context={context}
@@ -312,6 +334,18 @@ function TreeNodeRow(props: TreeNodeRowProps) {
                     />
                 </ListItemButton>
                 <Box className="rowActions" sx={{ alignItems: 'center', display: 'flex', flexShrink: 0, pr: 0.5 }}>
+                    {isDeletableFolder ? (
+                        <Tooltip title="Delete folder">
+                            <IconButton
+                                aria-label={`Delete ${node.directoryPath}`}
+                                onClick={deleteFolder}
+                                size="small"
+                                sx={{ height: 24, width: 24 }}
+                            >
+                                <DeleteOutline sx={{ fontSize: 16 }} />
+                            </IconButton>
+                        </Tooltip>
+                    ) : null}
                     {itemMenu}
                 </Box>
             </Box>
@@ -325,6 +359,7 @@ function TreeNodeRow(props: TreeNodeRowProps) {
                             depth={depth + 1}
                             node={child}
                             onDeleteFile={onDeleteFile}
+                            onDeleteFolder={onDeleteFolder}
                             onRequestCreate={onRequestCreate}
                             onSelect={onSelect}
                             onSelectNode={onSelectNode}
@@ -341,7 +376,7 @@ function TreeNodeRow(props: TreeNodeRowProps) {
 /** Recursive status/folder tree with compact card rows and hover-only actions. */
 export function FileTreeView(props: FileTreeViewProps) {
     const {
-        cardTypes, cardsByPath, nodes, onCreateFolder, onCreateMarkdownFile, onDeleteFile,
+        cardTypes, cardsByPath, nodes, onCreateFolder, onCreateMarkdownFile, onDeleteFile, onDeleteFolder,
         onSelect, projectFolder, selectedPath, statusColors,
     } = props
     const [creationRequest, setCreationRequest] = useState<CreationRequest | null>(null)
@@ -402,7 +437,7 @@ export function FileTreeView(props: FileTreeViewProps) {
                     sx={{ color: 'text.primary', fontWeight: 700, letterSpacing: '0.7px', lineHeight: 1 }}
                     variant="overline"
                 >
-                    CARDS
+                    FILES
                 </Typography>
                 <Box sx={{ flex: 1 }} />
                 <Tooltip title="New folder">
@@ -448,6 +483,7 @@ export function FileTreeView(props: FileTreeViewProps) {
                             depth={0}
                             node={node}
                             onDeleteFile={onDeleteFile}
+                            onDeleteFolder={onDeleteFolder}
                             onRequestCreate={requestCreate}
                             onSelect={onSelect}
                             onSelectNode={handleSelectNode}

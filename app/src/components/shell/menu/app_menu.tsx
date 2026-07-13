@@ -333,6 +333,7 @@ export function AppMenu(props: AppMenuProps) {
             </Box>
             <ProjectOpenDialog
                 branches={actions.branches}
+                initialSource={actions.initialProjectSource}
                 isDesktopMode={actions.isDesktopMode}
                 isGithubAuthenticated={isGithubAuthenticated}
                 isLoading={actions.isLoading}

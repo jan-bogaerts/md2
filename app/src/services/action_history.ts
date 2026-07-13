@@ -9,6 +9,7 @@ import type {
     ElectronActionBridge,
 } from '../data/electron_action_bridge'
 import type { ProjectReference } from '../data/data_types'
+import type { ThinkingLevel } from '../data/agent_profiles'
 import { combineOutput, statusFromExitCode } from './action_run_log'
 
 export const COMMIT_LINE_PATTERN = /^\[(.+?) ([0-9a-f]{7,40})\]/mu
@@ -81,6 +82,7 @@ export async function loadActionHistory(input: LoadActionHistoryInput): Promise<
 export interface ResolvedHistoryAgentRun {
     agent: string
     model: string
+    thinkingLevel: ThinkingLevel
 }
 
 interface AppendAgentHistoryInput {
@@ -116,6 +118,7 @@ export async function appendAgentHistory(input: AppendAgentHistoryInput) {
         output,
         prompt: input.result.prompt,
         status: statusFromExitCode(input.result.exitCode),
+        thinkingLevel: input.resolvedAgent.thinkingLevel,
         ...(commit ? { commit } : {}),
     }
     const request = { actionId: input.action.id, actionsFolder: input.actionsFolder, context: input.context }

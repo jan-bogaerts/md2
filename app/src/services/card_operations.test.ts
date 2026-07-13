@@ -95,6 +95,39 @@ describe('CardOperations', () => {
         expect(storage.push).toHaveBeenCalledWith({ branch: 'main', id: 'project' })
     })
 
+    it('deletes a folder recursively and reloads repository paths', async () => {
+        configService.init()
+        let folderDeleted = false
+        const deleteFolder = vi.fn<StorageService['deleteFolder']>(async () => {
+            folderDeleted = true
+        })
+        const storage = createStorage({
+            deleteFolder,
+            listRepositoryFiles: vi.fn(async () => (
+                folderDeleted
+                    ? ['design/active/F-1-root.md']
+                    : ['design/active/F-1-root.md', 'design/notes/.gitkeep', 'design/notes/nested/info.txt']
+            )),
+            loadProject: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
+            loadProjectConfig: vi.fn(async () => ({ projectFolder: 'design', workingFolder: 'active' })),
+            loadProjectRoot: vi.fn(async () => ({ files: [], workingFolder: 'design/active' })),
+        })
+        const service = new DataService()
+        service.init({ storage })
+
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        await service.projectLoading.reloadCurrentProjectSnapshot()
+        await service.cards.deleteFolder('design/notes')
+
+        expect(deleteFolder).toHaveBeenCalledWith({
+            branch: 'main',
+            message: 'Delete design/notes',
+            path: 'design/notes',
+        })
+        expect(service.getState().snapshot?.repositoryFiles).toEqual(['design/active/F-1-root.md'])
+        expect(storage.push).toHaveBeenCalledWith({ branch: 'main', id: 'project' })
+    })
+
     it('keeps a created card when auto-push fails after the commit succeeds', async () => {
         configService.init()
         const pushError = new Error('GitHub denied write access')

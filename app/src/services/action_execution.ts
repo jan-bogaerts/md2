@@ -10,9 +10,9 @@ import type {
     ElectronActionBridge,
 } from '../data/electron_action_bridge'
 import type { AgentRunEvent, ProjectReference } from '../data/data_types'
+import type { ThinkingLevel } from '../data/agent_profiles'
 import type { DesktopConfigValues } from './config_service'
 import { appendAgentHistory, appendCommandHistory } from './action_history'
-import { resolveAgentRun } from './action_agent_run'
 import { dialogService } from './dialog_service'
 import {
     combineOutput,
@@ -35,6 +35,7 @@ export interface RunOptions {
     phase: RunPhase
     stack: string[]
     state: RunState
+    thinkingLevel?: ThinkingLevel
 }
 
 export interface ActionExecutionGateway {
@@ -76,6 +77,14 @@ export interface ActionExecutionDependencies {
 export function addFailure(action: ActionDefinition, options: RunOptions, message: string) {
     options.state.failed = true
     options.state.logs.push(createFailureLog(action, options.phase, message))
+}
+
+function resolvedAgentRunFromResult(result: AgentExecutionResult) {
+    if (!result.agent) throw new Error('Agent action result is missing effective agent')
+    if (result.model === undefined) throw new Error('Agent action result is missing effective model')
+    if (!result.thinkingLevel) throw new Error('Agent action result is missing effective thinking level')
+
+    return { agent: result.agent, model: result.model, thinkingLevel: result.thinkingLevel }
 }
 
 export async function runCommandAction(
@@ -137,28 +146,24 @@ export async function runAgentAction(
     try {
         const actionsFolder = dependencies.environment.getActionsFolder()
         if (!actionsFolder) throw new Error('Cannot run agent action before project config is loaded')
-        const resolvedAgent = resolveAgentRun(
-            dependencies.environment.getAgentConfig(),
-            action,
-            { agent: options.agent, model: options.model },
-        )
-        const command = resolvedAgent.command
         if (!context.file) throw new Error('Agent actions require a file context')
 
         const request = {
             actionId: action.id,
-            agent: resolvedAgent.agent,
+            ...(options.agent ? { agent: options.agent } : {}),
             actionsFolder,
             context,
             extraInput: options.extraPrompt,
-            model: resolvedAgent.model,
+            ...(options.model ? { model: options.model } : {}),
+            ...(options.thinkingLevel ? { thinkingLevel: options.thinkingLevel } : {}),
         }
         const result = await dependencies.executionGateway.runAgent(
             bridge,
             request,
             (event) => dependencies.runRecorder.recordAgentRunEvent(context.file as string, event),
         )
-        options.state.logs.push(createAgentLog(action, options.phase, command, result))
+        const resolvedAgent = resolvedAgentRunFromResult(result)
+        options.state.logs.push(createAgentLog(action, options.phase, result.command, result, resolvedAgent.thinkingLevel))
         if (result.exitCode !== 0) options.state.failed = true
         await dependencies.runRecorder.linkAgentConversation(context.file, result)
         await appendAgentHistory({

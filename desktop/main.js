@@ -10,6 +10,7 @@ if (existsSync(desktopEnvironmentPath)) process.loadEnvFile(desktopEnvironmentPa
 const Store = require('electron-store')
 const { readDesktopConfig, resolveBridgeAllowedOrigins, writeDesktopConfig } = require('./src/shell/config')
 const { AgentRunnerService } = require('./src/actions/agent_runner_service')
+const { loadAgentExecutableAvailability } = require('./src/actions/agent_executable_availability')
 const { ActionSchedulerService } = require('./src/actions/action_scheduler_service')
 const diffService = require('./src/git/diff_service')
 const { createLocalBridgeDispatch } = require('./src/shell/local_bridge_dispatch')
@@ -68,6 +69,7 @@ const actionSchedulerService = new ActionSchedulerService({
 const localBridgeDispatch = createLocalBridgeDispatch({
     actionSchedulerService,
     actionWorktreeExecutionService,
+    agentExecutableAvailability: loadAgentExecutableAvailability,
     agentRunnerService,
     desktopConfigStore: store,
     diffService,

@@ -9,6 +9,7 @@ import {
     type ElectronActionBridge,
 } from '../data/electron_action_bridge'
 import type { AgentRunEvent, ProjectReference } from '../data/data_types'
+import type { ThinkingLevel } from '../data/agent_profiles'
 import { dataService } from './data_service'
 import { agentConversationService } from './agent_conversation_service'
 import { configService } from './config_service'
@@ -53,6 +54,7 @@ export interface ActionRunInput {
     agent?: string
     extraPrompt?: string
     model?: string
+    thinkingLevel?: ThinkingLevel
 }
 
 function matchingOnRules(rules: OnRule[], output: string): OnRule[] {
@@ -158,7 +160,15 @@ export class ActionRunner {
         const runningAgentId = this.runRecorder.startRun(actionRunLabel(action, context))
 
         try {
-            await this.runAction(action, context, { agent: input.agent, extraPrompt: input.extraPrompt ?? '', model: input.model, phase: 'main', stack: [], state })
+            await this.runAction(action, context, {
+                agent: input.agent,
+                extraPrompt: input.extraPrompt ?? '',
+                model: input.model,
+                phase: 'main',
+                stack: [],
+                state,
+                thinkingLevel: input.thinkingLevel,
+            })
             await this.notifyActionCompleted(action.id)
             await this.environment.refreshProject?.()
 
@@ -200,14 +210,14 @@ export class ActionRunner {
         const stack = [...options.stack, action.id]
 
         for (const beforeAction of action.onBefore) {
-            await this.runAction(beforeAction, context, { ...options, phase: 'before', stack })
+            await this.runAction(beforeAction, context, { ...options, phase: 'before', stack, thinkingLevel: undefined })
         }
 
         const output = await this.runMain(action, context, { ...options, stack })
         await this.runOnMatches(action, context, output, { ...options, stack })
 
         for (const afterAction of action.onAfter) {
-            await this.runAction(afterAction, context, { ...options, phase: 'after', stack })
+            await this.runAction(afterAction, context, { ...options, phase: 'after', stack, thinkingLevel: undefined })
         }
 
         return output
@@ -239,7 +249,7 @@ export class ActionRunner {
         }
 
         for (const rule of matches) {
-            await this.runAction(rule.action, context, { ...options, phase: 'on', stack: options.stack })
+            await this.runAction(rule.action, context, { ...options, phase: 'on', stack: options.stack, thinkingLevel: undefined })
         }
     }
 

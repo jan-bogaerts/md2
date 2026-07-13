@@ -1,6 +1,7 @@
 import type { ActionContext } from './action_context'
 import type { ActionScheduleTrigger } from './action_schedule_types'
 import type { AgentConversation, AgentRunEvent } from './data_types'
+import type { ThinkingLevel } from './agent_profiles'
 
 export interface CommandExecutionResult {
     branch?: string
@@ -29,6 +30,7 @@ export interface AgentActionExecutionRequest {
     extraInput: string
     agent?: string
     model?: string
+    thinkingLevel?: ThinkingLevel
 }
 
 export type AgentRunRequest = AgentActionExecutionRequest | AgentExecutionRequest
@@ -41,10 +43,13 @@ export interface CommandActionExecutionRequest {
 }
 
 export interface AgentExecutionResult extends CommandExecutionResult {
+    agent?: string
     conversation: AgentConversation
+    model?: string
     prompt: string
     reference: string
     runId: string
+    thinkingLevel?: ThinkingLevel
 }
 
 export interface ActionRunHistoryRequest {
@@ -78,6 +83,7 @@ export interface ActionRunHistoryEntry {
     output: string
     prompt: string
     status: 'completed' | 'failed'
+    thinkingLevel?: ThinkingLevel
 }
 
 /** Request to render a commit's diff through the configured Electron command template. */

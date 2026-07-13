@@ -63,6 +63,7 @@ function renderTextView(overrides: Partial<Parameters<typeof TextView>[0]> = {})
     const onCreateFolder = vi.fn(async () => undefined)
     const onCreateMarkdownFile = vi.fn(async () => undefined)
     const onDeleteFile = vi.fn(async () => undefined)
+    const onDeleteFolder = vi.fn(async () => undefined)
     const onHeaderFieldChange = vi.fn()
 
     function TextViewHarness() {
@@ -82,6 +83,7 @@ function renderTextView(overrides: Partial<Parameters<typeof TextView>[0]> = {})
                     onCreateFolder={onCreateFolder}
                     onCreateMarkdownFile={onCreateMarkdownFile}
                     onDeleteFile={onDeleteFile}
+                    onDeleteFolder={onDeleteFolder}
                     onHeaderFieldChange={onHeaderFieldChange}
                     onLeftPanelInteraction={handleLeftPanelInteraction}
                     onSendAgentInput={vi.fn()}
@@ -104,7 +106,7 @@ function renderTextView(overrides: Partial<Parameters<typeof TextView>[0]> = {})
         </AppThemeProvider>,
     )
 
-    return { onBodyChange, onCreateFolder, onCreateMarkdownFile, onDeleteFile, onHeaderFieldChange }
+    return { onBodyChange, onCreateFolder, onCreateMarkdownFile, onDeleteFile, onDeleteFolder, onHeaderFieldChange }
 }
 
 /** Click a file leaf inside the tree region (avoids matching the same label in an open tab). */
@@ -139,7 +141,7 @@ describe('TextView', () => {
         renderTextView()
         const tree = within(screen.getByLabelText('File tree'))
 
-        expect(tree.getByText('CARDS')).toBeInTheDocument()
+        expect(tree.getByText('FILES')).toBeInTheDocument()
         expect(tree.getByText('todo')).toBeInTheDocument()
         expect(tree.getByText('done')).toBeInTheDocument()
         expect(tree.getByText('history')).toBeInTheDocument()
@@ -315,6 +317,39 @@ describe('TextView', () => {
         confirm.mockRestore()
     })
 
+    it('deletes a user folder recursively from its trash icon after confirmation', async () => {
+        const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
+        const nestedCard = card('design/notes/nested.md', { title: 'Nested' }, '# Nested')
+        const { onDeleteFolder } = renderTextView({
+            backgroundCards: [...backgroundCards, nestedCard],
+            repositoryFiles: ['design/notes/.gitkeep', nestedCard.path],
+        })
+
+        clickTreeFile('Nested')
+        fireEvent.click(screen.getByRole('button', { name: 'Delete design/notes' }))
+
+        expect(confirm).toHaveBeenCalledWith('Delete design/notes and all files inside it?')
+        expect(onDeleteFolder).toHaveBeenCalledWith('design/notes')
+        await waitFor(() => expect(screen.queryByRole('tab', { name: 'Nested' })).not.toBeInTheDocument())
+        expect(screen.queryByRole('button', { name: 'Delete design/history' })).not.toBeInTheDocument()
+
+        confirm.mockRestore()
+    })
+
+    it('offers recursive user-folder deletion in the context menu', async () => {
+        const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
+        const { onDeleteFolder } = renderTextView({ repositoryFiles: ['design/notes/.gitkeep'] })
+        const tree = within(screen.getByLabelText('File tree'))
+
+        fireEvent.contextMenu(tree.getByRole('button', { name: 'notes 0' }))
+        fireEvent.click(within(screen.getByRole('menu')).getByRole('menuitem', { name: 'Delete folder' }))
+
+        await waitFor(() => expect(onDeleteFolder).toHaveBeenCalledWith('design/notes'))
+        expect(confirm).toHaveBeenCalledWith('Delete design/notes and all files inside it?')
+
+        confirm.mockRestore()
+    })
+
     it('persists edits through onBodyChange when another file is opened', () => {
         const { onBodyChange } = renderTextView()
 
@@ -338,6 +373,7 @@ describe('TextView', () => {
             onCreateFolder: vi.fn(async () => undefined),
             onCreateMarkdownFile: vi.fn(async () => undefined),
             onDeleteFile: vi.fn(async () => undefined),
+            onDeleteFolder: vi.fn(async () => undefined),
             onHeaderFieldChange: vi.fn(),
             onLeftPanelInteraction: vi.fn(),
             onSendAgentInput: vi.fn(),
@@ -379,6 +415,7 @@ describe('TextView', () => {
             onCreateFolder: vi.fn(async () => undefined),
             onCreateMarkdownFile: vi.fn(async () => undefined),
             onDeleteFile: vi.fn(async () => undefined),
+            onDeleteFolder: vi.fn(async () => undefined),
             onHeaderFieldChange: vi.fn(),
             onLeftPanelInteraction: vi.fn(),
             onSendAgentInput: vi.fn(),

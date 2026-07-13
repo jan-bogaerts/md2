@@ -60,6 +60,7 @@ function resolveActionAgent(action, dependencies) {
     return resolveAgentCommand(config, {
         ...(action.agent ? { agent: action.agent } : {}),
         ...(action.model ? { model: action.model } : {}),
+        ...(action.thinkingLevel ? { thinkingLevel: action.thinkingLevel } : {}),
     })
 }
 
@@ -125,6 +126,7 @@ async function runAgentAction(action, context, options, dependencies) {
         output,
         prompt: result.prompt,
         status: statusFromExitCode(result.exitCode),
+        thinkingLevel: resolvedAgent.thinkingLevel,
     }
     const executionProject = { ...dependencies.project, branch: result.branch, rootPath: result.repositoryRoot }
     await dependencies.appendHistory(action.id, context, entry, executionProject)

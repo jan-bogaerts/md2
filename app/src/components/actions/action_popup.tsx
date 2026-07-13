@@ -107,11 +107,13 @@ export function ActionPopup(props: ActionPopupProps) {
                             onConvertToAction={controller.handleConvertToAction}
                             onExtraPromptChange={controller.handleExtraPromptChange}
                             onModelChange={controller.handleModelChange}
+                            onThinkingLevelChange={controller.handleThinkingLevelChange}
                             onRunShortcut={runDisabled ? undefined : handlePrimaryRun}
                             onSaveAndRun={controller.handleSaveAndRun}
                             saveDisabled={controller.saveDisabled}
                             selectedAgentModels={controller.selectedAgentModels}
                             showSaveControls={showSaveControls}
+                            thinkingLevel={controller.thinkingLevel}
                         />
                     ) : null}
                     {controller.scheduleOpen ? (
@@ -239,10 +241,12 @@ export function ActionPopup(props: ActionPopupProps) {
                         onConvertToAction={controller.handleConvertToAction}
                         onExtraPromptChange={controller.handleExtraPromptChange}
                         onModelChange={controller.handleModelChange}
+                        onThinkingLevelChange={controller.handleThinkingLevelChange}
                         onSaveAndRun={controller.handleSaveAndRun}
                         saveDisabled={controller.saveDisabled}
                         selectedAgentModels={controller.selectedAgentModels}
                         showSaveControls={showSaveControls}
+                        thinkingLevel={controller.thinkingLevel}
                     />
                 ) : null}
 

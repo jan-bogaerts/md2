@@ -17,6 +17,7 @@ import type { SelectChangeEvent } from '@mui/material'
 import type { ChangeEvent } from 'react'
 import { useState } from 'react'
 import { DEFAULT_PROJECT_FOLDER, type BranchReference, type ProjectReference, type RepositoryReference, type TopLevelFolderReference } from '../../../data/data_types'
+import { tryReadRemoteControlConnection } from '../../../data/remote_control_connection'
 import type { ProjectOpenResolution } from '../../../services/project_session_service'
 import { ProjectFolderSetupForm } from './project_folder_setup_form'
 import { WorkingFolderChooserDialog } from './working_folder_chooser_dialog'
@@ -30,6 +31,7 @@ interface GithubBranchesResult {
 
 interface ProjectOpenDialogProps {
     branches: BranchReference[]
+    initialSource?: ProjectSource | null
     isDesktopMode: boolean
     isGithubAuthenticated: boolean
     isLoading: boolean
@@ -77,6 +79,7 @@ function repositoryMatchesFilter(repository: RepositoryReference, filter: string
 export function ProjectOpenDialog(props: ProjectOpenDialogProps) {
     const {
         branches,
+        initialSource,
         isDesktopMode,
         isGithubAuthenticated,
         isLoading,
@@ -108,6 +111,20 @@ export function ProjectOpenDialog(props: ProjectOpenDialogProps) {
     const [selectedBranch, setSelectedBranch] = useState('')
     const [selectedRepositoryId, setSelectedRepositoryId] = useState('')
     const [source, setSource] = useState<ProjectSource>('github')
+    const [wasOpen, setWasOpen] = useState(false)
+
+    if (open !== wasOpen) {
+        setWasOpen(open)
+        if (open) {
+            if (initialSource) setSource(initialSource)
+            const stored = tryReadRemoteControlConnection()
+            if (stored) {
+                if (remoteEndpoint.length === 0) setRemoteEndpoint(stored.endpoint)
+                if (remoteToken.length === 0) setRemoteToken(stored.token)
+            }
+        }
+    }
+
     const projectFolderSetup = projectOpenResolution?.kind === 'project-folder-setup' ? projectOpenResolution : null
     const missingWorkingFolder = projectOpenResolution?.kind === 'missing-working-folder' ? projectOpenResolution : null
     const filteredRepositories = repositories.filter((repository) => repositoryMatchesFilter(repository, repositoryFilter))

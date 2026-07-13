@@ -94,7 +94,7 @@ describe('loadActionDefinitions', () => {
         expect(() => loadActionDefinitions([file('implement', { ...IMPLEMENT, model: 'gpt-5' })])).toThrow(/model requires agent/u)
         expect(() => loadActionDefinitions([file('implement', { ...IMPLEMENT, agent: 'missing' })], { profiles: [] })).toThrow(/Unknown agent profile/u)
         expect(() => loadActionDefinitions([file('implement', { ...IMPLEMENT, agent: 'codex', model: 'bad' })], {profiles: [{ command: 'codex', models: ['gpt-5'], name: 'codex' }]})).toThrow(/Unknown model/u)
-        expect(() => loadActionDefinitions([file('implement', { ...IMPLEMENT, agent: 'codex', thinkingLevel: 'high' })], {profiles: [{ command: 'codex', name: 'codex' }]})).toThrow(/thinkingLevel requires agent and model/u)
+        expect(() => loadActionDefinitions([file('implement', { ...IMPLEMENT, agent: 'codex', thinkingLevel: 'high' })], {profiles: [{ command: 'codex', models: ['gpt-5'], name: 'codex' }]})).toThrow(/thinkingLevel requires agent and model/u)
     })
 
     it('detects self references and circular ID chains', () => {

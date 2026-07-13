@@ -1,6 +1,11 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { DEFAULT_CARD_TYPES, type BranchReference, type ProjectReference, type RepositoryReference } from '../../../data/data_types'
+import {
+    configureRemoteControlConnection,
+    REMOTE_CONTROL_ENDPOINT_KEY,
+    REMOTE_CONTROL_TOKEN_KEY,
+} from '../../../data/remote_control_connection'
 import { AppThemeProvider } from '../../../theme/theme_provider'
 import { BranchSwitchDialog } from './branch_switch_dialog'
 import { CompleteReleaseDialog } from './complete_release_dialog'
@@ -16,6 +21,8 @@ describe('project dialog components', () => {
     afterEach(() => {
         cleanup()
         vi.restoreAllMocks()
+        window.localStorage.removeItem(REMOTE_CONTROL_ENDPOINT_KEY)
+        window.localStorage.removeItem(REMOTE_CONTROL_TOKEN_KEY)
     })
 
     it('renders the open project dialog without mounting the menu', () => {
@@ -84,6 +91,73 @@ describe('project dialog components', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Open GitHub' }))
 
         expect(openGithub).toHaveBeenCalledWith('octo', 'demo', 'topic')
+    })
+
+    it('preselects the remote source and prefills the stored connection settings', () => {
+        configureRemoteControlConnection({ endpoint: 'ws://192.168.0.10:1234', token: 'token-1' })
+
+        render(
+            <ProjectOpenDialog
+                branches={[]}
+                initialSource="remote"
+                isDesktopMode={false}
+                isGithubAuthenticated={false}
+                isLoading={false}
+                projectOpenResolution={null}
+                onBranchChange={vi.fn()}
+                onClose={vi.fn()}
+                onCreateProjectFolders={vi.fn()}
+                onCreateRemoteProject={vi.fn((rootPath, branch) => ({ branch, id: rootPath, rootPath }))}
+                onCreateWorkingFolder={vi.fn()}
+                onDiscardGithubPendingCommits={vi.fn()}
+                onLoadManualBranches={vi.fn(async () => ({ branches: BRANCHES, repository: REPOSITORIES[0] }))}
+                onLoadRemoteBranches={vi.fn(async () => BRANCHES)}
+                onOpenGithub={vi.fn()}
+                onOpenRemote={vi.fn()}
+                onRepositoryChange={vi.fn(async () => BRANCHES)}
+                onSourceChange={vi.fn()}
+                onUseWorkingFolder={vi.fn()}
+                open
+                pendingGithubConflictProject={null}
+                repositories={[]}
+            />,
+        )
+
+        expect(screen.getByLabelText('Endpoint')).toHaveValue('ws://192.168.0.10:1234')
+        expect(screen.getByLabelText('Token')).toHaveValue('token-1')
+        expect(screen.getByRole('button', { name: 'Open Remote' })).toBeInTheDocument()
+    })
+
+    it('keeps remote fields empty on first run', () => {
+        render(
+            <ProjectOpenDialog
+                branches={[]}
+                initialSource="remote"
+                isDesktopMode={false}
+                isGithubAuthenticated={false}
+                isLoading={false}
+                projectOpenResolution={null}
+                onBranchChange={vi.fn()}
+                onClose={vi.fn()}
+                onCreateProjectFolders={vi.fn()}
+                onCreateRemoteProject={vi.fn((rootPath, branch) => ({ branch, id: rootPath, rootPath }))}
+                onCreateWorkingFolder={vi.fn()}
+                onDiscardGithubPendingCommits={vi.fn()}
+                onLoadManualBranches={vi.fn(async () => ({ branches: BRANCHES, repository: REPOSITORIES[0] }))}
+                onLoadRemoteBranches={vi.fn(async () => BRANCHES)}
+                onOpenGithub={vi.fn()}
+                onOpenRemote={vi.fn()}
+                onRepositoryChange={vi.fn(async () => BRANCHES)}
+                onSourceChange={vi.fn()}
+                onUseWorkingFolder={vi.fn()}
+                open
+                pendingGithubConflictProject={null}
+                repositories={[]}
+            />,
+        )
+
+        expect(screen.getByLabelText('Endpoint')).toHaveValue('')
+        expect(screen.getByLabelText('Token')).toHaveValue('')
     })
 
     it('renders the working folder chooser without mounting the menu', () => {

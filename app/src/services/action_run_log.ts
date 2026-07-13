@@ -1,5 +1,6 @@
 import type { ActionDefinition } from '../data/action_types'
 import type { AgentExecutionResult, CommandExecutionResult } from '../data/electron_action_bridge'
+import type { ThinkingLevel } from '../data/agent_profiles'
 
 export type RunStatus = 'completed' | 'failed'
 export type RunPhase = 'after' | 'before' | 'main' | 'on'
@@ -12,6 +13,7 @@ export interface ActionRunLogEntry {
     status: RunStatus
     stderr: string
     stdout: string
+    thinkingLevel?: ThinkingLevel
 }
 
 export function combineOutput(result: CommandExecutionResult | AgentExecutionResult) {
@@ -63,6 +65,7 @@ export function createAgentLog(
     phase: RunPhase,
     command: string,
     result: AgentExecutionResult,
+    thinkingLevel: ThinkingLevel,
 ): ActionRunLogEntry {
     return {
         actionName: action.name,
@@ -72,5 +75,6 @@ export function createAgentLog(
         status: statusFromExitCode(result.exitCode),
         stderr: result.stderr,
         stdout: result.stdout,
+        thinkingLevel,
     }
 }

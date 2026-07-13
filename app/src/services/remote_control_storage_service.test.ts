@@ -101,6 +101,22 @@ describe('RemoteControlStorageService', () => {
         await expect(request).rejects.toThrow('command failed')
     })
 
+    it('sends recursive folder deletion requests', async () => {
+        installWebSocket()
+        const service = createService()
+        const deleteRequest = { branch: 'main', message: 'Delete design/notes', path: 'design/notes' }
+        const deletion = service.deleteFolder(deleteRequest)
+        const socket = lastSocket()
+
+        socket.open()
+        await flushPromises()
+        const sentRequest = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
+        expect(sentRequest).toMatchObject({ method: 'deleteFolder', params: [deleteRequest] })
+        socket.receive({ id: sentRequest.id, result: null })
+
+        await expect(deletion).resolves.toBeUndefined()
+    })
+
     it('delivers watch and agent push events', async () => {
         installWebSocket()
         const service = createService()
@@ -145,6 +161,31 @@ describe('RemoteControlStorageService', () => {
         socket.close()
 
         await expect(request).rejects.toThrow('Remote-control connection closed')
+    })
+
+    it('connects and disconnects without a request', async () => {
+        installWebSocket()
+        const service = createService()
+        const connection = service.connect()
+        const socket = lastSocket()
+
+        socket.open()
+        await expect(connection).resolves.toBeUndefined()
+        expect(socket.url).toBe('ws://127.0.0.1:1234')
+
+        service.disconnect()
+        expect(socket.readyState).toBe(3)
+    })
+
+    it('rejects connect when the socket errors before opening', async () => {
+        installWebSocket()
+        const service = createService()
+        const connection = service.connect()
+        const socket = lastSocket()
+
+        socket.dispatchEvent(new Event('error'))
+
+        await expect(connection).rejects.toThrow('Remote-control connection failed')
     })
 
     it('sends the token as WebSocket protocol instead of a query parameter', async () => {

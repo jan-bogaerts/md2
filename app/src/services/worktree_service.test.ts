@@ -12,6 +12,7 @@ function createStorage(): StorageService {
         createProject: vi.fn(),
         createWorkingFolderFromTemplate: vi.fn(),
         deleteFile: vi.fn(),
+        deleteFolder: vi.fn(),
         listBranches: vi.fn(),
         listRepositories: vi.fn(),
         listRepositoryFiles: vi.fn(),

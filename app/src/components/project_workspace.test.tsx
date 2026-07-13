@@ -39,6 +39,11 @@ function createBridge(): ElectronDataBridge {
             const existingIndex = files.findIndex((file) => file.path === request.path)
             if (existingIndex >= 0) files.splice(existingIndex, 1)
         }),
+        deleteFolder: vi.fn(async (request) => {
+            const folderPrefix = `${request.path}/`
+            const remainingFiles = files.filter((file) => !file.path.startsWith(folderPrefix))
+            files.splice(0, files.length, ...remainingFiles)
+        }),
         hasPendingPush: vi.fn(async () => false),
         listBranches: vi.fn(async () => [{ name: 'main' }, { name: 'feature' }]),
         listRepositoryFiles: vi.fn(async () => ['app/src/app.tsx', 'design/F-1-root.md']),
@@ -81,6 +86,7 @@ function createResetStorage(): StorageService {
         createProject: vi.fn(async (project) => project),
         createWorkingFolderFromTemplate: vi.fn(async (project) => project),
         deleteFile: vi.fn(),
+        deleteFolder: vi.fn(),
         hasPendingPush: vi.fn(() => false),
         listBranches: vi.fn(async () => []),
         listRepositories: vi.fn(async () => []),

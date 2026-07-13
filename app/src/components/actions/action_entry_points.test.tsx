@@ -225,6 +225,7 @@ describe('entry-point placement in the file tree', () => {
                 onCreateFolder={createFolder}
                 onCreateMarkdownFile={createMarkdownFile}
                 onDeleteFile={async () => undefined}
+                onDeleteFolder={async () => undefined}
                 onSelect={() => {}}
                 projectFolder="design"
                 selectedPath={null}

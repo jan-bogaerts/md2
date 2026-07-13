@@ -19,7 +19,9 @@ interface ActionRunHistoryProps {
 function HistoryEntryRow(props: HistoryEntryRowProps) {
     const { entry } = props
     const [showDiff, setShowDiff] = useState(false)
-    const agentLabel = entry.agent ? ` (${entry.agent}${entry.model ? ` / ${entry.model}` : ''})` : ''
+    const agentLabel = entry.agent
+        ? ` (${entry.agent}${entry.model ? ` / ${entry.model}` : ''}${entry.thinkingLevel ? ` / ${entry.thinkingLevel}` : ''})`
+        : ''
 
     const handleToggleDiff = () => setShowDiff((previous) => !previous)
 

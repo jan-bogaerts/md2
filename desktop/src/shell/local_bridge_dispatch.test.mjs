@@ -5,6 +5,7 @@ const require = createRequire(import.meta.url)
 const { createLocalBridgeDispatch } = require('./local_bridge_dispatch')
 
 function createDispatch(options = {}) {
+    const agentExecutableAvailability = vi.fn(async () => ({ codex: { available: true, error: null } }))
     const actionSchedulerService = {
         handleActionCompleted: vi.fn(),
         registerActionSchedule: vi.fn(async () => ({ id: 'schedule-1' })),
@@ -49,22 +50,33 @@ function createDispatch(options = {}) {
         })),
         resolve: vi.fn(async (primaryProject) => ({ executionProject: primaryProject, transferRecord: null })),
     }
+    const desktopConfig = options.desktopConfig ?? {
+        agent: 'codex', agentProfiles: [{ command: 'codex', models: ['gpt-5'], name: 'codex' }], model: 'gpt-5',
+    }
     const dispatch = createLocalBridgeDispatch({
         actionSchedulerService,
         actionWorktreeExecutionService,
+        agentExecutableAvailability,
         agentRunnerService,
         desktopConfigStore: {},
         diffService: { generateDiff: vi.fn(), openInEditor: vi.fn() },
         localGitService,
         openProjectFolder: options.openProjectFolder,
-        readDesktopConfig: () => ({ agent: 'codex', agentProfiles: [{ command: 'codex', name: 'codex' }], model: '' }),
+        readDesktopConfig: () => desktopConfig,
         worktreeService: { resolvePath: vi.fn() },
     })
 
-    return { actionSchedulerService, agentRunnerService, dispatch, localGitService }
+    return { actionSchedulerService, agentExecutableAvailability, agentRunnerService, dispatch, localGitService }
 }
 
 describe('createLocalBridgeDispatch', () => {
+    it('loads executable availability from configured profiles', async () => {
+        const { agentExecutableAvailability, dispatch } = createDispatch()
+
+        await expect(dispatch.dataBridge.loadAgentAvailability()).resolves.toEqual({ codex: { available: true, error: null } })
+        expect(agentExecutableAvailability).toHaveBeenCalledWith([{ command: 'codex', models: ['gpt-5'], name: 'codex' }])
+    })
+
     it('forwards pending push checks to the local Git service', async () => {
         const { dispatch, localGitService } = createDispatch()
         const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
@@ -159,8 +171,131 @@ describe('createLocalBridgeDispatch', () => {
         }, vi.fn())
 
         expect(agentRunnerService.run).toHaveBeenCalledWith(project, expect.objectContaining({
-            cardPath: 'design/F-1.md', command: 'codex', prompt: 'Review design/F-1.md\n\nFocus tests', title: 'Review',
+            agent: 'codex', cardPath: 'design/F-1.md', command: 'codex', model: 'gpt-5',
+            prompt: 'Review design/F-1.md\n\nFocus tests', thinkingLevel: 'none', title: 'Review',
         }), expect.any(Function))
+    })
+
+    it('resolves thinking level from runtime input before action definition and config', async () => {
+        const actionFiles = [{
+            content: JSON.stringify({
+                agent: 'codex', description: 'Review files', id: 'review', label: 'Review', model: 'gpt-5', name: 'review',
+                prompt: 'Review {{file}}', thinkingLevel: 'high', type: 'agent',
+            }),
+            path: 'actions/review.json',
+        }]
+        const desktopConfig = {
+            agent: 'codex', agentProfiles: [{ command: 'codex', models: ['gpt-5'], name: 'codex' }],
+            model: 'gpt-5', thinkingLevel: 'medium',
+        }
+        const { agentRunnerService, dispatch } = createDispatch({ actionFiles, desktopConfig })
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
+        await dispatch.dataBridge.loadProject(project, 'design')
+
+        const result = await dispatch.actionBridge.runAgent({
+            actionId: 'review', actionsFolder: 'actions', context: { file: 'design/F-1.md', kind: 'card' },
+            extraInput: '', thinkingLevel: 'low',
+        }, vi.fn())
+
+        expect(agentRunnerService.run).toHaveBeenCalledWith(project, expect.objectContaining({
+            command: 'codex -c model_reasoning_effort=low', thinkingLevel: 'low',
+        }), expect.any(Function))
+        expect(result).toMatchObject({ agent: 'codex', model: 'gpt-5', thinkingLevel: 'low' })
+    })
+
+    it('uses definition then config thinking levels and lets none omit the override', async () => {
+        const actionFiles = [{
+            content: JSON.stringify({
+                agent: 'codex', description: 'Review files', id: 'review', label: 'Review', model: 'gpt-5', name: 'review',
+                prompt: 'Review {{file}}', thinkingLevel: 'high', type: 'agent',
+            }),
+            path: 'actions/review.json',
+        }]
+        const desktopConfig = {
+            agent: 'codex', agentProfiles: [{ command: 'codex', models: ['gpt-5'], name: 'codex' }],
+            model: 'gpt-5', thinkingLevel: 'medium',
+        }
+        const { agentRunnerService, dispatch } = createDispatch({ actionFiles, desktopConfig })
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
+        await dispatch.dataBridge.loadProject(project, 'design')
+        const request = {
+            actionId: 'review', actionsFolder: 'actions', context: { file: 'design/F-1.md', kind: 'card' }, extraInput: '',
+        }
+
+        await dispatch.actionBridge.runAgent(request, vi.fn())
+        await dispatch.actionBridge.runAgent({ ...request, thinkingLevel: 'none' }, vi.fn())
+
+        expect(agentRunnerService.run).toHaveBeenNthCalledWith(1, project, expect.objectContaining({
+            command: 'codex -c model_reasoning_effort=high', thinkingLevel: 'high',
+        }), expect.any(Function))
+        expect(agentRunnerService.run).toHaveBeenNthCalledWith(2, project, expect.objectContaining({
+            command: 'codex', thinkingLevel: 'none',
+        }), expect.any(Function))
+    })
+
+    it('uses configured thinking level when runtime and definition omit it', async () => {
+        const actionFiles = [{
+            content: JSON.stringify({
+                description: 'Review files', id: 'review', label: 'Review', name: 'review', prompt: 'Review {{file}}', type: 'agent',
+            }),
+            path: 'actions/review.json',
+        }]
+        const desktopConfig = {
+            agent: 'codex', agentProfiles: [{ command: 'codex', models: ['gpt-5'], name: 'codex' }],
+            model: 'gpt-5', thinkingLevel: 'medium',
+        }
+        const { agentRunnerService, dispatch } = createDispatch({ actionFiles, desktopConfig })
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
+        await dispatch.dataBridge.loadProject(project, 'design')
+
+        await dispatch.actionBridge.runAgent({
+            actionId: 'review', actionsFolder: 'actions', context: { file: 'design/F-1.md', kind: 'card' }, extraInput: '',
+        }, vi.fn())
+
+        expect(agentRunnerService.run).toHaveBeenCalledWith(project, expect.objectContaining({
+            command: 'codex -c model_reasoning_effort=medium', thinkingLevel: 'medium',
+        }), expect.any(Function))
+    })
+
+    it('rejects invalid and unsupported thinking levels before agent process start', async () => {
+        const actionFiles = [{
+            content: JSON.stringify({
+                agent: 'custom', description: 'Review files', id: 'review', label: 'Review', model: 'fast', name: 'review',
+                prompt: 'Review {{file}}', thinkingLevel: 'high', type: 'agent',
+            }),
+            path: 'actions/review.json',
+        }]
+        const desktopConfig = {
+            agent: 'custom', agentProfiles: [{ command: 'custom-agent', models: ['fast'], name: 'custom' }], model: 'fast',
+        }
+        const { agentRunnerService, dispatch } = createDispatch({ actionFiles, desktopConfig })
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
+        await dispatch.dataBridge.loadProject(project, 'design')
+        const request = {
+            actionId: 'review', actionsFolder: 'actions', context: { file: 'design/F-1.md', kind: 'card' }, extraInput: '',
+        }
+
+        await expect(dispatch.actionBridge.runAgent({ ...request, thinkingLevel: 'extreme' }, vi.fn())).rejects.toThrow('Invalid thinking level')
+        await expect(dispatch.actionBridge.runAgent(request, vi.fn())).rejects.toThrow('Agent profile does not support thinking levels: custom')
+        expect(agentRunnerService.run).not.toHaveBeenCalled()
+    })
+
+    it('rejects an invalid persisted thinking level before agent process start', async () => {
+        const actionFiles = [{
+            content: JSON.stringify({
+                agent: 'codex', description: 'Review files', id: 'review', label: 'Review', model: 'gpt-5', name: 'review',
+                prompt: 'Review {{file}}', thinkingLevel: 'extreme', type: 'agent',
+            }),
+            path: 'actions/review.json',
+        }]
+        const { agentRunnerService, dispatch } = createDispatch({ actionFiles })
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
+        await dispatch.dataBridge.loadProject(project, 'design')
+
+        await expect(dispatch.actionBridge.runAgent({
+            actionId: 'review', actionsFolder: 'actions', context: { file: 'design/F-1.md', kind: 'card' }, extraInput: '',
+        }, vi.fn())).rejects.toThrow('Invalid thinking level')
+        expect(agentRunnerService.run).not.toHaveBeenCalled()
     })
 
     it('invokes shared method table for remote control', async () => {

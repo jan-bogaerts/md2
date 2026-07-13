@@ -3,7 +3,7 @@ import type { ChangeEvent } from 'react'
 import { useEffect } from 'react'
 import { mergeAgentProfiles } from '../../data/agent_profiles'
 import type { RawActionDefinition } from '../../data/action_types'
-import { agentCapabilitiesService } from '../../services/agent_capabilities_service'
+import { agentCapabilitiesService, type AgentCapabilitiesService } from '../../services/agent_capabilities_service'
 import { useAgentCapabilities } from '../hooks/use_agent_capabilities'
 import { useConfigValue } from '../hooks/use_config_value'
 
@@ -11,23 +11,24 @@ interface ActionAgentCapabilityFieldsProps {
     definition: RawActionDefinition
     errors: Partial<Record<keyof RawActionDefinition, string>>
     onChange: (definition: RawActionDefinition) => void
+    service?: AgentCapabilitiesService
 }
 
 export function ActionAgentCapabilityFields(props: ActionAgentCapabilityFieldsProps) {
-    const { definition, errors, onChange } = props
+    const { definition, errors, onChange, service = agentCapabilitiesService } = props
     const profiles = mergeAgentProfiles(useConfigValue('desktop.agentProfiles'))
-    const { models, thinkingLevels } = useAgentCapabilities()
+    const { availability, models, thinkingLevels } = useAgentCapabilities(service)
 
     useEffect(() => {
-        if (definition.agent) void agentCapabilitiesService.loadModels(definition.agent)
-        else agentCapabilitiesService.clear()
-    }, [definition.agent])
+        if (definition.agent) void service.loadModels(definition.agent)
+        else service.clear()
+    }, [definition.agent, service])
 
     useEffect(() => {
         if (definition.agent && definition.model) {
-            void agentCapabilitiesService.loadThinkingLevels(definition.agent, definition.model)
+            void service.loadThinkingLevels(definition.agent, definition.model)
         }
-    }, [definition.agent, definition.model])
+    }, [definition.agent, definition.model, service])
 
     const handleAgentChange = (event: ChangeEvent<HTMLInputElement>) => {
         const agent = event.target.value
@@ -46,22 +47,29 @@ export function ActionAgentCapabilityFields(props: ActionAgentCapabilityFieldsPr
 
     const handleThinkingLevelChange = (event: ChangeEvent<HTMLInputElement>) => {
         const thinkingLevel = event.target.value
-        onChange({ ...definition, thinkingLevel: thinkingLevel || undefined })
+        onChange({ ...definition, thinkingLevel: thinkingLevel === 'none' ? undefined : thinkingLevel })
     }
+
+    const selectedAvailability = definition.agent ? availability.values[definition.agent] : undefined
+    const agentCapabilityError = availability.error
+        ?? (definition.agent && !availability.loading && !selectedAvailability
+            ? `Agent executable availability is missing for ${definition.agent}`
+            : selectedAvailability?.error)
 
     const modelValues = definition.model && !models.values.includes(definition.model)
         ? [definition.model, ...models.values]
         : models.values
-    const thinkingLevelValues = definition.thinkingLevel && !thinkingLevels.values.includes(definition.thinkingLevel)
-        ? [definition.thinkingLevel, ...thinkingLevels.values]
-        : thinkingLevels.values
+    const configuredThinkingLevels = thinkingLevels.values.filter((level) => level !== 'none')
+    const thinkingLevelValues = definition.thinkingLevel && !configuredThinkingLevels.includes(definition.thinkingLevel)
+        ? [definition.thinkingLevel, ...configuredThinkingLevels]
+        : configuredThinkingLevels
 
     return (
         <Stack direction={{ md: 'row', xs: 'column' }} spacing={1}>
             <TextField
-                error={!!errors.agent}
+                error={!!errors.agent || !!agentCapabilityError}
                 fullWidth
-                helperText={errors.agent}
+                helperText={errors.agent ?? agentCapabilityError ?? (availability.loading ? 'Checking agent availability…' : undefined)}
                 label="Agent override"
                 onChange={handleAgentChange}
                 select
@@ -69,7 +77,13 @@ export function ActionAgentCapabilityFields(props: ActionAgentCapabilityFieldsPr
                 value={definition.agent ?? ''}
             >
                 <MenuItem value="">Application default</MenuItem>
-                {profiles.map((profile) => <MenuItem key={profile.name} value={profile.name}>{profile.name}</MenuItem>)}
+                {profiles.map((profile) => {
+                    const profileAvailability = availability.values[profile.name]
+                    const disabled = availability.loading || !!availability.error || !profileAvailability?.available
+                    const label = profileAvailability?.error ? `${profile.name} — ${profileAvailability.error}` : profile.name
+
+                    return <MenuItem disabled={disabled} key={profile.name} value={profile.name}>{label}</MenuItem>
+                })}
             </TextField>
             <TextField
                 disabled={!definition.agent || models.loading || !!models.error}
@@ -94,9 +108,9 @@ export function ActionAgentCapabilityFields(props: ActionAgentCapabilityFieldsPr
                 onChange={handleThinkingLevelChange}
                 select
                 size="small"
-                value={definition.thinkingLevel ?? ''}
+                value={definition.thinkingLevel ?? 'none'}
             >
-                <MenuItem value="">Select thinking level</MenuItem>
+                <MenuItem value="none">none</MenuItem>
                 {thinkingLevelValues.map((level) => <MenuItem key={level} value={level}>{level}</MenuItem>)}
             </TextField>
         </Stack>

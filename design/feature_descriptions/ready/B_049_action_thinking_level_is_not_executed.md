@@ -1,7 +1,7 @@
 ---
 id: B-049
 title: action thinking level is persisted but never executed
-status: design
+status: ready
 owner: JB
 affects:
 policy:

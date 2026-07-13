@@ -3,7 +3,13 @@ import type { ChangeEvent } from 'react'
 import type { ActionContext } from '../../data/action_context'
 import type { ActionDefinition } from '../../data/action_types'
 import type { ActionRunHistoryEntry } from '../../data/electron_action_bridge'
-import { defaultModelForProfile, findAgentProfile, mergeAgentProfiles } from '../../data/agent_profiles'
+import {
+    defaultModelForProfile,
+    findAgentProfile,
+    mergeAgentProfiles,
+    type ThinkingLevel,
+    validateThinkingLevel,
+} from '../../data/agent_profiles'
 import type { ActionRunResult } from '../../services/action_runner'
 import { useConfigValueOrFallback } from '../hooks/use_config_value'
 import {
@@ -44,6 +50,7 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
     const defaultAgent = action.agent ?? configuredAgent
     const defaultAgentProfile = findAgentProfile(agentProfiles, defaultAgent)
     const defaultModel = (action.model ?? configuredModel) || (defaultAgentProfile ? defaultModelForProfile(defaultAgentProfile) : '')
+    const definitionThinkingLevel = validateThinkingLevel(action.thinkingLevel ?? 'none', `action "${action.name}"`)
     const [actionLabel, setActionLabel] = useState('')
     const [agentOverride, setAgentOverride] = useState<string | null>(null)
     const [convertMessage, setConvertMessage] = useState<string | null>(null)
@@ -58,10 +65,12 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
     const [scheduleOpen, setScheduleOpen] = useState(false)
     const [scheduleTimestamp, setScheduleTimestamp] = useState('')
     const [scheduleTriggerType, setScheduleTriggerType] = useState<ScheduleTriggerType>('at')
+    const [thinkingLevelOverride, setThinkingLevelOverride] = useState<{ actionId: string, value: ThinkingLevel } | null>(null)
     const agent = agentOverride ?? defaultAgent
     const model = modelOverride ?? defaultModel
     const selectedAgentProfile = findAgentProfile(agentProfiles, agent)
     const selectedAgentModels = selectedAgentProfile?.models ?? []
+    const thinkingLevel = thinkingLevelOverride?.actionId === action.id ? thinkingLevelOverride.value : definitionThinkingLevel
 
     useEffect(() => {
         let isActive = true
@@ -88,7 +97,9 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
         setRunResult(null)
 
         try {
-            const runInput = { ...(agent ? { agent } : {}), extraPrompt, ...(model ? { model } : {}) }
+            const runInput = action.type === 'agent'
+                ? { ...(agent ? { agent } : {}), extraPrompt, ...(model ? { model } : {}), thinkingLevel }
+                : { extraPrompt }
             const result = await runAction(action, context, runInput)
             setRunResult(result)
             setRunStatus(result.status)
@@ -145,10 +156,17 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
         const profile = findAgentProfile(agentProfiles, nextAgent)
         setAgentOverride(nextAgent)
         setModelOverride(profile ? defaultModelForProfile(profile) : '')
+        setThinkingLevelOverride({ actionId: action.id, value: 'none' })
     }
 
     const handleModelChange = (event: ChangeEvent<HTMLInputElement>) => {
         setModelOverride(event.target.value)
+        setThinkingLevelOverride({ actionId: action.id, value: 'none' })
+    }
+
+    const handleThinkingLevelChange = (event: ChangeEvent<HTMLInputElement>) => {
+        const value = validateThinkingLevel(event.target.value, 'action run input')
+        setThinkingLevelOverride({ actionId: action.id, value })
     }
 
     const handleActionLabelChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -205,6 +223,7 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
         handleScheduleTimestampChange,
         handleScheduleTriggerTypeChange,
         handleToggleSchedule,
+        handleThinkingLevelChange,
         history,
         historyError,
         model,
@@ -217,5 +236,6 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
         scheduleTimestamp,
         scheduleTriggerType,
         selectedAgentModels,
+        thinkingLevel,
     }
 }

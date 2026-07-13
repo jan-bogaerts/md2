@@ -34,11 +34,12 @@ describe('ActionRunHistory', () => {
             output: 'done',
             prompt: 'run',
             status: 'completed',
+            thinkingLevel: 'high',
         }]
 
         render(<ActionRunHistory entries={entries} error={null} />)
 
-        expect(screen.getByText('completed (codex / gpt-5): done')).toBeInTheDocument()
+        expect(screen.getByText('completed (codex / gpt-5 / high): done')).toBeInTheDocument()
     })
 
     it('toggles diff view for commit entries', () => {

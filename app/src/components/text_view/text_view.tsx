@@ -37,6 +37,7 @@ interface TextViewProps {
     onCreateFolder: (parentDirectory: string, name: string) => Promise<void>
     onCreateMarkdownFile: (parentDirectory: string, name: string) => Promise<void>
     onDeleteFile: (path: string) => Promise<void>
+    onDeleteFolder: (path: string) => Promise<void>
     onHeaderFieldChange: (path: string, key: string, value: string) => void
     onSendAgentInput: (runId: string, input: string) => void
     onStartAgentConversation: (path: string, prompt: string) => void
@@ -122,6 +123,7 @@ export function TextView(props: TextViewProps) {
         onCreateFolder,
         onCreateMarkdownFile,
         onDeleteFile,
+        onDeleteFolder,
         onHeaderFieldChange,
         onSendAgentInput,
         onStartAgentConversation,
@@ -139,6 +141,7 @@ export function TextView(props: TextViewProps) {
     const [conversationPanelMax, setConversationPanelMax] = useState<number | undefined>(undefined)
     const editorStackRef = useRef<HTMLDivElement>(null)
     const onDeleteFileRef = useRef(onDeleteFile)
+    const onDeleteFolderRef = useRef(onDeleteFolder)
     const onLeftPanelInteractionRef = useRef(onLeftPanelInteraction)
 
     const specialFolderPaths = useMemo(
@@ -176,6 +179,7 @@ export function TextView(props: TextViewProps) {
 
     useEffect(() => {
         onDeleteFileRef.current = onDeleteFile
+        onDeleteFolderRef.current = onDeleteFolder
         onLeftPanelInteractionRef.current = onLeftPanelInteraction
     })
 
@@ -205,6 +209,14 @@ export function TextView(props: TextViewProps) {
         closeTab(path)
         onLeftPanelInteractionRef.current()
     }, [closeTab])
+
+    const handleDeleteFolder = useCallback(async (path: string) => {
+        await onDeleteFolderRef.current(path)
+        for (const tabPath of tabs) {
+            if (isPathInFolder(tabPath, path)) closeTab(tabPath)
+        }
+        onLeftPanelInteractionRef.current()
+    }, [closeTab, tabs])
 
     const handleActivateTab = (path: string) => {
         activateTab(path)
@@ -407,6 +419,7 @@ export function TextView(props: TextViewProps) {
                         onCreateFolder={onCreateFolder}
                         onCreateMarkdownFile={onCreateMarkdownFile}
                         onDeleteFile={handleDeleteFile}
+                        onDeleteFolder={handleDeleteFolder}
                         onSelect={handleSelect}
                         projectFolder={projectFolder}
                         selectedPath={activePath}

@@ -242,6 +242,18 @@ async function deleteFile(request, project) {
     await runGit(rootPath, ['commit', '-m', request.message])
 }
 
+async function deleteFolder(request, project) {
+    const rootPath = requireRootPath(project)
+    await assertGitRoot(rootPath)
+    if (!request || typeof request.message !== 'string' || request.message.length === 0) throw new Error('Missing delete commit message')
+    if (typeof request.path !== 'string' || request.path.length === 0) throw new Error('Missing delete folder path')
+
+    const folderPath = ensureInsideRoot(rootPath, path.join(rootPath, request.path))
+    const repositoryPath = normalizePath(path.relative(rootPath, folderPath))
+    await runGit(rootPath, ['rm', '-r', repositoryPath])
+    await runGit(rootPath, ['commit', '-m', request.message])
+}
+
 async function moveFiles(request, project) {
     const rootPath = requireRootPath(project)
     await assertGitRoot(rootPath)
@@ -304,6 +316,7 @@ module.exports = {
     createProject,
     createWorkingFolderFromTemplate,
     deleteFile,
+    deleteFolder,
     listRepositoryFiles,
     listTopLevelFolders,
     loadFile,

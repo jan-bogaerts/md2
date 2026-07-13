@@ -216,6 +216,25 @@ export class CardOperations {
         return this.deleteLoadedFile(path, activeCard)
     }
 
+    async deleteFolder(path: string) {
+        const { config, storage } = this.dependencies.requireDependencies()
+        const currentProject = this.dependencies.project()
+        if (!currentProject) throw new Error('Cannot delete a folder before a project is open')
+
+        const folderPrefix = `${path.replace(/\/+$/u, '')}/`
+        const repositoryFiles = this.dependencies.snapshot()?.repositoryFiles ?? []
+        if (!repositoryFiles.some((filePath) => filePath.startsWith(folderPrefix))) {
+            throw new Error(`Cannot delete a folder that is not loaded: ${path}`)
+        }
+
+        await this.flushPendingCommitBatch()
+        await storage.deleteFolder({ branch: currentProject.branch, message: `Delete ${path}`, path })
+        if (config.pushMode === 'auto') await storage.push(currentProject)
+        await this.dependencies.reloadCurrentProjectSnapshot()
+
+        return this.dependencies.snapshot()
+    }
+
     saveFile(file: MarkdownFile) {
         const { commitBatcher, config } = this.dependencies.requireDependencies()
         const currentProject = this.dependencies.project()

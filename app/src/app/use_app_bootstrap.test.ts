@@ -6,6 +6,7 @@ import { LAST_PROJECT_STORAGE_KEY } from '../data/project_session'
 import type { ElectronDataBridge } from '../data/electron_data_bridge'
 import { getElectronActionBridge, setActionBridgeOverride, type ElectronActionBridge } from '../data/electron_action_bridge'
 import { configService } from '../services/config_service'
+import { agentCapabilitiesService } from '../services/agent_capabilities_service'
 
 function createActionBridge(): ElectronActionBridge {
     return {
@@ -50,6 +51,7 @@ function createBridge(): ElectronDataBridge {
         createProject: vi.fn(async (project) => project),
         createWorkingFolderFromTemplate: vi.fn(async (project) => project),
         deleteFile: vi.fn(),
+        deleteFolder: vi.fn(),
         hasPendingPush: vi.fn(async () => false),
         listBranches: vi.fn(async () => [{ name: 'main' }]),
         listRepositoryFiles: vi.fn(async () => ['design/F-1-root.md']),
@@ -87,9 +89,11 @@ describe('useAppBootstrap', () => {
     })
 
     it('reaches the ready phase with no session when nothing is stored', async () => {
+        const initializeCapabilities = vi.spyOn(agentCapabilitiesService, 'initialize')
         const { result } = renderHook(() => useAppBootstrap(null))
 
         await waitFor(() => expect(result.current.phase).toBe('ready'))
+        expect(initializeCapabilities).toHaveBeenCalledOnce()
         expect(result.current.session).toBeNull()
     })
 

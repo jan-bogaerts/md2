@@ -22,6 +22,27 @@ function createAction(name = 'implement') {
     }
 }
 
+function createAgentAction(name = 'implement', overrides = {}) {
+    return {
+        content: JSON.stringify({
+            agent: 'codex',
+            description: `${name} description`,
+            id: name,
+            label: name,
+            model: 'GPT 5.5',
+            name,
+            prompt: `Run ${name}`,
+            type: 'agent',
+            ...overrides,
+        }),
+        path: `actions/${name}.json`,
+    }
+}
+
+function successfulAgentResult(request) {
+    return { command: request.command, exitCode: 0, prompt: request.prompt, stderr: '', stdout: 'done' }
+}
+
 function createSchedule(id, actionId, trigger) {
     return {
         actionId,
@@ -223,6 +244,92 @@ describe('ActionSchedulerService', () => {
             conversation: { cardPath: 'design/F-022.md', id: 'schedule-1', status: 'running', title: 'Scheduled implement' },
             runId: 'schedule-1',
         })
+    })
+
+    it('applies a scheduled action thinking level and records it in history', async () => {
+        const schedule = createSchedule('schedule-1', 'implement', { timestamp: '2026-07-06T10:01:00.000Z', type: 'at' })
+        const localGitService = createLocalGitService([schedule], [createAgentAction('implement', { thinkingLevel: 'high' })])
+        const agentRunner = vi.fn(async (_project, request) => successfulAgentResult(request))
+        const scheduler = createScheduler(localGitService, {
+            agentConfigProvider: () => ({ agent: 'codex', agentProfiles: [], model: '' }),
+            agentRunnerService: { run: agentRunner },
+        })
+
+        await scheduler.startProject(project)
+        await scheduler.fireSchedule('schedule-1')
+
+        expect(agentRunner).toHaveBeenCalledWith(project, expect.objectContaining({
+            command: 'codex --model GPT 5.5 -c model_reasoning_effort=high',
+        }))
+        expect(localGitService.histories[0]).toMatchObject({
+            entry: { agent: 'codex', model: 'GPT 5.5', thinkingLevel: 'high' },
+            request: { actionId: 'implement', actionsFolder: 'actions', context },
+        })
+    })
+
+    it('uses none when a scheduled action has no thinking-level override', async () => {
+        const schedule = createSchedule('schedule-1', 'implement', { timestamp: '2026-07-06T10:01:00.000Z', type: 'at' })
+        const localGitService = createLocalGitService([schedule], [createAgentAction()])
+        const agentRunner = vi.fn(async (_project, request) => successfulAgentResult(request))
+        const scheduler = createScheduler(localGitService, {
+            agentConfigProvider: () => ({ agent: 'codex', agentProfiles: [], model: '' }),
+            agentRunnerService: { run: agentRunner },
+        })
+
+        await scheduler.startProject(project)
+        await scheduler.fireSchedule('schedule-1')
+
+        expect(agentRunner).toHaveBeenCalledWith(project, expect.objectContaining({ command: 'codex --model GPT 5.5' }))
+        expect(localGitService.histories[0].entry).toMatchObject({ thinkingLevel: 'none' })
+    })
+
+    it('resolves linked scheduled actions from their own thinking levels', async () => {
+        const schedule = createSchedule('schedule-1', 'root', { timestamp: '2026-07-06T10:01:00.000Z', type: 'at' })
+        const actionFiles = [
+            createAgentAction('root', { onBefore: ['linked'], thinkingLevel: 'high' }),
+            createAgentAction('linked', { thinkingLevel: 'low' }),
+        ]
+        const localGitService = createLocalGitService([schedule], actionFiles)
+        const agentRunner = vi.fn(async (_project, request) => successfulAgentResult(request))
+        const scheduler = createScheduler(localGitService, {
+            agentConfigProvider: () => ({ agent: 'codex', agentProfiles: [], model: '' }),
+            agentRunnerService: { run: agentRunner },
+        })
+
+        await scheduler.startProject(project)
+        await scheduler.fireSchedule('schedule-1')
+
+        expect(agentRunner.mock.calls.map((call) => call[1].command)).toEqual([
+            'codex --model GPT 5.5 -c model_reasoning_effort=low',
+            'codex --model GPT 5.5 -c model_reasoning_effort=high',
+        ])
+        expect(localGitService.histories.map(({ entry }) => entry.thinkingLevel)).toEqual(['low', 'high'])
+    })
+
+    it.each([
+        ['invalid', [createAgentAction('implement', { thinkingLevel: 'extreme' })], {
+            agent: 'codex', agentProfiles: [], model: '',
+        }, 'Invalid thinking level'],
+        ['unsupported', [createAgentAction('implement', { agent: undefined, model: undefined, thinkingLevel: undefined })], {
+            agent: 'custom',
+            agentProfiles: [{ command: 'custom-agent', models: ['fast'], name: 'custom' }],
+            model: 'fast',
+            thinkingLevel: 'high',
+        }, 'Agent profile does not support thinking levels: custom'],
+    ])('rejects %s scheduled thinking-level resolution before process start', async (_label, actionFiles, agentConfig, message) => {
+        const schedule = createSchedule('schedule-1', 'implement', { timestamp: '2026-07-06T10:01:00.000Z', type: 'at' })
+        const localGitService = createLocalGitService([schedule], actionFiles)
+        const agentRunner = vi.fn(async (_project, request) => successfulAgentResult(request))
+        const scheduler = createScheduler(localGitService, {
+            agentConfigProvider: () => agentConfig,
+            agentRunnerService: { run: agentRunner },
+        })
+
+        await scheduler.startProject(project)
+        await scheduler.fireSchedule('schedule-1')
+
+        expect(agentRunner).not.toHaveBeenCalled()
+        expect(localGitService.histories[0].entry).toMatchObject({ output: expect.stringContaining(message), status: 'failed' })
     })
 
     it('records invalid actions and continues other schedules', async () => {

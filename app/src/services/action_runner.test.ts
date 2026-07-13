@@ -51,7 +51,7 @@ const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
 const desktopConfig: DesktopConfigValues = {
     agent: 'codex',
     agentSlotCommand: '',
-    agentProfiles: [{ command: 'codex', name: 'codex' }],
+    agentProfiles: [{ command: 'codex', models: ['gpt-5'], name: 'codex' }],
     model: '',
     projectLocationMode: 'folder',
 }
@@ -96,17 +96,20 @@ function agentResult(request: AgentActionExecutionRequest, overrides: Partial<Ag
     const prompt = actionPrompt(request)
 
     return {
+        agent: request.agent ?? 'codex',
         branch: 'main',
         command: request.agent ?? 'codex',
         conversation: conversation(request),
         executionWorktree: null,
         exitCode: 0,
+        model: request.model ?? 'gpt-5',
         prompt,
         reference: '.md2-agent-logs/one.json',
         repositoryRoot: 'C:/repo',
         runId: 'agent-1',
         stderr: '',
         stdout: prompt,
+        thinkingLevel: request.thinkingLevel ?? 'none',
         ...overrides,
     }
 }
@@ -284,8 +287,8 @@ describe('ActionRunner', () => {
         expect(agentRunner).toHaveBeenCalledWith(
             bridge,
             {
-                actionId: 'implement', actionsFolder: 'actions', agent: 'codex', context,
-                extraInput: 'focus tests', model: '',
+                actionId: 'implement', actionsFolder: 'actions', context,
+                extraInput: 'focus tests',
             },
             expect.any(Function),
         )
@@ -294,9 +297,10 @@ describe('ActionRunner', () => {
             { actionId: 'implement', actionsFolder: 'actions', context },
             expect.objectContaining({
                 agent: 'codex',
-                model: '',
+                model: 'gpt-5',
                 output: 'implement design/F-010.md\n\nfocus tests',
                 prompt: 'implement design/F-010.md\n\nfocus tests',
+                thinkingLevel: 'none',
             }),
         )
     })
@@ -311,7 +315,7 @@ describe('ActionRunner', () => {
                 getAgentConfig: () => ({
                     ...desktopConfig,
                     agent: 'missing',
-                    agentProfiles: [{ command: 'missing-agent', name: 'missing' }],
+                    agentProfiles: [{ command: 'missing-agent', models: ['missing-model'], name: 'missing' }],
                 }),
             }),
             executionGateway: executionGateway({ runAgent: agentRunner }),
@@ -322,7 +326,7 @@ describe('ActionRunner', () => {
         expect(result.logs[0].message).toBe('implement failed with exit code 1: spawn missing-agent ENOENT')
     })
 
-    it('resolves agent and model by run input, action definition, then global default', async () => {
+    it('forwards only run-specific agent selections for Electron to resolve', async () => {
         const agentRunner = vi.fn(async (_bridge: ElectronActionBridge, request: AgentActionExecutionRequest) => agentResult(request))
         const baseRunner = new ActionRunner({
             environment: environment({
@@ -346,8 +350,8 @@ describe('ActionRunner', () => {
         await baseRunner.run(action('run', { agent: 'custom', command: null, model: 'fast', prompt: 'run', type: 'agent' }), context, { agent: 'codex', model: 'gpt-5-mini' })
 
         expect(agentRunner.mock.calls.map((call) => ({ agent: call[1].agent, model: call[1].model }))).toEqual([
-            { agent: 'codex', model: 'gpt-5' },
-            { agent: 'custom', model: 'fast' },
+            { agent: undefined, model: undefined },
+            { agent: undefined, model: undefined },
             { agent: 'codex', model: 'gpt-5-mini' },
         ])
     })
@@ -365,7 +369,7 @@ describe('ActionRunner', () => {
         expect(result.status).toBe('completed')
         expect(agentRunner).toHaveBeenCalledWith(
             bridge,
-            { actionId: 'custom prompt', actionsFolder: 'actions', agent: 'codex', context, extraInput: 'write docs', model: '' },
+            { actionId: 'custom prompt', actionsFolder: 'actions', context, extraInput: 'write docs' },
             expect.any(Function),
         )
     })
@@ -394,6 +398,37 @@ describe('ActionRunner', () => {
         expect(result.status).toBe('completed')
         expect(result.logs.map((log) => log.actionName)).toEqual(['before', 'main', 'on-action', 'after'])
         expect(result.logs.map((log) => log.phase)).toEqual(['before', 'main', 'on', 'after'])
+    })
+
+    it('applies run-specific thinking level only to requested root action', async () => {
+        const before = action('before', { command: null, prompt: 'before', thinkingLevel: 'low', type: 'agent' })
+        const onAction = action('on-action', { command: null, prompt: 'on', thinkingLevel: 'medium', type: 'agent' })
+        const after = action('after', { command: null, prompt: 'after', thinkingLevel: 'max', type: 'agent' })
+        const main = action('main', {
+            command: null,
+            on: [{ action: onAction, actionId: onAction.id, condition: 'trigger' }],
+            onAfter: [after],
+            onBefore: [before],
+            prompt: 'main',
+            thinkingLevel: 'none',
+            type: 'agent',
+        })
+        const agentRunner = vi.fn(async (_bridge: ElectronActionBridge, request: AgentActionExecutionRequest) => (
+            agentResult(request, { stdout: request.actionId === 'main' ? 'trigger' : request.actionId })
+        ))
+
+        await new ActionRunner({
+            environment: environment(),
+            executionGateway: executionGateway({ runAgent: agentRunner }),
+            runRecorder: runRecorder({ linkAgentConversation: noopAgentConversationLinker }),
+        }).run(main, context, { thinkingLevel: 'high' })
+
+        expect(agentRunner.mock.calls.map((call) => ({ actionId: call[1].actionId, thinkingLevel: call[1].thinkingLevel }))).toEqual([
+            { actionId: 'before', thinkingLevel: undefined },
+            { actionId: 'main', thinkingLevel: 'high' },
+            { actionId: 'on-action', thinkingLevel: undefined },
+            { actionId: 'after', thinkingLevel: undefined },
+        ])
     })
 
     it('loads agent run history for the same action and context', async () => {

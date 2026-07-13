@@ -1,6 +1,6 @@
 import { Box, Button, MenuItem, Stack, TextField, Typography } from '@mui/material'
 import type { ChangeEvent, KeyboardEvent } from 'react'
-import type { AgentProfile } from '../../data/agent_profiles'
+import { THINKING_LEVELS, type AgentProfile, type ThinkingLevel } from '../../data/agent_profiles'
 
 interface ActionAgentFormProps {
     actionLabel: string
@@ -15,11 +15,13 @@ interface ActionAgentFormProps {
     onConvertToAction: () => void
     onExtraPromptChange: (event: ChangeEvent<HTMLInputElement>) => void
     onModelChange: (event: ChangeEvent<HTMLInputElement>) => void
+    onThinkingLevelChange: (event: ChangeEvent<HTMLInputElement>) => void
     onRunShortcut?: () => void
     onSaveAndRun: () => void
     saveDisabled: boolean
     selectedAgentModels: string[]
     showSaveControls: boolean
+    thinkingLevel: ThinkingLevel
 }
 
 /** Presentation-only agent run controls for an action popup. */
@@ -37,11 +39,13 @@ export function ActionAgentForm(props: ActionAgentFormProps) {
         onConvertToAction,
         onExtraPromptChange,
         onModelChange,
+        onThinkingLevelChange,
         onRunShortcut,
         onSaveAndRun,
         saveDisabled,
         selectedAgentModels,
         showSaveControls,
+        thinkingLevel,
     } = props
 
     const handleNameKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
@@ -175,6 +179,23 @@ export function ActionAgentForm(props: ActionAgentFormProps) {
                             variant="standard"
                         />
                     )}
+                    <Box sx={{ bgcolor: 'divider', height: 14, mx: 0.25, width: '1px' }} />
+                    <span>Thinking</span>
+                    <TextField
+                        onChange={onThinkingLevelChange}
+                        select
+                        slotProps={{ select: { inputProps: { 'aria-label': 'Thinking level' } } }}
+                        sx={{
+                            minWidth: 72,
+                            '& .MuiInputBase-root': { borderRadius: '6px', color: 'text.secondary', fontSize: 12, fontWeight: 600, height: 26, pl: 0.75 },
+                            '& .MuiInputBase-root:hover': { bgcolor: 'action.hover', color: 'text.primary' },
+                            '& .MuiInput-root:before, & .MuiInput-root:after': { display: 'none' },
+                        }}
+                        value={thinkingLevel}
+                        variant="standard"
+                    >
+                        {THINKING_LEVELS.map((level) => <MenuItem key={level} value={level}>{level}</MenuItem>)}
+                    </TextField>
                 </Box>
                 {convertMessage ? (
                     <Typography color="text.secondary" role="status" variant="caption">
@@ -202,6 +223,9 @@ export function ActionAgentForm(props: ActionAgentFormProps) {
                 ) : (
                     <TextField label="Model" onChange={onModelChange} size="small" value={model} />
                 )}
+                <TextField label="Thinking level" onChange={onThinkingLevelChange} select size="small" value={thinkingLevel}>
+                    {THINKING_LEVELS.map((level) => <MenuItem key={level} value={level}>{level}</MenuItem>)}
+                </TextField>
             </Stack>
             <TextField label="Extra prompt" minRows={3} multiline onChange={onExtraPromptChange} value={extraPrompt} />
             {showSaveControls ? (

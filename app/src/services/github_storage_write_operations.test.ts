@@ -202,6 +202,45 @@ describe('GithubStorageService', () => {
         expect(fetchImplementation).toHaveBeenCalledTimes(3)
     })
 
+    it('deletes every file under a folder in one tree and commit', async () => {
+        const fetchImplementation = vi.fn()
+        queueProjectTree(fetchImplementation, [
+            { path: 'design/notes', sha: 'notes-tree', type: 'tree' },
+            { path: 'design/notes/.gitkeep', sha: 'sha-1', type: 'blob' },
+            { path: 'design/notes/nested/info.txt', sha: 'sha-2', type: 'blob' },
+            { path: 'design/other.md', sha: 'sha-3', type: 'blob' },
+        ])
+        fetchImplementation
+            .mockResolvedValueOnce(createResponse({ object: { sha: 'base-commit', type: 'commit' }, ref: 'refs/heads/main' }))
+            .mockResolvedValueOnce(createResponse({ sha: 'base-commit', tree: { sha: 'base-tree' } }))
+            .mockResolvedValueOnce(createResponse({
+                tree: [
+                    { path: 'design/notes/.gitkeep', sha: 'sha-1', type: 'blob' },
+                    { path: 'design/notes/nested/info.txt', sha: 'sha-2', type: 'blob' },
+                    { path: 'design/other.md', sha: 'sha-3', type: 'blob' },
+                ],
+                truncated: false,
+            }))
+            .mockResolvedValueOnce(createResponse({ sha: 'new-tree' }))
+            .mockResolvedValueOnce(createResponse({ sha: 'pending-commit', tree: { sha: 'new-tree' } }))
+        const service = new GithubStorageService()
+        service.init({ accessToken: 'token', fetchImplementation })
+
+        await service.listRepositoryFiles(project)
+        await service.deleteFolder({ branch: 'main', message: 'Delete design/notes', path: 'design/notes' })
+
+        const treeCall = fetchImplementation.mock.calls.find(([url, init]) => (
+            url.includes('/repos/owner/repo/git/trees') && init.method === 'POST'
+        ))
+        expect(JSON.parse(treeCall?.[1].body)).toEqual({
+            base_tree: 'base-tree',
+            tree: [
+                { mode: '100644', path: 'design/notes/.gitkeep', sha: null, type: 'blob' },
+                { mode: '100644', path: 'design/notes/nested/info.txt', sha: null, type: 'blob' },
+            ],
+        })
+    })
+
     it('creates template content only through explicit working-folder creation', async () => {
         const fetchImplementation = vi.fn()
             .mockResolvedValueOnce(createResponse({ object: { sha: 'base-commit', type: 'commit' }, ref: 'refs/heads/main' }))

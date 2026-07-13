@@ -42,6 +42,16 @@ function selectScheduleTrigger(label: string) {
     fireEvent.click(screen.getByRole('option', { name: label }))
 }
 
+function selectThinkingLevel(level: string) {
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Thinking level' }))
+    fireEvent.click(screen.getByRole('option', { name: level }))
+}
+
+function selectAgent(agent: string) {
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Agent' }))
+    fireEvent.click(screen.getByRole('option', { name: agent }))
+}
+
 function renderPopup(overrides: Partial<Parameters<typeof ActionPopup>[0]> = {}) {
     const onNavigate = vi.fn()
     const onClose = vi.fn()
@@ -157,6 +167,7 @@ describe('ActionPopup', () => {
                 status: 'failed',
                 stderr: 'spawn missing-agent ENOENT',
                 stdout: '',
+                thinkingLevel: 'high',
             }],
             status: 'failed',
         }
@@ -167,6 +178,7 @@ describe('ActionPopup', () => {
 
         await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('failed'))
         expect(screen.getByRole('status')).toHaveTextContent('main: Implement failed with exit code 1: spawn missing-agent ENOENT')
+        expect(screen.getByRole('status')).toHaveTextContent('thinking: high')
     })
 
     it('passes extra prompt input when running an agent action', async () => {
@@ -175,7 +187,7 @@ describe('ActionPopup', () => {
         fireEvent.change(screen.getByLabelText('Extra prompt'), { target: { value: 'focus tests' } })
         fireEvent.click(screen.getByRole('button', { name: 'Run' }))
 
-        const expectedInput = { extraPrompt: 'focus tests' }
+        const expectedInput = { extraPrompt: 'focus tests', thinkingLevel: 'none' }
         await waitFor(() => expect(runAction).toHaveBeenCalledWith(expect.objectContaining({ name: 'Implement' }), context, expectedInput))
     })
 
@@ -191,7 +203,7 @@ describe('ActionPopup', () => {
         fireEvent.change(screen.getByLabelText('Extra prompt'), { target: { value: 'focus tests' } })
         fireEvent.keyDown(screen.getByLabelText('Extra prompt'), { ctrlKey: true, key: 'Enter' })
 
-        await waitFor(() => expect(runAction).toHaveBeenCalledWith(selectedAction, context, { extraPrompt: 'focus tests' }))
+        await waitFor(() => expect(runAction).toHaveBeenCalledWith(selectedAction, context, { extraPrompt: 'focus tests', thinkingLevel: 'none' }))
     })
 
     it('passes selected agent and model when running an agent action', async () => {
@@ -209,8 +221,81 @@ describe('ActionPopup', () => {
         fireEvent.change(screen.getByLabelText('Extra prompt'), { target: { value: 'focus tests' } })
         fireEvent.click(screen.getByRole('button', { name: 'Run' }))
 
-        const expectedInput = { agent: 'codex', extraPrompt: 'focus tests', model: 'gpt-5-mini' }
+        const expectedInput = { agent: 'codex', extraPrompt: 'focus tests', model: 'gpt-5-mini', thinkingLevel: 'none' }
         await waitFor(() => expect(runAction).toHaveBeenCalledWith(expect.objectContaining({ name: 'Implement' }), context, expectedInput))
+    })
+
+    it('preselects definition thinking level without changing definition for a run override', async () => {
+        const selectedAction = action('Implement', { thinkingLevel: 'high', type: 'agent' })
+        const { runAction } = renderPopup({ action: selectedAction })
+
+        expect(screen.getByRole('combobox', { name: 'Thinking level' })).toHaveTextContent('high')
+        selectThinkingLevel('low')
+        fireEvent.click(screen.getByRole('button', { name: 'Run' }))
+
+        await waitFor(() => expect(runAction).toHaveBeenCalledWith(
+            selectedAction,
+            context,
+            { extraPrompt: '', thinkingLevel: 'low' },
+        ))
+        expect(selectedAction.thinkingLevel).toBe('high')
+    })
+
+    it('resets thinking level when agent changes', async () => {
+        configService.init({
+            desktopConfig: {
+                agent: 'codex',
+                agentSlotCommand: '',
+                agentProfiles: [
+                    { command: 'codex', models: ['gpt-5'], name: 'codex' },
+                    { command: 'claude', models: ['sonnet'], name: 'claude' },
+                ],
+                model: 'gpt-5',
+                projectLocationMode: 'folder',
+            },
+        })
+        const { runAction } = renderPopup({ action: action('Implement', { agent: 'codex', model: 'gpt-5', thinkingLevel: 'high', type: 'agent' }) })
+
+        selectAgent('claude')
+        fireEvent.click(screen.getByRole('button', { name: 'Run' }))
+
+        await waitFor(() => expect(runAction).toHaveBeenCalledWith(
+            expect.objectContaining({ name: 'Implement' }),
+            context,
+            { agent: 'claude', extraPrompt: '', model: 'sonnet', thinkingLevel: 'none' },
+        ))
+    })
+
+    it('keeps agent fields out of command run input', async () => {
+        configService.init({
+            desktopConfig: {
+                agent: 'codex',
+                agentSlotCommand: '',
+                agentProfiles: [{ command: 'codex', models: ['gpt-5'], name: 'codex' }],
+                model: 'gpt-5',
+                projectLocationMode: 'folder',
+            },
+        })
+        const { runAction } = renderPopup()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Run' }))
+
+        await waitFor(() => expect(runAction).toHaveBeenCalledWith(
+            expect.objectContaining({ name: 'Implement' }),
+            context,
+            { extraPrompt: '' },
+        ))
+    })
+
+    it('shows thinking adapter errors returned before execution', async () => {
+        const runAction = vi.fn(async () => {
+            throw new Error('Agent profile claude does not support thinking levels')
+        })
+        renderPopup({ action: action('Implement', { type: 'agent' }), runAction })
+
+        fireEvent.click(screen.getByRole('button', { name: 'Run' }))
+
+        await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Agent profile claude does not support thinking levels'))
     })
 
     it('shows previous run history for an agent action', async () => {
@@ -293,7 +378,7 @@ describe('ActionPopup', () => {
         await waitFor(() => expect(runAction).toHaveBeenCalledWith(
             expect.objectContaining({ name: 'Custom prompt' }),
             context,
-            { extraPrompt: 'review this file' },
+            { extraPrompt: 'review this file', thinkingLevel: 'none' },
         ))
         expect(convertPromptToAction).toHaveBeenCalledWith({ context, label: 'Custom review', prompt: 'review this file' })
     })
@@ -325,7 +410,7 @@ describe('ActionPopup', () => {
         await waitFor(() => expect(runAction).toHaveBeenCalledWith(
             customPrompt,
             context,
-            { agent: 'codex', extraPrompt: '', model: 'gpt-5' },
+            { agent: 'codex', extraPrompt: '', model: 'gpt-5', thinkingLevel: 'none' },
         ))
         expect(convertPromptToAction).toHaveBeenCalledWith({
             agent: 'codex',

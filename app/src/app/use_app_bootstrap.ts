@@ -3,6 +3,7 @@ import { createStorageService, readLastProject, writeLastProject, type LastProje
 import { activateStorageService } from '../data/project_storage_activation'
 import type { ProjectReference, ProjectSnapshot, StorageService } from '../data/data_types'
 import { configService } from '../services/config_service'
+import { agentCapabilitiesService } from '../services/agent_capabilities_service'
 import { dataService } from '../services/data_service'
 import { readDesktopConfigFromBridge } from '../services/config_persistence'
 
@@ -39,6 +40,7 @@ async function resolveRestoredProject(lastProject: LastProject, storage: Storage
 /** Start services and open the last project. Returns null when there is nothing to restore. */
 async function loadLastProjectSession(accessToken: string | null): Promise<ProjectSession | null> {
     ensureConfigServiceInitialized()
+    await agentCapabilitiesService.initialize()
     const lastProject = readLastProject()
     if (!lastProject) return null
     if (lastProject.storageType === 'github' && !accessToken) return null

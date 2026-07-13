@@ -7,6 +7,7 @@ import type {
     CommitResult,
     CommitRequest,
     DeleteFileRequest,
+    DeleteFolderRequest,
     MarkdownFile,
     MoveFilesRequest,
     ProjectAsset,
@@ -20,13 +21,20 @@ import type {
     WorktreeRecord,
 } from './data_types'
 
+export interface AgentAvailability {
+    available: boolean
+    error: string | null
+}
+
 export interface ElectronDataBridge {
     checkoutBranch(project: ProjectReference, branch: string): Promise<ProjectReference>
     commit(request: CommitRequest): Promise<CommitResult>
     createProject(project: ProjectReference, workingFolder: string): Promise<ProjectReference>
     createWorkingFolderFromTemplate(project: ProjectReference, workingFolder: string): Promise<ProjectReference>
     deleteFile(request: DeleteFileRequest): Promise<void>
+    deleteFolder(request: DeleteFolderRequest): Promise<void>
     hasPendingPush(project: ProjectReference): Promise<boolean>
+    loadAgentAvailability?(): Promise<Record<string, AgentAvailability>>
     loadAgentConversation?(path: string): Promise<AgentConversation>
     loadActionFiles(project: ProjectReference, actionsFolder: string): Promise<ActionFile[]>
     loadActionSchedules?(project: ProjectReference, actionsFolder: string): Promise<ActionSchedule[]>

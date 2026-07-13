@@ -169,6 +169,12 @@ export interface DeleteFileRequest {
     sha?: string
 }
 
+export interface DeleteFolderRequest {
+    branch: string
+    message: string
+    path: string
+}
+
 export type ProjectWatchChangeKind = 'added' | 'changed' | 'removed' | 'unknown'
 
 export interface ProjectWatchEvent {
@@ -253,6 +259,7 @@ export interface StorageService {
     createProject(project: ProjectReference, workingFolder: string): Promise<ProjectReference>
     createWorkingFolderFromTemplate(project: ProjectReference, workingFolder: string): Promise<ProjectReference>
     deleteFile(request: DeleteFileRequest): Promise<void>
+    deleteFolder(request: DeleteFolderRequest): Promise<void>
     discardPendingCommits?(project: ProjectReference): void
     hasPendingPush?(project: ProjectReference): boolean
     listBranches(project: ProjectReference): Promise<BranchReference[]>

@@ -1,6 +1,7 @@
 import type {
     CommitRequest,
     DeleteFileRequest,
+    DeleteFolderRequest,
     MoveFilesRequest,
     ProjectConfig,
     ProjectReference,
@@ -94,6 +95,10 @@ export class GithubStorageService implements StorageService {
 
     async deleteFile(request: DeleteFileRequest) {
         return this.writer.deleteFile(request)
+    }
+
+    async deleteFolder(request: DeleteFolderRequest) {
+        return this.writer.deleteFolder(request)
     }
 
     async moveFiles(request: MoveFilesRequest) {

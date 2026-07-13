@@ -1,7 +1,7 @@
 ---
 id: B-048
 title: action editor has no configured default agent capabilities
-status: design
+status: ready
 owner: JB
 affects:
 policy:

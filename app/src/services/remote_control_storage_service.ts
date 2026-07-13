@@ -19,6 +19,7 @@ import type {
     CommitRequest,
     CommitResult,
     DeleteFileRequest,
+    DeleteFolderRequest,
     MoveFilesRequest,
     ProjectAsset,
     ProjectConfig,
@@ -107,6 +108,14 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         this.token = storedSettings.token
     }
 
+    async connect(): Promise<void> {
+        await this.ensureConnected()
+    }
+
+    disconnect() {
+        this.socket?.close()
+    }
+
     async checkoutBranch(project: ProjectReference, branch: string): Promise<ProjectReference> {
         return this.request<ProjectReference>('checkoutBranch', [project, branch])
     }
@@ -128,6 +137,11 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
 
     async deleteFile(request: DeleteFileRequest): Promise<void> {
         await this.request('deleteFile', [request])
+        this.pendingPushBranches.add(request.branch)
+    }
+
+    async deleteFolder(request: DeleteFolderRequest): Promise<void> {
+        await this.request('deleteFolder', [request])
         this.pendingPushBranches.add(request.branch)
     }
 

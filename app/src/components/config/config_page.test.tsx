@@ -483,14 +483,14 @@ describe('ConfigPage', () => {
         delete window.md2Config
     })
 
-    it('edits and removes user agent profiles while built-ins stay read-only', () => {
+    it('edits and removes user agent profiles while built-ins stay non-removable', () => {
         mockMatchMedia(false)
         const setDesktopConfig = vi.fn()
         window.md2Config = {
             getDesktopConfig: () => ({
                 agent: 'codex',
                 agentSlotCommand: '',
-                agentProfiles: [...BUILTIN_AGENT_PROFILES, { command: 'local-agent', name: 'local' }],
+                agentProfiles: [...BUILTIN_AGENT_PROFILES, { command: 'local-agent', models: ['local-model'], name: 'local' }],
                 model: '',
                 projectLocationMode: 'folder',
             }),
@@ -502,18 +502,39 @@ describe('ConfigPage', () => {
 
         expect(screen.getAllByText('Built-in')).toHaveLength(2)
 
-        fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Edit local' }))
         fireEvent.change(screen.getByLabelText('Command'), { target: { value: 'edited-agent' } })
         fireEvent.click(screen.getByRole('button', { name: 'Save profile' }))
         fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
         expect(setDesktopConfig).toHaveBeenLastCalledWith(expect.objectContaining({agentProfiles: expect.arrayContaining([expect.objectContaining({ command: 'edited-agent', name: 'local' })])}))
 
-        fireEvent.click(screen.getByRole('button', { name: 'Remove' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Remove local' }))
         fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
         const lastCall = setDesktopConfig.mock.calls.at(-1)?.[0]
         expect(lastCall.agentProfiles).not.toEqual(expect.arrayContaining([expect.objectContaining({ name: 'local' })]))
+
+        delete window.md2Config
+    })
+
+    it('overrides built-in profile models', () => {
+        mockMatchMedia(false)
+        const setDesktopConfig = vi.fn()
+        window.md2Config = {
+            getDesktopConfig: () => ({agent: 'codex', agentProfiles: BUILTIN_AGENT_PROFILES, agentSlotCommand: '', model: '', projectLocationMode: 'folder'}),
+            setDesktopConfig,
+        }
+        initConfigFromElectronBridge()
+        renderConfigPage('#desktop')
+
+        fireEvent.click(screen.getByRole('button', { name: 'Edit codex' }))
+        fireEvent.change(screen.getByLabelText('Models'), { target: { value: 'project-model, project-fast' } })
+        fireEvent.change(screen.getByLabelText('Profile default model'), { target: { value: 'project-model' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Save profile' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+        expect(setDesktopConfig).toHaveBeenLastCalledWith(expect.objectContaining({agentProfiles: expect.arrayContaining([expect.objectContaining({models: ['project-model', 'project-fast'], name: 'codex'})])}))
 
         delete window.md2Config
     })
@@ -542,16 +563,16 @@ describe('ConfigPage', () => {
         fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'codex' } })
         fireEvent.change(screen.getByLabelText('Command'), { target: { value: 'agent' } })
 
-        expect(screen.getByText('Duplicate agent profile: codex')).toBeInTheDocument()
+        expect(screen.getByText(/Duplicate agent profile: codex/u)).toBeInTheDocument()
 
         fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'local' } })
         fireEvent.change(screen.getByLabelText('Session-id pattern'), { target: { value: '(' } })
 
-        expect(screen.getByText('Session-id pattern is not a valid regular expression.')).toBeInTheDocument()
+        expect(screen.getByText(/Session-id pattern is not a valid regular expression\./u)).toBeInTheDocument()
 
         fireEvent.change(screen.getByLabelText('Session-id pattern'), { target: { value: '(?:session)' } })
 
-        expect(screen.getByText('Session-id pattern must include one capture group.')).toBeInTheDocument()
+        expect(screen.getByText(/Session-id pattern must include one capture group\./u)).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Save profile' })).toBeDisabled()
 
         delete window.md2Config

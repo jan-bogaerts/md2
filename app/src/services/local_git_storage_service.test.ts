@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { ElectronDataBridge } from '../data/electron_data_bridge'
-import type { CommitRequest, DeleteFileRequest } from '../data/data_types'
+import type { CommitRequest, DeleteFileRequest, DeleteFolderRequest } from '../data/data_types'
 import { LocalGitStorageService } from './local_git_storage_service'
 
 function createBridge(overrides: Partial<ElectronDataBridge> = {}): ElectronDataBridge {
@@ -10,6 +10,7 @@ function createBridge(overrides: Partial<ElectronDataBridge> = {}): ElectronData
         createProject: vi.fn(),
         createWorkingFolderFromTemplate: vi.fn(),
         deleteFile: vi.fn().mockResolvedValue(undefined),
+        deleteFolder: vi.fn().mockResolvedValue(undefined),
         hasPendingPush: vi.fn().mockResolvedValue(false),
         listBranches: vi.fn(),
         listRepositoryFiles: vi.fn(),
@@ -128,6 +129,22 @@ describe('LocalGitStorageService binary write path', () => {
         await service.deleteFile(request)
 
         expect(deleteFile).toHaveBeenCalledWith(request)
+    })
+
+    it('forwards recursive folder deletion to the bridge unchanged', async () => {
+        const deleteFolder = vi.fn().mockResolvedValue(undefined)
+        const bridge = createBridge({ deleteFolder })
+        const service = new LocalGitStorageService()
+        service.init({ bridge })
+        const request: DeleteFolderRequest = {
+            branch: 'main',
+            message: 'Delete design/notes',
+            path: 'design/notes',
+        }
+
+        await service.deleteFolder(request)
+
+        expect(deleteFolder).toHaveBeenCalledWith(request)
     })
 
     it('forwards single file reads to the bridge unchanged', async () => {

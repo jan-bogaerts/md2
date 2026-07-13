@@ -69,9 +69,10 @@ describe('action run log helpers', () => {
             runId: 'run-1',
             stderr: 'spawn codex ENOENT',
             stdout: '',
-        })
+        }, 'high')
 
         expect(log.message).toBe('Implement failed with exit code 1: spawn codex ENOENT')
+        expect(log.thinkingLevel).toBe('high')
     })
 
     it('creates synthetic failure logs', () => {

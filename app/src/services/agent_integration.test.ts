@@ -51,6 +51,44 @@ describe('AgentIntegration', () => {
         )
     })
 
+    it('runs onState agent actions with definition thinking level and no runtime override', async () => {
+        configService.init()
+        const moveFiles: MarkdownFile[] = [
+            { content: '---\nid: F-1\ninternalId: a\ntitle: A\nstatus: todo\n---\n\n# A', path: 'design/F-1-a.md' },
+        ]
+        const actionFile = {
+            content: JSON.stringify({
+                agent: 'codex',
+                appliesTo: { type: 'feature' },
+                description: 'Implement',
+                id: 'action-implement',
+                label: 'Implement',
+                model: 'GPT 5.5',
+                name: 'implement-action',
+                onState: 'ready',
+                prompt: 'Implement {{file}}',
+                thinkingLevel: 'high',
+                type: 'agent',
+            }),
+            path: 'actions/implement.json',
+        }
+        const storage = createStorage({
+            loadActionFiles: vi.fn(async () => [actionFile]),
+            loadProject: vi.fn(async () => ({ files: moveFiles, workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: moveFiles, workingFolder: 'design' })),
+        })
+        const service = new DataService()
+        service.init({ storage })
+
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        service.cards.moveCard('design/F-1-a.md', 'ready', 0)
+
+        expect(actionRunner.run).toHaveBeenCalledWith(
+            expect.objectContaining({ name: 'implement-action', thinkingLevel: 'high' }),
+            expect.objectContaining({ file: 'design/F-1-a.md', kind: 'card', state: 'ready', type: 'feature' }),
+        )
+    })
+
     it('surfaces failed onState actions on the moved card', async () => {
         configService.init()
         vi.mocked(actionRunner.run).mockResolvedValueOnce({

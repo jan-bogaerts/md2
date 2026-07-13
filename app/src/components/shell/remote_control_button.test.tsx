@@ -35,9 +35,18 @@ describe('RemoteControlButton', () => {
         expect(await screen.findByRole('button', { name: 'Remote on' })).toBeInTheDocument()
     })
 
-    it('renders nothing outside Electron', () => {
+    it('renders the Connect button outside Electron', () => {
         render(<RemoteControlButton />)
 
         expect(screen.queryByRole('button', { name: /Remote/ })).not.toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Connect' })).toBeInTheDocument()
+    })
+
+    it('does not render the Connect button inside Electron', async () => {
+        installBridge()
+        render(<RemoteControlButton />)
+
+        expect(await screen.findByRole('button', { name: 'Remote off' })).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Connect' })).not.toBeInTheDocument()
     })
 })

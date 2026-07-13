@@ -2,6 +2,7 @@ import { Button, Tooltip } from '@mui/material'
 import { useEffect, useMemo, useState } from 'react'
 import { getElectronRemoteControlBridge, type ElectronRemoteControlBridge, type RemoteControlStatus } from '../../data/electron_remote_control_bridge'
 import { dialogService } from '../../services/dialog_service'
+import { RemoteConnectButton } from './remote_connect_button'
 
 const INITIAL_STATUS: RemoteControlStatus = { active: false, clientCount: 0, endpoint: null, token: null }
 
@@ -34,7 +35,7 @@ async function loadRemoteControlStatus(
     }
 }
 
-/** Toolbar control that starts/stops the Electron WebSocket remote-control endpoint. */
+/** Toolbar control: starts/stops the Electron remote-control endpoint, or connects to one from the browser. */
 export function RemoteControlButton() {
     const bridge = useMemo(() => getElectronRemoteControlBridge(), [])
     const [isBusy, setIsBusy] = useState(false)
@@ -53,7 +54,7 @@ export function RemoteControlButton() {
         }
     }, [bridge])
 
-    if (!bridge) return null
+    if (!bridge) return <RemoteConnectButton />
 
     const handleClick = async () => {
         setIsBusy(true)

@@ -20,7 +20,7 @@ export function ActionRunStatus(props: ActionRunStatusProps) {
                 <Stack spacing={0.5} sx={{ mt: 1 }}>
                     {result.logs.map((log, index) => (
                         <Typography key={`${log.actionName}-${log.phase}-${index}`} color="text.secondary" variant="caption">
-                            {log.phase}: {log.message}
+                            {log.phase}: {log.message}{log.thinkingLevel ? ` (thinking: ${log.thinkingLevel})` : ''}
                         </Typography>
                     ))}
                 </Stack>
