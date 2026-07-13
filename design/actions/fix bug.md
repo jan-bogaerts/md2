@@ -1,5 +1,5 @@
 use /caveman skill
-Read and fix the bug described in: 
+Read and fix the bug described in:
 `design\feature_descriptions\B_050_action_execution_still_has_two_orchestrators.md`
 
 You do not need to look at the git status. This is not your concern.  The worktree is what it is, you only need to touch what is required for the above mentioned job/feature description.
@@ -15,4 +15,3 @@ Use the Block Workflow:
 
 You may read any files referenced by relative paths in the spec and any file you think is related to the spec.
 Respect the Test Plan and Acceptance Criteria. Keep everything short and to the point.
-
