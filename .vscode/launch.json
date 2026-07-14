@@ -25,6 +25,9 @@
                 ".",
                 "--remote-debugging-port=9222"
             ],
+            "env": {
+                "ELECTRON_RUN_AS_NODE": null
+            },
             "outputCapture": "std",
             "preLaunchTask": "Wait for Vite Dev Server"
         },

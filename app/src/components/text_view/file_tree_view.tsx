@@ -8,11 +8,13 @@ import type { TreeNode } from '../../data/file_tree'
 import { CreateTreeItemDialog, type CreateTreeItemKind } from './create_tree_item_dialog'
 import { FileTreeContext, type FileTreeContextValue } from './file_tree_context'
 import { FileTreeNodeRow } from './file_tree_node_row'
+import { FileTreeRow } from './file_tree_row'
 
 const TREE_FALLBACK_HEIGHT = 500
 const TREE_INDENT = 16
 const FILE_ROW_HEIGHT = 34
 const GROUP_ROW_HEIGHT = 30
+const TREE_VERTICAL_PADDING = 12
 
 interface FileTreeViewProps {
     cardTypes: CardTypeConfig[]
@@ -198,25 +200,30 @@ export function FileTreeView(props: FileTreeViewProps) {
                         </IconButton>
                     </Tooltip>
                 </Box>
-                <Box ref={treeContainerRef} sx={{ flex: 1, minHeight: 0, py: 1.5 }}>
-                    <Tree<TreeNode>
-                        childrenAccessor={treeNodeChildren}
-                        data={nodes}
-                        disableDrag
-                        disableEdit
-                        disableMultiSelection
-                        height={treeHeight}
-                        indent={TREE_INDENT}
-                        onActivate={handleActivateNode}
-                        onSelect={handleSelectNodes}
-                        openByDefault
-                        overscanCount={4}
-                        rowHeight={treeRowHeight}
-                        selection={effectiveSelectedNodeId ?? undefined}
-                        width="100%"
-                    >
-                        {FileTreeNodeRow}
-                    </Tree>
+                <Box sx={{ display: 'flex', flex: 1, minHeight: 0, minWidth: 0 }}>
+                    <Box ref={treeContainerRef} sx={{ flex: 1, minHeight: 0, minWidth: 0, overflow: 'hidden' }}>
+                        <Tree<TreeNode>
+                            childrenAccessor={treeNodeChildren}
+                            data={nodes}
+                            disableDrag
+                            disableEdit
+                            disableMultiSelection
+                            height={treeHeight}
+                            indent={TREE_INDENT}
+                            onActivate={handleActivateNode}
+                            onSelect={handleSelectNodes}
+                            openByDefault
+                            overscanCount={4}
+                            paddingBottom={TREE_VERTICAL_PADDING}
+                            paddingTop={TREE_VERTICAL_PADDING}
+                            renderRow={FileTreeRow}
+                            rowHeight={treeRowHeight}
+                            selection={effectiveSelectedNodeId ?? undefined}
+                            width="100%"
+                        >
+                            {FileTreeNodeRow}
+                        </Tree>
+                    </Box>
                 </Box>
                 {creationRequest ? (
                     <CreateTreeItemDialog

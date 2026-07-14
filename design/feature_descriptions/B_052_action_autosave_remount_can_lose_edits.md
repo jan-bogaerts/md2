@@ -1,7 +1,7 @@
 ---
 id: B-052
 title: action autosave remount can lose in-flight edits
-status: design
+status: ready
 owner: JB
 affects:
 policy:

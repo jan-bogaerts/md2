@@ -179,11 +179,14 @@ export function FileTreeNodeRow(props: NodeRendererProps<TreeNode>) {
                     alignItems: 'center',
                     borderRadius: 0.875,
                     boxSizing: 'border-box',
+                    cursor: 'pointer',
                     display: 'flex',
                     overflow: 'hidden',
+                    position: 'relative',
                     px: 0.5,
                     '& .rowActions': { opacity: 0, transition: 'opacity 120ms' },
                     '&:focus-within .rowActions, &:hover .rowActions': { opacity: 1 },
+                    '&:focus-within': { bgcolor: 'action.selected' },
                     '&:hover': { bgcolor: 'action.selected' },
                     '&[data-selected="true"]': { bgcolor: alpha(theme.palette.primary.main, 0.12) },
                 }}
@@ -200,6 +203,7 @@ export function FileTreeNodeRow(props: NodeRendererProps<TreeNode>) {
                         pl: 2.25,
                         pr: 0.5,
                         py: 0,
+                        '&:hover': { bgcolor: 'transparent' },
                         '&.Mui-selected, &.Mui-selected:hover': { bgcolor: 'transparent' },
                     }}
                 >
@@ -226,7 +230,10 @@ export function FileTreeNodeRow(props: NodeRendererProps<TreeNode>) {
                         {visibleTitle}
                     </Typography>
                 </ListItemButton>
-                <Box className="rowActions" sx={{ alignItems: 'center', display: 'flex', flexShrink: 0, pr: 0.5 }}>
+                <Box
+                    className="rowActions"
+                    sx={{ alignItems: 'center', bgcolor: 'inherit', bottom: 0, display: 'flex', position: 'absolute', right: 0.5, top: 0 }}
+                >
                     <Tooltip title="Delete file">
                         <IconButton aria-label={`Delete ${treeNode.path}`} onClick={deleteFile} size="small" sx={{ height: 24, width: 24 }}>
                             <DeleteOutline sx={{ fontSize: 16 }} />
@@ -247,10 +254,14 @@ export function FileTreeNodeRow(props: NodeRendererProps<TreeNode>) {
                 alignItems: 'center',
                 borderRadius: 0.75,
                 boxSizing: 'border-box',
+                cursor: 'pointer',
                 display: 'flex',
+                overflow: 'hidden',
+                position: 'relative',
                 px: 0.5,
                 '& .rowActions': { opacity: 0, transition: 'opacity 120ms' },
                 '&:focus-within .rowActions, &:hover .rowActions': { opacity: 1 },
+                '&:focus-within': { bgcolor: 'action.selected' },
                 '&:hover': { bgcolor: 'action.selected' },
                 '&[data-selected="true"]': { bgcolor: alpha(theme.palette.primary.main, 0.12) },
             }}
@@ -266,6 +277,7 @@ export function FileTreeNodeRow(props: NodeRendererProps<TreeNode>) {
                     minWidth: 0,
                     pr: 0.5,
                     py: 0,
+                    '&:hover': { bgcolor: 'transparent' },
                     '&.Mui-selected, &.Mui-selected:hover': { bgcolor: 'transparent' },
                 }}
             >
@@ -294,7 +306,10 @@ export function FileTreeNodeRow(props: NodeRendererProps<TreeNode>) {
                     }}
                 />
             </ListItemButton>
-            <Box className="rowActions" sx={{ alignItems: 'center', display: 'flex', flexShrink: 0, pr: 0.5 }}>
+            <Box
+                className="rowActions"
+                sx={{ alignItems: 'center', bgcolor: 'inherit', bottom: 0, display: 'flex', position: 'absolute', right: 0.5, top: 0 }}
+            >
                 {isDeletableFolder ? (
                     <Tooltip title="Delete folder">
                         <IconButton

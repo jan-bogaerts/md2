@@ -6,7 +6,6 @@ import type { ActionDefinition } from '../../data/action_types'
 import { getCardIdPrefix } from '../../data/card_identifiers'
 import { defaultColumnAccent, type AgentConversation, type CardTypeConfig, type ProjectCard, type StateConfig } from '../../data/data_types'
 import { telemetryService } from '../../services/telemetry_service'
-import { actionDefinitionRevision } from '../../services/action_service'
 import { agentAcknowledgementService } from '../../services/agent_acknowledgement_service'
 import { markdownParsingService } from '../../services/markdown_parsing_service'
 import { AgentConversationList } from '../agents/agent_conversation_list'
@@ -337,7 +336,7 @@ export function TextView(props: TextViewProps) {
                 >
                     {activeAction ? (
                         <ActionEditor
-                            key={actionDefinitionRevision(activeAction)}
+                            key={activeAction.sourcePath ?? undefined}
                             action={activeAction}
                             actions={actions}
                             repositoryFiles={repositoryFiles}

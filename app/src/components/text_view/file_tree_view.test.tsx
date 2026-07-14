@@ -56,4 +56,12 @@ describe('FileTreeView', () => {
         expect(screen.queryByText('File 99')).not.toBeInTheDocument()
         expect(screen.getByRole('tree')).toBeInTheDocument()
     })
+
+    it('constrains rows to the tree viewport', () => {
+        renderTree([fileNode(1)])
+
+        expect(screen.getByRole('treeitem')).toHaveStyle({ maxWidth: '100%', minWidth: 0, overflow: 'hidden' })
+        expect(screen.getByRole('button', { name: 'File 1' }).parentElement).toHaveStyle({ cursor: 'pointer' })
+        expect(screen.getByRole('button', { name: 'Actions' }).parentElement).toHaveStyle({ position: 'absolute' })
+    })
 })
