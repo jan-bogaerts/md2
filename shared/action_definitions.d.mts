@@ -1,7 +1,12 @@
 import type { AgentProfile } from './agent_profiles.mjs'
 
 export type ActionType = 'agent' | 'command'
-export type ActionAppliesTo = Record<string, string>
+export type ActionAppliesToField = 'kind' | 'type' | 'state' | 'file' | 'folder' | 'worktree' | 'worktreeError'
+export type ActionAppliesTo = Partial<Record<ActionAppliesToField, string>>
+
+export const ACTION_DEFINITION_FIELDS: readonly (keyof RawActionDefinition)[]
+export const ACTION_ON_RULE_FIELDS: readonly (keyof RawOnRule)[]
+export const ACTION_APPLIES_TO_FIELDS: readonly ActionAppliesToField[]
 
 export interface ActionFile {
     content: string
@@ -67,6 +72,7 @@ export interface ActionDefinitionLoaderDependencies {
 export interface ActionValidationErrorInit {
     code: string
     field?: keyof RawActionDefinition | null
+    fieldPath?: string | null
     index?: number | null
     sourcePath?: string | null
 }
@@ -74,6 +80,7 @@ export interface ActionValidationErrorInit {
 export class ActionValidationError extends Error {
     code: string
     field: keyof RawActionDefinition | null
+    fieldPath: string | null
     index: number | null
     sourcePath: string | null
     constructor(message: string, init: ActionValidationErrorInit)
@@ -83,4 +90,9 @@ export function sanitizeActionValidationError(error: unknown, log?: (message: st
 export const CUSTOM_PROMPT_ACTION_ID: string
 export const CUSTOM_PROMPT_ACTION_NAME: string
 export const BUILTIN_CUSTOM_PROMPT: ActionDefinition
+export function validateActionDefinition(
+    value: unknown,
+    source: string,
+    dependencies?: ActionDefinitionLoaderDependencies,
+): RawActionDefinition & { sourcePath: string }
 export function loadActionDefinitions(files: ActionFile[], dependencies?: ActionDefinitionLoaderDependencies): ActionDefinition[]

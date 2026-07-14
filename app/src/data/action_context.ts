@@ -1,4 +1,5 @@
-import type { ActionDefinition } from './action_types'
+import { ACTION_APPLIES_TO_FIELDS } from './action_types'
+import type { ActionAppliesToField, ActionDefinition } from './action_types'
 import type { CardTypeConfig, ProjectCard } from './data_types'
 import { getCardIdPrefix } from './card_identifiers'
 
@@ -9,7 +10,7 @@ export type ActionContextFilterValueSource =
     'kind' | 'type' | 'state' | 'file' | 'folder' | 'worktree' | 'text'
 
 export interface ActionContextFilterDescriptor {
-    key: keyof ActionContext & string
+    key: ActionAppliesToField
     label: string
     supportedContextKinds: ActionContextKind[]
     valueSource: ActionContextFilterValueSource
@@ -40,15 +41,20 @@ export function validateActionContextFilterValue(value: string): string | null {
     return value.length > 0 ? null : 'Required value'
 }
 
-export const ACTION_CONTEXT_FILTER_DESCRIPTORS: ActionContextFilterDescriptor[] = [
-    { key: 'kind', label: 'Target kind', supportedContextKinds: ['card', 'file', 'folder'], valueSource: 'kind', validate: validateActionContextFilterValue },
-    { key: 'type', label: 'Context type', supportedContextKinds: ['card', 'file', 'folder'], valueSource: 'type', validate: validateActionContextFilterValue },
-    { key: 'state', label: 'Card state', supportedContextKinds: ['card', 'file'], valueSource: 'state', validate: validateActionContextFilterValue },
-    { key: 'file', label: 'Repository file', supportedContextKinds: ['card', 'file'], valueSource: 'file', validate: validateActionContextFilterValue },
-    { key: 'folder', label: 'Repository folder', supportedContextKinds: ['folder'], valueSource: 'folder', validate: validateActionContextFilterValue },
-    { key: 'worktree', label: 'Worktree', supportedContextKinds: ['card', 'file'], valueSource: 'worktree', validate: validateActionContextFilterValue },
-    { key: 'worktreeError', label: 'Worktree error', supportedContextKinds: ['card', 'file'], valueSource: 'text', validate: validateActionContextFilterValue },
-]
+const ACTION_CONTEXT_FILTER_METADATA: Record<ActionAppliesToField, Omit<ActionContextFilterDescriptor, 'key'>> = {
+    file: { label: 'Repository file', supportedContextKinds: ['card', 'file'], valueSource: 'file', validate: validateActionContextFilterValue },
+    folder: { label: 'Repository folder', supportedContextKinds: ['folder'], valueSource: 'folder', validate: validateActionContextFilterValue },
+    kind: { label: 'Target kind', supportedContextKinds: ['card', 'file', 'folder'], valueSource: 'kind', validate: validateActionContextFilterValue },
+    state: { label: 'Card state', supportedContextKinds: ['card', 'file'], valueSource: 'state', validate: validateActionContextFilterValue },
+    type: { label: 'Context type', supportedContextKinds: ['card', 'file', 'folder'], valueSource: 'type', validate: validateActionContextFilterValue },
+    worktree: { label: 'Worktree', supportedContextKinds: ['card', 'file'], valueSource: 'worktree', validate: validateActionContextFilterValue },
+    worktreeError: { label: 'Worktree error', supportedContextKinds: ['card', 'file'], valueSource: 'text', validate: validateActionContextFilterValue },
+}
+
+export const ACTION_CONTEXT_FILTER_DESCRIPTORS: ActionContextFilterDescriptor[] = ACTION_APPLIES_TO_FIELDS.map((key) => ({
+    key,
+    ...ACTION_CONTEXT_FILTER_METADATA[key],
+}))
 
 /** Resolve the configured card type for a card id via its prefix (e.g. `F-005` → `feature`). */
 export function getCardType(cardTypes: CardTypeConfig[], id: string): string | undefined {
@@ -90,7 +96,7 @@ export function folderContext(folder: string, isSpecial = false): ActionContext 
 export function actionMatchesContext(action: ActionDefinition, context: ActionContext): boolean {
     if (!action.appliesTo) return true
 
-    return Object.entries(action.appliesTo).every(([key, value]) => context[key] === value)
+    return ACTION_APPLIES_TO_FIELDS.every((key) => action.appliesTo?.[key] === undefined || context[key] === action.appliesTo[key])
 }
 
 /** All actions that should be shown for a context, preserving load order. */

@@ -5,7 +5,7 @@ import {
     type ActionFile,
     type RawActionDefinition,
 } from '../data/action_types'
-import { ActionValidationError } from '../../../shared/action_definitions.mjs'
+import { ActionValidationError, validateActionDefinition } from '../../../shared/action_definitions.mjs'
 import { getService, register } from './service_injector'
 import { loadActionDefinitions } from './action_definition_loader'
 
@@ -25,6 +25,7 @@ export interface ActionValidationResult {
     code: string | null
     error: string | null
     field: keyof RawActionDefinition | null
+    fieldPath: string | null
     index: number | null
     valid: boolean
 }
@@ -143,20 +144,21 @@ export class ActionService extends EventTarget {
         try {
             loadActionDefinitions(this.filesWithDefinition(path, definition))
 
-            return { code: null, error: null, field: null, index: null, valid: true }
+            return { code: null, error: null, field: null, fieldPath: null, index: null, valid: true }
         } catch (error) {
             if (error instanceof ActionValidationError) {
                 return {
                     code: error.code,
                     error: error.message,
                     field: error.field as keyof RawActionDefinition | null,
+                    fieldPath: error.fieldPath,
                     index: error.index,
                     valid: false,
                 }
             }
             const message = error instanceof Error ? error.message : 'Invalid action definition'
 
-            return { code: null, error: message, field: null, index: null, valid: false }
+            return { code: null, error: message, field: null, fieldPath: null, index: null, valid: false }
         }
     }
 
@@ -202,6 +204,7 @@ export class ActionService extends EventTarget {
     }
 
     private filesWithDefinition(path: string, definition: RawActionDefinition) {
+        validateActionDefinition(definition, path, { validateAgentCapabilities: false })
         const file = { content: serializeActionDefinition(definition), path }
         const found = this.files.some((candidate) => candidate.path === path)
 

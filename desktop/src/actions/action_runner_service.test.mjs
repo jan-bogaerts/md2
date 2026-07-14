@@ -90,6 +90,15 @@ describe('ActionRunnerService', () => {
         expect(localGitService.loadActionFiles).toHaveBeenCalledTimes(2)
     })
 
+    it('rejects unknown persisted fields before process start', async () => {
+        const { agentRunnerService, commandRunner, runner } = createRunner([actionFile('main', { needsWorktree: true })])
+
+        await expect(runner.start({ actionId: 'main', context, runInput: {} }))
+            .rejects.toThrow('Unknown action field needsWorktree')
+        expect(commandRunner).not.toHaveBeenCalled()
+        expect(agentRunnerService.start).not.toHaveBeenCalled()
+    })
+
     it('rejects a persisted model removed from current Electron configuration before process start', async () => {
         const files = [actionFile('main', {
             agent: 'custom', command: undefined, model: 'retired-model', prompt: 'Run {{file}}', type: 'agent',

@@ -1,7 +1,7 @@
 ---
 id: B-058
 title: unknown action fields are accepted then discarded on save
-status: design
+status: ready
 owner: JB
 affects:
 policy:

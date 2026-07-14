@@ -180,23 +180,10 @@ describe('ActionEditor', () => {
         expect(saveDefinition).not.toHaveBeenCalled()
     })
 
-    it('does not save duplicate custom filter keys', async () => {
-        vi.useFakeTimers()
-        const saveDefinition = vi.spyOn(actionService, 'saveDefinition')
-        renderEditor(loadAction({ appliesTo: { audience: 'developers', region: 'eu' } }))
-
-        fireEvent.change(screen.getAllByLabelText('Custom context field')[1], { target: { value: 'audience' } })
-        fireEvent.change(labelInput(), { target: { value: 'Review code' } })
-
-        expect(screen.getByText('Context field already exists')).toBeInTheDocument()
-        await act(async () => vi.advanceTimersByTime(600))
-        expect(saveDefinition).not.toHaveBeenCalled()
-    })
-
     it('shows a general summary for definition-level errors with no routable field', () => {
         const action = loadAction()
         // A cycle/definition error has no single field; the editor surfaces it as a summary alert.
-        vi.spyOn(actionService, 'validateDefinition').mockReturnValue({code: 'circular-reference', error: 'Circular action reference: a -> b -> a', field: null, index: null, valid: false})
+        vi.spyOn(actionService, 'validateDefinition').mockReturnValue({code: 'circular-reference', error: 'Circular action reference: a -> b -> a', field: null, fieldPath: null, index: null, valid: false})
         renderEditor(action)
 
         expect(screen.getByRole('alert')).toHaveTextContent('Circular action reference: a -> b -> a')

@@ -51,7 +51,6 @@ describe('ActionFilterEditor', () => {
         const fieldOptions = within(screen.getByRole('listbox'))
         expect(fieldOptions.getAllByRole('option').map((option) => option.textContent)).toEqual([
             'Target kind', 'Context type', 'Card state', 'Repository file', 'Repository folder', 'Worktree', 'Worktree error',
-            'Custom field',
         ])
         fireEvent.click(fieldOptions.getByRole('option', { name: 'Context type' }))
 
@@ -115,30 +114,16 @@ describe('ActionFilterEditor', () => {
 
     it('clears the old value when changing fields and preserves filter order', () => {
         const onChange = vi.fn()
-        render(<FilterEditorHarness initialValue={{ state: 'ready', kind: 'card', audience: 'developers' }} onChange={onChange} />)
+        render(<FilterEditorHarness initialValue={{ state: 'ready', kind: 'card', type: 'feature' }} onChange={onChange} />)
 
         expect(screen.getAllByLabelText('Context field').map((field) => field.textContent)).toEqual([
-            'Card state', 'Target kind', 'Custom field',
+            'Card state', 'Target kind', 'Context type',
         ])
 
         fireEvent.mouseDown(screen.getAllByLabelText('Context field')[0])
         fireEvent.click(within(screen.getByRole('listbox')).getByRole('option', { name: 'Repository file' }))
 
-        expect(onChange).toHaveBeenLastCalledWith({ file: '', kind: 'card', audience: 'developers' })
-    })
-
-    it('shows existing custom fields and rejects duplicate custom keys', () => {
-        const onChange = vi.fn()
-        render(<FilterEditorHarness initialValue={{ audience: 'developers', region: 'eu' }} onChange={onChange} />)
-
-        const customFields = screen.getAllByLabelText('Custom context field')
-        expect(customFields[0]).toHaveValue('audience')
-        expect(customFields[1]).toHaveValue('region')
-
-        fireEvent.change(customFields[1], { target: { value: 'audience' } })
-
-        expect(screen.getByText('Context field already exists')).toBeInTheDocument()
-        expect(onChange).toHaveBeenLastCalledWith({ '': 'eu', audience: 'developers' })
+        expect(onChange).toHaveBeenLastCalledWith({ file: '', kind: 'card', type: 'feature' })
     })
 
     it('adds an empty required value and removes the final filter', () => {

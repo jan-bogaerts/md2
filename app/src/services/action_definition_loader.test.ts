@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { ActionValidationError } from '../../../shared/action_definitions.mjs'
 import { CUSTOM_PROMPT_ACTION_ID, CUSTOM_PROMPT_ACTION_NAME, type ActionFile } from '../data/action_types'
 import { loadActionDefinitions } from './action_definition_loader'
 
@@ -22,6 +23,16 @@ const LINT = {
     label: 'Lint',
     name: 'lint',
     type: 'command',
+}
+
+function validationError(files: ActionFile[]): ActionValidationError {
+    try {
+        loadActionDefinitions(files)
+    } catch (error) {
+        if (error instanceof ActionValidationError) return error
+        throw error
+    }
+    throw new Error('Expected action validation error')
 }
 
 describe('loadActionDefinitions', () => {
@@ -49,6 +60,16 @@ describe('loadActionDefinitions', () => {
         const builtin = loadActionDefinitions([]).find(({ id }) => id === CUSTOM_PROMPT_ACTION_ID)
 
         expect(builtin).toMatchObject({ builtin: true, name: CUSTOM_PROMPT_ACTION_NAME, sourcePath: null, type: 'agent' })
+    })
+
+    it.each([
+        [{ ...IMPLEMENT, needsWorktree: true }, { field: null, fieldPath: 'needsWorktree' }],
+        [{ ...IMPLEMENT, on: [{ actionId: LINT.id, condition: 'done', actionID: LINT.id }] }, { field: 'on', fieldPath: 'on[0].actionID', index: 0 }],
+        [{ ...IMPLEMENT, appliesTo: { Type: 'feature', type: 'feature' } }, { field: 'appliesTo', fieldPath: 'appliesTo.Type' }],
+    ])('rejects unknown fields during React loading', (definition, expected) => {
+        const files = 'on' in definition ? [file('implement', definition), file('lint', LINT)] : [file('implement', definition)]
+
+        expect(validationError(files)).toMatchObject({code: 'unknownField', sourcePath: 'actions/implement.json', ...expected})
     })
 
     it('resolves ID links and regular-expression rules to shared definitions', () => {

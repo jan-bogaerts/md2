@@ -126,13 +126,6 @@ describe('actionMatchesContext', () => {
         expect(actionMatchesContext(action('impl', { folder: 'history' }), context)).toBe(false)
     })
 
-    it('matches extension fields conjunctively', () => {
-        const extendedContext = { ...context, audience: 'developers' }
-
-        expect(actionMatchesContext(action('impl', { audience: 'developers', state: 'design' }), extendedContext)).toBe(true)
-        expect(actionMatchesContext(action('impl', { audience: 'developers', state: 'ready' }), extendedContext)).toBe(false)
-    })
-
     it('always matches an action with no appliesTo, including the built-in custom prompt', () => {
         expect(actionMatchesContext(action('any', null), context)).toBe(true)
         expect(actionMatchesContext(BUILTIN_CUSTOM_PROMPT, context)).toBe(true)

@@ -2,6 +2,17 @@ import { validateAgentSelection, validateThinkingLevel } from './agent_profiles.
 
 const ACTION_TYPES = ['agent', 'command']
 const LEGACY_FIELDS = ['after', 'before', 'runIn', 'text']
+export const ACTION_DEFINITION_FIELDS = Object.freeze([
+    'id', 'name', 'label', 'description', 'type', 'icon', 'appliesTo', 'onBefore', 'on', 'onAfter',
+    'onState', 'needsWorkTree', 'agent', 'model', 'thinkingLevel', 'prompt', 'command',
+])
+export const ACTION_ON_RULE_FIELDS = Object.freeze(['actionId', 'condition'])
+export const ACTION_APPLIES_TO_FIELDS = Object.freeze([
+    'kind', 'type', 'state', 'file', 'folder', 'worktree', 'worktreeError',
+])
+const ACTION_DEFINITION_FIELD_SET = new Set(ACTION_DEFINITION_FIELDS)
+const ACTION_ON_RULE_FIELD_SET = new Set(ACTION_ON_RULE_FIELDS)
+const ACTION_APPLIES_TO_FIELD_SET = new Set(ACTION_APPLIES_TO_FIELDS)
 export const CUSTOM_PROMPT_ACTION_ID = 'md2.custom-prompt'
 export const CUSTOM_PROMPT_ACTION_NAME = 'custom prompt'
 
@@ -17,11 +28,12 @@ const ROUTABLE_FIELDS = new Set([
  * `index`, and the `sourcePath` of the offending file.
  */
 export class ActionValidationError extends Error {
-    constructor(message, { code, field = null, index = null, sourcePath = null }) {
+    constructor(message, { code, field = null, fieldPath = null, index = null, sourcePath = null }) {
         super(message)
         this.name = 'ActionValidationError'
         this.code = code
         this.field = ROUTABLE_FIELDS.has(field) ? field : null
+        this.fieldPath = fieldPath
         this.index = index
         this.sourcePath = sourcePath
     }
@@ -40,7 +52,7 @@ function routeField(fieldName) {
 function fail(message, code, source, fieldName = null) {
     const { field, index } = routeField(fieldName)
 
-    return new ActionValidationError(message, { code, field, index, sourcePath: source })
+    return new ActionValidationError(message, { code, field, fieldPath: fieldName, index, sourcePath: source })
 }
 
 export const BUILTIN_CUSTOM_PROMPT = {
@@ -78,6 +90,14 @@ export function sanitizeActionValidationError(error, log = console.error) {
 
 function isPlainObject(value) {
     return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function rejectUnknownFields(value, allowedFields, source, parentPath = null) {
+    const unknownField = Object.getOwnPropertyNames(value).find((fieldName) => !allowedFields.has(fieldName))
+    if (!unknownField) return
+
+    const fieldPath = parentPath ? `${parentPath}.${unknownField}` : unknownField
+    throw fail(`Unknown action field ${fieldPath} in ${source}`, 'unknownField', source, fieldPath)
 }
 
 function requireNonWhitespaceString(value, fieldName, source) {
@@ -130,6 +150,7 @@ function readActionType(value, source) {
 function readAppliesTo(value, source) {
     if (value === undefined) return undefined
     if (!isPlainObject(value)) throw fail(`Invalid appliesTo in ${source}`, 'invalid-applies-to', source, 'appliesTo')
+    rejectUnknownFields(value, ACTION_APPLIES_TO_FIELD_SET, source, 'appliesTo')
 
     const result = {}
     for (const [key, entry] of Object.entries(value)) {
@@ -155,6 +176,7 @@ function readOnRules(value, source) {
 
     return value.map((entry, index) => {
         if (!isPlainObject(entry)) throw fail(`Invalid on rule in ${source}: ${index}`, 'invalid-on', source, `on[${index}]`)
+        rejectUnknownFields(entry, ACTION_ON_RULE_FIELD_SET, source, `on[${index}]`)
         const condition = requireRegularExpression(entry.condition, `on[${index}].condition`, source)
         const actionId = requireIdentity(entry.actionId, `on[${index}].actionId`, source)
 
@@ -207,6 +229,7 @@ function validateAgentFields(raw, dependencies, source) {
 function validateRawDefinition(value, source, dependencies) {
     if (!isPlainObject(value)) throw fail(`Invalid action definition in ${source}`, 'invalid-definition', source)
     rejectLegacyFields(value, source)
+    rejectUnknownFields(value, ACTION_DEFINITION_FIELD_SET, source)
 
     const id = requireIdentity(value.id, 'id', source)
     const name = requireIdentity(value.name, 'name', source)
@@ -241,6 +264,11 @@ function validateRawDefinition(value, source, dependencies) {
     validateAgentFields(raw, dependencies, source)
 
     return raw
+}
+
+/** Validate one in-memory definition before serialization can omit `undefined` unknown fields. */
+export function validateActionDefinition(value, source, dependencies = {}) {
+    return validateRawDefinition(value, source, dependencies)
 }
 
 function parseActionFile(file, dependencies) {

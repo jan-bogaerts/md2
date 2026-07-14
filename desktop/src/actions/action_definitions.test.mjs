@@ -3,6 +3,7 @@ import {
     ActionValidationError,
     loadActionDefinitions,
     sanitizeActionValidationError,
+    validateActionDefinition,
 } from '../../../shared/action_definitions.mjs'
 
 // Load and return the thrown ActionValidationError for assertion on its routing metadata.
@@ -64,6 +65,48 @@ describe('loadActionDefinitions', () => {
             expect(error).toBeInstanceOf(ActionValidationError)
             expect(error).toMatchObject({ ...expected, sourcePath: 'actions/implement.json' })
         }
+    })
+
+    it.each([
+        ['top-level typo', { ...IMPLEMENT, needsWorktree: true }, { field: null, fieldPath: 'needsWorktree' }],
+        ['case-only typo', { ...IMPLEMENT, Label: 'Wrong case' }, { field: null, fieldPath: 'Label' }],
+        ['nested on field', { ...IMPLEMENT, on: [{ actionId: LINT.id, condition: 'ok', unexpected: true }] }, { field: 'on', fieldPath: 'on[0].unexpected', index: 0 }],
+        ['unknown appliesTo field', { ...IMPLEMENT, appliesTo: { audience: 'developers', type: 'feature' } }, { field: 'appliesTo', fieldPath: 'appliesTo.audience' }],
+    ])('rejects %s with exact unknown-field metadata', (_label, definition, expected) => {
+        const files = definition.on ? [file('implement', definition), file('lint', LINT)] : [file('implement', definition)]
+        const error = validationError(files)
+
+        expect(error).toMatchObject({ code: 'unknownField', sourcePath: 'actions/implement.json', ...expected })
+    })
+
+    it('rejects own undefined draft fields but ignores inherited properties', () => {
+        expect(() => validateActionDefinition({ ...IMPLEMENT, needsWorktree: undefined }, 'actions/draft.json'))
+            .toThrow(/Unknown action field needsWorktree/u)
+
+        const definition = Object.assign(Object.create({ needsWorktree: true }), IMPLEMENT)
+        expect(() => validateActionDefinition(definition, 'actions/inherited.json')).not.toThrow()
+    })
+
+    it('accepts a complete definition using every canonical nested field', () => {
+        const definition = {
+            ...IMPLEMENT,
+            agent: 'codex',
+            appliesTo: {
+                file: 'design/F-010.md', folder: 'design', kind: 'card', state: 'ready', type: 'feature',
+                worktree: '1', worktreeError: 'none',
+            },
+            icon: 'implement.svg',
+            model: 'gpt-5',
+            needsWorkTree: true,
+            on: [{ actionId: LINT.id, condition: 'done' }],
+            onAfter: [LINT.id],
+            onBefore: [LINT.id],
+            onState: 'ready',
+            thinkingLevel: 'high',
+        }
+        const profiles = [{ command: 'codex', models: ['gpt-5'], name: 'codex' }]
+
+        expect(() => loadActionDefinitions([file('implement', definition), file('lint', LINT)], { profiles })).not.toThrow()
     })
 
     it('keeps list index for unknown ids and invalid regex after reordering rules', () => {

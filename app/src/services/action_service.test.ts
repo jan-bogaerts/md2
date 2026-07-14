@@ -74,7 +74,7 @@ describe('ActionService', () => {
             name: 'new-action', prompt: expect.any(String), type: 'agent',
         })
         expect(service.validateDefinition(first.path, first.definition))
-            .toEqual({ code: null, error: null, field: null, index: null, valid: true })
+            .toEqual({ code: null, error: null, field: null, fieldPath: null, index: null, valid: true })
     })
 
     it('routes validation failures by structured metadata, not message text', () => {
@@ -98,6 +98,17 @@ describe('ActionService', () => {
         // Circular reference and definition-level errors carry no field (general summary).
         expect(service.validateDefinition('actions/action.json', { ...VALID, onBefore: [VALID.id] }))
             .toMatchObject({ code: 'circular-reference', field: null, valid: false })
+    })
+
+    it('rejects unknown in-memory fields before save serialization', async () => {
+        const persistActionFile = vi.fn(async () => undefined)
+        const service = new ActionService(() => ({ persistActionFile }))
+        service.loadFromFiles([file(VALID)])
+        const definition = { ...VALID, needsWorktree: undefined } as RawActionDefinition
+
+        expect(service.validateDefinition('actions/action.json', definition)).toMatchObject({code: 'unknownField', field: null, fieldPath: 'needsWorktree', valid: false})
+        await expect(service.saveDefinition('actions/action.json', definition)).rejects.toThrow(/Unknown action field needsWorktree/u)
+        expect(persistActionFile).not.toHaveBeenCalled()
     })
 
     it('does not route incidental field words in ids to a control', () => {

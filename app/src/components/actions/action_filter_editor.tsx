@@ -1,15 +1,12 @@
 import { Box, Button, IconButton, MenuItem, Stack, TextField, Tooltip, Typography } from '@mui/material'
 import DeleteOutline from 'mdi-material-ui/DeleteOutline'
-import { useState } from 'react'
 import type { ChangeEvent, MouseEvent } from 'react'
 import {
     ACTION_CONTEXT_FILTER_DESCRIPTORS,
     type ActionContextFilterDescriptor,
 } from '../../data/action_context'
-import type { ActionAppliesTo } from '../../data/action_types'
+import type { ActionAppliesTo, ActionAppliesToField } from '../../data/action_types'
 import type { WorktreeRecord } from '../../data/data_types'
-
-const CUSTOM_FIELD_VALUE = '__custom_context_field__'
 
 interface FilterOption {
     label: string
@@ -63,7 +60,12 @@ function includeCurrentOption(options: FilterOption[], value: string): FilterOpt
     return [{ label: `${value} (current)`, value }, ...options]
 }
 
-function replaceEntry(entries: [string, string][], index: number, field: string, fieldValue: string): ActionAppliesTo {
+function replaceEntry(
+    entries: [ActionAppliesToField, string][],
+    index: number,
+    field: ActionAppliesToField,
+    fieldValue: string,
+): ActionAppliesTo {
     return Object.fromEntries(entries.map((entry, entryIndex) => (
         entryIndex === index ? [field, fieldValue] : entry
     )))
@@ -71,15 +73,15 @@ function replaceEntry(entries: [string, string][], index: number, field: string,
 
 export function ActionFilterEditor(props: ActionFilterEditorProps) {
     const { error, onChange, value } = props
-    const entries = Object.entries(value ?? {})
-    const [customKeyDraft, setCustomKeyDraft] = useState('')
+    const entries = Object.entries(value ?? {}) as [ActionAppliesToField, string][]
     const descriptorByKey = new Map(ACTION_CONTEXT_FILTER_DESCRIPTORS.map((descriptor) => [descriptor.key, descriptor]))
     const hasIncompleteRow = entries.some(([field, fieldValue]) => !field || !fieldValue)
+    const hasEveryFilter = entries.length === ACTION_CONTEXT_FILTER_DESCRIPTORS.length
 
     const handleAdd = () => {
         const descriptor = ACTION_CONTEXT_FILTER_DESCRIPTORS.find(({ key }) => !Object.hasOwn(value ?? {}, key))
-        const field = descriptor?.key ?? ''
-        onChange({ ...value, [field]: '' })
+        if (!descriptor) throw new Error('No applicability filter available')
+        onChange({ ...value, [descriptor.key]: '' })
     }
 
     const handleFieldChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -87,30 +89,7 @@ export function ActionFilterEditor(props: ActionFilterEditorProps) {
         const previousEntry = entries[index]
         if (!previousEntry) throw new Error(`Missing applicability filter at index ${index}`)
 
-        const nextField = event.target.value
-        const field = nextField === CUSTOM_FIELD_VALUE ? '' : nextField
-        setCustomKeyDraft('')
-        onChange(replaceEntry(entries, index, field, ''))
-    }
-
-    const handleCustomKeyChange = (event: ChangeEvent<HTMLInputElement>) => {
-        const index = Number.parseInt(event.target.name, 10)
-        const entry = entries[index]
-        if (!entry) throw new Error(`Missing applicability filter at index ${index}`)
-
-        const [field, fieldValue] = entry
-        const nextField = event.target.value
-        const duplicate = entries.some(([candidate], entryIndex) => candidate === nextField && entryIndex !== index)
-        const structured = descriptorByKey.has(nextField)
-        setCustomKeyDraft(nextField)
-
-        if (!nextField || duplicate || structured) {
-            if (field) onChange(replaceEntry(entries, index, '', fieldValue))
-            return
-        }
-
-        setCustomKeyDraft('')
-        onChange(replaceEntry(entries, index, nextField, fieldValue))
+        onChange(replaceEntry(entries, index, event.target.value as ActionAppliesToField, ''))
     }
 
     const handleValueChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -126,7 +105,6 @@ export function ActionFilterEditor(props: ActionFilterEditorProps) {
         const index = Number.parseInt(event.currentTarget.dataset.index ?? '', 10)
         const entry = entries[index]
         if (!entry) throw new Error(`Missing applicability filter at index ${index}`)
-        if (!entry[0]) setCustomKeyDraft('')
 
         const nextEntries = entries.filter((_entry, entryIndex) => entryIndex !== index)
         onChange(nextEntries.length > 0 ? Object.fromEntries(nextEntries) : undefined)
@@ -137,20 +115,9 @@ export function ActionFilterEditor(props: ActionFilterEditorProps) {
             <Typography variant="subtitle2">Applicability filters</Typography>
             {entries.map(([field, fieldValue], index) => {
                 const descriptor = descriptorByKey.get(field)
-                const isCustom = !descriptor
-                const customKey = field || customKeyDraft
-                const duplicateCustomKey = !!customKey && entries.some(([candidate], entryIndex) => (
-                    candidate === customKey && entryIndex !== index
-                ))
-                const structuredCustomKey = !!customKey && descriptorByKey.has(customKey)
-                const keyError = !customKey
-                    ? 'Context field is required'
-                    : duplicateCustomKey
-                        ? 'Context field already exists'
-                        : structuredCustomKey ? 'Choose this field from the structured field list' : null
-                const valueError = descriptor?.validate(fieldValue) ?? (fieldValue ? null : 'Required value')
-                const options = descriptor ? includeCurrentOption(optionsForDescriptor(descriptor, props), fieldValue) : []
-                const selectValue = descriptor ? field : CUSTOM_FIELD_VALUE
+                if (!descriptor) throw new Error(`Missing applicability filter descriptor: ${field}`)
+                const valueError = descriptor.validate(fieldValue)
+                const options = includeCurrentOption(optionsForDescriptor(descriptor, props), fieldValue)
 
                 return (
                     <Box key={index} sx={{ alignItems: 'flex-start', display: 'flex', gap: 1 }}>
@@ -161,7 +128,7 @@ export function ActionFilterEditor(props: ActionFilterEditorProps) {
                                 onChange={handleFieldChange}
                                 select
                                 size="small"
-                                value={selectValue}
+                                value={field}
                             >
                                 {ACTION_CONTEXT_FILTER_DESCRIPTORS.map((option) => (
                                     <MenuItem
@@ -172,27 +139,15 @@ export function ActionFilterEditor(props: ActionFilterEditorProps) {
                                         {option.label}
                                     </MenuItem>
                                 ))}
-                                <MenuItem value={CUSTOM_FIELD_VALUE}>Custom field</MenuItem>
                             </TextField>
-                            {isCustom ? (
-                                <TextField
-                                    error={!!keyError}
-                                    helperText={keyError}
-                                    label="Custom context field"
-                                    name={String(index)}
-                                    onChange={handleCustomKeyChange}
-                                    size="small"
-                                    value={customKey}
-                                />
-                            ) : null}
                         </Stack>
                         <TextField
                             error={!!valueError || !!error}
                             helperText={valueError ?? error}
-                            label={descriptor?.label ?? 'Custom value'}
+                            label={descriptor.label}
                             name={String(index)}
                             onChange={handleValueChange}
-                            select={!!descriptor && descriptor.valueSource !== 'text'}
+                            select={descriptor.valueSource !== 'text'}
                             size="small"
                             sx={{ flex: 1 }}
                             value={fieldValue}
@@ -207,7 +162,7 @@ export function ActionFilterEditor(props: ActionFilterEditorProps) {
                     </Box>
                 )
             })}
-            <Button disabled={hasIncompleteRow} onClick={handleAdd} size="small" sx={{ alignSelf: 'flex-start' }}>
+            <Button disabled={hasIncompleteRow || hasEveryFilter} onClick={handleAdd} size="small" sx={{ alignSelf: 'flex-start' }}>
                 Add filter
             </Button>
         </Stack>
