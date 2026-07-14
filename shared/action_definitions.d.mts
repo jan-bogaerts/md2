@@ -13,6 +13,15 @@ export interface ActionFile {
     path: string
 }
 
+export interface ActionDefinitionEntry {
+    definition: unknown
+    path: string
+}
+
+export interface RawActionDefinitionEntry extends ActionDefinitionEntry {
+    definition: RawActionDefinition
+}
+
 export interface RawOnRule {
     actionId: string
     condition: string
@@ -95,4 +104,9 @@ export function validateActionDefinition(
     source: string,
     dependencies?: ActionDefinitionLoaderDependencies,
 ): RawActionDefinition & { sourcePath: string }
+export function parseActionDefinitionFiles(files: ActionFile[]): ActionDefinitionEntry[]
+export function validateActionDefinitionGraph(
+    entries: ActionDefinitionEntry[],
+    dependencies?: ActionDefinitionLoaderDependencies,
+): ActionDefinition[]
 export function loadActionDefinitions(files: ActionFile[], dependencies?: ActionDefinitionLoaderDependencies): ActionDefinition[]

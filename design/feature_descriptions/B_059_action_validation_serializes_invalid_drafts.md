@@ -1,7 +1,7 @@
 ---
 id: B-059
 title: action validation serializes and reparses every draft
-status: design
+status: ready
 owner: JB
 affects:
 policy:

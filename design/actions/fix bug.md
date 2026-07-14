@@ -1,6 +1,6 @@
 use /caveman skill
 Read and fix the bug described in: 
-`design\feature_descriptions\B_054_action_required_fields_accept_whitespace.md`
+`design\feature_descriptions\B_059_action_validation_serializes_invalid_drafts.md`
 
 You do not need to look at the git status. This is not your concern.  The worktree is what it is, you only need to touch what is required for the above mentioned job/feature description.
 

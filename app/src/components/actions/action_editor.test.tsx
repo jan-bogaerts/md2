@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ActionDefinition, ActionFile } from '../../data/action_types'
 import { configService } from '../../services/config_service'
 import { actionService } from '../../services/action_service'
+import * as actionServiceModule from '../../services/action_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import { ActionEditor } from './action_editor'
 
@@ -160,12 +161,16 @@ describe('ActionEditor', () => {
         vi.useFakeTimers()
         const saveDefinition = vi.spyOn(actionService, 'saveDefinition')
         renderEditor()
+        const parse = vi.spyOn(JSON, 'parse')
+        const serialize = vi.spyOn(actionServiceModule, 'serializeActionDefinition')
 
         fireEvent.change(labelInput(), { target: { value: ' \t\u2003' } })
         expect(screen.getByText(/Missing action field label/u)).toBeInTheDocument()
 
         await act(async () => vi.advanceTimersByTime(600))
         expect(saveDefinition).not.toHaveBeenCalled()
+        expect(parse).not.toHaveBeenCalled()
+        expect(serialize).not.toHaveBeenCalled()
     })
 
     it('does not save while a newly added filter value is empty', async () => {
@@ -306,6 +311,41 @@ describe('ActionEditor', () => {
         expect(screen.queryByText(/changed outside the editor/u)).not.toBeInTheDocument()
         expect(labelInput().value).toBe('Review')
         expect((screen.getByLabelText('Description') as HTMLInputElement).value).toBe('External change')
+    })
+
+    it('treats property-order-only external reloads as clean structured state', () => {
+        const action = loadAction()
+        const view = renderEditor(action)
+        const reorderedFile = {
+            content: JSON.stringify({
+                type: 'agent',
+                prompt: definition.prompt,
+                name: definition.name,
+                label: definition.label,
+                id: definition.id,
+                description: definition.description,
+            }),
+            path: 'actions/review.json',
+        }
+        actionService.loadFromFiles([reorderedFile])
+        const reloadedAction = actionService.getActionByPath('actions/review.json')
+        if (!reloadedAction) throw new Error('Missing reloaded action')
+
+        view.rerender(
+            <AppThemeProvider>
+                <ActionEditor
+                    action={reloadedAction}
+                    actions={actionService.getActions()}
+                    cardTypes={['feature']}
+                    repositoryFiles={[]}
+                    specialContextTypes={['actions']}
+                    states={['ready']}
+                />
+            </AppThemeProvider>,
+        )
+
+        expect(screen.queryByText(/changed outside the editor/u)).not.toBeInTheDocument()
+        expect(labelInput().value).toBe('Review')
     })
 
     it('does not remount the editor or lose focus on a successful save', async () => {

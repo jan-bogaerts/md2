@@ -271,7 +271,7 @@ export function validateActionDefinition(value, source, dependencies = {}) {
     return validateRawDefinition(value, source, dependencies)
 }
 
-function parseActionFile(file, dependencies) {
+function parseActionFile(file) {
     let parsed
     try {
         parsed = JSON.parse(file.content)
@@ -280,7 +280,7 @@ function parseActionFile(file, dependencies) {
     }
     if (Array.isArray(parsed)) throw fail(`Action file must contain one definition in ${file.path}`, 'invalid-definition', file.path)
 
-    return validateRawDefinition(parsed, file.path, dependencies)
+    return { definition: parsed, path: file.path }
 }
 
 function resolveAction(actionId, registry, source, fieldName, index) {
@@ -307,8 +307,14 @@ function detectCycles(actions) {
     for (const action of actions) visitActionForCycles(action, visiting, done, [])
 }
 
-export function loadActionDefinitions(files, dependencies = {}) {
-    const rawDefinitions = files.map((file) => parseActionFile(file, dependencies))
+/** Parse action files once at the file-loading boundary. */
+export function parseActionDefinitionFiles(files) {
+    return files.map((file) => parseActionFile(file))
+}
+
+/** Validate and resolve a whole-project graph of structured action definitions. */
+export function validateActionDefinitionGraph(entries, dependencies = {}) {
+    const rawDefinitions = entries.map(({ definition, path }) => validateRawDefinition(definition, path, dependencies))
     const ids = new Set([CUSTOM_PROMPT_ACTION_ID])
     const names = new Set([CUSTOM_PROMPT_ACTION_NAME])
     for (const raw of rawDefinitions) {
@@ -358,4 +364,8 @@ export function loadActionDefinitions(files, dependencies = {}) {
     detectCycles(actions)
 
     return actions
+}
+
+export function loadActionDefinitions(files, dependencies = {}) {
+    return validateActionDefinitionGraph(parseActionDefinitionFiles(files), dependencies)
 }

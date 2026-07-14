@@ -1,7 +1,12 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { ActionValidationError } from '../../../shared/action_definitions.mjs'
-import { CUSTOM_PROMPT_ACTION_ID, CUSTOM_PROMPT_ACTION_NAME, type ActionFile } from '../data/action_types'
-import { loadActionDefinitions } from './action_definition_loader'
+import {
+    CUSTOM_PROMPT_ACTION_ID,
+    CUSTOM_PROMPT_ACTION_NAME,
+    type ActionDefinitionEntry,
+    type ActionFile,
+} from '../data/action_types'
+import { loadActionDefinitions, validateActionDefinitionGraph } from './action_definition_loader'
 
 function file(name: string, definition: unknown): ActionFile {
     return { content: JSON.stringify(definition), path: `actions/${name}.json` }
@@ -36,6 +41,33 @@ function validationError(files: ActionFile[]): ActionValidationError {
 }
 
 describe('loadActionDefinitions', () => {
+    it('parses each file exactly once at the loading boundary', () => {
+        const files = [file('implement', IMPLEMENT), file('lint', LINT)]
+        const parse = vi.spyOn(JSON, 'parse')
+
+        loadActionDefinitions(files)
+
+        expect(parse).toHaveBeenCalledTimes(files.length)
+        parse.mockRestore()
+    })
+
+    it('validates structured whole-project graphs without JSON round-tripping', () => {
+        const definitions: ActionDefinitionEntry[] = [
+            { definition: { ...IMPLEMENT, onAfter: [LINT.id] }, path: 'actions/implement.json' },
+            { definition: LINT, path: 'actions/lint.json' },
+        ]
+        const parse = vi.spyOn(JSON, 'parse')
+        const stringify = vi.spyOn(JSON, 'stringify')
+
+        const actions = validateActionDefinitionGraph(definitions)
+
+        expect(actions.find(({ id }) => id === IMPLEMENT.id)?.onAfter[0].id).toBe(LINT.id)
+        expect(parse).not.toHaveBeenCalled()
+        expect(stringify).not.toHaveBeenCalled()
+        parse.mockRestore()
+        stringify.mockRestore()
+    })
+
     it('parses canonical fields, source metadata, and optional values', () => {
         const actions = loadActionDefinitions([file('implement', {
             ...IMPLEMENT,

@@ -1,5 +1,13 @@
-import { loadActionDefinitions as loadSharedActionDefinitions } from '../../../shared/action_definitions.mjs'
-import type { ActionDefinition, ActionFile } from '../data/action_types'
+import {
+    parseActionDefinitionFiles,
+    validateActionDefinitionGraph as validateSharedActionDefinitionGraph,
+} from '../../../shared/action_definitions.mjs'
+import type {
+    ActionDefinition,
+    ActionDefinitionEntry,
+    ActionFile,
+    RawActionDefinitionEntry,
+} from '../data/action_types'
 import type { AgentProfile } from '../data/agent_profiles'
 import { configService } from './config_service'
 
@@ -22,5 +30,22 @@ export function loadActionDefinitions(
     files: ActionFile[],
     dependencies: ActionDefinitionLoaderDependencies = defaultLoaderDependencies(),
 ): ActionDefinition[] {
-    return loadSharedActionDefinitions(files, dependencies)
+    return loadActionDefinitionGraph(files, dependencies).actions
+}
+
+export function loadActionDefinitionGraph(
+    files: ActionFile[],
+    dependencies: ActionDefinitionLoaderDependencies = defaultLoaderDependencies(),
+): { actions: ActionDefinition[], definitions: RawActionDefinitionEntry[] } {
+    const definitions = parseActionDefinitionFiles(files)
+    const actions = validateSharedActionDefinitionGraph(definitions, dependencies)
+
+    return { actions, definitions: definitions as RawActionDefinitionEntry[] }
+}
+
+export function validateActionDefinitionGraph(
+    definitions: ActionDefinitionEntry[],
+    dependencies: ActionDefinitionLoaderDependencies = defaultLoaderDependencies(),
+): ActionDefinition[] {
+    return validateSharedActionDefinitionGraph(definitions, dependencies)
 }

@@ -4,10 +4,14 @@ import {
     type ActionDefinition,
     type ActionFile,
     type RawActionDefinition,
+    type RawActionDefinitionEntry,
 } from '../data/action_types'
-import { ActionValidationError, validateActionDefinition } from '../../../shared/action_definitions.mjs'
+import { ActionValidationError } from '../../../shared/action_definitions.mjs'
 import { getService, register } from './service_injector'
-import { loadActionDefinitions } from './action_definition_loader'
+import {
+    loadActionDefinitionGraph,
+    validateActionDefinitionGraph,
+} from './action_definition_loader'
 
 const ACTION_FILE_EXTENSION = '.json'
 const NEW_ACTION_NAME = 'new-action'
@@ -80,13 +84,10 @@ export function serializeActionDefinition(definition: RawActionDefinition) {
     return `${JSON.stringify(definition, null, 2)}\n`
 }
 
-export function actionDefinitionRevision(action: ActionDefinition) {
-    return serializeActionDefinition(editableActionDefinition(action))
-}
-
 /** Owns loaded action objects, validation, creation, and valid-only persistence. */
 export class ActionService extends EventTarget {
     private actions: ActionDefinition[] = [BUILTIN_CUSTOM_PROMPT]
+    private definitions: RawActionDefinitionEntry[] = []
     private error: string | null = null
     private files: ActionFile[] = []
     private readonly persistenceGateway: () => ActionPersistenceGateway
@@ -98,15 +99,17 @@ export class ActionService extends EventTarget {
     }
 
     init() {
-        this.actions = loadActionDefinitions([])
+        this.actions = validateActionDefinitionGraph([])
+        this.definitions = []
         this.error = null
         this.files = []
         this.dispatchChanged()
     }
 
     loadFromFiles(files: ActionFile[]) {
-        const actions = loadActionDefinitions(files, { validateAgentCapabilities: false })
+        const { actions, definitions } = loadActionDefinitionGraph(files, { validateAgentCapabilities: false })
         this.actions = actions
+        this.definitions = definitions
         this.error = null
         this.files = files
         this.dispatchChanged()
@@ -142,7 +145,7 @@ export class ActionService extends EventTarget {
 
     validateDefinition(path: string, definition: RawActionDefinition): ActionValidationResult {
         try {
-            loadActionDefinitions(this.filesWithDefinition(path, definition))
+            validateActionDefinitionGraph(this.definitionsWithDefinition(path, definition))
 
             return { code: null, error: null, field: null, fieldPath: null, index: null, valid: true }
         } catch (error) {
@@ -163,13 +166,13 @@ export class ActionService extends EventTarget {
     }
 
     async saveDefinition(path: string, definition: RawActionDefinition) {
-        const nextFiles = this.filesWithDefinition(path, definition)
-        const actions = loadActionDefinitions(nextFiles)
-        const file = nextFiles.find((candidate) => candidate.path === path)
-        if (!file) throw new Error(`Missing action file after validation: ${path}`)
+        const definitions = this.definitionsWithDefinition(path, definition)
+        const actions = validateActionDefinitionGraph(definitions)
+        const file = { content: serializeActionDefinition(definition), path }
 
         await this.persistenceGateway().persistActionFile(file)
-        this.files = nextFiles
+        this.files = this.filesWithFile(file)
+        this.definitions = definitions
         this.actions = actions
         this.error = null
         this.dispatchChanged()
@@ -182,6 +185,7 @@ export class ActionService extends EventTarget {
 
     clear() {
         this.actions = [BUILTIN_CUSTOM_PROMPT]
+        this.definitions = []
         this.error = null
         this.files = []
         this.dispatchChanged()
@@ -199,17 +203,28 @@ export class ActionService extends EventTarget {
         return this.actions.find(({ sourcePath }) => sourcePath === path) ?? null
     }
 
+    getDefinitionByPath(path: string): RawActionDefinition | null {
+        return this.definitions.find((entry) => entry.path === path)?.definition ?? null
+    }
+
     getActionsForStateTrigger(state: string, context: ActionContext): ActionDefinition[] {
         return this.actions.filter((action) => action.onState === state && actionMatchesContext(action, context))
     }
 
-    private filesWithDefinition(path: string, definition: RawActionDefinition) {
-        validateActionDefinition(definition, path, { validateAgentCapabilities: false })
-        const file = { content: serializeActionDefinition(definition), path }
-        const found = this.files.some((candidate) => candidate.path === path)
+    private definitionsWithDefinition(path: string, definition: RawActionDefinition): RawActionDefinitionEntry[] {
+        const entry = { definition, path }
+        const found = this.definitions.some((candidate) => candidate.path === path)
 
         return found
-            ? this.files.map((candidate) => candidate.path === path ? file : candidate)
+            ? this.definitions.map((candidate) => candidate.path === path ? entry : candidate)
+            : [...this.definitions, entry]
+    }
+
+    private filesWithFile(file: ActionFile): ActionFile[] {
+        const found = this.files.some((candidate) => candidate.path === file.path)
+
+        return found
+            ? this.files.map((candidate) => candidate.path === file.path ? file : candidate)
             : [...this.files, file]
     }
 

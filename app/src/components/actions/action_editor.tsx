@@ -4,7 +4,6 @@ import type { ActionDefinition, RawActionDefinition } from '../../data/action_ty
 import {
     actionService,
     editableActionDefinition,
-    serializeActionDefinition,
 } from '../../services/action_service'
 import { dialogService } from '../../services/dialog_service'
 import { MarkdownEditor } from '../editor/markdown_editor'
@@ -22,19 +21,31 @@ interface ActionEditorProps {
     states: string[]
 }
 
+interface ActionDraftState {
+    definition: RawActionDefinition
+    revision: number
+    savedRevision: number
+}
+
 export function ActionEditor(props: ActionEditorProps) {
     const { action, actions, cardTypes, repositoryFiles, specialContextTypes, states } = props
     const worktrees = useWorktrees()
     const sourcePath = action.sourcePath
     if (!sourcePath) throw new Error(`Action editor requires a persisted action: ${action.id}`)
 
-    const [definition, setDefinition] = useState<RawActionDefinition>(() => editableActionDefinition(action))
-    // Content that is (or is being reconciled as) persisted for the mounted action.
-    const [baseline, setBaseline] = useState(() => serializeActionDefinition(definition))
-    // Last external `action` prop content we have already reconciled into the draft.
-    const externalBaselineRef = useRef(serializeActionDefinition(editableActionDefinition(action)))
-    // Serialized contents this editor issued saves for, used to recognise our own save echo.
-    const ownContentsRef = useRef(new Set<string>())
+    const initialExternalDefinition = actionService.getDefinitionByPath(sourcePath)
+    if (!initialExternalDefinition) throw new Error(`Missing action definition for editor: ${sourcePath}`)
+
+    const [draft, setDraft] = useState<ActionDraftState>(() => ({
+        definition: editableActionDefinition(action),
+        revision: 0,
+        savedRevision: 0,
+    }))
+    const { definition, revision, savedRevision } = draft
+    // Last service-owned definition reconciled into this editor.
+    const externalDefinitionRef = useRef(initialExternalDefinition)
+    // Structured draft objects issued by this editor, used to recognise service save echoes.
+    const ownDefinitionsRef = useRef(new Set<RawActionDefinition>())
     // Serializes persistence per action path and orders completions.
     const chainRef = useRef<Promise<void>>(Promise.resolve())
     const issuedRef = useRef(0)
@@ -52,14 +63,13 @@ export function ActionEditor(props: ActionEditorProps) {
     // Definition/file/cycle errors have no single field; surface them in a general summary.
     const generalError = !validation.valid && !validation.field ? validation.error : null
 
-    const content = serializeActionDefinition(definition)
-    const dirty = content !== baseline
+    const dirty = revision !== savedRevision
 
-    const runSave = useCallback((snapshot: RawActionDefinition, snapshotContent: string, track: boolean) => {
+    const runSave = useCallback((snapshot: RawActionDefinition, snapshotRevision: number, track: boolean) => {
         const seq = ++issuedRef.current
-        // Record the saved content so the resulting prop update is recognised as our own echo,
+        // Record saved object so resulting prop update is recognised as our own echo,
         // not an external conflict.
-        ownContentsRef.current.add(snapshotContent)
+        ownDefinitionsRef.current.add(snapshot)
         if (track) {
             setPendingCount((current) => current + 1)
             setSaveError(null)
@@ -67,9 +77,13 @@ export function ActionEditor(props: ActionEditorProps) {
         chainRef.current = chainRef.current.then(async () => {
             try {
                 await actionService.saveDefinition(sourcePath, snapshot)
-                // Chain preserves issue order, so the newest completion sets the baseline last.
-                setBaseline(snapshotContent)
+                // Chain preserves issue order; never move saved revision backwards.
+                setDraft((current) => ({
+                    ...current,
+                    savedRevision: Math.max(current.savedRevision, snapshotRevision),
+                }))
             } catch (error) {
+                ownDefinitionsRef.current.delete(snapshot)
                 // A stale completion (superseded by a newer save) must not surface as the status.
                 if (track && seq === issuedRef.current) {
                     const message = error instanceof Error ? error.message : 'Action save failed'
@@ -84,65 +98,75 @@ export function ActionEditor(props: ActionEditorProps) {
 
     // Debounced auto-save of the newest valid dirty draft.
     useEffect(() => {
-        if (!validation.valid || !dirty) return undefined
+        if (!validation.valid || !dirty || conflict) return undefined
 
         const snapshot = definition
-        const timeout = window.setTimeout(() => runSave(snapshot, content, true), AUTO_SAVE_DELAY_MS)
+        const timeout = window.setTimeout(() => runSave(snapshot, revision, true), AUTO_SAVE_DELAY_MS)
 
         return () => window.clearTimeout(timeout)
-    }, [content, definition, dirty, runSave, validation.valid])
+    }, [conflict, definition, dirty, revision, runSave, validation.valid])
 
     // Reconcile external `action` changes without clobbering an in-flight draft.
     useEffect(() => {
-        const external = serializeActionDefinition(editableActionDefinition(action))
-        if (external === externalBaselineRef.current) return
-        externalBaselineRef.current = external
+        const externalDefinition = actionService.getDefinitionByPath(sourcePath)
+        if (!externalDefinition) throw new Error(`Missing external action definition: ${sourcePath}`)
+        if (externalDefinition === externalDefinitionRef.current) return
+        externalDefinitionRef.current = externalDefinition
 
-        if (ownContentsRef.current.has(external)) {
-            ownContentsRef.current.delete(external)
-            setBaseline(external)
+        if (ownDefinitionsRef.current.has(externalDefinition)) {
+            ownDefinitionsRef.current.delete(externalDefinition)
 
             return
         }
-        if (serializeActionDefinition(definition) === baseline) {
+        if (!dirty) {
             // Draft is clean: adopt the external version.
             // eslint-disable-next-line react-hooks/set-state-in-effect
-            setDefinition(editableActionDefinition(action))
-            setBaseline(external)
+            setDraft((current) => {
+                const nextRevision = current.revision + 1
+
+                return { definition: externalDefinition, revision: nextRevision, savedRevision: nextRevision }
+            })
         } else {
             // Draft is dirty: surface a conflict, keep the local draft.
-            setConflict(editableActionDefinition(action))
+            setConflict(externalDefinition)
         }
-    }, [action, baseline, definition])
+    }, [action, dirty, sourcePath])
 
     // Flush a pending valid dirty draft when the editor unmounts (tab switch / close).
-    const flushStateRef = useRef({ content, definition, dirty, runSave, valid: validation.valid })
+    const flushStateRef = useRef({ definition, dirty, revision, runSave, valid: validation.valid })
     useEffect(() => {
-        flushStateRef.current = { content, definition, dirty, runSave, valid: validation.valid }
+        flushStateRef.current = { definition, dirty, revision, runSave, valid: validation.valid }
     })
     useEffect(() => () => {
         const flush = flushStateRef.current
         if (!flush.valid || !flush.dirty) return
-        flush.runSave(flush.definition, flush.content, false)
+        flush.runSave(flush.definition, flush.revision, false)
     }, [])
 
     const handleDefinitionChange = (nextDefinition: RawActionDefinition) => {
-        setDefinition(nextDefinition)
+        setDraft((current) => ({ ...current, definition: nextDefinition, revision: current.revision + 1 }))
     }
 
     const handlePromptChange = (prompt: string) => {
-        setDefinition((current) => ({ ...current, prompt }))
+        setDraft((current) => ({
+            ...current,
+            definition: { ...current.definition, prompt },
+            revision: current.revision + 1,
+        }))
     }
 
     const handleKeepMine = () => {
-        // Keep the local draft; baseline stays on the older persisted content so the draft re-saves over the external version.
+        // Keep local draft dirty so it re-saves over external version.
         setConflict(null)
     }
 
     const handleReloadExternal = () => {
         if (!conflict) return
-        setDefinition(conflict)
-        setBaseline(serializeActionDefinition(conflict))
+        setDraft((current) => {
+            const nextRevision = current.revision + 1
+
+            return { definition: conflict, revision: nextRevision, savedRevision: nextRevision }
+        })
         setConflict(null)
     }
 

@@ -11,9 +11,11 @@ export type {
     ActionAppliesTo,
     ActionAppliesToField,
     ActionDefinition,
+    ActionDefinitionEntry,
     ActionFile,
     ActionType,
     OnRule,
     RawActionDefinition,
+    RawActionDefinitionEntry,
     RawOnRule,
 } from '../../../shared/action_definitions.mjs'

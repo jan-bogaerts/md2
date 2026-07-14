@@ -100,6 +100,20 @@ describe('ActionService', () => {
             .toMatchObject({ code: 'circular-reference', field: null, valid: false })
     })
 
+    it('validates invalid drafts and undefined optionals without JSON round-tripping', () => {
+        const service = new ActionService()
+        service.loadFromFiles([file(VALID)])
+        const parse = vi.spyOn(JSON, 'parse')
+        const stringify = vi.spyOn(JSON, 'stringify')
+
+        expect(service.validateDefinition('actions/action.json', { ...VALID, icon: undefined, label: '' }))
+            .toMatchObject({ field: 'label', valid: false })
+        expect(parse).not.toHaveBeenCalled()
+        expect(stringify).not.toHaveBeenCalled()
+        parse.mockRestore()
+        stringify.mockRestore()
+    })
+
     it('rejects unknown in-memory fields before save serialization', async () => {
         const persistActionFile = vi.fn(async () => undefined)
         const service = new ActionService(() => ({ persistActionFile }))
@@ -159,5 +173,55 @@ describe('ActionService', () => {
         await expect(service.saveDefinition('actions/action.json', invalid)).rejects.toThrow(/field label/u)
         expect(persistActionFile).toHaveBeenCalledTimes(1)
         expect(service.getActionByPath('actions/action.json')?.label).toBe('Updated')
+    })
+
+    it('revalidates then serializes exactly once at the persistence boundary', async () => {
+        const persistActionFile = vi.fn(async () => undefined)
+        const service = new ActionService(() => ({ persistActionFile }))
+        service.loadFromFiles([file(VALID)])
+        const definition = { ...VALID, icon: undefined, label: 'Updated' }
+        expect(service.validateDefinition('actions/action.json', definition)).toMatchObject({ valid: true })
+        const parse = vi.spyOn(JSON, 'parse')
+        const stringify = vi.spyOn(JSON, 'stringify')
+
+        await service.saveDefinition('actions/action.json', definition)
+
+        expect(parse).not.toHaveBeenCalled()
+        expect(stringify).toHaveBeenCalledTimes(1)
+        expect(persistActionFile).toHaveBeenCalledTimes(1)
+        parse.mockRestore()
+        stringify.mockRestore()
+    })
+
+    it('blocks a draft that becomes invalid after earlier validation', async () => {
+        const persistActionFile = vi.fn(async () => undefined)
+        const service = new ActionService(() => ({ persistActionFile }))
+        service.loadFromFiles([file(VALID)])
+        const definition = { ...VALID }
+        expect(service.validateDefinition('actions/action.json', definition)).toMatchObject({ valid: true })
+        definition.label = ''
+        const stringify = vi.spyOn(JSON, 'stringify')
+
+        await expect(service.saveDefinition('actions/action.json', definition)).rejects.toThrow(/field label/u)
+
+        expect(stringify).not.toHaveBeenCalled()
+        expect(persistActionFile).not.toHaveBeenCalled()
+        stringify.mockRestore()
+    })
+
+    it('does not publish when persistence serialization throws', async () => {
+        const persistActionFile = vi.fn(async () => undefined)
+        const service = new ActionService(() => ({ persistActionFile }))
+        service.loadFromFiles([file(VALID)])
+        const stringify = vi.spyOn(JSON, 'stringify').mockImplementationOnce(() => {
+            throw new Error('serialization failed')
+        })
+
+        await expect(service.saveDefinition('actions/action.json', { ...VALID, label: 'Updated' }))
+            .rejects.toThrow('serialization failed')
+
+        expect(persistActionFile).not.toHaveBeenCalled()
+        expect(service.getActionByPath('actions/action.json')?.label).toBe(VALID.label)
+        stringify.mockRestore()
     })
 })
