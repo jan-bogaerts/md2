@@ -41,7 +41,7 @@ interface MarkdownEditorProps {
  */
 export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(function MarkdownEditor(props, ref) {
     const { markdown, onChange, overlayContainer, stickyToolbar = false, toolbarContents = MarkdownFormatToolbarControls } = props
-    const { markdownStyleConfig } = useAppTheme()
+    const { markdownStyleConfig, mode } = useAppTheme()
     const editorRef = useRef<MDXEditorMethods>(null)
     const latestMarkdownRef = useRef(markdown)
     const lastEmittedMarkdownRef = useRef(markdown)
@@ -87,6 +87,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
     return (
         <Box data-sticky-toolbar={stickyToolbar} sx={editorSx}>
             <MDXEditor
+                className={mode === 'dark' ? 'dark-theme' : 'light-theme'}
                 contentEditableClassName="mdxeditor-content"
                 markdown={markdown}
                 onChange={handleEditorChange}

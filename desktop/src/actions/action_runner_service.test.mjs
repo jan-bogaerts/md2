@@ -116,6 +116,27 @@ describe('ActionRunnerService', () => {
         ])
     })
 
+    it('resolves the worktree independently for every linked action', async () => {
+        const files = [
+            actionFile('before'),
+            actionFile('main', { needsWorkTree: true, onAfter: ['after'], onBefore: ['before'] }),
+            actionFile('after'),
+        ]
+        const execute = vi.fn(async (primaryProject, _action, _context, run) => ({
+            ...await run(primaryProject),
+            branch: primaryProject.branch,
+            executionWorktree: null,
+            repositoryRoot: primaryProject.rootPath,
+        }))
+        const { runner } = createRunner(files, { actionWorktreeExecutionService: { execute } })
+
+        const result = await runToCompletion(runner)
+
+        expect(result.status).toBe('completed')
+        expect(execute.mock.calls.map((call) => call[1].id)).toEqual(['before', 'main', 'after'])
+        for (const call of execute.mock.calls) expect(call[2]).toStrictEqual(context)
+    })
+
     it.each([
         ['before', { onBefore: ['failure'] }, ['failure'], 'failed'],
         ['main', {}, ['main'], 'failed'],

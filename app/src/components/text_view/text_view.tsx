@@ -1,4 +1,4 @@
-import { Badge, Box, Button, Divider, Stack, Typography } from '@mui/material'
+import { Box, Divider, Typography } from '@mui/material'
 import type { KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent } from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { buildFileTree, fileLabel } from '../../data/file_tree'
@@ -15,6 +15,7 @@ import { MarkdownEditor } from '../editor/markdown_editor'
 import { LeftPanelSlot } from '../shell/left_panel_slot'
 import { FileTreeView } from './file_tree_view'
 import { HeaderEditorPanel } from './header_editor_panel'
+import { ListEditorToolbarControls } from './list_editor_toolbar_controls'
 import { TabBar, type OpenTab, type OpenTabKind } from './tab_bar'
 import { useOpenTabs } from './use_open_tabs'
 import { useActions } from '../hooks/use_actions'
@@ -235,6 +236,14 @@ export function TextView(props: TextViewProps) {
         setIsConversationPanelOpen((current) => !current)
     }
 
+    const listEditorToolbarContents = useCallback(() => (
+        <ListEditorToolbarControls
+            conversationCount={(activeCard?.agentConversations.length ?? 0) + (activeCard?.agentConversationErrors.length ?? 0)}
+            isConversationPanelOpen={isConversationPanelOpen}
+            onToggleConversationPanel={handleToggleConversationPanel}
+        />
+    ), [activeCard, isConversationPanelOpen])
+
     const handleContinueAgentConversation = (conversation: AgentConversation) => {
         if (activePath) onContinueAgentConversation(activePath, conversation)
     }
@@ -313,29 +322,7 @@ export function TextView(props: TextViewProps) {
     const editorPane = (
         <Box sx={{ display: 'flex', flex: 1, flexDirection: 'column', minWidth: 0 }}>
             {activeCard || activeAction ? (
-                <>
-                    <TabBar activePath={activePath} onActivate={handleActivateTab} onClose={closeTab} tabs={openTabs} />
-                    {activeCard ? (
-                        <Stack direction="row" spacing={1} sx={{ alignItems: 'center', borderBottom: 1, borderColor: 'divider', px: 2, py: 1 }}>
-                            <Button
-                                onClick={handleToggleConversationPanel}
-                                size="small"
-                                variant={isConversationPanelOpen ? 'contained' : 'outlined'}
-                            >
-                                <Badge
-                                    badgeContent={activeCard.agentConversations.length + activeCard.agentConversationErrors.length}
-                                    color="primary"
-                                    sx={{ mr: 1 }}
-                                >
-                                Agents
-                                </Badge>
-                            </Button>
-                            <Typography color="text.secondary" variant="body2">
-                                {fileLabel(activeCard)}
-                            </Typography>
-                        </Stack>
-                    ) : null}
-                </>
+                <TabBar activePath={activePath} onActivate={handleActivateTab} onClose={closeTab} tabs={openTabs} />
             ) : null}
             <Box ref={editorStackRef} sx={{ display: 'flex', flex: 1, flexDirection: 'column', minHeight: 0 }}>
                 <Box
@@ -371,6 +358,7 @@ export function TextView(props: TextViewProps) {
                                 markdown={activeCard.content}
                                 onChange={handleEditorChange}
                                 stickyToolbar={isMobile}
+                                toolbarContents={listEditorToolbarContents}
                             />
                         </>
                     ) : (

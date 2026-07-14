@@ -58,6 +58,46 @@ describe('ActionWorktreeExecutionService', () => {
         expect(runner).not.toHaveBeenCalled()
     })
 
+    it('ignores card worktree problems for actions that do not need a worktree', async () => {
+        const executionService = service()
+        const runner = vi.fn(async () => result())
+
+        await executionService.execute(primaryProject, action(), { kind: 'card', worktree: 'nope', worktreeError: 'broken' }, runner)
+
+        expect(runner).toHaveBeenCalledWith(primaryProject)
+        expect(executionService.worktreeService.resolve).not.toHaveBeenCalled()
+    })
+
+    it('rejects needsWorkTree actions when the card reports a worktree error', async () => {
+        const runner = vi.fn(async () => result())
+
+        await expect(service().execute(primaryProject, action(true), { kind: 'card', worktree: '1', worktreeError: 'assignment broken' }, runner))
+            .rejects.toThrow('assignment broken')
+        expect(runner).not.toHaveBeenCalled()
+    })
+
+    it('propagates invalid configured worktree entries from the worktree service', async () => {
+        const executionService = new ActionWorktreeExecutionService({
+            worktreeService: { resolve: vi.fn(async () => { throw new Error('Configured worktree 2 is invalid: gone') }) },
+        })
+        const runner = vi.fn(async () => result())
+
+        await expect(executionService.execute(primaryProject, action(true), { kind: 'card', worktree: '2' }, runner))
+            .rejects.toThrow('Configured worktree 2 is invalid: gone')
+        expect(runner).not.toHaveBeenCalled()
+    })
+
+    it('releases the repository lock when the runner fails', async () => {
+        const executionService = service()
+        await expect(executionService.execute(primaryProject, action(), { kind: 'file' }, async () => {
+            throw new Error('runner boom')
+        })).rejects.toThrow('runner boom')
+
+        const runner = vi.fn(async () => result())
+        await executionService.execute(primaryProject, action(), { kind: 'file' }, runner)
+        expect(runner).toHaveBeenCalledTimes(1)
+    })
+
     it('serializes executions for one repository', async () => {
         const executionService = service()
         const order = []

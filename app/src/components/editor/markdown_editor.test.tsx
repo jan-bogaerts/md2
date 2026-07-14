@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { AppThemeProvider } from '../../theme/theme_provider'
+import { THEME_MODE_STORAGE_KEY } from '../../theme/use_theme_settings'
 import { MARKDOWN_STYLE_PRESETS } from '../../theme/theme_config'
 import { useAppTheme } from '../../theme/use_app_theme'
 import { MarkdownEditor } from './markdown_editor'
@@ -101,6 +102,14 @@ describe('MarkdownEditor', () => {
         renderEditor()
 
         expect(screen.getByTestId('mdx-editor')).toContainElement(screen.getByTestId('mdx-editor-toolbar'))
+    })
+
+    it('uses the MDXEditor palette matching the app theme', () => {
+        window.localStorage.setItem(THEME_MODE_STORAGE_KEY, 'dark')
+
+        renderEditor()
+
+        expect(screen.getByTestId('mdx-editor')).toHaveClass('dark-theme')
     })
 
     it('marks the toolbar sticky when requested for mobile layout', () => {

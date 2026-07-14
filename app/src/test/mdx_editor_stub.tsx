@@ -25,7 +25,7 @@ interface StubPlugin {
 
 export const MDXEditor = forwardRef<{ setMarkdown: (markdown: string) => void }, StubEditorProps>(
     function MDXEditorStub(props, ref) {
-        const { markdown, onChange, overlayContainer, plugins = [], readOnly } = props
+        const { className, markdown, onChange, overlayContainer, plugins = [], readOnly } = props
         const toolbar = plugins.find(({ toolbarContents }) => !!toolbarContents)
 
         useImperativeHandle(ref, () => ({ setMarkdown: () => {} }), [])
@@ -35,7 +35,7 @@ export const MDXEditor = forwardRef<{ setMarkdown: (markdown: string) => void },
         }
 
         return (
-            <div data-testid="mdx-editor">
+            <div className={className} data-testid="mdx-editor">
                 {toolbar?.toolbarContents ? <div data-testid="mdx-editor-toolbar">{toolbar.toolbarContents()}</div> : null}
                 {overlayContainer ? createPortal(<div data-testid="mdx-editor-overlay" />, overlayContainer) : null}
                 <textarea onChange={handleChange} readOnly={readOnly} role="textbox" value={markdown} />

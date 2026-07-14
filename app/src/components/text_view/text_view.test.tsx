@@ -149,7 +149,7 @@ describe('TextView', () => {
         expect(tree.getByRole('button', { name: 'F-1 Alpha' })).toBeInTheDocument()
         expect(tree.getByRole('button', { name: 'New folder' })).not.toHaveTextContent('New folder')
         expect(tree.getByRole('button', { name: 'New Markdown file' })).not.toHaveTextContent('New Markdown file')
-        expect(tree.getByRole('navigation').parentElement).toHaveStyle({ overflowY: 'auto' })
+        expect(tree.getByRole('tree')).toBeInTheDocument()
     })
 
     it('creates a root folder from the tree toolbar when no item is selected', async () => {
@@ -472,6 +472,15 @@ describe('TextView', () => {
         clickTreeFile('F-1 Alpha')
 
         expect(document.querySelector('[data-sticky-toolbar="false"]')).not.toBeNull()
+    })
+
+    it('renders the Agents control inside the markdown editor toolbar', () => {
+        renderTextView()
+
+        clickTreeFile('F-1 Alpha')
+
+        const editorToolbar = within(screen.getByTestId('mdx-editor-toolbar'))
+        expect(editorToolbar.getByRole('button', { name: /Agents/ })).toBeInTheDocument()
     })
 
     it('publishes the desktop tree without a Browse files button', () => {
