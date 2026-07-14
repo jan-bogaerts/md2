@@ -217,6 +217,7 @@ describe('createLocalBridgeDispatch', () => {
                 agent: 'resumable',
                 agentProfiles: [{
                     command: 'agent start',
+                    models: ['default'],
                     name: 'resumable',
                     resumeCommand: 'agent resume {{sessionId}}',
                     sessionIdPattern: 'Session: (.+)',
@@ -258,6 +259,7 @@ describe('createLocalBridgeDispatch', () => {
                 agent: 'resumable',
                 agentProfiles: [{
                     command: 'agent start',
+                    models: ['default'],
                     name: 'resumable',
                     resumeCommand: 'agent resume {{sessionId}}',
                     sessionIdPattern: 'Session: (.+)',

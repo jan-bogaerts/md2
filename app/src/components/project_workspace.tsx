@@ -175,6 +175,30 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
         runWorkspaceEdit(() => dataService.cards.updateCardHeaderFields(path, { [key]: value }), `Header update failed: ${path}`)
     }
 
+    const handleContinueAgentConversation = async (path: string, conversation: AgentConversation) => {
+        try {
+            await dataService.agents.continueAgentConversation(path, conversation.path)
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: 'Agent continue failed' })
+        }
+    }
+
+    const handleStartAgentConversation = async (path: string, prompt: string) => {
+        try {
+            await dataService.agents.startAgentConversation(path, prompt)
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: 'Agent start failed' })
+        }
+    }
+
+    const handleSendAgentInput = async (runId: string, input: string) => {
+        try {
+            await dataService.agents.sendAgentInput(runId, input)
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: 'Agent input failed' })
+        }
+    }
+
     const clearDeletedPathState = (path: string) => {
         workspaceViewService.clearSelectedPath(path)
     }
@@ -233,30 +257,6 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
         }
     }
 
-    const handleContinueAgentConversation = async (path: string, conversation: AgentConversation) => {
-        try {
-            await dataService.agents.continueAgentConversation(path, conversation.path)
-        } catch (error) {
-            dialogService.error(error, { fallbackMessage: 'Agent continue failed' })
-        }
-    }
-
-    const handleStartAgentConversation = async (path: string, prompt: string) => {
-        try {
-            await dataService.agents.startAgentConversation(path, prompt)
-        } catch (error) {
-            dialogService.error(error, { fallbackMessage: 'Agent start failed' })
-        }
-    }
-
-    const handleSendAgentInput = async (runId: string, input: string) => {
-        try {
-            await dataService.agents.sendAgentInput(runId, input)
-        } catch (error) {
-            dialogService.error(error, { fallbackMessage: 'Agent input failed' })
-        }
-    }
-
     const handleOpenInFileMode = (path: string) => {
         workspaceViewService.selectPath(path)
         setRequestedNonce((nonce) => nonce + 1)
@@ -295,6 +295,7 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
                             isMobile={isMobile}
                             onAffectsChange={handleAffectsChange}
                             onBodyChange={handleBodyChange}
+                            onContinueAgentConversation={handleContinueAgentConversation}
                             onDeleteCard={handleDeleteCard}
                             onMoveCard={handleMoveCard}
                             onOpenInFileMode={handleOpenInFileMode}
@@ -315,7 +316,6 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
                             isMobile={isMobile}
                             onLeftPanelInteraction={onLeftPanelInteraction}
                             onBodyChange={handleBodyChange}
-                            onContinueAgentConversation={handleContinueAgentConversation}
                             onCreateFolder={handleCreateFolder}
                             onCreateMarkdownFile={handleCreateMarkdownFile}
                             onDeleteFile={handleDeleteFile}
@@ -323,6 +323,8 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
                             onHeaderFieldChange={handleHeaderFieldChange}
                             onSendAgentInput={handleSendAgentInput}
                             onStartAgentConversation={handleStartAgentConversation}
+                            onTitleChange={handleTitleChange}
+                            onTogglePolicy={handleTogglePolicy}
                             projectFolder={projectFolder}
                             projectId={project.rootPath ?? project.id}
                             requestedNonce={requestedNonce}

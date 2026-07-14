@@ -97,7 +97,11 @@ export function ActionAgentCapabilityFields(props: ActionAgentCapabilityFieldsPr
                 value={definition.model ?? ''}
             >
                 <MenuItem value="">Select model</MenuItem>
-                {modelValues.map((model) => <MenuItem key={model} value={model}>{model}</MenuItem>)}
+                {modelValues.map((model) => (
+                    <MenuItem key={model} value={model}>
+                        {model === definition.model && !models.loading && !models.values.includes(model) ? `${model} — unavailable` : model}
+                    </MenuItem>
+                ))}
             </TextField>
             <TextField
                 disabled={!definition.agent || !definition.model || thinkingLevels.loading || !!thinkingLevels.error}
@@ -111,7 +115,13 @@ export function ActionAgentCapabilityFields(props: ActionAgentCapabilityFieldsPr
                 value={definition.thinkingLevel ?? 'none'}
             >
                 <MenuItem value="none">none</MenuItem>
-                {thinkingLevelValues.map((level) => <MenuItem key={level} value={level}>{level}</MenuItem>)}
+                {thinkingLevelValues.map((level) => (
+                    <MenuItem key={level} value={level}>
+                        {level === definition.thinkingLevel && !thinkingLevels.loading && !configuredThinkingLevels.includes(level)
+                            ? `${level} — unavailable`
+                            : level}
+                    </MenuItem>
+                ))}
             </TextField>
         </Stack>
     )

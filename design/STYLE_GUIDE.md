@@ -114,7 +114,7 @@ Consistent across all components; all colors from the theme:
 - **Count chip:** `background.paper` bg, 1px `divider`, radius 9–10, `custom.text3`.
 - **State dot:** 7–8px circle + `text-3` label; green (`success.main`) = active/saved/online.
 - **Search:** pill `TextField` (`borderRadius: 99`, `bgcolor: background.default`), search start-adornment, `⌘K` keycap end-adornment.
-- **Select:** `size="small"`, optional dot+name via `renderValue`; 42px / radius-9 frame.
+- **Select:** `size="small"`, optional dot+name via `renderValue`; 42px / radius-9 frame. When a select has a tooltip, keep the tooltip available while the select is closed and explicitly hide it for the entire time the select menu is open so it cannot cover the first option.
 - **Segmented control** (view switch, formatting toolbar): `ToggleButtonGroup` on a `custom.track` background; selected segment `background.paper` + `0 1px 2px` shadow + `primary` text.
 - **Dialog / popup:** `Dialog`/`Popover` with `PaperProps` → `background.paper`, 1px `divider`, radius 14, big shadow; scrim via `slotProps.backdrop` (blur + tint). Bands separated by hairlines; footer on a `background.default` bar with top hairline; actions right-aligned (outlined Cancel + contained CTA). `autoFocus` first field; submit on `Enter` (`⌘/Ctrl+Enter` in a textarea); close on `Esc`/backdrop.
 - **Empty state:** dashed target — `1.5px dashed custom.borderStrong`, radius 10, centered icon + `custom.text4` label. No "click to add" placeholder blocks.

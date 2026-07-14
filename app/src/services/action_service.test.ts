@@ -73,7 +73,8 @@ describe('ActionService', () => {
             description: expect.any(String), id: expect.any(String), label: 'New action',
             name: 'new-action', prompt: expect.any(String), type: 'agent',
         })
-        expect(service.validateDefinition(first.path, first.definition)).toEqual({ code: null, error: null, field: null, index: null, valid: true })
+        expect(service.validateDefinition(first.path, first.definition))
+            .toEqual({ code: null, error: null, field: null, index: null, valid: true })
     })
 
     it('routes validation failures by structured metadata, not message text', () => {
@@ -109,6 +110,26 @@ describe('ActionService', () => {
         expect(result).toMatchObject({ code: 'unknown-action', field: 'onBefore', valid: false })
     })
 
+    it('loads retired capability values but blocks saving them with structured errors', async () => {
+        const persistActionFile = vi.fn(async () => undefined)
+        const service = new ActionService(() => ({ persistActionFile }))
+        const retiredModel = {
+            description: 'Do it', id: 'agent-do', label: 'Do', name: 'agent-do',
+            agent: 'codex', model: 'retired-model', prompt: 'Run', type: 'agent',
+        } satisfies RawActionDefinition
+        service.loadFromFiles([file(retiredModel)])
+
+        expect(service.getActionByPath('actions/action.json')).toMatchObject({ model: 'retired-model' })
+        expect(service.validateDefinition('actions/action.json', retiredModel))
+            .toMatchObject({ code: 'unknown-model', field: 'model', valid: false })
+        await expect(service.saveDefinition('actions/action.json', retiredModel)).rejects.toThrow(/Unknown model/u)
+        expect(persistActionFile).not.toHaveBeenCalled()
+
+        const invalidThinkingLevel = { ...retiredModel, model: 'GPT 5.5', thinkingLevel: 'extreme' }
+        expect(service.validateDefinition('actions/action.json', invalidThinkingLevel))
+            .toMatchObject({ code: 'invalid-thinking-level', field: 'thinkingLevel', valid: false })
+    })
+
     it('persists and publishes only valid definitions', async () => {
         const persistActionFile = vi.fn(async () => undefined)
         const service = new ActionService(() => ({ persistActionFile }))
@@ -122,7 +143,7 @@ describe('ActionService', () => {
         expect(persistActionFile).toHaveBeenCalledWith(expect.objectContaining({content: expect.stringContaining('"label": "Updated"'), path: 'actions/action.json'}))
         expect(service.getActionByPath('actions/action.json')?.label).toBe('Updated')
 
-        const invalid = { ...definition, label: '' }
+        const invalid = { ...definition, label: ' \t\u2003' }
         expect(service.validateDefinition('actions/action.json', invalid)).toMatchObject({ field: 'label', valid: false })
         await expect(service.saveDefinition('actions/action.json', invalid)).rejects.toThrow(/field label/u)
         expect(persistActionFile).toHaveBeenCalledTimes(1)

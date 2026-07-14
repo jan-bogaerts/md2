@@ -88,7 +88,7 @@ describe('ActionEditor', () => {
         const saveDefinition = vi.spyOn(actionService, 'saveDefinition')
         renderEditor()
 
-        fireEvent.change(labelInput(), { target: { value: '' } })
+        fireEvent.change(labelInput(), { target: { value: ' \t\u2003' } })
         expect(screen.getByText(/Missing action field label/u)).toBeInTheDocument()
 
         await act(async () => vi.advanceTimersByTime(600))
@@ -98,9 +98,7 @@ describe('ActionEditor', () => {
     it('shows a general summary for definition-level errors with no routable field', () => {
         const action = loadAction()
         // A cycle/definition error has no single field; the editor surfaces it as a summary alert.
-        vi.spyOn(actionService, 'validateDefinition').mockReturnValue({
-            code: 'circular-reference', error: 'Circular action reference: a -> b -> a', field: null, index: null, valid: false,
-        })
+        vi.spyOn(actionService, 'validateDefinition').mockReturnValue({code: 'circular-reference', error: 'Circular action reference: a -> b -> a', field: null, index: null, valid: false})
         renderEditor(action)
 
         expect(screen.getByRole('alert')).toHaveTextContent('Circular action reference: a -> b -> a')

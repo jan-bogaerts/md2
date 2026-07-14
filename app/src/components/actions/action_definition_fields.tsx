@@ -13,6 +13,7 @@ const ICON_FILE_PATTERN = /\.(svg|png|jpe?g|gif|webp)$/iu
 interface ActionDefinitionFieldsProps {
     actions: ActionDefinition[]
     definition: RawActionDefinition
+    errorIndex: number | null
     errors: Partial<Record<keyof RawActionDefinition, string>>
     onChange: (definition: RawActionDefinition) => void
     repositoryFiles: string[]
@@ -20,7 +21,7 @@ interface ActionDefinitionFieldsProps {
 }
 
 export function ActionDefinitionFields(props: ActionDefinitionFieldsProps) {
-    const { actions, definition, errors, onChange, repositoryFiles, states } = props
+    const { actions, definition, errorIndex, errors, onChange, repositoryFiles, states } = props
     const iconPaths = repositoryFiles.filter((path) => ICON_FILE_PATTERN.test(path))
     if (definition.icon && !iconPaths.includes(definition.icon)) iconPaths.unshift(definition.icon)
 
@@ -115,9 +116,29 @@ export function ActionDefinitionFields(props: ActionDefinitionFieldsProps) {
                     />
                 )}
                 <ActionFilterEditor error={errors.appliesTo} onChange={handleFiltersChange} value={definition.appliesTo} />
-                <ActionLinkListEditor actions={actions} error={errors.onBefore} label="Before" onChange={handleOnBeforeChange} value={definition.onBefore} />
-                <ActionOnRulesEditor actions={actions} error={errors.on} onChange={handleOnChange} value={definition.on} />
-                <ActionLinkListEditor actions={actions} error={errors.onAfter} label="After" onChange={handleOnAfterChange} value={definition.onAfter} />
+                <ActionLinkListEditor
+                    actions={actions}
+                    error={errors.onBefore}
+                    errorIndex={errorIndex}
+                    label="Before"
+                    onChange={handleOnBeforeChange}
+                    value={definition.onBefore}
+                />
+                <ActionOnRulesEditor
+                    actions={actions}
+                    error={errors.on}
+                    errorIndex={errorIndex}
+                    onChange={handleOnChange}
+                    value={definition.on}
+                />
+                <ActionLinkListEditor
+                    actions={actions}
+                    error={errors.onAfter}
+                    errorIndex={errorIndex}
+                    label="After"
+                    onChange={handleOnAfterChange}
+                    value={definition.onAfter}
+                />
             </Stack>
         </Paper>
     )

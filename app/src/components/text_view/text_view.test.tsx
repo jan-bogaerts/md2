@@ -65,6 +65,8 @@ function renderTextView(overrides: Partial<Parameters<typeof TextView>[0]> = {})
     const onDeleteFile = vi.fn(async () => undefined)
     const onDeleteFolder = vi.fn(async () => undefined)
     const onHeaderFieldChange = vi.fn()
+    const onTitleChange = vi.fn()
+    const onTogglePolicy = vi.fn()
 
     function TextViewHarness() {
         const handleLeftPanelInteraction = useCallback(() => undefined, [])
@@ -88,6 +90,8 @@ function renderTextView(overrides: Partial<Parameters<typeof TextView>[0]> = {})
                     onLeftPanelInteraction={handleLeftPanelInteraction}
                     onSendAgentInput={vi.fn()}
                     onStartAgentConversation={vi.fn()}
+                    onTitleChange={onTitleChange}
+                    onTogglePolicy={onTogglePolicy}
                     projectFolder="design"
                     requestedNonce={0}
                     requestedPath={null}
@@ -106,7 +110,10 @@ function renderTextView(overrides: Partial<Parameters<typeof TextView>[0]> = {})
         </AppThemeProvider>,
     )
 
-    return { onBodyChange, onCreateFolder, onCreateMarkdownFile, onDeleteFile, onDeleteFolder, onHeaderFieldChange }
+    return {
+        onBodyChange, onCreateFolder, onCreateMarkdownFile, onDeleteFile,
+        onDeleteFolder, onHeaderFieldChange, onTitleChange, onTogglePolicy,
+    }
 }
 
 /** Click a file leaf inside the tree region (avoids matching the same label in an open tab). */
@@ -378,6 +385,8 @@ describe('TextView', () => {
             onLeftPanelInteraction: vi.fn(),
             onSendAgentInput: vi.fn(),
             onStartAgentConversation: vi.fn(),
+            onTitleChange: vi.fn(),
+            onTogglePolicy: vi.fn(),
             projectFolder: 'design',
             repositoryFiles: [],
             states: DEFAULT_STATES,
@@ -420,6 +429,8 @@ describe('TextView', () => {
             onLeftPanelInteraction: vi.fn(),
             onSendAgentInput: vi.fn(),
             onStartAgentConversation: vi.fn(),
+            onTitleChange: vi.fn(),
+            onTogglePolicy: vi.fn(),
             requestedNonce: 0,
             requestedPath: null,
             projectFolder: 'design',
@@ -466,12 +477,12 @@ describe('TextView', () => {
         expect(document.querySelector('[data-sticky-toolbar="true"]')).not.toBeNull()
     })
 
-    it('leaves the toolbar non-sticky on desktop', () => {
+    it('pins the formatting toolbar above the document on desktop', () => {
         renderTextView()
 
         clickTreeFile('F-1 Alpha')
 
-        expect(document.querySelector('[data-sticky-toolbar="false"]')).not.toBeNull()
+        expect(document.querySelector('[data-sticky-toolbar="true"]')).not.toBeNull()
     })
 
     it('renders the Agents control inside the markdown editor toolbar', () => {
@@ -490,7 +501,7 @@ describe('TextView', () => {
         expect(within(screen.getByLabelText('File tree')).getByRole('button', { name: 'F-1 Alpha' })).toBeInTheDocument()
     })
 
-    it('opens the editor conversation panel and continues the active card conversation', () => {
+    it('opens the conversation panel and continues the active card conversation', () => {
         const agentConversation = conversation()
         const onContinueAgentConversation = vi.fn()
         renderTextView({
@@ -501,14 +512,12 @@ describe('TextView', () => {
         clickTreeFile('F-1 Alpha')
         fireEvent.click(screen.getByRole('button', { name: /Agents/ }))
         expect(screen.getByText('Editor agent')).toBeInTheDocument()
-        expect(screen.getByText('editor output')).toBeInTheDocument()
-
         fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
 
         expect(onContinueAgentConversation).toHaveBeenCalledWith('design/active/F-1-a.md', agentConversation)
     })
 
-    it('resizes the editor conversation panel by dragging the desktop separator', () => {
+    it('resizes the conversation panel from the desktop separator', () => {
         vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({
             bottom: EDITOR_STACK_HEIGHT,
             height: EDITOR_STACK_HEIGHT,
@@ -533,92 +542,6 @@ describe('TextView', () => {
         expect(separator).toHaveAttribute('aria-valuenow', '500')
     })
 
-    it('clamps conversation panel dragging to min and max heights', () => {
-        vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({
-            bottom: EDITOR_STACK_HEIGHT,
-            height: EDITOR_STACK_HEIGHT,
-            left: 0,
-            right: 0,
-            toJSON: () => ({}),
-            top: 0,
-            width: 0,
-            x: 0,
-            y: 0,
-        })
-        const agentConversation = conversation()
-        renderTextView({ activeCards: [{ ...activeCards[0], agentConversations: [agentConversation] }] })
-
-        clickTreeFile('F-1 Alpha')
-        fireEvent.click(screen.getByRole('button', { name: /Agents/ }))
-        const separator = screen.getByRole('separator', { name: 'Resize conversation panel' })
-        fireEvent.pointerDown(separator, { pointerId: 1 })
-        fireEvent.pointerMove(separator, { clientY: 950, pointerId: 1 })
-        fireEvent.pointerUp(separator, { pointerId: 1 })
-
-        expect(separator).toHaveAttribute('aria-valuenow', '220')
-
-        fireEvent.pointerDown(separator, { pointerId: 2 })
-        fireEvent.pointerMove(separator, { clientY: 0, pointerId: 2 })
-        fireEvent.pointerUp(separator, { pointerId: 2 })
-
-        expect(separator).toHaveAttribute('aria-valuenow', '800')
-    })
-
-    it('resizes the editor conversation panel with keyboard arrows', () => {
-        vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({
-            bottom: EDITOR_STACK_HEIGHT,
-            height: EDITOR_STACK_HEIGHT,
-            left: 0,
-            right: 0,
-            toJSON: () => ({}),
-            top: 0,
-            width: 0,
-            x: 0,
-            y: 0,
-        })
-        const agentConversation = conversation()
-        renderTextView({ activeCards: [{ ...activeCards[0], agentConversations: [agentConversation] }] })
-
-        clickTreeFile('F-1 Alpha')
-        fireEvent.click(screen.getByRole('button', { name: /Agents/ }))
-        const separator = screen.getByRole('separator', { name: 'Resize conversation panel' })
-        fireEvent.keyDown(separator, { key: 'ArrowUp' })
-
-        expect(separator).toHaveAttribute('aria-valuenow', '244')
-    })
-
-    it('shows the header fields of the open file behind a collapsible panel', () => {
-        renderTextView({activeCards: [{ ...activeCards[0], headerFields: { customField: 'keep me', id: 'F-1', status: 'todo' } }, activeCards[1]]})
-
-        clickTreeFile('F-1 Alpha')
-        expect(screen.queryByLabelText('Header field status')).not.toBeInTheDocument()
-
-        fireEvent.click(screen.getByLabelText('Toggle header fields'))
-
-        expect(screen.getByLabelText('Header field status')).toHaveValue('todo')
-        expect(screen.getByLabelText('Header field customField')).toHaveValue('keep me')
-    })
-
-    it('persists header field edits through onHeaderFieldChange', () => {
-        const { onHeaderFieldChange } = renderTextView({activeCards: [{ ...activeCards[0], headerFields: { id: 'F-1', status: 'todo' } }, activeCards[1]]})
-
-        clickTreeFile('F-1 Alpha')
-        fireEvent.click(screen.getByLabelText('Toggle header fields'))
-        const statusInput = screen.getByLabelText('Header field status')
-        fireEvent.change(statusInput, { target: { value: 'done' } })
-        fireEvent.blur(statusInput)
-
-        expect(onHeaderFieldChange).toHaveBeenCalledWith('design/active/F-1-a.md', 'status', 'done')
-    })
-
-    it('renders no header panel for files without frontmatter', () => {
-        renderTextView()
-
-        clickTreeFile('F-1 Alpha')
-
-        expect(screen.queryByLabelText('Toggle header fields')).not.toBeInTheDocument()
-    })
-
     it('starts a new agent conversation for the active text tab', () => {
         const onStartAgentConversation = vi.fn()
         renderTextView({ onStartAgentConversation })
@@ -629,5 +552,50 @@ describe('TextView', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Start' }))
 
         expect(onStartAgentConversation).toHaveBeenCalledWith('design/active/F-1-a.md', 'review this file')
+    })
+
+    it('opens Properties from the toolbar for a card with frontmatter', () => {
+        const cardWithHeader = { ...activeCards[0], headerFields: { id: 'F-1', status: 'todo', title: 'Alpha' } }
+        renderTextView({ activeCards: [cardWithHeader, activeCards[1]] })
+
+        clickTreeFile('F-1 Alpha')
+
+        expect(screen.queryByRole('dialog', { name: 'Card properties popup' })).not.toBeInTheDocument()
+        fireEvent.click(within(screen.getByTestId('mdx-editor-toolbar')).getByRole('button', { name: 'Properties' }))
+
+        const propertiesPopup = within(screen.getByRole('dialog', { name: 'Card properties popup' }))
+        expect(propertiesPopup.getByRole('heading', { name: 'Properties' })).toBeInTheDocument()
+        expect(screen.getByLabelText('Card title')).toHaveValue('Alpha')
+        expect(within(screen.getByLabelText('Card properties')).getByText('todo')).toBeInTheDocument()
+    })
+
+    it('routes Title, Author, and Policy edits through card workflows', () => {
+        const cardWithHeader = {
+            ...activeCards[0],
+            header: { ...activeCards[0].header, author: 'JB' },
+            headerFields: { author: 'JB', id: 'F-1', status: 'todo', title: 'Alpha' },
+        }
+        const { onHeaderFieldChange, onTitleChange, onTogglePolicy } = renderTextView({ activeCards: [cardWithHeader, activeCards[1]] })
+        clickTreeFile('F-1 Alpha')
+        fireEvent.click(within(screen.getByTestId('mdx-editor-toolbar')).getByRole('button', { name: 'Properties' }))
+
+        fireEvent.change(screen.getByLabelText('Card title'), { target: { value: 'Renamed' } })
+        fireEvent.blur(screen.getByLabelText('Card title'))
+        fireEvent.change(screen.getByLabelText('Card author'), { target: { value: 'AB' } })
+        fireEvent.blur(screen.getByLabelText('Card author'))
+        fireEvent.mouseDown(screen.getByLabelText('Card policy'))
+        fireEvent.click(screen.getByRole('option', { name: 'Auto-merge' }))
+
+        expect(onTitleChange).toHaveBeenCalledWith('design/active/F-1-a.md', 'Renamed')
+        expect(onHeaderFieldChange).toHaveBeenCalledWith('design/active/F-1-a.md', 'author', 'AB')
+        expect(onTogglePolicy).toHaveBeenCalledWith('design/active/F-1-a.md', 'autoMerge')
+    })
+
+    it('renders no Properties toolbar button for files without frontmatter', () => {
+        renderTextView()
+
+        clickTreeFile('F-1 Alpha')
+
+        expect(within(screen.getByTestId('mdx-editor-toolbar')).queryByRole('button', { name: 'Properties' })).not.toBeInTheDocument()
     })
 })

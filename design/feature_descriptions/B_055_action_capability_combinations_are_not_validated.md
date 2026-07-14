@@ -1,7 +1,7 @@
 ---
 id: B-055
 title: invalid action model and thinking-level combinations can be saved
-status: design
+status: ready
 owner: JB
 affects:
 policy:

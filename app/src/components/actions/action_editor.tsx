@@ -167,6 +167,7 @@ export function ActionEditor(props: ActionEditorProps) {
             <ActionDefinitionFields
                 actions={selectableActions}
                 definition={definition}
+                errorIndex={validation.index}
                 errors={errors}
                 onChange={handleDefinitionChange}
                 repositoryFiles={repositoryFiles}

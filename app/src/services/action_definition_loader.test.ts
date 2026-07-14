@@ -94,17 +94,46 @@ describe('loadActionDefinitions', () => {
         expect(() => loadActionDefinitions([file('implement', { ...IMPLEMENT, model: 'gpt-5' })])).toThrow(/model requires agent/u)
         expect(() => loadActionDefinitions([file('implement', { ...IMPLEMENT, agent: 'codex', model: 'bad' })], {profiles: [{ command: 'codex', models: ['gpt-5'], name: 'codex' }]})).toThrow(/Unknown model/u)
         expect(() => loadActionDefinitions([file('implement', { ...IMPLEMENT, agent: 'codex', thinkingLevel: 'high' })], {profiles: [{ command: 'codex', models: ['gpt-5'], name: 'codex' }]})).toThrow(/thinkingLevel requires agent and model/u)
+        expect(() => loadActionDefinitions([file('implement', {...IMPLEMENT, agent: 'codex', model: 'gpt-5', thinkingLevel: 'extreme'})], {profiles: [{ command: 'codex', models: ['gpt-5'], name: 'codex' }]})).toThrow(/Invalid thinking level/u)
     })
 
-    it('loads an action whose agent profile is no longer configured', () => {
+    it('rejects empty and malformed configured model lists', () => {
+        const definition = file('implement', { ...IMPLEMENT, agent: 'custom', model: 'model-a' })
+
+        expect(() => loadActionDefinitions([definition], {profiles: [{ command: 'custom', models: [], name: 'custom' }]})).toThrow(/Invalid model list/u)
+        expect(() => loadActionDefinitions([definition], {profiles: [{ command: 'custom', models: 'model-a' as unknown as string[], name: 'custom' }]})).toThrow(/Invalid model list/u)
+    })
+
+    it('loads retired selections when capability validation is disabled for editing', () => {
         const actions = loadActionDefinitions([file('implement', {
             ...IMPLEMENT,
             agent: 'missing',
             model: 'removed-model',
-            thinkingLevel: 'high',
-        })], { profiles: [] })
+            thinkingLevel: 'extreme',
+        })], { profiles: [], validateAgentCapabilities: false })
 
-        expect(actions.find(({ id }) => id === IMPLEMENT.id)).toMatchObject({ agent: 'missing', model: 'removed-model', thinkingLevel: 'high' })
+        expect(actions.find(({ id }) => id === IMPLEMENT.id)).toMatchObject({ agent: 'missing', model: 'removed-model', thinkingLevel: 'extreme' })
+    })
+
+    it('matches shared whitespace validation while preserving meaningful executable whitespace', () => {
+        expect(() => loadActionDefinitions([file('implement', { ...IMPLEMENT, label: '\u00a0\u2003' })]))
+            .toThrow(/field label/u)
+        expect(() => loadActionDefinitions([file('implement', { ...IMPLEMENT, name: ' implement' })]))
+            .toThrow(/surrounding whitespace/u)
+        expect(() => loadActionDefinitions([
+            file('implement', { ...IMPLEMENT, on: [{ actionId: LINT.id, condition: '\r\n\u3000' }] }),
+            file('lint', LINT),
+        ])).toThrow(/field on\[0\]\.condition/u)
+
+        const prompt = '  first line\n\tsecond line'
+        const command = '  npm run lint\n\techo done'
+        const actions = loadActionDefinitions([
+            file('implement', { ...IMPLEMENT, on: [{ actionId: LINT.id, condition: '\\x20' }], prompt }),
+            file('lint', { ...LINT, command }),
+        ])
+
+        expect(actions.find(({ id }) => id === IMPLEMENT.id)?.prompt).toBe(prompt)
+        expect(actions.find(({ id }) => id === LINT.id)?.command).toBe(command)
     })
 
     it('detects self references and circular ID chains', () => {

@@ -77,6 +77,63 @@ describe('loadActionDefinitions', () => {
         expect(badRegex).toMatchObject({ code: 'invalid-regex', field: 'on', index: 1 })
     })
 
+    it.each([
+        ['id', { ...IMPLEMENT, id: ' \t\r\n' }],
+        ['name', { ...IMPLEMENT, name: '\u00a0\u2003' }],
+        ['label', { ...IMPLEMENT, label: ' \t' }],
+        ['description', { ...IMPLEMENT, description: '\r\n\u3000' }],
+        ['prompt', { ...IMPLEMENT, prompt: ' \t\r\n\u00a0' }],
+        ['command', { ...LINT, command: '\r\n\u2003' }],
+    ])('rejects ASCII and Unicode whitespace-only %s', (field, definition) => {
+        const error = validationError([file('invalid', definition)])
+
+        expect(error).toMatchObject({ code: 'missing-field', field })
+    })
+
+    it('rejects surrounding whitespace in action identities and linked ids', () => {
+        expect(validationError([file('implement', { ...IMPLEMENT, id: ` ${IMPLEMENT.id}` })]))
+            .toMatchObject({ code: 'invalid-field', field: 'id' })
+        expect(validationError([
+            file('implement', IMPLEMENT),
+            file('lint', { ...LINT, name: ` ${IMPLEMENT.name} ` }),
+        ])).toMatchObject({ code: 'invalid-field', field: 'name', sourcePath: 'actions/lint.json' })
+        expect(validationError([
+            file('implement', { ...IMPLEMENT, onAfter: [`${LINT.id} `] }),
+            file('lint', LINT),
+        ])).toMatchObject({ code: 'invalid-field', field: 'onAfter', index: 0 })
+        expect(validationError([
+            file('implement', { ...IMPLEMENT, on: [{ actionId: ` ${LINT.id}`, condition: 'ok' }] }),
+            file('lint', LINT),
+        ])).toMatchObject({ code: 'invalid-field', field: 'on', index: 0 })
+    })
+
+    it('preserves meaningful executable indentation and accepts an escaped-space regular expression', () => {
+        const prompt = '  first line\n\tsecond line'
+        const command = '  npm run lint\n\techo done'
+        const actions = loadActionDefinitions([
+            file('implement', { ...IMPLEMENT, on: [{ actionId: LINT.id, condition: '\\x20' }], prompt }),
+            file('lint', { ...LINT, command }),
+        ])
+
+        expect(actions.find(({ id }) => id === IMPLEMENT.id)).toMatchObject({ prompt })
+        expect(actions.find(({ id }) => id === LINT.id)).toMatchObject({ command })
+    })
+
+    it('rejects a raw whitespace-only regular expression at its exact list index', () => {
+        const error = validationError([
+            file('implement', {
+                ...IMPLEMENT,
+                on: [
+                    { actionId: LINT.id, condition: 'ok' },
+                    { actionId: LINT.id, condition: ' \t\r\n\u2003' },
+                ],
+            }),
+            file('lint', LINT),
+        ])
+
+        expect(error).toMatchObject({ code: 'missing-field', field: 'on', index: 1 })
+    })
+
     it('does not route incidental field words embedded in ids/paths', () => {
         // Id embeds `model`, `agent`, and `on`; routing must ignore the text and use the field.
         const error = validationError([file('implement', { ...IMPLEMENT, id: 'model-agent-on', onBefore: ['missing'] })])

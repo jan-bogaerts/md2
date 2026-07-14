@@ -41,7 +41,7 @@ export function MainToolbar(props: MainToolbarProps) {
                         <Menu />
                     </IconButton>
                 ) : null}
-                <Box sx={{ alignItems: 'center', display: 'flex', flexShrink: 0, gap: 1, mr: 1.5 }}>
+                <Box sx={{ alignItems: 'center', display: 'flex', flexShrink: 0, gap: 1 }}>
                     <Box
                         alt="MD² application icon"
                         component="img"

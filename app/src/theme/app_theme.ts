@@ -36,13 +36,24 @@ function paletteForMode(mode: PaletteMode, colorScheme: ColorSchemeConfig, backg
     const isDark = mode === 'dark'
     const modePalette = isDark ? DARK_PALETTE : LIGHT_PALETTE
     const background = isDark ? DARK_PROJECT_BACKGROUNDS[backgroundShade] : LIGHT_PROJECT_BACKGROUNDS[backgroundShade]
+    const track = isDark ? '#151c25' : '#eceff3'
+    const primaryBackground = isDark ? '#202a36' : '#f0f3f7'
 
     return {
         ...modePalette,
         background,
         action: {
-            hover: isDark ? '#151c25' : '#eceff3',
-            selected: isDark ? '#202a36' : '#f0f3f7',
+            hover: track,
+            selected: primaryBackground,
+        },
+        custom: {
+            borderHover: modePalette.text.disabled,
+            borderStrong: modePalette.divider,
+            colHead: modePalette.text.secondary,
+            primaryBg: primaryBackground,
+            text3: modePalette.text.secondary,
+            text4: modePalette.text.disabled,
+            track,
         },
         info: { main: isDark ? '#4fc3f7' : '#29a8e0' },
         mode,

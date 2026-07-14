@@ -1,4 +1,4 @@
-import { findAgentProfile, validateAgentSelection } from './agent_profiles.mjs'
+import { validateAgentSelection, validateThinkingLevel } from './agent_profiles.mjs'
 
 const ACTION_TYPES = ['agent', 'command']
 const LEGACY_FIELDS = ['after', 'before', 'runIn', 'text']
@@ -80,10 +80,36 @@ function isPlainObject(value) {
     return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-function requireString(value, fieldName, source) {
-    if (typeof value !== 'string' || value.length === 0) throw fail(`Missing action field ${fieldName} in ${source}`, 'missing-field', source, fieldName)
+function requireNonWhitespaceString(value, fieldName, source) {
+    if (typeof value !== 'string' || value.trim().length === 0) throw fail(`Missing action field ${fieldName} in ${source}`, 'missing-field', source, fieldName)
 
     return value
+}
+
+function requireHumanText(value, fieldName, source) {
+    return requireNonWhitespaceString(value, fieldName, source)
+}
+
+function requireIdentity(value, fieldName, source) {
+    const identity = requireNonWhitespaceString(value, fieldName, source)
+    if (identity !== identity.trim()) throw fail(`Invalid action field ${fieldName} in ${source}: surrounding whitespace`, 'invalid-field', source, fieldName)
+
+    return identity
+}
+
+function requireExecutableText(value, fieldName, source) {
+    return requireNonWhitespaceString(value, fieldName, source)
+}
+
+function requireRegularExpression(value, fieldName, source) {
+    const condition = requireNonWhitespaceString(value, fieldName, source)
+    try {
+        new RegExp(condition, 'u')
+    } catch {
+        throw fail(`Invalid regular expression in ${source}: ${fieldName}`, 'invalid-regex', source, fieldName)
+    }
+
+    return condition
 }
 
 function readOptionalString(value, fieldName, source) {
@@ -120,7 +146,7 @@ function readActionIdList(value, fieldName, source) {
     if (value === undefined) return []
     if (!Array.isArray(value)) throw fail(`Invalid ${fieldName} list in ${source}`, 'invalid-list', source, fieldName)
 
-    return value.map((entry, index) => requireString(entry, `${fieldName}[${index}]`, source))
+    return value.map((entry, index) => requireIdentity(entry, `${fieldName}[${index}]`, source))
 }
 
 function readOnRules(value, source) {
@@ -129,13 +155,8 @@ function readOnRules(value, source) {
 
     return value.map((entry, index) => {
         if (!isPlainObject(entry)) throw fail(`Invalid on rule in ${source}: ${index}`, 'invalid-on', source, `on[${index}]`)
-        const condition = requireString(entry.condition, `on[${index}].condition`, source)
-        const actionId = requireString(entry.actionId, `on[${index}].actionId`, source)
-        try {
-            new RegExp(condition, 'u')
-        } catch {
-            throw fail(`Invalid regular expression in ${source}: on[${index}].condition`, 'invalid-regex', source, `on[${index}]`)
-        }
+        const condition = requireRegularExpression(entry.condition, `on[${index}].condition`, source)
+        const actionId = requireIdentity(entry.actionId, `on[${index}].actionId`, source)
 
         return { actionId, condition }
     })
@@ -149,12 +170,12 @@ function rejectLegacyFields(value, source) {
 
 function validateTypeSpecificFields(value, type, source) {
     if (type === 'agent') {
-        requireString(value.prompt, 'prompt', source)
+        requireExecutableText(value.prompt, 'prompt', source)
         if (value.command !== undefined) throw fail(`Command action field is not valid for agent action in ${source}`, 'field-not-allowed', source, 'command')
         return
     }
 
-    requireString(value.command, 'command', source)
+    requireExecutableText(value.command, 'command', source)
     if (value.prompt !== undefined) throw fail(`Prompt action field is not valid for command action in ${source}`, 'field-not-allowed', source, 'prompt')
 }
 
@@ -164,16 +185,22 @@ function validateAgentFields(raw, dependencies, source) {
         throw fail(`Action thinkingLevel requires agent and model in ${source}`, 'agent-model-required', source, 'thinkingLevel')
     }
     if (raw.agent === undefined) return
+    if (dependencies.validateAgentCapabilities === false) return
 
     const profiles = dependencies.profiles ?? []
-    if (!findAgentProfile(profiles, raw.agent)) return
-
     try {
         validateAgentSelection(profiles, { agent: raw.agent, model: raw.model ?? '' }, source)
     } catch (error) {
         // Route by the tagged code, never by message text.
-        const field = error.code === 'unknown-model' ? 'model' : 'agent'
+        const field = error.code === 'unknown-agent' ? 'agent' : 'model'
         throw fail(error.message, error.code ?? 'invalid-agent', source, field)
+    }
+    if (raw.thinkingLevel === undefined) return
+
+    try {
+        validateThinkingLevel(raw.thinkingLevel, source)
+    } catch (error) {
+        throw fail(error.message, error.code ?? 'invalid-thinking-level', source, 'thinkingLevel')
     }
 }
 
@@ -181,11 +208,11 @@ function validateRawDefinition(value, source, dependencies) {
     if (!isPlainObject(value)) throw fail(`Invalid action definition in ${source}`, 'invalid-definition', source)
     rejectLegacyFields(value, source)
 
-    const id = requireString(value.id, 'id', source)
-    const name = requireString(value.name, 'name', source)
+    const id = requireIdentity(value.id, 'id', source)
+    const name = requireIdentity(value.name, 'name', source)
     const type = readActionType(value.type, source)
-    requireString(value.label, 'label', source)
-    requireString(value.description, 'description', source)
+    requireHumanText(value.label, 'label', source)
+    requireHumanText(value.description, 'description', source)
     validateTypeSpecificFields(value, type, source)
     if (value.icon !== undefined && typeof value.icon !== 'string') throw fail(`Invalid icon in ${source}`, 'invalid-field', source, 'icon')
     if (value.onState !== undefined && typeof value.onState !== 'string') throw fail(`Invalid onState in ${source}`, 'invalid-field', source, 'onState')

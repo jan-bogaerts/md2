@@ -22,13 +22,11 @@ export function resolveAgentCommand(config, selection = {}) {
     const configuredProfile = findAgentProfile(profiles, config.agent)
     const defaultAgent = configuredProfile ? config.agent : DEFAULT_AGENT_PROFILE_NAME
     const defaultModel = configuredProfile ? config.model : ''
-    const selectedProfile = selection.agent === undefined ? null : findAgentProfile(profiles, selection.agent)
-    const useDefault = selection.agent !== undefined && !selectedProfile
-    const agent = useDefault ? defaultAgent : selection.agent ?? defaultAgent
+    const agent = selection.agent ?? defaultAgent
     const profile = findAgentProfile(profiles, agent)
     if (!profile) throw new Error(`Unknown agent profile: ${agent}`)
-    const model = (useDefault ? defaultModel : selection.model ?? defaultModel) || defaultModelForProfile(profile)
-    const thinkingLevel = useDefault ? config.thinkingLevel ?? 'none' : selection.thinkingLevel ?? config.thinkingLevel ?? 'none'
+    const model = (selection.model ?? defaultModel) || defaultModelForProfile(profile)
+    const thinkingLevel = selection.thinkingLevel ?? config.thinkingLevel ?? 'none'
     validateAgentSelection(profiles, { agent, model }, 'desktop config')
 
     return { agent, command: buildAgentExecutionCommand(profile, model, thinkingLevel), model, profile, thinkingLevel }

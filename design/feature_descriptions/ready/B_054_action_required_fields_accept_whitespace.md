@@ -1,7 +1,7 @@
 ---
 id: B-054
 title: action required fields accept whitespace-only values
-status: design
+status: ready
 owner: JB
 affects:
 policy:

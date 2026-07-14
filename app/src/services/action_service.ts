@@ -104,7 +104,7 @@ export class ActionService extends EventTarget {
     }
 
     loadFromFiles(files: ActionFile[]) {
-        const actions = loadActionDefinitions(files)
+        const actions = loadActionDefinitions(files, { validateAgentCapabilities: false })
         this.actions = actions
         this.error = null
         this.files = files

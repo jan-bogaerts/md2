@@ -30,10 +30,10 @@ function provider(overrides: Partial<AgentCapabilitiesProvider> = {}): AgentCapa
     }
 }
 
-function renderFields(service: AgentCapabilitiesService, value = definition) {
+function renderFields(service: AgentCapabilitiesService, value = definition, onChange = vi.fn()) {
     return render(
         <AppThemeProvider>
-            <ActionAgentCapabilityFields definition={value} errors={{}} onChange={vi.fn()} service={service} />
+            <ActionAgentCapabilityFields definition={value} errors={{}} onChange={onChange} service={service} />
         </AppThemeProvider>,
     )
 }
@@ -85,5 +85,25 @@ describe('ActionAgentCapabilityFields', () => {
 
         expect(screen.getByLabelText('Model')).toHaveTextContent('removed-model')
         expect(screen.getByLabelText('Thinking level')).toHaveTextContent('max')
+    })
+
+    it('marks removed model and thinking-level selections unavailable', async () => {
+        const service = new AgentCapabilitiesService(provider())
+        renderFields(service, { ...definition, thinkingLevel: 'extreme' })
+
+        await waitFor(() => expect(screen.getByLabelText('Model')).toHaveTextContent('stored-model — unavailable'))
+        expect(screen.getByLabelText('Thinking level')).toHaveTextContent('extreme — unavailable')
+    })
+
+    it('clears stale model and thinking-level values when agent changes', async () => {
+        const service = new AgentCapabilitiesService(provider())
+        const onChange = vi.fn()
+        renderFields(service, definition, onChange)
+
+        await waitFor(() => expect(screen.queryByText('Checking agent availability…')).not.toBeInTheDocument())
+        fireEvent.mouseDown(screen.getByLabelText('Agent override'))
+        fireEvent.click(within(screen.getByRole('listbox')).getByRole('option', { name: 'claude' }))
+
+        expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ agent: 'claude', model: undefined, thinkingLevel: undefined }))
     })
 })

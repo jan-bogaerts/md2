@@ -8,13 +8,16 @@ import type { ActionDefinition } from '../../data/action_types'
 interface ActionLinkListEditorProps {
     actions: ActionDefinition[]
     error?: string
+    errorIndex?: number | null
     label: string
     onChange: (actionIds: string[] | undefined) => void
     value: string[] | undefined
 }
 
 export function ActionLinkListEditor(props: ActionLinkListEditorProps) {
-    const { actions, error, label, onChange, value = [] } = props
+    const { actions, error, errorIndex, label, onChange, value = [] } = props
+    const hasIndexedError = !!error && errorIndex !== null && errorIndex !== undefined
+    const showSectionError = !!error && (!hasIndexedError || value[errorIndex] === undefined)
 
     const handleAdd = () => {
         const action = actions.find(({ id }) => !value.includes(id))
@@ -48,12 +51,13 @@ export function ActionLinkListEditor(props: ActionLinkListEditorProps) {
         <Stack spacing={1}>
             <Typography variant="subtitle2">{label}</Typography>
             {/* Section-level error so it shows even when the collection has no rendered rows. */}
-            {error ? <FormHelperText error>{error}</FormHelperText> : null}
+            {showSectionError ? <FormHelperText error>{error}</FormHelperText> : null}
             {value.map((actionId, index) => (
                 <Box key={`${actionId}:${index}`} sx={{ alignItems: 'flex-start', display: 'flex', gap: 0.5 }}>
                     <TextField
-                        error={!!error}
+                        error={hasIndexedError && errorIndex === index}
                         fullWidth
+                        helperText={hasIndexedError && errorIndex === index ? error : undefined}
                         label="Action"
                         name={String(index)}
                         onChange={handleSelect}

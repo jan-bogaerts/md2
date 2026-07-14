@@ -8,12 +8,15 @@ import type { ActionDefinition, RawOnRule } from '../../data/action_types'
 interface ActionOnRulesEditorProps {
     actions: ActionDefinition[]
     error?: string
+    errorIndex?: number | null
     onChange: (rules: RawOnRule[] | undefined) => void
     value: RawOnRule[] | undefined
 }
 
 export function ActionOnRulesEditor(props: ActionOnRulesEditorProps) {
-    const { actions, error, onChange, value = [] } = props
+    const { actions, error, errorIndex, onChange, value = [] } = props
+    const hasIndexedError = !!error && errorIndex !== null && errorIndex !== undefined
+    const showSectionError = !!error && (!hasIndexedError || value[errorIndex] === undefined)
 
     const handleAdd = () => {
         const action = actions[0]
@@ -50,11 +53,12 @@ export function ActionOnRulesEditor(props: ActionOnRulesEditorProps) {
         <Stack spacing={1}>
             <Typography variant="subtitle2">Output rules</Typography>
             {/* Section-level error so it shows even when the collection has no rendered rows. */}
-            {error ? <FormHelperText error>{error}</FormHelperText> : null}
+            {showSectionError ? <FormHelperText error>{error}</FormHelperText> : null}
             {value.map((rule, index) => (
                 <Box key={`${rule.actionId}:${index}`} sx={{ alignItems: 'flex-start', display: 'flex', gap: 0.5 }}>
                     <TextField
-                        error={!!error}
+                        error={hasIndexedError && errorIndex === index}
+                        helperText={hasIndexedError && errorIndex === index ? error : undefined}
                         label="Regular expression"
                         name={`condition:${index}`}
                         onChange={handleChange}

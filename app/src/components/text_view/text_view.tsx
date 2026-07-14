@@ -1,29 +1,33 @@
 import { Box, Divider, Typography } from '@mui/material'
-import type { KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent } from 'react'
+import type {
+    KeyboardEvent as ReactKeyboardEvent, MouseEvent as ReactMouseEvent,
+    PointerEvent as ReactPointerEvent,
+} from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { buildFileTree, fileLabel } from '../../data/file_tree'
 import type { ActionDefinition } from '../../data/action_types'
 import { getCardIdPrefix } from '../../data/card_identifiers'
 import { defaultColumnAccent, type AgentConversation, type CardTypeConfig, type ProjectCard, type StateConfig } from '../../data/data_types'
-import { telemetryService } from '../../services/telemetry_service'
 import { agentAcknowledgementService } from '../../services/agent_acknowledgement_service'
+import { telemetryService } from '../../services/telemetry_service'
 import { markdownParsingService } from '../../services/markdown_parsing_service'
-import { AgentConversationList } from '../agents/agent_conversation_list'
 import { ActionEditor } from '../actions/action_editor'
+import { AgentConversationList } from '../agents/agent_conversation_list'
 import { MarkdownEditor } from '../editor/markdown_editor'
 import { LeftPanelSlot } from '../shell/left_panel_slot'
+import { CardPropertiesPanel } from './card_properties_panel'
+import { CardPropertiesPopover } from './card_properties_popover'
 import { FileTreeView } from './file_tree_view'
-import { HeaderEditorPanel } from './header_editor_panel'
 import { ListEditorToolbarControls } from './list_editor_toolbar_controls'
 import { TabBar, type OpenTab, type OpenTabKind } from './tab_bar'
 import { useOpenTabs } from './use_open_tabs'
 import { useActions } from '../hooks/use_actions'
 
+const HISTORY_FOLDER_NAME = 'history'
 const CONVERSATION_PANEL_MIN_HEIGHT = 220
 const CONVERSATION_PANEL_MAX_HEIGHT_RATIO = 0.8
 const CONVERSATION_PANEL_SEPARATOR_HEIGHT = 6
 const CONVERSATION_PANEL_KEYBOARD_STEP = 24
-const HISTORY_FOLDER_NAME = 'history'
 
 interface TextViewProps {
     actionsFolder: string
@@ -41,6 +45,8 @@ interface TextViewProps {
     onHeaderFieldChange: (path: string, key: string, value: string) => void
     onSendAgentInput: (runId: string, input: string) => void
     onStartAgentConversation: (path: string, prompt: string) => void
+    onTitleChange: (path: string, title: string) => void
+    onTogglePolicy: (path: string, policyKey: string) => void
     projectFolder: string
     projectId?: string
     requestedNonce: number
@@ -96,16 +102,17 @@ function tabData(
     }
 }
 
-function conversationPanelMaxHeight(containerHeight: number): number {
-    return Math.max(CONVERSATION_PANEL_MIN_HEIGHT, containerHeight * CONVERSATION_PANEL_MAX_HEIGHT_RATIO)
-}
-
 function folderPath(parentFolder: string, childFolder: string) {
     return parentFolder.length > 0 ? `${parentFolder}/${childFolder}` : childFolder
 }
 
+function conversationPanelMaxHeight(containerHeight: number): number {
+    return Math.max(CONVERSATION_PANEL_MIN_HEIGHT, containerHeight * CONVERSATION_PANEL_MAX_HEIGHT_RATIO)
+}
+
 function clampConversationPanelHeight(proposedHeight: number, containerHeight: number): number {
     const maxHeight = conversationPanelMaxHeight(containerHeight)
+
     return Math.min(Math.max(proposedHeight, CONVERSATION_PANEL_MIN_HEIGHT), maxHeight)
 }
 
@@ -127,18 +134,22 @@ export function TextView(props: TextViewProps) {
         onHeaderFieldChange,
         onSendAgentInput,
         onStartAgentConversation,
+        onTitleChange,
+        onTogglePolicy,
         projectFolder,
+        projectId,
         requestedNonce,
         requestedPath,
         repositoryFiles,
         states,
-        workingFolder, projectId,
+        workingFolder,
     } = props
-    const [isConversationPanelOpen, setIsConversationPanelOpen] = useState(false)
     const { actions } = useActions()
+    const [isConversationPanelOpen, setIsConversationPanelOpen] = useState(false)
     const [conversationPanelHeight, setConversationPanelHeight] = useState(CONVERSATION_PANEL_MIN_HEIGHT)
     const [isConversationPanelDragging, setIsConversationPanelDragging] = useState(false)
     const [conversationPanelMax, setConversationPanelMax] = useState<number | undefined>(undefined)
+    const [propertiesAnchorElement, setPropertiesAnchorElement] = useState<HTMLElement | null>(null)
     const editorStackRef = useRef<HTMLDivElement>(null)
     const onDeleteFileRef = useRef(onDeleteFile)
     const onDeleteFolderRef = useRef(onDeleteFolder)
@@ -227,21 +238,28 @@ export function TextView(props: TextViewProps) {
         if (activePath) onBodyChange(activePath, body)
     }
 
-    const handleHeaderFieldChange = (key: string, value: string) => {
-        if (activePath) onHeaderFieldChange(activePath, key, value)
-    }
-
     const handleToggleConversationPanel = () => {
         setIsConversationPanelOpen((current) => !current)
+    }
+
+    const handleOpenProperties = (event: ReactMouseEvent<HTMLElement>) => {
+        setPropertiesAnchorElement(event.currentTarget)
+    }
+
+    const handleCloseProperties = () => {
+        setPropertiesAnchorElement(null)
     }
 
     const listEditorToolbarContents = useCallback(() => (
         <ListEditorToolbarControls
             conversationCount={(activeCard?.agentConversations.length ?? 0) + (activeCard?.agentConversationErrors.length ?? 0)}
             isConversationPanelOpen={isConversationPanelOpen}
+            isPropertiesOpen={!!propertiesAnchorElement}
+            onOpenProperties={handleOpenProperties}
             onToggleConversationPanel={handleToggleConversationPanel}
+            propertiesAvailable={!!activeCard && Object.keys(activeCard.headerFields).length > 0}
         />
-    ), [activeCard, isConversationPanelOpen])
+    ), [activeCard, isConversationPanelOpen, propertiesAnchorElement])
 
     const handleContinueAgentConversation = (conversation: AgentConversation) => {
         if (activePath) onContinueAgentConversation(activePath, conversation)
@@ -295,6 +313,30 @@ export function TextView(props: TextViewProps) {
         setConversationPanelHeight(clampConversationPanelHeight(nextHeight, bounds.height))
     }, [conversationPanelHeight])
 
+    const propertiesPopup = activeCard && Object.keys(activeCard.headerFields).length > 0 ? (
+        <CardPropertiesPopover
+            anchorElement={propertiesAnchorElement}
+            onClose={handleCloseProperties}
+            open={!!propertiesAnchorElement}
+        >
+            <CardPropertiesPanel
+                affects={activeCard.header.affects}
+                author={activeCard.header.author}
+                id={activeCard.header.id}
+                key={`${activeCard.path}:${activeCard.header.title}:${activeCard.header.author ?? ''}`}
+                onAuthorChange={(author) => onHeaderFieldChange(activeCard.path, 'author', author)}
+                onAutoMergeChange={() => onTogglePolicy(activeCard.path, 'autoMerge')}
+                onTitleChange={(title) => onTitleChange(activeCard.path, title)}
+                policy={activeCard.header.policy}
+                status={activeCard.header.status}
+                statusColor={activeCard.header.status
+                    ? statusColors.get(activeCard.header.status) ?? defaultColumnAccent(0)
+                    : undefined}
+                title={activeCard.header.title}
+            />
+        </CardPropertiesPopover>
+    ) : null
+
     const conversationPanelSeparator = !isMobile ? (
         <Box
             aria-label="Resize conversation panel"
@@ -331,7 +373,7 @@ export function TextView(props: TextViewProps) {
                         flex: 1,
                         justifyContent: activeCard ? undefined : 'center',
                         overflow: 'auto',
-                        p: 2,
+                        p: activeCard ? 0 : 2,
                     }}
                 >
                     {activeAction ? (
@@ -343,23 +385,13 @@ export function TextView(props: TextViewProps) {
                             states={states.map(({ state }) => state)}
                         />
                     ) : activeCard && activePath ? (
-                        <>
-                            {Object.keys(activeCard.headerFields).length > 0 ? (
-                                <HeaderEditorPanel
-                                    fields={activeCard.headerFields}
-                                    key={`header:${activePath}`}
-                                    onFieldChange={handleHeaderFieldChange}
-                                    title={activeCard.header.title}
-                                />
-                            ) : null}
-                            <MarkdownEditor
-                                key={activeCard.path}
-                                markdown={activeCard.content}
-                                onChange={handleEditorChange}
-                                stickyToolbar={isMobile}
-                                toolbarContents={listEditorToolbarContents}
-                            />
-                        </>
+                        <MarkdownEditor
+                            key={activeCard.path}
+                            markdown={activeCard.content}
+                            onChange={handleEditorChange}
+                            stickyToolbar
+                            toolbarContents={listEditorToolbarContents}
+                        />
                     ) : (
                         <Typography color="text.secondary" variant="body2">
                             Select a file from the tree to open it.
@@ -389,6 +421,7 @@ export function TextView(props: TextViewProps) {
                     </>
                 ) : null}
             </Box>
+            {propertiesPopup}
         </Box>
     )
 

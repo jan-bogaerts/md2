@@ -90,6 +90,34 @@ describe('ActionRunnerService', () => {
         expect(localGitService.loadActionFiles).toHaveBeenCalledTimes(2)
     })
 
+    it('rejects a persisted model removed from current Electron configuration before process start', async () => {
+        const files = [actionFile('main', {
+            agent: 'custom', command: undefined, model: 'retired-model', prompt: 'Run {{file}}', type: 'agent',
+        })]
+        const agentConfigProvider = () => ({
+            agent: 'custom', agentProfiles: [{ command: 'custom', models: ['current-model'], name: 'custom' }], model: 'current-model',
+        })
+        const { agentRunnerService, runner } = createRunner(files, { agentConfigProvider })
+
+        await expect(runner.start({ actionId: 'main', context, runInput: {} })).rejects.toThrow('Unknown model')
+        expect(agentRunnerService.start).not.toHaveBeenCalled()
+    })
+
+    it.each([
+        ['model', { model: 'retired-model' }, 'Unknown model'],
+        ['thinking level', { thinkingLevel: 'extreme' }, 'Invalid thinking level'],
+    ])('blocks an invalid runtime %s override before process start', async (_label, runInput, expectedError) => {
+        const files = [actionFile('main', {
+            agent: 'codex', command: undefined, model: 'GPT 5.5', prompt: 'Run {{file}}', type: 'agent',
+        })]
+        const { agentRunnerService, runner } = createRunner(files)
+
+        const result = await runToCompletion(runner, { actionId: 'main', context, runInput })
+
+        expect(result).toMatchObject({ failure: expect.stringContaining(expectedError), status: 'failed' })
+        expect(agentRunnerService.start).not.toHaveBeenCalled()
+    })
+
     it('runs before, main, matching on, and after in configured order', async () => {
         const files = [
             actionFile('before'),

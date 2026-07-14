@@ -40,7 +40,10 @@ interface MarkdownEditorProps {
  * the scroll area.
  */
 export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(function MarkdownEditor(props, ref) {
-    const { markdown, onChange, overlayContainer, stickyToolbar = false, toolbarContents = MarkdownFormatToolbarControls } = props
+    const {
+        markdown, onChange, overlayContainer,
+        stickyToolbar = false, toolbarContents = MarkdownFormatToolbarControls,
+    } = props
     const { markdownStyleConfig, mode } = useAppTheme()
     const editorRef = useRef<MDXEditorMethods>(null)
     const latestMarkdownRef = useRef(markdown)
@@ -83,6 +86,20 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         ? { '& .mdxeditor-toolbar': { position: 'sticky', top: 0, zIndex: 1 } }
         : undefined
     const editorSx = { ...markdownContentSx, ...stickySx }
+    const plugins = [
+        headingsPlugin(),
+        listsPlugin(),
+        quotePlugin(),
+        thematicBreakPlugin(),
+        linkPlugin(),
+        linkDialogPlugin(),
+        imagePlugin(),
+        tablePlugin(),
+        codeBlockPlugin({ defaultCodeBlockLanguage: DEFAULT_CODE_LANGUAGE }),
+        codeMirrorPlugin({ codeBlockLanguages: CODE_BLOCK_LANGUAGES }),
+        markdownShortcutPlugin(),
+        toolbarPlugin({ toolbarContents }),
+    ]
 
     return (
         <Box data-sticky-toolbar={stickyToolbar} sx={editorSx}>
@@ -92,20 +109,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
                 markdown={markdown}
                 onChange={handleEditorChange}
                 overlayContainer={overlayContainer}
-                plugins={[
-                    headingsPlugin(),
-                    listsPlugin(),
-                    quotePlugin(),
-                    thematicBreakPlugin(),
-                    linkPlugin(),
-                    linkDialogPlugin(),
-                    imagePlugin(),
-                    tablePlugin(),
-                    codeBlockPlugin({ defaultCodeBlockLanguage: DEFAULT_CODE_LANGUAGE }),
-                    codeMirrorPlugin({ codeBlockLanguages: CODE_BLOCK_LANGUAGES }),
-                    markdownShortcutPlugin(),
-                    toolbarPlugin({ toolbarContents }),
-                ]}
+                plugins={plugins}
                 ref={editorRef}
             />
         </Box>

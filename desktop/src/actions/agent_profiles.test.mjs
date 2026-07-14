@@ -70,7 +70,7 @@ describe('agent profile resolution', () => {
         })
     })
 
-    it('ignores stale action overrides when their agent profile is missing', () => {
+    it('rejects stale action overrides when their agent profile is missing', () => {
         const config = {
             agent: 'claude',
             agentProfiles: BUILTIN_AGENT_PROFILES,
@@ -78,11 +78,9 @@ describe('agent profile resolution', () => {
             thinkingLevel: 'medium',
         }
 
-        expect(resolveAgentCommand(config, {
+        expect(() => resolveAgentCommand(config, {
             agent: 'missing', model: 'removed-model', thinkingLevel: 'high',
-        })).toMatchObject({
-            agent: 'claude', command: 'claude --model sonnet --effort medium', model: 'sonnet', thinkingLevel: 'medium',
-        })
+        })).toThrow('Unknown agent profile: missing')
     })
 
     it('still resolves user-defined free-form command profiles', () => {

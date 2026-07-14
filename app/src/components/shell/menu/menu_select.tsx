@@ -1,5 +1,6 @@
 import { FormControl, Select, Tooltip } from '@mui/material'
 import type { SelectChangeEvent } from '@mui/material'
+import { useState } from 'react'
 import type { ReactNode } from 'react'
 
 interface MenuSelectProps {
@@ -15,15 +16,35 @@ interface MenuSelectProps {
 /** Tooltip-wrapped compact select used by menu sections. */
 export function MenuSelect(props: MenuSelectProps) {
     const { children, disabled = false, label, minWidth = 140, onChange, onOpen, value } = props
+    const [isSelectOpen, setIsSelectOpen] = useState(false)
+    const [isTooltipOpen, setIsTooltipOpen] = useState(false)
+
+    const closeSelect = () => {
+        setIsSelectOpen(false)
+    }
+
+    const closeTooltip = () => {
+        setIsTooltipOpen(false)
+    }
+
+    const openSelect = () => {
+        setIsSelectOpen(true)
+        onOpen?.()
+    }
+
+    const openTooltip = () => {
+        setIsTooltipOpen(true)
+    }
 
     return (
-        <Tooltip title={label}>
+        <Tooltip onClose={closeTooltip} onOpen={openTooltip} open={isTooltipOpen && !isSelectOpen} title={label}>
             <FormControl size="small" sx={{ minWidth }}>
                 <Select
                     aria-label={label}
                     disabled={disabled}
                     onChange={onChange}
-                    onOpen={onOpen}
+                    onClose={closeSelect}
+                    onOpen={openSelect}
                     size="small"
                     value={value}
                 >

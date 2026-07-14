@@ -1,5 +1,6 @@
 import { Box, Chip, FormControl, MenuItem, Select, Tooltip, Typography } from '@mui/material'
 import type { SelectChangeEvent } from '@mui/material'
+import { useState } from 'react'
 import type { BranchReference } from '../../../data/data_types'
 
 interface BranchMenuSelectProps {
@@ -29,15 +30,35 @@ function BranchValue(props: { branch: string }) {
 /** Rich branch selector used in the project toolbar group. */
 export function BranchMenuSelect(props: BranchMenuSelectProps) {
     const { branches, disabled, onChange, onOpen, value } = props
+    const [isSelectOpen, setIsSelectOpen] = useState(false)
+    const [isTooltipOpen, setIsTooltipOpen] = useState(false)
+
+    const closeSelect = () => {
+        setIsSelectOpen(false)
+    }
+
+    const closeTooltip = () => {
+        setIsTooltipOpen(false)
+    }
+
+    const openSelect = () => {
+        setIsSelectOpen(true)
+        onOpen()
+    }
+
+    const openTooltip = () => {
+        setIsTooltipOpen(true)
+    }
 
     return (
-        <Tooltip title="Switch branch">
+        <Tooltip onClose={closeTooltip} onOpen={openTooltip} open={isTooltipOpen && !isSelectOpen} title="Switch branch">
             <FormControl size="small" sx={{ minWidth: 180 }}>
                 <Select
                     aria-label="Switch branch"
                     disabled={disabled}
                     onChange={onChange}
-                    onOpen={onOpen}
+                    onClose={closeSelect}
+                    onOpen={openSelect}
                     renderValue={(branch) => <BranchValue branch={branch} />}
                     size="small"
                     sx={{

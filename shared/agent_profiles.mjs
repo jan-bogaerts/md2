@@ -115,8 +115,15 @@ export function validateAgentSelection(profiles, selection, source) {
         error.code = 'unknown-agent'
         throw error
     }
-    const allowedModels = profile.models ?? []
-    if (selection.model.length > 0 && allowedModels.length > 0 && !allowedModels.includes(selection.model)) {
+    let allowedModels
+    try {
+        allowedModels = readModels(profile.models, `agent profile ${selection.agent}.models`)
+    } catch (cause) {
+        const error = new Error(`Invalid model list for agent profile ${selection.agent} in ${source}`, { cause })
+        error.code = 'invalid-model-list'
+        throw error
+    }
+    if (selection.model.length > 0 && !allowedModels.includes(selection.model)) {
         const error = new Error(`Unknown model for agent profile ${selection.agent} in ${source}: ${selection.model}`)
         error.code = 'unknown-model'
         throw error
@@ -125,7 +132,9 @@ export function validateAgentSelection(profiles, selection, source) {
 
 export function validateThinkingLevel(value, source) {
     if (typeof value !== 'string' || !THINKING_LEVELS.includes(value)) {
-        throw new Error(`Invalid thinking level in ${source}: ${String(value)}`)
+        const error = new Error(`Invalid thinking level in ${source}: ${String(value)}`)
+        error.code = 'invalid-thinking-level'
+        throw error
     }
 
     return value

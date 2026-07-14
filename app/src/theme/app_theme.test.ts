@@ -33,6 +33,14 @@ describe('createAppTheme', () => {
         expect(theme.palette.primary.dark).toBe('#333333')
     })
 
+    it('aliases list-editor custom roles to existing theme colors', () => {
+        const theme = createAppTheme('light')
+
+        expect(theme.palette.custom.track).toBe(theme.palette.action.hover)
+        expect(theme.palette.custom.primaryBg).toBe(theme.palette.action.selected)
+        expect(theme.palette.custom.borderStrong).toBe(theme.palette.divider)
+    })
+
     it('applies the selected project background shade in light mode', () => {
         const theme = createAppTheme('light', DEFAULT_COLOR_SCHEME, 'green')
 

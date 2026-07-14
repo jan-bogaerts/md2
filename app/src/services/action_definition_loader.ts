@@ -5,6 +5,7 @@ import { configService } from './config_service'
 
 interface ActionDefinitionLoaderDependencies {
     profiles?: AgentProfile[]
+    validateAgentCapabilities?: boolean
 }
 
 function defaultLoaderDependencies(): ActionDefinitionLoaderDependencies {

@@ -61,6 +61,7 @@ export interface ActionDefinition {
 
 export interface ActionDefinitionLoaderDependencies {
     profiles?: AgentProfile[]
+    validateAgentCapabilities?: boolean
 }
 
 export interface ActionValidationErrorInit {
