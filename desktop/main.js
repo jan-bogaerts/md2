@@ -20,9 +20,9 @@ const { RemoteControlService } = require('./src/integrations/remote_control_serv
 const remarkableService = require('./src/integrations/remarkable_service')
 const { WorktreeService } = require('./src/git/worktree_service')
 const { ActionWorktreeExecutionService } = require('./src/actions/action_worktree_execution_service')
-const { flush, registerProcessErrorHandlers, startElectronTelemetry, trackEvent } = require('./src/integrations/telemetry')
+const { captureError, flush, registerProcessErrorHandlers, startElectronTelemetry, trackEvent } = require('./src/integrations/telemetry')
 const { THEME_MODE_STORE_KEY, resolveThemeMode, resolveTitleBarOverlay } = require('./src/shell/theme')
-const { registerNavigationGuards, resolveRendererTarget } = require('./src/shell/renderer_security')
+const { registerNavigationGuards, resolveRendererStaticDir, resolveRendererTarget } = require('./src/shell/renderer_security')
 const {
     SPELL_CHECKER_LANGUAGES_STORE_KEY,
     applyStoredSpellCheckerLanguages,
@@ -65,6 +65,7 @@ const actionRunnerService = new ActionRunnerService({
     actionWorktreeExecutionService,
     agentConfigProvider: () => readDesktopConfig(store),
     agentRunnerService,
+    errorReporter: captureError,
     localGitService,
 })
 const actionSchedulerService = new ActionSchedulerService({
@@ -178,7 +179,8 @@ function registerRemarkableBridge() {
 function registerRemoteControlBridge() {
     remoteControlService.setStatusListener(broadcastRemoteControlStatus)
 
-    ipcMain.handle(REMOTE_CONTROL_START_CHANNEL, async () => remoteControlService.start({ host: '0.0.0.0' }))
+    const staticDir = resolveRendererStaticDir(app.isPackaged, __dirname)
+    ipcMain.handle(REMOTE_CONTROL_START_CHANNEL, async () => remoteControlService.start({ host: '0.0.0.0', staticDir }))
     ipcMain.handle(REMOTE_CONTROL_STOP_CHANNEL, async () => remoteControlService.stop())
     ipcMain.handle(REMOTE_CONTROL_GET_STATUS_CHANNEL, () => remoteControlService.getStatus())
 }

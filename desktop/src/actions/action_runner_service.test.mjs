@@ -187,4 +187,223 @@ describe('ActionRunnerService', () => {
         expect(agentRunnerService.stop).toHaveBeenCalledWith('agent-1')
         expect(result.status).toBe('cancelled')
     })
+
+    it('keeps project and actions-folder snapshot across linked phases and history writes', async () => {
+        const firstRun = createDeferred()
+        const commandRunner = vi.fn(async (executionProject, command) => {
+            if (command === 'main') await firstRun.promise
+
+            return { command, exitCode: 0, stderr: '', stdout: `[main abcdef1] ${command}` }
+        })
+        const { localGitService, runner } = createRunner([
+            actionFile('main', { onAfter: ['after'] }),
+            actionFile('after'),
+        ], { commandRunner })
+        const executionId = await runner.start({ actionId: 'main', context, runInput: {} })
+        await vi.waitFor(() => expect(commandRunner).toHaveBeenCalledTimes(1))
+
+        runner.startProject({ branch: 'other', id: 'other', rootPath: 'C:/other' }, 'other-actions')
+        firstRun.resolve()
+        await runner.wait(executionId)
+
+        expect(commandRunner.mock.calls.map((call) => call[0])).toEqual([project, project])
+        expect(localGitService.appendActionRunHistory.mock.calls.map((call) => ({
+            actionsFolder: call[1].actionsFolder,
+            project: call[0],
+        }))).toEqual([
+            { actionsFolder: 'actions', project },
+            { actionsFolder: 'actions', project },
+        ])
+    })
+
+    it('applies extra prompt only to root action placeholders', async () => {
+        const files = [
+            actionFile('before', { command: 'before={{prompt}}' }),
+            actionFile('main', { command: 'main={{prompt}}', onBefore: ['before'] }),
+        ]
+        const { commandRunner, runner } = createRunner(files)
+
+        await runToCompletion(runner, { actionId: 'main', context, runInput: { extraPrompt: 'focus' } })
+
+        expect(commandRunner.mock.calls.map((call) => call[1])).toEqual(['before=', 'main=focus'])
+    })
+
+    it('applies appended extra prompt only to root agent prompt', async () => {
+        const agentOverrides = { agent: 'codex', command: undefined, model: 'GPT 5.5', type: 'agent' }
+        const files = [
+            actionFile('before', { ...agentOverrides, prompt: 'before prompt' }),
+            actionFile('main', { ...agentOverrides, onBefore: ['before'], prompt: 'main prompt' }),
+        ]
+        const { agentRunnerService, runner } = createRunner(files)
+        agentRunnerService.start.mockImplementation(async (_project, request, _onEvent, onComplete) => {
+            onComplete(0, {
+                conversation: { id: request.title }, reference: `.md2-agent-logs/${request.title}.json`, stderr: '', stdout: '',
+            })
+
+            return { runId: request.title }
+        })
+
+        await runToCompletion(runner, { actionId: 'main', context, runInput: { extraPrompt: 'focus' } })
+
+        expect(agentRunnerService.start.mock.calls.map((call) => call[1].prompt)).toEqual([
+            'before prompt',
+            'main prompt\n\nfocus',
+        ])
+    })
+
+    it('isolates listener and completion-callback failures from action result', async () => {
+        const listenerError = new Error('listener failed')
+        const callbackError = new Error('scheduler failed')
+        const errorReporter = vi.fn()
+        const actionCompleted = vi.fn(async () => {
+            throw callbackError
+        })
+        const { runner } = createRunner([actionFile('main')], { actionCompleted, errorReporter })
+        runner.subscribe(() => {
+            throw listenerError
+        })
+
+        const result = await runToCompletion(runner)
+
+        expect(result.status).toBe('completed')
+        expect(errorReporter).toHaveBeenCalledWith(listenerError)
+        expect(errorReporter).toHaveBeenCalledWith(callbackError)
+    })
+
+    it.each([
+        ['before', { onBefore: ['parent'] }],
+        ['on', { on: [{ actionId: 'parent', condition: 'main' }] }],
+    ])('reports nested onAfter failure in root %s subtree as failed', async (_phase, rootOverrides) => {
+        const files = [
+            actionFile('main', rootOverrides),
+            actionFile('parent', { onAfter: ['failure'] }),
+            actionFile('failure'),
+        ]
+        const commandRunner = vi.fn(async (_project, command) => ({
+            command,
+            exitCode: command === 'failure' ? 1 : 0,
+            stderr: '',
+            stdout: command,
+        }))
+        const { runner } = createRunner(files, { commandRunner })
+
+        const result = await runToCompletion(runner)
+
+        expect(result.status).toBe('failed')
+    })
+
+    it('reports nested failure in root onAfter subtree as okButNotAfter', async () => {
+        const files = [
+            actionFile('main', { onAfter: ['parent'] }),
+            actionFile('parent', { onAfter: ['failure'] }),
+            actionFile('failure'),
+        ]
+        const commandRunner = vi.fn(async (_project, command) => ({
+            command,
+            exitCode: command === 'failure' ? 1 : 0,
+            stderr: '',
+            stdout: command,
+        }))
+        const { runner } = createRunner(files, { commandRunner })
+
+        const result = await runToCompletion(runner)
+
+        expect(result.status).toBe('okButNotAfter')
+    })
+
+    it('emits streamed command output before command completion', async () => {
+        const completion = createDeferred()
+        const commandRunner = vi.fn(async (_project, command, _signal, onOutput) => {
+            onOutput({ stderr: '', stdout: 'first chunk' })
+            await completion.promise
+
+            return { command, exitCode: 0, stderr: '', stdout: 'first chunk' }
+        })
+        const { runner } = createRunner([actionFile('main')], { commandRunner })
+        const events = []
+        runner.subscribe((event) => events.push(event))
+        const executionId = await runner.start({ actionId: 'main', context, runInput: {} })
+
+        await vi.waitFor(() => expect(events).toContainEqual(expect.objectContaining({
+            status: 'running', stdout: 'first chunk', type: 'action',
+        })))
+        completion.resolve()
+        await runner.wait(executionId)
+    })
+
+    it('emits active-action cancellation before root cancellation', async () => {
+        const commandRun = createDeferred()
+        const commandRunner = vi.fn(async (_project, command, signal) => {
+            await commandRun.promise
+            if (signal.aborted) throw new Error('aborted')
+
+            return { command, exitCode: 0, stderr: '', stdout: command }
+        })
+        const { runner } = createRunner([actionFile('main')], { commandRunner })
+        const events = []
+        runner.subscribe((event) => events.push(event))
+        const executionId = await runner.start({ actionId: 'main', context, runInput: {} })
+
+        runner.cancel(executionId)
+        commandRun.resolve()
+        await runner.wait(executionId)
+
+        expect(events.slice(-2).map((event) => ({ status: event.status, type: event.type }))).toEqual([
+            { status: 'cancelled', type: 'action' },
+            { status: 'cancelled', type: 'execution' },
+        ])
+    })
+
+    it.each([
+        ['before', { onBefore: ['target'] }, ['target']],
+        ['on', { on: [{ actionId: 'target', condition: 'main' }], onAfter: ['later'] }, ['main', 'target']],
+        ['after', { onAfter: ['target', 'later'] }, ['main', 'target']],
+    ])('cancels active linked %s action and starts no later action', async (phase, rootOverrides, expectedCommands) => {
+        const targetRun = createDeferred()
+        const commandRunner = vi.fn(async (_project, command, signal) => {
+            if (command === 'target') await targetRun.promise
+            if (signal.aborted) throw new Error('aborted')
+
+            return { command, exitCode: 0, stderr: '', stdout: command }
+        })
+        const files = [actionFile('main', rootOverrides), actionFile('target'), actionFile('later')]
+        const { runner } = createRunner(files, { commandRunner })
+        const events = []
+        runner.subscribe((event) => events.push(event))
+        const executionId = await runner.start({ actionId: 'main', context, runInput: {} })
+        await vi.waitFor(() => expect(commandRunner).toHaveBeenCalledWith(project, 'target', expect.any(AbortSignal), expect.any(Function)))
+
+        runner.cancel(executionId)
+        targetRun.resolve()
+        const result = await runner.wait(executionId)
+
+        expect(result.status).toBe('cancelled')
+        expect(commandRunner.mock.calls.map((call) => call[1])).toEqual(expectedCommands)
+        expect(events).toContainEqual(expect.objectContaining({ actionId: 'target', phase, status: 'cancelled', type: 'action' }))
+    })
+
+    it('runs every matching on rule in order and stops after later failure', async () => {
+        const files = [
+            actionFile('main', { on: [
+                { actionId: 'first', condition: 'main' },
+                { actionId: 'failure', condition: 'main' },
+                { actionId: 'later', condition: 'main' },
+            ] }),
+            actionFile('first'),
+            actionFile('failure'),
+            actionFile('later'),
+        ]
+        const commandRunner = vi.fn(async (_project, command) => ({
+            command,
+            exitCode: command === 'failure' ? 1 : 0,
+            stderr: '',
+            stdout: command,
+        }))
+        const { runner } = createRunner(files, { commandRunner })
+
+        const result = await runToCompletion(runner)
+
+        expect(result.status).toBe('failed')
+        expect(commandRunner.mock.calls.map((call) => call[1])).toEqual(['main', 'first', 'failure'])
+    })
 })

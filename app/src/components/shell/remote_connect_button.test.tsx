@@ -65,6 +65,7 @@ describe('RemoteConnectButton', () => {
     afterEach(() => {
         window.localStorage.removeItem(REMOTE_CONTROL_ENDPOINT_KEY)
         window.localStorage.removeItem(REMOTE_CONTROL_TOKEN_KEY)
+        window.location.hash = ''
         vi.unstubAllGlobals()
         cleanup()
     })
@@ -111,6 +112,36 @@ describe('RemoteConnectButton', () => {
         const dialog = await connectTo('ws://192.168.0.10:1234', 'token-1')
 
         expect(await dialog.findByText('Remote-control connection failed')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Connect' })).toBeInTheDocument()
+    })
+
+    it('auto-connects from a token fragment without opening the dialog', async () => {
+        installWebSocket('open')
+        const openProjectListener = vi.fn()
+        window.addEventListener(OPEN_PROJECT_DIALOG_EVENT, openProjectListener)
+        window.location.hash = '#frag-token'
+        render(<RemoteConnectButton />)
+
+        expect(await screen.findByRole('button', { name: 'Connected' })).toBeInTheDocument()
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+        expect(window.localStorage.getItem(REMOTE_CONTROL_TOKEN_KEY)).toBe('frag-token')
+        expect(openProjectListener).toHaveBeenCalledOnce()
+        window.removeEventListener(OPEN_PROJECT_DIALOG_EVENT, openProjectListener)
+    })
+
+    it('opens the dialog with the connection error when a fragment token is stale', async () => {
+        installWebSocket('error')
+        window.location.hash = '#stale-token'
+        render(<RemoteConnectButton />)
+
+        const dialog = within(await screen.findByRole('dialog'))
+        expect(await dialog.findByText('Remote-control connection failed')).toBeInTheDocument()
+    })
+
+    it('does not auto-connect without a token fragment', () => {
+        installWebSocket('open')
+        render(<RemoteConnectButton />)
+
         expect(screen.getByRole('button', { name: 'Connect' })).toBeInTheDocument()
     })
 

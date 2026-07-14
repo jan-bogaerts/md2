@@ -18,6 +18,13 @@ function resolveRendererTarget(isPackaged, appDirectory = __dirname, env = proce
     return { trustedLocation: url, type: 'url', url }
 }
 
+/** Directory holding the bundled React build, served over http by the remote-control server (F-045). */
+function resolveRendererStaticDir(isPackaged, appDirectory = __dirname) {
+    return isPackaged
+        ? path.join(appDirectory, PACKAGED_RENDERER_DIRECTORY)
+        : path.join(appDirectory, '..', 'app', 'dist')
+}
+
 function isTrustedRendererLocation(candidateUrl, trustedLocation) {
     try {
         const candidate = new URL(candidateUrl)
@@ -57,5 +64,6 @@ module.exports = {
     isApprovedExternalUrl,
     isTrustedRendererLocation,
     registerNavigationGuards,
+    resolveRendererStaticDir,
     resolveRendererTarget,
 }

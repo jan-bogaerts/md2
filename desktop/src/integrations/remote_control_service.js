@@ -1,6 +1,8 @@
 const crypto = require('node:crypto')
+const fs = require('node:fs')
 const http = require('node:http')
 const os = require('node:os')
+const path = require('node:path')
 const { WebSocketServer } = require('ws')
 
 const DEFAULT_HOST = '127.0.0.1'
@@ -8,7 +10,40 @@ const DEFAULT_PORT = 0
 const SOCKET_OPEN_STATE = 1
 const REMOTE_CONTROL_STOP_CODE = 1001
 const UNAUTHORIZED_STATUS = 401
+const NOT_FOUND_STATUS = 404
 const AGENT_EVENT_METHODS = new Set(['runSearchRegexpAgent', 'startAgentConversation'])
+const STATIC_INDEX_FILE = 'index.html'
+const CONTENT_TYPES = {
+    '.css': 'text/css; charset=utf-8',
+    '.html': 'text/html; charset=utf-8',
+    '.ico': 'image/x-icon',
+    '.js': 'text/javascript; charset=utf-8',
+    '.json': 'application/json; charset=utf-8',
+    '.png': 'image/png',
+    '.svg': 'image/svg+xml',
+    '.woff2': 'font/woff2',
+}
+
+function contentTypeFor(filePath) {
+    return CONTENT_TYPES[path.extname(filePath).toLowerCase()] ?? 'application/octet-stream'
+}
+
+/** Maps a request URL path to an absolute file inside staticDir, or null when it escapes the root. */
+function resolveStaticFile(staticDir, urlPath) {
+    let pathname
+    try {
+        pathname = decodeURIComponent(new URL(urlPath, 'http://localhost').pathname)
+    } catch {
+        return null
+    }
+    if (pathname === '/' || pathname === '') pathname = `/${STATIC_INDEX_FILE}`
+
+    const resolved = path.resolve(staticDir, `.${pathname}`)
+    const root = path.resolve(staticDir)
+    if (resolved !== root && !resolved.startsWith(root + path.sep)) return null
+
+    return resolved
+}
 
 function createInactiveState() {
     return {
@@ -73,6 +108,7 @@ class RemoteControlService {
         this.host = DEFAULT_HOST
         this.port = DEFAULT_PORT
         this.server = null
+        this.staticDir = null
         this.statusListener = null
         this.subscriptions = new Map()
         this.token = null
@@ -103,6 +139,7 @@ class RemoteControlService {
 
         this.host = typeof options.host === 'string' && options.host.length > 0 ? options.host : DEFAULT_HOST
         this.port = Number.isInteger(options.port) ? options.port : DEFAULT_PORT
+        this.staticDir = typeof options.staticDir === 'string' && options.staticDir.length > 0 ? options.staticDir : null
         this.token = typeof options.token === 'string' && options.token.length > 0 ? options.token : createToken()
         if (!isLoopbackHost(this.host) && !this.token) throw new Error('Remote-control token is required for non-loopback binds')
 
@@ -171,6 +208,10 @@ class RemoteControlService {
     }
 
     registerServerEvents(server, websocketServer) {
+        server.on('request', (request, response) => {
+            this.handleStaticRequest(request, response)
+        })
+
         server.on('upgrade', (request, socket, head) => {
             if (!this.isAuthorized(request)) {
                 closeUnauthorized(socket)
@@ -195,6 +236,30 @@ class RemoteControlService {
                 this.clientCount = Math.max(0, this.clientCount - 1)
                 this.emitStatus()
             })
+        })
+    }
+
+    /** Serves the bundled React build so a LAN browser loads the app; the WebSocket upgrade is same-origin. */
+    handleStaticRequest(request, response) {
+        if (!this.staticDir || (request.method !== 'GET' && request.method !== 'HEAD')) {
+            response.writeHead(NOT_FOUND_STATUS).end()
+            return
+        }
+
+        const filePath = resolveStaticFile(this.staticDir, request.url ?? '/')
+        if (!filePath) {
+            response.writeHead(NOT_FOUND_STATUS).end()
+            return
+        }
+
+        fs.readFile(filePath, (error, data) => {
+            if (error) {
+                response.writeHead(NOT_FOUND_STATUS).end()
+                return
+            }
+
+            response.writeHead(200, { 'Content-Type': contentTypeFor(filePath) })
+            response.end(request.method === 'HEAD' ? undefined : data)
         })
     }
 

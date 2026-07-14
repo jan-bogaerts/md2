@@ -13,10 +13,11 @@ import {
 } from '../data/data_types'
 import { actionService } from './action_service'
 import { agentConversationService, loadAgentConversation } from './agent_conversation_service'
-import { runElectronAction } from './electron_action_runner'
+import { recordActionEventProcessingError, runElectronAction } from './electron_action_runner'
 import { mapWithConcurrency } from './concurrency'
 import { type RequiredDataServiceDependencies } from './data_service_context'
 import { markdownParsingService } from './markdown_parsing_service'
+import { telemetryService } from './telemetry_service'
 
 const AGENT_CONVERSATION_LOAD_CONCURRENCY = 8
 const ON_STATE_ACTION_ERROR_PATH_PREFIX = 'onState'
@@ -124,7 +125,14 @@ export class AgentIntegration {
         const bridge = getElectronActionBridge()
         if (!bridge?.onActionExecution) return
 
-        this.scheduledRunCleanup = bridge.onActionExecution((event) => this.handleActionExecutionEvent(event))
+        this.scheduledRunCleanup = bridge.onActionExecution((event) => {
+            try {
+                this.handleActionExecutionEvent(event)
+            } catch (error) {
+                recordActionEventProcessingError(event.executionId, error)
+                telemetryService.captureError(error)
+            }
+        })
     }
 
     stopScheduledRunWatch() {
@@ -286,6 +294,7 @@ export class AgentIntegration {
 
     private handleActionExecutionEvent(event: ActionExecutionEvent) {
         if (event.type === 'execution') this.handleActionExecutionStatus(event)
+        if (event.type === 'action') this.linkActionConversation(event)
         if (!event.agentEvent) return
 
         agentConversationService.observeRunEvent(event.agentEvent, event.agentEvent.conversation.title)
@@ -295,6 +304,15 @@ export class AgentIntegration {
         }
 
         this.recordAgentRunEvent(event.agentEvent.conversation.cardPath, event.agentEvent)
+    }
+
+    private linkActionConversation(event: ActionExecutionEvent) {
+        if (event.status !== 'completed' || !event.conversation?.cardPath || !event.reference) return
+
+        const reference = event.executionWorktree === null || event.executionWorktree === undefined
+            ? event.reference
+            : `worktree:${event.executionWorktree}:${event.reference}`
+        this.linkAgentConversation(event.conversation.cardPath, event.conversation, reference)
     }
 
     private handleActionExecutionStatus(event: ActionExecutionEvent) {

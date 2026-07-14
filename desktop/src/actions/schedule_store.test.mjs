@@ -54,10 +54,10 @@ describe('schedule store', () => {
 
     it('finds pending schedules and pending after-action schedules', () => {
         const afterActionSchedule = createSchedule('schedule-1', { actionId: 'build', type: 'afterAction' })
-        const doneSchedule = { ...createSchedule('schedule-2', { actionId: 'build', type: 'afterAction' }), status: 'done' }
+        const completedSchedule = { ...createSchedule('schedule-2', { actionId: 'build', type: 'afterAction' }), status: 'completed' }
 
         expect(findPendingSchedule([afterActionSchedule], 'schedule-1')).toEqual(afterActionSchedule)
-        expect(pendingAfterActionSchedules([afterActionSchedule, doneSchedule], 'build')).toEqual([afterActionSchedule])
-        expect([...pendingScheduleIds([afterActionSchedule, doneSchedule])]).toEqual(['schedule-1'])
+        expect(pendingAfterActionSchedules([afterActionSchedule, completedSchedule], 'build')).toEqual([afterActionSchedule])
+        expect([...pendingScheduleIds([afterActionSchedule, completedSchedule])]).toEqual(['schedule-1'])
     })
 })

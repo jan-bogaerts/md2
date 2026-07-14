@@ -2,7 +2,7 @@ import type { ActionContext } from './action_context'
 
 export const ACTION_SCHEDULES_FILE = '.md2-schedules.json'
 
-export type ActionScheduleStatus = 'cancelled' | 'done' | 'pending' | 'running'
+export type ActionScheduleStatus = 'cancelled' | 'completed' | 'failed' | 'pending' | 'running'
 
 export interface AtActionScheduleTrigger {
     timestamp: string
@@ -36,7 +36,7 @@ export interface ActionScheduleFile {
     schedules: ActionSchedule[]
 }
 
-const ACTION_SCHEDULE_STATUSES: ActionScheduleStatus[] = ['cancelled', 'done', 'pending', 'running']
+const ACTION_SCHEDULE_STATUSES: ActionScheduleStatus[] = ['cancelled', 'completed', 'failed', 'pending', 'running']
 const ACTION_CONTEXT_KINDS: ActionContext['kind'][] = ['card', 'file', 'folder']
 
 function requireScheduleObject(value: unknown, fieldName: string): Record<string, unknown> {

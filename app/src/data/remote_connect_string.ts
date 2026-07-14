@@ -24,6 +24,20 @@ export function connectUrlFromEndpoint(endpoint: string, token: string): string 
     return `${scheme}://${url.host}/#${token}`
 }
 
+/**
+ * Auto-connect settings for the Electron-served web app: when the page loaded with a `#<token>`
+ * fragment, derive a same-origin WebSocket endpoint from `window.location` (F-045). Plain-http page
+ * yields `ws://`, matching the non-secure context that permits it.
+ */
+export function deriveAutoConnectSettings(host: string, hash: string, protocol: string): RemoteControlConnectionSettings | null {
+    const token = hash.startsWith('#') ? hash.slice(1) : ''
+    if (!token || !host) return null
+
+    const scheme = protocol === 'https:' ? 'wss' : 'ws'
+
+    return { endpoint: `${scheme}://${host}`, token }
+}
+
 /** Turns a connect URL back into a WebSocket endpoint + token, or null when the input is not one. */
 export function parseRemoteConnectString(value: string): RemoteControlConnectionSettings | null {
     const trimmed = value.trim()

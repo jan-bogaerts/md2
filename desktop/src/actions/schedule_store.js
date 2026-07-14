@@ -1,5 +1,5 @@
 const ACTION_SCHEDULES_FILE = '.md2-schedules.json'
-const ACTION_SCHEDULE_STATUSES = ['cancelled', 'done', 'pending', 'running']
+const ACTION_SCHEDULE_STATUSES = ['cancelled', 'completed', 'failed', 'pending', 'running']
 const ACTION_CONTEXT_KINDS = ['card', 'file', 'folder']
 
 function requireScheduleObject(value, fieldName) {

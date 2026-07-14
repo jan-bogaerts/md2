@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createRequire } from 'node:module'
+import fs from 'node:fs'
 import os from 'node:os'
+import path from 'node:path'
 import WebSocket from 'ws'
 
 const require = createRequire(import.meta.url)
@@ -58,10 +60,10 @@ function createDispatcher(overrides = {}) {
         fail: async () => {
             throw new Error('method failed')
         },
-        runAgent: async (_request, onEvent) => {
+        runSearchRegexpAgent: async (_input, onEvent) => {
             onEvent({ content: 'hello', conversation: { id: 'run-1' }, runId: 'run-1', type: 'stdout' })
 
-            return { runId: 'run-1' }
+            return 'foo.*bar'
         },
         watchProject: (_project, onChange) => {
             onChange({ changeKind: 'changed', path: 'design/F-1.md' })
@@ -145,7 +147,7 @@ describe('RemoteControlService', () => {
         socket.send(JSON.stringify({ id: 'watch-1', method: 'watchProject', params: [{ id: 'local' }] }))
         const [watchPush, watchResponse] = await watchPromise
         const agentPromise = waitForMessages(socket, 2)
-        socket.send(JSON.stringify({ id: 'agent-1', method: 'runAgent', params: [{ cardPath: 'design/F-1.md' }] }))
+        socket.send(JSON.stringify({ id: 'agent-1', method: 'runSearchRegexpAgent', params: ['find beta'] }))
         const [agentPush, agentResponse] = await agentPromise
 
         expect(watchPush.event).toBe('watchProject')
@@ -158,7 +160,7 @@ describe('RemoteControlService', () => {
                 requestId: 'agent-1',
             },
         })
-        expect(agentResponse).toEqual({ id: 'agent-1', result: { runId: 'run-1' } })
+        expect(agentResponse).toEqual({ id: 'agent-1', result: 'foo.*bar' })
     })
 
     it('closes clients on stop', async () => {
@@ -189,5 +191,43 @@ describe('RemoteControlService', () => {
 
         await expect(service.start({ host: '0.0.0.0', token: '' })).resolves.toMatchObject({ token: expect.any(String) })
         expect(service.getStatus().token).toEqual(expect.any(String))
+    })
+
+    it('serves the bundled web app over http and coexists with the WebSocket upgrade', async () => {
+        const staticDir = fs.mkdtempSync(path.join(os.tmpdir(), 'md2-static-'))
+        fs.writeFileSync(path.join(staticDir, 'index.html'), '<!doctype html><title>md2</title>')
+        fs.writeFileSync(path.join(staticDir, 'app.js'), 'console.log(1)')
+        service = new RemoteControlService(createDispatcher())
+        const status = await service.start({ staticDir })
+        const base = `http://127.0.0.1:${service.server.address().port}`
+
+        const index = await fetch(`${base}/`)
+        expect(index.status).toBe(200)
+        expect(index.headers.get('content-type')).toContain('text/html')
+        expect(await index.text()).toContain('md2')
+
+        const asset = await fetch(`${base}/app.js`)
+        expect(asset.status).toBe(200)
+        expect(asset.headers.get('content-type')).toContain('text/javascript')
+
+        const socket = connect(status)
+        await waitForOpen(socket)
+        expect(service.getStatus().clientCount).toBe(1)
+
+        fs.rmSync(staticDir, { recursive: true, force: true })
+    })
+
+    it('returns 404 for missing files and rejects path traversal', async () => {
+        const staticDir = fs.mkdtempSync(path.join(os.tmpdir(), 'md2-static-'))
+        fs.writeFileSync(path.join(staticDir, 'index.html'), 'index')
+        service = new RemoteControlService(createDispatcher())
+        await service.start({ staticDir })
+        const base = `http://127.0.0.1:${service.server.address().port}`
+
+        expect((await fetch(`${base}/nope.js`)).status).toBe(404)
+        expect((await fetch(`${base}/../main.js`)).status).toBe(404)
+        expect((await fetch(`${base}/%2e%2e/main.js`)).status).toBe(404)
+
+        fs.rmSync(staticDir, { recursive: true, force: true })
     })
 })

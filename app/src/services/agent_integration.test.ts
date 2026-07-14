@@ -388,4 +388,34 @@ describe('AgentIntegration', () => {
 
         expect(service.getState().runningAgents).toHaveLength(0)
     })
+
+    it('records and links action agent events through one global consumer', () => {
+        configService.init()
+        let actionRunCallback: ((event: ActionExecutionEvent) => void) | null = null
+        window.md2Actions = {
+            onActionExecution: (callback: (event: ActionExecutionEvent) => void) => {
+                actionRunCallback = callback
+
+                return vi.fn()
+            },
+        } as unknown as typeof window.md2Actions
+        const service = new DataService()
+        service.init({ storage: createStorage() })
+        const recordAgentRunEvent = vi.spyOn(service.agents, 'recordAgentRunEvent').mockImplementation(() => undefined)
+        const linkAgentConversation = vi.spyOn(service.agents, 'linkAgentConversation').mockImplementation((file) => ({ content: '', path: file }))
+        if (!actionRunCallback) throw new Error('Action run callback not registered')
+        const emitActionRun = actionRunCallback as (event: ActionExecutionEvent) => void
+        const agentConversation = { ...conversation(), cardPath: 'design/F-1-root.md' }
+        const agentEvent: AgentRunEvent = { content: 'output', conversation: agentConversation, runId: 'agent-1', type: 'output' }
+
+        emitActionRun({actionId: 'implement', agentEvent, executionId: 'action-1', phase: 'main', rootActionId: 'implement', status: 'running', type: 'agent'})
+        emitActionRun({
+            actionId: 'implement', conversation: agentConversation, executionId: 'action-1', executionWorktree: null,
+            phase: 'main', reference: '.md2-agent-logs/one.json', rootActionId: 'implement', status: 'completed', type: 'action',
+        })
+
+        expect(recordAgentRunEvent).toHaveBeenCalledTimes(1)
+        expect(linkAgentConversation).toHaveBeenCalledTimes(1)
+        expect(linkAgentConversation).toHaveBeenCalledWith('design/F-1-root.md', agentConversation, '.md2-agent-logs/one.json')
+    })
 })

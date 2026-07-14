@@ -18,6 +18,13 @@ function createFailureEntry(message) {
     return { completedAt, output: message, prompt: '', status: 'failed' }
 }
 
+function scheduleStatusFromResult(status) {
+    if (status === 'completed') return 'completed'
+    if (status === 'cancelled') return 'cancelled'
+
+    return 'failed'
+}
+
 function validateRegistrationRequest(request) {
     if (!request || typeof request !== 'object') throw new Error('Missing action schedule registration request')
     if (typeof request.actionId !== 'string' || request.actionId.length === 0) throw new Error('Missing action schedule actionId')
@@ -75,6 +82,7 @@ class ActionSchedulerService {
         this.setTimeout = dependencies?.setTimeout ?? setTimeout
         this.project = null
         this.actionsFolder = null
+        this.executionIdsByScheduleId = new Map()
         this.runningScheduleIds = new Set()
         this.timers = new Map()
     }
@@ -89,6 +97,7 @@ class ActionSchedulerService {
     stop() {
         clearScheduleTimers(this.timers, this.clearTimeout)
         this.runningScheduleIds.clear()
+        this.executionIdsByScheduleId.clear()
         this.project = null
         this.actionsFolder = null
     }
@@ -115,6 +124,13 @@ class ActionSchedulerService {
 
     async cancelActionSchedule(scheduleId) {
         if (typeof scheduleId !== 'string' || scheduleId.length === 0) throw new Error('Missing action schedule id')
+
+        const executionId = this.executionIdsByScheduleId.get(scheduleId)
+        if (executionId) {
+            this.actionRunnerService.cancel(executionId)
+
+            return this.localGitService.loadActionSchedules(this.requireCurrentProject(), await this.requireActionsFolder())
+        }
 
         cancelScheduleTimer(this.timers, scheduleId, this.clearTimeout)
 
@@ -187,9 +203,18 @@ class ActionSchedulerService {
             if (!schedule) return
 
             await this.updateScheduleStatus(scheduleId, 'running')
-            await this.runScheduledAction(schedule)
-            await this.updateScheduleStatus(scheduleId, 'done')
+            const result = await this.runScheduledAction(schedule)
+            const status = scheduleStatusFromResult(result.status)
+            if (status === 'failed') await this.recordSchedulerFailure(schedule, result.failure ?? 'Scheduled action failed')
+            await this.updateScheduleStatus(scheduleId, status)
+        } catch (error) {
+            const schedule = await this.findRunningSchedule(scheduleId)
+            if (schedule) {
+                await this.recordSchedulerFailure(schedule, error instanceof Error ? error.message : 'Scheduled action failed')
+                await this.updateScheduleStatus(scheduleId, 'failed')
+            }
         } finally {
+            this.executionIdsByScheduleId.delete(scheduleId)
             this.runningScheduleIds.delete(scheduleId)
         }
     }
@@ -202,7 +227,7 @@ class ActionSchedulerService {
 
     async failSchedule(schedule, message) {
         await this.recordSchedulerFailure(schedule, message)
-        await this.updateScheduleStatus(schedule.id, 'done')
+        await this.updateScheduleStatus(schedule.id, 'failed')
     }
 
     async updateScheduleStatus(scheduleId, status) {
@@ -214,14 +239,17 @@ class ActionSchedulerService {
     }
 
     async runScheduledAction(schedule) {
-        try {
-            const request = { actionId: schedule.actionId, context: schedule.context, runInput: {} }
-            const executionId = await this.actionRunnerService.start(request)
-            const result = await this.actionRunnerService.wait(executionId)
-            if (result.status !== 'completed' && result.status !== 'okButNotAfter') throw new Error(result.failure ?? 'Scheduled action failed')
-        } catch (error) {
-            await this.recordSchedulerFailure(schedule, error instanceof Error ? error.message : 'Scheduled action failed')
-        }
+        const request = { actionId: schedule.actionId, context: schedule.context, runInput: {} }
+        const executionId = await this.actionRunnerService.start(request)
+        this.executionIdsByScheduleId.set(schedule.id, executionId)
+
+        return this.actionRunnerService.wait(executionId)
+    }
+
+    async findRunningSchedule(scheduleId) {
+        const schedules = await this.localGitService.loadActionSchedules(this.requireCurrentProject(), await this.requireActionsFolder())
+
+        return schedules.find((schedule) => schedule.id === scheduleId && schedule.status === 'running') ?? null
     }
 
     async recordSchedulerFailure(schedule, message) {

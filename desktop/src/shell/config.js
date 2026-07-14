@@ -50,9 +50,26 @@ function readStoredDesktopConfig(store) {
     return store.get(DESKTOP_CONFIG_STORE_KEY) || {}
 }
 
+function applyDefaultAgentProfileModels(agentProfiles) {
+    if (!Array.isArray(agentProfiles)) return agentProfiles
+
+    return agentProfiles.map((profile) => {
+        if (!profile || typeof profile !== 'object' || Array.isArray(profile)) return profile
+
+        const modelsAreMissing = profile.models === undefined || (Array.isArray(profile.models) && profile.models.length === 0)
+        if (!modelsAreMissing) return profile
+
+        const builtInProfile = BUILTIN_AGENT_PROFILES.find(({ name }) => name === profile.name)
+        if (!builtInProfile) return profile
+
+        return { ...profile, models: builtInProfile.models }
+    })
+}
+
 function readDesktopConfig(store, env = process.env) {
     const resolved = { ...resolveDesktopConfig(env), ...readStoredDesktopConfig(store) }
-    const agentProfiles = validateAgentProfiles(resolved.agentProfiles)
+    const profilesWithDefaultModels = applyDefaultAgentProfileModels(resolved.agentProfiles)
+    const agentProfiles = validateAgentProfiles(profilesWithDefaultModels)
     if (env.MD2_AGENT) {
         const defaultProfile = agentProfiles.find((profile) => profile.name === DEFAULT_DESKTOP_AGENT)
         if (defaultProfile) defaultProfile.command = env.MD2_AGENT

@@ -19,4 +19,17 @@ describe('action schedule types', () => {
     it('rejects schedules with missing required fields', () => {
         expect(() => parseActionScheduleFile({ schedules: [{ id: 'schedule-1' }] })).toThrow('missing actionId')
     })
+
+    it.each(['cancelled', 'completed', 'failed'] as const)('parses %s terminal status', (status) => {
+        const schedule: ActionSchedule = {
+            actionId: 'action-implement',
+            context: { kind: 'file' },
+            createdAt: '2026-07-06T10:00:00.000Z',
+            id: 'schedule-1',
+            status,
+            trigger: { type: 'agentSlot' },
+        }
+
+        expect(parseActionScheduleFile({ schedules: [schedule] })).toEqual({ schedules: [schedule] })
+    })
 })

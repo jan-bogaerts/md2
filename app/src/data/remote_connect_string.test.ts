@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildRemoteConnectUrl, parseRemoteConnectString } from './remote_connect_string'
+import { buildRemoteConnectUrl, deriveAutoConnectSettings, parseRemoteConnectString } from './remote_connect_string'
 
 describe('remote connect string', () => {
     it('round-trips build then parse into endpoint + token', () => {
@@ -17,5 +17,18 @@ describe('remote connect string', () => {
         expect(parseRemoteConnectString('http://desktop.local:8123/')).toBeNull()
         expect(parseRemoteConnectString('ws://desktop.local:8123/#tok')).toBeNull()
         expect(parseRemoteConnectString('not a url')).toBeNull()
+    })
+
+    it('derives a same-origin ws endpoint from a token fragment', () => {
+        expect(deriveAutoConnectSettings('desktop.local:8123', '#abc123', 'http:'))
+            .toEqual({ endpoint: 'ws://desktop.local:8123', token: 'abc123' })
+        expect(deriveAutoConnectSettings('desktop.local:8123', '#abc123', 'https:'))
+            .toEqual({ endpoint: 'wss://desktop.local:8123', token: 'abc123' })
+    })
+
+    it('returns null when there is no token fragment or host', () => {
+        expect(deriveAutoConnectSettings('desktop.local:8123', '', 'http:')).toBeNull()
+        expect(deriveAutoConnectSettings('desktop.local:8123', '#', 'http:')).toBeNull()
+        expect(deriveAutoConnectSettings('', '#abc123', 'http:')).toBeNull()
     })
 })

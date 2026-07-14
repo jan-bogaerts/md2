@@ -1,6 +1,7 @@
 import { Button, Tooltip } from '@mui/material'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { RemoteControlConnectionSettings } from '../../data/remote_control_connection'
+import { deriveAutoConnectSettings } from '../../data/remote_connect_string'
 import { projectSessionService } from '../../services/project_session_service'
 import { RemoteControlStorageService } from '../../services/remote_control_storage_service'
 import { requestOpenProjectDialog } from '../project_command_events'
@@ -13,6 +14,7 @@ export function RemoteConnectButton() {
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [isBusy, setIsBusy] = useState(false)
     const [isDialogOpen, setIsDialogOpen] = useState(false)
+    const autoConnectAttempted = useRef(false)
 
     const handleOpenDialog = () => {
         setErrorMessage(null)
@@ -32,12 +34,32 @@ export function RemoteConnectButton() {
             setConnectedEndpoint(settings.endpoint)
             setIsDialogOpen(false)
             requestOpenProjectDialog('remote')
+
+            return true
         } catch (error) {
             setErrorMessage(error instanceof Error ? error.message : 'Remote-control connection failed')
+
+            return false
         } finally {
             setIsBusy(false)
         }
     }
+
+    // Page opened from the Electron server's QR/link carries the token in the fragment: connect at
+    // once, skipping the manual dialog. A wrong or stale token opens the dialog to show the error.
+    useEffect(() => {
+        if (autoConnectAttempted.current) return
+        autoConnectAttempted.current = true
+
+        const settings = deriveAutoConnectSettings(window.location.host, window.location.hash, window.location.protocol)
+        if (!settings) return
+
+        // Reflecting the async connect result on mount is the point of this effect.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        void handleConnect(settings).then((connected) => {
+            if (!connected) setIsDialogOpen(true)
+        })
+    }, [])
 
     const handleDisconnect = () => {
         connectedService?.disconnect()

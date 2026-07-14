@@ -125,6 +125,34 @@ describe('readDesktopConfig', () => {
             agentSlotCommand: '',
         })
     })
+
+    it('uses built-in models when stored built-in profile models are missing or empty', () => {
+        const store = createFakeStore({
+            [DESKTOP_CONFIG_STORE_KEY]: {
+                agentProfiles: [
+                    { command: 'codex', models: [], name: 'codex' },
+                    { command: 'claude', name: 'claude' },
+                ],
+            },
+        })
+
+        expect(readDesktopConfig(store, {})).toMatchObject({
+            agentProfiles: [
+                { models: ['GPT 5.5', 'GPT 5.6 sol', 'GPT 5.6 tera', 'GPT 5.6 luna'], name: 'codex' },
+                { models: ['default', 'sonnet', 'fable', 'opus', 'haiku'], name: 'claude' },
+            ],
+        })
+    })
+
+    it('requires custom profiles to provide models', () => {
+        const store = createFakeStore({
+            [DESKTOP_CONFIG_STORE_KEY]: {
+                agentProfiles: [{ command: 'custom-agent', models: [], name: 'custom' }],
+            },
+        })
+
+        expect(() => readDesktopConfig(store, {})).toThrow('Empty agent profile field: desktop.agentProfiles[0].models')
+    })
 })
 
 describe('writeDesktopConfig', () => {

@@ -3,7 +3,7 @@ import type { ActionDefinition } from '../data/action_types'
 import type { ActionExecutionEvent } from '../data/action_run_types'
 import { setActionBridgeOverride, type ElectronActionBridge } from '../data/electron_action_bridge'
 import { dataService } from './data_service'
-import { cancelElectronAction, runElectronAction } from './electron_action_runner'
+import { cancelElectronAction, recordActionEventProcessingError, runElectronAction } from './electron_action_runner'
 
 const action: ActionDefinition = {
     agent: null,
@@ -49,9 +49,7 @@ function createBridge(): ElectronActionBridge {
                 actionId: 'test', command: 'npm test', executionId: 'action-1', phase: 'main', rootActionId: 'test',
                 status: 'completed', stderr: '', stdout: 'ok', type: 'action',
             })
-            emit({
-                actionId: 'test', executionId: 'action-1', phase: 'main', rootActionId: 'test', status: 'completed', type: 'execution',
-            })
+            emit({ actionId: 'test', executionId: 'action-1', phase: 'main', rootActionId: 'test', status: 'completed', type: 'execution' })
 
             return 'action-1'
         }),
@@ -67,7 +65,7 @@ describe('electron action runner client', () => {
     it('sends only action id, context, and run-specific input and collects phase events', async () => {
         const bridge = createBridge()
         setActionBridgeOverride(bridge)
-        vi.spyOn(dataService.projectLoading, 'reloadCurrentProjectSnapshot').mockResolvedValue(undefined)
+        vi.spyOn(dataService.projectLoading, 'reloadCurrentProjectSnapshot').mockResolvedValue(null)
 
         const result = await runElectronAction(action, context, { extraPrompt: 'focus' })
 
@@ -85,5 +83,41 @@ describe('electron action runner client', () => {
         await cancelElectronAction('action-1')
 
         expect(bridge.cancelActionExecution).toHaveBeenCalledWith('action-1')
+    })
+
+    it('rejects with terminal processing error and unsubscribes', async () => {
+        const bridge = createBridge()
+        const processingError = new Error('snapshot reload failed')
+        setActionBridgeOverride(bridge)
+        vi.spyOn(dataService.projectLoading, 'reloadCurrentProjectSnapshot').mockRejectedValue(processingError)
+
+        await expect(runElectronAction(action, context)).rejects.toBe(processingError)
+
+        const cleanup = vi.mocked(bridge.onActionExecution).mock.results[0].value
+        expect(cleanup).toHaveBeenCalledTimes(1)
+    })
+
+    it('rejects with original shared-consumer error', async () => {
+        const bridge = createBridge()
+        const processingError = new Error('conversation linking failed')
+        setActionBridgeOverride(bridge)
+        vi.spyOn(dataService.projectLoading, 'reloadCurrentProjectSnapshot').mockResolvedValue(null)
+        recordActionEventProcessingError('action-1', processingError)
+
+        await expect(runElectronAction(action, context)).rejects.toBe(processingError)
+
+        const cleanup = vi.mocked(bridge.onActionExecution).mock.results[0].value
+        expect(cleanup).toHaveBeenCalledTimes(1)
+    })
+
+    it('unsubscribes after successful terminal processing', async () => {
+        const bridge = createBridge()
+        setActionBridgeOverride(bridge)
+        vi.spyOn(dataService.projectLoading, 'reloadCurrentProjectSnapshot').mockResolvedValue(null)
+
+        await runElectronAction(action, context)
+
+        const cleanup = vi.mocked(bridge.onActionExecution).mock.results[0].value
+        expect(cleanup).toHaveBeenCalledTimes(1)
     })
 })
