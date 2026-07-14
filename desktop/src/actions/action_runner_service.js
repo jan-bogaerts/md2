@@ -1,7 +1,7 @@
 const crypto = require('node:crypto')
 const { spawn } = require('node:child_process')
 const { resolveAgentCommand } = require('./agent_profiles.mjs')
-const { loadActionDefinitions } = require('../../../shared/action_definitions.mjs')
+const { loadActionDefinitions, sanitizeActionValidationError } = require('../../../shared/action_definitions.mjs')
 const { assertGitRoot, requireRootPath } = require('../git/git_commands')
 
 const ALLOWED_REQUEST_FIELDS = new Set(['actionId', 'context', 'runInput'])
@@ -250,7 +250,12 @@ class ActionRunnerService {
     async loadRootAction(actionId, project, actionsFolder) {
         const files = await this.localGitService.loadActionFiles(project, actionsFolder)
         const config = this.agentConfigProvider()
-        const actions = loadActionDefinitions(files, { profiles: config.agentProfiles })
+        let actions
+        try {
+            actions = loadActionDefinitions(files, { profiles: config.agentProfiles })
+        } catch (error) {
+            throw sanitizeActionValidationError(error)
+        }
         const action = actionId === REMARKABLE_CONVERT_ACTION_ID
             ? REMARKABLE_CONVERT_ACTION
             : actions.find((candidate) => candidate.id === actionId)

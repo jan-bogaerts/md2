@@ -95,6 +95,17 @@ describe('ActionEditor', () => {
         expect(saveDefinition).not.toHaveBeenCalled()
     })
 
+    it('shows a general summary for definition-level errors with no routable field', () => {
+        const action = loadAction()
+        // A cycle/definition error has no single field; the editor surfaces it as a summary alert.
+        vi.spyOn(actionService, 'validateDefinition').mockReturnValue({
+            code: 'circular-reference', error: 'Circular action reference: a -> b -> a', field: null, index: null, valid: false,
+        })
+        renderEditor(action)
+
+        expect(screen.getByRole('alert')).toHaveTextContent('Circular action reference: a -> b -> a')
+    })
+
     it('auto-saves valid structured changes', async () => {
         vi.useFakeTimers()
         const action = loadAction()

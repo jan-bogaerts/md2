@@ -109,10 +109,17 @@ export function findAgentProfile(profiles, name) {
 
 export function validateAgentSelection(profiles, selection, source) {
     const profile = findAgentProfile(profiles, selection.agent)
-    if (!profile) throw new Error(`Unknown agent profile in ${source}: ${selection.agent}`)
+    if (!profile) {
+        // Tag with a routing code so callers map the failure to a control without inspecting text.
+        const error = new Error(`Unknown agent profile in ${source}: ${selection.agent}`)
+        error.code = 'unknown-agent'
+        throw error
+    }
     const allowedModels = profile.models ?? []
     if (selection.model.length > 0 && allowedModels.length > 0 && !allowedModels.includes(selection.model)) {
-        throw new Error(`Unknown model for agent profile ${selection.agent} in ${source}: ${selection.model}`)
+        const error = new Error(`Unknown model for agent profile ${selection.agent} in ${source}: ${selection.model}`)
+        error.code = 'unknown-model'
+        throw error
     }
 }
 

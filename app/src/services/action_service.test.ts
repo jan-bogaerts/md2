@@ -1,12 +1,12 @@
 import { describe, expect, it, vi } from 'vitest'
 import { ActionService, editableActionDefinition } from './action_service'
-import { CUSTOM_PROMPT_ACTION_NAME, type ActionFile } from '../data/action_types'
+import { CUSTOM_PROMPT_ACTION_ID, CUSTOM_PROMPT_ACTION_NAME, type ActionFile, type RawActionDefinition } from '../data/action_types'
 
 function file(definition: unknown): ActionFile {
     return { content: JSON.stringify(definition), path: 'actions/action.json' }
 }
 
-const VALID = { command: 'run', description: 'Do it', id: 'action-do', label: 'Do', name: 'do', type: 'command' }
+const VALID: RawActionDefinition = { command: 'run', description: 'Do it', id: 'action-do', label: 'Do', name: 'do', type: 'command' }
 
 describe('ActionService', () => {
     it('exposes only the built-in action before loading', () => {
@@ -73,7 +73,40 @@ describe('ActionService', () => {
             description: expect.any(String), id: expect.any(String), label: 'New action',
             name: 'new-action', prompt: expect.any(String), type: 'agent',
         })
-        expect(service.validateDefinition(first.path, first.definition)).toEqual({ error: null, field: null, valid: true })
+        expect(service.validateDefinition(first.path, first.definition)).toEqual({ code: null, error: null, field: null, index: null, valid: true })
+    })
+
+    it('routes validation failures by structured metadata, not message text', () => {
+        const service = new ActionService()
+        service.loadFromFiles([file(VALID)])
+
+        // Missing required field: routed to the exact field with a stable code.
+        expect(service.validateDefinition('actions/action.json', { ...VALID, label: '' }))
+            .toMatchObject({ code: 'missing-field', field: 'label', valid: false })
+
+        // Duplicate id originating in another file: routed to `id`, never text-matched.
+        service.loadFromFiles([file(VALID)])
+        const other = { ...VALID, command: 'x', id: 'action-other', name: 'other' }
+        expect(service.validateDefinition('actions/other.json', { ...other, id: VALID.id }))
+            .toMatchObject({ code: 'duplicate-id', field: 'id', valid: false })
+
+        // Unknown action id at a specific list index keeps the index.
+        expect(service.validateDefinition('actions/action.json', { ...VALID, onBefore: [CUSTOM_PROMPT_ACTION_ID, 'missing'] }))
+            .toMatchObject({ code: 'unknown-action', field: 'onBefore', index: 1, valid: false })
+
+        // Circular reference and definition-level errors carry no field (general summary).
+        expect(service.validateDefinition('actions/action.json', { ...VALID, onBefore: [VALID.id] }))
+            .toMatchObject({ code: 'circular-reference', field: null, valid: false })
+    })
+
+    it('does not route incidental field words in ids to a control', () => {
+        const service = new ActionService()
+
+        // Id contains the substrings `model`, `agent`, and `on`; must not be routed by text.
+        const tricky = { ...VALID, id: 'model-agent-action', onBefore: ['missing'] }
+        const result = service.validateDefinition('actions/action.json', tricky)
+
+        expect(result).toMatchObject({ code: 'unknown-action', field: 'onBefore', valid: false })
     })
 
     it('persists and publishes only valid definitions', async () => {

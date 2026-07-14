@@ -1,4 +1,5 @@
 const { buildResumeAgentCommand, resolveAgentCommand } = require('../actions/agent_profiles.mjs')
+const { sanitizeActionValidationError } = require('../../../shared/action_definitions.mjs')
 const { loadActionDefinitions } = require('../actions/action_scheduler_service')
 
 const WORKTREE_AGENT_REFERENCE_PATTERN = /^worktree:([1-9]\d*):(.*)$/u
@@ -51,7 +52,12 @@ function createLocalBridgeDispatch(dependencies) {
 
         const files = await localGitService.loadActionFiles(currentLocalProject, request.actionsFolder)
         const { agentProfiles } = readDesktopConfig(desktopConfigStore)
-        const actions = loadActionDefinitions(files, { profiles: agentProfiles })
+        let actions
+        try {
+            actions = loadActionDefinitions(files, { profiles: agentProfiles })
+        } catch (error) {
+            throw sanitizeActionValidationError(error)
+        }
         const action = actions.find((candidate) => candidate.id === request.actionId)
         if (!action) throw new Error(`Unknown action: ${request.actionId}`)
 

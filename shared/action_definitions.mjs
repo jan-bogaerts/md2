@@ -5,6 +5,44 @@ const LEGACY_FIELDS = ['after', 'before', 'runIn', 'text']
 export const CUSTOM_PROMPT_ACTION_ID = 'md2.custom-prompt'
 export const CUSTOM_PROMPT_ACTION_NAME = 'custom prompt'
 
+// Fields the editor can route an error to. Anything else routes to the general summary.
+const ROUTABLE_FIELDS = new Set([
+    'id', 'name', 'label', 'description', 'type', 'icon', 'appliesTo', 'onBefore', 'on', 'onAfter',
+    'onState', 'needsWorkTree', 'agent', 'model', 'thinkingLevel', 'prompt', 'command',
+])
+
+/**
+ * A validation failure carrying stable routing metadata (never inferred from the message text):
+ * a machine `code`, the routable `field` (or null for definition/file errors), an optional list
+ * `index`, and the `sourcePath` of the offending file.
+ */
+export class ActionValidationError extends Error {
+    constructor(message, { code, field = null, index = null, sourcePath = null }) {
+        super(message)
+        this.name = 'ActionValidationError'
+        this.code = code
+        this.field = ROUTABLE_FIELDS.has(field) ? field : null
+        this.index = index
+        this.sourcePath = sourcePath
+    }
+}
+
+// Split a validator field name such as `onBefore[2]` or `on[1].condition` into a routable
+// base field and list index. Ids/paths embedded in the name never leak into routing.
+function routeField(fieldName) {
+    if (typeof fieldName !== 'string') return { field: null, index: null }
+    const match = /^([A-Za-z]+)(?:\[(\d+)\])?/u.exec(fieldName)
+    if (!match) return { field: null, index: null }
+
+    return { field: match[1], index: match[2] === undefined ? null : Number(match[2]) }
+}
+
+function fail(message, code, source, fieldName = null) {
+    const { field, index } = routeField(fieldName)
+
+    return new ActionValidationError(message, { code, field, index, sourcePath: source })
+}
+
 export const BUILTIN_CUSTOM_PROMPT = {
     agent: null,
     appliesTo: null,
@@ -27,26 +65,37 @@ export const BUILTIN_CUSTOM_PROMPT = {
     type: 'agent',
 }
 
+/**
+ * Log an action validation failure with its routing code and source path (no stack), then return a
+ * message-only Error safe to surface to users. Non-validation errors pass through unchanged.
+ */
+export function sanitizeActionValidationError(error, log = console.error) {
+    if (!(error instanceof ActionValidationError)) return error
+    log(`[action-validation] code=${error.code} path=${error.sourcePath ?? 'unknown'}`)
+
+    return new Error(error.message)
+}
+
 function isPlainObject(value) {
     return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 function requireString(value, fieldName, source) {
-    if (typeof value !== 'string' || value.length === 0) throw new Error(`Missing action field ${fieldName} in ${source}`)
+    if (typeof value !== 'string' || value.length === 0) throw fail(`Missing action field ${fieldName} in ${source}`, 'missing-field', source, fieldName)
 
     return value
 }
 
 function readOptionalString(value, fieldName, source) {
     if (value === undefined) return undefined
-    if (typeof value !== 'string' || value.length === 0) throw new Error(`Invalid action field ${fieldName} in ${source}`)
+    if (typeof value !== 'string' || value.length === 0) throw fail(`Invalid action field ${fieldName} in ${source}`, 'invalid-field', source, fieldName)
 
     return value
 }
 
 function readActionType(value, source) {
     if (typeof value !== 'string' || !ACTION_TYPES.includes(value)) {
-        throw new Error(`Invalid action type in ${source}: ${String(value)}`)
+        throw fail(`Invalid action type in ${source}: ${String(value)}`, 'invalid-type', source, 'type')
     }
 
     return value
@@ -54,12 +103,12 @@ function readActionType(value, source) {
 
 function readAppliesTo(value, source) {
     if (value === undefined) return undefined
-    if (!isPlainObject(value)) throw new Error(`Invalid appliesTo in ${source}`)
+    if (!isPlainObject(value)) throw fail(`Invalid appliesTo in ${source}`, 'invalid-applies-to', source, 'appliesTo')
 
     const result = {}
     for (const [key, entry] of Object.entries(value)) {
         if (key.length === 0 || typeof entry !== 'string' || entry.length === 0) {
-            throw new Error(`Invalid appliesTo value in ${source}: ${key}`)
+            throw fail(`Invalid appliesTo value in ${source}: ${key}`, 'invalid-applies-to', source, 'appliesTo')
         }
         result[key] = entry
     }
@@ -69,23 +118,23 @@ function readAppliesTo(value, source) {
 
 function readActionIdList(value, fieldName, source) {
     if (value === undefined) return []
-    if (!Array.isArray(value)) throw new Error(`Invalid ${fieldName} list in ${source}`)
+    if (!Array.isArray(value)) throw fail(`Invalid ${fieldName} list in ${source}`, 'invalid-list', source, fieldName)
 
     return value.map((entry, index) => requireString(entry, `${fieldName}[${index}]`, source))
 }
 
 function readOnRules(value, source) {
     if (value === undefined) return []
-    if (!Array.isArray(value)) throw new Error(`Invalid on list in ${source}`)
+    if (!Array.isArray(value)) throw fail(`Invalid on list in ${source}`, 'invalid-list', source, 'on')
 
     return value.map((entry, index) => {
-        if (!isPlainObject(entry)) throw new Error(`Invalid on rule in ${source}: ${index}`)
+        if (!isPlainObject(entry)) throw fail(`Invalid on rule in ${source}: ${index}`, 'invalid-on', source, `on[${index}]`)
         const condition = requireString(entry.condition, `on[${index}].condition`, source)
         const actionId = requireString(entry.actionId, `on[${index}].actionId`, source)
         try {
             new RegExp(condition, 'u')
         } catch {
-            throw new Error(`Invalid regular expression in ${source}: on[${index}].condition`)
+            throw fail(`Invalid regular expression in ${source}: on[${index}].condition`, 'invalid-regex', source, `on[${index}]`)
         }
 
         return { actionId, condition }
@@ -94,36 +143,42 @@ function readOnRules(value, source) {
 
 function rejectLegacyFields(value, source) {
     const legacyField = LEGACY_FIELDS.find((fieldName) => Object.hasOwn(value, fieldName))
-    if (legacyField) throw new Error(`Legacy action field ${legacyField} is not supported in ${source}`)
-    if (value.type === 'cmd') throw new Error(`Legacy action type cmd is not supported in ${source}`)
+    if (legacyField) throw fail(`Legacy action field ${legacyField} is not supported in ${source}`, 'legacy-field', source)
+    if (value.type === 'cmd') throw fail(`Legacy action type cmd is not supported in ${source}`, 'legacy-field', source, 'type')
 }
 
 function validateTypeSpecificFields(value, type, source) {
     if (type === 'agent') {
         requireString(value.prompt, 'prompt', source)
-        if (value.command !== undefined) throw new Error(`Command action field is not valid for agent action in ${source}`)
+        if (value.command !== undefined) throw fail(`Command action field is not valid for agent action in ${source}`, 'field-not-allowed', source, 'command')
         return
     }
 
     requireString(value.command, 'command', source)
-    if (value.prompt !== undefined) throw new Error(`Prompt action field is not valid for command action in ${source}`)
+    if (value.prompt !== undefined) throw fail(`Prompt action field is not valid for command action in ${source}`, 'field-not-allowed', source, 'prompt')
 }
 
 function validateAgentFields(raw, dependencies, source) {
-    if (raw.model !== undefined && raw.agent === undefined) throw new Error(`Action model requires agent in ${source}`)
+    if (raw.model !== undefined && raw.agent === undefined) throw fail(`Action model requires agent in ${source}`, 'agent-required', source, 'model')
     if (raw.thinkingLevel !== undefined && (raw.agent === undefined || raw.model === undefined)) {
-        throw new Error(`Action thinkingLevel requires agent and model in ${source}`)
+        throw fail(`Action thinkingLevel requires agent and model in ${source}`, 'agent-model-required', source, 'thinkingLevel')
     }
     if (raw.agent === undefined) return
 
     const profiles = dependencies.profiles ?? []
     if (!findAgentProfile(profiles, raw.agent)) return
 
-    validateAgentSelection(profiles, { agent: raw.agent, model: raw.model ?? '' }, source)
+    try {
+        validateAgentSelection(profiles, { agent: raw.agent, model: raw.model ?? '' }, source)
+    } catch (error) {
+        // Route by the tagged code, never by message text.
+        const field = error.code === 'unknown-model' ? 'model' : 'agent'
+        throw fail(error.message, error.code ?? 'invalid-agent', source, field)
+    }
 }
 
 function validateRawDefinition(value, source, dependencies) {
-    if (!isPlainObject(value)) throw new Error(`Invalid action definition in ${source}`)
+    if (!isPlainObject(value)) throw fail(`Invalid action definition in ${source}`, 'invalid-definition', source)
     rejectLegacyFields(value, source)
 
     const id = requireString(value.id, 'id', source)
@@ -132,9 +187,9 @@ function validateRawDefinition(value, source, dependencies) {
     requireString(value.label, 'label', source)
     requireString(value.description, 'description', source)
     validateTypeSpecificFields(value, type, source)
-    if (value.icon !== undefined && typeof value.icon !== 'string') throw new Error(`Invalid icon in ${source}`)
-    if (value.onState !== undefined && typeof value.onState !== 'string') throw new Error(`Invalid onState in ${source}`)
-    if (value.needsWorkTree !== undefined && typeof value.needsWorkTree !== 'boolean') throw new Error(`Invalid needsWorkTree in ${source}`)
+    if (value.icon !== undefined && typeof value.icon !== 'string') throw fail(`Invalid icon in ${source}`, 'invalid-field', source, 'icon')
+    if (value.onState !== undefined && typeof value.onState !== 'string') throw fail(`Invalid onState in ${source}`, 'invalid-field', source, 'onState')
+    if (value.needsWorkTree !== undefined && typeof value.needsWorkTree !== 'boolean') throw fail(`Invalid needsWorkTree in ${source}`, 'invalid-field', source, 'needsWorkTree')
 
     const raw = {
         agent: readOptionalString(value.agent, 'agent', source),
@@ -166,23 +221,23 @@ function parseActionFile(file, dependencies) {
     try {
         parsed = JSON.parse(file.content)
     } catch (error) {
-        throw new Error(`Invalid action json in ${file.path}: ${error instanceof Error ? error.message : 'parse error'}`)
+        throw fail(`Invalid action json in ${file.path}: ${error instanceof Error ? error.message : 'parse error'}`, 'invalid-json', file.path)
     }
-    if (Array.isArray(parsed)) throw new Error(`Action file must contain one definition in ${file.path}`)
+    if (Array.isArray(parsed)) throw fail(`Action file must contain one definition in ${file.path}`, 'invalid-definition', file.path)
 
     return validateRawDefinition(parsed, file.path, dependencies)
 }
 
-function resolveAction(actionId, registry, source, fieldName) {
+function resolveAction(actionId, registry, source, fieldName, index) {
     const action = registry.get(actionId)
-    if (!action) throw new Error(`Unknown action id ${actionId} in ${source}: ${fieldName}`)
+    if (!action) throw fail(`Unknown action id ${actionId} in ${source}: ${fieldName}`, 'unknown-action', source, `${fieldName}[${index}]`)
 
     return action
 }
 
 function visitActionForCycles(action, visiting, done, trail) {
     if (done.has(action.id)) return
-    if (visiting.has(action.id)) throw new Error(`Circular action reference: ${[...trail, action.id].join(' -> ')}`)
+    if (visiting.has(action.id)) throw fail(`Circular action reference: ${[...trail, action.id].join(' -> ')}`, 'circular-reference', action.sourcePath)
 
     visiting.add(action.id)
     const nextActions = [...action.onBefore, ...action.onAfter, ...action.on.map((rule) => rule.action)]
@@ -202,8 +257,8 @@ export function loadActionDefinitions(files, dependencies = {}) {
     const ids = new Set([CUSTOM_PROMPT_ACTION_ID])
     const names = new Set([CUSTOM_PROMPT_ACTION_NAME])
     for (const raw of rawDefinitions) {
-        if (ids.has(raw.id)) throw new Error(`Duplicate action id ${raw.id} in ${raw.sourcePath}`)
-        if (names.has(raw.name)) throw new Error(`Duplicate action name ${raw.name} in ${raw.sourcePath}`)
+        if (ids.has(raw.id)) throw fail(`Duplicate action id ${raw.id} in ${raw.sourcePath}`, 'duplicate-id', raw.sourcePath, 'id')
+        if (names.has(raw.name)) throw fail(`Duplicate action name ${raw.name} in ${raw.sourcePath}`, 'duplicate-name', raw.sourcePath, 'name')
         ids.add(raw.id)
         names.add(raw.name)
     }
@@ -235,10 +290,10 @@ export function loadActionDefinitions(files, dependencies = {}) {
 
     for (const raw of rawDefinitions) {
         const action = registry.get(raw.id)
-        action.onBefore = raw.onBefore.map((actionId) => resolveAction(actionId, registry, raw.sourcePath, 'onBefore'))
-        action.onAfter = raw.onAfter.map((actionId) => resolveAction(actionId, registry, raw.sourcePath, 'onAfter'))
-        action.on = raw.on.map(({ actionId, condition }) => ({
-            action: resolveAction(actionId, registry, raw.sourcePath, 'on'),
+        action.onBefore = raw.onBefore.map((actionId, index) => resolveAction(actionId, registry, raw.sourcePath, 'onBefore', index))
+        action.onAfter = raw.onAfter.map((actionId, index) => resolveAction(actionId, registry, raw.sourcePath, 'onAfter', index))
+        action.on = raw.on.map(({ actionId, condition }, index) => ({
+            action: resolveAction(actionId, registry, raw.sourcePath, 'on', index),
             actionId,
             condition,
         }))

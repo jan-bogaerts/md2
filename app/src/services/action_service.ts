@@ -5,6 +5,7 @@ import {
     type ActionFile,
     type RawActionDefinition,
 } from '../data/action_types'
+import { ActionValidationError } from '../../../shared/action_definitions.mjs'
 import { getService, register } from './service_injector'
 import { loadActionDefinitions } from './action_definition_loader'
 
@@ -21,8 +22,10 @@ export interface ActionServiceState {
 }
 
 export interface ActionValidationResult {
+    code: string | null
     error: string | null
     field: keyof RawActionDefinition | null
+    index: number | null
     valid: boolean
 }
 
@@ -46,15 +49,6 @@ function nextActionName(files: ActionFile[]) {
     while ([...existingPaths].some((path) => path.endsWith(`/${NEW_ACTION_NAME}-${suffix}${ACTION_FILE_EXTENSION}`))) suffix += 1
 
     return `${NEW_ACTION_NAME}-${suffix}`
-}
-
-function validationField(message: string): keyof RawActionDefinition | null {
-    const fields: (keyof RawActionDefinition)[] = [
-        'thinkingLevel', 'needsWorkTree', 'description', 'onBefore', 'onAfter', 'appliesTo',
-        'onState', 'command', 'prompt', 'agent', 'model', 'label', 'name', 'icon', 'type', 'id', 'on',
-    ]
-
-    return fields.find((field) => message.includes(field)) ?? null
 }
 
 /** Convert a loaded action back to its canonical editable JSON shape. */
@@ -149,11 +143,20 @@ export class ActionService extends EventTarget {
         try {
             loadActionDefinitions(this.filesWithDefinition(path, definition))
 
-            return { error: null, field: null, valid: true }
+            return { code: null, error: null, field: null, index: null, valid: true }
         } catch (error) {
+            if (error instanceof ActionValidationError) {
+                return {
+                    code: error.code,
+                    error: error.message,
+                    field: error.field as keyof RawActionDefinition | null,
+                    index: error.index,
+                    valid: false,
+                }
+            }
             const message = error instanceof Error ? error.message : 'Invalid action definition'
 
-            return { error: message, field: validationField(message), valid: false }
+            return { code: null, error: message, field: null, index: null, valid: false }
         }
     }
 

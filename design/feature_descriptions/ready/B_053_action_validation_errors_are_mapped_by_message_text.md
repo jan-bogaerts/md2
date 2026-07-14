@@ -1,7 +1,7 @@
 ---
 id: B-053
 title: action validation errors are mapped by message substrings
-status: design
+status: ready
 owner: JB
 affects:
 policy:

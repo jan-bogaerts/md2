@@ -45,6 +45,8 @@ export function ActionEditor(props: ActionEditorProps) {
     const errors = useMemo(() => (
         validation.error && validation.field ? { [validation.field]: validation.error } : {}
     ), [validation.error, validation.field])
+    // Definition/file/cycle errors have no single field; surface them in a general summary.
+    const generalError = !validation.valid && !validation.field ? validation.error : null
 
     const content = serializeActionDefinition(definition)
     const dirty = content !== baseline
@@ -147,6 +149,7 @@ export function ActionEditor(props: ActionEditorProps) {
     return (
         <Box>
             {saveError ? <Alert severity="error" sx={{ mb: 2 }}>{saveError}</Alert> : null}
+            {generalError ? <Alert severity="error" sx={{ mb: 2 }}>{generalError}</Alert> : null}
             {conflict ? (
                 <Alert
                     action={(

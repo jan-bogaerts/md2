@@ -5,7 +5,7 @@ import { StatusBar } from './status_bar'
 describe('StatusBar', () => {
     afterEach(cleanup)
 
-    it('renders card counts, keyboard status and the agents indicator', () => {
+    it('renders card counts, synchronization status and the agents indicator', () => {
         render(<StatusBar activeCardCount={2} agents={[]} hasPendingPush={false} hasPendingSave={false} totalCardCount={5} />)
 
         expect(screen.getByText('5')).toBeInTheDocument()
@@ -14,7 +14,8 @@ describe('StatusBar', () => {
         expect(screen.getByText('active')).toBeInTheDocument()
         expect(screen.getByText('Saved locally')).toBeInTheDocument()
         expect(screen.getByText('Synced')).toBeInTheDocument()
-        expect(screen.getByText('INS')).toBeInTheDocument()
+        expect(screen.queryByText('INS')).not.toBeInTheDocument()
+        expect(screen.queryByText('OVR')).not.toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Running agents: 0' })).toBeInTheDocument()
     })
 

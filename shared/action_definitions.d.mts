@@ -63,6 +63,22 @@ export interface ActionDefinitionLoaderDependencies {
     profiles?: AgentProfile[]
 }
 
+export interface ActionValidationErrorInit {
+    code: string
+    field?: keyof RawActionDefinition | null
+    index?: number | null
+    sourcePath?: string | null
+}
+
+export class ActionValidationError extends Error {
+    code: string
+    field: keyof RawActionDefinition | null
+    index: number | null
+    sourcePath: string | null
+    constructor(message: string, init: ActionValidationErrorInit)
+}
+
+export function sanitizeActionValidationError(error: unknown, log?: (message: string) => void): Error
 export const CUSTOM_PROMPT_ACTION_ID: string
 export const CUSTOM_PROMPT_ACTION_NAME: string
 export const BUILTIN_CUSTOM_PROMPT: ActionDefinition

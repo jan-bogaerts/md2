@@ -1,4 +1,4 @@
-import { Box, Button, IconButton, MenuItem, Stack, TextField, Typography } from '@mui/material'
+import { Box, Button, FormHelperText, IconButton, MenuItem, Stack, TextField, Typography } from '@mui/material'
 import ArrowDown from 'mdi-material-ui/ArrowDown'
 import ArrowUp from 'mdi-material-ui/ArrowUp'
 import DeleteOutline from 'mdi-material-ui/DeleteOutline'
@@ -47,12 +47,13 @@ export function ActionLinkListEditor(props: ActionLinkListEditorProps) {
     return (
         <Stack spacing={1}>
             <Typography variant="subtitle2">{label}</Typography>
+            {/* Section-level error so it shows even when the collection has no rendered rows. */}
+            {error ? <FormHelperText error>{error}</FormHelperText> : null}
             {value.map((actionId, index) => (
                 <Box key={`${actionId}:${index}`} sx={{ alignItems: 'flex-start', display: 'flex', gap: 0.5 }}>
                     <TextField
                         error={!!error}
                         fullWidth
-                        helperText={index === 0 ? error : undefined}
                         label="Action"
                         name={String(index)}
                         onChange={handleSelect}
