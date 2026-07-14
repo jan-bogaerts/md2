@@ -1,0 +1,267 @@
+- generic [ref=e4]:
+  - generic [ref=e5]:
+    - generic [ref=e6]:
+      - tablist "menu" [ref=e10]:
+        - tab "Home" [ref=e11] [cursor=pointer]
+        - tab "Edit" [ref=e12] [cursor=pointer]
+        - tab "View" [selected] [ref=e13] [cursor=pointer]
+        - tab "Options" [ref=e14] [cursor=pointer]
+        - tab "Cameras" [ref=e15] [cursor=pointer]
+        - tab "Tools" [ref=e16] [cursor=pointer]
+        - tab "About" [ref=e17] [cursor=pointer]
+      - generic [ref=e20]: C:\Users\janbo\Documents\testmodels\test3\test3.json
+    - generic [ref=e24]:
+      - generic [ref=e25]:
+        - group "display modes" [ref=e27]:
+          - button "index" [ref=e28] [cursor=pointer]: Index
+          - button "analysis" [ref=e31] [cursor=pointer]: Cams
+          - button "recording" [ref=e34] [cursor=pointer]: Videos
+        - generic [ref=e37]: Modes
+      - separator [ref=e38]
+      - generic [ref=e39]:
+        - generic [ref=e40]:
+          - generic "Select the aspect-ratio that should be used in the active section" [ref=e41]:
+            - generic [ref=e42]: Aspect ratio
+            - generic [ref=e43]:
+              - combobox "Aspect ratio 4/3" [ref=e44] [cursor=pointer]: 4/3
+              - textbox: fullscreen
+              - group:
+                - generic: Aspect ratio
+          - button "layout" [ref=e48] [cursor=pointer]: Direction
+          - generic "Select the way images should be fitted in their box" [ref=e52]:
+            - generic [ref=e53]: Image fit
+            - generic [ref=e54]:
+              - combobox "Image fit Cover" [ref=e55] [cursor=pointer]: Cover
+              - textbox: cover
+              - group:
+                - generic: Image fit
+          - generic "size test" [ref=e56]:
+            - generic [ref=e57]: Size
+            - generic [ref=e58]:
+              - textbox "Size" [ref=e59]: 160px
+              - group:
+                - generic: Size
+        - generic [ref=e64]: Image style
+      - separator [ref=e65]
+      - generic [ref=e66]:
+        - group "display modes" [ref=e68]:
+          - button "roi" [pressed] [ref=e69] [cursor=pointer]: ROI Box
+          - button "keypoints" [pressed] [ref=e72] [cursor=pointer]: Keypoints
+          - button "mesh" [pressed] [ref=e75] [cursor=pointer]: Mesh
+        - generic [ref=e78]: Overlays
+      - separator [ref=e79]
+      - generic [ref=e80]:
+        - generic [ref=e81]:
+          - button "theme" [ref=e82] [cursor=pointer]: Dark
+          - button "design mode" [ref=e86] [cursor=pointer]: Develop
+        - generic [ref=e90]: Display
+  - generic [ref=e92]:
+    - generic [ref=e96]:
+      - generic [ref=e99]:
+        - generic [ref=e100]:
+          - generic [ref=e102]:
+            - generic [ref=e105]: Analysis
+            - group "analysis view mode" [ref=e106]:
+              - button "events" [pressed] [ref=e107] [cursor=pointer]
+              - button "dashboard" [ref=e110] [cursor=pointer]
+            - group "export events" [ref=e113]:
+              - button "export events" [ref=e114] [cursor=pointer]
+          - group "display modes" [ref=e117]:
+            - button "index" [ref=e118] [cursor=pointer]
+            - button "analysis" [pressed] [ref=e121] [cursor=pointer]
+            - button "recordings" [ref=e124] [cursor=pointer]
+        - table [ref=e131]:
+          - rowgroup [ref=e138]:
+            - row [ref=e139]:
+              - columnheader "Start" [ref=e140]
+              - columnheader "End" [ref=e144]
+              - columnheader "Event" [ref=e148]
+              - columnheader "Details" [ref=e152]
+              - columnheader "Source" [ref=e156]
+          - rowgroup [ref=e160]:
+            - row [ref=e161]:
+              - cell [ref=e162]
+            - row [ref=e163]:
+              - 'cell "Fields with different values: message: our value \"junction open\", their value \"drilled saddle open\" height: our value 160, their value <missing>" [ref=e164] [cursor=pointer]': 00:04:32.850
+              - 'cell "Fields with different values: message: our value \"junction open\", their value \"drilled saddle open\" height: our value 160, their value <missing>" [ref=e165] [cursor=pointer]': 00:04:43.050
+              - 'cell "Fields with different values: message: our value \"junction open\", their value \"drilled saddle open\" height: our value 160, their value <missing>" [ref=e166] [cursor=pointer]': connection
+              - 'cell "Fields with different values: message: our value \"junction open\", their value \"drilled saddle open\" height: our value 160, their value <missing>" [ref=e167] [cursor=pointer]': junction open, 160, 160
+              - 'cell "Fields with different values: message: our value \"junction open\", their value \"drilled saddle open\" height: our value 160, their value <missing>" [ref=e168] [cursor=pointer]': 67f90c7dac4036fa957bd7ae_6.mp4
+            - row [ref=e169]:
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e170] [cursor=pointer]': 00:04:48.449
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e171] [cursor=pointer]': 00:04:51.750
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e172] [cursor=pointer]': crack
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e173] [cursor=pointer]'
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e174] [cursor=pointer]': 67f90c7dac4036fa957bd7ae_6.mp4
+            - row [ref=e175]:
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e176] [cursor=pointer]': 00:05:39.449
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e177] [cursor=pointer]': 00:05:40.199
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e178] [cursor=pointer]': infiltration
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e179] [cursor=pointer]'
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e180] [cursor=pointer]': 67f90c7dac4036fa957bd7ae_6.mp4
+            - row [ref=e181]:
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e182] [cursor=pointer]': 00:05:41.100
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e183] [cursor=pointer]': 00:05:51.000
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e184] [cursor=pointer]': crack
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e185] [cursor=pointer]'
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e186] [cursor=pointer]': 67f90c7dac4036fa957bd7ae_6.mp4
+            - row [ref=e187]:
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e188] [cursor=pointer]': 00:05:54.750
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e189] [cursor=pointer]': 00:05:55.199
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e190] [cursor=pointer]': infiltration
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e191] [cursor=pointer]'
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e192] [cursor=pointer]': 67f90c7dac4036fa957bd7ae_6.mp4
+            - row [ref=e193]:
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e194] [cursor=pointer]': 00:05:55.350
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e195] [cursor=pointer]': 00:05:55.800
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e196] [cursor=pointer]': crack
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e197] [cursor=pointer]'
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e198] [cursor=pointer]': 67f90c7dac4036fa957bd7ae_6.mp4
+            - row [ref=e199]:
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e200] [cursor=pointer]': 00:06:01.500
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e201] [cursor=pointer]': 00:06:02.050
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e202] [cursor=pointer]': deformation
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e203] [cursor=pointer]': "13"
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e204] [cursor=pointer]': 67f90c7dac4036fa957bd7ae_6.mp4
+            - row [ref=e205]:
+              - 'cell "Fields with different values: message: our value \"junction open\", their value \"drilled saddle open\" height: our value 160, their value <missing>" [ref=e206] [cursor=pointer]': 00:06:03.449
+              - 'cell "Fields with different values: message: our value \"junction open\", their value \"drilled saddle open\" height: our value 160, their value <missing>" [ref=e207] [cursor=pointer]': 00:06:12.000
+              - 'cell "Fields with different values: message: our value \"junction open\", their value \"drilled saddle open\" height: our value 160, their value <missing>" [ref=e208] [cursor=pointer]': connection
+              - 'cell "Fields with different values: message: our value \"junction open\", their value \"drilled saddle open\" height: our value 160, their value <missing>" [ref=e209] [cursor=pointer]': junction open, 160, 160
+              - 'cell "Fields with different values: message: our value \"junction open\", their value \"drilled saddle open\" height: our value 160, their value <missing>" [ref=e210] [cursor=pointer]': 67f90c7dac4036fa957bd7ae_6.mp4
+            - row [ref=e211]:
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e212] [cursor=pointer]': 00:06:12.449
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e213] [cursor=pointer]': 00:06:13.050
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e214] [cursor=pointer]': crack
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e215] [cursor=pointer]'
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e216] [cursor=pointer]': 67f90c7dac4036fa957bd7ae_6.mp4
+            - row [ref=e217]:
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e218] [cursor=pointer]': 00:06:16.199
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e219] [cursor=pointer]': 00:06:18.449
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e220] [cursor=pointer]': crack
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e221] [cursor=pointer]'
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e222] [cursor=pointer]': 67f90c7dac4036fa957bd7ae_6.mp4
+            - row [ref=e223]:
+              - 'cell "Compare status: event exists only in the reference." [ref=e224] [cursor=pointer]': 00:06:32.847
+              - 'cell "Compare status: event exists only in the reference." [ref=e225] [cursor=pointer]': 00:10:22.335
+              - 'cell "Compare status: event exists only in the reference." [ref=e226] [cursor=pointer]': grind
+              - 'cell "Compare status: event exists only in the reference." [ref=e227] [cursor=pointer]': ", 2"
+              - 'cell "Compare status: event exists only in the reference." [ref=e228] [cursor=pointer]': 67f90c7dac4036fa957bd7ae_6.mp4
+            - row [ref=e229]:
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e230] [cursor=pointer]': 00:06:41.699
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e231] [cursor=pointer]': 00:06:45.149
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e232] [cursor=pointer]': rocks
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e233] [cursor=pointer]'
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e234] [cursor=pointer]': 67f90c7dac4036fa957bd7ae_6.mp4
+            - row [ref=e235]:
+              - 'cell "Fields with different values: height: our value 160, their value <missing>" [ref=e236] [cursor=pointer]': 00:06:47.848
+              - 'cell "Fields with different values: height: our value 160, their value <missing>" [ref=e237] [cursor=pointer]': 00:06:56.249
+              - 'cell "Fields with different values: height: our value 160, their value <missing>" [ref=e238] [cursor=pointer]': connection
+              - 'cell "Fields with different values: height: our value 160, their value <missing>" [ref=e239] [cursor=pointer]': drilled saddle open, 160, 160
+              - 'cell "Fields with different values: height: our value 160, their value <missing>" [ref=e240] [cursor=pointer]': 67f90c7dac4036fa957bd7ae_6.mp4
+            - row [ref=e241]:
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e242] [cursor=pointer]': 00:06:58.798
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e243] [cursor=pointer]': 00:06:59.348
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e244] [cursor=pointer]': deformation
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e245] [cursor=pointer]': "11"
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e246] [cursor=pointer]': 67f90c7dac4036fa957bd7ae_6.mp4
+            - row [ref=e247]:
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e248] [cursor=pointer]': 00:07:00.149
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e249] [cursor=pointer]': 00:07:00.749
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e250] [cursor=pointer]': crack
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e251] [cursor=pointer]'
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e252] [cursor=pointer]': 67f90c7dac4036fa957bd7ae_6.mp4
+            - row [ref=e253]:
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e254] [cursor=pointer]': 00:07:07.649
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e255] [cursor=pointer]': 00:07:08.399
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e256] [cursor=pointer]': crack
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e257] [cursor=pointer]'
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e258] [cursor=pointer]': 67f90c7dac4036fa957bd7ae_6.mp4
+            - row [ref=e259]:
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e260] [cursor=pointer]': 00:07:33.899
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e261] [cursor=pointer]': 00:07:34.649
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e262] [cursor=pointer]': crack
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e263] [cursor=pointer]'
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e264] [cursor=pointer]': 67f90c7dac4036fa957bd7ae_6.mp4
+            - row [ref=e265]:
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e266] [cursor=pointer]': 00:07:36.598
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e267] [cursor=pointer]': 00:07:37.048
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e268] [cursor=pointer]': crack
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e269] [cursor=pointer]'
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e270] [cursor=pointer]': 67f90c7dac4036fa957bd7ae_6.mp4
+            - row [ref=e271]:
+              - 'cell "Compare status: reference event code is not mapped in Vidsy." [ref=e272] [cursor=pointer]': 00:07:45.087
+              - 'cell "Compare status: reference event code is not mapped in Vidsy." [ref=e273] [cursor=pointer]': "--"
+              - 'cell "Compare status: reference event code is not mapped in Vidsy." [ref=e274] [cursor=pointer]': B-A-J-B
+              - 'cell "Compare status: reference event code is not mapped in Vidsy." [ref=e275] [cursor=pointer]': ", 37.86"
+              - 'cell "Compare status: reference event code is not mapped in Vidsy." [ref=e276] [cursor=pointer]': 67f90c7dac4036fa957bd7ae_6.mp4
+            - row [ref=e277]:
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e278] [cursor=pointer]': 00:08:30.149
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e279] [cursor=pointer]': 00:08:30.598
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e280] [cursor=pointer]': crack
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e281] [cursor=pointer]'
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e282] [cursor=pointer]': 67f90c7dac4036fa957bd7ae_6.mp4
+            - row [ref=e283]:
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e284] [cursor=pointer]': 00:08:30.449
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e285] [cursor=pointer]': 00:08:30.899
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e286] [cursor=pointer]': infiltration
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e287] [cursor=pointer]'
+              - 'cell "Compare status: event exists only in Vidsy." [ref=e288] [cursor=pointer]': 67f90c7dac4036fa957bd7ae_6.mp4
+            - row [ref=e289]:
+              - cell [ref=e290]
+      - generic [ref=e296]:
+        - generic [ref=e297]:
+          - generic [ref=e299]:
+            - text: Recordings
+            - group "display modes" [ref=e303]:
+              - button "single" [pressed] [ref=e304] [cursor=pointer]
+              - button "multi" [ref=e307] [cursor=pointer]
+              - separator [ref=e310]
+              - button "events" [ref=e311] [cursor=pointer]
+              - button "observations" [pressed] [ref=e314] [cursor=pointer]
+              - generic "Show labels inside ROI boxes" [ref=e317]:
+                - button "roi-labels" [pressed] [ref=e318] [cursor=pointer]
+          - group "display modes" [ref=e321]:
+            - button "images" [ref=e322] [cursor=pointer]
+            - button "cameras" [ref=e325] [cursor=pointer]
+            - button "recordings" [pressed] [ref=e328] [cursor=pointer]
+            - separator [ref=e331]
+            - button "categories" [ref=e332] [cursor=pointer]
+        - generic [ref=e336]:
+          - generic [ref=e337]:
+            - generic [ref=e338]:
+              - button "go to start of fragment" [ref=e339] [cursor=pointer]
+              - button "play/pause" [ref=e342] [cursor=pointer]
+              - paragraph [ref=e345]: 04:29.699 / 24:40.769
+              - button "take snapshot" [ref=e346] [cursor=pointer]
+              - button "playback speed" [ref=e349] [cursor=pointer]: 1x
+              - button "fullscreen" [ref=e350] [cursor=pointer]: ⛶
+            - paragraph [ref=e989]: joint (86%), radial displacement (36%)
+          - separator [ref=e996]
+          - tablist [ref=e1000]:
+            - tab "67f90c7dac4036fa957bd7ae_2" [ref=e1001] [cursor=pointer]
+            - tab "67f90c7dac4036fa957bd7ae_5" [ref=e1002] [cursor=pointer]
+            - tab "67f90c7dac4036fa957bd7ae_6" [selected] [ref=e1003] [cursor=pointer]
+            - tab "69e7179c7dadfde35dcb3382_1" [ref=e1004] [cursor=pointer]
+            - tab "69fb54fe6ff7a7ecaadd7337_5" [ref=e1005] [cursor=pointer]
+            - tab "691c37fac200890e05bb1b3b_3" [ref=e1006] [cursor=pointer]
+            - tab "691c37fac200890e05bb1b3b_5" [ref=e1007] [cursor=pointer]
+            - tab "6092aebea6fa0b000b6a4d57_1" [ref=e1008] [cursor=pointer]
+            - tab "6908ce3ace98860736a39d03_28" [ref=e1009] [cursor=pointer]
+            - tab "6792043b480bd71cdcc5f71a_5" [ref=e1010] [cursor=pointer]
+    - generic [ref=e1020]:
+      - generic [ref=e1021]:
+        - generic "Hide the logs panel" [ref=e1022] [cursor=pointer]
+        - text: Logs
+        - group [ref=e1025]:
+          - button "clear logs" [ref=e1026] [cursor=pointer]
+          - button "scroll to end" [pressed] [ref=e1029] [cursor=pointer]
+      - generic [ref=e1032]: App started
+  - generic [ref=e1039]:
+    - generic [ref=e1040]:
+      - separator [ref=e1041]
+      - separator [ref=e1044]
+    - generic [ref=e1045]:
+      - generic [ref=e1046]: "selected: 1"
+      - separator [ref=e1047]
+      - generic [ref=e1048]: "total: 88 / 10"

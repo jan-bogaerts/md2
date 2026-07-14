@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { ActionValidationError } from '../../../shared/action_definitions.mjs'
+import { ACTION_DEFINITION_VALIDATION_PARITY_CASES } from '../../../shared/action_definition_validation_parity_cases.mjs'
 import {
     CUSTOM_PROMPT_ACTION_ID,
     CUSTOM_PROMPT_ACTION_NAME,
@@ -41,6 +42,13 @@ function validationError(files: ActionFile[]): ActionValidationError {
 }
 
 describe('loadActionDefinitions', () => {
+    it.each(ACTION_DEFINITION_VALIDATION_PARITY_CASES)(
+        'matches Electron validator metadata for $name',
+        ({ expected, files }) => {
+            expect(validationError(files)).toMatchObject(expected)
+        },
+    )
+
     it('parses each file exactly once at the loading boundary', () => {
         const files = [file('implement', IMPLEMENT), file('lint', LINT)]
         const parse = vi.spyOn(JSON, 'parse')

@@ -42,5 +42,5 @@ The shared loader currently uses action names as identity, accepts `agent | cmd`
 ## see also
 
 - `design\architecture\initial description\actions.md`
-- `design\architecture\initial description\writings\Action editor\action_editor.md`
+- `design\architecture\initial description\writings\action_editor.md`
 - `design\feature_descriptions\ready\F_010_actions.md`

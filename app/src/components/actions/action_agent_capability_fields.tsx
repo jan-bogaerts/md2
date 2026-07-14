@@ -1,4 +1,4 @@
-import { MenuItem, Stack, TextField } from '@mui/material'
+import { MenuItem, Stack } from '@mui/material'
 import type { ChangeEvent } from 'react'
 import { useEffect } from 'react'
 import { mergeAgentProfiles } from '../../data/agent_profiles'
@@ -6,6 +6,7 @@ import type { RawActionDefinition } from '../../data/action_types'
 import { agentCapabilitiesService, type AgentCapabilitiesService } from '../../services/agent_capabilities_service'
 import { useAgentCapabilities } from '../hooks/use_agent_capabilities'
 import { useConfigValue } from '../hooks/use_config_value'
+import { ActionEditorField } from './action_editor_field'
 
 interface ActionAgentCapabilityFieldsProps {
     definition: RawActionDefinition
@@ -66,8 +67,9 @@ export function ActionAgentCapabilityFields(props: ActionAgentCapabilityFieldsPr
 
     return (
         <Stack direction={{ md: 'row', xs: 'column' }} spacing={1}>
-            <TextField
+            <ActionEditorField
                 error={!!errors.agent || !!agentCapabilityError}
+                fieldId="action-agent"
                 fullWidth
                 helperText={errors.agent ?? agentCapabilityError ?? (availability.loading ? 'Checking agent availability…' : undefined)}
                 label="Agent override"
@@ -84,10 +86,11 @@ export function ActionAgentCapabilityFields(props: ActionAgentCapabilityFieldsPr
 
                     return <MenuItem disabled={disabled} key={profile.name} value={profile.name}>{label}</MenuItem>
                 })}
-            </TextField>
-            <TextField
+            </ActionEditorField>
+            <ActionEditorField
                 disabled={!definition.agent || models.loading || !!models.error}
                 error={!!errors.model || !!models.error}
+                fieldId="action-model"
                 fullWidth
                 helperText={errors.model ?? models.error ?? (models.loading ? 'Loading models…' : undefined)}
                 label="Model"
@@ -102,10 +105,11 @@ export function ActionAgentCapabilityFields(props: ActionAgentCapabilityFieldsPr
                         {model === definition.model && !models.loading && !models.values.includes(model) ? `${model} — unavailable` : model}
                     </MenuItem>
                 ))}
-            </TextField>
-            <TextField
+            </ActionEditorField>
+            <ActionEditorField
                 disabled={!definition.agent || !definition.model || thinkingLevels.loading || !!thinkingLevels.error}
                 error={!!errors.thinkingLevel || !!thinkingLevels.error}
+                fieldId="action-thinking-level"
                 fullWidth
                 helperText={errors.thinkingLevel ?? thinkingLevels.error ?? (thinkingLevels.loading ? 'Loading thinking levels…' : undefined)}
                 label="Thinking level"
@@ -122,7 +126,7 @@ export function ActionAgentCapabilityFields(props: ActionAgentCapabilityFieldsPr
                             : level}
                     </MenuItem>
                 ))}
-            </TextField>
+            </ActionEditorField>
         </Stack>
     )
 }

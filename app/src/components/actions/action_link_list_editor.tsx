@@ -1,9 +1,10 @@
-import { Box, Button, FormHelperText, IconButton, MenuItem, Stack, TextField, Typography } from '@mui/material'
-import ArrowDown from 'mdi-material-ui/ArrowDown'
-import ArrowUp from 'mdi-material-ui/ArrowUp'
-import DeleteOutline from 'mdi-material-ui/DeleteOutline'
+import ArrowDownwardOutlined from '@mui/icons-material/ArrowDownwardOutlined'
+import ArrowUpwardOutlined from '@mui/icons-material/ArrowUpwardOutlined'
+import DeleteOutlineOutlined from '@mui/icons-material/DeleteOutlineOutlined'
+import { Box, Button, FormHelperText, IconButton, MenuItem, Stack, Tooltip, Typography } from '@mui/material'
 import type { ChangeEvent, MouseEvent } from 'react'
 import type { ActionDefinition } from '../../data/action_types'
+import { ActionEditorField } from './action_editor_field'
 
 interface ActionLinkListEditorProps {
     actions: ActionDefinition[]
@@ -53,9 +54,22 @@ export function ActionLinkListEditor(props: ActionLinkListEditorProps) {
             {/* Section-level error so it shows even when the collection has no rendered rows. */}
             {showSectionError ? <FormHelperText error>{error}</FormHelperText> : null}
             {value.map((actionId, index) => (
-                <Box key={`${actionId}:${index}`} sx={{ alignItems: 'flex-start', display: 'flex', gap: 0.5 }}>
-                    <TextField
+                <Box
+                    aria-label={`${label} action ${index + 1}`}
+                    key={`${actionId}:${index}`}
+                    role="group"
+                    sx={{
+                        alignItems: 'start',
+                        display: 'grid',
+                        gap: 0.5,
+                        gridTemplateColumns: { sm: 'minmax(0, 1fr) auto', xs: 'minmax(0, 1fr)' },
+                        minWidth: 0,
+                        '&:focus-within .action-row-actions, &:hover .action-row-actions': { opacity: 1 },
+                    }}
+                >
+                    <ActionEditorField
                         error={hasIndexedError && errorIndex === index}
+                        fieldId={`action-${label.toLowerCase()}-${index}`}
                         fullWidth
                         helperText={hasIndexedError && errorIndex === index ? error : undefined}
                         label="Action"
@@ -65,14 +79,35 @@ export function ActionLinkListEditor(props: ActionLinkListEditorProps) {
                         size="small"
                         value={actionId}
                     >
+                        {!actions.some(({ id }) => id === actionId) ? (
+                            <MenuItem value={actionId}>{actionId} — unavailable</MenuItem>
+                        ) : null}
                         {actions.map((action) => <MenuItem key={action.id} value={action.id}>{action.label}</MenuItem>)}
-                    </TextField>
-                    <IconButton aria-label={`Move ${label} action up`} data-direction="up" data-index={index} disabled={index === 0} onClick={handleMove} size="small"><ArrowUp fontSize="small" /></IconButton>
-                    <IconButton aria-label={`Move ${label} action down`} data-direction="down" data-index={index} disabled={index === value.length - 1} onClick={handleMove} size="small"><ArrowDown fontSize="small" /></IconButton>
-                    <IconButton aria-label={`Remove ${label} action`} data-index={index} onClick={handleRemove} size="small"><DeleteOutline fontSize="small" /></IconButton>
+                    </ActionEditorField>
+                    <Box className="action-row-actions" sx={{ display: 'flex', justifyContent: 'flex-end', opacity: 0 }}>
+                        <Tooltip title={`Move ${label} action up`}>
+                            <span>
+                                <IconButton aria-label={`Move ${label} action up`} data-direction="up" data-index={index} disabled={index === 0} onClick={handleMove} size="small" sx={{ '&:focus-visible, &:hover': { bgcolor: 'action.hover', color: 'primary.main' } }}>
+                                    <ArrowUpwardOutlined fontSize="small" />
+                                </IconButton>
+                            </span>
+                        </Tooltip>
+                        <Tooltip title={`Move ${label} action down`}>
+                            <span>
+                                <IconButton aria-label={`Move ${label} action down`} data-direction="down" data-index={index} disabled={index === value.length - 1} onClick={handleMove} size="small" sx={{ '&:focus-visible, &:hover': { bgcolor: 'action.hover', color: 'primary.main' } }}>
+                                    <ArrowDownwardOutlined fontSize="small" />
+                                </IconButton>
+                            </span>
+                        </Tooltip>
+                        <Tooltip title={`Remove ${label} action`}>
+                            <IconButton aria-label={`Remove ${label} action`} data-index={index} onClick={handleRemove} size="small" sx={{ '&:focus-visible, &:hover': { bgcolor: 'action.hover', color: 'primary.main' } }}>
+                                <DeleteOutlineOutlined fontSize="small" />
+                            </IconButton>
+                        </Tooltip>
+                    </Box>
                 </Box>
             ))}
-            <Button disabled={!actions.some(({ id }) => !value.includes(id))} onClick={handleAdd} size="small" sx={{ alignSelf: 'flex-start' }}>Add action</Button>
+            <Button disabled={!actions.some(({ id }) => !value.includes(id))} onClick={handleAdd} size="small" sx={{ alignSelf: 'flex-start' }} variant="outlined">Add action</Button>
         </Stack>
     )
 }

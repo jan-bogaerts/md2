@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ElectronRemoteControlBridge, RemoteControlStatus } from '../../data/electron_remote_control_bridge'
 import { RemoteControlButton } from './remote_control_button'
@@ -32,7 +32,46 @@ describe('RemoteControlButton', () => {
         fireEvent.click(await screen.findByRole('button', { name: 'Accept' }))
 
         expect(bridge.start).toHaveBeenCalledTimes(1)
-        expect(await screen.findByRole('button', { name: 'Stop accepting' })).toBeInTheDocument()
+        // The auto-opened popover marks the toolbar aria-hidden, so query it with hidden: true.
+        expect(await screen.findByRole('button', { name: 'Disconnect', hidden: true })).toBeInTheDocument()
+    })
+
+    it('auto-opens the connection-info popover after a successful start', async () => {
+        installBridge()
+        render(<RemoteControlButton />)
+
+        fireEvent.click(await screen.findByRole('button', { name: 'Accept' }))
+
+        expect(await screen.findByRole('button', { name: 'Copy connect link' })).toBeInTheDocument()
+        expect(screen.getByText('ws://127.0.0.1:1234')).toBeInTheDocument()
+    })
+
+    it('shows the disconnect tooltip while active', async () => {
+        installBridge()
+        render(<RemoteControlButton />)
+
+        fireEvent.click(await screen.findByRole('button', { name: 'Accept' }))
+        // Close the auto-opened popover so the toolbar is no longer aria-hidden.
+        fireEvent.click(await screen.findByRole('button', { name: 'show connect link and QR code', hidden: true }))
+        await waitFor(() => expect(screen.queryByRole('button', { name: 'Copy connect link' })).not.toBeInTheDocument())
+
+        fireEvent.mouseOver(await screen.findByRole('button', { name: 'Disconnect' }))
+
+        expect(await screen.findByText('disconnect')).toBeInTheDocument()
+    })
+
+    it('toggles the popover with the arrow button', async () => {
+        installBridge()
+        render(<RemoteControlButton />)
+
+        fireEvent.click(await screen.findByRole('button', { name: 'Accept' }))
+        expect(await screen.findByRole('button', { name: 'Copy connect link' })).toBeInTheDocument()
+
+        fireEvent.click(screen.getByRole('button', { name: 'show connect link and QR code', hidden: true }))
+        await waitFor(() => expect(screen.queryByRole('button', { name: 'Copy connect link' })).not.toBeInTheDocument())
+
+        fireEvent.click(screen.getByRole('button', { name: 'show connect link and QR code' }))
+        expect(await screen.findByRole('button', { name: 'Copy connect link' })).toBeInTheDocument()
     })
 
     it('shows the accept tooltip when idle and does not expose the token', async () => {

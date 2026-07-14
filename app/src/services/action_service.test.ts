@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { ActionService, editableActionDefinition } from './action_service'
+import { ActionService, editableActionDefinition, serializeActionDefinition } from './action_service'
 import { CUSTOM_PROMPT_ACTION_ID, CUSTOM_PROMPT_ACTION_NAME, type ActionFile, type RawActionDefinition } from '../data/action_types'
 
 function file(definition: unknown): ActionFile {
@@ -173,6 +173,28 @@ describe('ActionService', () => {
         await expect(service.saveDefinition('actions/action.json', invalid)).rejects.toThrow(/field label/u)
         expect(persistActionFile).toHaveBeenCalledTimes(1)
         expect(service.getActionByPath('actions/action.json')?.label).toBe('Updated')
+    })
+
+    it('sends identical canonical JSON to web, desktop-local, and remote-control persistence gateways', async () => {
+        const persistedFiles = new Map<string, ActionFile>()
+        const storageModes = ['web', 'desktop-local', 'remote-control']
+        const definition = { ...VALID, label: 'Canonical label' }
+
+        for (const storageMode of storageModes) {
+            const service = new ActionService(() => ({
+                persistActionFile: vi.fn(async (actionFile: ActionFile) => {
+                    persistedFiles.set(storageMode, actionFile)
+                }),
+            }))
+            await service.saveDefinition('actions/action.json', definition)
+        }
+
+        const expectedFile = { content: serializeActionDefinition(definition), path: 'actions/action.json' }
+        expect(Object.fromEntries(persistedFiles)).toEqual({
+            'desktop-local': expectedFile,
+            'remote-control': expectedFile,
+            web: expectedFile,
+        })
     })
 
     it('revalidates then serializes exactly once at the persistence boundary', async () => {

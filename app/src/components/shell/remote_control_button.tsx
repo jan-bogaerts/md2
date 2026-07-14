@@ -1,4 +1,5 @@
-import { Button, Stack, Tooltip } from '@mui/material'
+import { Button, IconButton, Stack, Tooltip } from '@mui/material'
+import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown'
 import { useRef, useState } from 'react'
 import type { RemoteControlStatus } from '../../data/electron_remote_control_bridge'
 import { dialogService } from '../../services/dialog_service'
@@ -7,11 +8,11 @@ import { RemoteControlConnectionInfo } from './remote_control_connection_info'
 import { useRemoteControlStatus } from './use_remote_control_status'
 
 function buttonLabel(status: RemoteControlStatus) {
-    return status.active ? 'Stop accepting' : 'Accept'
+    return status.active ? 'Disconnect' : 'Accept'
 }
 
 function tooltipLabel(status: RemoteControlStatus) {
-    return status.active ? 'stop accepting external connections' : 'accept external connection for web control'
+    return status.active ? 'disconnect' : 'accept external connection for web control'
 }
 
 /** Toolbar control: starts/stops the Electron remote-control endpoint, or connects to one from the browser. */
@@ -27,7 +28,13 @@ export function RemoteControlButton() {
         setIsBusy(true)
 
         try {
-            setStatus(status.active ? await bridge.stop() : await bridge.start())
+            if (status.active) {
+                setStatus(await bridge.stop())
+                setIsInfoOpen(false)
+            } else {
+                setStatus(await bridge.start())
+                setIsInfoOpen(true)
+            }
         } catch (error) {
             dialogService.error(error, { fallbackMessage: 'Remote-control toggle failed' })
         } finally {
@@ -47,9 +54,9 @@ export function RemoteControlButton() {
             {status.active ? (
                 <>
                     <Tooltip title="show connect link and QR code">
-                        <Button color="inherit" onClick={() => setIsInfoOpen(true)} size="small" variant="text">
-                            Connect info
-                        </Button>
+                        <IconButton aria-label="show connect link and QR code" color="inherit" onClick={() => setIsInfoOpen((open) => !open)} size="small">
+                            <ArrowDropDownIcon fontSize="small" />
+                        </IconButton>
                     </Tooltip>
                     <RemoteControlConnectionInfo anchorEl={buttonRef.current} onClose={() => setIsInfoOpen(false)} open={isInfoOpen} status={status} />
                 </>

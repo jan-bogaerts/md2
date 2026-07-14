@@ -1,5 +1,5 @@
-import { Box, Button, IconButton, MenuItem, Stack, TextField, Tooltip, Typography } from '@mui/material'
-import DeleteOutline from 'mdi-material-ui/DeleteOutline'
+import DeleteOutlineOutlined from '@mui/icons-material/DeleteOutlineOutlined'
+import { Box, Button, IconButton, MenuItem, Stack, Tooltip, Typography } from '@mui/material'
 import type { ChangeEvent, MouseEvent } from 'react'
 import {
     ACTION_CONTEXT_FILTER_DESCRIPTORS,
@@ -7,6 +7,7 @@ import {
 } from '../../data/action_context'
 import type { ActionAppliesTo, ActionAppliesToField } from '../../data/action_types'
 import type { WorktreeRecord } from '../../data/data_types'
+import { ActionEditorField } from './action_editor_field'
 
 interface FilterOption {
     label: string
@@ -120,49 +121,68 @@ export function ActionFilterEditor(props: ActionFilterEditorProps) {
                 const options = includeCurrentOption(optionsForDescriptor(descriptor, props), fieldValue)
 
                 return (
-                    <Box key={index} sx={{ alignItems: 'flex-start', display: 'flex', gap: 1 }}>
-                        <Stack spacing={1} sx={{ flex: 1 }}>
-                            <TextField
-                                label="Context field"
-                                name={String(index)}
-                                onChange={handleFieldChange}
-                                select
-                                size="small"
-                                value={field}
-                            >
-                                {ACTION_CONTEXT_FILTER_DESCRIPTORS.map((option) => (
-                                    <MenuItem
-                                        disabled={Object.hasOwn(value ?? {}, option.key) && option.key !== field}
-                                        key={option.key}
-                                        value={option.key}
-                                    >
-                                        {option.label}
-                                    </MenuItem>
-                                ))}
-                            </TextField>
-                        </Stack>
-                        <TextField
+                    <Box
+                        aria-label={'Applicability filter ' + (index + 1)}
+                        key={index}
+                        role="group"
+                        sx={{
+                            alignItems: 'start',
+                            display: 'grid',
+                            gap: 1,
+                            gridTemplateColumns: { sm: 'minmax(0, 1fr) minmax(0, 1fr) auto', xs: 'minmax(0, 1fr)' },
+                            minWidth: 0,
+                            '&:focus-within .action-row-actions, &:hover .action-row-actions': { opacity: 1 },
+                        }}
+                    >
+                        <ActionEditorField
+                            fieldId={'action-filter-field-' + index}
+                            label="Context field"
+                            name={String(index)}
+                            onChange={handleFieldChange}
+                            select
+                            size="small"
+                            value={field}
+                        >
+                            {ACTION_CONTEXT_FILTER_DESCRIPTORS.map((option) => (
+                                <MenuItem
+                                    disabled={Object.hasOwn(value ?? {}, option.key) && option.key !== field}
+                                    key={option.key}
+                                    value={option.key}
+                                >
+                                    {option.label}
+                                </MenuItem>
+                            ))}
+                        </ActionEditorField>
+                        <ActionEditorField
                             error={!!valueError || !!error}
+                            fieldId={'action-filter-value-' + index}
                             helperText={valueError ?? error}
                             label={descriptor.label}
                             name={String(index)}
                             onChange={handleValueChange}
                             select={descriptor.valueSource !== 'text'}
                             size="small"
-                            sx={{ flex: 1 }}
                             value={fieldValue}
                         >
                             {options.map((option) => <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>)}
-                        </TextField>
-                        <Tooltip title={`Remove ${field || 'custom'} filter`}>
-                            <IconButton aria-label={`Remove ${field || 'custom'} filter`} data-index={index} onClick={handleRemove} size="small">
-                                <DeleteOutline fontSize="small" />
-                            </IconButton>
-                        </Tooltip>
+                        </ActionEditorField>
+                        <Box className="action-row-actions" sx={{ display: 'flex', justifyContent: 'flex-end', opacity: 0 }}>
+                            <Tooltip title={`Remove ${field || 'custom'} filter`}>
+                                <IconButton
+                                    aria-label={`Remove ${field || 'custom'} filter`}
+                                    data-index={index}
+                                    onClick={handleRemove}
+                                    size="small"
+                                    sx={{ '&:focus-visible, &:hover': { bgcolor: 'action.hover', color: 'primary.main' } }}
+                                >
+                                    <DeleteOutlineOutlined fontSize="small" />
+                                </IconButton>
+                            </Tooltip>
+                        </Box>
                     </Box>
                 )
             })}
-            <Button disabled={hasIncompleteRow || hasEveryFilter} onClick={handleAdd} size="small" sx={{ alignSelf: 'flex-start' }}>
+            <Button disabled={hasIncompleteRow || hasEveryFilter} onClick={handleAdd} size="small" sx={{ alignSelf: 'flex-start' }} variant="outlined">
                 Add filter
             </Button>
         </Stack>

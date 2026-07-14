@@ -65,6 +65,6 @@ The existing implementation uses a React-side `ActionRunner`, name-based action 
 
 - `design\architecture\initial description\actions.md`
 - `design\architecture\initial description\action_popup.md`
-- `design\architecture\initial description\writings\Running actions\running_actions.md`
-- `design\architecture\initial description\writings\Action editor\action_editor.md`
+- `design\architecture\initial description\writings\running_actions.md`
+- `design\architecture\initial description\writings\action_editor.md`
 - `design\feature_descriptions\ready\F_022_scheduled_actions.md`

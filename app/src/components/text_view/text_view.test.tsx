@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useCallback } from 'react'
 import { TextView } from './text_view'
@@ -271,6 +271,28 @@ describe('TextView', () => {
         expect(screen.getByRole('heading', { name: 'Action definition' })).toBeInTheDocument()
         expect(screen.getByLabelText('ID')).toHaveValue('review-id')
         expect(screen.queryByText(/"description":/u)).not.toBeInTheDocument()
+    })
+
+    it('reloads and reopens an action by stable path without duplicating its tab', async () => {
+        const path = 'design/actions/review.json'
+        const actionDefinition = {
+            description: 'Review the selected file', id: 'review-id', label: 'Review code',
+            name: 'review', prompt: 'Review {{file}}', type: 'agent',
+        }
+        actionService.loadFromFiles([{ content: JSON.stringify(actionDefinition), path }])
+        renderTextView()
+        clickTreeFile('Review code')
+
+        act(() => actionService.loadFromFiles([{
+            content: JSON.stringify({ ...actionDefinition, label: 'Review updated' }),
+            path,
+        }]))
+
+        await waitFor(() => expect(screen.getByRole('tab', { name: 'Review updated' })).toBeInTheDocument())
+        clickTreeFile('Review updated')
+
+        expect(screen.getAllByRole('tab', { name: 'Review updated' })).toHaveLength(1)
+        expect(screen.getByLabelText('Label')).toHaveValue('Review updated')
     })
 
     it('focuses the existing tab instead of duplicating when a file is reopened', () => {

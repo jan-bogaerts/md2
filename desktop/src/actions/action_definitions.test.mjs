@@ -5,6 +5,7 @@ import {
     sanitizeActionValidationError,
     validateActionDefinition,
 } from '../../../shared/action_definitions.mjs'
+import { ACTION_DEFINITION_VALIDATION_PARITY_CASES } from '../../../shared/action_definition_validation_parity_cases.mjs'
 
 // Load and return the thrown ActionValidationError for assertion on its routing metadata.
 function validationError(files) {
@@ -29,6 +30,13 @@ const LINT = {
 }
 
 describe('loadActionDefinitions', () => {
+    it.each(ACTION_DEFINITION_VALIDATION_PARITY_CASES)(
+        'matches React validator metadata for $name',
+        ({ expected, files }) => {
+            expect(validationError(files)).toMatchObject(expected)
+        },
+    )
+
     it('parses canonical definitions and resolves shared ID links', () => {
         const actions = loadActionDefinitions([
             file('implement', { ...IMPLEMENT, onAfter: [LINT.id] }),

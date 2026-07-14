@@ -75,6 +75,8 @@ describe('ActionAgentCapabilityFields', () => {
 
         expect(screen.getByLabelText('Model')).toHaveTextContent('stored-model')
         expect(screen.getByLabelText('Thinking level')).toHaveTextContent('high')
+        expect(screen.getByText('Loading models…')).toBeInTheDocument()
+        expect(screen.getByText('Loading thinking levels…')).toBeInTheDocument()
 
         const switchedDefinition = { ...definition, agent: 'claude', model: 'removed-model', thinkingLevel: 'max' }
         rendered.rerender(
@@ -85,6 +87,15 @@ describe('ActionAgentCapabilityFields', () => {
 
         expect(screen.getByLabelText('Model')).toHaveTextContent('removed-model')
         expect(screen.getByLabelText('Thinking level')).toHaveTextContent('max')
+    })
+
+    it('shows empty capability results as field errors', async () => {
+        const service = new AgentCapabilitiesService(provider({ getModels: vi.fn(async () => []) }))
+        renderFields(service, { ...definition, model: undefined, thinkingLevel: undefined })
+
+        await waitFor(() => expect(screen.getByText('Model for codex capability list is missing or empty')).toBeInTheDocument())
+        expect(screen.getByLabelText('Model')).toHaveAttribute('aria-invalid', 'true')
+        expect(screen.getByLabelText('Model')).toHaveAttribute('aria-disabled', 'true')
     })
 
     it('marks removed model and thinking-level selections unavailable', async () => {

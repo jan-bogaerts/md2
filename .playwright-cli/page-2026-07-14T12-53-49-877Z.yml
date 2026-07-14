@@ -1,0 +1,61 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - img "MD² application icon" [ref=e7]
+      - tablist "Application menu" [ref=e11]:
+        - tab "Home" [selected] [ref=e12] [cursor=pointer]
+        - tab "Run" [ref=e13] [cursor=pointer]
+      - button "Switch to dark theme" [ref=e16] [cursor=pointer]
+      - generic [ref=e23]:
+        - textbox "Search project" [ref=e27]:
+          - /placeholder: Search cards…
+        - generic [ref=e28]: ⌘K
+        - group
+    - tabpanel [ref=e32]:
+      - generic [ref=e33]:
+        - group "Project" [ref=e34]:
+          - generic "Open project" [ref=e35]:
+            - button "Open project" [ref=e36] [cursor=pointer]
+          - generic "Switch branch" [ref=e39]:
+            - generic [ref=e40]:
+              - combobox "Switch branch" [disabled] [ref=e41]
+              - textbox [disabled]
+              - group
+        - separator [ref=e42]
+        - group "Settings" [ref=e43]:
+          - generic "Config" [ref=e44]:
+            - button "Config" [ref=e45] [cursor=pointer]
+          - generic "Connect to a remote md2 server" [ref=e48]:
+            - button "Connect" [ref=e49] [cursor=pointer]
+        - separator [ref=e50]
+        - group "View" [ref=e51]:
+          - group [ref=e52]:
+            - button "Cards view" [pressed] [ref=e53] [cursor=pointer]:
+              - generic [ref=e56]: Board
+            - button "Text view" [ref=e57] [cursor=pointer]:
+              - generic [ref=e60]: List
+        - separator [ref=e61]
+        - generic "Complete release" [ref=e62]:
+          - button "Complete release" [disabled]
+        - button "New card" [disabled]
+        - group "Account" [ref=e63]:
+          - button "GitHub account" [ref=e64] [cursor=pointer]
+  - generic [ref=e67]:
+    - paragraph [ref=e70]: No project navigation available.
+    - separator "Resize panels" [ref=e71]
+    - region "Project workspace" [ref=e74]:
+      - region "Project workspace content" [ref=e75]:
+        - generic [ref=e76]:
+          - heading "No project open" [level=2] [ref=e77]
+          - paragraph [ref=e78]: Open a GitHub repository or local folder to work with project cards.
+          - button "Open project..." [ref=e79] [cursor=pointer]
+  - contentinfo [ref=e80]:
+    - generic [ref=e81]:
+      - generic [ref=e84]: "0"
+      - generic [ref=e85]: cards
+    - generic [ref=e86]:
+      - generic [ref=e88]: "0"
+      - generic [ref=e89]: active
+    - generic [ref=e90]: Saved locally
+    - generic [ref=e94]: Synced
+    - 'button "Running agents: 0" [ref=e98] [cursor=pointer]': 0 agents

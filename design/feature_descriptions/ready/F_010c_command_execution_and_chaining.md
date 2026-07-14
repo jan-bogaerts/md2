@@ -47,7 +47,7 @@ React currently owns the manual/state-triggered `ActionRunner`, chain traversal,
 
 ## see also
 
-- `design\architecture\initial description\writings\Running actions\running_actions.md`
+- `design\architecture\initial description\writings\running_actions.md`
 - `design\architecture\initial description\desktop app.md`
 - `design\feature_descriptions\ready\F_010a_action_model_and_loading.md`
 - `design\feature_descriptions\ready\F_022_scheduled_actions.md`

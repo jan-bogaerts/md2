@@ -126,6 +126,25 @@ describe('ActionFilterEditor', () => {
         expect(onChange).toHaveBeenLastCalledWith({ file: '', kind: 'card', type: 'feature' })
     })
 
+    it('disables fields already used by another filter', () => {
+        render(<FilterEditorHarness initialValue={{ kind: 'card', state: 'ready' }} />)
+
+        fireEvent.mouseDown(screen.getAllByLabelText('Context field')[0])
+        const options = within(screen.getByRole('listbox'))
+
+        expect(options.getByRole('option', { name: 'Card state' })).toHaveAttribute('aria-disabled', 'true')
+        expect(options.getByRole('option', { name: 'Target kind' })).not.toHaveAttribute('aria-disabled', 'true')
+    })
+
+    it('edits descriptor-backed custom text values', () => {
+        const onChange = vi.fn()
+        render(<FilterEditorHarness initialValue={{ worktreeError: 'missing' }} onChange={onChange} />)
+
+        fireEvent.change(screen.getByLabelText('Worktree error'), { target: { value: 'unavailable' } })
+
+        expect(onChange).toHaveBeenLastCalledWith({ worktreeError: 'unavailable' })
+    })
+
     it('adds an empty required value and removes the final filter', () => {
         const onChange = vi.fn()
         render(<FilterEditorHarness onChange={onChange} />)

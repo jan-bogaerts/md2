@@ -172,11 +172,30 @@ export function ActionEditor(props: ActionEditorProps) {
 
     const selectableActions = actions.filter(({ id }) => id !== action.id)
     const saving = pendingCount > 0
-    const status = saving ? 'Saving…' : validation.valid ? 'Changes save automatically.' : 'Fix validation errors to save.'
+    const canRetry = !!saveError && validation.valid && dirty && !conflict && !saving
+    const handleRetry = () => {
+        if (!canRetry) return
+        runSave(definition, revision, true)
+    }
+    const status = saving
+        ? 'Saving…'
+        : saveError
+            ? 'Save failed. Retry to save changes.'
+            : validation.valid
+                ? 'Changes save automatically.'
+                : 'Fix validation errors to save.'
 
     return (
         <Box>
-            {saveError ? <Alert severity="error" sx={{ mb: 2 }}>{saveError}</Alert> : null}
+            {saveError ? (
+                <Alert
+                    action={<Button color="inherit" disabled={!canRetry} onClick={handleRetry} size="small">Retry save</Button>}
+                    severity="error"
+                    sx={{ mb: 2 }}
+                >
+                    {saveError}
+                </Alert>
+            ) : null}
             {generalError ? <Alert severity="error" sx={{ mb: 2 }}>{generalError}</Alert> : null}
             {conflict ? (
                 <Alert

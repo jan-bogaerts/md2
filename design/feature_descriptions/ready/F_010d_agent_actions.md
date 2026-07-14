@@ -44,6 +44,6 @@ Agent processes and streaming exist in Electron, but React still constructs agen
 ## see also
 
 - `design\architecture\initial description\agents.md`
-- `design\architecture\initial description\writings\Running actions\running_actions.md`
+- `design\architecture\initial description\writings\running_actions.md`
 - `design\feature_descriptions\ready\F_012_agents.md`
 - `design\feature_descriptions\ready\F_023_agent_streaming.md`

@@ -86,6 +86,16 @@ describe('AgentCapabilitiesService', () => {
         expect(unavailableService.getSnapshot().models.error).toBe('Executable not found for codex: codex')
     })
 
+    it('rejects empty and malformed capability results', async () => {
+        const emptyService = new AgentCapabilitiesService(provider({ getModels: vi.fn(async () => []) }))
+        await emptyService.loadModels('codex')
+        expect(emptyService.getSnapshot().models.error).toContain('missing or empty')
+
+        const malformedService = new AgentCapabilitiesService(provider({getThinkingLevels: vi.fn(async () => [' low'])}))
+        await malformedService.loadThinkingLevels('codex', 'model-a')
+        expect(malformedService.getSnapshot().thinkingLevels.error).toContain('malformed')
+    })
+
     it('reports a local capability error outside Electron', async () => {
         configService.init()
         const service = new AgentCapabilitiesService()

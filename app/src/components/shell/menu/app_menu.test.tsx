@@ -3,7 +3,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { UseGithubAuthResult } from '../../../auth/use_github_auth'
 import type { StorageService } from '../../../data/data_types'
 import type { ElectronDataBridge } from '../../../data/electron_data_bridge'
-import type { ActionDefinition } from '../../../data/action_types'
 import { actionService } from '../../../services/action_service'
 import { configService } from '../../../services/config_service'
 import { dataService } from '../../../services/data_service'
@@ -101,6 +100,7 @@ async function openLocalProject() {
 describe('AppMenu', () => {
     beforeEach(() => {
         configService.init({ desktopConfig: null })
+        actionService.clear()
         dataService.init({ storage: createResetStorage() })
         workspaceViewService.setViewMode('cards')
         const { selectedPath } = workspaceViewService.getSnapshot()
@@ -110,6 +110,7 @@ describe('AppMenu', () => {
     afterEach(() => {
         cleanup()
         configService.clear()
+        actionService.clear()
         window.localStorage.clear()
         delete window.md2Data
         vi.restoreAllMocks()
@@ -157,10 +158,8 @@ describe('AppMenu', () => {
     })
 
     it('creates a valid action and opens its text-view tab from the Run tab', async () => {
-        window.md2Data = createBridge()
-        const created = actionService.createDefinition('actions')
-        const createDefinition = vi.spyOn(actionService, 'createDefinition').mockReturnValue(created)
-        const saveDefinition = vi.spyOn(actionService, 'saveDefinition').mockResolvedValue({} as ActionDefinition)
+        const bridge = createBridge()
+        window.md2Data = bridge
         const listener = vi.fn()
         workspaceNavigationService.addEventListener('open', listener)
         renderMenu()
@@ -169,10 +168,28 @@ describe('AppMenu', () => {
         fireEvent.click(screen.getByRole('tab', { name: 'Run' }))
         fireEvent.click(screen.getByRole('button', { name: 'New action' }))
 
-        await waitFor(() => expect(saveDefinition).toHaveBeenCalledWith(created.path, created.definition))
-        expect(createDefinition).toHaveBeenCalledWith(expect.stringContaining('actions'))
+        await waitFor(() => expect(bridge.commit).toHaveBeenCalled())
+        const commitRequest = vi.mocked(bridge.commit).mock.calls.at(-1)?.[0]
+        const actionFile = commitRequest?.files[0]
+        if (!actionFile) throw new Error('Missing persisted action file')
+        const persistedDefinition = JSON.parse(actionFile.content) as { id: string, label: string }
+
+        expect(actionFile.content).toMatch(/\{\n {2}"description": "Describe this action\.",/u)
+        expect(actionService.getActionByPath(actionFile.path)).toMatchObject({
+            id: persistedDefinition.id,
+            label: persistedDefinition.label,
+            sourcePath: actionFile.path,
+        })
         expect(workspaceViewService.getSnapshot().viewMode).toBe('text')
-        expect((listener.mock.calls[0][0] as CustomEvent<{ path: string }>).detail.path).toBe(created.path)
+        expect(listener).toHaveBeenCalledOnce()
+        expect((listener.mock.calls[0][0] as CustomEvent<{ path: string }>).detail.path).toBe(actionFile.path)
+
+        actionService.loadFromFiles([actionFile])
+        expect(actionService.getActionByPath(actionFile.path)).toMatchObject({
+            id: persistedDefinition.id,
+            label: persistedDefinition.label,
+            sourcePath: actionFile.path,
+        })
         workspaceNavigationService.removeEventListener('open', listener)
     })
 

@@ -1,7 +1,7 @@
 ---
 id: B-060
 title: action editor controls violate the component style guide
-status: design
+status: ready
 owner: JB
 affects:
 policy:

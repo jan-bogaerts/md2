@@ -31,6 +31,6 @@ Only some conversation paths register in the global running list. Manual, state-
 
 ## see also
 
-- `design\architecture\initial description\writings\Running actions\running_actions.md`
+- `design\architecture\initial description\writings\running_actions.md`
 - `design\feature_descriptions\ready\F_010e_state_triggers_and_watching.md`
 - `design\feature_descriptions\ready\F_023_agent_streaming.md`

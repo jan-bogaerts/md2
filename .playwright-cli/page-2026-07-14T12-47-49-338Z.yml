@@ -1,0 +1,44 @@
+- generic [ref=f3e3]:
+  - banner [ref=f3e4]:
+    - generic [ref=f3e5]:
+      - button "Open menu" [ref=f3e6] [cursor=pointer]
+      - img "MD² application icon" [ref=f3e10]
+      - tablist "Application menu" [ref=f3e14]:
+        - tab "Home" [selected] [ref=f3e15] [cursor=pointer]
+        - tab "Run" [ref=f3e16] [cursor=pointer]
+      - button "Search" [ref=f3e19] [cursor=pointer]
+    - tabpanel [ref=f3e24]:
+      - generic [ref=f3e25]:
+        - group "Project" [ref=f3e26]:
+          - generic "Open project" [ref=f3e27]:
+            - button "Open project" [ref=f3e28] [cursor=pointer]
+          - generic "Switch branch" [ref=f3e31]:
+            - generic [ref=f3e32]:
+              - combobox "Switch branch" [disabled] [ref=f3e33]
+              - textbox [disabled]
+              - group
+        - separator [ref=f3e34]
+        - group "Settings" [ref=f3e35]:
+          - generic "Config" [ref=f3e36]:
+            - button "Config" [ref=f3e37] [cursor=pointer]
+          - generic "Connect to a remote md2 server" [ref=f3e40]:
+            - button "Connect" [ref=f3e41] [cursor=pointer]
+        - separator [ref=f3e42]
+        - group "View" [ref=f3e43]:
+          - group [ref=f3e44]:
+            - button "Cards view" [pressed] [ref=f3e45] [cursor=pointer]:
+              - generic [ref=f3e48]: Board
+            - button "Text view" [ref=f3e49] [cursor=pointer]:
+              - generic [ref=f3e52]: List
+        - separator [ref=f3e53]
+        - generic "Complete release" [ref=f3e54]:
+          - button "Complete release" [disabled]
+        - button "New card" [disabled]
+        - group "Account" [ref=f3e55]:
+          - button "GitHub account" [ref=f3e56] [cursor=pointer]
+  - region "Project workspace" [ref=f3e61]:
+    - region "Project workspace content" [ref=f3e62]:
+      - generic [ref=f3e63]:
+        - heading "No project open" [level=2] [ref=f3e64]
+        - paragraph [ref=f3e65]: Open a GitHub repository or local folder to work with project cards.
+        - button "Open project..." [ref=f3e66] [cursor=pointer]

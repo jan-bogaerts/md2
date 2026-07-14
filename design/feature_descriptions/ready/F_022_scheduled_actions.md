@@ -45,5 +45,5 @@ The existing scheduler persists action names and contains a second Electron chai
 ## see also
 
 - `design\architecture\initial description\timers.md`
-- `design\architecture\initial description\writings\Running actions\running_actions.md`
+- `design\architecture\initial description\writings\running_actions.md`
 - `design\feature_descriptions\ready\F_010c_command_execution_and_chaining.md`

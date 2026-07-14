@@ -113,4 +113,4 @@ Allow Electron to register linked Git worktrees, assign cards to them, run `need
 
 - `design\feature_descriptions\ready\F_010_actions.md`
 - `design\feature_descriptions\ready\F_023_agent_streaming.md`
-- `design\architecture\initial description\writings\Running actions\running_actions.md`
+- `design\architecture\initial description\writings\running_actions.md`

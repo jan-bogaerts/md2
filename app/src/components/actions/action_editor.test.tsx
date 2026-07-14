@@ -3,9 +3,11 @@ import type { RenderResult } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ActionDefinition, ActionFile } from '../../data/action_types'
 import { configService } from '../../services/config_service'
+import { dataService } from '../../services/data_service'
 import { actionService } from '../../services/action_service'
 import * as actionServiceModule from '../../services/action_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
+import { flushMarkdownEditors } from '../editor/markdown_editor_flush'
 import { ActionEditor } from './action_editor'
 
 const definition = {
@@ -91,6 +93,26 @@ describe('ActionEditor', () => {
         expect(screen.queryByRole('heading', { name: 'Prompt' })).not.toBeInTheDocument()
     })
 
+    it('renders persisted initial values for agent and command actions', () => {
+        const agentView = renderEditor(loadAction({
+            agent: 'codex',
+            model: 'gpt-5',
+            thinkingLevel: 'high',
+        }))
+
+        expect(screen.getByLabelText('ID')).toHaveValue('review-action')
+        expect(screen.getByLabelText('Name')).toHaveValue('review')
+        expect(screen.getByLabelText('Label')).toHaveValue('Review')
+        expect(screen.getByLabelText('Description')).toHaveValue('Review the selected file')
+        expect(within(screen.getByTestId('mdx-editor')).getByRole('textbox')).toHaveValue('Review {{file}}')
+
+        agentView.unmount()
+        renderEditor(loadAction({ command: 'npm run test', prompt: undefined, type: 'command' }))
+
+        expect(screen.getByLabelText('Command')).toHaveValue('npm run test')
+        expect(screen.queryByTestId('mdx-editor')).not.toBeInTheDocument()
+    })
+
     it('shows a stale onState value as unavailable without an out-of-range warning', () => {
         const consoleWarning = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
         renderEditor(loadAction({ onState: 'removed' }))
@@ -173,6 +195,41 @@ describe('ActionEditor', () => {
         expect(serialize).not.toHaveBeenCalled()
     })
 
+    it('moves from invalid back to valid and auto-saves the repaired draft', async () => {
+        vi.useFakeTimers()
+        const action = loadAction()
+        const saveDefinition = vi.spyOn(actionService, 'saveDefinition').mockResolvedValue(action)
+        renderEditor(action)
+
+        fireEvent.change(labelInput(), { target: { value: '   ' } })
+        expect(screen.getByText('Fix validation errors to save.')).toBeInTheDocument()
+
+        fireEvent.change(labelInput(), { target: { value: 'Review repaired' } })
+        expect(screen.getByText('Changes save automatically.')).toBeInTheDocument()
+        await act(async () => vi.advanceTimersByTime(600))
+
+        expect(saveDefinition).toHaveBeenCalledWith(
+            'actions/review.json',
+            expect.objectContaining({ label: 'Review repaired' }),
+        )
+    })
+
+    it('saves a flushed prompt edit', async () => {
+        vi.useFakeTimers()
+        const action = loadAction()
+        const saveDefinition = vi.spyOn(actionService, 'saveDefinition').mockResolvedValue(action)
+        renderEditor(action)
+
+        fireEvent.change(within(screen.getByTestId('mdx-editor')).getByRole('textbox'), {target: { value: 'Updated prompt' }})
+        act(() => flushMarkdownEditors())
+        await act(async () => vi.advanceTimersByTime(600))
+
+        expect(saveDefinition).toHaveBeenCalledWith(
+            'actions/review.json',
+            expect.objectContaining({ prompt: 'Updated prompt' }),
+        )
+    })
+
     it('does not save while a newly added filter value is empty', async () => {
         vi.useFakeTimers()
         const saveDefinition = vi.spyOn(actionService, 'saveDefinition')
@@ -207,6 +264,50 @@ describe('ActionEditor', () => {
             'actions/review.json',
             expect.objectContaining({ id: 'review-action', label: 'Review code' }),
         )
+    })
+
+    it('persists and publishes an edit through the real action service', async () => {
+        vi.useFakeTimers()
+        const action = loadAction()
+        const persistActionFile = vi.spyOn(dataService, 'persistActionFile').mockResolvedValue(undefined)
+        const changed = vi.fn()
+        actionService.addEventListener('changed', changed)
+        renderEditor(action)
+
+        fireEvent.change(labelInput(), { target: { value: 'Published label' } })
+        await act(async () => vi.advanceTimersByTime(600))
+
+        expect(persistActionFile).toHaveBeenCalledWith({
+            content: expect.stringContaining('"label": "Published label"'),
+            path: 'actions/review.json',
+        })
+        expect(actionService.getActionByPath('actions/review.json')?.label).toBe('Published label')
+        expect(changed).toHaveBeenCalledOnce()
+        actionService.removeEventListener('changed', changed)
+    })
+
+    it('shows save failure status and retries the newest draft', async () => {
+        vi.useFakeTimers()
+        const action = loadAction()
+        const saveDefinition = vi.spyOn(actionService, 'saveDefinition')
+            .mockRejectedValueOnce(new Error('disk unavailable'))
+            .mockResolvedValueOnce(action)
+        renderEditor(action)
+
+        fireEvent.change(labelInput(), { target: { value: 'Retry this value' } })
+        await act(async () => vi.advanceTimersByTime(600))
+
+        expect(screen.getByRole('alert')).toHaveTextContent('disk unavailable')
+        expect(screen.getByText('Save failed. Retry to save changes.')).toBeInTheDocument()
+
+        await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Retry save' })))
+
+        expect(saveDefinition).toHaveBeenCalledTimes(2)
+        expect(saveDefinition).toHaveBeenLastCalledWith(
+            'actions/review.json',
+            expect.objectContaining({ label: 'Retry this value' }),
+        )
+        expect(screen.queryByText('disk unavailable')).not.toBeInTheDocument()
     })
 
     it('does not let an in-flight save overwrite or cancel newer typing', async () => {
@@ -311,6 +412,28 @@ describe('ActionEditor', () => {
         expect(screen.queryByText(/changed outside the editor/u)).not.toBeInTheDocument()
         expect(labelInput().value).toBe('Review')
         expect((screen.getByLabelText('Description') as HTMLInputElement).value).toBe('External change')
+    })
+
+    it('adopts an external reload immediately while the draft is clean', () => {
+        const action = loadAction()
+        const view = renderEditor(action)
+        const externalAction = loadAction({ label: 'External label' })
+
+        view.rerender(
+            <AppThemeProvider>
+                <ActionEditor
+                    action={externalAction}
+                    actions={actionService.getActions()}
+                    cardTypes={['feature']}
+                    repositoryFiles={[]}
+                    specialContextTypes={['actions']}
+                    states={['ready']}
+                />
+            </AppThemeProvider>,
+        )
+
+        expect(labelInput()).toHaveValue('External label')
+        expect(screen.queryByText(/changed outside the editor/u)).not.toBeInTheDocument()
     })
 
     it('treats property-order-only external reloads as clean structured state', () => {

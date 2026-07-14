@@ -43,6 +43,6 @@ The existing popup receives resolved action objects and calls the React-side `Ac
 ## see also
 
 - `design\architecture\initial description\action_popup.md`
-- `design\architecture\initial description\writings\Running actions\running_actions.md`
+- `design\architecture\initial description\writings\running_actions.md`
 - `design\feature_descriptions\ready\F_010a_action_model_and_loading.md`
 - `design\feature_descriptions\ready\F_022_scheduled_actions.md`

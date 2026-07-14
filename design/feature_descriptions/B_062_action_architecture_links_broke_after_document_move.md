@@ -1,7 +1,7 @@
 ---
 id: B-062
 title: action architecture links broke after document move
-status: design
+status: ready
 owner: JB
 affects:
 policy:

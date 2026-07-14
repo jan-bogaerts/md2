@@ -39,6 +39,6 @@ State changes call the React `ActionRunner` with a resolved action object. Defin
 
 ## see also
 
-- `design\architecture\initial description\writings\Running actions\running_actions.md`
+- `design\architecture\initial description\writings\running_actions.md`
 - `design\feature_descriptions\ready\F_010a_action_model_and_loading.md`
 - `design\feature_descriptions\ready\B_009_running_agents_visibility.md`

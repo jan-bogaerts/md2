@@ -1,10 +1,11 @@
 import {
-    Checkbox, FormControlLabel, MenuItem, Paper, Stack, TextField, Typography,
+    Checkbox, FormControlLabel, MenuItem, Paper, Stack, Typography,
 } from '@mui/material'
 import type { ChangeEvent } from 'react'
 import type { ActionDefinition, RawActionDefinition } from '../../data/action_types'
 import type { WorktreeRecord } from '../../data/data_types'
 import { ActionAgentCapabilityFields } from './action_agent_capability_fields'
+import { ActionEditorField } from './action_editor_field'
 import { ActionFilterEditor } from './action_filter_editor'
 import { ActionLinkListEditor } from './action_link_list_editor'
 import { ActionOnRulesEditor } from './action_on_rules_editor'
@@ -83,24 +84,35 @@ export function ActionDefinitionFields(props: ActionDefinitionFieldsProps) {
             <Stack spacing={2}>
                 <Typography component="h2" variant="h6">Action definition</Typography>
                 <Stack direction={{ md: 'row', xs: 'column' }} spacing={1}>
-                    <TextField disabled fullWidth label="ID" size="small" value={definition.id} />
-                    <TextField error={!!errors.type} fullWidth helperText={errors.type} label="Type" onChange={handleTypeChange} select size="small" value={definition.type}>
+                    <ActionEditorField disabled fieldId="action-id" fullWidth label="ID" size="small" value={definition.id} />
+                    <ActionEditorField
+                        error={!!errors.type}
+                        fieldId="action-type"
+                        fullWidth
+                        helperText={errors.type}
+                        label="Type"
+                        onChange={handleTypeChange}
+                        select
+                        size="small"
+                        value={definition.type}
+                    >
                         <MenuItem value="agent">Agent</MenuItem>
                         <MenuItem value="command">Command</MenuItem>
-                    </TextField>
+                    </ActionEditorField>
                 </Stack>
                 <Stack direction={{ md: 'row', xs: 'column' }} spacing={1}>
-                    <TextField error={!!errors.name} fullWidth helperText={errors.name} label="Name" name="name" onChange={handleRequiredTextChange} size="small" value={definition.name} />
-                    <TextField error={!!errors.label} fullWidth helperText={errors.label} label="Label" name="label" onChange={handleRequiredTextChange} size="small" value={definition.label} />
+                    <ActionEditorField error={!!errors.name} fieldId="action-name" fullWidth helperText={errors.name} label="Name" name="name" onChange={handleRequiredTextChange} size="small" value={definition.name} />
+                    <ActionEditorField error={!!errors.label} fieldId="action-label" fullWidth helperText={errors.label} label="Label" name="label" onChange={handleRequiredTextChange} size="small" value={definition.label} />
                 </Stack>
-                <TextField error={!!errors.description} fullWidth helperText={errors.description} label="Description" name="description" onChange={handleRequiredTextChange} size="small" value={definition.description} />
+                <ActionEditorField error={!!errors.description} fieldId="action-description" fullWidth helperText={errors.description} label="Description" name="description" onChange={handleRequiredTextChange} size="small" value={definition.description} />
                 <Stack direction={{ md: 'row', xs: 'column' }} spacing={1}>
-                    <TextField error={!!errors.icon} fullWidth helperText={errors.icon} label="Icon" name="icon" onChange={handleOptionalTextChange} select size="small" value={definition.icon ?? ''}>
+                    <ActionEditorField error={!!errors.icon} fieldId="action-icon" fullWidth helperText={errors.icon} label="Icon" name="icon" onChange={handleOptionalTextChange} select size="small" value={definition.icon ?? ''}>
                         <MenuItem value="">No icon</MenuItem>
                         {iconPaths.map((path) => <MenuItem key={path} value={path}>{path}</MenuItem>)}
-                    </TextField>
-                    <TextField
+                    </ActionEditorField>
+                    <ActionEditorField
                         error={!!errors.onState}
+                        fieldId="action-on-state"
                         fullWidth
                         helperText={onStateHelperText}
                         label="Run when card enters state"
@@ -113,7 +125,7 @@ export function ActionDefinitionFields(props: ActionDefinitionFieldsProps) {
                         <MenuItem value="">No state trigger</MenuItem>
                         {missingState ? <MenuItem value={missingState}>{missingState} — unavailable</MenuItem> : null}
                         {states.map((state) => <MenuItem key={state} value={state}>{state}</MenuItem>)}
-                    </TextField>
+                    </ActionEditorField>
                     <FormControlLabel
                         control={<Checkbox checked={!!definition.needsWorkTree} onChange={handleNeedsWorkTreeChange} />}
                         label="Needs worktree"
@@ -122,8 +134,9 @@ export function ActionDefinitionFields(props: ActionDefinitionFieldsProps) {
                 {definition.type === 'agent' ? (
                     <ActionAgentCapabilityFields definition={definition} errors={errors} onChange={onChange} />
                 ) : (
-                    <TextField
+                    <ActionEditorField
                         error={!!errors.command}
+                        fieldId="action-command"
                         fullWidth
                         helperText={errors.command}
                         label="Command"

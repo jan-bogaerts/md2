@@ -35,6 +35,6 @@ The required boundary is simpler: actions only run in Electron, and Electron own
 
 ## see also
 
-- `design\architecture\initial description\writings\Running actions\running_actions.md`
+- `design\architecture\initial description\writings\running_actions.md`
 - `design\feature_descriptions\ready\F_010c_command_execution_and_chaining.md`
 - `design\feature_descriptions\ready\F_013_desktop_app.md`
