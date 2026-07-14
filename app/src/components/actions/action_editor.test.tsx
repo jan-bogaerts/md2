@@ -48,7 +48,14 @@ function loadAction(overrides: Record<string, unknown> = {}): ActionDefinition {
 function renderEditor(action: ActionDefinition = loadAction()): RenderResult {
     return render(
         <AppThemeProvider>
-            <ActionEditor action={action} actions={actionService.getActions()} repositoryFiles={[]} states={['ready']} />
+            <ActionEditor
+                action={action}
+                actions={actionService.getActions()}
+                cardTypes={['feature']}
+                repositoryFiles={[]}
+                specialContextTypes={['actions']}
+                states={['ready']}
+            />
         </AppThemeProvider>,
     )
 }
@@ -91,6 +98,31 @@ describe('ActionEditor', () => {
         fireEvent.change(labelInput(), { target: { value: ' \t\u2003' } })
         expect(screen.getByText(/Missing action field label/u)).toBeInTheDocument()
 
+        await act(async () => vi.advanceTimersByTime(600))
+        expect(saveDefinition).not.toHaveBeenCalled()
+    })
+
+    it('does not save while a newly added filter value is empty', async () => {
+        vi.useFakeTimers()
+        const saveDefinition = vi.spyOn(actionService, 'saveDefinition')
+        renderEditor()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Add filter' }))
+        fireEvent.change(labelInput(), { target: { value: 'Review code' } })
+
+        await act(async () => vi.advanceTimersByTime(600))
+        expect(saveDefinition).not.toHaveBeenCalled()
+    })
+
+    it('does not save duplicate custom filter keys', async () => {
+        vi.useFakeTimers()
+        const saveDefinition = vi.spyOn(actionService, 'saveDefinition')
+        renderEditor(loadAction({ appliesTo: { audience: 'developers', region: 'eu' } }))
+
+        fireEvent.change(screen.getAllByLabelText('Custom context field')[1], { target: { value: 'audience' } })
+        fireEvent.change(labelInput(), { target: { value: 'Review code' } })
+
+        expect(screen.getByText('Context field already exists')).toBeInTheDocument()
         await act(async () => vi.advanceTimersByTime(600))
         expect(saveDefinition).not.toHaveBeenCalled()
     })
@@ -202,7 +234,14 @@ describe('ActionEditor', () => {
         const externalAction = loadAction({ description: 'External change' })
         view.rerender(
             <AppThemeProvider>
-                <ActionEditor action={externalAction} actions={actionService.getActions()} repositoryFiles={[]} states={['ready']} />
+                <ActionEditor
+                    action={externalAction}
+                    actions={actionService.getActions()}
+                    cardTypes={['feature']}
+                    repositoryFiles={[]}
+                    specialContextTypes={['actions']}
+                    states={['ready']}
+                />
             </AppThemeProvider>,
         )
 

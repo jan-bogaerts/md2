@@ -3,6 +3,7 @@ import {
 } from '@mui/material'
 import type { ChangeEvent } from 'react'
 import type { ActionDefinition, RawActionDefinition } from '../../data/action_types'
+import type { WorktreeRecord } from '../../data/data_types'
 import { ActionAgentCapabilityFields } from './action_agent_capability_fields'
 import { ActionFilterEditor } from './action_filter_editor'
 import { ActionLinkListEditor } from './action_link_list_editor'
@@ -12,16 +13,19 @@ const ICON_FILE_PATTERN = /\.(svg|png|jpe?g|gif|webp)$/iu
 
 interface ActionDefinitionFieldsProps {
     actions: ActionDefinition[]
+    cardTypes: string[]
     definition: RawActionDefinition
     errorIndex: number | null
     errors: Partial<Record<keyof RawActionDefinition, string>>
     onChange: (definition: RawActionDefinition) => void
     repositoryFiles: string[]
+    specialContextTypes: string[]
     states: string[]
+    worktrees: WorktreeRecord[]
 }
 
 export function ActionDefinitionFields(props: ActionDefinitionFieldsProps) {
-    const { actions, definition, errorIndex, errors, onChange, repositoryFiles, states } = props
+    const {actions, cardTypes, definition, errorIndex, errors, onChange, repositoryFiles, specialContextTypes, states, worktrees} = props
     const iconPaths = repositoryFiles.filter((path) => ICON_FILE_PATTERN.test(path))
     if (definition.icon && !iconPaths.includes(definition.icon)) iconPaths.unshift(definition.icon)
 
@@ -115,7 +119,16 @@ export function ActionDefinitionFields(props: ActionDefinitionFieldsProps) {
                         value={definition.command ?? ''}
                     />
                 )}
-                <ActionFilterEditor error={errors.appliesTo} onChange={handleFiltersChange} value={definition.appliesTo} />
+                <ActionFilterEditor
+                    cardTypes={cardTypes}
+                    error={errors.appliesTo}
+                    onChange={handleFiltersChange}
+                    repositoryFiles={repositoryFiles}
+                    specialContextTypes={specialContextTypes}
+                    states={states}
+                    value={definition.appliesTo}
+                    worktrees={worktrees}
+                />
                 <ActionLinkListEditor
                     actions={actions}
                     error={errors.onBefore}

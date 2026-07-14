@@ -106,6 +106,13 @@ function folderPath(parentFolder: string, childFolder: string) {
     return parentFolder.length > 0 ? `${parentFolder}/${childFolder}` : childFolder
 }
 
+function folderName(path: string): string {
+    const name = path.replace(/\\/gu, '/').split('/').filter((part) => part.length > 0).at(-1)
+    if (!name) throw new Error(`Cannot derive context type from folder path: ${path}`)
+
+    return name
+}
+
 function conversationPanelMaxHeight(containerHeight: number): number {
     return Math.max(CONVERSATION_PANEL_MIN_HEIGHT, containerHeight * CONVERSATION_PANEL_MAX_HEIGHT_RATIO)
 }
@@ -159,6 +166,7 @@ export function TextView(props: TextViewProps) {
         () => [actionsFolder, workingFolder, folderPath(projectFolder, HISTORY_FOLDER_NAME)],
         [actionsFolder, projectFolder, workingFolder],
     )
+    const specialContextTypes = useMemo(() => specialFolderPaths.map(folderName), [specialFolderPaths])
     const tree = useMemo(() => buildFileTree(activeCards, backgroundCards, workingFolder, {
         actions,
         projectFolder,
@@ -381,7 +389,9 @@ export function TextView(props: TextViewProps) {
                             key={activeAction.sourcePath ?? undefined}
                             action={activeAction}
                             actions={actions}
+                            cardTypes={cardTypes.map(({ type }) => type)}
                             repositoryFiles={repositoryFiles}
+                            specialContextTypes={specialContextTypes}
                             states={states.map(({ state }) => state)}
                         />
                     ) : activeCard && activePath ? (

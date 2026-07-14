@@ -8,6 +8,7 @@ import {
 } from '../../services/action_service'
 import { dialogService } from '../../services/dialog_service'
 import { MarkdownEditor } from '../editor/markdown_editor'
+import { useWorktrees } from '../hooks/use_worktrees'
 import { ActionDefinitionFields } from './action_definition_fields'
 
 const AUTO_SAVE_DELAY_MS = 500
@@ -15,12 +16,15 @@ const AUTO_SAVE_DELAY_MS = 500
 interface ActionEditorProps {
     action: ActionDefinition
     actions: ActionDefinition[]
+    cardTypes: string[]
     repositoryFiles: string[]
+    specialContextTypes: string[]
     states: string[]
 }
 
 export function ActionEditor(props: ActionEditorProps) {
-    const { action, actions, repositoryFiles, states } = props
+    const { action, actions, cardTypes, repositoryFiles, specialContextTypes, states } = props
+    const worktrees = useWorktrees()
     const sourcePath = action.sourcePath
     if (!sourcePath) throw new Error(`Action editor requires a persisted action: ${action.id}`)
 
@@ -166,12 +170,15 @@ export function ActionEditor(props: ActionEditorProps) {
             ) : null}
             <ActionDefinitionFields
                 actions={selectableActions}
+                cardTypes={cardTypes}
                 definition={definition}
                 errorIndex={validation.index}
                 errors={errors}
                 onChange={handleDefinitionChange}
                 repositoryFiles={repositoryFiles}
+                specialContextTypes={specialContextTypes}
                 states={states}
+                worktrees={worktrees}
             />
             {definition.type === 'agent' ? (
                 <Box>

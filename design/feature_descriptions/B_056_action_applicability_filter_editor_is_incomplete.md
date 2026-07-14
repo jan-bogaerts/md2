@@ -1,7 +1,7 @@
 ---
 id: B-056
 title: action applicability filters are not fully structured
-status: design
+status: ready
 owner: JB
 affects:
 policy:

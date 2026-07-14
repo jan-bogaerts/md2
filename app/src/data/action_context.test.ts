@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import {
+    ACTION_CONTEXT_FILTER_DESCRIPTORS,
     actionMatchesContext,
     actionsForContext,
     cardContext,
     fileContext,
     folderContext,
     getCardType,
+    validateActionContextFilterValue,
 } from './action_context'
 import { BUILTIN_CUSTOM_PROMPT, type ActionDefinition } from './action_types'
 import { DEFAULT_CARD_TYPES, type ProjectCard } from './data_types'
@@ -62,6 +64,27 @@ describe('getCardType', () => {
     })
 })
 
+describe('action context filter descriptors', () => {
+    it('describes every declared filterable context field', () => {
+        expect(ACTION_CONTEXT_FILTER_DESCRIPTORS.map(({ key }) => key)).toEqual([
+            'kind', 'type', 'state', 'file', 'folder', 'worktree', 'worktreeError',
+        ])
+        expect(ACTION_CONTEXT_FILTER_DESCRIPTORS.find(({ key }) => key === 'state')).toMatchObject({
+            supportedContextKinds: ['card', 'file'],
+            valueSource: 'state',
+        })
+        expect(ACTION_CONTEXT_FILTER_DESCRIPTORS.find(({ key }) => key === 'folder')).toMatchObject({
+            supportedContextKinds: ['folder'],
+            valueSource: 'folder',
+        })
+    })
+
+    it('requires a non-empty filter value', () => {
+        expect(validateActionContextFilterValue('')).toBe('Required value')
+        expect(validateActionContextFilterValue('value')).toBeNull()
+    })
+})
+
 describe('cardContext / fileContext / folderContext', () => {
     it('derives type, state, file and kind for a card', () => {
         expect(cardContext(card('F-010', 'design'), DEFAULT_CARD_TYPES)).toEqual({
@@ -101,6 +124,13 @@ describe('actionMatchesContext', () => {
 
     it('rejects when appliesTo names a field absent from the context', () => {
         expect(actionMatchesContext(action('impl', { folder: 'history' }), context)).toBe(false)
+    })
+
+    it('matches extension fields conjunctively', () => {
+        const extendedContext = { ...context, audience: 'developers' }
+
+        expect(actionMatchesContext(action('impl', { audience: 'developers', state: 'design' }), extendedContext)).toBe(true)
+        expect(actionMatchesContext(action('impl', { audience: 'developers', state: 'ready' }), extendedContext)).toBe(false)
     })
 
     it('always matches an action with no appliesTo, including the built-in custom prompt', () => {

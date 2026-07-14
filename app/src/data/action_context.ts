@@ -5,6 +5,17 @@ import { getCardIdPrefix } from './card_identifiers'
 /** The kind of item an action entry point is attached to. */
 export type ActionContextKind = 'card' | 'file' | 'folder'
 
+export type ActionContextFilterValueSource =
+    'kind' | 'type' | 'state' | 'file' | 'folder' | 'worktree' | 'text'
+
+export interface ActionContextFilterDescriptor {
+    key: keyof ActionContext & string
+    label: string
+    supportedContextKinds: ActionContextKind[]
+    valueSource: ActionContextFilterValueSource
+    validate: (value: string) => string | null
+}
+
 /**
  * The selected item an action is evaluated against. `appliesTo` keys are matched
  * field-by-field against this object, so every matchable property is a string.
@@ -23,6 +34,21 @@ export interface ActionContext {
     worktreeError?: string
     [key: string]: string | undefined
 }
+
+/** Required-value validation shared by every applicability filter descriptor. */
+export function validateActionContextFilterValue(value: string): string | null {
+    return value.length > 0 ? null : 'Required value'
+}
+
+export const ACTION_CONTEXT_FILTER_DESCRIPTORS: ActionContextFilterDescriptor[] = [
+    { key: 'kind', label: 'Target kind', supportedContextKinds: ['card', 'file', 'folder'], valueSource: 'kind', validate: validateActionContextFilterValue },
+    { key: 'type', label: 'Context type', supportedContextKinds: ['card', 'file', 'folder'], valueSource: 'type', validate: validateActionContextFilterValue },
+    { key: 'state', label: 'Card state', supportedContextKinds: ['card', 'file'], valueSource: 'state', validate: validateActionContextFilterValue },
+    { key: 'file', label: 'Repository file', supportedContextKinds: ['card', 'file'], valueSource: 'file', validate: validateActionContextFilterValue },
+    { key: 'folder', label: 'Repository folder', supportedContextKinds: ['folder'], valueSource: 'folder', validate: validateActionContextFilterValue },
+    { key: 'worktree', label: 'Worktree', supportedContextKinds: ['card', 'file'], valueSource: 'worktree', validate: validateActionContextFilterValue },
+    { key: 'worktreeError', label: 'Worktree error', supportedContextKinds: ['card', 'file'], valueSource: 'text', validate: validateActionContextFilterValue },
+]
 
 /** Resolve the configured card type for a card id via its prefix (e.g. `F-005` → `feature`). */
 export function getCardType(cardTypes: CardTypeConfig[], id: string): string | undefined {
