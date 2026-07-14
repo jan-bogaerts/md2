@@ -45,7 +45,7 @@ function loadAction(overrides: Record<string, unknown> = {}): ActionDefinition {
     return action
 }
 
-function renderEditor(action: ActionDefinition = loadAction()): RenderResult {
+function renderEditor(action: ActionDefinition = loadAction(), states = ['ready']): RenderResult {
     return render(
         <AppThemeProvider>
             <ActionEditor
@@ -54,7 +54,7 @@ function renderEditor(action: ActionDefinition = loadAction()): RenderResult {
                 cardTypes={['feature']}
                 repositoryFiles={[]}
                 specialContextTypes={['actions']}
-                states={['ready']}
+                states={states}
             />
         </AppThemeProvider>,
     )
@@ -88,6 +88,72 @@ describe('ActionEditor', () => {
 
         expect(screen.getByLabelText('Command')).toBeInTheDocument()
         expect(screen.queryByRole('heading', { name: 'Prompt' })).not.toBeInTheDocument()
+    })
+
+    it('shows a stale onState value as unavailable without an out-of-range warning', () => {
+        const consoleWarning = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+        renderEditor(loadAction({ onState: 'removed' }))
+
+        expect(screen.getByLabelText('Run when card enters state')).toHaveTextContent('removed — unavailable')
+        expect(screen.getByText('State "removed" no longer exists. This trigger cannot run until cleared or replaced.')).toBeInTheDocument()
+        fireEvent.mouseDown(screen.getByLabelText('Run when card enters state'))
+        expect(within(screen.getByRole('listbox')).getByRole('option', { name: 'removed — unavailable' })).toBeInTheDocument()
+        expect(consoleWarning.mock.calls.some(([message]) => String(message).includes('out-of-range value'))).toBe(false)
+    })
+
+    it('keeps a stored onState visible when no states are configured', () => {
+        renderEditor(loadAction({ onState: 'removed' }), [])
+
+        expect(screen.getByLabelText('Run when card enters state')).toHaveTextContent('removed — unavailable')
+        expect(screen.getByText(/This trigger cannot run until cleared or replaced/u)).toBeInTheDocument()
+    })
+
+    it('marks the selected onState unavailable after a state config reload', () => {
+        const action = loadAction({ onState: 'ready' })
+        const view = renderEditor(action)
+
+        expect(screen.getByLabelText('Run when card enters state')).toHaveTextContent('ready')
+        expect(screen.queryByText(/This trigger cannot run until cleared or replaced/u)).not.toBeInTheDocument()
+
+        view.rerender(
+            <AppThemeProvider>
+                <ActionEditor
+                    action={action}
+                    actions={actionService.getActions()}
+                    cardTypes={['feature']}
+                    repositoryFiles={[]}
+                    specialContextTypes={['actions']}
+                    states={['done']}
+                />
+            </AppThemeProvider>,
+        )
+
+        expect(screen.getByLabelText('Run when card enters state')).toHaveTextContent('ready — unavailable')
+        expect(screen.getByText(/This trigger cannot run until cleared or replaced/u)).toBeInTheDocument()
+    })
+
+    it('clears a stale onState through the selector', async () => {
+        vi.useFakeTimers()
+        const action = loadAction({ onState: 'removed' })
+        const saveDefinition = vi.spyOn(actionService, 'saveDefinition').mockResolvedValue(action)
+        renderEditor(action)
+
+        fireEvent.mouseDown(screen.getByLabelText('Run when card enters state'))
+        fireEvent.click(within(screen.getByRole('listbox')).getByRole('option', { name: 'No state trigger' }))
+
+        expect(screen.queryByText(/This trigger cannot run until cleared or replaced/u)).not.toBeInTheDocument()
+        await act(async () => vi.advanceTimersByTime(600))
+        expect(saveDefinition.mock.calls[0][1].onState).toBeUndefined()
+    })
+
+    it('replaces a stale onState with a configured state', () => {
+        renderEditor(loadAction({ onState: 'removed' }))
+
+        fireEvent.mouseDown(screen.getByLabelText('Run when card enters state'))
+        fireEvent.click(within(screen.getByRole('listbox')).getByRole('option', { name: 'ready' }))
+
+        expect(screen.getByRole('combobox', { name: 'Run when card enters state' })).toHaveTextContent('ready')
+        expect(screen.queryByText(/This trigger cannot run until cleared or replaced/u)).not.toBeInTheDocument()
     })
 
     it('shows the actual validation error and does not save invalid state', async () => {

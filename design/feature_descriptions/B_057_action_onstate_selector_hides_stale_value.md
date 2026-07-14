@@ -1,7 +1,7 @@
 ---
 id: B-057
 title: action onState selector hides values absent from project states
-status: design
+status: ready
 owner: JB
 affects:
 policy:

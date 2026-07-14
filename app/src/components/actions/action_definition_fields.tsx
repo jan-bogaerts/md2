@@ -28,6 +28,10 @@ export function ActionDefinitionFields(props: ActionDefinitionFieldsProps) {
     const {actions, cardTypes, definition, errorIndex, errors, onChange, repositoryFiles, specialContextTypes, states, worktrees} = props
     const iconPaths = repositoryFiles.filter((path) => ICON_FILE_PATTERN.test(path))
     if (definition.icon && !iconPaths.includes(definition.icon)) iconPaths.unshift(definition.icon)
+    const missingState = definition.onState && !states.includes(definition.onState) ? definition.onState : null
+    const onStateHelperText = errors.onState ?? (missingState
+        ? `State "${missingState}" no longer exists. This trigger cannot run until cleared or replaced.`
+        : undefined)
 
     const handleRequiredTextChange = (event: ChangeEvent<HTMLInputElement>) => {
         onChange({ ...definition, [event.target.name]: event.target.value })
@@ -95,8 +99,19 @@ export function ActionDefinitionFields(props: ActionDefinitionFieldsProps) {
                         <MenuItem value="">No icon</MenuItem>
                         {iconPaths.map((path) => <MenuItem key={path} value={path}>{path}</MenuItem>)}
                     </TextField>
-                    <TextField error={!!errors.onState} fullWidth helperText={errors.onState} label="Run when card enters state" name="onState" onChange={handleOptionalTextChange} select size="small" value={definition.onState ?? ''}>
+                    <TextField
+                        error={!!errors.onState}
+                        fullWidth
+                        helperText={onStateHelperText}
+                        label="Run when card enters state"
+                        name="onState"
+                        onChange={handleOptionalTextChange}
+                        select
+                        size="small"
+                        value={definition.onState ?? ''}
+                    >
                         <MenuItem value="">No state trigger</MenuItem>
+                        {missingState ? <MenuItem value={missingState}>{missingState} — unavailable</MenuItem> : null}
                         {states.map((state) => <MenuItem key={state} value={state}>{state}</MenuItem>)}
                     </TextField>
                     <FormControlLabel
