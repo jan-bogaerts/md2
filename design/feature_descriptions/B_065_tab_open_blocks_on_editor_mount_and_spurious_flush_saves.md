@@ -1,7 +1,7 @@
 ---
 id: B-065
 title: opening a tree item blocks on editor mount and tab switches trigger spurious flush-saves
-status: design
+status: ready
 owner: JB
 affects:
 policy:

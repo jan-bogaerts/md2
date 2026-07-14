@@ -239,6 +239,8 @@ export class CardOperations {
         const { commitBatcher, config } = this.dependencies.requireDependencies()
         const currentProject = this.dependencies.project()
         if (!currentProject) throw new Error('Cannot save a file before a project is open')
+        const existingFile = this.dependencies.requireFile(file.path)
+        if (existingFile.content === file.content) return existingFile
 
         const currentFiles = this.dependencies.files().map((currentFile) => (currentFile.path === file.path ? file : currentFile))
         // replaceFiles already rebuilds the snapshot; only the change event is still needed.

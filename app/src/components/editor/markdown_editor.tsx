@@ -59,6 +59,14 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
     }, [])
 
     useEffect(() => {
+        if (!editorRef.current) throw new Error('Cannot baseline markdown before the editor is mounted')
+
+        const normalizedMarkdown = editorRef.current.getMarkdown()
+        latestMarkdownRef.current = normalizedMarkdown
+        lastEmittedMarkdownRef.current = normalizedMarkdown
+    }, [])
+
+    useEffect(() => {
         const unregister = registerMarkdownEditorFlush(flush)
 
         return () => {

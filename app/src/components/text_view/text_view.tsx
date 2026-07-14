@@ -3,7 +3,7 @@ import type {
     KeyboardEvent as ReactKeyboardEvent, MouseEvent as ReactMouseEvent,
     PointerEvent as ReactPointerEvent,
 } from 'react'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import { buildFileTree, fileLabel } from '../../data/file_tree'
 import type { ActionDefinition } from '../../data/action_types'
 import { getCardIdPrefix } from '../../data/card_identifiers'
@@ -210,6 +210,7 @@ export function TextView(props: TextViewProps) {
     const openTabs = tabs.map((path) => tabData(actionsByPath, cardsByPath, cardTypes, actionsFolder, path))
     const activeCard = activePath ? cardsByPath.get(activePath) ?? null : null
     const activeAction = activePath ? actionsByPath.get(activePath) ?? null : null
+    const mountedEditorPath = useDeferredValue(activePath)
 
     useEffect(() => {
         if (!isConversationPanelOpen || !activeCard || !projectId) return
@@ -243,7 +244,7 @@ export function TextView(props: TextViewProps) {
     }
 
     const handleEditorChange = (body: string) => {
-        if (activePath) onBodyChange(activePath, body)
+        if (mountedEditorPath) onBodyChange(mountedEditorPath, body)
     }
 
     const handleToggleConversationPanel = () => {
@@ -394,7 +395,7 @@ export function TextView(props: TextViewProps) {
                             specialContextTypes={specialContextTypes}
                             states={states.map(({ state }) => state)}
                         />
-                    ) : activeCard && activePath ? (
+                    ) : activeCard && activePath && mountedEditorPath === activePath ? (
                         <MarkdownEditor
                             key={activeCard.path}
                             markdown={activeCard.content}

@@ -1,7 +1,7 @@
 ---
 id: F-047
 title: running actions and agents
-status: design
+status: ready
 owner: JB
 affects:
 policy:

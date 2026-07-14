@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components -- test-only module, fast refresh does not apply */
-import { forwardRef, useImperativeHandle, type ChangeEvent, type ReactNode } from 'react'
+import { forwardRef, useEffect, useImperativeHandle, useRef, type ChangeEvent, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 
 /**
@@ -23,14 +23,29 @@ interface StubPlugin {
     toolbarContents?: () => ReactNode
 }
 
-export const MDXEditor = forwardRef<{ setMarkdown: (markdown: string) => void }, StubEditorProps>(
+function normalizeMarkdown(markdown: string) {
+    return markdown.trimEnd()
+}
+
+export const MDXEditor = forwardRef<{ getMarkdown: () => string; setMarkdown: (markdown: string) => void }, StubEditorProps>(
     function MDXEditorStub(props, ref) {
         const { className, markdown, onChange, overlayContainer, plugins = [], readOnly } = props
         const toolbar = plugins.find(({ toolbarContents }) => !!toolbarContents)
+        const latestMarkdownRef = useRef(normalizeMarkdown(markdown))
 
-        useImperativeHandle(ref, () => ({ setMarkdown: () => {} }), [])
+        useImperativeHandle(ref, () => ({
+            getMarkdown: () => latestMarkdownRef.current,
+            setMarkdown: (nextMarkdown: string) => {
+                latestMarkdownRef.current = nextMarkdown
+            },
+        }), [])
+
+        useEffect(() => {
+            onChange?.(latestMarkdownRef.current)
+        }, [onChange])
 
         const handleChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
+            latestMarkdownRef.current = event.target.value
             onChange?.(event.target.value)
         }
 

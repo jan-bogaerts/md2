@@ -332,6 +332,15 @@ describe('TextView', () => {
         expect(screen.getByRole('tab', { name: /Beta/ })).toBeInTheDocument()
     })
 
+    it('does not save an untouched file when its tab closes', () => {
+        const { onBodyChange } = renderTextView()
+
+        clickTreeFile('F-1 Alpha')
+        fireEvent.click(screen.getByRole('button', { name: 'Close F-1 Alpha' }))
+
+        expect(onBodyChange).not.toHaveBeenCalled()
+    })
+
     it('confirms tree deletion and closes the matching open tab after success', async () => {
         const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
         const { onDeleteFile } = renderTextView()
@@ -379,7 +388,7 @@ describe('TextView', () => {
         confirm.mockRestore()
     })
 
-    it('persists edits through onBodyChange when another file is opened', () => {
+    it('persists an edit exactly once when another file is opened', () => {
         const { onBodyChange } = renderTextView()
 
         clickTreeFile('F-1 Alpha')
@@ -387,7 +396,27 @@ describe('TextView', () => {
         expect(onBodyChange).not.toHaveBeenCalled()
         clickTreeFile('F-2 Beta')
 
-        expect(onBodyChange).toHaveBeenCalledWith('design/active/F-1-a.md', 'Edited body')
+        expect(onBodyChange).toHaveBeenCalledExactlyOnceWith('design/active/F-1-a.md', 'Edited body')
+    })
+
+    it('mounts only the final editor after rapid switching and preserves its pending edit', () => {
+        const { onBodyChange } = renderTextView()
+        const tree = within(screen.getByLabelText('File tree'))
+        const alphaButton = tree.getByRole('button', { name: 'F-1 Alpha' })
+        const betaButton = tree.getByRole('button', { name: 'F-2 Beta' })
+
+        act(() => {
+            alphaButton.click()
+            betaButton.click()
+            alphaButton.click()
+        })
+
+        expect(screen.getAllByTestId('mdx-editor')).toHaveLength(1)
+        expect(screen.getByDisplayValue(/Body A/)).toBeInTheDocument()
+        fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Rapid edit' } })
+        fireEvent.click(screen.getByRole('tab', { name: /Beta/ }))
+
+        expect(onBodyChange).toHaveBeenCalledExactlyOnceWith('design/active/F-1-a.md', 'Rapid edit')
     })
 
     it('opens the requested file when the open nonce changes', () => {

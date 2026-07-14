@@ -55,6 +55,19 @@ describe('MarkdownEditor', () => {
         expect(onChange).not.toHaveBeenCalled()
     })
 
+    it('does not flush editor-normalized markdown when the user made no edit', () => {
+        const onChange = vi.fn()
+        const { unmount } = render(
+            <AppThemeProvider>
+                <MarkdownEditor markdown="original  \n" onChange={onChange} />
+            </AppThemeProvider>,
+        )
+
+        unmount()
+
+        expect(onChange).not.toHaveBeenCalled()
+    })
+
     it('flushes pending edits through onChange on unmount', () => {
         const onChange = vi.fn()
         const { unmount } = render(

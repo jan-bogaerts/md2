@@ -4,7 +4,7 @@ import { configService } from './config_service'
 import { DataService } from './data_service'
 import { DIALOG_SERVICE_EVENT, dialogService, type DialogServiceMessage, type DialogSeverity } from './dialog_service'
 import { telemetryService } from './telemetry_service'
-import { activeCardFile, createStorage } from './test_support/data_service_test_support'
+import { activeCardFile, createStorage, storageFiles } from './test_support/data_service_test_support'
 
 function recordDialogMessages(severity: DialogSeverity) {
     const messages: string[] = []
@@ -510,6 +510,25 @@ describe('CardOperations', () => {
         const committed = (storage.commit as ReturnType<typeof vi.fn>).mock.calls.at(-1)?.[0] as CommitRequest
         expect(committed.files[0].content.startsWith('---\nid: F-1')).toBe(true)
         expect(committed.files[0].content).toContain('Edited body')
+    })
+
+    it('does not rebuild, dispatch, or commit when saved content is unchanged', async () => {
+        configService.init()
+        const storage = createStorage()
+        const service = new DataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        await vi.waitFor(() => expect(service.getState().snapshot?.repositoryFiles).toHaveLength(3))
+        const snapshot = service.getState().snapshot
+        const handleChanged = vi.fn()
+        service.addEventListener('changed', handleChanged)
+
+        service.cards.saveFile(storageFiles[0])
+        await service.cards.flushPendingCommits()
+
+        expect(service.getState().snapshot).toBe(snapshot)
+        expect(handleChanged).not.toHaveBeenCalled()
+        expect(storage.commit).not.toHaveBeenCalled()
     })
 
     it('uses the committed sha from the first body update for the next body update', async () => {
