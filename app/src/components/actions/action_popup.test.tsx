@@ -1,10 +1,13 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ActionPopup } from './action_popup'
 import type { ActionDefinition } from '../../data/action_types'
 import type { ActionContext } from '../../data/action_context'
 import type { ActionRunResult } from '../../data/action_run_types'
 import { configService } from '../../services/config_service'
+import { actionExecutionService } from '../../services/action_execution_service'
+import { agentCapabilitiesService } from '../../services/agent_capabilities_service'
+import type { ActionExecutionEvent } from '../../data/action_run_types'
 
 function action(name: string, overrides: Partial<ActionDefinition> = {}): ActionDefinition {
     return {
@@ -78,6 +81,8 @@ function renderPopup(overrides: Partial<Parameters<typeof ActionPopup>[0]> = {})
 describe('ActionPopup', () => {
     afterEach(cleanup)
     afterEach(() => {
+        actionExecutionService.stop()
+        delete window.md2Actions
         configService.clear()
     })
 
@@ -90,6 +95,70 @@ describe('ActionPopup', () => {
         expect(screen.getByRole('button', { name: 'Run' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Schedule' }).compareDocumentPosition(screen.getByRole('button', { name: 'Run' })))
             .toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+    })
+
+    it('disables execution controls with an explanation in web mode', () => {
+        render(
+            <ActionPopup
+                action={action('Build')}
+                anchorElement={document.body}
+                context={context}
+                onClose={vi.fn()}
+                onNavigate={vi.fn()}
+            />,
+        )
+
+        expect(screen.getByRole('button', { name: 'Run' })).toBeDisabled()
+        expect(screen.getByRole('button', { name: 'Schedule' })).toBeDisabled()
+        expect(screen.getByText('Action execution requires the Electron desktop app')).toBeInTheDocument()
+    })
+
+    it('disables an unavailable selected agent and shows its executable error', () => {
+        window.md2Actions = { onActionExecution: () => vi.fn() } as unknown as typeof window.md2Actions
+        vi.spyOn(agentCapabilitiesService, 'getSnapshot').mockReturnValue({
+            availability: { error: null, loading: false, values: { codex: { available: false, error: 'codex not found' } } },
+            models: { error: null, loading: false, values: [] },
+            thinkingLevels: { error: null, loading: false, values: [] },
+        })
+        render(
+            <ActionPopup
+                action={action('Agent', { agent: 'codex', command: null, model: 'GPT 5.5', prompt: 'Run', type: 'agent' })}
+                anchorElement={document.body}
+                context={context}
+                onClose={vi.fn()}
+                onNavigate={vi.fn()}
+            />,
+        )
+
+        expect(screen.getByRole('button', { name: 'Run' })).toBeDisabled()
+        expect(screen.getByText('codex not found')).toBeInTheDocument()
+    })
+
+    it('reattaches after reopen and renders live output from shared execution state', () => {
+        let listener: ((event: ActionExecutionEvent) => void) | null = null
+        window.md2Actions = {
+            onActionExecution: (nextListener: (event: ActionExecutionEvent) => void) => {
+                listener = nextListener
+
+                return vi.fn()
+            },
+        } as unknown as typeof window.md2Actions
+        renderPopup()
+        if (!listener) throw new Error('Missing action execution listener')
+        const emit = listener as (event: ActionExecutionEvent) => void
+        act(() => emit({actionId: 'action-implement', context, executionId: 'execution-1', phase: 'main', rootActionId: 'action-implement', status: 'running', type: 'execution'}))
+        act(() => emit({
+            actionId: 'action-implement', context, executionId: 'execution-1', phase: 'main', rootActionId: 'action-implement',
+            status: 'running', stdout: 'live output', type: 'action',
+        }))
+
+        expect(screen.getByText(/live output/u)).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
+        cleanup()
+        renderPopup()
+
+        expect(screen.getByText(/live output/u)).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
     })
 
     it('registers an at schedule from the picker', async () => {
@@ -229,6 +298,7 @@ describe('ActionPopup', () => {
         const selectedAction = action('Implement', { thinkingLevel: 'high', type: 'agent' })
         const { runAction } = renderPopup({ action: selectedAction })
 
+        expect(screen.getByRole('combobox', { name: 'Thinking level' })).toBeEnabled()
         expect(screen.getByRole('combobox', { name: 'Thinking level' })).toHaveTextContent('high')
         selectThinkingLevel('low')
         fireEvent.click(screen.getByRole('button', { name: 'Run' }))
@@ -314,8 +384,8 @@ describe('ActionPopup', () => {
             }]),
         })
 
-        expect(screen.getByText('Run history')).toBeInTheDocument()
         await waitFor(() => expect(screen.getByText('completed (codex / gpt-5): done')).toBeInTheDocument())
+        expect(screen.getByText('Run history')).toBeInTheDocument()
     })
 
     it('shows and hides a diff view for a commit history entry', async () => {

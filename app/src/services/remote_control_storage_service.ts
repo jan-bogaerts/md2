@@ -9,6 +9,7 @@ import type {
     ElectronActionBridge,
     OpenInEditorRequest,
 } from '../data/electron_action_bridge'
+import type { AgentAvailability } from '../data/electron_data_bridge'
 import type {
     AgentConversation,
     AgentRunEvent,
@@ -23,8 +24,6 @@ import type {
     ProjectReference,
     ProjectWatchEvent,
     RepositoryReference,
-    StartAgentConversationRequest,
-    StartAgentConversationResult,
     StorageProjectFiles,
     StorageService,
     TopLevelFolderReference,
@@ -152,6 +151,11 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         this.pendingPushBranches.add(request.branch)
     }
 
+    /** Returns the project currently open in the connected desktop app, or null if none is loaded. */
+    async getActiveProject(): Promise<ProjectReference | null> {
+        return this.request<ProjectReference | null>('getActiveProject', [])
+    }
+
     async listBranches(project: ProjectReference): Promise<BranchReference[]> {
         return this.request<BranchReference[]>('listBranches', [project])
     }
@@ -231,18 +235,6 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         return this.pendingPushBranches.has(project.branch)
     }
 
-    async sendAgentInput(_project: ProjectReference, runId: string, input: string): Promise<void> {
-        await this.request('sendAgentInput', [runId, input])
-    }
-
-    async startAgentConversation(
-        _project: ProjectReference,
-        request: StartAgentConversationRequest,
-        onEvent: (event: AgentRunEvent) => void,
-    ): Promise<StartAgentConversationResult> {
-        return this.requestWithAgentEvents<StartAgentConversationResult>('startAgentConversation', [request], onEvent)
-    }
-
     async stopAgent(_project: ProjectReference, runId: string): Promise<void> {
         await this.request('stopAgent', [runId])
     }
@@ -276,6 +268,10 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
 
     async loadActionRunHistory(request: ActionRunHistoryRequest): Promise<ActionRunHistoryEntry[]> {
         return this.request<ActionRunHistoryEntry[]>('loadActionRunHistory', [request])
+    }
+
+    async loadAgentAvailability(): Promise<Record<string, AgentAvailability>> {
+        return this.request<Record<string, AgentAvailability>>('loadAgentAvailability', [])
     }
 
     onActionExecution(callback: (event: ActionExecutionEvent) => void): () => void {

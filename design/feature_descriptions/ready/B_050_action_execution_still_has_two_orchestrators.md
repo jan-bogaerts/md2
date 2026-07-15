@@ -1,7 +1,7 @@
 ---
 id: B-050
 title: action execution still has renderer and Electron orchestrators
-status: design
+status: ready
 owner: JB
 affects:
 policy:

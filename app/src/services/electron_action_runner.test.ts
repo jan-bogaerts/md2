@@ -3,6 +3,7 @@ import type { ActionDefinition } from '../data/action_types'
 import type { ActionExecutionEvent } from '../data/action_run_types'
 import { setActionBridgeOverride, type ElectronActionBridge } from '../data/electron_action_bridge'
 import { dataService } from './data_service'
+import { actionExecutionService } from './action_execution_service'
 import { cancelElectronAction, recordActionEventProcessingError, runElectronAction } from './electron_action_runner'
 
 const action: ActionDefinition = {
@@ -46,10 +47,10 @@ function createBridge(): ElectronActionBridge {
         startAction: vi.fn(async () => {
             const emit = callback as unknown as (event: ActionExecutionEvent) => void
             emit({
-                actionId: 'test', command: 'npm test', executionId: 'action-1', phase: 'main', rootActionId: 'test',
+                actionId: 'test', command: 'npm test', context, executionId: 'action-1', phase: 'main', rootActionId: 'test',
                 status: 'completed', stderr: '', stdout: 'ok', type: 'action',
             })
-            emit({ actionId: 'test', executionId: 'action-1', phase: 'main', rootActionId: 'test', status: 'completed', type: 'execution' })
+            emit({ actionId: 'test', context, executionId: 'action-1', phase: 'main', rootActionId: 'test', status: 'completed', type: 'execution' })
 
             return 'action-1'
         }),
@@ -58,6 +59,7 @@ function createBridge(): ElectronActionBridge {
 
 describe('electron action runner client', () => {
     afterEach(() => {
+        actionExecutionService.stop()
         setActionBridgeOverride(null)
         vi.restoreAllMocks()
     })
@@ -85,7 +87,7 @@ describe('electron action runner client', () => {
         expect(bridge.cancelActionExecution).toHaveBeenCalledWith('action-1')
     })
 
-    it('rejects with terminal processing error and unsubscribes', async () => {
+    it('rejects with terminal snapshot processing error', async () => {
         const bridge = createBridge()
         const processingError = new Error('snapshot reload failed')
         setActionBridgeOverride(bridge)
@@ -93,8 +95,6 @@ describe('electron action runner client', () => {
 
         await expect(runElectronAction(action, context)).rejects.toBe(processingError)
 
-        const cleanup = vi.mocked(bridge.onActionExecution).mock.results[0].value
-        expect(cleanup).toHaveBeenCalledTimes(1)
     })
 
     it('rejects with original shared-consumer error', async () => {
@@ -106,18 +106,16 @@ describe('electron action runner client', () => {
 
         await expect(runElectronAction(action, context)).rejects.toBe(processingError)
 
-        const cleanup = vi.mocked(bridge.onActionExecution).mock.results[0].value
-        expect(cleanup).toHaveBeenCalledTimes(1)
     })
 
-    it('unsubscribes after successful terminal processing', async () => {
+    it('reuses one shared subscription across successful runs', async () => {
         const bridge = createBridge()
         setActionBridgeOverride(bridge)
         vi.spyOn(dataService.projectLoading, 'reloadCurrentProjectSnapshot').mockResolvedValue(null)
 
         await runElectronAction(action, context)
+        await runElectronAction(action, context)
 
-        const cleanup = vi.mocked(bridge.onActionExecution).mock.results[0].value
-        expect(cleanup).toHaveBeenCalledTimes(1)
+        expect(bridge.onActionExecution).toHaveBeenCalledTimes(1)
     })
 })

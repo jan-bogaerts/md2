@@ -1,10 +1,12 @@
 import { Box, Button, MenuItem, Stack, TextField, Typography } from '@mui/material'
 import type { ChangeEvent, KeyboardEvent } from 'react'
 import { THINKING_LEVELS, type AgentProfile, type ThinkingLevel } from '../../data/agent_profiles'
+import type { AgentAvailability } from '../../data/electron_data_bridge'
 
 interface ActionAgentFormProps {
     actionLabel: string
     agent: string
+    agentAvailability: Record<string, AgentAvailability>
     agentProfiles: AgentProfile[]
     compact?: boolean
     convertMessage: string | null
@@ -29,6 +31,7 @@ export function ActionAgentForm(props: ActionAgentFormProps) {
     const {
         actionLabel,
         agent,
+        agentAvailability,
         agentProfiles,
         compact = false,
         convertMessage,
@@ -122,7 +125,7 @@ export function ActionAgentForm(props: ActionAgentFormProps) {
                         variant="outlined"
                     />
                 </Stack>
-                <Box sx={{ alignItems: 'center', color: 'text.disabled', display: 'flex', flexWrap: 'wrap', fontSize: 12, gap: 0.75 }}>
+                <Box sx={{ alignItems: 'center', color: 'text.secondary', display: 'flex', flexWrap: 'wrap', fontSize: 12, gap: 0.75 }}>
                     <span>Agent</span>
                     <Box sx={{ alignItems: 'center', display: 'flex', position: 'relative' }}>
                         <Box sx={{ bgcolor: 'success.main', borderRadius: '50%', height: 6, left: 8, position: 'absolute', width: 6, zIndex: 1 }} />
@@ -140,7 +143,13 @@ export function ActionAgentForm(props: ActionAgentFormProps) {
                             variant="standard"
                         >
                             {agentProfiles.map((profile) => (
-                                <MenuItem key={profile.name} value={profile.name}>{profile.name}</MenuItem>
+                                <MenuItem
+                                    disabled={agentAvailability[profile.name]?.available !== true}
+                                    key={profile.name}
+                                    value={profile.name}
+                                >
+                                    {profile.name}{agentAvailability[profile.name]?.error ? ` — ${agentAvailability[profile.name].error}` : ''}
+                                </MenuItem>
                             ))}
                         </TextField>
                     </Box>
@@ -211,7 +220,9 @@ export function ActionAgentForm(props: ActionAgentFormProps) {
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
                 <TextField label="Agent" onChange={onAgentChange} select size="small" value={agent}>
                     {agentProfiles.map((profile) => (
-                        <MenuItem key={profile.name} value={profile.name}>{profile.name}</MenuItem>
+                        <MenuItem disabled={agentAvailability[profile.name]?.available !== true} key={profile.name} value={profile.name}>
+                            {profile.name}{agentAvailability[profile.name]?.error ? ` — ${agentAvailability[profile.name].error}` : ''}
+                        </MenuItem>
                     ))}
                 </TextField>
                 {selectedAgentModels.length > 0 ? (

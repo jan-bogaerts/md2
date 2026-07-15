@@ -15,6 +15,8 @@ const ACTION_ON_RULE_FIELD_SET = new Set(ACTION_ON_RULE_FIELDS)
 const ACTION_APPLIES_TO_FIELD_SET = new Set(ACTION_APPLIES_TO_FIELDS)
 export const CUSTOM_PROMPT_ACTION_ID = 'md2.custom-prompt'
 export const CUSTOM_PROMPT_ACTION_NAME = 'custom prompt'
+export const REMARKABLE_CONVERT_ACTION_ID = 'md2.convert-remarkable-images-to-text'
+export const REMARKABLE_CONVERT_ACTION_NAME = 'convert-remarkable-images-to-text'
 
 // Fields the editor can route an error to. Anything else routes to the general summary.
 const ROUTABLE_FIELDS = new Set([
@@ -76,6 +78,30 @@ export const BUILTIN_CUSTOM_PROMPT = {
     thinkingLevel: null,
     type: 'agent',
 }
+
+export const BUILTIN_REMARKABLE_CONVERT = {
+    agent: null,
+    appliesTo: null,
+    builtin: true,
+    command: null,
+    description: 'Transcribe imported Remarkable images and append the text to the card.',
+    icon: null,
+    id: REMARKABLE_CONVERT_ACTION_ID,
+    label: 'Convert Remarkable images to text',
+    model: null,
+    name: REMARKABLE_CONVERT_ACTION_NAME,
+    needsWorkTree: false,
+    on: [],
+    onAfter: [],
+    onBefore: [],
+    onState: null,
+    prompt: 'Convert the following Remarkable images to text and append the transcription to {{file}}:\n{{prompt}}',
+    sourcePath: null,
+    thinkingLevel: null,
+    type: 'agent',
+}
+
+const BUILTIN_ACTIONS = [BUILTIN_CUSTOM_PROMPT, BUILTIN_REMARKABLE_CONVERT]
 
 /**
  * Log an action validation failure with its routing code and source path (no stack), then return a
@@ -315,8 +341,8 @@ export function parseActionDefinitionFiles(files) {
 /** Validate and resolve a whole-project graph of structured action definitions. */
 export function validateActionDefinitionGraph(entries, dependencies = {}) {
     const rawDefinitions = entries.map(({ definition, path }) => validateRawDefinition(definition, path, dependencies))
-    const ids = new Set([CUSTOM_PROMPT_ACTION_ID])
-    const names = new Set([CUSTOM_PROMPT_ACTION_NAME])
+    const ids = new Set(BUILTIN_ACTIONS.map(({ id }) => id))
+    const names = new Set(BUILTIN_ACTIONS.map(({ name }) => name))
     for (const raw of rawDefinitions) {
         if (ids.has(raw.id)) throw fail(`Duplicate action id ${raw.id} in ${raw.sourcePath}`, 'duplicate-id', raw.sourcePath, 'id')
         if (names.has(raw.name)) throw fail(`Duplicate action name ${raw.name} in ${raw.sourcePath}`, 'duplicate-name', raw.sourcePath, 'name')
@@ -324,7 +350,7 @@ export function validateActionDefinitionGraph(entries, dependencies = {}) {
         names.add(raw.name)
     }
 
-    const registry = new Map([[CUSTOM_PROMPT_ACTION_ID, BUILTIN_CUSTOM_PROMPT]])
+    const registry = new Map(BUILTIN_ACTIONS.map((action) => [action.id, action]))
     for (const raw of rawDefinitions) {
         registry.set(raw.id, {
             agent: raw.agent ?? null,
@@ -360,7 +386,7 @@ export function validateActionDefinitionGraph(entries, dependencies = {}) {
         }))
     }
 
-    const actions = [BUILTIN_CUSTOM_PROMPT, ...rawDefinitions.map(({ id }) => registry.get(id))]
+    const actions = [...BUILTIN_ACTIONS, ...rawDefinitions.map(({ id }) => registry.get(id))]
     detectCycles(actions)
 
     return actions

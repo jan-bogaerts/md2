@@ -117,37 +117,23 @@ describe('RemoteControlStorageService', () => {
         await expect(deletion).resolves.toBeUndefined()
     })
 
-    it('delivers watch and agent push events', async () => {
+    it('delivers watch push events', async () => {
         installWebSocket()
         const service = createService()
         const watchCallback = vi.fn()
-        const agentCallback = vi.fn()
         const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
 
         service.watchProject(project, watchCallback)
-        const agentRequest = service.startAgentConversation(project, { cardPath: 'design/F-1.md', prompt: 'go' }, agentCallback)
         const socket = lastSocket()
         socket.open()
         await flushPromises()
         const watchRequest = JSON.parse(socket.sent[0]) as { id: string }
-        const agentStartRequest = JSON.parse(socket.sent[1]) as { id: string }
         socket.receive({ id: watchRequest.id, result: { subscriptionId: 'sub-1' } })
         socket.receive({
             event: 'watchProject',
             payload: { event: { changeKind: 'changed', path: 'design/F-1.md' }, requestId: watchRequest.id, subscriptionId: 'sub-1' },
         })
-        socket.receive({
-            event: 'agentRun',
-            payload: {
-                event: { content: 'started', conversation: { id: 'run-1' }, runId: 'run-1', type: 'started' },
-                requestId: agentStartRequest.id,
-            },
-        })
-        socket.receive({ id: agentStartRequest.id, result: { conversation: { id: 'run-1' }, reference: 'log.json', runId: 'run-1' } })
-
-        await expect(agentRequest).resolves.toEqual({ conversation: { id: 'run-1' }, reference: 'log.json', runId: 'run-1' })
         expect(watchCallback).toHaveBeenCalledWith({ changeKind: 'changed', path: 'design/F-1.md' })
-        expect(agentCallback).toHaveBeenCalledWith({ content: 'started', conversation: { id: 'run-1' }, runId: 'run-1', type: 'started' })
     })
 
     it('fails pending requests clearly when the socket closes', async () => {

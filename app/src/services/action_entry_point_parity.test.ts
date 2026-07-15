@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ActionExecutionEvent, ActionStartRequest } from '../data/action_run_types'
 import { actionService } from './action_service'
+import { actionExecutionService } from './action_execution_service'
 import { configService } from './config_service'
 import { DataService, dataService } from './data_service'
 import { runElectronAction } from './electron_action_runner'
@@ -8,6 +9,7 @@ import { createStorage } from './test_support/data_service_test_support'
 
 describe('action entry-point parity', () => {
     afterEach(() => {
+        actionExecutionService.stop()
         delete window.md2Actions
         configService.clear()
         vi.restoreAllMocks()
@@ -27,10 +29,13 @@ describe('action entry-point parity', () => {
                 requests.push(request)
                 const executionId = `action-${requests.length}`
                 const actionEvent: ActionExecutionEvent = {
-                    actionId: request.actionId, command: 'run', executionId, phase: 'main', rootActionId: request.actionId,
+                    actionId: request.actionId, command: 'run', context: request.context, executionId, phase: 'main', rootActionId: request.actionId,
                     status: 'completed', stderr: '', stdout: 'done', type: 'action',
                 }
-                const executionEvent: ActionExecutionEvent = {actionId: request.actionId, executionId, phase: 'main', rootActionId: request.actionId, status: 'completed', type: 'execution'}
+                const executionEvent: ActionExecutionEvent = {
+                    actionId: request.actionId, context: request.context, executionId, phase: 'main', rootActionId: request.actionId,
+                    status: 'completed', type: 'execution',
+                }
                 for (const listener of listeners) listener(actionEvent)
                 for (const listener of listeners) listener(executionEvent)
 

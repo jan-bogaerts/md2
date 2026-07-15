@@ -8,6 +8,7 @@ import type { ChangeEvent, KeyboardEvent, MouseEvent, TouchEvent } from 'react'
 import type { CardTypeConfig, ProjectCard, WorktreeRecord } from '../../data/data_types'
 import { cardContext } from '../../data/action_context'
 import { ActionEntryPoints } from '../actions/action_entry_points'
+import { useRunningActionForFile } from '../hooks/use_action_executions'
 import { CardDeleteDialog } from './card_delete_dialog'
 import { CardPolicyMenuItem } from './card_policy_menu_item'
 import { CardWorktreeIndicator } from './card_worktree_indicator'
@@ -54,8 +55,8 @@ export function ProjectCardView(props: ProjectCardViewProps) {
     const [titleDraft, setTitleDraft] = useState(card.header.title)
     const accentColor = color ?? theme.palette.primary.main
     const accentBackground = alpha(accentColor, 0.16)
-    const isAgentRunning = card.agentConversations.some((conversation) => conversation.status === 'running')
-    const statusLabel = isAgentRunning ? 'Running' : 'Idle'
+    const runningExecution = useRunningActionForFile(card.path)
+    const statusLabel = runningExecution ? 'Running' : 'Idle'
     const dragTranslation = transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : ''
     const style = {
         opacity: isDragging ? 0 : 1,
@@ -219,7 +220,7 @@ export function ProjectCardView(props: ProjectCardViewProps) {
                         {card.header.id}
                     </Box>
                     <Box component="span" sx={{ alignItems: 'center', color: 'text.secondary', display: 'flex', fontSize: 11, gap: 0.625 }}>
-                        <Box sx={{ bgcolor: isAgentRunning ? 'success.main' : 'text.disabled', borderRadius: '50%', height: 7, width: 7 }} />
+                        <Box sx={{ bgcolor: runningExecution ? 'success.main' : 'text.disabled', borderRadius: '50%', height: 7, width: 7 }} />
                         {statusLabel}
                     </Box>
                     <Box sx={{ flex: 1 }} />

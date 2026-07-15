@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ActionEntryPoints } from './action_entry_points'
 import { FileTreeView } from '../text_view/file_tree_view'
@@ -8,6 +8,8 @@ import type { ActionFile } from '../../data/action_types'
 import { buildFileTree } from '../../data/file_tree'
 import { cardContext, folderContext } from '../../data/action_context'
 import { DEFAULT_CARD_TYPES, type ProjectCard } from '../../data/data_types'
+import type { ActionExecutionEvent } from '../../data/action_run_types'
+import { actionExecutionService } from '../../services/action_execution_service'
 
 function file(definition: { id: string }): ActionFile {
     return { content: JSON.stringify(definition), path: `actions/${definition.id}.json` }
@@ -39,6 +41,8 @@ function card(id: string, status: string | null, title = id): ProjectCard {
 const featureCard = card('F-010', 'design')
 
 afterEach(() => {
+    actionExecutionService.stop()
+    delete window.md2Actions
     cleanup()
     actionService.clear()
     vi.restoreAllMocks()
@@ -108,6 +112,36 @@ describe('ActionEntryPoints filtering', () => {
 
         expect(screen.getByRole('menuitem', { name: 'Custom prompt' })).toBeInTheDocument()
     })
+
+    it.each(['completed', 'failed', 'cancelled', 'okButNotAfter'] as const)(
+        'disables card entry points while running and enables them after %s',
+        (terminalStatus) => {
+            let listener: ((event: ActionExecutionEvent) => void) | null = null
+            window.md2Actions = {
+                onActionExecution: (nextListener: (event: ActionExecutionEvent) => void) => {
+                    listener = nextListener
+
+                    return vi.fn()
+                },
+            } as unknown as typeof window.md2Actions
+            const context = cardContext(featureCard, DEFAULT_CARD_TYPES)
+            render(<ActionEntryPoints context={context} variant="icons" />)
+            if (!listener) throw new Error('Missing execution listener')
+            const emit = listener as (event: ActionExecutionEvent) => void
+
+            act(() => emit({
+                actionId: 'implement', context, executionId: 'execution-1', phase: 'main', rootActionId: 'implement',
+                status: 'running', type: 'execution',
+            }))
+            expect(screen.getByRole('button', { name: 'Implement' })).toBeDisabled()
+
+            act(() => emit({
+                actionId: 'implement', context, executionId: 'execution-1', phase: 'main', rootActionId: 'implement',
+                status: terminalStatus, type: 'execution',
+            }))
+            expect(screen.getByRole('button', { name: 'Implement' })).toBeEnabled()
+        },
+    )
 })
 
 describe('ActionEntryPoints popup', () => {
@@ -171,7 +205,7 @@ describe('ActionEntryPoints popup', () => {
         fireEvent.change(dialog.getByLabelText('Extra prompt'), { target: { value: 'Review this feature' } })
         fireEvent.change(dialog.getByLabelText('Preset name'), { target: { value: 'Review feature' } })
 
-        expect(dialog.getByRole('button', { name: 'Run' })).toBeEnabled()
+        expect(dialog.getByRole('button', { name: 'Run' })).toBeDisabled()
 
         fireEvent.click(dialog.getByRole('button', { name: 'Add action' }))
         expect(dialog.queryByLabelText('Preset name')).not.toBeInTheDocument()

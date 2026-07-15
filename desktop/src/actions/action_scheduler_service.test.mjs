@@ -177,7 +177,10 @@ describe('ActionSchedulerService', () => {
 
         expect(localGitService.loadActionSchedules).toHaveBeenCalledWith(project, 'projects/demo/actions')
         expect(localGitService.loadActionFiles).toHaveBeenCalledWith(project, 'projects/demo/actions')
-        expect(localGitService.histories).toHaveLength(0)
+        expect(localGitService.histories).toEqual([expect.objectContaining({
+            entry: expect.objectContaining({ command: 'echo done', output: 'done', status: 'completed' }),
+            request: expect.objectContaining({ actionId: 'implement', actionsFolder: 'projects/demo/actions' }),
+        })])
     })
 
     it('fires a due schedule and marks it done', async () => {

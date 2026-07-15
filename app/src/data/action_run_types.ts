@@ -8,6 +8,7 @@ export type ActionRunPhase = 'after' | 'before' | 'main' | 'on'
 
 export interface ActionRunInput {
     agent?: string
+    continueFrom?: string
     extraPrompt?: string
     model?: string
     thinkingLevel?: ThinkingLevel
@@ -24,6 +25,7 @@ export interface ActionExecutionEvent {
     agentEvent?: AgentRunEvent
     command?: string
     conversation?: AgentConversation
+    context: ActionContext
     executionId: string
     executionWorktree?: number | null
     message?: string | null
@@ -43,7 +45,7 @@ export interface ActionRunLogEntry {
     command: string | null
     message: string
     phase: ActionRunPhase
-    status: 'completed' | 'failed'
+    status: ActionExecutionStatus
     stderr: string
     stdout: string
     thinkingLevel?: ThinkingLevel

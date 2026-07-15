@@ -297,7 +297,7 @@ describe('CardOperations', () => {
         const setTimeoutSpy = vi.spyOn(window, 'setTimeout').mockImplementation(function mockSetTimeout(this: Window) {
             if (this !== window) throw new TypeError('Illegal invocation')
 
-            return 1
+            return 1 as unknown as ReturnType<typeof window.setTimeout>
         })
         const clearTimeoutSpy = vi.spyOn(window, 'clearTimeout').mockImplementation(function mockClearTimeout(this: Window) {
             if (this !== window) throw new TypeError('Illegal invocation')

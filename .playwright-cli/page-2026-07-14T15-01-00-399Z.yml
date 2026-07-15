@@ -1,0 +1,13 @@
+- generic [ref=f3e102]:
+  - button "Alpha" [active] [ref=f3e103]
+  - button "Beta" [ref=f3e104]
+  - generic [ref=f3e106]:
+    - toolbar [ref=f3e107]:
+      - generic [ref=f3e129]:
+        - radiogroup [ref=f3e130]:
+          - radio "Undo Ctrl+Z" [ref=f3e131]
+        - radiogroup [ref=f3e135]:
+          - radio "Redo Ctrl+Y" [disabled]
+    - textbox "editable markdown" [ref=f3e113]:
+      - heading "Alpha" [level=1] [ref=f3e136]
+      - paragraph [ref=f3e137]: changed

@@ -33,7 +33,6 @@ export function defaultLoadHistory(action: ActionDefinition, context: ActionCont
     return loadActionHistory({
         action,
         actionHistoryLoader: defaultActionHistoryLoader,
-        actionsFolder: dataService.getConfig()?.actionsFolder ?? null,
         bridge: getElectronActionBridge(),
         context,
     })
@@ -65,6 +64,7 @@ export function statusColor(status: PopupRunStatus) {
     if (status === 'completed') return 'success.main'
     if (status === 'failed') return 'error.main'
     if (status === 'running') return 'info.main'
+    if (status === 'okButNotAfter' || status === 'cancelled') return 'warning.main'
 
     return 'text.secondary'
 }

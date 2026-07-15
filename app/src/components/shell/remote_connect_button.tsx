@@ -33,7 +33,18 @@ export function RemoteConnectButton() {
             setConnectedService(service)
             setConnectedEndpoint(settings.endpoint)
             setIsDialogOpen(false)
-            requestOpenProjectDialog('remote')
+
+            const activeProject = await service.getActiveProject().catch(() => null)
+            if (activeProject) {
+                try {
+                    const resolution = await projectSessionService.openProject('remote', activeProject, null)
+                    if (resolution) requestOpenProjectDialog('remote', activeProject)
+                } catch {
+                    requestOpenProjectDialog('remote', activeProject)
+                }
+            } else {
+                requestOpenProjectDialog('remote')
+            }
 
             return true
         } catch (error) {

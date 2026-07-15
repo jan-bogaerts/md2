@@ -1,12 +1,12 @@
 import type { ActionContext } from './action_context'
 import type { ActionScheduleTrigger } from './action_schedule_types'
 import type { AgentRunEvent } from './data_types'
+import type { AgentAvailability } from './electron_data_bridge'
 import type { ThinkingLevel } from './agent_profiles'
 import type { ActionExecutionEvent, ActionStartRequest } from './action_run_types'
 
 export interface ActionRunHistoryRequest {
     actionId: string
-    actionsFolder: string
     context: ActionContext
 }
 
@@ -76,6 +76,7 @@ export interface ElectronActionBridge {
     cancelActionExecution(executionId: string): Promise<void>
     generateDiff(request: DiffRequest): Promise<DiffResult>
     loadActionRunHistory(request: ActionRunHistoryRequest): Promise<ActionRunHistoryEntry[]>
+    loadAgentAvailability?(): Promise<Record<string, AgentAvailability>>
     onActionExecution(callback: (event: ActionExecutionEvent) => void): () => void
     openInEditor(request: OpenInEditorRequest): Promise<void>
     registerActionSchedule?(request: ActionScheduleRegistrationRequest): Promise<void>
@@ -100,4 +101,8 @@ export function getElectronActionBridge() {
     if (actionBridgeOverride) return actionBridgeOverride
 
     return window.md2Actions ?? null
+}
+
+export function hasExecutionBackend() {
+    return getElectronActionBridge() !== null
 }

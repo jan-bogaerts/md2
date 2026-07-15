@@ -1,18 +1,14 @@
-import { Box, Divider, Typography } from '@mui/material'
-import type {
-    KeyboardEvent as ReactKeyboardEvent, MouseEvent as ReactMouseEvent,
-    PointerEvent as ReactPointerEvent,
-} from 'react'
+import { Box, Typography } from '@mui/material'
+import type { MouseEvent as ReactMouseEvent } from 'react'
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import { buildFileTree, fileLabel } from '../../data/file_tree'
 import type { ActionDefinition } from '../../data/action_types'
 import { getCardIdPrefix } from '../../data/card_identifiers'
-import { defaultColumnAccent, type AgentConversation, type CardTypeConfig, type ProjectCard, type StateConfig } from '../../data/data_types'
-import { agentAcknowledgementService } from '../../services/agent_acknowledgement_service'
+import { defaultColumnAccent, type CardTypeConfig, type ProjectCard, type StateConfig } from '../../data/data_types'
 import { telemetryService } from '../../services/telemetry_service'
 import { markdownParsingService } from '../../services/markdown_parsing_service'
 import { ActionEditor } from '../actions/action_editor'
-import { AgentConversationList } from '../agents/agent_conversation_list'
+import { MarkdownDocumentHistoryStore } from '../editor/markdown_document_history_store'
 import { MarkdownEditor } from '../editor/markdown_editor'
 import { LeftPanelSlot } from '../shell/left_panel_slot'
 import { CardPropertiesPanel } from './card_properties_panel'
@@ -24,31 +20,22 @@ import { useOpenTabs } from './use_open_tabs'
 import { useActions } from '../hooks/use_actions'
 
 const HISTORY_FOLDER_NAME = 'history'
-const CONVERSATION_PANEL_MIN_HEIGHT = 220
-const CONVERSATION_PANEL_MAX_HEIGHT_RATIO = 0.8
-const CONVERSATION_PANEL_SEPARATOR_HEIGHT = 6
-const CONVERSATION_PANEL_KEYBOARD_STEP = 24
 
 interface TextViewProps {
     actionsFolder: string
     activeCards: ProjectCard[]
     backgroundCards: ProjectCard[]
     cardTypes: CardTypeConfig[]
-    isMobile: boolean
     onLeftPanelInteraction: () => void
     onBodyChange: (path: string, body: string) => void
-    onContinueAgentConversation: (path: string, conversation: AgentConversation) => void
     onCreateFolder: (parentDirectory: string, name: string) => Promise<void>
     onCreateMarkdownFile: (parentDirectory: string, name: string) => Promise<void>
     onDeleteFile: (path: string) => Promise<void>
     onDeleteFolder: (path: string) => Promise<void>
     onHeaderFieldChange: (path: string, key: string, value: string) => void
-    onSendAgentInput: (runId: string, input: string) => void
-    onStartAgentConversation: (path: string, prompt: string) => void
     onTitleChange: (path: string, title: string) => void
     onTogglePolicy: (path: string, policyKey: string) => void
     projectFolder: string
-    projectId?: string
     requestedNonce: number
     requestedPath: string | null
     repositoryFiles: string[]
@@ -113,16 +100,6 @@ function folderName(path: string): string {
     return name
 }
 
-function conversationPanelMaxHeight(containerHeight: number): number {
-    return Math.max(CONVERSATION_PANEL_MIN_HEIGHT, containerHeight * CONVERSATION_PANEL_MAX_HEIGHT_RATIO)
-}
-
-function clampConversationPanelHeight(proposedHeight: number, containerHeight: number): number {
-    const maxHeight = conversationPanelMaxHeight(containerHeight)
-
-    return Math.min(Math.max(proposedHeight, CONVERSATION_PANEL_MIN_HEIGHT), maxHeight)
-}
-
 /** Text view: a folder/status tree plus tabbed, editable open files. */
 export function TextView(props: TextViewProps) {
     const {
@@ -130,21 +107,16 @@ export function TextView(props: TextViewProps) {
         activeCards,
         backgroundCards,
         cardTypes,
-        isMobile,
         onLeftPanelInteraction,
         onBodyChange,
-        onContinueAgentConversation,
         onCreateFolder,
         onCreateMarkdownFile,
         onDeleteFile,
         onDeleteFolder,
         onHeaderFieldChange,
-        onSendAgentInput,
-        onStartAgentConversation,
         onTitleChange,
         onTogglePolicy,
         projectFolder,
-        projectId,
         requestedNonce,
         requestedPath,
         repositoryFiles,
@@ -152,12 +124,8 @@ export function TextView(props: TextViewProps) {
         workingFolder,
     } = props
     const { actions } = useActions()
-    const [isConversationPanelOpen, setIsConversationPanelOpen] = useState(false)
-    const [conversationPanelHeight, setConversationPanelHeight] = useState(CONVERSATION_PANEL_MIN_HEIGHT)
-    const [isConversationPanelDragging, setIsConversationPanelDragging] = useState(false)
-    const [conversationPanelMax, setConversationPanelMax] = useState<number | undefined>(undefined)
     const [propertiesAnchorElement, setPropertiesAnchorElement] = useState<HTMLElement | null>(null)
-    const editorStackRef = useRef<HTMLDivElement>(null)
+    const [markdownHistoryStore] = useState(() => new MarkdownDocumentHistoryStore())
     const onDeleteFileRef = useRef(onDeleteFile)
     const onDeleteFolderRef = useRef(onDeleteFolder)
     const onLeftPanelInteractionRef = useRef(onLeftPanelInteraction)
@@ -211,12 +179,11 @@ export function TextView(props: TextViewProps) {
     const activeCard = activePath ? cardsByPath.get(activePath) ?? null : null
     const activeAction = activePath ? actionsByPath.get(activePath) ?? null : null
     const mountedEditorPath = useDeferredValue(activePath)
+    const mountedCard = mountedEditorPath ? cardsByPath.get(mountedEditorPath) ?? null : null
 
     useEffect(() => {
-        if (!isConversationPanelOpen || !activeCard || !projectId) return
-
-        agentAcknowledgementService.acknowledge(projectId, activeCard.path, activeCard.agentConversations)
-    }, [activeCard, isConversationPanelOpen, projectId])
+        markdownHistoryStore.retainDocuments(tabs)
+    }, [markdownHistoryStore, mountedEditorPath, tabs])
 
     const handleSelect = useCallback((path: string) => {
         openTab(path)
@@ -243,12 +210,8 @@ export function TextView(props: TextViewProps) {
         telemetryService.trackEvent('navigation')
     }
 
-    const handleEditorChange = (body: string) => {
-        if (mountedEditorPath) onBodyChange(mountedEditorPath, body)
-    }
-
-    const handleToggleConversationPanel = () => {
-        setIsConversationPanelOpen((current) => !current)
+    const handleEditorChange = (documentId: string, body: string) => {
+        onBodyChange(documentId, body)
     }
 
     const handleOpenProperties = (event: ReactMouseEvent<HTMLElement>) => {
@@ -259,68 +222,19 @@ export function TextView(props: TextViewProps) {
         setPropertiesAnchorElement(null)
     }
 
-    const listEditorToolbarContents = useCallback(() => (
-        <ListEditorToolbarControls
-            conversationCount={(activeCard?.agentConversations.length ?? 0) + (activeCard?.agentConversationErrors.length ?? 0)}
-            isConversationPanelOpen={isConversationPanelOpen}
-            isPropertiesOpen={!!propertiesAnchorElement}
-            onOpenProperties={handleOpenProperties}
-            onToggleConversationPanel={handleToggleConversationPanel}
-            propertiesAvailable={!!activeCard && Object.keys(activeCard.headerFields).length > 0}
-        />
-    ), [activeCard, isConversationPanelOpen, propertiesAnchorElement])
+    const listEditorToolbarContents = useCallback(() => {
+        if (!mountedEditorPath) throw new Error('Cannot render the Markdown toolbar without a document path')
 
-    const handleContinueAgentConversation = (conversation: AgentConversation) => {
-        if (activePath) onContinueAgentConversation(activePath, conversation)
-    }
-
-    const handleStartAgentConversation = (prompt: string) => {
-        if (activePath) onStartAgentConversation(activePath, prompt)
-    }
-
-    const handleConversationPanelPointerDown = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
-        event.preventDefault()
-        if (editorStackRef.current) {
-            const bounds = editorStackRef.current.getBoundingClientRect()
-            setConversationPanelMax(conversationPanelMaxHeight(bounds.height))
-        }
-        setIsConversationPanelDragging(true)
-        event.currentTarget.setPointerCapture?.(event.pointerId)
-    }, [])
-
-    const handleConversationPanelPointerMove = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
-        if (!isConversationPanelDragging || !editorStackRef.current) return
-
-        const bounds = editorStackRef.current.getBoundingClientRect()
-        const proposedHeight = bounds.bottom - event.clientY
-        setConversationPanelMax(conversationPanelMaxHeight(bounds.height))
-        setConversationPanelHeight(clampConversationPanelHeight(proposedHeight, bounds.height))
-    }, [isConversationPanelDragging])
-
-    const handleConversationPanelPointerUp = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
-        if (!isConversationPanelDragging) return
-
-        setIsConversationPanelDragging(false)
-        event.currentTarget.releasePointerCapture?.(event.pointerId)
-    }, [isConversationPanelDragging])
-
-    const handleConversationPanelKeyDown = useCallback((event: ReactKeyboardEvent<HTMLDivElement>) => {
-        if (!editorStackRef.current) return
-
-        const bounds = editorStackRef.current.getBoundingClientRect()
-        setConversationPanelMax(conversationPanelMaxHeight(bounds.height))
-        const nextHeightByKey: Record<string, number> = {
-            ArrowDown: conversationPanelHeight - CONVERSATION_PANEL_KEYBOARD_STEP,
-            ArrowUp: conversationPanelHeight + CONVERSATION_PANEL_KEYBOARD_STEP,
-            End: conversationPanelMaxHeight(bounds.height),
-            Home: CONVERSATION_PANEL_MIN_HEIGHT,
-        }
-        const nextHeight = nextHeightByKey[event.key]
-        if (nextHeight === undefined) return
-
-        event.preventDefault()
-        setConversationPanelHeight(clampConversationPanelHeight(nextHeight, bounds.height))
-    }, [conversationPanelHeight])
+        return (
+            <ListEditorToolbarControls
+                documentId={mountedEditorPath}
+                historyStore={markdownHistoryStore}
+                isPropertiesOpen={!!propertiesAnchorElement}
+                onOpenProperties={handleOpenProperties}
+                propertiesAvailable={!!mountedCard && Object.keys(mountedCard.headerFields).length > 0}
+            />
+        )
+    }, [markdownHistoryStore, mountedCard, mountedEditorPath, propertiesAnchorElement])
 
     const propertiesPopup = activeCard && Object.keys(activeCard.headerFields).length > 0 ? (
         <CardPropertiesPopover
@@ -346,35 +260,12 @@ export function TextView(props: TextViewProps) {
         </CardPropertiesPopover>
     ) : null
 
-    const conversationPanelSeparator = !isMobile ? (
-        <Box
-            aria-label="Resize conversation panel"
-            aria-orientation="horizontal"
-            aria-valuemax={conversationPanelMax}
-            aria-valuemin={CONVERSATION_PANEL_MIN_HEIGHT}
-            aria-valuenow={Math.round(conversationPanelHeight)}
-            onKeyDown={handleConversationPanelKeyDown}
-            onPointerDown={handleConversationPanelPointerDown}
-            onPointerMove={handleConversationPanelPointerMove}
-            onPointerUp={handleConversationPanelPointerUp}
-            role="separator"
-            sx={{
-                bgcolor: isConversationPanelDragging ? 'primary.main' : 'divider',
-                cursor: 'row-resize',
-                flexShrink: 0,
-                height: CONVERSATION_PANEL_SEPARATOR_HEIGHT,
-                '&:hover': { bgcolor: 'primary.main' },
-            }}
-            tabIndex={0}
-        />
-    ) : <Divider />
-
     const editorPane = (
         <Box sx={{ display: 'flex', flex: 1, flexDirection: 'column', minWidth: 0 }}>
             {activeCard || activeAction ? (
                 <TabBar activePath={activePath} onActivate={handleActivateTab} onClose={closeTab} tabs={openTabs} />
             ) : null}
-            <Box ref={editorStackRef} sx={{ display: 'flex', flex: 1, flexDirection: 'column', minHeight: 0 }}>
+            <Box sx={{ display: 'flex', flex: 1, flexDirection: 'column', minHeight: 0 }}>
                 <Box
                     sx={{
                         alignItems: activeCard || activeAction ? undefined : 'center',
@@ -395,11 +286,12 @@ export function TextView(props: TextViewProps) {
                             specialContextTypes={specialContextTypes}
                             states={states.map(({ state }) => state)}
                         />
-                    ) : activeCard && activePath && mountedEditorPath === activePath ? (
+                    ) : mountedCard && mountedEditorPath ? (
                         <MarkdownEditor
-                            key={activeCard.path}
-                            markdown={activeCard.content}
-                            onChange={handleEditorChange}
+                            documentId={mountedEditorPath}
+                            historyStore={markdownHistoryStore}
+                            markdown={mountedCard.content}
+                            onDocumentChange={handleEditorChange}
                             stickyToolbar
                             toolbarContents={listEditorToolbarContents}
                         />
@@ -409,28 +301,6 @@ export function TextView(props: TextViewProps) {
                         </Typography>
                     )}
                 </Box>
-                {isConversationPanelOpen && activeCard ? (
-                    <>
-                        {conversationPanelSeparator}
-                        <Box
-                            sx={{
-                                flexShrink: 0,
-                                height: isMobile ? undefined : conversationPanelHeight,
-                                minHeight: CONVERSATION_PANEL_MIN_HEIGHT,
-                                overflow: 'auto',
-                                p: 2,
-                            }}
-                        >
-                            <AgentConversationList
-                                conversations={activeCard.agentConversations}
-                                errors={activeCard.agentConversationErrors}
-                                onContinue={handleContinueAgentConversation}
-                                onSendInput={onSendAgentInput}
-                                onStart={handleStartAgentConversation}
-                            />
-                        </Box>
-                    </>
-                ) : null}
             </Box>
             {propertiesPopup}
         </Box>

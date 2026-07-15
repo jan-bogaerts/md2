@@ -213,7 +213,20 @@ describe('ProjectWorkspace', () => {
         expect(screen.getByText('F-1')).toBeInTheDocument()
         expect(screen.getAllByText('active').length).toBeGreaterThan(0)
         expect(screen.getByLabelText('Card columns')).toHaveTextContent('active')
+        expect(screen.getByRole('button', { name: 'Project agent' })).toBeInTheDocument()
         expect(screen.queryByText('Background cards loaded: 1')).toBeNull()
+    })
+
+    it('keeps project agent available across card and text views', async () => {
+        window.md2Data = createBridge()
+        renderProjectSurface()
+        await openLocalProject()
+
+        expect(screen.getByRole('button', { name: 'Project agent' })).toBeInTheDocument()
+        workspaceViewService.setViewMode('text')
+
+        expect(await screen.findByLabelText('File tree')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Project agent' })).toBeInTheDocument()
     })
 
     it('opens the checked-out local branch without relabeling or checkout', async () => {

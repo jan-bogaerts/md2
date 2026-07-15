@@ -198,18 +198,20 @@ class AgentRunnerService {
         await assertGitRoot(rootPath)
 
         const command = requireString(request?.command, 'command')
-        const cardPath = requireString(request?.cardPath, 'cardPath')
+        const cardPath = readOptionalString(request?.cardPath, 'cardPath')
+        const scopePath = requireString(request?.scopePath ?? cardPath, 'scopePath')
         const prompt = requireString(request?.prompt, 'prompt')
         const sessionIdPattern = readOptionalPattern(request?.sessionIdPattern, 'sessionIdPattern')
-        ensureInsideRoot(rootPath, path.join(rootPath, cardPath))
+        if (cardPath) ensureInsideRoot(rootPath, path.join(rootPath, cardPath))
 
         const id = `agent-${crypto.randomUUID()}`
         const startedAt = new Date().toISOString()
-        const filePath = agentLogFilePath(rootPath, cardPath, id)
+        const filePath = agentLogFilePath(rootPath, scopePath, id)
         const reference = normalizePath(path.relative(rootPath, filePath))
         const title = typeof request.title === 'string' && request.title.length > 0 ? request.title : 'Agent run'
         const conversation = {
-            cardPath,
+            actionId: typeof request.actionId === 'string' && request.actionId.length > 0 ? request.actionId : null,
+            ...(cardPath ? { cardPath } : {}),
             completedAt: null,
             continuedFrom: typeof request.continuedFrom === 'string' && request.continuedFrom.length > 0 ? request.continuedFrom : null,
             events: [createEvent(`${id}-started`, 'started', command, startedAt)],

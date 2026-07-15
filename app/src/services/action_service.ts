@@ -1,6 +1,7 @@
 import { actionMatchesContext, type ActionContext } from '../data/action_context'
 import {
     BUILTIN_CUSTOM_PROMPT,
+    BUILTIN_REMARKABLE_CONVERT,
     type ActionDefinition,
     type ActionFile,
     type RawActionDefinition,
@@ -86,7 +87,7 @@ export function serializeActionDefinition(definition: RawActionDefinition) {
 
 /** Owns loaded action objects, validation, creation, and valid-only persistence. */
 export class ActionService extends EventTarget {
-    private actions: ActionDefinition[] = [BUILTIN_CUSTOM_PROMPT]
+    private actions: ActionDefinition[] = [BUILTIN_CUSTOM_PROMPT, BUILTIN_REMARKABLE_CONVERT]
     private definitions: RawActionDefinitionEntry[] = []
     private error: string | null = null
     private files: ActionFile[] = []
@@ -184,7 +185,7 @@ export class ActionService extends EventTarget {
     }
 
     clear() {
-        this.actions = [BUILTIN_CUSTOM_PROMPT]
+        this.actions = [BUILTIN_CUSTOM_PROMPT, BUILTIN_REMARKABLE_CONVERT]
         this.definitions = []
         this.error = null
         this.files = []

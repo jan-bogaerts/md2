@@ -8,6 +8,8 @@ import {
 import '@mdxeditor/editor/style.css'
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, type ReactNode } from 'react'
 import { useAppTheme } from '../../theme/use_app_theme'
+import { markdownDocumentHistoryPlugin } from './markdown_document_history_realm_plugin'
+import type { MarkdownDocumentHistoryStore } from './markdown_document_history_store'
 import { MarkdownFormatToolbarControls } from './markdown_format_toolbar_controls'
 import { registerMarkdownEditorFlush } from './markdown_editor_flush'
 import { buildMarkdownContentSx } from './markdown_style_sx'
@@ -21,41 +23,70 @@ export interface MarkdownEditorHandle {
     setMarkdown(markdown: string): void
 }
 
-interface MarkdownEditorProps {
+interface MarkdownEditorCommonProps {
     markdown: string
-    onChange: (markdown: string) => void
     overlayContainer?: HTMLElement | null
     stickyToolbar?: boolean
     toolbarContents?: () => ReactNode
 }
 
+type MarkdownEditorProps = MarkdownEditorCommonProps & ({
+    documentId: string
+    historyStore: MarkdownDocumentHistoryStore
+    onChange?: never
+    onDocumentChange: (documentId: string, markdown: string) => void
+} | {
+    documentId?: never
+    historyStore?: never
+    onChange: (markdown: string) => void
+    onDocumentChange?: never
+})
+
 /**
  * Reusable MDXEditor surface for card bodies and files (F-007). The editor is
- * uncontrolled while typing: edits stay inside Lexical and `onChange` fires
- * only when the surface is flushed — on unmount (popup close, tab switch, a
- * different card/file assigned via `key`) or through `flushMarkdownEditors`
- * (window blur/hide/close, Electron quit). Persistence stays with the caller.
- * Callers pass a `key` (the card/file path) so switching targets remounts with
- * fresh content. On mobile the formatting toolbar stays sticky at the top of
- * the scroll area.
+ * uncontrolled while typing: edits stay inside Lexical and are emitted only
+ * on unmount, document switch, or `flushMarkdownEditors`. A document ID and
+ * history store let one editor retain independent undo/redo stacks per file.
  */
 export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(function MarkdownEditor(props, ref) {
-    const {
-        markdown, onChange, overlayContainer,
-        stickyToolbar = false, toolbarContents = MarkdownFormatToolbarControls,
-    } = props
+    const { markdown, overlayContainer, stickyToolbar = false, toolbarContents = MarkdownFormatToolbarControls } = props
+    const documentId = props.documentId ?? null
+    const historyStore = props.historyStore
     const { markdownStyleConfig, mode } = useAppTheme()
     const editorRef = useRef<MDXEditorMethods>(null)
+    const activeDocumentIdRef = useRef(documentId)
     const latestMarkdownRef = useRef(markdown)
     const lastEmittedMarkdownRef = useRef(markdown)
-    const onChangeRef = useRef(onChange)
-    onChangeRef.current = onChange
+    const onChangeRef = useRef(props.onChange)
+    const onDocumentChangeRef = useRef(props.onDocumentChange)
+    onChangeRef.current = props.onChange
+    onDocumentChangeRef.current = props.onDocumentChange
 
     const flush = useCallback(() => {
         if (latestMarkdownRef.current === lastEmittedMarkdownRef.current) return
 
         lastEmittedMarkdownRef.current = latestMarkdownRef.current
-        onChangeRef.current(latestMarkdownRef.current)
+        const activeDocumentId = activeDocumentIdRef.current
+        if (activeDocumentId) {
+            onDocumentChangeRef.current?.(activeDocumentId, latestMarkdownRef.current)
+            return
+        }
+        onChangeRef.current?.(latestMarkdownRef.current)
+    }, [])
+
+    const handleBeforeDocumentSwitch = useCallback((nextDocumentId: string, nextMarkdown: string) => {
+        const currentMarkdown = latestMarkdownRef.current
+        flush()
+        activeDocumentIdRef.current = nextDocumentId
+        latestMarkdownRef.current = nextMarkdown
+        lastEmittedMarkdownRef.current = nextMarkdown
+
+        return currentMarkdown
+    }, [flush])
+
+    const handleDocumentSwitch = useCallback((normalizedMarkdown: string) => {
+        latestMarkdownRef.current = normalizedMarkdown
+        lastEmittedMarkdownRef.current = normalizedMarkdown
     }, [])
 
     useEffect(() => {
@@ -65,6 +96,14 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         latestMarkdownRef.current = normalizedMarkdown
         lastEmittedMarkdownRef.current = normalizedMarkdown
     }, [])
+
+    useEffect(() => {
+        if (!documentId || activeDocumentIdRef.current === documentId) return
+
+        handleBeforeDocumentSwitch(documentId, markdown)
+        editorRef.current?.setMarkdown(markdown)
+        handleDocumentSwitch(editorRef.current?.getMarkdown() ?? markdown)
+    }, [documentId, handleBeforeDocumentSwitch, handleDocumentSwitch, markdown])
 
     useEffect(() => {
         const unregister = registerMarkdownEditorFlush(flush)
@@ -85,9 +124,9 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         },
     }), [flush])
 
-    const handleEditorChange = (nextMarkdown: string) => {
+    const handleEditorChange = useCallback((nextMarkdown: string) => {
         latestMarkdownRef.current = nextMarkdown
-    }
+    }, [])
 
     const markdownContentSx = buildMarkdownContentSx(markdownStyleConfig)
     const stickySx = stickyToolbar
@@ -107,6 +146,13 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         codeMirrorPlugin({ codeBlockLanguages: CODE_BLOCK_LANGUAGES }),
         markdownShortcutPlugin(),
         toolbarPlugin({ toolbarContents }),
+        ...(historyStore && documentId ? [markdownDocumentHistoryPlugin({
+            documentId,
+            historyStore,
+            markdown,
+            onBeforeSwitch: handleBeforeDocumentSwitch,
+            onDidSwitch: handleDocumentSwitch,
+        })] : []),
     ]
 
     return (
@@ -119,6 +165,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
                 overlayContainer={overlayContainer}
                 plugins={plugins}
                 ref={editorRef}
+                suppressSharedHistory={!!historyStore}
             />
         </Box>
     )

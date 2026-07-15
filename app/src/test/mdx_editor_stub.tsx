@@ -41,6 +41,10 @@ export const MDXEditor = forwardRef<{ getMarkdown: () => string; setMarkdown: (m
         }), [])
 
         useEffect(() => {
+            latestMarkdownRef.current = normalizeMarkdown(markdown)
+        }, [markdown])
+
+        useEffect(() => {
             onChange?.(latestMarkdownRef.current)
         }, [onChange])
 
@@ -74,6 +78,23 @@ export const tablePlugin = noopPlugin
 export const codeBlockPlugin = noopPlugin
 export const codeMirrorPlugin = noopPlugin
 export const toolbarPlugin = (plugin: StubPlugin) => plugin
+
+interface StubCell<T> {
+    value: T
+}
+
+export const Cell = <T,>(value: T): StubCell<T> => ({ value })
+export const useCellValue = <T,>(cell: StubCell<T>) => cell.value
+export const realmPlugin = <T,>(plugin: unknown) => {
+    void plugin
+
+    return (params?: T) => ({ params })
+}
+export const activeEditor$ = Cell(null)
+export const addComposerChild$ = Cell(null)
+export const markdown$ = Cell('')
+export const rootEditor$ = Cell(null)
+export const setMarkdown$ = Cell(null)
 
 /** Toolbar controls render nothing in the stub. */
 const NoopControl = () => null

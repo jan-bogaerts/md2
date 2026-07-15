@@ -4,7 +4,7 @@ import type { ActionDefinition } from '../data/action_types'
 import type { ActionRunResult } from '../data/action_run_types'
 import { convertRemarkableImagesToText } from './remarkable_convert_service'
 
-type RunFn = (action: ActionDefinition, context: ActionContext) => Promise<ActionRunResult>
+type RunFn = (action: ActionDefinition, context: ActionContext, input: { extraPrompt: string }) => Promise<ActionRunResult>
 
 describe('convertRemarkableImagesToText', () => {
     it('throws when no agent is available so the action can stay hidden', async () => {
@@ -31,10 +31,10 @@ describe('convertRemarkableImagesToText', () => {
             { isAgentAvailable: () => true, run },
         )
 
-        const [action, context] = run.mock.calls[0]
+        const [action, context, runInput] = run.mock.calls[0]
         expect(action.type).toBe('agent')
-        expect(action.prompt).toContain('design/a.png')
-        expect(action.prompt).toContain('design/b.png')
+        expect(runInput.extraPrompt).toContain('design/a.png')
+        expect(runInput.extraPrompt).toContain('design/b.png')
         expect(action.prompt).toContain('{{file}}')
         expect(context).toEqual({ file: 'design/F-1-card.md', kind: 'card', type: 'feature' })
     })

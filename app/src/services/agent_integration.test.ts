@@ -1,7 +1,8 @@
 ﻿import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { AgentConversation, AgentRunEvent, CommitRequest, MarkdownFile, StorageProjectFiles } from '../data/data_types'
+import type { AgentConversation, AgentRunEvent, MarkdownFile, StorageProjectFiles } from '../data/data_types'
 import type { ActionExecutionEvent } from '../data/action_run_types'
 import { runElectronAction } from './electron_action_runner'
+import { actionExecutionService, sendActionExecutionInput } from './action_execution_service'
 import { configService } from './config_service'
 import { DataService } from './data_service'
 import { conversation, createDeferred, createStorage, waitForWorkerTurn } from './test_support/data_service_test_support'
@@ -10,6 +11,7 @@ vi.mock('./electron_action_runner', () => ({ runElectronAction: vi.fn(async () =
 
 describe('AgentIntegration', () => {
     afterEach(() => {
+        actionExecutionService.stop()
         vi.useRealTimers()
         vi.mocked(runElectronAction).mockClear()
         delete window.md2Actions
@@ -275,92 +277,40 @@ describe('AgentIntegration', () => {
         })
     })
 
-    it('continues a conversation and links the returned streaming log to the card header', async () => {
+    it('continues a conversation through its originating Electron action', async () => {
         configService.init()
-        const continuedConversation = { ...conversation('.md2-agent-logs/two.json'), id: 'agent-2', status: 'running' as const }
-        const storage = createStorage({
-            startAgentConversation: vi.fn(async () => ({
-                conversation: continuedConversation,
-                reference: '.md2-agent-logs/two.json',
-                runId: 'agent-2',
-            })),
-        })
-        const service = new DataService()
-        service.init({ storage })
-
-        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
-        await service.agents.continueAgentConversation('design/F-1-root.md', '.md2-agent-logs/one.json')
-        await service.cards.flushPendingCommits()
-
-        const committed = (storage.commit as ReturnType<typeof vi.fn>).mock.calls.at(-1)?.[0] as CommitRequest
-        expect(committed.files[0].content).toContain('agents:\n  - .md2-agent-logs/two.json')
-        expect(storage.startAgentConversation).toHaveBeenCalledWith(
-            { branch: 'main', id: 'project' },
-            {
-                cardPath: 'design/F-1-root.md',
-                continuedFrom: '.md2-agent-logs/one.json',
-                nativeResumeSessionId: undefined,
-                prompt: expect.stringContaining('agent: done'),
-                title: 'Continue',
-            },
-            expect.any(Function),
-        )
-    })
-
-    it('uses native resume when the source conversation has a native session id', async () => {
-        configService.init()
-        const sourceConversation = { ...conversation('.md2-agent-logs/one.json'), nativeSessionId: 'session-1' }
+        const sourceConversation = { ...conversation('.md2-agent-logs/one.json'), actionId: 'md2.custom-prompt' }
+        const cardFile = {
+            content: '---\nid: F-1\ntitle: Root\nstatus: active\nagents:\n  - .md2-agent-logs/one.json\n---\n\n# Root',
+            path: 'design/F-1-root.md',
+        }
         const storage = createStorage({
             loadAgentConversation: vi.fn(async () => sourceConversation),
-            startAgentConversation: vi.fn(async () => ({
-                conversation: { ...conversation('.md2-agent-logs/two.json'), continuedFrom: '.md2-agent-logs/one.json', id: 'agent-2' },
-                reference: '.md2-agent-logs/two.json',
-                runId: 'agent-2',
-            })),
+            loadProject: vi.fn(async () => ({ files: [cardFile], workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: [cardFile], workingFolder: 'design' })),
         })
         const service = new DataService()
         service.init({ storage })
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        await vi.waitFor(() => expect(service.getState().snapshot?.activeCards[0].agentConversations).toHaveLength(1))
         await service.agents.continueAgentConversation('design/F-1-root.md', '.md2-agent-logs/one.json')
 
-        expect(storage.startAgentConversation).toHaveBeenCalledWith(
-            { branch: 'main', id: 'project' },
-            {
-                cardPath: 'design/F-1-root.md',
-                continuedFrom: '.md2-agent-logs/one.json',
-                nativeResumeSessionId: 'session-1',
-                prompt: 'continue',
-                title: 'Continue',
-            },
-            expect.any(Function),
+        expect(runElectronAction).toHaveBeenCalledWith(
+            expect.objectContaining({ id: 'md2.custom-prompt' }),
+            expect.objectContaining({ file: 'design/F-1-root.md', kind: 'file' }),
+            { continueFrom: '.md2-agent-logs/one.json' },
         )
     })
 
-    it('reports running agent state from streaming continue events', async () => {
+    it('sends panel input through the action execution bridge', async () => {
         configService.init()
-        const callbacks: Array<(event: AgentRunEvent) => void> = []
-        const storage = createStorage({
-            startAgentConversation: vi.fn(async (_project, _request, callback) => {
-                callbacks.push(callback)
-                const runningConversation: AgentConversation = { ...conversation('.md2-agent-logs/two.json'), id: 'agent-2', status: 'running' }
+        const sendActionInput = vi.fn(async () => undefined)
+        window.md2Actions = { sendActionInput } as unknown as typeof window.md2Actions
 
-                return { conversation: runningConversation, reference: '.md2-agent-logs/two.json', runId: 'agent-2' }
-            }),
-        })
-        const service = new DataService()
-        service.init({ storage })
+        await sendActionExecutionInput('execution-1', 'continue')
 
-        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
-        await service.agents.continueAgentConversation('design/F-1-root.md', '.md2-agent-logs/one.json')
-        if (!callbacks[0]) throw new Error('Streaming callback not registered')
-
-        callbacks[0]({ content: '', conversation: { ...conversation(), id: 'agent-2', status: 'running' }, runId: 'agent-2', type: 'started' })
-        expect(service.getState().runningAgents).toHaveLength(1)
-
-        callbacks[0]({ content: '0', conversation: { ...conversation(), id: 'agent-2', status: 'completed' }, runId: 'agent-2', type: 'closed' })
-
-        expect(service.getState().runningAgents).toHaveLength(0)
+        expect(sendActionInput).toHaveBeenCalledWith('execution-1', 'continue')
     })
 
     it('reports desktop-owned scheduled action runs in running agent state', async () => {
@@ -381,10 +331,11 @@ describe('AgentIntegration', () => {
         if (!scheduledRunCallback) throw new Error('Scheduled run callback not registered')
         const emitScheduledRun = scheduledRunCallback as (event: ActionExecutionEvent) => void
 
-        emitScheduledRun({ actionId: 'implement', executionId: 'schedule-1', phase: 'main', rootActionId: 'implement', status: 'running', type: 'execution' })
+        const context = { file: 'design/F-1-root.md', kind: 'card' as const }
+        emitScheduledRun({ actionId: 'implement', context, executionId: 'schedule-1', phase: 'main', rootActionId: 'implement', status: 'running', type: 'execution' })
         expect(service.getState().runningAgents).toEqual([expect.objectContaining({ label: 'Action implement' })])
 
-        emitScheduledRun({ actionId: 'implement', executionId: 'schedule-1', phase: 'main', rootActionId: 'implement', status: 'completed', type: 'execution' })
+        emitScheduledRun({ actionId: 'implement', context, executionId: 'schedule-1', phase: 'main', rootActionId: 'implement', status: 'completed', type: 'execution' })
 
         expect(service.getState().runningAgents).toHaveLength(0)
     })
@@ -408,9 +359,10 @@ describe('AgentIntegration', () => {
         const agentConversation = { ...conversation(), cardPath: 'design/F-1-root.md' }
         const agentEvent: AgentRunEvent = { content: 'output', conversation: agentConversation, runId: 'agent-1', type: 'output' }
 
-        emitActionRun({actionId: 'implement', agentEvent, executionId: 'action-1', phase: 'main', rootActionId: 'implement', status: 'running', type: 'agent'})
+        const context = { file: 'design/F-1-root.md', kind: 'card' as const }
+        emitActionRun({actionId: 'implement', agentEvent, context, executionId: 'action-1', phase: 'main', rootActionId: 'implement', status: 'running', type: 'agent'})
         emitActionRun({
-            actionId: 'implement', conversation: agentConversation, executionId: 'action-1', executionWorktree: null,
+            actionId: 'implement', context, conversation: agentConversation, executionId: 'action-1', executionWorktree: null,
             phase: 'main', reference: '.md2-agent-logs/one.json', rootActionId: 'implement', status: 'completed', type: 'action',
         })
 

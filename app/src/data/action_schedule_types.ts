@@ -37,7 +37,7 @@ export interface ActionScheduleFile {
 }
 
 const ACTION_SCHEDULE_STATUSES: ActionScheduleStatus[] = ['cancelled', 'completed', 'failed', 'pending', 'running']
-const ACTION_CONTEXT_KINDS: ActionContext['kind'][] = ['card', 'file', 'folder']
+const ACTION_CONTEXT_KINDS: ActionContext['kind'][] = ['card', 'file', 'folder', 'project']
 
 function requireScheduleObject(value: unknown, fieldName: string): Record<string, unknown> {
     if (!value || typeof value !== 'object' || Array.isArray(value)) {

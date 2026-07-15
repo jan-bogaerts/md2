@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import type { ActionContext } from '../../data/action_context'
 import type { ActionDefinition } from '../../data/action_types'
-import type { ActionRunHistoryEntry } from '../../data/electron_action_bridge'
+import { hasExecutionBackend, type ActionRunHistoryEntry } from '../../data/electron_action_bridge'
 import {
     defaultModelForProfile,
     findAgentProfile,
@@ -11,7 +11,9 @@ import {
     validateThinkingLevel,
 } from '../../data/agent_profiles'
 import type { ActionRunResult } from '../../data/action_run_types'
+import { useActionExecution } from '../hooks/use_action_executions'
 import { useConfigValueOrFallback } from '../hooks/use_config_value'
+import { useAgentCapabilities } from '../hooks/use_agent_capabilities'
 import {
     defaultCancelAction,
     defaultConvertPromptToAction,
@@ -45,6 +47,7 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
     const configuredAgent = useConfigValueOrFallback('desktop.agent', '')
     const configuredAgentProfiles = useConfigValueOrFallback('desktop.agentProfiles', [])
     const configuredModel = useConfigValueOrFallback('desktop.model', '')
+    const capabilities = useAgentCapabilities()
     const convertPromptToAction = input.convertPromptToAction ?? defaultConvertPromptToAction
     const cancelAction = input.cancelAction ?? defaultCancelAction
     const loadHistory = input.loadHistory ?? defaultLoadHistory
@@ -59,12 +62,12 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
     const [agentOverride, setAgentOverride] = useState<string | null>(null)
     const [convertMessage, setConvertMessage] = useState<string | null>(null)
     const [extraPrompt, setExtraPrompt] = useState('')
-    const [executionId, setExecutionId] = useState<string | null>(null)
+    const [localExecutionId, setLocalExecutionId] = useState<string | null>(null)
     const [history, setHistory] = useState<ActionRunHistoryEntry[]>([])
     const [historyError, setHistoryError] = useState<string | null>(null)
     const [modelOverride, setModelOverride] = useState<string | null>(null)
-    const [runResult, setRunResult] = useState<ActionRunResult | null>(null)
-    const [runStatus, setRunStatus] = useState<PopupRunStatus>('idle')
+    const [localRunResult, setLocalRunResult] = useState<ActionRunResult | null>(null)
+    const [localRunStatus, setLocalRunStatus] = useState<PopupRunStatus>('idle')
     const [scheduleAfterActionName, setScheduleAfterActionName] = useState('')
     const [scheduleMessage, setScheduleMessage] = useState<string | null>(null)
     const [scheduleOpen, setScheduleOpen] = useState(false)
@@ -75,7 +78,26 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
     const model = modelOverride ?? defaultModel
     const selectedAgentProfile = findAgentProfile(agentProfiles, agent)
     const selectedAgentModels = selectedAgentProfile?.models ?? []
+    const selectedAvailability = capabilities.availability.values[agent]
+    const agentAvailability = input.runAction
+        ? Object.fromEntries(agentProfiles.map((profile) => [profile.name, { available: true, error: null }]))
+        : capabilities.availability.values
+    const selectedAgentAvailable = !!input.runAction
+        || action.type !== 'agent'
+        || (!!selectedAvailability?.available && !capabilities.availability.error)
+    const backendAvailable = !!input.runAction || hasExecutionBackend()
+    const executionDisabledMessage = !backendAvailable
+        ? 'Action execution requires the Electron desktop app'
+        : action.type === 'agent' && capabilities.availability.loading
+            ? 'Checking agent executable availability'
+            : action.type === 'agent' && !selectedAgentAvailable
+                ? selectedAvailability?.error ?? capabilities.availability.error ?? `Agent executable is unavailable for ${agent}`
+                : null
     const thinkingLevel = thinkingLevelOverride?.actionId === action.id ? thinkingLevelOverride.value : definitionThinkingLevel
+    const sharedExecution = useActionExecution(action.id, context)
+    const executionId = sharedExecution?.executionId ?? localExecutionId
+    const runStatus = sharedExecution?.status ?? localRunStatus
+    const runLogs = sharedExecution?.logs ?? localRunResult?.logs ?? []
 
     useEffect(() => {
         let isActive = true
@@ -98,25 +120,25 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
     }, [action, context, loadHistory])
 
     const handleRun = async () => {
-        setRunStatus('running')
-        setRunResult(null)
+        setLocalRunStatus('running')
+        setLocalRunResult(null)
 
         try {
             const runInput = action.type === 'agent'
                 ? { ...(agent ? { agent } : {}), extraPrompt, ...(model ? { model } : {}), thinkingLevel }
                 : { extraPrompt }
-            const result = await runAction(action, context, runInput, setExecutionId)
-            setRunResult(result)
-            setRunStatus(result.status)
-            setExecutionId(null)
+            const result = await runAction(action, context, runInput, setLocalExecutionId)
+            setLocalRunResult(result)
+            setLocalRunStatus(result.status)
+            setLocalExecutionId(null)
             setHistory(await loadHistory(action, context))
         } catch (error) {
             const message = error instanceof Error ? error.message : 'Action run failed'
-            setRunResult({
+            setLocalRunResult({
                 logs: [{ actionName: action.name, command: null, message, phase: 'main', status: 'failed', stderr: message, stdout: '' }],
                 status: 'failed',
             })
-            setRunStatus('failed')
+            setLocalRunStatus('failed')
         }
     }
 
@@ -215,14 +237,17 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
         await handleRun()
     }
 
-    const saveDisabled = actionLabel.trim().length === 0 || runStatus === 'running'
+    const saveDisabled = actionLabel.trim().length === 0 || runStatus === 'running' || !!executionDisabledMessage
 
     return {
         actionLabel,
         agent,
+        agentAvailability,
         agentProfiles,
+        backendAvailable,
         convertMessage,
         extraPrompt,
+        executionDisabledMessage,
         handleActionLabelChange,
         handleCancel,
         handleAgentChange,
@@ -240,7 +265,7 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
         history,
         historyError,
         model,
-        runResult,
+        runLogs,
         runStatus,
         saveDisabled,
         scheduleAfterActionName,
@@ -249,6 +274,7 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
         scheduleTimestamp,
         scheduleTriggerType,
         selectedAgentModels,
+        selectedAgentAvailable,
         thinkingLevel,
     }
 }

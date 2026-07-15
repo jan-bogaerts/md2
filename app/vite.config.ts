@@ -102,6 +102,10 @@ function dependencySourceMapNoiseFilter(): Plugin {
 export default defineConfig({
     base: './',
     build: {sourcemap: false},
+    // prismjs (via @lexical/code) only publishes its global `Prism` under `typeof global !== 'undefined'`,
+    // which is false in browsers; its language files then reference that global and crash the built app.
+    // Point `global` at `globalThis` so the assignment runs. See remote-control http serving (F-045).
+    define: {global: 'globalThis'},
     plugins: [react(), dependencySourceMapNoiseFilter()],
     resolve: {
         alias: [

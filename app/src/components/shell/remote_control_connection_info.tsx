@@ -1,6 +1,6 @@
-import { Box, Button, Popover, Stack, Typography } from '@mui/material'
+import { Box, Button, Link, Popover, Stack, Typography } from '@mui/material'
 import QRCode from 'qrcode'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { RemoteControlStatus } from '../../data/electron_remote_control_bridge'
 import { connectUrlFromEndpoint } from '../../data/remote_connect_string'
 
@@ -11,9 +11,30 @@ interface RemoteControlConnectionInfoProps {
     status: RemoteControlStatus
 }
 
-/** Primary endpoint to share: the mDNS hostname when available, else whatever the server reported. */
-function primaryEndpoint(status: RemoteControlStatus) {
-    return status.hostnameEndpoint ?? status.endpoint
+interface ConnectTarget {
+    connectUrl: string
+    endpoint: string
+    label: string
+}
+
+/**
+ * Connect targets to share, IP first: `.local` mDNS resolves unreliably on Android, so a raw LAN IP is
+ * the dependable default. Each carries the token fragment so the scanned/opened link auto-connects.
+ */
+function connectTargets(status: RemoteControlStatus): ConnectTarget[] {
+    if (!status.token) return []
+
+    const targets: ConnectTarget[] = []
+    for (const ip of status.ipEndpoints ?? []) {
+        const connectUrl = connectUrlFromEndpoint(ip, status.token)
+        if (connectUrl) targets.push({ connectUrl, endpoint: ip, label: 'IP address' })
+    }
+    if (status.hostnameEndpoint) {
+        const connectUrl = connectUrlFromEndpoint(status.hostnameEndpoint, status.token)
+        if (connectUrl) targets.push({ connectUrl, endpoint: status.hostnameEndpoint, label: 'Hostname' })
+    }
+
+    return targets
 }
 
 async function copyText(text: string) {
@@ -30,41 +51,46 @@ async function copyText(text: string) {
     }
 }
 
-/** Popover shown from the Accept button: hostname/IP endpoints, a copy button and a QR of the connect URL. */
+/** Popover shown from the Accept button: hostname/IP connect links, a copy button and a QR of the selected link. */
 export function RemoteControlConnectionInfo(props: RemoteControlConnectionInfoProps) {
     const { anchorEl, onClose, open, status } = props
-    const endpoint = primaryEndpoint(status)
-    const connectUrl = endpoint && status.token ? connectUrlFromEndpoint(endpoint, status.token) : null
-    const [qrDataUrl, setQrDataUrl] = useState<string | null>(null)
-    const [copied, setCopied] = useState(false)
+    const targets = useMemo(() => connectTargets(status), [status])
+    const [selectedUrl, setSelectedUrl] = useState<string | null>(null)
+    const [qrCode, setQrCode] = useState<{ connectUrl: string, dataUrl: string } | null>(null)
+    const [copiedUrl, setCopiedUrl] = useState<string | null>(null)
+
+    // Default the QR/copy target to the first (IP) entry; re-pin if the endpoint set changes.
+    const activeUrl = targets.some((target) => target.connectUrl === selectedUrl)
+        ? selectedUrl
+        : (targets[0]?.connectUrl ?? null)
+    const qrDataUrl = qrCode?.connectUrl === activeUrl ? qrCode.dataUrl : null
+    const copied = copiedUrl === activeUrl
 
     useEffect(() => {
-        setCopied(false)
-        if (!connectUrl) {
-            setQrDataUrl(null)
-            return undefined
-        }
+        if (!activeUrl) return undefined
 
         let active = true
-        void QRCode.toDataURL(connectUrl, { margin: 1, width: 176 }).then(
+        void QRCode.toDataURL(activeUrl, { margin: 1, width: 176 }).then(
             (url) => {
-                if (active) setQrDataUrl(url)
+                if (active) setQrCode({ connectUrl: activeUrl, dataUrl: url })
             },
             () => {
-                if (active) setQrDataUrl(null)
+                if (active) setQrCode(null)
             },
         )
 
         return () => {
             active = false
         }
-    }, [connectUrl])
+    }, [activeUrl])
 
     const handleCopy = async () => {
-        if (!connectUrl) return
-        await copyText(connectUrl)
-        setCopied(true)
+        if (!activeUrl) return
+        await copyText(activeUrl)
+        setCopiedUrl(activeUrl)
     }
+
+    const handleCopyClick = () => void handleCopy()
 
     return (
         <Popover
@@ -74,24 +100,40 @@ export function RemoteControlConnectionInfo(props: RemoteControlConnectionInfoPr
             open={open}
         >
             <Stack spacing={1.5} sx={{ maxWidth: 280, p: 2 }}>
-                <Box>
-                    <Typography variant="overline">Hostname</Typography>
-                    <Typography sx={{ wordBreak: 'break-all' }} variant="body2">{endpoint ?? '—'}</Typography>
-                </Box>
-                {status.ipEndpoints && status.ipEndpoints.length > 0 ? (
+                {targets.length > 0 ? (
                     <Box>
-                        <Typography variant="overline">IP address fallback</Typography>
-                        {status.ipEndpoints.map((ip) => (
-                            <Typography key={ip} sx={{ wordBreak: 'break-all' }} variant="body2">{ip}</Typography>
-                        ))}
+                        <Typography variant="overline">Open on your phone</Typography>
+                        <Typography color="text.secondary" variant="caption">
+                            IP is most reliable; hostname (.local) may not resolve on Android.
+                        </Typography>
+                        <Stack spacing={0.5} sx={{ mt: 0.5 }}>
+                            {targets.map((target) => (
+                                <Link
+                                    key={target.connectUrl}
+                                    component="button"
+                                    onClick={() => setSelectedUrl(target.connectUrl)}
+                                    sx={{
+                                        fontWeight: target.connectUrl === activeUrl ? 600 : 400,
+                                        textAlign: 'left',
+                                        wordBreak: 'break-all',
+                                    }}
+                                    type="button"
+                                    variant="body2"
+                                >
+                                    {target.connectUrl}
+                                </Link>
+                            ))}
+                        </Stack>
                     </Box>
-                ) : null}
+                ) : (
+                    <Typography variant="body2">—</Typography>
+                )}
                 {qrDataUrl ? (
                     <Box sx={{ display: 'flex', justifyContent: 'center' }}>
                         <img alt="Remote-control connect QR code" src={qrDataUrl} style={{ maxWidth: '100%' }} />
                     </Box>
                 ) : null}
-                <Button disabled={!connectUrl} onClick={() => void handleCopy()} size="small" variant="outlined">
+                <Button disabled={!activeUrl} onClick={handleCopyClick} size="small" variant="outlined">
                     {copied ? 'Copied' : 'Copy connect link'}
                 </Button>
             </Stack>

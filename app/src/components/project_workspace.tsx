@@ -9,7 +9,6 @@ import {
     DEFAULT_PROJECT_FOLDER,
     DEFAULT_STATES,
     DEFAULT_WORKING_FOLDER,
-    type AgentConversation,
     type ProjectCard,
     type ProjectReference,
 } from '../data/data_types'
@@ -21,6 +20,7 @@ import { telemetryService } from '../services/telemetry_service'
 import { workspaceViewService } from '../services/workspace_view_service'
 import { workspaceNavigationService, type WorkspaceOpenRequest } from '../services/workspace_navigation_service'
 import { CardView } from './card_view/card_view'
+import { AgentChatFab } from './agents/agent_chat_fab'
 import { flushMarkdownEditors } from './editor/markdown_editor_flush'
 import { TextView } from './text_view/text_view'
 import { useProjectConfig } from './hooks/use_project_config'
@@ -175,30 +175,6 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
         runWorkspaceEdit(() => dataService.cards.updateCardHeaderFields(path, { [key]: value }), `Header update failed: ${path}`)
     }
 
-    const handleContinueAgentConversation = async (path: string, conversation: AgentConversation) => {
-        try {
-            await dataService.agents.continueAgentConversation(path, conversation.path)
-        } catch (error) {
-            dialogService.error(error, { fallbackMessage: 'Agent continue failed' })
-        }
-    }
-
-    const handleStartAgentConversation = async (path: string, prompt: string) => {
-        try {
-            await dataService.agents.startAgentConversation(path, prompt)
-        } catch (error) {
-            dialogService.error(error, { fallbackMessage: 'Agent start failed' })
-        }
-    }
-
-    const handleSendAgentInput = async (runId: string, input: string) => {
-        try {
-            await dataService.agents.sendAgentInput(runId, input)
-        } catch (error) {
-            dialogService.error(error, { fallbackMessage: 'Agent input failed' })
-        }
-    }
-
     const clearDeletedPathState = (path: string) => {
         workspaceViewService.clearSelectedPath(path)
     }
@@ -295,7 +271,6 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
                             isMobile={isMobile}
                             onAffectsChange={handleAffectsChange}
                             onBodyChange={handleBodyChange}
-                            onContinueAgentConversation={handleContinueAgentConversation}
                             onDeleteCard={handleDeleteCard}
                             onMoveCard={handleMoveCard}
                             onOpenInFileMode={handleOpenInFileMode}
@@ -313,7 +288,6 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
                             activeCards={activeCards}
                             backgroundCards={backgroundCards}
                             cardTypes={cardTypes}
-                            isMobile={isMobile}
                             onLeftPanelInteraction={onLeftPanelInteraction}
                             onBodyChange={handleBodyChange}
                             onCreateFolder={handleCreateFolder}
@@ -321,12 +295,9 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
                             onDeleteFile={handleDeleteFile}
                             onDeleteFolder={handleDeleteFolder}
                             onHeaderFieldChange={handleHeaderFieldChange}
-                            onSendAgentInput={handleSendAgentInput}
-                            onStartAgentConversation={handleStartAgentConversation}
                             onTitleChange={handleTitleChange}
                             onTogglePolicy={handleTogglePolicy}
                             projectFolder={projectFolder}
-                            projectId={project.rootPath ?? project.id}
                             requestedNonce={requestedNonce}
                             requestedPath={selectedPath}
                             repositoryFiles={repositoryFiles}
@@ -347,6 +318,7 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
                     </Stack>
                 )}
             </Box>
+            {isProjectOpen ? <AgentChatFab /> : null}
         </Paper>
     )
 }

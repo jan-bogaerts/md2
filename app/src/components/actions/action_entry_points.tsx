@@ -6,6 +6,7 @@ import type { MouseEvent } from 'react'
 import { actionsForContext, type ActionContext } from '../../data/action_context'
 import { CUSTOM_PROMPT_ACTION_NAME, type ActionDefinition } from '../../data/action_types'
 import { useActions } from '../hooks/use_actions'
+import { useRunningActionForContext } from '../hooks/use_action_executions'
 import { ActionIcon } from './action_icon'
 import { resolveActionIcon, type ActionIconSource } from './action_icon_resolver'
 import { ActionPopup } from './action_popup'
@@ -31,6 +32,8 @@ const DEFAULT_ICON_SOURCE: ActionIconSource = { dataUri: null }
 export function ActionEntryPoints(props: ActionEntryPointsProps) {
     const { context, onMenuItemSelected, popupAnchorElement, variant } = props
     const { actions } = useActions()
+    const runningExecution = useRunningActionForContext(context)
+    const executionDisabled = !!runningExecution
     const [iconSources, setIconSources] = useState<Record<string, ActionIconSource>>({})
     const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null)
     const [popupAnchor, setPopupAnchor] = useState<HTMLElement | null>(null)
@@ -118,6 +121,7 @@ export function ActionEntryPoints(props: ActionEntryPointsProps) {
         <>
             {matching.map((action) => (
                 <MenuItem
+                    disabled={executionDisabled}
                     key={action.name}
                     onClick={(event) => open(action, popupAnchorElement ?? menuAnchor ?? event.currentTarget)}
                 >
@@ -146,6 +150,7 @@ export function ActionEntryPoints(props: ActionEntryPointsProps) {
         return (
             <>
                 <Button
+                    disabled={executionDisabled}
                     onClick={handleRun}
                     size="small"
                     startIcon={<Play sx={{ fontSize: '13px !important' }} />}
@@ -163,7 +168,7 @@ export function ActionEntryPoints(props: ActionEntryPointsProps) {
         return (
             <>
                 <Tooltip title="Actions">
-                    <IconButton aria-label="Actions" onClick={(event) => setMenuAnchor(event.currentTarget)} size="small">
+                    <IconButton aria-label="Actions" disabled={executionDisabled} onClick={(event) => setMenuAnchor(event.currentTarget)} size="small">
                         <DotsVertical fontSize="small" />
                     </IconButton>
                 </Tooltip>
@@ -178,7 +183,12 @@ export function ActionEntryPoints(props: ActionEntryPointsProps) {
         <Stack direction="row" spacing={0.25} sx={{ flexShrink: 0 }}>
             {matching.map((action) => (
                 <Tooltip key={action.name} title={action.label}>
-                    <IconButton aria-label={action.label} onClick={(event) => open(action, event.currentTarget)} size="small">
+                    <IconButton
+                        aria-label={action.label}
+                        disabled={executionDisabled}
+                        onClick={(event) => open(action, event.currentTarget)}
+                        size="small"
+                    >
                         <ActionIcon fontSize="small" source={iconSourceFor(action)} />
                     </IconButton>
                 </Tooltip>

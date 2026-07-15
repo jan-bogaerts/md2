@@ -1,6 +1,6 @@
 const ACTION_SCHEDULES_FILE = '.md2-schedules.json'
 const ACTION_SCHEDULE_STATUSES = ['cancelled', 'completed', 'failed', 'pending', 'running']
-const ACTION_CONTEXT_KINDS = ['card', 'file', 'folder']
+const ACTION_CONTEXT_KINDS = ['card', 'file', 'folder', 'project']
 
 function requireScheduleObject(value, fieldName) {
     if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`Invalid action schedule file: ${fieldName} must be an object`)

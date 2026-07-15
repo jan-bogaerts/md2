@@ -7,14 +7,11 @@ import type {
     DeleteFileRequest,
     DeleteFolderRequest,
     AgentConversation,
-    AgentRunEvent,
     MoveFilesRequest,
     ProjectConfig,
     ProjectReference,
     RepositoryReference,
     ProjectWatchEvent,
-    StartAgentConversationRequest,
-    StartAgentConversationResult,
     StorageProjectFiles,
     StorageService,
     TopLevelFolderReference,
@@ -108,24 +105,6 @@ export class LocalGitStorageService implements StorageService {
         if (!bridge.loadAgentConversation) throw new Error('Electron local Git bridge cannot load agent conversations')
 
         return bridge.loadAgentConversation(path)
-    }
-
-    async startAgentConversation(
-        _project: ProjectReference,
-        request: StartAgentConversationRequest,
-        onEvent: (event: AgentRunEvent) => void,
-    ): Promise<StartAgentConversationResult> {
-        const bridge = this.requireBridge()
-        if (!bridge.startAgentConversation) throw new Error('Electron local Git bridge cannot start agent conversations')
-
-        return bridge.startAgentConversation(request, onEvent)
-    }
-
-    async sendAgentInput(_project: ProjectReference, runId: string, input: string): Promise<void> {
-        const bridge = this.requireBridge()
-        if (!bridge.sendAgentInput) throw new Error('Electron local Git bridge cannot send agent input')
-
-        await bridge.sendAgentInput(runId, input)
     }
 
     async stopAgent(_project: ProjectReference, runId: string): Promise<void> {

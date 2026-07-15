@@ -1,4 +1,3 @@
-const { spawn } = require('node:child_process')
 const fs = require('node:fs')
 const path = require('node:path')
 
@@ -28,26 +27,6 @@ async function pathExists(targetPath) {
     } catch {
         return false
     }
-}
-
-function runProcessWithInput(command, input, cwd) {
-    return new Promise((resolve, reject) => {
-        const child = spawn(command, { cwd, shell: true })
-        let stdout = ''
-        let stderr = ''
-
-        child.stdout.on('data', (chunk) => {
-            stdout += chunk.toString()
-        })
-        child.stderr.on('data', (chunk) => {
-            stderr += chunk.toString()
-        })
-        child.on('error', reject)
-        child.on('close', (code) => {
-            resolve({ exitCode: typeof code === 'number' ? code : 1, stderr, stdout })
-        })
-        child.stdin.end(input)
-    })
 }
 
 function safeHistorySegment(value) {
@@ -111,7 +90,8 @@ function normalizeAgentConversation(content, referencePath) {
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('Malformed agent log: root must be an object')
 
     return {
-        cardPath: requireString(parsed.cardPath, 'cardPath'),
+        actionId: parsed.actionId === null || parsed.actionId === undefined ? null : requireString(parsed.actionId, 'actionId'),
+        cardPath: parsed.cardPath === null || parsed.cardPath === undefined ? null : requireString(parsed.cardPath, 'cardPath'),
         completedAt: parsed.completedAt === null || parsed.completedAt === undefined ? null : requireString(parsed.completedAt, 'completedAt'),
         continuedFrom: parsed.continuedFrom === null || parsed.continuedFrom === undefined ? null : requireString(parsed.continuedFrom, 'continuedFrom'),
         events: Array.isArray(parsed.events) ? parsed.events : [],
@@ -207,17 +187,6 @@ async function cancelActionSchedule(project, actionsFolder, scheduleId) {
     return saveActionSchedules(project, actionsFolder, nextSchedules)
 }
 
-async function runAgent(project, request) {
-    const rootPath = requireRootPath(project)
-    await assertGitRoot(rootPath)
-    if (!request || typeof request.command !== 'string' || request.command.length === 0) throw new Error('Missing agent command')
-    if (typeof request.prompt !== 'string' || request.prompt.length === 0) throw new Error('Missing agent prompt')
-
-    const { exitCode, stderr, stdout } = await runProcessWithInput(request.command, request.prompt, rootPath)
-
-    return { command: request.command, exitCode, prompt: request.prompt, stderr, stdout }
-}
-
 async function loadAgentConversation(project, referencePath) {
     const rootPath = requireRootPath(project)
     await assertGitRoot(rootPath)
@@ -236,6 +205,5 @@ module.exports = {
     loadActionRunHistory,
     loadActionSchedules,
     loadAgentConversation,
-    runAgent,
     saveActionSchedules,
 }

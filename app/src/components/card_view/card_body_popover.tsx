@@ -7,6 +7,7 @@ import FileDocumentOutline from 'mdi-material-ui/FileDocumentOutline'
 import FolderSearchOutline from 'mdi-material-ui/FolderSearchOutline'
 import type { ProjectCard } from '../../data/data_types'
 import { ResizablePopover } from '../resizable_popover'
+import { useRunningActionForFile } from '../hooks/use_action_executions'
 import { CardBodyEditor } from './card_body_editor'
 import { CardDeleteDialog } from './card_delete_dialog'
 
@@ -104,8 +105,8 @@ export function CardBodyPopover(props: CardBodyPopoverProps) {
     }
 
     const titleId = card ? `card-body-popover-${card.header.internalId}` : 'card-body-popover'
-    const isAgentRunning = card?.agentConversations.some((conversation) => conversation.status === 'running') ?? false
-    const statusLabel = isAgentRunning ? 'Running' : 'Idle'
+    const runningExecution = useRunningActionForFile(card?.path ?? null)
+    const statusLabel = runningExecution ? 'Running' : 'Idle'
     const fullscreenSize = `calc(100vw - ${FULLSCREEN_INSET * 2}px)`
     const fullscreenHeight = `calc(100vh - ${FULLSCREEN_INSET * 2}px)`
 
@@ -205,7 +206,7 @@ export function CardBodyPopover(props: CardBodyPopoverProps) {
                                 value={titleDraft}
                             />
                             <Box sx={{ alignItems: 'center', color: 'text.disabled', display: 'flex', flexShrink: 0, fontSize: 11.5, gap: '5px' }}>
-                                <Box sx={{ backgroundColor: 'text.disabled', borderRadius: '50%', height: 7, width: 7 }} />
+                                <Box sx={{ backgroundColor: runningExecution ? 'success.main' : 'text.disabled', borderRadius: '50%', height: 7, width: 7 }} />
                                 {statusLabel}
                             </Box>
                             <Box sx={{ backgroundColor: 'divider', flexShrink: 0, height: 20, width: '1px' }} />

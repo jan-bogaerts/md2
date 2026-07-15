@@ -1,6 +1,6 @@
 import { Button, IconButton, Stack, Tooltip } from '@mui/material'
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown'
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import type { RemoteControlStatus } from '../../data/electron_remote_control_bridge'
 import { dialogService } from '../../services/dialog_service'
 import { RemoteConnectButton } from './remote_connect_button'
@@ -20,7 +20,7 @@ export function RemoteControlButton() {
     const { bridge, status, setStatus } = useRemoteControlStatus()
     const [isBusy, setIsBusy] = useState(false)
     const [isInfoOpen, setIsInfoOpen] = useState(false)
-    const buttonRef = useRef<HTMLButtonElement>(null)
+    const [buttonElement, setButtonElement] = useState<HTMLButtonElement | null>(null)
 
     if (!bridge) return <RemoteConnectButton />
 
@@ -42,11 +42,21 @@ export function RemoteControlButton() {
         }
     }
 
+    const handleToggleInfo = () => setIsInfoOpen((open) => !open)
+    const handleCloseInfo = () => setIsInfoOpen(false)
+
     return (
         <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
             <Tooltip title={tooltipLabel(status)}>
                 <span>
-                    <Button color={status.active ? 'success' : 'inherit'} disabled={isBusy} onClick={handleClick} ref={buttonRef} size="small" variant="outlined">
+                    <Button
+                        color={status.active ? 'success' : 'inherit'}
+                        disabled={isBusy}
+                        onClick={handleClick}
+                        ref={setButtonElement}
+                        size="small"
+                        variant="outlined"
+                    >
                         {buttonLabel(status)}
                     </Button>
                 </span>
@@ -54,11 +64,21 @@ export function RemoteControlButton() {
             {status.active ? (
                 <>
                     <Tooltip title="show connect link and QR code">
-                        <IconButton aria-label="show connect link and QR code" color="inherit" onClick={() => setIsInfoOpen((open) => !open)} size="small">
+                        <IconButton
+                            aria-label="show connect link and QR code"
+                            color="inherit"
+                            onClick={handleToggleInfo}
+                            size="small"
+                        >
                             <ArrowDropDownIcon fontSize="small" />
                         </IconButton>
                     </Tooltip>
-                    <RemoteControlConnectionInfo anchorEl={buttonRef.current} onClose={() => setIsInfoOpen(false)} open={isInfoOpen} status={status} />
+                    <RemoteControlConnectionInfo
+                        anchorEl={buttonElement}
+                        onClose={handleCloseInfo}
+                        open={isInfoOpen}
+                        status={status}
+                    />
                 </>
             ) : null}
         </Stack>

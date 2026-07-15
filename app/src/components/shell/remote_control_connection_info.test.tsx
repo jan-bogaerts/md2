@@ -15,21 +15,32 @@ const status: RemoteControlStatus = {
 describe('RemoteControlConnectionInfo', () => {
     afterEach(cleanup)
 
-    it('shows hostname and IP endpoints', () => {
+    it('shows hostname and IP connect links carrying the token', () => {
         render(<RemoteControlConnectionInfo anchorEl={null} onClose={() => undefined} open status={status} />)
 
-        expect(screen.getByText('ws://desktop.local:8123')).toBeInTheDocument()
-        expect(screen.getByText('ws://192.168.1.20:8123')).toBeInTheDocument()
+        expect(screen.getByText('http://192.168.1.20:8123/#abc123')).toBeInTheDocument()
+        expect(screen.getByText('http://desktop.local:8123/#abc123')).toBeInTheDocument()
     })
 
-    it('copies the connect URL derived from the hostname endpoint and token', async () => {
+    it('defaults copy to the IP connect link (Android-friendly)', async () => {
         const writeText = vi.fn().mockResolvedValue(undefined)
         Object.assign(navigator, { clipboard: { writeText } })
         render(<RemoteControlConnectionInfo anchorEl={null} onClose={() => undefined} open status={status} />)
 
         fireEvent.click(screen.getByRole('button', { name: /copy connect link/i }))
 
-        expect(writeText).toHaveBeenCalledWith('http://desktop.local:8123/#abc123')
+        expect(writeText).toHaveBeenCalledWith('http://192.168.1.20:8123/#abc123')
         expect(await screen.findByRole('button', { name: 'Copied' })).toBeInTheDocument()
+    })
+
+    it('copies the hostname link once selected', async () => {
+        const writeText = vi.fn().mockResolvedValue(undefined)
+        Object.assign(navigator, { clipboard: { writeText } })
+        render(<RemoteControlConnectionInfo anchorEl={null} onClose={() => undefined} open status={status} />)
+
+        fireEvent.click(screen.getByText('http://desktop.local:8123/#abc123'))
+        fireEvent.click(screen.getByRole('button', { name: /copy connect link/i }))
+
+        expect(writeText).toHaveBeenCalledWith('http://desktop.local:8123/#abc123')
     })
 })

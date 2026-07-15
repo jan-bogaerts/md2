@@ -1,0 +1,96 @@
+- generic [ref=f2e1]:
+  - generic [ref=f2e3]:
+    - banner [ref=f2e4]:
+      - generic [ref=f2e5]:
+        - tablist [ref=f2e103]:
+          - tab [selected] [ref=f2e104] [cursor=pointer]: Home
+          - tab [ref=f2e105] [cursor=pointer]: Run
+        - button [ref=f2e106] [cursor=pointer]
+        - generic [ref=f2e23]:
+          - textbox [ref=f2e107]:
+            - /placeholder: Search cards…
+          - generic [ref=f2e28]: ⌘K
+          - group
+      - tabpanel [ref=f2e32]:
+        - generic [ref=f2e33]:
+          - group [ref=f2e108]:
+            - button [ref=f2e110] [cursor=pointer]
+            - generic [ref=f2e40]:
+              - combobox [disabled] [ref=f2e112]
+              - textbox [disabled]
+              - group
+          - separator [ref=f2e42]
+          - group [ref=f2e113]:
+            - button [ref=f2e115] [cursor=pointer]
+            - button [ref=f2e117] [cursor=pointer]: Connect
+          - separator [ref=f2e50]
+          - group [ref=f2e118]:
+            - group [ref=f2e52]:
+              - button [pressed] [ref=f2e119] [cursor=pointer]:
+                - generic [ref=f2e56]: Board
+              - button [ref=f2e120] [cursor=pointer]:
+                - generic [ref=f2e60]: List
+          - separator [ref=f2e61]
+          - generic [ref=f2e121]:
+            - button [disabled]
+          - button [disabled]: New card
+          - group [ref=f2e122]:
+            - button [ref=f2e123] [cursor=pointer]
+    - generic [ref=f2e67]:
+      - paragraph [ref=f2e70]: No project navigation available.
+      - separator [ref=f2e124]
+      - region [ref=f2e125]:
+        - region [ref=f2e126]:
+          - generic [ref=f2e76]:
+            - heading [level=2] [ref=f2e127]: No project open
+            - paragraph [ref=f2e78]: Open a GitHub repository or local folder to work with project cards.
+            - button [ref=f2e128] [cursor=pointer]: Open project...
+    - contentinfo [ref=f2e80]:
+      - generic [ref=f2e81]:
+        - generic [ref=f2e84]: "0"
+        - generic [ref=f2e85]: cards
+      - generic [ref=f2e86]:
+        - generic [ref=f2e88]: "0"
+        - generic [ref=f2e89]: active
+      - generic [ref=f2e90]: Saved locally
+      - generic [ref=f2e94]: Synced
+      - button [ref=f2e129] [cursor=pointer]: 0 agents
+  - dialog [ref=f2e165]:
+    - heading [level=2] [ref=f2e166]: Open project
+    - generic [ref=f2e135]:
+      - generic [ref=f2e136]:
+        - generic [ref=f2e137]: Source
+        - generic [ref=f2e138]:
+          - combobox [expanded] [ref=f2e167] [cursor=pointer]: GitHub
+          - textbox: github
+          - group:
+            - generic: Source
+      - generic [ref=f2e140]:
+        - generic [ref=f2e141]: Filter repositories
+        - textbox [disabled] [ref=f2e168]
+      - generic [ref=f2e144]:
+        - generic: Repository
+        - generic [ref=f2e145]:
+          - combobox [disabled] [ref=f2e169]
+          - textbox [disabled]
+          - group:
+            - generic: Repository
+      - separator [ref=f2e147]
+      - heading [level=6] [ref=f2e170]: Manual GitHub repository
+      - generic [ref=f2e149]:
+        - generic [ref=f2e150]:
+          - generic [ref=f2e151]: Owner
+          - textbox [disabled] [ref=f2e171]
+        - generic [ref=f2e154]:
+          - generic [ref=f2e155]: Repository
+          - textbox [disabled] [ref=f2e172]
+      - button [disabled]: Load branches
+      - generic [ref=f2e158]:
+        - generic [ref=f2e159]: Branch
+        - textbox [ref=f2e173]
+    - generic [ref=f2e162]:
+      - button [ref=f2e174] [cursor=pointer]: Cancel
+      - button [disabled]: Open GitHub
+  - listbox "Source" [ref=f2e177]:
+    - option "GitHub" [active] [selected] [ref=f2e178] [cursor=pointer]
+    - option "Remote" [ref=f2e179] [cursor=pointer]

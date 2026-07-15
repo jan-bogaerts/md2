@@ -1,6 +1,12 @@
 import { describe, expect, it, vi } from 'vitest'
 import { ActionService, editableActionDefinition, serializeActionDefinition } from './action_service'
-import { CUSTOM_PROMPT_ACTION_ID, CUSTOM_PROMPT_ACTION_NAME, type ActionFile, type RawActionDefinition } from '../data/action_types'
+import {
+    CUSTOM_PROMPT_ACTION_ID,
+    CUSTOM_PROMPT_ACTION_NAME,
+    REMARKABLE_CONVERT_ACTION_NAME,
+    type ActionFile,
+    type RawActionDefinition,
+} from '../data/action_types'
 
 function file(definition: unknown): ActionFile {
     return { content: JSON.stringify(definition), path: 'actions/action.json' }
@@ -9,10 +15,10 @@ function file(definition: unknown): ActionFile {
 const VALID: RawActionDefinition = { command: 'run', description: 'Do it', id: 'action-do', label: 'Do', name: 'do', type: 'command' }
 
 describe('ActionService', () => {
-    it('exposes only the built-in action before loading', () => {
+    it('exposes built-in actions before loading', () => {
         const service = new ActionService()
 
-        expect(service.getActions().map((action) => action.name)).toEqual([CUSTOM_PROMPT_ACTION_NAME])
+        expect(service.getActions().map((action) => action.name)).toEqual([CUSTOM_PROMPT_ACTION_NAME, REMARKABLE_CONVERT_ACTION_NAME])
     })
 
     it('loads project action files alongside the built-in and notifies listeners', () => {
@@ -61,7 +67,7 @@ describe('ActionService', () => {
 
         service.clear()
 
-        expect(service.getActions().map((action) => action.name)).toEqual([CUSTOM_PROMPT_ACTION_NAME])
+        expect(service.getActions().map((action) => action.name)).toEqual([CUSTOM_PROMPT_ACTION_NAME, REMARKABLE_CONVERT_ACTION_NAME])
     })
 
     it('creates a valid agent definition with generated stable identity and path', () => {

@@ -1,39 +1,19 @@
 const crypto = require('node:crypto')
 const { spawn } = require('node:child_process')
-const { resolveAgentCommand } = require('./agent_profiles.mjs')
-const { loadActionDefinitions, sanitizeActionValidationError } = require('../../../shared/action_definitions.mjs')
+const { buildResumeAgentCommand, resolveAgentCommand } = require('./agent_profiles.mjs')
+const { resolveActionDefinition } = require('./action_definition_resolver')
+const { extractCommitSummary } = require('../../../shared/action_history.mjs')
 const { assertGitRoot, requireRootPath } = require('../git/git_commands')
 
 const ALLOWED_REQUEST_FIELDS = new Set(['actionId', 'context', 'runInput'])
-const ALLOWED_RUN_INPUT_FIELDS = new Set(['agent', 'extraPrompt', 'model', 'thinkingLevel'])
-const CONTEXT_KINDS = new Set(['card', 'file', 'folder'])
-const COMMIT_LINE_PATTERN = /^\[(.+?) ([0-9a-f]{7,40})\]/mu
+const ALLOWED_RUN_INPUT_FIELDS = new Set(['agent', 'continueFrom', 'extraPrompt', 'model', 'thinkingLevel'])
+const CONTEXT_KINDS = new Set(['card', 'file', 'folder', 'project'])
 const PLACEHOLDER_PATTERN = /\{\{\s*(rootProjectFolder|file|prompt)\s*\}\}/gu
 const PROMPT_PLACEHOLDER_PATTERN = /\{\{\s*prompt\s*\}\}/u
-const ROOT_COMMIT_SUFFIX = ' (root-commit)'
 const COMPLETED_EXECUTION_LIMIT = 100
-const REMARKABLE_CONVERT_ACTION_ID = 'md2.convert-remarkable-images-to-text'
-const REMARKABLE_CONVERT_ACTION = {
-    agent: null,
-    appliesTo: null,
-    builtin: true,
-    command: null,
-    description: 'Transcribe imported Remarkable images and append the text to the card.',
-    icon: null,
-    id: REMARKABLE_CONVERT_ACTION_ID,
-    label: 'Convert Remarkable images to text',
-    model: null,
-    name: 'convert-remarkable-images-to-text',
-    needsWorkTree: false,
-    on: [],
-    onAfter: [],
-    onBefore: [],
-    onState: null,
-    prompt: 'Convert the following Remarkable images to text and append the transcription to {{file}}:\n{{prompt}}',
-    sourcePath: null,
-    thinkingLevel: null,
-    type: 'agent',
-}
+const CONTINUE_INPUT = 'continue'
+const CONTINUE_TRANSCRIPT_LIMIT = 12000
+const WORKTREE_AGENT_REFERENCE_PATTERN = /^worktree:[1-9]\d*:(.*)$/u
 
 class ActionCancellationError extends Error {}
 
@@ -79,10 +59,29 @@ function validateRunInput(runInput = {}) {
 
     return {
         agent: readOptionalString(runInput.agent, 'agent'),
+        continueFrom: readOptionalString(runInput.continueFrom, 'continueFrom'),
         extraPrompt: readOptionalString(runInput.extraPrompt, 'extraPrompt') ?? '',
         model: readOptionalString(runInput.model, 'model'),
         thinkingLevel: readOptionalString(runInput.thinkingLevel, 'thinkingLevel'),
     }
+}
+
+function continuationReferencePath(reference) {
+    return WORKTREE_AGENT_REFERENCE_PATTERN.exec(reference)?.[1] ?? reference
+}
+
+function buildContinuePrompt(conversation) {
+    const transcript = conversation.messages.map((message, index) => {
+        if (!message || typeof message !== 'object' || Array.isArray(message)) throw new Error(`Malformed agent log message: ${index}`)
+        if (typeof message.role !== 'string' || typeof message.content !== 'string') throw new Error(`Malformed agent log message: ${index}`)
+
+        return `${message.role}: ${message.content}`
+    }).join('\n\n')
+    const truncatedTranscript = transcript.length <= CONTINUE_TRANSCRIPT_LIMIT
+        ? transcript
+        : transcript.slice(transcript.length - CONTINUE_TRANSCRIPT_LIMIT)
+
+    return ['Continue the prior agent conversation using this transcript.', '', truncatedTranscript, '', `User instruction: ${CONTINUE_INPUT}`].join('\n')
 }
 
 function validateStartRequest(request) {
@@ -113,15 +112,13 @@ function resolveAgentPrompt(action, context, project, extraPrompt) {
 }
 
 function extractCommitMetadata(input) {
-    const match = COMMIT_LINE_PATTERN.exec(input.output)
-    if (!match) return null
-
-    const branch = match[1].endsWith(ROOT_COMMIT_SUFFIX) ? match[1].slice(0, -ROOT_COMMIT_SUFFIX.length) : match[1]
+    const summary = extractCommitSummary(input.output)
+    if (!summary) return null
 
     return {
         actionId: input.actionId,
-        branch,
-        commit: match[2],
+        branch: summary.branch,
+        commit: summary.commit,
         completedAt: input.completedAt,
         filePaths: input.context.file ? [input.context.file] : [],
         repositoryRoot: requireRootPath(input.project),
@@ -248,20 +245,9 @@ class ActionRunnerService {
     }
 
     async loadRootAction(actionId, project, actionsFolder) {
-        const files = await this.localGitService.loadActionFiles(project, actionsFolder)
         const config = this.agentConfigProvider()
-        let actions
-        try {
-            actions = loadActionDefinitions(files, { profiles: config.agentProfiles })
-        } catch (error) {
-            throw sanitizeActionValidationError(error)
-        }
-        const action = actionId === REMARKABLE_CONVERT_ACTION_ID
-            ? REMARKABLE_CONVERT_ACTION
-            : actions.find((candidate) => candidate.id === actionId)
-        if (!action) throw new Error(`Unknown action: ${actionId}`)
 
-        return action
+        return resolveActionDefinition(this.localGitService, project, actionsFolder, config.agentProfiles, actionId)
     }
 
     async execute(execution) {
@@ -315,7 +301,6 @@ class ActionRunnerService {
 
     async runMain(execution, action, phase, isRoot, rootPhase) {
         throwIfCancelled(execution)
-        execution.activeAction = { action, phase }
         this.emit(execution, action, phase, 'running', { type: 'action' })
 
         try {
@@ -337,7 +322,6 @@ class ActionRunnerService {
                 thinkingLevel: result.thinkingLevel,
                 type: 'action',
             })
-            execution.activeAction = null
             if (result.exitCode !== 0) {
                 const error = new Error(`${action.label} failed with exit code ${result.exitCode}`)
                 error.phase = phase
@@ -349,7 +333,6 @@ class ActionRunnerService {
         } catch (error) {
             if (error instanceof ActionCancellationError || execution.controller.signal.aborted) {
                 this.emit(execution, action, phase, 'cancelled', { message: 'Action cancelled', type: 'action' })
-                execution.activeAction = null
                 throw new ActionCancellationError('Action cancelled')
             }
             if (error.phase) throw error
@@ -362,12 +345,13 @@ class ActionRunnerService {
                 stdout: '',
                 type: 'action',
             })
-            execution.activeAction = null
             throw error
         }
     }
 
     async runCommandAction(execution, action, phase, isRoot) {
+        if (isRoot && execution.runInput.continueFrom) throw new Error('Conversation continuation requires an agent action')
+
         return this.actionWorktreeExecutionService.execute(execution.project, action, execution.context, async (project) => {
             const extraPrompt = isRoot ? execution.runInput.extraPrompt : ''
             const command = resolvePlaceholders(action.command, execution.context, project, extraPrompt)
@@ -390,8 +374,6 @@ class ActionRunnerService {
     }
 
     async runAgentAction(execution, action, phase, isRoot) {
-        if (!execution.context.file) throw new Error('Agent actions require a file context')
-
         const config = this.agentConfigProvider()
         const runInput = isRoot ? execution.runInput : {}
         const thinkingLevel = runInput.thinkingLevel ?? action.thinkingLevel
@@ -403,11 +385,28 @@ class ActionRunnerService {
 
         return this.actionWorktreeExecutionService.execute(execution.project, action, execution.context, async (project) => {
             const extraPrompt = isRoot ? execution.runInput.extraPrompt : ''
-            const prompt = resolveAgentPrompt(action, execution.context, project, extraPrompt)
+            const continueFrom = isRoot ? execution.runInput.continueFrom : undefined
+            const sourceConversation = continueFrom
+                ? await this.localGitService.loadAgentConversation(project, continuationReferencePath(continueFrom))
+                : null
+            if (sourceConversation && sourceConversation.cardPath !== (execution.context.file ?? null)) {
+                throw new Error(`Agent log belongs to ${sourceConversation.cardPath}, not ${execution.context.file}`)
+            }
+            const nativeResumeSessionId = sourceConversation?.nativeSessionId ?? null
+            const prompt = sourceConversation
+                ? nativeResumeSessionId ? CONTINUE_INPUT : buildContinuePrompt(sourceConversation)
+                : resolveAgentPrompt(action, execution.context, project, extraPrompt)
+            const command = nativeResumeSessionId && resolvedAgent.profile.resumeCommand
+                ? buildResumeAgentCommand(resolvedAgent.profile, nativeResumeSessionId)
+                : resolvedAgent.command
             const request = {
-                cardPath: execution.context.file,
-                command: resolvedAgent.command,
+                actionId: action.id,
+                ...(execution.context.file ? { cardPath: execution.context.file } : {}),
+                command,
+                ...(continueFrom ? { continuedFrom: continueFrom } : {}),
+                ...(nativeResumeSessionId ? { nativeResumeSessionId } : {}),
                 prompt,
+                scopePath: execution.context.file ?? 'project',
                 ...(resolvedAgent.profile.sessionIdPattern ? { sessionIdPattern: resolvedAgent.profile.sessionIdPattern } : {}),
                 title: action.label,
             }
@@ -469,9 +468,14 @@ class ActionRunnerService {
         const completedAt = new Date().toISOString()
         const output = combineOutput(result)
         const commit = extractCommitMetadata({ actionId: action.id, completedAt, context, output, project })
-        if (!commit) return
-
-        const entry = { command: result.command, commit, completedAt, output, prompt: '', status: result.exitCode === 0 ? 'completed' : 'failed' }
+        const entry = {
+            command: result.command,
+            ...(commit ? { commit } : {}),
+            completedAt,
+            output,
+            prompt: '',
+            status: result.exitCode === 0 ? 'completed' : 'failed',
+        }
         await this.appendHistory(action.id, context, entry, project, actionsFolder)
     }
 
@@ -484,6 +488,7 @@ class ActionRunnerService {
     emit(execution, action, phase, status, details) {
         const event = {
             actionId: action.id,
+            context: execution.context,
             executionId: execution.executionId,
             phase,
             rootActionId: execution.rootAction.id,
@@ -521,6 +526,12 @@ class ActionRunnerService {
         if (!this.actionWorktreeExecutionService) throw new Error('Action runner has no worktree execution service')
         if (!this.agentRunnerService) throw new Error('Action runner has no agent runner service')
         if (!this.agentConfigProvider) throw new Error('Action runner has no agent config provider')
+    }
+
+    requireActionsFolder() {
+        if (!this.actionsFolder) throw new Error('Action runner has no actions folder')
+
+        return this.actionsFolder
     }
 }
 

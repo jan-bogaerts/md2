@@ -56,6 +56,29 @@ describe('AgentRunnerService', () => {
         vi.restoreAllMocks()
     })
 
+    it('persists a project-wide log without card ownership', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-runner-'))
+        const service = new AgentRunnerService()
+        const events = []
+
+        try {
+            await prepareProject(rootPath)
+            const result = await service.start(
+                createProject(rootPath),
+                { command: 'node -e "process.exit(0)"', prompt: 'Review project', scopePath: 'project' },
+                (event) => events.push(event),
+            )
+
+            await waitForEvent(events, 'closed')
+            const persisted = JSON.parse(await readFile(join(rootPath, result.reference), 'utf8'))
+
+            expect(persisted).not.toHaveProperty('cardPath')
+            expect(result.reference).toContain('project_')
+        } finally {
+            await rm(rootPath, { force: true, recursive: true })
+        }
+    })
+
     it('streams stdout, forwards stdin and persists the card-linked log', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-runner-'))
         const service = new AgentRunnerService()
@@ -68,6 +91,7 @@ describe('AgentRunnerService', () => {
             const result = await service.start(
                 createProject(rootPath),
                 {
+                    actionId: 'action-implement',
                     cardPath: 'design/F-1.md',
                     command,
                     continuedFrom: '.md2-agent-logs/source.json',
@@ -89,6 +113,7 @@ describe('AgentRunnerService', () => {
             expect(events.some((event) => event.type === 'stdout' && event.content.includes('hello'))).toBe(true)
             expect(events.some((event) => event.type === 'stdout' && event.content.includes('done'))).toBe(true)
             expect(persisted.cardPath).toBe('design/F-1.md')
+            expect(persisted.actionId).toBe('action-implement')
             expect(persisted.continuedFrom).toBe('.md2-agent-logs/source.json')
             expect(persisted.nativeSessionId).toBe('session-1')
             expect(persisted.status).toBe('completed')

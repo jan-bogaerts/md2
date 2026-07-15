@@ -50,7 +50,9 @@ export function ActionPopup(props: ActionPopupProps) {
 
     if (isCardRunDialog) {
         const handlePrimaryRun = showSaveControls ? controller.handleSaveAndRun : controller.handleRun
-        const runDisabled = controller.runStatus === 'running' || (showSaveControls && controller.saveDisabled)
+        const runDisabled = controller.runStatus === 'running'
+            || !!controller.executionDisabledMessage
+            || (showSaveControls && controller.saveDisabled)
 
         return (
             <ResizablePopover
@@ -97,6 +99,7 @@ export function ActionPopup(props: ActionPopupProps) {
                         <ActionAgentForm
                             actionLabel={controller.actionLabel}
                             agent={controller.agent}
+                            agentAvailability={controller.agentAvailability}
                             agentProfiles={controller.agentProfiles}
                             compact
                             convertMessage={controller.convertMessage}
@@ -131,9 +134,14 @@ export function ActionPopup(props: ActionPopupProps) {
                     {controller.runStatus !== 'idle' ? (
                         <ActionRunStatus
                             color={statusColor(controller.runStatus)}
-                            result={controller.runResult}
+                            logs={controller.runLogs}
                             status={controller.runStatus}
                         />
+                    ) : null}
+                    {controller.executionDisabledMessage ? (
+                        <Typography color="text.secondary" role="note" variant="caption">
+                            {controller.executionDisabledMessage}
+                        </Typography>
                     ) : null}
                     <ActionRunHistory compact entries={controller.history} error={controller.historyError} />
                     <RelatedActions actions={action.onBefore} label="Before" onNavigate={onNavigate} />
@@ -156,10 +164,10 @@ export function ActionPopup(props: ActionPopupProps) {
                     </Button>
                     <Box sx={{ flex: 1 }} />
                     {controller.runStatus === 'running' ? (
-                        <Button onClick={controller.handleCancel} size="small" variant="outlined">Cancel</Button>
+                        <Button disabled={!controller.backendAvailable} onClick={controller.handleCancel} size="small" variant="outlined">Cancel</Button>
                     ) : null}
                     <Button
-                        disabled={controller.runStatus === 'running'}
+                        disabled={controller.runStatus === 'running' || !controller.backendAvailable}
                         onClick={controller.handleToggleSchedule}
                         size="small"
                         startIcon={<CalendarOutline sx={{ fontSize: '14px !important' }} />}
@@ -209,13 +217,17 @@ export function ActionPopup(props: ActionPopupProps) {
                 </Box>
 
                 <Stack direction="row" spacing={1}>
-                    <Button disabled={controller.runStatus === 'running'} onClick={controller.handleToggleSchedule} variant="outlined">
+                    <Button
+                        disabled={controller.runStatus === 'running' || !controller.backendAvailable}
+                        onClick={controller.handleToggleSchedule}
+                        variant="outlined"
+                    >
                         Schedule
                     </Button>
                     {controller.runStatus === 'running' ? (
-                        <Button onClick={controller.handleCancel} variant="outlined">Cancel</Button>
+                        <Button disabled={!controller.backendAvailable} onClick={controller.handleCancel} variant="outlined">Cancel</Button>
                     ) : (
-                        <Button onClick={controller.handleRun} variant="contained">Run</Button>
+                        <Button disabled={!!controller.executionDisabledMessage} onClick={controller.handleRun} variant="contained">Run</Button>
                     )}
                     <Button onClick={onClose}>Close</Button>
                 </Stack>
@@ -237,6 +249,7 @@ export function ActionPopup(props: ActionPopupProps) {
                     <ActionAgentForm
                         actionLabel={controller.actionLabel}
                         agent={controller.agent}
+                        agentAvailability={controller.agentAvailability}
                         agentProfiles={controller.agentProfiles}
                         convertMessage={controller.convertMessage}
                         extraPrompt={controller.extraPrompt}
@@ -258,9 +271,14 @@ export function ActionPopup(props: ActionPopupProps) {
                 {controller.runStatus !== 'idle' ? (
                     <ActionRunStatus
                         color={statusColor(controller.runStatus)}
-                        result={controller.runResult}
+                        logs={controller.runLogs}
                         status={controller.runStatus}
                     />
+                ) : null}
+                {controller.executionDisabledMessage ? (
+                    <Typography color="text.secondary" role="note" variant="caption">
+                        {controller.executionDisabledMessage}
+                    </Typography>
                 ) : null}
 
                 <Divider />

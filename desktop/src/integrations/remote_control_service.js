@@ -11,7 +11,7 @@ const SOCKET_OPEN_STATE = 1
 const REMOTE_CONTROL_STOP_CODE = 1001
 const UNAUTHORIZED_STATUS = 401
 const NOT_FOUND_STATUS = 404
-const AGENT_EVENT_METHODS = new Set(['runSearchRegexpAgent', 'startAgentConversation'])
+const AGENT_EVENT_METHODS = new Set(['runSearchRegexpAgent'])
 const STATIC_INDEX_FILE = 'index.html'
 const CONTENT_TYPES = {
     '.css': 'text/css; charset=utf-8',
@@ -64,10 +64,19 @@ function isLoopbackHost(host) {
     return host === '127.0.0.1' || host === 'localhost' || host === '::1'
 }
 
-/** LAN-reachable IPv4 addresses, skipping internal (loopback) and link-local (169.254.x) interfaces. */
+// Virtual adapters (Hyper-V/WSL/VM bridges) report LAN-looking IPv4s that a phone on the real Wi-Fi
+// cannot reach — Node does not flag them `internal`, so they slip past the loopback check. Exclude them
+// so the fallback list only shows addresses a remote device can actually connect to.
+const VIRTUAL_ADAPTER_PATTERN = /vethernet|virtualbox|vmware|hyper-v|\bwsl\b|loopback|\btap\b|npcap|bluetooth/iu
+
+/**
+ * LAN-reachable IPv4 addresses, skipping internal (loopback), link-local (169.254.x) and virtual
+ * (Hyper-V/WSL/VM) interfaces so only phone-reachable physical-adapter addresses are surfaced.
+ */
 function lanIpv4Addresses() {
     const addresses = []
-    for (const entries of Object.values(os.networkInterfaces())) {
+    for (const [name, entries] of Object.entries(os.networkInterfaces())) {
+        if (VIRTUAL_ADAPTER_PATTERN.test(name)) continue
         for (const entry of entries ?? []) {
             if (entry.family !== 'IPv4' || entry.internal) continue
             if (entry.address.startsWith('169.254.')) continue

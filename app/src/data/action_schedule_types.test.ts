@@ -20,6 +20,19 @@ describe('action schedule types', () => {
         expect(() => parseActionScheduleFile({ schedules: [{ id: 'schedule-1' }] })).toThrow('missing actionId')
     })
 
+    it('parses project-wide schedules without a file target', () => {
+        const schedule: ActionSchedule = {
+            actionId: 'md2.custom-prompt',
+            context: { kind: 'project' },
+            createdAt: '2026-07-06T10:00:00.000Z',
+            id: 'schedule-project',
+            status: 'pending',
+            trigger: { type: 'agentSlot' },
+        }
+
+        expect(parseActionScheduleFile({ schedules: [schedule] })).toEqual({ schedules: [schedule] })
+    })
+
     it.each(['cancelled', 'completed', 'failed'] as const)('parses %s terminal status', (status) => {
         const schedule: ActionSchedule = {
             actionId: 'action-implement',

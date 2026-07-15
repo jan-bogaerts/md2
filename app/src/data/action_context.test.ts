@@ -7,9 +7,10 @@ import {
     fileContext,
     folderContext,
     getCardType,
+    projectContext,
     validateActionContextFilterValue,
 } from './action_context'
-import { BUILTIN_CUSTOM_PROMPT, type ActionDefinition } from './action_types'
+import { BUILTIN_CUSTOM_PROMPT, BUILTIN_REMARKABLE_CONVERT, type ActionDefinition } from './action_types'
 import { DEFAULT_CARD_TYPES, type ProjectCard } from './data_types'
 
 function action(name: string, appliesTo: ActionDefinition['appliesTo']): ActionDefinition {
@@ -85,7 +86,7 @@ describe('action context filter descriptors', () => {
     })
 })
 
-describe('cardContext / fileContext / folderContext', () => {
+describe('cardContext / fileContext / folderContext / projectContext', () => {
     it('derives type, state, file and kind for a card', () => {
         expect(cardContext(card('F-010', 'design'), DEFAULT_CARD_TYPES)).toEqual({
             file: 'design/F-010.md',
@@ -107,6 +108,10 @@ describe('cardContext / fileContext / folderContext', () => {
     it('builds a folder context and flags special folders by name', () => {
         expect(folderContext('history', true)).toEqual({ folder: 'history', kind: 'folder', type: 'history' })
         expect(folderContext('sub')).toEqual({ folder: 'sub', kind: 'folder' })
+    })
+
+    it('builds project-wide context without a card or file', () => {
+        expect(projectContext()).toEqual({ kind: 'project' })
     })
 })
 
@@ -137,11 +142,23 @@ describe('actionsForContext', () => {
     it('keeps only matching actions in load order and always includes custom prompt', () => {
         const actions = [
             BUILTIN_CUSTOM_PROMPT,
+            BUILTIN_REMARKABLE_CONVERT,
             action('feature-only', { type: 'feature' }),
             action('bug-only', { type: 'bug' }),
         ]
         const result = actionsForContext(actions, cardContext(card('F-010', 'design'), DEFAULT_CARD_TYPES))
 
         expect(result.map((entry) => entry.name)).toEqual([BUILTIN_CUSTOM_PROMPT.name, 'feature-only'])
+    })
+
+    it('keeps generic and project actions out of card-specific context', () => {
+        const actions = [
+            BUILTIN_CUSTOM_PROMPT,
+            action('project-only', { kind: 'project' }),
+            action('card-only', { kind: 'card' }),
+        ]
+
+        expect(actionsForContext(actions, projectContext()).map(({ name }) => name))
+            .toEqual([BUILTIN_CUSTOM_PROMPT.name, 'project-only'])
     })
 })

@@ -1,23 +1,9 @@
-const { buildResumeAgentCommand, resolveAgentCommand } = require('../actions/agent_profiles.mjs')
-const { sanitizeActionValidationError } = require('../../../shared/action_definitions.mjs')
-const { loadActionDefinitions } = require('../actions/action_scheduler_service')
+const { resolveAgentCommand } = require('../actions/agent_profiles.mjs')
+const { resolveActionDefinition } = require('../actions/action_definition_resolver')
 
 const WORKTREE_AGENT_REFERENCE_PATTERN = /^worktree:([1-9]\d*):(.*)$/u
 const SEARCH_AGENT_CARD_PATH = '.md2-search-regexp'
 const SEARCH_AGENT_PROMPT_PREFIX = 'Return only a single JavaScript-compatible regular expression pattern (no explanation, no surrounding text or markdown) that matches the following search request:\n\n'
-
-function resolveStartAgentRequest(config, request) {
-    const resolved = resolveAgentCommand(config)
-    const command = typeof request.nativeResumeSessionId === 'string' && request.nativeResumeSessionId.length > 0 && resolved.profile.resumeCommand
-        ? buildResumeAgentCommand(resolved.profile, request.nativeResumeSessionId)
-        : resolved.command
-
-    return {
-        ...request,
-        command,
-        ...(resolved.profile.sessionIdPattern ? { sessionIdPattern: resolved.profile.sessionIdPattern } : {}),
-    }
-}
 
 function resolveSearchAgent(config) {
     const resolved = resolveAgentCommand(config)
@@ -45,29 +31,18 @@ function createLocalBridgeDispatch(dependencies) {
     } = dependencies
     let currentLocalProject = null
 
-    async function loadRequestAction(request) {
+    async function loadRequestAction(request, actionsFolder) {
         if (!request || typeof request !== 'object') throw new Error('Missing action request')
         if (typeof request.actionId !== 'string' || request.actionId.length === 0) throw new Error('Missing actionId')
-        if (typeof request.actionsFolder !== 'string' || request.actionsFolder.length === 0) throw new Error('Missing actionsFolder')
-
-        const files = await localGitService.loadActionFiles(currentLocalProject, request.actionsFolder)
         const { agentProfiles } = readDesktopConfig(desktopConfigStore)
-        let actions
-        try {
-            actions = loadActionDefinitions(files, { profiles: agentProfiles })
-        } catch (error) {
-            throw sanitizeActionValidationError(error)
-        }
-        const action = actions.find((candidate) => candidate.id === request.actionId)
-        if (!action) throw new Error(`Unknown action: ${request.actionId}`)
 
-        return action
+        return resolveActionDefinition(localGitService, currentLocalProject, actionsFolder, agentProfiles, request.actionId)
     }
 
-    async function resolveActionProject(request) {
+    async function resolveActionProject(request, actionsFolder) {
         if (!actionWorktreeExecutionService) throw new Error('Action worktree execution service is not available')
 
-        const action = await loadRequestAction(request)
+        const action = await loadRequestAction(request, actionsFolder)
         const resolution = await actionWorktreeExecutionService.resolve(currentLocalProject, action, request.context)
 
         return resolution.executionProject
@@ -112,6 +87,7 @@ function createLocalBridgeDispatch(dependencies) {
         ),
         deleteFile: (request) => localGitService.deleteFile(request, currentLocalProject),
         deleteFolder: (request) => localGitService.deleteFolder(request, currentLocalProject),
+        getActiveProject: () => currentLocalProject,
         hasPendingPush: (project) => localGitService.hasPendingPush(project),
         listBranches: (project) => localGitService.listBranches(project),
         listRepositoryFiles: (project) => localGitService.listRepositoryFiles(project),
@@ -177,12 +153,6 @@ function createLocalBridgeDispatch(dependencies) {
         saveActionSchedules: (project, actionsFolder, schedules) => localGitService.saveActionSchedules(project, actionsFolder, schedules),
         saveProjectConfig: (project, config) => localGitService.saveProjectConfig(project, config),
         saveWorktrees: (project, folders) => worktreeService.save(project, folders),
-        sendAgentInput: (runId, input) => agentRunnerService.sendInput(runId, input),
-        startAgentConversation: (request, callback) => {
-            const agentRequest = resolveStartAgentRequest(readDesktopConfig(desktopConfigStore), request)
-
-            return agentRunnerService.start(currentLocalProject, agentRequest, callback)
-        },
         stopAgent: (runId) => agentRunnerService.stop(runId),
         watchProject: (project, callback) => localGitService.watchProject(project, (event) => {
             if (actionSchedulerService) void actionSchedulerService.handleProjectChange(event)
@@ -198,9 +168,18 @@ function createLocalBridgeDispatch(dependencies) {
             return { ...result, repositoryRoot: project.rootPath }
         },
         loadActionRunHistory: async (request) => {
-            const project = await resolveActionProject(request)
+            if (!actionRunnerService) throw new Error('Action runner is not available')
 
-            return localGitService.loadActionRunHistory(project, request)
+            const actionsFolder = actionRunnerService.requireActionsFolder()
+            const project = await resolveActionProject(request, actionsFolder)
+            const historyRequest = { ...request, actionsFolder }
+
+            return localGitService.loadActionRunHistory(project, historyRequest)
+        },
+        loadAgentAvailability: () => {
+            const { agentProfiles } = readDesktopConfig(desktopConfigStore)
+
+            return agentExecutableAvailability(agentProfiles)
         },
         cancelActionExecution: (executionId) => {
             if (!actionRunnerService) throw new Error('Action runner is not available')

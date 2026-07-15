@@ -85,6 +85,7 @@ export function ProjectToolbarMenu(props: ProjectToolbarMenuProps) {
             </Menu>
             <ProjectOpenDialog
                 branches={actions.branches}
+                initialRemoteProject={actions.initialRemoteProject}
                 initialSource={actions.initialProjectSource}
                 isDesktopMode={actions.isDesktopMode}
                 isGithubAuthenticated={isGithubAuthenticated}

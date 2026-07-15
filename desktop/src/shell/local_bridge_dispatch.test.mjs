@@ -8,6 +8,7 @@ function createDispatch(options = {}) {
     const agentExecutableAvailability = vi.fn(async () => ({ codex: { available: true, error: null } }))
     const actionRunnerService = {
         cancel: vi.fn(),
+        requireActionsFolder: vi.fn(() => 'actions'),
         sendInput: vi.fn(),
         start: vi.fn(async () => 'action-1'),
         subscribe: vi.fn(() => vi.fn()),
@@ -41,6 +42,7 @@ function createDispatch(options = {}) {
             }),
             path: 'actions/test.json',
         }]),
+        loadActionRunHistory: vi.fn(async () => []),
         loadProjectAsset: vi.fn(async () => ({ content: 'aWNvbg==', contentType: 'image/png', encoding: 'base64', path: 'actions/icon.png' })),
         loadProject: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
         loadProjectRoot: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
@@ -197,86 +199,16 @@ describe('createLocalBridgeDispatch', () => {
         expect(actionRunnerService.subscribe).toHaveBeenCalledWith(callback)
     })
 
-    it('uses profile resume command for native agent resume starts', async () => {
-        const agentRunnerService = {
-            run: vi.fn(async () => ({ runId: 'run-1' })),
-            sendInput: vi.fn(),
-            start: vi.fn(async () => ({ runId: 'run-2' })),
-            stop: vi.fn(),
-        }
-        const dispatch = createLocalBridgeDispatch({
-            actionSchedulerService: null,
-            agentRunnerService,
-            desktopConfigStore: {},
-            diffService: { generateDiff: vi.fn(), openInEditor: vi.fn() },
-            localGitService: {
-                assertGitRoot: vi.fn(),
-                loadProject: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
-            },
-            readDesktopConfig: () => ({
-                agent: 'resumable',
-                agentProfiles: [{
-                    command: 'agent start',
-                    models: ['default'],
-                    name: 'resumable',
-                    resumeCommand: 'agent resume {{sessionId}}',
-                    sessionIdPattern: 'Session: (.+)',
-                }],
-                model: '',
-            }),
-        })
+    it('loads history with the runner-owned actions folder and shared definition resolver', async () => {
+        const { actionRunnerService, dispatch, localGitService } = createDispatch()
         const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
-
+        const request = { actionId: 'test', context: { file: 'design/F-1.md', kind: 'card' } }
         await dispatch.dataBridge.loadProject(project, 'design')
-        await dispatch.dataBridge.startAgentConversation({ cardPath: 'design/F-1.md', nativeResumeSessionId: 'session-1', prompt: 'continue' }, vi.fn())
 
-        expect(agentRunnerService.start).toHaveBeenCalledWith(project, {
-            cardPath: 'design/F-1.md',
-            command: 'agent resume session-1',
-            nativeResumeSessionId: 'session-1',
-            prompt: 'continue',
-            sessionIdPattern: 'Session: (.+)',
-        }, expect.any(Function))
+        await dispatch.actionBridge.loadActionRunHistory(request)
+
+        expect(actionRunnerService.requireActionsFolder).toHaveBeenCalled()
+        expect(localGitService.loadActionRunHistory).toHaveBeenCalledWith(project, { ...request, actionsFolder: 'actions' })
     })
 
-    it('uses transcript replay command when no native session id is present', async () => {
-        const agentRunnerService = {
-            run: vi.fn(async () => ({ runId: 'run-1' })),
-            sendInput: vi.fn(),
-            start: vi.fn(async () => ({ runId: 'run-2' })),
-            stop: vi.fn(),
-        }
-        const dispatch = createLocalBridgeDispatch({
-            actionSchedulerService: null,
-            agentRunnerService,
-            desktopConfigStore: {},
-            diffService: { generateDiff: vi.fn(), openInEditor: vi.fn() },
-            localGitService: {
-                assertGitRoot: vi.fn(),
-                loadProject: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
-            },
-            readDesktopConfig: () => ({
-                agent: 'resumable',
-                agentProfiles: [{
-                    command: 'agent start',
-                    models: ['default'],
-                    name: 'resumable',
-                    resumeCommand: 'agent resume {{sessionId}}',
-                    sessionIdPattern: 'Session: (.+)',
-                }],
-                model: '',
-            }),
-        })
-        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
-
-        await dispatch.dataBridge.loadProject(project, 'design')
-        await dispatch.dataBridge.startAgentConversation({ cardPath: 'design/F-1.md', prompt: 'transcript replay' }, vi.fn())
-
-        expect(agentRunnerService.start).toHaveBeenCalledWith(project, {
-            cardPath: 'design/F-1.md',
-            command: 'agent start',
-            prompt: 'transcript replay',
-            sessionIdPattern: 'Session: (.+)',
-        }, expect.any(Function))
-    })
 })

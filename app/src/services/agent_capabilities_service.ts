@@ -1,5 +1,6 @@
 import { findAgentProfile } from '../data/agent_profiles'
 import { getElectronDataBridge, type AgentAvailability } from '../data/electron_data_bridge'
+import { getElectronActionBridge } from '../data/electron_action_bridge'
 import { configService } from './config_service'
 import { register } from './service_injector'
 
@@ -46,10 +47,13 @@ function validateCapabilityValues(values: unknown, capability: string) {
 
 const configuredProfileProvider: AgentCapabilitiesProvider = {
     async getAgentAvailability() {
-        const bridge = getElectronDataBridge()
-        if (!bridge?.loadAgentAvailability) throw new Error('Agent executable availability requires the Electron desktop app')
+        const dataBridge = getElectronDataBridge()
+        const actionBridge = getElectronActionBridge()
+        const loadAvailability = dataBridge?.loadAgentAvailability?.bind(dataBridge)
+            ?? actionBridge?.loadAgentAvailability?.bind(actionBridge)
+        if (!loadAvailability) throw new Error('Agent executable availability requires the Electron desktop app')
 
-        return bridge.loadAgentAvailability()
+        return loadAvailability()
     },
     async getModels(agent) {
         const profile = findAgentProfile(configService.get('desktop.agentProfiles'), agent)

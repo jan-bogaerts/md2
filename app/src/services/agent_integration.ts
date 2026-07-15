@@ -1,7 +1,6 @@
-import { cardContext, type ActionContext } from '../data/action_context'
-import type { ActionDefinition } from '../data/action_types'
+import { cardContext, fileContext, type ActionContext } from '../data/action_context'
+import { BUILTIN_CUSTOM_PROMPT, type ActionDefinition } from '../data/action_types'
 import type { ActionExecutionEvent } from '../data/action_run_types'
-import { getElectronActionBridge } from '../data/electron_action_bridge'
 import {
     type AgentConversation,
     type AgentConversationError,
@@ -12,6 +11,7 @@ import {
     type StorageService,
 } from '../data/data_types'
 import { actionService } from './action_service'
+import { actionExecutionService } from './action_execution_service'
 import { agentConversationService, loadAgentConversation } from './agent_conversation_service'
 import { recordActionEventProcessingError, runElectronAction } from './electron_action_runner'
 import { mapWithConcurrency } from './concurrency'
@@ -122,10 +122,7 @@ export class AgentIntegration {
 
     startScheduledRunWatch() {
         this.stopScheduledRunWatch()
-        const bridge = getElectronActionBridge()
-        if (!bridge?.onActionExecution) return
-
-        this.scheduledRunCleanup = bridge.onActionExecution((event) => {
+        this.scheduledRunCleanup = actionExecutionService.subscribeEvents((event) => {
             try {
                 this.handleActionExecutionEvent(event)
             } catch (error) {
@@ -145,44 +142,19 @@ export class AgentIntegration {
     }
 
     async continueAgentConversation(cardPath: string, sourcePath: string) {
-        const { storage } = this.dependencies.requireDependencies()
-        const currentProject = this.dependencies.project()
-        if (!currentProject) throw new Error('Cannot continue an agent before a project is open')
+        const { config } = this.dependencies.requireDependencies()
+        const snapshot = this.dependencies.snapshot()
+        const card = [...(snapshot?.activeCards ?? []), ...(snapshot?.backgroundCards ?? [])]
+            .find((candidate) => candidate.path === cardPath)
+        if (!card) throw new Error(`Cannot continue agent for unknown card: ${cardPath}`)
+        const conversation = (this.conversationsByCardPath.get(cardPath) ?? []).find(({ path }) => path === sourcePath)
+        if (!conversation) throw new Error(`Unknown agent conversation: ${sourcePath}`)
+        const action = conversation.actionId
+            ? actionService.getActions().find(({ id }) => id === conversation.actionId)
+            : BUILTIN_CUSTOM_PROMPT
+        if (!action) throw new Error(`Unknown originating action: ${conversation.actionId}`)
 
-        const result = await agentConversationService.continueConversation(
-            storage,
-            currentProject,
-            { cardPath, sourcePath },
-            (event) => this.recordAgentRunEvent(cardPath, event),
-        )
-        this.upsertAgentConversation(cardPath, result.conversation)
-
-        return this.linkAgentConversation(cardPath, result.conversation, result.reference)
-    }
-
-    async startAgentConversation(cardPath: string, prompt: string) {
-        const { storage } = this.dependencies.requireDependencies()
-        const currentProject = this.dependencies.project()
-        if (!currentProject) throw new Error('Cannot start an agent before a project is open')
-
-        const result = await agentConversationService.startConversation(
-            storage,
-            currentProject,
-            { cardPath, prompt, title: `Agent ${cardPath}` },
-            (event) => this.handleAgentRunEvent(cardPath, event),
-        )
-        this.upsertAgentConversation(cardPath, result.conversation)
-
-        return this.linkAgentConversation(cardPath, result.conversation, result.reference)
-    }
-
-    async sendAgentInput(runId: string, input: string) {
-        const { storage } = this.dependencies.requireDependencies()
-        const currentProject = this.dependencies.project()
-        if (!currentProject) throw new Error('Cannot send agent input before a project is open')
-        if (!storage.sendAgentInput) throw new Error('Sending agent input requires an Electron agent bridge')
-
-        await storage.sendAgentInput(currentProject, runId, input)
+        return runElectronAction(action, fileContext(card, config.cardTypes), { continueFrom: sourcePath })
     }
 
     recordAgentRunEvent(cardPath: string, event: AgentRunEvent) {
@@ -288,16 +260,11 @@ export class AgentIntegration {
         this.dependencies.refreshSnapshot(config.workingFolder)
     }
 
-    private handleAgentRunEvent(cardPath: string, event: AgentRunEvent) {
-        this.upsertAgentConversation(cardPath, event.conversation)
-    }
-
     private handleActionExecutionEvent(event: ActionExecutionEvent) {
         if (event.type === 'execution') this.handleActionExecutionStatus(event)
         if (event.type === 'action') this.linkActionConversation(event)
         if (!event.agentEvent) return
 
-        agentConversationService.observeRunEvent(event.agentEvent, event.agentEvent.conversation.title)
         if (!event.agentEvent.conversation.cardPath) {
             this.dependencies.dispatchChanged()
             return

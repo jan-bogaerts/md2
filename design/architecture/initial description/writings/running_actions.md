@@ -60,6 +60,7 @@
 - `onState` starts an action when a card receives its configured state.
 - Example: moving a card to `Ready` can start an explicit push action.
 - State-triggered actions use the same Electron-side action runner, card execution state, logs, errors, and cancellation behavior as manually started actions.
+- Accepted limitation: `onState` detection runs in the renderer while the application has a loaded project snapshot. Card-state changes written by an external process do not trigger actions.
 
 ## Action popup
 

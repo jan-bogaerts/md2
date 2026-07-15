@@ -50,6 +50,7 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
     const [isReleaseCompleting, setIsReleaseCompleting] = useState(false)
     const [projectOpenResolution, setProjectOpenResolution] = useState<ProjectOpenResolution | null>(null)
     const [initialProjectSource, setInitialProjectSource] = useState<ProjectDialogSource | null>(null)
+    const [initialRemoteProject, setInitialRemoteProject] = useState<ProjectReference | null>(null)
     const [repositories, setRepositories] = useState<RepositoryReference[]>(EMPTY_REPOSITORIES)
     const [switchBranch, setSwitchBranch] = useState(project?.branch ?? '')
     const activeCards = snapshot?.activeCards ?? []
@@ -125,6 +126,7 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
 
             const detail = (event as CustomEvent<OpenProjectDialogDetail>).detail
             setInitialProjectSource(detail?.source ?? null)
+            setInitialRemoteProject(detail?.project ?? null)
             onOpenDialog('open')
             if (isGithubAuthenticated) void loadRepositories()
         }
@@ -151,6 +153,7 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
         }
 
         setInitialProjectSource(null)
+        setInitialRemoteProject(null)
         onOpenDialog('open')
         if (isGithubAuthenticated) void loadRepositories()
     }
@@ -304,6 +307,7 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
         closeDialog,
         completeRelease,
         initialProjectSource,
+        initialRemoteProject,
         createCard,
         createProjectFolders,
         createRemoteProject,

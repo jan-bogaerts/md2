@@ -7,11 +7,11 @@ import { ActionRunHistory } from './action_run_history'
 describe('ActionRunHistory', () => {
     afterEach(cleanup)
 
-    it('renders empty history state', () => {
+    it('renders nothing when history is empty', () => {
         render(<ActionRunHistory entries={[]} error={null} />)
 
-        expect(screen.getByText('Run history')).toBeInTheDocument()
-        expect(screen.getByText('No previous runs')).toBeInTheDocument()
+        expect(screen.queryByText('Run history')).not.toBeInTheDocument()
+        expect(screen.queryByText('No previous runs')).not.toBeInTheDocument()
     })
 
     it('reports history load errors through the dialog display', async () => {
@@ -23,7 +23,7 @@ describe('ActionRunHistory', () => {
         )
 
         expect(await screen.findByText('Could not load run history')).toBeInTheDocument()
-        expect(screen.getByText('Run history unavailable.')).toBeInTheDocument()
+        expect(screen.queryByText('Run history unavailable.')).not.toBeInTheDocument()
     })
 
     it('renders agent and model labels', () => {

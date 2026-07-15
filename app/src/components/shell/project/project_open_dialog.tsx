@@ -31,6 +31,7 @@ interface GithubBranchesResult {
 
 interface ProjectOpenDialogProps {
     branches: BranchReference[]
+    initialRemoteProject?: ProjectReference | null
     initialSource?: ProjectSource | null
     isDesktopMode: boolean
     isGithubAuthenticated: boolean
@@ -79,6 +80,7 @@ function repositoryMatchesFilter(repository: RepositoryReference, filter: string
 export function ProjectOpenDialog(props: ProjectOpenDialogProps) {
     const {
         branches,
+        initialRemoteProject,
         initialSource,
         isDesktopMode,
         isGithubAuthenticated,
@@ -121,6 +123,10 @@ export function ProjectOpenDialog(props: ProjectOpenDialogProps) {
             if (stored) {
                 if (remoteEndpoint.length === 0) setRemoteEndpoint(stored.endpoint)
                 if (remoteToken.length === 0) setRemoteToken(stored.token)
+            }
+            if (initialRemoteProject) {
+                if (remoteRootPath.length === 0 && initialRemoteProject.rootPath) setRemoteRootPath(initialRemoteProject.rootPath)
+                if (selectedBranch.length === 0 && initialRemoteProject.branch) setSelectedBranch(initialRemoteProject.branch)
             }
         }
     }

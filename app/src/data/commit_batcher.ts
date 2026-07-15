@@ -1,6 +1,6 @@
 ﻿import { AUTO_COMMIT_DELAY_MS, type CommitRequest, type MarkdownFile } from './data_types'
 
-type DelayId = ReturnType<typeof window.setTimeout>
+type DelayId = number
 
 interface CommitBatcherDependencies {
     clearDelay: (delayId: DelayId) => void

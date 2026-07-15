@@ -1,10 +1,10 @@
-import { ACTION_APPLIES_TO_FIELDS } from './action_types'
+import { ACTION_APPLIES_TO_FIELDS, CUSTOM_PROMPT_ACTION_ID } from './action_types'
 import type { ActionAppliesToField, ActionDefinition } from './action_types'
 import type { CardTypeConfig, ProjectCard } from './data_types'
 import { getCardIdPrefix } from './card_identifiers'
 
 /** The kind of item an action entry point is attached to. */
-export type ActionContextKind = 'card' | 'file' | 'folder'
+export type ActionContextKind = 'card' | 'file' | 'folder' | 'project'
 
 export type ActionContextFilterValueSource =
     'kind' | 'type' | 'state' | 'file' | 'folder' | 'worktree' | 'text'
@@ -44,7 +44,7 @@ export function validateActionContextFilterValue(value: string): string | null {
 const ACTION_CONTEXT_FILTER_METADATA: Record<ActionAppliesToField, Omit<ActionContextFilterDescriptor, 'key'>> = {
     file: { label: 'Repository file', supportedContextKinds: ['card', 'file'], valueSource: 'file', validate: validateActionContextFilterValue },
     folder: { label: 'Repository folder', supportedContextKinds: ['folder'], valueSource: 'folder', validate: validateActionContextFilterValue },
-    kind: { label: 'Target kind', supportedContextKinds: ['card', 'file', 'folder'], valueSource: 'kind', validate: validateActionContextFilterValue },
+    kind: { label: 'Target kind', supportedContextKinds: ['card', 'file', 'folder', 'project'], valueSource: 'kind', validate: validateActionContextFilterValue },
     state: { label: 'Card state', supportedContextKinds: ['card', 'file'], valueSource: 'state', validate: validateActionContextFilterValue },
     type: { label: 'Context type', supportedContextKinds: ['card', 'file', 'folder'], valueSource: 'type', validate: validateActionContextFilterValue },
     worktree: { label: 'Worktree', supportedContextKinds: ['card', 'file'], valueSource: 'worktree', validate: validateActionContextFilterValue },
@@ -88,6 +88,11 @@ export function folderContext(folder: string, isSpecial = false): ActionContext 
     return context
 }
 
+/** Build context for actions that run against the opened project rather than a card or file. */
+export function projectContext(): ActionContext {
+    return { kind: 'project' }
+}
+
 /**
  * True when the action is allowed in the given context. An action with no
  * `appliesTo` (like the built-in custom prompt) matches every context; otherwise
@@ -101,5 +106,5 @@ export function actionMatchesContext(action: ActionDefinition, context: ActionCo
 
 /** All actions that should be shown for a context, preserving load order. */
 export function actionsForContext(actions: ActionDefinition[], context: ActionContext): ActionDefinition[] {
-    return actions.filter((action) => actionMatchesContext(action, context))
+    return actions.filter((action) => (!action.builtin || action.id === CUSTOM_PROMPT_ACTION_ID) && actionMatchesContext(action, context))
 }

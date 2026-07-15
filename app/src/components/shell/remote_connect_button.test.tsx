@@ -1,14 +1,17 @@
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import type { ProjectReference } from '../../data/data_types'
 import {
     configureRemoteControlConnection,
     REMOTE_CONTROL_ENDPOINT_KEY,
     REMOTE_CONTROL_TOKEN_KEY,
 } from '../../data/remote_control_connection'
+import { projectSessionService } from '../../services/project_session_service'
 import { OPEN_PROJECT_DIALOG_EVENT, type OpenProjectDialogDetail } from '../project_command_events'
 import { RemoteConnectButton } from './remote_connect_button'
 
 class MockWebSocket extends EventTarget {
+    static activeProject: ProjectReference | null = null
     static behavior: 'open' | 'error' = 'open'
 
     readyState = 0
@@ -33,6 +36,12 @@ class MockWebSocket extends EventTarget {
 
     send(message: string) {
         this.sent.push(message)
+        const request = JSON.parse(message) as { id: string; method: string }
+        if (request.method !== 'getActiveProject') return
+
+        queueMicrotask(() => {
+            this.dispatchEvent(new MessageEvent('message', { data: JSON.stringify({ id: request.id, result: MockWebSocket.activeProject }) }))
+        })
     }
 
     close() {
@@ -66,7 +75,9 @@ describe('RemoteConnectButton', () => {
         window.localStorage.removeItem(REMOTE_CONTROL_ENDPOINT_KEY)
         window.localStorage.removeItem(REMOTE_CONTROL_TOKEN_KEY)
         window.location.hash = ''
+        MockWebSocket.activeProject = null
         vi.unstubAllGlobals()
+        vi.restoreAllMocks()
         cleanup()
     })
 
@@ -100,8 +111,43 @@ describe('RemoteConnectButton', () => {
         expect(await screen.findByRole('button', { name: 'Connected' })).toBeInTheDocument()
         expect(window.localStorage.getItem(REMOTE_CONTROL_ENDPOINT_KEY)).toBe('ws://192.168.0.10:1234')
         expect(window.localStorage.getItem(REMOTE_CONTROL_TOKEN_KEY)).toBe('token-1')
+        await waitFor(() => expect(openProjectListener).toHaveBeenCalledOnce())
         const detail = (openProjectListener.mock.calls[0][0] as CustomEvent<OpenProjectDialogDetail>).detail
         expect(detail).toEqual({ source: 'remote' })
+        window.removeEventListener(OPEN_PROJECT_DIALOG_EVENT, openProjectListener)
+    })
+
+    it('loads the desktop app\'s active project directly and skips the open-project dialog', async () => {
+        installWebSocket('open')
+        MockWebSocket.activeProject = { branch: 'main', id: '/repo', rootPath: '/repo' }
+        const openProjectSpy = vi.spyOn(projectSessionService, 'openProject').mockResolvedValue(null)
+        const openProjectListener = vi.fn()
+        window.addEventListener(OPEN_PROJECT_DIALOG_EVENT, openProjectListener)
+        render(<RemoteConnectButton />)
+
+        await connectTo('ws://192.168.0.10:1234', 'token-1')
+
+        expect(await screen.findByRole('button', { name: 'Connected' })).toBeInTheDocument()
+        await waitFor(() => expect(openProjectSpy).toHaveBeenCalledWith('remote', MockWebSocket.activeProject, null))
+        expect(openProjectListener).not.toHaveBeenCalled()
+        window.removeEventListener(OPEN_PROJECT_DIALOG_EVENT, openProjectListener)
+    })
+
+    it('falls back to the open-project dialog, prefilled with the active project, when loading it fails', async () => {
+        installWebSocket('open')
+        const activeProject = { branch: 'main', id: '/repo', rootPath: '/repo' }
+        MockWebSocket.activeProject = activeProject
+        vi.spyOn(projectSessionService, 'openProject').mockRejectedValue(new Error('load failed'))
+        const openProjectListener = vi.fn()
+        window.addEventListener(OPEN_PROJECT_DIALOG_EVENT, openProjectListener)
+        render(<RemoteConnectButton />)
+
+        await connectTo('ws://192.168.0.10:1234', 'token-1')
+
+        expect(await screen.findByRole('button', { name: 'Connected' })).toBeInTheDocument()
+        await waitFor(() => expect(openProjectListener).toHaveBeenCalledOnce())
+        const detail = (openProjectListener.mock.calls[0][0] as CustomEvent<OpenProjectDialogDetail>).detail
+        expect(detail).toEqual({ project: activeProject, source: 'remote' })
         window.removeEventListener(OPEN_PROJECT_DIALOG_EVENT, openProjectListener)
     })
 
@@ -125,7 +171,7 @@ describe('RemoteConnectButton', () => {
         expect(await screen.findByRole('button', { name: 'Connected' })).toBeInTheDocument()
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
         expect(window.localStorage.getItem(REMOTE_CONTROL_TOKEN_KEY)).toBe('frag-token')
-        expect(openProjectListener).toHaveBeenCalledOnce()
+        await waitFor(() => expect(openProjectListener).toHaveBeenCalledOnce())
         window.removeEventListener(OPEN_PROJECT_DIALOG_EVENT, openProjectListener)
     })
 

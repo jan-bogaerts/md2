@@ -30,7 +30,6 @@ const {
     loadProjectRoot,
     loadProjectConfig,
     moveFiles,
-    runAgent,
     runCommand,
     saveActionSchedules,
     saveProjectConfig,
@@ -328,25 +327,6 @@ describe('local-git-service', () => {
             await mkdir(join(rootPath, '.git'))
 
             await expect(runCommand({ branch: 'main', id: 'local', rootPath }, { command: 'git status' })).rejects.toThrow('Missing command text')
-        } finally {
-            await rm(rootPath, { force: true, recursive: true })
-        }
-    })
-
-    it('runs an agent command from the project root with prompt input', async () => {
-        const rootPath = await mkdtemp(join(tmpdir(), 'md2-local-git-'))
-
-        try {
-            await mkdir(join(rootPath, '.git'))
-
-            const result = await runAgent(
-                { branch: 'main', id: 'local', rootPath },
-                { command: 'node -e "process.stdin.on(\'data\', data => process.stdout.write(data))"', prompt: 'hello agent' },
-            )
-
-            expect(result.exitCode).toBe(0)
-            expect(result.prompt).toBe('hello agent')
-            expect(result.stdout).toBe('hello agent')
         } finally {
             await rm(rootPath, { force: true, recursive: true })
         }

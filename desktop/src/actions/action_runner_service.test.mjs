@@ -35,6 +35,11 @@ function createRunner(actionFiles, overrides = {}) {
     const localGitService = {
         appendActionRunHistory: vi.fn(async () => []),
         loadActionFiles: vi.fn(async () => actionFiles),
+        loadAgentConversation: vi.fn(async () => ({
+            cardPath: context.file,
+            messages: [{ content: 'prior output', role: 'stdout' }],
+            nativeSessionId: null,
+        })),
     }
     const commandRunner = vi.fn(async (_project, command) => ({ command, exitCode: 0, stderr: '', stdout: command }))
     const agentRunnerService = {
@@ -79,6 +84,28 @@ describe('validateStartRequest', () => {
 })
 
 describe('ActionRunnerService', () => {
+    it('runs a project-wide agent action without a card path', async () => {
+        const files = [actionFile('main', {
+            agent: 'codex', command: undefined, model: 'GPT 5.5', prompt: '{{prompt}}', type: 'agent',
+        })]
+        const { agentRunnerService, runner } = createRunner(files)
+        agentRunnerService.start.mockImplementation(async (_project, request, _onEvent, onComplete) => {
+            onComplete(0, { conversation: { id: 'project-run' }, reference: 'project-run.json', stderr: '', stdout: '' })
+
+            return { runId: 'project-run' }
+        })
+
+        const result = await runToCompletion(runner, {
+            actionId: 'main', context: { kind: 'project' }, runInput: { extraPrompt: 'Review project' },
+        })
+
+        expect(result.status).toBe('completed')
+        expect(agentRunnerService.start).toHaveBeenCalledWith(project, expect.objectContaining({
+            prompt: 'Review project', scopePath: 'project',
+        }), expect.any(Function), expect.any(Function))
+        expect(agentRunnerService.start.mock.calls[0][1]).not.toHaveProperty('cardPath')
+    })
+
     it('reloads and validates definitions before each execution', async () => {
         const { commandRunner, localGitService, runner } = createRunner([actionFile('main')])
 
@@ -151,6 +178,29 @@ describe('ActionRunnerService', () => {
             { actionId: 'matched', phase: 'on' },
             { actionId: 'after', phase: 'after' },
         ])
+        for (const event of events) expect(event.context).toStrictEqual(context)
+    })
+
+    it('resolves the Remarkable conversion builtin through the definition registry', async () => {
+        const { agentRunnerService, runner } = createRunner([])
+        agentRunnerService.start.mockImplementation(async (_project, request, _onEvent, onComplete) => {
+            onComplete(0, {
+                conversation: { id: 'remarkable' }, reference: '.md2-agent-logs/remarkable.json', stderr: '', stdout: '',
+            })
+
+            return { runId: 'remarkable' }
+        })
+
+        const result = await runToCompletion(runner, {
+            actionId: 'md2.convert-remarkable-images-to-text',
+            context,
+            runInput: { extraPrompt: '- image.png' },
+        })
+
+        expect(result.status).toBe('completed')
+        expect(agentRunnerService.start).toHaveBeenCalledWith(project, expect.objectContaining({
+            prompt: expect.stringContaining('- image.png'),
+        }), expect.any(Function), expect.any(Function))
     })
 
     it('resolves the worktree independently for every linked action', async () => {
@@ -274,6 +324,18 @@ describe('ActionRunnerService', () => {
         ])
     })
 
+    it('writes command history when output has no commit summary', async () => {
+        const { localGitService, runner } = createRunner([actionFile('main')])
+
+        await runToCompletion(runner)
+
+        expect(localGitService.appendActionRunHistory).toHaveBeenCalledWith(project, {
+            actionId: 'main', actionsFolder: 'actions', context,
+        }, {
+            command: 'main', completedAt: expect.any(String), output: 'main', prompt: '', status: 'completed',
+        })
+    })
+
     it('applies extra prompt only to root action placeholders', async () => {
         const files = [
             actionFile('before', { command: 'before={{prompt}}' }),
@@ -307,6 +369,63 @@ describe('ActionRunnerService', () => {
             'before prompt',
             'main prompt\n\nfocus',
         ])
+    })
+
+    it('continues an agent action with native resume in Electron', async () => {
+        const files = [actionFile('main', {
+            agent: 'resumable', command: undefined, model: 'default', prompt: 'Initial', type: 'agent',
+        })]
+        const agentConfigProvider = () => ({
+            agent: 'resumable',
+            agentProfiles: [{
+                command: 'agent start', models: ['default'], name: 'resumable', resumeCommand: 'agent resume {{sessionId}}',
+            }],
+            model: 'default',
+        })
+        const { agentRunnerService, localGitService, runner } = createRunner(files, { agentConfigProvider })
+        localGitService.loadAgentConversation.mockResolvedValueOnce({
+            cardPath: context.file, messages: [], nativeSessionId: 'session-1',
+        })
+        agentRunnerService.start.mockImplementation(async (_project, request, _onEvent, onComplete) => {
+            onComplete(0, { conversation: { id: 'continued' }, reference: 'continued.json', stderr: '', stdout: '' })
+
+            return { runId: 'continued' }
+        })
+
+        const result = await runToCompletion(runner, {
+            actionId: 'main', context, runInput: { continueFrom: '.md2-agent-logs/source.json' },
+        })
+
+        expect(result.status).toBe('completed')
+        expect(agentRunnerService.start).toHaveBeenCalledWith(project, expect.objectContaining({
+            actionId: 'main', command: 'agent resume session-1', continuedFrom: '.md2-agent-logs/source.json',
+            nativeResumeSessionId: 'session-1', prompt: 'continue',
+        }), expect.any(Function), expect.any(Function))
+    })
+
+    it('uses transcript fallback and rejects an unknown continuation reference', async () => {
+        const files = [actionFile('main', {
+            agent: 'codex', command: undefined, model: 'GPT 5.5', prompt: 'Initial', type: 'agent',
+        })]
+        const { agentRunnerService, localGitService, runner } = createRunner(files)
+        agentRunnerService.start.mockImplementation(async (_project, request, _onEvent, onComplete) => {
+            onComplete(0, { conversation: { id: 'continued' }, reference: 'continued.json', stderr: '', stdout: '' })
+
+            return { runId: 'continued' }
+        })
+
+        const result = await runToCompletion(runner, {
+            actionId: 'main', context, runInput: { continueFrom: '.md2-agent-logs/source.json' },
+        })
+        expect(result.status).toBe('completed')
+        expect(agentRunnerService.start.mock.calls[0][1].prompt).toContain('stdout: prior output')
+        expect(agentRunnerService.start.mock.calls[0][1].prompt).toContain('User instruction: continue')
+
+        localGitService.loadAgentConversation.mockRejectedValueOnce(new Error('Agent log not found'))
+        const failed = await runToCompletion(runner, {
+            actionId: 'main', context, runInput: { continueFrom: '.md2-agent-logs/missing.json' },
+        })
+        expect(failed).toMatchObject({ failure: 'Agent log not found', status: 'failed' })
     })
 
     it('isolates listener and completion-callback failures from action result', async () => {

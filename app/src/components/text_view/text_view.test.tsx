@@ -2,7 +2,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useCallback } from 'react'
 import { TextView } from './text_view'
-import { DEFAULT_CARD_TYPES, DEFAULT_STATES, type AgentConversation, type ProjectCard } from '../../data/data_types'
+import { DEFAULT_CARD_TYPES, DEFAULT_STATES, type ProjectCard } from '../../data/data_types'
 import { telemetryService } from '../../services/telemetry_service'
 import { openFilesService } from '../../services/open_files_service'
 import { actionService } from '../../services/action_service'
@@ -10,22 +10,6 @@ import { configService } from '../../services/config_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import { LeftPanelSlotProvider } from '../shell/left_panel_slot_provider'
 import { LeftPanelTarget } from '../shell/left_panel_target'
-
-function conversation(): AgentConversation {
-    return {
-        cardPath: 'design/active/F-1-a.md',
-        completedAt: '2026-01-01T00:01:00.000Z',
-        continuedFrom: null,
-        events: [],
-        id: 'agent-1',
-        messages: [{ content: 'editor output', id: 'm1', role: 'agent', timestamp: '2026-01-01T00:01:00.000Z' }],
-        nativeSessionId: null,
-        path: '.md2-agent-logs/one.json',
-        startedAt: '2026-01-01T00:00:00.000Z',
-        status: 'completed',
-        title: 'Editor agent',
-    }
-}
 
 function card(path: string, overrides: Partial<ProjectCard['header']> = {}, content = ''): ProjectCard {
     return {
@@ -56,7 +40,6 @@ const activeCards = [
     card('design/active/F-2-b.md', { id: 'F-2', title: 'Beta', status: 'done' }, '# Beta\n\nBody B'),
 ]
 const backgroundCards = [card('design/history/rel1/F-9-old.md', { id: 'F-9', title: 'Old' }, '# Old')]
-const EDITOR_STACK_HEIGHT = 1000
 
 function renderTextView(overrides: Partial<Parameters<typeof TextView>[0]> = {}) {
     const onBodyChange = vi.fn()
@@ -79,17 +62,13 @@ function renderTextView(overrides: Partial<Parameters<typeof TextView>[0]> = {})
                     activeCards={activeCards}
                     backgroundCards={backgroundCards}
                     cardTypes={DEFAULT_CARD_TYPES}
-                    isMobile={false}
                     onBodyChange={onBodyChange}
-                    onContinueAgentConversation={vi.fn()}
                     onCreateFolder={onCreateFolder}
                     onCreateMarkdownFile={onCreateMarkdownFile}
                     onDeleteFile={onDeleteFile}
                     onDeleteFolder={onDeleteFolder}
                     onHeaderFieldChange={onHeaderFieldChange}
                     onLeftPanelInteraction={handleLeftPanelInteraction}
-                    onSendAgentInput={vi.fn()}
-                    onStartAgentConversation={vi.fn()}
                     onTitleChange={onTitleChange}
                     onTogglePolicy={onTogglePolicy}
                     projectFolder="design"
@@ -128,6 +107,7 @@ describe('TextView', () => {
     })
 
     afterEach(() => {
+        delete window.md2Actions
         cleanup()
         actionService.clear()
         configService.clear()
@@ -306,7 +286,7 @@ describe('TextView', () => {
         expect(screen.getByDisplayValue(/Body A/)).toBeInTheDocument()
     })
 
-    it('remounts the markdown editor by file so undo history cannot cross tab switches', () => {
+    it('reuses one markdown editor while switching between card documents', () => {
         renderTextView()
 
         clickTreeFile('F-1 Alpha')
@@ -314,11 +294,13 @@ describe('TextView', () => {
 
         clickTreeFile('F-2 Beta')
         const betaEditor = screen.getByTestId('mdx-editor')
-        expect(betaEditor).not.toBe(alphaEditor)
+        expect(betaEditor).toBe(alphaEditor)
+        expect(screen.getByDisplayValue(/Body B/)).toBeInTheDocument()
 
         fireEvent.click(screen.getByRole('tab', { name: /Alpha/ }))
 
-        expect(screen.getByTestId('mdx-editor')).not.toBe(betaEditor)
+        expect(screen.getByTestId('mdx-editor')).toBe(alphaEditor)
+        expect(screen.getByDisplayValue(/Body A/)).toBeInTheDocument()
     })
 
     it('closes a tab from the tab bar', () => {
@@ -425,17 +407,13 @@ describe('TextView', () => {
             activeCards,
             backgroundCards,
             cardTypes: DEFAULT_CARD_TYPES,
-            isMobile: false,
             onBodyChange: vi.fn(),
-            onContinueAgentConversation: vi.fn(),
             onCreateFolder: vi.fn(async () => undefined),
             onCreateMarkdownFile: vi.fn(async () => undefined),
             onDeleteFile: vi.fn(async () => undefined),
             onDeleteFolder: vi.fn(async () => undefined),
             onHeaderFieldChange: vi.fn(),
             onLeftPanelInteraction: vi.fn(),
-            onSendAgentInput: vi.fn(),
-            onStartAgentConversation: vi.fn(),
             onTitleChange: vi.fn(),
             onTogglePolicy: vi.fn(),
             projectFolder: 'design',
@@ -469,17 +447,13 @@ describe('TextView', () => {
             actionsFolder: 'design/actions',
             backgroundCards: [],
             cardTypes: DEFAULT_CARD_TYPES,
-            isMobile: false,
             onBodyChange: vi.fn(),
-            onContinueAgentConversation: vi.fn(),
             onCreateFolder: vi.fn(async () => undefined),
             onCreateMarkdownFile: vi.fn(async () => undefined),
             onDeleteFile: vi.fn(async () => undefined),
             onDeleteFolder: vi.fn(async () => undefined),
             onHeaderFieldChange: vi.fn(),
             onLeftPanelInteraction: vi.fn(),
-            onSendAgentInput: vi.fn(),
-            onStartAgentConversation: vi.fn(),
             onTitleChange: vi.fn(),
             onTogglePolicy: vi.fn(),
             requestedNonce: 0,
@@ -514,7 +488,7 @@ describe('TextView', () => {
     })
 
     it('publishes the tree as left-panel content on mobile', () => {
-        renderTextView({ isMobile: true })
+        renderTextView()
 
         clickTreeFile('F-1 Alpha')
 
@@ -522,7 +496,7 @@ describe('TextView', () => {
     })
 
     it('keeps the formatting toolbar sticky above the editor on mobile', () => {
-        renderTextView({ isMobile: true })
+        renderTextView()
         clickTreeFile('F-1 Alpha')
 
         expect(document.querySelector('[data-sticky-toolbar="true"]')).not.toBeNull()
@@ -536,13 +510,13 @@ describe('TextView', () => {
         expect(document.querySelector('[data-sticky-toolbar="true"]')).not.toBeNull()
     })
 
-    it('renders the Agents control inside the markdown editor toolbar', () => {
+    it('removes the card-bound Agents control from the markdown editor toolbar', () => {
         renderTextView()
 
         clickTreeFile('F-1 Alpha')
 
         const editorToolbar = within(screen.getByTestId('mdx-editor-toolbar'))
-        expect(editorToolbar.getByRole('button', { name: /Agents/ })).toBeInTheDocument()
+        expect(editorToolbar.queryByRole('button', { name: /Agents/ })).not.toBeInTheDocument()
     })
 
     it('publishes the desktop tree without a Browse files button', () => {
@@ -552,58 +526,6 @@ describe('TextView', () => {
         expect(within(screen.getByLabelText('File tree')).getByRole('button', { name: 'F-1 Alpha' })).toBeInTheDocument()
     })
 
-    it('opens the conversation panel and continues the active card conversation', () => {
-        const agentConversation = conversation()
-        const onContinueAgentConversation = vi.fn()
-        renderTextView({
-            activeCards: [{ ...activeCards[0], agentConversations: [agentConversation] }],
-            onContinueAgentConversation,
-        })
-
-        clickTreeFile('F-1 Alpha')
-        fireEvent.click(screen.getByRole('button', { name: /Agents/ }))
-        expect(screen.getByText('Editor agent')).toBeInTheDocument()
-        fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
-
-        expect(onContinueAgentConversation).toHaveBeenCalledWith('design/active/F-1-a.md', agentConversation)
-    })
-
-    it('resizes the conversation panel from the desktop separator', () => {
-        vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({
-            bottom: EDITOR_STACK_HEIGHT,
-            height: EDITOR_STACK_HEIGHT,
-            left: 0,
-            right: 0,
-            toJSON: () => ({}),
-            top: 0,
-            width: 0,
-            x: 0,
-            y: 0,
-        })
-        const agentConversation = conversation()
-        renderTextView({ activeCards: [{ ...activeCards[0], agentConversations: [agentConversation] }] })
-
-        clickTreeFile('F-1 Alpha')
-        fireEvent.click(screen.getByRole('button', { name: /Agents/ }))
-        const separator = screen.getByRole('separator', { name: 'Resize conversation panel' })
-        fireEvent.pointerDown(separator, { pointerId: 1 })
-        fireEvent.pointerMove(separator, { clientY: 500, pointerId: 1 })
-        fireEvent.pointerUp(separator, { pointerId: 1 })
-
-        expect(separator).toHaveAttribute('aria-valuenow', '500')
-    })
-
-    it('starts a new agent conversation for the active text tab', () => {
-        const onStartAgentConversation = vi.fn()
-        renderTextView({ onStartAgentConversation })
-
-        clickTreeFile('F-1 Alpha')
-        fireEvent.click(screen.getByRole('button', { name: /Agents/ }))
-        fireEvent.change(screen.getByLabelText('Agent prompt'), { target: { value: 'review this file' } })
-        fireEvent.click(screen.getByRole('button', { name: 'Start' }))
-
-        expect(onStartAgentConversation).toHaveBeenCalledWith('design/active/F-1-a.md', 'review this file')
-    })
 
     it('opens Properties from the toolbar for a card with frontmatter', () => {
         const cardWithHeader = { ...activeCards[0], headerFields: { id: 'F-1', status: 'todo', title: 'Alpha' } }

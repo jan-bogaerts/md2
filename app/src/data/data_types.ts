@@ -206,7 +206,8 @@ export interface AgentConversationEvent {
 }
 
 export interface AgentConversation {
-    cardPath: string
+    actionId?: string | null
+    cardPath: string | null
     completedAt: string | null
     continuedFrom: string | null
     events: AgentConversationEvent[]
@@ -222,23 +223,6 @@ export interface AgentConversation {
 export interface AgentConversationError {
     message: string
     path: string
-}
-
-export interface ContinueAgentConversationResult {
-    conversation: AgentConversation
-    reference: string
-}
-
-export interface StartAgentConversationRequest {
-    cardPath: string
-    continuedFrom?: string
-    nativeResumeSessionId?: string
-    prompt: string
-    title?: string
-}
-
-export interface StartAgentConversationResult extends ContinueAgentConversationResult {
-    runId: string
 }
 
 export interface AgentRunEvent {
@@ -285,12 +269,6 @@ export interface StorageService {
     saveProjectConfig(project: ProjectReference, config: ProjectConfig): Promise<void>
     saveWorktrees?(project: ProjectReference, folders: string[]): Promise<WorktreeRecord[]>
     selectWorktreeFolder?(registeredFolders: string[]): Promise<WorktreeRecord | null>
-    sendAgentInput?(project: ProjectReference, runId: string, input: string): Promise<void>
-    startAgentConversation?(
-        project: ProjectReference,
-        request: StartAgentConversationRequest,
-        onEvent: (event: AgentRunEvent) => void,
-    ): Promise<StartAgentConversationResult>
     stopAgent?(project: ProjectReference, runId: string): Promise<void>
     watchProject?(project: ProjectReference, onChange: (event: ProjectWatchEvent) => void): () => void
 }

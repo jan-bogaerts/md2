@@ -1,0 +1,35 @@
+- generic [ref=f2e180]:
+  - button "Alpha" [ref=f2e181]
+  - button "Beta" [ref=f2e182]
+  - generic [ref=f2e184]:
+    - toolbar [ref=f2e185]:
+      - generic [ref=f2e186]:
+        - radiogroup [ref=f2e187]:
+          - radio "Undo Ctrl+Z" [disabled]
+        - radiogroup [ref=f2e188]:
+          - radio "Redo Ctrl+Y" [disabled]
+      - separator [ref=f2e189]
+      - generic [ref=f2e190]:
+        - radiogroup [ref=f2e191]:
+          - radio "Bold" [ref=f2e192]
+        - radiogroup [ref=f2e196]:
+          - radio "Italic" [ref=f2e197]
+        - radiogroup [ref=f2e201]:
+          - radio "Underline" [ref=f2e202]
+      - separator [ref=f2e206]
+      - radiogroup "toggle group" [ref=f2e208]:
+        - radio "Bulleted list" [ref=f2e209]
+        - radio "Numbered list" [ref=f2e213]
+        - radio "Check list" [ref=f2e217]
+      - combobox "Block type" [ref=f2e222]:
+        - generic: Paragraph
+      - separator [ref=f2e226]
+      - button "Create link" [ref=f2e227]
+      - button "Insert image" [ref=f2e231]
+      - separator [ref=f2e235]
+      - button "Insert Table" [ref=f2e236]
+      - button "Insert thematic break" [ref=f2e240]
+      - button "Insert Code Block" [ref=f2e244]
+    - textbox "editable markdown" [active] [ref=f2e250]:
+      - heading "Alpha\\n\\nOriginal" [level=1] [ref=f2e251]
+      - paragraph [ref=f2e252]

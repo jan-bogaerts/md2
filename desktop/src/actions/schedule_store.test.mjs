@@ -38,6 +38,12 @@ describe('schedule store', () => {
         expect(() => parseActionScheduleFile({ schedules: [{ id: 'schedule-1' }] })).toThrow('missing actionId')
     })
 
+    it('parses project-wide schedules without a file target', () => {
+        const schedule = { ...createSchedule(), context: { kind: 'project' } }
+
+        expect(parseActionScheduleFile({ schedules: [schedule] })).toEqual({ schedules: [schedule] })
+    })
+
     it('appends schedules through the validated file model', () => {
         const firstSchedule = createSchedule('schedule-1')
         const secondSchedule = createSchedule('schedule-2', { type: 'agentSlot' })

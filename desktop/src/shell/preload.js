@@ -46,21 +46,20 @@ const DATA_METHODS = [
     'saveProjectConfig',
     'saveWorktrees',
     'selectWorktreeFolder',
-    'sendAgentInput',
-    'startAgentConversation',
     'stopAgent',
 ]
 const ACTION_METHODS = [
     'cancelActionExecution',
     'generateDiff',
     'loadActionRunHistory',
+    'loadAgentAvailability',
     'openInEditor',
     'registerActionSchedule',
     'runSearchRegexpAgent',
     'sendActionInput',
     'startAction',
 ]
-const EVENT_METHODS = new Set(['runSearchRegexpAgent', 'startAgentConversation'])
+const EVENT_METHODS = new Set(['runSearchRegexpAgent'])
 
 let nextEventId = 1
 let desktopConfig = readArgumentJson('md2-desktop-config', {})

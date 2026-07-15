@@ -2,7 +2,6 @@ import type { ActionFile } from './action_types'
 import type { ActionSchedule } from './action_schedule_types'
 import type {
     AgentConversation,
-    AgentRunEvent,
     BranchReference,
     CommitResult,
     CommitRequest,
@@ -14,8 +13,6 @@ import type {
     ProjectConfig,
     ProjectReference,
     ProjectWatchEvent,
-    StartAgentConversationRequest,
-    StartAgentConversationResult,
     StorageProjectFiles,
     TopLevelFolderReference,
     WorktreeRecord,
@@ -55,11 +52,6 @@ export interface ElectronDataBridge {
     saveProjectConfig(project: ProjectReference, config: ProjectConfig): Promise<void>
     saveWorktrees?(project: ProjectReference, folders: string[]): Promise<WorktreeRecord[]>
     selectWorktreeFolder?(registeredFolders: string[]): Promise<WorktreeRecord | null>
-    sendAgentInput?(runId: string, input: string): Promise<void>
-    startAgentConversation?(
-        request: StartAgentConversationRequest,
-        callback: (event: AgentRunEvent) => void,
-    ): Promise<StartAgentConversationResult>
     stopAgent?(runId: string): Promise<void>
     watchProject(project: ProjectReference, callback: (event: ProjectWatchEvent) => void): () => void
     loadFile(project: ProjectReference, path: string): Promise<MarkdownFile>

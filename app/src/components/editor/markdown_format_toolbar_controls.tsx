@@ -6,15 +6,16 @@ import type { ReactNode } from 'react'
 
 interface MarkdownFormatToolbarControlsProps {
     endControls?: ReactNode
+    undoRedoControls?: ReactNode
 }
 
 /** The full formatting command set supported by the shared markdown editor. */
 export function MarkdownFormatToolbarControls(props: MarkdownFormatToolbarControlsProps = {}) {
-    const { endControls } = props
+    const { endControls, undoRedoControls } = props
 
     return (
         <>
-            <UndoRedo />
+            {undoRedoControls ?? <UndoRedo />}
             <Separator />
             <BoldItalicUnderlineToggles />
             <Separator />

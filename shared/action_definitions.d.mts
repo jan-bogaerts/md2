@@ -99,6 +99,9 @@ export function sanitizeActionValidationError(error: unknown, log?: (message: st
 export const CUSTOM_PROMPT_ACTION_ID: string
 export const CUSTOM_PROMPT_ACTION_NAME: string
 export const BUILTIN_CUSTOM_PROMPT: ActionDefinition
+export const REMARKABLE_CONVERT_ACTION_ID: string
+export const REMARKABLE_CONVERT_ACTION_NAME: string
+export const BUILTIN_REMARKABLE_CONVERT: ActionDefinition
 export function validateActionDefinition(
     value: unknown,
     source: string,

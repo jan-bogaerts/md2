@@ -2,6 +2,7 @@ import { Avatar, Box, Stack, Typography, useTheme } from '@mui/material'
 import { alpha } from '@mui/material/styles'
 import type { CardTypeConfig, ProjectCard } from '../../data/data_types'
 import { getCardTypeColor } from './card_drag'
+import { useRunningActionForFile } from '../hooks/use_action_executions'
 
 interface CardDragOverlayProps {
     card: ProjectCard
@@ -22,7 +23,7 @@ export function CardDragOverlay(props: CardDragOverlayProps) {
     const theme = useTheme()
     const accentColor = getCardTypeColor(cardTypes, card.header.id) ?? theme.palette.primary.main
     const accentBackground = alpha(accentColor, 0.16)
-    const isAgentRunning = card.agentConversations.some((conversation) => conversation.status === 'running')
+    const runningExecution = useRunningActionForFile(card.path)
     const assignee = card.header.owner ?? card.header.author ?? card.header.id
 
     return (
@@ -61,8 +62,8 @@ export function CardDragOverlay(props: CardDragOverlayProps) {
                         {card.header.id}
                     </Box>
                     <Box component="span" sx={{ alignItems: 'center', color: 'text.secondary', display: 'flex', fontSize: 11, gap: 0.625 }}>
-                        <Box sx={{ bgcolor: isAgentRunning ? 'success.main' : 'text.disabled', borderRadius: '50%', height: 7, width: 7 }} />
-                        {isAgentRunning ? 'Running' : 'Idle'}
+                        <Box sx={{ bgcolor: runningExecution ? 'success.main' : 'text.disabled', borderRadius: '50%', height: 7, width: 7 }} />
+                        {runningExecution ? 'Running' : 'Idle'}
                     </Box>
                 </Stack>
                 <Typography sx={{ color: 'text.primary', fontSize: 13.5, fontWeight: 500, lineHeight: 1.4 }}>
