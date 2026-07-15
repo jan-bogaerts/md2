@@ -4,6 +4,7 @@ const path = require('node:path')
 const {
     assertGitRoot,
     ensureInsideRoot,
+    pathExists,
     requireRootPath,
 } = require('../git/git_commands')
 const {
@@ -12,24 +13,12 @@ const {
     createActionScheduleFile,
     parseActionScheduleFile,
 } = require('./schedule_store')
+const { normalizePath } = require('../../../shared/path_utils.mjs')
 
 const JSON_EXTENSION = '.json'
 const ACTION_HISTORY_FOLDER = '.md2-action-history'
 const AGENT_MESSAGE_ROLES = new Set(['agent', 'assistant', 'stderr', 'stdout', 'system', 'user'])
 const AGENT_STATUSES = new Set(['cancelled', 'completed', 'failed', 'running'])
-
-function normalizePath(filePath) {
-    return filePath.replace(/\\/g, '/')
-}
-
-async function pathExists(targetPath) {
-    try {
-        await fs.promises.access(targetPath)
-        return true
-    } catch {
-        return false
-    }
-}
 
 function safeHistorySegment(value) {
     return value.replace(/[^a-zA-Z0-9._-]/g, '_')

@@ -1,7 +1,7 @@
 ---
 id: J-016
 title: split ActionRunnerService into execution and executor collaborators
-status: design
+status: ready
 owner: JB
 affects:
   - desktop/src/actions/action_runner_service.js

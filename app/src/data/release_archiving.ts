@@ -1,14 +1,11 @@
 import type { MarkdownFile, MoveFile, ProjectCard } from './data_types'
 import { isSafeAssetFileName, isSupportedAssetFileName, resolveCardAssetPath } from './asset_paths'
+import { normalizePath } from '../../../shared/path_utils.mjs'
 
 const HISTORY_FOLDER = 'history'
 const RELEASE_NAME_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/u
 const MARKDOWN_EXTENSION = '.md'
 const MARKDOWN_IMAGE_LINK_PATTERN = /!\[[^\]]*\]\(([^)\s]+)(?:\s+["'][^)]*["'])?\)/gu
-
-function normalizePath(path: string) {
-    return path.replace(/\\/gu, '/')
-}
 
 function releaseFolderPath(workingFolder: string, releaseName: string) {
     return `${workingFolder}/${HISTORY_FOLDER}/${releaseName}`

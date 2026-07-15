@@ -4,6 +4,8 @@ const fs = require('node:fs')
 const path = require('node:path')
 
 const { createAgentProviderProtocolParser } = require('./agent_provider_protocol')
+const { assertGitRoot, ensureInsideRoot, requireRootPath } = require('../git/git_commands')
+const { normalizePath } = require('../../../shared/path_utils.mjs')
 
 const AGENT_LOG_FOLDER = '.md2-agent-logs'
 const INTERMEDIATE_PERSIST_INTERVAL_MS = 250
@@ -15,44 +17,8 @@ const POWERSHELL_AGENT_SCRIPT = [
     'exit $LASTEXITCODE',
 ].join('; ')
 
-function normalizePath(filePath) {
-    return filePath.replace(/\\/g, '/')
-}
-
 function safePathSegment(value) {
     return value.replace(/[^a-zA-Z0-9._-]/g, '_')
-}
-
-function requireRootPath(project) {
-    if (!project || typeof project.rootPath !== 'string' || project.rootPath.length === 0) {
-        throw new Error('Missing local Git project rootPath')
-    }
-
-    return project.rootPath
-}
-
-function ensureInsideRoot(rootPath, targetPath) {
-    const resolvedRoot = path.resolve(rootPath)
-    const resolvedTarget = path.resolve(targetPath)
-
-    if (resolvedTarget !== resolvedRoot && !resolvedTarget.startsWith(`${resolvedRoot}${path.sep}`)) {
-        throw new Error('Local Git path escapes project root')
-    }
-
-    return resolvedTarget
-}
-
-async function pathExists(targetPath) {
-    try {
-        await fs.promises.access(targetPath)
-        return true
-    } catch {
-        return false
-    }
-}
-
-async function assertGitRoot(rootPath) {
-    if (!await pathExists(path.join(rootPath, '.git'))) throw new Error('Selected folder must contain a .git directory')
 }
 
 function requireString(value, fieldName) {

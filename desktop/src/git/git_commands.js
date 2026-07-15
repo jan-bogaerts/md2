@@ -160,6 +160,7 @@ module.exports = {
     hasStagedChanges,
     hasPendingPush,
     listBranches,
+    pathExists,
     push,
     resolveLocalProject,
     requireRootPath,

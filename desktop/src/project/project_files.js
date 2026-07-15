@@ -5,9 +5,11 @@ const {
     assertGitRoot,
     commitStagedChanges,
     ensureInsideRoot,
+    pathExists,
     requireRootPath,
     runGit,
 } = require('../git/git_commands')
+const { normalizePath } = require('../../../shared/path_utils.mjs')
 
 const MARKDOWN_EXTENSION = '.md'
 const JSON_EXTENSION = '.json'
@@ -21,19 +23,6 @@ const PROJECT_ASSET_CONTENT_TYPES = {
     '.png': 'image/png',
     '.svg': 'image/svg+xml',
     '.webp': 'image/webp',
-}
-
-function normalizePath(filePath) {
-    return filePath.replace(/\\/g, '/')
-}
-
-async function pathExists(targetPath) {
-    try {
-        await fs.promises.access(targetPath)
-        return true
-    } catch {
-        return false
-    }
 }
 
 async function readMarkdownFiles(rootPath, folderPath) {

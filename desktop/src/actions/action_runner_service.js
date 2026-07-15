@@ -1,147 +1,14 @@
 const crypto = require('node:crypto')
-const { spawn } = require('node:child_process')
-const { buildResumeAgentCommand, resolveAgentCommand } = require('./agent_profiles.mjs')
-const { normalizeConversationContext } = require('./agent_transcript')
+const { ActionAgentExecutor } = require('./action_agent_executor')
+const { runCommand } = require('./action_command_executor')
 const { resolveActionDefinition } = require('./action_definition_resolver')
-const { extractCommitSummary } = require('../../../shared/action_history.mjs')
-const { assertGitRoot, requireRootPath } = require('../git/git_commands')
+const { ActionExecution } = require('./action_execution')
+const { validateStartRequest } = require('./action_run_request')
 
-const ALLOWED_REQUEST_FIELDS = new Set(['actionId', 'context', 'runInput'])
-const ALLOWED_RUN_INPUT_FIELDS = new Set(['agent', 'continueFrom', 'extraPrompt', 'model', 'thinkingLevel'])
-const CONTEXT_KINDS = new Set(['card', 'file', 'folder', 'project'])
-const PLACEHOLDER_PATTERN = /\{\{\s*(rootProjectFolder|file|prompt)\s*\}\}/gu
-const PROMPT_PLACEHOLDER_PATTERN = /\{\{\s*prompt\s*\}\}/u
 const COMPLETED_EXECUTION_LIMIT = 100
-const CONTINUE_INPUT = 'continue'
-const WORKTREE_AGENT_REFERENCE_PATTERN = /^worktree:[1-9]\d*:(.*)$/u
-
-class ActionCancellationError extends Error {}
-
-function combineOutput(result) {
-    return `${result.stdout}${result.stderr}`
-}
 
 function createExecutionId() {
     return `action-${crypto.randomUUID()}`
-}
-
-function errorMessage(error, fallback) {
-    return error instanceof Error ? error.message : fallback
-}
-
-function throwIfCancelled(execution) {
-    if (execution.controller.signal.aborted) throw new ActionCancellationError('Action cancelled')
-}
-
-function readOptionalString(value, fieldName) {
-    if (value === undefined) return undefined
-    if (typeof value !== 'string') throw new Error(`Invalid action run input ${fieldName}`)
-
-    return value
-}
-
-function validateContext(context) {
-    if (!context || typeof context !== 'object' || Array.isArray(context)) throw new Error('Missing action context')
-    if (!CONTEXT_KINDS.has(context.kind)) throw new Error('Invalid action context kind')
-
-    for (const [fieldName, value] of Object.entries(context)) {
-        if (value !== undefined && typeof value !== 'string') throw new Error(`Invalid action context field ${fieldName}`)
-    }
-
-    return { ...context }
-}
-
-function validateRunInput(runInput = {}) {
-    if (!runInput || typeof runInput !== 'object' || Array.isArray(runInput)) throw new Error('Invalid action runInput')
-
-    const unsupportedField = Object.keys(runInput).find((fieldName) => !ALLOWED_RUN_INPUT_FIELDS.has(fieldName))
-    if (unsupportedField) throw new Error(`Unsupported action runInput field: ${unsupportedField}`)
-
-    return {
-        agent: readOptionalString(runInput.agent, 'agent'),
-        continueFrom: readOptionalString(runInput.continueFrom, 'continueFrom'),
-        extraPrompt: readOptionalString(runInput.extraPrompt, 'extraPrompt') ?? '',
-        model: readOptionalString(runInput.model, 'model'),
-        thinkingLevel: readOptionalString(runInput.thinkingLevel, 'thinkingLevel'),
-    }
-}
-
-function continuationReferencePath(reference) {
-    return WORKTREE_AGENT_REFERENCE_PATTERN.exec(reference)?.[1] ?? reference
-}
-
-function validateStartRequest(request) {
-    if (!request || typeof request !== 'object' || Array.isArray(request)) throw new Error('Missing action start request')
-
-    const unsupportedField = Object.keys(request).find((fieldName) => !ALLOWED_REQUEST_FIELDS.has(fieldName))
-    if (unsupportedField) throw new Error(`Unsupported action start field: ${unsupportedField}`)
-    if (typeof request.actionId !== 'string' || request.actionId.length === 0) throw new Error('Missing actionId')
-
-    return { actionId: request.actionId, context: validateContext(request.context), runInput: validateRunInput(request.runInput) }
-}
-
-function resolvePlaceholders(text, context, project, extraPrompt) {
-    return text.replace(PLACEHOLDER_PATTERN, (_match, name) => {
-        if (name === 'rootProjectFolder') return requireRootPath(project)
-        if (name === 'prompt') return extraPrompt
-        if (!context.file) throw new Error('Cannot resolve file placeholder without a file context')
-
-        return context.file
-    })
-}
-
-function resolveAgentPrompt(action, context, project, extraPrompt) {
-    const prompt = resolvePlaceholders(action.prompt, context, project, extraPrompt)
-    if (PROMPT_PLACEHOLDER_PATTERN.test(action.prompt) || extraPrompt.trim().length === 0) return prompt
-
-    return `${prompt}\n\n${extraPrompt}`
-}
-
-function extractCommitMetadata(input) {
-    const summary = extractCommitSummary(input.output)
-    if (!summary) return null
-
-    return {
-        actionId: input.actionId,
-        branch: summary.branch,
-        commit: summary.commit,
-        completedAt: input.completedAt,
-        filePaths: input.context.file ? [input.context.file] : [],
-        repositoryRoot: requireRootPath(input.project),
-    }
-}
-
-async function runCommand(project, command, signal, onOutput) {
-    const rootPath = requireRootPath(project)
-    await assertGitRoot(rootPath)
-
-    return new Promise((resolve, reject) => {
-        const child = spawn(command, { cwd: rootPath, shell: true, signal })
-        let stderr = ''
-        let stdout = ''
-        child.stdout.on('data', (chunk) => {
-            const output = chunk.toString()
-            stdout += output
-            onOutput({ stderr: '', stdout: output })
-        })
-        child.stderr.on('data', (chunk) => {
-            const output = chunk.toString()
-            stderr += output
-            onOutput({ stderr: output, stdout: '' })
-        })
-        child.on('error', (error) => {
-            if (signal.aborted) reject(new ActionCancellationError('Action cancelled'))
-            else reject(error)
-        })
-        child.on('close', (exitCode) => {
-            if (signal.aborted) {
-                reject(new ActionCancellationError('Action cancelled'))
-                return
-            }
-
-            resolve({ command, exitCode: exitCode ?? 1, stderr, stdout })
-        })
-    })
 }
 
 class ActionRunnerService {
@@ -153,11 +20,16 @@ class ActionRunnerService {
         this.commandRunner = dependencies?.commandRunner ?? runCommand
         this.errorReporter = dependencies?.errorReporter ?? (() => undefined)
         this.localGitService = dependencies?.localGitService
-        this.project = null
+        this.agentExecutor = new ActionAgentExecutor({
+            agentConfigProvider: this.agentConfigProvider,
+            agentRunnerService: this.agentRunnerService,
+            localGitService: this.localGitService,
+        })
         this.actionsFolder = null
         this.completedResults = new Map()
         this.executions = new Map()
         this.listeners = new Set()
+        this.project = null
     }
 
     startProject(project, actionsFolder) {
@@ -170,7 +42,7 @@ class ActionRunnerService {
     }
 
     stop() {
-        for (const executionId of this.executions.keys()) this.cancel(executionId)
+        for (const execution of this.executions.values()) execution.cancel()
         this.project = null
         this.actionsFolder = null
     }
@@ -187,21 +59,25 @@ class ActionRunnerService {
         this.requireReady()
         const project = { ...this.project }
         const actionsFolder = this.actionsFolder
-        const action = await this.loadRootAction(startRequest.actionId, project, actionsFolder)
+        const rootAction = await this.loadRootAction(startRequest.actionId, project, actionsFolder)
         const executionId = createExecutionId()
-        const controller = new AbortController()
-        const execution = {
-            activeAgentRunId: null,
-            context: startRequest.context,
-            controller,
-            executionId,
+        const execution = new ActionExecution({
             actionsFolder,
+            context: startRequest.context,
+            executionId,
             project,
-            rootAction: action,
+            rootAction,
             runInput: startRequest.runInput,
-        }
-        execution.completion = this.execute(execution)
+        }, {
+            actionWorktreeExecutionService: this.actionWorktreeExecutionService,
+            agentExecutor: this.agentExecutor,
+            agentRunnerService: this.agentRunnerService,
+            commandRunner: this.commandRunner,
+            localGitService: this.localGitService,
+            publisher: this.publish.bind(this),
+        })
         this.executions.set(executionId, execution)
+        execution.start(this.finalizeExecution.bind(this, execution))
 
         return executionId
     }
@@ -218,9 +94,13 @@ class ActionRunnerService {
     }
 
     cancel(executionId) {
-        const execution = this.requireExecution(executionId)
-        execution.controller.abort()
-        if (execution.activeAgentRunId) this.agentRunnerService.stop(execution.activeAgentRunId)
+        this.requireExecution(executionId).cancel()
+    }
+
+    requireActionsFolder() {
+        if (!this.actionsFolder) throw new Error('Action runner has no actions folder')
+
+        return this.actionsFolder
     }
 
     async loadRootAction(actionId, project, actionsFolder) {
@@ -229,30 +109,16 @@ class ActionRunnerService {
         return resolveActionDefinition(this.localGitService, project, actionsFolder, config.agentProfiles, actionId)
     }
 
-    async execute(execution) {
-        const { executionId, rootAction } = execution
-        this.emit(execution, rootAction, 'main', 'running', { type: 'execution' })
-
-        let status = 'completed'
-        let failure = null
-        try {
-            await this.runAction(execution, rootAction, 'main', true)
-        } catch (error) {
-            failure = error
-            if (error instanceof ActionCancellationError || execution.controller.signal.aborted) status = 'cancelled'
-            else status = error.rootPhase === 'after' ? 'okButNotAfter' : 'failed'
-        }
-
-        const result = { executionId, failure: failure ? errorMessage(failure, 'Action failed') : null, status }
-        this.emit(execution, rootAction, 'main', status, { message: result.failure, type: 'execution' })
-        this.executions.delete(executionId)
-        this.completedResults.set(executionId, result)
+    async finalizeExecution(execution, runCompletion) {
+        const result = await runCompletion
+        this.executions.delete(execution.executionId)
+        this.completedResults.set(execution.executionId, result)
         if (this.completedResults.size > COMPLETED_EXECUTION_LIMIT) {
             this.completedResults.delete(this.completedResults.keys().next().value)
         }
-        if (status !== 'cancelled' && this.actionCompleted) {
+        if (result.status !== 'cancelled' && this.actionCompleted) {
             try {
-                await this.actionCompleted(rootAction.id)
+                await this.actionCompleted(execution.rootAction.id)
             } catch (error) {
                 this.reportError(error)
             }
@@ -261,267 +127,7 @@ class ActionRunnerService {
         return result
     }
 
-    async runAction(execution, action, phase, isRoot = false, rootPhase = phase) {
-        throwIfCancelled(execution)
-        for (const beforeAction of action.onBefore) {
-            await this.runAction(execution, beforeAction, 'before', false, isRoot ? 'before' : rootPhase)
-        }
-
-        const output = await this.runMain(execution, action, phase, isRoot, rootPhase)
-        const matches = action.on.filter((rule) => new RegExp(rule.condition, 'u').test(output))
-        for (const rule of matches) await this.runAction(execution, rule.action, 'on', false, isRoot ? 'on' : rootPhase)
-
-        for (const afterAction of action.onAfter) {
-            await this.runAction(execution, afterAction, 'after', false, isRoot ? 'after' : rootPhase)
-        }
-
-        return output
-    }
-
-    async runMain(execution, action, phase, isRoot, rootPhase) {
-        throwIfCancelled(execution)
-        this.emit(execution, action, phase, 'running', { type: 'action' })
-
-        try {
-            const result = action.type === 'agent'
-                ? await this.runAgentAction(execution, action, phase, isRoot)
-                : await this.runCommandAction(execution, action, phase, isRoot)
-            if (execution.controller.signal.aborted) {
-                this.emit(execution, action, phase, 'cancelled', {
-                    command: result.command,
-                    conversation: result.conversation,
-                    executionWorktree: result.executionWorktree,
-                    message: 'Action cancelled',
-                    reference: result.reference,
-                    runId: result.runId,
-                    stderr: result.stderr,
-                    stdout: result.stdout,
-                    thinkingLevel: result.thinkingLevel,
-                    type: 'action',
-                })
-                const cancellationError = new ActionCancellationError('Action cancelled')
-                cancellationError.terminalEventEmitted = true
-                throw cancellationError
-            }
-            const status = result.exitCode === 0 ? 'completed' : 'failed'
-            const output = combineOutput(result)
-            this.emit(execution, action, phase, status, {
-                command: result.command,
-                conversation: result.conversation,
-                executionWorktree: result.executionWorktree,
-                message: status === 'completed' ? `${action.label} completed` : `${action.label} failed with exit code ${result.exitCode}`,
-                reference: result.reference,
-                runId: result.runId,
-                stderr: result.stderr,
-                stdout: result.stdout,
-                thinkingLevel: result.thinkingLevel,
-                type: 'action',
-            })
-            if (result.exitCode !== 0) {
-                const error = new Error(`${action.label} failed with exit code ${result.exitCode}`)
-                error.phase = phase
-                error.rootPhase = rootPhase
-                throw error
-            }
-
-            return output
-        } catch (error) {
-            if (error instanceof ActionCancellationError || execution.controller.signal.aborted) {
-                if (!error?.terminalEventEmitted) {
-                    this.emit(execution, action, phase, 'cancelled', { message: 'Action cancelled', type: 'action' })
-                }
-                throw new ActionCancellationError('Action cancelled')
-            }
-            if (error.phase) throw error
-
-            error.phase = phase
-            error.rootPhase = rootPhase
-            this.emit(execution, action, phase, 'failed', {
-                message: errorMessage(error, `${action.label} failed`),
-                stderr: errorMessage(error, `${action.label} failed`),
-                stdout: '',
-                type: 'action',
-            })
-            throw error
-        }
-    }
-
-    async runCommandAction(execution, action, phase, isRoot) {
-        if (isRoot && execution.runInput.continueFrom) throw new Error('Conversation continuation requires an agent action')
-
-        return this.actionWorktreeExecutionService.execute(execution.project, action, execution.context, async (project) => {
-            const extraPrompt = isRoot ? execution.runInput.extraPrompt : ''
-            const command = resolvePlaceholders(action.command, execution.context, project, extraPrompt)
-            const onOutput = ({ stderr, stdout }) => this.emit(execution, action, phase, 'running', {
-                command,
-                stderr,
-                stdout,
-                type: 'action',
-            })
-            const result = await this.commandRunner(project, command, execution.controller.signal, onOutput)
-            const executionProject = {
-                ...project,
-                branch: result.branch ?? project.branch,
-                rootPath: result.repositoryRoot ?? project.rootPath,
-            }
-            await this.appendCommandHistory(action, execution.context, result, executionProject, execution.actionsFolder)
-
-            return result
-        })
-    }
-
-    async runAgentAction(execution, action, phase, isRoot) {
-        const config = this.agentConfigProvider()
-        const runInput = isRoot ? execution.runInput : {}
-        const thinkingLevel = runInput.thinkingLevel ?? action.thinkingLevel
-        const resolvedAgent = resolveAgentCommand(config, {
-            ...(runInput.agent ? { agent: runInput.agent } : (action.agent ? { agent: action.agent } : {})),
-            ...(runInput.model ? { model: runInput.model } : (action.model ? { model: action.model } : {})),
-            ...(thinkingLevel ? { thinkingLevel } : {}),
-        })
-
-        return this.actionWorktreeExecutionService.execute(execution.project, action, execution.context, async (project) => {
-            const extraPrompt = isRoot ? execution.runInput.extraPrompt : ''
-            const continueFrom = isRoot ? execution.runInput.continueFrom : undefined
-            const sourceConversation = continueFrom
-                ? await this.localGitService.loadAgentConversation(project, continuationReferencePath(continueFrom))
-                : null
-            if (sourceConversation && sourceConversation.cardPath !== (execution.context.file ?? null)) {
-                throw new Error(`Agent log belongs to ${sourceConversation.cardPath}, not ${execution.context.file}`)
-            }
-            const providerSession = sourceConversation?.providerSessions
-                ?.find(({ agent }) => agent === resolvedAgent.agent) ?? null
-            const prompt = sourceConversation
-                ? extraPrompt.trim().length > 0 ? extraPrompt : CONTINUE_INPUT
-                : resolveAgentPrompt(action, execution.context, project, extraPrompt)
-            const command = providerSession
-                ? buildResumeAgentCommand(resolvedAgent.profile, providerSession.conversationId, resolvedAgent.command)
-                : resolvedAgent.command
-            const contextInput = sourceConversation
-                ? normalizeConversationContext(sourceConversation, providerSession?.synchronizedThroughMessageId ?? null)
-                : ''
-            const request = {
-                actionId: action.id,
-                agent: resolvedAgent.agent,
-                ...(execution.context.file ? { cardPath: execution.context.file } : {}),
-                command,
-                ...(sourceConversation ? { conversation: sourceConversation, reference: continuationReferencePath(continueFrom) } : {}),
-                ...(contextInput ? { contextInput } : {}),
-                prompt,
-                ...(providerSession ? { providerConversationId: providerSession.conversationId } : {}),
-                scopePath: execution.context.file ?? 'project',
-                title: action.label,
-            }
-            const result = await this.runAgentTurn(execution, action, phase, project, request, {
-                command: resolvedAgent.command,
-                contextInput: sourceConversation ? normalizeConversationContext(sourceConversation) : '',
-            })
-            const completedAt = new Date().toISOString()
-            const executionProject = {
-                ...project,
-                branch: result.branch ?? project.branch,
-                rootPath: result.repositoryRoot ?? project.rootPath,
-            }
-            const output = combineOutput(result)
-            const commitInput = { actionId: action.id, completedAt, context: execution.context, output, project: executionProject }
-            const commit = extractCommitMetadata(commitInput)
-            const entry = {
-                agent: resolvedAgent.agent,
-                ...(commit ? { commit } : {}),
-                completedAt,
-                model: resolvedAgent.model,
-                output,
-                prompt: result.prompt,
-                status: result.exitCode === 0 ? 'completed' : 'failed',
-                thinkingLevel: resolvedAgent.thinkingLevel,
-            }
-            await this.appendHistory(action.id, execution.context, entry, executionProject, execution.actionsFolder)
-
-            return { ...result, agent: resolvedAgent.agent, model: resolvedAgent.model, thinkingLevel: resolvedAgent.thinkingLevel }
-        })
-    }
-
-    async runAgentTurn(execution, action, phase, project, request, fallback) {
-        const result = await this.runAgentProcess(execution, action, phase, project, request)
-        if (!request.providerConversationId || !result.missingSession || result.turnStarted) return result
-
-        const fallbackRequest = {
-            ...request,
-            command: fallback.command,
-            conversation: result.conversation,
-            ...(fallback.contextInput ? { contextInput: fallback.contextInput } : {}),
-            providerConversationId: undefined,
-            reference: result.reference,
-            reuseLastUserMessage: true,
-        }
-
-        return this.runAgentProcess(execution, action, phase, project, fallbackRequest)
-    }
-
-    async runAgentProcess(execution, action, phase, project, request) {
-        let resolveCompletion
-        let rejectCompletion
-        const completion = new Promise((resolve, reject) => {
-            resolveCompletion = resolve
-            rejectCompletion = reject
-        })
-        const started = await this.agentRunnerService.start(
-            project,
-            request,
-            (agentEvent) => this.emit(execution, action, phase, 'running', { agentEvent, type: 'agent' }),
-            (exitCode, run) => resolveCompletion({
-                command: request.command,
-                conversation: { ...run.conversation, path: run.reference },
-                exitCode,
-                missingSession: run.missingSession,
-                prompt: request.prompt,
-                reference: run.reference,
-                runId: run.conversation.id,
-                stderr: run.stderr,
-                stdout: run.stdout,
-                turnStarted: run.turnStarted,
-            }),
-            rejectCompletion,
-        )
-        execution.activeAgentRunId = started.runId
-        if (execution.controller.signal.aborted) this.agentRunnerService.stop(started.runId)
-        const result = await completion
-        execution.activeAgentRunId = null
-
-        return result
-    }
-
-    async appendCommandHistory(action, context, result, project, actionsFolder) {
-        const completedAt = new Date().toISOString()
-        const output = combineOutput(result)
-        const commit = extractCommitMetadata({ actionId: action.id, completedAt, context, output, project })
-        const entry = {
-            command: result.command,
-            ...(commit ? { commit } : {}),
-            completedAt,
-            output,
-            prompt: '',
-            status: result.exitCode === 0 ? 'completed' : 'failed',
-        }
-        await this.appendHistory(action.id, context, entry, project, actionsFolder)
-    }
-
-    appendHistory(actionId, context, entry, project, actionsFolder) {
-        const request = { actionId, actionsFolder, context }
-
-        return this.localGitService.appendActionRunHistory(project, request, entry)
-    }
-
-    emit(execution, action, phase, status, details) {
-        const event = {
-            actionId: action.id,
-            context: execution.context,
-            executionId: execution.executionId,
-            phase,
-            rootActionId: execution.rootAction.id,
-            status,
-            ...details,
-        }
+    publish(event) {
         for (const listener of this.listeners) {
             try {
                 listener(event)
@@ -554,12 +160,6 @@ class ActionRunnerService {
         if (!this.agentRunnerService) throw new Error('Action runner has no agent runner service')
         if (!this.agentConfigProvider) throw new Error('Action runner has no agent config provider')
     }
-
-    requireActionsFolder() {
-        if (!this.actionsFolder) throw new Error('Action runner has no actions folder')
-
-        return this.actionsFolder
-    }
 }
 
-module.exports = { ActionRunnerService, validateStartRequest }
+module.exports = { ActionRunnerService }

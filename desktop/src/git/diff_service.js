@@ -2,20 +2,14 @@ const { exec, spawn } = require('node:child_process')
 const path = require('node:path')
 const { promisify } = require('node:util')
 
+const { requireRootPath } = require('./git_commands')
+
 const execAsync = promisify(exec)
 const DIFF_PLACEHOLDER_PATTERN = /\{\{\s*(rootProjectFolder|commit|branch|file)\s*\}\}/g
 const HUNK_HEADER_PATTERN = /^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/
 const DIFF_FILE_HEADER = 'diff --git '
 const OLD_PATH_HEADER = '--- '
 const NEW_PATH_HEADER = '+++ '
-
-function requireRootPath(project) {
-    if (!project || typeof project.rootPath !== 'string' || project.rootPath.length === 0) {
-        throw new Error('Missing local Git project rootPath')
-    }
-
-    return project.rootPath
-}
 
 /** Resolve an in-root file path, rejecting paths that escape the project root. */
 function resolveInsideRoot(rootPath, targetPath) {
