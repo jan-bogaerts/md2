@@ -9,21 +9,17 @@ describe('agent profile validation', () => {
         ])
     })
 
-    it('accepts session id patterns and resume command templates', () => {
+    it('accepts resume command templates and drops legacy session patterns', () => {
         const [profile] = validateAgentProfiles([{
             command: 'agent',
             models: ['model-a'],
             name: 'agent',
             resumeCommand: 'agent resume {{sessionId}}',
-            sessionIdPattern: 'Session: (.+)',
+            sessionIdPattern: 'legacy ignored field',
         }])
 
-        expect(profile.sessionIdPattern).toBe('Session: (.+)')
+        expect(profile).not.toHaveProperty('sessionIdPattern')
         expect(buildResumeAgentCommand(profile, 'session-1')).toBe('agent resume session-1')
-    })
-
-    it('rejects invalid session id patterns', () => {
-        expect(() => validateAgentProfiles([{ command: 'agent', models: ['model-a'], name: 'bad', sessionIdPattern: '(' }])).toThrow('sessionIdPattern')
     })
 
     it('rejects missing, empty, duplicate, and malformed model lists', () => {

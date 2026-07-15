@@ -12,7 +12,6 @@ function createActionBridge(): ElectronActionBridge {
         onActionExecution: vi.fn(() => () => {}),
         openInEditor: vi.fn(),
         runSearchRegexpAgent: vi.fn(async () => ''),
-        sendActionInput: vi.fn(async () => {}),
         startAction: vi.fn(async () => 'action-1'),
     }
 }

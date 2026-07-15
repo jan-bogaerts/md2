@@ -81,7 +81,6 @@ export interface ElectronActionBridge {
     openInEditor(request: OpenInEditorRequest): Promise<void>
     registerActionSchedule?(request: ActionScheduleRegistrationRequest): Promise<void>
     runSearchRegexpAgent(input: string, callback?: (event: AgentRunEvent) => void): Promise<string>
-    sendActionInput(executionId: string, input: string): Promise<void>
     startAction(request: ActionStartRequest): Promise<string>
 }
 

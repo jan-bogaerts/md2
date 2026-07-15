@@ -55,9 +55,11 @@ export function ActionSelector(props: ActionSelectorProps) {
                     value={selectedAction.id}
                 >
                     {actions.map((action) => (
-                        <ToggleButton key={action.id} value={action.id}>
-                            {action.label}
-                        </ToggleButton>
+                        <Tooltip describeChild key={action.id} title={action.description}>
+                            <ToggleButton value={action.id}>
+                                {action.label}
+                            </ToggleButton>
+                        </Tooltip>
                     ))}
                 </ToggleButtonGroup>
             </Box>

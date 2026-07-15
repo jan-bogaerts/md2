@@ -15,11 +15,7 @@ Implement the Electron-owned action execution flow defined in `design\architectu
 
 ## Current state
 
-- React owns manual and `onState` chain orchestration through `ActionRunner`.
-- Scheduled actions use a separate Electron chain runner.
-- The renderer starts individual command and agent phases instead of one Electron-owned action execution.
-- The popup, conversation panel, card state, and global indicator do not consume one shared execution event stream.
-- Built-in agent profiles have no default models, and thinking-level execution is incomplete.
+Implemented. One Electron-owned runner handles manual, scheduled, `onState`, related, and continuation executions. Renderer surfaces consume its shared execution events. Agent turns use configured profiles, structured one-shot processes, model/thinking selection, persisted conversations, and explicit provider-session continuation.
 
 ## Implementation details
 
@@ -28,7 +24,7 @@ Implement the Electron-owned action execution flow defined in `design\architectu
 - Accept only the action `id`, context, and run-specific input from the renderer. Load and validate executable definitions in Electron.
 - Publish execution events with execution id, root action id, current action id, context, phase, status, output, and error details.
 - Execute `onBefore`, main, matching `on`, and `onAfter` actions with the documented ordering, failure, `okButNotAfter`, and cancellation rules.
-- Stream command and agent output to the shared execution state. Forward live agent input through stdin and persist conversation output incrementally.
+- Stream command output and structured agent events to shared execution state. Persist conversation output incrementally and run each agent turn in a separate process.
 - Drive the popup, conversation panel, card `currentAction`, history, and global running-actions indicator from the same Electron event stream.
 - Load model choices from configured agent profiles. Built-in Codex and Claude profiles provide default model lists.
 - Use fixed thinking levels: `none`, `low`, `medium`, `high`, and `max`. `none` passes no thinking-level override.
@@ -40,7 +36,7 @@ Implement the Electron-owned action execution flow defined in `design\architectu
 
 - Add Electron unit tests for id lookup, request validation, placeholders, every chain phase, output matching, failure results, events, history, and cancellation during command and agent phases.
 - Add integration tests proving manual, `onState`, scheduled, related, and continuation paths delegate to the same runner.
-- Add React tests for live popup state, cancel, conversation input, card disabling, terminal cleanup, history, backend-unavailable errors, and the global indicator.
+- Add React tests for live popup state, cancel, disabled running-turn input, follow-up agent selection, card disabling, terminal cleanup, history, backend-unavailable errors, and the global indicator.
 - Add capability tests for built-in/default profile models, profile overrides, fixed thinking levels, invalid selections, and unavailable executables.
 - Add worktree tests for valid assignments, missing assignments, invalid configured entries, and non-card contexts.
 - Run `npm run lint-fix`, `npm run lint`, and `npm run test` in `app/` and `desktop/`, plus `npm run typecheck` in `app/`.
@@ -53,7 +49,7 @@ Implement the Electron-owned action execution flow defined in `design\architectu
 - Every execution event identifies the root action, current action, context, phase, and execution status.
 - Chain ordering and all documented failure results, including `okButNotAfter`, match the architecture contract.
 - Cancellation stops the active process, prevents later phases, emits `cancelled`, clears card state, and removes the run from the global indicator.
-- Agent stdout and stderr stream live, stdin reaches the active process, completed conversations can continue through a linked run, and history remains keyed by action id and context.
+- Structured agent output streams live, running-turn input is disabled, completed conversations start one-shot follow-ups, and history remains keyed by action id and context.
 - The popup, conversation panel, card action state, history, and global indicator show consistent live and terminal execution state.
 - Codex and Claude availability reflects executable checks; model choices come from configured profiles with built-in defaults; thinking choices are `none`, `low`, `medium`, `high`, and `max`.
 - `needsWorkTree` runs only with valid card-assigned configured worktrees and rejects missing, invalid, or non-card contexts before process start.

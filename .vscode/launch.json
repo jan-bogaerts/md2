@@ -38,6 +38,17 @@
             "port": 9222,
             "webRoot": "${workspaceFolder}/app",
             "timeout": 30000
+        },
+        {
+            "name": "Debug Agent Spawn Test",
+            "type": "node",
+            "request": "launch",
+            "program": "${workspaceFolder}/desktop/test_agent_spawn.mjs",
+            "cwd": "${workspaceFolder}/desktop",
+            "console": "integratedTerminal",
+            "skipFiles": [
+                "<node_internals>/**"
+            ]
         }
     ],
     "compounds": [

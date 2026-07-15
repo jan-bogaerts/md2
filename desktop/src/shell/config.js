@@ -2,6 +2,7 @@ const DEFAULT_APP_URL = 'http://localhost:5173'
 const DEFAULT_DESKTOP_AGENT = 'codex'
 const DEFAULT_AGENT_SLOT_COMMAND = ''
 const DEFAULT_DESKTOP_MODEL = ''
+const DEFAULT_CODEX_SEARCH_ENABLED = true
 const DEFAULT_PROJECT_LOCATION_MODE = 'folder'
 const DESKTOP_CONFIG_STORE_KEY = 'desktopConfig'
 const { BUILTIN_AGENT_PROFILES, validateAgentProfiles } = require('../actions/agent_profiles.mjs')
@@ -40,6 +41,7 @@ function resolveDesktopConfig(env = process.env) {
         agent: DEFAULT_DESKTOP_AGENT,
         agentSlotCommand: env.MD2_AGENT_SLOT_COMMAND ?? DEFAULT_AGENT_SLOT_COMMAND,
         agentProfiles,
+        codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
         ...(bridgeAllowedOrigins ? { bridgeAllowedOrigins } : {}),
         model: DEFAULT_DESKTOP_MODEL,
         projectLocationMode: env.MD2_PROJECT_LOCATION_MODE || DEFAULT_PROJECT_LOCATION_MODE,
@@ -90,6 +92,7 @@ module.exports = {
     DEFAULT_AGENT_SLOT_COMMAND,
     DEFAULT_DESKTOP_AGENT,
     DEFAULT_DESKTOP_MODEL,
+    DEFAULT_CODEX_SEARCH_ENABLED,
     DEFAULT_PROJECT_LOCATION_MODE,
     DESKTOP_CONFIG_STORE_KEY,
     readDesktopConfig,

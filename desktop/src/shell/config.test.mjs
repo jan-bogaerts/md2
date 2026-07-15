@@ -5,6 +5,7 @@ const require = createRequire(import.meta.url)
 const {
     DEFAULT_APP_URL,
     DEFAULT_AGENT_SLOT_COMMAND,
+    DEFAULT_CODEX_SEARCH_ENABLED,
     DEFAULT_DESKTOP_AGENT,
     DEFAULT_DESKTOP_MODEL,
     DEFAULT_PROJECT_LOCATION_MODE,
@@ -42,6 +43,7 @@ describe('resolveDesktopConfig', () => {
             agent: DEFAULT_DESKTOP_AGENT,
             agentSlotCommand: DEFAULT_AGENT_SLOT_COMMAND,
             agentProfiles: expect.arrayContaining([expect.objectContaining({ command: 'codex', name: 'codex' })]),
+            codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
             model: DEFAULT_DESKTOP_MODEL,
             projectLocationMode: DEFAULT_PROJECT_LOCATION_MODE,
         })
@@ -56,6 +58,7 @@ describe('resolveDesktopConfig', () => {
             agent: DEFAULT_DESKTOP_AGENT,
             agentSlotCommand: 'slot-command',
             agentProfiles: expect.arrayContaining([expect.objectContaining({ command: 'custom-codex', name: 'codex' })]),
+            codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
             model: DEFAULT_DESKTOP_MODEL,
             projectLocationMode: 'current-directory',
         })
@@ -70,6 +73,7 @@ describe('readDesktopConfig', () => {
             agent: DEFAULT_DESKTOP_AGENT,
             agentSlotCommand: DEFAULT_AGENT_SLOT_COMMAND,
             agentProfiles: expect.arrayContaining([expect.objectContaining({ name: 'codex' })]),
+            codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
             model: DEFAULT_DESKTOP_MODEL,
             projectLocationMode: DEFAULT_PROJECT_LOCATION_MODE,
         })
@@ -82,6 +86,7 @@ describe('readDesktopConfig', () => {
             agent: 'claude',
             agentSlotCommand: DEFAULT_AGENT_SLOT_COMMAND,
             agentProfiles: expect.arrayContaining([expect.objectContaining({ name: 'claude' })]),
+            codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
             model: DEFAULT_DESKTOP_MODEL,
             projectLocationMode: 'current-directory',
         })
@@ -105,6 +110,7 @@ describe('readDesktopConfig', () => {
                 expect.objectContaining({ command: 'env-codex', name: 'codex' }),
                 expect.objectContaining({ command: 'stored-custom', name: 'custom' }),
             ]),
+            codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
             model: DEFAULT_DESKTOP_MODEL,
             projectLocationMode: DEFAULT_PROJECT_LOCATION_MODE,
         })
@@ -165,6 +171,7 @@ describe('writeDesktopConfig', () => {
             agent: 'claude',
             agentSlotCommand: DEFAULT_AGENT_SLOT_COMMAND,
             agentProfiles: expect.arrayContaining([expect.objectContaining({ name: 'claude' })]),
+            codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
             model: DEFAULT_DESKTOP_MODEL,
             projectLocationMode: DEFAULT_PROJECT_LOCATION_MODE,
         })
@@ -180,6 +187,7 @@ describe('writeDesktopConfig', () => {
             agent: 'claude',
             agentSlotCommand: DEFAULT_AGENT_SLOT_COMMAND,
             agentProfiles: expect.arrayContaining([expect.objectContaining({ name: 'claude' })]),
+            codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
             model: DEFAULT_DESKTOP_MODEL,
             projectLocationMode: 'current-directory',
         })
@@ -193,5 +201,13 @@ describe('writeDesktopConfig', () => {
         expect(readDesktopConfig(store, {})).toMatchObject({
             agentSlotCommand: 'stored-slot-command',
         })
+    })
+
+    it('persists disabled Codex web search', () => {
+        const store = createFakeStore()
+
+        writeDesktopConfig(store, { codexSearchEnabled: false })
+
+        expect(readDesktopConfig(store, {})).toMatchObject({ codexSearchEnabled: false })
     })
 })

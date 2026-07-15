@@ -188,14 +188,23 @@ export interface RunningAgent {
     label: string
 }
 
-export type AgentConversationStatus = 'completed' | 'failed' | 'running'
-export type AgentMessageRole = 'agent' | 'stderr' | 'stdout' | 'system' | 'user'
+export type AgentConversationStatus = 'cancelled' | 'completed' | 'failed' | 'running'
+export type AgentMessageRole = 'agent' | 'assistant' | 'stderr' | 'stdout' | 'system' | 'user'
 
 export interface AgentConversationMessage {
+    agent?: string
     content: string
     id: string
     role: AgentMessageRole
     timestamp: string
+}
+
+export interface AgentProviderSession {
+    agent: string
+    conversationId: string
+    createdAt: string
+    lastUsedAt: string
+    synchronizedThroughMessageId: string
 }
 
 export interface AgentConversationEvent {
@@ -209,12 +218,11 @@ export interface AgentConversation {
     actionId?: string | null
     cardPath: string | null
     completedAt: string | null
-    continuedFrom: string | null
     events: AgentConversationEvent[]
     id: string
     messages: AgentConversationMessage[]
-    nativeSessionId: string | null
     path: string
+    providerSessions: AgentProviderSession[]
     startedAt: string
     status: AgentConversationStatus
     title: string

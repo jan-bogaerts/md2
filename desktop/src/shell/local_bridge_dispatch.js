@@ -9,8 +9,8 @@ function resolveSearchAgent(config) {
     const resolved = resolveAgentCommand(config)
 
     return {
+        agent: resolved.agent,
         command: resolved.command,
-        ...(resolved.profile.sessionIdPattern ? { sessionIdPattern: resolved.profile.sessionIdPattern } : {}),
     }
 }
 
@@ -202,20 +202,15 @@ function createLocalBridgeDispatch(dependencies) {
 
             const resolved = resolveSearchAgent(readDesktopConfig(desktopConfigStore))
             const request = {
+                agent: resolved.agent,
                 cardPath: SEARCH_AGENT_CARD_PATH,
                 command: resolved.command,
                 prompt: `${SEARCH_AGENT_PROMPT_PREFIX}${input}`,
-                ...(resolved.sessionIdPattern ? { sessionIdPattern: resolved.sessionIdPattern } : {}),
                 title: 'Search RegExp',
             }
             const result = await agentRunnerService.run(currentLocalProject, request, callback)
 
             return result.stdout
-        },
-        sendActionInput: (executionId, input) => {
-            if (!actionRunnerService) throw new Error('Action runner is not available')
-
-            return actionRunnerService.sendInput(executionId, input)
         },
         startAction: (request) => {
             if (!actionRunnerService) throw new Error('Action runner is not available')

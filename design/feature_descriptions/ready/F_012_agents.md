@@ -10,12 +10,10 @@ policy:
 ---
 
 ## Goal
-Store agent outputs in JSON files referenced from Markdown files, show conversations on cards and in the editor, distinguish live stdin from post-completion continuation, and provide a single-click `Continue` that starts or resumes a linked Electron agent run.
+Store full agent conversations in JSON files referenced from Markdown files, show them on cards and in the editor, and start every initial or follow-up turn as a one-shot Electron process.
 
 ## Current state
-Not implemented. Cards are parsed from markdown headers and rendered in `ProjectWorkspace`, but `ProjectCard` has no agent-output references and the shared parsing service does not yet read or write agent metadata. The editor is a single multiline `TextField` with no toolbar, bottom split panel or conversation viewer.
-
-The app shell has a running-agents status indicator, but `App` always passes an empty list. Electron exposes only local Git/project capabilities through `window.md2Data`; there is no agent process bridge, log storage, stdout/stderr streaming, stdin forwarding or persisted conversation model yet.
+Implemented. Markdown cards reference persisted JSON conversation logs. Editor agent panel shows loaded conversations and live action state; follow-ups open shared action form with agent/model/thinking selection. Electron owns one-shot process execution, structured streaming, cancellation, provider sessions, and transcript persistence.
 
 ## implementation details
 - Add an agent-output reference field to card metadata stored in markdown, using json log files as the conversation source of truth.
@@ -23,9 +21,9 @@ The app shell has a running-agents status indicator, but `App` always passes an 
 - Extend data loading so markdown cards resolve their referenced agent json files without treating missing or invalid required log data as empty conversations.
 - Show an action/agent led on cards that opens a list of conversations for that card, including running, completed and failed states.
 - Add an editor toolbar button that opens a horizontal split; the bottom panel shows the selected conversation for the active card.
-- While an agent process is running, forward submitted conversation input to that active process through Electron stdin.
-- After a process finishes, submitted input starts or resumes a linked Electron run; it is not sent to the completed process.
-- Provide a single-click `Continue` action everywhere a finished conversation is shown; it uses `continue` as the continuation input and links the resulting log to the same card.
+- Disable submitted conversation input while a turn is running.
+- After a turn finishes, submitted input starts another process and appends to the same conversation log.
+- Let follow-ups select any configured agent. Resume its explicit provider id when synchronized; otherwise send normalized persisted history through stdin.
 - Keep action orchestration and process execution in Electron/F-013; React calls explicit start, input, continue, and cancel methods and owns only display state and user actions.
 - Surface missing log files, malformed json, bridge failures and failed agent starts as user-visible errors.
 
@@ -34,8 +32,8 @@ The app shell has a running-agents status indicator, but `App` always passes an 
 - Agent json logs load into typed conversations linked to the correct card.
 - A card with agent conversations shows an led/action indicator; activating it lists the card's conversations and their states.
 - The editor toolbar can show/hide a bottom split conversation panel for the active card.
-- Input on a running conversation reaches its active stdin; input on a finished conversation creates or resumes a linked run.
-- Every finished conversation has a one-click continue control that supplies `continue` and links the new output to the card.
+- Input is disabled while a turn runs; input on a finished conversation starts a new one-shot turn.
+- Every successful provider turn records its explicit provider id and transcript cursor in the conversation log.
 - Running-agent state updates the shell indicator and the related card/conversation UI.
 - Missing/malformed logs and agent bridge failures are reported clearly without breaking card loading.
 - Tests cover metadata parsing, log loading errors, card conversation list, editor split panel and continue action behavior.

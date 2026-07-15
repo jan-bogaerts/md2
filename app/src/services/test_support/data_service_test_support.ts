@@ -43,12 +43,11 @@ export function conversation(path = '.md2-agent-logs/one.json'): AgentConversati
     return {
         cardPath: 'design/F-1-root.md',
         completedAt: '2026-01-01T00:01:00.000Z',
-        continuedFrom: null,
         events: [],
         id: 'agent-1',
         messages: [{ content: 'done', id: 'm1', role: 'agent', timestamp: '2026-01-01T00:01:00.000Z' }],
-        nativeSessionId: null,
         path,
+        providerSessions: [],
         startedAt: '2026-01-01T00:00:00.000Z',
         status: 'completed',
         title: 'Agent run',

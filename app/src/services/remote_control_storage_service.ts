@@ -301,10 +301,6 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         return this.requestWithAgentEvents<string>('runSearchRegexpAgent', [input], callback)
     }
 
-    async sendActionInput(executionId: string, input: string): Promise<void> {
-        await this.request('sendActionInput', [executionId, input])
-    }
-
     async startAction(request: ActionStartRequest): Promise<string> {
         return this.request<string>('startAction', [request])
     }

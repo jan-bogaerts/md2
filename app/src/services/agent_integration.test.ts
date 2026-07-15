@@ -2,7 +2,7 @@
 import type { AgentConversation, AgentRunEvent, MarkdownFile, StorageProjectFiles } from '../data/data_types'
 import type { ActionExecutionEvent } from '../data/action_run_types'
 import { runElectronAction } from './electron_action_runner'
-import { actionExecutionService, sendActionExecutionInput } from './action_execution_service'
+import { actionExecutionService } from './action_execution_service'
 import { configService } from './config_service'
 import { DataService } from './data_service'
 import { conversation, createDeferred, createStorage, waitForWorkerTurn } from './test_support/data_service_test_support'
@@ -301,16 +301,6 @@ describe('AgentIntegration', () => {
             expect.objectContaining({ file: 'design/F-1-root.md', kind: 'file' }),
             { continueFrom: '.md2-agent-logs/one.json' },
         )
-    })
-
-    it('sends panel input through the action execution bridge', async () => {
-        configService.init()
-        const sendActionInput = vi.fn(async () => undefined)
-        window.md2Actions = { sendActionInput } as unknown as typeof window.md2Actions
-
-        await sendActionExecutionInput('execution-1', 'continue')
-
-        expect(sendActionInput).toHaveBeenCalledWith('execution-1', 'continue')
     })
 
     it('reports desktop-owned scheduled action runs in running agent state', async () => {

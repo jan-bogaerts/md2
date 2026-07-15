@@ -9,7 +9,6 @@ function createBridge(): ElectronActionBridge {
         loadActionRunHistory: vi.fn(async () => []),
         onActionExecution: vi.fn(() => () => {}),
         runSearchRegexpAgent: vi.fn(async () => ''),
-        sendActionInput: vi.fn(async () => {}),
         startAction: vi.fn(async () => 'action-1'),
     }
 }

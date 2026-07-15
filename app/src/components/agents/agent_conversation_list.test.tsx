@@ -6,6 +6,7 @@ import { setActionBridgeOverride } from '../../data/electron_action_bridge'
 import { actionExecutionService } from '../../services/action_execution_service'
 import { actionService } from '../../services/action_service'
 import { AgentConversationList } from './agent_conversation_list'
+import type { AgentConversation } from '../../data/data_types'
 
 const context = { file: 'design/F-1.md', kind: 'file' as const, state: 'design', type: 'feature' }
 
@@ -36,7 +37,6 @@ function installBridge() {
         }),
         openInEditor: vi.fn(),
         runSearchRegexpAgent: vi.fn(),
-        sendActionInput: vi.fn(async () => undefined),
         startAction: vi.fn(),
     } as unknown as ElectronActionBridge
     setActionBridgeOverride(bridge)
@@ -50,17 +50,30 @@ function installBridge() {
     }
 }
 
-function renderPanel(onSendInput = vi.fn()) {
+function renderPanel() {
     render(
         <AgentConversationList
             context={context}
             conversations={[]}
             errors={[]}
             onContinue={vi.fn()}
-            onSendInput={onSendInput}
             onStart={vi.fn()}
         />,
     )
+}
+
+const conversation: AgentConversation = {
+    actionId: 'review',
+    cardPath: context.file,
+    completedAt: '2026-07-14T10:00:00.000Z',
+    events: [],
+    id: 'conversation-1',
+    messages: [{ agent: 'codex', content: 'Persisted answer', id: 'm1', role: 'assistant', timestamp: '2026-07-14T10:00:00.000Z' }],
+    path: '.md2-agent-logs/conversation-1.json',
+    providerSessions: [],
+    startedAt: '2026-07-14T09:59:00.000Z',
+    status: 'completed',
+    title: 'Review',
 }
 
 describe('AgentConversationList', () => {
@@ -86,18 +99,15 @@ describe('AgentConversationList', () => {
         expect(screen.queryByLabelText('Input')).not.toBeInTheDocument()
     })
 
-    it('sends agent input by action execution id', () => {
+    it('disables new-turn input while an agent turn runs', () => {
         actionService.loadFromFiles([actionFile('review', 'agent')])
         const { emit } = installBridge()
-        const onSendInput = vi.fn()
-        renderPanel(onSendInput)
+        renderPanel()
 
         emit({ actionId: 'review', context, executionId: 'execution-2', phase: 'main', rootActionId: 'review', status: 'running', type: 'execution' })
         emit({ actionId: 'review', context, executionId: 'execution-2', phase: 'main', rootActionId: 'review', status: 'running', type: 'action' })
-        fireEvent.change(screen.getByLabelText('Input'), { target: { value: 'continue' } })
-        fireEvent.click(screen.getByRole('button', { name: 'Send' }))
-
-        expect(onSendInput).toHaveBeenCalledWith('execution-2', 'continue')
+        expect(screen.getByLabelText('Agent prompt')).toBeDisabled()
+        expect(screen.queryByRole('button', { name: 'Send' })).not.toBeInTheDocument()
     })
 
     it('disables execution controls with an explanation without Electron', () => {
@@ -105,5 +115,23 @@ describe('AgentConversationList', () => {
 
         expect(screen.getByRole('button', { name: 'Start' })).toBeDisabled()
         expect(screen.getByText('Action execution requires the Electron desktop app')).toBeInTheDocument()
+    })
+
+    it('shows persisted conversations and selects one for continuation', () => {
+        const onContinue = vi.fn()
+        installBridge()
+        render(
+            <AgentConversationList
+                context={context}
+                conversations={[conversation]}
+                errors={[]}
+                onContinue={onContinue}
+                onStart={vi.fn()}
+            />,
+        )
+
+        expect(screen.getByText('Persisted answer')).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+        expect(onContinue).toHaveBeenCalledWith(conversation)
     })
 })

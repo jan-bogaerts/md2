@@ -43,7 +43,6 @@ function createBridge(): ElectronActionBridge {
         }),
         openInEditor: vi.fn(async () => {}),
         runSearchRegexpAgent: vi.fn(),
-        sendActionInput: vi.fn(async () => {}),
         startAction: vi.fn(async () => {
             const emit = callback as unknown as (event: ActionExecutionEvent) => void
             emit({

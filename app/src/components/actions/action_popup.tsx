@@ -4,7 +4,8 @@ import Close from 'mdi-material-ui/Close'
 import Play from 'mdi-material-ui/Play'
 import { useId } from 'react'
 import type { ActionContext } from '../../data/action_context'
-import type { ActionDefinition } from '../../data/action_types'
+import { CUSTOM_PROMPT_ACTION_ID, type ActionDefinition } from '../../data/action_types'
+import { ResizablePopper } from '../resizable_popper'
 import { ResizablePopover } from '../resizable_popover'
 import {
     statusColor,
@@ -25,7 +26,9 @@ interface ActionPopupProps {
     action: ActionDefinition
     actions?: ActionDefinition[]
     anchorElement: HTMLElement | null
+    continueFrom?: string
     context: ActionContext
+    initialPrompt?: string
     /** Open a new popup for a related (`before`/`after`) action with the same context. */
     onNavigate: (action: ActionDefinition) => void
     onAddAction?: () => void
@@ -38,6 +41,9 @@ interface ActionPopupProps {
     scheduleAction?: ScheduleAction
 }
 
+export const CARD_RUN_POPUP_SIZE_STORAGE_KEY = 'md2.cardRunPopupSize'
+export const PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY = 'md2.projectAgentPopupSize'
+
 /**
  * The execution surface for a selected action and context: a resizable popup with
  * a `Run` command and shortcuts to the action's `before` and `after` actions.
@@ -47,6 +53,10 @@ export function ActionPopup(props: ActionPopupProps) {
     const controller = useActionPopupController(props)
     const titleId = useId()
     const isCardRunDialog = !!actions && !!onAddAction && !!onSelectAction
+    const promptRequired = action.id === CUSTOM_PROMPT_ACTION_ID
+    const sizeStorageKey = props.context.kind === 'project'
+        ? PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY
+        : CARD_RUN_POPUP_SIZE_STORAGE_KEY
 
     if (isCardRunDialog) {
         const handlePrimaryRun = showSaveControls ? controller.handleSaveAndRun : controller.handleRun
@@ -55,7 +65,7 @@ export function ActionPopup(props: ActionPopupProps) {
             || (showSaveControls && controller.saveDisabled)
 
         return (
-            <ResizablePopover
+            <ResizablePopper
                 anchorElement={anchorElement}
                 initialSize={{ height: 450, width: 400 }}
                 labelId={titleId}
@@ -69,7 +79,9 @@ export function ActionPopup(props: ActionPopupProps) {
                     boxShadow: '0 24px 60px rgba(16,24,40,0.28)',
                     flexDirection: 'column',
                 }}
+                resizeFromAllSides
                 resizeLabel="Resize action popup"
+                storageKey={sizeStorageKey}
             >
                 <Typography
                     id={titleId}
@@ -90,11 +102,6 @@ export function ActionPopup(props: ActionPopupProps) {
                     </IconButton>
                 </Box>
                 <Stack spacing={2} sx={{ flex: 1, minHeight: 0, overflow: 'auto', px: 2.5, py: 2.25 }}>
-                    {action.description ? (
-                        <Typography color="text.secondary" sx={{ fontSize: 13, lineHeight: 1.5 }}>
-                            {action.description}
-                        </Typography>
-                    ) : null}
                     {action.type === 'agent' ? (
                         <ActionAgentForm
                             actionLabel={controller.actionLabel}
@@ -103,6 +110,7 @@ export function ActionPopup(props: ActionPopupProps) {
                             agentProfiles={controller.agentProfiles}
                             compact
                             convertMessage={controller.convertMessage}
+                            disabled={controller.runStatus === 'running'}
                             extraPrompt={controller.extraPrompt}
                             model={controller.model}
                             onActionLabelChange={controller.handleActionLabelChange}
@@ -113,6 +121,7 @@ export function ActionPopup(props: ActionPopupProps) {
                             onThinkingLevelChange={controller.handleThinkingLevelChange}
                             onRunShortcut={runDisabled ? undefined : handlePrimaryRun}
                             onSaveAndRun={controller.handleSaveAndRun}
+                            promptRequired={promptRequired}
                             saveDisabled={controller.saveDisabled}
                             selectedAgentModels={controller.selectedAgentModels}
                             showSaveControls={showSaveControls}
@@ -148,20 +157,6 @@ export function ActionPopup(props: ActionPopupProps) {
                     <RelatedActions actions={action.onAfter} label="After" onNavigate={onNavigate} />
                 </Stack>
                 <Box sx={{ alignItems: 'center', bgcolor: 'background.default', borderTop: 1, borderColor: 'divider', display: 'flex', gap: 1, px: 2, py: 1.5 }}>
-                    <Button
-                        onClick={onClose}
-                        size="small"
-                        sx={{
-                            bgcolor: 'background.paper',
-                            borderColor: 'divider',
-                            color: 'text.secondary',
-                            height: 34,
-                            '&:hover': { borderColor: 'primary.main', color: 'primary.main' },
-                        }}
-                        variant="outlined"
-                    >
-                        Close
-                    </Button>
                     <Box sx={{ flex: 1 }} />
                     {controller.runStatus === 'running' ? (
                         <Button disabled={!controller.backendAvailable} onClick={controller.handleCancel} size="small" variant="outlined">Cancel</Button>
@@ -190,10 +185,10 @@ export function ActionPopup(props: ActionPopupProps) {
                         sx={{ height: 34, px: 2 }}
                         variant="contained"
                     >
-                        Run
+                        {controller.isFollowUp ? 'Continue' : 'Run'}
                     </Button>
                 </Box>
-            </ResizablePopover>
+            </ResizablePopper>
         )
     }
 
@@ -204,6 +199,7 @@ export function ActionPopup(props: ActionPopupProps) {
             labelId={titleId}
             onClose={onClose}
             open={!!anchorElement}
+            resizeFromAllSides
             resizeLabel="Resize action popup"
         >
             <Stack spacing={2} sx={{ flex: 1, minHeight: 0, overflow: 'auto', p: 2 }}>
@@ -227,7 +223,9 @@ export function ActionPopup(props: ActionPopupProps) {
                     {controller.runStatus === 'running' ? (
                         <Button disabled={!controller.backendAvailable} onClick={controller.handleCancel} variant="outlined">Cancel</Button>
                     ) : (
-                        <Button disabled={!!controller.executionDisabledMessage} onClick={controller.handleRun} variant="contained">Run</Button>
+                        <Button disabled={!!controller.executionDisabledMessage} onClick={controller.handleRun} variant="contained">
+                            {controller.isFollowUp ? 'Continue' : 'Run'}
+                        </Button>
                     )}
                     <Button onClick={onClose}>Close</Button>
                 </Stack>
@@ -252,6 +250,7 @@ export function ActionPopup(props: ActionPopupProps) {
                         agentAvailability={controller.agentAvailability}
                         agentProfiles={controller.agentProfiles}
                         convertMessage={controller.convertMessage}
+                        disabled={controller.runStatus === 'running'}
                         extraPrompt={controller.extraPrompt}
                         model={controller.model}
                         onActionLabelChange={controller.handleActionLabelChange}
@@ -261,6 +260,7 @@ export function ActionPopup(props: ActionPopupProps) {
                         onModelChange={controller.handleModelChange}
                         onThinkingLevelChange={controller.handleThinkingLevelChange}
                         onSaveAndRun={controller.handleSaveAndRun}
+                        promptRequired={promptRequired}
                         saveDisabled={controller.saveDisabled}
                         selectedAgentModels={controller.selectedAgentModels}
                         showSaveControls={showSaveControls}

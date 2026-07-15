@@ -9,12 +9,11 @@ function conversation(status: AgentConversation['status'], events: AgentConversa
     return {
         cardPath: 'design/F-1.md',
         completedAt: status === 'running' ? null : '2026-01-01T00:01:00.000Z',
-        continuedFrom: null,
         events,
         id: 'agent-1',
         messages: [],
-        nativeSessionId: null,
         path: '.md2-agent-logs/agent-1.json',
+        providerSessions: [],
         startedAt: '2026-01-01T00:00:00.000Z',
         status,
         title: 'Agent',

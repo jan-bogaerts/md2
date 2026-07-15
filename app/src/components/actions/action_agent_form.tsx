@@ -10,6 +10,7 @@ interface ActionAgentFormProps {
     agentProfiles: AgentProfile[]
     compact?: boolean
     convertMessage: string | null
+    disabled?: boolean
     extraPrompt: string
     model: string
     onActionLabelChange: (event: ChangeEvent<HTMLInputElement>) => void
@@ -20,6 +21,7 @@ interface ActionAgentFormProps {
     onThinkingLevelChange: (event: ChangeEvent<HTMLInputElement>) => void
     onRunShortcut?: () => void
     onSaveAndRun: () => void
+    promptRequired: boolean
     saveDisabled: boolean
     selectedAgentModels: string[]
     showSaveControls: boolean
@@ -35,6 +37,7 @@ export function ActionAgentForm(props: ActionAgentFormProps) {
         agentProfiles,
         compact = false,
         convertMessage,
+        disabled = false,
         extraPrompt,
         model,
         onActionLabelChange,
@@ -45,11 +48,14 @@ export function ActionAgentForm(props: ActionAgentFormProps) {
         onThinkingLevelChange,
         onRunShortcut,
         onSaveAndRun,
+        promptRequired,
         saveDisabled,
         selectedAgentModels,
         showSaveControls,
         thinkingLevel,
     } = props
+    const promptLabel = promptRequired ? 'Prompt' : 'Extra prompt'
+    const promptPlaceholder = promptRequired ? 'Prompt required' : 'Extra prompt optional'
 
     const handleNameKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
         if (event.key !== 'Enter' || !onRunShortcut) return
@@ -78,7 +84,7 @@ export function ActionAgentForm(props: ActionAgentFormProps) {
         }
 
         return (
-            <Stack spacing={2}>
+            <Stack spacing={2} sx={{ flex: 1, minHeight: 0 }}>
                 {showSaveControls ? (
                     <Stack spacing={0.75}>
                         <Box sx={{ alignItems: 'baseline', display: 'flex', gap: 0.75 }}>
@@ -98,38 +104,38 @@ export function ActionAgentForm(props: ActionAgentFormProps) {
                         />
                     </Stack>
                 ) : null}
-                <Stack spacing={0.75}>
-                    <Box sx={{ alignItems: 'baseline', display: 'flex', gap: 0.75 }}>
-                        <Typography color="text.secondary" sx={{ fontSize: 12, fontWeight: 600 }}>Extra prompt</Typography>
-                        <Typography color="text.disabled" sx={{ fontSize: 11.5 }}>optional</Typography>
-                    </Box>
+                <Stack spacing={0.75} sx={{ flex: 1, minHeight: 0 }}>
                     <TextField
+                        disabled={disabled}
                         fullWidth
                         minRows={4}
                         multiline
                         onChange={onExtraPromptChange}
                         onKeyDown={handlePromptKeyDown}
-                        placeholder="Add extra instructions for this run..."
-                        slotProps={{ htmlInput: { 'aria-label': 'Extra prompt' } }}
+                        placeholder={promptPlaceholder}
+                        slotProps={{ htmlInput: { 'aria-label': promptLabel } }}
                         sx={{
                             ...fieldSx,
+                            flex: 1,
+                            minHeight: 96,
                             '& .MuiOutlinedInput-root': {
                                 ...fieldSx['& .MuiOutlinedInput-root'],
                                 alignItems: 'flex-start',
+                                height: '100%',
                                 minHeight: 96,
                                 py: 0.25,
                             },
-                            '& textarea': { resize: 'vertical' },
+                            '& textarea': { height: '100% !important', resize: 'none' },
                         }}
                         value={extraPrompt}
                         variant="outlined"
                     />
                 </Stack>
                 <Box sx={{ alignItems: 'center', color: 'text.secondary', display: 'flex', flexWrap: 'wrap', fontSize: 12, gap: 0.75 }}>
-                    <span>Agent</span>
                     <Box sx={{ alignItems: 'center', display: 'flex', position: 'relative' }}>
                         <Box sx={{ bgcolor: 'success.main', borderRadius: '50%', height: 6, left: 8, position: 'absolute', width: 6, zIndex: 1 }} />
                         <TextField
+                            disabled={disabled}
                             onChange={onAgentChange}
                             select
                             slotProps={{ select: { inputProps: { 'aria-label': 'Agent' } } }}
@@ -154,9 +160,9 @@ export function ActionAgentForm(props: ActionAgentFormProps) {
                         </TextField>
                     </Box>
                     <Box sx={{ bgcolor: 'divider', height: 14, mx: 0.25, width: '1px' }} />
-                    <span>Model</span>
                     {selectedAgentModels.length > 0 ? (
                         <TextField
+                            disabled={disabled}
                             onChange={onModelChange}
                             select
                             slotProps={{ select: { inputProps: { 'aria-label': 'Model' } } }}
@@ -175,6 +181,7 @@ export function ActionAgentForm(props: ActionAgentFormProps) {
                         </TextField>
                     ) : (
                         <TextField
+                            disabled={disabled}
                             onChange={onModelChange}
                             placeholder="Default"
                             slotProps={{ htmlInput: { 'aria-label': 'Model' } }}
@@ -189,8 +196,8 @@ export function ActionAgentForm(props: ActionAgentFormProps) {
                         />
                     )}
                     <Box sx={{ bgcolor: 'divider', height: 14, mx: 0.25, width: '1px' }} />
-                    <span>Thinking</span>
                     <TextField
+                        disabled={disabled}
                         onChange={onThinkingLevelChange}
                         select
                         slotProps={{ select: { inputProps: { 'aria-label': 'Thinking level' } } }}
@@ -216,9 +223,16 @@ export function ActionAgentForm(props: ActionAgentFormProps) {
     }
 
     return (
-        <Stack spacing={1}>
+        <Stack spacing={1} sx={{ flex: 1, minHeight: 0 }}>
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
-                <TextField label="Agent" onChange={onAgentChange} select size="small" value={agent}>
+                <TextField
+                    disabled={disabled}
+                    onChange={onAgentChange}
+                    select
+                    size="small"
+                    slotProps={{ select: { inputProps: { 'aria-label': 'Agent' } } }}
+                    value={agent}
+                >
                     {agentProfiles.map((profile) => (
                         <MenuItem disabled={agentAvailability[profile.name]?.available !== true} key={profile.name} value={profile.name}>
                             {profile.name}{agentAvailability[profile.name]?.error ? ` — ${agentAvailability[profile.name].error}` : ''}
@@ -226,19 +240,53 @@ export function ActionAgentForm(props: ActionAgentFormProps) {
                     ))}
                 </TextField>
                 {selectedAgentModels.length > 0 ? (
-                    <TextField label="Model" onChange={onModelChange} select size="small" value={model}>
+                    <TextField
+                        disabled={disabled}
+                        onChange={onModelChange}
+                        select
+                        size="small"
+                        slotProps={{ select: { inputProps: { 'aria-label': 'Model' } } }}
+                        value={model}
+                    >
                         {selectedAgentModels.map((agentModel) => (
                             <MenuItem key={agentModel} value={agentModel}>{agentModel}</MenuItem>
                         ))}
                     </TextField>
                 ) : (
-                    <TextField label="Model" onChange={onModelChange} size="small" value={model} />
+                    <TextField
+                        disabled={disabled}
+                        onChange={onModelChange}
+                        size="small"
+                        slotProps={{ htmlInput: { 'aria-label': 'Model' } }}
+                        value={model}
+                    />
                 )}
-                <TextField label="Thinking level" onChange={onThinkingLevelChange} select size="small" value={thinkingLevel}>
+                <TextField
+                    disabled={disabled}
+                    onChange={onThinkingLevelChange}
+                    select
+                    size="small"
+                    slotProps={{ select: { inputProps: { 'aria-label': 'Thinking level' } } }}
+                    value={thinkingLevel}
+                >
                     {THINKING_LEVELS.map((level) => <MenuItem key={level} value={level}>{level}</MenuItem>)}
                 </TextField>
             </Stack>
-            <TextField label="Extra prompt" minRows={3} multiline onChange={onExtraPromptChange} value={extraPrompt} />
+            <TextField
+                disabled={disabled}
+                minRows={3}
+                multiline
+                onChange={onExtraPromptChange}
+                placeholder={promptPlaceholder}
+                slotProps={{ htmlInput: { 'aria-label': promptLabel } }}
+                sx={{
+                    flex: 1,
+                    minHeight: 72,
+                    '& .MuiInputBase-root': { alignItems: 'flex-start', height: '100%' },
+                    '& textarea': { height: '100% !important', resize: 'none' },
+                }}
+                value={extraPrompt}
+            />
             {showSaveControls ? (
                 <Stack spacing={1}>
                     <TextField label="Name" onChange={onActionLabelChange} size="small" value={actionLabel} />

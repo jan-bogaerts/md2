@@ -37,13 +37,14 @@ function createRunner(actionFiles, overrides = {}) {
         loadActionFiles: vi.fn(async () => actionFiles),
         loadAgentConversation: vi.fn(async () => ({
             cardPath: context.file,
-            messages: [{ content: 'prior output', role: 'stdout' }],
-            nativeSessionId: null,
+            events: [],
+            id: 'conversation-1',
+            messages: [{ content: 'prior output', id: 'message-1', role: 'stdout', timestamp: '2026-01-01T00:00:00.000Z' }],
+            providerSessions: [],
         })),
     }
     const commandRunner = vi.fn(async (_project, command) => ({ command, exitCode: 0, stderr: '', stdout: command }))
     const agentRunnerService = {
-        sendInput: vi.fn(),
         start: vi.fn(),
         stop: vi.fn(),
     }
@@ -102,7 +103,7 @@ describe('ActionRunnerService', () => {
         expect(result.status).toBe('completed')
         expect(agentRunnerService.start).toHaveBeenCalledWith(project, expect.objectContaining({
             prompt: 'Review project', scopePath: 'project',
-        }), expect.any(Function), expect.any(Function))
+        }), expect.any(Function), expect.any(Function), expect.any(Function))
         expect(agentRunnerService.start.mock.calls[0][1]).not.toHaveProperty('cardPath')
     })
 
@@ -200,7 +201,7 @@ describe('ActionRunnerService', () => {
         expect(result.status).toBe('completed')
         expect(agentRunnerService.start).toHaveBeenCalledWith(project, expect.objectContaining({
             prompt: expect.stringContaining('- image.png'),
-        }), expect.any(Function), expect.any(Function))
+        }), expect.any(Function), expect.any(Function), expect.any(Function))
     })
 
     it('resolves the worktree independently for every linked action', async () => {
@@ -278,9 +279,11 @@ describe('ActionRunnerService', () => {
         const completion = createDeferred()
         const files = [actionFile('main', { agent: 'codex', command: undefined, model: 'GPT 5.5', prompt: 'Run {{file}}', type: 'agent' })]
         const { agentRunnerService, runner } = createRunner(files)
+        const events = []
+        runner.subscribe((event) => events.push(event))
         agentRunnerService.start.mockImplementation(async (_project, _request, _onEvent, onComplete) => {
             completion.promise.then(() => onComplete(1, {
-                conversation: { id: 'agent-1' }, reference: '.md2-agent-logs/one.json', stderr: '', stdout: '',
+                conversation: { cardPath: context.file, id: 'agent-1' }, reference: '.md2-agent-logs/one.json', stderr: '', stdout: '',
             }))
 
             return { runId: 'agent-1' }
@@ -294,6 +297,12 @@ describe('ActionRunnerService', () => {
 
         expect(agentRunnerService.stop).toHaveBeenCalledWith('agent-1')
         expect(result.status).toBe('cancelled')
+        expect(events).toContainEqual(expect.objectContaining({
+            conversation: expect.objectContaining({ cardPath: context.file }),
+            reference: '.md2-agent-logs/one.json',
+            status: 'cancelled',
+            type: 'action',
+        }))
     })
 
     it('keeps project and actions-folder snapshot across linked phases and history writes', async () => {
@@ -384,7 +393,14 @@ describe('ActionRunnerService', () => {
         })
         const { agentRunnerService, localGitService, runner } = createRunner(files, { agentConfigProvider })
         localGitService.loadAgentConversation.mockResolvedValueOnce({
-            cardPath: context.file, messages: [], nativeSessionId: 'session-1',
+            cardPath: context.file,
+            events: [],
+            id: 'conversation-1',
+            messages: [{ content: 'prior', id: 'message-1', role: 'assistant', timestamp: '2026-01-01T00:00:00.000Z' }],
+            providerSessions: [{
+                agent: 'resumable', conversationId: 'session-1', createdAt: 'earlier', lastUsedAt: 'earlier',
+                synchronizedThroughMessageId: 'message-1',
+            }],
         })
         agentRunnerService.start.mockImplementation(async (_project, request, _onEvent, onComplete) => {
             onComplete(0, { conversation: { id: 'continued' }, reference: 'continued.json', stderr: '', stdout: '' })
@@ -398,9 +414,9 @@ describe('ActionRunnerService', () => {
 
         expect(result.status).toBe('completed')
         expect(agentRunnerService.start).toHaveBeenCalledWith(project, expect.objectContaining({
-            actionId: 'main', command: 'agent resume session-1', continuedFrom: '.md2-agent-logs/source.json',
-            nativeResumeSessionId: 'session-1', prompt: 'continue',
-        }), expect.any(Function), expect.any(Function))
+            actionId: 'main', agent: 'resumable', command: 'agent resume session-1',
+            prompt: 'continue', providerConversationId: 'session-1', reference: '.md2-agent-logs/source.json',
+        }), expect.any(Function), expect.any(Function), expect.any(Function))
     })
 
     it('uses transcript fallback and rejects an unknown continuation reference', async () => {
@@ -418,14 +434,166 @@ describe('ActionRunnerService', () => {
             actionId: 'main', context, runInput: { continueFrom: '.md2-agent-logs/source.json' },
         })
         expect(result.status).toBe('completed')
-        expect(agentRunnerService.start.mock.calls[0][1].prompt).toContain('stdout: prior output')
-        expect(agentRunnerService.start.mock.calls[0][1].prompt).toContain('User instruction: continue')
+        expect(agentRunnerService.start.mock.calls[0][1]).toMatchObject({
+            command: expect.stringContaining('exec --json'),
+            contextInput: expect.stringContaining('[Assistant]\n\nprior output'),
+            prompt: 'continue',
+            reference: '.md2-agent-logs/source.json',
+        })
 
         localGitService.loadAgentConversation.mockRejectedValueOnce(new Error('Agent log not found'))
         const failed = await runToCompletion(runner, {
             actionId: 'main', context, runInput: { continueFrom: '.md2-agent-logs/missing.json' },
         })
         expect(failed).toMatchObject({ failure: 'Agent log not found', status: 'failed' })
+    })
+
+    it('starts a switched provider with full transcript context and producing-agent identity', async () => {
+        const files = [actionFile('main', {
+            agent: 'claude', command: undefined, model: 'sonnet', prompt: 'Initial', type: 'agent',
+        })]
+        const { agentRunnerService, localGitService, runner } = createRunner(files)
+        localGitService.loadAgentConversation.mockResolvedValueOnce({
+            cardPath: context.file,
+            events: [],
+            id: 'conversation-1',
+            messages: [
+                { content: 'question', id: 'm1', role: 'user', timestamp: '2026-01-01T00:00:00.000Z' },
+                { agent: 'claude', content: 'answer', id: 'm2', role: 'assistant', timestamp: '2026-01-01T00:00:01.000Z' },
+            ],
+            providerSessions: [{
+                agent: 'claude', conversationId: 'claude-1', createdAt: 'earlier', lastUsedAt: 'earlier',
+                synchronizedThroughMessageId: 'm2',
+            }],
+        })
+        agentRunnerService.start.mockImplementation(async (_project, _request, _onEvent, onComplete) => {
+            onComplete(0, { conversation: { id: 'conversation-1' }, reference: '.md2-agent-logs/source.json', stderr: '', stdout: '' })
+
+            return { runId: 'turn-1' }
+        })
+
+        const result = await runToCompletion(runner, {
+            actionId: 'main', context, runInput: {
+                agent: 'codex', continueFrom: '.md2-agent-logs/source.json', extraPrompt: 'review', model: 'GPT 5.5',
+            },
+        })
+
+        expect(result.status).toBe('completed')
+        expect(agentRunnerService.start.mock.calls[0][1]).toMatchObject({
+            agent: 'codex', command: expect.stringContaining('exec --json'), prompt: 'review',
+            contextInput: expect.stringContaining('[Assistant (claude)]\n\nanswer'),
+        })
+    })
+
+    it('resumes a switched-back provider with only transcript messages after its cursor', async () => {
+        const files = [actionFile('main', {
+            agent: 'codex', command: undefined, model: 'GPT 5.5', prompt: 'Initial', type: 'agent',
+        })]
+        const { agentRunnerService, localGitService, runner } = createRunner(files)
+        localGitService.loadAgentConversation.mockResolvedValueOnce({
+            cardPath: context.file,
+            events: [],
+            id: 'conversation-1',
+            messages: [
+                { content: 'old question', id: 'm1', role: 'user', timestamp: '2026-01-01T00:00:00.000Z' },
+                { agent: 'claude', content: 'old answer', id: 'm2', role: 'assistant', timestamp: '2026-01-01T00:00:01.000Z' },
+                { content: 'codex question', id: 'm3', role: 'user', timestamp: '2026-01-01T00:00:02.000Z' },
+                { agent: 'codex', content: 'codex answer', id: 'm4', role: 'assistant', timestamp: '2026-01-01T00:00:03.000Z' },
+            ],
+            providerSessions: [{
+                agent: 'claude', conversationId: 'claude-1', createdAt: 'earlier', lastUsedAt: 'earlier',
+                synchronizedThroughMessageId: 'm2',
+            }],
+        })
+        agentRunnerService.start.mockImplementation(async (_project, _request, _onEvent, onComplete) => {
+            onComplete(0, { conversation: { id: 'conversation-1' }, reference: '.md2-agent-logs/source.json', stderr: '', stdout: '' })
+
+            return { runId: 'turn-1' }
+        })
+
+        const result = await runToCompletion(runner, {
+            actionId: 'main', context, runInput: {
+                agent: 'claude', continueFrom: '.md2-agent-logs/source.json', model: 'sonnet',
+            },
+        })
+
+        expect(result.status).toBe('completed')
+        const request = agentRunnerService.start.mock.calls[0][1]
+        expect(request.command).toContain('--resume claude-1')
+        expect(request.contextInput).toContain('codex answer')
+        expect(request.contextInput).not.toContain('old answer')
+    })
+
+    it('retries one confirmed missing provider session with full history', async () => {
+        const files = [actionFile('main', {
+            agent: 'codex', command: undefined, model: 'GPT 5.5', prompt: 'Initial', type: 'agent',
+        })]
+        const { agentRunnerService, localGitService, runner } = createRunner(files)
+        const sourceConversation = {
+            cardPath: context.file,
+            events: [],
+            id: 'conversation-1',
+            messages: [{ content: 'old', id: 'm1', role: 'assistant', timestamp: '2026-01-01T00:00:00.000Z' }],
+            providerSessions: [{
+                agent: 'codex', conversationId: 'thread-missing', createdAt: 'earlier', lastUsedAt: 'earlier',
+                synchronizedThroughMessageId: 'm1',
+            }],
+        }
+        localGitService.loadAgentConversation.mockResolvedValueOnce(sourceConversation)
+        agentRunnerService.start
+            .mockImplementationOnce(async (_project, request, _onEvent, onComplete) => {
+                const failedConversation = {
+                    ...sourceConversation,
+                    events: [{ content: 'thread missing', id: 'error-1', timestamp: 'now', type: 'error' }],
+                    messages: [...sourceConversation.messages, { content: request.prompt, id: 'm2', role: 'user', timestamp: 'now' }],
+                }
+                onComplete(1, {
+                    conversation: failedConversation, missingSession: true, reference: '.md2-agent-logs/source.json',
+                    stderr: 'missing', stdout: '', turnStarted: false,
+                })
+
+                return { runId: 'turn-1' }
+            })
+            .mockImplementationOnce(async (_project, _request, _onEvent, onComplete) => {
+                onComplete(0, {
+                    conversation: sourceConversation, missingSession: false, reference: '.md2-agent-logs/source.json',
+                    stderr: '', stdout: 'recovered', turnStarted: true,
+                })
+
+                return { runId: 'turn-2' }
+            })
+
+        const result = await runToCompletion(runner, {
+            actionId: 'main', context, runInput: { continueFrom: '.md2-agent-logs/source.json', extraPrompt: 'next' },
+        })
+
+        expect(result.status).toBe('completed')
+        expect(agentRunnerService.start).toHaveBeenCalledTimes(2)
+        expect(agentRunnerService.start.mock.calls[0][1].command).toContain('resume --json thread-missing')
+        expect(agentRunnerService.start.mock.calls[1][1]).toMatchObject({
+            command: expect.not.stringContaining('resume'), contextInput: expect.stringContaining('old'),
+            prompt: 'next', reuseLastUserMessage: true,
+        })
+    })
+
+    it('does not replay unrelated or post-start failures', async () => {
+        const files = [actionFile('main', {
+            agent: 'codex', command: undefined, model: 'GPT 5.5', prompt: 'Initial', type: 'agent',
+        })]
+        const { agentRunnerService, runner } = createRunner(files)
+        agentRunnerService.start.mockImplementation(async (_project, _request, _onEvent, onComplete) => {
+            onComplete(1, {
+                conversation: { id: 'failed' }, missingSession: true, reference: 'failed.json', stderr: 'tool failed',
+                stdout: '', turnStarted: true,
+            })
+
+            return { runId: 'failed' }
+        })
+
+        const result = await runToCompletion(runner)
+
+        expect(result.status).toBe('failed')
+        expect(agentRunnerService.start).toHaveBeenCalledTimes(1)
     })
 
     it('isolates listener and completion-callback failures from action result', async () => {

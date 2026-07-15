@@ -11,7 +11,7 @@ policy:
 
 ## Goal
 
-Execute `agent` actions through the Electron action runner with run-specific prompt input, live conversation input, cancellation, history for the same action id/context, and conversion of custom prompts to reusable definitions.
+Execute `agent` actions through the Electron action runner with run-specific prompt input, one structured process per turn, cancellation, history for the same action id/context, and conversion of custom prompts to reusable definitions.
 
 ## Current state
 
@@ -22,9 +22,9 @@ Agent processes and streaming exist in Electron, but React still constructs agen
 - The popup sends the action `id`, context, and run-specific agent/model/thinking-level and extra-prompt input to the Electron action runner. It does not send the persisted `prompt` or executable agent command.
 - Electron loads the agent action by id, resolves its `prompt`, combines extra input, applies supported run-time selection, and starts it as a chain phase.
 - Extensible agent profiles remain a future feature. This slice keeps the supported Codex/Claude capability and model selection only.
-- Stream stdout/stderr through Electron action events and persist the agent conversation incrementally.
-- While the process is running, conversation input is forwarded to its stdin.
-- After completion, input starts or resumes a linked conversation run. Single-click `Continue` supplies `continue` as that continuation input.
+- Stream structured provider events through Electron action events and persist the agent conversation incrementally.
+- Disable conversation input while a turn runs. Each submitted follow-up starts a new one-shot process.
+- Continue the same conversation log through an explicit provider session when available; otherwise send normalized full history through stdin.
 - Cancelling the action asks the Electron action runner to stop the agent process and chain.
 - Load and display history for the same action `id` and context. Record the effective agent/model/thinking level used for the run.
 - `Convert to action` writes a new canonical action definition with generated stable `id`, editable name/label, `type: "agent"`, and `prompt`.
@@ -34,8 +34,8 @@ Agent processes and streaming exist in Electron, but React still constructs agen
 
 - Agent runs resolve their persisted definition by id in Electron.
 - Extra prompt and supported per-run choices affect only that run.
-- Live input reaches stdin; post-completion input creates or resumes a linked run instead of targeting a dead process.
-- Single-click `Continue` sends the continuation input and links the resulting log.
+- Conversation input is disabled during a turn; post-completion input starts a new turn in the same persisted conversation.
+- Follow-up agent selection supports native resume and provider switching without losing MD² history.
 - Cancellation stops the active agent and reports a cancelled action execution.
 - History is keyed by action id/context and remains available after an action rename.
 - Conversion writes the canonical ID-based action shape.

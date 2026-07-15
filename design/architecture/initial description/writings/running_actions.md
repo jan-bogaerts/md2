@@ -30,8 +30,9 @@
   - combine the resolved prompt with run-specific prompt input;
   - apply the selected agent, model, and thinking level;
   - start the agent process from Electron;
-  - stream stdout and stderr to the shared execution state and persisted conversation log;
-  - forward live conversation input to the process through stdin.
+  - run one structured subprocess for the current turn;
+  - stream parsed provider events to shared execution state and persisted conversation log;
+  - disable additional conversation input until that process exits.
 - For a command action:
   - resolve placeholders in its `command`;
   - start the command from Electron;
@@ -79,8 +80,9 @@
 - On desktop, a horizontal splitter resizes the panel.
 - On mobile, the panel has a fixed layout and no splitter.
 - The panel shows the active action execution and the same action history available in the popup.
-- For a running agent action, output is streamed into the conversation and submitted input is forwarded to the active process through stdin.
-- After an agent run finishes, conversation continuation starts or resumes a linked Electron agent run; it does not write to the completed process. A single-click `Continue` sends `continue` as the continuation input.
+- For a running agent action, structured output is streamed into the conversation and input is disabled.
+- After a turn finishes, submitted input starts another one-shot process in the same conversation. The form permits selecting another configured agent.
+- Native resume always uses an explicit provider id. Provider switches receive full or cursor-relative normalized history through stdin.
 - Command actions show their execution status and log without agent chat controls.
 
 ## Chained actions

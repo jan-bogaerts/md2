@@ -5,22 +5,26 @@ export const DEFAULT_AGENT_PROFILE_NAME = 'codex'
 
 const CODEX_MAX_THINKING_LEVEL = 'xhigh'
 
+function buildCodexOutputCommand(command, searchEnabled) {
+    return `${command}${searchEnabled ? ' --search' : ''} exec --json`
+}
+
+function buildClaudeOutputCommand(command) {
+    return `${command} --print --verbose --output-format stream-json`
+}
+
 export const BUILTIN_AGENT_PROFILES = [
     {
         command: 'codex',
         modelArgument: '--model',
         models: ['GPT 5.5', 'GPT 5.6 sol', 'GPT 5.6 tera', 'GPT 5.6 luna'],
         name: 'codex',
-        resumeCommand: 'codex resume {{sessionId}}',
-        sessionIdPattern: '(?:Session ID|session id|session_id|sessionId)[:= ]+([0-9a-fA-F-]{36})',
     },
     {
         command: 'claude',
         modelArgument: '--model',
         models: ['default', 'sonnet', 'fable', 'opus', 'haiku'],
         name: 'claude',
-        resumeCommand: 'claude --resume {{sessionId}}',
-        sessionIdPattern: '(?:Session ID|session id|session_id|sessionId)[:= ]+([0-9a-fA-F-]{36})',
     },
 ]
 
@@ -52,19 +56,6 @@ function readModels(value, fieldName) {
     return models
 }
 
-function readOptionalPattern(value, fieldName) {
-    const pattern = readOptionalString(value, fieldName)
-    if (pattern === undefined) return undefined
-
-    try {
-        new RegExp(pattern, 'u')
-    } catch {
-        throw new Error(`Invalid agent profile field: ${fieldName}`)
-    }
-
-    return pattern
-}
-
 export function validateAgentProfiles(value) {
     if (!Array.isArray(value)) throw new Error('Missing config field: desktop.agentProfiles')
 
@@ -78,7 +69,6 @@ export function validateAgentProfiles(value) {
 
         const models = readModels(profile.models, `desktop.agentProfiles[${index}].models`)
         const defaultModel = readOptionalString(profile.defaultModel, `desktop.agentProfiles[${index}].defaultModel`)
-        const sessionIdPattern = readOptionalPattern(profile.sessionIdPattern, `desktop.agentProfiles[${index}].sessionIdPattern`)
         if (defaultModel && !models.includes(defaultModel)) {
             throw new Error(`Invalid default model for agent profile ${name}: ${defaultModel}`)
         }
@@ -90,7 +80,6 @@ export function validateAgentProfiles(value) {
             models,
             name,
             ...(profile.resumeCommand !== undefined ? { resumeCommand: requireString(profile.resumeCommand, `desktop.agentProfiles[${index}].resumeCommand`) } : {}),
-            ...(sessionIdPattern !== undefined ? { sessionIdPattern } : {}),
         }
     })
 }
@@ -169,18 +158,49 @@ const THINKING_LEVEL_ADAPTERS = new Map([
     ['codex', buildCodexThinkingCommand],
 ])
 
-export function buildAgentExecutionCommand(profile, model, thinkingLevel) {
-    const validatedThinkingLevel = validateThinkingLevel(thinkingLevel, `agent profile ${profile.name}`)
-    const command = buildAgentCommand(profile, model)
-    if (validatedThinkingLevel === 'none') return command
+const OUTPUT_COMMAND_ADAPTERS = new Map([
+    ['claude', buildClaudeOutputCommand],
+    ['codex', buildCodexOutputCommand],
+])
 
-    const adapter = THINKING_LEVEL_ADAPTERS.get(profile.name)
-    if (!adapter) throw new Error(`Agent profile does not support thinking levels: ${profile.name}`)
+function buildCodexResumeCommand(command, sessionId) {
+    const outputSuffix = ' exec --json'
+    if (!command.endsWith(outputSuffix)) throw new Error('Codex execution command is not structured JSON output')
 
-    return adapter(command, validatedThinkingLevel)
+    return `${command.slice(0, -outputSuffix.length)} exec resume --json ${sessionId}`
 }
 
-export function buildResumeAgentCommand(profile, sessionId) {
+function buildClaudeResumeCommand(command, sessionId) {
+    return `${command} --resume ${sessionId}`
+}
+
+const RESUME_COMMAND_ADAPTERS = new Map([
+    ['claude', buildClaudeResumeCommand],
+    ['codex', buildCodexResumeCommand],
+])
+
+export function buildAgentExecutionCommand(profile, model, thinkingLevel, searchEnabled = true) {
+    const validatedThinkingLevel = validateThinkingLevel(thinkingLevel, `agent profile ${profile.name}`)
+    let command = buildAgentCommand(profile, model)
+
+    if (validatedThinkingLevel !== 'none') {
+        const thinkingAdapter = THINKING_LEVEL_ADAPTERS.get(profile.name)
+        if (!thinkingAdapter) throw new Error(`Agent profile does not support thinking levels: ${profile.name}`)
+        command = thinkingAdapter(command, validatedThinkingLevel)
+    }
+
+    const outputAdapter = OUTPUT_COMMAND_ADAPTERS.get(profile.name)
+
+    return outputAdapter ? outputAdapter(command, searchEnabled) : command
+}
+
+export function buildResumeAgentCommand(profile, sessionId, executionCommand) {
+    const resumeAdapter = RESUME_COMMAND_ADAPTERS.get(profile.name)
+    if (resumeAdapter) {
+        const command = executionCommand ?? buildAgentExecutionCommand(profile, '', 'none', false)
+
+        return resumeAdapter(command, sessionId)
+    }
     if (!profile.resumeCommand) throw new Error(`Agent profile does not support native resume: ${profile.name}`)
 
     return profile.resumeCommand.replaceAll(SESSION_ID_PLACEHOLDER, sessionId)

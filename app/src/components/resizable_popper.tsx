@@ -1,28 +1,27 @@
-import { Box, Popover } from '@mui/material'
-import type { PopoverOrigin, SxProps, Theme } from '@mui/material'
+import { Box, Paper, Popper } from '@mui/material'
+import type { PopperPlacementType, SxProps, Theme } from '@mui/material'
 import { useEffect, useRef, useState } from 'react'
-import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react'
+import type { KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent, ReactNode } from 'react'
+import type { ResizeCorner } from './resizable_popover'
 
-export type ResizeCorner = 'lower-left' | 'lower-right'
-
-interface PopoverSize {
+interface PopperSize {
     height?: number
     width?: number
 }
 
-interface ResizablePopoverProps {
+interface ResizablePopperProps {
     anchorElement: HTMLElement | null
-    anchorOrigin?: PopoverOrigin
     children: ReactNode
-    initialSize: PopoverSize
+    initialSize: PopperSize
     labelId: string
     onClose: () => void
     open: boolean
     paperSx?: SxProps<Theme>
+    placement?: PopperPlacementType
     resizeCorner?: ResizeCorner
     resizeFromAllSides?: boolean
     resizeLabel: string
-    transformOrigin?: PopoverOrigin
+    storageKey?: string
 }
 
 const MIN_WIDTH = 280
@@ -31,6 +30,25 @@ const HANDLE_SIZE = 16
 const EDGE_HANDLE_SIZE = 6
 const ALL_RESIZE_DIRECTIONS = ['top', 'right', 'bottom', 'left', 'top-right', 'bottom-right', 'bottom-left', 'top-left'] as const
 type ResizeDirection = typeof ALL_RESIZE_DIRECTIONS[number]
+
+function loadSize(initialSize: PopperSize, storageKey?: string): PopperSize {
+    if (!storageKey) return initialSize
+
+    const storedValue = window.localStorage.getItem(storageKey)
+    if (!storedValue) return initialSize
+
+    try {
+        const storedSize = JSON.parse(storedValue) as Partial<PopperSize>
+        if (!Number.isFinite(storedSize.height) || !Number.isFinite(storedSize.width)) return initialSize
+
+        return {
+            height: Math.max(MIN_HEIGHT, storedSize.height as number),
+            width: Math.max(MIN_WIDTH, storedSize.width as number),
+        }
+    } catch {
+        return initialSize
+    }
+}
 
 function directionCursor(direction: ResizeDirection) {
     if (direction === 'top' || direction === 'bottom') return 'ns-resize'
@@ -57,29 +75,36 @@ function directionPosition(direction: ResizeDirection) {
     }
 }
 
-/** An anchored popover with configurable drag handles for resizing its content. */
-export function ResizablePopover(props: ResizablePopoverProps) {
+/** A non-modal anchored surface with configurable drag handles for resizing its content. */
+export function ResizablePopper(props: ResizablePopperProps) {
     const {
         anchorElement,
-        anchorOrigin = { horizontal: 'left', vertical: 'bottom' },
         children,
         initialSize,
         labelId,
         onClose,
         open,
         paperSx,
+        placement = 'bottom-start',
         resizeCorner = 'lower-right',
         resizeFromAllSides = false,
         resizeLabel,
-        transformOrigin = { horizontal: 'left', vertical: 'top' },
+        storageKey,
     } = props
-    const [size, setSize] = useState(initialSize)
+    const [size, setSize] = useState(() => loadSize(initialSize, storageKey))
     const paperRef = useRef<HTMLDivElement | null>(null)
     const resizeRef = useRef<AbortController | null>(null)
 
     useEffect(() => () => resizeRef.current?.abort(), [])
+    useEffect(() => {
+        if (!storageKey) return
 
-    const handleClose = () => {
+        window.localStorage.setItem(storageKey, JSON.stringify(size))
+    }, [size, storageKey])
+
+    const handleKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+        if (event.key !== 'Escape') return
+
         resizeRef.current?.abort()
         onClose()
     }
@@ -88,7 +113,7 @@ export function ResizablePopover(props: ResizablePopoverProps) {
         event.preventDefault()
         resizeRef.current?.abort()
 
-        if (!paperRef.current) throw new Error('Missing resizable popover paper element')
+        if (!paperRef.current) throw new Error('Missing resizable popper paper element')
 
         const direction = event.currentTarget.getAttribute('data-direction') as ResizeDirection | null
         const controller = new AbortController()
@@ -118,56 +143,50 @@ export function ResizablePopover(props: ResizablePopoverProps) {
     }
 
     return (
-        <Popover
-            anchorEl={anchorElement}
-            anchorOrigin={anchorOrigin}
-            onClose={handleClose}
-            open={open}
-            slotProps={{
-                paper: {
-                    'aria-labelledby': labelId,
-                    ref: paperRef,
-                    role: 'dialog',
-                    style: size,
-                    sx: [{
-                        display: 'flex',
-                        maxHeight: 'calc(100vh - 32px)',
-                        maxWidth: 'calc(100vw - 32px)',
-                        overflow: 'hidden',
-                        position: 'relative',
-                    }, paperSx] as SxProps<Theme>,
-                },
-            }}
-            transformOrigin={transformOrigin}
-        >
-            {children}
-            {resizeFromAllSides ? ALL_RESIZE_DIRECTIONS.map((direction) => (
-                <Box
-                    aria-label={`${resizeLabel} from ${direction}`}
-                    data-direction={direction}
-                    key={direction}
-                    onPointerDown={startResize}
-                    role="separator"
-                    sx={{ ...directionPosition(direction), position: 'absolute', touchAction: 'none' }}
-                />
-            )) : (
-                <Box
-                    aria-label={resizeLabel}
-                    data-corner={resizeCorner}
-                    onPointerDown={startResize}
-                    role="separator"
-                    sx={{
-                        bottom: 0,
-                        cursor: resizeCorner === 'lower-left' ? 'nesw-resize' : 'nwse-resize',
-                        height: HANDLE_SIZE,
-                        left: resizeCorner === 'lower-left' ? 0 : undefined,
-                        position: 'absolute',
-                        right: resizeCorner === 'lower-right' ? 0 : undefined,
-                        touchAction: 'none',
-                        width: HANDLE_SIZE,
-                    }}
-                />
-            )}
-        </Popover>
+        <Popper anchorEl={anchorElement} open={open} placement={placement} sx={{ zIndex: 'modal' }}>
+            <Paper
+                aria-labelledby={labelId}
+                onKeyDown={handleKeyDown}
+                ref={paperRef}
+                role="dialog"
+                style={size}
+                sx={[{
+                    display: 'flex',
+                    maxHeight: 'calc(100vh - 32px)',
+                    maxWidth: 'calc(100vw - 32px)',
+                    overflow: 'hidden',
+                    position: 'relative',
+                }, paperSx] as SxProps<Theme>}
+            >
+                {children}
+                {resizeFromAllSides ? ALL_RESIZE_DIRECTIONS.map((direction) => (
+                    <Box
+                        aria-label={`${resizeLabel} from ${direction}`}
+                        data-direction={direction}
+                        key={direction}
+                        onPointerDown={startResize}
+                        role="separator"
+                        sx={{ ...directionPosition(direction), position: 'absolute', touchAction: 'none' }}
+                    />
+                )) : (
+                    <Box
+                        aria-label={resizeLabel}
+                        data-corner={resizeCorner}
+                        onPointerDown={startResize}
+                        role="separator"
+                        sx={{
+                            bottom: 0,
+                            cursor: resizeCorner === 'lower-left' ? 'nesw-resize' : 'nwse-resize',
+                            height: HANDLE_SIZE,
+                            left: resizeCorner === 'lower-left' ? 0 : undefined,
+                            position: 'absolute',
+                            right: resizeCorner === 'lower-right' ? 0 : undefined,
+                            touchAction: 'none',
+                            width: HANDLE_SIZE,
+                        }}
+                    />
+                )}
+            </Paper>
+        </Popper>
     )
 }

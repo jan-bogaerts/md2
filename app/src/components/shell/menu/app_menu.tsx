@@ -1,7 +1,7 @@
 import { Box, Button, Divider, MenuItem, Tab as MuiTab, Tabs, TextField, ToggleButton, ToggleButtonGroup, Tooltip } from '@mui/material'
 import type { SelectChangeEvent } from '@mui/material'
 import type { ChangeEvent, MouseEvent as ReactMouseEvent, ReactNode, SyntheticEvent } from 'react'
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import CardsOutline from 'mdi-material-ui/CardsOutline'
 import CheckCircleOutline from 'mdi-material-ui/CheckCircleOutline'
 import Cog from 'mdi-material-ui/Cog'
@@ -17,11 +17,14 @@ import { workspaceViewService, type WorkspaceViewMode } from '../../../services/
 import { workspaceNavigationService } from '../../../services/workspace_navigation_service'
 import { actionService } from '../../../services/action_service'
 import { dialogService } from '../../../services/dialog_service'
+import { actionsForContext, projectContext } from '../../../data/action_context'
 import type { UseGithubAuthResult } from '../../../auth/use_github_auth'
 import { useConfigValue, useHasDesktopConfig } from '../../hooks/use_config_value'
 import { useProjectState } from '../../hooks/use_project_state'
 import { useProjectConfig } from '../../hooks/use_project_config'
 import { useWorkspaceView } from '../../hooks/use_workspace_view'
+import { useActions } from '../../hooks/use_actions'
+import { ActionEntryPoints } from '../../actions/action_entry_points'
 import { MainToolbar } from './main_toolbar'
 import { GithubAuthToolbarButton } from '../github_auth_toolbar_button'
 import { NO_DRAG_REGION } from '../drag_region'
@@ -55,6 +58,7 @@ const MENU_TABS: { label: string; value: AppMenuTab }[] = [
     { label: 'Home', value: 'home' },
     { label: 'Run', value: 'agents' },
 ]
+const PROJECT_CONTEXT = projectContext()
 
 function persistDesktopConfig() {
     if (!configService.hasDesktopConfig()) return
@@ -67,6 +71,7 @@ export function AppMenu(props: AppMenuProps) {
     const { accessToken, auth, extraActions, isGithubAuthenticated, isMobile, onOpenConfig, onOpenMobileMenu, search } = props
     const { hasPendingPush, hasPendingSave, project } = useProjectState()
     const projectConfig = useProjectConfig()
+    const { actions: loadedActions } = useActions()
     const { viewMode } = useWorkspaceView()
     const [currentTab, setCurrentTab] = useState<AppMenuTab>('home')
     const [dialogMode, setDialogMode] = useState<ProjectDialogMode | null>(null)
@@ -78,6 +83,10 @@ export function AppMenu(props: AppMenuProps) {
     const desktopAvailable = useHasDesktopConfig()
     const selectedModel = configuredModel || (selectedProfile ? defaultModelForProfile(selectedProfile) : '')
     const projectBranch = project?.branch ?? ''
+    const projectActions = useMemo(
+        () => actionsForContext(loadedActions, PROJECT_CONTEXT).filter((action) => action.appliesTo?.kind === 'project'),
+        [loadedActions],
+    )
 
     const closeDialog = useCallback(() => {
         setDialogMode(null)
@@ -264,13 +273,7 @@ export function AppMenu(props: AppMenuProps) {
                         </ToggleButtonGroup>
                     </Section>
                     <Divider flexItem orientation="vertical" sx={{ my: 1.5 }} />
-                    <MenuIconButton
-                        disabled={!actions.isProjectOpen || actions.activeCards.length === 0 || actions.isReleaseCompleting}
-                        label="Complete release"
-                        onClick={handleOpenReleaseDialog}
-                    >
-                        <CheckCircleOutline fontSize="small" />
-                    </MenuIconButton>
+                    <Button disabled={!project} onClick={handleCreateAction} size="small" variant="outlined">New action</Button>
                     <Button
                         disabled={!actions.isProjectOpen}
                         onClick={handleOpenCardDialog}
@@ -326,8 +329,17 @@ export function AppMenu(props: AppMenuProps) {
                                 />
                             </Tooltip>
                         )}
-                        <Button disabled={!project} onClick={handleCreateAction} size="small" variant="outlined">New action</Button>
-                        <Button disabled size="small" variant="outlined">Add chatbot</Button>
+                    </Section>
+                    <Divider flexItem orientation="vertical" sx={{ my: 1.5 }} />
+                    <Section label="Actions">
+                        <ActionEntryPoints actions={projectActions} context={PROJECT_CONTEXT} variant="icons" />
+                        <MenuIconButton
+                            disabled={!actions.isProjectOpen || actions.activeCards.length === 0 || actions.isReleaseCompleting}
+                            label="Complete release"
+                            onClick={handleOpenReleaseDialog}
+                        >
+                            <CheckCircleOutline fontSize="small" />
+                        </MenuIconButton>
                     </Section>
                 </Tab>
             </Box>

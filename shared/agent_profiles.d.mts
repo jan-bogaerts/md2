@@ -5,7 +5,6 @@ export interface AgentProfile {
     models: string[]
     name: string
     resumeCommand?: string
-    sessionIdPattern?: string
 }
 
 export interface AgentSelection {
@@ -27,5 +26,5 @@ export function validateAgentSelection(profiles: AgentProfile[], selection: Agen
 export function validateThinkingLevel(value: unknown, source: string): ThinkingLevel
 export function defaultModelForProfile(profile: AgentProfile): string
 export function buildAgentCommand(profile: AgentProfile, model: string): string
-export function buildAgentExecutionCommand(profile: AgentProfile, model: string, thinkingLevel: ThinkingLevel): string
-export function buildResumeAgentCommand(profile: AgentProfile, sessionId: string): string
+export function buildAgentExecutionCommand(profile: AgentProfile, model: string, thinkingLevel: ThinkingLevel, searchEnabled?: boolean): string
+export function buildResumeAgentCommand(profile: AgentProfile, sessionId: string, executionCommand?: string): string

@@ -207,6 +207,9 @@ export class ConfigService extends EventTarget {
             nextValues = mergeValue(nextValues, 'desktop.agentSlotCommand', desktopConfig.agentSlotCommand)
         }
         if (desktopConfig?.agentProfiles !== undefined) nextValues = mergeValue(nextValues, 'desktop.agentProfiles', desktopConfig.agentProfiles)
+        if (desktopConfig?.codexSearchEnabled !== undefined) {
+            nextValues = mergeValue(nextValues, 'desktop.codexSearchEnabled', desktopConfig.codexSearchEnabled)
+        }
         if (desktopConfig?.model !== undefined) nextValues = mergeValue(nextValues, 'desktop.model', desktopConfig.model)
         if (desktopConfig?.projectLocationMode !== undefined) {
             nextValues = mergeValue(nextValues, 'desktop.projectLocationMode', desktopConfig.projectLocationMode)
@@ -295,6 +298,7 @@ export class ConfigService extends EventTarget {
             agent: this.values['desktop.agent'],
             agentSlotCommand: this.values['desktop.agentSlotCommand'],
             agentProfiles: this.values['desktop.agentProfiles'],
+            codexSearchEnabled: this.values['desktop.codexSearchEnabled'],
             model: this.values['desktop.model'],
             projectLocationMode: this.values['desktop.projectLocationMode'],
         }

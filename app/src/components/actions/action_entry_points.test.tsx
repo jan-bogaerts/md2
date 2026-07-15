@@ -163,19 +163,33 @@ describe('ActionEntryPoints popup', () => {
         expect(within(dialog).getByRole('heading', { name: 'Implement' })).toBeInTheDocument()
     })
 
-    it('opens the first context-specific action from the compact Run button', () => {
-        render(<ActionEntryPoints context={cardContext(featureCard, DEFAULT_CARD_TYPES)} variant="button" />)
+    it('toggles the first context-specific action from the compact Run button', () => {
+        const onBackgroundClick = vi.fn()
+        render(
+            <>
+                <button onClick={onBackgroundClick} type="button">Background action</button>
+                <ActionEntryPoints context={cardContext(featureCard, DEFAULT_CARD_TYPES)} variant="button" />
+            </>,
+        )
 
-        fireEvent.click(screen.getByRole('button', { name: 'Run' }))
+        const runButton = screen.getByRole('button', { name: 'Run' })
+        fireEvent.click(runButton)
 
         const dialog = within(screen.getByRole('dialog'))
-        expect(dialog.getByText('Implement', { selector: 'p' })).toBeInTheDocument()
-        expect(dialog.getAllByRole('button', { name: 'Close' })).toHaveLength(2)
+        expect(dialog.getAllByRole('button', { name: 'Close' })).toHaveLength(1)
 
         const actionGroup = dialog.getByRole('group', { name: 'Actions' })
         const actionButtons = within(actionGroup).getAllByRole('button')
         expect(actionButtons.map((button) => button.textContent)).toEqual(['Create branch', 'Run lint', 'Implement', 'Custom prompt'])
         expect(dialog.getByRole('button', { name: 'Implement' })).toHaveAttribute('aria-pressed', 'true')
+
+        fireEvent.click(screen.getByRole('button', { name: 'Background action' }))
+        expect(onBackgroundClick).toHaveBeenCalledOnce()
+        expect(screen.getByRole('dialog')).toBeInTheDocument()
+        expect(document.querySelector('.MuiModal-root')).not.toBeInTheDocument()
+
+        fireEvent.click(runButton)
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     })
 
     it('selects one card action at a time from the Run popup', () => {
@@ -186,7 +200,6 @@ describe('ActionEntryPoints popup', () => {
         const actionGroup = within(dialog.getByRole('group', { name: 'Actions' }))
         fireEvent.click(actionGroup.getByRole('button', { name: 'Run lint' }))
 
-        expect(dialog.getByText('Lint')).toBeInTheDocument()
         expect(actionGroup.getByRole('button', { name: 'Run lint' })).toHaveAttribute('aria-pressed', 'true')
         expect(actionGroup.getByRole('button', { name: 'Implement' })).toHaveAttribute('aria-pressed', 'false')
     })
@@ -198,11 +211,12 @@ describe('ActionEntryPoints popup', () => {
         const dialog = within(screen.getByRole('dialog'))
         fireEvent.click(dialog.getByRole('button', { name: 'Add action' }))
 
-        expect(dialog.getByText('Send a custom prompt to the agent.')).toBeInTheDocument()
+        expect(dialog.queryByText('Send a custom prompt to the agent.')).not.toBeInTheDocument()
+        expect(dialog.getByPlaceholderText('Prompt required')).toBeInTheDocument()
         expect(dialog.getByLabelText('Preset name')).toHaveFocus()
         expect(dialog.getByRole('button', { name: 'Run' })).toBeDisabled()
 
-        fireEvent.change(dialog.getByLabelText('Extra prompt'), { target: { value: 'Review this feature' } })
+        fireEvent.change(dialog.getByLabelText('Prompt'), { target: { value: 'Review this feature' } })
         fireEvent.change(dialog.getByLabelText('Preset name'), { target: { value: 'Review feature' } })
 
         expect(dialog.getByRole('button', { name: 'Run' })).toBeDisabled()

@@ -9,7 +9,6 @@ function createDispatch(options = {}) {
     const actionRunnerService = {
         cancel: vi.fn(),
         requireActionsFolder: vi.fn(() => 'actions'),
-        sendInput: vi.fn(),
         start: vi.fn(async () => 'action-1'),
         subscribe: vi.fn(() => vi.fn()),
     }
@@ -21,7 +20,6 @@ function createDispatch(options = {}) {
     }
     const agentRunnerService = {
         run: vi.fn(async () => ({ runId: 'run-1' })),
-        sendInput: vi.fn(),
         start: vi.fn(async () => ({ runId: 'run-2' })),
         stop: vi.fn(),
     }
@@ -145,10 +143,8 @@ describe('createLocalBridgeDispatch', () => {
         const { actionRunnerService, dispatch } = createDispatch()
 
         await dispatch.actionBridge.cancelActionExecution('action-1')
-        await dispatch.actionBridge.sendActionInput('action-1', 'continue')
 
         expect(actionRunnerService.cancel).toHaveBeenCalledWith('action-1')
-        expect(actionRunnerService.sendInput).toHaveBeenCalledWith('action-1', 'continue')
     })
 
     it('owns search-agent command and prompt construction in Electron', async () => {
@@ -159,7 +155,7 @@ describe('createLocalBridgeDispatch', () => {
         await dispatch.actionBridge.runSearchRegexpAgent('find beta cards', vi.fn())
 
         expect(agentRunnerService.run).toHaveBeenCalledWith(project, expect.objectContaining({
-            cardPath: '.md2-search-regexp', command: 'codex', prompt: expect.stringContaining('find beta cards'),
+            cardPath: '.md2-search-regexp', command: 'codex --search exec --json', prompt: expect.stringContaining('find beta cards'),
         }), expect.any(Function))
     })
 

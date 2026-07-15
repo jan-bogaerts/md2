@@ -2,6 +2,7 @@ import type {
     AgentConversation,
     AgentConversationEvent,
     AgentConversationMessage,
+    AgentProviderSession,
     AgentConversationStatus,
     ProjectReference,
     RunningAgent,
@@ -10,8 +11,8 @@ import type {
 } from '../data/data_types'
 import { register } from './service_injector'
 
-const VALID_STATUSES = new Set<AgentConversationStatus>(['completed', 'failed', 'running'])
-const VALID_ROLES = new Set(['agent', 'stderr', 'stdout', 'system', 'user'])
+const VALID_STATUSES = new Set<AgentConversationStatus>(['cancelled', 'completed', 'failed', 'running'])
+const VALID_ROLES = new Set(['agent', 'assistant', 'stderr', 'stdout', 'system', 'user'])
 
 type Listener = () => void
 
@@ -59,10 +60,23 @@ function normalizeMessage(value: unknown): AgentConversationMessage {
     if (!VALID_ROLES.has(role)) throw new Error(`Malformed agent log: invalid message role ${role}`)
 
     return {
+        ...(message.agent === undefined ? {} : { agent: requireString(message.agent, 'message.agent') }),
         content: requireText(message.content, 'message.content'),
         id: requireString(message.id, 'message.id'),
         role: role as AgentConversationMessage['role'],
         timestamp: requireString(message.timestamp, 'message.timestamp'),
+    }
+}
+
+function normalizeProviderSession(value: unknown): AgentProviderSession {
+    const session = requireRecord(value, 'provider session')
+
+    return {
+        agent: requireString(session.agent, 'providerSession.agent'),
+        conversationId: requireString(session.conversationId, 'providerSession.conversationId'),
+        createdAt: requireString(session.createdAt, 'providerSession.createdAt'),
+        lastUsedAt: requireString(session.lastUsedAt, 'providerSession.lastUsedAt'),
+        synchronizedThroughMessageId: requireString(session.synchronizedThroughMessageId, 'providerSession.synchronizedThroughMessageId'),
     }
 }
 
@@ -81,17 +95,19 @@ export function parseAgentConversationLog(content: string, referencePath: string
     const payload = requireRecord(JSON.parse(content), 'root')
     const messages = requireArray(payload.messages, 'messages').map(normalizeMessage)
     const events = payload.events === undefined ? [] : requireArray(payload.events, 'events').map(normalizeEvent)
+    const providerSessions = payload.providerSessions === undefined
+        ? []
+        : requireArray(payload.providerSessions, 'providerSessions').map(normalizeProviderSession)
 
     return {
         actionId: nullableString(payload.actionId, 'actionId'),
-        cardPath: requireString(payload.cardPath, 'cardPath'),
+        cardPath: nullableString(payload.cardPath, 'cardPath'),
         completedAt: nullableString(payload.completedAt, 'completedAt'),
-        continuedFrom: nullableString(payload.continuedFrom, 'continuedFrom'),
         events,
         id: requireString(payload.id, 'id'),
         messages,
-        nativeSessionId: nullableString(payload.nativeSessionId, 'nativeSessionId'),
         path: referencePath,
+        providerSessions,
         startedAt: requireString(payload.startedAt, 'startedAt'),
         status: requireStatus(payload.status),
         title: typeof payload.title === 'string' && payload.title.length > 0 ? payload.title : requireString(payload.id, 'id'),

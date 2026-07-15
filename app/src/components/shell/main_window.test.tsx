@@ -49,7 +49,6 @@ function installAgentBridge(stdout: string) {
         onActionExecution: vi.fn(() => () => {}),
         openInEditor: vi.fn(async () => {}),
         runSearchRegexpAgent: vi.fn(async () => stdout),
-        sendActionInput: vi.fn(async () => {}),
         startAction: vi.fn(async () => 'action-1'),
     }
     window.md2Actions = bridge

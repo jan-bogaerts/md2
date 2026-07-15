@@ -34,8 +34,10 @@ const DEFAULT_CONVERT_LABEL_LENGTH = 40
 interface ActionPopupControllerInput {
     action: ActionDefinition
     cancelAction?: CancelAction
+    continueFrom?: string
     context: ActionContext
     convertPromptToAction?: ConvertPromptToAction
+    initialPrompt?: string
     loadHistory?: LoadHistory
     runAction?: RunAction
     scheduleAction?: ScheduleAction
@@ -61,7 +63,7 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
     const [actionLabel, setActionLabel] = useState('')
     const [agentOverride, setAgentOverride] = useState<string | null>(null)
     const [convertMessage, setConvertMessage] = useState<string | null>(null)
-    const [extraPrompt, setExtraPrompt] = useState('')
+    const [extraPrompt, setExtraPrompt] = useState(input.initialPrompt ?? '')
     const [localExecutionId, setLocalExecutionId] = useState<string | null>(null)
     const [history, setHistory] = useState<ActionRunHistoryEntry[]>([])
     const [historyError, setHistoryError] = useState<string | null>(null)
@@ -98,6 +100,8 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
     const executionId = sharedExecution?.executionId ?? localExecutionId
     const runStatus = sharedExecution?.status ?? localRunStatus
     const runLogs = sharedExecution?.logs ?? localRunResult?.logs ?? []
+    const continuationReference = input.continueFrom ?? sharedExecution?.reference ?? null
+    const isFollowUp = action.type === 'agent' && runStatus !== 'running' && !!continuationReference
 
     useEffect(() => {
         let isActive = true
@@ -125,12 +129,19 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
 
         try {
             const runInput = action.type === 'agent'
-                ? { ...(agent ? { agent } : {}), extraPrompt, ...(model ? { model } : {}), thinkingLevel }
+                ? {
+                    ...(agent ? { agent } : {}),
+                    ...(isFollowUp && continuationReference ? { continueFrom: continuationReference } : {}),
+                    extraPrompt,
+                    ...(model ? { model } : {}),
+                    thinkingLevel,
+                }
                 : { extraPrompt }
             const result = await runAction(action, context, runInput, setLocalExecutionId)
             setLocalRunResult(result)
             setLocalRunStatus(result.status)
             setLocalExecutionId(null)
+            if (action.type === 'agent') setExtraPrompt('')
             setHistory(await loadHistory(action, context))
         } catch (error) {
             const message = error instanceof Error ? error.message : 'Action run failed'
@@ -264,6 +275,7 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
         handleThinkingLevelChange,
         history,
         historyError,
+        isFollowUp,
         model,
         runLogs,
         runStatus,

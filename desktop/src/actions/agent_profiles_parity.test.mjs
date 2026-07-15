@@ -24,6 +24,6 @@ describe('agent_profiles shared adapter', () => {
 
         expect(defaultModelForProfile(codex)).toBe('GPT 5.5')
         expect(buildAgentCommand(codex, 'gpt-5')).toBe('codex --model gpt-5')
-        expect(buildAgentExecutionCommand(codex, 'gpt-5', 'low')).toBe('codex --model gpt-5 -c model_reasoning_effort=low')
+        expect(buildAgentExecutionCommand(codex, 'gpt-5', 'low')).toBe('codex --model gpt-5 -c model_reasoning_effort=low --search exec --json')
     })
 })

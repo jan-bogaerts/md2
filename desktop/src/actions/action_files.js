@@ -15,6 +15,8 @@ const {
 
 const JSON_EXTENSION = '.json'
 const ACTION_HISTORY_FOLDER = '.md2-action-history'
+const AGENT_MESSAGE_ROLES = new Set(['agent', 'assistant', 'stderr', 'stdout', 'system', 'user'])
+const AGENT_STATUSES = new Set(['cancelled', 'completed', 'failed', 'running'])
 
 function normalizePath(filePath) {
     return filePath.replace(/\\/g, '/')
@@ -85,22 +87,67 @@ function requireArray(value, fieldName) {
     return value
 }
 
+function requireText(value, fieldName) {
+    if (typeof value !== 'string') throw new Error(`Malformed agent log: missing ${fieldName}`)
+
+    return value
+}
+
+function normalizeAgentMessage(value, index) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`Malformed agent log: messages[${index}] must be an object`)
+    const role = requireString(value.role, `messages[${index}].role`)
+    if (!AGENT_MESSAGE_ROLES.has(role)) throw new Error(`Malformed agent log: invalid messages[${index}].role ${role}`)
+
+    return {
+        ...(value.agent === undefined ? {} : { agent: requireString(value.agent, `messages[${index}].agent`) }),
+        content: requireText(value.content, `messages[${index}].content`),
+        id: requireString(value.id, `messages[${index}].id`),
+        role,
+        timestamp: requireString(value.timestamp, `messages[${index}].timestamp`),
+    }
+}
+
+function normalizeAgentEvent(value, index) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`Malformed agent log: events[${index}] must be an object`)
+
+    return {
+        content: requireText(value.content, `events[${index}].content`),
+        id: requireString(value.id, `events[${index}].id`),
+        timestamp: requireString(value.timestamp, `events[${index}].timestamp`),
+        type: requireString(value.type, `events[${index}].type`),
+    }
+}
+
+function normalizeProviderSession(value, index) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`Malformed agent log: providerSessions[${index}] must be an object`)
+
+    return {
+        agent: requireString(value.agent, `providerSessions[${index}].agent`),
+        conversationId: requireString(value.conversationId, `providerSessions[${index}].conversationId`),
+        createdAt: requireString(value.createdAt, `providerSessions[${index}].createdAt`),
+        lastUsedAt: requireString(value.lastUsedAt, `providerSessions[${index}].lastUsedAt`),
+        synchronizedThroughMessageId: requireString(value.synchronizedThroughMessageId, `providerSessions[${index}].synchronizedThroughMessageId`),
+    }
+}
+
 function normalizeAgentConversation(content, referencePath) {
     const parsed = JSON.parse(content)
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('Malformed agent log: root must be an object')
+
+    const status = requireString(parsed.status, 'status')
+    if (!AGENT_STATUSES.has(status)) throw new Error(`Malformed agent log: invalid status ${status}`)
 
     return {
         actionId: parsed.actionId === null || parsed.actionId === undefined ? null : requireString(parsed.actionId, 'actionId'),
         cardPath: parsed.cardPath === null || parsed.cardPath === undefined ? null : requireString(parsed.cardPath, 'cardPath'),
         completedAt: parsed.completedAt === null || parsed.completedAt === undefined ? null : requireString(parsed.completedAt, 'completedAt'),
-        continuedFrom: parsed.continuedFrom === null || parsed.continuedFrom === undefined ? null : requireString(parsed.continuedFrom, 'continuedFrom'),
-        events: Array.isArray(parsed.events) ? parsed.events : [],
+        events: parsed.events === undefined ? [] : requireArray(parsed.events, 'events').map(normalizeAgentEvent),
         id: requireString(parsed.id, 'id'),
-        messages: requireArray(parsed.messages, 'messages'),
-        nativeSessionId: parsed.nativeSessionId === null || parsed.nativeSessionId === undefined ? null : requireString(parsed.nativeSessionId, 'nativeSessionId'),
+        messages: requireArray(parsed.messages, 'messages').map(normalizeAgentMessage),
         path: referencePath,
+        providerSessions: parsed.providerSessions === undefined ? [] : requireArray(parsed.providerSessions, 'providerSessions').map(normalizeProviderSession),
         startedAt: requireString(parsed.startedAt, 'startedAt'),
-        status: requireString(parsed.status, 'status'),
+        status,
         title: typeof parsed.title === 'string' && parsed.title.length > 0 ? parsed.title : parsed.id,
     }
 }

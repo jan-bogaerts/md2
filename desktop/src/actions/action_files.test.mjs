@@ -9,6 +9,7 @@ const {
     appendActionRunHistory,
     loadActionFiles,
     loadActionRunHistory,
+    loadAgentConversation,
 } = require('./action_files')
 
 describe('action-files', () => {
@@ -46,6 +47,27 @@ describe('action-files', () => {
             await appendActionRunHistory({ branch: 'main', id: 'local', rootPath }, request, entry)
 
             await expect(loadActionRunHistory({ branch: 'main', id: 'local', rootPath }, request)).resolves.toEqual([entry])
+        } finally {
+            await rm(rootPath, { force: true, recursive: true })
+        }
+    })
+
+    it('rejects malformed conversation messages at the Electron boundary', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-action-files-'))
+
+        try {
+            await mkdir(join(rootPath, '.git'))
+            await writeFile(join(rootPath, 'conversation.json'), JSON.stringify({
+                completedAt: null,
+                events: [],
+                id: 'conversation-1',
+                messages: [{ content: 'missing identity', role: 'user', timestamp: 'now' }],
+                startedAt: 'now',
+                status: 'running',
+            }))
+
+            await expect(loadAgentConversation({ branch: 'main', id: 'local', rootPath }, 'conversation.json'))
+                .rejects.toThrow('messages[0].id')
         } finally {
             await rm(rootPath, { force: true, recursive: true })
         }

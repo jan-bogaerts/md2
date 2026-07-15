@@ -1,5 +1,6 @@
 import type { ActionContext } from '../data/action_context'
 import type { ActionDefinition } from '../data/action_types'
+import type { AgentConversation } from '../data/data_types'
 import type {
     ActionExecutionEvent,
     ActionExecutionStatus,
@@ -19,9 +20,11 @@ const RETAINED_EXECUTION_LIMIT = 100
 export interface LiveActionExecution {
     activeActionId: string | null
     activeActionType: ActionDefinition['type'] | null
+    conversation: AgentConversation | null
     context: ActionContext
     executionId: string
     logs: ActionRunLogEntry[]
+    reference: string | null
     rootActionId: string
     status: ActionExecutionStatus
 }
@@ -93,13 +96,6 @@ export async function cancelActionExecution(executionId: string) {
     if (!bridge) throw new Error('Action cancellation requires Electron')
 
     await bridge.cancelActionExecution(executionId)
-}
-
-export async function sendActionExecutionInput(executionId: string, input: string) {
-    const bridge = getElectronActionBridge()
-    if (!bridge) throw new Error('Action input requires Electron')
-
-    await bridge.sendActionInput(executionId, input)
 }
 
 /** Owns one renderer-wide subscription and all live/recent action execution state. */
@@ -206,9 +202,11 @@ export class ActionExecutionService extends EventTarget {
         const current = this.executions.get(event.executionId) ?? {
             activeActionId: null,
             activeActionType: null,
+            conversation: null,
             context: event.context,
             executionId: event.executionId,
             logs: [],
+            reference: null,
             rootActionId: event.rootActionId,
             status: 'running' as const,
         }
@@ -219,7 +217,23 @@ export class ActionExecutionService extends EventTarget {
                 ...next,
                 activeActionId: event.status === 'running' ? event.actionId : null,
                 activeActionType: event.status === 'running' ? actionType(event.actionId) : null,
+                conversation: event.conversation ?? next.conversation,
                 logs: updateLogs(next.logs, event),
+                reference: event.reference ?? next.reference,
+            }
+        }
+        if (event.type === 'agent' && event.agentEvent) {
+            const { agentEvent } = event
+            const streamEvent = {
+                ...event,
+                stderr: agentEvent.type === 'error' || agentEvent.type === 'stderr' ? agentEvent.content : '',
+                stdout: agentEvent.type === 'output' ? agentEvent.content : '',
+                type: 'action' as const,
+            }
+            next = {
+                ...next,
+                conversation: agentEvent.conversation,
+                logs: streamEvent.stderr || streamEvent.stdout ? updateLogs(next.logs, streamEvent) : next.logs,
             }
         }
         this.executions.set(event.executionId, next)

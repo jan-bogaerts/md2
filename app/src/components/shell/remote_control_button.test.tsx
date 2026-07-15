@@ -4,7 +4,14 @@ import type { ElectronRemoteControlBridge, RemoteControlStatus } from '../../dat
 import { RemoteControlButton } from './remote_control_button'
 
 const stoppedStatus: RemoteControlStatus = { active: false, clientCount: 0, endpoint: null, token: null }
-const startedStatus: RemoteControlStatus = { active: true, clientCount: 0, endpoint: 'ws://127.0.0.1:1234', token: 'token-1' }
+const startedStatus: RemoteControlStatus = {
+    active: true,
+    clientCount: 0,
+    endpoint: 'ws://127.0.0.1:1234',
+    hostnameEndpoint: null,
+    ipEndpoints: ['ws://127.0.0.1:1234'],
+    token: 'token-1',
+}
 
 function installBridge(overrides: Partial<ElectronRemoteControlBridge> = {}) {
     const bridge: ElectronRemoteControlBridge = {
@@ -43,7 +50,7 @@ describe('RemoteControlButton', () => {
         fireEvent.click(await screen.findByRole('button', { name: 'Accept' }))
 
         expect(await screen.findByRole('button', { name: 'Copy connect link' })).toBeInTheDocument()
-        expect(screen.getByText('ws://127.0.0.1:1234')).toBeInTheDocument()
+        expect(screen.getByText('http://127.0.0.1:1234/#token-1')).toBeInTheDocument()
     })
 
     it('shows the disconnect tooltip while active', async () => {

@@ -1,5 +1,5 @@
 import { promises as fsPromises } from 'node:fs'
-import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { createRequire } from 'node:module'
@@ -10,12 +10,6 @@ const { AgentRunnerService } = require('./agent_runner_service')
 
 function createProject(rootPath) {
     return { branch: 'main', id: 'local', rootPath }
-}
-
-function delay(milliseconds) {
-    return new Promise((resolve) => {
-        setTimeout(resolve, milliseconds)
-    })
 }
 
 async function prepareProject(rootPath) {
@@ -56,333 +50,214 @@ describe('AgentRunnerService', () => {
         vi.restoreAllMocks()
     })
 
-    it('persists a project-wide log without card ownership', async () => {
+    it('uses pipes and passes multiline shell characters as one prompt argument', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-runner-'))
+        const service = new AgentRunnerService()
+        const prompt = 'first line\n"quoted" & <tag> %PATH% \'single\''
+
+        try {
+            await prepareProject(rootPath)
+            const command = 'node -e "process.stdout.write(JSON.stringify({prompt:process.argv[1],tty:process.stdin.isTTY===true}))"'
+            const result = await service.run(createProject(rootPath), { command, prompt, scopePath: 'project' }, () => undefined)
+
+            expect(result.stderr).toBe('')
+            expect(result.exitCode).toBe(0)
+            expect(JSON.parse(result.stdout)).toEqual({ prompt, tty: false })
+        } finally {
+            await rm(rootPath, { force: true, recursive: true })
+        }
+    })
+
+    it('passes large transcript context through stdin', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-runner-'))
+        const service = new AgentRunnerService()
+        const contextInput = 'history\n'.repeat(20000)
+
+        try {
+            await prepareProject(rootPath)
+            const command = 'node -e "let value=\'\';process.stdin.on(\'data\',chunk=>value+=chunk);process.stdin.on(\'end\',()=>process.stdout.write(String(value.length)))"'
+            const result = await service.run(createProject(rootPath), { command, contextInput, prompt: 'next', scopePath: 'project' }, () => undefined)
+
+            expect(result.stdout).toBe(String(contextInput.length))
+        } finally {
+            await rm(rootPath, { force: true, recursive: true })
+        }
+    })
+
+    it.runIf(process.platform === 'win32')('runs a configured Windows command shim without resolving its internal launcher', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-runner-'))
+        const service = new AgentRunnerService()
+        const shimPath = join(rootPath, 'test agent.cmd')
+        const scriptPath = join(rootPath, 'test-agent-script.cjs')
+        const prompt = '"quoted" & <tag> %PATH%'
+
+        try {
+            await prepareProject(rootPath)
+            await writeFile(scriptPath, 'process.stdout.write(JSON.stringify(process.argv[3]))\n')
+            await writeFile(shimPath, '@node "%~dp0test-agent-script.cjs" %*\r\n')
+            const result = await service.run(createProject(rootPath), {
+                command: `"${shimPath}" marker`,
+                prompt,
+                scopePath: 'project',
+            }, () => undefined)
+
+            expect(result.stderr).toBe('')
+            expect(result.exitCode).toBe(0)
+            expect(JSON.parse(result.stdout)).toBe(prompt)
+        } finally {
+            await rm(rootPath, { force: true, recursive: true })
+        }
+    })
+
+    it('streams structured events and persists assistant text separately from protocol events', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-runner-'))
         const service = new AgentRunnerService()
         const events = []
 
         try {
             await prepareProject(rootPath)
-            const result = await service.start(
-                createProject(rootPath),
-                { command: 'node -e "process.exit(0)"', prompt: 'Review project', scopePath: 'project' },
-                (event) => events.push(event),
-            )
-
-            await waitForEvent(events, 'closed')
+            const command = 'node -e "console.log(JSON.stringify({type:\'thread.started\',thread_id:\'thread-1\'}));console.log(JSON.stringify({type:\'turn.started\'}));console.log(JSON.stringify({type:\'item.completed\',item:{type:\'agent_message\',text:\'answer\'}}))"'
+            const result = await service.run(createProject(rootPath), {
+                agent: 'codex',
+                cardPath: 'design/F-1.md',
+                command,
+                prompt: 'question',
+            }, (event) => events.push(event))
             const persisted = JSON.parse(await readFile(join(rootPath, result.reference), 'utf8'))
 
-            expect(persisted).not.toHaveProperty('cardPath')
-            expect(result.reference).toContain('project_')
+            expect(events).toContainEqual(expect.objectContaining({ content: 'answer', type: 'output' }))
+            expect(persisted.messages).toEqual([
+                expect.objectContaining({ content: 'question', role: 'user' }),
+                expect.objectContaining({ agent: 'codex', content: 'answer', role: 'assistant' }),
+            ])
+            expect(persisted.events).toContainEqual(expect.objectContaining({ type: 'thread.started' }))
+            expect(persisted.providerSessions).toEqual([expect.objectContaining({ agent: 'codex', conversationId: 'thread-1' })])
         } finally {
             await rm(rootPath, { force: true, recursive: true })
         }
     })
 
-    it('streams stdout, forwards stdin and persists the card-linked log', async () => {
+    it('fails a new provider turn without an explicit structured conversation id', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-runner-'))
         const service = new AgentRunnerService()
-        const events = []
-        const command = 'node -e "process.stdin.on(\'data\', data => { process.stdout.write(data); if (String(data).includes(\'done\')) process.exit(0) })"'
 
         try {
             await prepareProject(rootPath)
+            const result = await service.run(createProject(rootPath), {
+                agent: 'codex',
+                command: 'node -e "console.log(JSON.stringify({type:\'item.completed\',item:{type:\'agent_message\',text:\'partial answer\'}}))"',
+                prompt: 'question',
+                scopePath: 'project',
+            }, () => undefined)
+            const persisted = JSON.parse(await readFile(join(rootPath, result.reference), 'utf8'))
 
-            const result = await service.start(
-                createProject(rootPath),
-                {
-                    actionId: 'action-implement',
-                    cardPath: 'design/F-1.md',
-                    command,
-                    continuedFrom: '.md2-agent-logs/source.json',
-                    nativeResumeSessionId: 'session-1',
-                    prompt: 'hello',
-                },
-                (event) => events.push(event),
-            )
-            const runningContent = await readFile(join(rootPath, result.reference), 'utf8')
-            expect(JSON.parse(runningContent).status).toBe('running')
-
-            service.sendInput(result.runId, 'done')
-
-            await waitForEvent(events, 'closed')
-
-            const content = await readFile(join(rootPath, result.reference), 'utf8')
-            const persisted = JSON.parse(content)
-
-            expect(events.some((event) => event.type === 'stdout' && event.content.includes('hello'))).toBe(true)
-            expect(events.some((event) => event.type === 'stdout' && event.content.includes('done'))).toBe(true)
-            expect(persisted.cardPath).toBe('design/F-1.md')
-            expect(persisted.actionId).toBe('action-implement')
-            expect(persisted.continuedFrom).toBe('.md2-agent-logs/source.json')
-            expect(persisted.nativeSessionId).toBe('session-1')
-            expect(persisted.status).toBe('completed')
-            expect(persisted.messages.map((message) => message.content).join('')).toContain('done')
-        } finally {
-            await rm(rootPath, { force: true, recursive: true })
-        }
-    })
-
-    it('returns buffered output for action chaining while streaming events', async () => {
-        const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-runner-'))
-        const service = new AgentRunnerService()
-        const events = []
-        const command = 'node -e "process.stdin.on(\'data\', data => { process.stdout.write(`out:${data}`); process.stderr.write(\'err\'); process.exit(0) })"'
-
-        try {
-            await prepareProject(rootPath)
-
-            const result = await service.run(
-                createProject(rootPath),
-                { cardPath: 'design/F-1.md', command, prompt: 'hello' },
-                (event) => events.push(event),
-            )
-
-            expect(result.exitCode).toBe(0)
-            expect(result.stdout).toContain('out:hello')
-            expect(result.stderr).toBe('err')
-            expect(result.reference).toMatch(/^\.md2-agent-logs\//u)
-            expect(events.map((event) => event.type)).toContain('stdout')
-            expect(events.at(-1).type).toBe('closed')
-        } finally {
-            await rm(rootPath, { force: true, recursive: true })
-        }
-    })
-
-    it('emits and persists only explicit waiting and resumed state signals', async () => {
-        const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-runner-'))
-        const service = new AgentRunnerService()
-        const events = []
-        const command = 'node -e "process.stdin.on(\'data\', data => { if (String(data).includes(\'done\')) process.exit(0) })"'
-
-        try {
-            await prepareProject(rootPath)
-            const result = await service.start(
-                createProject(rootPath),
-                { cardPath: 'design/F-1.md', command, prompt: 'hello' },
-                (event) => events.push(event),
-            )
-
-            service.handleState(result.runId, 'waiting')
-            service.handleOutput(result.runId, 'stdout', Buffer.from('ordinary output asking a question'))
-            service.handleState(result.runId, 'resumed')
-            service.sendInput(result.runId, 'done')
-            await waitForEvent(events, 'closed')
-
-            const content = JSON.parse(await readFile(join(rootPath, result.reference), 'utf8'))
-            expect(events.map(({ type }) => type).filter((type) => type === 'waiting' || type === 'resumed')).toEqual(['waiting', 'resumed'])
-            expect(content.events.map(({ type }) => type)).toEqual(expect.arrayContaining(['waiting', 'resumed']))
-        } finally {
-            await rm(rootPath, { force: true, recursive: true })
-        }
-    })
-
-    it('includes spawn error events in the final stderr result', async () => {
-        const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-runner-'))
-        const service = new AgentRunnerService()
-        const events = []
-        const command = 'node -e "setTimeout(() => process.exit(1), 25)"'
-        let completeRun
-        const completion = new Promise((resolve) => {
-            completeRun = resolve
-        })
-
-        try {
-            await prepareProject(rootPath)
-
-            const result = await service.start(
-                createProject(rootPath),
-                { cardPath: 'design/F-1.md', command, prompt: 'hello' },
-                (event) => events.push(event),
-                (_exitCode, run) => completeRun(run),
-            )
-
-            service.handleError(result.runId, new Error('spawn missing-agent ENOENT'))
-            await waitForEvent(events, 'closed')
-            const completedRun = await completion
-
-            const content = await readFile(join(rootPath, result.reference), 'utf8')
-            const persisted = JSON.parse(content)
-
-            expect(completedRun.stderr).toContain('spawn missing-agent ENOENT')
-            expect(events).toContainEqual(expect.objectContaining({ content: 'spawn missing-agent ENOENT', type: 'error' }))
+            expect(result.exitCode).not.toBe(0)
             expect(persisted.status).toBe('failed')
-            expect(persisted.events).toContainEqual(expect.objectContaining({ content: 'spawn missing-agent ENOENT', type: 'error' }))
+            expect(persisted.messages.at(-1)).toMatchObject({ content: 'partial answer', role: 'assistant' })
+            expect(persisted.events).toContainEqual(expect.objectContaining({ content: 'Missing codex conversation id in structured output', type: 'error' }))
         } finally {
             await rm(rootPath, { force: true, recursive: true })
         }
     })
 
-    it('captures a native session id from output when a pattern is configured', async () => {
-        const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-runner-'))
-        const service = new AgentRunnerService()
-        const sessionId = '123e4567-e89b-12d3-a456-426614174000'
-        const command = `node -e "process.stdin.on('data', () => { process.stdout.write('Session ID: ${sessionId}'); process.exit(0) })"`
-
-        try {
-            await prepareProject(rootPath)
-
-            const result = await service.run(
-                createProject(rootPath),
-                {
-                    cardPath: 'design/F-1.md',
-                    command,
-                    prompt: 'hello',
-                    sessionIdPattern: 'Session ID: ([0-9a-f-]+)',
-                },
-                () => undefined,
-            )
-            const content = await readFile(join(rootPath, result.reference), 'utf8')
-            const persisted = JSON.parse(content)
-
-            expect(result.conversation.nativeSessionId).toBe(sessionId)
-            expect(persisted.nativeSessionId).toBe(sessionId)
-        } finally {
-            await rm(rootPath, { force: true, recursive: true })
-        }
-    })
-
-    it('serializes rapid output writes so the final persisted status wins', async () => {
+    it('fails malformed provider JSONL visibly without storing it as assistant text', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-runner-'))
         const service = new AgentRunnerService()
         const events = []
-        const command = 'node -e "process.stdin.on(\'data\', data => { if (String(data).includes(\'done\')) process.exit(0) })"'
-        const originalWriteFile = fsPromises.writeFile.bind(fsPromises)
-        const writeFileSpy = vi.spyOn(fsPromises, 'writeFile')
-
-        writeFileSpy.mockImplementation(async (filePath, data) => {
-            const content = typeof data === 'string' ? data : data.toString()
-            const parsed = JSON.parse(content)
-            if (parsed.status === 'running' && parsed.messages.length > 1) {
-                await delay(20)
-            }
-
-            return originalWriteFile(filePath, data)
-        })
 
         try {
             await prepareProject(rootPath)
+            const result = await service.run(createProject(rootPath), {
+                agent: 'claude',
+                command: 'node -e "console.log(\'not-json\')"',
+                prompt: 'question',
+                scopePath: 'project',
+            }, (event) => events.push(event))
+            const persisted = JSON.parse(await readFile(join(rootPath, result.reference), 'utf8'))
 
-            const result = await service.start(
-                createProject(rootPath),
-                { cardPath: 'design/F-1.md', command, prompt: 'hello' },
-                (event) => events.push(event),
-            )
+            expect(result.exitCode).not.toBe(0)
+            expect(events).toContainEqual(expect.objectContaining({ type: 'error' }))
+            expect(persisted.status).toBe('failed')
+            expect(persisted.messages).toHaveLength(1)
+        } finally {
+            await rm(rootPath, { force: true, recursive: true })
+        }
+    })
 
-            for (let idx = 0; idx < 20; idx++) {
-                service.handleOutput(result.runId, 'stdout', Buffer.from(`chunk-${idx}\n`))
-            }
-            service.sendInput(result.runId, 'done')
+    it('cancels only the active turn without advancing its provider cursor', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-runner-'))
+        const service = new AgentRunnerService()
+        const events = []
+        const conversation = {
+            actionId: 'implement', completedAt: 'earlier', events: [], id: 'conversation-1',
+            messages: [{ content: 'old', id: 'message-1', role: 'user', timestamp: 'earlier' }],
+            providerSessions: [{ agent: 'codex', conversationId: 'thread-1', createdAt: 'earlier', lastUsedAt: 'earlier', synchronizedThroughMessageId: 'message-1' }],
+            startedAt: 'earlier', status: 'completed', title: 'Implement',
+        }
 
+        try {
+            await prepareProject(rootPath)
+            const started = await service.start(createProject(rootPath), {
+                agent: 'codex', command: 'node -e "setTimeout(()=>{},10000)"', conversation,
+                prompt: 'next', reference: '.md2-agent-logs/conversation.json', scopePath: 'project',
+            }, (event) => events.push(event))
+            service.stop(started.runId)
             await waitForEvent(events, 'closed')
+            const persisted = JSON.parse(await readFile(join(rootPath, started.reference), 'utf8'))
 
-            const content = await readFile(join(rootPath, result.reference), 'utf8')
-            const persisted = JSON.parse(content)
-            expect(persisted.status).toBe('completed')
-            expect(persisted.messages.map((message) => message.content).join('')).toContain('chunk-19')
+            expect(persisted.status).toBe('cancelled')
+            expect(persisted.providerSessions[0].synchronizedThroughMessageId).toBe('message-1')
         } finally {
             await rm(rootPath, { force: true, recursive: true })
         }
     })
 
-    it('throttles rapid intermediate output persists', async () => {
+    it('rejects concurrent turns for one conversation while allowing separate conversations', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-runner-'))
         const service = new AgentRunnerService()
         const events = []
-        const command = 'node -e "process.stdin.on(\'data\', data => { if (String(data).includes(\'done\')) process.exit(0) })"'
-        const writeFileSpy = vi.spyOn(fsPromises, 'writeFile')
-
-        try {
-            await prepareProject(rootPath)
-
-            const result = await service.start(
-                createProject(rootPath),
-                { cardPath: 'design/F-1.md', command, prompt: 'hello' },
-                (event) => events.push(event),
-            )
-            writeFileSpy.mockClear()
-
-            for (let idx = 0; idx < 20; idx++) {
-                service.handleOutput(result.runId, 'stdout', Buffer.from(`chunk-${idx}\n`))
-            }
-            service.sendInput(result.runId, 'done')
-
-            await waitForEvent(events, 'closed')
-
-            const writePaths = writeFileSpy.mock.calls.map(([filePath]) => String(filePath))
-            expect(writePaths.filter((filePath) => filePath.endsWith('.json.tmp'))).toHaveLength(3)
-        } finally {
-            await rm(rootPath, { force: true, recursive: true })
+        const conversation = {
+            actionId: null, completedAt: null, events: [], id: 'conversation-1', messages: [], providerSessions: [],
+            startedAt: 'earlier', status: 'completed', title: 'Agent',
         }
-    })
-
-    it('writes logs atomically through a temporary file replace', async () => {
-        const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-runner-'))
-        const service = new AgentRunnerService()
-        const command = 'node -e "process.stdin.on(\'data\', () => process.exit(0))"'
-        const renameSpy = vi.spyOn(fsPromises, 'rename')
-        const writeFileSpy = vi.spyOn(fsPromises, 'writeFile')
 
         try {
             await prepareProject(rootPath)
+            const first = await service.start(createProject(rootPath), {
+                command: 'node -e "setTimeout(()=>process.exit(0),100)"', conversation,
+                prompt: 'one', reference: '.md2-agent-logs/one.json', scopePath: 'project',
+            }, (event) => events.push(event))
 
-            const result = await service.run(
-                createProject(rootPath),
-                { cardPath: 'design/F-1.md', command, prompt: 'hello' },
-                () => undefined,
-            )
+            await expect(service.start(createProject(rootPath), {
+                command: 'node -e "process.exit(0)"', conversation,
+                prompt: 'two', reference: '.md2-agent-logs/one.json', scopePath: 'project',
+            }, () => undefined)).rejects.toThrow('already has a running turn')
+            const second = await service.start(createProject(rootPath), {
+                command: 'node -e "process.exit(0)"', prompt: 'other', scopePath: 'project',
+            }, (event) => events.push(event))
 
-            const temporaryPath = join(rootPath, result.reference).replace(/\.json$/u, '.json.tmp')
-            const finalPath = join(rootPath, result.reference)
-            expect(writeFileSpy.mock.calls.every(([filePath]) => String(filePath).endsWith('.tmp'))).toBe(true)
-            expect(renameSpy.mock.calls.some(([fromPath, toPath]) => fromPath === temporaryPath && toPath === finalPath)).toBe(true)
-        } finally {
-            await rm(rootPath, { force: true, recursive: true })
-        }
-    })
-
-    it('creates distinct ids and log files for runs started in the same millisecond', async () => {
-        const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-runner-'))
-        const service = new AgentRunnerService()
-        const events = []
-        const command = 'node -e "setTimeout(() => process.exit(0), 25)"'
-        vi.spyOn(Date, 'now').mockReturnValue(123)
-
-        try {
-            await prepareProject(rootPath)
-
-            const first = await service.start(
-                createProject(rootPath),
-                { cardPath: 'design/F-1.md', command, prompt: 'hello' },
-                (event) => events.push(event),
-            )
-            const second = await service.start(
-                createProject(rootPath),
-                { cardPath: 'design/F-1.md', command, prompt: 'hello' },
-                (event) => events.push(event),
-            )
-
-            expect(first.runId).not.toBe(second.runId)
-            expect(first.reference).not.toBe(second.reference)
-
+            service.stop(first.runId)
             await waitForEventCount(events, 'closed', 2)
+            expect(second.reference).not.toBe(first.reference)
         } finally {
             await rm(rootPath, { force: true, recursive: true })
         }
     })
 
-    it('rejects log paths that escape the project root', async () => {
+    it('writes final completion atomically before reporting closed', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-runner-'))
         const service = new AgentRunnerService()
+        const renameSpy = vi.spyOn(fsPromises, 'rename')
 
         try {
-            await mkdir(join(rootPath, '.git'))
+            await prepareProject(rootPath)
+            const result = await service.run(createProject(rootPath), {
+                command: 'node -e "process.stdout.write(\'done\')"', prompt: 'go', scopePath: 'project',
+            }, () => undefined)
+            const persisted = JSON.parse(await readFile(join(rootPath, result.reference), 'utf8'))
 
-            await expect(service.start(
-                { branch: 'main', id: 'local', rootPath },
-                { cardPath: '../outside.md', command: 'node -e ""', prompt: 'hello' },
-                () => undefined,
-            )).rejects.toThrow('Local Git path escapes project root')
+            expect(persisted.status).toBe('completed')
+            expect(renameSpy.mock.calls.some(([from, to]) => String(from).endsWith('.tmp') && to === join(rootPath, result.reference))).toBe(true)
         } finally {
             await rm(rootPath, { force: true, recursive: true })
         }

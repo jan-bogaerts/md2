@@ -56,7 +56,6 @@ const ACTION_METHODS = [
     'openInEditor',
     'registerActionSchedule',
     'runSearchRegexpAgent',
-    'sendActionInput',
     'startAction',
 ]
 const EVENT_METHODS = new Set(['runSearchRegexpAgent'])

@@ -116,7 +116,6 @@ function createScheduler(localGitService, timerDependencies = {}) {
     }
     const configuredAgentRunnerService = timerDependencies.agentRunnerService ?? { run: vi.fn() }
     const agentRunnerService = {
-        sendInput: vi.fn(),
         start: vi.fn(async (executionProject, request, onEvent, onComplete) => {
             void configuredAgentRunnerService.run(executionProject, request, onEvent).then((result) => onComplete(result.exitCode, {
                 conversation: { id: 'agent-1' }, reference: '.md2-agent-logs/one.json', stderr: result.stderr, stdout: result.stdout,
@@ -305,7 +304,7 @@ describe('ActionSchedulerService', () => {
         await scheduler.fireSchedule('schedule-1')
 
         expect(agentRunner).toHaveBeenCalledWith(project, expect.objectContaining({
-            command: 'codex --model GPT 5.5 -c model_reasoning_effort=high',
+            command: 'codex --model GPT 5.5 -c model_reasoning_effort=high --search exec --json',
         }), expect.any(Function))
         expect(localGitService.histories[0]).toMatchObject({
             entry: { agent: 'codex', model: 'GPT 5.5', thinkingLevel: 'high' },
@@ -325,7 +324,7 @@ describe('ActionSchedulerService', () => {
         await scheduler.startProject(project)
         await scheduler.fireSchedule('schedule-1')
 
-        expect(agentRunner).toHaveBeenCalledWith(project, expect.objectContaining({ command: 'codex --model GPT 5.5' }), expect.any(Function))
+        expect(agentRunner).toHaveBeenCalledWith(project, expect.objectContaining({ command: 'codex --model GPT 5.5 --search exec --json' }), expect.any(Function))
         expect(localGitService.histories[0].entry).toMatchObject({ thinkingLevel: 'none' })
     })
 
@@ -346,8 +345,8 @@ describe('ActionSchedulerService', () => {
         await scheduler.fireSchedule('schedule-1')
 
         expect(agentRunner.mock.calls.map((call) => call[1].command)).toEqual([
-            'codex --model GPT 5.5 -c model_reasoning_effort=low',
-            'codex --model GPT 5.5 -c model_reasoning_effort=high',
+            'codex --model GPT 5.5 -c model_reasoning_effort=low --search exec --json',
+            'codex --model GPT 5.5 -c model_reasoning_effort=high --search exec --json',
         ])
         expect(localGitService.histories.map(({ entry }) => entry.thinkingLevel)).toEqual(['low', 'high'])
     })

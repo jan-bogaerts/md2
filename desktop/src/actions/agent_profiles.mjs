@@ -29,5 +29,7 @@ export function resolveAgentCommand(config, selection = {}) {
     const thinkingLevel = selection.thinkingLevel ?? config.thinkingLevel ?? 'none'
     validateAgentSelection(profiles, { agent, model }, 'desktop config')
 
-    return { agent, command: buildAgentExecutionCommand(profile, model, thinkingLevel), model, profile, thinkingLevel }
+    const searchEnabled = config.codexSearchEnabled ?? true
+
+    return { agent, command: buildAgentExecutionCommand(profile, model, thinkingLevel, searchEnabled), model, profile, thinkingLevel }
 }

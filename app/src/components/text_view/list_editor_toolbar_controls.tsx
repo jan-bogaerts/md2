@@ -6,19 +6,34 @@ import type { MarkdownDocumentHistoryStore } from '../editor/markdown_document_h
 import { MarkdownFormatToolbarControls } from '../editor/markdown_format_toolbar_controls'
 
 interface ListEditorToolbarControlsProps {
+    agentConversationCount: number
     documentId: string
     historyStore: MarkdownDocumentHistoryStore
+    isAgentPanelOpen: boolean
     isPropertiesOpen: boolean
+    onToggleAgentPanel: () => void
     onOpenProperties: (event: MouseEvent<HTMLElement>) => void
     propertiesAvailable: boolean
 }
 
 /** Formatting controls and the agent-panel toggle for the list-view editor. */
 export function ListEditorToolbarControls(props: ListEditorToolbarControlsProps) {
-    const {isPropertiesOpen, documentId, historyStore, onOpenProperties, propertiesAvailable} = props
+    const {
+        agentConversationCount,
+        documentId,
+        historyStore,
+        isAgentPanelOpen,
+        isPropertiesOpen,
+        onOpenProperties,
+        onToggleAgentPanel,
+        propertiesAvailable,
+    } = props
     const endControls = (
         <>
             <Separator />
+            <Button onClick={onToggleAgentPanel} size="small" variant={isAgentPanelOpen ? 'contained' : 'outlined'}>
+                Agents{agentConversationCount > 0 ? ` (${agentConversationCount})` : ''}
+            </Button>
             {propertiesAvailable ? (
                 <Button
                     aria-haspopup="dialog"

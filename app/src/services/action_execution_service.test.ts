@@ -71,4 +71,31 @@ describe('ActionExecutionService', () => {
         expect(service.getRunningExecutionForContext(context)).toBeNull()
         service.stop()
     })
+
+    it('adds live agent assistant output to shared execution logs', () => {
+        const { bridge, emit } = bridgeWithEvents()
+        setActionBridgeOverride(bridge)
+        const service = new ActionExecutionService()
+        service.start()
+        const conversation = {
+            actionId: 'review', cardPath: context.file, completedAt: null, events: [], id: 'conversation-1', messages: [], path: 'log.json',
+            providerSessions: [], startedAt: 'now', status: 'running' as const, title: 'Review',
+        }
+
+        emit({ actionId: 'review', context, executionId: 'execution-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'execution' })
+        emit({ actionId: 'review', context, executionId: 'execution-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'action' })
+        emit({
+            actionId: 'review',
+            agentEvent: { content: 'live answer', conversation, runId: 'turn-1', type: 'output' },
+            context,
+            executionId: 'execution-1',
+            phase: 'main',
+            rootActionId: 'review',
+            status: 'running',
+            type: 'agent',
+        })
+
+        expect(service.getSnapshot().executions[0]).toMatchObject({ conversation, logs: [{ stdout: 'live answer' }] })
+        service.stop()
+    })
 })

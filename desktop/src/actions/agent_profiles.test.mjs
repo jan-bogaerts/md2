@@ -21,7 +21,7 @@ describe('agent profile resolution', () => {
             model: '',
         })
 
-        expect(result).toMatchObject({ agent: 'codex', command: 'codex --model gpt-5', model: 'gpt-5' })
+        expect(result).toMatchObject({ agent: 'codex', command: 'codex --model gpt-5 --search exec --json', model: 'gpt-5' })
     })
 
     it('constructs commands with placeholders and model arguments', () => {
@@ -33,10 +33,11 @@ describe('agent profile resolution', () => {
         const codex = { command: 'codex', modelArgument: '--model', models: ['gpt-5'], name: 'codex' }
         const claude = { command: 'claude', modelArgument: '--model', models: ['sonnet'], name: 'claude' }
 
-        expect(buildAgentExecutionCommand(codex, 'gpt-5', 'high')).toBe('codex --model gpt-5 -c model_reasoning_effort=high')
-        expect(buildAgentExecutionCommand(codex, 'gpt-5', 'max')).toBe('codex --model gpt-5 -c model_reasoning_effort=xhigh')
-        expect(buildAgentExecutionCommand(claude, 'sonnet', 'max')).toBe('claude --model sonnet --effort max')
-        expect(buildAgentExecutionCommand(codex, 'gpt-5', 'none')).toBe('codex --model gpt-5')
+        expect(buildAgentExecutionCommand(codex, 'gpt-5', 'high')).toBe('codex --model gpt-5 -c model_reasoning_effort=high --search exec --json')
+        expect(buildAgentExecutionCommand(codex, 'gpt-5', 'max')).toBe('codex --model gpt-5 -c model_reasoning_effort=xhigh --search exec --json')
+        expect(buildAgentExecutionCommand(claude, 'sonnet', 'max')).toBe('claude --model sonnet --effort max --print --verbose --output-format stream-json')
+        expect(buildAgentExecutionCommand(codex, 'gpt-5', 'none')).toBe('codex --model gpt-5 --search exec --json')
+        expect(buildAgentExecutionCommand(codex, 'gpt-5', 'none', false)).toBe('codex --model gpt-5 exec --json')
     })
 
     it('rejects invalid levels and profiles without a thinking-level adapter', () => {
@@ -55,12 +56,12 @@ describe('agent profile resolution', () => {
         }
 
         expect(resolveAgentCommand(config, { thinkingLevel: 'low' })).toMatchObject({
-            command: 'codex -c model_reasoning_effort=low', thinkingLevel: 'low',
+            command: 'codex -c model_reasoning_effort=low --search exec --json', thinkingLevel: 'low',
         })
         expect(resolveAgentCommand(config)).toMatchObject({
-            command: 'codex -c model_reasoning_effort=medium', thinkingLevel: 'medium',
+            command: 'codex -c model_reasoning_effort=medium --search exec --json', thinkingLevel: 'medium',
         })
-        expect(resolveAgentCommand({ ...config, thinkingLevel: undefined })).toMatchObject({ command: 'codex', thinkingLevel: 'none' })
+        expect(resolveAgentCommand({ ...config, thinkingLevel: undefined })).toMatchObject({ command: 'codex --search exec --json', thinkingLevel: 'none' })
     })
 
     it('falls back to the default profile when the configured profile is missing', () => {
@@ -93,18 +94,40 @@ describe('agent profile resolution', () => {
         expect(result).toMatchObject({ agent: 'local', command: 'custom-agent --flag', model: 'custom' })
     })
 
-    it('validates profile session id patterns and resume commands', () => {
+    it('validates resume commands without free-text session patterns', () => {
         const [profile] = validateAgentProfiles([{
             command: 'agent',
             models: ['model-a'],
             name: 'agent',
             resumeCommand: 'agent resume {{sessionId}}',
-            sessionIdPattern: 'Session: (.+)',
+            sessionIdPattern: 'legacy ignored field',
         }])
 
-        expect(profile.sessionIdPattern).toBe('Session: (.+)')
+        expect(profile).not.toHaveProperty('sessionIdPattern')
         expect(buildResumeAgentCommand(profile, 'session-1')).toBe('agent resume session-1')
-        expect(() => validateAgentProfiles([{ command: 'agent', models: ['model-a'], name: 'bad', sessionIdPattern: '(' }])).toThrow('sessionIdPattern')
+    })
+
+    it('keeps provider resume output in JSON format', () => {
+        const codex = BUILTIN_AGENT_PROFILES.find((profile) => profile.name === 'codex')
+        const claude = BUILTIN_AGENT_PROFILES.find((profile) => profile.name === 'claude')
+        if (!codex || !claude) throw new Error('Missing built-in agent profile')
+
+        expect(buildResumeAgentCommand(codex, 'session-1')).toBe('codex exec resume --json session-1')
+        expect(buildResumeAgentCommand(claude, 'session-1')).toBe(
+            'claude --print --verbose --output-format stream-json --resume session-1',
+        )
+    })
+
+    it('derives provider resume from the configured execution command', () => {
+        const codex = { command: '"C:\\Tools\\codex.cmd"', models: ['gpt-5'], name: 'codex' }
+        const claude = { command: '"C:\\Tools\\claude.cmd"', models: ['sonnet'], name: 'claude' }
+
+        expect(buildResumeAgentCommand(codex, 'thread-1', '"C:\\Tools\\codex.cmd" --model gpt-5 exec --json')).toBe(
+            '"C:\\Tools\\codex.cmd" --model gpt-5 exec resume --json thread-1',
+        )
+        expect(buildResumeAgentCommand(claude, 'session-1', '"C:\\Tools\\claude.cmd" --model sonnet --print --verbose --output-format stream-json')).toBe(
+            '"C:\\Tools\\claude.cmd" --model sonnet --print --verbose --output-format stream-json --resume session-1',
+        )
     })
 
     it('returns the first listed model when no explicit default exists', () => {

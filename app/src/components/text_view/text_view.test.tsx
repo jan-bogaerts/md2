@@ -510,13 +510,15 @@ describe('TextView', () => {
         expect(document.querySelector('[data-sticky-toolbar="true"]')).not.toBeNull()
     })
 
-    it('removes the card-bound Agents control from the markdown editor toolbar', () => {
+    it('opens the card-bound persisted conversation panel from the editor toolbar', () => {
         renderTextView()
 
         clickTreeFile('F-1 Alpha')
 
         const editorToolbar = within(screen.getByTestId('mdx-editor-toolbar'))
-        expect(editorToolbar.queryByRole('button', { name: /Agents/ })).not.toBeInTheDocument()
+        fireEvent.click(editorToolbar.getByRole('button', { name: 'Agents' }))
+
+        expect(screen.getByText('No agent conversations.')).toBeInTheDocument()
     })
 
     it('publishes the desktop tree without a Browse files button', () => {

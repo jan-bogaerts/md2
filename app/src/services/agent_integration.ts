@@ -274,7 +274,7 @@ export class AgentIntegration {
     }
 
     private linkActionConversation(event: ActionExecutionEvent) {
-        if (event.status !== 'completed' || !event.conversation?.cardPath || !event.reference) return
+        if (event.status === 'running' || !event.conversation?.cardPath || !event.reference) return
 
         const reference = event.executionWorktree === null || event.executionWorktree === undefined
             ? event.reference

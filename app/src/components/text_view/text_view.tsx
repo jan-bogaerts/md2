@@ -1,12 +1,15 @@
-import { Box, Typography } from '@mui/material'
+import { Box, Divider, Typography } from '@mui/material'
 import type { MouseEvent as ReactMouseEvent } from 'react'
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import { buildFileTree, fileLabel } from '../../data/file_tree'
 import type { ActionDefinition } from '../../data/action_types'
+import { BUILTIN_CUSTOM_PROMPT } from '../../data/action_types'
+import { fileContext } from '../../data/action_context'
 import { getCardIdPrefix } from '../../data/card_identifiers'
 import { defaultColumnAccent, type CardTypeConfig, type ProjectCard, type StateConfig } from '../../data/data_types'
 import { telemetryService } from '../../services/telemetry_service'
 import { markdownParsingService } from '../../services/markdown_parsing_service'
+import { dialogService } from '../../services/dialog_service'
 import { ActionEditor } from '../actions/action_editor'
 import { MarkdownDocumentHistoryStore } from '../editor/markdown_document_history_store'
 import { MarkdownEditor } from '../editor/markdown_editor'
@@ -18,6 +21,9 @@ import { ListEditorToolbarControls } from './list_editor_toolbar_controls'
 import { TabBar, type OpenTab, type OpenTabKind } from './tab_bar'
 import { useOpenTabs } from './use_open_tabs'
 import { useActions } from '../hooks/use_actions'
+import { AgentConversationList } from '../agents/agent_conversation_list'
+import { ActionPopup } from '../actions/action_popup'
+import type { AgentConversation } from '../../data/data_types'
 
 const HISTORY_FOLDER_NAME = 'history'
 
@@ -125,6 +131,13 @@ export function TextView(props: TextViewProps) {
     } = props
     const { actions } = useActions()
     const [propertiesAnchorElement, setPropertiesAnchorElement] = useState<HTMLElement | null>(null)
+    const [agentPanelAnchorElement, setAgentPanelAnchorElement] = useState<HTMLElement | null>(null)
+    const [continuation, setContinuation] = useState<{ cardPath: string | null, conversation: AgentConversation | null, prompt: string }>({
+        cardPath: null,
+        conversation: null,
+        prompt: '',
+    })
+    const [isAgentPanelOpen, setIsAgentPanelOpen] = useState(false)
     const [markdownHistoryStore] = useState(() => new MarkdownDocumentHistoryStore())
     const onDeleteFileRef = useRef(onDeleteFile)
     const onDeleteFolderRef = useRef(onDeleteFolder)
@@ -222,19 +235,63 @@ export function TextView(props: TextViewProps) {
         setPropertiesAnchorElement(null)
     }
 
+    const handleToggleAgentPanel = () => {
+        setIsAgentPanelOpen((current) => !current)
+        setAgentPanelAnchorElement(document.activeElement instanceof HTMLElement ? document.activeElement : null)
+    }
+
+    const handleContinueConversation = (conversation: AgentConversation) => {
+        if (conversation.actionId && !actions.some(({ id }) => id === conversation.actionId)) {
+            dialogService.error(`Unknown originating action: ${conversation.actionId}`)
+            return
+        }
+
+        setContinuation({ cardPath: activeCard?.path ?? null, conversation, prompt: '' })
+    }
+
+    const handleStartConversation = (prompt: string) => {
+        setContinuation({ cardPath: activeCard?.path ?? null, conversation: null, prompt })
+    }
+
+    const handleCloseConversationPopup = () => {
+        setContinuation({ cardPath: null, conversation: null, prompt: '' })
+    }
+
     const listEditorToolbarContents = useCallback(() => {
         if (!mountedEditorPath) throw new Error('Cannot render the Markdown toolbar without a document path')
 
         return (
             <ListEditorToolbarControls
+                agentConversationCount={mountedCard?.agentConversations.length ?? 0}
                 documentId={mountedEditorPath}
                 historyStore={markdownHistoryStore}
+                isAgentPanelOpen={isAgentPanelOpen}
                 isPropertiesOpen={!!propertiesAnchorElement}
                 onOpenProperties={handleOpenProperties}
+                onToggleAgentPanel={handleToggleAgentPanel}
                 propertiesAvailable={!!mountedCard && Object.keys(mountedCard.headerFields).length > 0}
             />
         )
-    }, [markdownHistoryStore, mountedCard, mountedEditorPath, propertiesAnchorElement])
+    }, [isAgentPanelOpen, markdownHistoryStore, mountedCard, mountedEditorPath, propertiesAnchorElement])
+
+    const continuationAction = continuation.conversation?.actionId
+        ? actions.find(({ id }) => id === continuation.conversation?.actionId) ?? null
+        : BUILTIN_CUSTOM_PROMPT
+    const conversationPopup = activeCard
+        && continuation.cardPath === activeCard.path
+        && (continuation.conversation || continuation.prompt)
+        && continuationAction ? (
+            <ActionPopup
+                action={continuationAction}
+                anchorElement={agentPanelAnchorElement}
+                continueFrom={continuation.conversation?.path}
+                context={fileContext(activeCard, cardTypes)}
+                initialPrompt={continuation.prompt}
+                key={`${continuation.conversation?.path ?? 'new'}:${continuation.prompt}`}
+                onClose={handleCloseConversationPopup}
+                onNavigate={() => undefined}
+            />
+        ) : null
 
     const propertiesPopup = activeCard && Object.keys(activeCard.headerFields).length > 0 ? (
         <CardPropertiesPopover
@@ -301,8 +358,23 @@ export function TextView(props: TextViewProps) {
                         </Typography>
                     )}
                 </Box>
+                {isAgentPanelOpen && activeCard ? (
+                    <>
+                        <Divider />
+                        <Box sx={{ maxHeight: '40%', minHeight: 160, overflow: 'auto', p: 2 }}>
+                            <AgentConversationList
+                                context={fileContext(activeCard, cardTypes)}
+                                conversations={activeCard.agentConversations}
+                                errors={activeCard.agentConversationErrors}
+                                onContinue={handleContinueConversation}
+                                onStart={handleStartConversation}
+                            />
+                        </Box>
+                    </>
+                ) : null}
             </Box>
             {propertiesPopup}
+            {conversationPopup}
         </Box>
     )
 

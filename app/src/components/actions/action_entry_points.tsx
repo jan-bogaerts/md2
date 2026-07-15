@@ -15,6 +15,7 @@ import { ActionPopup } from './action_popup'
 export type ActionEntryVariant = 'button' | 'icons' | 'menu' | 'menuItems'
 
 interface ActionEntryPointsProps {
+    actions?: ActionDefinition[]
     context: ActionContext
     onMenuItemSelected?: () => void
     popupAnchorElement?: HTMLElement | null
@@ -30,8 +31,9 @@ const DEFAULT_ICON_SOURCE: ActionIconSource = { dataUri: null }
  * related action with the same context.
  */
 export function ActionEntryPoints(props: ActionEntryPointsProps) {
-    const { context, onMenuItemSelected, popupAnchorElement, variant } = props
-    const { actions } = useActions()
+    const { actions: suppliedActions, context, onMenuItemSelected, popupAnchorElement, variant } = props
+    const { actions: loadedActions } = useActions()
+    const actions = suppliedActions ?? loadedActions
     const runningExecution = useRunningActionForContext(context)
     const executionDisabled = !!runningExecution
     const [iconSources, setIconSources] = useState<Record<string, ActionIconSource>>({})
@@ -143,6 +145,11 @@ export function ActionEntryPoints(props: ActionEntryPointsProps) {
             ?? matching[0]
 
         const handleRun = (event: MouseEvent<HTMLButtonElement>) => {
+            if (popupAnchor) {
+                closePopup()
+                return
+            }
+
             setShowSaveControls(false)
             open(primaryAction, event.currentTarget)
         }

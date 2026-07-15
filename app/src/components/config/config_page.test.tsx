@@ -422,12 +422,14 @@ describe('ConfigPage', () => {
 
         renderConfigPage('#desktop')
         configService.setDraftValue('desktop.agent', 'claude')
+        fireEvent.click(screen.getByRole('switch', { name: 'Codex web search' }))
         fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
         expect(setDesktopConfig).toHaveBeenCalledWith({
             agent: 'claude',
             agentSlotCommand: 'old-slot-command',
             agentProfiles: BUILTIN_AGENT_PROFILES,
+            codexSearchEnabled: false,
             model: '',
             projectLocationMode: 'folder',
         })
@@ -461,7 +463,6 @@ describe('ConfigPage', () => {
         fireEvent.change(screen.getByLabelText('Models'), { target: { value: 'gpt-5, gpt-5-mini' } })
         fireEvent.change(screen.getByLabelText('Profile default model'), { target: { value: 'gpt-5' } })
         fireEvent.change(screen.getByLabelText('Resume command'), { target: { value: 'local resume {{sessionId}}' } })
-        fireEvent.change(screen.getByLabelText('Session-id pattern'), { target: { value: 'session ([a-z0-9-]+)' } })
         fireEvent.click(screen.getByRole('button', { name: 'Save profile' }))
         fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
@@ -474,7 +475,6 @@ describe('ConfigPage', () => {
                     models: ['gpt-5', 'gpt-5-mini'],
                     name: 'local',
                     resumeCommand: 'local resume {{sessionId}}',
-                    sessionIdPattern: 'session ([a-z0-9-]+)',
                 }),
             ]),
         }))
@@ -566,13 +566,7 @@ describe('ConfigPage', () => {
         expect(screen.getByText(/Duplicate agent profile: codex/u)).toBeInTheDocument()
 
         fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'local' } })
-        fireEvent.change(screen.getByLabelText('Session-id pattern'), { target: { value: '(' } })
-
-        expect(screen.getByText(/Session-id pattern is not a valid regular expression\./u)).toBeInTheDocument()
-
-        fireEvent.change(screen.getByLabelText('Session-id pattern'), { target: { value: '(?:session)' } })
-
-        expect(screen.getByText(/Session-id pattern must include one capture group\./u)).toBeInTheDocument()
+        expect(screen.queryByLabelText('Session-id pattern')).not.toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Save profile' })).toBeDisabled()
 
         delete window.md2Config

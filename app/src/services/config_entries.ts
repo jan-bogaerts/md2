@@ -21,6 +21,7 @@ export interface ConfigValueTypes {
     'desktop.agent': string
     'desktop.agentSlotCommand': string
     'desktop.agentProfiles': AgentProfile[]
+    'desktop.codexSearchEnabled': boolean
     'desktop.model': string
     'desktop.projectLocationMode': string
     'project.actionsFolder': string
@@ -68,6 +69,7 @@ export interface DesktopConfigValues {
     agent: string
     agentSlotCommand: string
     agentProfiles: AgentProfile[]
+    codexSearchEnabled?: boolean
     model: string
     projectLocationMode: string
 }
@@ -234,6 +236,16 @@ export const CONFIG_ENTRIES: ConfigEntry[] = [
         type: 'string',
     },
     {
+        defaultValue: true,
+        description: 'Allow Codex desktop actions to use live web search.',
+        editable: true,
+        key: 'desktop.codexSearchEnabled',
+        label: 'Codex web search',
+        section: 'desktop',
+        source: 'desktop',
+        type: 'boolean',
+    },
+    {
         defaultValue: '',
         description: 'Command that outputs the next agent-slot timestamp for scheduled actions.',
         editable: true,
@@ -255,7 +267,7 @@ export const CONFIG_ENTRIES: ConfigEntry[] = [
     },
     {
         defaultValue: BUILTIN_AGENT_PROFILES,
-        description: 'Agent profiles. Fields: name, command, modelArgument, models, defaultModel, resumeCommand, sessionIdPattern. Custom command may include {{model}}; resumeCommand may include {{sessionId}}.',
+        description: 'Agent profiles. Fields: name, command, modelArgument, models, defaultModel, resumeCommand. Custom command may include {{model}}; resumeCommand may include {{sessionId}}.',
         editable: true,
         key: 'desktop.agentProfiles',
         label: 'Agent profiles',

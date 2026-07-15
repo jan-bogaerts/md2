@@ -225,6 +225,7 @@ describe('ConfigService', () => {
             agent: 'claude',
             agentSlotCommand: 'slot-command',
             agentProfiles: BUILTIN_AGENT_PROFILES,
+            codexSearchEnabled: true,
             model: '',
             projectLocationMode: 'current-directory',
         })

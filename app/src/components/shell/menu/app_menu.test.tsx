@@ -127,6 +127,7 @@ describe('AppMenu', () => {
         expect(screen.getByRole('button', { name: 'Config' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Cards view' })).toHaveTextContent('Board')
         expect(screen.getByRole('button', { name: 'Text view' })).toHaveTextContent('List')
+        expect(screen.getByRole('button', { name: 'New action' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'New card' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'GitHub account' })).toBeInTheDocument()
 
@@ -134,9 +135,15 @@ describe('AppMenu', () => {
         const viewSection = screen.getByRole('group', { name: 'View' })
         expect(settingsSection.compareDocumentPosition(viewSection) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
 
+        expect(screen.queryByRole('button', { name: 'Complete release' })).not.toBeInTheDocument()
+
+        fireEvent.click(screen.getByRole('tab', { name: 'Run' }))
+
         const completeReleaseButton = screen.getByRole('button', { name: 'Complete release' })
-        const newCardButton = screen.getByRole('button', { name: 'New card' })
-        expect(completeReleaseButton.compareDocumentPosition(newCardButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+        const newCardButton = screen.getByRole('button', { name: 'New card', hidden: true })
+        expect(completeReleaseButton).toBeInTheDocument()
+        expect(newCardButton).not.toBeVisible()
+        expect(screen.getByRole('button', { name: 'New action', hidden: true })).not.toBeVisible()
     })
 
     it('opens a local project from the Home project section', async () => {
@@ -157,7 +164,7 @@ describe('AppMenu', () => {
         expect(workspaceViewService.getSnapshot().viewMode).toBe('text')
     })
 
-    it('creates a valid action and opens its text-view tab from the Run tab', async () => {
+    it('creates a valid action and opens its text-view tab from the Home tab', async () => {
         const bridge = createBridge()
         window.md2Data = bridge
         const listener = vi.fn()
@@ -165,7 +172,6 @@ describe('AppMenu', () => {
         renderMenu()
         await openLocalProject()
 
-        fireEvent.click(screen.getByRole('tab', { name: 'Run' }))
         fireEvent.click(screen.getByRole('button', { name: 'New action' }))
 
         await waitFor(() => expect(bridge.commit).toHaveBeenCalled())
@@ -191,6 +197,38 @@ describe('AppMenu', () => {
             sourcePath: actionFile.path,
         })
         workspaceNavigationService.removeEventListener('open', listener)
+    })
+
+    it('shows a Run button for every explicitly project-scoped action', async () => {
+        const bridge = createBridge()
+        bridge.loadActionFiles = vi.fn(async () => [
+            {
+                content: JSON.stringify({
+                    appliesTo: { kind: 'project' }, command: 'review', description: 'Review project',
+                    id: 'project-review', label: 'Review project', name: 'project-review', type: 'command',
+                }),
+                path: 'design/actions/project-review.json',
+            },
+            {
+                content: JSON.stringify({
+                    appliesTo: { kind: 'card' }, command: 'review', description: 'Review card',
+                    id: 'card-review', label: 'Review card', name: 'card-review', type: 'command',
+                }),
+                path: 'design/actions/card-review.json',
+            },
+        ])
+        window.md2Data = bridge
+
+        renderMenu()
+        await openLocalProject()
+        fireEvent.click(screen.getByRole('tab', { name: 'Run' }))
+
+        expect(screen.getByRole('button', { name: 'Review project' })).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Review card' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Custom prompt' })).not.toBeInTheDocument()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Review project' }))
+        expect(screen.getByText('Review project', { selector: 'h6' })).toBeInTheDocument()
     })
 
     it('refreshes selected agent and model when config changes elsewhere', async () => {
@@ -221,13 +259,6 @@ describe('AppMenu', () => {
 
         await waitFor(() => expect(screen.getByRole('combobox', { name: 'Default agent' })).toHaveTextContent('local'))
         expect(screen.getByRole('combobox', { name: 'Default model' })).toHaveTextContent('local-model')
-    })
-
-    it('shows the chatbot placeholder on the Agents tab', () => {
-        renderMenu()
-        fireEvent.click(screen.getByRole('tab', { name: 'Run' }))
-
-        expect(screen.getByRole('button', { name: 'Add chatbot' })).toBeDisabled()
     })
 
     it('flushes pending changes before pushing in manual push mode', async () => {

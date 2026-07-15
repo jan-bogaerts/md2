@@ -6,7 +6,6 @@ import type { ChangeEvent } from 'react'
 import { useEffect, useMemo, useState } from 'react'
 import { BUILTIN_AGENT_PROFILES, MODEL_PLACEHOLDER, SESSION_ID_PLACEHOLDER, type AgentProfile } from '../../data/agent_profiles'
 
-const CAPTURE_GROUP_REQUIRED_MESSAGE = 'Session-id pattern must include one capture group.'
 const COMMA_SEPARATOR = ','
 
 interface AgentProfilesEditorProps {
@@ -40,7 +39,6 @@ interface AgentProfileFormState {
     models: string
     name: string
     resumeCommand: string
-    sessionIdPattern: string
 }
 
 function toFormState(profile?: AgentProfile): AgentProfileFormState {
@@ -51,7 +49,6 @@ function toFormState(profile?: AgentProfile): AgentProfileFormState {
         models: profile?.models?.join(`${COMMA_SEPARATOR} `) ?? '',
         name: profile?.name ?? '',
         resumeCommand: profile?.resumeCommand ?? '',
-        sessionIdPattern: profile?.sessionIdPattern ?? '',
     }
 }
 
@@ -69,34 +66,7 @@ function toAgentProfile(form: AgentProfileFormState): AgentProfile {
         models,
         name: form.name.trim(),
         ...(form.resumeCommand.trim().length > 0 ? { resumeCommand: form.resumeCommand.trim() } : {}),
-        ...(form.sessionIdPattern.trim().length > 0 ? { sessionIdPattern: form.sessionIdPattern.trim() } : {}),
     }
-}
-
-function countCaptureGroups(pattern: string) {
-    let count = 0
-    let escaped = false
-
-    for (let index = 0; index < pattern.length; index += 1) {
-        const character = pattern[index]
-        if (escaped) {
-            escaped = false
-            continue
-        }
-        if (character === '\\') {
-            escaped = true
-            continue
-        }
-        if (character !== '(') continue
-
-        const next = pattern[index + 1]
-        const afterQuestion = pattern[index + 2]
-        const afterNamedMarker = pattern[index + 3]
-        if (next !== '?') count += 1
-        if (next === '?' && afterQuestion === '<' && afterNamedMarker !== '=' && afterNamedMarker !== '!') count += 1
-    }
-
-    return count
 }
 
 function validateForm(form: AgentProfileFormState, usedNames: string[]) {
@@ -105,7 +75,6 @@ function validateForm(form: AgentProfileFormState, usedNames: string[]) {
     const command = form.command.trim()
     const models = readModels(form.models)
     const defaultModel = form.defaultModel.trim()
-    const sessionIdPattern = form.sessionIdPattern.trim()
 
     if (name.length === 0) errors.push('Name is required.')
     if (usedNames.includes(name)) errors.push(`Duplicate agent profile: ${name}`)
@@ -114,14 +83,6 @@ function validateForm(form: AgentProfileFormState, usedNames: string[]) {
     if (new Set(models).size !== models.length) errors.push('Model names must be unique.')
     if (defaultModel.length > 0 && models.length > 0 && !models.includes(defaultModel)) {
         errors.push(`Default model must be one of: ${models.join(', ')}`)
-    }
-    if (sessionIdPattern.length > 0) {
-        try {
-            new RegExp(sessionIdPattern, 'u')
-            if (countCaptureGroups(sessionIdPattern) === 0) errors.push(CAPTURE_GROUP_REQUIRED_MESSAGE)
-        } catch {
-            errors.push('Session-id pattern is not a valid regular expression.')
-        }
     }
 
     return errors
@@ -198,7 +159,6 @@ function AgentProfileForm(props: AgentProfileFormProps) {
                     size="small"
                     value={form.resumeCommand}
                 />
-                <TextField disabled={disabled} fullWidth label="Session-id pattern" name="sessionIdPattern" onChange={onTextChange} size="small" value={form.sessionIdPattern} />
                 <Stack direction="row" spacing={1}>
                     <Button disabled={!canSave} onClick={onSave} variant="contained">
                         Save profile

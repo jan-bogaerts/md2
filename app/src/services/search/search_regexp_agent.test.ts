@@ -7,12 +7,11 @@ function conversation(): AgentConversation {
     return {
         cardPath: '.md2-search-regexp',
         completedAt: '2026-01-01T00:01:00.000Z',
-        continuedFrom: null,
         events: [],
         id: 'agent-1',
         messages: [],
-        nativeSessionId: null,
         path: '.md2-agent-logs/one.json',
+        providerSessions: [],
         startedAt: '2026-01-01T00:00:00.000Z',
         status: 'completed',
         title: 'Search RegExp',
@@ -27,7 +26,6 @@ function makeBridge(runSearchRegexpAgent: ElectronActionBridge['runSearchRegexpA
         onActionExecution: vi.fn(() => () => {}),
         openInEditor: vi.fn(async () => {}),
         runSearchRegexpAgent,
-        sendActionInput: vi.fn(async () => {}),
         startAction: vi.fn(async () => 'action-1'),
     }
 }

@@ -1,7 +1,7 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { ActionPopup } from './action_popup'
-import type { ActionDefinition } from '../../data/action_types'
+import { ActionPopup, CARD_RUN_POPUP_SIZE_STORAGE_KEY, PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY } from './action_popup'
+import { CUSTOM_PROMPT_ACTION_ID, type ActionDefinition } from '../../data/action_types'
 import type { ActionContext } from '../../data/action_context'
 import type { ActionRunResult } from '../../data/action_run_types'
 import { configService } from '../../services/config_service'
@@ -97,6 +97,23 @@ describe('ActionPopup', () => {
             .toBe(Node.DOCUMENT_POSITION_FOLLOWING)
     })
 
+    it('shows card action descriptions as selector tooltips and uses one close button', async () => {
+        const selectedAction = action('Implement', { description: 'Implement the selected card', type: 'agent' })
+        renderPopup({
+            action: selectedAction,
+            actions: [selectedAction],
+            onAddAction: vi.fn(),
+            onSelectAction: vi.fn(),
+        })
+
+        expect(screen.queryByText('Implement the selected card')).not.toBeInTheDocument()
+        expect(screen.getByPlaceholderText('Extra prompt optional')).toBeInTheDocument()
+        expect(screen.getAllByRole('button', { name: 'Close' })).toHaveLength(1)
+
+        fireEvent.mouseOver(screen.getByRole('button', { name: 'Implement' }))
+        expect(await screen.findByText('Implement the selected card')).toBeInTheDocument()
+    })
+
     it('disables execution controls with an explanation in web mode', () => {
         render(
             <ActionPopup
@@ -159,6 +176,105 @@ describe('ActionPopup', () => {
 
         expect(screen.getByText(/live output/u)).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
+    })
+
+    it('disables conversation input while running and starts a selected-provider follow-up turn', async () => {
+        let listener: ((event: ActionExecutionEvent) => void) | null = null
+        window.md2Actions = {
+            onActionExecution: (nextListener: (event: ActionExecutionEvent) => void) => {
+                listener = nextListener
+
+                return vi.fn()
+            },
+        } as unknown as typeof window.md2Actions
+        configService.init({
+            desktopConfig: {
+                agent: 'codex',
+                agentSlotCommand: '',
+                agentProfiles: [
+                    { command: 'codex', models: ['gpt-5'], name: 'codex' },
+                    { command: 'claude', models: ['sonnet'], name: 'claude' },
+                ],
+                model: 'gpt-5',
+                projectLocationMode: 'folder',
+            },
+        })
+        const selectedAction = action('Implement', { agent: 'codex', model: 'gpt-5', type: 'agent' })
+        const { runAction } = renderPopup({ action: selectedAction })
+        if (!listener) throw new Error('Missing action execution listener')
+        const emit = listener as (event: ActionExecutionEvent) => void
+
+        act(() => emit({
+            actionId: selectedAction.id, context, executionId: 'execution-1', phase: 'main',
+            rootActionId: selectedAction.id, status: 'running', type: 'execution',
+        }))
+        act(() => emit({
+            actionId: selectedAction.id, context, executionId: 'execution-1', phase: 'main',
+            rootActionId: selectedAction.id, status: 'running', type: 'action',
+        }))
+        expect(screen.getByLabelText('Extra prompt')).toBeDisabled()
+        expect(screen.getByRole('combobox', { name: 'Agent' })).toHaveAttribute('aria-disabled', 'true')
+
+        act(() => emit({
+            actionId: selectedAction.id,
+            context,
+            conversation: {
+                cardPath: context.file ?? null,
+                completedAt: '2026-01-01T00:01:00.000Z',
+                events: [],
+                id: 'conversation-1',
+                messages: [],
+                path: '.md2-agent-logs/conversation.json',
+                providerSessions: [],
+                startedAt: '2026-01-01T00:00:00.000Z',
+                status: 'completed',
+                title: 'Implement',
+            },
+            executionId: 'execution-1',
+            phase: 'main',
+            reference: '.md2-agent-logs/conversation.json',
+            rootActionId: selectedAction.id,
+            status: 'completed',
+            type: 'action',
+        }))
+        act(() => emit({
+            actionId: selectedAction.id, context, executionId: 'execution-1', phase: 'main',
+            rootActionId: selectedAction.id, status: 'completed', type: 'execution',
+        }))
+
+        expect(screen.getByRole('button', { name: 'Continue' })).toBeInTheDocument()
+        fireEvent.change(screen.getByLabelText('Extra prompt'), { target: { value: 'follow up' } })
+        selectAgent('claude')
+        fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+
+        await waitFor(() => expect(runAction).toHaveBeenCalledWith(selectedAction, context, {
+            agent: 'claude',
+            continueFrom: '.md2-agent-logs/conversation.json',
+            extraPrompt: 'follow up',
+            model: 'sonnet',
+            thinkingLevel: 'none',
+        }, expect.any(Function)))
+    })
+
+    it('opens a persisted conversation directly with prompt and continuation reference', async () => {
+        const selectedAction = action('Implement', { agent: 'codex', model: 'GPT 5.5', type: 'agent' })
+        const { runAction } = renderPopup({
+            action: selectedAction,
+            continueFrom: '.md2-agent-logs/persisted.json',
+            initialPrompt: 'follow persisted turn',
+        })
+
+        expect(screen.getByLabelText('Extra prompt')).toHaveValue('follow persisted turn')
+        selectAgent('claude')
+        fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+
+        await waitFor(() => expect(runAction).toHaveBeenCalledWith(selectedAction, context, {
+            agent: 'claude',
+            continueFrom: '.md2-agent-logs/persisted.json',
+            extraPrompt: 'follow persisted turn',
+            model: 'default',
+            thinkingLevel: 'none',
+        }, expect.any(Function)))
     })
 
     it('registers an at schedule from the picker', async () => {
@@ -467,7 +583,7 @@ describe('ActionPopup', () => {
                 projectLocationMode: 'folder',
             },
         })
-        const customPrompt = action('Custom prompt', { command: null, prompt: '{{prompt}}', type: 'agent' })
+        const customPrompt = action('Custom prompt', { command: null, id: CUSTOM_PROMPT_ACTION_ID, prompt: '{{prompt}}', type: 'agent' })
         const convertPromptToAction = vi.fn(async () => ({ path: 'actions/custom-review.json' }))
         const { runAction } = renderPopup({
             action: customPrompt,
@@ -494,6 +610,37 @@ describe('ActionPopup', () => {
             model: 'gpt-5',
             prompt: '',
         })
+    })
+
+    it('shows the custom prompt as required and keeps unlabeled agent controls accessible', () => {
+        configService.init({
+            desktopConfig: {
+                agent: 'codex',
+                agentSlotCommand: '',
+                agentProfiles: [{ command: 'codex', modelArgument: '--model', models: ['gpt-5'], name: 'codex' }],
+                model: 'gpt-5',
+                projectLocationMode: 'folder',
+            },
+        })
+        const customPrompt = action('Custom prompt', { command: null, id: CUSTOM_PROMPT_ACTION_ID, prompt: '{{prompt}}', type: 'agent' })
+        renderPopup({
+            action: customPrompt,
+            actions: [customPrompt],
+            onAddAction: vi.fn(),
+            onSelectAction: vi.fn(),
+        })
+
+        expect(screen.queryByText('Prompt')).not.toBeInTheDocument()
+        expect(screen.queryByText('required')).not.toBeInTheDocument()
+        expect(screen.queryByText('optional')).not.toBeInTheDocument()
+        expect(screen.getByPlaceholderText('Prompt required')).toBeInTheDocument()
+        expect(screen.queryByText('Agent')).not.toBeInTheDocument()
+        expect(screen.queryByText('Model')).not.toBeInTheDocument()
+        expect(screen.queryByText('Thinking')).not.toBeInTheDocument()
+        expect(screen.getByRole('combobox', { name: 'Agent' })).toBeInTheDocument()
+        expect(screen.getByRole('combobox', { name: 'Model' })).toBeInTheDocument()
+        expect(screen.getByRole('combobox', { name: 'Thinking level' })).toBeInTheDocument()
+        expect(screen.getByLabelText('Prompt').closest('.MuiFormControl-root')).toHaveStyle({ flex: '1' })
     })
 
     it('does not run a named custom action when saving fails', async () => {
@@ -526,16 +673,46 @@ describe('ActionPopup', () => {
         expect(onNavigate).toHaveBeenCalledWith(after)
     })
 
-    it('grows the popup when the resize handle is dragged', () => {
+    it('resizes the popup from every side', () => {
         renderPopup()
-        const handle = screen.getByRole('separator', { name: 'Resize action popup' })
-        const paper = document.querySelector('.MuiPopover-paper') as HTMLElement
+        const handle = screen.getByRole('separator', { name: 'Resize action popup from top-left' })
+        const paper = screen.getByRole('dialog')
 
-        fireEvent.pointerDown(handle, { clientX: 0, clientY: 0, pointerId: 1 })
+        expect(screen.getAllByRole('separator', { name: /Resize action popup from/u })).toHaveLength(8)
+        fireEvent.pointerDown(handle, { clientX: 100, clientY: 100, pointerId: 1 })
+        fireEvent.pointerMove(window, { clientX: 50, clientY: 40, pointerId: 1 })
+        fireEvent.pointerUp(window, { pointerId: 1 })
+
+        expect(paper.style.width).toBe('470px')
+        expect(paper.style.height).toBe('380px')
+    })
+
+    it('stores card Run and project-agent popup sizes separately', () => {
+        window.localStorage.removeItem(CARD_RUN_POPUP_SIZE_STORAGE_KEY)
+        window.localStorage.removeItem(PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY)
+        const selectedAction = action('Implement', { type: 'agent' })
+        const popupProps = {
+            action: selectedAction,
+            actions: [selectedAction],
+            onAddAction: vi.fn(),
+            onSelectAction: vi.fn(),
+        }
+        renderPopup(popupProps)
+        const cardHandle = screen.getByRole('separator', { name: 'Resize action popup from bottom-right' })
+
+        fireEvent.pointerDown(cardHandle, { clientX: 0, clientY: 0, pointerId: 1 })
         fireEvent.pointerMove(window, { clientX: 100, clientY: 60, pointerId: 1 })
         fireEvent.pointerUp(window, { pointerId: 1 })
 
-        expect(paper.style.width).toBe('520px')
-        expect(paper.style.height).toBe('380px')
+        expect(JSON.parse(window.localStorage.getItem(CARD_RUN_POPUP_SIZE_STORAGE_KEY) ?? '{}')).toEqual({ height: 510, width: 500 })
+        expect(window.localStorage.getItem(PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY)).toBeNull()
+
+        cleanup()
+        renderPopup({ ...popupProps, context: { kind: 'project' } })
+        const projectDialog = screen.getByRole('dialog', { name: 'Run actions' })
+
+        expect(projectDialog.style.height).toBe('450px')
+        expect(projectDialog.style.width).toBe('400px')
+        expect(JSON.parse(window.localStorage.getItem(PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY) ?? '{}')).toEqual({ height: 450, width: 400 })
     })
 })

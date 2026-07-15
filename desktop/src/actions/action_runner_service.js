@@ -1,6 +1,7 @@
 const crypto = require('node:crypto')
 const { spawn } = require('node:child_process')
 const { buildResumeAgentCommand, resolveAgentCommand } = require('./agent_profiles.mjs')
+const { normalizeConversationContext } = require('./agent_transcript')
 const { resolveActionDefinition } = require('./action_definition_resolver')
 const { extractCommitSummary } = require('../../../shared/action_history.mjs')
 const { assertGitRoot, requireRootPath } = require('../git/git_commands')
@@ -12,7 +13,6 @@ const PLACEHOLDER_PATTERN = /\{\{\s*(rootProjectFolder|file|prompt)\s*\}\}/gu
 const PROMPT_PLACEHOLDER_PATTERN = /\{\{\s*prompt\s*\}\}/u
 const COMPLETED_EXECUTION_LIMIT = 100
 const CONTINUE_INPUT = 'continue'
-const CONTINUE_TRANSCRIPT_LIMIT = 12000
 const WORKTREE_AGENT_REFERENCE_PATTERN = /^worktree:[1-9]\d*:(.*)$/u
 
 class ActionCancellationError extends Error {}
@@ -68,20 +68,6 @@ function validateRunInput(runInput = {}) {
 
 function continuationReferencePath(reference) {
     return WORKTREE_AGENT_REFERENCE_PATTERN.exec(reference)?.[1] ?? reference
-}
-
-function buildContinuePrompt(conversation) {
-    const transcript = conversation.messages.map((message, index) => {
-        if (!message || typeof message !== 'object' || Array.isArray(message)) throw new Error(`Malformed agent log message: ${index}`)
-        if (typeof message.role !== 'string' || typeof message.content !== 'string') throw new Error(`Malformed agent log message: ${index}`)
-
-        return `${message.role}: ${message.content}`
-    }).join('\n\n')
-    const truncatedTranscript = transcript.length <= CONTINUE_TRANSCRIPT_LIMIT
-        ? transcript
-        : transcript.slice(transcript.length - CONTINUE_TRANSCRIPT_LIMIT)
-
-    return ['Continue the prior agent conversation using this transcript.', '', truncatedTranscript, '', `User instruction: ${CONTINUE_INPUT}`].join('\n')
 }
 
 function validateStartRequest(request) {
@@ -237,13 +223,6 @@ class ActionRunnerService {
         if (execution.activeAgentRunId) this.agentRunnerService.stop(execution.activeAgentRunId)
     }
 
-    sendInput(executionId, input) {
-        const execution = this.requireExecution(executionId)
-        if (!execution.activeAgentRunId) throw new Error('Action execution has no active agent')
-
-        this.agentRunnerService.sendInput(execution.activeAgentRunId, input)
-    }
-
     async loadRootAction(actionId, project, actionsFolder) {
         const config = this.agentConfigProvider()
 
@@ -307,7 +286,23 @@ class ActionRunnerService {
             const result = action.type === 'agent'
                 ? await this.runAgentAction(execution, action, phase, isRoot)
                 : await this.runCommandAction(execution, action, phase, isRoot)
-            throwIfCancelled(execution)
+            if (execution.controller.signal.aborted) {
+                this.emit(execution, action, phase, 'cancelled', {
+                    command: result.command,
+                    conversation: result.conversation,
+                    executionWorktree: result.executionWorktree,
+                    message: 'Action cancelled',
+                    reference: result.reference,
+                    runId: result.runId,
+                    stderr: result.stderr,
+                    stdout: result.stdout,
+                    thinkingLevel: result.thinkingLevel,
+                    type: 'action',
+                })
+                const cancellationError = new ActionCancellationError('Action cancelled')
+                cancellationError.terminalEventEmitted = true
+                throw cancellationError
+            }
             const status = result.exitCode === 0 ? 'completed' : 'failed'
             const output = combineOutput(result)
             this.emit(execution, action, phase, status, {
@@ -332,7 +327,9 @@ class ActionRunnerService {
             return output
         } catch (error) {
             if (error instanceof ActionCancellationError || execution.controller.signal.aborted) {
-                this.emit(execution, action, phase, 'cancelled', { message: 'Action cancelled', type: 'action' })
+                if (!error?.terminalEventEmitted) {
+                    this.emit(execution, action, phase, 'cancelled', { message: 'Action cancelled', type: 'action' })
+                }
                 throw new ActionCancellationError('Action cancelled')
             }
             if (error.phase) throw error
@@ -392,25 +389,33 @@ class ActionRunnerService {
             if (sourceConversation && sourceConversation.cardPath !== (execution.context.file ?? null)) {
                 throw new Error(`Agent log belongs to ${sourceConversation.cardPath}, not ${execution.context.file}`)
             }
-            const nativeResumeSessionId = sourceConversation?.nativeSessionId ?? null
+            const providerSession = sourceConversation?.providerSessions
+                ?.find(({ agent }) => agent === resolvedAgent.agent) ?? null
             const prompt = sourceConversation
-                ? nativeResumeSessionId ? CONTINUE_INPUT : buildContinuePrompt(sourceConversation)
+                ? extraPrompt.trim().length > 0 ? extraPrompt : CONTINUE_INPUT
                 : resolveAgentPrompt(action, execution.context, project, extraPrompt)
-            const command = nativeResumeSessionId && resolvedAgent.profile.resumeCommand
-                ? buildResumeAgentCommand(resolvedAgent.profile, nativeResumeSessionId)
+            const command = providerSession
+                ? buildResumeAgentCommand(resolvedAgent.profile, providerSession.conversationId, resolvedAgent.command)
                 : resolvedAgent.command
+            const contextInput = sourceConversation
+                ? normalizeConversationContext(sourceConversation, providerSession?.synchronizedThroughMessageId ?? null)
+                : ''
             const request = {
                 actionId: action.id,
+                agent: resolvedAgent.agent,
                 ...(execution.context.file ? { cardPath: execution.context.file } : {}),
                 command,
-                ...(continueFrom ? { continuedFrom: continueFrom } : {}),
-                ...(nativeResumeSessionId ? { nativeResumeSessionId } : {}),
+                ...(sourceConversation ? { conversation: sourceConversation, reference: continuationReferencePath(continueFrom) } : {}),
+                ...(contextInput ? { contextInput } : {}),
                 prompt,
+                ...(providerSession ? { providerConversationId: providerSession.conversationId } : {}),
                 scopePath: execution.context.file ?? 'project',
-                ...(resolvedAgent.profile.sessionIdPattern ? { sessionIdPattern: resolvedAgent.profile.sessionIdPattern } : {}),
                 title: action.label,
             }
-            const result = await this.runAgentProcess(execution, action, phase, project, request)
+            const result = await this.runAgentTurn(execution, action, phase, project, request, {
+                command: resolvedAgent.command,
+                contextInput: sourceConversation ? normalizeConversationContext(sourceConversation) : '',
+            })
             const completedAt = new Date().toISOString()
             const executionProject = {
                 ...project,
@@ -436,10 +441,29 @@ class ActionRunnerService {
         })
     }
 
+    async runAgentTurn(execution, action, phase, project, request, fallback) {
+        const result = await this.runAgentProcess(execution, action, phase, project, request)
+        if (!request.providerConversationId || !result.missingSession || result.turnStarted) return result
+
+        const fallbackRequest = {
+            ...request,
+            command: fallback.command,
+            conversation: result.conversation,
+            ...(fallback.contextInput ? { contextInput: fallback.contextInput } : {}),
+            providerConversationId: undefined,
+            reference: result.reference,
+            reuseLastUserMessage: true,
+        }
+
+        return this.runAgentProcess(execution, action, phase, project, fallbackRequest)
+    }
+
     async runAgentProcess(execution, action, phase, project, request) {
         let resolveCompletion
-        const completion = new Promise((resolve) => {
+        let rejectCompletion
+        const completion = new Promise((resolve, reject) => {
             resolveCompletion = resolve
+            rejectCompletion = reject
         })
         const started = await this.agentRunnerService.start(
             project,
@@ -449,12 +473,15 @@ class ActionRunnerService {
                 command: request.command,
                 conversation: { ...run.conversation, path: run.reference },
                 exitCode,
+                missingSession: run.missingSession,
                 prompt: request.prompt,
                 reference: run.reference,
                 runId: run.conversation.id,
                 stderr: run.stderr,
                 stdout: run.stdout,
+                turnStarted: run.turnStarted,
             }),
+            rejectCompletion,
         )
         execution.activeAgentRunId = started.runId
         if (execution.controller.signal.aborted) this.agentRunnerService.stop(started.runId)
