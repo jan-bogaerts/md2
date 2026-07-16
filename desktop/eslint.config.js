@@ -1,6 +1,6 @@
-const js = require('@eslint/js')
-const importPlugin = require('eslint-plugin-import')
-const globals = require('globals')
+const js = require('@eslint/js');
+const importPlugin = require('eslint-plugin-import');
+const globals = require('globals');
 
 const projectRules = {
     eqeqeq: 'off',
@@ -29,15 +29,15 @@ const projectRules = {
     'no-console': 'off',
     'class-methods-use-this': ['error', { exceptMethods: ['render', 'componentDidMount'] }],
     'prefer-destructuring': 'off',
-}
+    semi: ['error', 'always'],
+};
 
 module.exports = [
     {ignores: ['node_modules']},
     {
-        files: ['**/*.js'],
+        files: ['**/*.{js,mjs}'],
         languageOptions: {
             ecmaVersion: 'latest',
-            sourceType: 'commonjs',
             globals: {
                 ...globals.browser,
                 ...globals.node,
@@ -46,10 +46,18 @@ module.exports = [
             parserOptions: {ecmaFeatures: {jsx: true}},
         },
         plugins: {import: importPlugin},
-        settings: {'import/resolver': {node: {extensions: ['.js', '.jsx']}}},
+        settings: {'import/resolver': {node: {extensions: ['.js', '.jsx', '.mjs']}}},
         rules: {
             ...js.configs.recommended.rules,
             ...projectRules,
         },
     },
-]
+    {
+        files: ['**/*.js'],
+        languageOptions: {sourceType: 'commonjs'},
+    },
+    {
+        files: ['**/*.mjs'],
+        languageOptions: {sourceType: 'module'},
+    },
+];

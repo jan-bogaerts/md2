@@ -1,19 +1,19 @@
-const CONFIG_GET_DESKTOP_CHANNEL = 'md2-config:get-desktop'
-const CONFIG_SET_DESKTOP_CHANNEL = 'md2-config:set-desktop'
-const LIFECYCLE_FLUSH_DONE_CHANNEL = 'md2-lifecycle:flush-pending-commits-done'
-const LIFECYCLE_FLUSH_REQUEST_CHANNEL = 'md2-lifecycle:flush-pending-commits'
-const LOCAL_BRIDGE_EVENT_CHANNEL = 'md2-local-bridge:event'
-const LOCAL_BRIDGE_INVOKE_CHANNEL = 'md2-local-bridge:invoke'
-const LOCAL_BRIDGE_SUBSCRIBE_CHANNEL = 'md2-local-bridge:subscribe'
-const LOCAL_BRIDGE_UNSUBSCRIBE_CHANNEL = 'md2-local-bridge:unsubscribe'
-const REMARKABLE_IMPORT_FILES_CHANNEL = 'md2-remarkable:import-files'
-const REMARKABLE_LIST_IMAGE_FILES_CHANNEL = 'md2-remarkable:list-image-files'
-const REMARKABLE_TEST_CONNECTION_CHANNEL = 'md2-remarkable:test-connection'
-const REMOTE_CONTROL_GET_STATUS_CHANNEL = 'md2-remote-control:get-status'
-const REMOTE_CONTROL_START_CHANNEL = 'md2-remote-control:start'
-const REMOTE_CONTROL_STATUS_CHANNEL = 'md2-remote-control:status'
-const REMOTE_CONTROL_STOP_CHANNEL = 'md2-remote-control:stop'
-const THEME_SET_MODE_CHANNEL = 'md2-theme:set-mode'
+const CONFIG_GET_DESKTOP_CHANNEL = 'md2-config:get-desktop';
+const CONFIG_SET_DESKTOP_CHANNEL = 'md2-config:set-desktop';
+const LIFECYCLE_FLUSH_DONE_CHANNEL = 'md2-lifecycle:flush-pending-commits-done';
+const LIFECYCLE_FLUSH_REQUEST_CHANNEL = 'md2-lifecycle:flush-pending-commits';
+const LOCAL_BRIDGE_EVENT_CHANNEL = 'md2-local-bridge:event';
+const LOCAL_BRIDGE_INVOKE_CHANNEL = 'md2-local-bridge:invoke';
+const LOCAL_BRIDGE_SUBSCRIBE_CHANNEL = 'md2-local-bridge:subscribe';
+const LOCAL_BRIDGE_UNSUBSCRIBE_CHANNEL = 'md2-local-bridge:unsubscribe';
+const REMARKABLE_IMPORT_FILES_CHANNEL = 'md2-remarkable:import-files';
+const REMARKABLE_LIST_IMAGE_FILES_CHANNEL = 'md2-remarkable:list-image-files';
+const REMARKABLE_TEST_CONNECTION_CHANNEL = 'md2-remarkable:test-connection';
+const REMOTE_CONTROL_GET_STATUS_CHANNEL = 'md2-remote-control:get-status';
+const REMOTE_CONTROL_START_CHANNEL = 'md2-remote-control:start';
+const REMOTE_CONTROL_STATUS_CHANNEL = 'md2-remote-control:status';
+const REMOTE_CONTROL_STOP_CHANNEL = 'md2-remote-control:stop';
+const THEME_SET_MODE_CHANNEL = 'md2-theme:set-mode';
 
 module.exports = {
     CONFIG_GET_DESKTOP_CHANNEL,
@@ -32,4 +32,4 @@ module.exports = {
     REMOTE_CONTROL_STATUS_CHANNEL,
     REMOTE_CONTROL_STOP_CHANNEL,
     THEME_SET_MODE_CHANNEL,
-}
+};

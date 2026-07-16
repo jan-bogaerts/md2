@@ -1,3 +1,3 @@
 class ActionCancellationError extends Error {}
 
-module.exports = { ActionCancellationError }
+module.exports = { ActionCancellationError };

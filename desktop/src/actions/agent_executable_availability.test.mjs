@@ -1,19 +1,19 @@
-import { createRequire } from 'node:module'
-import { describe, expect, it, vi } from 'vitest'
+import { createRequire } from 'node:module';
+import { describe, expect, it, vi } from 'vitest';
 
-const require = createRequire(import.meta.url)
-const { executableFromCommand, loadAgentExecutableAvailability } = require('./agent_executable_availability')
+const require = createRequire(import.meta.url);
+const { executableFromCommand, loadAgentExecutableAvailability } = require('./agent_executable_availability');
 
 describe('agent executable availability', () => {
     it('reads executable from configured command array', () => {
-        expect(executableFromCommand(['codex', '--flag'])).toBe('codex')
-        expect(executableFromCommand(['C:\\Program Files\\Claude\\claude.exe', '--flag'])).toBe('C:\\Program Files\\Claude\\claude.exe')
-    })
+        expect(executableFromCommand(['codex', '--flag'])).toBe('codex');
+        expect(executableFromCommand(['C:\\Program Files\\Claude\\claude.exe', '--flag'])).toBe('C:\\Program Files\\Claude\\claude.exe');
+    });
 
     it('reports available and unavailable configured agents', async () => {
         const execFileAsync = vi.fn(async (_locator, [executable]) => {
-            if (executable === 'claude') throw new Error('not found')
-        })
+            if (executable === 'claude') throw new Error('not found');
+        });
 
         await expect(loadAgentExecutableAvailability([
             { command: ['codex'], name: 'codex' },
@@ -21,7 +21,7 @@ describe('agent executable availability', () => {
         ], { execFileAsync, platform: 'win32' })).resolves.toEqual({
             claude: { available: false, error: 'Executable not found for claude: claude' },
             codex: { available: true, error: null },
-        })
-        expect(execFileAsync).toHaveBeenCalledWith('where.exe', ['codex'])
-    })
-})
+        });
+        expect(execFileAsync).toHaveBeenCalledWith('where.exe', ['codex']);
+    });
+});

@@ -1,4 +1,4 @@
-import * as agentProfiles from '../../../shared/agent_profiles.mjs'
+import * as agentProfiles from '../../../shared/agent_profiles.mjs';
 
 export const {
     BUILTIN_AGENT_PROFILES,
@@ -12,24 +12,25 @@ export const {
     defaultModelForProfile,
     findAgentProfile,
     mergeAgentProfiles,
+    normalizeAgentProfiles,
     validateAgentProfiles,
     validateAgentSelection,
     validateThinkingLevel,
-} = agentProfiles
+} = agentProfiles;
 
 export function resolveAgentCommand(config, selection = {}) {
-    const profiles = config.agentProfiles ?? []
-    const configuredProfile = findAgentProfile(profiles, config.agent)
-    const defaultAgent = configuredProfile ? config.agent : DEFAULT_AGENT_PROFILE_NAME
-    const defaultModel = configuredProfile ? config.model : ''
-    const agent = selection.agent ?? defaultAgent
-    const profile = findAgentProfile(profiles, agent)
-    if (!profile) throw new Error(`Unknown agent profile: ${agent}`)
-    const model = (selection.model ?? defaultModel) || defaultModelForProfile(profile)
-    const thinkingLevel = selection.thinkingLevel ?? config.thinkingLevel ?? 'none'
-    validateAgentSelection(profiles, { agent, model }, 'desktop config')
+    const profiles = config.agentProfiles ?? [];
+    const configuredProfile = findAgentProfile(profiles, config.agent);
+    const defaultAgent = configuredProfile ? config.agent : DEFAULT_AGENT_PROFILE_NAME;
+    const defaultModel = configuredProfile ? config.model : '';
+    const agent = selection.agent ?? defaultAgent;
+    const profile = findAgentProfile(profiles, agent);
+    if (!profile) throw new Error(`Unknown agent profile: ${agent}`);
+    const model = (selection.model ?? defaultModel) || defaultModelForProfile(profile);
+    const thinkingLevel = selection.thinkingLevel ?? config.thinkingLevel ?? 'none';
+    validateAgentSelection(profiles, { agent, model }, 'desktop config');
 
-    const searchEnabled = config.codexSearchEnabled ?? true
+    const searchEnabled = config.codexSearchEnabled ?? true;
 
-    return { agent, command: buildAgentExecutionCommand(profile, model, thinkingLevel, searchEnabled), model, profile, thinkingLevel }
+    return { agent, command: buildAgentExecutionCommand(profile, model, thinkingLevel, searchEnabled), model, profile, thinkingLevel };
 }

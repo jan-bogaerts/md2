@@ -63,32 +63,54 @@ function readCommand(value, fieldName) {
     return value.map((argument, index) => requireString(argument, `${fieldName}[${index}]`))
 }
 
+function validateAgentProfile(profile, index, names) {
+    if (!profile || typeof profile !== 'object' || Array.isArray(profile)) throw new Error(`Invalid agent profile: ${index}`)
+    const name = requireString(profile.name, `desktop.agentProfiles[${index}].name`)
+    if (names.has(name)) throw new Error(`Duplicate agent profile: ${name}`)
+
+    const models = readModels(profile.models, `desktop.agentProfiles[${index}].models`)
+    const defaultModel = readOptionalString(profile.defaultModel, `desktop.agentProfiles[${index}].defaultModel`)
+    if (defaultModel && !models.includes(defaultModel)) {
+        throw new Error(`Invalid default model for agent profile ${name}: ${defaultModel}`)
+    }
+
+    const validated = {
+        command: readCommand(profile.command, `desktop.agentProfiles[${index}].command`),
+        ...(defaultModel !== undefined ? { defaultModel } : {}),
+        ...(profile.modelArgument !== undefined ? { modelArgument: requireString(profile.modelArgument, `desktop.agentProfiles[${index}].modelArgument`) } : {}),
+        models,
+        name,
+        ...(profile.resumeCommand !== undefined ? { resumeCommand: readCommand(profile.resumeCommand, `desktop.agentProfiles[${index}].resumeCommand`) } : {}),
+    }
+    names.add(name)
+
+    return validated
+}
+
 export function validateAgentProfiles(value) {
     if (!Array.isArray(value)) throw new Error('Missing config field: desktop.agentProfiles')
 
     const names = new Set()
 
-    return value.map((profile, index) => {
-        if (!profile || typeof profile !== 'object' || Array.isArray(profile)) throw new Error(`Invalid agent profile: ${index}`)
-        const name = requireString(profile.name, `desktop.agentProfiles[${index}].name`)
-        if (names.has(name)) throw new Error(`Duplicate agent profile: ${name}`)
-        names.add(name)
+    return value.map((profile, index) => validateAgentProfile(profile, index, names))
+}
 
-        const models = readModels(profile.models, `desktop.agentProfiles[${index}].models`)
-        const defaultModel = readOptionalString(profile.defaultModel, `desktop.agentProfiles[${index}].defaultModel`)
-        if (defaultModel && !models.includes(defaultModel)) {
-            throw new Error(`Invalid default model for agent profile ${name}: ${defaultModel}`)
-        }
+// Tolerant variant for reading persisted config: invalid entries are dropped instead of
+// failing app startup, and the built-ins are used when nothing valid remains.
+export function normalizeAgentProfiles(value) {
+    if (!Array.isArray(value)) return structuredClone(BUILTIN_AGENT_PROFILES)
 
-        return {
-            command: readCommand(profile.command, `desktop.agentProfiles[${index}].command`),
-            ...(defaultModel !== undefined ? { defaultModel } : {}),
-            ...(profile.modelArgument !== undefined ? { modelArgument: requireString(profile.modelArgument, `desktop.agentProfiles[${index}].modelArgument`) } : {}),
-            models,
-            name,
-            ...(profile.resumeCommand !== undefined ? { resumeCommand: readCommand(profile.resumeCommand, `desktop.agentProfiles[${index}].resumeCommand`) } : {}),
+    const names = new Set()
+    const profiles = []
+    for (const [index, profile] of value.entries()) {
+        try {
+            profiles.push(validateAgentProfile(profile, index, names))
+        } catch {
+            // drop the invalid profile
         }
-    })
+    }
+
+    return profiles.length > 0 ? profiles : structuredClone(BUILTIN_AGENT_PROFILES)
 }
 
 export function mergeAgentProfiles(profiles) {

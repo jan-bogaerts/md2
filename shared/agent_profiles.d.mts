@@ -20,6 +20,7 @@ export const SESSION_ID_PLACEHOLDER: string
 export const THINKING_LEVELS: ThinkingLevel[]
 export const BUILTIN_AGENT_PROFILES: AgentProfile[]
 export function validateAgentProfiles(value: unknown): AgentProfile[]
+export function normalizeAgentProfiles(value: unknown): AgentProfile[]
 export function mergeAgentProfiles(profiles: AgentProfile[]): AgentProfile[]
 export function findAgentProfile(profiles: AgentProfile[], name: string): AgentProfile | null
 export function validateAgentSelection(profiles: AgentProfile[], selection: AgentSelection, source: string): void

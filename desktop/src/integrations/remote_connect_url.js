@@ -4,7 +4,7 @@
  * the web connect dialog parses the same string in one paste (see F-043 / F-045).
  */
 function buildConnectUrl(host, port, token) {
-    return `http://${host}:${port}/#${token}`
+    return `http://${host}:${port}/#${token}`;
 }
 
-module.exports = { buildConnectUrl }
+module.exports = { buildConnectUrl };
