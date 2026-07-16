@@ -324,13 +324,15 @@ export function TextView(props: TextViewProps) {
             ) : null}
             <Box sx={{ display: 'flex', flex: 1, flexDirection: 'column', minHeight: 0 }}>
                 <Box
+                    data-testid="editor-content-pane"
                     sx={{
                         alignItems: activeCard || activeAction ? undefined : 'center',
-                        display: activeCard || activeAction ? 'block' : 'flex',
+                        display: activeAction ? 'flex' : activeCard ? 'block' : 'flex',
                         flex: 1,
                         justifyContent: activeCard ? undefined : 'center',
-                        overflow: 'auto',
-                        p: activeCard ? 0 : 2,
+                        minHeight: 0,
+                        overflow: activeAction ? 'hidden' : 'auto',
+                        p: activeCard || activeAction ? 0 : 2,
                     }}
                 >
                     {activeAction ? (

@@ -50,21 +50,21 @@ describe('AgentRunnerService', () => {
         vi.restoreAllMocks();
     });
 
-    it('uses pipes and passes normalized prompt as one argument', async () => {
+    it('uses pipes and preserves configured arguments and the prompt', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-runner-'));
         const service = new AgentRunnerService();
-        const prompt = 'Reply with exactly: spawn test ok';
+        const prompt = 'Reply with exactly: "spawn test ok"\n& echo %PATH%';
         const scriptPath = join(rootPath, 'read-prompt.cjs');
 
         try {
             await prepareProject(rootPath);
-            await writeFile(scriptPath, 'process.stdout.write(JSON.stringify({prompt:process.argv[2],tty:process.stdin.isTTY===true}))\n');
-            const command = ['node', scriptPath];
+            await writeFile(scriptPath, 'process.stdout.write(JSON.stringify({configured:process.argv[2],prompt:process.argv[3],tty:process.stdin.isTTY===true}))\n');
+            const command = ['node', scriptPath, 'GPT 5.5'];
             const result = await service.run(createProject(rootPath), { command, prompt, scopePath: 'project' }, () => undefined);
 
             expect(result.stderr).toBe('');
             expect(result.exitCode).toBe(0);
-            expect(JSON.parse(result.stdout)).toEqual({ prompt, tty: false });
+            expect(JSON.parse(result.stdout)).toEqual({ configured: 'GPT 5.5', prompt, tty: false });
         } finally {
             await rm(rootPath, { force: true, recursive: true });
         }
@@ -88,17 +88,19 @@ describe('AgentRunnerService', () => {
         }
     });
 
-    it('runs configured executable directly through shell', async () => {
+    it.runIf(process.platform === 'win32')('runs configured Windows command scripts with preserved arguments', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-runner-'));
         const service = new AgentRunnerService();
+        const commandPath = join(rootPath, 'test-agent.cmd');
         const scriptPath = join(rootPath, 'test-agent-script.cjs');
         const prompt = 'spawn test ok';
 
         try {
             await prepareProject(rootPath);
             await writeFile(scriptPath, 'process.stdout.write(JSON.stringify(process.argv[3]))\n');
+            await writeFile(commandPath, '@echo off\r\nnode "%~dp0test-agent-script.cjs" marker %*\r\n');
             const result = await service.run(createProject(rootPath), {
-                command: ['node', scriptPath, 'marker'],
+                command: [commandPath],
                 prompt,
                 scopePath: 'project',
             }, () => undefined);
@@ -136,6 +138,31 @@ describe('AgentRunnerService', () => {
             ]);
             expect(persisted.events).toContainEqual(expect.objectContaining({ type: 'thread.started' }));
             expect(persisted.providerSessions).toEqual([expect.objectContaining({ agent: 'codex', conversationId: 'thread-1' })]);
+        } finally {
+            await rm(rootPath, { force: true, recursive: true });
+        }
+    });
+
+    it('streams structured provider failures and returns their messages in stderr once', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-runner-'));
+        const service = new AgentRunnerService();
+        const events = [];
+        const scriptPath = join(rootPath, 'structured-failure.cjs');
+        const failureMessage = "The 'GPT' model is not supported when using Codex with a ChatGPT account.";
+
+        try {
+            await prepareProject(rootPath);
+            await writeFile(scriptPath, `const message=JSON.stringify({type:'error',status:400,error:{type:'invalid_request_error',message:${JSON.stringify(failureMessage)}}});console.log(JSON.stringify({type:'thread.started',thread_id:'thread-1'}));console.log(JSON.stringify({type:'item.completed',item:{type:'error',message:'model warning'}}));console.log(JSON.stringify({type:'turn.started'}));console.log(JSON.stringify({type:'error',message}));console.log(JSON.stringify({type:'turn.failed',error:{message}}));process.exit(1)\n`);
+            const result = await service.run(createProject(rootPath), {
+                agent: 'codex',
+                command: ['node', scriptPath],
+                prompt: 'question',
+                scopePath: 'project',
+            }, (event) => events.push(event));
+
+            expect(events.filter(({ type }) => type === 'error').map(({ content }) => content)).toEqual(['model warning', failureMessage]);
+            expect(result.stderr).toBe(`model warning\n${failureMessage}`);
+            expect(result.exitCode).not.toBe(0);
         } finally {
             await rm(rootPath, { force: true, recursive: true });
         }

@@ -97,7 +97,7 @@ describe('ActionRunnerService', () => {
     });
 
     it('returns terminal failure for runtime selection error', async () => {
-        const files = [actionFile('main', {agent: 'codex', command: undefined, model: 'GPT 5.5', prompt: 'Run {{file}}', type: 'agent'})];
+        const files = [actionFile('main', {agent: 'codex', command: undefined, model: 'gpt-5.5', prompt: 'Run {{file}}', type: 'agent'})];
         const { agentRunnerService, runner } = createRunner(files);
 
         await expect(runToCompletion(runner, {actionId: 'main', context, runInput: { model: 'retired-model' }})).resolves.toMatchObject({ failure: expect.stringContaining('Unknown model'), status: 'failed' });

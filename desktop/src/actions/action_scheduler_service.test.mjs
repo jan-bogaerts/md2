@@ -48,7 +48,7 @@ function createAgentAction(name = 'implement', overrides = {}) {
             description: `${name} description`,
             id: name,
             label: name,
-            model: 'GPT 5.5',
+            model: 'gpt-5.5',
             name,
             prompt: `Run ${name}`,
             type: 'agent',
@@ -296,9 +296,9 @@ describe('ActionSchedulerService', () => {
         await scheduler.startProject(project);
         await scheduler.fireSchedule('schedule-1');
 
-        expect(agentRunner).toHaveBeenCalledWith(project, expect.objectContaining({command: ['codex', '--model', 'GPT 5.5', '-c', 'model_reasoning_effort=high', '--search', 'exec', '--json']}), expect.any(Function));
+        expect(agentRunner).toHaveBeenCalledWith(project, expect.objectContaining({command: ['codex', '--model', 'gpt-5.5', '-c', 'model_reasoning_effort=high', '--search', 'exec', '--json']}), expect.any(Function));
         expect(localGitService.histories[0]).toMatchObject({
-            entry: { agent: 'codex', model: 'GPT 5.5', thinkingLevel: 'high' },
+            entry: { agent: 'codex', model: 'gpt-5.5', thinkingLevel: 'high' },
             request: { actionId: 'implement', actionsFolder: 'actions', context },
         });
     });
@@ -315,7 +315,7 @@ describe('ActionSchedulerService', () => {
         await scheduler.startProject(project);
         await scheduler.fireSchedule('schedule-1');
 
-        expect(agentRunner).toHaveBeenCalledWith(project, expect.objectContaining({ command: ['codex', '--model', 'GPT 5.5', '--search', 'exec', '--json'] }), expect.any(Function));
+        expect(agentRunner).toHaveBeenCalledWith(project, expect.objectContaining({ command: ['codex', '--model', 'gpt-5.5', '--search', 'exec', '--json'] }), expect.any(Function));
         expect(localGitService.histories[0].entry).toMatchObject({ thinkingLevel: 'none' });
     });
 
@@ -336,8 +336,8 @@ describe('ActionSchedulerService', () => {
         await scheduler.fireSchedule('schedule-1');
 
         expect(agentRunner.mock.calls.map((call) => call[1].command)).toEqual([
-            ['codex', '--model', 'GPT 5.5', '-c', 'model_reasoning_effort=low', '--search', 'exec', '--json'],
-            ['codex', '--model', 'GPT 5.5', '-c', 'model_reasoning_effort=high', '--search', 'exec', '--json'],
+            ['codex', '--model', 'gpt-5.5', '-c', 'model_reasoning_effort=low', '--search', 'exec', '--json'],
+            ['codex', '--model', 'gpt-5.5', '-c', 'model_reasoning_effort=high', '--search', 'exec', '--json'],
         ]);
         expect(localGitService.histories.map(({ entry }) => entry.thinkingLevel)).toEqual(['low', 'high']);
     });

@@ -66,7 +66,7 @@ describe('AgentIntegration', () => {
                 description: 'Implement',
                 id: 'action-implement',
                 label: 'Implement',
-                model: 'GPT 5.5',
+                model: 'gpt-5.5',
                 name: 'implement-action',
                 onState: 'ready',
                 prompt: 'Implement {{file}}',

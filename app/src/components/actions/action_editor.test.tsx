@@ -95,6 +95,34 @@ describe('ActionEditor', () => {
         expect(screen.queryByRole('tab', { name: 'Prompt' })).not.toBeInTheDocument()
     })
 
+    it('keeps the section tabs outside the full-height scrolling content', () => {
+        renderEditor()
+
+        const editor = screen.getByTestId('action-editor')
+        const content = screen.getByTestId('action-editor-content')
+        const tabs = screen.getByRole('tablist', { name: 'Action editor sections' })
+
+        expect(editor).toHaveStyle({ display: 'flex', flex: '1', flexDirection: 'column', minHeight: '0' })
+        expect(content).toHaveStyle({ flex: '1', minHeight: '0', overflowY: 'auto' })
+        expect(content.nextElementSibling).toContainElement(tabs)
+        expect(content.nextElementSibling?.parentElement).toBe(editor)
+    })
+
+    it('preloads one shared Markdown editor and keeps it mounted across section tabs', () => {
+        renderEditor(loadAction({ phrases: [{ text: 'Run tests', title: 'Tests' }] }))
+
+        const preloadedEditor = screen.getByTestId('mdx-editor')
+        expect(preloadedEditor.parentElement?.parentElement).toHaveAttribute('hidden')
+
+        fireEvent.click(screen.getByRole('tab', { name: 'Prompt' }))
+        expect(screen.getByTestId('mdx-editor')).toBe(preloadedEditor)
+        expect(preloadedEditor.parentElement?.parentElement).not.toHaveAttribute('hidden')
+
+        fireEvent.click(screen.getByRole('tab', { name: 'Tests' }))
+        expect(screen.getByTestId('mdx-editor')).toBe(preloadedEditor)
+        expect(screen.getAllByTestId('mdx-editor')).toHaveLength(1)
+    })
+
     it('renders persisted initial values for agent and command actions', () => {
         const agentView = renderEditor(loadAction({
             agent: 'codex',
@@ -208,7 +236,7 @@ describe('ActionEditor', () => {
         expect(screen.getByText('Fix validation errors to save.')).toBeInTheDocument()
 
         fireEvent.change(labelInput(), { target: { value: 'Review repaired' } })
-        expect(screen.getByText('Changes save automatically.')).toBeInTheDocument()
+        expect(screen.queryByText('Changes save automatically.')).not.toBeInTheDocument()
         await act(async () => vi.advanceTimersByTime(600))
 
         expect(saveDefinition).toHaveBeenCalledWith(

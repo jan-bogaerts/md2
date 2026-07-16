@@ -104,4 +104,23 @@ describe('ActionDefinitionFields', () => {
         expect(screen.getByLabelText('Needs worktree')).toBeChecked()
         expect(screen.getByLabelText('Run when card enters state')).toHaveTextContent('ready')
     })
+
+    it('renders section headings and empty-state hints for empty collections', () => {
+        renderFields({
+            command: 'run',
+            description: 'Run checks',
+            id: 'check-action',
+            label: 'Check',
+            name: 'check',
+            type: 'command',
+        })
+
+        expect(screen.getByRole('heading', { name: 'Action definition' })).toBeInTheDocument()
+        expect(screen.getByRole('heading', { name: 'Applicability filters' })).toBeInTheDocument()
+        expect(screen.getByRole('heading', { name: 'Output rules' })).toBeInTheDocument()
+        expect(screen.getByText('No filters. The action is available in every context.')).toBeInTheDocument()
+        expect(screen.getByText('No actions run before this one.')).toBeInTheDocument()
+        expect(screen.getByText('No actions run after this one.')).toBeInTheDocument()
+        expect(screen.getByText('No output rules. Output does not trigger follow-up actions.')).toBeInTheDocument()
+    })
 })

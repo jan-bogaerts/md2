@@ -1,3 +1,4 @@
+import AddOutlined from '@mui/icons-material/AddOutlined'
 import ArrowDownwardOutlined from '@mui/icons-material/ArrowDownwardOutlined'
 import ArrowUpwardOutlined from '@mui/icons-material/ArrowUpwardOutlined'
 import DeleteOutlineOutlined from '@mui/icons-material/DeleteOutlineOutlined'
@@ -5,9 +6,11 @@ import { Box, Button, FormHelperText, IconButton, MenuItem, Stack, Tooltip, Typo
 import type { ChangeEvent, MouseEvent } from 'react'
 import type { ActionDefinition } from '../../data/action_types'
 import { ActionEditorField } from './action_editor_field'
+import { ActionSectionLabel } from './action_section_label'
 
 interface ActionLinkListEditorProps {
     actions: ActionDefinition[]
+    emptyText?: string
     error?: string
     errorIndex?: number | null
     label: string
@@ -16,7 +19,7 @@ interface ActionLinkListEditorProps {
 }
 
 export function ActionLinkListEditor(props: ActionLinkListEditorProps) {
-    const { actions, error, errorIndex, label, onChange, value = [] } = props
+    const { actions, emptyText, error, errorIndex, label, onChange, value = [] } = props
     const hasIndexedError = !!error && errorIndex !== null && errorIndex !== undefined
     const showSectionError = !!error && (!hasIndexedError || value[errorIndex] === undefined)
 
@@ -50,9 +53,10 @@ export function ActionLinkListEditor(props: ActionLinkListEditorProps) {
 
     return (
         <Stack spacing={1}>
-            <Typography variant="subtitle2">{label}</Typography>
+            <ActionSectionLabel>{label}</ActionSectionLabel>
             {/* Section-level error so it shows even when the collection has no rendered rows. */}
             {showSectionError ? <FormHelperText error>{error}</FormHelperText> : null}
+            {value.length === 0 && emptyText ? <Typography color="custom.text4" variant="caption">{emptyText}</Typography> : null}
             {value.map((actionId, index) => (
                 <Box
                     aria-label={`${label} action ${index + 1}`}
@@ -107,7 +111,7 @@ export function ActionLinkListEditor(props: ActionLinkListEditorProps) {
                     </Box>
                 </Box>
             ))}
-            <Button disabled={!actions.some(({ id }) => !value.includes(id))} onClick={handleAdd} size="small" sx={{ alignSelf: 'flex-start' }} variant="outlined">Add action</Button>
+            <Button disabled={!actions.some(({ id }) => !value.includes(id))} onClick={handleAdd} size="small" startIcon={<AddOutlined />} sx={{ alignSelf: 'flex-start' }} variant="outlined">Add action</Button>
         </Stack>
     )
 }

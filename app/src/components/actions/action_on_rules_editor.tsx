@@ -1,3 +1,4 @@
+import AddOutlined from '@mui/icons-material/AddOutlined'
 import ArrowDownwardOutlined from '@mui/icons-material/ArrowDownwardOutlined'
 import ArrowUpwardOutlined from '@mui/icons-material/ArrowUpwardOutlined'
 import DeleteOutlineOutlined from '@mui/icons-material/DeleteOutlineOutlined'
@@ -5,6 +6,7 @@ import { Box, Button, FormHelperText, IconButton, MenuItem, Stack, Tooltip, Typo
 import type { ChangeEvent, MouseEvent } from 'react'
 import type { ActionDefinition, RawOnRule } from '../../data/action_types'
 import { ActionEditorField } from './action_editor_field'
+import { ActionSectionLabel } from './action_section_label'
 
 interface ActionOnRulesEditorProps {
     actions: ActionDefinition[]
@@ -52,9 +54,14 @@ export function ActionOnRulesEditor(props: ActionOnRulesEditorProps) {
 
     return (
         <Stack spacing={1}>
-            <Typography variant="subtitle2">Output rules</Typography>
+            <ActionSectionLabel>Output rules</ActionSectionLabel>
             {/* Section-level error so it shows even when the collection has no rendered rows. */}
             {showSectionError ? <FormHelperText error>{error}</FormHelperText> : null}
+            {value.length === 0 ? (
+                <Typography color="custom.text4" variant="caption">
+                    No output rules. Output does not trigger follow-up actions.
+                </Typography>
+            ) : null}
             {value.map((rule, index) => (
                 <Box
                     aria-label={`Output rule ${index + 1}`}
@@ -108,7 +115,7 @@ export function ActionOnRulesEditor(props: ActionOnRulesEditorProps) {
                     </Box>
                 </Box>
             ))}
-            <Button disabled={actions.length === 0} onClick={handleAdd} size="small" sx={{ alignSelf: 'flex-start' }} variant="outlined">Add output rule</Button>
+            <Button disabled={actions.length === 0} onClick={handleAdd} size="small" startIcon={<AddOutlined />} sx={{ alignSelf: 'flex-start' }} variant="outlined">Add output rule</Button>
         </Stack>
     )
 }

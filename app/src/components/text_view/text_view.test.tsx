@@ -251,6 +251,7 @@ describe('TextView', () => {
         expect(screen.getByRole('heading', { name: 'Action definition' })).toBeInTheDocument()
         expect(screen.getByLabelText('ID')).toHaveValue('review-id')
         expect(screen.queryByText(/"description":/u)).not.toBeInTheDocument()
+        expect(screen.getByTestId('editor-content-pane')).toHaveStyle({ display: 'flex', minHeight: '0', overflow: 'hidden' })
     })
 
     it('reloads and reopens an action by stable path without duplicating its tab', async () => {

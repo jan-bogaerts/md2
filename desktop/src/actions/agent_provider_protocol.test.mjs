@@ -24,6 +24,37 @@ describe('agent provider protocol', () => {
         expect(events[2].assistantText).toBe('done');
     });
 
+    it('extracts nested Codex failure messages from structured events', () => {
+        const { events, instance } = parser('codex');
+        const providerFailure = JSON.stringify({
+            error: { message: "The 'GPT' model is not supported when using Codex with a ChatGPT account." },
+            status: 400,
+            type: 'error',
+        });
+
+        instance.push(`${JSON.stringify({ type: 'error', message: providerFailure })}\n`);
+        instance.push(`${JSON.stringify({ type: 'turn.failed', error: { message: providerFailure } })}\n`);
+        instance.finish();
+
+        expect(events.map(({ errorText }) => errorText)).toEqual([
+            "The 'GPT' model is not supported when using Codex with a ChatGPT account.",
+            "The 'GPT' model is not supported when using Codex with a ChatGPT account.",
+        ]);
+    });
+
+    it('extracts Codex item errors and Claude error results', () => {
+        const codex = parser('codex');
+        const claude = parser('claude');
+
+        codex.instance.push('{"type":"item.completed","item":{"type":"error","message":"model warning"}}\n');
+        claude.instance.push('{"type":"result","is_error":true,"result":"permission denied"}\n');
+        codex.instance.finish();
+        claude.instance.finish();
+
+        expect(codex.events[0].errorText).toBe('model warning');
+        expect(claude.events[0].errorText).toBe('permission denied');
+    });
+
     it('extracts Claude session ids and assistant text', () => {
         const { events, instance } = parser('claude');
 

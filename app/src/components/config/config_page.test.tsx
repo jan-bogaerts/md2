@@ -381,7 +381,6 @@ describe('ConfigPage', () => {
                 agentSlotCommand: '',
                 agentProfiles: BUILTIN_AGENT_PROFILES,
                 model: '',
-                projectLocationMode: 'folder',
             },
         })
         configService.loadProjectConfig(null)
@@ -414,7 +413,6 @@ describe('ConfigPage', () => {
                 agentSlotCommand: 'old-slot-command',
                 agentProfiles: BUILTIN_AGENT_PROFILES,
                 model: '',
-                projectLocationMode: 'folder',
             }),
             setDesktopConfig,
         }
@@ -431,7 +429,6 @@ describe('ConfigPage', () => {
             agentProfiles: BUILTIN_AGENT_PROFILES,
             codexSearchEnabled: false,
             model: '',
-            projectLocationMode: 'folder',
             thinkingLevel: 'none',
         })
 
@@ -447,7 +444,6 @@ describe('ConfigPage', () => {
                 agentSlotCommand: '',
                 agentProfiles: BUILTIN_AGENT_PROFILES,
                 model: '',
-                projectLocationMode: 'folder',
             }),
             setDesktopConfig,
         }
@@ -493,7 +489,6 @@ describe('ConfigPage', () => {
                 agentSlotCommand: '',
                 agentProfiles: [...BUILTIN_AGENT_PROFILES, { command: ['local-agent'], models: ['local-model'], name: 'local' }],
                 model: '',
-                projectLocationMode: 'folder',
             }),
             setDesktopConfig,
         }
@@ -523,7 +518,7 @@ describe('ConfigPage', () => {
         mockMatchMedia(false)
         const setDesktopConfig = vi.fn()
         window.md2Config = {
-            getDesktopConfig: () => ({agent: 'codex', agentProfiles: BUILTIN_AGENT_PROFILES, agentSlotCommand: '', model: '', projectLocationMode: 'folder'}),
+            getDesktopConfig: () => ({agent: 'codex', agentProfiles: BUILTIN_AGENT_PROFILES, agentSlotCommand: '', model: ''}),
             setDesktopConfig,
         }
         initConfigFromElectronBridge()
@@ -548,7 +543,6 @@ describe('ConfigPage', () => {
                 agentSlotCommand: '',
                 agentProfiles: BUILTIN_AGENT_PROFILES,
                 model: '',
-                projectLocationMode: 'folder',
             }),
             setDesktopConfig: vi.fn(),
         }
@@ -581,7 +575,6 @@ describe('ConfigPage', () => {
                 agentSlotCommand: 'slot-command',
                 agentProfiles: BUILTIN_AGENT_PROFILES,
                 model: '',
-                projectLocationMode: 'current-directory',
             }),
             setDesktopConfig: vi.fn(),
         }
@@ -591,7 +584,6 @@ describe('ConfigPage', () => {
 
         expect(configService.get('desktop.agent')).toBe('claude')
         expect(configService.get('desktop.agentSlotCommand')).toBe('slot-command')
-        expect(configService.get('desktop.projectLocationMode')).toBe('current-directory')
         expect(screen.getByRole('tab', { name: 'Desktop' })).toBeInTheDocument()
         expect(screen.getByLabelText('Agent slot command')).toHaveValue('slot-command')
 
@@ -607,7 +599,7 @@ describe('ConfigPage', () => {
         expect(screen.getByRole('tab', { name: 'Desktop' })).toBeInTheDocument()
         expect(screen.getByLabelText('Default agent')).toHaveAttribute('aria-disabled', 'true')
         expect(screen.getByLabelText('Agent slot command')).toBeDisabled()
-        expect(screen.getByLabelText('Project location')).toHaveAttribute('aria-disabled', 'true')
+        expect(screen.queryByLabelText('Project location')).not.toBeInTheDocument()
     })
 
     it('never touches the desktop bridge in web mode', () => {

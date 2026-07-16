@@ -1,3 +1,4 @@
+import AddOutlined from '@mui/icons-material/AddOutlined'
 import DeleteOutlineOutlined from '@mui/icons-material/DeleteOutlineOutlined'
 import { Box, Button, IconButton, MenuItem, Stack, Tooltip, Typography } from '@mui/material'
 import type { ChangeEvent, MouseEvent } from 'react'
@@ -8,6 +9,7 @@ import {
 import type { ActionAppliesTo, ActionAppliesToField } from '../../data/action_types'
 import type { WorktreeRecord } from '../../data/data_types'
 import { ActionEditorField } from './action_editor_field'
+import { ActionSectionLabel } from './action_section_label'
 
 interface FilterOption {
     label: string
@@ -113,7 +115,12 @@ export function ActionFilterEditor(props: ActionFilterEditorProps) {
 
     return (
         <Stack spacing={1}>
-            <Typography variant="subtitle2">Applicability filters</Typography>
+            <ActionSectionLabel>Applicability filters</ActionSectionLabel>
+            {entries.length === 0 ? (
+                <Typography color="custom.text4" variant="caption">
+                    No filters. The action is available in every context.
+                </Typography>
+            ) : null}
             {entries.map(([field, fieldValue], index) => {
                 const descriptor = descriptorByKey.get(field)
                 if (!descriptor) throw new Error(`Missing applicability filter descriptor: ${field}`)
@@ -182,7 +189,7 @@ export function ActionFilterEditor(props: ActionFilterEditorProps) {
                     </Box>
                 )
             })}
-            <Button disabled={hasIncompleteRow || hasEveryFilter} onClick={handleAdd} size="small" sx={{ alignSelf: 'flex-start' }} variant="outlined">
+            <Button disabled={hasIncompleteRow || hasEveryFilter} onClick={handleAdd} size="small" startIcon={<AddOutlined />} sx={{ alignSelf: 'flex-start' }} variant="outlined">
                 Add filter
             </Button>
         </Stack>

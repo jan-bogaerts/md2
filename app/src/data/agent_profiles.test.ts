@@ -4,7 +4,7 @@ import { BUILTIN_AGENT_PROFILES, buildResumeAgentCommand, validateAgentProfiles 
 describe('agent profile validation', () => {
     it('provides configured models for built-in profiles', () => {
         expect(BUILTIN_AGENT_PROFILES).toEqual([
-            expect.objectContaining({ models: ['GPT 5.5', 'GPT 5.6 sol', 'GPT 5.6 tera', 'GPT 5.6 luna'], name: 'codex' }),
+            expect.objectContaining({ models: ['gpt-5.5', 'gpt-5.6-sol', 'gpt-5.6-terra', 'gpt-5.6-luna'], name: 'codex' }),
             expect.objectContaining({ models: ['default', 'sonnet', 'fable', 'opus', 'haiku'], name: 'claude' }),
         ])
     })

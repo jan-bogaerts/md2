@@ -156,7 +156,7 @@ describe('ActionService', () => {
         await expect(service.saveDefinition('actions/action.json', retiredModel)).rejects.toThrow(/Unknown model/u)
         expect(persistActionFile).not.toHaveBeenCalled()
 
-        const invalidThinkingLevel = { ...retiredModel, model: 'GPT 5.5', thinkingLevel: 'extreme' }
+        const invalidThinkingLevel = { ...retiredModel, model: 'gpt-5.5', thinkingLevel: 'extreme' }
         expect(service.validateDefinition('actions/action.json', invalidThinkingLevel))
             .toMatchObject({ code: 'invalid-thinking-level', field: 'thinkingLevel', valid: false })
     })

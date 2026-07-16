@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 const require = createRequire(import.meta.url);
 const { ActionAgentExecutor } = require('./action_agent_executor');
 
-const action = { agent: 'codex', id: 'main', label: 'Main', model: 'GPT 5.5', prompt: 'Review {{file}}', type: 'agent' };
+const action = { agent: 'codex', id: 'main', label: 'Main', model: 'gpt-5.5', prompt: 'Review {{file}}', type: 'agent' };
 const cardContext = { file: 'design/card.md', kind: 'card' };
 const project = { branch: 'main', rootPath: 'C:/repo' };
 
@@ -58,9 +58,9 @@ function executionInput(overrides = {}) {
 describe('ActionAgentExecutor', () => {
     it('runs initial card action with runtime overrides and active-run hooks', async () => {
         const { agentRunnerService, executor } = createExecutor();
-        const input = executionInput({ runInput: { agent: 'codex', extraPrompt: 'focus', model: 'GPT 5.5', thinkingLevel: 'high' } });
+        const input = executionInput({ runInput: { agent: 'codex', extraPrompt: 'focus', model: 'gpt-5.5', thinkingLevel: 'high' } });
 
-        await expect(executor.execute(input)).resolves.toMatchObject({agent: 'codex', exitCode: 0, model: 'GPT 5.5', prompt: 'Review design/card.md\n\nfocus', thinkingLevel: 'high'});
+        await expect(executor.execute(input)).resolves.toMatchObject({agent: 'codex', exitCode: 0, model: 'gpt-5.5', prompt: 'Review design/card.md\n\nfocus', thinkingLevel: 'high'});
         expect(agentRunnerService.start).toHaveBeenCalledWith(project, expect.objectContaining({cardPath: cardContext.file, prompt: 'Review design/card.md\n\nfocus', scopePath: cardContext.file}), expect.any(Function), expect.any(Function), expect.any(Function));
         expect(input.onActiveRunChange.mock.calls.map(([runId]) => runId)).toEqual(['active-run', null]);
     });

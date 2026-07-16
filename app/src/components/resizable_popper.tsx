@@ -99,6 +99,7 @@ export function ResizablePopper(props: ResizablePopperProps) {
     } = props
     const [size, setSize] = useState(() => loadSize(initialSize, storageKey))
     const [detachedLeft, setDetachedLeft] = useState<number | null>(null)
+    const anchoredLeftRef = useRef<number | null>(null)
     const paperRef = useRef<HTMLDivElement | null>(null)
     const resizeRef = useRef<AbortController | null>(null)
 
@@ -113,7 +114,8 @@ export function ResizablePopper(props: ResizablePopperProps) {
 
         const bounds = paperRef.current.getBoundingClientRect()
         const width = size.width ?? bounds.width
-        setDetachedLeft(clampDetachedLeft(bounds.left, width))
+        const anchoredLeft = anchoredLeftRef.current ?? bounds.left
+        setDetachedLeft(clampDetachedLeft(anchoredLeft, width))
     }, [fullHeight, size.width])
     useEffect(() => {
         if (!fullHeight) return
@@ -131,6 +133,12 @@ export function ResizablePopper(props: ResizablePopperProps) {
 
         resizeRef.current?.abort()
         onClose()
+    }
+
+    const handlePaperClickCapture = () => {
+        if (fullHeight || !paperRef.current) return
+
+        anchoredLeftRef.current = paperRef.current.getBoundingClientRect().left
     }
 
     const startResize = (event: ReactPointerEvent) => {
@@ -180,6 +188,7 @@ export function ResizablePopper(props: ResizablePopperProps) {
             <Paper
                 aria-labelledby={labelId}
                 data-full-height={fullHeight ? 'true' : undefined}
+                onClickCapture={handlePaperClickCapture}
                 onKeyDown={handleKeyDown}
                 ref={paperRef}
                 role="dialog"

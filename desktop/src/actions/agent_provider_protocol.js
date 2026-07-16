@@ -28,6 +28,32 @@ function codexAssistantText(event) {
     return typeof event.item.text === 'string' ? event.item.text : '';
 }
 
+function nestedErrorMessage(value) {
+    if (typeof value === 'string') {
+        try {
+            return nestedErrorMessage(JSON.parse(value));
+        } catch {
+            return value;
+        }
+    }
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return '';
+
+    return nestedErrorMessage(value.message ?? value.error ?? value.result);
+}
+
+function providerErrorText(agent, event) {
+    if (event.type === 'error') return nestedErrorMessage(event.message ?? event.error);
+    if (agent === 'codex' && event.type === 'turn.failed') return nestedErrorMessage(event.error);
+    if (agent === 'codex' && event.type === 'item.completed' && event.item?.type === 'error') {
+        return nestedErrorMessage(event.item.message ?? event.item.error);
+    }
+    if (agent === 'claude' && event.type === 'result' && event.is_error === true) {
+        return nestedErrorMessage(event.error ?? event.result ?? event.message);
+    }
+
+    return '';
+}
+
 function providerConversationId(agent, event) {
     if (agent === 'codex' && event.type === 'thread.started') return event.thread_id ?? event.thread?.thread_id ?? null;
     if (agent === 'claude' && typeof event.session_id === 'string') return event.session_id;
@@ -99,6 +125,7 @@ class AgentProviderProtocolParser {
         this.onEvent({
             assistantText,
             conversationId: providerConversationId(this.agent, event),
+            errorText: providerErrorText(this.agent, event),
             event,
             missingSession,
             turnStarted: this.turnStarted,

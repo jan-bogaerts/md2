@@ -244,7 +244,7 @@ describe('ActionPopup', () => {
         })
         render(
             <ActionPopup
-                action={action('Agent', { agent: 'codex', command: null, model: 'GPT 5.5', prompt: 'Run', type: 'agent' })}
+                action={action('Agent', { agent: 'codex', command: null, model: 'gpt-5.5', prompt: 'Run', type: 'agent' })}
                 anchorElement={document.body}
                 context={context}
                 onClose={vi.fn()}
@@ -301,7 +301,6 @@ describe('ActionPopup', () => {
                     { command: ['claude'], models: ['sonnet'], name: 'claude' },
                 ],
                 model: 'gpt-5',
-                projectLocationMode: 'folder',
             },
         })
         const selectedAction = action('Implement', { agent: 'codex', model: 'gpt-5', type: 'agent' })
@@ -363,7 +362,7 @@ describe('ActionPopup', () => {
     })
 
     it('opens a persisted conversation directly with prompt and continuation reference', async () => {
-        const selectedAction = action('Implement', { agent: 'codex', model: 'GPT 5.5', type: 'agent' })
+        const selectedAction = action('Implement', { agent: 'codex', model: 'gpt-5.5', type: 'agent' })
         const { runAction } = renderPopup({
             action: selectedAction,
             continueFrom: '.md2-agent-logs/persisted.json',
@@ -504,7 +503,6 @@ describe('ActionPopup', () => {
                 agentSlotCommand: '',
                 agentProfiles: [{ command: ['codex'], modelArgument: '--model', models: ['gpt-5', 'gpt-5-mini'], name: 'codex' }],
                 model: 'gpt-5',
-                projectLocationMode: 'folder',
             },
         })
         const { runAction } = renderPopup({ action: action('Implement', { model: 'gpt-5-mini', type: 'agent' }) })
@@ -552,7 +550,6 @@ describe('ActionPopup', () => {
                     { command: ['claude'], models: ['sonnet'], name: 'claude' },
                 ],
                 model: 'gpt-5',
-                projectLocationMode: 'folder',
             },
         })
         const { runAction } = renderPopup({ action: action('Implement', { agent: 'codex', model: 'gpt-5', thinkingLevel: 'high', type: 'agent' }) })
@@ -575,7 +572,6 @@ describe('ActionPopup', () => {
                 agentSlotCommand: '',
                 agentProfiles: [{ command: ['codex'], models: ['gpt-5'], name: 'codex' }],
                 model: 'gpt-5',
-                projectLocationMode: 'folder',
             },
         })
         const { runAction } = renderPopup()
@@ -694,7 +690,6 @@ describe('ActionPopup', () => {
                 agentSlotCommand: '',
                 agentProfiles: [{ command: ['codex'], modelArgument: '--model', models: ['gpt-5'], name: 'codex' }],
                 model: 'gpt-5',
-                projectLocationMode: 'folder',
             },
         })
         const customPrompt = action('Custom prompt', { command: null, id: CUSTOM_PROMPT_ACTION_ID, prompt: '{{prompt}}', type: 'agent' })
@@ -733,7 +728,6 @@ describe('ActionPopup', () => {
                 agentSlotCommand: '',
                 agentProfiles: [{ command: ['codex'], modelArgument: '--model', models: ['gpt-5'], name: 'codex' }],
                 model: 'gpt-5',
-                projectLocationMode: 'folder',
             },
         })
         const customPrompt = action('Custom prompt', { command: null, id: CUSTOM_PROMPT_ACTION_ID, prompt: '{{prompt}}', type: 'agent' })

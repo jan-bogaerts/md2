@@ -8,7 +8,6 @@ const {
     DEFAULT_CODEX_SEARCH_ENABLED,
     DEFAULT_DESKTOP_AGENT,
     DEFAULT_DESKTOP_MODEL,
-    DEFAULT_PROJECT_LOCATION_MODE,
     DESKTOP_CONFIG_STORE_KEY,
     readDesktopConfig,
     resolveAppUrl,
@@ -45,7 +44,6 @@ describe('resolveDesktopConfig', () => {
             agentProfiles: expect.arrayContaining([expect.objectContaining({ command: ['codex'], name: 'codex' })]),
             codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
             model: DEFAULT_DESKTOP_MODEL,
-            projectLocationMode: DEFAULT_PROJECT_LOCATION_MODE,
         });
     });
 
@@ -53,14 +51,12 @@ describe('resolveDesktopConfig', () => {
         expect(resolveDesktopConfig({
             MD2_AGENT: 'custom-codex',
             MD2_AGENT_SLOT_COMMAND: 'slot-command',
-            MD2_PROJECT_LOCATION_MODE: 'current-directory',
         })).toEqual({
             agent: DEFAULT_DESKTOP_AGENT,
             agentSlotCommand: 'slot-command',
             agentProfiles: expect.arrayContaining([expect.objectContaining({ command: ['custom-codex'], name: 'codex' })]),
             codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
             model: DEFAULT_DESKTOP_MODEL,
-            projectLocationMode: 'current-directory',
         });
     });
 });
@@ -75,20 +71,18 @@ describe('readDesktopConfig', () => {
             agentProfiles: expect.arrayContaining([expect.objectContaining({ name: 'codex' })]),
             codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
             model: DEFAULT_DESKTOP_MODEL,
-            projectLocationMode: DEFAULT_PROJECT_LOCATION_MODE,
         });
     });
 
     it('lets a stored value override the env default for one field while the other falls back', () => {
         const store = createFakeStore({ [DESKTOP_CONFIG_STORE_KEY]: { agent: 'claude' } });
 
-        expect(readDesktopConfig(store, { MD2_PROJECT_LOCATION_MODE: 'current-directory' })).toEqual({
+        expect(readDesktopConfig(store, {})).toEqual({
             agent: 'claude',
             agentSlotCommand: DEFAULT_AGENT_SLOT_COMMAND,
             agentProfiles: expect.arrayContaining([expect.objectContaining({ name: 'claude' })]),
             codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
             model: DEFAULT_DESKTOP_MODEL,
-            projectLocationMode: 'current-directory',
         });
     });
 
@@ -112,7 +106,6 @@ describe('readDesktopConfig', () => {
             ]),
             codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
             model: DEFAULT_DESKTOP_MODEL,
-            projectLocationMode: DEFAULT_PROJECT_LOCATION_MODE,
         });
     });
 
@@ -140,16 +133,34 @@ describe('readDesktopConfig', () => {
 
         expect(readDesktopConfig(store, {})).toMatchObject({
             agentProfiles: [
-                { models: ['GPT 5.5', 'GPT 5.6 sol', 'GPT 5.6 tera', 'GPT 5.6 luna'], name: 'codex' },
+                { models: ['gpt-5.5', 'gpt-5.6-sol', 'gpt-5.6-terra', 'gpt-5.6-luna'], name: 'codex' },
                 { models: ['default', 'sonnet', 'fable', 'opus', 'haiku'], name: 'claude' },
             ],
         });
     });
 
-    it('requires custom profiles to provide models', () => {
-        const store = createFakeStore({[DESKTOP_CONFIG_STORE_KEY]: {agentProfiles: [{ command: ['custom-agent'], models: [], name: 'custom' }]}});
+    it('drops invalid stored profiles and keeps the valid ones', () => {
+        const store = createFakeStore({
+            [DESKTOP_CONFIG_STORE_KEY]: {
+                agentProfiles: [
+                    { command: ['custom-agent'], models: [], name: 'custom' },
+                    { command: ['other-agent'], models: ['other-model'], name: 'other' },
+                ],
+            },
+        });
 
-        expect(() => readDesktopConfig(store, {})).toThrow('Empty agent profile field: desktop.agentProfiles[0].models');
+        expect(readDesktopConfig(store, {})).toMatchObject({agentProfiles: [{ command: ['other-agent'], models: ['other-model'], name: 'other' }]});
+    });
+
+    it('falls back to the built-in profiles when no stored profile is valid', () => {
+        const store = createFakeStore({[DESKTOP_CONFIG_STORE_KEY]: {agentProfiles: [{ command: 'legacy-string-command', models: ['custom-model'], name: 'custom' }]}});
+
+        expect(readDesktopConfig(store, {})).toMatchObject({
+            agentProfiles: [
+                expect.objectContaining({ command: ['codex'], name: 'codex' }),
+                expect.objectContaining({ command: ['claude'], name: 'claude' }),
+            ],
+        });
     });
 });
 
@@ -165,7 +176,6 @@ describe('writeDesktopConfig', () => {
             agentProfiles: expect.arrayContaining([expect.objectContaining({ name: 'claude' })]),
             codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
             model: DEFAULT_DESKTOP_MODEL,
-            projectLocationMode: DEFAULT_PROJECT_LOCATION_MODE,
         });
     });
 
@@ -173,15 +183,14 @@ describe('writeDesktopConfig', () => {
         const store = createFakeStore();
 
         writeDesktopConfig(store, { agent: 'claude' });
-        writeDesktopConfig(store, { projectLocationMode: 'current-directory' });
+        writeDesktopConfig(store, { model: 'custom-model' });
 
         expect(readDesktopConfig(store, {})).toEqual({
             agent: 'claude',
             agentSlotCommand: DEFAULT_AGENT_SLOT_COMMAND,
             agentProfiles: expect.arrayContaining([expect.objectContaining({ name: 'claude' })]),
             codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
-            model: DEFAULT_DESKTOP_MODEL,
-            projectLocationMode: 'current-directory',
+            model: 'custom-model',
         });
     });
 

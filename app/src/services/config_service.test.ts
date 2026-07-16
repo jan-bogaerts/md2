@@ -165,7 +165,6 @@ describe('ConfigService', () => {
                 agentSlotCommand: 'slot-command',
                 agentProfiles: BUILTIN_AGENT_PROFILES,
                 model: '',
-                projectLocationMode: 'current-directory',
                 thinkingLevel: 'high',
             },
         })
@@ -219,7 +218,6 @@ describe('ConfigService', () => {
                 agentSlotCommand: 'slot-command',
                 agentProfiles: BUILTIN_AGENT_PROFILES,
                 model: '',
-                projectLocationMode: 'current-directory',
                 thinkingLevel: 'high',
             },
         })
@@ -230,7 +228,6 @@ describe('ConfigService', () => {
             agentProfiles: BUILTIN_AGENT_PROFILES,
             codexSearchEnabled: true,
             model: '',
-            projectLocationMode: 'current-directory',
             thinkingLevel: 'high',
         })
     })

@@ -8,6 +8,7 @@ const {
     buildAgentExecutionCommand,
     buildResumeAgentCommand,
     defaultModelForProfile,
+    normalizeAgentProfiles,
     resolveAgentCommand,
     validateAgentProfiles,
     validateThinkingLevel,
@@ -97,6 +98,25 @@ describe('agent profile resolution', () => {
 
         expect(profile).not.toHaveProperty('sessionIdPattern');
         expect(buildResumeAgentCommand(profile, 'session-1')).toEqual(['agent', 'resume', 'session-1']);
+    });
+
+    it('normalizes profiles tolerantly by dropping invalid entries', () => {
+        const profiles = normalizeAgentProfiles([
+            { command: 'legacy-string-command', models: ['model-a'], name: 'legacy' },
+            { command: ['valid-agent'], models: ['model-b'], name: 'valid' },
+            { command: ['duplicate-agent'], models: ['model-c'], name: 'valid' },
+        ]);
+
+        expect(profiles).toEqual([{ command: ['valid-agent'], models: ['model-b'], name: 'valid' }]);
+    });
+
+    it('normalizes to fresh built-in profiles when nothing valid remains', () => {
+        for (const input of [undefined, 'not-an-array', [], [{ command: 'legacy', models: [], name: 'broken' }]]) {
+            const profiles = normalizeAgentProfiles(input);
+
+            expect(profiles).toEqual(BUILTIN_AGENT_PROFILES);
+            expect(profiles[0]).not.toBe(BUILTIN_AGENT_PROFILES[0]);
+        }
     });
 
     it('keeps provider resume output in JSON format', () => {

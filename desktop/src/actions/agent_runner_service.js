@@ -1,6 +1,7 @@
 const crypto = require('node:crypto');
 const { spawn } = require('node:child_process');
 const path = require('node:path');
+const crossSpawn = require('cross-spawn');
 
 const {
     createConversation,
@@ -128,13 +129,12 @@ class AgentRunnerService {
         await persistConversation(filePath, conversation);
 
         const [executable, ...configuredArguments] = command;
-        const argumentsList = [...configuredArguments, JSON.stringify(prompt)]; // normalize
-        const child = spawn(executable, argumentsList, {
+        const argumentsList = [...configuredArguments, prompt];
+        const child = crossSpawn(executable, argumentsList, {
             cwd: rootPath,
             env: process.env,
-            shell: true,
             stdio: ['pipe', 'pipe', 'pipe'],
-            windowsHide: true,
+            // windowsHide: true,
         });
         const run = {
             agent,
@@ -152,6 +152,7 @@ class AgentRunnerService {
             onEvent,
             providerConversationId: null,
             reference,
+            reportedProviderErrors: new Set(),
             request,
             stderr: '',
             stdout: '',
@@ -227,6 +228,11 @@ class AgentRunnerService {
         if (providerEvent.assistantText.length > 0) {
             run.stdout += providerEvent.assistantText;
             emitRunEvent(run, 'output', providerEvent.assistantText);
+        } else if (providerEvent.errorText.length > 0 && !run.reportedProviderErrors.has(providerEvent.errorText)) {
+            const separator = run.stderr.length > 0 && !run.stderr.endsWith('\n') ? '\n' : '';
+            run.reportedProviderErrors.add(providerEvent.errorText);
+            run.stderr += `${separator}${providerEvent.errorText}`;
+            emitRunEvent(run, 'error', providerEvent.errorText);
         } else {
             emitRunEvent(run, 'provider', JSON.stringify(providerEvent.event));
         }

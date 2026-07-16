@@ -1,6 +1,30 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { useState } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ResizablePopper } from './resizable_popper'
+
+function ExpandablePopper() {
+    const [fullHeight, setFullHeight] = useState(false)
+    const handleToggleFullHeight = () => setFullHeight((current) => !current)
+
+    return (
+        <ResizablePopper
+            anchorElement={document.body}
+            fullHeight={fullHeight}
+            initialSize={{ height: 300, width: 400 }}
+            labelId="expandable-popper-title"
+            onClose={vi.fn()}
+            open
+            resizeFromAllSides
+            resizeLabel="Resize expandable popper"
+        >
+            <h2 id="expandable-popper-title">Expandable popper</h2>
+            <button onClick={handleToggleFullHeight} type="button">
+                {fullHeight ? 'Collapse' : 'Expand'}
+            </button>
+        </ResizablePopper>
+    )
+}
 
 describe('ResizablePopper', () => {
     afterEach(cleanup)
@@ -173,5 +197,25 @@ describe('ResizablePopper', () => {
         fireEvent(window, new Event('resize'))
 
         expect(dialog.style.left).toBe('200px')
+    })
+
+    it('keeps its anchored horizontal position and can collapse after expanding', () => {
+        Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1200, writable: true })
+        render(<ExpandablePopper />)
+        const dialog = screen.getByRole('dialog', { name: 'Expandable popper' })
+        dialog.getBoundingClientRect = vi.fn(() => {
+            const left = dialog.style.position === 'fixed' ? Number.parseFloat(dialog.style.left) : 700
+            return new DOMRect(left, 100, 400, 300)
+        })
+
+        fireEvent.click(screen.getByRole('button', { name: 'Expand' }))
+
+        expect(dialog.style.left).toBe('700px')
+        fireEvent.click(screen.getByRole('button', { name: 'Collapse' }))
+
+        expect(dialog).not.toHaveAttribute('data-full-height')
+        expect(dialog.style.left).toBe('')
+        expect(dialog.style.height).toBe('300px')
+        expect(screen.getAllByRole('separator', { name: /Resize expandable popper from/u })).toHaveLength(8)
     })
 })

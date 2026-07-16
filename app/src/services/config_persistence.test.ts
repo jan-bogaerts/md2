@@ -58,7 +58,6 @@ describe('config persistence', () => {
             agentProfiles: BUILTIN_AGENT_PROFILES,
             agentSlotCommand: '',
             model: '',
-            projectLocationMode: 'folder',
         }
         const setDesktopConfig = vi.fn()
         window.md2Config = {

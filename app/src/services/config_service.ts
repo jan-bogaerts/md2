@@ -212,9 +212,6 @@ export class ConfigService extends EventTarget {
             nextValues = mergeValue(nextValues, 'desktop.codexSearchEnabled', desktopConfig.codexSearchEnabled)
         }
         if (desktopConfig?.model !== undefined) nextValues = mergeValue(nextValues, 'desktop.model', desktopConfig.model)
-        if (desktopConfig?.projectLocationMode !== undefined) {
-            nextValues = mergeValue(nextValues, 'desktop.projectLocationMode', desktopConfig.projectLocationMode)
-        }
         if (desktopConfig?.thinkingLevel !== undefined) {
             nextValues = mergeValue(nextValues, 'desktop.thinkingLevel', desktopConfig.thinkingLevel)
         }
@@ -304,7 +301,6 @@ export class ConfigService extends EventTarget {
             agentProfiles: this.values['desktop.agentProfiles'],
             codexSearchEnabled: this.values['desktop.codexSearchEnabled'],
             model: this.values['desktop.model'],
-            projectLocationMode: this.values['desktop.projectLocationMode'],
             thinkingLevel: this.values['desktop.thinkingLevel'],
         }
     }

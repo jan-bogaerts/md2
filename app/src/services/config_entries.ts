@@ -23,7 +23,6 @@ export interface ConfigValueTypes {
     'desktop.agentProfiles': AgentProfile[]
     'desktop.codexSearchEnabled': boolean
     'desktop.model': string
-    'desktop.projectLocationMode': string
     'desktop.thinkingLevel': ThinkingLevel
     'project.actionsFolder': string
     'project.backgroundShade': ProjectBackgroundShade
@@ -72,7 +71,6 @@ export interface DesktopConfigValues {
     agentProfiles: AgentProfile[]
     codexSearchEnabled?: boolean
     model: string
-    projectLocationMode: string
     thinkingLevel?: ThinkingLevel
 }
 
@@ -293,20 +291,6 @@ export const CONFIG_ENTRIES: ConfigEntry[] = [
         section: 'desktop',
         source: 'desktop',
         type: 'json',
-    },
-    {
-        defaultValue: 'folder',
-        description: 'How desktop local projects resolve their Git root.',
-        editable: true,
-        key: 'desktop.projectLocationMode',
-        label: 'Project location',
-        options: [
-            { label: 'Selected folder', value: 'folder' },
-            { label: 'Current directory', value: 'current-directory' },
-        ],
-        section: 'desktop',
-        source: 'desktop',
-        type: 'select',
     },
 ]
 

@@ -242,7 +242,6 @@ describe('AppMenu', () => {
                     { command: ['local-agent'], modelArgument: '--model', models: ['local-model'], name: 'local' },
                 ],
                 model: 'gpt-5',
-                projectLocationMode: 'folder',
                 thinkingLevel: 'high',
             },
         })

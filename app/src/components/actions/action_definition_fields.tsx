@@ -1,5 +1,5 @@
 import {
-    Checkbox, FormControlLabel, MenuItem, Paper, Stack, Typography,
+    Checkbox, Divider, FormControlLabel, MenuItem, Paper, Stack,
 } from '@mui/material'
 import type { ChangeEvent } from 'react'
 import type { ActionDefinition, RawActionDefinition } from '../../data/action_types'
@@ -9,6 +9,7 @@ import { ActionEditorField } from './action_editor_field'
 import { ActionFilterEditor } from './action_filter_editor'
 import { ActionLinkListEditor } from './action_link_list_editor'
 import { ActionOnRulesEditor } from './action_on_rules_editor'
+import { ActionSectionLabel } from './action_section_label'
 
 const ICON_FILE_PATTERN = /\.(svg|png|jpe?g|gif|webp)$/iu
 
@@ -80,9 +81,9 @@ export function ActionDefinitionFields(props: ActionDefinitionFieldsProps) {
     }
 
     return (
-        <Paper variant="outlined" sx={{ mb: 2, p: 2 }}>
+        <Paper variant="outlined" sx={{ maxWidth: 720, mb: 2, p: 2.5 }}>
             <Stack spacing={2}>
-                <Typography component="h2" variant="h6">Action definition</Typography>
+                <ActionSectionLabel component="h2">Action definition</ActionSectionLabel>
                 <Stack direction={{ md: 'row', xs: 'column' }} spacing={1}>
                     <ActionEditorField disabled fieldId="action-id" fullWidth label="ID" size="small" value={definition.id} />
                     <ActionEditorField
@@ -127,8 +128,9 @@ export function ActionDefinitionFields(props: ActionDefinitionFieldsProps) {
                         {states.map((state) => <MenuItem key={state} value={state}>{state}</MenuItem>)}
                     </ActionEditorField>
                     <FormControlLabel
-                        control={<Checkbox checked={!!definition.needsWorkTree} onChange={handleNeedsWorkTreeChange} />}
+                        control={<Checkbox checked={!!definition.needsWorkTree} onChange={handleNeedsWorkTreeChange} size="small" />}
                         label="Needs worktree"
+                        sx={{ alignSelf: { md: 'flex-start', xs: 'stretch' }, flexShrink: 0, mt: { md: 2.75 }, whiteSpace: 'nowrap' }}
                     />
                 </Stack>
                 {definition.type === 'agent' ? (
@@ -147,6 +149,7 @@ export function ActionDefinitionFields(props: ActionDefinitionFieldsProps) {
                         value={definition.command ?? ''}
                     />
                 )}
+                <Divider />
                 <ActionFilterEditor
                     cardTypes={cardTypes}
                     error={errors.appliesTo}
@@ -157,14 +160,17 @@ export function ActionDefinitionFields(props: ActionDefinitionFieldsProps) {
                     value={definition.appliesTo}
                     worktrees={worktrees}
                 />
+                <Divider />
                 <ActionLinkListEditor
                     actions={actions}
+                    emptyText="No actions run before this one."
                     error={errors.onBefore}
                     errorIndex={errorIndex}
                     label="Before"
                     onChange={handleOnBeforeChange}
                     value={definition.onBefore}
                 />
+                <Divider />
                 <ActionOnRulesEditor
                     actions={actions}
                     error={errors.on}
@@ -172,8 +178,10 @@ export function ActionDefinitionFields(props: ActionDefinitionFieldsProps) {
                     onChange={handleOnChange}
                     value={definition.on}
                 />
+                <Divider />
                 <ActionLinkListEditor
                     actions={actions}
+                    emptyText="No actions run after this one."
                     error={errors.onAfter}
                     errorIndex={errorIndex}
                     label="After"

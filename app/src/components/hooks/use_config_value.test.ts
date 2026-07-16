@@ -17,7 +17,6 @@ describe('useConfigValue', () => {
                 agentSlotCommand: '',
                 agentProfiles: [{ command: ['codex'], modelArgument: '--model', models: ['gpt-5'], name: 'codex' }],
                 model: 'gpt-5',
-                projectLocationMode: 'folder',
             },
         })
         const { result } = renderHook(() => useConfigValue('desktop.agent'))

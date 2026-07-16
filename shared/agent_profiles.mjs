@@ -17,7 +17,7 @@ export const BUILTIN_AGENT_PROFILES = [
     {
         command: ['codex'],
         modelArgument: '--model',
-        models: ['GPT 5.5', 'GPT 5.6 sol', 'GPT 5.6 tera', 'GPT 5.6 luna'],
+        models: ['gpt-5.5', 'gpt-5.6-sol', 'gpt-5.6-terra', 'gpt-5.6-luna'],
         name: 'codex',
     },
     {

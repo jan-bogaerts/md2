@@ -6,7 +6,8 @@ import {
     editableActionDefinition,
 } from '../../services/action_service'
 import { dialogService } from '../../services/dialog_service'
-import { MarkdownEditor } from '../editor/markdown_editor'
+import { MarkdownEditor, type MarkdownEditorHandle } from '../editor/markdown_editor'
+import { MarkdownDocumentHistoryStore } from '../editor/markdown_document_history_store'
 import { useWorktrees } from '../hooks/use_worktrees'
 import { ActionDefinitionFields } from './action_definition_fields'
 import { ActionPhraseToolbarControls } from './action_phrase_toolbar_controls'
@@ -62,6 +63,8 @@ export function ActionEditor(props: ActionEditorProps) {
     const [saveError, setSaveError] = useState<string | null>(null)
     const [conflict, setConflict] = useState<RawActionDefinition | null>(null)
     const [selectedTab, setSelectedTab] = useState(DEFINITION_TAB)
+    const [markdownHistoryStore] = useState(() => new MarkdownDocumentHistoryStore())
+    const markdownEditorRef = useRef<MarkdownEditorHandle>(null)
 
     const validation = useMemo(
         () => actionService.validateDefinition(sourcePath, definition),
@@ -157,19 +160,18 @@ export function ActionEditor(props: ActionEditorProps) {
         setDraft((current) => ({ ...current, definition: nextDefinition, revision: current.revision + 1 }))
     }
 
-    const handlePromptChange = (prompt: string) => {
-        setDraft((current) => ({
-            ...current,
-            definition: { ...current.definition, prompt },
-            revision: current.revision + 1,
-        }))
-    }
-
     const selectedPhraseIndex = selectedTab.startsWith(PHRASE_TAB_PREFIX)
         ? Number(selectedTab.slice(PHRASE_TAB_PREFIX.length))
         : null
     const selectedPhrase = selectedPhraseIndex === null ? null : definition.phrases?.[selectedPhraseIndex] ?? null
     const activeTab = selectedPhraseIndex !== null && !selectedPhrase ? PROMPT_TAB : selectedTab
+    const markdownDocumentId = selectedPhraseIndex !== null && selectedPhrase ? phraseTabValue(selectedPhraseIndex) : PROMPT_TAB
+    const markdown = selectedPhrase?.text ?? definition.prompt ?? ''
+
+    useEffect(() => {
+        const phraseDocumentIds = (definition.phrases ?? []).map((_phrase, index) => phraseTabValue(index))
+        markdownHistoryStore.retainDocuments([PROMPT_TAB, ...phraseDocumentIds])
+    }, [definition.phrases, markdownHistoryStore])
 
     const handleAddPhrase = () => {
         const phrases = definition.phrases ?? []
@@ -189,14 +191,23 @@ export function ActionEditor(props: ActionEditorProps) {
         setSelectedTab(value)
     }
 
-    const handlePhraseTextChange = (text: string) => {
-        if (selectedPhraseIndex === null) return
+    const handleMarkdownChange = (documentId: string, text: string) => {
+        if (documentId === PROMPT_TAB) {
+            setDraft((current) => ({
+                ...current,
+                definition: { ...current.definition, prompt: text },
+                revision: current.revision + 1,
+            }))
+            return
+        }
+        if (!documentId.startsWith(PHRASE_TAB_PREFIX)) throw new Error(`Unknown action Markdown document: ${documentId}`)
+        const phraseIndex = Number(documentId.slice(PHRASE_TAB_PREFIX.length))
         setDraft((current) => ({
             ...current,
             definition: {
                 ...current.definition,
                 phrases: (current.definition.phrases ?? []).map((phrase, index) => (
-                    index === selectedPhraseIndex ? { ...phrase, text } : phrase
+                    index === phraseIndex ? { ...phrase, text } : phrase
                 )),
             },
             revision: current.revision + 1,
@@ -220,6 +231,7 @@ export function ActionEditor(props: ActionEditorProps) {
 
     const handleDeletePhrase = useCallback(() => {
         if (selectedPhraseIndex === null) return
+        markdownEditorRef.current?.setMarkdown(selectedPhrase?.text ?? '')
         setDraft((current) => ({
             ...current,
             definition: {
@@ -229,7 +241,7 @@ export function ActionEditor(props: ActionEditorProps) {
             revision: current.revision + 1,
         }))
         setSelectedTab(PROMPT_TAB)
-    }, [selectedPhraseIndex])
+    }, [selectedPhrase, selectedPhraseIndex])
 
     const phraseToolbarContents = useCallback(() => {
         if (!selectedPhrase) throw new Error('Missing selected phrase')
@@ -270,105 +282,106 @@ export function ActionEditor(props: ActionEditorProps) {
         : saveError
             ? 'Save failed. Retry to save changes.'
             : validation.valid
-                ? 'Changes save automatically.'
+                ? null
                 : 'Fix validation errors to save.'
 
     return (
-        <Box>
-            {saveError ? (
-                <Alert
-                    action={<Button color="inherit" disabled={!canRetry} onClick={handleRetry} size="small">Retry save</Button>}
-                    severity="error"
-                    sx={{ mb: 2 }}
-                >
-                    {saveError}
-                </Alert>
-            ) : null}
-            {generalError ? <Alert severity="error" sx={{ mb: 2 }}>{generalError}</Alert> : null}
-            {conflict ? (
-                <Alert
-                    action={(
-                        <Stack direction="row" spacing={1}>
-                            <Button color="inherit" onClick={handleKeepMine} size="small">Keep my changes</Button>
-                            <Button color="inherit" onClick={handleReloadExternal} size="small">Reload from disk</Button>
-                        </Stack>
-                    )}
-                    severity="warning"
-                    sx={{ mb: 2 }}
-                >
-                    This action was changed outside the editor while you had unsaved edits.
-                </Alert>
-            ) : null}
-            {definition.type === 'agent' ? (
-                <Box>
-                    {activeTab === DEFINITION_TAB ? (
-                        <ActionDefinitionFields
-                            actions={selectableActions}
-                            cardTypes={cardTypes}
-                            definition={definition}
-                            errorIndex={validation.index}
-                            errors={errors}
-                            onChange={handleDefinitionChange}
-                            repositoryFiles={repositoryFiles}
-                            specialContextTypes={specialContextTypes}
-                            states={states}
-                            worktrees={worktrees}
-                        />
-                    ) : null}
-                    {activeTab === PROMPT_TAB ? (
-                        <Box>
-                            {errors.prompt ? <FormHelperText error>{errors.prompt}</FormHelperText> : null}
-                            <MarkdownEditor key={`${action.id}-prompt`} markdown={definition.prompt ?? ''} onChange={handlePromptChange} />
-                        </Box>
-                    ) : null}
-                    {selectedPhrase ? (
-                        <Box>
-                            {errors.phrases ? <FormHelperText error>{errors.phrases}</FormHelperText> : null}
-                            <MarkdownEditor
-                                key={`${action.id}-${activeTab}`}
-                                markdown={selectedPhrase.text}
-                                onChange={handlePhraseTextChange}
-                                toolbarContents={phraseToolbarContents}
-                            />
-                        </Box>
-                    ) : null}
-                    <Tabs
-                        aria-label="Action editor sections"
-                        onChange={handleTabChange}
-                        scrollButtons="auto"
-                        sx={{ borderTop: 1, borderColor: 'divider', mt: 1 }}
-                        value={activeTab}
-                        variant="scrollable"
+        <Box data-testid="action-editor" sx={{ display: 'flex', flex: 1, flexDirection: 'column', minHeight: 0, minWidth: 0 }}>
+            <Box data-testid="action-editor-content" sx={{ flex: 1, minHeight: 0, overflowY: 'auto', p: 2 }}>
+                {saveError ? (
+                    <Alert
+                        action={<Button color="inherit" disabled={!canRetry} onClick={handleRetry} size="small">Retry save</Button>}
+                        severity="error"
+                        sx={{ mb: 2 }}
                     >
-                        <Tab label="Definition" value={DEFINITION_TAB} />
-                        <Tab label="Prompt" value={PROMPT_TAB} />
-                        {(definition.phrases ?? []).map((phrase, index) => (
-                            <Tab
-                                key={phraseTabValue(index)}
-                                label={actionPhraseLabel(phrase.title, phrase.text)}
-                                value={phraseTabValue(index)}
+                        {saveError}
+                    </Alert>
+                ) : null}
+                {generalError ? <Alert severity="error" sx={{ mb: 2 }}>{generalError}</Alert> : null}
+                {conflict ? (
+                    <Alert
+                        action={(
+                            <Stack direction="row" spacing={1}>
+                                <Button color="inherit" onClick={handleKeepMine} size="small">Keep my changes</Button>
+                                <Button color="inherit" onClick={handleReloadExternal} size="small">Reload from disk</Button>
+                            </Stack>
+                        )}
+                        severity="warning"
+                        sx={{ mb: 2 }}
+                    >
+                        This action was changed outside the editor while you had unsaved edits.
+                    </Alert>
+                ) : null}
+                {definition.type === 'agent' ? (
+                    <>
+                        {activeTab === DEFINITION_TAB ? (
+                            <ActionDefinitionFields
+                                actions={selectableActions}
+                                cardTypes={cardTypes}
+                                definition={definition}
+                                errorIndex={validation.index}
+                                errors={errors}
+                                onChange={handleDefinitionChange}
+                                repositoryFiles={repositoryFiles}
+                                specialContextTypes={specialContextTypes}
+                                states={states}
+                                worktrees={worktrees}
                             />
-                        ))}
-                        <Tab aria-label="Add predefined phrase" label="+" value="add-phrase" />
-                    </Tabs>
-                </Box>
-            ) : (
-                <ActionDefinitionFields
-                    actions={selectableActions}
-                    cardTypes={cardTypes}
-                    definition={definition}
-                    errorIndex={validation.index}
-                    errors={errors}
-                    onChange={handleDefinitionChange}
-                    repositoryFiles={repositoryFiles}
-                    specialContextTypes={specialContextTypes}
-                    states={states}
-                    worktrees={worktrees}
-                />
-            )}
-            <Typography color={validation.valid ? 'text.secondary' : 'error'} sx={{ mt: 1 }} variant="caption">
-                {status}
-            </Typography>
+                        ) : null}
+                        <Box hidden={activeTab === DEFINITION_TAB} sx={{ minHeight: '100%' }}>
+                            {selectedPhrase && errors.phrases ? <FormHelperText error>{errors.phrases}</FormHelperText> : null}
+                            {!selectedPhrase && errors.prompt ? <FormHelperText error>{errors.prompt}</FormHelperText> : null}
+                            <MarkdownEditor
+                                documentId={markdownDocumentId}
+                                historyStore={markdownHistoryStore}
+                                markdown={markdown}
+                                onDocumentChange={handleMarkdownChange}
+                                ref={markdownEditorRef}
+                                toolbarContents={selectedPhrase ? phraseToolbarContents : undefined}
+                            />
+                        </Box>
+                    </>
+                ) : (
+                    <ActionDefinitionFields
+                        actions={selectableActions}
+                        cardTypes={cardTypes}
+                        definition={definition}
+                        errorIndex={validation.index}
+                        errors={errors}
+                        onChange={handleDefinitionChange}
+                        repositoryFiles={repositoryFiles}
+                        specialContextTypes={specialContextTypes}
+                        states={states}
+                        worktrees={worktrees}
+                    />
+                )}
+                {status ? (
+                    <Typography color={validation.valid ? 'text.secondary' : 'error'} sx={{ mt: 1 }} variant="caption">
+                        {status}
+                    </Typography>
+                ) : null}
+            </Box>
+            {definition.type === 'agent' ? (
+                <Tabs
+                    aria-label="Action editor sections"
+                    onChange={handleTabChange}
+                    scrollButtons="auto"
+                    sx={{ borderTop: 1, borderColor: 'divider', flexShrink: 0 }}
+                    value={activeTab}
+                    variant="scrollable"
+                >
+                    <Tab label="Definition" value={DEFINITION_TAB} />
+                    <Tab label="Prompt" value={PROMPT_TAB} />
+                    {(definition.phrases ?? []).map((phrase, index) => (
+                        <Tab
+                            key={phraseTabValue(index)}
+                            label={actionPhraseLabel(phrase.title, phrase.text)}
+                            value={phraseTabValue(index)}
+                        />
+                    ))}
+                    <Tab aria-label="Add predefined phrase" label="+" value="add-phrase" />
+                </Tabs>
+            ) : null}
         </Box>
     )
 }
