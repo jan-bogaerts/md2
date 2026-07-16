@@ -4,15 +4,11 @@ const { promisify } = require('node:util')
 const execFileAsync = promisify(execFile)
 
 function executableFromCommand(command) {
-    const trimmedCommand = command.trim()
-    if (trimmedCommand.startsWith('"')) {
-        const closingQuote = trimmedCommand.indexOf('"', 1)
-        if (closingQuote === -1) throw new Error(`Invalid agent command: ${command}`)
-
-        return trimmedCommand.slice(1, closingQuote)
+    if (!Array.isArray(command) || typeof command[0] !== 'string' || command[0].length === 0) {
+        throw new Error('Invalid agent command')
     }
 
-    return trimmedCommand.split(/\s/u, 1)[0]
+    return command[0]
 }
 
 async function executableAvailable(executable, options = {}) {

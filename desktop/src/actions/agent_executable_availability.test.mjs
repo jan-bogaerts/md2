@@ -5,9 +5,9 @@ const require = createRequire(import.meta.url)
 const { executableFromCommand, loadAgentExecutableAvailability } = require('./agent_executable_availability')
 
 describe('agent executable availability', () => {
-    it('reads bare and quoted executables from configured commands', () => {
-        expect(executableFromCommand('codex --flag')).toBe('codex')
-        expect(executableFromCommand('"C:\\Program Files\\Claude\\claude.exe" --flag')).toBe('C:\\Program Files\\Claude\\claude.exe')
+    it('reads executable from configured command array', () => {
+        expect(executableFromCommand(['codex', '--flag'])).toBe('codex')
+        expect(executableFromCommand(['C:\\Program Files\\Claude\\claude.exe', '--flag'])).toBe('C:\\Program Files\\Claude\\claude.exe')
     })
 
     it('reports available and unavailable configured agents', async () => {
@@ -16,8 +16,8 @@ describe('agent executable availability', () => {
         })
 
         await expect(loadAgentExecutableAvailability([
-            { command: 'codex', name: 'codex' },
-            { command: 'claude', name: 'claude' },
+            { command: ['codex'], name: 'codex' },
+            { command: ['claude'], name: 'claude' },
         ], { execFileAsync, platform: 'win32' })).resolves.toEqual({
             claude: { available: false, error: 'Executable not found for claude: claude' },
             codex: { available: true, error: null },

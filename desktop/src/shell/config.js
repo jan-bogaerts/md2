@@ -31,7 +31,7 @@ function resolveDesktopConfig(env = process.env) {
     const agentProfiles = validateAgentProfiles(BUILTIN_AGENT_PROFILES)
     if (env.MD2_AGENT) {
         const defaultProfile = agentProfiles.find((profile) => profile.name === DEFAULT_DESKTOP_AGENT)
-        defaultProfile.command = env.MD2_AGENT
+        defaultProfile.command = [env.MD2_AGENT]
     }
     const bridgeAllowedOrigins = env.MD2_BRIDGE_ALLOWED_ORIGINS
         ? env.MD2_BRIDGE_ALLOWED_ORIGINS.split(',').map((origin) => origin.trim()).filter((origin) => origin.length > 0)
@@ -74,7 +74,7 @@ function readDesktopConfig(store, env = process.env) {
     const agentProfiles = validateAgentProfiles(profilesWithDefaultModels)
     if (env.MD2_AGENT) {
         const defaultProfile = agentProfiles.find((profile) => profile.name === DEFAULT_DESKTOP_AGENT)
-        if (defaultProfile) defaultProfile.command = env.MD2_AGENT
+        if (defaultProfile) defaultProfile.command = [env.MD2_AGENT]
     }
 
     return { ...resolved, agentProfiles }

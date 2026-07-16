@@ -1,10 +1,10 @@
 export interface AgentProfile {
-    command: string
+    command: string[]
     defaultModel?: string
     modelArgument?: string
     models: string[]
     name: string
-    resumeCommand?: string
+    resumeCommand?: string[]
 }
 
 export interface AgentSelection {
@@ -25,6 +25,6 @@ export function findAgentProfile(profiles: AgentProfile[], name: string): AgentP
 export function validateAgentSelection(profiles: AgentProfile[], selection: AgentSelection, source: string): void
 export function validateThinkingLevel(value: unknown, source: string): ThinkingLevel
 export function defaultModelForProfile(profile: AgentProfile): string
-export function buildAgentCommand(profile: AgentProfile, model: string): string
-export function buildAgentExecutionCommand(profile: AgentProfile, model: string, thinkingLevel: ThinkingLevel, searchEnabled?: boolean): string
-export function buildResumeAgentCommand(profile: AgentProfile, sessionId: string, executionCommand?: string): string
+export function buildAgentCommand(profile: AgentProfile, model: string): string[]
+export function buildAgentExecutionCommand(profile: AgentProfile, model: string, thinkingLevel: ThinkingLevel, searchEnabled?: boolean): string[]
+export function buildResumeAgentCommand(profile: AgentProfile, sessionId: string, executionCommand?: string[]): string[]

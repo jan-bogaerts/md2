@@ -231,18 +231,19 @@ describe('AppMenu', () => {
         expect(screen.getByText('Review project', { selector: 'h6' })).toBeInTheDocument()
     })
 
-    it('refreshes selected agent and model when config changes elsewhere', async () => {
+    it('shows and refreshes the default agent settings', async () => {
         configService.clear()
         configService.init({
             desktopConfig: {
                 agent: 'codex',
                 agentSlotCommand: '',
                 agentProfiles: [
-                    { command: 'codex', modelArgument: '--model', models: ['gpt-5'], name: 'codex' },
-                    { command: 'local-agent', modelArgument: '--model', models: ['local-model'], name: 'local' },
+                    { command: ['codex'], modelArgument: '--model', models: ['gpt-5'], name: 'codex' },
+                    { command: ['local-agent'], modelArgument: '--model', models: ['local-model'], name: 'local' },
                 ],
                 model: 'gpt-5',
                 projectLocationMode: 'folder',
+                thinkingLevel: 'high',
             },
         })
 
@@ -251,14 +252,24 @@ describe('AppMenu', () => {
 
         expect(screen.getByRole('combobox', { name: 'Default agent' })).toHaveTextContent('codex')
         expect(screen.getByRole('combobox', { name: 'Default model' })).toHaveTextContent('gpt-5')
+        expect(screen.getByRole('combobox', { name: 'Default reasoning level' })).toHaveTextContent('high')
+
+        fireEvent.mouseOver(screen.getByRole('combobox', { name: 'Default reasoning level' }))
+        expect(await screen.findByRole('tooltip')).toHaveTextContent('Default reasoning level')
+
+        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Default reasoning level' }))
+        fireEvent.click(screen.getByRole('option', { name: 'max' }))
+        expect(configService.get('desktop.thinkingLevel')).toBe('max')
 
         act(() => {
             configService.set('desktop.agent', 'local')
             configService.set('desktop.model', 'local-model')
+            configService.set('desktop.thinkingLevel', 'low')
         })
 
         await waitFor(() => expect(screen.getByRole('combobox', { name: 'Default agent' })).toHaveTextContent('local'))
         expect(screen.getByRole('combobox', { name: 'Default model' })).toHaveTextContent('local-model')
+        expect(screen.getByRole('combobox', { name: 'Default reasoning level' })).toHaveTextContent('low')
     })
 
     it('flushes pending changes before pushing in manual push mode', async () => {

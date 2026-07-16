@@ -5,7 +5,7 @@ import {
     type StateConfig,
 } from '../data/data_types'
 import { LEGACY_CARD_SEPARATOR } from '../data/card_identifiers'
-import { validateAgentProfiles, type AgentProfile } from '../data/agent_profiles'
+import { validateAgentProfiles, validateThinkingLevel, type AgentProfile } from '../data/agent_profiles'
 import {
     CONFIG_ENTRIES,
     createDefaultValues,
@@ -147,6 +147,7 @@ function validateValue<K extends ConfigKey>(key: K, value: unknown): ConfigValue
 
         return value as ConfigValueTypes[K]
     }
+    if (key === 'desktop.thinkingLevel') return validateThinkingLevel(value, entry.key) as ConfigValueTypes[K]
 
     return validateOption(requireString(value, entry.key), entry) as ConfigValueTypes[K]
 }
@@ -213,6 +214,9 @@ export class ConfigService extends EventTarget {
         if (desktopConfig?.model !== undefined) nextValues = mergeValue(nextValues, 'desktop.model', desktopConfig.model)
         if (desktopConfig?.projectLocationMode !== undefined) {
             nextValues = mergeValue(nextValues, 'desktop.projectLocationMode', desktopConfig.projectLocationMode)
+        }
+        if (desktopConfig?.thinkingLevel !== undefined) {
+            nextValues = mergeValue(nextValues, 'desktop.thinkingLevel', desktopConfig.thinkingLevel)
         }
 
         this.initialized = true
@@ -301,6 +305,7 @@ export class ConfigService extends EventTarget {
             codexSearchEnabled: this.values['desktop.codexSearchEnabled'],
             model: this.values['desktop.model'],
             projectLocationMode: this.values['desktop.projectLocationMode'],
+            thinkingLevel: this.values['desktop.thinkingLevel'],
         }
     }
 

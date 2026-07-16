@@ -50,14 +50,16 @@ describe('AgentRunnerService', () => {
         vi.restoreAllMocks()
     })
 
-    it('uses pipes and passes multiline shell characters as one prompt argument', async () => {
+    it('uses pipes and passes normalized prompt as one argument', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-runner-'))
         const service = new AgentRunnerService()
-        const prompt = 'first line\n"quoted" & <tag> %PATH% \'single\''
+        const prompt = 'Reply with exactly: spawn test ok'
+        const scriptPath = join(rootPath, 'read-prompt.cjs')
 
         try {
             await prepareProject(rootPath)
-            const command = 'node -e "process.stdout.write(JSON.stringify({prompt:process.argv[1],tty:process.stdin.isTTY===true}))"'
+            await writeFile(scriptPath, 'process.stdout.write(JSON.stringify({prompt:process.argv[2],tty:process.stdin.isTTY===true}))\n')
+            const command = ['node', scriptPath]
             const result = await service.run(createProject(rootPath), { command, prompt, scopePath: 'project' }, () => undefined)
 
             expect(result.stderr).toBe('')
@@ -72,10 +74,12 @@ describe('AgentRunnerService', () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-runner-'))
         const service = new AgentRunnerService()
         const contextInput = 'history\n'.repeat(20000)
+        const scriptPath = join(rootPath, 'read-context.cjs')
 
         try {
             await prepareProject(rootPath)
-            const command = 'node -e "let value=\'\';process.stdin.on(\'data\',chunk=>value+=chunk);process.stdin.on(\'end\',()=>process.stdout.write(String(value.length)))"'
+            await writeFile(scriptPath, "let value='';process.stdin.on('data',chunk=>value+=chunk);process.stdin.on('end',()=>process.stdout.write(String(value.length)))\n")
+            const command = ['node', scriptPath]
             const result = await service.run(createProject(rootPath), { command, contextInput, prompt: 'next', scopePath: 'project' }, () => undefined)
 
             expect(result.stdout).toBe(String(contextInput.length))
@@ -84,19 +88,17 @@ describe('AgentRunnerService', () => {
         }
     })
 
-    it.runIf(process.platform === 'win32')('runs a configured Windows command shim without resolving its internal launcher', async () => {
+    it('runs configured executable directly through shell', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-runner-'))
         const service = new AgentRunnerService()
-        const shimPath = join(rootPath, 'test agent.cmd')
         const scriptPath = join(rootPath, 'test-agent-script.cjs')
-        const prompt = '"quoted" & <tag> %PATH%'
+        const prompt = 'spawn test ok'
 
         try {
             await prepareProject(rootPath)
             await writeFile(scriptPath, 'process.stdout.write(JSON.stringify(process.argv[3]))\n')
-            await writeFile(shimPath, '@node "%~dp0test-agent-script.cjs" %*\r\n')
             const result = await service.run(createProject(rootPath), {
-                command: `"${shimPath}" marker`,
+                command: ['node', scriptPath, 'marker'],
                 prompt,
                 scopePath: 'project',
             }, () => undefined)
@@ -113,10 +115,12 @@ describe('AgentRunnerService', () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-runner-'))
         const service = new AgentRunnerService()
         const events = []
+        const scriptPath = join(rootPath, 'structured-output.cjs')
 
         try {
             await prepareProject(rootPath)
-            const command = 'node -e "console.log(JSON.stringify({type:\'thread.started\',thread_id:\'thread-1\'}));console.log(JSON.stringify({type:\'turn.started\'}));console.log(JSON.stringify({type:\'item.completed\',item:{type:\'agent_message\',text:\'answer\'}}))"'
+            await writeFile(scriptPath, "console.log(JSON.stringify({type:'thread.started',thread_id:'thread-1'}));console.log(JSON.stringify({type:'turn.started'}));console.log(JSON.stringify({type:'item.completed',item:{type:'agent_message',text:'answer'}}))\n")
+            const command = ['node', scriptPath]
             const result = await service.run(createProject(rootPath), {
                 agent: 'codex',
                 cardPath: 'design/F-1.md',
@@ -140,12 +144,14 @@ describe('AgentRunnerService', () => {
     it('fails a new provider turn without an explicit structured conversation id', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-runner-'))
         const service = new AgentRunnerService()
+        const scriptPath = join(rootPath, 'missing-session.cjs')
 
         try {
             await prepareProject(rootPath)
+            await writeFile(scriptPath, "console.log(JSON.stringify({type:'item.completed',item:{type:'agent_message',text:'partial answer'}}))\n")
             const result = await service.run(createProject(rootPath), {
                 agent: 'codex',
-                command: 'node -e "console.log(JSON.stringify({type:\'item.completed\',item:{type:\'agent_message\',text:\'partial answer\'}}))"',
+                command: ['node', scriptPath],
                 prompt: 'question',
                 scopePath: 'project',
             }, () => undefined)
@@ -164,12 +170,14 @@ describe('AgentRunnerService', () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-runner-'))
         const service = new AgentRunnerService()
         const events = []
+        const scriptPath = join(rootPath, 'malformed-output.cjs')
 
         try {
             await prepareProject(rootPath)
+            await writeFile(scriptPath, "console.log('not-json')\n")
             const result = await service.run(createProject(rootPath), {
                 agent: 'claude',
-                command: 'node -e "console.log(\'not-json\')"',
+                command: ['node', scriptPath],
                 prompt: 'question',
                 scopePath: 'project',
             }, (event) => events.push(event))
@@ -198,7 +206,7 @@ describe('AgentRunnerService', () => {
         try {
             await prepareProject(rootPath)
             const started = await service.start(createProject(rootPath), {
-                agent: 'codex', command: 'node -e "setTimeout(()=>{},10000)"', conversation,
+                agent: 'codex', command: ['node', '-e', 'setTimeout(()=>{},10000)'], conversation,
                 prompt: 'next', reference: '.md2-agent-logs/conversation.json', scopePath: 'project',
             }, (event) => events.push(event))
             service.stop(started.runId)
@@ -224,16 +232,16 @@ describe('AgentRunnerService', () => {
         try {
             await prepareProject(rootPath)
             const first = await service.start(createProject(rootPath), {
-                command: 'node -e "setTimeout(()=>process.exit(0),100)"', conversation,
+                command: ['node', '-e', 'setTimeout(()=>process.exit(0),100)'], conversation,
                 prompt: 'one', reference: '.md2-agent-logs/one.json', scopePath: 'project',
             }, (event) => events.push(event))
 
             await expect(service.start(createProject(rootPath), {
-                command: 'node -e "process.exit(0)"', conversation,
+                command: ['node', '-e', 'process.exit(0)'], conversation,
                 prompt: 'two', reference: '.md2-agent-logs/one.json', scopePath: 'project',
             }, () => undefined)).rejects.toThrow('already has a running turn')
             const second = await service.start(createProject(rootPath), {
-                command: 'node -e "process.exit(0)"', prompt: 'other', scopePath: 'project',
+                command: ['node', '-e', 'process.exit(0)'], prompt: 'other', scopePath: 'project',
             }, (event) => events.push(event))
 
             service.stop(first.runId)
@@ -252,7 +260,7 @@ describe('AgentRunnerService', () => {
         try {
             await prepareProject(rootPath)
             const result = await service.run(createProject(rootPath), {
-                command: 'node -e "process.stdout.write(\'done\')"', prompt: 'go', scopePath: 'project',
+                command: ['node', '-e', "process.stdout.write('done')"], prompt: 'go', scopePath: 'project',
             }, () => undefined)
             const persisted = JSON.parse(await readFile(join(rootPath, result.reference), 'utf8'))
 

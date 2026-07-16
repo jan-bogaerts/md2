@@ -91,6 +91,7 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
     const configuredAgent = useConfigValueOrFallback('desktop.agent', '')
     const configuredAgentProfiles = useConfigValueOrFallback('desktop.agentProfiles', [])
     const configuredModel = useConfigValueOrFallback('desktop.model', '')
+    const configuredThinkingLevel = useConfigValueOrFallback('desktop.thinkingLevel', 'none')
     const capabilities = useAgentCapabilities()
     const convertPromptToAction = input.convertPromptToAction ?? defaultConvertPromptToAction
     const cancelAction = input.cancelAction ?? defaultCancelAction
@@ -103,7 +104,7 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
     const defaultAgent = action.agent ?? configuredAgent
     const defaultAgentProfile = findAgentProfile(agentProfiles, defaultAgent)
     const defaultModel = (action.model ?? configuredModel) || (defaultAgentProfile ? defaultModelForProfile(defaultAgentProfile) : '')
-    const definitionThinkingLevel = validateThinkingLevel(action.thinkingLevel ?? 'none', `action "${action.name}"`)
+    const definitionThinkingLevel = validateThinkingLevel(action.thinkingLevel ?? configuredThinkingLevel, `action "${action.name}"`)
     const [actionLabel, setActionLabel] = useState('')
     const [agentOverride, setAgentOverride] = useState<string | null>(null)
     const [convertMessage, setConvertMessage] = useState<string | null>(null)

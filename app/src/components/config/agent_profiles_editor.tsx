@@ -43,12 +43,12 @@ interface AgentProfileFormState {
 
 function toFormState(profile?: AgentProfile): AgentProfileFormState {
     return {
-        command: profile?.command ?? '',
+        command: profile ? JSON.stringify(profile.command) : '',
         defaultModel: profile?.defaultModel ?? '',
         modelArgument: profile?.modelArgument ?? '',
         models: profile?.models?.join(`${COMMA_SEPARATOR} `) ?? '',
         name: profile?.name ?? '',
-        resumeCommand: profile?.resumeCommand ?? '',
+        resumeCommand: profile?.resumeCommand ? JSON.stringify(profile.resumeCommand) : '',
     }
 }
 
@@ -56,16 +56,25 @@ function readModels(value: string) {
     return value.split(COMMA_SEPARATOR).map((model) => model.trim()).filter((model) => model.length > 0)
 }
 
+function readCommand(value: string) {
+    const command: unknown = JSON.parse(value)
+    if (!Array.isArray(command) || command.length === 0 || command.some((argument) => typeof argument !== 'string' || argument.length === 0)) {
+        throw new Error('Command must be a non-empty JSON array of strings.')
+    }
+
+    return command
+}
+
 function toAgentProfile(form: AgentProfileFormState): AgentProfile {
     const models = readModels(form.models)
 
     return {
-        command: form.command.trim(),
+        command: readCommand(form.command),
         ...(form.defaultModel.trim().length > 0 ? { defaultModel: form.defaultModel.trim() } : {}),
         ...(form.modelArgument.trim().length > 0 ? { modelArgument: form.modelArgument.trim() } : {}),
         models,
         name: form.name.trim(),
-        ...(form.resumeCommand.trim().length > 0 ? { resumeCommand: form.resumeCommand.trim() } : {}),
+        ...(form.resumeCommand.trim().length > 0 ? { resumeCommand: readCommand(form.resumeCommand) } : {}),
     }
 }
 
@@ -79,6 +88,20 @@ function validateForm(form: AgentProfileFormState, usedNames: string[]) {
     if (name.length === 0) errors.push('Name is required.')
     if (usedNames.includes(name)) errors.push(`Duplicate agent profile: ${name}`)
     if (command.length === 0) errors.push('Command is required.')
+    else {
+        try {
+            readCommand(command)
+        } catch (error) {
+            errors.push(error instanceof Error ? error.message : 'Invalid command.')
+        }
+    }
+    if (form.resumeCommand.trim().length > 0) {
+        try {
+            readCommand(form.resumeCommand)
+        } catch (error) {
+            errors.push(error instanceof Error ? `Resume ${error.message.toLowerCase()}` : 'Invalid resume command.')
+        }
+    }
     if (models.length === 0) errors.push('At least one model is required.')
     if (new Set(models).size !== models.length) errors.push('Model names must be unique.')
     if (defaultModel.length > 0 && models.length > 0 && !models.includes(defaultModel)) {
@@ -109,7 +132,7 @@ function AgentProfileRow(props: AgentProfileRowProps) {
                 <Box sx={{ flex: 1, minWidth: 0 }}>
                     <Typography sx={{ fontWeight: 700 }}>{profile.name}</Typography>
                     <Typography color="text.secondary" sx={{ overflowWrap: 'anywhere' }} variant="body2">
-                        {profile.command}
+                        {JSON.stringify(profile.command)}
                     </Typography>
                 </Box>
                 <Stack direction="row" spacing={1}>
@@ -139,7 +162,7 @@ function AgentProfileForm(props: AgentProfileFormProps) {
                 <TextField
                     disabled={disabled}
                     fullWidth
-                    helperText={`May include ${MODEL_PLACEHOLDER}.`}
+                    helperText={`JSON string array. May include ${MODEL_PLACEHOLDER}.`}
                     label="Command"
                     name="command"
                     onChange={onTextChange}
@@ -152,7 +175,7 @@ function AgentProfileForm(props: AgentProfileFormProps) {
                 <TextField
                     disabled={disabled}
                     fullWidth
-                    helperText={`May include ${SESSION_ID_PLACEHOLDER}.`}
+                    helperText={`JSON string array. May include ${SESSION_ID_PLACEHOLDER}.`}
                     label="Resume command"
                     name="resumeCommand"
                     onChange={onTextChange}

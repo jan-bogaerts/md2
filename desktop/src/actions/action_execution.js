@@ -84,7 +84,7 @@ class ActionExecution {
             const result = await this.executeAction(action, phase, isRoot)
             if (this.controller.signal.aborted) {
                 this.publish(action, phase, 'cancelled', {
-                    command: result.command,
+                    command: Array.isArray(result.command) ? result.command.join(' ') : result.command,
                     conversation: result.conversation,
                     executionWorktree: result.executionWorktree,
                     message: 'Action cancelled',
@@ -103,7 +103,7 @@ class ActionExecution {
             const status = result.exitCode === 0 ? 'completed' : 'failed'
             const output = combineOutput(result)
             this.publish(action, phase, status, {
-                command: result.command,
+                command: Array.isArray(result.command) ? result.command.join(' ') : result.command,
                 conversation: result.conversation,
                 executionWorktree: result.executionWorktree,
                 message: status === 'completed' ? `${action.label} completed` : `${action.label} failed with exit code ${result.exitCode}`,

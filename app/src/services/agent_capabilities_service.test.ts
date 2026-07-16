@@ -62,7 +62,7 @@ describe('AgentCapabilitiesService', () => {
         configService.init({
             desktopConfig: {
                 agent: 'codex',
-                agentProfiles: [{ command: 'codex', models: ['override-a', 'override-b'], name: 'codex' }],
+                agentProfiles: [{ command: ['codex'], models: ['override-a', 'override-b'], name: 'codex' }],
                 model: 'override-a',
             },
         })

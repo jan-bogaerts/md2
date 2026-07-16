@@ -42,7 +42,7 @@ describe('resolveDesktopConfig', () => {
         expect(resolveDesktopConfig({})).toEqual({
             agent: DEFAULT_DESKTOP_AGENT,
             agentSlotCommand: DEFAULT_AGENT_SLOT_COMMAND,
-            agentProfiles: expect.arrayContaining([expect.objectContaining({ command: 'codex', name: 'codex' })]),
+            agentProfiles: expect.arrayContaining([expect.objectContaining({ command: ['codex'], name: 'codex' })]),
             codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
             model: DEFAULT_DESKTOP_MODEL,
             projectLocationMode: DEFAULT_PROJECT_LOCATION_MODE,
@@ -57,7 +57,7 @@ describe('resolveDesktopConfig', () => {
         })).toEqual({
             agent: DEFAULT_DESKTOP_AGENT,
             agentSlotCommand: 'slot-command',
-            agentProfiles: expect.arrayContaining([expect.objectContaining({ command: 'custom-codex', name: 'codex' })]),
+            agentProfiles: expect.arrayContaining([expect.objectContaining({ command: ['custom-codex'], name: 'codex' })]),
             codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
             model: DEFAULT_DESKTOP_MODEL,
             projectLocationMode: 'current-directory',
@@ -97,8 +97,8 @@ describe('readDesktopConfig', () => {
             [DESKTOP_CONFIG_STORE_KEY]: {
                 agent: 'custom',
                 agentProfiles: [
-                    { command: 'stored-codex', models: ['GPT 5.5'], name: 'codex' },
-                    { command: 'stored-custom', models: ['custom-model'], name: 'custom' },
+                    { command: ['stored-codex'], models: ['GPT 5.5'], name: 'codex' },
+                    { command: ['stored-custom'], models: ['custom-model'], name: 'custom' },
                 ],
             },
         })
@@ -107,8 +107,8 @@ describe('readDesktopConfig', () => {
             agent: 'custom',
             agentSlotCommand: DEFAULT_AGENT_SLOT_COMMAND,
             agentProfiles: expect.arrayContaining([
-                expect.objectContaining({ command: 'env-codex', name: 'codex' }),
-                expect.objectContaining({ command: 'stored-custom', name: 'custom' }),
+                expect.objectContaining({ command: ['env-codex'], name: 'codex' }),
+                expect.objectContaining({ command: ['stored-custom'], name: 'custom' }),
             ]),
             codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
             model: DEFAULT_DESKTOP_MODEL,
@@ -136,8 +136,8 @@ describe('readDesktopConfig', () => {
         const store = createFakeStore({
             [DESKTOP_CONFIG_STORE_KEY]: {
                 agentProfiles: [
-                    { command: 'codex', models: [], name: 'codex' },
-                    { command: 'claude', name: 'claude' },
+                    { command: ['codex'], models: [], name: 'codex' },
+                    { command: ['claude'], name: 'claude' },
                 ],
             },
         })
@@ -153,7 +153,7 @@ describe('readDesktopConfig', () => {
     it('requires custom profiles to provide models', () => {
         const store = createFakeStore({
             [DESKTOP_CONFIG_STORE_KEY]: {
-                agentProfiles: [{ command: 'custom-agent', models: [], name: 'custom' }],
+                agentProfiles: [{ command: ['custom-agent'], models: [], name: 'custom' }],
             },
         })
 

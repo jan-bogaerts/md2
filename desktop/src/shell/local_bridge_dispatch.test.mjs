@@ -57,7 +57,7 @@ function createDispatch(options = {}) {
         resolve: vi.fn(async (primaryProject) => ({ executionProject: primaryProject, transferRecord: null })),
     }
     const desktopConfig = options.desktopConfig ?? {
-        agent: 'codex', agentProfiles: [{ command: 'codex', models: ['gpt-5'], name: 'codex' }], model: 'gpt-5',
+        agent: 'codex', agentProfiles: [{ command: ['codex'], models: ['gpt-5'], name: 'codex' }], model: 'gpt-5',
     }
     const dispatch = createLocalBridgeDispatch({
         actionRunnerService,
@@ -81,7 +81,7 @@ describe('createLocalBridgeDispatch', () => {
         const { agentExecutableAvailability, dispatch } = createDispatch()
 
         await expect(dispatch.dataBridge.loadAgentAvailability()).resolves.toEqual({ codex: { available: true, error: null } })
-        expect(agentExecutableAvailability).toHaveBeenCalledWith([{ command: 'codex', models: ['gpt-5'], name: 'codex' }])
+        expect(agentExecutableAvailability).toHaveBeenCalledWith([{ command: ['codex'], models: ['gpt-5'], name: 'codex' }])
     })
 
     it('forwards pending push checks to the local Git service', async () => {
@@ -155,7 +155,7 @@ describe('createLocalBridgeDispatch', () => {
         await dispatch.actionBridge.runSearchRegexpAgent('find beta cards', vi.fn())
 
         expect(agentRunnerService.run).toHaveBeenCalledWith(project, expect.objectContaining({
-            cardPath: '.md2-search-regexp', command: 'codex --search exec --json', prompt: expect.stringContaining('find beta cards'),
+            cardPath: '.md2-search-regexp', command: ['codex', '--search', 'exec', '--json'], prompt: expect.stringContaining('find beta cards'),
         }), expect.any(Function))
     })
 

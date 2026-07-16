@@ -9,7 +9,7 @@ import ContentSaveOutline from 'mdi-material-ui/ContentSaveOutline'
 import FileDocumentPlusOutline from 'mdi-material-ui/FileDocumentPlusOutline'
 import FolderOpen from 'mdi-material-ui/FolderOpen'
 import TextBoxOutline from 'mdi-material-ui/TextBoxOutline'
-import { defaultModelForProfile, findAgentProfile, mergeAgentProfiles } from '../../../data/agent_profiles'
+import { defaultModelForProfile, findAgentProfile, mergeAgentProfiles, THINKING_LEVELS, validateThinkingLevel } from '../../../data/agent_profiles'
 import { configService } from '../../../services/config_service'
 import { writeDesktopConfigToBridge } from '../../../services/config_persistence'
 import { projectSessionService } from '../../../services/project_session_service'
@@ -80,6 +80,7 @@ export function AppMenu(props: AppMenuProps) {
     const selectedProfile = findAgentProfile(agentProfiles, selectedAgent)
     const selectedModels = selectedProfile?.models ?? []
     const configuredModel = useConfigValue('desktop.model')
+    const selectedThinkingLevel = useConfigValue('desktop.thinkingLevel')
     const desktopAvailable = useHasDesktopConfig()
     const selectedModel = configuredModel || (selectedProfile ? defaultModelForProfile(selectedProfile) : '')
     const projectBranch = project?.branch ?? ''
@@ -166,6 +167,12 @@ export function AppMenu(props: AppMenuProps) {
 
     const handleModelTextChange = (event: ChangeEvent<HTMLInputElement>) => {
         setModel(event.target.value)
+    }
+
+    const handleThinkingLevelChange = (event: SelectChangeEvent) => {
+        const thinkingLevel = validateThinkingLevel(event.target.value, 'Default reasoning level')
+        configService.set('desktop.thinkingLevel', thinkingLevel)
+        persistDesktopConfig()
     }
 
     const handleCreateAction = async () => {
@@ -329,6 +336,17 @@ export function AppMenu(props: AppMenuProps) {
                                 />
                             </Tooltip>
                         )}
+                        <MenuSelect
+                            disabled={!desktopAvailable}
+                            label="Default reasoning level"
+                            minWidth={120}
+                            onChange={handleThinkingLevelChange}
+                            value={selectedThinkingLevel}
+                        >
+                            {THINKING_LEVELS.map((level) => (
+                                <MenuItem key={level} value={level}>{level}</MenuItem>
+                            ))}
+                        </MenuSelect>
                     </Section>
                     <Divider flexItem orientation="vertical" sx={{ my: 1.5 }} />
                     <Section label="Actions">

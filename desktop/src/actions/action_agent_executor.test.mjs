@@ -84,7 +84,7 @@ describe('ActionAgentExecutor', () => {
 
     it('resumes same provider after cursor with normalized reference and explicit prompt', async () => {
         const profile = {
-            command: 'agent start', models: ['default'], name: 'custom', resumeCommand: 'agent resume {{sessionId}}',
+            command: ['agent', 'start'], models: ['default'], name: 'custom', resumeCommand: ['agent', 'resume', '{{sessionId}}'],
         }
         const agentConfigProvider = () => ({ agent: 'custom', agentProfiles: [profile], model: 'default' })
         const { agentRunnerService, executor, localGitService } = createExecutor({ agentConfigProvider })
@@ -104,7 +104,7 @@ describe('ActionAgentExecutor', () => {
 
         expect(localGitService.loadAgentConversation).toHaveBeenCalledWith(project, '.md2-agent-logs/source.json')
         expect(agentRunnerService.start.mock.calls[0][1]).toMatchObject({
-            command: 'agent resume session-1', contextInput: expect.stringContaining('new'),
+            command: ['agent', 'resume', 'session-1'], contextInput: expect.stringContaining('new'),
             prompt: 'next', providerConversationId: 'session-1', reference: '.md2-agent-logs/source.json',
         })
     })

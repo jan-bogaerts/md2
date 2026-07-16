@@ -13,7 +13,7 @@ function createPreloadHarness(options = {}) {
     const href = options.href ?? `${origin}/`
     const allowedOrigins = options.allowedOrigins ?? ['http://localhost:5173']
     const trustedLocation = options.trustedLocation ?? 'http://localhost:5173'
-    const desktopConfig = options.desktopConfig ?? { agent: 'codex', agentProfiles: [{ command: 'codex', name: 'codex' }], model: '' }
+    const desktopConfig = options.desktopConfig ?? { agent: 'codex', agentProfiles: [{ command: ['codex'], name: 'codex' }], model: '' }
     const body = {
         appendChild: vi.fn(),
         innerHTML: 'app',
@@ -165,9 +165,9 @@ describe('preload desktop agent bridge', () => {
 
     it('keeps desktop config cached while persisting updates through IPC', () => {
         const { electron, exposed } = createPreloadHarness()
-        const nextConfig = { agent: 'stored-agent', agentProfiles: [{ command: 'stored-agent', name: 'stored-agent' }], model: '' }
+        const nextConfig = { agent: 'stored-agent', agentProfiles: [{ command: ['stored-agent'], name: 'stored-agent' }], model: '' }
 
-        expect(exposed.md2Config.getDesktopConfig()).toEqual({ agent: 'codex', agentProfiles: [{ command: 'codex', name: 'codex' }], model: '' })
+        expect(exposed.md2Config.getDesktopConfig()).toEqual({ agent: 'codex', agentProfiles: [{ command: ['codex'], name: 'codex' }], model: '' })
         exposed.md2Config.setDesktopConfig(nextConfig)
 
         expect(exposed.md2Config.getDesktopConfig()).toEqual(nextConfig)

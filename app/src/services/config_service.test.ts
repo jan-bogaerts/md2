@@ -166,12 +166,14 @@ describe('ConfigService', () => {
                 agentProfiles: BUILTIN_AGENT_PROFILES,
                 model: '',
                 projectLocationMode: 'current-directory',
+                thinkingLevel: 'high',
             },
         })
 
         expect(service.getEntries().some((entry) => entry.source === 'desktop')).toBe(true)
         expect(service.get('desktop.agent')).toBe('claude')
         expect(service.get('desktop.agentSlotCommand')).toBe('slot-command')
+        expect(service.get('desktop.thinkingLevel')).toBe('high')
     })
 
     it('persists react values across instances, simulating a reload', () => {
@@ -218,6 +220,7 @@ describe('ConfigService', () => {
                 agentProfiles: BUILTIN_AGENT_PROFILES,
                 model: '',
                 projectLocationMode: 'current-directory',
+                thinkingLevel: 'high',
             },
         })
 
@@ -228,6 +231,7 @@ describe('ConfigService', () => {
             codexSearchEnabled: true,
             model: '',
             projectLocationMode: 'current-directory',
+            thinkingLevel: 'high',
         })
     })
 

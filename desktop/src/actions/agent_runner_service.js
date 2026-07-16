@@ -1,28 +1,35 @@
 const crypto = require('node:crypto')
 const { spawn } = require('node:child_process')
-const fs = require('node:fs')
 const path = require('node:path')
 
+const {
+    createConversation,
+    createEvent,
+    createMessage,
+    hasRequiredProviderConversationId,
+    updateProviderSession,
+} = require('./agent_conversation')
+const {
+    agentLogFilePath,
+    clearIntermediatePersist,
+    existingLogFilePath,
+    persistConversation,
+    queueConversationPersist,
+    queueThrottledConversationPersist,
+} = require('./agent_conversation_persistence')
 const { createAgentProviderProtocolParser } = require('./agent_provider_protocol')
 const { assertGitRoot, ensureInsideRoot, requireRootPath } = require('../git/git_commands')
 const { normalizePath } = require('../../../shared/path_utils.mjs')
 
-const AGENT_LOG_FOLDER = '.md2-agent-logs'
-const INTERMEDIATE_PERSIST_INTERVAL_MS = 250
-const POWERSHELL_AGENT_SCRIPT = [
-    '$agentArguments = ConvertFrom-Json $env:MD2_AGENT_ARGUMENTS',
-    '$agentCommand = Get-Command $env:MD2_AGENT_EXECUTABLE -ErrorAction Stop',
-    'if ($agentCommand.CommandType -eq "Application") { $agentArguments = @($agentArguments | ForEach-Object { $_ -replace \'"\', \'\\"\' }) }',
-    '& $agentCommand.Source @agentArguments',
-    'exit $LASTEXITCODE',
-].join('; ')
-
-function safePathSegment(value) {
-    return value.replace(/[^a-zA-Z0-9._-]/g, '_')
-}
-
 function requireString(value, fieldName) {
     if (typeof value !== 'string' || value.length === 0) throw new Error(`Missing agent ${fieldName}`)
+
+    return value
+}
+
+function requireCommand(value) {
+    if (!Array.isArray(value) || value.length === 0) throw new Error('Missing agent command')
+    value.forEach((argument, index) => requireString(argument, `command[${index}]`))
 
     return value
 }
@@ -32,75 +39,6 @@ function readOptionalString(value, fieldName) {
     if (typeof value !== 'string' || value.length === 0) throw new Error(`Missing agent ${fieldName}`)
 
     return value
-}
-
-function splitWindowsCommandLine(command) {
-    const argumentsList = []
-    let index = 0
-
-    while (index < command.length) {
-        while (/\s/u.test(command[index])) index += 1
-        if (index >= command.length) break
-
-        let argument = ''
-        let insideQuotes = false
-        while (index < command.length && (insideQuotes || !/\s/u.test(command[index]))) {
-            if (command[index] !== '\\') {
-                if (command[index] === '"') insideQuotes = !insideQuotes
-                else argument += command[index]
-                index += 1
-                continue
-            }
-
-            const backslashStart = index
-            while (command[index] === '\\') index += 1
-            const backslashCount = index - backslashStart
-            if (command[index] !== '"') {
-                argument += '\\'.repeat(backslashCount)
-                continue
-            }
-
-            argument += '\\'.repeat(Math.floor(backslashCount / 2))
-            if (backslashCount % 2 === 1) argument += '"'
-            else insideQuotes = !insideQuotes
-            index += 1
-        }
-        argumentsList.push(argument)
-    }
-
-    return argumentsList
-}
-
-function quotePosixShellArgument(value) {
-    return `'${value.replaceAll("'", `'"'"'`)}'`
-}
-
-function createProcessInvocation(command, prompt) {
-    if (process.platform === 'win32') {
-        const [executable, ...configuredArguments] = splitWindowsCommandLine(command)
-        if (!executable) throw new Error('Missing agent command executable')
-        const agentArguments = [...configuredArguments, prompt]
-        if (/\.(?:bat|cmd)$/iu.test(executable)) {
-            return {
-                args: ['/d', '/s', '/v:on', '/c', `"${command} "!MD2_AGENT_PROMPT!""`],
-                env: { ...process.env, MD2_AGENT_PROMPT: prompt.replaceAll('"', '\\"') },
-                executable: process.env.ComSpec ?? 'cmd.exe',
-                windowsVerbatimArguments: true,
-            }
-        }
-
-        return {
-            args: ['-NoProfile', '-NonInteractive', '-Command', POWERSHELL_AGENT_SCRIPT],
-            env: { ...process.env, MD2_AGENT_ARGUMENTS: JSON.stringify(agentArguments), MD2_AGENT_EXECUTABLE: executable },
-            executable: process.env.SystemRoot ? path.join(process.env.SystemRoot, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe') : 'powershell.exe',
-        }
-    }
-
-    return {
-        args: ['-lc', `${command} ${quotePosixShellArgument(prompt)}`],
-        env: process.env,
-        executable: process.env.SHELL ?? '/bin/sh',
-    }
 }
 
 function terminateProcess(child) {
@@ -119,125 +57,10 @@ function terminateProcess(child) {
     })
 }
 
-function createMessage(id, role, content, timestamp, agent) {
-    return { ...(agent ? { agent } : {}), content, id, role, timestamp }
-}
-
-function createEvent(id, type, content, timestamp) {
-    return { content, id, timestamp, type }
-}
-
-function agentLogFilePath(rootPath, scopePath, id) {
-    const folderPath = ensureInsideRoot(rootPath, path.join(rootPath, AGENT_LOG_FOLDER))
-    const fileName = `${safePathSegment(scopePath)}_${safePathSegment(id)}.json`
-
-    return ensureInsideRoot(rootPath, path.join(folderPath, fileName))
-}
-
-function existingLogFilePath(rootPath, reference) {
-    return ensureInsideRoot(rootPath, path.join(rootPath, reference))
-}
-
 function emitRunEvent(run, type, content) {
     if (!run.onEvent) return
 
     run.onEvent({ content, conversation: { ...run.conversation, path: run.reference }, runId: run.id, type })
-}
-
-async function persistConversation(filePath, conversation) {
-    const temporaryPath = `${filePath}.tmp`
-
-    await fs.promises.mkdir(path.dirname(filePath), { recursive: true })
-    await fs.promises.writeFile(temporaryPath, `${JSON.stringify(conversation, null, 2)}\n`)
-    await fs.promises.rename(temporaryPath, filePath)
-}
-
-function queueConversationPersist(run) {
-    run.writeChain = run.writeChain.then(async () => persistConversation(run.filePath, run.conversation))
-
-    return run.writeChain
-}
-
-function clearIntermediatePersist(run) {
-    if (!run.intermediatePersistTimer) return
-
-    clearTimeout(run.intermediatePersistTimer)
-    run.intermediatePersistTimer = null
-}
-
-function queueThrottledConversationPersist(run) {
-    const now = Date.now()
-    const elapsed = now - run.lastIntermediatePersistAt
-    if (elapsed >= INTERMEDIATE_PERSIST_INTERVAL_MS) {
-        run.lastIntermediatePersistAt = now
-
-        return queueConversationPersist(run)
-    }
-
-    if (!run.intermediatePersistTimer) {
-        const delay = INTERMEDIATE_PERSIST_INTERVAL_MS - elapsed
-        run.intermediatePersistTimer = setTimeout(() => {
-            run.intermediatePersistTimer = null
-            run.lastIntermediatePersistAt = Date.now()
-            void queueConversationPersist(run)
-        }, delay)
-    }
-
-    return run.writeChain
-}
-
-function createConversation(request, id, startedAt) {
-    if (request.conversation) {
-        const persistedEntries = Object.entries(request.conversation).filter(([fieldName]) => fieldName !== 'path')
-        const persistedConversation = Object.fromEntries(persistedEntries)
-
-        return {
-            ...persistedConversation,
-            completedAt: null,
-            events: [...request.conversation.events],
-            messages: [...request.conversation.messages],
-            providerSessions: [...(request.conversation.providerSessions ?? [])],
-            status: 'running',
-        }
-    }
-
-    return {
-        actionId: readOptionalString(request.actionId, 'actionId'),
-        ...(request.cardPath ? { cardPath: request.cardPath } : {}),
-        completedAt: null,
-        events: [],
-        hasExplicitTitle: true,
-        id,
-        messages: [],
-        providerSessions: [],
-        startedAt,
-        status: 'running',
-        title: typeof request.title === 'string' && request.title.length > 0 ? request.title : 'Agent run',
-    }
-}
-
-function updateProviderSession(run, synchronizedThroughMessageId, completedAt) {
-    const conversationId = run.providerConversationId ?? run.request.providerConversationId
-    if (!conversationId) return
-
-    const sessions = run.conversation.providerSessions
-    const current = sessions.find(({ agent }) => agent === run.agent)
-    const nextSession = {
-        agent: run.agent,
-        conversationId,
-        createdAt: current?.createdAt ?? completedAt,
-        lastUsedAt: completedAt,
-        synchronizedThroughMessageId,
-    }
-    run.conversation.providerSessions = current
-        ? sessions.map((session) => (session.agent === run.agent ? nextSession : session))
-        : [...sessions, nextSession]
-}
-
-function hasRequiredProviderConversationId(run) {
-    if (run.agent !== 'codex' && run.agent !== 'claude') return true
-
-    return !!(run.providerConversationId ?? run.request.providerConversationId)
 }
 
 function createRunResult(request, exitCode, run) {
@@ -279,7 +102,8 @@ class AgentRunnerService {
     async start(project, request, onEvent, onComplete, onCompletionError) {
         const rootPath = requireRootPath(project)
         await assertGitRoot(rootPath)
-        const command = requireString(request?.command, 'command')
+        const command = requireCommand(request?.command)
+        readOptionalString(request?.actionId, 'actionId')
         const cardPath = readOptionalString(request?.cardPath, 'cardPath')
         const scopePath = requireString(request?.scopePath ?? cardPath, 'scopePath')
         const prompt = requireString(request?.prompt, 'prompt')
@@ -300,15 +124,16 @@ class AgentRunnerService {
         } else {
             conversation.messages.push(createMessage(`${id}-user`, 'user', prompt, startedAt))
         }
-        conversation.events.push(createEvent(`${id}-started`, 'started', command, startedAt))
+        conversation.events.push(createEvent(`${id}-started`, 'started', command.join(' '), startedAt))
         await persistConversation(filePath, conversation)
 
-        const invocation = createProcessInvocation(command, prompt)
-        const child = spawn(invocation.executable, invocation.args, {
+        const [executable, ...configuredArguments] = command
+        const argumentsList = [...configuredArguments, JSON.stringify(prompt)] // normalize
+        const child = spawn(executable, argumentsList, {
             cwd: rootPath,
-            env: invocation.env,
+            env: process.env,
+            shell: true,
             stdio: ['pipe', 'pipe', 'pipe'],
-            windowsVerbatimArguments: invocation.windowsVerbatimArguments ?? false,
             windowsHide: true,
         })
         const run = {

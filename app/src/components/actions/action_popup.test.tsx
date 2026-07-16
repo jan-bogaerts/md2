@@ -297,8 +297,8 @@ describe('ActionPopup', () => {
                 agent: 'codex',
                 agentSlotCommand: '',
                 agentProfiles: [
-                    { command: 'codex', models: ['gpt-5'], name: 'codex' },
-                    { command: 'claude', models: ['sonnet'], name: 'claude' },
+                    { command: ['codex'], models: ['gpt-5'], name: 'codex' },
+                    { command: ['claude'], models: ['sonnet'], name: 'claude' },
                 ],
                 model: 'gpt-5',
                 projectLocationMode: 'folder',
@@ -502,7 +502,7 @@ describe('ActionPopup', () => {
             desktopConfig: {
                 agent: 'codex',
                 agentSlotCommand: '',
-                agentProfiles: [{ command: 'codex', modelArgument: '--model', models: ['gpt-5', 'gpt-5-mini'], name: 'codex' }],
+                agentProfiles: [{ command: ['codex'], modelArgument: '--model', models: ['gpt-5', 'gpt-5-mini'], name: 'codex' }],
                 model: 'gpt-5',
                 projectLocationMode: 'folder',
             },
@@ -534,14 +534,22 @@ describe('ActionPopup', () => {
         expect(selectedAction.thinkingLevel).toBe('high')
     })
 
+    it('preselects the configured default thinking level when the action does not override it', () => {
+        configService.init({ desktopConfig: { thinkingLevel: 'high' } })
+
+        renderPopup({ action: action('Implement', { type: 'agent' }) })
+
+        expect(screen.getByRole('combobox', { name: 'Thinking level' })).toHaveTextContent('high')
+    })
+
     it('resets thinking level when agent changes', async () => {
         configService.init({
             desktopConfig: {
                 agent: 'codex',
                 agentSlotCommand: '',
                 agentProfiles: [
-                    { command: 'codex', models: ['gpt-5'], name: 'codex' },
-                    { command: 'claude', models: ['sonnet'], name: 'claude' },
+                    { command: ['codex'], models: ['gpt-5'], name: 'codex' },
+                    { command: ['claude'], models: ['sonnet'], name: 'claude' },
                 ],
                 model: 'gpt-5',
                 projectLocationMode: 'folder',
@@ -565,7 +573,7 @@ describe('ActionPopup', () => {
             desktopConfig: {
                 agent: 'codex',
                 agentSlotCommand: '',
-                agentProfiles: [{ command: 'codex', models: ['gpt-5'], name: 'codex' }],
+                agentProfiles: [{ command: ['codex'], models: ['gpt-5'], name: 'codex' }],
                 model: 'gpt-5',
                 projectLocationMode: 'folder',
             },
@@ -684,7 +692,7 @@ describe('ActionPopup', () => {
             desktopConfig: {
                 agent: 'codex',
                 agentSlotCommand: '',
-                agentProfiles: [{ command: 'codex', modelArgument: '--model', models: ['gpt-5'], name: 'codex' }],
+                agentProfiles: [{ command: ['codex'], modelArgument: '--model', models: ['gpt-5'], name: 'codex' }],
                 model: 'gpt-5',
                 projectLocationMode: 'folder',
             },
@@ -723,7 +731,7 @@ describe('ActionPopup', () => {
             desktopConfig: {
                 agent: 'codex',
                 agentSlotCommand: '',
-                agentProfiles: [{ command: 'codex', modelArgument: '--model', models: ['gpt-5'], name: 'codex' }],
+                agentProfiles: [{ command: ['codex'], modelArgument: '--model', models: ['gpt-5'], name: 'codex' }],
                 model: 'gpt-5',
                 projectLocationMode: 'folder',
             },

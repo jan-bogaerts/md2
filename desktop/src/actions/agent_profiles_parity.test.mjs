@@ -23,7 +23,9 @@ describe('agent_profiles shared adapter', () => {
         if (!codex) throw new Error('Missing codex built-in profile')
 
         expect(defaultModelForProfile(codex)).toBe('GPT 5.5')
-        expect(buildAgentCommand(codex, 'gpt-5')).toBe('codex --model gpt-5')
-        expect(buildAgentExecutionCommand(codex, 'gpt-5', 'low')).toBe('codex --model gpt-5 -c model_reasoning_effort=low --search exec --json')
+        expect(buildAgentCommand(codex, 'gpt-5')).toEqual(['codex', '--model', 'gpt-5'])
+        expect(buildAgentExecutionCommand(codex, 'gpt-5', 'low')).toEqual([
+            'codex', '--model', 'gpt-5', '-c', 'model_reasoning_effort=low', '--search', 'exec', '--json',
+        ])
     })
 })

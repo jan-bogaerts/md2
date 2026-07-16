@@ -6,22 +6,22 @@ export const DEFAULT_AGENT_PROFILE_NAME = 'codex'
 const CODEX_MAX_THINKING_LEVEL = 'xhigh'
 
 function buildCodexOutputCommand(command, searchEnabled) {
-    return `${command}${searchEnabled ? ' --search' : ''} exec --json`
+    return [...command, ...(searchEnabled ? ['--search'] : []), 'exec', '--json']
 }
 
 function buildClaudeOutputCommand(command) {
-    return `${command} --print --verbose --output-format stream-json`
+    return [...command, '--print', '--verbose', '--output-format', 'stream-json']
 }
 
 export const BUILTIN_AGENT_PROFILES = [
     {
-        command: 'codex',
+        command: ['codex'],
         modelArgument: '--model',
         models: ['GPT 5.5', 'GPT 5.6 sol', 'GPT 5.6 tera', 'GPT 5.6 luna'],
         name: 'codex',
     },
     {
-        command: 'claude',
+        command: ['claude'],
         modelArgument: '--model',
         models: ['default', 'sonnet', 'fable', 'opus', 'haiku'],
         name: 'claude',
@@ -56,6 +56,13 @@ function readModels(value, fieldName) {
     return models
 }
 
+function readCommand(value, fieldName) {
+    if (!Array.isArray(value)) throw new Error(`Invalid agent profile field: ${fieldName}`)
+    if (value.length === 0) throw new Error(`Empty agent profile field: ${fieldName}`)
+
+    return value.map((argument, index) => requireString(argument, `${fieldName}[${index}]`))
+}
+
 export function validateAgentProfiles(value) {
     if (!Array.isArray(value)) throw new Error('Missing config field: desktop.agentProfiles')
 
@@ -74,12 +81,12 @@ export function validateAgentProfiles(value) {
         }
 
         return {
-            command: requireString(profile.command, `desktop.agentProfiles[${index}].command`),
+            command: readCommand(profile.command, `desktop.agentProfiles[${index}].command`),
             ...(defaultModel !== undefined ? { defaultModel } : {}),
             ...(profile.modelArgument !== undefined ? { modelArgument: requireString(profile.modelArgument, `desktop.agentProfiles[${index}].modelArgument`) } : {}),
             models,
             name,
-            ...(profile.resumeCommand !== undefined ? { resumeCommand: requireString(profile.resumeCommand, `desktop.agentProfiles[${index}].resumeCommand`) } : {}),
+            ...(profile.resumeCommand !== undefined ? { resumeCommand: readCommand(profile.resumeCommand, `desktop.agentProfiles[${index}].resumeCommand`) } : {}),
         }
     })
 }
@@ -136,21 +143,23 @@ export function defaultModelForProfile(profile) {
 }
 
 export function buildAgentCommand(profile, model) {
-    if (model.length === 0) return profile.command
-    if (profile.command.includes(MODEL_PLACEHOLDER)) return profile.command.replaceAll(MODEL_PLACEHOLDER, model)
-    if (profile.modelArgument && profile.modelArgument.length > 0) return `${profile.command} ${profile.modelArgument} ${model}`
+    if (model.length === 0) return [...profile.command]
+    if (profile.command.some((argument) => argument.includes(MODEL_PLACEHOLDER))) {
+        return profile.command.map((argument) => argument.replaceAll(MODEL_PLACEHOLDER, model))
+    }
+    if (profile.modelArgument && profile.modelArgument.length > 0) return [...profile.command, profile.modelArgument, model]
 
-    return profile.command
+    return [...profile.command]
 }
 
 function buildCodexThinkingCommand(command, thinkingLevel) {
     const providerLevel = thinkingLevel === 'max' ? CODEX_MAX_THINKING_LEVEL : thinkingLevel
 
-    return `${command} -c model_reasoning_effort=${providerLevel}`
+    return [...command, '-c', `model_reasoning_effort=${providerLevel}`]
 }
 
 function buildClaudeThinkingCommand(command, thinkingLevel) {
-    return `${command} --effort ${thinkingLevel}`
+    return [...command, '--effort', thinkingLevel]
 }
 
 const THINKING_LEVEL_ADAPTERS = new Map([
@@ -164,14 +173,16 @@ const OUTPUT_COMMAND_ADAPTERS = new Map([
 ])
 
 function buildCodexResumeCommand(command, sessionId) {
-    const outputSuffix = ' exec --json'
-    if (!command.endsWith(outputSuffix)) throw new Error('Codex execution command is not structured JSON output')
+    const outputArguments = command.slice(-2)
+    if (outputArguments[0] !== 'exec' || outputArguments[1] !== '--json') {
+        throw new Error('Codex execution command is not structured JSON output')
+    }
 
-    return `${command.slice(0, -outputSuffix.length)} exec resume --json ${sessionId}`
+    return [...command.slice(0, -2), 'exec', 'resume', '--json', sessionId]
 }
 
 function buildClaudeResumeCommand(command, sessionId) {
-    return `${command} --resume ${sessionId}`
+    return [...command, '--resume', sessionId]
 }
 
 const RESUME_COMMAND_ADAPTERS = new Map([
@@ -203,5 +214,5 @@ export function buildResumeAgentCommand(profile, sessionId, executionCommand) {
     }
     if (!profile.resumeCommand) throw new Error(`Agent profile does not support native resume: ${profile.name}`)
 
-    return profile.resumeCommand.replaceAll(SESSION_ID_PLACEHOLDER, sessionId)
+    return profile.resumeCommand.map((argument) => argument.replaceAll(SESSION_ID_PLACEHOLDER, sessionId))
 }

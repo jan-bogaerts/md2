@@ -15,7 +15,7 @@ describe('useConfigValue', () => {
             desktopConfig: {
                 agent: 'codex',
                 agentSlotCommand: '',
-                agentProfiles: [{ command: 'codex', modelArgument: '--model', models: ['gpt-5'], name: 'codex' }],
+                agentProfiles: [{ command: ['codex'], modelArgument: '--model', models: ['gpt-5'], name: 'codex' }],
                 model: 'gpt-5',
                 projectLocationMode: 'folder',
             },

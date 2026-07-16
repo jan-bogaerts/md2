@@ -124,7 +124,7 @@ describe('loadActionDefinitions', () => {
             onState: 'ready',
             thinkingLevel: 'high',
         }
-        const profiles = [{ command: 'codex', models: ['gpt-5'], name: 'codex' }]
+        const profiles = [{ command: ['codex'], models: ['gpt-5'], name: 'codex' }]
 
         expect(() => loadActionDefinitions([file('implement', definition), file('lint', LINT)], { profiles })).not.toThrow()
     })

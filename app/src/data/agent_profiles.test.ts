@@ -11,21 +11,21 @@ describe('agent profile validation', () => {
 
     it('accepts resume command templates and drops legacy session patterns', () => {
         const [profile] = validateAgentProfiles([{
-            command: 'agent',
+            command: ['agent'],
             models: ['model-a'],
             name: 'agent',
-            resumeCommand: 'agent resume {{sessionId}}',
+            resumeCommand: ['agent', 'resume', '{{sessionId}}'],
             sessionIdPattern: 'legacy ignored field',
         }])
 
         expect(profile).not.toHaveProperty('sessionIdPattern')
-        expect(buildResumeAgentCommand(profile, 'session-1')).toBe('agent resume session-1')
+        expect(buildResumeAgentCommand(profile, 'session-1')).toEqual(['agent', 'resume', 'session-1'])
     })
 
     it('rejects missing, empty, duplicate, and malformed model lists', () => {
-        expect(() => validateAgentProfiles([{ command: 'agent', name: 'missing' }])).toThrow('models')
-        expect(() => validateAgentProfiles([{ command: 'agent', models: [], name: 'empty' }])).toThrow('models')
-        expect(() => validateAgentProfiles([{ command: 'agent', models: ['same', 'same'], name: 'duplicate' }])).toThrow('Duplicate')
-        expect(() => validateAgentProfiles([{ command: 'agent', models: [' model-a'], name: 'malformed' }])).toThrow('models')
+        expect(() => validateAgentProfiles([{ command: ['agent'], name: 'missing' }])).toThrow('models')
+        expect(() => validateAgentProfiles([{ command: ['agent'], models: [], name: 'empty' }])).toThrow('models')
+        expect(() => validateAgentProfiles([{ command: ['agent'], models: ['same', 'same'], name: 'duplicate' }])).toThrow('Duplicate')
+        expect(() => validateAgentProfiles([{ command: ['agent'], models: [' model-a'], name: 'malformed' }])).toThrow('models')
     })
 })

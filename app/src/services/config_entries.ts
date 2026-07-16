@@ -10,7 +10,7 @@ import {
     type PushMode,
     type StateConfig,
 } from '../data/data_types'
-import { BUILTIN_AGENT_PROFILES, type AgentProfile } from '../data/agent_profiles'
+import { BUILTIN_AGENT_PROFILES, type AgentProfile, type ThinkingLevel } from '../data/agent_profiles'
 import type { ProjectBackgroundShade } from '../theme/project_background_shade'
 import { DEFAULT_CARD_SEPARATOR, type CardSeparator } from '../data/card_identifiers'
 
@@ -24,6 +24,7 @@ export interface ConfigValueTypes {
     'desktop.codexSearchEnabled': boolean
     'desktop.model': string
     'desktop.projectLocationMode': string
+    'desktop.thinkingLevel': ThinkingLevel
     'project.actionsFolder': string
     'project.backgroundShade': ProjectBackgroundShade
     'project.cardBodyTemplate': string
@@ -72,6 +73,7 @@ export interface DesktopConfigValues {
     codexSearchEnabled?: boolean
     model: string
     projectLocationMode: string
+    thinkingLevel?: ThinkingLevel
 }
 
 export const CONFIG_SECTIONS = [
@@ -266,8 +268,25 @@ export const CONFIG_ENTRIES: ConfigEntry[] = [
         type: 'string',
     },
     {
+        defaultValue: 'none',
+        description: 'Default reasoning level for desktop agent actions.',
+        editable: true,
+        key: 'desktop.thinkingLevel',
+        label: 'Default reasoning level',
+        options: [
+            { label: 'none', value: 'none' },
+            { label: 'low', value: 'low' },
+            { label: 'medium', value: 'medium' },
+            { label: 'high', value: 'high' },
+            { label: 'max', value: 'max' },
+        ],
+        section: 'desktop',
+        source: 'desktop',
+        type: 'select',
+    },
+    {
         defaultValue: BUILTIN_AGENT_PROFILES,
-        description: 'Agent profiles. Fields: name, command, modelArgument, models, defaultModel, resumeCommand. Custom command may include {{model}}; resumeCommand may include {{sessionId}}.',
+        description: 'Agent profiles. command and resumeCommand are string arrays. Custom command may include {{model}}; resumeCommand may include {{sessionId}}.',
         editable: true,
         key: 'desktop.agentProfiles',
         label: 'Agent profiles',

@@ -432,6 +432,7 @@ describe('ConfigPage', () => {
             codexSearchEnabled: false,
             model: '',
             projectLocationMode: 'folder',
+            thinkingLevel: 'none',
         })
 
         delete window.md2Config
@@ -458,23 +459,23 @@ describe('ConfigPage', () => {
         expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled()
 
         fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'local' } })
-        fireEvent.change(screen.getByLabelText('Command'), { target: { value: 'local-agent {{model}}' } })
+        fireEvent.change(screen.getByLabelText('Command'), { target: { value: '["local-agent", "{{model}}"]' } })
         fireEvent.change(screen.getByLabelText('Model argument'), { target: { value: '--model' } })
         fireEvent.change(screen.getByLabelText('Models'), { target: { value: 'gpt-5, gpt-5-mini' } })
         fireEvent.change(screen.getByLabelText('Profile default model'), { target: { value: 'gpt-5' } })
-        fireEvent.change(screen.getByLabelText('Resume command'), { target: { value: 'local resume {{sessionId}}' } })
+        fireEvent.change(screen.getByLabelText('Resume command'), { target: { value: '["local", "resume", "{{sessionId}}"]' } })
         fireEvent.click(screen.getByRole('button', { name: 'Save profile' }))
         fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
         expect(setDesktopConfig).toHaveBeenCalledWith(expect.objectContaining({
             agentProfiles: expect.arrayContaining([
                 expect.objectContaining({
-                    command: 'local-agent {{model}}',
+                    command: ['local-agent', '{{model}}'],
                     defaultModel: 'gpt-5',
                     modelArgument: '--model',
                     models: ['gpt-5', 'gpt-5-mini'],
                     name: 'local',
-                    resumeCommand: 'local resume {{sessionId}}',
+                    resumeCommand: ['local', 'resume', '{{sessionId}}'],
                 }),
             ]),
         }))
@@ -490,7 +491,7 @@ describe('ConfigPage', () => {
             getDesktopConfig: () => ({
                 agent: 'codex',
                 agentSlotCommand: '',
-                agentProfiles: [...BUILTIN_AGENT_PROFILES, { command: 'local-agent', models: ['local-model'], name: 'local' }],
+                agentProfiles: [...BUILTIN_AGENT_PROFILES, { command: ['local-agent'], models: ['local-model'], name: 'local' }],
                 model: '',
                 projectLocationMode: 'folder',
             }),
@@ -503,11 +504,11 @@ describe('ConfigPage', () => {
         expect(screen.getAllByText('Built-in')).toHaveLength(2)
 
         fireEvent.click(screen.getByRole('button', { name: 'Edit local' }))
-        fireEvent.change(screen.getByLabelText('Command'), { target: { value: 'edited-agent' } })
+        fireEvent.change(screen.getByLabelText('Command'), { target: { value: '["edited-agent"]' } })
         fireEvent.click(screen.getByRole('button', { name: 'Save profile' }))
         fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
-        expect(setDesktopConfig).toHaveBeenLastCalledWith(expect.objectContaining({agentProfiles: expect.arrayContaining([expect.objectContaining({ command: 'edited-agent', name: 'local' })])}))
+        expect(setDesktopConfig).toHaveBeenLastCalledWith(expect.objectContaining({agentProfiles: expect.arrayContaining([expect.objectContaining({ command: ['edited-agent'], name: 'local' })])}))
 
         fireEvent.click(screen.getByRole('button', { name: 'Remove local' }))
         fireEvent.click(screen.getByRole('button', { name: 'Save' }))
