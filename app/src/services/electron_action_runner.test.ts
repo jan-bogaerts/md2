@@ -22,6 +22,7 @@ const action: ActionDefinition = {
     onAfter: [],
     onBefore: [],
     onState: null,
+    phrases: [],
     prompt: null,
     sourcePath: 'actions/test.json',
     thinkingLevel: null,

@@ -126,4 +126,52 @@ describe('ResizablePopper', () => {
         expect(restoredDialog.style.width).toBe('500px')
         expect(restoredDialog.style.height).toBe('360px')
     })
+
+    it('keeps full-height presentation constrained without overwriting normal size', () => {
+        const storageKey = 'test.fullHeightResizablePopperSize'
+        window.localStorage.removeItem(storageKey)
+        Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1200, writable: true })
+        const view = render(
+            <ResizablePopper
+                anchorElement={document.body}
+                initialSize={{ height: 300, width: 400 }}
+                labelId="popper-title"
+                onClose={vi.fn()}
+                open
+                resizeFromAllSides
+                resizeLabel="Resize test popper"
+                storageKey={storageKey}
+            >
+                <h2 id="popper-title">Test popper</h2>
+            </ResizablePopper>,
+        )
+        const dialog = screen.getByRole('dialog', { name: 'Test popper' })
+        dialog.getBoundingClientRect = vi.fn(() => new DOMRect(900, 100, 400, 300))
+
+        view.rerender(
+            <ResizablePopper
+                anchorElement={document.body}
+                fullHeight
+                initialSize={{ height: 300, width: 400 }}
+                labelId="popper-title"
+                onClose={vi.fn()}
+                open
+                resizeFromAllSides
+                resizeLabel="Resize test popper"
+                storageKey={storageKey}
+            >
+                <h2 id="popper-title">Test popper</h2>
+            </ResizablePopper>,
+        )
+
+        expect(dialog.style.height).toBe('100vh')
+        expect(dialog.style.left).toBe('800px')
+        expect(screen.queryByRole('separator', { name: /Resize test popper/u })).not.toBeInTheDocument()
+        expect(JSON.parse(window.localStorage.getItem(storageKey) ?? '{}')).toEqual({ height: 300, width: 400 })
+
+        window.innerWidth = 600
+        fireEvent(window, new Event('resize'))
+
+        expect(dialog.style.left).toBe('200px')
+    })
 })

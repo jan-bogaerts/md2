@@ -83,14 +83,16 @@ describe('ActionEditor', () => {
     it('shows type-specific structured controls', () => {
         renderEditor()
 
-        expect(screen.getByRole('heading', { name: 'Prompt' })).toBeInTheDocument()
+        expect(screen.getByRole('tab', { name: 'Definition' })).toBeInTheDocument()
+        expect(screen.getByRole('tab', { name: 'Prompt' })).toBeInTheDocument()
+        expect(screen.getByRole('tab', { name: 'Add predefined phrase' })).toBeInTheDocument()
         expect(screen.queryByLabelText('Command')).not.toBeInTheDocument()
 
         fireEvent.mouseDown(screen.getByLabelText('Type'))
         fireEvent.click(within(screen.getByRole('listbox')).getByRole('option', { name: 'Command' }))
 
         expect(screen.getByLabelText('Command')).toBeInTheDocument()
-        expect(screen.queryByRole('heading', { name: 'Prompt' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('tab', { name: 'Prompt' })).not.toBeInTheDocument()
     })
 
     it('renders persisted initial values for agent and command actions', () => {
@@ -104,6 +106,7 @@ describe('ActionEditor', () => {
         expect(screen.getByLabelText('Name')).toHaveValue('review')
         expect(screen.getByLabelText('Label')).toHaveValue('Review')
         expect(screen.getByLabelText('Description')).toHaveValue('Review the selected file')
+        fireEvent.click(screen.getByRole('tab', { name: 'Prompt' }))
         expect(within(screen.getByTestId('mdx-editor')).getByRole('textbox')).toHaveValue('Review {{file}}')
 
         agentView.unmount()
@@ -220,6 +223,7 @@ describe('ActionEditor', () => {
         const saveDefinition = vi.spyOn(actionService, 'saveDefinition').mockResolvedValue(action)
         renderEditor(action)
 
+        fireEvent.click(screen.getByRole('tab', { name: 'Prompt' }))
         fireEvent.change(within(screen.getByTestId('mdx-editor')).getByRole('textbox'), {target: { value: 'Updated prompt' }})
         act(() => flushMarkdownEditors())
         await act(async () => vi.advanceTimersByTime(600))
@@ -228,6 +232,75 @@ describe('ActionEditor', () => {
             'actions/review.json',
             expect.objectContaining({ prompt: 'Updated prompt' }),
         )
+    })
+
+    it('adds, edits, auto-saves, and deletes a predefined phrase', async () => {
+        vi.useFakeTimers()
+        const action = loadAction()
+        const saveDefinition = vi.spyOn(actionService, 'saveDefinition').mockResolvedValue(action)
+        renderEditor(action)
+
+        fireEvent.click(screen.getByRole('tab', { name: 'Add predefined phrase' }))
+        expect(screen.getByLabelText('Phrase title')).toHaveValue('')
+        expect(screen.getByRole('button', { name: 'Delete this predefined phrase' })).toBeInTheDocument()
+
+        fireEvent.change(screen.getByLabelText('Phrase title'), { target: { value: 'Run tests' } })
+        fireEvent.change(within(screen.getByTestId('mdx-editor')).getAllByRole('textbox')[1], { target: { value: '**Run all tests**' } })
+        act(() => flushMarkdownEditors())
+        await act(async () => vi.advanceTimersByTime(600))
+
+        expect(screen.getByRole('tab', { name: 'Run tests' })).toBeInTheDocument()
+        expect(saveDefinition).toHaveBeenLastCalledWith(
+            'actions/review.json',
+            expect.objectContaining({ phrases: [{ text: '**Run all tests**', title: 'Run tests' }] }),
+        )
+
+        fireEvent.click(screen.getByRole('button', { name: 'Delete this predefined phrase' }))
+        await act(async () => vi.advanceTimersByTime(600))
+
+        expect(screen.queryByRole('tab', { name: 'Run tests' })).not.toBeInTheDocument()
+        expect(saveDefinition).toHaveBeenLastCalledWith(
+            'actions/review.json',
+            expect.objectContaining({ phrases: [] }),
+        )
+    })
+
+    it('uses phrase titles or truncated first Markdown lines as tab labels', () => {
+        renderEditor(loadAction({
+            phrases: [
+                { text: 'Ignored text', title: 'Named phrase' },
+                { text: 'Quick follow-up\nMore detail', title: '' },
+                { text: 'This first line is long enough to need truncation', title: '' },
+            ],
+        }))
+
+        expect(screen.getByRole('tab', { name: 'Named phrase' })).toBeInTheDocument()
+        expect(screen.getByRole('tab', { name: 'Quick follow-up' })).toBeInTheDocument()
+        expect(screen.getByRole('tab', { name: 'This first line is long enougâ€¦' })).toBeInTheDocument()
+    })
+
+    it('returns to the prompt when an external reload removes the selected phrase', () => {
+        const action = loadAction({ phrases: [{ text: 'Run tests', title: 'Tests' }] })
+        const view = renderEditor(action)
+        fireEvent.click(screen.getByRole('tab', { name: 'Tests' }))
+        expect(screen.getByRole('tab', { name: 'Tests' })).toHaveAttribute('aria-selected', 'true')
+
+        const externalAction = loadAction({ phrases: [] })
+        view.rerender(
+            <AppThemeProvider>
+                <ActionEditor
+                    action={externalAction}
+                    actions={actionService.getActions()}
+                    cardTypes={['feature']}
+                    repositoryFiles={[]}
+                    specialContextTypes={['actions']}
+                    states={['ready']}
+                />
+            </AppThemeProvider>,
+        )
+
+        expect(screen.getByRole('tab', { name: 'Prompt' })).toHaveAttribute('aria-selected', 'true')
+        expect(screen.queryByRole('tab', { name: 'Tests' })).not.toBeInTheDocument()
     })
 
     it('does not save while a newly added filter value is empty', async () => {

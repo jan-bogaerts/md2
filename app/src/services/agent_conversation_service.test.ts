@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { parseAgentConversationLog } from './agent_conversation_service'
+import type { StorageService } from '../data/data_types'
+import { listAgentConversationReferences, parseAgentConversationLog } from './agent_conversation_service'
 
 describe('parseAgentConversationLog', () => {
     it('normalizes a persisted agent log', () => {
@@ -22,8 +23,23 @@ describe('parseAgentConversationLog', () => {
 
         expect(conversation.path).toBe('.md2-agent-logs/one.json')
         expect(conversation.events).toEqual([])
+        expect(conversation.hasExplicitTitle).toBe(true)
         expect(conversation.messages[0].content).toBe('hello')
         expect(conversation.providerSessions[0].conversationId).toBe('session-1')
+    })
+
+    it('preserves whether a title was explicit while retaining the id fallback', () => {
+        const conversation = parseAgentConversationLog(JSON.stringify({
+            cardPath: null,
+            completedAt: null,
+            id: 'agent-1',
+            messages: [],
+            startedAt: '2026-01-01T00:00:00.000Z',
+            status: 'completed',
+        }), '.md2-agent-logs/one.json')
+
+        expect(conversation.hasExplicitTitle).toBe(false)
+        expect(conversation.title).toBe('agent-1')
     })
 
     it('fails malformed logs with missing required data', () => {
@@ -31,6 +47,13 @@ describe('parseAgentConversationLog', () => {
             JSON.stringify({ cardPath: 'design/F-1.md', id: 'agent-1', messages: [], status: 'completed' }),
             '.md2-agent-logs/bad.json',
         )).toThrow('missing startedAt')
+    })
+
+    it('discovers only persisted agent logs through the shared storage listing boundary', async () => {
+        const storage = {listRepositoryFiles: async () => ['README.md', '.md2-agent-logs/one.json', '.md2-agent-logs/nested/two.JSON', 'logs/three.json']} as unknown as StorageService
+
+        await expect(listAgentConversationReferences(storage, { branch: 'main', id: 'project' }))
+            .resolves.toEqual(['.md2-agent-logs/one.json', '.md2-agent-logs/nested/two.JSON'])
     })
 
 })

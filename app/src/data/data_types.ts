@@ -219,6 +219,7 @@ export interface AgentConversation {
     cardPath: string | null
     completedAt: string | null
     events: AgentConversationEvent[]
+    hasExplicitTitle: boolean
     id: string
     messages: AgentConversationMessage[]
     path: string

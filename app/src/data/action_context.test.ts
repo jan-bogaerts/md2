@@ -30,6 +30,7 @@ function action(name: string, appliesTo: ActionDefinition['appliesTo']): ActionD
         onAfter: [],
         onBefore: [],
         onState: null,
+        phrases: [],
         prompt: null,
         sourcePath: `actions/${name}.json`,
         thinkingLevel: null,

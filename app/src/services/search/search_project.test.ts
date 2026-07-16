@@ -77,6 +77,7 @@ function action(overrides: Partial<ActionDefinition> = {}): ActionDefinition {
         thinkingLevel: null,
         type: 'agent',
         ...overrides,
+        phrases: overrides.phrases ?? [],
     }
 }
 

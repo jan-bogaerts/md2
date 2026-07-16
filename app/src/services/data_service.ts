@@ -1,7 +1,8 @@
 import { CommitBatcher } from '../data/commit_batcher'
+import type { ActionContext } from '../data/action_context'
 import { resolveProjectConfigPaths, type MarkdownFile, type ProjectConfig, type ProjectReference, type ProjectSnapshot, type RunningAgent, type StorageService } from '../data/data_types'
 import type { RemarkableBridge } from '../data/remarkable_bridge'
-import { agentConversationService } from './agent_conversation_service'
+import { agentConversationService, listAgentConversationReferences, loadAgentConversation } from './agent_conversation_service'
 import { CardOperations, type CardOperationsDeps } from './card_operations'
 import { configService } from './config_service'
 import { type DataServiceDependencies, getProjectConfigOrNull, reportCommitFlushFailure } from './data_service_context'
@@ -93,6 +94,35 @@ export class DataService extends EventTarget {
 
     getConfig(): ProjectConfig | null {
         return getProjectConfigOrNull(this.storage)
+    }
+    async listAgentConversations(context: ActionContext) {
+        const { storage } = this.requireDependencies()
+        const currentProject = this.projectState.project
+        if (!currentProject) throw new Error('Cannot list agent conversations before a project is open')
+
+        if (context.kind !== 'project') {
+            if (!context.file) throw new Error(`Missing file for ${context.kind} agent conversation context`)
+            const cards = [
+                ...(this.projectState.snapshot?.activeCards ?? []),
+                ...(this.projectState.snapshot?.backgroundCards ?? []),
+            ]
+            const card = cards.find(({ path }) => path === context.file)
+            if (!card) throw new Error(`Cannot list agent conversations for unknown card: ${context.file}`)
+
+            return card.agentConversations.filter(({ cardPath }) => cardPath === context.file)
+        }
+
+        const references = await listAgentConversationReferences(storage, currentProject)
+        const conversations = await Promise.all(references.map((reference) => loadAgentConversation(storage, currentProject, reference)))
+
+        return conversations.filter(({ cardPath }) => cardPath === null)
+    }
+    async loadAgentConversation(path: string) {
+        const { storage } = this.requireDependencies()
+        const currentProject = this.projectState.project
+        if (!currentProject) throw new Error('Cannot load an agent conversation before a project is open')
+
+        return loadAgentConversation(storage, currentProject, path)
     }
     async persistActionFile(file: MarkdownFile) {
         const { config, storage } = this.requireDependencies()

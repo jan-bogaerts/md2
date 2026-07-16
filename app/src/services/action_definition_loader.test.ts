@@ -85,6 +85,7 @@ describe('loadActionDefinitions', () => {
             model: 'gpt-5',
             needsWorkTree: true,
             onState: 'implementing',
+            phrases: [{ text: '**Run tests**', title: 'Tests' }, { text: 'Show diff', title: '' }],
             thinkingLevel: 'high',
         })], { profiles: [{ command: 'codex', modelArgument: '--model', models: ['gpt-5'], name: 'codex' }] })
         const implement = actions.find(({ id }) => id === IMPLEMENT.id)
@@ -92,14 +93,31 @@ describe('loadActionDefinitions', () => {
         expect(implement).toMatchObject({
             agent: 'codex', appliesTo: { state: 'design', type: 'feature' }, builtin: false,
             icon: 'icon.svg', model: 'gpt-5', needsWorkTree: true, onState: 'implementing',
+            phrases: [{ text: '**Run tests**', title: 'Tests' }, { text: 'Show diff', title: '' }],
             sourcePath: 'actions/implement.json', thinkingLevel: 'high', type: 'agent',
         })
+    })
+
+    it('defaults missing phrases to an empty list', () => {
+        const implement = loadActionDefinitions([file('implement', IMPLEMENT)]).find(({ id }) => id === IMPLEMENT.id)
+
+        expect(implement?.phrases).toEqual([])
+    })
+
+    it.each([
+        ['non-list phrases', { ...IMPLEMENT, phrases: 'nope' }, { field: 'phrases', index: null }],
+        ['non-object phrase', { ...IMPLEMENT, phrases: ['nope'] }, { field: 'phrases', index: 0 }],
+        ['missing phrase title', { ...IMPLEMENT, phrases: [{ text: 'Run' }] }, { field: 'phrases', index: 0 }],
+        ['missing phrase text', { ...IMPLEMENT, phrases: [{ title: 'Run' }] }, { field: 'phrases', index: 0 }],
+        ['unknown phrase field', { ...IMPLEMENT, phrases: [{ label: 'Run', text: 'Run', title: '' }] }, { field: 'phrases', index: 0 }],
+    ])('rejects %s', (_label, definition, expected) => {
+        expect(validationError([file('implement', definition)])).toMatchObject(expected)
     })
 
     it('always includes reserved built-in custom prompt action', () => {
         const builtin = loadActionDefinitions([]).find(({ id }) => id === CUSTOM_PROMPT_ACTION_ID)
 
-        expect(builtin).toMatchObject({ builtin: true, name: CUSTOM_PROMPT_ACTION_NAME, sourcePath: null, type: 'agent' })
+        expect(builtin).toMatchObject({ builtin: true, name: CUSTOM_PROMPT_ACTION_NAME, phrases: [], sourcePath: null, type: 'agent' })
     })
 
     it.each([

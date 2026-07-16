@@ -35,6 +35,7 @@ export function createActionDefinition(input: ConvertPromptToActionInput): RawAc
         label: input.label.trim(),
         ...(input.model ? { model: input.model } : {}),
         name,
+        phrases: [],
         prompt: input.prompt,
         type: 'agent',
     }

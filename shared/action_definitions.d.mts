@@ -6,6 +6,7 @@ export type ActionAppliesTo = Partial<Record<ActionAppliesToField, string>>
 
 export const ACTION_DEFINITION_FIELDS: readonly (keyof RawActionDefinition)[]
 export const ACTION_ON_RULE_FIELDS: readonly (keyof RawOnRule)[]
+export const ACTION_PHRASE_FIELDS: readonly (keyof ActionPhrase)[]
 export const ACTION_APPLIES_TO_FIELDS: readonly ActionAppliesToField[]
 
 export interface ActionFile {
@@ -27,6 +28,11 @@ export interface RawOnRule {
     condition: string
 }
 
+export interface ActionPhrase {
+    title: string
+    text: string
+}
+
 export interface RawActionDefinition {
     agent?: string
     appliesTo?: ActionAppliesTo
@@ -42,6 +48,7 @@ export interface RawActionDefinition {
     onAfter?: string[]
     onBefore?: string[]
     onState?: string
+    phrases?: ActionPhrase[]
     prompt?: string
     thinkingLevel?: string
     type: ActionType
@@ -67,6 +74,7 @@ export interface ActionDefinition {
     onAfter: ActionDefinition[]
     onBefore: ActionDefinition[]
     onState: string | null
+    phrases: ActionPhrase[]
     prompt: string | null
     sourcePath: string | null
     thinkingLevel: string | null

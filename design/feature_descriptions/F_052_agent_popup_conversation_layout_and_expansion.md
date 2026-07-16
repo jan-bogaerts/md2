@@ -1,7 +1,7 @@
 ---
 id: F-052
 title: agent popup conversation layout, history picker and full-height mode
-status: design
+status: ready
 owner: JB
 affects:
 policy:

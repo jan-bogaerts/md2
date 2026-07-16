@@ -67,6 +67,7 @@ const conversation: AgentConversation = {
     cardPath: context.file,
     completedAt: '2026-07-14T10:00:00.000Z',
     events: [],
+    hasExplicitTitle: true,
     id: 'conversation-1',
     messages: [{ agent: 'codex', content: 'Persisted answer', id: 'm1', role: 'assistant', timestamp: '2026-07-14T10:00:00.000Z' }],
     path: '.md2-agent-logs/conversation-1.json',

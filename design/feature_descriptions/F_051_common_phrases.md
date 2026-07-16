@@ -1,7 +1,7 @@
 ---
 id: F-051
 title: common phrases
-status: design
+status: ready
 owner: JB
 affects:
 policy:

@@ -39,14 +39,26 @@ describe('loadActionDefinitions', () => {
 
     it('parses canonical definitions and resolves shared ID links', () => {
         const actions = loadActionDefinitions([
-            file('implement', { ...IMPLEMENT, onAfter: [LINT.id] }),
+            file('implement', { ...IMPLEMENT, onAfter: [LINT.id], phrases: [{ text: '**Run tests**', title: 'Tests' }] }),
             file('lint', LINT),
         ])
         const implement = actions.find(({ id }) => id === IMPLEMENT.id)
         const lint = actions.find(({ id }) => id === LINT.id)
 
         expect(implement.onAfter[0]).toBe(lint)
+        expect(implement.phrases).toEqual([{ text: '**Run tests**', title: 'Tests' }])
         expect(implement.sourcePath).toBe('actions/implement.json')
+        expect(lint.phrases).toEqual([])
+    })
+
+    it.each([
+        ['non-list phrases', { ...IMPLEMENT, phrases: 'nope' }],
+        ['non-object phrase', { ...IMPLEMENT, phrases: ['nope'] }],
+        ['missing phrase title', { ...IMPLEMENT, phrases: [{ text: 'Run' }] }],
+        ['missing phrase text', { ...IMPLEMENT, phrases: [{ title: 'Run' }] }],
+        ['unknown phrase field', { ...IMPLEMENT, phrases: [{ label: 'Run', text: 'Run', title: '' }] }],
+    ])('rejects %s', (_label, definition) => {
+        expect(validationError([file('implement', definition)])).toMatchObject({ field: 'phrases' })
     })
 
     it('rejects legacy, invalid, unknown, and circular definitions through shared validator', () => {

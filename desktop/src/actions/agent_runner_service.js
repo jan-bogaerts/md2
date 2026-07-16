@@ -206,6 +206,7 @@ function createConversation(request, id, startedAt) {
         ...(request.cardPath ? { cardPath: request.cardPath } : {}),
         completedAt: null,
         events: [],
+        hasExplicitTitle: true,
         id,
         messages: [],
         providerSessions: [],

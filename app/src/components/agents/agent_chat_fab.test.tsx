@@ -23,6 +23,9 @@ describe('AgentChatFab', () => {
 
         expect(screen.getByRole('dialog', { name: 'Run actions' })).toBeInTheDocument()
         expect(screen.getByPlaceholderText('Prompt required')).toBeInTheDocument()
+        expect(screen.getByRole('combobox', { name: 'Conversation history' })).toBeInTheDocument()
+        expect(screen.getByLabelText('Conversation chat').compareDocumentPosition(screen.getByLabelText('Prompt')))
+            .toBe(Node.DOCUMENT_POSITION_FOLLOWING)
         expect(document.querySelector('.MuiModal-root')).not.toBeInTheDocument()
 
         fireEvent.click(button)

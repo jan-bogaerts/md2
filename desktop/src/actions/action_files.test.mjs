@@ -72,4 +72,26 @@ describe('action-files', () => {
             await rm(rootPath, { force: true, recursive: true })
         }
     })
+
+    it('preserves missing-title metadata at the Electron boundary', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-action-files-'))
+
+        try {
+            await mkdir(join(rootPath, '.git'))
+            await writeFile(join(rootPath, 'conversation.json'), JSON.stringify({
+                completedAt: null,
+                events: [],
+                id: 'conversation-1',
+                messages: [],
+                startedAt: 'now',
+                status: 'completed',
+            }))
+
+            const conversation = await loadAgentConversation({ branch: 'main', id: 'local', rootPath }, 'conversation.json')
+
+            expect(conversation).toMatchObject({ hasExplicitTitle: false, title: 'conversation-1' })
+        } finally {
+            await rm(rootPath, { force: true, recursive: true })
+        }
+    })
 })

@@ -98,20 +98,35 @@ export function parseAgentConversationLog(content: string, referencePath: string
     const providerSessions = payload.providerSessions === undefined
         ? []
         : requireArray(payload.providerSessions, 'providerSessions').map(normalizeProviderSession)
+    const hasExplicitTitle = typeof payload.title === 'string' && payload.title.trim().length > 0
 
     return {
         actionId: nullableString(payload.actionId, 'actionId'),
         cardPath: nullableString(payload.cardPath, 'cardPath'),
         completedAt: nullableString(payload.completedAt, 'completedAt'),
         events,
+        hasExplicitTitle,
         id: requireString(payload.id, 'id'),
         messages,
         path: referencePath,
         providerSessions,
         startedAt: requireString(payload.startedAt, 'startedAt'),
         status: requireStatus(payload.status),
-        title: typeof payload.title === 'string' && payload.title.length > 0 ? payload.title : requireString(payload.id, 'id'),
+        title: hasExplicitTitle ? payload.title as string : requireString(payload.id, 'id'),
     }
+}
+
+const AGENT_LOG_FOLDER_PREFIX = '.md2-agent-logs/'
+
+/** Discover persisted agent-log references through any storage implementation. */
+export async function listAgentConversationReferences(storage: StorageService, project: ProjectReference) {
+    const paths = await storage.listRepositoryFiles(project)
+
+    return paths.filter((path) => {
+        const normalizedPath = path.replace(/\\/gu, '/')
+
+        return normalizedPath.startsWith(AGENT_LOG_FOLDER_PREFIX) && normalizedPath.toLowerCase().endsWith('.json')
+    })
 }
 
 export async function loadAgentConversation(storage: StorageService, project: ProjectReference, path: string) {

@@ -162,17 +162,29 @@ describe('ActionService', () => {
     })
 
     it('persists and publishes only valid definitions', async () => {
-        const persistActionFile = vi.fn(async () => undefined)
+        const persistedFiles: ActionFile[] = []
+        const persistActionFile = vi.fn(async (actionFile: ActionFile) => {
+            persistedFiles.push(actionFile)
+        })
         const service = new ActionService(() => ({ persistActionFile }))
         service.loadFromFiles([file(VALID)])
         const loaded = service.getActionByPath('actions/action.json')
         if (!loaded) throw new Error('Missing loaded action')
-        const definition = { ...editableActionDefinition(loaded), label: 'Updated' }
+        const phrases = [{ text: '**Run tests**', title: 'Tests' }, { text: 'Show diff', title: '' }]
+        const definition = { ...editableActionDefinition(loaded), label: 'Updated', phrases }
 
         await service.saveDefinition('actions/action.json', definition)
 
         expect(persistActionFile).toHaveBeenCalledWith(expect.objectContaining({content: expect.stringContaining('"label": "Updated"'), path: 'actions/action.json'}))
         expect(service.getActionByPath('actions/action.json')?.label).toBe('Updated')
+        expect(service.getActionByPath('actions/action.json')?.phrases).toEqual(phrases)
+        expect(persistActionFile).toHaveBeenCalledWith({
+            content: serializeActionDefinition(definition),
+            path: 'actions/action.json',
+        })
+        const persistedFile = persistedFiles[0]
+        if (!persistedFile) throw new Error('Missing persisted action file')
+        expect(JSON.parse(persistedFile.content).phrases).toEqual(phrases)
 
         const invalid = { ...definition, label: ' \t\u2003' }
         expect(service.validateDefinition('actions/action.json', invalid)).toMatchObject({ field: 'label', valid: false })

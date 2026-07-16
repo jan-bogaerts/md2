@@ -1,7 +1,7 @@
 ---
 id: F-9
 title: actions popup
-status: design
+status: ready
 owner: JB
 affects:
 policy:

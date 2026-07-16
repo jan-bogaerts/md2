@@ -1,8 +1,10 @@
-import { Box, Button, Divider, IconButton, Stack, Typography } from '@mui/material'
+import { Box, Button, Divider, IconButton, Stack, Tooltip, Typography } from '@mui/material'
 import CalendarOutline from 'mdi-material-ui/CalendarOutline'
+import ArrowCollapseVertical from 'mdi-material-ui/ArrowCollapseVertical'
+import ArrowExpandVertical from 'mdi-material-ui/ArrowExpandVertical'
 import Close from 'mdi-material-ui/Close'
 import Play from 'mdi-material-ui/Play'
-import { useId } from 'react'
+import { useId, useState } from 'react'
 import type { ActionContext } from '../../data/action_context'
 import { CUSTOM_PROMPT_ACTION_ID, type ActionDefinition } from '../../data/action_types'
 import { ResizablePopper } from '../resizable_popper'
@@ -10,6 +12,8 @@ import { ResizablePopover } from '../resizable_popover'
 import {
     statusColor,
     type ConvertPromptToAction,
+    type LoadConversation,
+    type LoadConversations,
     type LoadHistory,
     type RunAction,
     type ScheduleAction,
@@ -21,6 +25,9 @@ import { ActionScheduleForm } from './action_schedule_form'
 import { ActionAgentForm } from './action_agent_form'
 import { ActionSelector } from './action_selector'
 import { useActionPopupController } from './use_action_popup_controller'
+import { ActionConversationChat } from './action_conversation_chat'
+import { ActionConversationPicker } from './action_conversation_picker'
+import { ActionPhraseButtons } from './action_phrase_buttons'
 
 interface ActionPopupProps {
     action: ActionDefinition
@@ -37,6 +44,8 @@ interface ActionPopupProps {
     showSaveControls?: boolean
     convertPromptToAction?: ConvertPromptToAction
     loadHistory?: LoadHistory
+    loadConversation?: LoadConversation
+    loadConversations?: LoadConversations
     runAction?: RunAction
     scheduleAction?: ScheduleAction
 }
@@ -50,13 +59,15 @@ export const PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY = 'md2.projectAgentPopupSize'
  */
 export function ActionPopup(props: ActionPopupProps) {
     const { action, actions, anchorElement, onAddAction, onClose, onNavigate, onSelectAction, showSaveControls = false } = props
-    const controller = useActionPopupController(props)
-    const titleId = useId()
     const isCardRunDialog = !!actions && !!onAddAction && !!onSelectAction
+    const controller = useActionPopupController({ ...props, enableConversations: isCardRunDialog && action.type === 'agent' })
+    const titleId = useId()
+    const [fullHeight, setFullHeight] = useState(false)
     const promptRequired = action.id === CUSTOM_PROMPT_ACTION_ID
     const sizeStorageKey = props.context.kind === 'project'
         ? PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY
         : CARD_RUN_POPUP_SIZE_STORAGE_KEY
+    const handleToggleFullHeight = () => setFullHeight((current) => !current)
 
     if (isCardRunDialog) {
         const handlePrimaryRun = showSaveControls ? controller.handleSaveAndRun : controller.handleRun
@@ -67,6 +78,7 @@ export function ActionPopup(props: ActionPopupProps) {
         return (
             <ResizablePopper
                 anchorElement={anchorElement}
+                fullHeight={fullHeight}
                 initialSize={{ height: 450, width: 400 }}
                 labelId={titleId}
                 onClose={onClose}
@@ -97,6 +109,16 @@ export function ActionPopup(props: ActionPopupProps) {
                         onSelect={onSelectAction}
                         selectedAction={action}
                     />
+                    <Tooltip title={fullHeight ? 'Collapse downward' : 'Expand upward'}>
+                        <IconButton
+                            aria-label={fullHeight ? 'Collapse downward' : 'Expand upward'}
+                            onClick={handleToggleFullHeight}
+                            size="small"
+                            sx={{ flexShrink: 0, height: 30, width: 30 }}
+                        >
+                            {fullHeight ? <ArrowCollapseVertical sx={{ fontSize: 18 }} /> : <ArrowExpandVertical sx={{ fontSize: 18 }} />}
+                        </IconButton>
+                    </Tooltip>
                     <IconButton aria-label="Close" onClick={onClose} size="small" sx={{ flexShrink: 0, height: 30, width: 30 }}>
                         <Close sx={{ fontSize: 18 }} />
                     </IconButton>
@@ -109,6 +131,22 @@ export function ActionPopup(props: ActionPopupProps) {
                             agentAvailability={controller.agentAvailability}
                             agentProfiles={controller.agentProfiles}
                             compact
+                            conversationContent={(
+                                <ActionConversationChat
+                                    conversation={controller.displayedConversation}
+                                    logs={controller.runLogs}
+                                    status={controller.runStatus}
+                                />
+                            )}
+                            conversationPicker={(
+                                <ActionConversationPicker
+                                    conversations={controller.conversations}
+                                    disabled={controller.runStatus === 'running'}
+                                    loading={controller.conversationHistoryLoading}
+                                    onChange={controller.handleConversationChange}
+                                    selectedPath={controller.displayedConversation?.path ?? ''}
+                                />
+                            )}
                             convertMessage={controller.convertMessage}
                             disabled={controller.runStatus === 'running'}
                             extraPrompt={controller.extraPrompt}
@@ -128,6 +166,13 @@ export function ActionPopup(props: ActionPopupProps) {
                             thinkingLevel={controller.thinkingLevel}
                         />
                     ) : null}
+                    {controller.isFollowUp && action.phrases.length > 0 ? (
+                        <ActionPhraseButtons
+                            onDoubleClick={controller.handlePhraseDoubleClick}
+                            onSelect={controller.handlePhraseSelect}
+                            phrases={action.phrases}
+                        />
+                    ) : null}
                     {controller.scheduleOpen ? (
                         <ActionScheduleForm
                             afterActionName={controller.scheduleAfterActionName}
@@ -140,7 +185,7 @@ export function ActionPopup(props: ActionPopupProps) {
                             triggerType={controller.scheduleTriggerType}
                         />
                     ) : null}
-                    {controller.runStatus !== 'idle' ? (
+                    {action.type !== 'agent' && controller.runStatus !== 'idle' ? (
                         <ActionRunStatus
                             color={statusColor(controller.runStatus)}
                             logs={controller.runLogs}
@@ -152,7 +197,9 @@ export function ActionPopup(props: ActionPopupProps) {
                             {controller.executionDisabledMessage}
                         </Typography>
                     ) : null}
-                    <ActionRunHistory compact entries={controller.history} error={controller.historyError} />
+                    {action.type !== 'agent' ? (
+                        <ActionRunHistory compact entries={controller.history} error={controller.historyError} />
+                    ) : null}
                     <RelatedActions actions={action.onBefore} label="Before" onNavigate={onNavigate} />
                     <RelatedActions actions={action.onAfter} label="After" onNavigate={onNavigate} />
                 </Stack>
@@ -265,6 +312,13 @@ export function ActionPopup(props: ActionPopupProps) {
                         selectedAgentModels={controller.selectedAgentModels}
                         showSaveControls={showSaveControls}
                         thinkingLevel={controller.thinkingLevel}
+                    />
+                ) : null}
+                {controller.isFollowUp && action.phrases.length > 0 ? (
+                    <ActionPhraseButtons
+                        onDoubleClick={controller.handlePhraseDoubleClick}
+                        onSelect={controller.handlePhraseSelect}
+                        phrases={action.phrases}
                     />
                 ) : null}
 

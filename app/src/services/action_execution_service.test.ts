@@ -78,7 +78,7 @@ describe('ActionExecutionService', () => {
         const service = new ActionExecutionService()
         service.start()
         const conversation = {
-            actionId: 'review', cardPath: context.file, completedAt: null, events: [], id: 'conversation-1', messages: [], path: 'log.json',
+            actionId: 'review', cardPath: context.file, completedAt: null, events: [], hasExplicitTitle: true, id: 'conversation-1', messages: [], path: 'log.json',
             providerSessions: [], startedAt: 'now', status: 'running' as const, title: 'Review',
         }
 

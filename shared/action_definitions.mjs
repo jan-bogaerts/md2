@@ -4,14 +4,16 @@ const ACTION_TYPES = ['agent', 'command']
 const LEGACY_FIELDS = ['after', 'before', 'runIn', 'text']
 export const ACTION_DEFINITION_FIELDS = Object.freeze([
     'id', 'name', 'label', 'description', 'type', 'icon', 'appliesTo', 'onBefore', 'on', 'onAfter',
-    'onState', 'needsWorkTree', 'agent', 'model', 'thinkingLevel', 'prompt', 'command',
+    'onState', 'needsWorkTree', 'agent', 'model', 'thinkingLevel', 'prompt', 'command', 'phrases',
 ])
 export const ACTION_ON_RULE_FIELDS = Object.freeze(['actionId', 'condition'])
+export const ACTION_PHRASE_FIELDS = Object.freeze(['title', 'text'])
 export const ACTION_APPLIES_TO_FIELDS = Object.freeze([
     'kind', 'type', 'state', 'file', 'folder', 'worktree', 'worktreeError',
 ])
 const ACTION_DEFINITION_FIELD_SET = new Set(ACTION_DEFINITION_FIELDS)
 const ACTION_ON_RULE_FIELD_SET = new Set(ACTION_ON_RULE_FIELDS)
+const ACTION_PHRASE_FIELD_SET = new Set(ACTION_PHRASE_FIELDS)
 const ACTION_APPLIES_TO_FIELD_SET = new Set(ACTION_APPLIES_TO_FIELDS)
 export const CUSTOM_PROMPT_ACTION_ID = 'md2.custom-prompt'
 export const CUSTOM_PROMPT_ACTION_NAME = 'custom prompt'
@@ -21,7 +23,7 @@ export const REMARKABLE_CONVERT_ACTION_NAME = 'convert-remarkable-images-to-text
 // Fields the editor can route an error to. Anything else routes to the general summary.
 const ROUTABLE_FIELDS = new Set([
     'id', 'name', 'label', 'description', 'type', 'icon', 'appliesTo', 'onBefore', 'on', 'onAfter',
-    'onState', 'needsWorkTree', 'agent', 'model', 'thinkingLevel', 'prompt', 'command',
+    'onState', 'needsWorkTree', 'agent', 'model', 'thinkingLevel', 'prompt', 'command', 'phrases',
 ])
 
 /**
@@ -73,6 +75,7 @@ export const BUILTIN_CUSTOM_PROMPT = {
     onAfter: [],
     onBefore: [],
     onState: null,
+    phrases: [],
     prompt: '{{prompt}}',
     sourcePath: null,
     thinkingLevel: null,
@@ -95,6 +98,7 @@ export const BUILTIN_REMARKABLE_CONVERT = {
     onAfter: [],
     onBefore: [],
     onState: null,
+    phrases: [],
     prompt: 'Convert the following Remarkable images to text and append the transcription to {{file}}:\n{{prompt}}',
     sourcePath: null,
     thinkingLevel: null,
@@ -210,6 +214,20 @@ function readOnRules(value, source) {
     })
 }
 
+function readPhrases(value, source) {
+    if (value === undefined) return []
+    if (!Array.isArray(value)) throw fail(`Invalid phrases list in ${source}`, 'invalid-list', source, 'phrases')
+
+    return value.map((entry, index) => {
+        if (!isPlainObject(entry)) throw fail(`Invalid phrase in ${source}: ${index}`, 'invalid-phrase', source, `phrases[${index}]`)
+        rejectUnknownFields(entry, ACTION_PHRASE_FIELD_SET, source, `phrases[${index}]`)
+        if (typeof entry.title !== 'string') throw fail(`Invalid phrase title in ${source}: ${index}`, 'invalid-phrase', source, `phrases[${index}].title`)
+        if (typeof entry.text !== 'string') throw fail(`Invalid phrase text in ${source}: ${index}`, 'invalid-phrase', source, `phrases[${index}].text`)
+
+        return { title: entry.title, text: entry.text }
+    })
+}
+
 function rejectLegacyFields(value, source) {
     const legacyField = LEGACY_FIELDS.find((fieldName) => Object.hasOwn(value, fieldName))
     if (legacyField) throw fail(`Legacy action field ${legacyField} is not supported in ${source}`, 'legacy-field', source)
@@ -282,6 +300,7 @@ function validateRawDefinition(value, source, dependencies) {
         onAfter: readActionIdList(value.onAfter, 'onAfter', source),
         onBefore: readActionIdList(value.onBefore, 'onBefore', source),
         onState: readOptionalString(value.onState, 'onState', source),
+        phrases: readPhrases(value.phrases, source),
         prompt: type === 'agent' ? value.prompt : undefined,
         sourcePath: source,
         thinkingLevel: readOptionalString(value.thinkingLevel, 'thinkingLevel', source),
@@ -368,6 +387,7 @@ export function validateActionDefinitionGraph(entries, dependencies = {}) {
             onAfter: [],
             onBefore: [],
             onState: raw.onState ?? null,
+            phrases: raw.phrases,
             prompt: raw.prompt ?? null,
             sourcePath: raw.sourcePath,
             thinkingLevel: raw.thinkingLevel ?? null,

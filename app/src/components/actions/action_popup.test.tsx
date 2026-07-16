@@ -8,6 +8,8 @@ import { configService } from '../../services/config_service'
 import { actionExecutionService } from '../../services/action_execution_service'
 import { agentCapabilitiesService } from '../../services/agent_capabilities_service'
 import type { ActionExecutionEvent } from '../../data/action_run_types'
+import type { AgentConversation } from '../../data/data_types'
+import { dialogService } from '../../services/dialog_service'
 
 function action(name: string, overrides: Partial<ActionDefinition> = {}): ActionDefinition {
     return {
@@ -26,6 +28,7 @@ function action(name: string, overrides: Partial<ActionDefinition> = {}): Action
         onAfter: [],
         onBefore: [],
         onState: null,
+        phrases: [],
         prompt: null,
         sourcePath: `actions/${name}.json`,
         thinkingLevel: null,
@@ -38,6 +41,33 @@ const context: ActionContext = { file: 'design/F-010.md', kind: 'card', state: '
 const completedResult: ActionRunResult = {
     logs: [{ actionName: 'Implement', command: 'run', message: 'Implement completed', phase: 'main', status: 'completed', stderr: '', stdout: 'ok' }],
     status: 'completed',
+}
+
+function conversation(id: string, overrides: Partial<AgentConversation> = {}): AgentConversation {
+    return {
+        actionId: 'action-implement',
+        cardPath: context.file ?? null,
+        completedAt: '2026-07-15T10:01:00.000Z',
+        events: [],
+        hasExplicitTitle: true,
+        id,
+        messages: [],
+        path: `.md2-agent-logs/${id}.json`,
+        providerSessions: [],
+        startedAt: '2026-07-15T10:00:00.000Z',
+        status: 'completed',
+        title: id,
+        ...overrides,
+    }
+}
+
+function deferred<T>() {
+    let resolve: (value: T) => void = () => undefined
+    const promise = new Promise<T>((promiseResolve) => {
+        resolve = promiseResolve
+    })
+
+    return { promise, resolve }
 }
 
 function selectScheduleTrigger(label: string) {
@@ -95,6 +125,81 @@ describe('ActionPopup', () => {
         expect(screen.getByRole('button', { name: 'Run' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Schedule' }).compareDocumentPosition(screen.getByRole('button', { name: 'Run' })))
             .toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+    })
+
+    it('fills a predefined phrase on click and continues with it on double click', async () => {
+        const selectedAction = action('Implement', {
+            command: null,
+            phrases: [
+                { text: '**Run tests**', title: 'Run tests' },
+                { text: 'Show the current diff\nwith context', title: '' },
+            ],
+            prompt: 'Implement this',
+            type: 'agent',
+        })
+        const { runAction } = renderPopup({ action: selectedAction, continueFrom: '.md2-agent-logs/conversation.json' })
+
+        fireEvent.click(screen.getByRole('button', { name: 'Run tests' }))
+        expect(screen.getByLabelText('Extra prompt')).toHaveValue('**Run tests**')
+        expect(runAction).not.toHaveBeenCalled()
+        expect(screen.getByRole('button', { name: 'Show the current diff' })).toBeInTheDocument()
+
+        fireEvent.doubleClick(screen.getByRole('button', { name: 'Run tests' }))
+
+        await waitFor(() => expect(runAction).toHaveBeenCalledWith(
+            selectedAction,
+            context,
+            {
+                continueFrom: '.md2-agent-logs/conversation.json',
+                extraPrompt: '**Run tests**',
+                thinkingLevel: 'none',
+            },
+            expect.any(Function),
+        ))
+    })
+
+    it('hides predefined phrases before an agent response is available', () => {
+        renderPopup({
+            action: action('Implement', {
+                command: null,
+                phrases: [{ text: 'Run tests', title: 'Run tests' }],
+                prompt: 'Implement this',
+                type: 'agent',
+            }),
+        })
+
+        expect(screen.queryByRole('group', { name: 'Predefined phrases' })).not.toBeInTheDocument()
+    })
+
+    it('fills and runs predefined phrases from the card action popup', async () => {
+        const selectedAction = action('Implement', {
+            command: null,
+            phrases: [{ text: 'Run card tests', title: 'Card tests' }],
+            prompt: 'Implement this',
+            type: 'agent',
+        })
+        const continuedConversation = conversation('continued')
+        const { runAction } = renderPopup({
+            action: selectedAction,
+            actions: [selectedAction],
+            continueFrom: continuedConversation.path,
+            loadConversation: vi.fn(async () => continuedConversation),
+            loadConversations: vi.fn(async () => [continuedConversation]),
+            onAddAction: vi.fn(),
+            onSelectAction: vi.fn(),
+        })
+
+        fireEvent.click(screen.getByRole('button', { name: 'Card tests' }))
+        expect(screen.getByLabelText('Extra prompt')).toHaveValue('Run card tests')
+        expect(runAction).not.toHaveBeenCalled()
+
+        fireEvent.doubleClick(screen.getByRole('button', { name: 'Card tests' }))
+        await waitFor(() => expect(runAction).toHaveBeenCalledWith(
+            selectedAction,
+            context,
+            expect.objectContaining({ continueFrom: continuedConversation.path, extraPrompt: 'Run card tests' }),
+            expect.any(Function),
+        ))
     })
 
     it('shows card action descriptions as selector tooltips and uses one close button', async () => {
@@ -222,6 +327,7 @@ describe('ActionPopup', () => {
                 cardPath: context.file ?? null,
                 completedAt: '2026-01-01T00:01:00.000Z',
                 events: [],
+                hasExplicitTitle: true,
                 id: 'conversation-1',
                 messages: [],
                 path: '.md2-agent-logs/conversation.json',
@@ -640,7 +746,6 @@ describe('ActionPopup', () => {
         expect(screen.getByRole('combobox', { name: 'Agent' })).toBeInTheDocument()
         expect(screen.getByRole('combobox', { name: 'Model' })).toBeInTheDocument()
         expect(screen.getByRole('combobox', { name: 'Thinking level' })).toBeInTheDocument()
-        expect(screen.getByLabelText('Prompt').closest('.MuiFormControl-root')).toHaveStyle({ flex: '1' })
     })
 
     it('does not run a named custom action when saving fails', async () => {
@@ -714,5 +819,168 @@ describe('ActionPopup', () => {
         expect(projectDialog.style.height).toBe('450px')
         expect(projectDialog.style.width).toBe('400px')
         expect(JSON.parse(window.localStorage.getItem(PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY) ?? '{}')).toEqual({ height: 450, width: 400 })
+    })
+
+    it('orders agent controls, chat, divider, and prompt without inline run history', async () => {
+        const selectedAction = action('Implement', { type: 'agent' })
+        renderPopup({
+            action: selectedAction,
+            actions: [selectedAction],
+            loadConversations: vi.fn(async () => []),
+            onAddAction: vi.fn(),
+            onSelectAction: vi.fn(),
+        })
+
+        const agentControl = screen.getByRole('combobox', { name: 'Agent' })
+        const picker = screen.getByRole('combobox', { name: 'Conversation history' })
+        const chat = screen.getByLabelText('Conversation chat')
+        const prompt = screen.getByLabelText('Extra prompt')
+
+        expect(agentControl.compareDocumentPosition(picker)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+        expect(picker.compareDocumentPosition(chat)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+        expect(chat.compareDocumentPosition(prompt)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+        expect(chat.parentElement?.nextElementSibling?.tagName).toBe('HR')
+        expect(screen.queryByText('Run history')).not.toBeInTheDocument()
+        expect(screen.queryByText('No previous runs')).not.toBeInTheDocument()
+    })
+
+    it('loads selected conversation and continues its exact reference', async () => {
+        const selectedAction = action('Implement', { type: 'agent' })
+        const persisted = conversation('selected', {
+            messages: [
+                { content: 'Question', id: 'm1', role: 'user', timestamp: '2026-07-15T10:00:00.000Z' },
+                { agent: 'codex', content: 'Answer', id: 'm2', role: 'assistant', timestamp: '2026-07-15T10:01:00.000Z' },
+            ],
+            title: 'Selected chat',
+        })
+        const { runAction } = renderPopup({
+            action: selectedAction,
+            actions: [selectedAction],
+            loadConversation: vi.fn(async () => persisted),
+            loadConversations: vi.fn(async () => [persisted]),
+            onAddAction: vi.fn(),
+            onSelectAction: vi.fn(),
+        })
+
+        const picker = await screen.findByRole('combobox', { name: 'Conversation history' })
+        await waitFor(() => expect(picker).toBeEnabled())
+        fireEvent.mouseDown(picker)
+        fireEvent.click(screen.getByRole('option', { name: /Selected chat/u }))
+
+        expect(await screen.findByText('Question')).toBeInTheDocument()
+        expect(screen.getByText('Answer')).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+
+        await waitFor(() => expect(runAction).toHaveBeenCalledWith(
+            selectedAction,
+            context,
+            expect.objectContaining({ continueFrom: persisted.path }),
+            expect.any(Function),
+        ))
+    })
+
+    it('ignores late selection responses', async () => {
+        const selectedAction = action('Implement', { type: 'agent' })
+        const first = conversation('first', { title: 'First' })
+        const second = conversation('second', { title: 'Second' })
+        const firstRequest = deferred<AgentConversation>()
+        const secondRequest = deferred<AgentConversation>()
+        const loadConversation = vi.fn((path: string) => path === first.path ? firstRequest.promise : secondRequest.promise)
+        renderPopup({
+            action: selectedAction,
+            actions: [selectedAction],
+            loadConversation,
+            loadConversations: vi.fn(async () => [first, second]),
+            onAddAction: vi.fn(),
+            onSelectAction: vi.fn(),
+        })
+
+        const picker = await screen.findByRole('combobox', { name: 'Conversation history' })
+        await waitFor(() => expect(picker).toBeEnabled())
+        fireEvent.mouseDown(picker)
+        fireEvent.click(screen.getByRole('option', { name: /First/u }))
+        fireEvent.mouseDown(picker)
+        fireEvent.click(screen.getByRole('option', { name: /Second/u }))
+        secondRequest.resolve(conversation('second', { messages: [{ content: 'Second answer', id: 'm2', role: 'assistant', timestamp: 'now' }], title: 'Second' }))
+        await screen.findByText('Second answer')
+        firstRequest.resolve(conversation('first', { messages: [{ content: 'Late first answer', id: 'm1', role: 'assistant', timestamp: 'now' }], title: 'First' }))
+
+        await waitFor(() => expect(screen.queryByText('Late first answer')).not.toBeInTheDocument())
+        expect(screen.getByText('Second answer')).toBeInTheDocument()
+    })
+
+    it('reports selection errors and keeps previous conversation visible', async () => {
+        const selectedAction = action('Implement', { type: 'agent' })
+        const good = conversation('good', { messages: [{ content: 'Keep me', id: 'm1', role: 'assistant', timestamp: 'now' }], title: 'Good' })
+        const bad = conversation('bad', { title: 'Bad' })
+        const reportError = vi.spyOn(dialogService, 'error')
+        renderPopup({
+            action: selectedAction,
+            actions: [selectedAction],
+            loadConversation: vi.fn(async (path) => {
+                if (path === bad.path) throw new Error('Broken log')
+                return good
+            }),
+            loadConversations: vi.fn(async () => [good, bad]),
+            onAddAction: vi.fn(),
+            onSelectAction: vi.fn(),
+        })
+
+        const picker = await screen.findByRole('combobox', { name: 'Conversation history' })
+        await waitFor(() => expect(picker).toBeEnabled())
+        fireEvent.mouseDown(picker)
+        fireEvent.click(screen.getByRole('option', { name: /Good/u }))
+        await screen.findByText('Keep me')
+        fireEvent.mouseDown(picker)
+        fireEvent.click(screen.getByRole('option', { name: /Bad/u }))
+
+        await waitFor(() => expect(reportError).toHaveBeenCalledWith(expect.any(Error), expect.any(Object)))
+        expect(screen.getByText('Keep me')).toBeInTheDocument()
+        reportError.mockRestore()
+    })
+
+    it('refreshes conversation history after an agent run persists', async () => {
+        const selectedAction = action('Implement', { type: 'agent' })
+        const loadConversations = vi.fn(async () => [conversation('persisted')])
+        renderPopup({
+            action: selectedAction,
+            actions: [selectedAction],
+            loadConversations,
+            onAddAction: vi.fn(),
+            onSelectAction: vi.fn(),
+        })
+
+        await waitFor(() => expect(loadConversations).toHaveBeenCalledOnce())
+        fireEvent.click(screen.getByRole('button', { name: 'Run' }))
+
+        await waitFor(() => expect(loadConversations).toHaveBeenCalledTimes(2))
+    })
+
+    it('expands before Close and restores anchored size after collapse', () => {
+        window.localStorage.removeItem(CARD_RUN_POPUP_SIZE_STORAGE_KEY)
+        const selectedAction = action('Implement', { type: 'agent' })
+        renderPopup({
+            action: selectedAction,
+            actions: [selectedAction],
+            loadConversations: vi.fn(async () => []),
+            onAddAction: vi.fn(),
+            onSelectAction: vi.fn(),
+        })
+        const dialog = screen.getByRole('dialog', { name: 'Run actions' })
+        const expand = screen.getByRole('button', { name: 'Expand upward' })
+        const close = screen.getByRole('button', { name: 'Close' })
+
+        expect(expand.compareDocumentPosition(close)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+        fireEvent.click(expand)
+
+        expect(dialog).toHaveAttribute('data-full-height', 'true')
+        expect(dialog.style.height).toBe('100vh')
+        expect(screen.getByRole('button', { name: 'Collapse downward' })).toBeInTheDocument()
+        expect(screen.queryAllByRole('separator', { name: /Resize action popup/u })).toHaveLength(0)
+        fireEvent.click(screen.getByRole('button', { name: 'Collapse downward' }))
+
+        expect(dialog.style.height).toBe('450px')
+        expect(dialog.style.width).toBe('400px')
+        expect(screen.getAllByRole('separator', { name: /Resize action popup/u })).toHaveLength(8)
     })
 })

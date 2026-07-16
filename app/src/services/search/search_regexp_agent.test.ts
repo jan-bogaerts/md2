@@ -8,6 +8,7 @@ function conversation(): AgentConversation {
         cardPath: '.md2-search-regexp',
         completedAt: '2026-01-01T00:01:00.000Z',
         events: [],
+        hasExplicitTitle: true,
         id: 'agent-1',
         messages: [],
         path: '.md2-agent-logs/one.json',

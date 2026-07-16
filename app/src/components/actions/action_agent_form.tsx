@@ -1,5 +1,5 @@
-import { Box, Button, MenuItem, Stack, TextField, Typography } from '@mui/material'
-import type { ChangeEvent, KeyboardEvent } from 'react'
+import { Box, Button, Divider, MenuItem, Stack, TextField, Typography } from '@mui/material'
+import type { ChangeEvent, KeyboardEvent, ReactNode } from 'react'
 import { THINKING_LEVELS, type AgentProfile, type ThinkingLevel } from '../../data/agent_profiles'
 import type { AgentAvailability } from '../../data/electron_data_bridge'
 
@@ -9,6 +9,8 @@ interface ActionAgentFormProps {
     agentAvailability: Record<string, AgentAvailability>
     agentProfiles: AgentProfile[]
     compact?: boolean
+    conversationContent?: ReactNode
+    conversationPicker?: ReactNode
     convertMessage: string | null
     disabled?: boolean
     extraPrompt: string
@@ -36,6 +38,8 @@ export function ActionAgentForm(props: ActionAgentFormProps) {
         agentAvailability,
         agentProfiles,
         compact = false,
+        conversationContent,
+        conversationPicker,
         convertMessage,
         disabled = false,
         extraPrompt,
@@ -104,33 +108,6 @@ export function ActionAgentForm(props: ActionAgentFormProps) {
                         />
                     </Stack>
                 ) : null}
-                <Stack spacing={0.75} sx={{ flex: 1, minHeight: 0 }}>
-                    <TextField
-                        disabled={disabled}
-                        fullWidth
-                        minRows={4}
-                        multiline
-                        onChange={onExtraPromptChange}
-                        onKeyDown={handlePromptKeyDown}
-                        placeholder={promptPlaceholder}
-                        slotProps={{ htmlInput: { 'aria-label': promptLabel } }}
-                        sx={{
-                            ...fieldSx,
-                            flex: 1,
-                            minHeight: 96,
-                            '& .MuiOutlinedInput-root': {
-                                ...fieldSx['& .MuiOutlinedInput-root'],
-                                alignItems: 'flex-start',
-                                height: '100%',
-                                minHeight: 96,
-                                py: 0.25,
-                            },
-                            '& textarea': { height: '100% !important', resize: 'none' },
-                        }}
-                        value={extraPrompt}
-                        variant="outlined"
-                    />
-                </Stack>
                 <Box sx={{ alignItems: 'center', color: 'text.secondary', display: 'flex', flexWrap: 'wrap', fontSize: 12, gap: 0.75 }}>
                     <Box sx={{ alignItems: 'center', display: 'flex', position: 'relative' }}>
                         <Box sx={{ bgcolor: 'success.main', borderRadius: '50%', height: 6, left: 8, position: 'absolute', width: 6, zIndex: 1 }} />
@@ -212,7 +189,36 @@ export function ActionAgentForm(props: ActionAgentFormProps) {
                     >
                         {THINKING_LEVELS.map((level) => <MenuItem key={level} value={level}>{level}</MenuItem>)}
                     </TextField>
+                    <Box sx={{ flex: 1 }} />
+                    {conversationPicker}
                 </Box>
+                <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>{conversationContent}</Box>
+                <Divider />
+                <Stack spacing={0.75}>
+                    <TextField
+                        disabled={disabled}
+                        fullWidth
+                        minRows={4}
+                        multiline
+                        onChange={onExtraPromptChange}
+                        onKeyDown={handlePromptKeyDown}
+                        placeholder={promptPlaceholder}
+                        slotProps={{ htmlInput: { 'aria-label': promptLabel } }}
+                        sx={{
+                            ...fieldSx,
+                            minHeight: 96,
+                            '& .MuiOutlinedInput-root': {
+                                ...fieldSx['& .MuiOutlinedInput-root'],
+                                alignItems: 'flex-start',
+                                minHeight: 96,
+                                py: 0.25,
+                            },
+                            '& textarea': { resize: 'none' },
+                        }}
+                        value={extraPrompt}
+                        variant="outlined"
+                    />
+                </Stack>
                 {convertMessage ? (
                     <Typography color="text.secondary" role="status" variant="caption">
                         {convertMessage}

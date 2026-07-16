@@ -125,19 +125,21 @@ function normalizeAgentConversation(content, referencePath) {
 
     const status = requireString(parsed.status, 'status')
     if (!AGENT_STATUSES.has(status)) throw new Error(`Malformed agent log: invalid status ${status}`)
+    const hasExplicitTitle = typeof parsed.title === 'string' && parsed.title.trim().length > 0
 
     return {
         actionId: parsed.actionId === null || parsed.actionId === undefined ? null : requireString(parsed.actionId, 'actionId'),
         cardPath: parsed.cardPath === null || parsed.cardPath === undefined ? null : requireString(parsed.cardPath, 'cardPath'),
         completedAt: parsed.completedAt === null || parsed.completedAt === undefined ? null : requireString(parsed.completedAt, 'completedAt'),
         events: parsed.events === undefined ? [] : requireArray(parsed.events, 'events').map(normalizeAgentEvent),
+        hasExplicitTitle,
         id: requireString(parsed.id, 'id'),
         messages: requireArray(parsed.messages, 'messages').map(normalizeAgentMessage),
         path: referencePath,
         providerSessions: parsed.providerSessions === undefined ? [] : requireArray(parsed.providerSessions, 'providerSessions').map(normalizeProviderSession),
         startedAt: requireString(parsed.startedAt, 'startedAt'),
         status,
-        title: typeof parsed.title === 'string' && parsed.title.length > 0 ? parsed.title : parsed.id,
+        title: hasExplicitTitle ? parsed.title : parsed.id,
     }
 }
 

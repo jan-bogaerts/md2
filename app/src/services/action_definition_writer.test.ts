@@ -14,6 +14,7 @@ describe('action definition writer helpers', () => {
             id: expect.any(String),
             label: 'Review Feature',
             name: 'review-feature',
+            phrases: [],
             prompt: 'review {{file}}',
             type: 'agent',
         })
@@ -30,6 +31,7 @@ describe('action definition writer helpers', () => {
             label: 'Fix tests',
             model: 'gpt-5',
             name: 'fix-tests',
+            phrases: [],
             prompt: 'fix tests',
             type: 'agent',
         })

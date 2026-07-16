@@ -1,7 +1,7 @@
 import { Box, Paper, Popper } from '@mui/material'
 import type { PopperPlacementType, SxProps, Theme } from '@mui/material'
-import { useEffect, useRef, useState } from 'react'
-import type { KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent, ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent, ReactNode } from 'react'
 import type { ResizeCorner } from './resizable_popover'
 
 interface PopperSize {
@@ -12,6 +12,7 @@ interface PopperSize {
 interface ResizablePopperProps {
     anchorElement: HTMLElement | null
     children: ReactNode
+    fullHeight?: boolean
     initialSize: PopperSize
     labelId: string
     onClose: () => void
@@ -75,11 +76,16 @@ function directionPosition(direction: ResizeDirection) {
     }
 }
 
+function clampDetachedLeft(left: number, width: number) {
+    return Math.min(Math.max(0, left), Math.max(0, window.innerWidth - width))
+}
+
 /** A non-modal anchored surface with configurable drag handles for resizing its content. */
 export function ResizablePopper(props: ResizablePopperProps) {
     const {
         anchorElement,
         children,
+        fullHeight = false,
         initialSize,
         labelId,
         onClose,
@@ -92,6 +98,7 @@ export function ResizablePopper(props: ResizablePopperProps) {
         storageKey,
     } = props
     const [size, setSize] = useState(() => loadSize(initialSize, storageKey))
+    const [detachedLeft, setDetachedLeft] = useState<number | null>(null)
     const paperRef = useRef<HTMLDivElement | null>(null)
     const resizeRef = useRef<AbortController | null>(null)
 
@@ -101,6 +108,23 @@ export function ResizablePopper(props: ResizablePopperProps) {
 
         window.localStorage.setItem(storageKey, JSON.stringify(size))
     }, [size, storageKey])
+    useLayoutEffect(() => {
+        if (!fullHeight || !paperRef.current) return
+
+        const bounds = paperRef.current.getBoundingClientRect()
+        const width = size.width ?? bounds.width
+        setDetachedLeft(clampDetachedLeft(bounds.left, width))
+    }, [fullHeight, size.width])
+    useEffect(() => {
+        if (!fullHeight) return
+
+        const handleViewportResize = () => {
+            setDetachedLeft((current) => current === null ? current : clampDetachedLeft(current, size.width ?? MIN_WIDTH))
+        }
+        window.addEventListener('resize', handleViewportResize)
+
+        return () => window.removeEventListener('resize', handleViewportResize)
+    }, [fullHeight, size.width])
 
     const handleKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
         if (event.key !== 'Escape') return
@@ -142,24 +166,34 @@ export function ResizablePopper(props: ResizablePopperProps) {
         window.addEventListener('pointerup', () => controller.abort(), { signal: controller.signal })
     }
 
+    const paperStyle: CSSProperties = fullHeight
+        ? { height: '100vh', left: detachedLeft ?? 0, position: 'fixed', top: 0, width: size.width }
+        : size
+
     return (
-        <Popper anchorEl={anchorElement} open={open} placement={placement} sx={{ zIndex: 'modal' }}>
+        <Popper
+            anchorEl={anchorElement}
+            open={open}
+            placement={placement}
+            sx={{ left: fullHeight ? '0 !important' : undefined, top: fullHeight ? '0 !important' : undefined, transform: fullHeight ? 'none !important' : undefined, zIndex: 'modal' }}
+        >
             <Paper
                 aria-labelledby={labelId}
+                data-full-height={fullHeight ? 'true' : undefined}
                 onKeyDown={handleKeyDown}
                 ref={paperRef}
                 role="dialog"
-                style={size}
+                style={paperStyle}
                 sx={[{
                     display: 'flex',
-                    maxHeight: 'calc(100vh - 32px)',
-                    maxWidth: 'calc(100vw - 32px)',
+                    maxHeight: fullHeight ? '100vh' : 'calc(100vh - 32px)',
+                    maxWidth: fullHeight ? '100vw' : 'calc(100vw - 32px)',
                     overflow: 'hidden',
                     position: 'relative',
                 }, paperSx] as SxProps<Theme>}
             >
                 {children}
-                {resizeFromAllSides ? ALL_RESIZE_DIRECTIONS.map((direction) => (
+                {!fullHeight && resizeFromAllSides ? ALL_RESIZE_DIRECTIONS.map((direction) => (
                     <Box
                         aria-label={`${resizeLabel} from ${direction}`}
                         data-direction={direction}
@@ -168,7 +202,7 @@ export function ResizablePopper(props: ResizablePopperProps) {
                         role="separator"
                         sx={{ ...directionPosition(direction), position: 'absolute', touchAction: 'none' }}
                     />
-                )) : (
+                )) : !fullHeight ? (
                     <Box
                         aria-label={resizeLabel}
                         data-corner={resizeCorner}
@@ -185,7 +219,7 @@ export function ResizablePopper(props: ResizablePopperProps) {
                             width: HANDLE_SIZE,
                         }}
                     />
-                )}
+                ) : null}
             </Paper>
         </Popper>
     )

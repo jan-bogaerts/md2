@@ -77,6 +77,7 @@ export function editableActionDefinition(action: ActionDefinition): RawActionDef
         ...(action.agent !== null ? { agent: action.agent } : {}),
         ...(action.model !== null ? { model: action.model } : {}),
         ...(action.thinkingLevel !== null ? { thinkingLevel: action.thinkingLevel } : {}),
+        phrases: action.phrases,
         ...(action.type === 'agent' ? { prompt: action.prompt as string } : { command: action.command as string }),
     }
 }
@@ -137,6 +138,7 @@ export class ActionService extends EventTarget {
             id: crypto.randomUUID(),
             label: 'New action',
             name,
+            phrases: [],
             prompt: 'Describe what the agent should do.',
             type: 'agent',
         }

@@ -2,6 +2,7 @@ import type { ActionContext } from '../../data/action_context'
 import type { ActionScheduleTrigger } from '../../data/action_schedule_types'
 import type { ActionDefinition } from '../../data/action_types'
 import type { ActionRunInput, ActionRunResult } from '../../data/action_run_types'
+import type { AgentConversation } from '../../data/data_types'
 import { getElectronActionBridge, type ActionRunHistoryEntry } from '../../data/electron_action_bridge'
 import { defaultActionHistoryLoader, loadActionHistory } from '../../services/action_history'
 import { actionFilePath, createActionDefinition, type ConvertPromptToActionInput } from '../../services/action_definition_writer'
@@ -12,6 +13,8 @@ export type PopupRunStatus = 'idle' | 'running' | ActionRunResult['status']
 export type CancelAction = (executionId: string) => Promise<void>
 export type ConvertPromptToAction = (input: ConvertPromptToActionInput) => Promise<{ path: string }>
 export type LoadHistory = (action: ActionDefinition, context: ActionContext) => Promise<ActionRunHistoryEntry[]>
+export type LoadConversation = (path: string) => Promise<AgentConversation>
+export type LoadConversations = (context: ActionContext) => Promise<AgentConversation[]>
 export type RunAction = (
     action: ActionDefinition,
     context: ActionContext,
@@ -36,6 +39,14 @@ export function defaultLoadHistory(action: ActionDefinition, context: ActionCont
         bridge: getElectronActionBridge(),
         context,
     })
+}
+
+export function defaultLoadConversation(path: string) {
+    return dataService.loadAgentConversation(path)
+}
+
+export function defaultLoadConversations(context: ActionContext) {
+    return dataService.listAgentConversations(context)
 }
 
 export async function defaultConvertPromptToAction(input: ConvertPromptToActionInput) {
