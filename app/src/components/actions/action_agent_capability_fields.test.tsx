@@ -12,7 +12,6 @@ const definition: RawActionDefinition = {
     id: 'review',
     label: 'Review',
     model: 'stored-model',
-    name: 'review',
     prompt: 'Review',
     thinkingLevel: 'high',
     type: 'agent',
@@ -58,7 +57,8 @@ describe('ActionAgentCapabilityFields', () => {
         renderFields(service)
 
         await waitFor(() => expect(screen.getAllByText('Executable not found for codex: codex').length).toBeGreaterThan(0))
-        fireEvent.mouseDown(screen.getByLabelText('Agent override'))
+        expect(screen.getByRole('heading', { name: 'Agent override' })).toBeInTheDocument()
+        fireEvent.mouseDown(screen.getByLabelText('Agent'))
         const codexOption = within(screen.getByRole('listbox')).getByRole('option', { name: /codex.*Executable not found/u })
         expect(codexOption).toHaveAttribute('aria-disabled', 'true')
         expect(within(screen.getByRole('listbox')).getByRole('option', { name: 'claude' })).not.toHaveAttribute('aria-disabled', 'true')
@@ -112,7 +112,7 @@ describe('ActionAgentCapabilityFields', () => {
         renderFields(service, definition, onChange)
 
         await waitFor(() => expect(screen.queryByText('Checking agent availability…')).not.toBeInTheDocument())
-        fireEvent.mouseDown(screen.getByLabelText('Agent override'))
+        fireEvent.mouseDown(screen.getByLabelText('Agent'))
         fireEvent.click(within(screen.getByRole('listbox')).getByRole('option', { name: 'claude' }))
 
         expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ agent: 'claude', model: undefined, thinkingLevel: undefined }))

@@ -278,6 +278,7 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
                             onTogglePolicy={handleTogglePolicy}
                             onWorktreeChange={handleWorktreeChange}
                             primaryPath={project.rootPath ?? project.id}
+                            projectKey={`${project.id}:${project.branch}`}
                             repositoryFiles={repositoryFiles}
                             selectedPath={selectedPath}
                             states={states}
@@ -298,6 +299,7 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
                             onTitleChange={handleTitleChange}
                             onTogglePolicy={handleTogglePolicy}
                             projectFolder={projectFolder}
+                            projectKey={`${project.id}:${project.branch}`}
                             requestedNonce={requestedNonce}
                             requestedPath={selectedPath}
                             repositoryFiles={repositoryFiles}

@@ -126,7 +126,6 @@ function collectActionFields(action: ActionDefinition): ActionSearchField[] {
     const fields: ActionSearchField[] = [
         { field: 'label', value: action.label },
         { field: 'description', value: action.description },
-        { field: 'name', value: action.name },
     ]
     if (action.prompt) fields.push({ field: 'text', value: action.prompt })
     if (action.command) fields.push({ field: 'text', value: action.command })
@@ -193,7 +192,7 @@ export function searchProject(snapshot: ProjectSnapshot, query: string, options:
 }
 
 /**
- * Searches loaded action definitions by label, description, name and text.
+ * Searches loaded action definitions by label, description and text.
  * Throws {@link InvalidSearchPatternError} for an invalid RegExp-mode query.
  */
 export function searchActions(actions: ActionDefinition[], query: string, options: SearchOptions): ActionSearchMatch[] {

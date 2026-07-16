@@ -28,6 +28,7 @@ interface CardViewProps {
     onTitleChange: (path: string, title: string) => void
     onWorktreeChange: (path: string, worktree: number | null) => void
     primaryPath: string
+    projectKey: string
     repositoryFiles: string[]
     selectedPath: string | null
     states: StateConfig[]
@@ -98,6 +99,7 @@ export function CardView(props: CardViewProps) {
         onTitleChange,
         onWorktreeChange,
         primaryPath,
+        projectKey,
         repositoryFiles,
         selectedPath,
         states,
@@ -222,6 +224,7 @@ export function CardView(props: CardViewProps) {
                         onWorktreeChange={onWorktreeChange}
                         openBodyPath={openBodyPath}
                         primaryPath={primaryPath}
+                        projectKey={projectKey}
                         selectedPath={selectedPath}
                         worktrees={worktrees}
                     />

@@ -378,7 +378,6 @@ describe('ConfigPage', () => {
         configService.init({
             desktopConfig: {
                 agent: 'codex',
-                agentSlotCommand: '',
                 agentProfiles: BUILTIN_AGENT_PROFILES,
                 model: '',
             },
@@ -410,7 +409,6 @@ describe('ConfigPage', () => {
         window.md2Config = {
             getDesktopConfig: () => ({
                 agent: 'codex',
-                agentSlotCommand: 'old-slot-command',
                 agentProfiles: BUILTIN_AGENT_PROFILES,
                 model: '',
             }),
@@ -425,7 +423,6 @@ describe('ConfigPage', () => {
 
         expect(setDesktopConfig).toHaveBeenCalledWith({
             agent: 'claude',
-            agentSlotCommand: 'old-slot-command',
             agentProfiles: BUILTIN_AGENT_PROFILES,
             codexSearchEnabled: false,
             model: '',
@@ -441,7 +438,6 @@ describe('ConfigPage', () => {
         window.md2Config = {
             getDesktopConfig: () => ({
                 agent: 'codex',
-                agentSlotCommand: '',
                 agentProfiles: BUILTIN_AGENT_PROFILES,
                 model: '',
             }),
@@ -486,7 +482,6 @@ describe('ConfigPage', () => {
         window.md2Config = {
             getDesktopConfig: () => ({
                 agent: 'codex',
-                agentSlotCommand: '',
                 agentProfiles: [...BUILTIN_AGENT_PROFILES, { command: ['local-agent'], models: ['local-model'], name: 'local' }],
                 model: '',
             }),
@@ -518,7 +513,7 @@ describe('ConfigPage', () => {
         mockMatchMedia(false)
         const setDesktopConfig = vi.fn()
         window.md2Config = {
-            getDesktopConfig: () => ({agent: 'codex', agentProfiles: BUILTIN_AGENT_PROFILES, agentSlotCommand: '', model: ''}),
+            getDesktopConfig: () => ({agent: 'codex', agentProfiles: BUILTIN_AGENT_PROFILES, model: ''}),
             setDesktopConfig,
         }
         initConfigFromElectronBridge()
@@ -540,7 +535,6 @@ describe('ConfigPage', () => {
         window.md2Config = {
             getDesktopConfig: () => ({
                 agent: 'codex',
-                agentSlotCommand: '',
                 agentProfiles: BUILTIN_AGENT_PROFILES,
                 model: '',
             }),
@@ -572,7 +566,6 @@ describe('ConfigPage', () => {
         window.md2Config = {
             getDesktopConfig: () => ({
                 agent: 'claude',
-                agentSlotCommand: 'slot-command',
                 agentProfiles: BUILTIN_AGENT_PROFILES,
                 model: '',
             }),
@@ -583,9 +576,7 @@ describe('ConfigPage', () => {
         renderConfigPage('#desktop')
 
         expect(configService.get('desktop.agent')).toBe('claude')
-        expect(configService.get('desktop.agentSlotCommand')).toBe('slot-command')
         expect(screen.getByRole('tab', { name: 'Desktop' })).toBeInTheDocument()
-        expect(screen.getByLabelText('Agent slot command')).toHaveValue('slot-command')
 
         delete window.md2Config
     })
@@ -598,7 +589,6 @@ describe('ConfigPage', () => {
 
         expect(screen.getByRole('tab', { name: 'Desktop' })).toBeInTheDocument()
         expect(screen.getByLabelText('Default agent')).toHaveAttribute('aria-disabled', 'true')
-        expect(screen.getByLabelText('Agent slot command')).toBeDisabled()
         expect(screen.queryByLabelText('Project location')).not.toBeInTheDocument()
     })
 

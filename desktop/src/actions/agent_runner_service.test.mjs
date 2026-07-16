@@ -168,6 +168,31 @@ describe('AgentRunnerService', () => {
         }
     });
 
+    it('hides agent lifecycle and debugger noise from stderr', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-runner-'));
+        const service = new AgentRunnerService();
+        const events = [];
+        const scriptPath = join(rootPath, 'noisy-stderr.cjs');
+
+        try {
+            await prepareProject(rootPath);
+            await writeFile(scriptPath, "console.log(JSON.stringify({type:'thread.started',thread_id:'thread-1'}));console.log(JSON.stringify({type:'turn.started'}));process.stderr.write('completed\\nDebugger list');process.stderr.write('ening on ws://127.0.0.1:60618/id\\nFor help, see: https://nodejs.org/en/docs/inspector\\nDebugger attached.\\nReading additional input from stdin...\\nvisible warning\\nWaiting for the debugger to disconnect...')\n");
+            const result = await service.run(createProject(rootPath), {
+                agent: 'codex',
+                command: ['node', scriptPath],
+                prompt: 'question',
+                scopePath: 'project',
+            }, (event) => events.push(event));
+            const persisted = JSON.parse(await readFile(join(rootPath, result.reference), 'utf8'));
+
+            expect(result.stderr).toBe('visible warning\n');
+            expect(events.filter(({ type }) => type === 'stderr').map(({ content }) => content)).toEqual(['visible warning\n']);
+            expect(persisted.events.filter(({ type }) => type === 'stderr').map(({ content }) => content)).toEqual(['visible warning\n']);
+        } finally {
+            await rm(rootPath, { force: true, recursive: true });
+        }
+    });
+
     it('fails a new provider turn without an explicit structured conversation id', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-runner-'));
         const service = new AgentRunnerService();

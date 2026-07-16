@@ -13,7 +13,6 @@ function createExecutionId() {
 
 class ActionRunnerService {
     constructor(dependencies) {
-        this.actionCompleted = dependencies?.actionCompleted ?? null;
         this.actionWorktreeExecutionService = dependencies?.actionWorktreeExecutionService;
         this.agentConfigProvider = dependencies?.agentConfigProvider;
         this.agentRunnerService = dependencies?.agentRunnerService;
@@ -35,10 +34,6 @@ class ActionRunnerService {
     startProject(project, actionsFolder) {
         this.project = project;
         this.actionsFolder = actionsFolder;
-    }
-
-    setActionCompleted(actionCompleted) {
-        this.actionCompleted = actionCompleted;
     }
 
     stop() {
@@ -116,14 +111,6 @@ class ActionRunnerService {
         if (this.completedResults.size > COMPLETED_EXECUTION_LIMIT) {
             this.completedResults.delete(this.completedResults.keys().next().value);
         }
-        if (result.status !== 'cancelled' && this.actionCompleted) {
-            try {
-                await this.actionCompleted(execution.rootAction.id);
-            } catch (error) {
-                this.reportError(error);
-            }
-        }
-
         return result;
     }
 

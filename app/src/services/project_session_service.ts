@@ -42,6 +42,7 @@ export type ProjectOpenResolution = MissingWorkingFolderResolution | ProjectFold
 export interface ProjectSessionState {
     errorMessage: string | null
     isLoading: boolean
+    isPushing: boolean
     pendingGithubConflictProject: ProjectReference | null
 }
 
@@ -130,7 +131,7 @@ async function loadProjectSession(storage: StorageService, storageType: StorageT
 }
 
 export class ProjectSessionService extends EventTarget {
-    private state: ProjectSessionState = { errorMessage: null, isLoading: false, pendingGithubConflictProject: null }
+    private state: ProjectSessionState = { errorMessage: null, isLoading: false, isPushing: false, pendingGithubConflictProject: null }
 
     constructor() {
         super()
@@ -241,10 +242,18 @@ export class ProjectSessionService extends EventTarget {
     }
 
     async push() {
-        await this.withLoading('Push failed', async () => {
-            await dataService.cards.flushPendingCommits()
-            await dataService.projectLoading.push()
-        })
+        this.state = { ...this.state, isPushing: true }
+        this.dispatchChanged()
+
+        try {
+            await this.withLoading('Push failed', async () => {
+                await dataService.cards.flushPendingCommits()
+                await dataService.projectLoading.push()
+            })
+        } finally {
+            this.state = { ...this.state, isPushing: false }
+            this.dispatchChanged()
+        }
     }
 
     discardGithubPendingCommits(project: ProjectReference, accessToken: string | null) {
@@ -263,7 +272,7 @@ export class ProjectSessionService extends EventTarget {
     }
 
     private async withLoading<T>(fallbackMessage: string, operation: () => Promise<T>): Promise<T> {
-        this.state = { errorMessage: null, isLoading: true, pendingGithubConflictProject: null }
+        this.state = { ...this.state, errorMessage: null, isLoading: true, pendingGithubConflictProject: null }
         this.dispatchChanged()
 
         try {
@@ -271,6 +280,7 @@ export class ProjectSessionService extends EventTarget {
         } catch (error) {
             const message = error instanceof Error ? error.message : fallbackMessage
             this.state = {
+                ...this.state,
                 errorMessage: message,
                 isLoading: false,
                 pendingGithubConflictProject: error instanceof GithubPendingCommitConflictError ? error.project : null,

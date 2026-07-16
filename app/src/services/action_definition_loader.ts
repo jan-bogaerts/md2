@@ -2,6 +2,10 @@ import {
     parseActionDefinitionFiles,
     validateActionDefinitionGraph as validateSharedActionDefinitionGraph,
 } from '../../../shared/action_definitions.mjs'
+import {
+    loadTolerantActionDefinitionGraph as loadSharedTolerantActionDefinitionGraph,
+} from '../../../shared/tolerant_action_definitions.mjs'
+import type { ActionDefinitionLoadIssue } from '../../../shared/tolerant_action_definitions.mjs'
 import type {
     ActionDefinition,
     ActionDefinitionEntry,
@@ -15,6 +19,8 @@ interface ActionDefinitionLoaderDependencies {
     profiles?: AgentProfile[]
     validateAgentCapabilities?: boolean
 }
+
+export type { ActionDefinitionLoadIssue }
 
 function defaultLoaderDependencies(): ActionDefinitionLoaderDependencies {
     if (!configService.isInitialized()) return {}
@@ -41,6 +47,14 @@ export function loadActionDefinitionGraph(
     const actions = validateSharedActionDefinitionGraph(definitions, dependencies)
 
     return { actions, definitions: definitions as RawActionDefinitionEntry[] }
+}
+
+/** Load every usable action while collecting file-level problems for deferred reporting. */
+export function loadTolerantActionDefinitionGraph(
+    files: ActionFile[],
+    dependencies: ActionDefinitionLoaderDependencies = defaultLoaderDependencies(),
+): { actions: ActionDefinition[], definitions: RawActionDefinitionEntry[], issues: ActionDefinitionLoadIssue[] } {
+    return loadSharedTolerantActionDefinitionGraph(files, dependencies)
 }
 
 export function validateActionDefinitionGraph(

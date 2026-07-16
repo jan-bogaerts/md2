@@ -7,8 +7,8 @@ const { resolveAgentPrompt, resolvePlaceholders } = require('./action_text');
 const project = { rootPath: 'C:/repo' };
 
 describe('resolvePlaceholders', () => {
-    it('resolves project, file, and prompt placeholders', () => {
-        expect(resolvePlaceholders('{{rootProjectFolder}} {{file}} {{prompt}}', { file: 'design/card.md' }, project, 'focus'))
+    it('resolves project, card file, and card prompt placeholders', () => {
+        expect(resolvePlaceholders('{{rootProjectFolder}} {{card-file}} {{card-prompt}}', { file: 'design/card.md' }, project, 'focus'))
             .toBe('C:/repo design/card.md focus');
     });
 
@@ -16,14 +16,18 @@ describe('resolvePlaceholders', () => {
         expect(() => resolvePlaceholders('{{rootProjectFolder}}', {}, {}, '')).toThrow('Missing local Git project rootPath');
     });
 
-    it('rejects file placeholder without file context', () => {
-        expect(() => resolvePlaceholders('{{file}}', { kind: 'project' }, project, '')).toThrow('Cannot resolve file placeholder');
+    it('rejects card-file placeholder without file context', () => {
+        expect(() => resolvePlaceholders('{{card-file}}', { kind: 'project' }, project, '')).toThrow('Cannot resolve card-file placeholder');
+    });
+
+    it('does not resolve removed placeholder names', () => {
+        expect(resolvePlaceholders('{{file}} {{prompt}}', { file: 'design/card.md' }, project, 'focus')).toBe('{{file}} {{prompt}}');
     });
 });
 
 describe('resolveAgentPrompt', () => {
-    it('replaces prompt placeholder', () => {
-        expect(resolveAgentPrompt({ prompt: 'Review {{prompt}}' }, {}, project, 'this')).toBe('Review this');
+    it('replaces card-prompt placeholder', () => {
+        expect(resolveAgentPrompt({ prompt: 'Review {{card-prompt}}' }, {}, project, 'this')).toBe('Review this');
     });
 
     it('appends nonblank input when placeholder is absent', () => {

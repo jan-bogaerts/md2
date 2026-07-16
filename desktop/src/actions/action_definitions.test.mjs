@@ -23,9 +23,9 @@ function file(name, definition) {
 
 const IMPLEMENT = {
     description: 'Implement this feature', id: 'action-implement', label: 'Implement',
-    name: 'implement', prompt: 'use /implement-feature on {{file}}', type: 'agent',
+    prompt: 'use /implement-feature on {{card-file}}', type: 'agent',
 };
-const LINT = {command: 'npm run lint', description: 'Lint', id: 'action-lint', label: 'Lint', name: 'lint', type: 'command'};
+const LINT = {command: 'npm run lint', description: 'Lint', id: 'action-lint', label: 'Lint', type: 'command'};
 
 describe('loadActionDefinitions', () => {
     it.each(ACTION_DEFINITION_VALIDATION_PARITY_CASES)(
@@ -140,7 +140,6 @@ describe('loadActionDefinitions', () => {
 
     it.each([
         ['id', { ...IMPLEMENT, id: ' \t\r\n' }],
-        ['name', { ...IMPLEMENT, name: '\u00a0\u2003' }],
         ['label', { ...IMPLEMENT, label: ' \t' }],
         ['description', { ...IMPLEMENT, description: '\r\n\u3000' }],
         ['prompt', { ...IMPLEMENT, prompt: ' \t\r\n\u00a0' }],
@@ -154,10 +153,6 @@ describe('loadActionDefinitions', () => {
     it('rejects surrounding whitespace in action identities and linked ids', () => {
         expect(validationError([file('implement', { ...IMPLEMENT, id: ` ${IMPLEMENT.id}` })]))
             .toMatchObject({ code: 'invalid-field', field: 'id' });
-        expect(validationError([
-            file('implement', IMPLEMENT),
-            file('lint', { ...LINT, name: ` ${IMPLEMENT.name} ` }),
-        ])).toMatchObject({ code: 'invalid-field', field: 'name', sourcePath: 'actions/lint.json' });
         expect(validationError([
             file('implement', { ...IMPLEMENT, onAfter: [`${LINT.id} `] }),
             file('lint', LINT),
@@ -204,14 +199,14 @@ describe('loadActionDefinitions', () => {
     it('routes duplicate id from another file and cycles across all three link types', () => {
         const duplicate = validationError([
             file('implement', IMPLEMENT),
-            file('clone', { ...LINT, id: IMPLEMENT.id, name: 'clone' }),
+            file('clone', { ...LINT, id: IMPLEMENT.id }),
         ]);
         expect(duplicate).toMatchObject({ code: 'duplicate-id', field: 'id', sourcePath: 'actions/clone.json' });
 
         // a --onBefore--> b --on--> c --onAfter--> a spans onBefore, on, and onAfter.
-        const a = { ...IMPLEMENT, id: 'a', name: 'a', onBefore: ['b'] };
-        const b = { ...IMPLEMENT, id: 'b', name: 'b', on: [{ actionId: 'c', condition: 'x' }] };
-        const c = { ...IMPLEMENT, id: 'c', name: 'c', onAfter: ['a'] };
+        const a = { ...IMPLEMENT, id: 'a', onBefore: ['b'] };
+        const b = { ...IMPLEMENT, id: 'b', on: [{ actionId: 'c', condition: 'x' }] };
+        const c = { ...IMPLEMENT, id: 'c', onAfter: ['a'] };
         const cycle = validationError([file('a', a), file('b', b), file('c', c)]);
         expect(cycle).toMatchObject({ code: 'circular-reference', field: null });
     });

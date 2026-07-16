@@ -22,7 +22,8 @@
   - optional agent, model, and thinking-level overrides.
 - `prompt` and `command` can contain placeholders:
   - `rootProjectFolder`;
-  - `file`, containing the path to the selected Markdown file.
+  - `card-file`, containing the path to the selected Markdown card file;
+  - `card-prompt`, containing the additional prompt entered when the card action runs.
 - Action links always reference separately defined actions by `id`; linked actions are not defined inline.
 - Action loading rejects unknown ids, duplicate ids, invalid regular expressions, and circular calls through `onBefore`, `on`, or `onAfter`.
 - The Electron-side action runner loads the definition by `id`, resolves placeholders, executes the full chain, and publishes execution events. React displays definitions and execution state but does not run or orchestrate actions.
@@ -36,7 +37,7 @@ Example:
   "label": "Implement",
   "description": "Implement this feature",
   "type": "agent",
-  "prompt": "use '/implement-feature' to implement {{file}}",
+  "prompt": "use '/implement-feature' to implement {{card-file}}",
   "needsWorkTree": true,
   "onBefore": [
     "8a5e9df1-56b0-4fd0-9c4c-f3c811272ae3"

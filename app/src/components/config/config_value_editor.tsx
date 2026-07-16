@@ -24,7 +24,6 @@ const MULTILINE_CONFIG_FIELD_MIN_ROWS = 6
 const OUTLINED_FIELD_BLOCK_SX = { border: 1, borderColor: 'divider', borderRadius: 1, p: 2 }
 const MONOSPACE_INPUT_SLOT_PROPS = { htmlInput: { style: { fontFamily: 'monospace' } } }
 const MONOSPACE_CONFIG_KEYS = new Set<ConfigEntry['key']>([
-    'desktop.agentSlotCommand',
     'project.cardBodyTemplate',
     'project.cardTypes',
     'project.diffCommand',

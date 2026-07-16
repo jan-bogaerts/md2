@@ -70,10 +70,8 @@ const actionRunnerService = new ActionRunnerService({
 });
 const actionSchedulerService = new ActionSchedulerService({
     actionRunnerService,
-    agentConfigProvider: () => readDesktopConfig(store),
     localGitService,
 });
-actionRunnerService.setActionCompleted((actionId) => actionSchedulerService.handleActionCompleted(actionId));
 const localBridgeDispatch = createLocalBridgeDispatch({
     actionRunnerService,
     actionSchedulerService,

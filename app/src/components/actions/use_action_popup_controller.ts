@@ -33,7 +33,7 @@ import {
     type RunAction,
     type ScheduleAction,
 } from './action_popup_defaults'
-import { createScheduleTrigger, type ScheduleTriggerType } from './action_schedule_trigger'
+import { createScheduleTrigger } from './action_schedule_trigger'
 
 const DEFAULT_CONVERT_LABEL_LENGTH = 40
 
@@ -56,6 +56,10 @@ function belongsToContext(conversation: AgentConversation, context: ActionContex
     return context.kind === 'project' ? conversation.cardPath === null : conversation.cardPath === context.file
 }
 
+function belongsToAction(conversation: AgentConversation, actionId: string, context: ActionContext) {
+    return belongsToContext(conversation, context) && conversation.actionId === actionId
+}
+
 function conversationTimestamp(conversation: AgentConversation) {
     const timestamp = Date.parse(conversation.startedAt)
 
@@ -73,14 +77,15 @@ function conversationContextKey(actionId: string, context: ActionContext) {
 
 export function mergeConversationHistory(
     conversations: AgentConversation[],
+    actionId: string,
     context: ActionContext,
     liveConversation: AgentConversation | null,
 ) {
     const byId = new Map<string, AgentConversation>()
     for (const conversation of conversations) {
-        if (belongsToContext(conversation, context)) byId.set(conversation.id, conversation)
+        if (belongsToAction(conversation, actionId, context)) byId.set(conversation.id, conversation)
     }
-    if (liveConversation && belongsToContext(liveConversation, context)) byId.set(liveConversation.id, liveConversation)
+    if (liveConversation && belongsToAction(liveConversation, actionId, context)) byId.set(liveConversation.id, liveConversation)
 
     return [...byId.values()].sort((left, right) => conversationTimestamp(right) - conversationTimestamp(left))
 }
@@ -104,7 +109,7 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
     const defaultAgent = action.agent ?? configuredAgent
     const defaultAgentProfile = findAgentProfile(agentProfiles, defaultAgent)
     const defaultModel = (action.model ?? configuredModel) || (defaultAgentProfile ? defaultModelForProfile(defaultAgentProfile) : '')
-    const definitionThinkingLevel = validateThinkingLevel(action.thinkingLevel ?? configuredThinkingLevel, `action "${action.name}"`)
+    const definitionThinkingLevel = validateThinkingLevel(action.thinkingLevel ?? configuredThinkingLevel, `action "${action.label}"`)
     const [actionLabel, setActionLabel] = useState('')
     const [agentOverride, setAgentOverride] = useState<string | null>(null)
     const [convertMessage, setConvertMessage] = useState<string | null>(null)
@@ -116,14 +121,13 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
     const [modelOverride, setModelOverride] = useState<string | null>(null)
     const [localRunResult, setLocalRunResult] = useState<ActionRunResult | null>(null)
     const [localRunStatus, setLocalRunStatus] = useState<PopupRunStatus>('idle')
-    const [scheduleAfterActionName, setScheduleAfterActionName] = useState('')
     const [scheduleMessage, setScheduleMessage] = useState<string | null>(null)
     const [scheduleOpen, setScheduleOpen] = useState(false)
     const [scheduleTimestamp, setScheduleTimestamp] = useState('')
-    const [scheduleTriggerType, setScheduleTriggerType] = useState<ScheduleTriggerType>('at')
     const [liveActionKey, setLiveActionKey] = useState<string | null>(null)
     const [selectedConversationState, setSelectedConversationState] = useState<{ conversation: AgentConversation | null, key: string }>({ conversation: null, key: '' })
     const [thinkingLevelOverride, setThinkingLevelOverride] = useState<{ actionId: string, value: ThinkingLevel } | null>(null)
+    const contextRef = useRef(context)
     const selectionRequestRef = useRef(0)
     const agent = agentOverride ?? defaultAgent
     const model = modelOverride ?? defaultModel
@@ -163,12 +167,16 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
         : null
     const displayedConversation = liveConversation ?? selectedConversation
     const selectedHistory = selectedConversation ? [...conversationHistory, selectedConversation] : conversationHistory
-    const conversations = mergeConversationHistory(selectedHistory, context, liveConversation)
+    const conversations = mergeConversationHistory(selectedHistory, action.id, context, liveConversation)
     const continuationReference = liveConversation?.path
         ?? selectedConversation?.path
         ?? input.continueFrom
         ?? null
     const isFollowUp = action.type === 'agent' && runStatus !== 'running' && !!continuationReference
+
+    useEffect(() => {
+        contextRef.current = context
+    }, [context])
 
     const refreshConversationHistory = async () => {
         if (!input.enableConversations || action.type !== 'agent') return
@@ -189,8 +197,9 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
         selectionRequestRef.current = requestId
 
         async function loadInitialConversations() {
+            const activeContext = contextRef.current
             try {
-                const loadedConversations = await loadConversations(context)
+                const loadedConversations = await loadConversations(activeContext)
                 if (!isActive) return
 
                 setConversationHistoryState({ conversations: loadedConversations, key: conversationKey })
@@ -201,7 +210,8 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
 
                 const conversation = await loadConversation(input.continueFrom)
                 if (!isActive || selectionRequestRef.current !== requestId) return
-                if (!belongsToContext(conversation, context)) throw new Error('Selected agent conversation belongs to another context')
+                if (!belongsToContext(conversation, activeContext)) throw new Error('Selected agent conversation belongs to another context')
+                if (conversation.actionId !== action.id) throw new Error('Selected agent conversation belongs to another action')
                 setSelectedConversationState({ conversation, key: selectionKey })
             } catch (error) {
                 if (isActive) {
@@ -218,8 +228,8 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
             isActive = false
         }
     }, [
+        action.id,
         action.type,
-        context,
         conversationKey,
         input.continueFrom,
         input.enableConversations,
@@ -273,7 +283,7 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
         } catch (error) {
             const message = error instanceof Error ? error.message : 'Action run failed'
             setLocalRunResult({
-                logs: [{ actionName: action.name, command: null, message, phase: 'main', status: 'failed', stderr: message, stdout: '' }],
+                logs: [{ actionName: action.label, command: null, message, phase: 'main', status: 'failed', stderr: message, stdout: '' }],
                 status: 'failed',
             })
             setLocalRunStatus('failed')
@@ -303,6 +313,7 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
             const conversation = await loadConversation(path)
             if (selectionRequestRef.current !== requestId) return
             if (!belongsToContext(conversation, context)) throw new Error('Selected agent conversation belongs to another context')
+            if (conversation.actionId !== action.id) throw new Error('Selected agent conversation belongs to another action')
 
             setSelectedConversationState({ conversation, key: selectionKey })
             setLiveActionKey(null)
@@ -324,18 +335,8 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
         setScheduleMessage(null)
     }
 
-    const handleScheduleTriggerTypeChange = (event: ChangeEvent<HTMLInputElement>) => {
-        setScheduleTriggerType(event.target.value as ScheduleTriggerType)
-        setScheduleMessage(null)
-    }
-
     const handleScheduleTimestampChange = (event: ChangeEvent<HTMLInputElement>) => {
         setScheduleTimestamp(event.target.value)
-        setScheduleMessage(null)
-    }
-
-    const handleScheduleAfterActionNameChange = (event: ChangeEvent<HTMLInputElement>) => {
-        setScheduleAfterActionName(event.target.value)
         setScheduleMessage(null)
     }
 
@@ -343,7 +344,7 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
         setScheduleMessage(null)
 
         try {
-            const trigger = createScheduleTrigger(scheduleTriggerType, scheduleTimestamp, scheduleAfterActionName)
+            const trigger = createScheduleTrigger(scheduleTimestamp)
             await scheduleAction(action, context, trigger)
             setScheduleMessage('Schedule registered')
         } catch (error) {
@@ -434,9 +435,7 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
         handleRun,
         handleSaveAndRun,
         handleScheduleAction,
-        handleScheduleAfterActionNameChange,
         handleScheduleTimestampChange,
-        handleScheduleTriggerTypeChange,
         handleToggleSchedule,
         handleThinkingLevelChange,
         history,
@@ -446,11 +445,9 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
         runLogs,
         runStatus,
         saveDisabled,
-        scheduleAfterActionName,
         scheduleMessage,
         scheduleOpen,
         scheduleTimestamp,
-        scheduleTriggerType,
         selectedAgentModels,
         selectedAgentAvailable,
         thinkingLevel,

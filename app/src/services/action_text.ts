@@ -2,8 +2,8 @@ import type { ActionContext } from '../data/action_context'
 import type { ActionDefinition } from '../data/action_types'
 import type { ProjectReference } from '../data/data_types'
 
-const PLACEHOLDER_PATTERN = /\{\{\s*(rootProjectFolder|file|prompt)\s*\}\}/gu
-const PROMPT_PLACEHOLDER_PATTERN = /\{\{\s*prompt\s*\}\}/u
+const PLACEHOLDER_PATTERN = /\{\{\s*(rootProjectFolder|card-file|card-prompt)\s*\}\}/gu
+const CARD_PROMPT_PLACEHOLDER_PATTERN = /\{\{\s*card-prompt\s*\}\}/u
 
 export function resolvePlaceholders(text: string, context: ActionContext, project: ProjectReference, extraPrompt: string): string {
     return text.replace(PLACEHOLDER_PATTERN, (_match, name: string) => {
@@ -13,9 +13,9 @@ export function resolvePlaceholders(text: string, context: ActionContext, projec
             return project.rootPath
         }
 
-        if (name === 'prompt') return extraPrompt
+        if (name === 'card-prompt') return extraPrompt
 
-        if (!context.file) throw new Error('Cannot resolve file placeholder without a file context')
+        if (!context.file) throw new Error('Cannot resolve card-file placeholder without a file context')
 
         return context.file
     })
@@ -27,9 +27,9 @@ export function resolveAgentPrompt(
     project: ProjectReference,
     extraPrompt: string,
 ): string {
-    if (!action.prompt) throw new Error(`Missing prompt for agent action "${action.name}"`)
+    if (!action.prompt) throw new Error(`Missing prompt for agent action "${action.label}"`)
     const resolvedText = resolvePlaceholders(action.prompt, context, project, extraPrompt)
-    if (PROMPT_PLACEHOLDER_PATTERN.test(action.prompt)) return resolvedText
+    if (CARD_PROMPT_PLACEHOLDER_PATTERN.test(action.prompt)) return resolvedText
     if (extraPrompt.trim().length === 0) return resolvedText
 
     return `${resolvedText}\n\n${extraPrompt}`

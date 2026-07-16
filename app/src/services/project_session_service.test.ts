@@ -124,6 +124,23 @@ describe('ProjectSessionService storage activation', () => {
         expect(getElectronActionBridge()).toBe(remoteBridge)
     })
 
+    it('reports push progress until pending changes are flushed and pushed', async () => {
+        let resolvePush: () => void = () => undefined
+        const pendingPush = new Promise<void>((resolve) => {
+            resolvePush = resolve
+        })
+        vi.spyOn(dataService.cards, 'flushPendingCommits').mockResolvedValue()
+        vi.spyOn(dataService.projectLoading, 'push').mockReturnValue(pendingPush)
+        const service = new ProjectSessionService()
+
+        const push = service.push()
+
+        expect(service.getSnapshot()).toMatchObject({ isLoading: true, isPushing: true })
+        resolvePush()
+        await push
+        expect(service.getSnapshot()).toMatchObject({ isLoading: false, isPushing: false })
+    })
+
     it('returns shared project-folder setup when a local repository has no config', async () => {
         const bridge = createDataBridge()
         vi.mocked(bridge.loadProjectConfig).mockResolvedValue(null)

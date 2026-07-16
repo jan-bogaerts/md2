@@ -8,6 +8,7 @@ const { ActionRunnerService } = require('./action_runner_service');
 const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
 const context = { file: 'design/F-022.md', kind: 'card', type: 'feature' };
 const now = Date.parse('2026-07-06T10:00:00.000Z');
+const MAX_TIMER_DELAY_MS = 2147483647;
 
 function createDeferred() {
     let resolveDeferred = () => undefined;
@@ -27,34 +28,32 @@ function summarizeExecutionEvents(executionEvents) {
     }));
 }
 
-function createAction(name = 'implement') {
+function createAction(id = 'implement') {
     return {
         content: JSON.stringify({
             command: 'echo done',
-            description: `${name} description`,
-            id: name,
-            label: name,
-            name,
+            description: `${id} description`,
+            id,
+            label: id,
             type: 'command',
         }),
-        path: `actions/${name}.json`,
+        path: `actions/${id}.json`,
     };
 }
 
-function createAgentAction(name = 'implement', overrides = {}) {
+function createAgentAction(id = 'implement', overrides = {}) {
     return {
         content: JSON.stringify({
             agent: 'codex',
-            description: `${name} description`,
-            id: name,
-            label: name,
+            description: `${id} description`,
+            id,
+            label: id,
             model: 'gpt-5.5',
-            name,
-            prompt: `Run ${name}`,
+            prompt: `Run ${id}`,
             type: 'agent',
             ...overrides,
         }),
-        path: `actions/${name}.json`,
+        path: `actions/${id}.json`,
     };
 }
 
@@ -202,72 +201,50 @@ describe('ActionSchedulerService', () => {
         expect(localGitService.schedules()).toEqual([{ ...schedule, status: 'cancelled' }]);
     });
 
-    it('fires afterAction schedules when the named action completes', async () => {
-        const schedule = createSchedule('schedule-1', 'implement', { actionId: 'build', type: 'afterAction' });
-        const localGitService = createLocalGitService([schedule]);
-        const scheduler = createScheduler(localGitService);
-
-        await scheduler.startProject(project);
-        await scheduler.handleActionCompleted('build');
-
-        expect(localGitService.runCommand).toHaveBeenCalledWith(project, 'echo done');
-        expect(localGitService.schedules()).toEqual([{ ...schedule, status: 'completed' }]);
-    });
-
-    it('resolves agentSlot schedules with the configured desktop command', async () => {
-        const schedule = createSchedule('schedule-1', 'implement', { type: 'agentSlot' });
-        const localGitService = createLocalGitService([schedule]);
-        const commandRunner = vi.fn(async (command) => ({
-            command,
-            exitCode: 0,
-            stderr: '',
-            stdout: '2026-07-06T10:00:05.000Z',
-        }));
-        const scheduler = createScheduler(localGitService, {
-            agentConfigProvider: () => ({ agentSlotCommand: 'configured-slot-command' }),
-            commandRunner,
-        });
-
-        await scheduler.startProject(project);
-
-        expect(commandRunner).toHaveBeenCalledWith('configured-slot-command', project.rootPath);
-    });
-
-    it('uses changed desktop config on the next agentSlot resolution', async () => {
-        let agentSlotCommand = 'first-slot-command';
+    it('registers a future date and time schedule', async () => {
         const localGitService = createLocalGitService([]);
-        const commandRunner = vi.fn(async (command) => ({
-            command,
-            exitCode: 0,
-            stderr: '',
-            stdout: '2026-07-06T10:00:05.000Z',
-        }));
-        const scheduler = createScheduler(localGitService, {
-            agentConfigProvider: () => ({ agentSlotCommand }),
-            commandRunner,
-        });
-
+        const setTimeout = vi.fn(() => 'timer-1');
+        const scheduler = createScheduler(localGitService, { setTimeout });
         await scheduler.startProject(project);
-        await scheduler.registerActionSchedule({ actionId: 'implement', context, trigger: { type: 'agentSlot' } });
-        agentSlotCommand = 'second-slot-command';
-        await scheduler.registerActionSchedule({ actionId: 'implement', context, trigger: { type: 'agentSlot' } });
+        const trigger = { timestamp: '2026-07-06T10:00:05.000Z', type: 'at' };
 
-        expect(commandRunner).toHaveBeenNthCalledWith(1, 'first-slot-command', project.rootPath);
-        expect(commandRunner).toHaveBeenNthCalledWith(2, 'second-slot-command', project.rootPath);
+        const schedule = await scheduler.registerActionSchedule({ actionId: 'implement', context, trigger });
+
+        expect(schedule).toMatchObject({ actionId: 'implement', context, status: 'pending', trigger });
+        expect(localGitService.schedules()).toEqual([schedule]);
+        expect(setTimeout).toHaveBeenCalledWith(expect.any(Function), 5000);
     });
 
-    it('records a config-entry error when agentSlot command is empty', async () => {
-        const schedule = createSchedule('schedule-1', 'implement', { type: 'agentSlot' });
-        const localGitService = createLocalGitService([schedule]);
-        const scheduler = createScheduler(localGitService, {agentConfigProvider: () => ({ agentSlotCommand: '' })});
-
+    it.each([
+        [{ timestamp: '2026-07-06T10:00:05.000Z', type: 'agentSlot' }, 'Unsupported action schedule trigger'],
+        [{ timestamp: 'not-a-date', type: 'at' }, 'Invalid action schedule timestamp'],
+        [{ timestamp: '2026-07-06T10:00:00.000Z', type: 'at' }, 'Action schedule timestamp must be in the future'],
+    ])('rejects invalid schedule registration %#', async (trigger, message) => {
+        const localGitService = createLocalGitService([]);
+        const scheduler = createScheduler(localGitService);
         await scheduler.startProject(project);
 
-        expect(localGitService.histories[0]).toMatchObject({
-            entry: { output: 'Missing desktop.agentSlotCommand for agentSlot action schedule', status: 'failed' },
-            request: { actionId: 'implement', actionsFolder: 'actions', context },
-        });
-        expect(localGitService.schedules()).toEqual([{ ...schedule, status: 'failed' }]);
+        await expect(scheduler.registerActionSchedule({ actionId: 'implement', context, trigger })).rejects.toThrow(message);
+        expect(localGitService.saveActionSchedules).not.toHaveBeenCalled();
+    });
+
+    it('re-registers long timers until the selected time is due', async () => {
+        let currentTime = now;
+        const fireAt = now + MAX_TIMER_DELAY_MS + 5000;
+        const schedule = createSchedule('schedule-1', 'implement', { timestamp: new Date(fireAt).toISOString(), type: 'at' });
+        const localGitService = createLocalGitService([schedule]);
+        const setTimeout = vi.fn(() => `timer-${setTimeout.mock.calls.length}`);
+        const scheduler = createScheduler(localGitService, { now: () => currentTime, setTimeout });
+        await scheduler.startProject(project);
+
+        expect(setTimeout).toHaveBeenNthCalledWith(1, expect.any(Function), MAX_TIMER_DELAY_MS);
+        currentTime += MAX_TIMER_DELAY_MS;
+        setTimeout.mock.calls[0][0]();
+        expect(setTimeout).toHaveBeenNthCalledWith(2, expect.any(Function), 5000);
+
+        currentTime = fireAt;
+        setTimeout.mock.calls[1][0]();
+        await vi.waitFor(() => expect(localGitService.runCommand).toHaveBeenCalledWith(project, 'echo done'));
     });
 
     it('emits shared action execution events while firing a schedule', async () => {
@@ -438,7 +415,7 @@ describe('ActionSchedulerService', () => {
             createAction('before'),
             {
                 content: JSON.stringify({
-                    command: 'main', description: 'main description', id: 'main', label: 'main', name: 'main',
+                    command: 'main', description: 'main description', id: 'main', label: 'main',
                     on: [{ actionId: 'matched', condition: 'done' }], onAfter: ['after'], onBefore: ['before'], type: 'command',
                 }),
                 path: 'actions/main.json',

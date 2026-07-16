@@ -10,7 +10,8 @@ import { defaultColumnAccent, type CardTypeConfig, type ProjectCard, type StateC
 import { telemetryService } from '../../services/telemetry_service'
 import { markdownParsingService } from '../../services/markdown_parsing_service'
 import { dialogService } from '../../services/dialog_service'
-import { ActionEditor } from '../actions/action_editor'
+import { agentAcknowledgementService } from '../../services/agent_acknowledgement_service'
+import { ActionEditor, DEFAULT_ACTION_EDITOR_TAB } from '../actions/action_editor'
 import { MarkdownDocumentHistoryStore } from '../editor/markdown_document_history_store'
 import { MarkdownEditor } from '../editor/markdown_editor'
 import { LeftPanelSlot } from '../shell/left_panel_slot'
@@ -42,6 +43,7 @@ interface TextViewProps {
     onTitleChange: (path: string, title: string) => void
     onTogglePolicy: (path: string, policyKey: string) => void
     projectFolder: string
+    projectKey: string
     requestedNonce: number
     requestedPath: string | null
     repositoryFiles: string[]
@@ -123,6 +125,7 @@ export function TextView(props: TextViewProps) {
         onTitleChange,
         onTogglePolicy,
         projectFolder,
+        projectKey,
         requestedNonce,
         requestedPath,
         repositoryFiles,
@@ -139,6 +142,7 @@ export function TextView(props: TextViewProps) {
     })
     const [isAgentPanelOpen, setIsAgentPanelOpen] = useState(false)
     const [markdownHistoryStore] = useState(() => new MarkdownDocumentHistoryStore())
+    const [actionEditorTabs, setActionEditorTabs] = useState<Record<string, string>>({})
     const onDeleteFileRef = useRef(onDeleteFile)
     const onDeleteFolderRef = useRef(onDeleteFolder)
     const onLeftPanelInteractionRef = useRef(onLeftPanelInteraction)
@@ -194,6 +198,18 @@ export function TextView(props: TextViewProps) {
     const mountedEditorPath = useDeferredValue(activePath)
     const mountedCard = mountedEditorPath ? cardsByPath.get(mountedEditorPath) ?? null : null
 
+    const handleConversationViewed = (conversation: AgentConversation) => {
+        if (!conversation.cardPath) throw new Error('Cannot acknowledge a project conversation as a card result')
+
+        agentAcknowledgementService.acknowledge(projectKey, conversation.cardPath, [conversation])
+    }
+
+    const handleConversationsViewed = (conversations: AgentConversation[]) => {
+        if (!activeCard) throw new Error('Cannot acknowledge agent conversations without an active card')
+
+        agentAcknowledgementService.acknowledge(projectKey, activeCard.path, conversations)
+    }
+
     useEffect(() => {
         markdownHistoryStore.retainDocuments(tabs)
     }, [markdownHistoryStore, mountedEditorPath, tabs])
@@ -225,6 +241,11 @@ export function TextView(props: TextViewProps) {
 
     const handleEditorChange = (documentId: string, body: string) => {
         onBodyChange(documentId, body)
+    }
+
+    const handleActionEditorTabChange = (selectedTab: string) => {
+        if (!activePath) throw new Error('Cannot save an action editor tab without an active path')
+        setActionEditorTabs((current) => ({ ...current, [activePath]: selectedTab }))
     }
 
     const handleOpenProperties = (event: ReactMouseEvent<HTMLElement>) => {
@@ -289,6 +310,7 @@ export function TextView(props: TextViewProps) {
                 initialPrompt={continuation.prompt}
                 key={`${continuation.conversation?.path ?? 'new'}:${continuation.prompt}`}
                 onClose={handleCloseConversationPopup}
+                onConversationViewed={handleConversationViewed}
                 onNavigate={() => undefined}
             />
         ) : null
@@ -341,7 +363,9 @@ export function TextView(props: TextViewProps) {
                             action={activeAction}
                             actions={actions}
                             cardTypes={cardTypes.map(({ type }) => type)}
+                            onSelectedTabChange={handleActionEditorTabChange}
                             repositoryFiles={repositoryFiles}
+                            selectedTab={activePath ? actionEditorTabs[activePath] ?? DEFAULT_ACTION_EDITOR_TAB : DEFAULT_ACTION_EDITOR_TAB}
                             specialContextTypes={specialContextTypes}
                             states={states.map(({ state }) => state)}
                         />
@@ -368,6 +392,7 @@ export function TextView(props: TextViewProps) {
                                 context={fileContext(activeCard, cardTypes)}
                                 conversations={activeCard.agentConversations}
                                 errors={activeCard.agentConversationErrors}
+                                onConversationsViewed={handleConversationsViewed}
                                 onContinue={handleContinueConversation}
                                 onStart={handleStartConversation}
                             />

@@ -18,7 +18,6 @@ The B-050 migration leaves several execution-lifecycle defects:
 - Manual and `onState` agent events are recorded by both the global `AgentIntegration` subscription and the per-run `runElectronAction` subscription. Scheduled runs use only the global path, so recording and refresh behavior differs by entry point.
 - Root `extraPrompt` is passed to every linked agent prompt and command placeholder. Agent, model, and thinking-level overrides are correctly root-only; prompt input must follow the same ownership rule.
 - Execution listeners run synchronously without isolation. A throwing UI, IPC, or remote-control listener can change action outcome or prevent terminal cleanup.
-- Electron emits and stores a terminal result before awaiting the scheduler's `actionCompleted` callback. If that callback rejects, renderer consumers already saw success while `wait()` rejects, and renderer-started executions can produce an unobserved rejection.
 - Failure status is derived from the failed action's immediate phase. If an action in the root `onBefore` subtree fails inside its own `onAfter`, the phase becomes `after` and the root is incorrectly reported as `okButNotAfter` even though the root action never started.
 - Cancelling an active phase emits only the root execution's terminal `cancelled` event. The current action has a `running` event with no matching action-specific terminal event, leaving phase/action consumers with stale state.
 - Command execution uses buffered `exec`; stdout and stderr are published only after exit. The B-050 requirement to keep streaming behavior consistent across entry points is therefore not implemented.
@@ -32,7 +31,6 @@ The B-050 migration leaves several execution-lifecycle defects:
 - Assign agent-event recording and conversation linking to one shared consumer. Per-run UI collection must not repeat persistence or global state updates.
 - Apply `extraPrompt` only to the requested root action. Linked actions use persisted prompt/command data and their own definition/default settings.
 - Isolate listener failures from execution. Report delivery failures through the existing error/telemetry path without changing process or chain status.
-- Finalize action execution independently from schedule-trigger bookkeeping. A scheduler callback failure must be recorded as a scheduler failure and must not contradict the already published action result.
 - Track root-relative failure semantics through recursive chains so only failure in the root action's `onAfter` subtree produces `okButNotAfter`.
 - Emit one terminal action event for the active action on cancellation before emitting the terminal root execution event.
 - Stream command stdout and stderr through action events while the process is running.
@@ -44,9 +42,9 @@ The B-050 migration leaves several execution-lifecycle defects:
 - Project or branch changes while an action is running or between linked phases.
 - Remote-control connection closes while an execution event is published.
 - Conversation linking or project snapshot reload fails on the terminal event.
-- Root action has `extraPrompt` and linked actions contain `{{prompt}}` or accept appended prompt text.
+- Root action has `extraPrompt` and linked actions contain `{{card-prompt}}` or accept appended prompt text.
 - Multiple listeners are registered and one throws.
-- An `afterAction` schedule load/save fails after the triggering action succeeds.
+- A scheduled action status or history update fails after execution succeeds.
 - A nested `onAfter` fails while its parent action is executing in root `onBefore` or `on`.
 - Cancellation occurs while a linked `before`, `on`, or `after` action is active.
 - Multiple `on` rules match and a later matching action fails or is cancelled.
@@ -57,7 +55,7 @@ The B-050 migration leaves several execution-lifecycle defects:
 - Execution request and bridge shapes stay unchanged.
 - Persisted action and history schemas stay unchanged.
 - Existing executions remain keyed by one Electron execution id.
-- Schedule-trigger errors remain visible, but no longer rewrite or reject the triggering action result.
+- Scheduler errors remain visible without rewriting an action execution result.
 
 ## acceptance criteria
 

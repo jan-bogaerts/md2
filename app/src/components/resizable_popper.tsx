@@ -1,5 +1,5 @@
 import { Box, Paper, Popper } from '@mui/material'
-import type { PopperPlacementType, SxProps, Theme } from '@mui/material'
+import type { PopperPlacementType, PopperProps, SxProps, Theme } from '@mui/material'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent, ReactNode } from 'react'
 import type { ResizeCorner } from './resizable_popover'
@@ -29,8 +29,15 @@ const MIN_WIDTH = 280
 const MIN_HEIGHT = 200
 const HANDLE_SIZE = 16
 const EDGE_HANDLE_SIZE = 6
+const VIEWPORT_MARGIN = 16
 const ALL_RESIZE_DIRECTIONS = ['top', 'right', 'bottom', 'left', 'top-right', 'bottom-right', 'bottom-left', 'top-left'] as const
 type ResizeDirection = typeof ALL_RESIZE_DIRECTIONS[number]
+
+const VIEWPORT_MODIFIERS: NonNullable<PopperProps['modifiers']> = [
+    { name: 'preventOverflow', options: { altAxis: true, padding: VIEWPORT_MARGIN, tether: false } },
+    { name: 'flip', options: { padding: VIEWPORT_MARGIN } },
+]
+const VIEWPORT_POPPER_OPTIONS: NonNullable<PopperProps['popperOptions']> = { strategy: 'fixed' }
 
 function loadSize(initialSize: PopperSize, storageKey?: string): PopperSize {
     if (!storageKey) return initialSize
@@ -181,8 +188,10 @@ export function ResizablePopper(props: ResizablePopperProps) {
     return (
         <Popper
             anchorEl={anchorElement}
+            modifiers={VIEWPORT_MODIFIERS}
             open={open}
             placement={placement}
+            popperOptions={VIEWPORT_POPPER_OPTIONS}
             sx={{ left: fullHeight ? '0 !important' : undefined, top: fullHeight ? '0 !important' : undefined, transform: fullHeight ? 'none !important' : undefined, zIndex: 'modal' }}
         >
             <Paper

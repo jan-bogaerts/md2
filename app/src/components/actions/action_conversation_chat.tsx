@@ -1,4 +1,5 @@
 import { Box, Stack, Typography } from '@mui/material'
+import { useEffect } from 'react'
 import type { AgentConversation } from '../../data/data_types'
 import type { ActionRunLogEntry } from '../../data/action_run_types'
 import type { PopupRunStatus } from './action_popup_defaults'
@@ -7,13 +8,20 @@ import { actionStatusLabel } from './action_status'
 interface ActionConversationChatProps {
     conversation: AgentConversation | null
     logs: ActionRunLogEntry[]
+    onConversationViewed?: (conversation: AgentConversation) => void
     status: PopupRunStatus
 }
 
 /** Ordered user/assistant transcript shown above the popup prompt. */
-export function ActionConversationChat({ conversation, logs, status }: ActionConversationChatProps) {
+export function ActionConversationChat({ conversation, logs, onConversationViewed, status }: ActionConversationChatProps) {
     const messages = conversation?.messages.filter(({ role }) => role === 'user' || role === 'assistant') ?? []
     const errors = logs.filter(({ status: logStatus, stderr }) => logStatus === 'failed' || stderr.length > 0)
+
+    useEffect(() => {
+        if (!conversation?.completedAt || conversation.status === 'running') return
+
+        onConversationViewed?.(conversation)
+    }, [conversation, onConversationViewed])
 
     return (
         <Stack aria-label="Conversation chat" spacing={1} sx={{ minHeight: 72 }}>

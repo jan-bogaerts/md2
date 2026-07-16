@@ -162,7 +162,6 @@ describe('ConfigService', () => {
         service.init({
             desktopConfig: {
                 agent: 'claude',
-                agentSlotCommand: 'slot-command',
                 agentProfiles: BUILTIN_AGENT_PROFILES,
                 model: '',
                 thinkingLevel: 'high',
@@ -171,7 +170,6 @@ describe('ConfigService', () => {
 
         expect(service.getEntries().some((entry) => entry.source === 'desktop')).toBe(true)
         expect(service.get('desktop.agent')).toBe('claude')
-        expect(service.get('desktop.agentSlotCommand')).toBe('slot-command')
         expect(service.get('desktop.thinkingLevel')).toBe('high')
     })
 
@@ -215,7 +213,6 @@ describe('ConfigService', () => {
         service.init({
             desktopConfig: {
                 agent: 'claude',
-                agentSlotCommand: 'slot-command',
                 agentProfiles: BUILTIN_AGENT_PROFILES,
                 model: '',
                 thinkingLevel: 'high',
@@ -224,7 +221,6 @@ describe('ConfigService', () => {
 
         expect(service.getDesktopValues()).toEqual({
             agent: 'claude',
-            agentSlotCommand: 'slot-command',
             agentProfiles: BUILTIN_AGENT_PROFILES,
             codexSearchEnabled: true,
             model: '',

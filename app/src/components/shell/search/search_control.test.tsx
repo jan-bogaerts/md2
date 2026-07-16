@@ -116,7 +116,7 @@ describe('SearchControl', () => {
         actionService.loadFromFiles([{
             content: JSON.stringify({
                 command: 'execute', description: 'Searchable action', id: 'action-search-job',
-                label: 'Run search job', name: 'search-job', type: 'command',
+                label: 'Run search job', type: 'command',
             }),
             path: 'actions/search-job.json',
         }])
@@ -139,7 +139,7 @@ describe('SearchControl', () => {
         actionService.loadFromFiles([{
             content: JSON.stringify({
                 command: 'execute', description: 'Searchable action', id: 'action-search-job',
-                label: 'Run search job', name: 'search-job', type: 'command',
+                label: 'Run search job', type: 'command',
             }),
             path: 'actions/search-job.json',
         }])

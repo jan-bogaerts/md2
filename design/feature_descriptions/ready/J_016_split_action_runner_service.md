@@ -31,15 +31,13 @@ This report describes the current working-tree implementation as inspected on 20
 - `errorReporter`;
 - `localGitService`.
 
-`commandRunner` and `actionCompleted` are optional test/integration seams. The production default command runner uses `spawn`.
-
-After construction, `main.js` connects `setActionCompleted` to `ActionSchedulerService.handleActionCompleted`.
+`commandRunner` is an optional test seam. The production default command runner uses `spawn`.
 
 ### Verified external call sites
 
 | Caller | Methods used | Required behavior after split |
 | --- | --- | --- |
-| `desktop/main.js` | constructor, `setActionCompleted`, `stop` | Keep the existing construction and lifecycle contract. Do not add a second global runner. |
+| `desktop/main.js` | constructor, `stop` | Keep the existing construction and lifecycle contract. Do not add a second global runner. |
 | `desktop/src/actions/action_scheduler_service.js` | `startProject`, `start`, `wait`, `cancel` | Keep scheduled actions on the same runner and preserve the shared execution id. |
 | `desktop/src/shell/local_bridge_dispatch.js` | `start`, `cancel`, `subscribe`, `requireActionsFolder` | Keep bridge method names, request/result shapes, synchronous subscription behavior, and history-folder lookup unchanged. |
 | Runner tests | constructor dependency overrides, exported `validateStartRequest` | Keep these seams available or move tests to the owning module without adding compatibility shims. |
@@ -61,7 +59,7 @@ No production caller directly invokes `execute`, `runAction`, `runMain`, `runCom
 
 ### 1. Service lifecycle and execution registry
 
-`ActionRunnerService` owns the current project/actions-folder lifecycle, listener set, active execution map, completed-result map, execution-id generation, start/wait/cancel behavior, and completion callback. This is the correct responsibility for the public facade.
+`ActionRunnerService` owns the current project/actions-folder lifecycle, listener set, active execution map, completed-result map, execution-id generation, and start/wait/cancel behavior. This is the correct responsibility for the public facade.
 
 ### 2. Per-execution mutable state
 
@@ -128,7 +126,7 @@ Keep `ActionRunnerService` as the only externally constructed action runner. It 
 - root definition loading through `resolveActionDefinition`;
 - execution-id generation;
 - active and completed execution registries;
-- `start`, `wait`, `cancel`, `subscribe`, `stop`, `setActionCompleted`, and `requireActionsFolder`;
+- `start`, `wait`, `cancel`, `subscribe`, `stop`, and `requireActionsFolder`;
 - listener isolation and error reporting;
 - composition of the internal collaborators.
 
@@ -224,8 +222,7 @@ The observable failure messages and result statuses must remain unchanged.
 8. The chosen executor streams output/events and returns a normalized result.
 9. History is written before the action terminal event. A history failure therefore remains an action failure.
 10. The execution emits the action terminal event, then ultimately the root execution terminal event.
-11. The facade removes the active entry, stores the terminal result, enforces the 100-result retention limit, and invokes `actionCompleted` for every non-cancelled terminal status.
-12. `actionCompleted` failures are reported but do not change the already determined action result.
+11. The facade removes the active entry, stores the terminal result, and enforces the 100-result retention limit.
 
 ## Behavior invariants
 
@@ -260,7 +257,7 @@ The refactor must preserve all of these details, including behaviors that may lo
 
 ### Prompt and continuation semantics
 
-- `extraPrompt` replaces `{{prompt}}` when the placeholder exists; otherwise nonblank input is appended with two newlines.
+- `extraPrompt` replaces `{{card-prompt}}` when the placeholder exists; otherwise nonblank input is appended with two newlines.
 - Blank extra prompt is not appended.
 - Linked actions receive no root extra prompt.
 - `continueFrom` is valid only for a root agent action; a root command action fails with the current message.
@@ -280,7 +277,6 @@ The refactor must preserve all of these details, including behaviors that may lo
 - Cancellation emits one terminal `action/cancelled` event for the active action before the root `execution/cancelled` event.
 - When a process returns after cancellation, the action terminal event retains available command/conversation/reference/run/output/worktree/thinking metadata.
 - No later linked phase starts after cancellation.
-- Cancellation does not invoke `actionCompleted`.
 
 ### Events and error isolation
 
@@ -290,7 +286,6 @@ The refactor must preserve all of these details, including behaviors that may lo
 - Terminal messages and exit-code mapping remain unchanged.
 - One throwing listener does not prevent delivery to later listeners, affect execution status, or prevent cleanup.
 - Error-reporter failures are swallowed.
-- Completion-callback failures are reported and do not affect the returned result.
 
 ### History
 
@@ -314,7 +309,6 @@ The following shared dependencies are affected by internal rewiring. Their behav
 | `localGitService.loadAgentConversation` | Called only for root continuation | Keep worktree-aware project and normalized reference. |
 | `localGitService.appendActionRunHistory` | Called after every command/agent result | Keep request and entry schemas; failures remain execution failures. |
 | `agentConfigProvider` | Used for definition validation and runtime agent resolution | Keep both reads; do not cache configuration across executions unless existing behavior proves it safe. |
-| `actionCompleted` | Called after non-cancelled root terminal result | Keep failure isolation and scheduling semantics. |
 | Bridge subscription listeners | Receive every execution event synchronously | Keep ordering and listener isolation. |
 
 No verified call site requires old and new behavior simultaneously. Do not add mode flags, compatibility branches, or duplicate execution paths.
@@ -328,7 +322,7 @@ Keep each step behavior-preserving and leave the original file calling the extra
 3. **History boundary:** extract history/commit construction and move the relevant assertions to focused tests.
 4. **Agent boundary:** extract `ActionAgentExecutor`, including continuation, provider switching, missing-session fallback, callback rejection, and cancellation hooks.
 5. **Execution object:** introduce `ActionExecution`, move chain traversal/status/event/cancellation logic, and store instances in the facade registry.
-6. **Facade cleanup:** reduce `ActionRunnerService` to lifecycle, registry, definition resolution, publishing, completion callback, and collaborator composition.
+6. **Facade cleanup:** reduce `ActionRunnerService` to lifecycle, registry, definition resolution, publishing, and collaborator composition.
 7. **Test split:** leave facade tests covering only its public contract; move pure/executor/execution cases beside their owning modules.
 
 Do not create temporary `*_core`, `*_facade`, or re-export files. Do not copy logic and leave the original active. Each extraction is complete only when the old implementation is removed and production calls the new module.
@@ -401,7 +395,6 @@ Do not create temporary `*_core`, `*_facade`, or re-export files. Do not copy lo
 - project/actions-folder snapshot across project switches;
 - public cancel and stop delegation;
 - listener and error-reporter isolation;
-- non-cancelled completion callback behavior and failure isolation.
 
 Use existing fixtures where useful, but do not introduce one oversized shared mock that recreates the whole service graph in every unit test. Tests for a collaborator should replace only its direct dependencies. Keep at least one integration-style runner test with real `ActionExecution` and executor collaborators to prove composition and event ordering.
 
@@ -420,7 +413,6 @@ Use existing fixtures where useful, but do not introduce one oversized shared mo
 - transcript has no usable normalized content;
 - project-wide continuation has `cardPath: null` while a card-scoped log has a file;
 - several completed executions are never awaited and exceed the retention limit;
-- `actionCompleted` starts or schedules another action while the original result is already terminal.
 
 ## Compatibility and side effects
 

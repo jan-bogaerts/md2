@@ -27,6 +27,7 @@ interface CardColumnProps extends CardHandlers {
     isMobile: boolean
     openBodyPath: string | null
     primaryPath: string
+    projectKey: string
     selectedPath: string | null
     worktrees: WorktreeRecord[]
 }
@@ -35,7 +36,7 @@ interface CardColumnProps extends CardHandlers {
 export function CardColumn(props: CardColumnProps) {
     const {
         cardTypes, column, dropPreviewHeight, dropPreviewIndex, isMobile, openBodyPath,
-        primaryPath, selectedPath, worktrees, ...handlers
+        primaryPath, projectKey, selectedPath, worktrees, ...handlers
     } = props
     const { setNodeRef } = useDroppable({ id: columnDropId(column.status) })
     const columnLabel = column.status || 'Unassigned'
@@ -68,6 +69,7 @@ export function CardColumn(props: CardColumnProps) {
                 isBodyOpen={openBodyPath === card.path}
                 isSelected={selectedPath === card.path}
                 primaryPath={primaryPath}
+                projectKey={projectKey}
                 worktrees={worktrees}
                 {...handlers}
             />,

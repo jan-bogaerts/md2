@@ -7,15 +7,18 @@ import {
 } from '@mdxeditor/editor'
 import '@mdxeditor/editor/style.css'
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, type ReactNode } from 'react'
+import type { ActionPlaceholder } from '../../data/action_placeholders'
 import { useAppTheme } from '../../theme/use_app_theme'
 import { markdownDocumentHistoryPlugin } from './markdown_document_history_realm_plugin'
 import type { MarkdownDocumentHistoryStore } from './markdown_document_history_store'
 import { MarkdownFormatToolbarControls } from './markdown_format_toolbar_controls'
+import { markdownPlaceholderPlugin } from './markdown_placeholder_realm_plugin'
 import { registerMarkdownEditorFlush } from './markdown_editor_flush'
 import { buildMarkdownContentSx } from './markdown_style_sx'
 
 const DEFAULT_CODE_LANGUAGE = ''
 const CODE_BLOCK_LANGUAGES = { '': 'Plain text', js: 'JavaScript', ts: 'TypeScript', tsx: 'TSX', bash: 'Shell' }
+const EMPTY_PLACEHOLDERS: readonly ActionPlaceholder[] = []
 
 export interface MarkdownEditorHandle {
     flush(): void
@@ -26,6 +29,7 @@ export interface MarkdownEditorHandle {
 interface MarkdownEditorCommonProps {
     markdown: string
     overlayContainer?: HTMLElement | null
+    placeholders?: readonly ActionPlaceholder[]
     stickyToolbar?: boolean
     toolbarContents?: () => ReactNode
 }
@@ -49,7 +53,13 @@ type MarkdownEditorProps = MarkdownEditorCommonProps & ({
  * history store let one editor retain independent undo/redo stacks per file.
  */
 export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(function MarkdownEditor(props, ref) {
-    const { markdown, overlayContainer, stickyToolbar = false, toolbarContents = MarkdownFormatToolbarControls } = props
+    const {
+        markdown,
+        overlayContainer,
+        placeholders = EMPTY_PLACEHOLDERS,
+        stickyToolbar = false,
+        toolbarContents: customToolbarContents,
+    } = props
     const documentId = props.documentId ?? null
     const historyStore = props.historyStore
     const { markdownStyleConfig, mode } = useAppTheme()
@@ -128,6 +138,12 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         latestMarkdownRef.current = nextMarkdown
     }, [])
 
+    const defaultToolbarContents = useCallback(
+        () => <MarkdownFormatToolbarControls overlayContainer={overlayContainer} placeholders={placeholders} />,
+        [overlayContainer, placeholders],
+    )
+    const toolbarContents = customToolbarContents ?? defaultToolbarContents
+
     const markdownContentSx = buildMarkdownContentSx(markdownStyleConfig)
     const stickySx = stickyToolbar
         ? { '& .mdxeditor-toolbar': { position: 'sticky', top: 0, zIndex: 1 } }
@@ -146,6 +162,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         codeMirrorPlugin({ codeBlockLanguages: CODE_BLOCK_LANGUAGES }),
         markdownShortcutPlugin(),
         toolbarPlugin({ toolbarContents }),
+        markdownPlaceholderPlugin({ overlayContainer, placeholders }),
         ...(historyStore && documentId ? [markdownDocumentHistoryPlugin({
             documentId,
             historyStore,

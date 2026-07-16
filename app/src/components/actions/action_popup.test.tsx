@@ -22,7 +22,6 @@ function action(name: string, overrides: Partial<ActionDefinition> = {}): Action
         id: `action-${name.toLowerCase().replaceAll(' ', '-')}`,
         label: name,
         model: null,
-        name,
         needsWorkTree: false,
         on: [],
         onAfter: [],
@@ -68,11 +67,6 @@ function deferred<T>() {
     })
 
     return { promise, resolve }
-}
-
-function selectScheduleTrigger(label: string) {
-    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Schedule trigger' }))
-    fireEvent.click(screen.getByRole('option', { name: label }))
 }
 
 function selectThinkingLevel(level: string) {
@@ -295,7 +289,6 @@ describe('ActionPopup', () => {
         configService.init({
             desktopConfig: {
                 agent: 'codex',
-                agentSlotCommand: '',
                 agentProfiles: [
                     { command: ['codex'], models: ['gpt-5'], name: 'codex' },
                     { command: ['claude'], models: ['sonnet'], name: 'claude' },
@@ -382,45 +375,21 @@ describe('ActionPopup', () => {
         }, expect.any(Function)))
     })
 
-    it('registers an at schedule from the picker', async () => {
+    it('registers a schedule for the selected date and time', async () => {
         const { runAction, scheduleAction } = renderPopup()
+        const timestampInput = '2099-07-07T10:30'
 
         fireEvent.click(screen.getByRole('button', { name: 'Schedule' }))
-        fireEvent.change(screen.getByLabelText('Schedule timestamp'), { target: { value: '2026-07-07T10:30' } })
-        fireEvent.click(screen.getByRole('button', { name: 'Register schedule' }))
+        fireEvent.change(screen.getByLabelText(/Date and time/u), { target: { value: timestampInput } })
+        fireEvent.click(screen.getByRole('button', { name: 'Schedule action' }))
 
         await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Schedule registered'))
         expect(scheduleAction).toHaveBeenCalledWith(
-            expect.objectContaining({ name: 'Implement' }),
+            expect.objectContaining({ label: 'Implement' }),
             context,
-            { timestamp: '2026-07-07T10:30', type: 'at' },
+            { timestamp: new Date(timestampInput).toISOString(), type: 'at' },
         )
         expect(runAction).not.toHaveBeenCalled()
-    })
-
-    it('registers an agent slot schedule without extra input', async () => {
-        const { scheduleAction } = renderPopup()
-
-        fireEvent.click(screen.getByRole('button', { name: 'Schedule' }))
-        selectScheduleTrigger('Agent slot')
-        fireEvent.click(screen.getByRole('button', { name: 'Register schedule' }))
-
-        await waitFor(() => expect(scheduleAction).toHaveBeenCalledWith(expect.objectContaining({ name: 'Implement' }), context, { type: 'agentSlot' }))
-    })
-
-    it('registers an after action schedule with the action name', async () => {
-        const { scheduleAction } = renderPopup()
-
-        fireEvent.click(screen.getByRole('button', { name: 'Schedule' }))
-        selectScheduleTrigger('After action')
-        fireEvent.change(screen.getByLabelText('After action name'), { target: { value: 'Run tests' } })
-        fireEvent.click(screen.getByRole('button', { name: 'Register schedule' }))
-
-        await waitFor(() => expect(scheduleAction).toHaveBeenCalledWith(
-            expect.objectContaining({ name: 'Implement' }),
-            context,
-            { actionId: 'Run tests', type: 'afterAction' },
-        ))
     })
 
     it('shows schedule registration errors', async () => {
@@ -430,8 +399,8 @@ describe('ActionPopup', () => {
         renderPopup({ scheduleAction })
 
         fireEvent.click(screen.getByRole('button', { name: 'Schedule' }))
-        fireEvent.change(screen.getByLabelText('Schedule timestamp'), { target: { value: '2026-07-07T10:30' } })
-        fireEvent.click(screen.getByRole('button', { name: 'Register schedule' }))
+        fireEvent.change(screen.getByLabelText(/Date and time/u), { target: { value: '2099-07-07T10:30' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Schedule action' }))
 
         await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Desktop scheduler unavailable'))
     })
@@ -444,7 +413,7 @@ describe('ActionPopup', () => {
         expect(screen.getByRole('status')).toHaveTextContent('running')
         await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('completed'))
         expect(screen.getByRole('status')).toHaveTextContent('main: Implement completed')
-        expect(runAction).toHaveBeenCalledWith(expect.objectContaining({ name: 'Implement' }), context, { extraPrompt: '' }, expect.any(Function))
+        expect(runAction).toHaveBeenCalledWith(expect.objectContaining({ label: 'Implement' }), context, { extraPrompt: '' }, expect.any(Function))
     })
 
     it('shows failed agent run details from the run log', async () => {
@@ -478,7 +447,7 @@ describe('ActionPopup', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Run' }))
 
         const expectedInput = { extraPrompt: 'focus tests', thinkingLevel: 'none' }
-        await waitFor(() => expect(runAction).toHaveBeenCalledWith(expect.objectContaining({ name: 'Implement' }), context, expectedInput, expect.any(Function)))
+        await waitFor(() => expect(runAction).toHaveBeenCalledWith(expect.objectContaining({ label: 'Implement' }), context, expectedInput, expect.any(Function)))
     })
 
     it('runs the card popup with Control+Enter from the extra prompt', async () => {
@@ -500,7 +469,6 @@ describe('ActionPopup', () => {
         configService.init({
             desktopConfig: {
                 agent: 'codex',
-                agentSlotCommand: '',
                 agentProfiles: [{ command: ['codex'], modelArgument: '--model', models: ['gpt-5', 'gpt-5-mini'], name: 'codex' }],
                 model: 'gpt-5',
             },
@@ -511,7 +479,7 @@ describe('ActionPopup', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Run' }))
 
         const expectedInput = { agent: 'codex', extraPrompt: 'focus tests', model: 'gpt-5-mini', thinkingLevel: 'none' }
-        await waitFor(() => expect(runAction).toHaveBeenCalledWith(expect.objectContaining({ name: 'Implement' }), context, expectedInput, expect.any(Function)))
+        await waitFor(() => expect(runAction).toHaveBeenCalledWith(expect.objectContaining({ label: 'Implement' }), context, expectedInput, expect.any(Function)))
     })
 
     it('preselects definition thinking level without changing definition for a run override', async () => {
@@ -544,7 +512,6 @@ describe('ActionPopup', () => {
         configService.init({
             desktopConfig: {
                 agent: 'codex',
-                agentSlotCommand: '',
                 agentProfiles: [
                     { command: ['codex'], models: ['gpt-5'], name: 'codex' },
                     { command: ['claude'], models: ['sonnet'], name: 'claude' },
@@ -558,7 +525,7 @@ describe('ActionPopup', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Run' }))
 
         await waitFor(() => expect(runAction).toHaveBeenCalledWith(
-            expect.objectContaining({ name: 'Implement' }),
+            expect.objectContaining({ label: 'Implement' }),
             context,
             { agent: 'claude', extraPrompt: '', model: 'sonnet', thinkingLevel: 'none' },
             expect.any(Function),
@@ -569,7 +536,6 @@ describe('ActionPopup', () => {
         configService.init({
             desktopConfig: {
                 agent: 'codex',
-                agentSlotCommand: '',
                 agentProfiles: [{ command: ['codex'], models: ['gpt-5'], name: 'codex' }],
                 model: 'gpt-5',
             },
@@ -579,7 +545,7 @@ describe('ActionPopup', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Run' }))
 
         await waitFor(() => expect(runAction).toHaveBeenCalledWith(
-            expect.objectContaining({ name: 'Implement' }),
+            expect.objectContaining({ label: 'Implement' }),
             context,
             { extraPrompt: '' },
             expect.any(Function),
@@ -652,7 +618,7 @@ describe('ActionPopup', () => {
 
     it('converts extra prompt input to an action file', async () => {
         const convertPromptToAction = vi.fn(async () => ({ path: 'actions/custom-review.json' }))
-        renderPopup({ action: action('Custom prompt', { command: null, prompt: '{{prompt}}', type: 'agent' }), convertPromptToAction })
+        renderPopup({ action: action('Custom prompt', { command: null, prompt: '{{card-prompt}}', type: 'agent' }), convertPromptToAction })
 
         fireEvent.change(screen.getByLabelText('Extra prompt'), { target: { value: 'review this file' } })
         fireEvent.change(screen.getByLabelText('Action label'), { target: { value: 'Custom review' } })
@@ -665,7 +631,7 @@ describe('ActionPopup', () => {
     it('saves and runs a named custom action', async () => {
         const convertPromptToAction = vi.fn(async () => ({ path: 'actions/custom-review.json' }))
         const { runAction } = renderPopup({
-            action: action('Custom prompt', { command: null, prompt: '{{prompt}}', type: 'agent' }),
+            action: action('Custom prompt', { command: null, prompt: '{{card-prompt}}', type: 'agent' }),
             convertPromptToAction,
             showSaveControls: true,
         })
@@ -675,7 +641,7 @@ describe('ActionPopup', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Save and run' }))
 
         await waitFor(() => expect(runAction).toHaveBeenCalledWith(
-            expect.objectContaining({ name: 'Custom prompt' }),
+            expect.objectContaining({ label: 'Custom prompt' }),
             context,
             { extraPrompt: 'review this file', thinkingLevel: 'none' },
             expect.any(Function),
@@ -687,12 +653,11 @@ describe('ActionPopup', () => {
         configService.init({
             desktopConfig: {
                 agent: 'codex',
-                agentSlotCommand: '',
                 agentProfiles: [{ command: ['codex'], modelArgument: '--model', models: ['gpt-5'], name: 'codex' }],
                 model: 'gpt-5',
             },
         })
-        const customPrompt = action('Custom prompt', { command: null, id: CUSTOM_PROMPT_ACTION_ID, prompt: '{{prompt}}', type: 'agent' })
+        const customPrompt = action('Custom prompt', { command: null, id: CUSTOM_PROMPT_ACTION_ID, prompt: '{{card-prompt}}', type: 'agent' })
         const convertPromptToAction = vi.fn(async () => ({ path: 'actions/custom-review.json' }))
         const { runAction } = renderPopup({
             action: customPrompt,
@@ -725,12 +690,11 @@ describe('ActionPopup', () => {
         configService.init({
             desktopConfig: {
                 agent: 'codex',
-                agentSlotCommand: '',
                 agentProfiles: [{ command: ['codex'], modelArgument: '--model', models: ['gpt-5'], name: 'codex' }],
                 model: 'gpt-5',
             },
         })
-        const customPrompt = action('Custom prompt', { command: null, id: CUSTOM_PROMPT_ACTION_ID, prompt: '{{prompt}}', type: 'agent' })
+        const customPrompt = action('Custom prompt', { command: null, id: CUSTOM_PROMPT_ACTION_ID, prompt: '{{card-prompt}}', type: 'agent' })
         renderPopup({
             action: customPrompt,
             actions: [customPrompt],
@@ -755,7 +719,7 @@ describe('ActionPopup', () => {
             throw new Error('Could not save action')
         })
         const { runAction } = renderPopup({
-            action: action('Custom prompt', { command: null, prompt: '{{prompt}}', type: 'agent' }),
+            action: action('Custom prompt', { command: null, prompt: '{{card-prompt}}', type: 'agent' }),
             convertPromptToAction,
             showSaveControls: true,
         })
@@ -846,8 +810,29 @@ describe('ActionPopup', () => {
         expect(screen.queryByText('No previous runs')).not.toBeInTheDocument()
     })
 
+    it('shows only conversations created by the selected action', async () => {
+        const selectedAction = action('Implement', { type: 'agent' })
+        const matching = conversation('matching', { title: 'Implement chat' })
+        const otherAction = conversation('other-action', { actionId: 'action-review', title: 'Review chat' })
+        renderPopup({
+            action: selectedAction,
+            actions: [selectedAction],
+            loadConversations: vi.fn(async () => [matching, otherAction]),
+            onAddAction: vi.fn(),
+            onSelectAction: vi.fn(),
+        })
+
+        const picker = await screen.findByRole('combobox', { name: 'Conversation history' })
+        await waitFor(() => expect(picker).toBeEnabled())
+        fireEvent.mouseDown(picker)
+
+        expect(screen.getByRole('option', { name: /Implement chat/u })).toBeInTheDocument()
+        expect(screen.queryByRole('option', { name: /Review chat/u })).not.toBeInTheDocument()
+    })
+
     it('loads selected conversation and continues its exact reference', async () => {
         const selectedAction = action('Implement', { type: 'agent' })
+        const onConversationViewed = vi.fn()
         const persisted = conversation('selected', {
             messages: [
                 { content: 'Question', id: 'm1', role: 'user', timestamp: '2026-07-15T10:00:00.000Z' },
@@ -861,16 +846,19 @@ describe('ActionPopup', () => {
             loadConversation: vi.fn(async () => persisted),
             loadConversations: vi.fn(async () => [persisted]),
             onAddAction: vi.fn(),
+            onConversationViewed,
             onSelectAction: vi.fn(),
         })
 
         const picker = await screen.findByRole('combobox', { name: 'Conversation history' })
         await waitFor(() => expect(picker).toBeEnabled())
+        expect(onConversationViewed).not.toHaveBeenCalled()
         fireEvent.mouseDown(picker)
         fireEvent.click(screen.getByRole('option', { name: /Selected chat/u }))
 
         expect(await screen.findByText('Question')).toBeInTheDocument()
         expect(screen.getByText('Answer')).toBeInTheDocument()
+        expect(onConversationViewed).toHaveBeenCalledWith(persisted)
         fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
 
         await waitFor(() => expect(runAction).toHaveBeenCalledWith(
@@ -879,6 +867,44 @@ describe('ActionPopup', () => {
             expect.objectContaining({ continueFrom: persisted.path }),
             expect.any(Function),
         ))
+    })
+
+    it('keeps selected conversation visible when parent recreates the same context', async () => {
+        const selectedAction = action('Implement', { type: 'agent' })
+        const persisted = conversation('selected', {
+            messages: [{ agent: 'codex', content: 'Answer remains visible', id: 'm1', role: 'assistant', timestamp: '2026-07-15T10:01:00.000Z' }],
+            title: 'Selected chat',
+        })
+        const loadConversation = vi.fn(async () => persisted)
+        const loadConversations = vi.fn(async () => [persisted])
+        const popupProps = {
+            action: selectedAction,
+            actions: [selectedAction],
+            anchorElement: document.body,
+            loadConversation,
+            loadConversations,
+            loadHistory: vi.fn(async () => []),
+            onAddAction: vi.fn(),
+            onClose: vi.fn(),
+            onConversationViewed: vi.fn(),
+            onNavigate: vi.fn(),
+            onSelectAction: vi.fn(),
+            runAction: vi.fn(async () => completedResult),
+        }
+        const { rerender } = render(<ActionPopup {...popupProps} context={{ ...context }} />)
+        const picker = await screen.findByRole('combobox', { name: 'Conversation history' })
+        await waitFor(() => expect(picker).toBeEnabled())
+        fireEvent.mouseDown(picker)
+        fireEvent.click(screen.getByRole('option', { name: /Selected chat/u }))
+        await screen.findByText('Answer remains visible')
+
+        await act(async () => {
+            rerender(<ActionPopup {...popupProps} context={{ ...context }} />)
+            await Promise.resolve()
+        })
+
+        expect(screen.getByText('Answer remains visible')).toBeInTheDocument()
+        expect(loadConversations).toHaveBeenCalledTimes(1)
     })
 
     it('ignores late selection responses', async () => {

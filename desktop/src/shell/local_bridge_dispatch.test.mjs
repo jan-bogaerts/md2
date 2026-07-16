@@ -13,7 +13,6 @@ function createDispatch(options = {}) {
         subscribe: vi.fn(() => vi.fn()),
     };
     const actionSchedulerService = {
-        handleActionCompleted: vi.fn(),
         registerActionSchedule: vi.fn(async () => ({ id: 'schedule-1' })),
         startProject: vi.fn(),
         subscribeRunEvents: vi.fn(() => vi.fn()),
@@ -31,11 +30,10 @@ function createDispatch(options = {}) {
         loadFile: vi.fn(async () => ({ content: '# Root', path: 'design/F-1.md' })),
         loadActionFiles: vi.fn(async () => options.actionFiles ?? [{
             content: JSON.stringify({
-                command: 'npm test {{file}} {{prompt}}',
+                command: 'npm test {{card-file}} {{card-prompt}}',
                 description: 'Run tests',
                 id: 'test',
                 label: 'Test',
-                name: 'test',
                 type: 'command',
             }),
             path: 'actions/test.json',

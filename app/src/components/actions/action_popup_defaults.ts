@@ -54,7 +54,7 @@ export async function defaultConvertPromptToAction(input: ConvertPromptToActionI
     if (!actionsFolder) throw new Error('Cannot convert prompt before project config is loaded')
 
     const definition = createActionDefinition(input)
-    const path = actionFilePath(actionsFolder, definition.name as string)
+    const path = actionFilePath(actionsFolder, definition.label)
     await dataService.cards.saveProjectFile({ content: `${JSON.stringify(definition, null, 2)}\n`, path }, `Create ${path}`)
 
     return { definition, path }

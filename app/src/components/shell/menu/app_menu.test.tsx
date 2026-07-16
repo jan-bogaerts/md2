@@ -205,14 +205,14 @@ describe('AppMenu', () => {
             {
                 content: JSON.stringify({
                     appliesTo: { kind: 'project' }, command: 'review', description: 'Review project',
-                    id: 'project-review', label: 'Review project', name: 'project-review', type: 'command',
+                    id: 'project-review', label: 'Review project', type: 'command',
                 }),
                 path: 'design/actions/project-review.json',
             },
             {
                 content: JSON.stringify({
                     appliesTo: { kind: 'card' }, command: 'review', description: 'Review card',
-                    id: 'card-review', label: 'Review card', name: 'card-review', type: 'command',
+                    id: 'card-review', label: 'Review card', type: 'command',
                 }),
                 path: 'design/actions/card-review.json',
             },
@@ -236,7 +236,6 @@ describe('AppMenu', () => {
         configService.init({
             desktopConfig: {
                 agent: 'codex',
-                agentSlotCommand: '',
                 agentProfiles: [
                     { command: ['codex'], modelArgument: '--model', models: ['gpt-5'], name: 'codex' },
                     { command: ['local-agent'], modelArgument: '--model', models: ['local-model'], name: 'local' },

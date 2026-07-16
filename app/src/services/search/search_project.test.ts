@@ -66,7 +66,6 @@ function action(overrides: Partial<ActionDefinition> = {}): ActionDefinition {
         id: 'action-release-notes',
         label: 'Release notes',
         model: null,
-        name: 'release-notes',
         needsWorkTree: false,
         on: [],
         onAfter: [],
@@ -159,29 +158,27 @@ describe('searchActions', () => {
         expect(results).toHaveLength(0)
     })
 
-    it('matches action label, description, name and text', () => {
+    it('matches action label, description and text', () => {
         const actions = [
-            action({ label: 'Deploy service', name: 'one' }),
-            action({ description: 'Runs migration plan', label: 'Migrate', name: 'two' }),
-            action({ label: 'Review', name: 'review-action' }),
-            action({ label: 'Summarize', name: 'four', prompt: 'Write changelog entry' }),
+            action({ label: 'Deploy service' }),
+            action({ description: 'Runs migration plan', label: 'Migrate' }),
+            action({ label: 'Summarize', prompt: 'Write changelog entry' }),
         ]
         const options = { ...searchOptions, includeActions: true }
 
         expect(searchActions(actions, 'Deploy service', options)[0].field).toBe('label')
         expect(searchActions(actions, 'migration plan', options)[0].field).toBe('description')
-        expect(searchActions(actions, 'review-action', options)[0].field).toBe('name')
         expect(searchActions(actions, 'changelog', options)[0].field).toBe('text')
     })
 
     it('supports RegExp mode for actions', () => {
-        const results = searchActions([action({ name: 'release-notes' })], 'release-.+', {
+        const results = searchActions([action({ description: 'Unrelated', label: 'Release notes' })], 'Release.+', {
             ...searchOptions,
             includeActions: true,
             mode: 'regexp',
         })
 
-        expect(results[0].field).toBe('name')
+        expect(results[0].field).toBe('label')
     })
 })
 

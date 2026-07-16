@@ -24,7 +24,6 @@ function action(name: string, appliesTo: ActionDefinition['appliesTo']): ActionD
         id: `action-${name}`,
         label: name,
         model: null,
-        name,
         needsWorkTree: false,
         on: [],
         onAfter: [],
@@ -149,7 +148,7 @@ describe('actionsForContext', () => {
         ]
         const result = actionsForContext(actions, cardContext(card('F-010', 'design'), DEFAULT_CARD_TYPES))
 
-        expect(result.map((entry) => entry.name)).toEqual([BUILTIN_CUSTOM_PROMPT.name, 'feature-only'])
+        expect(result.map((entry) => entry.id)).toEqual([BUILTIN_CUSTOM_PROMPT.id, 'action-feature-only'])
     })
 
     it('keeps generic and project actions out of card-specific context', () => {
@@ -159,7 +158,7 @@ describe('actionsForContext', () => {
             action('card-only', { kind: 'card' }),
         ]
 
-        expect(actionsForContext(actions, projectContext()).map(({ name }) => name))
-            .toEqual([BUILTIN_CUSTOM_PROMPT.name, 'project-only'])
+        expect(actionsForContext(actions, projectContext()).map(({ id }) => id))
+            .toEqual([BUILTIN_CUSTOM_PROMPT.id, 'action-project-only'])
     })
 })

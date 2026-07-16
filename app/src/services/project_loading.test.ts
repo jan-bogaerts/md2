@@ -9,7 +9,7 @@ import { GLOBAL_PROGRESS_EVENT, globalProgressService, type GlobalProgress } fro
 import { createDeferred, createStorage, files, storageFiles, waitForWorkerTurn } from './test_support/data_service_test_support'
 
 function actionDefinition(id: string, overrides: Record<string, unknown> = {}) {
-    return { command: 'run', description: id, id: `action-${id}`, label: id, name: id, type: 'command', ...overrides }
+    return { command: 'run', description: id, id: `action-${id}`, label: id, type: 'command', ...overrides }
 }
 
 function recordDialogMessages(severity: DialogSeverity) {
@@ -146,7 +146,29 @@ describe('ProjectLoading', () => {
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
 
         expect(storage.loadActionFiles).toHaveBeenCalledWith({ branch: 'main', id: 'project' }, 'actions')
-        expect(actionService.getActions().map((action) => action.name)).toContain('do')
+        expect(actionService.getActions().map((action) => action.id)).toContain('action-do')
+    })
+
+    it('opens project with usable actions and reports collected action problems', async () => {
+        configService.init()
+        const warnings = recordDialogMessages('warning')
+        const storage = createStorage({
+            loadActionFiles: vi.fn(async () => [
+                { content: JSON.stringify({ ...actionDefinition('do'), name: 'Old name' }), path: 'actions/do.json' },
+                { content: '{ invalid', path: 'actions/bad.json' },
+                { content: JSON.stringify({ command: 'npm test' }), path: 'actions/defaulted.json' },
+            ]),
+        })
+        const service = new DataService()
+        service.init({ storage })
+
+        const snapshot = await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+
+        expect(snapshot).not.toBeNull()
+        expect(actionService.getActions().map(({ id }) => id)).toEqual(expect.arrayContaining(['action-do', 'action-actions-defaulted']))
+        expect(warnings.messages.join('\n')).toContain('actions/bad.json')
+        expect(warnings.messages.join('\n')).toContain('Missing id')
+        warnings.stop()
     })
 
     it('loads project files and actions from folders inside the configured project folder', async () => {
@@ -387,22 +409,23 @@ describe('ProjectLoading', () => {
         watchChange({ changeKind: 'changed', path: 'actions/do.json' })
         await vi.advanceTimersByTimeAsync(150)
 
-        expect(actionService.getActions().map((action) => action.name)).toContain('do')
+        expect(actionService.getActions().map((action) => action.id)).toContain('action-do')
 
         watchChange({ changeKind: 'changed', path: 'actions/do.json' })
         await vi.advanceTimersByTimeAsync(150)
 
-        expect(actionService.getActions().map((action) => action.name)).not.toContain('do')
+        expect(actionService.getActions().map((action) => action.id)).not.toContain('action-do')
     })
 
-    it('surfaces action reload validation errors without dropping the previous valid actions', async () => {
+    it('surfaces action reload validation errors while loading other usable actions', async () => {
         vi.useFakeTimers()
         configService.init()
         const validActionFile = { content: JSON.stringify(actionDefinition('do')), path: 'actions/do.json' }
         const invalidActionFile = { content: JSON.stringify(actionDefinition('bad', { type: 'bad' })), path: 'actions/bad.json' }
+        const replacementActionFile = { content: JSON.stringify(actionDefinition('replacement')), path: 'actions/replacement.json' }
         const loadActionFiles = vi.fn()
             .mockResolvedValueOnce([validActionFile])
-            .mockResolvedValueOnce([invalidActionFile])
+            .mockResolvedValueOnce([invalidActionFile, replacementActionFile])
         let watchChange: (event: { changeKind: 'added' | 'changed' | 'removed' | 'unknown'; path: string }) => void = () => {
             throw new Error('Watcher not registered')
         }
@@ -421,12 +444,13 @@ describe('ProjectLoading', () => {
         watchChange({ changeKind: 'changed', path: 'actions/bad.json' })
         await vi.advanceTimersByTimeAsync(150)
 
-        expect(actionService.getActions().map((action) => action.name)).toContain('do')
+        expect(actionService.getActions().map((action) => action.id)).toContain('action-replacement')
+        expect(actionService.getActions().map((action) => action.id)).not.toContain('action-do')
         expect(actionService.getState().error).toContain('actions/bad.json')
         expect(actionService.getState().error).toContain('Invalid action type')
     })
 
-    it('reports all changed action paths when batched watcher events fail validation', async () => {
+    it('loads usable actions from a batch and reports only invalid files', async () => {
         vi.useFakeTimers()
         configService.init()
         const validActionFile = { content: JSON.stringify(actionDefinition('do')), path: 'actions/do.json' }
@@ -454,9 +478,10 @@ describe('ProjectLoading', () => {
         watchChange({ changeKind: 'changed', path: 'actions/more.json' })
         await vi.advanceTimersByTimeAsync(150)
 
-        expect(actionService.getActions().map((action) => action.name)).toContain('do')
+        expect(actionService.getActions().map((action) => action.id)).toContain('action-more')
+        expect(actionService.getActions().map((action) => action.id)).not.toContain('action-do')
         expect(actionService.getState().error).toContain('actions/bad.json')
-        expect(actionService.getState().error).toContain('actions/more.json')
+        expect(actionService.getState().error).not.toContain('actions/more.json')
         expect(actionService.getState().error).toContain('Invalid action type')
     })
 

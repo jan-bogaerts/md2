@@ -43,7 +43,7 @@ function renderIndicator(projectCard: ProjectCard, worktrees: WorktreeRecord[] =
     const onAssign = vi.fn()
     render(
         <AppThemeProvider>
-            <CardWorktreeIndicator card={projectCard} onAssign={onAssign} primaryPath="C:\\primary" worktrees={worktrees} />
+            <CardWorktreeIndicator card={projectCard} onAssign={onAssign} primaryPath="C:\\primary" projectKey="project:main" worktrees={worktrees} />
         </AppThemeProvider>,
     )
 
@@ -70,28 +70,37 @@ describe('CardWorktreeIndicator', () => {
         const button = screen.getByRole('button', { name: /F-1: missing folder; agent idle/u })
         fireEvent.mouseOver(button)
 
-        expect(await screen.findByText('Configured worktree 3 does not exist')).toBeInTheDocument()
+        expect(await screen.findByText(/Worktree assignment error: Configured worktree 3 does not exist/u)).toBeInTheDocument()
         expect(button).toHaveStyle({ color: 'rgb(211, 47, 47)' })
+    })
+
+    it('explains the unseen agent result indicator in a tooltip', async () => {
+        renderIndicator(card(null, [conversation('completed')]), [])
+        const button = screen.getByRole('button', { name: /agent unseen result/u })
+
+        fireEvent.mouseOver(button)
+
+        expect(await screen.findByRole('tooltip')).toHaveTextContent('New agent result available')
     })
 
     it('distinguishes waiting, running, unseen and acknowledged agent states', () => {
         const waiting = conversation('running', [{ content: '', id: 'wait', timestamp: '2026-01-01T00:00:30.000Z', type: 'waiting' }])
         const { rerender } = render(
             <AppThemeProvider>
-                <CardWorktreeIndicator card={card(null, [waiting])} onAssign={vi.fn()} primaryPath="project" worktrees={[]} />
+                <CardWorktreeIndicator card={card(null, [waiting])} onAssign={vi.fn()} primaryPath="project" projectKey="project:main" worktrees={[]} />
             </AppThemeProvider>,
         )
         expect(screen.getByRole('button', { name: /agent waiting for input/u })).toBeInTheDocument()
 
-        rerender(<AppThemeProvider><CardWorktreeIndicator card={card(null, [conversation('running')])} onAssign={vi.fn()} primaryPath="project" worktrees={[]} /></AppThemeProvider>)
+        rerender(<AppThemeProvider><CardWorktreeIndicator card={card(null, [conversation('running')])} onAssign={vi.fn()} primaryPath="project" projectKey="project:main" worktrees={[]} /></AppThemeProvider>)
         expect(screen.getByRole('button', { name: /agent running/u })).toBeInTheDocument()
 
         const completed = conversation('completed')
-        rerender(<AppThemeProvider><CardWorktreeIndicator card={card(null, [completed])} onAssign={vi.fn()} primaryPath="project" worktrees={[]} /></AppThemeProvider>)
+        rerender(<AppThemeProvider><CardWorktreeIndicator card={card(null, [completed])} onAssign={vi.fn()} primaryPath="project" projectKey="project:main" worktrees={[]} /></AppThemeProvider>)
         expect(screen.getByRole('button', { name: /agent unseen result/u })).toBeInTheDocument()
 
-        agentAcknowledgementService.acknowledge('project', 'design/F-1.md', [completed])
-        rerender(<AppThemeProvider><CardWorktreeIndicator card={card(null, [completed])} onAssign={vi.fn()} primaryPath="project" worktrees={[]} /></AppThemeProvider>)
+        agentAcknowledgementService.acknowledge('project:main', 'design/F-1.md', [completed])
+        rerender(<AppThemeProvider><CardWorktreeIndicator card={card(null, [completed])} onAssign={vi.fn()} primaryPath="project" projectKey="project:main" worktrees={[]} /></AppThemeProvider>)
         expect(screen.getByRole('button', { name: /agent idle/u })).toBeInTheDocument()
     })
 })

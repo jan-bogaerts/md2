@@ -10,7 +10,7 @@ import {
 import { ActionValidationError } from '../../../shared/action_definitions.mjs'
 import { getService, register } from './service_injector'
 import {
-    loadActionDefinitionGraph,
+    loadTolerantActionDefinitionGraph,
     validateActionDefinitionGraph,
 } from './action_definition_loader'
 
@@ -63,7 +63,6 @@ export function editableActionDefinition(action: ActionDefinition): RawActionDef
 
     return {
         id: action.id,
-        name: action.name,
         label: action.label,
         description: action.description,
         type: action.type,
@@ -109,10 +108,10 @@ export class ActionService extends EventTarget {
     }
 
     loadFromFiles(files: ActionFile[]) {
-        const { actions, definitions } = loadActionDefinitionGraph(files, { validateAgentCapabilities: false })
+        const { actions, definitions, issues } = loadTolerantActionDefinitionGraph(files, { validateAgentCapabilities: false })
         this.actions = actions
         this.definitions = definitions
-        this.error = null
+        this.error = issues.length > 0 ? issues.map(({ message }) => message).join('\n') : null
         this.files = files
         this.dispatchChanged()
 
@@ -137,7 +136,6 @@ export class ActionService extends EventTarget {
             description: 'Describe this action.',
             id: crypto.randomUUID(),
             label: 'New action',
-            name,
             phrases: [],
             prompt: 'Describe what the agent should do.',
             type: 'agent',

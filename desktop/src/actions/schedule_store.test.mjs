@@ -8,7 +8,6 @@ const {
     createActionScheduleFile,
     findPendingSchedule,
     parseActionScheduleFile,
-    pendingAfterActionSchedules,
     pendingScheduleIds,
     updateActionScheduleStatus,
 } = require('./schedule_store');
@@ -46,7 +45,7 @@ describe('schedule store', () => {
 
     it('appends schedules through the validated file model', () => {
         const firstSchedule = createSchedule('schedule-1');
-        const secondSchedule = createSchedule('schedule-2', { type: 'agentSlot' });
+        const secondSchedule = createSchedule('schedule-2', { timestamp: '2026-07-06T12:00:00.000Z', type: 'at' });
 
         expect(appendActionSchedule([firstSchedule], secondSchedule)).toEqual([firstSchedule, secondSchedule]);
     });
@@ -58,12 +57,17 @@ describe('schedule store', () => {
         expect(cancelPendingActionSchedule([schedule], 'schedule-1')).toEqual([{ ...schedule, status: 'cancelled' }]);
     });
 
-    it('finds pending schedules and pending after-action schedules', () => {
-        const afterActionSchedule = createSchedule('schedule-1', { actionId: 'build', type: 'afterAction' });
-        const completedSchedule = { ...createSchedule('schedule-2', { actionId: 'build', type: 'afterAction' }), status: 'completed' };
+    it('finds pending schedules', () => {
+        const pendingSchedule = createSchedule('schedule-1');
+        const completedSchedule = { ...createSchedule('schedule-2'), status: 'completed' };
 
-        expect(findPendingSchedule([afterActionSchedule], 'schedule-1')).toEqual(afterActionSchedule);
-        expect(pendingAfterActionSchedules([afterActionSchedule, completedSchedule], 'build')).toEqual([afterActionSchedule]);
-        expect([...pendingScheduleIds([afterActionSchedule, completedSchedule])]).toEqual(['schedule-1']);
+        expect(findPendingSchedule([pendingSchedule], 'schedule-1')).toEqual(pendingSchedule);
+        expect([...pendingScheduleIds([pendingSchedule, completedSchedule])]).toEqual(['schedule-1']);
+    });
+
+    it('rejects unsupported trigger types', () => {
+        const schedule = { ...createSchedule(), trigger: { type: 'agentSlot' } };
+
+        expect(() => parseActionScheduleFile({ schedules: [schedule] })).toThrow('unsupported trigger type agentSlot');
     });
 });

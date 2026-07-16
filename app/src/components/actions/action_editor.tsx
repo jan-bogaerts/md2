@@ -1,6 +1,7 @@
 import { Alert, Box, Button, FormHelperText, Stack, Tab, Tabs, Typography } from '@mui/material'
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type SyntheticEvent } from 'react'
 import type { ActionDefinition, RawActionDefinition } from '../../data/action_types'
+import { ACTION_PROMPT_PLACEHOLDERS } from '../../data/action_placeholders'
 import {
     actionService,
     editableActionDefinition,
@@ -17,12 +18,15 @@ const AUTO_SAVE_DELAY_MS = 500
 const DEFINITION_TAB = 'definition'
 const PROMPT_TAB = 'prompt'
 const PHRASE_TAB_PREFIX = 'phrase-'
+export const DEFAULT_ACTION_EDITOR_TAB = DEFINITION_TAB
 
 interface ActionEditorProps {
     action: ActionDefinition
     actions: ActionDefinition[]
     cardTypes: string[]
+    onSelectedTabChange?: (selectedTab: string) => void
     repositoryFiles: string[]
+    selectedTab?: string
     specialContextTypes: string[]
     states: string[]
 }
@@ -38,7 +42,10 @@ function phraseTabValue(index: number) {
 }
 
 export function ActionEditor(props: ActionEditorProps) {
-    const { action, actions, cardTypes, repositoryFiles, specialContextTypes, states } = props
+    const {
+        action, actions, cardTypes, onSelectedTabChange, repositoryFiles,
+        selectedTab: storedSelectedTab, specialContextTypes, states,
+    } = props
     const worktrees = useWorktrees()
     const sourcePath = action.sourcePath
     if (!sourcePath) throw new Error(`Action editor requires a persisted action: ${action.id}`)
@@ -62,7 +69,8 @@ export function ActionEditor(props: ActionEditorProps) {
     const [pendingCount, setPendingCount] = useState(0)
     const [saveError, setSaveError] = useState<string | null>(null)
     const [conflict, setConflict] = useState<RawActionDefinition | null>(null)
-    const [selectedTab, setSelectedTab] = useState(DEFINITION_TAB)
+    const [localSelectedTab, setLocalSelectedTab] = useState(storedSelectedTab ?? DEFINITION_TAB)
+    const selectedTab = storedSelectedTab ?? localSelectedTab
     const [markdownHistoryStore] = useState(() => new MarkdownDocumentHistoryStore())
     const markdownEditorRef = useRef<MarkdownEditorHandle>(null)
 
@@ -180,7 +188,9 @@ export function ActionEditor(props: ActionEditorProps) {
             definition: { ...current.definition, phrases: [...phrases, { text: '', title: '' }] },
             revision: current.revision + 1,
         }))
-        setSelectedTab(phraseTabValue(phrases.length))
+        const nextTab = phraseTabValue(phrases.length)
+        setLocalSelectedTab(nextTab)
+        onSelectedTabChange?.(nextTab)
     }
 
     const handleTabChange = (_event: SyntheticEvent, value: string) => {
@@ -188,7 +198,8 @@ export function ActionEditor(props: ActionEditorProps) {
             handleAddPhrase()
             return
         }
-        setSelectedTab(value)
+        setLocalSelectedTab(value)
+        onSelectedTabChange?.(value)
     }
 
     const handleMarkdownChange = (documentId: string, text: string) => {
@@ -240,8 +251,9 @@ export function ActionEditor(props: ActionEditorProps) {
             },
             revision: current.revision + 1,
         }))
-        setSelectedTab(PROMPT_TAB)
-    }, [selectedPhrase, selectedPhraseIndex])
+        setLocalSelectedTab(PROMPT_TAB)
+        onSelectedTabChange?.(PROMPT_TAB)
+    }, [onSelectedTabChange, selectedPhrase, selectedPhraseIndex])
 
     const phraseToolbarContents = useCallback(() => {
         if (!selectedPhrase) throw new Error('Missing selected phrase')
@@ -336,6 +348,7 @@ export function ActionEditor(props: ActionEditorProps) {
                                 historyStore={markdownHistoryStore}
                                 markdown={markdown}
                                 onDocumentChange={handleMarkdownChange}
+                                placeholders={selectedPhrase ? undefined : ACTION_PROMPT_PLACEHOLDERS}
                                 ref={markdownEditorRef}
                                 toolbarContents={selectedPhrase ? phraseToolbarContents : undefined}
                             />

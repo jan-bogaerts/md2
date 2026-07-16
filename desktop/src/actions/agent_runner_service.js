@@ -22,6 +22,32 @@ const { createAgentProviderProtocolParser } = require('./agent_provider_protocol
 const { assertGitRoot, ensureInsideRoot, requireRootPath } = require('../git/git_commands');
 const { normalizePath } = require('../../../shared/path_utils.mjs');
 
+const HIDDEN_STDERR_LINES = [
+    /^completed$/i,
+    /^Debugger listening on ws:\/\//,
+    /^For help, see: https:\/\/nodejs\.org\/en\/docs\/inspector\/?$/,
+    /^Debugger attached\.$/,
+    /^Reading additional input from stdin\.\.\.$/,
+    /^Waiting for the debugger to disconnect\.\.\.$/,
+];
+
+function isHiddenStderrLine(line) {
+    return HIDDEN_STDERR_LINES.some((pattern) => pattern.test(line.trim()));
+}
+
+function filterCompleteStderrLines(content) {
+    const parts = content.split(/(\r\n|\r|\n)/);
+    const remainder = parts.pop();
+    const visibleParts = [];
+    for (let index = 0; index < parts.length; index += 2) {
+        const line = parts[index];
+        const delimiter = parts[index + 1];
+        if (!isHiddenStderrLine(line)) visibleParts.push(`${line}${delimiter}`);
+    }
+
+    return { content: visibleParts.join(''), remainder };
+}
+
 function requireString(value, fieldName) {
     if (typeof value !== 'string' || value.length === 0) throw new Error(`Missing agent ${fieldName}`);
 
@@ -155,6 +181,7 @@ class AgentRunnerService {
             reportedProviderErrors: new Set(),
             request,
             stderr: '',
+            stderrBuffer: '',
             stdout: '',
             turnStarted: false,
             termination: null,
@@ -203,12 +230,36 @@ class AgentRunnerService {
             run.parser.push(chunk);
             return;
         }
+        if (channel === 'stderr') {
+            run.stderrBuffer += content;
+            const filtered = filterCompleteStderrLines(run.stderrBuffer);
+            run.stderrBuffer = filtered.remainder;
+            if (filtered.content.length === 0) return;
+            this.recordOutput(runId, channel, filtered.content);
+            return;
+        }
+        this.recordOutput(runId, channel, content);
+    }
+
+    recordOutput(runId, channel, content) {
+        const run = this.processes.get(runId);
+        if (!run) return;
+
         if (channel === 'stdout') run.stdout += content;
         else run.stderr += content;
         const timestamp = new Date().toISOString();
         run.conversation.events.push(createEvent(`${runId}-${channel}-${run.conversation.events.length}`, channel, content, timestamp));
         void queueThrottledConversationPersist(run);
         emitRunEvent(run, channel, content);
+    }
+
+    flushStderr(runId) {
+        const run = this.processes.get(runId);
+        if (!run || run.stderrBuffer.length === 0) return;
+
+        const content = run.stderrBuffer;
+        run.stderrBuffer = '';
+        if (!isHiddenStderrLine(content)) this.recordOutput(runId, 'stderr', content);
     }
 
     handleProviderEvent(runId, providerEvent) {
@@ -271,6 +322,7 @@ class AgentRunnerService {
         try {
             if (run.termination) await run.termination;
             run.parser?.finish();
+            this.flushStderr(runId);
             clearIntermediatePersist(run);
             await run.writeChain;
             const completedAt = new Date().toISOString();

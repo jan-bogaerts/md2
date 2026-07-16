@@ -6,7 +6,16 @@ describe('StatusBar', () => {
     afterEach(cleanup)
 
     it('renders card counts, synchronization status and the agents indicator', () => {
-        render(<StatusBar activeCardCount={2} agents={[]} hasPendingPush={false} hasPendingSave={false} totalCardCount={5} />)
+        render(
+            <StatusBar
+                activeCardCount={2}
+                agents={[]}
+                hasPendingPush={false}
+                hasPendingSave={false}
+                isPushing={false}
+                totalCardCount={5}
+            />,
+        )
 
         expect(screen.getByText('5')).toBeInTheDocument()
         expect(screen.getByText('cards')).toBeInTheDocument()
@@ -20,15 +29,32 @@ describe('StatusBar', () => {
     })
 
     it('does not render an editable status input', () => {
-        render(<StatusBar activeCardCount={0} agents={[]} hasPendingPush={false} hasPendingSave={false} totalCardCount={0} />)
+        render(
+            <StatusBar
+                activeCardCount={0}
+                agents={[]}
+                hasPendingPush={false}
+                hasPendingSave={false}
+                isPushing={false}
+                totalCardCount={0}
+            />,
+        )
 
         expect(screen.queryByRole('textbox', { name: 'Status' })).toBeNull()
     })
 
     it('shows local saving and pending push independently', () => {
-        render(<StatusBar activeCardCount={0} agents={[]} hasPendingPush hasPendingSave totalCardCount={0} />)
+        render(<StatusBar activeCardCount={0} agents={[]} hasPendingPush hasPendingSave isPushing={false} totalCardCount={0} />)
 
         expect(screen.getByText('Saving changes...')).toBeInTheDocument()
         expect(screen.getByText('Changes ready to push')).toBeInTheDocument()
+    })
+
+    it('shows push progress instead of the pending push status', () => {
+        render(<StatusBar activeCardCount={0} agents={[]} hasPendingPush hasPendingSave={false} isPushing totalCardCount={0} />)
+
+        expect(screen.getByRole('progressbar', { name: 'Pushing' })).toBeInTheDocument()
+        expect(screen.getByText('Pushing...')).toBeInTheDocument()
+        expect(screen.queryByText('Changes ready to push')).not.toBeInTheDocument()
     })
 })

@@ -1,4 +1,5 @@
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { MenuList } from '@mui/material'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ActionEntryPoints } from './action_entry_points'
 import { FileTreeView } from '../text_view/file_tree_view'
@@ -16,11 +17,11 @@ function file(definition: { id: string }): ActionFile {
 }
 
 function agentDefinition(id: string, overrides: Record<string, unknown> = {}) {
-    return { description: id, id, label: id, name: id, prompt: 't', type: 'agent', ...overrides }
+    return { description: id, id, label: id, prompt: 't', type: 'agent', ...overrides }
 }
 
 function commandDefinition(id: string, overrides: Record<string, unknown> = {}) {
-    return { command: 't', description: id, id, label: id, name: id, type: 'command', ...overrides }
+    return { command: 't', description: id, id, label: id, type: 'command', ...overrides }
 }
 
 function card(id: string, status: string | null, title = id): ProjectCard {
@@ -86,8 +87,7 @@ describe('ActionEntryPoints filtering', () => {
             file(commandDefinition('review', { icon: 'actions/icon.png', label: 'Review' })),
         ])
 
-        render(<ActionEntryPoints context={cardContext(featureCard, DEFAULT_CARD_TYPES)} variant="menu" />)
-        fireEvent.click(screen.getByRole('button', { name: 'Actions' }))
+        render(<MenuList><ActionEntryPoints context={cardContext(featureCard, DEFAULT_CARD_TYPES)} variant="menuItems" /></MenuList>)
 
         const menuItem = screen.getByRole('menuitem', { name: 'Review' })
         await waitFor(() => expect(menuItem.querySelector('img')).toHaveAttribute('src', 'data:image/png;base64,aWNvbg=='))
@@ -106,9 +106,7 @@ describe('ActionEntryPoints filtering', () => {
     })
 
     it('offers the custom prompt action in every context', () => {
-        render(<ActionEntryPoints context={folderContext('history', true)} variant="menu" />)
-
-        fireEvent.click(screen.getByRole('button', { name: 'Actions' }))
+        render(<MenuList><ActionEntryPoints context={folderContext('history', true)} variant="menuItems" /></MenuList>)
 
         expect(screen.getByRole('menuitem', { name: 'Custom prompt' })).toBeInTheDocument()
     })
@@ -163,72 +161,9 @@ describe('ActionEntryPoints popup', () => {
         expect(within(dialog).getByRole('heading', { name: 'Implement' })).toBeInTheDocument()
     })
 
-    it('toggles the first context-specific action from the compact Run button', () => {
-        const onBackgroundClick = vi.fn()
-        render(
-            <>
-                <button onClick={onBackgroundClick} type="button">Background action</button>
-                <ActionEntryPoints context={cardContext(featureCard, DEFAULT_CARD_TYPES)} variant="button" />
-            </>,
-        )
+    it('opens a popup from a menu-item entry point', () => {
+        render(<MenuList><ActionEntryPoints context={cardContext(featureCard, DEFAULT_CARD_TYPES)} variant="menuItems" /></MenuList>)
 
-        const runButton = screen.getByRole('button', { name: 'Run' })
-        fireEvent.click(runButton)
-
-        const dialog = within(screen.getByRole('dialog'))
-        expect(dialog.getAllByRole('button', { name: 'Close' })).toHaveLength(1)
-
-        const actionGroup = dialog.getByRole('group', { name: 'Actions' })
-        const actionButtons = within(actionGroup).getAllByRole('button')
-        expect(actionButtons.map((button) => button.textContent)).toEqual(['Create branch', 'Run lint', 'Implement', 'Custom prompt'])
-        expect(dialog.getByRole('button', { name: 'Implement' })).toHaveAttribute('aria-pressed', 'true')
-
-        fireEvent.click(screen.getByRole('button', { name: 'Background action' }))
-        expect(onBackgroundClick).toHaveBeenCalledOnce()
-        expect(screen.getByRole('dialog')).toBeInTheDocument()
-        expect(document.querySelector('.MuiModal-root')).not.toBeInTheDocument()
-
-        fireEvent.click(runButton)
-        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-    })
-
-    it('selects one card action at a time from the Run popup', () => {
-        render(<ActionEntryPoints context={cardContext(featureCard, DEFAULT_CARD_TYPES)} variant="button" />)
-
-        fireEvent.click(screen.getByRole('button', { name: 'Run' }))
-        const dialog = within(screen.getByRole('dialog'))
-        const actionGroup = within(dialog.getByRole('group', { name: 'Actions' }))
-        fireEvent.click(actionGroup.getByRole('button', { name: 'Run lint' }))
-
-        expect(actionGroup.getByRole('button', { name: 'Run lint' })).toHaveAttribute('aria-pressed', 'true')
-        expect(actionGroup.getByRole('button', { name: 'Implement' })).toHaveAttribute('aria-pressed', 'false')
-    })
-
-    it('shows custom-action save controls after the plus button is clicked', () => {
-        render(<ActionEntryPoints context={cardContext(featureCard, DEFAULT_CARD_TYPES)} variant="button" />)
-
-        fireEvent.click(screen.getByRole('button', { name: 'Run' }))
-        const dialog = within(screen.getByRole('dialog'))
-        fireEvent.click(dialog.getByRole('button', { name: 'Add action' }))
-
-        expect(dialog.queryByText('Send a custom prompt to the agent.')).not.toBeInTheDocument()
-        expect(dialog.getByPlaceholderText('Prompt required')).toBeInTheDocument()
-        expect(dialog.getByLabelText('Preset name')).toHaveFocus()
-        expect(dialog.getByRole('button', { name: 'Run' })).toBeDisabled()
-
-        fireEvent.change(dialog.getByLabelText('Prompt'), { target: { value: 'Review this feature' } })
-        fireEvent.change(dialog.getByLabelText('Preset name'), { target: { value: 'Review feature' } })
-
-        expect(dialog.getByRole('button', { name: 'Run' })).toBeDisabled()
-
-        fireEvent.click(dialog.getByRole('button', { name: 'Add action' }))
-        expect(dialog.queryByLabelText('Preset name')).not.toBeInTheDocument()
-    })
-
-    it('opens a popup from the overflow menu entry point', () => {
-        render(<ActionEntryPoints context={cardContext(featureCard, DEFAULT_CARD_TYPES)} variant="menu" />)
-
-        fireEvent.click(screen.getByRole('button', { name: 'Actions' }))
         fireEvent.click(screen.getByRole('menuitem', { name: 'Implement' }))
 
         expect(within(screen.getByRole('dialog')).getByRole('button', { name: 'Run' })).toBeInTheDocument()

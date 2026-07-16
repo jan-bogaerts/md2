@@ -34,7 +34,7 @@ export interface BackgroundGroup {
 export interface ActionSearchMatch {
     action: ActionDefinition
     context: string
-    field: 'label' | 'description' | 'name' | 'text'
+    field: 'label' | 'description' | 'text'
     title: string
 }
 

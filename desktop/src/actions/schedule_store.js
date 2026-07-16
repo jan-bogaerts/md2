@@ -42,8 +42,6 @@ function parseScheduleTrigger(value) {
     const type = requireScheduleString(trigger.type, 'trigger.type');
 
     if (type === 'at') return { timestamp: requireScheduleString(trigger.timestamp, 'trigger.timestamp'), type };
-    if (type === 'agentSlot') return { type };
-    if (type === 'afterAction') return { actionId: requireScheduleString(trigger.actionId, 'trigger.actionId'), type };
 
     throw new Error(`Invalid action schedule file: unsupported trigger type ${type}`);
 }
@@ -87,14 +85,6 @@ function pendingScheduleIds(schedules) {
     return new Set(schedules.filter((schedule) => schedule.status === 'pending').map((schedule) => schedule.id));
 }
 
-function pendingAfterActionSchedules(schedules, actionId) {
-    return schedules.filter((schedule) => (
-        schedule.status === 'pending'
-        && schedule.trigger.type === 'afterAction'
-        && schedule.trigger.actionId === actionId
-    ));
-}
-
 function updateActionScheduleStatus(schedules, scheduleId, status) {
     parseScheduleStatus(status);
 
@@ -120,7 +110,6 @@ module.exports = {
     createActionScheduleFile,
     findPendingSchedule,
     parseActionScheduleFile,
-    pendingAfterActionSchedules,
     pendingScheduleIds,
     updateActionScheduleStatus,
 };

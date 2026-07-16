@@ -6,6 +6,7 @@ import type { UseGithubAuthResult } from '../../auth/use_github_auth'
 import { ConfigPage } from '../config/config_page'
 import { ProjectWorkspace } from '../project_workspace'
 import { useProjectState } from '../hooks/use_project_state'
+import { useProjectSession } from '../hooks/use_project_session'
 import { useWorkspaceView } from '../hooks/use_workspace_view'
 import { createSearchRegexpAgent, isSearchRegexpAgentAvailable } from '../../services/search/search_regexp_agent'
 import { LeftPanelSlotProvider } from './left_panel_slot_provider'
@@ -35,6 +36,7 @@ export function MainWindow(props: MainWindowProps) {
     const isMobile = useMediaQuery(theme.breakpoints.down('md'))
     const [isMenuOpen, setIsMenuOpen] = useState(false)
     const { hasPendingPush, hasPendingSave, project, snapshot } = useProjectState()
+    const { isPushing } = useProjectSession()
     const { viewMode } = useWorkspaceView()
     const isConfigPage = location.pathname === '/config'
     const shouldShowNavigationPanel = !project || viewMode === 'text'
@@ -123,6 +125,7 @@ export function MainWindow(props: MainWindowProps) {
                             agents={agents}
                             hasPendingPush={hasPendingPush}
                             hasPendingSave={hasPendingSave}
+                            isPushing={isPushing}
                             totalCardCount={totalCardCount}
                         />
                     </>

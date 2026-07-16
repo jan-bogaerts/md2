@@ -35,7 +35,7 @@ describe('convertRemarkableImagesToText', () => {
         expect(action.type).toBe('agent')
         expect(runInput.extraPrompt).toContain('design/a.png')
         expect(runInput.extraPrompt).toContain('design/b.png')
-        expect(action.prompt).toContain('{{file}}')
+        expect(action.prompt).toContain('{{card-file}}')
         expect(context).toEqual({ file: 'design/F-1-card.md', kind: 'card', type: 'feature' })
     })
 })

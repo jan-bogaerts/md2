@@ -10,7 +10,6 @@ const sharedFields = {
     description: 'Run checks',
     id: 'check-action',
     label: 'Check',
-    name: 'check',
     needsWorkTree: true,
     onAfter: ['after'],
     onBefore: ['before'],
@@ -101,8 +100,23 @@ describe('ActionDefinitionFields', () => {
         renderFields({ ...sharedFields, command: '', type: 'command' }, vi.fn())
 
         expect(screen.getByLabelText('Command')).toHaveValue('')
-        expect(screen.getByLabelText('Needs worktree')).toBeChecked()
+        expect(screen.getByRole('switch', { name: 'Needs worktree' })).toBeChecked()
         expect(screen.getByLabelText('Run when card enters state')).toHaveTextContent('ready')
+    })
+
+    it('shows label, type, and icon before description without exposing internal identity fields', () => {
+        renderFields({ ...sharedFields, command: 'run', icon: 'icon.svg', type: 'command' })
+
+        const label = screen.getByLabelText('Label')
+        const type = screen.getByLabelText('Type')
+        const icon = screen.getByLabelText('Icon')
+        const description = screen.getByLabelText('Description')
+
+        expect(screen.queryByLabelText('ID')).not.toBeInTheDocument()
+        expect(screen.queryByLabelText('Name')).not.toBeInTheDocument()
+        expect(label.compareDocumentPosition(type) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+        expect(type.compareDocumentPosition(icon) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+        expect(icon.compareDocumentPosition(description) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     })
 
     it('renders section headings and empty-state hints for empty collections', () => {
@@ -111,7 +125,6 @@ describe('ActionDefinitionFields', () => {
             description: 'Run checks',
             id: 'check-action',
             label: 'Check',
-            name: 'check',
             type: 'command',
         })
 

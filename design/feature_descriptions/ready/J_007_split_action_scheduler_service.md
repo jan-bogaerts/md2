@@ -16,7 +16,7 @@ Depends on: J-003 (the unused `schedule_store.js`/`schedule_timers.js` duplicate
 
 ## implementation details
 - `desktop/schedule_store.js` — ID-based schedule file read/write/validation and schedule-status transitions, written as pure functions over the JSON model.
-- `desktop/schedule_timers.js` — timer registration/cancellation per trigger type (`at`, `agentSlot`, `afterAction`), reconciliation against a store snapshot.
+- `desktop/schedule_timers.js` — date/time timer registration and cancellation, plus reconciliation against a store snapshot.
 - `ActionSchedulerService` keeps project lifecycle and timer/event coordination. When a timer fires, it delegates `{ actionId, context, runInput }` to the Electron action runner; it contains no action-chain execution.
 - Two commits (store, then timers); after each, the service must call the extracted module — no inline copies of the moved functions may remain (the first attempt created the modules but the service kept its own copies).
 - Run the desktop test suite after each commit; add/move unit tests for the pure store functions.

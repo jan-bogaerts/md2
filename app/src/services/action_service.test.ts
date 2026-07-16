@@ -2,8 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { ActionService, editableActionDefinition, serializeActionDefinition } from './action_service'
 import {
     CUSTOM_PROMPT_ACTION_ID,
-    CUSTOM_PROMPT_ACTION_NAME,
-    REMARKABLE_CONVERT_ACTION_NAME,
+    REMARKABLE_CONVERT_ACTION_ID,
     type ActionFile,
     type RawActionDefinition,
 } from '../data/action_types'
@@ -12,13 +11,13 @@ function file(definition: unknown): ActionFile {
     return { content: JSON.stringify(definition), path: 'actions/action.json' }
 }
 
-const VALID: RawActionDefinition = { command: 'run', description: 'Do it', id: 'action-do', label: 'Do', name: 'do', type: 'command' }
+const VALID: RawActionDefinition = { command: 'run', description: 'Do it', id: 'action-do', label: 'Do', type: 'command' }
 
 describe('ActionService', () => {
     it('exposes built-in actions before loading', () => {
         const service = new ActionService()
 
-        expect(service.getActions().map((action) => action.name)).toEqual([CUSTOM_PROMPT_ACTION_NAME, REMARKABLE_CONVERT_ACTION_NAME])
+        expect(service.getActions().map((action) => action.id)).toEqual([CUSTOM_PROMPT_ACTION_ID, REMARKABLE_CONVERT_ACTION_ID])
     })
 
     it('loads project action files alongside the built-in and notifies listeners', () => {
@@ -28,26 +27,29 @@ describe('ActionService', () => {
 
         service.loadFromFiles([file(VALID)])
 
-        expect(service.getActions().map((action) => action.name)).toContain('do')
-        expect(service.getActions().map((action) => action.name)).toContain(CUSTOM_PROMPT_ACTION_NAME)
+        expect(service.getActions().map((action) => action.id)).toContain('action-do')
+        expect(service.getActions().map((action) => action.id)).toContain(CUSTOM_PROMPT_ACTION_ID)
         expect(notified).toBe(1)
     })
 
-    it('fails fast and keeps state unchanged on invalid definitions', () => {
+    it('loads usable definitions and exposes errors from invalid files', () => {
         const service = new ActionService()
-        service.loadFromFiles([file(VALID)])
+        const usable = { ...VALID, id: 'action-usable', label: 'Usable' }
 
-        expect(() => service.loadFromFiles([file({ ...VALID, type: 'bad' })])).toThrow()
-        expect(service.getActions().map((action) => action.name)).toContain('do')
+        expect(() => service.loadFromFiles([file({ ...VALID, type: 'bad' }), file(usable)])).not.toThrow()
+        expect(service.getActions().map((action) => action.id)).toContain('action-usable')
+        expect(service.getState().error).toContain('Invalid action type')
     })
 
-    it('retains previous valid actions and exposes reload errors', () => {
+    it('replaces previous actions with usable reload results and exposes errors', () => {
         const service = new ActionService()
         service.loadFromFiles([file(VALID)])
+        const replacement = { ...VALID, id: 'action-replacement', label: 'Replacement' }
 
-        service.reloadFromFiles([file({ ...VALID, type: 'bad' })], ['actions/action.json'])
+        service.reloadFromFiles([file({ ...VALID, type: 'bad' }), file(replacement)], ['actions/action.json'])
 
-        expect(service.getActions().map((action) => action.name)).toContain('do')
+        expect(service.getActions().map((action) => action.id)).toContain('action-replacement')
+        expect(service.getActions().map((action) => action.id)).not.toContain('action-do')
         expect(service.getState().error).toContain('actions/action.json')
         expect(service.getState().error).toContain('Invalid action type')
     })
@@ -58,7 +60,7 @@ describe('ActionService', () => {
 
         const matches = service.getActionsForStateTrigger('ready', { file: 'design/F-010.md', kind: 'card', state: 'ready', type: 'feature' })
 
-        expect(matches.map((action) => action.name)).toEqual(['do'])
+        expect(matches.map((action) => action.id)).toEqual(['action-do'])
     })
 
     it('clears back to the built-in action', () => {
@@ -67,7 +69,7 @@ describe('ActionService', () => {
 
         service.clear()
 
-        expect(service.getActions().map((action) => action.name)).toEqual([CUSTOM_PROMPT_ACTION_NAME, REMARKABLE_CONVERT_ACTION_NAME])
+        expect(service.getActions().map((action) => action.id)).toEqual([CUSTOM_PROMPT_ACTION_ID, REMARKABLE_CONVERT_ACTION_ID])
     })
 
     it('creates a valid agent definition with generated stable identity and path', () => {
@@ -77,7 +79,7 @@ describe('ActionService', () => {
         expect(first.path).toBe('design/actions/new-action.json')
         expect(first.definition).toMatchObject({
             description: expect.any(String), id: expect.any(String), label: 'New action',
-            name: 'new-action', prompt: expect.any(String), type: 'agent',
+            prompt: expect.any(String), type: 'agent',
         })
         expect(service.validateDefinition(first.path, first.definition))
             .toEqual({ code: null, error: null, field: null, fieldPath: null, index: null, valid: true })
@@ -93,7 +95,7 @@ describe('ActionService', () => {
 
         // Duplicate id originating in another file: routed to `id`, never text-matched.
         service.loadFromFiles([file(VALID)])
-        const other = { ...VALID, command: 'x', id: 'action-other', name: 'other' }
+        const other = { ...VALID, command: 'x', id: 'action-other' }
         expect(service.validateDefinition('actions/other.json', { ...other, id: VALID.id }))
             .toMatchObject({ code: 'duplicate-id', field: 'id', valid: false })
 
@@ -145,7 +147,7 @@ describe('ActionService', () => {
         const persistActionFile = vi.fn(async () => undefined)
         const service = new ActionService(() => ({ persistActionFile }))
         const retiredModel = {
-            description: 'Do it', id: 'agent-do', label: 'Do', name: 'agent-do',
+            description: 'Do it', id: 'agent-do', label: 'Do',
             agent: 'codex', model: 'retired-model', prompt: 'Run', type: 'agent',
         } satisfies RawActionDefinition
         service.loadFromFiles([file(retiredModel)])

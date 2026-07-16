@@ -123,9 +123,9 @@ describe('ActionExecution', () => {
     });
 
     it('applies root run input only to root action', async () => {
-        const rootAction = action('main={{prompt}}', {
+        const rootAction = action('main={{card-prompt}}', {
             id: 'main',
-            onBefore: [action('before={{prompt}}', { id: 'before' })],
+            onBefore: [action('before={{card-prompt}}', { id: 'before' })],
         });
         const { commandRunner, execution } = createExecution(rootAction, { runInput: { extraPrompt: 'focus' } });
 

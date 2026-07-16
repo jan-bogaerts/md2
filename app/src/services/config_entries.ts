@@ -19,7 +19,6 @@ export type ConfigValueType = 'boolean' | 'number' | 'select' | 'string' | 'json
 
 export interface ConfigValueTypes {
     'desktop.agent': string
-    'desktop.agentSlotCommand': string
     'desktop.agentProfiles': AgentProfile[]
     'desktop.codexSearchEnabled': boolean
     'desktop.model': string
@@ -67,7 +66,6 @@ export type ConfigValues = ConfigValueTypes
 
 export interface DesktopConfigValues {
     agent: string
-    agentSlotCommand: string
     agentProfiles: AgentProfile[]
     codexSearchEnabled?: boolean
     model: string
@@ -244,16 +242,6 @@ export const CONFIG_ENTRIES: ConfigEntry[] = [
         section: 'desktop',
         source: 'desktop',
         type: 'boolean',
-    },
-    {
-        defaultValue: '',
-        description: 'Command that outputs the next agent-slot timestamp for scheduled actions.',
-        editable: true,
-        key: 'desktop.agentSlotCommand',
-        label: 'Agent slot command',
-        section: 'desktop',
-        source: 'desktop',
-        type: 'string',
     },
     {
         defaultValue: '',

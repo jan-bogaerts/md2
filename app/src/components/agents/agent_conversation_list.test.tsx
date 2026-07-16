@@ -17,7 +17,6 @@ function actionFile(id: string, type: 'agent' | 'command') {
             description: id,
             id,
             label: id,
-            name: id,
             type,
         }),
         path: `actions/${id}.json`,
@@ -56,6 +55,7 @@ function renderPanel() {
             context={context}
             conversations={[]}
             errors={[]}
+            onConversationsViewed={vi.fn()}
             onContinue={vi.fn()}
             onStart={vi.fn()}
         />,
@@ -120,18 +120,23 @@ describe('AgentConversationList', () => {
 
     it('shows persisted conversations and selects one for continuation', () => {
         const onContinue = vi.fn()
+        const onConversationsViewed = vi.fn()
+        actionService.loadFromFiles([actionFile('review', 'agent')])
         installBridge()
         render(
             <AgentConversationList
                 context={context}
                 conversations={[conversation]}
                 errors={[]}
+                onConversationsViewed={onConversationsViewed}
                 onContinue={onContinue}
                 onStart={vi.fn()}
             />,
         )
 
         expect(screen.getByText('Persisted answer')).toBeInTheDocument()
+        expect(screen.getByText('review')).toBeInTheDocument()
+        expect(onConversationsViewed).toHaveBeenCalledWith([conversation])
         fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
         expect(onContinue).toHaveBeenCalledWith(conversation)
     })

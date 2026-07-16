@@ -1,4 +1,4 @@
-import { Box, Stack, Typography } from '@mui/material'
+import { Box, CircularProgress, Stack, Typography } from '@mui/material'
 import CardsOutline from 'mdi-material-ui/CardsOutline'
 import CloudUploadOutline from 'mdi-material-ui/CloudUploadOutline'
 import ContentSaveOutline from 'mdi-material-ui/ContentSaveOutline'
@@ -12,12 +12,13 @@ interface StatusBarProps {
     agents: RunningAgent[]
     hasPendingPush: boolean
     hasPendingSave: boolean
+    isPushing: boolean
     totalCardCount: number
 }
 
 /** Compact desktop status bar for board totals, synchronization and agents. */
 export function StatusBar(props: StatusBarProps) {
-    const { activeCardCount, agents, hasPendingPush, hasPendingSave, totalCardCount } = props
+    const { activeCardCount, agents, hasPendingPush, hasPendingSave, isPushing, totalCardCount } = props
 
     return (
         <Box
@@ -61,10 +62,10 @@ export function StatusBar(props: StatusBarProps) {
             <Stack
                 direction="row"
                 spacing={0.75}
-                sx={{ alignItems: 'center', color: hasPendingPush ? 'warning.main' : 'text.secondary' }}
+                sx={{ alignItems: 'center', color: hasPendingPush || isPushing ? 'warning.main' : 'text.secondary' }}
             >
-                <CloudUploadOutline sx={{ fontSize: 14 }} />
-                <Box component="span">{hasPendingPush ? 'Changes ready to push' : 'Synced'}</Box>
+                {isPushing ? <CircularProgress aria-label="Pushing" color="inherit" size={14} /> : <CloudUploadOutline sx={{ fontSize: 14 }} />}
+                <Box component="span">{isPushing ? 'Pushing...' : hasPendingPush ? 'Changes ready to push' : 'Synced'}</Box>
             </Stack>
             <Box sx={{ flex: 1 }} />
             <RemoteControlStatusIndicator />

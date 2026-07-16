@@ -31,7 +31,6 @@ describe('AgentIntegration', () => {
                 description: 'Ready',
                 id: 'action-ready',
                 label: 'Ready',
-                name: 'ready-action',
                 onState: 'ready',
                 type: 'command',
             }),
@@ -49,7 +48,7 @@ describe('AgentIntegration', () => {
         service.cards.moveCard('design/F-2-b.md', 'ready', 0)
 
         expect(runElectronAction).toHaveBeenCalledWith(
-            expect.objectContaining({ name: 'ready-action' }),
+            expect.objectContaining({ id: 'action-ready' }),
             expect.objectContaining({ file: 'design/F-2-b.md', kind: 'card', state: 'ready', type: 'feature' }),
         )
     })
@@ -67,9 +66,8 @@ describe('AgentIntegration', () => {
                 id: 'action-implement',
                 label: 'Implement',
                 model: 'gpt-5.5',
-                name: 'implement-action',
                 onState: 'ready',
-                prompt: 'Implement {{file}}',
+                prompt: 'Implement {{card-file}}',
                 thinkingLevel: 'high',
                 type: 'agent',
             }),
@@ -87,7 +85,7 @@ describe('AgentIntegration', () => {
         service.cards.moveCard('design/F-1-a.md', 'ready', 0)
 
         expect(runElectronAction).toHaveBeenCalledWith(
-            expect.objectContaining({ name: 'implement-action', thinkingLevel: 'high' }),
+            expect.objectContaining({ id: 'action-implement', thinkingLevel: 'high' }),
             expect.objectContaining({ file: 'design/F-1-a.md', kind: 'card', state: 'ready', type: 'feature' }),
         )
     })
@@ -117,7 +115,6 @@ describe('AgentIntegration', () => {
                 description: 'Ready',
                 id: 'action-ready',
                 label: 'Ready',
-                name: 'ready-action',
                 onState: 'ready',
                 type: 'command',
             }),
@@ -137,7 +134,7 @@ describe('AgentIntegration', () => {
         await vi.waitFor(() => {
             const movedCard = service.getState().snapshot?.activeCards.find((card) => card.path === 'design/F-2-b.md')
             expect(movedCard?.agentConversationErrors).toEqual([
-                { message: 'Ready failed with exit code 1', path: 'onState:ready-action' },
+                { message: 'Ready failed with exit code 1', path: 'onState:action-ready' },
             ])
         })
     })
@@ -154,7 +151,6 @@ describe('AgentIntegration', () => {
                 description: 'Todo',
                 id: 'action-todo',
                 label: 'Todo',
-                name: 'todo-action',
                 onState: 'todo',
                 type: 'command',
             }),

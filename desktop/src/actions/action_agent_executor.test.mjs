@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 const require = createRequire(import.meta.url);
 const { ActionAgentExecutor } = require('./action_agent_executor');
 
-const action = { agent: 'codex', id: 'main', label: 'Main', model: 'gpt-5.5', prompt: 'Review {{file}}', type: 'agent' };
+const action = { agent: 'codex', id: 'main', label: 'Main', model: 'gpt-5.5', prompt: 'Review {{card-file}}', type: 'agent' };
 const cardContext = { file: 'design/card.md', kind: 'card' };
 const project = { branch: 'main', rootPath: 'C:/repo' };
 
@@ -67,7 +67,7 @@ describe('ActionAgentExecutor', () => {
 
     it('runs project-wide action without card path', async () => {
         const { agentRunnerService, executor } = createExecutor();
-        const projectAction = { ...action, prompt: '{{prompt}}' };
+        const projectAction = { ...action, prompt: '{{card-prompt}}' };
 
         await executor.execute(executionInput({action: projectAction, context: { kind: 'project' }, runInput: { extraPrompt: 'review project' }}));
 

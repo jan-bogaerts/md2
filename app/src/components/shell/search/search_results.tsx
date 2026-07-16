@@ -32,7 +32,7 @@ function renderActionMatch(match: ActionSearchMatch, onActionSelect: (action: Ac
     const secondary = `${match.field} - ${match.context}`
 
     return (
-        <ListItemButton dense key={match.action.name} onClick={handleClick}>
+        <ListItemButton dense key={match.action.id} onClick={handleClick}>
             <ListItemText
                 primary={
                     <Box component="span" sx={{ alignItems: 'center', display: 'flex', gap: 1 }}>

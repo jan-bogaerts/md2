@@ -29,6 +29,7 @@
 - A Markdown editor is shown below the field box for:
   - the body of a Markdown file;
   - the `prompt` of an agent action.
+- Agent prompt editors provide toolbar insertion and `{{` typeahead for `{{card-file}}`, `{{card-prompt}}`, and `{{rootProjectFolder}}`.
 - Command actions do not show a Markdown editor. Their command-specific values are edited through structured controls in the field box.
 - Controls that do not apply to the selected action type are hidden.
 

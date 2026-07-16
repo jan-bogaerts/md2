@@ -11,6 +11,7 @@ interface CardWorktreeIndicatorProps {
     card: ProjectCard
     onAssign: (cardPath: string, worktree: number | null) => void
     primaryPath: string
+    projectKey: string
     worktrees: WorktreeRecord[]
 }
 
@@ -43,16 +44,29 @@ function assignmentState(card: ProjectCard, worktrees: WorktreeRecord[]) {
 }
 
 export function CardWorktreeIndicator(props: CardWorktreeIndicatorProps) {
-    const { card, onAssign, primaryPath, worktrees } = props
+    const { card, onAssign, primaryPath, projectKey, worktrees } = props
     const [anchorElement, setAnchorElement] = useState<HTMLElement | null>(null)
     const assignment = assignmentState(card, worktrees)
     const isWaiting = isConversationWaiting(card)
     const isRunning = !isWaiting && card.agentConversations.some((conversation) => conversation.status === 'running')
     const isUnseen = !isWaiting && !isRunning
-        && hasUnseenAgentResult(primaryPath, card.path, card.agentConversations)
+        && hasUnseenAgentResult(projectKey, card.path, card.agentConversations)
     const agentState = isWaiting ? 'waiting for input' : isRunning ? 'running' : isUnseen ? 'unseen result' : 'idle'
+    const agentStateDescription = isWaiting
+        ? 'Agent is waiting for input'
+        : isRunning
+            ? 'Agent is running'
+            : isUnseen
+                ? 'New agent result available'
+                : 'Agent is idle'
     const folder = assignment.folder ?? primaryPath
     const label = `${card.header.id}: ${folder}; agent ${agentState}`
+    const assignmentDescription = assignment.error
+        ? `Worktree assignment error: ${assignment.error}`
+        : assignment.value === 'P'
+            ? `Primary worktree: ${folder}`
+            : `Worktree ${assignment.value}: ${folder}`
+    const tooltip = `${assignmentDescription}. ${agentStateDescription}.`
 
     const handleOpen = (event: MouseEvent<HTMLElement>) => {
         event.stopPropagation()
@@ -102,7 +116,7 @@ export function CardWorktreeIndicator(props: CardWorktreeIndicatorProps) {
 
     return (
         <>
-            {assignment.error ? <Tooltip title={assignment.error}>{button}</Tooltip> : button}
+            <Tooltip title={tooltip}>{button}</Tooltip>
             <Menu anchorEl={anchorElement} onClose={handleClose} open={!!anchorElement}>
                 <MenuItem onClick={handlePrimary} selected={card.header.worktree === null && !card.header.worktreeError}>
                     Primary — {primaryPath}

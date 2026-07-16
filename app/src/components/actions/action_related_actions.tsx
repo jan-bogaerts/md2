@@ -35,7 +35,7 @@ export function RelatedActions(props: RelatedActionsProps) {
             </Typography>
             <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', mt: 0.5 }}>
                 {actions.map((action) => (
-                    <RelatedActionButton action={action} key={action.name} onNavigate={onNavigate} />
+                    <RelatedActionButton action={action} key={action.id} onNavigate={onNavigate} />
                 ))}
             </Stack>
         </Box>

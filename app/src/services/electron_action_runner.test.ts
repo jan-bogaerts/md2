@@ -16,7 +16,6 @@ const action: ActionDefinition = {
     id: 'test',
     label: 'Test',
     model: null,
-    name: 'test',
     needsWorkTree: false,
     on: [],
     onAfter: [],

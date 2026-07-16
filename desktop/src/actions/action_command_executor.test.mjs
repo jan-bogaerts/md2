@@ -124,7 +124,7 @@ describe('executeCommandAction', () => {
         });
         const onOutput = vi.fn();
         const input = {
-            action: { command: 'run {{file}} {{prompt}}' },
+            action: { command: 'run {{card-file}} {{card-prompt}}' },
             commandRunner,
             context: { file: 'design/card.md' },
             extraPrompt: 'focus',

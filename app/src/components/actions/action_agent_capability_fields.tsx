@@ -7,6 +7,7 @@ import { agentCapabilitiesService, type AgentCapabilitiesService } from '../../s
 import { useAgentCapabilities } from '../hooks/use_agent_capabilities'
 import { useConfigValue } from '../hooks/use_config_value'
 import { ActionEditorField } from './action_editor_field'
+import { ActionSectionLabel } from './action_section_label'
 
 interface ActionAgentCapabilityFieldsProps {
     definition: RawActionDefinition
@@ -66,67 +67,75 @@ export function ActionAgentCapabilityFields(props: ActionAgentCapabilityFieldsPr
         : configuredThinkingLevels
 
     return (
-        <Stack direction={{ md: 'row', xs: 'column' }} spacing={1}>
-            <ActionEditorField
-                error={!!errors.agent || !!agentCapabilityError}
-                fieldId="action-agent"
-                fullWidth
-                helperText={errors.agent ?? agentCapabilityError ?? (availability.loading ? 'Checking agent availability…' : undefined)}
-                label="Agent override"
-                onChange={handleAgentChange}
-                select
-                size="small"
-                value={definition.agent ?? ''}
-            >
-                <MenuItem value="">Application default</MenuItem>
-                {profiles.map((profile) => {
-                    const profileAvailability = availability.values[profile.name]
-                    const disabled = availability.loading || !!availability.error || !profileAvailability?.available
-                    const label = profileAvailability?.error ? `${profile.name} — ${profileAvailability.error}` : profile.name
+        <Stack
+            aria-labelledby="action-agent-override-heading"
+            component="section"
+            spacing={1.5}
+            sx={{ bgcolor: 'background.default', border: 1, borderColor: 'divider', borderRadius: 1, p: 1.5 }}
+        >
+            <ActionSectionLabel component="h3" id="action-agent-override-heading">Agent override</ActionSectionLabel>
+            <Stack direction={{ md: 'row', xs: 'column' }} spacing={1}>
+                <ActionEditorField
+                    error={!!errors.agent || !!agentCapabilityError}
+                    fieldId="action-agent"
+                    fullWidth
+                    helperText={errors.agent ?? agentCapabilityError ?? (availability.loading ? 'Checking agent availability…' : undefined)}
+                    label="Agent"
+                    onChange={handleAgentChange}
+                    select
+                    size="small"
+                    value={definition.agent ?? ''}
+                >
+                    <MenuItem value="">Application default</MenuItem>
+                    {profiles.map((profile) => {
+                        const profileAvailability = availability.values[profile.name]
+                        const disabled = availability.loading || !!availability.error || !profileAvailability?.available
+                        const label = profileAvailability?.error ? `${profile.name} — ${profileAvailability.error}` : profile.name
 
-                    return <MenuItem disabled={disabled} key={profile.name} value={profile.name}>{label}</MenuItem>
-                })}
-            </ActionEditorField>
-            <ActionEditorField
-                disabled={!definition.agent || models.loading || !!models.error}
-                error={!!errors.model || !!models.error}
-                fieldId="action-model"
-                fullWidth
-                helperText={errors.model ?? models.error ?? (models.loading ? 'Loading models…' : undefined)}
-                label="Model"
-                onChange={handleModelChange}
-                select
-                size="small"
-                value={definition.model ?? ''}
-            >
-                <MenuItem value="">Select model</MenuItem>
-                {modelValues.map((model) => (
-                    <MenuItem key={model} value={model}>
-                        {model === definition.model && !models.loading && !models.values.includes(model) ? `${model} — unavailable` : model}
-                    </MenuItem>
-                ))}
-            </ActionEditorField>
-            <ActionEditorField
-                disabled={!definition.agent || !definition.model || thinkingLevels.loading || !!thinkingLevels.error}
-                error={!!errors.thinkingLevel || !!thinkingLevels.error}
-                fieldId="action-thinking-level"
-                fullWidth
-                helperText={errors.thinkingLevel ?? thinkingLevels.error ?? (thinkingLevels.loading ? 'Loading thinking levels…' : undefined)}
-                label="Thinking level"
-                onChange={handleThinkingLevelChange}
-                select
-                size="small"
-                value={definition.thinkingLevel ?? 'none'}
-            >
-                <MenuItem value="none">none</MenuItem>
-                {thinkingLevelValues.map((level) => (
-                    <MenuItem key={level} value={level}>
-                        {level === definition.thinkingLevel && !thinkingLevels.loading && !configuredThinkingLevels.includes(level)
-                            ? `${level} — unavailable`
-                            : level}
-                    </MenuItem>
-                ))}
-            </ActionEditorField>
+                        return <MenuItem disabled={disabled} key={profile.name} value={profile.name}>{label}</MenuItem>
+                    })}
+                </ActionEditorField>
+                <ActionEditorField
+                    disabled={!definition.agent || models.loading || !!models.error}
+                    error={!!errors.model || !!models.error}
+                    fieldId="action-model"
+                    fullWidth
+                    helperText={errors.model ?? models.error ?? (models.loading ? 'Loading models…' : undefined)}
+                    label="Model"
+                    onChange={handleModelChange}
+                    select
+                    size="small"
+                    value={definition.model ?? ''}
+                >
+                    <MenuItem value="">Select model</MenuItem>
+                    {modelValues.map((model) => (
+                        <MenuItem key={model} value={model}>
+                            {model === definition.model && !models.loading && !models.values.includes(model) ? `${model} — unavailable` : model}
+                        </MenuItem>
+                    ))}
+                </ActionEditorField>
+                <ActionEditorField
+                    disabled={!definition.agent || !definition.model || thinkingLevels.loading || !!thinkingLevels.error}
+                    error={!!errors.thinkingLevel || !!thinkingLevels.error}
+                    fieldId="action-thinking-level"
+                    fullWidth
+                    helperText={errors.thinkingLevel ?? thinkingLevels.error ?? (thinkingLevels.loading ? 'Loading thinking levels…' : undefined)}
+                    label="Thinking level"
+                    onChange={handleThinkingLevelChange}
+                    select
+                    size="small"
+                    value={definition.thinkingLevel ?? 'none'}
+                >
+                    <MenuItem value="none">none</MenuItem>
+                    {thinkingLevelValues.map((level) => (
+                        <MenuItem key={level} value={level}>
+                            {level === definition.thinkingLevel && !thinkingLevels.loading && !configuredThinkingLevels.includes(level)
+                                ? `${level} — unavailable`
+                                : level}
+                        </MenuItem>
+                    ))}
+                </ActionEditorField>
+            </Stack>
         </Stack>
     )
 }

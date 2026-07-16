@@ -59,6 +59,7 @@ function renderCardView(overrides: Partial<Parameters<typeof CardView>[0]> = {})
                 cards={cards}
                 isMobile={false}
                 primaryPath="C:\\project"
+                projectKey="project:main"
                 repositoryFiles={['app/src/app.tsx', 'design/F-1.md']}
                 selectedPath={null}
                 states={[
@@ -127,6 +128,7 @@ describe('CardView', () => {
                         isMobile={false}
                         openBodyPath={null}
                         primaryPath="C:\\project"
+                        projectKey="project:main"
                         selectedPath={null}
                         worktrees={[]}
                         {...handlers}
@@ -278,19 +280,21 @@ describe('CardView', () => {
         expect(handlers.onDeleteCard).not.toHaveBeenCalled()
     })
 
-    it('opens matching actions from the card context menu', () => {
+    it('shows only Run inline and opens matching actions from the card context menu', () => {
         actionService.loadFromFiles([
             actionFile({
                 appliesTo: { type: 'feature' },
                 description: 'Implement',
                 id: 'action-implement',
                 label: 'Implement',
-                name: 'implement',
                 prompt: 't',
                 type: 'agent',
             }),
         ])
         renderCardView()
+
+        expect(screen.getAllByRole('button', { name: 'Run' })).toHaveLength(cards.length)
+        expect(screen.queryByRole('button', { name: 'Implement' })).not.toBeInTheDocument()
 
         fireEvent.contextMenu(screen.getByText('First'))
         fireEvent.click(screen.getByRole('menuitem', { name: 'Implement' }))
@@ -347,6 +351,7 @@ describe('CardView', () => {
                     onTogglePolicy={vi.fn()}
                     onWorktreeChange={vi.fn()}
                     primaryPath="C:\\project"
+                    projectKey="project:main"
                     repositoryFiles={[]}
                     selectedPath="design/F-2.md"
                     states={[

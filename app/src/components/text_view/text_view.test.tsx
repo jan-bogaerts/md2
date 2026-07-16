@@ -2,7 +2,8 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useCallback } from 'react'
 import { TextView } from './text_view'
-import { DEFAULT_CARD_TYPES, DEFAULT_STATES, type ProjectCard } from '../../data/data_types'
+import { DEFAULT_CARD_TYPES, DEFAULT_STATES, type AgentConversation, type ProjectCard } from '../../data/data_types'
+import { agentAcknowledgementService } from '../../services/agent_acknowledgement_service'
 import { telemetryService } from '../../services/telemetry_service'
 import { openFilesService } from '../../services/open_files_service'
 import { actionService } from '../../services/action_service'
@@ -72,6 +73,7 @@ function renderTextView(overrides: Partial<Parameters<typeof TextView>[0]> = {})
                     onTitleChange={onTitleChange}
                     onTogglePolicy={onTogglePolicy}
                     projectFolder="design"
+                    projectKey="project:main"
                     requestedNonce={0}
                     requestedPath={null}
                     repositoryFiles={[]}
@@ -239,7 +241,7 @@ describe('TextView', () => {
         actionService.loadFromFiles([{
             content: JSON.stringify({
                 description: 'Review the selected file', id: 'review-id', label: 'Review code',
-                name: 'review', prompt: 'Review {{file}}', type: 'agent',
+                name: 'review', prompt: 'Review {{card-file}}', type: 'agent',
             }),
             path: 'design/actions/review.json',
         }])
@@ -249,16 +251,34 @@ describe('TextView', () => {
 
         expect(screen.getByRole('tab', { name: 'Review code' })).toBeInTheDocument()
         expect(screen.getByRole('heading', { name: 'Action definition' })).toBeInTheDocument()
-        expect(screen.getByLabelText('ID')).toHaveValue('review-id')
+        expect(screen.getByLabelText('Label')).toHaveValue('Review code')
         expect(screen.queryByText(/"description":/u)).not.toBeInTheDocument()
         expect(screen.getByTestId('editor-content-pane')).toHaveStyle({ display: 'flex', minHeight: '0', overflow: 'hidden' })
+    })
+
+    it('restores an action editor section after another file becomes active', () => {
+        actionService.loadFromFiles([{
+            content: JSON.stringify({
+                description: 'Review the selected file', id: 'review-id', label: 'Review code',
+                phrases: [{ text: 'Run tests', title: 'Tests' }], prompt: 'Review {{card-file}}', type: 'agent',
+            }),
+            path: 'design/actions/review.json',
+        }])
+        renderTextView()
+
+        clickTreeFile('Review code')
+        fireEvent.click(screen.getByRole('tab', { name: 'Tests' }))
+        clickTreeFile('F-1 Alpha')
+        clickTreeFile('Review code')
+
+        expect(screen.getByRole('tab', { name: 'Tests' })).toHaveAttribute('aria-selected', 'true')
     })
 
     it('reloads and reopens an action by stable path without duplicating its tab', async () => {
         const path = 'design/actions/review.json'
         const actionDefinition = {
             description: 'Review the selected file', id: 'review-id', label: 'Review code',
-            name: 'review', prompt: 'Review {{file}}', type: 'agent',
+            name: 'review', prompt: 'Review {{card-file}}', type: 'agent',
         }
         actionService.loadFromFiles([{ content: JSON.stringify(actionDefinition), path }])
         renderTextView()
@@ -418,6 +438,7 @@ describe('TextView', () => {
             onTitleChange: vi.fn(),
             onTogglePolicy: vi.fn(),
             projectFolder: 'design',
+            projectKey: 'project:main',
             repositoryFiles: [],
             states: DEFAULT_STATES,
             workingFolder: 'design/active',
@@ -460,6 +481,7 @@ describe('TextView', () => {
             requestedNonce: 0,
             requestedPath: null,
             projectFolder: 'design',
+            projectKey: 'project:main',
             repositoryFiles: [],
             states: DEFAULT_STATES,
             workingFolder: 'design/active',
@@ -520,6 +542,31 @@ describe('TextView', () => {
         fireEvent.click(editorToolbar.getByRole('button', { name: 'Agents' }))
 
         expect(screen.getByText('No agent conversations.')).toBeInTheDocument()
+    })
+
+    it('acknowledges completed conversations when the agent panel displays them', () => {
+        const completedConversation: AgentConversation = {
+            actionId: 'review',
+            cardPath: activeCards[0].path,
+            completedAt: '2026-07-15T10:01:00.000Z',
+            events: [],
+            hasExplicitTitle: true,
+            id: 'conversation-1',
+            messages: [{ content: 'Review complete', id: 'message-1', role: 'assistant', timestamp: '2026-07-15T10:01:00.000Z' }],
+            path: '.md2-agent-logs/conversation-1.json',
+            providerSessions: [],
+            startedAt: '2026-07-15T10:00:00.000Z',
+            status: 'completed',
+            title: 'Review',
+        }
+        const cardWithConversation = { ...activeCards[0], agentConversations: [completedConversation] }
+        const acknowledge = vi.spyOn(agentAcknowledgementService, 'acknowledge').mockImplementation(() => undefined)
+        renderTextView({ activeCards: [cardWithConversation, activeCards[1]] })
+
+        clickTreeFile('F-1 Alpha')
+        fireEvent.click(within(screen.getByTestId('mdx-editor-toolbar')).getByRole('button', { name: 'Agents (1)' }))
+
+        expect(acknowledge).toHaveBeenCalledWith('project:main', activeCards[0].path, [completedConversation])
     })
 
     it('publishes the desktop tree without a Browse files button', () => {

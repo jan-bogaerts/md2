@@ -14,8 +14,7 @@ const definition = {
     description: 'Review the selected file',
     id: 'review-action',
     label: 'Review',
-    name: 'review',
-    prompt: 'Review {{file}}',
+    prompt: 'Review {{card-file}}',
     type: 'agent',
 }
 
@@ -48,14 +47,21 @@ function loadAction(overrides: Record<string, unknown> = {}): ActionDefinition {
     return action
 }
 
-function renderEditor(action: ActionDefinition = loadAction(), states = ['ready']): RenderResult {
+function renderEditor(
+    action: ActionDefinition = loadAction(),
+    states = ['ready'],
+    selectedTab?: string,
+    onSelectedTabChange?: (value: string) => void,
+): RenderResult {
     return render(
         <AppThemeProvider>
             <ActionEditor
                 action={action}
                 actions={actionService.getActions()}
                 cardTypes={['feature']}
+                onSelectedTabChange={onSelectedTabChange}
                 repositoryFiles={[]}
+                selectedTab={selectedTab}
                 specialContextTypes={['actions']}
                 states={states}
             />
@@ -123,6 +129,31 @@ describe('ActionEditor', () => {
         expect(screen.getAllByTestId('mdx-editor')).toHaveLength(1)
     })
 
+    it('restores the selected section when the editor becomes active again', () => {
+        let selectedTab = 'definition'
+        const handleSelectedTabChange = vi.fn((value: string) => { selectedTab = value })
+        const action = loadAction({ phrases: [{ text: 'Run tests', title: 'Tests' }] })
+        const view = renderEditor(action, ['ready'], selectedTab, handleSelectedTabChange)
+
+        fireEvent.click(screen.getByRole('tab', { name: 'Tests' }))
+        expect(selectedTab).toBe('phrase-0')
+
+        view.unmount()
+        renderEditor(action, ['ready'], selectedTab, handleSelectedTabChange)
+
+        expect(screen.getByRole('tab', { name: 'Tests' })).toHaveAttribute('aria-selected', 'true')
+    })
+
+    it('offers placeholders for the action prompt but not predefined phrases', () => {
+        renderEditor(loadAction({ phrases: [{ text: 'Run tests', title: 'Tests' }] }))
+
+        fireEvent.click(screen.getByRole('tab', { name: 'Prompt' }))
+        expect(screen.getByRole('button', { name: 'Insert placeholder' })).toBeInTheDocument()
+
+        fireEvent.click(screen.getByRole('tab', { name: 'Tests' }))
+        expect(screen.queryByRole('button', { name: 'Insert placeholder' })).not.toBeInTheDocument()
+    })
+
     it('renders persisted initial values for agent and command actions', () => {
         const agentView = renderEditor(loadAction({
             agent: 'codex',
@@ -130,12 +161,12 @@ describe('ActionEditor', () => {
             thinkingLevel: 'high',
         }))
 
-        expect(screen.getByLabelText('ID')).toHaveValue('review-action')
-        expect(screen.getByLabelText('Name')).toHaveValue('review')
+        expect(screen.queryByLabelText('ID')).not.toBeInTheDocument()
+        expect(screen.queryByLabelText('Name')).not.toBeInTheDocument()
         expect(screen.getByLabelText('Label')).toHaveValue('Review')
         expect(screen.getByLabelText('Description')).toHaveValue('Review the selected file')
         fireEvent.click(screen.getByRole('tab', { name: 'Prompt' }))
-        expect(within(screen.getByTestId('mdx-editor')).getByRole('textbox')).toHaveValue('Review {{file}}')
+        expect(within(screen.getByTestId('mdx-editor')).getByRole('textbox')).toHaveValue('Review {{card-file}}')
 
         agentView.unmount()
         renderEditor(loadAction({ command: 'npm run test', prompt: undefined, type: 'command' }))
@@ -544,7 +575,6 @@ describe('ActionEditor', () => {
             content: JSON.stringify({
                 type: 'agent',
                 prompt: definition.prompt,
-                name: definition.name,
                 label: definition.label,
                 id: definition.id,
                 description: definition.description,

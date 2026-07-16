@@ -7,6 +7,7 @@ import Play from 'mdi-material-ui/Play'
 import { useId, useState } from 'react'
 import type { ActionContext } from '../../data/action_context'
 import { CUSTOM_PROMPT_ACTION_ID, type ActionDefinition } from '../../data/action_types'
+import type { AgentConversation } from '../../data/data_types'
 import { ResizablePopper } from '../resizable_popper'
 import { ResizablePopover } from '../resizable_popover'
 import {
@@ -40,6 +41,7 @@ interface ActionPopupProps {
     onNavigate: (action: ActionDefinition) => void
     onAddAction?: () => void
     onClose: () => void
+    onConversationViewed?: (conversation: AgentConversation) => void
     onSelectAction?: (action: ActionDefinition) => void
     showSaveControls?: boolean
     convertPromptToAction?: ConvertPromptToAction
@@ -135,6 +137,7 @@ export function ActionPopup(props: ActionPopupProps) {
                                 <ActionConversationChat
                                     conversation={controller.displayedConversation}
                                     logs={controller.runLogs}
+                                    onConversationViewed={props.onConversationViewed}
                                     status={controller.runStatus}
                                 />
                             )}
@@ -175,14 +178,10 @@ export function ActionPopup(props: ActionPopupProps) {
                     ) : null}
                     {controller.scheduleOpen ? (
                         <ActionScheduleForm
-                            afterActionName={controller.scheduleAfterActionName}
                             message={controller.scheduleMessage}
-                            onAfterActionNameChange={controller.handleScheduleAfterActionNameChange}
                             onRegister={controller.handleScheduleAction}
                             onTimestampChange={controller.handleScheduleTimestampChange}
-                            onTriggerTypeChange={controller.handleScheduleTriggerTypeChange}
                             timestamp={controller.scheduleTimestamp}
-                            triggerType={controller.scheduleTriggerType}
                         />
                     ) : null}
                     {action.type !== 'agent' && controller.runStatus !== 'idle' ? (
@@ -279,14 +278,10 @@ export function ActionPopup(props: ActionPopupProps) {
 
                 {controller.scheduleOpen ? (
                     <ActionScheduleForm
-                        afterActionName={controller.scheduleAfterActionName}
                         message={controller.scheduleMessage}
-                        onAfterActionNameChange={controller.handleScheduleAfterActionNameChange}
                         onRegister={controller.handleScheduleAction}
                         onTimestampChange={controller.handleScheduleTimestampChange}
-                        onTriggerTypeChange={controller.handleScheduleTriggerTypeChange}
                         timestamp={controller.scheduleTimestamp}
-                        triggerType={controller.scheduleTriggerType}
                     />
                 ) : null}
 

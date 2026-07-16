@@ -36,7 +36,7 @@ export interface ActionExecutionSnapshot {
 type EventListener = (event: ActionExecutionEvent) => void
 
 function actionName(actionId: string) {
-    return actionService.getActions().find((action) => action.id === actionId)?.name ?? actionId
+    return actionService.getActions().find((action) => action.id === actionId)?.label ?? actionId
 }
 
 function actionType(actionId: string) {

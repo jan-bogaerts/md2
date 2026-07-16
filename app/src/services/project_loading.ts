@@ -18,6 +18,7 @@ import { createRandomProjectBackgroundShade } from '../theme/project_background_
 import { worktreeService } from './worktree_service'
 import { planCardSeparatorMigration } from './card_separator_migration'
 import { globalProgressService } from './global_progress_service'
+import { dialogService } from './dialog_service'
 
 const ACTION_RELOAD_DEBOUNCE_MS = 150
 const JSON_EXTENSION = '.json'
@@ -47,6 +48,11 @@ function isProjectMarkdownPath(path: string, projectFolder: string) {
 
 function reportMarkdownWatchConflict(path: string) {
     reportWorkspaceError(`External change ignored for ${path} because the file has unsaved local edits.`)
+}
+
+function reportActionLoadIssues() {
+    const message = actionService.getState().error
+    if (message) dialogService.warning(message, { title: 'Some actions were not loaded' })
 }
 
 function backgroundProjectLoadFailureMessage(error: unknown) {
@@ -156,6 +162,7 @@ export class ProjectLoading {
         if (!currentSnapshot) throw new Error('Project snapshot was not created')
         initializeMissingProjectStates(projectConfig, currentSnapshot)
         this.dependencies.dispatchChanged()
+        reportActionLoadIssues()
 
         this.loadAgentConversationsInBackground(currentSnapshot, project, projectLoadToken)
         void this.loadFullProjectInBackground(project, config.projectFolder, config.workingFolder, projectLoadToken)
@@ -467,5 +474,6 @@ export class ProjectLoading {
         this.actionReloadChangedPaths.clear()
         const actionFiles = await storage.loadActionFiles(currentProject, config.actionsFolder)
         actionService.reloadFromFiles(actionFiles, changedPaths)
+        reportActionLoadIssues()
     }
 }

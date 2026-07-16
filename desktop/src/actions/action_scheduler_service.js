@@ -1,10 +1,7 @@
-const { exec } = require('node:child_process');
-const { promisify } = require('node:util');
 const { loadActionDefinitions } = require('../../../shared/action_definitions.mjs');
-const { appendActionSchedule, findPendingSchedule, pendingAfterActionSchedules, updateActionScheduleStatus } = require('./schedule_store');
+const { appendActionSchedule, findPendingSchedule, updateActionScheduleStatus } = require('./schedule_store');
 const { cancelScheduleTimer, clearScheduleTimers, reconcileScheduleTimers } = require('./schedule_timers');
 
-const execAsync = promisify(exec);
 const DEFAULT_ACTIONS_FOLDER = 'actions';
 const DEFAULT_PROJECT_FOLDER = '';
 
@@ -25,11 +22,19 @@ function scheduleStatusFromResult(status) {
     return 'failed';
 }
 
-function validateRegistrationRequest(request) {
+function validateRegistrationRequest(request, now) {
     if (!request || typeof request !== 'object') throw new Error('Missing action schedule registration request');
     if (typeof request.actionId !== 'string' || request.actionId.length === 0) throw new Error('Missing action schedule actionId');
     if (!request.context || typeof request.context !== 'object') throw new Error('Missing action schedule context');
     if (!request.trigger || typeof request.trigger !== 'object') throw new Error('Missing action schedule trigger');
+    if (request.trigger.type !== 'at') throw new Error(`Unsupported action schedule trigger: ${request.trigger.type}`);
+    if (typeof request.trigger.timestamp !== 'string' || request.trigger.timestamp.length === 0) {
+        throw new Error('Missing action schedule timestamp');
+    }
+
+    const fireAt = Date.parse(request.trigger.timestamp);
+    if (Number.isNaN(fireAt)) throw new Error(`Invalid action schedule timestamp: ${request.trigger.timestamp}`);
+    if (fireAt <= now) throw new Error('Action schedule timestamp must be in the future');
 
     return request;
 }
@@ -38,12 +43,6 @@ function requireProject(project) {
     if (!project || typeof project.rootPath !== 'string' || project.rootPath.length === 0) throw new Error('Missing scheduler project');
 
     return project;
-}
-
-function defaultAgentSlotCommandProvider(agentConfigProvider) {
-    const config = agentConfigProvider ? agentConfigProvider() : null;
-
-    return config?.agentSlotCommand ?? '';
 }
 
 function normalizeFolderPath(folderPath) {
@@ -57,26 +56,10 @@ function resolveProjectFolderPath(projectFolder, folderPath) {
     return normalizedProjectFolder.length > 0 ? `${normalizedProjectFolder}/${normalizedFolderPath}` : normalizedFolderPath;
 }
 
-async function defaultCommandRunner(command, rootPath) {
-    try {
-        const { stderr, stdout } = await execAsync(command, { cwd: rootPath });
-
-        return { command, exitCode: 0, stderr, stdout };
-    } catch (error) {
-        if (!error || typeof error !== 'object') throw error;
-
-        return { command, exitCode: typeof error.code === 'number' ? error.code : 1, stderr: typeof error.stderr === 'string' ? error.stderr : '', stdout: typeof error.stdout === 'string' ? error.stdout : '' };
-    }
-}
-
 class ActionSchedulerService {
     constructor(dependencies) {
         this.actionRunnerService = dependencies?.actionRunnerService;
-        this.agentConfigProvider = dependencies?.agentConfigProvider ?? null;
-        this.agentSlotCommandProvider = dependencies?.agentSlotCommandProvider
-            ?? (() => defaultAgentSlotCommandProvider(this.agentConfigProvider));
         this.clearTimeout = dependencies?.clearTimeout ?? clearTimeout;
-        this.commandRunner = dependencies?.commandRunner ?? defaultCommandRunner;
         this.localGitService = dependencies?.localGitService;
         this.now = dependencies?.now ?? Date.now;
         this.setTimeout = dependencies?.setTimeout ?? setTimeout;
@@ -103,7 +86,7 @@ class ActionSchedulerService {
     }
 
     async registerActionSchedule(request) {
-        const registration = validateRegistrationRequest(request);
+        const registration = validateRegistrationRequest(request, this.now());
         const project = this.requireCurrentProject();
         const actionsFolder = await this.requireActionsFolder();
         const schedules = await this.localGitService.loadActionSchedules(project, actionsFolder);
@@ -152,15 +135,6 @@ class ActionSchedulerService {
         await this.reconcile();
     }
 
-    async handleActionCompleted(actionId) {
-        if (typeof actionId !== 'string' || actionId.length === 0) throw new Error('Missing completed action id');
-
-        const schedules = await this.loadSchedulesForReconcile();
-        const matchingSchedules = pendingAfterActionSchedules(schedules, actionId);
-
-        for (const schedule of matchingSchedules) await this.fireSchedule(schedule.id);
-    }
-
     async reconcile() {
         const schedules = await this.loadSchedulesForReconcile();
         const dependencies = this.createTimerDependencies();
@@ -180,13 +154,10 @@ class ActionSchedulerService {
 
     createTimerDependencies() {
         return {
-            agentSlotCommandProvider: this.agentSlotCommandProvider,
             clearTimeout: this.clearTimeout,
-            commandRunner: this.commandRunner,
             failSchedule: (schedule, message) => this.failSchedule(schedule, message),
             fireSchedule: (scheduleId) => this.fireSchedule(scheduleId),
             now: this.now,
-            rootPath: this.requireCurrentProject().rootPath,
             setTimeout: this.setTimeout,
             timers: this.timers,
         };

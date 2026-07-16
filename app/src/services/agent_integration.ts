@@ -247,9 +247,9 @@ export class AgentIntegration {
             if (result.status === 'completed') return
 
             const failedLog = result.logs.find((log) => log.status === 'failed')
-            this.recordCardAgentError(cardPath, action.name, failedLog?.message ?? `${action.label} failed`)
+            this.recordCardAgentError(cardPath, action.id, failedLog?.message ?? `${action.label} failed`)
         } catch (error) {
-            this.recordCardAgentError(cardPath, action.name, error instanceof Error ? error.message : `${action.label} failed`)
+            this.recordCardAgentError(cardPath, action.id, error instanceof Error ? error.message : `${action.label} failed`)
         }
     }
 

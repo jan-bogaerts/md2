@@ -6,9 +6,7 @@ export {
     BUILTIN_CUSTOM_PROMPT,
     BUILTIN_REMARKABLE_CONVERT,
     CUSTOM_PROMPT_ACTION_ID,
-    CUSTOM_PROMPT_ACTION_NAME,
     REMARKABLE_CONVERT_ACTION_ID,
-    REMARKABLE_CONVERT_ACTION_NAME,
 } from '../../../shared/action_definitions.mjs'
 
 export type {

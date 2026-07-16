@@ -56,7 +56,6 @@ describe('config persistence', () => {
         const desktopConfig: DesktopConfigValues = {
             agent: 'codex',
             agentProfiles: BUILTIN_AGENT_PROFILES,
-            agentSlotCommand: '',
             model: '',
         }
         const setDesktopConfig = vi.fn()

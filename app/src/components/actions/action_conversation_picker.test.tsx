@@ -6,6 +6,7 @@ import { conversationPickerLabel, formatConversationDateTime } from './action_co
 
 function conversation(overrides: Partial<AgentConversation> = {}): AgentConversation {
     return {
+        actionId: 'action-review',
         cardPath: 'design/F-1.md',
         completedAt: '2026-07-15T10:01:00.000Z',
         events: [],
@@ -35,10 +36,11 @@ describe('conversation picker data', () => {
         const context: ActionContext = { file: 'design/F-1.md', kind: 'card' }
         const older = conversation({ id: 'older', path: 'older.json', startedAt: '2026-07-14T10:00:00.000Z' })
         const newest = conversation({ id: 'newest', path: 'newest.json', startedAt: '2026-07-15T10:00:00.000Z' })
+        const otherAction = conversation({ actionId: 'action-implement', id: 'other-action', path: 'other-action.json' })
         const otherCard = conversation({ cardPath: 'design/F-2.md', id: 'other', path: 'other.json' })
         const liveNewest = conversation({ id: 'newest', messages: [{ content: 'live', id: 'm1', role: 'assistant', timestamp: 'now' }], path: 'live-newest.json' })
 
-        const result = mergeConversationHistory([older, newest, otherCard], context, liveNewest)
+        const result = mergeConversationHistory([older, newest, otherAction, otherCard], 'action-review', context, liveNewest)
 
         expect(result.map(({ id }) => id)).toEqual(['newest', 'older'])
         expect(result[0].messages[0].content).toBe('live')
@@ -47,7 +49,7 @@ describe('conversation picker data', () => {
     it('keeps project conversations separate from card conversations', () => {
         const projectConversation = conversation({ cardPath: null, id: 'project', path: 'project.json' })
 
-        expect(mergeConversationHistory([conversation(), projectConversation], { kind: 'project' }, null))
+        expect(mergeConversationHistory([conversation(), projectConversation], 'action-review', { kind: 'project' }, null))
             .toEqual([projectConversation])
     })
 })

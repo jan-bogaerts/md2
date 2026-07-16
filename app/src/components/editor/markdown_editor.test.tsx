@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { AppThemeProvider } from '../../theme/theme_provider'
+import { ACTION_PROMPT_PLACEHOLDERS } from '../../data/action_placeholders'
 import { THEME_MODE_STORAGE_KEY } from '../../theme/use_theme_settings'
 import { MARKDOWN_STYLE_PRESETS } from '../../theme/theme_config'
 import { useAppTheme } from '../../theme/use_app_theme'
@@ -115,6 +116,24 @@ describe('MarkdownEditor', () => {
         renderEditor()
 
         expect(screen.getByTestId('mdx-editor')).toContainElement(screen.getByTestId('mdx-editor-toolbar'))
+    })
+
+    it('shows placeholder insertion only when placeholders are configured', () => {
+        const view = render(
+            <AppThemeProvider>
+                <MarkdownEditor markdown="" onChange={vi.fn()} placeholders={ACTION_PROMPT_PLACEHOLDERS} />
+            </AppThemeProvider>,
+        )
+
+        expect(screen.getByRole('button', { name: 'Insert placeholder' })).toBeInTheDocument()
+
+        view.rerender(
+            <AppThemeProvider>
+                <MarkdownEditor markdown="" onChange={vi.fn()} />
+            </AppThemeProvider>,
+        )
+
+        expect(screen.queryByRole('button', { name: 'Insert placeholder' })).not.toBeInTheDocument()
     })
 
     it('uses the MDXEditor palette matching the app theme', () => {

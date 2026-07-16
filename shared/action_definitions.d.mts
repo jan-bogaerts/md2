@@ -42,7 +42,6 @@ export interface RawActionDefinition {
     id: string
     label: string
     model?: string
-    name: string
     needsWorkTree?: boolean
     on?: RawOnRule[]
     onAfter?: string[]
@@ -68,7 +67,6 @@ export interface ActionDefinition {
     id: string
     label: string
     model: string | null
-    name: string
     needsWorkTree: boolean
     on: OnRule[]
     onAfter: ActionDefinition[]
@@ -105,10 +103,8 @@ export class ActionValidationError extends Error {
 
 export function sanitizeActionValidationError(error: unknown, log?: (message: string) => void): Error
 export const CUSTOM_PROMPT_ACTION_ID: string
-export const CUSTOM_PROMPT_ACTION_NAME: string
 export const BUILTIN_CUSTOM_PROMPT: ActionDefinition
 export const REMARKABLE_CONVERT_ACTION_ID: string
-export const REMARKABLE_CONVERT_ACTION_NAME: string
 export const BUILTIN_REMARKABLE_CONVERT: ActionDefinition
 export function validateActionDefinition(
     value: unknown,

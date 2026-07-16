@@ -45,7 +45,7 @@ describe('action entry-point parity', () => {
         vi.spyOn(dataService.projectLoading, 'reloadCurrentProjectSnapshot').mockResolvedValue(null)
         const cardFile = { content: '---\nid: F-1\ninternalId: a\ntitle: A\nstatus: todo\n---\n\n# A', path: 'design/F-1-a.md' }
         const actionFile = {
-            content: JSON.stringify({command: 'run', description: 'Ready', id: 'action-ready', label: 'Ready', name: 'ready-action', onState: 'ready', type: 'command'}),
+            content: JSON.stringify({command: 'run', description: 'Ready', id: 'action-ready', label: 'Ready', onState: 'ready', type: 'command'}),
             path: 'actions/ready.json',
         }
         const storage = createStorage({

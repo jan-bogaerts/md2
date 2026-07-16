@@ -142,7 +142,7 @@ function validateValue<K extends ConfigKey>(key: K, value: unknown): ConfigValue
     if (key === 'project.workingFolder' || key === 'project.actionsFolder') {
         return normalizeConfigPath(requireString(value, entry.key), entry.key) as ConfigValueTypes[K]
     }
-    if (key === 'desktop.model' || key === 'desktop.agentSlotCommand') {
+    if (key === 'desktop.model') {
         if (typeof value !== 'string') throw new Error(`Missing config field: ${entry.key}`)
 
         return value as ConfigValueTypes[K]
@@ -204,9 +204,6 @@ export class ConfigService extends EventTarget {
         nextValues = mergeStoredReactValues(nextValues, mergeValue)
 
         if (desktopConfig?.agent !== undefined) nextValues = mergeValue(nextValues, 'desktop.agent', desktopConfig.agent)
-        if (desktopConfig?.agentSlotCommand !== undefined) {
-            nextValues = mergeValue(nextValues, 'desktop.agentSlotCommand', desktopConfig.agentSlotCommand)
-        }
         if (desktopConfig?.agentProfiles !== undefined) nextValues = mergeValue(nextValues, 'desktop.agentProfiles', desktopConfig.agentProfiles)
         if (desktopConfig?.codexSearchEnabled !== undefined) {
             nextValues = mergeValue(nextValues, 'desktop.codexSearchEnabled', desktopConfig.codexSearchEnabled)
@@ -297,7 +294,6 @@ export class ConfigService extends EventTarget {
 
         return {
             agent: this.values['desktop.agent'],
-            agentSlotCommand: this.values['desktop.agentSlotCommand'],
             agentProfiles: this.values['desktop.agentProfiles'],
             codexSearchEnabled: this.values['desktop.codexSearchEnabled'],
             model: this.values['desktop.model'],

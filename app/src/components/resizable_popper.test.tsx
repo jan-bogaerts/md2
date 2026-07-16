@@ -54,6 +54,23 @@ describe('ResizablePopper', () => {
         expect(document.querySelector('.MuiModal-root')).not.toBeInTheDocument()
     })
 
+    it('uses fixed viewport positioning without extending the application document', () => {
+        render(
+            <ResizablePopper
+                anchorElement={document.body}
+                initialSize={{ height: 300, width: 400 }}
+                labelId="popper-title"
+                onClose={vi.fn()}
+                open
+                resizeLabel="Resize test popper"
+            >
+                <h2 id="popper-title">Test popper</h2>
+            </ResizablePopper>,
+        )
+
+        expect(document.querySelector('.MuiPopper-root')).toHaveStyle({ position: 'fixed' })
+    })
+
     it('resizes and closes with Escape', () => {
         const onClose = vi.fn()
         render(

@@ -6,6 +6,7 @@ import { hasExecutionBackend } from '../../data/electron_action_bridge'
 import type { AgentConversation, AgentConversationError } from '../../data/data_types'
 import { dialogService } from '../../services/dialog_service'
 import { useActionExecutions } from '../hooks/use_action_executions'
+import { useActions } from '../hooks/use_actions'
 import { actionStatusLabel } from '../actions/action_status'
 
 const BACKEND_REQUIRED_MESSAGE = 'Action execution requires the Electron desktop app'
@@ -14,11 +15,13 @@ interface AgentConversationListProps {
     context: ActionContext
     conversations: AgentConversation[]
     errors: AgentConversationError[]
+    onConversationsViewed: (conversations: AgentConversation[]) => void
     onContinue: (conversation: AgentConversation) => void
     onStart: (prompt: string) => void
 }
 
 interface ConversationItemProps {
+    actionLabel: string
     backendAvailable: boolean
     conversation: AgentConversation
     disabled: boolean
@@ -46,7 +49,7 @@ function conversationStatusColor(status: AgentConversation['status']) {
 }
 
 function ConversationItem(props: ConversationItemProps) {
-    const { backendAvailable, conversation, disabled, onContinue } = props
+    const { actionLabel, backendAvailable, conversation, disabled, onContinue } = props
     const handleContinue = () => onContinue(conversation)
     const lastMessage = conversation.messages.at(-1)?.content ?? ''
 
@@ -64,6 +67,7 @@ function ConversationItem(props: ConversationItemProps) {
                 primary={(
                     <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
                         <Typography variant="subtitle2">{conversation.title}</Typography>
+                        <Chip label={actionLabel} size="small" variant="outlined" />
                         <Chip color={conversationStatusColor(conversation.status)} label={conversation.status} size="small" />
                     </Stack>
                 )}
@@ -79,7 +83,8 @@ function ConversationItem(props: ConversationItemProps) {
 
 /** Shows shared live execution state, action history, and persisted agent conversations for one file. */
 export function AgentConversationList(props: AgentConversationListProps) {
-    const { context, conversations, errors, onContinue, onStart } = props
+    const { context, conversations, errors, onConversationsViewed, onContinue, onStart } = props
+    const { actions } = useActions()
     const executions = useActionExecutions().filter((execution) => execution.context.file === context.file)
     const activeExecution = executions.at(-1) ?? null
     const runningExecution = executions.findLast((execution) => execution.status === 'running') ?? null
@@ -88,6 +93,10 @@ export function AgentConversationList(props: AgentConversationListProps) {
     const backendAvailable = hasExecutionBackend()
     const hasConversations = conversations.length > 0
     const hasErrors = errors.length > 0
+
+    useEffect(() => {
+        onConversationsViewed(conversations)
+    }, [conversations, onConversationsViewed])
 
     useEffect(() => {
         const nextErrorKeys = new Set(errors.map(errorKey))
@@ -146,6 +155,9 @@ export function AgentConversationList(props: AgentConversationListProps) {
                         <Box key={conversation.id}>
                             {index > 0 ? <Divider component="li" /> : null}
                             <ConversationItem
+                                actionLabel={conversation.actionId
+                                    ? actions.find(({ id }) => id === conversation.actionId)?.label ?? conversation.actionId
+                                    : 'Unlinked'}
                                 backendAvailable={backendAvailable}
                                 conversation={conversation}
                                 disabled={!!runningExecution}

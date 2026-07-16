@@ -6,7 +6,7 @@ const primaryProject = { branch: 'main', id: 'C:/repo', rootPath: 'C:/repo' };
 const cardProject = { branch: 'card', error: null, path: 'C:/worktrees/card', valid: true };
 
 function action(needsWorkTree = false) {
-    return { name: 'implement', needsWorkTree };
+    return { label: 'Implement', needsWorkTree };
 }
 
 function result() {

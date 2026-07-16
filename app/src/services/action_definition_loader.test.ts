@@ -3,11 +3,10 @@ import { ActionValidationError } from '../../../shared/action_definitions.mjs'
 import { ACTION_DEFINITION_VALIDATION_PARITY_CASES } from '../../../shared/action_definition_validation_parity_cases.mjs'
 import {
     CUSTOM_PROMPT_ACTION_ID,
-    CUSTOM_PROMPT_ACTION_NAME,
     type ActionDefinitionEntry,
     type ActionFile,
 } from '../data/action_types'
-import { loadActionDefinitions, validateActionDefinitionGraph } from './action_definition_loader'
+import { loadActionDefinitions, loadTolerantActionDefinitionGraph, validateActionDefinitionGraph } from './action_definition_loader'
 
 function file(name: string, definition: unknown): ActionFile {
     return { content: JSON.stringify(definition), path: `actions/${name}.json` }
@@ -17,8 +16,7 @@ const IMPLEMENT = {
     description: 'Implement this feature',
     id: 'action-implement',
     label: 'Implement',
-    name: 'implement',
-    prompt: 'use /implement-feature on {{file}}',
+    prompt: 'use /implement-feature on {{card-file}}',
     type: 'agent',
 }
 
@@ -27,7 +25,6 @@ const LINT = {
     description: 'Lint',
     id: 'action-lint',
     label: 'Lint',
-    name: 'lint',
     type: 'command',
 }
 
@@ -117,7 +114,7 @@ describe('loadActionDefinitions', () => {
     it('always includes reserved built-in custom prompt action', () => {
         const builtin = loadActionDefinitions([]).find(({ id }) => id === CUSTOM_PROMPT_ACTION_ID)
 
-        expect(builtin).toMatchObject({ builtin: true, name: CUSTOM_PROMPT_ACTION_NAME, phrases: [], sourcePath: null, type: 'agent' })
+        expect(builtin).toMatchObject({ builtin: true, phrases: [], sourcePath: null, type: 'agent' })
     })
 
     it.each([
@@ -162,11 +159,9 @@ describe('loadActionDefinitions', () => {
         expect(() => loadActionDefinitions(files as ActionFile[])).toThrow(expected as RegExp)
     })
 
-    it('rejects duplicate IDs and names, including built-in reservations', () => {
+    it('rejects duplicate IDs, including built-in reservations', () => {
         expect(() => loadActionDefinitions([file('a', IMPLEMENT), file('b', { ...LINT, id: IMPLEMENT.id })])).toThrow(/Duplicate action id/u)
-        expect(() => loadActionDefinitions([file('a', IMPLEMENT), file('b', { ...LINT, name: IMPLEMENT.name })])).toThrow(/Duplicate action name/u)
         expect(() => loadActionDefinitions([file('a', { ...IMPLEMENT, id: CUSTOM_PROMPT_ACTION_ID })])).toThrow(/Duplicate action id/u)
-        expect(() => loadActionDefinitions([file('a', { ...IMPLEMENT, name: CUSTOM_PROMPT_ACTION_NAME })])).toThrow(/Duplicate action name/u)
     })
 
     it('rejects invalid agent, model, and thinking-level combinations', () => {
@@ -197,8 +192,6 @@ describe('loadActionDefinitions', () => {
     it('matches shared whitespace validation while preserving meaningful executable whitespace', () => {
         expect(() => loadActionDefinitions([file('implement', { ...IMPLEMENT, label: '\u00a0\u2003' })]))
             .toThrow(/field label/u)
-        expect(() => loadActionDefinitions([file('implement', { ...IMPLEMENT, name: ' implement' })]))
-            .toThrow(/surrounding whitespace/u)
         expect(() => loadActionDefinitions([
             file('implement', { ...IMPLEMENT, on: [{ actionId: LINT.id, condition: '\r\n\u3000' }] }),
             file('lint', LINT),
@@ -221,5 +214,55 @@ describe('loadActionDefinitions', () => {
             file('a', { ...IMPLEMENT, onBefore: [LINT.id] }),
             file('b', { ...LINT, onAfter: [IMPLEMENT.id] }),
         ])).toThrow(/Circular action reference/u)
+    })
+})
+
+describe('loadTolerantActionDefinitionGraph', () => {
+    it('silently drops unknown fields at every supported object level', () => {
+        const result = loadTolerantActionDefinitionGraph([file('implement', {
+            ...IMPLEMENT,
+            appliesTo: { state: 'design', unknown: 'ignored' },
+            name: 'Legacy display name',
+            phrases: [{ extra: true, text: 'Run', title: '' }],
+        })])
+        const action = result.actions.find(({ id }) => id === IMPLEMENT.id)
+        const definition = result.definitions[0].definition as unknown as Record<string, unknown>
+
+        expect(action).toMatchObject({ appliesTo: { state: 'design' }, phrases: [{ text: 'Run', title: '' }] })
+        expect(definition).not.toHaveProperty('name')
+        expect(result.issues).toEqual([])
+    })
+
+    it('defaults missing required fields and reports every replacement', () => {
+        const result = loadTolerantActionDefinitionGraph([file('repair', { command: 'npm test' })])
+        const action = result.actions.find(({ sourcePath }) => sourcePath === 'actions/repair.json')
+
+        expect(action).toMatchObject({
+            command: 'npm test',
+            description: 'No description provided.',
+            id: 'action-actions-repair',
+            label: 'repair',
+            type: 'command',
+        })
+        expect(result.issues.map(({ message }) => message)).toEqual(expect.arrayContaining([
+            expect.stringContaining('Missing id'),
+            expect.stringContaining('Missing label'),
+            expect.stringContaining('Missing description'),
+            expect.stringContaining('Missing type'),
+        ]))
+    })
+
+    it('loads valid actions when another file is invalid and drops unavailable links', () => {
+        const result = loadTolerantActionDefinitionGraph([
+            file('implement', { ...IMPLEMENT, onBefore: ['action-bad'] }),
+            file('bad', { ...LINT, id: 'action-bad', type: 'invalid' }),
+            file('lint', LINT),
+        ])
+        const implement = result.actions.find(({ id }) => id === IMPLEMENT.id)
+
+        expect(result.actions.map(({ id }) => id)).toContain(LINT.id)
+        expect(implement?.onBefore).toEqual([])
+        expect(result.issues.map(({ message }) => message).join('\n')).toContain('Invalid action type')
+        expect(result.issues.map(({ message }) => message).join('\n')).toContain('dropping link')
     })
 })

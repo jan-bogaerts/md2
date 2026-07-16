@@ -2,7 +2,6 @@ const BASE_DEFINITION = {
     description: 'Parity action',
     id: 'parity-action',
     label: 'Parity',
-    name: 'parity',
     prompt: 'Run parity checks',
     type: 'agent',
 }
@@ -12,6 +11,11 @@ function file(definition) {
 }
 
 export const ACTION_DEFINITION_VALIDATION_PARITY_CASES = [
+    {
+        expected: { code: 'unknownField', field: null, fieldPath: 'name', index: null },
+        files: [file({ ...BASE_DEFINITION, name: 'parity' })],
+        name: 'removed name field',
+    },
     {
         expected: { code: 'unknownField', field: null, fieldPath: 'needsWorktree', index: null },
         files: [file({ ...BASE_DEFINITION, needsWorktree: true })],

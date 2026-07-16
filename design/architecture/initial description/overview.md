@@ -51,7 +51,7 @@ Example:
 
 - when app is running in Electron, allow running shell commands to start an agent.
   - The string that gets sent to the agent is configurable.
-  - Another folder in the repo can have another list of markdown files; each file becomes a command that can be executed against the file. The other markdown can contain placeholders like `{{file}}`.
+  - Another folder in the repo can have another list of markdown files; each file becomes a command that can be executed against the file. The other markdown can contain placeholders like `{{card-file}}`.
   - Set default agent from menu, or configurable on the action definition or when the action is started.
 
 - All views need to be optimized for desktop and mobile use.

@@ -3,7 +3,7 @@ import { validateAgentSelection, validateThinkingLevel } from './agent_profiles.
 const ACTION_TYPES = ['agent', 'command']
 const LEGACY_FIELDS = ['after', 'before', 'runIn', 'text']
 export const ACTION_DEFINITION_FIELDS = Object.freeze([
-    'id', 'name', 'label', 'description', 'type', 'icon', 'appliesTo', 'onBefore', 'on', 'onAfter',
+    'id', 'label', 'description', 'type', 'icon', 'appliesTo', 'onBefore', 'on', 'onAfter',
     'onState', 'needsWorkTree', 'agent', 'model', 'thinkingLevel', 'prompt', 'command', 'phrases',
 ])
 export const ACTION_ON_RULE_FIELDS = Object.freeze(['actionId', 'condition'])
@@ -16,13 +16,11 @@ const ACTION_ON_RULE_FIELD_SET = new Set(ACTION_ON_RULE_FIELDS)
 const ACTION_PHRASE_FIELD_SET = new Set(ACTION_PHRASE_FIELDS)
 const ACTION_APPLIES_TO_FIELD_SET = new Set(ACTION_APPLIES_TO_FIELDS)
 export const CUSTOM_PROMPT_ACTION_ID = 'md2.custom-prompt'
-export const CUSTOM_PROMPT_ACTION_NAME = 'custom prompt'
 export const REMARKABLE_CONVERT_ACTION_ID = 'md2.convert-remarkable-images-to-text'
-export const REMARKABLE_CONVERT_ACTION_NAME = 'convert-remarkable-images-to-text'
 
 // Fields the editor can route an error to. Anything else routes to the general summary.
 const ROUTABLE_FIELDS = new Set([
-    'id', 'name', 'label', 'description', 'type', 'icon', 'appliesTo', 'onBefore', 'on', 'onAfter',
+    'id', 'label', 'description', 'type', 'icon', 'appliesTo', 'onBefore', 'on', 'onAfter',
     'onState', 'needsWorkTree', 'agent', 'model', 'thinkingLevel', 'prompt', 'command', 'phrases',
 ])
 
@@ -69,14 +67,13 @@ export const BUILTIN_CUSTOM_PROMPT = {
     id: CUSTOM_PROMPT_ACTION_ID,
     label: 'Custom prompt',
     model: null,
-    name: CUSTOM_PROMPT_ACTION_NAME,
     needsWorkTree: false,
     on: [],
     onAfter: [],
     onBefore: [],
     onState: null,
     phrases: [],
-    prompt: '{{prompt}}',
+    prompt: '{{card-prompt}}',
     sourcePath: null,
     thinkingLevel: null,
     type: 'agent',
@@ -92,14 +89,13 @@ export const BUILTIN_REMARKABLE_CONVERT = {
     id: REMARKABLE_CONVERT_ACTION_ID,
     label: 'Convert Remarkable images to text',
     model: null,
-    name: REMARKABLE_CONVERT_ACTION_NAME,
     needsWorkTree: false,
     on: [],
     onAfter: [],
     onBefore: [],
     onState: null,
     phrases: [],
-    prompt: 'Convert the following Remarkable images to text and append the transcription to {{file}}:\n{{prompt}}',
+    prompt: 'Convert the following Remarkable images to text and append the transcription to {{card-file}}:\n{{card-prompt}}',
     sourcePath: null,
     thinkingLevel: null,
     type: 'agent',
@@ -276,7 +272,6 @@ function validateRawDefinition(value, source, dependencies) {
     rejectUnknownFields(value, ACTION_DEFINITION_FIELD_SET, source)
 
     const id = requireIdentity(value.id, 'id', source)
-    const name = requireIdentity(value.name, 'name', source)
     const type = readActionType(value.type, source)
     requireHumanText(value.label, 'label', source)
     requireHumanText(value.description, 'description', source)
@@ -294,7 +289,6 @@ function validateRawDefinition(value, source, dependencies) {
         id,
         label: value.label,
         model: readOptionalString(value.model, 'model', source),
-        name,
         needsWorkTree: value.needsWorkTree ?? false,
         on: readOnRules(value.on, source),
         onAfter: readActionIdList(value.onAfter, 'onAfter', source),
@@ -361,12 +355,9 @@ export function parseActionDefinitionFiles(files) {
 export function validateActionDefinitionGraph(entries, dependencies = {}) {
     const rawDefinitions = entries.map(({ definition, path }) => validateRawDefinition(definition, path, dependencies))
     const ids = new Set(BUILTIN_ACTIONS.map(({ id }) => id))
-    const names = new Set(BUILTIN_ACTIONS.map(({ name }) => name))
     for (const raw of rawDefinitions) {
         if (ids.has(raw.id)) throw fail(`Duplicate action id ${raw.id} in ${raw.sourcePath}`, 'duplicate-id', raw.sourcePath, 'id')
-        if (names.has(raw.name)) throw fail(`Duplicate action name ${raw.name} in ${raw.sourcePath}`, 'duplicate-name', raw.sourcePath, 'name')
         ids.add(raw.id)
-        names.add(raw.name)
     }
 
     const registry = new Map(BUILTIN_ACTIONS.map((action) => [action.id, action]))
@@ -381,7 +372,6 @@ export function validateActionDefinitionGraph(entries, dependencies = {}) {
             id: raw.id,
             label: raw.label,
             model: raw.model ?? null,
-            name: raw.name,
             needsWorkTree: raw.needsWorkTree,
             on: [],
             onAfter: [],

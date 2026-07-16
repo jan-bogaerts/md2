@@ -5,9 +5,11 @@ import DotsVertical from 'mdi-material-ui/DotsVertical'
 import FileDocumentOutline from 'mdi-material-ui/FileDocumentOutline'
 import { useState } from 'react'
 import type { ChangeEvent, KeyboardEvent, MouseEvent, TouchEvent } from 'react'
-import type { CardTypeConfig, ProjectCard, WorktreeRecord } from '../../data/data_types'
+import type { AgentConversation, CardTypeConfig, ProjectCard, WorktreeRecord } from '../../data/data_types'
 import { cardContext } from '../../data/action_context'
+import { agentAcknowledgementService } from '../../services/agent_acknowledgement_service'
 import { ActionEntryPoints } from '../actions/action_entry_points'
+import { CardRunButton } from '../actions/card_run_button'
 import { useRunningActionForFile } from '../hooks/use_action_executions'
 import { CardDeleteDialog } from './card_delete_dialog'
 import { CardPolicyMenuItem } from './card_policy_menu_item'
@@ -31,6 +33,7 @@ interface ProjectCardViewProps extends CardHandlers {
     isBodyOpen: boolean
     isSelected: boolean
     primaryPath: string
+    projectKey: string
     worktrees: WorktreeRecord[]
 }
 
@@ -41,7 +44,7 @@ interface MenuPosition {
 
 /** A three-row draggable card with compact metadata and consolidated actions. */
 export function ProjectCardView(props: ProjectCardViewProps) {
-    const { card, cardTypes, color, isBodyOpen, isSelected, primaryPath, worktrees } = props
+    const { card, cardTypes, color, isBodyOpen, isSelected, primaryPath, projectKey, worktrees } = props
     const { onOpenBody, onOpenInFileMode } = props
     const { onDeleteCard, onTogglePolicy, onTitleChange, onWorktreeChange } = props
     const theme = useTheme()
@@ -62,6 +65,10 @@ export function ProjectCardView(props: ProjectCardViewProps) {
         opacity: isDragging ? 0 : 1,
         transform: `${dragTranslation}${isDragging ? ' rotate(2deg)' : ''}`.trim() || undefined,
         transition,
+    }
+
+    const handleConversationViewed = (conversation: AgentConversation) => {
+        agentAcknowledgementService.acknowledge(projectKey, card.path, [conversation])
     }
 
     const commitTitle = () => {
@@ -255,7 +262,7 @@ export function ProjectCardView(props: ProjectCardViewProps) {
                 )}
                 <Stack direction="row" spacing={0.75} sx={{ alignItems: 'center', minHeight: 26, position: 'relative', zIndex: 2 }}>
                     <Box sx={{ pointerEvents: 'auto' }}>
-                        <ActionEntryPoints context={cardContext(card, cardTypes)} variant="button" />
+                        <CardRunButton context={cardContext(card, cardTypes)} onConversationViewed={handleConversationViewed} />
                     </Box>
                     <Tooltip title="Open in file mode">
                         <IconButton
@@ -272,6 +279,7 @@ export function ProjectCardView(props: ProjectCardViewProps) {
                         card={card}
                         onAssign={onWorktreeChange}
                         primaryPath={primaryPath}
+                        projectKey={projectKey}
                         worktrees={worktrees}
                     />
                 </Stack>

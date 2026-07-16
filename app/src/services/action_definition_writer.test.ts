@@ -6,16 +6,15 @@ const context: ActionContext = { file: 'design/F-010.md', kind: 'card', state: '
 
 describe('action definition writer helpers', () => {
     it('creates a reusable action definition from prompt input', () => {
-        const definition = createActionDefinition({ context, label: 'Review Feature', prompt: 'review {{file}}' })
+        const definition = createActionDefinition({ context, label: 'Review Feature', prompt: 'review {{card-file}}' })
 
         expect(definition).toEqual({
             appliesTo: { type: 'feature' },
             description: 'Custom prompt action: Review Feature',
             id: expect.any(String),
             label: 'Review Feature',
-            name: 'review-feature',
             phrases: [],
-            prompt: 'review {{file}}',
+            prompt: 'review {{card-file}}',
             type: 'agent',
         })
     })
@@ -30,7 +29,6 @@ describe('action definition writer helpers', () => {
             id: expect.any(String),
             label: 'Fix tests',
             model: 'gpt-5',
-            name: 'fix-tests',
             phrases: [],
             prompt: 'fix tests',
             type: 'agent',
@@ -38,6 +36,6 @@ describe('action definition writer helpers', () => {
     })
 
     it('builds action file paths', () => {
-        expect(actionFilePath('actions', 'review-feature')).toBe('actions/review-feature.json')
+        expect(actionFilePath('actions', 'Review Feature')).toBe('actions/review-feature.json')
     })
 })

@@ -42,10 +42,10 @@ class ActionWorktreeExecutionService {
     async resolve(primaryProject, action, context) {
         if (!action.needsWorkTree) return { executionProject: primaryProject, executionWorktree: null };
         if (context.worktreeError) throw new Error(context.worktreeError);
-        if (context.kind !== 'card') throw new Error(`Action "${action.name}" requires card context when needsWorkTree is set`);
+        if (context.kind !== 'card') throw new Error(`Action "${action.label}" requires card context when needsWorkTree is set`);
 
         const index = worktreeIndex(context);
-        if (index === null) throw new Error(`Action "${action.name}" requires a card worktree assignment`);
+        if (index === null) throw new Error(`Action "${action.label}" requires a card worktree assignment`);
 
         const record = await this.worktreeService.resolve(primaryProject, index);
 

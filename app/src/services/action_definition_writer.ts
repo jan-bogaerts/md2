@@ -12,19 +12,18 @@ export interface ConvertPromptToActionInput {
     prompt: string
 }
 
-function toActionName(label: string) {
-    const name = label.trim().toLowerCase().replace(/[^a-z0-9]+/gu, '-').replace(/^-|-$/gu, '')
-    if (name.length === 0) throw new Error('Missing action label')
+function toActionFileName(label: string) {
+    const fileName = label.trim().toLowerCase().replace(/[^a-z0-9]+/gu, '-').replace(/^-|-$/gu, '')
+    if (fileName.length === 0) throw new Error('Missing action label')
 
-    return name
+    return fileName
 }
 
-export function actionFilePath(actionsFolder: string, name: string) {
-    return `${actionsFolder}/${name}${ACTION_FILE_EXTENSION}`
+export function actionFilePath(actionsFolder: string, label: string) {
+    return `${actionsFolder}/${toActionFileName(label)}${ACTION_FILE_EXTENSION}`
 }
 
 export function createActionDefinition(input: ConvertPromptToActionInput): RawActionDefinition {
-    const name = toActionName(input.label)
     const description = input.description?.trim()
 
     return {
@@ -34,7 +33,6 @@ export function createActionDefinition(input: ConvertPromptToActionInput): RawAc
         id: crypto.randomUUID(),
         label: input.label.trim(),
         ...(input.model ? { model: input.model } : {}),
-        name,
         phrases: [],
         prompt: input.prompt,
         type: 'agent',

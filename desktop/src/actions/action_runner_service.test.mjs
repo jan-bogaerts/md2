@@ -14,7 +14,6 @@ function actionFile(id, overrides = {}) {
             description: `${id} description`,
             id,
             label: id,
-            name: id,
             type: 'command',
             ...overrides,
         }),
@@ -85,8 +84,14 @@ describe('ActionRunnerService', () => {
         expect(localGitService.loadActionFiles).toHaveBeenCalledTimes(2);
     });
 
+    it('drops unknown persisted fields before execution', async () => {
+        const { commandRunner, runner } = createRunner([actionFile('main', { needsWorktree: true })]);
+
+        await expect(runToCompletion(runner)).resolves.toMatchObject({ status: 'completed' });
+        expect(commandRunner).toHaveBeenCalledOnce();
+    });
+
     it.each([
-        ['unknown persisted field', [actionFile('main', { needsWorktree: true })], {}, 'Unknown action field needsWorktree'],
         ['circular reference', [actionFile('main', { onBefore: ['linked'] }), actionFile('linked', { onAfter: ['main'] })], {}, 'Circular action reference'],
         ['unknown action', [actionFile('other')], {}, 'Unknown action: main'],
     ])('rejects %s before execution id creation', async (_label, files, runInput, message) => {
@@ -97,7 +102,7 @@ describe('ActionRunnerService', () => {
     });
 
     it('returns terminal failure for runtime selection error', async () => {
-        const files = [actionFile('main', {agent: 'codex', command: undefined, model: 'gpt-5.5', prompt: 'Run {{file}}', type: 'agent'})];
+        const files = [actionFile('main', {agent: 'codex', command: undefined, model: 'gpt-5.5', prompt: 'Run {{card-file}}', type: 'agent'})];
         const { agentRunnerService, runner } = createRunner(files);
 
         await expect(runToCompletion(runner, {actionId: 'main', context, runInput: { model: 'retired-model' }})).resolves.toMatchObject({ failure: expect.stringContaining('Unknown model'), status: 'failed' });
@@ -207,8 +212,7 @@ describe('ActionRunnerService', () => {
 
             return { command, exitCode: 0, stderr: '', stdout: '' };
         });
-        const actionCompleted = vi.fn();
-        const { runner } = createRunner(undefined, { actionCompleted, commandRunner });
+        const { runner } = createRunner(undefined, { commandRunner });
         const firstId = await runner.start({ actionId: 'main', context, runInput: {} });
         const secondId = await runner.start({ actionId: 'main', context, runInput: {} });
 
@@ -218,15 +222,12 @@ describe('ActionRunnerService', () => {
         await expect(runner.wait(firstId)).resolves.toMatchObject({ status: 'cancelled' });
         await expect(runner.wait(secondId)).resolves.toMatchObject({ status: 'cancelled' });
         expect(() => runner.requireActionsFolder()).toThrow('Action runner has no actions folder');
-        expect(actionCompleted).not.toHaveBeenCalled();
     });
 
-    it('isolates listeners, error reporter, and completion callback from result', async () => {
+    it('isolates listeners and the error reporter from the result', async () => {
         const listenerError = new Error('listener failed');
-        const callbackError = new Error('scheduler failed');
         const errorReporter = vi.fn(() => { throw new Error('reporter failed'); });
-        const actionCompleted = vi.fn(async () => { throw callbackError; });
-        const { runner } = createRunner(undefined, { actionCompleted, errorReporter });
+        const { runner } = createRunner(undefined, { errorReporter });
         const laterListener = vi.fn();
         runner.subscribe(() => { throw listenerError; });
         runner.subscribe(laterListener);
@@ -234,15 +235,5 @@ describe('ActionRunnerService', () => {
         await expect(runToCompletion(runner)).resolves.toMatchObject({ status: 'completed' });
         expect(laterListener).toHaveBeenCalled();
         expect(errorReporter).toHaveBeenCalledWith(listenerError);
-        expect(errorReporter).toHaveBeenCalledWith(callbackError);
-    });
-
-    it.each([[0, 'completed'], [1, 'failed']])('invokes completion callback for exit code %s', async (exitCode, status) => {
-        const actionCompleted = vi.fn();
-        const commandRunner = vi.fn(async (_project, command) => ({ command, exitCode, stderr: '', stdout: '' }));
-        const { runner } = createRunner(undefined, { actionCompleted, commandRunner });
-
-        await expect(runToCompletion(runner)).resolves.toMatchObject({ status });
-        expect(actionCompleted).toHaveBeenCalledWith('main');
     });
 });
