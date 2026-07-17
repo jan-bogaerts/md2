@@ -165,7 +165,12 @@ class ActionExecution {
         if (result.exitCode !== 0 || this.controller.signal.aborted) return result;
         const changedPaths = result.changedPaths ?? [];
         if (changedPaths.length === 0) return result;
-        const trackedCommit = await this.localGitService.commitTrackedPaths(project.rootPath, changedPaths, action.label);
+        const trackedCommit = await this.localGitService.commitTrackedPaths(
+            project.rootPath,
+            changedPaths,
+            action.label,
+            this.controller.signal,
+        );
 
         return { ...result, trackedCommit };
     }

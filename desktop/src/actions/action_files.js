@@ -19,6 +19,7 @@ const { actionHistoryFilePath } = require('./project_log_paths');
 const JSON_EXTENSION = '.json';
 const AGENT_MESSAGE_ROLES = new Set(['agent', 'assistant', 'stderr', 'stdout', 'system', 'user']);
 const AGENT_STATUSES = new Set(['cancelled', 'completed', 'failed', 'running']);
+const actionHistoryWriteQueues = new Map();
 
 function scheduleFilePath(rootPath, actionsFolder) {
     const actionsFolderPath = ensureInsideRoot(rootPath, path.join(rootPath, actionsFolder));
@@ -155,20 +156,37 @@ async function loadActionRunHistory(project, request) {
     return readJsonArray(filePath);
 }
 
-async function appendActionRunHistory(project, request, entry) {
-    const rootPath = requireRootPath(project);
+async function writeActionRunHistory(rootPath, filePath, entry) {
     await assertGitRoot(rootPath);
-    if (!request || typeof request.actionId !== 'string' || request.actionId.length === 0) throw new Error('Missing action history actionId');
-    if (!request.context || typeof request.context !== 'object') throw new Error('Missing action history context');
-    if (typeof request.projectFolder !== 'string') throw new Error('Missing action history projectFolder');
-
-    const filePath = actionHistoryFilePath(rootPath, request.projectFolder, request.actionId, request.context);
     const entries = await readJsonArray(filePath);
     const nextEntries = [...entries, entry];
     await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
     await fs.promises.writeFile(filePath, `${JSON.stringify(nextEntries, null, 2)}\n`);
 
     return nextEntries;
+}
+
+function queueActionRunHistoryWrite(rootPath, filePath, entry) {
+    const previousWrite = actionHistoryWriteQueues.get(filePath) ?? Promise.resolve();
+    const write = previousWrite.then(() => writeActionRunHistory(rootPath, filePath, entry));
+    const queueTail = write.catch(() => undefined);
+    actionHistoryWriteQueues.set(filePath, queueTail);
+    void queueTail.finally(() => {
+        if (actionHistoryWriteQueues.get(filePath) === queueTail) actionHistoryWriteQueues.delete(filePath);
+    });
+
+    return write;
+}
+
+async function appendActionRunHistory(project, request, entry) {
+    const rootPath = requireRootPath(project);
+    if (!request || typeof request.actionId !== 'string' || request.actionId.length === 0) throw new Error('Missing action history actionId');
+    if (!request.context || typeof request.context !== 'object') throw new Error('Missing action history context');
+    if (typeof request.projectFolder !== 'string') throw new Error('Missing action history projectFolder');
+
+    const filePath = actionHistoryFilePath(rootPath, request.projectFolder, request.actionId, request.context);
+
+    return queueActionRunHistoryWrite(rootPath, filePath, entry);
 }
 
 async function loadActionSchedules(project, actionsFolder) {

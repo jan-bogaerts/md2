@@ -5,8 +5,8 @@ const { ActionWorktreeExecutionService } = executionModule;
 const primaryProject = { branch: 'main', id: 'C:/repo', rootPath: 'C:/repo' };
 const cardProject = { branch: 'card', error: null, path: 'C:/worktrees/card', valid: true };
 
-function action(needsWorkTree = false) {
-    return { label: 'Implement', needsWorkTree };
+function action(needsWorkTree = false, overrides = {}) {
+    return { label: 'Implement', needsWorkTree, type: 'command', ...overrides };
 }
 
 function result() {
@@ -111,5 +111,91 @@ describe('ActionWorktreeExecutionService', () => {
 
         await Promise.all([first, second]);
         expect(order).toEqual(['first-start', 'first-end', 'second-start', 'second-end']);
+    });
+
+    it('runs tracked agents concurrently for different cards', async () => {
+        const executionService = service();
+        const firstCompletion = Promise.withResolvers();
+        const secondCompletion = Promise.withResolvers();
+        const order = [];
+        const trackedAction = action(false, { trackFileChanges: true, type: 'agent' });
+        const first = executionService.execute(primaryProject, trackedAction, { file: 'design/F-1.md', kind: 'card' }, async () => {
+            order.push('first-start');
+            await firstCompletion.promise;
+            order.push('first-end');
+            return result();
+        });
+        const second = executionService.execute(primaryProject, trackedAction, { file: 'design/F-2.md', kind: 'card' }, async () => {
+            order.push('second-start');
+            await secondCompletion.promise;
+            order.push('second-end');
+            return result();
+        });
+
+        await vi.waitFor(() => expect(order).toEqual(['first-start', 'second-start']));
+        firstCompletion.resolve();
+        secondCompletion.resolve();
+        await Promise.all([first, second]);
+        expect(order).toEqual(['first-start', 'second-start', 'first-end', 'second-end']);
+    });
+
+    it('serializes tracked agents for the same card', async () => {
+        const executionService = service();
+        const firstCompletion = Promise.withResolvers();
+        const order = [];
+        const trackedAction = action(false, { trackFileChanges: true, type: 'agent' });
+        const cardContext = { file: 'design/F-1.md', kind: 'card' };
+        const first = executionService.execute(primaryProject, trackedAction, cardContext, async () => {
+            order.push('first-start');
+            await firstCompletion.promise;
+            order.push('first-end');
+            return result();
+        });
+        const second = executionService.execute(primaryProject, trackedAction, cardContext, async () => {
+            order.push('second-start');
+            order.push('second-end');
+            return result();
+        });
+
+        await vi.waitFor(() => expect(order).toEqual(['first-start']));
+        firstCompletion.resolve();
+        await Promise.all([first, second]);
+        expect(order).toEqual(['first-start', 'first-end', 'second-start', 'second-end']);
+    });
+
+    it('keeps default actions exclusive and blocks later tracked agents behind them', async () => {
+        const executionService = service();
+        const firstCompletion = Promise.withResolvers();
+        const exclusiveCompletion = Promise.withResolvers();
+        const order = [];
+        const trackedAction = action(false, { trackFileChanges: true, type: 'agent' });
+        const first = executionService.execute(primaryProject, trackedAction, { file: 'design/F-1.md', kind: 'card' }, async () => {
+            order.push('first-start');
+            await firstCompletion.promise;
+            order.push('first-end');
+            return result();
+        });
+        await vi.waitFor(() => expect(order).toEqual(['first-start']));
+        const exclusive = executionService.execute(primaryProject, action(), { kind: 'project' }, async () => {
+            order.push('exclusive-start');
+            await exclusiveCompletion.promise;
+            order.push('exclusive-end');
+            return result();
+        });
+        const later = executionService.execute(primaryProject, trackedAction, { file: 'design/F-2.md', kind: 'card' }, async () => {
+            order.push('later-start');
+            order.push('later-end');
+            return result();
+        });
+
+        await new Promise((resolve) => setTimeout(resolve, 10));
+        expect(order).toEqual(['first-start']);
+        firstCompletion.resolve();
+        await vi.waitFor(() => expect(order).toEqual(['first-start', 'first-end', 'exclusive-start']));
+        exclusiveCompletion.resolve();
+        await Promise.all([first, exclusive, later]);
+        expect(order).toEqual([
+            'first-start', 'first-end', 'exclusive-start', 'exclusive-end', 'later-start', 'later-end',
+        ]);
     });
 });

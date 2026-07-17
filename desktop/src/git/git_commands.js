@@ -6,6 +6,7 @@ const { promisify } = require('node:util');
 const execFileAsync = promisify(execFile);
 const execAsync = promisify(exec);
 const DETACHED_HEAD_BRANCH = 'HEAD (detached)';
+const LITERAL_PATHSPEC_ARGUMENT = '--literal-pathspecs';
 const trackedCommitQueues = new Map();
 
 function requireRootPath(project) {
@@ -112,7 +113,7 @@ function normalizeTrackedPaths(rootPath, filePaths) {
 
 async function hasStagedPathChanges(rootPath, filePaths) {
     try {
-        await execFileAsync('git', ['diff', '--cached', '--quiet', '--', ...filePaths], { cwd: rootPath });
+        await execFileAsync('git', [LITERAL_PATHSPEC_ARGUMENT, 'diff', '--cached', '--quiet', '--', ...filePaths], { cwd: rootPath });
 
         return false;
     } catch (error) {
@@ -123,23 +124,29 @@ async function hasStagedPathChanges(rootPath, filePaths) {
 }
 
 async function commitTrackedPathsNow(rootPath, filePaths, message) {
-    await runGit(rootPath, ['add', '--', ...filePaths]);
+    await runGit(rootPath, [LITERAL_PATHSPEC_ARGUMENT, 'add', '--', ...filePaths]);
     if (!await hasStagedPathChanges(rootPath, filePaths)) return null;
 
-    await runGit(rootPath, ['commit', '--only', '-m', message, '--', ...filePaths]);
+    await runGit(rootPath, [LITERAL_PATHSPEC_ARGUMENT, 'commit', '--only', '-m', message, '--', ...filePaths]);
 
     return runGit(rootPath, ['rev-parse', 'HEAD']);
 }
 
-/** Serialize a commit scoped to selected paths and return its hash, or null for no changes. */
-function commitTrackedPaths(rootPath, filePaths, message) {
+/** Serialize a commit scoped to selected paths and return its hash, or null for no changes/cancellation. */
+function commitTrackedPaths(rootPath, filePaths, message, signal) {
     if (typeof message !== 'string' || message.length === 0) throw new Error('Missing tracked commit message');
     const resolvedRoot = path.resolve(rootPath);
     const trackedPaths = normalizeTrackedPaths(resolvedRoot, filePaths);
     if (trackedPaths.length === 0) return Promise.resolve(null);
     const previousCommit = trackedCommitQueues.get(resolvedRoot) ?? Promise.resolve();
-    const commit = previousCommit.then(() => commitTrackedPathsNow(resolvedRoot, trackedPaths, message));
-    trackedCommitQueues.set(resolvedRoot, commit.catch(() => undefined));
+    const commit = previousCommit.then(() => (
+        signal?.aborted ? null : commitTrackedPathsNow(resolvedRoot, trackedPaths, message)
+    ));
+    const queueTail = commit.catch(() => undefined);
+    trackedCommitQueues.set(resolvedRoot, queueTail);
+    void queueTail.finally(() => {
+        if (trackedCommitQueues.get(resolvedRoot) === queueTail) trackedCommitQueues.delete(resolvedRoot);
+    });
 
     return commit;
 }

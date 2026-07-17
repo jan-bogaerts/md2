@@ -1,10 +1,10 @@
 import { execFile } from 'node:child_process';
-import { mkdtemp, mkdir, rename, rm, stat, writeFile } from 'node:fs/promises';
+import { access, chmod, mkdtemp, mkdir, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { createRequire } from 'node:module';
 import { promisify } from 'node:util';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 const require = createRequire(import.meta.url);
 const execFileAsync = promisify(execFile);
@@ -178,6 +178,62 @@ describe('git-commands', () => {
             await commitFile(rootPath);
 
             await expect(commitTrackedPaths(rootPath, ['README.md'], 'No changes')).resolves.toBeNull();
+        } finally {
+            await rm(rootPath, { force: true, recursive: true });
+        }
+    });
+
+    it('treats tracked filenames as literal Git paths', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-tracked-literal-'));
+
+        try {
+            await initializeRepository(rootPath);
+            await writeFile(join(rootPath, 'file[1].md'), 'literal');
+            await writeFile(join(rootPath, 'file1.md'), 'pattern match');
+            await runGit(rootPath, ['add', '.']);
+            await runGit(rootPath, ['commit', '-m', 'Initial']);
+            await writeFile(join(rootPath, 'file[1].md'), 'literal changed');
+            await writeFile(join(rootPath, 'file1.md'), 'pattern changed');
+
+            const commit = await commitTrackedPaths(rootPath, ['file[1].md'], 'Literal path');
+            const { stdout: committedFiles } = await execFileAsync('git', ['show', '--pretty=format:', '--name-only', commit], { cwd: rootPath });
+            const { stdout: remainingFiles } = await execFileAsync('git', ['diff', '--name-only'], { cwd: rootPath });
+
+            expect(committedFiles.trim()).toBe('file[1].md');
+            expect(remainingFiles.trim()).toBe('file1.md');
+        } finally {
+            await rm(rootPath, { force: true, recursive: true });
+        }
+    });
+
+    it('skips a queued tracked commit cancelled before its queue slot starts', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-tracked-cancel-'));
+        const hookStartedPath = join(rootPath, '.git', 'hook-started');
+        const releaseHookPath = join(rootPath, '.git', 'release-hook');
+
+        try {
+            await initializeRepository(rootPath);
+            await writeFile(join(rootPath, 'first.md'), 'first');
+            await writeFile(join(rootPath, 'second.md'), 'second');
+            await runGit(rootPath, ['add', '.']);
+            await runGit(rootPath, ['commit', '-m', 'Initial']);
+            await writeFile(join(rootPath, 'first.md'), 'first changed');
+            await writeFile(join(rootPath, 'second.md'), 'second changed');
+            const hookPath = join(rootPath, '.git', 'hooks', 'pre-commit');
+            await writeFile(hookPath, '#!/bin/sh\ntouch .git/hook-started\nwhile [ ! -f .git/release-hook ]; do sleep 0.05; done\n');
+            await chmod(hookPath, 0o755);
+
+            const firstCommit = commitTrackedPaths(rootPath, ['first.md'], 'First action');
+            await vi.waitFor(() => expect(access(hookStartedPath)).resolves.toBeUndefined());
+            const controller = new AbortController();
+            const secondCommit = commitTrackedPaths(rootPath, ['second.md'], 'Second action', controller.signal);
+            controller.abort();
+            await writeFile(releaseHookPath, 'release');
+
+            await expect(firstCommit).resolves.toMatch(/^[0-9a-f]{40}$/u);
+            await expect(secondCommit).resolves.toBeNull();
+            const { stdout: remainingFiles } = await execFileAsync('git', ['diff', '--name-only'], { cwd: rootPath });
+            expect(remainingFiles.trim()).toBe('second.md');
         } finally {
             await rm(rootPath, { force: true, recursive: true });
         }

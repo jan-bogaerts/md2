@@ -51,6 +51,31 @@ describe('action-files', () => {
         }
     });
 
+    it('preserves every concurrent append to one action history file', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-action-files-'));
+        const project = { branch: 'main', id: 'local', rootPath };
+        const request = {
+            actionId: 'implement',
+            context: { file: 'design/F-010.md', kind: 'card', type: 'feature' },
+            projectFolder: 'design',
+        };
+        const entries = Array.from({ length: 20 }, (_value, index) => ({
+            completedAt: `2026-07-05T10:00:${String(index).padStart(2, '0')}.000Z`,
+            output: `done-${index}`,
+            prompt: 'run',
+            status: 'completed',
+        }));
+
+        try {
+            await mkdir(join(rootPath, '.git'));
+            await Promise.all(entries.map((entry) => appendActionRunHistory(project, request, entry)));
+
+            await expect(loadActionRunHistory(project, request)).resolves.toEqual(entries);
+        } finally {
+            await rm(rootPath, { force: true, recursive: true });
+        }
+    });
+
     it('rejects malformed conversation messages at the Electron boundary', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-action-files-'));
 

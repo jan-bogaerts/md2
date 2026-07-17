@@ -278,7 +278,7 @@ describe('ActionExecution', () => {
 
         await expect(execution.completion).resolves.toMatchObject({ status: 'completed' });
 
-        expect(commitTrackedPaths).toHaveBeenCalledWith('C:/repo', ['app/a.ts', 'app/b.ts'], 'main');
+        expect(commitTrackedPaths).toHaveBeenCalledWith('C:/repo', ['app/a.ts', 'app/b.ts'], 'main', execution.controller.signal);
         expect(localGitService.appendActionRunHistory.mock.calls[0][2].commit).toMatchObject({commit: 'abcdef3', filePaths: ['app/a.ts', 'app/b.ts']});
     });
 
