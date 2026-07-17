@@ -1,6 +1,6 @@
 ---
 id: B-072
-title: action editor UI state mutates domain actions
+title: action editor state changes are not observable
 status: design
 owner: JB
 affects:
@@ -11,16 +11,18 @@ policy:
 
 ## Problem
 
-The selected action-editor tab is stored in `ActionDefinition.editorState`. `ActionService.setSelectedEditorTab` directly mutates the shared `ActionDefinition` object and does not dispatch a service event.
+`ActionDefinition.editorState` intentionally owns the action's non-serialized editor state, including the selected tab and stable phrase editor identities. `ActionService.setActionEditorState` currently mutates that field without dispatching a service event.
 
-This mixes transient view state into domain objects used by action execution, search, tree rendering, and persistence publication. Consumers cannot observe the mutation through the service event contract, and every action reload/save needs special logic to copy editor state into newly validated domain objects.
+Consumers therefore cannot observe the change through the service event contract. `ActionEditor` compensates with local React state, while save and reload flows replace validated action objects and need to preserve the editor state attached to the previous action object.
 
 ## Fix
 
-- Move selected-tab state to a UI-owned store keyed by stable action path or tab identity.
-- Keep `ActionDefinition` limited to executable domain data and source metadata required by the action service.
-- Update editor-tab state through an observable React/UI state path; do not mutate shared service objects.
-- Remove `preserveActionEditorStates` and editor-state copying from action graph load/save paths once all call sites use the UI store.
+- Keep `editorState` on each `ActionDefinition`; do not introduce a separate dictionary or UI store keyed by action path.
+- Route editor-state changes through `ActionService` in the name of the owning action and dispatch the service's change event after the action is updated.
+- Make the service-published action state the source of truth for `ActionEditor` instead of maintaining an independent copy of the same state in React.
+- When validation, save, or reload replaces an action object, carry its non-serialized `editorState` into the replacement action as part of action reconciliation. Do not model this as an independently owned path-to-state registry.
+- Keep `editorState` out of persisted action JSON and Electron execution payloads.
+- If editor state later requires a genuinely independent lifecycle or event contract, model it as an explicit child object owned by the action and expose changes through `ActionService`; do not add a parallel lookup dictionary for semantic separation alone.
 
 ## Edge cases
 
@@ -28,15 +30,17 @@ This mixes transient view state into domain objects used by action execution, se
 - Saving or externally reloading an action while a phrase tab is selected.
 - Closing and reopening an action tab.
 - Switching between card and text view.
-- Project switch with identical action paths.
 - Selected phrase removed by an external change.
+- Action deletion and project clearing must discard the editor state with the owning action.
 
 ## acceptance criteria
 
-- `ActionDefinition` and action-service publication contain no transient editor-tab state.
-- Selecting an editor tab does not mutate a shared domain object.
+- Each loaded `ActionDefinition` owns its `editorState`; no separate action-path-to-editor-state store is introduced.
+- Selecting an editor tab updates the owning action through `ActionService` and notifies service observers.
+- `ActionEditor` does not keep an independent authoritative copy of action editor state.
 - Tab selection survives the currently supported view/tab transitions and resets across project identity where required.
-- Action loading, validation, saving, search, and execution do not copy or inspect editor UI state.
+- Save and reload preserve editor state on replacement action objects without serializing it.
+- Persisted action JSON and Electron execution payloads contain no `editorState`.
 - Tests cover multiple actions, reload/save publication, view switching, close/reopen, and project switching.
 
 ## see also
@@ -44,4 +48,3 @@ This mixes transient view state into domain objects used by action execution, se
 - [[B-052]]
 - `design\architecture\architectural_decisions.md`
 - `design\architecture\initial description\writings\action_editor.md`
-

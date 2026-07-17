@@ -10,6 +10,7 @@ import { defaultColumnAccent, type CardTypeConfig, type ProjectCard, type StateC
 import { telemetryService } from '../../services/telemetry_service'
 import { markdownParsingService } from '../../services/markdown_parsing_service'
 import { dialogService } from '../../services/dialog_service'
+import { actionService } from '../../services/action_service'
 import { agentAcknowledgementService } from '../../services/agent_acknowledgement_service'
 import { ActionEditor } from '../actions/action_editor'
 import { MarkdownDocumentHistoryStore } from '../editor/markdown_document_history_store'
@@ -165,13 +166,22 @@ export function TextView(props: TextViewProps) {
             .filter((action): action is ActionDefinition & { sourcePath: string } => action.sourcePath !== null)
             .map((action) => [action.sourcePath, action]),
     ), [actions])
+    const editorActionsByPath = useMemo(() => new Map([
+        ...actionsByPath,
+        ...actionService.getDeletedDraftActions()
+            .filter((action): action is ActionDefinition & { sourcePath: string } => action.sourcePath !== null)
+            .map((action) => [action.sourcePath, action] as const),
+    ]), [actionsByPath])
     const cardsByPath = useMemo(() => {
         const map = new Map<string, ProjectCard>()
         for (const card of [...activeCards, ...backgroundCards]) map.set(card.path, card)
 
         return map
     }, [activeCards, backgroundCards])
-    const availablePaths = useMemo(() => [...cardsByPath.keys(), ...actionsByPath.keys()], [actionsByPath, cardsByPath])
+    const availablePaths = useMemo(
+        () => [...cardsByPath.keys(), ...editorActionsByPath.keys()],
+        [cardsByPath, editorActionsByPath],
+    )
     const { activePath, activateTab, closeTab, openTab, tabs } = useOpenTabs(availablePaths)
     const statusColors = useMemo(() => new Map(
         tree
@@ -194,9 +204,9 @@ export function TextView(props: TextViewProps) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [requestedNonce])
 
-    const openTabs = tabs.map((path) => tabData(actionsByPath, cardsByPath, cardTypes, actionsFolder, path))
+    const openTabs = tabs.map((path) => tabData(editorActionsByPath, cardsByPath, cardTypes, actionsFolder, path))
     const activeCard = activePath ? cardsByPath.get(activePath) ?? null : null
-    const activeAction = activePath ? actionsByPath.get(activePath) ?? null : null
+    const activeAction = activePath ? editorActionsByPath.get(activePath) ?? null : null
     const mountedEditorPath = useDeferredValue(activePath)
     const mountedCard = mountedEditorPath ? cardsByPath.get(mountedEditorPath) ?? null : null
 

@@ -59,6 +59,17 @@ export class CommitBatcher {
         return this.pendingFiles.has(path)
     }
 
+    discardPendingFile(path: string) {
+        if (!this.pendingFiles.delete(path)) return
+
+        this.pendingMessagesByPath.delete(path)
+        if (this.pendingFiles.size === 0) {
+            this.pendingBranch = null
+            this.clearScheduledDelay()
+        }
+        this.onPendingChange()
+    }
+
     async flush() {
         if (this.activeFlush) {
             await this.activeFlush

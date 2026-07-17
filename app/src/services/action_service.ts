@@ -20,6 +20,8 @@ const ACTION_FILE_EXTENSION = '.json'
 const NEW_ACTION_NAME = 'new-action'
 
 interface ActionPersistenceGateway {
+    discardPendingActionFile?: (path: string) => void
+    hasPendingActionFile?: (path: string) => boolean
     persistActionFile(file: ActionFile): Promise<void>
 }
 
@@ -35,6 +37,7 @@ export type ActionReloadChange =
 export interface ActionDraftState {
     conflict: RawActionDefinition | null
     definition: RawActionDefinition
+    deleted: boolean
     error: string | null
     revision: number
     savedRevision: number
@@ -43,7 +46,10 @@ export interface ActionDraftState {
 }
 
 interface ManagedActionDraft extends ActionDraftState {
+    action: ActionDefinition
     chain: Promise<void>
+    deletionRevision: number
+    recreating: boolean
 }
 
 export interface ActionValidationResult {
@@ -268,6 +274,10 @@ export class ActionService extends EventTarget {
         const file = { content: serializeActionDefinition(definition), path }
 
         await this.persistenceGateway().persistActionFile(file)
+        const draft = this.drafts.get(path)
+        if (draft?.deleted && !draft.recreating) {
+            throw new Error(`Action save cancelled after external deletion: ${path}`)
+        }
         this.files = this.filesWithFile(file)
         this.definitions = definitions
         this.actions = actions
@@ -289,10 +299,14 @@ export class ActionService extends EventTarget {
         if (!action) throw new Error(`Cannot create draft for unknown action: ${path}`)
         const definition = editableActionDefinition(action)
         const draft: ManagedActionDraft = {
+            action,
             chain: Promise.resolve(),
             conflict: null,
             definition,
+            deleted: false,
+            deletionRevision: 0,
             error: null,
+            recreating: false,
             revision: 0,
             savedRevision: 0,
             saving: false,
@@ -316,13 +330,14 @@ export class ActionService extends EventTarget {
         }
         this.drafts.set(path, draft)
         this.dispatchChanged()
-        if (draft.validation.valid) this.queueDraftSave(path, definition, revision)
+        if (draft.validation.valid && !draft.deleted) this.queueDraftSave(path, definition, revision)
 
         return draft
     }
 
     retryDraft(path: string) {
         const draft = this.requireDraft(path)
+        if (draft.deleted) throw new Error(`Cannot retry a deleted action draft: ${path}`)
         if (!draft.validation.valid) throw new Error(`Cannot retry invalid action draft: ${path}`)
         this.queueDraftSave(path, draft.definition, draft.revision)
     }
@@ -352,13 +367,38 @@ export class ActionService extends EventTarget {
         this.dispatchChanged()
     }
 
+    recreateDeletedDraft(path: string) {
+        const draft = this.requireDraft(path)
+        if (!draft.deleted) throw new Error(`Cannot recreate an action that is not deleted: ${path}`)
+        if (!draft.validation.valid) throw new Error(`Cannot recreate invalid action draft: ${path}`)
+
+        this.queueDraftSave(path, draft.definition, draft.revision, true)
+    }
+
+    discardDeletedDraft(path: string) {
+        const draft = this.requireDraft(path)
+        if (!draft.deleted) throw new Error(`Cannot discard an action that is not deleted: ${path}`)
+
+        this.persistenceGateway().discardPendingActionFile?.(path)
+        this.drafts.delete(path)
+        this.dispatchChanged()
+    }
+
+    getDeletedDraftActions() {
+        return [...this.drafts.values()]
+            .filter(({ deleted }) => deleted)
+            .map(({ action }) => action)
+    }
+
     hasPendingDrafts() {
         return [...this.drafts.values()].some((draft) => (
-            draft.revision !== draft.savedRevision || draft.saving || !!draft.error || !!draft.conflict
+            draft.deleted || draft.revision !== draft.savedRevision || draft.saving || !!draft.error || !!draft.conflict
         ))
     }
 
     async flushDrafts() {
+        const deletedDraft = [...this.drafts.entries()].find(([, draft]) => draft.deleted)
+        if (deletedDraft) throw new Error(`Action ${deletedDraft[0]} was deleted and requires explicit recovery or discard`)
         const invalidDraft = [...this.drafts.entries()].find(([, draft]) => (
             draft.revision !== draft.savedRevision && !draft.validation.valid
         ))
@@ -433,15 +473,48 @@ export class ActionService extends EventTarget {
         for (const [path, draft] of this.drafts) {
             const previousDefinition = previousDefinitions.get(path)
             const externalDefinition = this.getDefinitionByPath(path)
-            if (!previousDefinition || !externalDefinition || actionDefinitionsEqual(previousDefinition, externalDefinition)) continue
+            if (!externalDefinition) {
+                if (!previousDefinition && !draft.recreating) continue
+
+                const gateway = this.persistenceGateway()
+                const pendingPersistence = gateway.hasPendingActionFile?.(path) ?? false
+                gateway.discardPendingActionFile?.(path)
+                const recoverable = draft.revision !== draft.savedRevision
+                    || draft.saving
+                    || draft.recreating
+                    || pendingPersistence
+                    || !!draft.error
+                    || !!draft.conflict
+                if (!recoverable) {
+                    this.drafts.delete(path)
+                    continue
+                }
+                this.drafts.set(path, {
+                    ...draft,
+                    conflict: null,
+                    deleted: true,
+                    deletionRevision: draft.deletionRevision + 1,
+                    recreating: false,
+                    saving: false,
+                })
+                continue
+            }
+            const externalAction = this.getActionByPath(path)
+            if (!externalAction) throw new Error(`Missing external action after reload: ${path}`)
+            if (draft.deleted) {
+                this.drafts.set(path, { ...draft, action: externalAction, conflict: externalDefinition, deleted: false })
+                continue
+            }
+            if (!previousDefinition || actionDefinitionsEqual(previousDefinition, externalDefinition)) continue
 
             if (draft.revision !== draft.savedRevision) {
-                this.drafts.set(path, { ...draft, conflict: externalDefinition })
+                this.drafts.set(path, { ...draft, action: externalAction, conflict: externalDefinition })
                 continue
             }
             const revision = draft.revision + 1
             this.drafts.set(path, {
                 ...draft,
+                action: externalAction,
                 conflict: null,
                 definition: externalDefinition,
                 error: null,
@@ -452,28 +525,34 @@ export class ActionService extends EventTarget {
         }
     }
 
-    private queueDraftSave(path: string, definition: RawActionDefinition, revision: number) {
+    private queueDraftSave(path: string, definition: RawActionDefinition, revision: number, recreate = false) {
         const current = this.requireDraft(path)
+        const deletionRevision = current.deletionRevision
         const chain = current.chain.then(async () => {
             const startedDraft = this.drafts.get(path)
             if (!startedDraft) return
-            this.drafts.set(path, { ...startedDraft, error: null, saving: true })
+            if (startedDraft.deletionRevision !== deletionRevision || (startedDraft.deleted && !recreate)) return
+            this.drafts.set(path, { ...startedDraft, error: null, recreating: recreate, saving: true })
             this.dispatchChanged()
             try {
                 await this.saveDefinition(path, definition)
                 const savedDraft = this.drafts.get(path)
                 if (!savedDraft) return
+                if (savedDraft.deletionRevision !== deletionRevision) return
                 this.drafts.set(path, {
                     ...savedDraft,
+                    deleted: recreate ? false : savedDraft.deleted,
                     error: null,
+                    recreating: false,
                     savedRevision: Math.max(savedDraft.savedRevision, revision),
                     saving: false,
                 })
             } catch (error) {
                 const failedDraft = this.drafts.get(path)
                 if (!failedDraft) return
+                if (failedDraft.deletionRevision !== deletionRevision) return
                 const message = error instanceof Error ? error.message : 'Action save failed'
-                this.drafts.set(path, { ...failedDraft, error: message, saving: false })
+                this.drafts.set(path, { ...failedDraft, error: message, recreating: false, saving: false })
             }
             this.dispatchChanged()
         })

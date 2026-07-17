@@ -8,6 +8,7 @@ import { telemetryService } from '../../services/telemetry_service'
 import { openFilesService } from '../../services/open_files_service'
 import { actionService } from '../../services/action_service'
 import { configService } from '../../services/config_service'
+import { dataService } from '../../services/data_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import { LeftPanelSlotProvider } from '../shell/left_panel_slot_provider'
 import { LeftPanelTarget } from '../shell/left_panel_target'
@@ -100,6 +101,19 @@ function renderTextView(overrides: Partial<Parameters<typeof TextView>[0]> = {})
 /** Click a file leaf inside the tree region (avoids matching the same label in an open tab). */
 function clickTreeFile(label: string) {
     fireEvent.click(within(screen.getByLabelText('File tree')).getByRole('button', { name: label }))
+}
+
+function loadReviewAction() {
+    actionService.loadFromFiles([{
+        content: JSON.stringify({
+            description: 'Review the selected file',
+            id: 'review-action',
+            label: 'Review',
+            prompt: 'Review it',
+            type: 'agent',
+        }),
+        path: 'design/actions/review.json',
+    }])
 }
 
 describe('TextView', () => {
@@ -420,6 +434,58 @@ describe('TextView', () => {
         fireEvent.click(screen.getByRole('tab', { name: /Beta/ }))
 
         expect(onBodyChange).toHaveBeenCalledExactlyOnceWith('design/active/F-1-a.md', 'Rapid edit')
+    })
+
+    it('closes a clean action tab after external deletion', async () => {
+        vi.spyOn(dataService, 'hasPendingActionFile').mockReturnValue(false)
+        vi.spyOn(dataService, 'discardPendingActionFile').mockImplementation(() => undefined)
+        loadReviewAction()
+        renderTextView()
+        clickTreeFile('Review')
+
+        act(() => actionService.reloadFromFiles([], [{ origin: 'external', path: 'design/actions/review.json' }]))
+
+        await waitFor(() => expect(screen.queryByRole('tab', { name: 'Review' })).not.toBeInTheDocument())
+        expect(screen.getByText('Select a file from the tree to open it.')).toBeInTheDocument()
+    })
+
+    it('keeps a dirty deleted action recoverable and recreates it explicitly', async () => {
+        vi.spyOn(dataService, 'hasPendingActionFile').mockReturnValue(false)
+        vi.spyOn(dataService, 'discardPendingActionFile').mockImplementation(() => undefined)
+        const persistActionFile = vi.spyOn(dataService, 'persistActionFile').mockResolvedValue()
+        loadReviewAction()
+        renderTextView()
+        clickTreeFile('Review')
+        fireEvent.change(screen.getByLabelText('Label'), { target: { value: '' } })
+
+        act(() => actionService.reloadFromFiles([], [{ origin: 'external', path: 'design/actions/review.json' }]))
+
+        expect(screen.getByText(/action file was deleted outside the editor/u)).toBeInTheDocument()
+        expect(screen.getByLabelText('Label')).toHaveValue('')
+        expect(screen.getByRole('button', { name: 'Recreate file' })).toBeDisabled()
+
+        fireEvent.change(screen.getByLabelText('Label'), { target: { value: 'Recovered' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Recreate file' }))
+
+        await waitFor(() => expect(persistActionFile).toHaveBeenCalledWith(expect.objectContaining({path: 'design/actions/review.json'})))
+        await waitFor(() => expect(screen.queryByText(/action file was deleted outside the editor/u)).not.toBeInTheDocument())
+        expect(screen.getByRole('tab', { name: 'Recovered' })).toBeInTheDocument()
+    })
+
+    it('discards a dirty deleted action and closes its tab', async () => {
+        vi.spyOn(dataService, 'hasPendingActionFile').mockReturnValue(false)
+        vi.spyOn(dataService, 'discardPendingActionFile').mockImplementation(() => undefined)
+        const persistActionFile = vi.spyOn(dataService, 'persistActionFile').mockResolvedValue()
+        loadReviewAction()
+        renderTextView()
+        clickTreeFile('Review')
+        fireEvent.change(screen.getByLabelText('Label'), { target: { value: '' } })
+        act(() => actionService.reloadFromFiles([], [{ origin: 'external', path: 'design/actions/review.json' }]))
+
+        fireEvent.click(screen.getByRole('button', { name: 'Discard draft' }))
+
+        await waitFor(() => expect(screen.queryByRole('tab', { name: 'Review' })).not.toBeInTheDocument())
+        expect(persistActionFile).not.toHaveBeenCalled()
     })
 
     it('opens the requested file when the open nonce changes', () => {

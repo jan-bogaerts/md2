@@ -145,6 +145,17 @@ export class DataService extends EventTarget {
         commitBatcher.schedule(currentProject.branch, [file], `Update ${file.path}`)
         this.dispatchChanged()
     }
+
+    discardPendingActionFile(path: string) {
+        const { commitBatcher } = this.requireDependencies()
+        commitBatcher.discardPendingFile(path)
+    }
+
+    hasPendingActionFile(path: string) {
+        const { commitBatcher } = this.requireDependencies()
+
+        return commitBatcher.hasPendingFile(path)
+    }
     getRemarkableMetadataContent(): string | null {
         const config = this.getConfig()
         if (!config) return null

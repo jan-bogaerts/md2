@@ -13,6 +13,14 @@ function file(definition: unknown): ActionFile {
 
 const VALID: RawActionDefinition = { command: 'run', description: 'Do it', id: 'action-do', label: 'Do', type: 'command' }
 
+function deletionGateway() {
+    return {
+        discardPendingActionFile: vi.fn(),
+        hasPendingActionFile: vi.fn(() => false),
+        persistActionFile: vi.fn(async () => undefined),
+    }
+}
+
 describe('ActionService', () => {
     it('exposes built-in actions before loading', () => {
         const service = new ActionService()
@@ -419,5 +427,123 @@ describe('ActionService', () => {
         )
 
         expect(service.getDraft('actions/action.json').conflict?.phrases).toEqual([...phrases].reverse())
+    })
+
+    it('drops a clean draft when its action is deleted externally', () => {
+        const service = new ActionService(() => deletionGateway())
+        service.loadFromFiles([file(VALID)])
+        service.getDraft('actions/action.json')
+
+        service.reloadFromFiles([], [{ origin: 'external', path: 'actions/action.json' }])
+
+        expect(service.getActionByPath('actions/action.json')).toBeNull()
+        expect(service.getDeletedDraftActions()).toEqual([])
+        expect(() => service.getDraft('actions/action.json')).toThrow(/unknown action/u)
+    })
+
+    it('preserves a dirty deleted draft until explicit discard', async () => {
+        const gateway = deletionGateway()
+        const service = new ActionService(() => gateway)
+        service.loadFromFiles([file(VALID)])
+        service.updateDraft('actions/action.json', { ...VALID, label: '' })
+
+        service.reloadFromFiles([], [{ origin: 'external', path: 'actions/action.json' }])
+
+        expect(service.getDraft('actions/action.json')).toMatchObject({ deleted: true, definition: { label: '' } })
+        expect(service.getDeletedDraftActions()).toHaveLength(1)
+        await expect(service.flushDrafts()).rejects.toThrow(/requires explicit recovery or discard/u)
+
+        service.discardDeletedDraft('actions/action.json')
+        expect(service.getDeletedDraftActions()).toEqual([])
+    })
+
+    it('cancels queued persistence and preserves its draft after external deletion', async () => {
+        let pending = false
+        const discardPendingActionFile = vi.fn(() => { pending = false })
+        const service = new ActionService(() => ({
+            discardPendingActionFile,
+            hasPendingActionFile: () => pending,
+            persistActionFile: vi.fn(async () => { pending = true }),
+        }))
+        service.loadFromFiles([file(VALID)])
+        service.updateDraft('actions/action.json', { ...VALID, label: 'Queued edit' })
+        await service.flushDrafts()
+
+        service.reloadFromFiles([], [{ origin: 'external', path: 'actions/action.json' }])
+
+        expect(discardPendingActionFile).toHaveBeenCalledWith('actions/action.json')
+        expect(pending).toBe(false)
+        expect(service.getDraft('actions/action.json')).toMatchObject({ deleted: true, definition: { label: 'Queued edit' } })
+        expect(service.hasPendingDrafts()).toBe(true)
+    })
+
+    it('ignores an in-flight save completion after external deletion', async () => {
+        let finishPersistence: () => void = () => undefined
+        const persistence = new Promise<void>((resolve) => { finishPersistence = resolve })
+        const service = new ActionService(() => ({ persistActionFile: vi.fn(() => persistence) }))
+        service.loadFromFiles([file(VALID)])
+        service.updateDraft('actions/action.json', { ...VALID, label: 'In-flight edit' })
+        await Promise.resolve()
+
+        service.reloadFromFiles([], [{ origin: 'external', path: 'actions/action.json' }])
+        finishPersistence()
+        await Promise.resolve()
+        await Promise.resolve()
+
+        expect(service.getActionByPath('actions/action.json')).toBeNull()
+        expect(service.getDefinitionByPath('actions/action.json')).toBeNull()
+        expect(service.getDraft('actions/action.json')).toMatchObject({ deleted: true, definition: { label: 'In-flight edit' } })
+    })
+
+    it('recreates a deleted dirty action only after explicit recovery', async () => {
+        const persistActionFile = vi.fn(async () => undefined)
+        const gateway = { ...deletionGateway(), persistActionFile }
+        const service = new ActionService(() => gateway)
+        service.loadFromFiles([file(VALID)])
+        service.updateDraft('actions/action.json', { ...VALID, label: '' })
+        service.reloadFromFiles([], [{ origin: 'external', path: 'actions/action.json' }])
+        service.updateDraft('actions/action.json', { ...VALID, label: 'Recovered' })
+
+        expect(persistActionFile).not.toHaveBeenCalled()
+        service.recreateDeletedDraft('actions/action.json')
+
+        await vi.waitFor(() => {
+            expect(persistActionFile).toHaveBeenCalledOnce()
+            expect(service.getActionByPath('actions/action.json')?.label).toBe('Recovered')
+            expect(service.getDraft('actions/action.json').deleted).toBe(false)
+        })
+    })
+
+    it('keeps a dirty moved action at its old path while loading the new path', () => {
+        const service = new ActionService(() => deletionGateway())
+        service.loadFromFiles([file(VALID)])
+        service.updateDraft('actions/action.json', { ...VALID, label: '' })
+        const movedFile = { content: JSON.stringify({ ...VALID, id: 'action-moved', label: 'Moved' }), path: 'actions/moved.json' }
+
+        service.reloadFromFiles([movedFile], [
+            { origin: 'external', path: 'actions/action.json' },
+            { origin: 'external', path: 'actions/moved.json' },
+        ])
+
+        expect(service.getDraft('actions/action.json').deleted).toBe(true)
+        expect(service.getActionByPath('actions/moved.json')?.label).toBe('Moved')
+    })
+
+    it('turns same-path recreation into an explicit external conflict', () => {
+        const service = new ActionService(() => deletionGateway())
+        service.loadFromFiles([file(VALID)])
+        service.updateDraft('actions/action.json', { ...VALID, label: '' })
+        service.reloadFromFiles([], [{ origin: 'external', path: 'actions/action.json' }])
+
+        service.reloadFromFiles(
+            [file({ ...VALID, label: 'Recreated externally' })],
+            [{ origin: 'external', path: 'actions/action.json' }],
+        )
+
+        expect(service.getDraft('actions/action.json')).toMatchObject({
+            conflict: { label: 'Recreated externally' },
+            definition: { label: '' },
+            deleted: false,
+        })
     })
 })

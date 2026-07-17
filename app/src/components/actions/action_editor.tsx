@@ -5,6 +5,7 @@ import { ACTION_PROMPT_PLACEHOLDERS } from '../../data/action_placeholders'
 import {
     actionService,
 } from '../../services/action_service'
+import { openFilesService } from '../../services/open_files_service'
 import { MarkdownEditor, type MarkdownEditorHandle } from '../editor/markdown_editor'
 import { MarkdownDocumentHistoryStore } from '../editor/markdown_document_history_store'
 import { useWorktrees } from '../hooks/use_worktrees'
@@ -39,7 +40,7 @@ export function ActionEditor(props: ActionEditorProps) {
         return () => actionService.removeEventListener('changed', handleChanged)
     }, [])
     const draft = actionService.getDraft(sourcePath)
-    const { conflict, definition, error: saveError, saving, validation } = draft
+    const { conflict, definition, deleted, error: saveError, saving, validation } = draft
     const phrases = useMemo(() => definition.phrases ?? [], [definition.phrases])
     const [editorState, setEditorState] = useState(() => reconcileActionPhraseEditorState(action.editorState, phrases))
     const reconciledEditorState = reconcileActionPhraseEditorState(editorState, phrases)
@@ -174,6 +175,15 @@ export function ActionEditor(props: ActionEditorProps) {
         actionService.reloadDraft(sourcePath)
     }
 
+    const handleRecreateDeleted = () => {
+        actionService.recreateDeletedDraft(sourcePath)
+    }
+
+    const handleDiscardDeleted = () => {
+        actionService.discardDeletedDraft(sourcePath)
+        openFilesService.closeFile(sourcePath)
+    }
+
     const selectableActions = actions.filter(({ id }) => id !== action.id)
     const dirty = draft.revision !== draft.savedRevision
     const canRetry = !!saveError && validation.valid && dirty && !conflict && !saving
@@ -200,6 +210,27 @@ export function ActionEditor(props: ActionEditorProps) {
                     </Alert>
                 ) : null}
                 {generalError ? <Alert severity="error" sx={{ mb: 2 }}>{generalError}</Alert> : null}
+                {deleted ? (
+                    <Alert
+                        action={(
+                            <Stack direction="row" spacing={1}>
+                                <Button
+                                    color="inherit"
+                                    disabled={!validation.valid || saving}
+                                    onClick={handleRecreateDeleted}
+                                    size="small"
+                                >
+                                    Recreate file
+                                </Button>
+                                <Button color="inherit" onClick={handleDiscardDeleted} size="small">Discard draft</Button>
+                            </Stack>
+                        )}
+                        severity="warning"
+                        sx={{ mb: 2 }}
+                    >
+                        This action file was deleted outside the editor. Recreate it or discard this draft.
+                    </Alert>
+                ) : null}
                 {conflict ? (
                     <Alert
                         action={(

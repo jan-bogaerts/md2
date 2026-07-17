@@ -1,7 +1,7 @@
 ---
 id: B-071
 title: external action deletion crashes the editor
-status: design
+status: ready
 owner: JB
 affects:
 policy:
@@ -44,4 +44,3 @@ The editor crashes instead of closing the stale tab or presenting a recoverable 
 - [[B-052]]
 - [[B-068]]
 - `design\architecture\initial description\writings\action_editor.md`
-

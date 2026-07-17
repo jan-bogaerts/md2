@@ -57,6 +57,24 @@ describe('DataService', () => {
         expect(pendingStates.at(-1)).toBe(false)
     })
 
+    it('discards queued action persistence before lifecycle flushing', async () => {
+        vi.useFakeTimers()
+        configService.init()
+        const storage = createStorage()
+        const service = new DataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        await service.persistActionFile({ content: '{"label":"Draft"}', path: 'actions/review.json' })
+
+        expect(service.hasPendingActionFile('actions/review.json')).toBe(true)
+        service.discardPendingActionFile('actions/review.json')
+        await service.flushPendingChanges()
+        await vi.advanceTimersByTimeAsync(30000)
+
+        expect(service.hasPendingActionFile('actions/review.json')).toBe(false)
+        expect(storage.commit).not.toHaveBeenCalled()
+    })
+
     it('coalesces every action text category and pushes once per configured batch interval', async () => {
         vi.useFakeTimers()
         configService.init()

@@ -150,4 +150,24 @@ describe('CommitBatcher', () => {
         expect(commit).toHaveBeenCalledTimes(2)
         expect(commit.mock.calls[1][0].files).toEqual([{ content: 'new', path: 'actions/review.json' }])
     })
+
+    it('discards a pending file without committing it', async () => {
+        vi.useFakeTimers()
+        const commit = vi.fn<CommitCallback>(async () => undefined)
+        const batcher = new CommitBatcher({
+            clearDelay: window.clearTimeout,
+            commit,
+            delayMs: 30000,
+            onPendingChange: vi.fn(),
+            setDelay: window.setTimeout,
+        })
+        batcher.schedule('main', [{ content: 'draft', path: 'actions/review.json' }], 'Update action')
+
+        batcher.discardPendingFile('actions/review.json')
+        await vi.advanceTimersByTimeAsync(30000)
+
+        expect(batcher.hasPendingFile('actions/review.json')).toBe(false)
+        expect(commit).not.toHaveBeenCalled()
+        vi.useRealTimers()
+    })
 })

@@ -55,6 +55,28 @@ describe('ProjectLoading', () => {
         expect(actionService.getDraft('actions/run.json').definition.label).toBe('')
     })
 
+    it('blocks project switching until a deleted dirty action is recovered or discarded', async () => {
+        configService.init()
+        const storage = createStorage()
+        const service = new DataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'first' })
+        actionService.loadFromFiles([{
+            content: JSON.stringify(actionDefinition('run')),
+            path: 'actions/run.json',
+        }])
+        actionService.updateDraft('actions/run.json', { ...actionDefinition('run'), label: '' })
+        actionService.reloadFromFiles([], [{ origin: 'external', path: 'actions/run.json' }])
+
+        await expect(service.projectLoading.openProject({ branch: 'main', id: 'second' }))
+            .rejects.toThrow(/requires explicit recovery or discard/u)
+        expect(service.getState().project?.id).toBe('first')
+
+        actionService.discardDeletedDraft('actions/run.json')
+        await service.projectLoading.openProject({ branch: 'main', id: 'second' })
+        expect(service.getState().project?.id).toBe('second')
+    })
+
     it('derives project states from active cards when config does not define them', async () => {
         configService.init()
         const rootFiles = [
