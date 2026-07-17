@@ -446,6 +446,7 @@ export class ActionService extends EventTarget {
         const action = this.getActionByPath(path)
         if (!action) throw new Error(`Cannot save editor state for unknown action: ${path}`)
         action.editorState = editorState
+        this.dispatchChanged()
     }
 
     getActionsForStateTrigger(state: string, context: ActionContext): ActionDefinition[] {

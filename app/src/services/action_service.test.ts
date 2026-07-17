@@ -8,7 +8,11 @@ import {
 } from '../data/action_types'
 
 function file(definition: unknown): ActionFile {
-    return { content: JSON.stringify(definition), path: 'actions/action.json' }
+    return fileAt('actions/action.json', definition)
+}
+
+function fileAt(path: string, definition: unknown): ActionFile {
+    return { content: JSON.stringify(definition), path }
 }
 
 const VALID: RawActionDefinition = { command: 'run', description: 'Do it', id: 'action-do', label: 'Do', type: 'command' }
@@ -45,6 +49,8 @@ describe('ActionService', () => {
         const persistActionFile = vi.fn(async (persistedFile: ActionFile) => { persistedFiles.push(persistedFile) })
         const service = new ActionService(() => ({ persistActionFile }))
         service.loadFromFiles([file(VALID)])
+        const changed = vi.fn()
+        service.addEventListener('changed', changed)
 
         const editorState = {
             phrases: [{
@@ -55,17 +61,46 @@ describe('ActionService', () => {
         }
         service.setActionEditorState('actions/action.json', editorState)
         expect(service.getActionByPath('actions/action.json')?.editorState).toEqual(editorState)
+        expect(changed).toHaveBeenCalledTimes(1)
 
         service.reloadFromFiles(
             [file({ ...VALID, label: 'Reloaded' })],
             [{ origin: 'external', path: 'actions/action.json' }],
         )
         expect(service.getActionByPath('actions/action.json')?.editorState).toEqual(editorState)
+        expect(changed).toHaveBeenCalledTimes(2)
 
         await service.saveDefinition('actions/action.json', { ...VALID, label: 'Saved' })
         expect(service.getActionByPath('actions/action.json')?.editorState).toEqual(editorState)
+        expect(changed).toHaveBeenCalledTimes(3)
         expect(persistedFiles[0].content).not.toContain('editorState')
         expect(persistedFiles[0].content).not.toContain(editorState.phrases[0].identity)
+    })
+
+    it('keeps editor state with each owning action', () => {
+        const service = new ActionService()
+        service.loadFromFiles([
+            file(VALID),
+            fileAt('actions/other.json', { ...VALID, id: 'action-other', label: 'Other' }),
+        ])
+        const firstState = { phrases: [], selectedTab: 'prompt' }
+        const otherState = { phrases: [], selectedTab: 'definition' }
+
+        service.setActionEditorState('actions/action.json', firstState)
+        service.setActionEditorState('actions/other.json', otherState)
+
+        expect(service.getActionByPath('actions/action.json')?.editorState).toBe(firstState)
+        expect(service.getActionByPath('actions/other.json')?.editorState).toBe(otherState)
+    })
+
+    it('discards editor state when loading another project', () => {
+        const service = new ActionService()
+        service.loadFromFiles([file(VALID)])
+        service.setActionEditorState('actions/action.json', { phrases: [], selectedTab: 'prompt' })
+
+        service.loadFromFiles([file({ ...VALID, label: 'Other project' })])
+
+        expect(service.getActionByPath('actions/action.json')?.editorState).toBeUndefined()
     })
 
     it('loads usable definitions and exposes errors from invalid files', () => {

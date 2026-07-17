@@ -150,6 +150,20 @@ describe('ActionEditor', () => {
         expect(screen.getByRole('tab', { name: 'Tests' })).toHaveAttribute('aria-selected', 'true')
     })
 
+    it('uses service-published editor state as its source of truth', () => {
+        renderEditor(loadAction({ phrases: [{ text: 'Run tests', title: 'Tests' }] }))
+        fireEvent.click(screen.getByRole('tab', { name: 'Tests' }))
+        const publishedAction = actionService.getActionByPath('actions/review.json')
+        if (!publishedAction?.editorState) throw new Error('Missing published editor state')
+
+        act(() => actionService.setActionEditorState('actions/review.json', {
+            ...publishedAction.editorState,
+            selectedTab: 'prompt',
+        }))
+
+        expect(screen.getByRole('tab', { name: 'Prompt' })).toHaveAttribute('aria-selected', 'true')
+    })
+
     it('offers placeholders for the action prompt but not predefined phrases', () => {
         renderEditor(loadAction({ phrases: [{ text: 'Run tests', title: 'Tests' }] }))
 
@@ -373,7 +387,7 @@ describe('ActionEditor', () => {
         fireEvent.click(screen.getByRole('tab', { name: 'Tests' }))
         expect(screen.getByRole('tab', { name: 'Tests' })).toHaveAttribute('aria-selected', 'true')
 
-        const externalAction = loadAction({ phrases: [] })
+        const externalAction = reloadAction({ phrases: [] })
         view.rerender(
             <AppThemeProvider>
                 <ActionEditor
@@ -428,7 +442,7 @@ describe('ActionEditor', () => {
         fireEvent.click(screen.getByRole('tab', { name: 'Beta' }))
         const selectedIdentity = action.editorState?.selectedTab
         const gammaIdentity = action.editorState?.phrases[2].identity
-        const externalAction = loadAction({ phrases: [initialPhrases[2], initialPhrases[1]] })
+        const externalAction = reloadAction({ phrases: [initialPhrases[2], initialPhrases[1]] })
 
         view.rerender(
             <AppThemeProvider>

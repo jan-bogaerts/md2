@@ -12,6 +12,7 @@ const action: ActionDefinition = {
     builtin: false,
     command: 'renderer must not send this',
     description: 'Run tests',
+    editorState: { phrases: [], selectedTab: 'prompt' },
     icon: null,
     id: 'test',
     label: 'Test',

@@ -288,6 +288,24 @@ describe('TextView', () => {
         expect(screen.getByRole('tab', { name: 'Tests' })).toHaveAttribute('aria-selected', 'true')
     })
 
+    it('restores an action editor section after closing and reopening its tab', () => {
+        actionService.loadFromFiles([{
+            content: JSON.stringify({
+                description: 'Review the selected file', id: 'review-id', label: 'Review code',
+                phrases: [{ text: 'Run tests', title: 'Tests' }], prompt: 'Review {{card-file}}', type: 'agent',
+            }),
+            path: 'design/actions/review.json',
+        }])
+        renderTextView()
+
+        clickTreeFile('Review code')
+        fireEvent.click(screen.getByRole('tab', { name: 'Tests' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Close Review code' }))
+        clickTreeFile('Review code')
+
+        expect(screen.getByRole('tab', { name: 'Tests' })).toHaveAttribute('aria-selected', 'true')
+    })
+
     it('reloads and reopens an action by stable path without duplicating its tab', async () => {
         const path = 'design/actions/review.json'
         const actionDefinition = {

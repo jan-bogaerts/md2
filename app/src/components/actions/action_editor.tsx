@@ -42,16 +42,15 @@ export function ActionEditor(props: ActionEditorProps) {
     const draft = actionService.getDraft(sourcePath)
     const { conflict, definition, deleted, error: saveError, saving, validation } = draft
     const phrases = useMemo(() => definition.phrases ?? [], [definition.phrases])
-    const [editorState, setEditorState] = useState(() => reconcileActionPhraseEditorState(action.editorState, phrases))
-    const reconciledEditorState = reconcileActionPhraseEditorState(editorState, phrases)
-    if (reconciledEditorState !== editorState) setEditorState(reconciledEditorState)
-    const { phrases: phraseEditorStates, selectedTab } = reconciledEditorState
+    const publishedAction = actionService.getActionByPath(sourcePath) ?? action
+    const editorState = reconcileActionPhraseEditorState(publishedAction.editorState, phrases)
+    const { phrases: phraseEditorStates, selectedTab } = editorState
     const [markdownHistoryStore] = useState(() => new MarkdownDocumentHistoryStore())
     const markdownEditorRef = useRef<MarkdownEditorHandle>(null)
 
     useEffect(() => {
-        actionService.setActionEditorState(sourcePath, reconciledEditorState)
-    }, [reconciledEditorState, sourcePath])
+        if (publishedAction.editorState !== editorState) actionService.setActionEditorState(sourcePath, editorState)
+    }, [editorState, publishedAction.editorState, sourcePath])
 
     const errors = useMemo(() => (
         validation.error && validation.field ? { [validation.field]: validation.error } : {}
@@ -76,7 +75,6 @@ export function ActionEditor(props: ActionEditorProps) {
 
     const storeEditorState = useCallback((nextEditorState: typeof editorState) => {
         actionService.setActionEditorState(sourcePath, nextEditorState)
-        setEditorState(nextEditorState)
     }, [sourcePath])
 
     const handleAddPhrase = () => {
