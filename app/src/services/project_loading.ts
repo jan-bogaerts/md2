@@ -134,6 +134,7 @@ export class ProjectLoading {
 
     async openProject(project: ProjectReference) {
         const { storage } = this.dependencies.requireDependencies()
+        await this.dependencies.flushPendingCommits()
         this.clearMarkdownReloadTimeout()
         const projectLoadToken = this.dependencies.beginProjectLoad()
         this.dependencies.resetAgentConversations()
@@ -235,6 +236,7 @@ export class ProjectLoading {
         const currentProject = this.dependencies.project()
         if (!currentProject) throw new Error('Cannot switch branch before a project is open')
 
+        await this.dependencies.flushPendingCommits()
         const project = await storage.checkoutBranch(currentProject, branch)
 
         return this.openProject(project)

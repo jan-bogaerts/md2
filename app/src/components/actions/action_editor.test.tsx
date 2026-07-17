@@ -46,6 +46,14 @@ function loadAction(overrides: Record<string, unknown> = {}): ActionDefinition {
     return action
 }
 
+function reloadAction(overrides: Record<string, unknown> = {}): ActionDefinition {
+    actionService.reloadFromFiles([file(overrides)], ['actions/review.json'])
+    const action = actionService.getActionByPath('actions/review.json')
+    if (!action) throw new Error('Missing reloaded test action')
+
+    return action
+}
+
 function renderEditor(action: ActionDefinition = loadAction(), states = ['ready']): RenderResult {
     return render(
         <AppThemeProvider>
@@ -293,7 +301,7 @@ describe('ActionEditor', () => {
         fireEvent.click(screen.getByRole('tab', { name: 'Prompt' }))
         fireEvent.change(within(screen.getByTestId('mdx-editor')).getByRole('textbox'), { target: { value: 'Local prompt edit' } })
 
-        const externalAction = loadAction({ description: 'External description' })
+        const externalAction = reloadAction({ description: 'External description' })
         view.rerender(
             <AppThemeProvider>
                 <ActionEditor
@@ -445,7 +453,7 @@ describe('ActionEditor', () => {
             path: 'actions/review.json',
         })
         expect(actionService.getActionByPath('actions/review.json')?.label).toBe('Published label')
-        expect(changed).toHaveBeenCalledOnce()
+        expect(changed).toHaveBeenCalled()
         actionService.removeEventListener('changed', changed)
     })
 
@@ -553,7 +561,7 @@ describe('ActionEditor', () => {
         fireEvent.change(labelInput(), { target: { value: 'Local edit' } })
 
         // An external change arrives while the draft is dirty.
-        const externalAction = loadAction({ description: 'External change' })
+        const externalAction = reloadAction({ description: 'External change' })
         view.rerender(
             <AppThemeProvider>
                 <ActionEditor
@@ -587,7 +595,7 @@ describe('ActionEditor', () => {
         await act(async () => vi.advanceTimersByTime(500))
         fireEvent.change(descriptionInput(), { target: { value: 'Newer local edit' } })
 
-        const reparsedSaveEcho = loadAction({ description: 'First local edit', phrases: [] })
+        const reparsedSaveEcho = reloadAction({ description: 'First local edit', phrases: [] })
         view.rerender(
             <AppThemeProvider>
                 <ActionEditor
@@ -608,7 +616,7 @@ describe('ActionEditor', () => {
     it('adopts an external reload immediately while the draft is clean', () => {
         const action = loadAction()
         const view = renderEditor(action)
-        const externalAction = loadAction({ label: 'External label' })
+        const externalAction = reloadAction({ label: 'External label' })
 
         view.rerender(
             <AppThemeProvider>
@@ -641,7 +649,7 @@ describe('ActionEditor', () => {
             }),
             path: 'actions/review.json',
         }
-        actionService.loadFromFiles([reorderedFile])
+        actionService.reloadFromFiles([reorderedFile], ['actions/review.json'])
         const reloadedAction = actionService.getActionByPath('actions/review.json')
         if (!reloadedAction) throw new Error('Missing reloaded action')
 

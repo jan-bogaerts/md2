@@ -3,6 +3,7 @@ import type { ActionContext } from '../data/action_context'
 import { resolveProjectConfigPaths, type MarkdownFile, type ProjectConfig, type ProjectReference, type ProjectSnapshot, type RunningAgent, type StorageService } from '../data/data_types'
 import type { RemarkableBridge } from '../data/remarkable_bridge'
 import { agentConversationService, listAgentConversationReferences, loadAgentConversation } from './agent_conversation_service'
+import { actionService } from './action_service'
 import { CardOperations, type CardOperationsDeps } from './card_operations'
 import { configService } from './config_service'
 import { type DataServiceDependencies, getProjectConfigOrNull, reportCommitFlushFailure } from './data_service_context'
@@ -44,6 +45,7 @@ export class DataService extends EventTarget {
         super()
         this.saveStateService = new SaveStateService()
         this.saveStateService.addEventListener('changed', () => this.dispatchChanged())
+        actionService.addEventListener('changed', () => this.dispatchChanged())
         this.projectState = new ProjectState((cards) => this.agents.attachAgentConversations(cards))
         this.cards = new CardOperations(
             this.createCardOperationsDependencies(),
@@ -92,7 +94,7 @@ export class DataService extends EventTarget {
 
         return {
             hasPendingPush,
-            hasPendingSave: this.saveStateService.getState().hasPendingSave,
+            hasPendingSave: this.saveStateService.getState().hasPendingSave || actionService.hasPendingDrafts(),
             project: currentProject,
             runningAgents: agentConversationService.getRunningAgents(),
             snapshot: this.projectState.snapshot,
@@ -101,6 +103,10 @@ export class DataService extends EventTarget {
 
     getConfig(): ProjectConfig | null {
         return getProjectConfigOrNull(this.storage)
+    }
+    async flushPendingChanges() {
+        if (actionService.hasPendingDrafts()) await actionService.flushDrafts()
+        if (this.commitBatcher) await this.cards.flushPendingCommits()
     }
     async listAgentConversations(context: ActionContext) {
         const { config, storage } = this.requireDependencies()
@@ -132,12 +138,11 @@ export class DataService extends EventTarget {
         return loadAgentConversation(storage, currentProject, path)
     }
     async persistActionFile(file: MarkdownFile) {
-        const { config, storage } = this.requireDependencies()
+        const { commitBatcher } = this.requireDependencies()
         const currentProject = this.projectState.project
         if (!currentProject) throw new Error('Cannot save an action before a project is open')
 
-        await storage.commit({ branch: currentProject.branch, files: [file], message: `Update ${file.path}` })
-        if (config.pushMode === 'auto') await storage.push(currentProject)
+        commitBatcher.schedule(currentProject.branch, [file], `Update ${file.path}`)
         this.dispatchChanged()
     }
     getRemarkableMetadataContent(): string | null {
@@ -200,7 +205,7 @@ export class DataService extends EventTarget {
             commitPathsInFlight: () => this.projectState.commitPathsInFlight,
             dispatchChanged: () => this.dispatchChanged(),
             files: () => this.projectState.files,
-            flushPendingCommits: () => this.cards.flushPendingCommits(),
+            flushPendingCommits: () => this.flushPendingChanges(),
             isCurrentLoad: (project, projectLoadToken) => this.projectState.isCurrentLoad(project, projectLoadToken),
             project: () => this.projectState.project,
             replaceFiles: (files, workingFolder) => this.projectState.replaceFiles(files, workingFolder),

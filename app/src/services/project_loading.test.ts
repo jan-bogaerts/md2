@@ -1,5 +1,6 @@
 ﻿import { afterEach, describe, expect, it, vi } from 'vitest'
 import { DEFAULT_STATES, defaultColumnAccent, type StorageProjectFiles, type StorageService } from '../data/data_types'
+import type { RawActionDefinition } from '../data/action_types'
 import { actionService } from './action_service'
 import { configService } from './config_service'
 import { DataService } from './data_service'
@@ -8,8 +9,8 @@ import { telemetryService } from './telemetry_service'
 import { GLOBAL_PROGRESS_EVENT, globalProgressService, type GlobalProgress } from './global_progress_service'
 import { createDeferred, createStorage, files, storageFiles, waitForWorkerTurn } from './test_support/data_service_test_support'
 
-function actionDefinition(id: string, overrides: Record<string, unknown> = {}) {
-    return { command: 'run', description: id, id: `action-${id}`, label: id, type: 'command', ...overrides }
+function actionDefinition(id: string, overrides: Record<string, unknown> = {}): RawActionDefinition {
+    return { command: 'run', description: id, id: `action-${id}`, label: id, type: 'command', ...overrides } as RawActionDefinition
 }
 
 function recordDialogMessages(severity: DialogSeverity) {
@@ -30,8 +31,28 @@ describe('ProjectLoading', () => {
     afterEach(() => {
         vi.useRealTimers()
         delete window.md2Actions
+        actionService.clear()
         configService.clear()
         globalProgressService.finish()
+    })
+
+    it('blocks project navigation while an invalid action draft remains unsaved', async () => {
+        configService.init()
+        const storage = createStorage()
+        const service = new DataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'first' })
+        actionService.loadFromFiles([{
+            content: JSON.stringify(actionDefinition('run')),
+            path: 'actions/run.json',
+        }])
+        actionService.updateDraft('actions/run.json', { ...actionDefinition('run'), label: '' })
+
+        await expect(service.projectLoading.openProject({ branch: 'main', id: 'second' }))
+            .rejects.toThrow(/invalid unsaved changes/u)
+
+        expect(service.getState().project?.id).toBe('first')
+        expect(actionService.getDraft('actions/run.json').definition.label).toBe('')
     })
 
     it('derives project states from active cards when config does not define them', async () => {

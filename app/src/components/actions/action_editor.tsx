@@ -4,9 +4,7 @@ import type { ActionDefinition, RawActionDefinition } from '../../data/action_ty
 import { ACTION_PROMPT_PLACEHOLDERS } from '../../data/action_placeholders'
 import {
     actionService,
-    editableActionDefinition,
 } from '../../services/action_service'
-import { dialogService } from '../../services/dialog_service'
 import { MarkdownEditor, type MarkdownEditorHandle } from '../editor/markdown_editor'
 import { MarkdownDocumentHistoryStore } from '../editor/markdown_document_history_store'
 import { useWorktrees } from '../hooks/use_worktrees'
@@ -14,7 +12,6 @@ import { ActionDefinitionFields } from './action_definition_fields'
 import { ActionPhraseToolbarControls } from './action_phrase_toolbar_controls'
 import { actionPhraseLabel } from './action_phrase_label'
 
-const AUTO_SAVE_DELAY_MS = 500
 const DEFINITION_TAB = 'definition'
 const PROMPT_TAB = 'prompt'
 const PHRASE_TAB_PREFIX = 'phrase-'
@@ -28,41 +25,8 @@ interface ActionEditorProps {
     states: string[]
 }
 
-interface ActionDraftState {
-    definition: RawActionDefinition
-    revision: number
-    savedRevision: number
-}
-
 function phraseTabValue(index: number) {
     return `${PHRASE_TAB_PREFIX}${index}`
-}
-
-function normalizedJsonValue(value: unknown): unknown {
-    if (Array.isArray(value)) return value.map(normalizedJsonValue)
-    if (value === null || typeof value !== 'object') return value
-
-    const normalizedValue: Record<string, unknown> = {}
-    for (const key of Object.keys(value).sort()) {
-        const fieldValue = (value as Record<string, unknown>)[key]
-        if (fieldValue !== undefined) normalizedValue[key] = normalizedJsonValue(fieldValue)
-    }
-
-    return normalizedValue
-}
-
-function actionDefinitionsEqual(left: RawActionDefinition, right: RawActionDefinition) {
-    return JSON.stringify(normalizedJsonValue(left)) === JSON.stringify(normalizedJsonValue(right))
-}
-
-function findMatchingDefinition(definitions: Set<RawActionDefinition>, candidate: RawActionDefinition) {
-    if (definitions.has(candidate)) return candidate
-
-    for (const definition of definitions) {
-        if (actionDefinitionsEqual(definition, candidate)) return definition
-    }
-
-    return null
 }
 
 export function ActionEditor(props: ActionEditorProps) {
@@ -71,123 +35,27 @@ export function ActionEditor(props: ActionEditorProps) {
     const sourcePath = action.sourcePath
     if (!sourcePath) throw new Error(`Action editor requires a persisted action: ${action.id}`)
 
-    const initialExternalDefinition = actionService.getDefinitionByPath(sourcePath)
-    if (!initialExternalDefinition) throw new Error(`Missing action definition for editor: ${sourcePath}`)
+    const [, setServiceRevision] = useState(0)
+    useEffect(() => {
+        const handleChanged = () => setServiceRevision((current) => current + 1)
+        actionService.addEventListener('changed', handleChanged)
 
-    const [draft, setDraft] = useState<ActionDraftState>(() => ({
-        definition: editableActionDefinition(action),
-        revision: 0,
-        savedRevision: 0,
-    }))
-    const { definition, revision, savedRevision } = draft
-    // Last service-owned definition reconciled into this editor.
-    const externalDefinitionRef = useRef(initialExternalDefinition)
-    // Structured draft objects issued by this editor, used to recognise service save echoes.
-    const ownDefinitionsRef = useRef(new Set<RawActionDefinition>())
-    // Serializes persistence per action path and orders completions.
-    const chainRef = useRef<Promise<void>>(Promise.resolve())
-    const issuedRef = useRef(0)
-    const [pendingCount, setPendingCount] = useState(0)
-    const [saveError, setSaveError] = useState<string | null>(null)
-    const [conflict, setConflict] = useState<RawActionDefinition | null>(null)
+        return () => actionService.removeEventListener('changed', handleChanged)
+    }, [])
+    const draft = actionService.getDraft(sourcePath)
+    const { conflict, definition, error: saveError, saving, validation } = draft
     const [selectedTab, setSelectedTab] = useState(action.editorState?.selectedTab ?? DEFINITION_TAB)
     const [markdownHistoryStore] = useState(() => new MarkdownDocumentHistoryStore())
     const markdownEditorRef = useRef<MarkdownEditorHandle>(null)
 
-    const validation = useMemo(
-        () => actionService.validateDefinition(sourcePath, definition),
-        [definition, sourcePath],
-    )
     const errors = useMemo(() => (
         validation.error && validation.field ? { [validation.field]: validation.error } : {}
     ), [validation.error, validation.field])
     // Definition/file/cycle errors have no single field; surface them in a general summary.
     const generalError = !validation.valid && !validation.field ? validation.error : null
 
-    const dirty = revision !== savedRevision
-
-    const runSave = useCallback((snapshot: RawActionDefinition, snapshotRevision: number, track: boolean) => {
-        const seq = ++issuedRef.current
-        // Record saved object so resulting prop update is recognised as our own echo,
-        // not an external conflict.
-        ownDefinitionsRef.current.add(snapshot)
-        if (track) {
-            setPendingCount((current) => current + 1)
-            setSaveError(null)
-        }
-        chainRef.current = chainRef.current.then(async () => {
-            try {
-                await actionService.saveDefinition(sourcePath, snapshot)
-                // Chain preserves issue order; never move saved revision backwards.
-                setDraft((current) => ({
-                    ...current,
-                    savedRevision: Math.max(current.savedRevision, snapshotRevision),
-                }))
-            } catch (error) {
-                ownDefinitionsRef.current.delete(snapshot)
-                // A stale completion (superseded by a newer save) must not surface as the status.
-                if (track && seq === issuedRef.current) {
-                    const message = error instanceof Error ? error.message : 'Action save failed'
-                    setSaveError(message)
-                    dialogService.error(error, { fallbackMessage: message })
-                }
-            } finally {
-                if (track) setPendingCount((current) => current - 1)
-            }
-        })
-    }, [sourcePath])
-
-    // Debounced auto-save of the newest valid dirty draft.
-    useEffect(() => {
-        if (!validation.valid || !dirty || conflict) return undefined
-
-        const snapshot = definition
-        const timeout = window.setTimeout(() => runSave(snapshot, revision, true), AUTO_SAVE_DELAY_MS)
-
-        return () => window.clearTimeout(timeout)
-    }, [conflict, definition, dirty, revision, runSave, validation.valid])
-
-    // Reconcile external `action` changes without clobbering an in-flight draft.
-    useEffect(() => {
-        const externalDefinition = actionService.getDefinitionByPath(sourcePath)
-        if (!externalDefinition) throw new Error(`Missing external action definition: ${sourcePath}`)
-        if (externalDefinition === externalDefinitionRef.current
-            || actionDefinitionsEqual(externalDefinition, externalDefinitionRef.current)) return
-        externalDefinitionRef.current = externalDefinition
-
-        const ownDefinition = findMatchingDefinition(ownDefinitionsRef.current, externalDefinition)
-        if (ownDefinition) {
-            ownDefinitionsRef.current.delete(ownDefinition)
-
-            return
-        }
-        if (!dirty) {
-            // Draft is clean: adopt the external version.
-            // eslint-disable-next-line react-hooks/set-state-in-effect
-            setDraft((current) => {
-                const nextRevision = current.revision + 1
-
-                return { definition: externalDefinition, revision: nextRevision, savedRevision: nextRevision }
-            })
-        } else {
-            // Draft is dirty: surface a conflict, keep the local draft.
-            setConflict(externalDefinition)
-        }
-    }, [action, dirty, sourcePath])
-
-    // Flush a pending valid dirty draft when the editor unmounts (tab switch / close).
-    const flushStateRef = useRef({ definition, dirty, revision, runSave, valid: validation.valid })
-    useEffect(() => {
-        flushStateRef.current = { definition, dirty, revision, runSave, valid: validation.valid }
-    })
-    useEffect(() => () => {
-        const flush = flushStateRef.current
-        if (!flush.valid || !flush.dirty) return
-        flush.runSave(flush.definition, flush.revision, false)
-    }, [])
-
     const handleDefinitionChange = (nextDefinition: RawActionDefinition) => {
-        setDraft((current) => ({ ...current, definition: nextDefinition, revision: current.revision + 1 }))
+        actionService.updateDraft(sourcePath, nextDefinition)
     }
 
     const selectedPhraseIndex = selectedTab.startsWith(PHRASE_TAB_PREFIX)
@@ -205,11 +73,7 @@ export function ActionEditor(props: ActionEditorProps) {
 
     const handleAddPhrase = () => {
         const phrases = definition.phrases ?? []
-        setDraft((current) => ({
-            ...current,
-            definition: { ...current.definition, phrases: [...phrases, { text: '', title: '' }] },
-            revision: current.revision + 1,
-        }))
+        actionService.updateDraft(sourcePath, { ...definition, phrases: [...phrases, { text: '', title: '' }] })
         const nextTab = phraseTabValue(phrases.length)
         actionService.setSelectedEditorTab(sourcePath, nextTab)
         setSelectedTab(nextTab)
@@ -226,56 +90,41 @@ export function ActionEditor(props: ActionEditorProps) {
 
     const handleMarkdownChange = (documentId: string, text: string) => {
         if (documentId === PROMPT_TAB) {
-            setDraft((current) => current.definition.prompt === text ? current : ({
-                ...current,
-                definition: { ...current.definition, prompt: text },
-                revision: current.revision + 1,
-            }))
+            if (definition.prompt !== text) actionService.updateDraft(sourcePath, { ...definition, prompt: text })
             return
         }
         if (!documentId.startsWith(PHRASE_TAB_PREFIX)) throw new Error(`Unknown action Markdown document: ${documentId}`)
         const phraseIndex = Number(documentId.slice(PHRASE_TAB_PREFIX.length))
-        setDraft((current) => current.definition.phrases?.[phraseIndex]?.text === text ? current : ({
-            ...current,
-            definition: {
-                ...current.definition,
-                phrases: (current.definition.phrases ?? []).map((phrase, index) => (
-                    index === phraseIndex ? { ...phrase, text } : phrase
-                )),
-            },
-            revision: current.revision + 1,
-        }))
+        if (definition.phrases?.[phraseIndex]?.text === text) return
+        actionService.updateDraft(sourcePath, {
+            ...definition,
+            phrases: (definition.phrases ?? []).map((phrase, index) => (
+                index === phraseIndex ? { ...phrase, text } : phrase
+            )),
+        })
     }
 
     const handlePhraseTitleChange = useCallback((event: ChangeEvent<HTMLInputElement>) => {
         if (selectedPhraseIndex === null) return
         const title = event.target.value
-        setDraft((current) => ({
-            ...current,
-            definition: {
-                ...current.definition,
-                phrases: (current.definition.phrases ?? []).map((phrase, index) => (
-                    index === selectedPhraseIndex ? { ...phrase, title } : phrase
-                )),
-            },
-            revision: current.revision + 1,
-        }))
-    }, [selectedPhraseIndex])
+        actionService.updateDraft(sourcePath, {
+            ...definition,
+            phrases: (definition.phrases ?? []).map((phrase, index) => (
+                index === selectedPhraseIndex ? { ...phrase, title } : phrase
+            )),
+        })
+    }, [definition, selectedPhraseIndex, sourcePath])
 
     const handleDeletePhrase = useCallback(() => {
         if (selectedPhraseIndex === null) return
         markdownEditorRef.current?.setMarkdown(selectedPhrase?.text ?? '')
-        setDraft((current) => ({
-            ...current,
-            definition: {
-                ...current.definition,
-                phrases: (current.definition.phrases ?? []).filter((_phrase, index) => index !== selectedPhraseIndex),
-            },
-            revision: current.revision + 1,
-        }))
+        actionService.updateDraft(sourcePath, {
+            ...definition,
+            phrases: (definition.phrases ?? []).filter((_phrase, index) => index !== selectedPhraseIndex),
+        })
         actionService.setSelectedEditorTab(sourcePath, PROMPT_TAB)
         setSelectedTab(PROMPT_TAB)
-    }, [selectedPhrase, selectedPhraseIndex, sourcePath])
+    }, [definition, selectedPhrase, selectedPhraseIndex, sourcePath])
 
     const phraseToolbarContents = useCallback(() => {
         if (!selectedPhrase) throw new Error('Missing selected phrase')
@@ -290,26 +139,19 @@ export function ActionEditor(props: ActionEditorProps) {
     }, [handleDeletePhrase, handlePhraseTitleChange, selectedPhrase])
 
     const handleKeepMine = () => {
-        // Keep local draft dirty so it re-saves over external version.
-        setConflict(null)
+        actionService.keepDraft(sourcePath)
     }
 
     const handleReloadExternal = () => {
-        if (!conflict) return
-        setDraft((current) => {
-            const nextRevision = current.revision + 1
-
-            return { definition: conflict, revision: nextRevision, savedRevision: nextRevision }
-        })
-        setConflict(null)
+        actionService.reloadDraft(sourcePath)
     }
 
     const selectableActions = actions.filter(({ id }) => id !== action.id)
-    const saving = pendingCount > 0
+    const dirty = draft.revision !== draft.savedRevision
     const canRetry = !!saveError && validation.valid && dirty && !conflict && !saving
     const handleRetry = () => {
         if (!canRetry) return
-        runSave(definition, revision, true)
+        actionService.retryDraft(sourcePath)
     }
     const status = saveError
         ? 'Save failed. Retry to save changes.'

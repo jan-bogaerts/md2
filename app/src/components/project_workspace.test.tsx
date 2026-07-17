@@ -330,6 +330,24 @@ describe('ProjectWorkspace', () => {
         expect(pendingClose.defaultPrevented).toBe(true)
     })
 
+    it('keeps an invalid action draft pending when the browser closes', async () => {
+        window.md2Data = createBridge()
+        renderProjectSurface()
+        await openLocalProject()
+        actionService.loadFromFiles([{
+            content: JSON.stringify({ command: 'run', description: 'Run', id: 'run', label: 'Run', type: 'command' }),
+            path: 'actions/run.json',
+        }])
+        actionService.updateDraft('actions/run.json', { command: 'run', description: 'Run', id: 'run', label: '', type: 'command' })
+
+        const pendingClose = new Event('beforeunload', { cancelable: true })
+        window.dispatchEvent(pendingClose)
+
+        expect(pendingClose.defaultPrevented).toBe(true)
+        expect(actionService.getDraft('actions/run.json').definition.label).toBe('')
+        expect(dataService.getState().hasPendingSave).toBe(true)
+    })
+
     it('confirms close when storage has unpushed commits', async () => {
         const storage = createResetStorage()
         storage.hasPendingPush = vi.fn(() => true)
@@ -367,6 +385,30 @@ describe('ProjectWorkspace', () => {
 
         await waitFor(() => expect(bridge.commit).toHaveBeenCalled())
         await waitFor(() => expect(window.md2Lifecycle?.confirmFlush).toHaveBeenCalledWith('quit-1'))
+    })
+
+    it('does not confirm Electron quit when an invalid action draft cannot flush', async () => {
+        let flushRequested: ((requestId: string) => void) | null = null
+        window.md2Lifecycle = {
+            confirmFlush: vi.fn(),
+            onFlushRequested: vi.fn((callback) => {
+                flushRequested = callback
+
+                return vi.fn()
+            }),
+        }
+        renderProjectSurface()
+        actionService.loadFromFiles([{
+            content: JSON.stringify({ command: 'run', description: 'Run', id: 'run', label: 'Run', type: 'command' }),
+            path: 'actions/run.json',
+        }])
+        actionService.updateDraft('actions/run.json', { command: 'run', description: 'Run', id: 'run', label: '', type: 'command' })
+
+        act(() => flushRequested?.('quit-invalid'))
+
+        await screen.findByText(/invalid unsaved changes/u)
+        expect(window.md2Lifecycle.confirmFlush).not.toHaveBeenCalled()
+        expect(dataService.getState().hasPendingSave).toBe(true)
     })
 
     it('asks for a folder and persists an existing choice when the configured working folder is missing', async () => {

@@ -12,6 +12,7 @@ interface CommitBatcherDependencies {
 }
 
 export class CommitBatcher {
+    private activeFlush: Promise<void> | null
     private readonly clearDelay
     private readonly commit
     private readonly delayMs
@@ -24,6 +25,7 @@ export class CommitBatcher {
     private readonly setDelay
 
     constructor(dependencies: CommitBatcherDependencies) {
+        this.activeFlush = null
         this.clearDelay = dependencies.clearDelay
         this.commit = dependencies.commit
         this.delayMs = dependencies.delayMs ?? AUTO_COMMIT_DELAY_MS
@@ -58,20 +60,27 @@ export class CommitBatcher {
     }
 
     async flush() {
+        if (this.activeFlush) {
+            await this.activeFlush
+            if (this.hasPending()) await this.flush()
+            return
+        }
         if (!this.hasPending()) return
 
         this.clearScheduledDelay()
+        const pendingFiles = [...this.pendingFiles.values()]
         const request = {
             branch: this.pendingBranch as string,
-            files: [...this.pendingFiles.values()],
+            files: pendingFiles,
             message: this.createCommitMessage(),
         }
 
-        await this.commit(request)
-        this.pendingBranch = null
-        this.pendingFiles.clear()
-        this.pendingMessagesByPath.clear()
-        this.onPendingChange()
+        this.activeFlush = this.commitSnapshot(request, pendingFiles)
+        try {
+            await this.activeFlush
+        } finally {
+            this.activeFlush = null
+        }
     }
 
     private addPendingMessage(path: string, message: string) {
@@ -79,6 +88,17 @@ export class CommitBatcher {
         if (messages.includes(message)) return
 
         this.pendingMessagesByPath.set(path, [...messages, message])
+    }
+
+    private async commitSnapshot(request: CommitRequest, files: MarkdownFile[]) {
+        await this.commit(request)
+        for (const file of files) {
+            if (this.pendingFiles.get(file.path) !== file) continue
+            this.pendingFiles.delete(file.path)
+            this.pendingMessagesByPath.delete(file.path)
+        }
+        if (this.pendingFiles.size === 0) this.pendingBranch = null
+        this.onPendingChange()
     }
 
     private createCommitMessage() {

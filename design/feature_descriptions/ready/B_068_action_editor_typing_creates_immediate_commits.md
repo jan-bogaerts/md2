@@ -1,7 +1,7 @@
 ---
 id: B-068
 title: action editor typing creates immediate commits
-status: design
+status: ready
 owner: JB
 affects:
 policy:
@@ -64,4 +64,3 @@ The implementation also splits save ownership across `ActionEditor`, `ActionServ
 - [[B-052]]
 - [[B-061]]
 - `design\architecture\initial description\writings\action_editor.md`
-

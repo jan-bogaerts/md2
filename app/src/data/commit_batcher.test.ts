@@ -1,6 +1,6 @@
 ﻿import { describe, expect, it, vi } from 'vitest'
 import { CommitBatcher } from './commit_batcher'
-import type { CommitCallback } from '../services/test_support/data_service_test_support'
+import { createDeferred, type CommitCallback } from '../services/test_support/data_service_test_support'
 
 describe('CommitBatcher', () => {
     it('batches typing commits until the delay expires', async () => {
@@ -123,5 +123,31 @@ describe('CommitBatcher', () => {
             ],
             message: 'Update 2 files\n\n- Update design/F-1-root.md\n- Update design/F-2-child.md',
         })
+    })
+
+    it('keeps newer content queued when typing continues during a commit', async () => {
+        const firstCommit = createDeferred<void>()
+        const commit = vi.fn<CommitCallback>()
+            .mockImplementationOnce(async () => firstCommit.promise)
+            .mockImplementationOnce(async () => undefined)
+        const batcher = new CommitBatcher({
+            clearDelay: window.clearTimeout,
+            commit,
+            delayMs: 30000,
+            onPendingChange: vi.fn(),
+            setDelay: window.setTimeout,
+        })
+        batcher.schedule('main', [{ content: 'old', path: 'actions/review.json' }], 'Update action')
+
+        const pendingFlush = batcher.flush()
+        batcher.schedule('main', [{ content: 'new', path: 'actions/review.json' }], 'Update action')
+        firstCommit.resolve()
+        await pendingFlush
+
+        expect(batcher.hasPendingFile('actions/review.json')).toBe(true)
+        expect(commit).toHaveBeenCalledTimes(1)
+        await batcher.flush()
+        expect(commit).toHaveBeenCalledTimes(2)
+        expect(commit.mock.calls[1][0].files).toEqual([{ content: 'new', path: 'actions/review.json' }])
     })
 })

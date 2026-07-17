@@ -83,7 +83,7 @@ describe('electron action runner client', () => {
         vi.spyOn(dataService.projectLoading, 'reloadCurrentProjectSnapshot').mockResolvedValue(null)
         const state = dataService.getState()
         vi.spyOn(dataService, 'getState').mockReturnValue({ ...state, hasPendingSave: true })
-        const flush = vi.spyOn(dataService.cards, 'flushPendingCommits').mockImplementation(async () => {
+        const flush = vi.spyOn(dataService, 'flushPendingChanges').mockImplementation(async () => {
             expect(bridge.startAction).not.toHaveBeenCalled()
         })
 
@@ -96,7 +96,7 @@ describe('electron action runner client', () => {
         const bridge = createBridge()
         setActionBridgeOverride(bridge)
         vi.spyOn(dataService.projectLoading, 'reloadCurrentProjectSnapshot').mockResolvedValue(null)
-        const flush = vi.spyOn(dataService.cards, 'flushPendingCommits').mockResolvedValue()
+        const flush = vi.spyOn(dataService, 'flushPendingChanges').mockResolvedValue()
 
         await runElectronAction(action, context)
 

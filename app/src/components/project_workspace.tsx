@@ -34,15 +34,18 @@ const EMPTY_REPOSITORY_FILES: string[] = []
 
 function flushPendingCommits() {
     flushMarkdownEditors()
-    void dataService.cards.flushPendingCommits()
+    void dataService.flushPendingChanges().catch((error: unknown) => {
+        dialogService.error(error, { fallbackMessage: 'Pending changes could not be saved' })
+    })
 }
 
 async function flushAndConfirmPendingCommits(lifecycleBridge: ElectronLifecycleBridge, requestId: string) {
     try {
         flushMarkdownEditors()
-        await dataService.cards.flushPendingCommits()
-    } finally {
+        await dataService.flushPendingChanges()
         lifecycleBridge.confirmFlush(requestId)
+    } catch (error) {
+        dialogService.error(error, { fallbackMessage: 'Pending changes could not be saved before closing' })
     }
 }
 

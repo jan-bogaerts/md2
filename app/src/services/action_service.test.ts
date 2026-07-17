@@ -282,4 +282,42 @@ describe('ActionService', () => {
         expect(service.getActionByPath('actions/action.json')?.label).toBe(VALID.label)
         stringify.mockRestore()
     })
+
+    it('retains invalid dirty drafts until repaired and flushed', async () => {
+        const persistActionFile = vi.fn(async () => undefined)
+        const service = new ActionService(() => ({ persistActionFile }))
+        service.loadFromFiles([file(VALID)])
+
+        service.updateDraft('actions/action.json', { ...VALID, label: '' })
+
+        expect(service.hasPendingDrafts()).toBe(true)
+        expect(service.getDraft('actions/action.json').validation.valid).toBe(false)
+        await expect(service.flushDrafts()).rejects.toThrow(/invalid unsaved changes/u)
+        expect(persistActionFile).not.toHaveBeenCalled()
+
+        service.updateDraft('actions/action.json', { ...VALID, label: 'Repaired' })
+        await service.flushDrafts()
+
+        expect(service.hasPendingDrafts()).toBe(false)
+        expect(persistActionFile).toHaveBeenCalledWith(expect.objectContaining({ content: expect.stringContaining('"label": "Repaired"') }))
+    })
+
+    it('keeps failed drafts retryable through the shared coordinator', async () => {
+        const persistActionFile = vi.fn()
+            .mockRejectedValueOnce(new Error('disk unavailable'))
+            .mockResolvedValueOnce(undefined)
+        const service = new ActionService(() => ({ persistActionFile }))
+        service.loadFromFiles([file(VALID)])
+
+        service.updateDraft('actions/action.json', { ...VALID, label: 'Retry me' })
+        await expect(service.flushDrafts()).rejects.toThrow('disk unavailable')
+        expect(service.getDraft('actions/action.json').error).toBe('disk unavailable')
+        expect(service.hasPendingDrafts()).toBe(true)
+
+        service.retryDraft('actions/action.json')
+        await service.flushDrafts()
+
+        expect(persistActionFile).toHaveBeenCalledTimes(2)
+        expect(service.hasPendingDrafts()).toBe(false)
+    })
 })

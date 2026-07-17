@@ -1,13 +1,13 @@
 ﻿import { afterEach, describe, expect, it, vi } from 'vitest'
 import { GithubUnauthorizedError } from '../auth/github_api_client'
 import { configService } from './config_service'
+import { actionService } from './action_service'
 import { DataService } from './data_service'
 import { GithubStorageService } from './github_storage_service'
 import {
     createGithubRawResponse,
     createGithubResponse,
     createGithubStatusResponse,
-    createDeferred,
     createStorage,
     files,
     githubProject,
@@ -36,24 +36,88 @@ describe('DataService', () => {
         expect(handleUnauthorized).toHaveBeenCalledTimes(1)
     })
 
-    it('reports direct action persistence through the shared pending-save state', async () => {
+    it('keeps action persistence pending until the configured commit batch completes', async () => {
+        vi.useFakeTimers()
         configService.init()
-        const pendingCommit = createDeferred<never[]>()
-        const storage = createStorage({ commit: vi.fn(() => pendingCommit.promise) })
+        const storage = createStorage()
         const service = new DataService()
         service.init({ storage })
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
         const pendingStates: boolean[] = []
         service.addEventListener('changed', () => pendingStates.push(service.getState().hasPendingSave))
 
-        const save = service.persistActionFile({ content: '{}', path: 'actions/review.json' })
+        await service.persistActionFile({ content: '{}', path: 'actions/review.json' })
         expect(service.getState().hasPendingSave).toBe(true)
+        expect(storage.commit).not.toHaveBeenCalled()
 
-        pendingCommit.resolve([])
-        await save
+        await vi.advanceTimersByTimeAsync(30000)
         expect(service.getState().hasPendingSave).toBe(false)
+        expect(storage.commit).toHaveBeenCalledTimes(1)
         expect(pendingStates).toContain(true)
         expect(pendingStates.at(-1)).toBe(false)
+    })
+
+    it('coalesces every action text category and pushes once per configured batch interval', async () => {
+        vi.useFakeTimers()
+        configService.init()
+        configService.set('react.autoCommitDelayMs', 2000)
+        const storage = createStorage()
+        const service = new DataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        actionService.loadFromFiles([
+            {
+                content: JSON.stringify({
+                    description: 'Review files',
+                    id: 'review',
+                    label: 'Review',
+                    phrases: [],
+                    prompt: 'Review',
+                    type: 'agent',
+                }),
+                path: 'actions/review.json',
+            },
+            {
+                content: JSON.stringify({ command: 'npm test', description: 'Test files', id: 'test', label: 'Test', phrases: [], type: 'command' }),
+                path: 'actions/test.json',
+            },
+        ])
+
+        const review = actionService.getDraft('actions/review.json').definition
+        actionService.updateDraft('actions/review.json', { ...review, label: 'Review code' })
+        actionService.updateDraft('actions/review.json', { ...review, description: 'Review changed files', label: 'Review code' })
+        actionService.updateDraft('actions/review.json', { ...review, description: 'Review changed files', label: 'Review code', prompt: 'Review carefully' })
+        actionService.updateDraft('actions/review.json', {
+            ...review,
+            appliesTo: { worktreeError: 'missing' },
+            description: 'Review changed files',
+            label: 'Review code',
+            on: [{ actionId: 'test', condition: 'failed' }],
+            phrases: [{ text: 'Run all tests', title: 'Tests' }],
+            prompt: 'Review carefully',
+        })
+        const command = actionService.getDraft('actions/test.json').definition
+        actionService.updateDraft('actions/test.json', { ...command, command: 'npm run test' })
+        await actionService.flushDrafts()
+
+        expect(storage.commit).not.toHaveBeenCalled()
+        expect(storage.push).not.toHaveBeenCalled()
+        await vi.advanceTimersByTimeAsync(2000)
+
+        expect(storage.commit).toHaveBeenCalledTimes(1)
+        expect(storage.push).toHaveBeenCalledTimes(1)
+        const firstRequest = vi.mocked(storage.commit).mock.calls[0][0]
+        expect(firstRequest.files).toHaveLength(2)
+        expect(firstRequest.files.find(({ path }) => path === 'actions/review.json')?.content).toContain('"text": "Run all tests"')
+        expect(firstRequest.files.find(({ path }) => path === 'actions/test.json')?.content).toContain('"command": "npm run test"')
+
+        const latestReview = actionService.getDraft('actions/review.json').definition
+        actionService.updateDraft('actions/review.json', { ...latestReview, prompt: 'Review after pause' })
+        await actionService.flushDrafts()
+        await vi.advanceTimersByTimeAsync(2000)
+
+        expect(storage.commit).toHaveBeenCalledTimes(2)
+        expect(storage.push).toHaveBeenCalledTimes(2)
     })
 
     it('handles GitHub unauthorized once when a batched commit gets a 401', async () => {

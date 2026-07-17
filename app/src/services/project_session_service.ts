@@ -117,6 +117,7 @@ async function createMissingWorkingFolderResolution(
 
 async function loadProjectSession(storage: StorageService, storageType: StorageType, project: ProjectReference) {
     try {
+        await dataService.flushPendingChanges()
         dataService.init({ storage })
         activateStorageService(storageType, storage)
         await dataService.projectLoading.openProject(project)
@@ -193,6 +194,7 @@ export class ProjectSessionService extends EventTarget {
         await this.withLoading('Working folder selection failed', async () => {
             const storage = createStorageService(resolution.storageType, accessToken)
             await persistWorkingFolder(storage, resolution.project, folder.path)
+            await dataService.flushPendingChanges()
             dataService.init({ storage })
             activateStorageService(resolution.storageType, storage)
             await dataService.projectLoading.openProject(resolution.project)
@@ -205,6 +207,7 @@ export class ProjectSessionService extends EventTarget {
             const storage = createStorageService(resolution.storageType, accessToken)
             const project = await storage.createWorkingFolderFromTemplate(resolution.project, resolution.resolvedWorkingFolder)
             await persistWorkingFolder(storage, project, resolution.configuredWorkingFolder)
+            await dataService.flushPendingChanges()
             dataService.init({ storage })
             activateStorageService(resolution.storageType, storage)
             await dataService.projectLoading.openProject(project)
@@ -225,6 +228,7 @@ export class ProjectSessionService extends EventTarget {
             const project = await storage.createWorkingFolderFromTemplate(resolution.project, resolvedConfig.workingFolder)
             await storage.saveProjectConfig(project, projectConfig)
             configService.loadProjectConfig(projectConfig)
+            await dataService.flushPendingChanges()
             dataService.init({ storage })
             activateStorageService(resolution.storageType, storage)
             await dataService.projectLoading.openProject(project)
@@ -247,7 +251,7 @@ export class ProjectSessionService extends EventTarget {
 
         try {
             await this.withLoading('Push failed', async () => {
-                await dataService.cards.flushPendingCommits()
+                await dataService.flushPendingChanges()
                 await dataService.projectLoading.push()
             })
         } finally {

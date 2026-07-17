@@ -174,7 +174,8 @@ describe('AppMenu', () => {
 
         fireEvent.click(screen.getByRole('button', { name: 'New action' }))
 
-        await waitFor(() => expect(bridge.commit).toHaveBeenCalled())
+        await waitFor(() => expect(listener).toHaveBeenCalledOnce())
+        await dataService.flushPendingChanges()
         const commitRequest = vi.mocked(bridge.commit).mock.calls.at(-1)?.[0]
         const actionFile = commitRequest?.files[0]
         if (!actionFile) throw new Error('Missing persisted action file')
