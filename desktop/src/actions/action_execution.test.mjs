@@ -135,6 +135,25 @@ describe('ActionExecution', () => {
         expect(commandRunner.mock.calls.map((call) => call[1])).toEqual(['before=', 'main=focus']);
     });
 
+    it('passes prompt override only to the root agent action', async () => {
+        const linkedAction = action('linked', { command: undefined, prompt: 'Linked stored', type: 'agent' });
+        const rootAction = action('main', { command: undefined, onBefore: [linkedAction], prompt: 'Root stored', type: 'agent' });
+        const agentExecutor = {
+            execute: vi.fn(async (input) => ({
+                agent: 'codex', changedPaths: [], conversation: { id: input.action.id }, exitCode: 0, model: 'gpt',
+                prompt: input.runInput.prompt ?? input.action.prompt, stderr: '', stdout: input.action.id, thinkingLevel: 'none',
+            })),
+        };
+        const { execution } = createExecution(rootAction, { agentExecutor, runInput: { prompt: 'Root edited' } });
+
+        await execution.completion;
+
+        expect(agentExecutor.execute.mock.calls.map(([input]) => input.runInput)).toEqual([
+            { extraPrompt: '' },
+            { extraPrompt: '', prompt: 'Root edited' },
+        ]);
+    });
+
     it('publishes stream, writes history, then publishes terminal action event', async () => {
         const order = [];
         const commandRunner = vi.fn(async (_project, command, _signal, onOutput) => {
@@ -163,7 +182,7 @@ describe('ActionExecution', () => {
 
         await execution.completion;
 
-        expect(order).toEqual(['running:', 'running:chunk', 'process', 'history', 'completed:done']);
+        expect(order).toEqual(['running:', 'running:chunk', 'process', 'completed:done', 'history']);
         expect(events.every((event) => event.context === context)).toBe(true);
     });
 
@@ -270,16 +289,167 @@ describe('ActionExecution', () => {
             })),
         };
         const commitTrackedPaths = vi.fn(async () => 'abcdef3');
+        const resolveCommitMetadata = vi.fn(async () => ({
+            commit: 'abcdef3456789012345678901234567890123456',
+            committedAt: '2026-07-15T10:00:00+00:00',
+            filePaths: ['app/a.ts', 'app/b.ts'],
+        }));
         const rootAction = action('main', {agent: 'codex', model: 'gpt', prompt: 'run', trackFileChanges: true, type: 'agent'});
         const { execution, localGitService } = createExecution(rootAction, {
             agentExecutor,
-            localGitService: { commitTrackedPaths },
+            localGitService: { commitTrackedPaths, resolveCommitMetadata },
         });
 
         await expect(execution.completion).resolves.toMatchObject({ status: 'completed' });
 
         expect(commitTrackedPaths).toHaveBeenCalledWith('C:/repo', ['app/a.ts', 'app/b.ts'], 'main', execution.controller.signal);
-        expect(localGitService.appendActionRunHistory.mock.calls[0][2].commit).toMatchObject({commit: 'abcdef3', filePaths: ['app/a.ts', 'app/b.ts']});
+        expect(localGitService.appendActionRunHistory.mock.calls[0][2].commits[0]).toMatchObject({
+            actionId: 'main', actionName: 'main', commit: 'abcdef3456789012345678901234567890123456',
+            filePaths: ['app/a.ts', 'app/b.ts'],
+        });
+    });
+
+    it('groups ordered before, root, matching, and after commits on root history only', async () => {
+        const before = action('before');
+        const matching = action('matching');
+        const after = action('after');
+        const rootAction = action('main', {
+            on: [{ action: matching, condition: '\\[main' }],
+            onAfter: [after],
+            onBefore: [before],
+        });
+        const hashes = { after: 'ddddddd', before: 'aaaaaaa', main: 'bbbbbbb', matching: 'ccccccc' };
+        const commandRunner = vi.fn(async (_project, command) => ({command, exitCode: 0, stderr: '', stdout: `[${command} ${hashes[command]}] ${command}`}));
+        const localGitService = {
+            appendActionRunHistory: vi.fn(async () => []),
+            resolveCommitMetadata: vi.fn(async (rootPath, commit) => ({
+                commit: commit.padEnd(40, commit[0]), committedAt: `2026-07-15T1${Object.values(hashes).indexOf(commit)}:00:00+00:00`,
+                filePaths: [`${rootPath}/${commit}.md`],
+            })),
+        };
+        const actionWorktreeExecutionService = {
+            execute: vi.fn(async (_primaryProject, currentAction, _context, run) => {
+                const executionProject = { branch: currentAction.id, rootPath: `C:/repo/${currentAction.id}` };
+
+                return { ...await run(executionProject), branch: executionProject.branch, repositoryRoot: executionProject.rootPath };
+            }),
+        };
+        const { execution } = createExecution(rootAction, { actionWorktreeExecutionService, commandRunner, localGitService });
+
+        await expect(execution.completion).resolves.toMatchObject({ status: 'completed' });
+
+        const writes = localGitService.appendActionRunHistory.mock.calls;
+        const rootWrite = writes.find((call) => call[1].actionId === 'main');
+        expect(writes.filter((call) => call[1].actionId !== 'main').every((call) => !('commits' in call[2]))).toBe(true);
+        expect(rootWrite[2].commits.map(({ actionId, repositoryRoot }) => ({ actionId, repositoryRoot }))).toEqual([
+            { actionId: 'before', repositoryRoot: 'C:/repo/before' },
+            { actionId: 'main', repositoryRoot: 'C:/repo/main' },
+            { actionId: 'matching', repositoryRoot: 'C:/repo/matching' },
+            { actionId: 'after', repositoryRoot: 'C:/repo/after' },
+        ]);
+    });
+
+    it('keeps multiple command summaries once and gives directly started action ownership', async () => {
+        const rootAction = action('linked', { label: 'Linked action' });
+        const commandRunner = vi.fn(async () => ({
+            command: 'linked', exitCode: 0, stderr: '[topic abcdef2] duplicate',
+            stdout: '[topic abcdef1] first\n[topic abcdef2] second\n[topic abcdef1] duplicate',
+        }));
+        const resolveCommitMetadata = vi.fn(async (_rootPath, commit) => ({commit: commit.padEnd(40, commit.at(-1)), committedAt: '2026-07-15T10:00:00+00:00', filePaths: [`${commit}.md`]}));
+        const { execution, localGitService } = createExecution(rootAction, {commandRunner, localGitService: { resolveCommitMetadata }});
+
+        await execution.completion;
+
+        const entry = localGitService.appendActionRunHistory.mock.calls[0][2];
+        expect(entry.commits.map(({ actionId, actionName, commit }) => ({actionId, actionName, commit}))).toEqual([
+            { actionId: 'linked', actionName: 'Linked action', commit: 'abcdef1111111111111111111111111111111111' },
+            { actionId: 'linked', actionName: 'Linked action', commit: 'abcdef2222222222222222222222222222222222' },
+        ]);
+    });
+
+    it('assigns a linked tracked-agent commit to command root history', async () => {
+        const trackedAction = action('tracked', {agent: 'codex', model: 'gpt', prompt: 'edit', trackFileChanges: true, type: 'agent'});
+        const rootAction = action('main', { onBefore: [trackedAction] });
+        const agentExecutor = {execute: vi.fn(async () => ({agent: 'codex', changedPaths: ['app/a.ts'], exitCode: 0, model: 'gpt', prompt: 'edit', stderr: '', stdout: '', thinkingLevel: 'none'}))};
+        const localGitService = {
+            appendActionRunHistory: vi.fn(async () => []),
+            commitTrackedPaths: vi.fn(async () => 'abcdef3'),
+            resolveCommitMetadata: vi.fn(async () => ({commit: 'abcdef3456789012345678901234567890123456', committedAt: '2026-07-15T10:00:00+00:00', filePaths: ['app/a.ts']})),
+        };
+        const { execution } = createExecution(rootAction, { agentExecutor, localGitService });
+
+        await execution.completion;
+
+        const writes = localGitService.appendActionRunHistory.mock.calls;
+        expect(writes.find((call) => call[1].actionId === 'tracked')[2]).not.toHaveProperty('commits');
+        expect(writes.find((call) => call[1].actionId === 'main')[2].commits[0].actionId).toBe('tracked');
+    });
+
+    it('retains captured commits when a later action fails', async () => {
+        const rootAction = action('main', { onAfter: [action('after')] });
+        const commandRunner = vi.fn(async (_project, command) => ({
+            command, exitCode: command === 'after' ? 1 : 0, stderr: '',
+            stdout: `[main ${command === 'main' ? 'aaaaaaa' : 'bbbbbbb'}] ${command}`,
+        }));
+        const resolveCommitMetadata = vi.fn(async (_rootPath, commit) => ({commit: commit.padEnd(40, commit[0]), committedAt: '2026-07-15T10:00:00+00:00', filePaths: [`${commit}.md`]}));
+        const { execution, localGitService } = createExecution(rootAction, {commandRunner, localGitService: { resolveCommitMetadata }});
+
+        await expect(execution.completion).resolves.toMatchObject({ status: 'okButNotAfter' });
+
+        const rootWrite = localGitService.appendActionRunHistory.mock.calls.find((call) => call[1].actionId === 'main');
+        expect(rootWrite[2].commits.map(({ actionId }) => actionId)).toEqual(['main', 'after']);
+    });
+
+    it('retains before-phase commits on root history when the chain fails before the root action runs', async () => {
+        const committing = action('committing');
+        const failing = action('failing');
+        const rootAction = action('main', { onBefore: [committing, failing] });
+        const commandRunner = vi.fn(async (_project, command) => ({
+            command, exitCode: command === 'failing' ? 1 : 0, stderr: '',
+            stdout: command === 'committing' ? '[main abcdef1] done' : command,
+        }));
+        const resolveCommitMetadata = vi.fn(async () => ({commit: 'abcdef1234567890123456789012345678901234', committedAt: '2026-07-15T10:00:00+00:00', filePaths: ['done.md']}));
+        const { execution, localGitService } = createExecution(rootAction, {commandRunner, localGitService: { resolveCommitMetadata }});
+
+        await expect(execution.completion).resolves.toMatchObject({ status: 'failed' });
+
+        const rootWrite = localGitService.appendActionRunHistory.mock.calls.find((call) => call[1].actionId === 'main');
+        expect(rootWrite[2]).toMatchObject({ status: 'failed' });
+        expect(rootWrite[2].commits.map(({ actionId }) => actionId)).toEqual(['committing']);
+    });
+
+    it('retains command commits completed before cancellation is observed', async () => {
+        const commandCompletion = deferred();
+        const commandRunner = vi.fn(async () => {
+            await commandCompletion.promise;
+
+            return { command: 'main', exitCode: 0, stderr: '', stdout: '[main abcdef1] completed before cancel' };
+        });
+        const resolveCommitMetadata = vi.fn(async () => ({commit: 'abcdef1234567890123456789012345678901234', committedAt: '2026-07-15T10:00:00+00:00', filePaths: ['done.md']}));
+        const { execution, localGitService } = createExecution(action('main'), {commandRunner, localGitService: { resolveCommitMetadata }});
+        execution.cancel();
+        commandCompletion.resolve();
+
+        await expect(execution.completion).resolves.toMatchObject({ status: 'cancelled' });
+        expect(localGitService.appendActionRunHistory.mock.calls[0][2].commits).toHaveLength(1);
+    });
+
+    it('keeps concurrent execution commit accumulators isolated', async () => {
+        const rootAction = action('main');
+        const createCommandRunner = (commit) => vi.fn(async () => ({command: 'main', exitCode: 0, stderr: '', stdout: `[main ${commit}] run`}));
+        const createLocalGitService = () => ({
+            appendActionRunHistory: vi.fn(async () => []),
+            resolveCommitMetadata: vi.fn(async (_rootPath, commit) => ({commit: commit.padEnd(40, commit[0]), committedAt: '2026-07-15T10:00:00+00:00', filePaths: [`${commit}.md`]})),
+        });
+        const firstService = createLocalGitService();
+        const secondService = createLocalGitService();
+        const first = createExecution(rootAction, {commandRunner: createCommandRunner('aaaaaaa'), localGitService: firstService});
+        const second = createExecution(rootAction, {commandRunner: createCommandRunner('bbbbbbb'), localGitService: secondService});
+
+        await Promise.all([first.execution.completion, second.execution.completion]);
+
+        expect(firstService.appendActionRunHistory.mock.calls[0][2].commits[0].commit).toBe('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
+        expect(secondService.appendActionRunHistory.mock.calls[0][2].commits[0].commit).toBe('bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb');
     });
 
     it.each([

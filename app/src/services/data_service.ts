@@ -17,6 +17,8 @@ import type { RemarkableImportPlan } from './remarkable_import_service'
 import { register } from './service_injector'
 import { telemetryService } from './telemetry_service'
 import { worktreeService } from './worktree_service'
+import { dialogService } from './dialog_service'
+import type { CardParseError } from './markdown_parsing_service'
 
 export type { RemarkableImportInput }
 
@@ -26,6 +28,12 @@ export interface DataServiceState {
     project: ProjectReference | null
     runningAgents: RunningAgent[]
     snapshot: ProjectSnapshot | null
+}
+
+function reportCardParseErrors(errors: CardParseError[]) {
+    const paths = errors.map(({ path }) => path).join(', ')
+    dialogService.warning(`Some project files could not be loaded and were skipped: ${paths}`, { title: 'Some cards were not loaded' })
+    errors.forEach(({ error }) => telemetryService.captureError(error))
 }
 
 export class DataService extends EventTarget {
@@ -46,7 +54,7 @@ export class DataService extends EventTarget {
         this.saveStateService = new SaveStateService()
         this.saveStateService.addEventListener('changed', () => this.dispatchChanged())
         actionService.addEventListener('changed', () => this.dispatchChanged())
-        this.projectState = new ProjectState((cards) => this.agents.attachAgentConversations(cards))
+        this.projectState = new ProjectState((cards) => this.agents.attachAgentConversations(cards), reportCardParseErrors)
         this.cards = new CardOperations(
             this.createCardOperationsDependencies(),
             (cardPath, state) => this.agents.triggerStateActions(cardPath, state),
@@ -213,6 +221,7 @@ export class DataService extends EventTarget {
     private createProjectLoadingDependencies(): ProjectLoadingDeps {
         return {
             beginProjectLoad: () => this.projectState.beginProjectLoad(),
+            clearLoadedProject: () => this.projectState.resetLoadedProject(),
             commitPathsInFlight: () => this.projectState.commitPathsInFlight,
             dispatchChanged: () => this.dispatchChanged(),
             files: () => this.projectState.files,

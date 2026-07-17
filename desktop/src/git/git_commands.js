@@ -38,6 +38,7 @@ async function pathExists(targetPath) {
 }
 
 async function runGit(rootPath, args) {
+    console.log('[git]', { args, cwd: rootPath });
     const { stdout } = await execFileAsync('git', args, { cwd: rootPath });
 
     return stdout.trim();
@@ -81,7 +82,7 @@ async function resolveLocalProject(selectedPath) {
 
 async function hasStagedChanges(rootPath) {
     try {
-        await execFileAsync('git', ['diff', '--cached', '--quiet'], { cwd: rootPath });
+        await runGit(rootPath, ['diff', '--cached', '--quiet']);
 
         return false;
     } catch (error) {
@@ -113,7 +114,7 @@ function normalizeTrackedPaths(rootPath, filePaths) {
 
 async function hasStagedPathChanges(rootPath, filePaths) {
     try {
-        await execFileAsync('git', [LITERAL_PATHSPEC_ARGUMENT, 'diff', '--cached', '--quiet', '--', ...filePaths], { cwd: rootPath });
+        await runGit(rootPath, [LITERAL_PATHSPEC_ARGUMENT, 'diff', '--cached', '--quiet', '--', ...filePaths]);
 
         return false;
     } catch (error) {
@@ -151,6 +152,20 @@ function commitTrackedPaths(rootPath, filePaths, message, signal) {
     return commit;
 }
 
+/** Resolve stable metadata required to retain and display one commit reference. */
+async function resolveCommitMetadata(rootPath, commit) {
+    if (typeof commit !== 'string' || commit.length === 0) throw new Error('Missing commit hash');
+    const resolvedRoot = path.resolve(rootPath);
+    const fullCommit = await runGit(resolvedRoot, ['rev-parse', `${commit}^{commit}`]);
+    const committedAt = await runGit(resolvedRoot, ['show', '-s', '--format=%cI', fullCommit]);
+    const changedPathsOutput = await runGit(resolvedRoot, ['diff-tree', '--root', '--no-commit-id', '--name-only', '-r', fullCommit]);
+    const filePaths = changedPathsOutput.split(/\r?\n/u).filter((filePath) => filePath.length > 0);
+
+    if (committedAt.length === 0) throw new Error(`Git returned no timestamp for commit ${fullCommit}`);
+
+    return { commit: fullCommit, committedAt, filePaths };
+}
+
 async function assertGitRoot(rootPath) {
     const gitPath = path.join(rootPath, '.git');
 
@@ -163,6 +178,7 @@ async function runCommand(project, command) {
     if (typeof command !== 'string' || command.length === 0) throw new Error('Missing command text');
 
     try {
+        console.log('[command]', { command, cwd: rootPath });
         const { stderr, stdout } = await execAsync(command, { cwd: rootPath });
 
         return { command, exitCode: 0, stderr, stdout };
@@ -219,6 +235,7 @@ module.exports = {
     listBranches,
     pathExists,
     push,
+    resolveCommitMetadata,
     resolveLocalProject,
     requireRootPath,
     runCommand,

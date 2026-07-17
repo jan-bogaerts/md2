@@ -57,6 +57,24 @@ describe('MarkdownEditor', () => {
         expect(onChange).not.toHaveBeenCalled()
     })
 
+    it('reports local dirty state without propagating the buffered edit', () => {
+        const onChange = vi.fn()
+        const onDirtyChange = vi.fn()
+        render(
+            <AppThemeProvider>
+                <MarkdownEditor markdown="original" onChange={onChange} onDirtyChange={onDirtyChange} />
+            </AppThemeProvider>,
+        )
+
+        fireEvent.change(screen.getByRole('textbox'), { target: { value: 'edited' } })
+
+        expect(onDirtyChange).toHaveBeenLastCalledWith(true)
+        expect(onChange).not.toHaveBeenCalled()
+
+        flushMarkdownEditors()
+        expect(onDirtyChange).toHaveBeenLastCalledWith(false)
+    })
+
     it('reports live edits for a document without changing buffered flush behavior', () => {
         const historyStore = new MarkdownDocumentHistoryStore()
         const onDocumentChange = vi.fn()

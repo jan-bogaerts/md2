@@ -1,16 +1,16 @@
 import { Box, Typography } from '@mui/material'
 import { useEffect, useState } from 'react'
 import DiffViewer from 'react-diff-viewer-continued'
-import type { ActionRunHistoryEntry, DiffFile, DiffResult, OpenInEditorRequest } from '../../data/electron_action_bridge'
+import type { CommitReference, DiffFile, DiffResult, OpenInEditorRequest } from '../../data/electron_action_bridge'
 import { dialogService } from '../../services/dialog_service'
 import { generateDiff as defaultGenerateDiff, openDiffLine as defaultOpenDiffLine } from '../../services/diff_service'
 import { resolveClickedLine } from './diff_line_mapping'
 
-type GenerateDiff = (entry: ActionRunHistoryEntry) => Promise<DiffResult>
+type GenerateDiff = (commitReference: CommitReference) => Promise<DiffResult>
 type OpenDiffLine = (request: OpenInEditorRequest) => Promise<void>
 
 interface DiffViewProps {
-    entry: ActionRunHistoryEntry
+    commitReference: CommitReference
     generateDiff?: GenerateDiff
     openDiffLine?: OpenDiffLine
 }
@@ -50,7 +50,7 @@ function DiffFileView(props: DiffFileViewProps) {
  * through the configured Electron command and opens VS Code when a changed line is clicked.
  */
 export function DiffView(props: DiffViewProps) {
-    const { entry } = props
+    const { commitReference } = props
     const generateDiff = props.generateDiff ?? defaultGenerateDiff
     const openDiffLine = props.openDiffLine ?? defaultOpenDiffLine
     const [result, setResult] = useState<DiffResult | null>(null)
@@ -63,7 +63,7 @@ export function DiffView(props: DiffViewProps) {
             setIsUnavailable(false)
             setResult(null)
             try {
-                const diff = await generateDiff(entry)
+                const diff = await generateDiff(commitReference)
                 if (isActive) setResult(diff)
             } catch (loadError) {
                 if (isActive) {
@@ -78,7 +78,7 @@ export function DiffView(props: DiffViewProps) {
         return () => {
             isActive = false
         }
-    }, [entry, generateDiff])
+    }, [commitReference, generateDiff])
 
     const handleOpenLine = async (request: OpenInEditorRequest) => {
         try {

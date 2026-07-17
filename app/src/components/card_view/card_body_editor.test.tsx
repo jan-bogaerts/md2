@@ -28,18 +28,29 @@ function renderCardBodyEditor(props: Parameters<typeof CardBodyEditor>[0]) {
     )
 }
 
+function editorProps(overrides: Partial<Parameters<typeof CardBodyEditor>[0]> = {}): Parameters<typeof CardBodyEditor>[0] {
+    return {
+        card: card(),
+        isFullscreen: false,
+        onBodyChange: vi.fn(),
+        onDirtyChange: vi.fn(),
+        onToggleFullscreen: vi.fn(),
+        ...overrides,
+    }
+}
+
 describe('CardBodyEditor', () => {
     afterEach(cleanup)
 
     it('seeds the editor with the card body only', () => {
-        renderCardBodyEditor({ card: card(), isFullscreen: false, onBodyChange: vi.fn(), onToggleFullscreen: vi.fn() })
+        renderCardBodyEditor(editorProps())
 
         expect(screen.getByRole('textbox')).toHaveValue('# Alpha\n\nOriginal body')
     })
 
     it('reports body edits with the card path when the editor unmounts (popup close)', () => {
         const onBodyChange = vi.fn()
-        const { unmount } = renderCardBodyEditor({ card: card(), isFullscreen: false, onBodyChange, onToggleFullscreen: vi.fn() })
+        const { unmount } = renderCardBodyEditor(editorProps({ onBodyChange }))
 
         fireEvent.change(screen.getByRole('textbox'), { target: { value: '# Alpha\n\nEdited body' } })
         expect(onBodyChange).not.toHaveBeenCalled()
@@ -48,14 +59,17 @@ describe('CardBodyEditor', () => {
         expect(onBodyChange).toHaveBeenCalledWith('design/F-1-a.md', '# Alpha\n\nEdited body')
     })
 
+    it('reports local dirty state while body edits remain buffered', () => {
+        const onDirtyChange = vi.fn()
+        renderCardBodyEditor(editorProps({ onDirtyChange }))
+
+        fireEvent.change(screen.getByRole('textbox'), { target: { value: '# Alpha\n\nEdited body' } })
+
+        expect(onDirtyChange).toHaveBeenLastCalledWith('design/F-1-a.md', true)
+    })
+
     it('keeps the toolbar sticky on mobile', () => {
-        const { container } = renderCardBodyEditor({
-            card: card(),
-            isFullscreen: false,
-            isMobile: true,
-            onBodyChange: vi.fn(),
-            onToggleFullscreen: vi.fn(),
-        })
+        const { container } = renderCardBodyEditor(editorProps({isMobile: true}))
 
         expect(container.querySelector('[data-sticky-toolbar="true"]')).not.toBeNull()
     })

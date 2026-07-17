@@ -11,7 +11,17 @@ export interface ActionRunInput {
     continueFrom?: string
     extraPrompt?: string
     model?: string
+    prompt?: string
     thinkingLevel?: ThinkingLevel
+}
+
+export interface ActionPromptRequest {
+    actionId: string
+    context: ActionContext
+}
+
+export interface PreparedActionPrompt {
+    prompt: string
 }
 
 export interface ActionStartRequest {

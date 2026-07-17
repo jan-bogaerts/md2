@@ -1,34 +1,17 @@
-const { extractCommitSummary } = require('../../../shared/action_history.mjs');
+const { extractCommitSummaries } = require('../../../shared/action_history.mjs');
 const { requireRootPath } = require('../git/git_commands');
 
 function combineOutput(result) {
     return `${result.stdout}${result.stderr}`;
 }
 
-function createCommitMetadata(input) {
-    const summary = extractCommitSummary(input.output);
-    if (!summary) return null;
-
-    return {
-        actionId: input.actionId,
-        branch: summary.branch,
-        commit: summary.commit,
-        completedAt: input.completedAt,
-        filePaths: input.context.file ? [input.context.file] : [],
-        repositoryRoot: requireRootPath(input.project),
-    };
-}
-
 function createCommandHistoryEntry(input) {
     const completedAt = input.completedAt ?? new Date().toISOString();
-    const output = combineOutput(input.result);
-    const commit = createCommitMetadata({ actionId: input.action.id, completedAt, context: input.context, output, project: input.project });
 
     return {
         command: input.result.command,
-        ...(commit ? { commit } : {}),
         completedAt,
-        output,
+        output: combineOutput(input.result),
         prompt: '',
         status: input.result.exitCode === 0 ? 'completed' : 'failed',
     };
@@ -36,34 +19,48 @@ function createCommandHistoryEntry(input) {
 
 function createAgentHistoryEntry(input) {
     const completedAt = input.completedAt ?? new Date().toISOString();
-    const output = combineOutput(input.result);
-    const commit = input.action.trackFileChanges
-        ? createTrackedCommitMetadata({ actionId: input.action.id, completedAt, project: input.project, result: input.result })
-        : createCommitMetadata({ actionId: input.action.id, completedAt, context: input.context, output, project: input.project });
 
     return {
         agent: input.result.agent,
-        ...(commit ? { commit } : {}),
         completedAt,
         model: input.result.model,
-        output,
+        output: combineOutput(input.result),
         prompt: input.result.prompt,
         status: input.result.exitCode === 0 ? 'completed' : 'failed',
         thinkingLevel: input.result.thinkingLevel,
     };
 }
 
-function createTrackedCommitMetadata(input) {
-    if (typeof input.result.trackedCommit !== 'string' || input.result.trackedCommit.length === 0) return null;
+function commitCandidates(input) {
+    if (input.action.type === 'agent') {
+        return input.action.trackFileChanges
+            && typeof input.result.trackedCommit === 'string'
+            && input.result.trackedCommit.length > 0
+            ? [{ branch: input.project.branch, commit: input.result.trackedCommit }]
+            : [];
+    }
 
-    return {
-        actionId: input.actionId,
-        branch: input.project.branch,
-        commit: input.result.trackedCommit,
-        completedAt: input.completedAt,
-        filePaths: input.result.changedPaths,
-        repositoryRoot: requireRootPath(input.project),
-    };
+    return extractCommitSummaries(combineOutput(input.result));
+}
+
+async function captureCommitReferences(localGitService, input) {
+    const repositoryRoot = requireRootPath(input.project);
+    const references = [];
+
+    for (const candidate of commitCandidates(input)) {
+        const metadata = await localGitService.resolveCommitMetadata(repositoryRoot, candidate.commit);
+        references.push({
+            actionId: input.action.id,
+            actionName: input.action.label,
+            branch: candidate.branch,
+            commit: metadata.commit,
+            committedAt: metadata.committedAt,
+            filePaths: metadata.filePaths,
+            repositoryRoot,
+        });
+    }
+
+    return references;
 }
 
 function appendHistory(localGitService, input, entry) {
@@ -72,20 +69,10 @@ function appendHistory(localGitService, input, entry) {
     return localGitService.appendActionRunHistory(input.project, request, entry);
 }
 
-function appendCommandRunHistory(localGitService, input) {
-    return appendHistory(localGitService, input, createCommandHistoryEntry(input));
-}
-
-function appendAgentRunHistory(localGitService, input) {
-    return appendHistory(localGitService, input, createAgentHistoryEntry(input));
-}
-
 module.exports = {
-    appendAgentRunHistory,
-    appendCommandRunHistory,
+    appendHistory,
+    captureCommitReferences,
     combineOutput,
     createAgentHistoryEntry,
     createCommandHistoryEntry,
-    createCommitMetadata,
-    createTrackedCommitMetadata,
 };

@@ -2,7 +2,7 @@ import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { DiffView } from './diff_view'
 import { resolveClickedLine } from './diff_line_mapping'
-import type { ActionRunHistoryEntry, DiffFile, DiffResult } from '../../data/electron_action_bridge'
+import type { CommitReference, DiffFile, DiffResult } from '../../data/electron_action_bridge'
 import { DialogDisplay } from '../dialog_display'
 
 function diffFile(overrides: Partial<DiffFile> = {}): DiffFile {
@@ -16,16 +16,15 @@ function diffFile(overrides: Partial<DiffFile> = {}): DiffFile {
     }
 }
 
-const commit = {
+const commitReference: CommitReference = {
     actionId: 'action-commit',
+    actionName: 'Commit changes',
     branch: 'main',
     commit: 'abc1234',
-    completedAt: '2026-07-05T10:00:00.000Z',
+    committedAt: '2026-07-05T10:00:00.000Z',
     filePaths: ['design/F-010.md'],
     repositoryRoot: 'C:/repo',
 }
-
-const entry: ActionRunHistoryEntry = { command: 'git commit', commit, completedAt: commit.completedAt, output: '', prompt: '', status: 'completed' }
 
 function diffResult(): DiffResult {
     return { commit: 'abc1234', files: [diffFile()] }
@@ -50,11 +49,11 @@ describe('DiffView', () => {
 
     it('renders the diff files returned by the diff service', async () => {
         const generateDiff = vi.fn(async () => diffResult())
-        render(<DiffView entry={entry} generateDiff={generateDiff} openDiffLine={vi.fn()} />)
+        render(<DiffView commitReference={commitReference} generateDiff={generateDiff} openDiffLine={vi.fn()} />)
 
         await waitFor(() => expect(screen.getByRole('region', { name: 'Commit diff' })).toBeInTheDocument())
         expect(screen.getAllByText('design/F-010.md').length).toBeGreaterThan(0)
-        expect(generateDiff).toHaveBeenCalledWith(entry)
+        expect(generateDiff).toHaveBeenCalledWith(commitReference)
     })
 
     it('shows a clear error when the diff command fails', async () => {
@@ -64,7 +63,7 @@ describe('DiffView', () => {
         render(
             <>
                 <DialogDisplay />
-                <DiffView entry={entry} generateDiff={generateDiff} openDiffLine={vi.fn()} />
+                <DiffView commitReference={commitReference} generateDiff={generateDiff} openDiffLine={vi.fn()} />
             </>,
         )
 

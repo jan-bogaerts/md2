@@ -8,6 +8,7 @@ function createDispatch(options = {}) {
     const agentExecutableAvailability = vi.fn(async () => ({ codex: { available: true, error: null } }));
     const actionRunnerService = {
         cancel: vi.fn(),
+        prepareActionPrompt: vi.fn(async () => ({ prompt: 'Prepared prompt' })),
         requireActionsFolder: vi.fn(() => 'actions'),
         requireProjectFolder: vi.fn(() => 'design'),
         start: vi.fn(async () => 'action-1'),
@@ -135,6 +136,14 @@ describe('createLocalBridgeDispatch', () => {
         await expect(dispatch.actionBridge.startAction(request)).resolves.toBe('action-1');
 
         expect(actionRunnerService.start).toHaveBeenCalledWith(request);
+    });
+
+    it('delegates prompt preparation to the shared runner', async () => {
+        const { actionRunnerService, dispatch } = createDispatch();
+        const request = { actionId: 'test', context: { file: 'design/F-1.md', kind: 'card' } };
+
+        await expect(dispatch.actionBridge.prepareActionPrompt(request)).resolves.toEqual({ prompt: 'Prepared prompt' });
+        expect(actionRunnerService.prepareActionPrompt).toHaveBeenCalledWith(request);
     });
 
     it('delegates cancellation and live input by execution id', async () => {

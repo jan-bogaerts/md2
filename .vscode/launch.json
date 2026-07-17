@@ -10,6 +10,10 @@
             "request": "launch",
             "url": "http://localhost:5173",
             "webRoot": "${workspaceFolder}/app",
+            "resolveSourceMapLocations": [
+                "${workspaceFolder}/**",
+                "!**/node_modules/**"
+            ],
             "preLaunchTask": "Start Vite Dev Server"
         },
         {
@@ -37,6 +41,10 @@
             "request": "attach",
             "port": 9222,
             "webRoot": "${workspaceFolder}/app",
+            "resolveSourceMapLocations": [
+                "${workspaceFolder}/**",
+                "!**/node_modules/**"
+            ],
             "timeout": 30000
         },
         {

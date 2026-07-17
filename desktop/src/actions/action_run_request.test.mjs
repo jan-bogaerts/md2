@@ -2,7 +2,7 @@ import { createRequire } from 'node:module';
 import { describe, expect, it } from 'vitest';
 
 const require = createRequire(import.meta.url);
-const { validateStartRequest } = require('./action_run_request');
+const { validatePreparePromptRequest, validateStartRequest } = require('./action_run_request');
 
 describe('validateStartRequest', () => {
     it.each(['card', 'file', 'folder', 'project'])('accepts %s context and defaults extraPrompt', (kind) => {
@@ -15,7 +15,6 @@ describe('validateStartRequest', () => {
 
     it.each([
         [{ actionId: 'main', command: 'whoami', context: { kind: 'project' } }, 'Unsupported action start field: command'],
-        [{ actionId: 'main', context: { kind: 'project' }, runInput: { prompt: 'ignored' } }, 'Unsupported action runInput field: prompt'],
         [null, 'Missing action start request'],
         [{ context: { kind: 'project' } }, 'Missing actionId'],
         [{ actionId: '', context: { kind: 'project' } }, 'Missing actionId'],
@@ -29,14 +28,34 @@ describe('validateStartRequest', () => {
     });
 
     it('preserves accepted optional strings', () => {
-        const runInput = { agent: 'codex', continueFrom: 'log.json', extraPrompt: 'next', model: 'gpt', thinkingLevel: 'high' };
+        const runInput = { agent: 'codex', continueFrom: 'log.json', extraPrompt: 'next', model: 'gpt', prompt: '', thinkingLevel: 'high' };
 
         expect(validateStartRequest({ actionId: 'main', context: { kind: 'project' }, runInput }).runInput).toEqual(runInput);
     });
 
-    it.each(['agent', 'continueFrom', 'extraPrompt', 'model', 'thinkingLevel'])('rejects non-string %s', (fieldName) => {
+    it.each(['agent', 'continueFrom', 'extraPrompt', 'model', 'prompt', 'thinkingLevel'])('rejects non-string %s', (fieldName) => {
         const request = { actionId: 'main', context: { kind: 'project' }, runInput: { [fieldName]: 1 } };
 
         expect(() => validateStartRequest(request)).toThrow(`Invalid action run input ${fieldName}`);
+    });
+
+    it('distinguishes absent prompt from an empty prompt override', () => {
+        const withoutPrompt = validateStartRequest({ actionId: 'main', context: { kind: 'project' }, runInput: {} });
+        const withEmptyPrompt = validateStartRequest({ actionId: 'main', context: { kind: 'project' }, runInput: { prompt: '' } });
+
+        expect(withoutPrompt.runInput).not.toHaveProperty('prompt');
+        expect(withEmptyPrompt.runInput).toHaveProperty('prompt', '');
+    });
+});
+
+describe('validatePreparePromptRequest', () => {
+    it('accepts only an action id and validated context', () => {
+        expect(validatePreparePromptRequest({ actionId: 'main', context: { file: 'design/F-1.md', kind: 'card' } }))
+            .toEqual({ actionId: 'main', context: { file: 'design/F-1.md', kind: 'card' } });
+    });
+
+    it('rejects renderer-owned prompt data', () => {
+        expect(() => validatePreparePromptRequest({ actionId: 'main', context: { kind: 'project' }, prompt: 'renderer copy' }))
+            .toThrow('Unsupported action prompt field: prompt');
     });
 });

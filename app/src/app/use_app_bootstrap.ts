@@ -7,6 +7,7 @@ import { agentCapabilitiesService } from '../services/agent_capabilities_service
 import { actionExecutionService } from '../services/action_execution_service'
 import { dataService } from '../services/data_service'
 import { readDesktopConfigFromBridge } from '../services/config_persistence'
+import { isProjectLoadErrorReported } from '../services/project_loading'
 
 export type BootstrapPhase = 'starting' | 'ready'
 
@@ -77,7 +78,12 @@ export function useAppBootstrap(accessToken: string | null): AppBootstrapState {
                 const session = await loadLastProjectSession(accessToken)
                 if (!cancelled) setState({ error: null, phase: 'ready', session })
             } catch (error) {
-                if (!cancelled) setState({ error: error instanceof Error ? error.message : 'Startup failed', phase: 'ready', session: null })
+                if (!cancelled) {
+                    const message = isProjectLoadErrorReported(error)
+                        ? null
+                        : error instanceof Error ? error.message : 'Startup failed'
+                    setState({ error: message, phase: 'ready', session: null })
+                }
             }
         }
 

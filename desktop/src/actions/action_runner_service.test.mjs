@@ -36,6 +36,7 @@ function createRunner(actionFiles = [actionFile('main')], overrides = {}) {
             executionWorktree: null,
             repositoryRoot: primaryProject.rootPath,
         })),
+        resolve: vi.fn(async (primaryProject) => ({ executionProject: primaryProject, executionWorktree: null })),
     };
     const runner = new ActionRunnerService({
         actionWorktreeExecutionService,
@@ -83,6 +84,25 @@ describe('ActionRunnerService', () => {
         await expect(runner.start({ actionId: 'main', context, runInput: {} })).rejects.toThrow('Unknown action: main');
         expect(commandRunner).toHaveBeenCalledTimes(1);
         expect(localGitService.loadActionFiles).toHaveBeenCalledTimes(2);
+    });
+
+    it('prepares a canonical prompt against the resolved worktree without starting execution', async () => {
+        const files = [actionFile('main', {
+            command: undefined,
+            needsWorkTree: true,
+            prompt: 'Review {{card-file}} in {{rootProjectFolder}}',
+            trackFileChanges: true,
+            type: 'agent',
+        })];
+        const { actionWorktreeExecutionService, agentRunnerService, localGitService, runner } = createRunner(files);
+        const worktreeProject = { ...project, branch: 'feature', rootPath: 'C:/worktrees/2' };
+        actionWorktreeExecutionService.resolve.mockResolvedValueOnce({ executionProject: worktreeProject, executionWorktree: 2 });
+
+        await expect(runner.prepareActionPrompt({ actionId: 'main', context })).resolves.toEqual({prompt: 'Review design/F-010.md in C:/worktrees/2\n\nDo not stage or commit changes. md2 will commit files captured from provider edit tools.'});
+        expect(actionWorktreeExecutionService.resolve).toHaveBeenCalledWith(project, expect.objectContaining({ id: 'main' }), context);
+        expect(actionWorktreeExecutionService.execute).not.toHaveBeenCalled();
+        expect(agentRunnerService.start).not.toHaveBeenCalled();
+        expect(localGitService.appendActionRunHistory).not.toHaveBeenCalled();
     });
 
     it('drops unknown persisted fields before execution', async () => {

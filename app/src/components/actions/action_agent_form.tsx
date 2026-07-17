@@ -8,17 +8,20 @@ interface ActionAgentFormProps {
     agent: string
     agentAvailability: Record<string, AgentAvailability>
     agentProfiles: AgentProfile[]
+    commitHistory?: ReactNode
     compact?: boolean
     conversationContent?: ReactNode
     conversationPicker?: ReactNode
     convertMessage: string | null
     disabled?: boolean
-    extraPrompt: string
+    prompt: string
+    promptFailed?: boolean
+    promptLoading?: boolean
     model: string
     onActionLabelChange: (event: ChangeEvent<HTMLInputElement>) => void
     onAgentChange: (event: ChangeEvent<HTMLInputElement>) => void
     onConvertToAction: () => void
-    onExtraPromptChange: (event: ChangeEvent<HTMLInputElement>) => void
+    onPromptChange: (event: ChangeEvent<HTMLInputElement>) => void
     onModelChange: (event: ChangeEvent<HTMLInputElement>) => void
     onThinkingLevelChange: (event: ChangeEvent<HTMLInputElement>) => void
     onRunShortcut?: () => void
@@ -37,17 +40,20 @@ export function ActionAgentForm(props: ActionAgentFormProps) {
         agent,
         agentAvailability,
         agentProfiles,
+        commitHistory,
         compact = false,
         conversationContent,
         conversationPicker,
         convertMessage,
         disabled = false,
-        extraPrompt,
+        prompt,
+        promptFailed = false,
+        promptLoading = false,
         model,
         onActionLabelChange,
         onAgentChange,
         onConvertToAction,
-        onExtraPromptChange,
+        onPromptChange,
         onModelChange,
         onThinkingLevelChange,
         onRunShortcut,
@@ -58,8 +64,8 @@ export function ActionAgentForm(props: ActionAgentFormProps) {
         showSaveControls,
         thinkingLevel,
     } = props
-    const promptLabel = promptRequired ? 'Prompt' : 'Extra prompt'
-    const promptPlaceholder = promptRequired ? 'Prompt required' : 'Extra prompt optional'
+    const promptLabel = 'Prompt'
+    const promptPlaceholder = promptLoading ? 'Preparing prompt…' : promptFailed ? 'Prompt unavailable' : promptRequired ? 'Prompt required' : 'Prompt'
 
     const handleNameKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
         if (event.key !== 'Enter' || !onRunShortcut) return
@@ -190,17 +196,18 @@ export function ActionAgentForm(props: ActionAgentFormProps) {
                         {THINKING_LEVELS.map((level) => <MenuItem key={level} value={level}>{level}</MenuItem>)}
                     </TextField>
                     <Box sx={{ flex: 1 }} />
+                    {commitHistory}
                     {conversationPicker}
                 </Box>
                 <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>{conversationContent}</Box>
                 <Divider />
                 <Stack spacing={0.75}>
                     <TextField
-                        disabled={disabled}
+                        disabled={disabled || promptLoading || promptFailed}
                         fullWidth
                         minRows={4}
                         multiline
-                        onChange={onExtraPromptChange}
+                        onChange={onPromptChange}
                         onKeyDown={handlePromptKeyDown}
                         placeholder={promptPlaceholder}
                         slotProps={{ htmlInput: { 'aria-label': promptLabel } }}
@@ -215,7 +222,7 @@ export function ActionAgentForm(props: ActionAgentFormProps) {
                             },
                             '& textarea': { resize: 'none' },
                         }}
-                        value={extraPrompt}
+                        value={prompt}
                         variant="outlined"
                     />
                 </Stack>
@@ -279,10 +286,10 @@ export function ActionAgentForm(props: ActionAgentFormProps) {
                 </TextField>
             </Stack>
             <TextField
-                disabled={disabled}
+                disabled={disabled || promptLoading || promptFailed}
                 minRows={3}
                 multiline
-                onChange={onExtraPromptChange}
+                onChange={onPromptChange}
                 placeholder={promptPlaceholder}
                 slotProps={{ htmlInput: { 'aria-label': promptLabel } }}
                 sx={{
@@ -291,7 +298,7 @@ export function ActionAgentForm(props: ActionAgentFormProps) {
                     '& .MuiInputBase-root': { alignItems: 'flex-start', height: '100%' },
                     '& textarea': { height: '100% !important', resize: 'none' },
                 }}
-                value={extraPrompt}
+                value={prompt}
             />
             {showSaveControls ? (
                 <Stack spacing={1}>
@@ -305,7 +312,7 @@ export function ActionAgentForm(props: ActionAgentFormProps) {
                         </Button>
                     </Stack>
                 </Stack>
-            ) : extraPrompt.trim().length > 0 ? (
+            ) : prompt.trim().length > 0 ? (
                 <Stack direction="row" spacing={1}>
                     <TextField label="Action label" onChange={onActionLabelChange} size="small" value={actionLabel} />
                     <Button onClick={onConvertToAction} variant="outlined">Convert to action</Button>

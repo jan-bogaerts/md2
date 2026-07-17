@@ -2,6 +2,7 @@ const { requireRootPath } = require('../git/git_commands');
 
 const PLACEHOLDER_PATTERN = /\{\{\s*(rootProjectFolder|card-file|card-title|card-prompt)\s*\}\}/gu;
 const CARD_PROMPT_PLACEHOLDER_PATTERN = /\{\{\s*card-prompt\s*\}\}/u;
+const TRACKED_FILE_COMMIT_INSTRUCTION = 'Do not stage or commit changes. md2 will commit files captured from provider edit tools.';
 
 function resolvePlaceholders(text, context, project, extraPrompt) {
     return text.replace(PLACEHOLDER_PATTERN, (_match, name) => {
@@ -25,4 +26,14 @@ function resolveAgentPrompt(action, context, project, extraPrompt) {
     return `${prompt}\n\n${extraPrompt}`;
 }
 
-module.exports = { resolveAgentPrompt, resolvePlaceholders };
+function withTrackedFileCommitInstruction(prompt, trackFileChanges) {
+    return trackFileChanges ? `${prompt}\n\n${TRACKED_FILE_COMMIT_INSTRUCTION}` : prompt;
+}
+
+function prepareAgentPrompt(action, context, project, extraPrompt = '') {
+    const prompt = resolveAgentPrompt(action, context, project, extraPrompt);
+
+    return withTrackedFileCommitInstruction(prompt, action.trackFileChanges);
+}
+
+module.exports = { prepareAgentPrompt, resolveAgentPrompt, resolvePlaceholders, withTrackedFileCommitInstruction };

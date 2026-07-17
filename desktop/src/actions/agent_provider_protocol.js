@@ -11,6 +11,47 @@ const MISSING_SESSION_CODES = new Set([
 const CLAUDE_FILE_TOOLS = new Set(['Edit', 'MultiEdit', 'NotebookEdit', 'Write']);
 const CODEX_FILE_ITEM_TYPES = new Set(['file', 'file_change', 'patch']);
 
+function usageNumber(value) {
+    return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : 0;
+}
+
+function normalizedUsage(inputTokens, cachedInputTokens, outputTokens, reasoningTokens, costUsd) {
+    const usage = {
+        cachedInputTokens: usageNumber(cachedInputTokens),
+        inputTokens: usageNumber(inputTokens),
+        outputTokens: usageNumber(outputTokens),
+        reasoningTokens: usageNumber(reasoningTokens),
+    };
+    usage.totalTokens = usage.inputTokens + usage.cachedInputTokens + usage.outputTokens + usage.reasoningTokens;
+    if (typeof costUsd === 'number' && Number.isFinite(costUsd) && costUsd >= 0) usage.costUsd = costUsd;
+
+    return usage;
+}
+
+// Bucket semantics differ per provider: codex reports cached tokens as a subset of input_tokens
+// (subtracted here so inputTokens is fresh-only, like claude), and only codex reports reasoning
+// tokens separately (claude folds thinking into output_tokens, so its reasoningTokens is always 0).
+function providerUsage(agent, event) {
+    const usage = event.usage;
+    if (!usage || typeof usage !== 'object' || Array.isArray(usage)) return null;
+
+    if (agent === 'codex' && event.type === 'turn.completed') {
+        return normalizedUsage(
+            usageNumber(usage.input_tokens) - usageNumber(usage.cached_input_tokens),
+            usage.cached_input_tokens,
+            usage.output_tokens,
+            usage.reasoning_output_tokens,
+        );
+    }
+    if (agent === 'claude' && event.type === 'result') {
+        const cachedInputTokens = usageNumber(usage.cache_creation_input_tokens) + usageNumber(usage.cache_read_input_tokens);
+
+        return normalizedUsage(usage.input_tokens, cachedInputTokens, usage.output_tokens, 0, event.total_cost_usd);
+    }
+
+    return null;
+}
+
 function normalizeChangedPath(rootPath, filePath) {
     if (typeof rootPath !== 'string' || rootPath.length === 0) return null;
     if (typeof filePath !== 'string' || filePath.length === 0) return null;
@@ -173,6 +214,7 @@ class AgentProviderProtocolParser {
             missingSession,
             turnStarted: this.turnStarted,
             type: normalizedEventType(this.agent, event),
+            usage: providerUsage(this.agent, event),
         });
     }
 }

@@ -214,6 +214,15 @@ export interface AgentConversationEvent {
     type: string
 }
 
+export interface AgentTokenUsage {
+    cachedInputTokens: number
+    costUsd?: number
+    inputTokens: number
+    outputTokens: number
+    reasoningTokens: number
+    totalTokens: number
+}
+
 export interface AgentConversation {
     actionId?: string | null
     cardPath: string | null
@@ -227,6 +236,7 @@ export interface AgentConversation {
     startedAt: string
     status: AgentConversationStatus
     title: string
+    usage?: AgentTokenUsage
 }
 
 export interface AgentConversationError {

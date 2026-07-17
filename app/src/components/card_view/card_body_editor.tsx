@@ -9,6 +9,7 @@ interface CardBodyEditorProps {
     isMobile?: boolean
     isFullscreen: boolean
     onBodyChange: (path: string, body: string) => void
+    onDirtyChange: (path: string, dirty: boolean) => void
     onToggleFullscreen: () => void
     overlayContainer?: HTMLElement | null
 }
@@ -19,11 +20,17 @@ interface CardBodyEditorProps {
  * the frontmatter/header block via the shared parsing service.
  */
 export function CardBodyEditor(props: CardBodyEditorProps) {
-    const { card, isFullscreen, isMobile = false, onBodyChange, onToggleFullscreen, overlayContainer } = props
+    const { card, isFullscreen, isMobile = false, onBodyChange, onDirtyChange, onToggleFullscreen, overlayContainer } = props
     const ToolbarContents = useCallback(
         () => <CardPopupToolbarControls isFullscreen={isFullscreen} onToggleFullscreen={onToggleFullscreen} />,
         [isFullscreen, onToggleFullscreen],
     )
+    const handleBodyChange = useCallback((body: string) => {
+        onBodyChange(card.path, body)
+    }, [card.path, onBodyChange])
+    const handleDirtyChange = useCallback((dirty: boolean) => {
+        onDirtyChange(card.path, dirty)
+    }, [card.path, onDirtyChange])
 
     return (
         <Box
@@ -71,7 +78,8 @@ export function CardBodyEditor(props: CardBodyEditorProps) {
             <MarkdownEditor
                 key={card.path}
                 markdown={card.content}
-                onChange={(body) => onBodyChange(card.path, body)}
+                onChange={handleBodyChange}
+                onDirtyChange={handleDirtyChange}
                 overlayContainer={overlayContainer}
                 stickyToolbar={isMobile}
                 toolbarContents={ToolbarContents}

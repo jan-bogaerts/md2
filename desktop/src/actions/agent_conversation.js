@@ -1,9 +1,15 @@
+const { sumAgentTokenUsage } = require('../../../shared/agent_usage_math.mjs');
+
 function createMessage(id, role, content, timestamp, agent) {
     return { ...(agent ? { agent } : {}), content, id, role, timestamp };
 }
 
 function createEvent(id, type, content, timestamp) {
     return { content, id, timestamp, type };
+}
+
+function accumulateUsage(current, turn) {
+    return sumAgentTokenUsage([current, turn]);
 }
 
 function createConversation(request, id, startedAt) {
@@ -61,6 +67,7 @@ function hasRequiredProviderConversationId(run) {
 }
 
 module.exports = {
+    accumulateUsage,
     createConversation,
     createEvent,
     createMessage,

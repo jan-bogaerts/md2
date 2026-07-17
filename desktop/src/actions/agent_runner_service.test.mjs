@@ -148,6 +148,76 @@ describe('AgentRunnerService', () => {
         }
     });
 
+    it('persists and accumulates normalized usage across resumed turns', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-runner-'));
+        const service = new AgentRunnerService();
+        const firstScriptPath = join(rootPath, 'first-usage.cjs');
+        const secondScriptPath = join(rootPath, 'second-usage.cjs');
+
+        try {
+            await prepareProject(rootPath);
+            await writeFile(firstScriptPath, "console.log(JSON.stringify({type:'thread.started',thread_id:'thread-1'}));console.log(JSON.stringify({type:'turn.started'}));console.log(JSON.stringify({type:'item.completed',item:{type:'agent_message',text:'one'}}));console.log(JSON.stringify({type:'turn.completed',usage:{input_tokens:10,cached_input_tokens:2,output_tokens:3,reasoning_output_tokens:1}}))\n");
+            await writeFile(secondScriptPath, "console.log(JSON.stringify({type:'thread.started',thread_id:'thread-1'}));console.log(JSON.stringify({type:'turn.started'}));console.log(JSON.stringify({type:'item.completed',item:{type:'agent_message',text:'two'}}));console.log(JSON.stringify({type:'turn.completed',usage:{input_tokens:20,cached_input_tokens:4,output_tokens:6,reasoning_output_tokens:2}}))\n");
+            const first = await service.run(createProject(rootPath), agentRequest({agent: 'codex', command: ['node', firstScriptPath], prompt: 'first', scopePath: 'project'}), () => undefined);
+            const second = await service.run(createProject(rootPath), agentRequest({
+                agent: 'codex', command: ['node', secondScriptPath], conversation: first.conversation,
+                prompt: 'second', reference: first.reference, scopePath: 'project',
+            }), () => undefined);
+            const persisted = JSON.parse(await readFile(join(rootPath, second.reference), 'utf8'));
+
+            expect(persisted.usage).toEqual({
+                cachedInputTokens: 6,
+                inputTokens: 24,
+                outputTokens: 9,
+                reasoningTokens: 3,
+                totalTokens: 42,
+            });
+        } finally {
+            await rm(rootPath, { force: true, recursive: true });
+        }
+    });
+
+    it('persists normalized Claude result usage and reported cost', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-runner-'));
+        const service = new AgentRunnerService();
+        const scriptPath = join(rootPath, 'claude-usage.cjs');
+
+        try {
+            await prepareProject(rootPath);
+            await writeFile(scriptPath, "console.log(JSON.stringify({type:'system',subtype:'init',session_id:'session-1'}));console.log(JSON.stringify({type:'assistant',message:{content:[{type:'text',text:'done'}],usage:{input_tokens:999}}}));console.log(JSON.stringify({type:'result',usage:{input_tokens:20,output_tokens:7,cache_creation_input_tokens:8,cache_read_input_tokens:5},total_cost_usd:0.012}))\n");
+            const result = await service.run(createProject(rootPath), agentRequest({agent: 'claude', command: ['node', scriptPath], prompt: 'question', scopePath: 'project'}), () => undefined);
+            const persisted = JSON.parse(await readFile(join(rootPath, result.reference), 'utf8'));
+
+            expect(persisted.usage).toEqual({
+                cachedInputTokens: 13,
+                costUsd: 0.012,
+                inputTokens: 20,
+                outputTokens: 7,
+                reasoningTokens: 0,
+                totalTokens: 40,
+            });
+        } finally {
+            await rm(rootPath, { force: true, recursive: true });
+        }
+    });
+
+    it('does not count usage from a failed turn', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-runner-'));
+        const service = new AgentRunnerService();
+        const scriptPath = join(rootPath, 'failed-usage.cjs');
+
+        try {
+            await prepareProject(rootPath);
+            await writeFile(scriptPath, "console.log(JSON.stringify({type:'thread.started',thread_id:'thread-1'}));console.log(JSON.stringify({type:'turn.started'}));console.log(JSON.stringify({type:'turn.completed',usage:{input_tokens:10}}));process.exit(1)\n");
+            const result = await service.run(createProject(rootPath), agentRequest({agent: 'codex', command: ['node', scriptPath], prompt: 'fail', scopePath: 'project'}), () => undefined);
+            const persisted = JSON.parse(await readFile(join(rootPath, result.reference), 'utf8'));
+
+            expect(persisted.usage).toBeUndefined();
+        } finally {
+            await rm(rootPath, { force: true, recursive: true });
+        }
+    });
+
     it('streams structured provider failures and returns their messages in stderr once', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-runner-'));
         const service = new AgentRunnerService();

@@ -40,12 +40,14 @@ type MarkdownEditorProps = MarkdownEditorCommonProps & ({
     onChange?: never
     onDocumentChange: (documentId: string, markdown: string) => void
     onDocumentEdit?: (documentId: string, markdown: string) => void
+    onDirtyChange?: never
 } | {
     documentId?: never
     historyStore?: never
     onChange: (markdown: string) => void
     onDocumentChange?: never
     onDocumentEdit?: never
+    onDirtyChange?: (dirty: boolean) => void
 })
 
 /**
@@ -73,9 +75,11 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
     const latestMarkdownRef = useRef(markdown)
     const lastEmittedMarkdownRef = useRef(markdown)
     const onChangeRef = useRef(props.onChange)
+    const onDirtyChangeRef = useRef(props.onDirtyChange)
     const onDocumentChangeRef = useRef(props.onDocumentChange)
     const onDocumentEditRef = useRef(props.onDocumentEdit)
     onChangeRef.current = props.onChange
+    onDirtyChangeRef.current = props.onDirtyChange
     onDocumentChangeRef.current = props.onDocumentChange
     onDocumentEditRef.current = props.onDocumentEdit
 
@@ -83,6 +87,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         if (latestMarkdownRef.current === lastEmittedMarkdownRef.current) return
 
         lastEmittedMarkdownRef.current = latestMarkdownRef.current
+        onDirtyChangeRef.current?.(false)
         const activeDocumentId = activeDocumentIdRef.current
         if (activeDocumentId) {
             onDocumentChangeRef.current?.(activeDocumentId, latestMarkdownRef.current)
@@ -156,6 +161,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
             editorRef.current?.setMarkdown(nextMarkdown)
             latestMarkdownRef.current = nextMarkdown
             lastEmittedMarkdownRef.current = nextMarkdown
+            onDirtyChangeRef.current?.(false)
         },
     }), [flush])
 
@@ -163,6 +169,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         if (latestMarkdownRef.current === nextMarkdown) return
 
         latestMarkdownRef.current = nextMarkdown
+        onDirtyChangeRef.current?.(nextMarkdown !== lastEmittedMarkdownRef.current)
         const activeDocumentId = activeDocumentIdRef.current
         if (activeDocumentId) onDocumentEditRef.current?.(activeDocumentId, nextMarkdown)
     }, [])

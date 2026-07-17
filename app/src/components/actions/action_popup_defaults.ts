@@ -15,6 +15,7 @@ export type ConvertPromptToAction = (input: ConvertPromptToActionInput) => Promi
 export type LoadHistory = (action: ActionDefinition, context: ActionContext) => Promise<ActionRunHistoryEntry[]>
 export type LoadConversation = (path: string) => Promise<AgentConversation>
 export type LoadConversations = (context: ActionContext) => Promise<AgentConversation[]>
+export type PreparePrompt = (action: ActionDefinition, context: ActionContext) => Promise<string>
 export type RunAction = (
     action: ActionDefinition,
     context: ActionContext,
@@ -47,6 +48,14 @@ export function defaultLoadConversation(path: string) {
 
 export function defaultLoadConversations(context: ActionContext) {
     return dataService.listAgentConversations(context)
+}
+
+export async function defaultPreparePrompt(action: ActionDefinition, context: ActionContext) {
+    const bridge = getElectronActionBridge()
+    if (!bridge) throw new Error('Preparing action prompts requires the Electron desktop app')
+    const result = await bridge.prepareActionPrompt({ actionId: action.id, context })
+
+    return result.prompt
 }
 
 export async function defaultConvertPromptToAction(input: ConvertPromptToActionInput) {

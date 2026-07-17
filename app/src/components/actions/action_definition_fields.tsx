@@ -1,5 +1,5 @@
 import {
-    Divider, FormControlLabel, FormHelperText, MenuItem, Paper, Stack, Switch,
+    Divider, FormControlLabel, FormHelperText, MenuItem, Paper, Stack, Switch, Grid,
 } from '@mui/material'
 import type { ChangeEvent } from 'react'
 import type { ActionDefinition, RawActionDefinition } from '../../data/action_types'
@@ -112,7 +112,15 @@ export function ActionDefinitionFields(props: ActionDefinitionFieldsProps) {
                 </Stack>
                 <ActionEditorField error={!!errors.description} fieldId="action-description" fullWidth helperText={errors.description} label="Description" name="description" onChange={handleRequiredTextChange} size="small" value={definition.description} />
                 <Divider />
-                <Stack direction={{ md: 'row', xs: 'column' }} spacing={1}>
+                <Grid
+                    sx={{
+                        display: 'grid',
+                        gridTemplateColumns: { md: 'repeat(3, 1fr)', xs: '1fr' },
+                        columnGap: 2,
+                        alignItems: 'start',
+                        mt: { md: 2.75 },
+                    }}
+                >
                     <ActionEditorField
                         error={!!errors.onState}
                         fieldId="action-on-state"
@@ -129,26 +137,28 @@ export function ActionDefinitionFields(props: ActionDefinitionFieldsProps) {
                         {missingState ? <MenuItem value={missingState}>{missingState} — unavailable</MenuItem> : null}
                         {states.map((state) => <MenuItem key={state} value={state}>{state}</MenuItem>)}
                     </ActionEditorField>
-                    <Stack direction={{ md: 'row', xs: 'column' }} sx={{ alignSelf: { md: 'flex-start', xs: 'stretch' }, mt: { md: 2.75 } }}>
+
+                    <Stack>
                         <FormControlLabel
                             control={<Switch checked={!!definition.needsWorkTree} onChange={handleNeedsWorkTreeChange} size="small" />}
                             label="Needs worktree"
-                            sx={{ flexShrink: 0, whiteSpace: 'nowrap' }}
+                            sx={{ whiteSpace: 'nowrap' }}
                         />
-                        {definition.type === 'agent' ? (
-                            <Stack>
-                                <FormControlLabel
-                                    control={<Switch checked={!!definition.trackFileChanges} onChange={handleTrackFileChangesChange} size="small" />}
-                                    label="Track changed files (run without a worktree)"
-                                    sx={{ whiteSpace: 'nowrap' }}
-                                />
-                                <FormHelperText error={!!errors.trackFileChanges} sx={{ maxWidth: 360 }}>
-                                    {errors.trackFileChanges ?? 'Tracks provider edit tools only. Shell writes and concurrent edits to the same file require a worktree.'}
-                                </FormHelperText>
-                            </Stack>
-                        ) : null}
+                        <FormHelperText>card needs to be assigned to a worktree</FormHelperText>
                     </Stack>
-                </Stack>
+                    {definition.type === 'agent' ? (
+                        <Stack>
+                            <FormControlLabel
+                                control={<Switch checked={!!definition.trackFileChanges} onChange={handleTrackFileChangesChange} size="small" />}
+                                label="Auto commit"
+                                sx={{ whiteSpace: 'nowrap' }}
+                            />
+                            <FormHelperText error={!!errors.trackFileChanges}>
+                                {errors.trackFileChanges ?? 'auto commit files agent reported as modified'}
+                            </FormHelperText>
+                        </Stack>
+                    ) : null}
+                </Grid>
                 {definition.type === 'agent' ? (
                     <ActionAgentCapabilityFields definition={definition} errors={errors} onChange={onChange} />
                 ) : (

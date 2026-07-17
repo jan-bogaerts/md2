@@ -48,6 +48,7 @@ function installAgentBridge(stdout: string) {
         loadActionRunHistory: vi.fn(async () => []),
         onActionExecution: vi.fn(() => () => {}),
         openInEditor: vi.fn(async () => {}),
+        prepareActionPrompt: vi.fn(async () => ({ prompt: '' })),
         runSearchRegexpAgent: vi.fn(async () => stdout),
         startAction: vi.fn(async () => 'action-1'),
     }

@@ -8,8 +8,11 @@ import FolderSearchOutline from 'mdi-material-ui/FolderSearchOutline'
 import type { ProjectCard } from '../../data/data_types'
 import { ResizablePopover } from '../resizable_popover'
 import { useRunningActionForFile } from '../hooks/use_action_executions'
+import { usePendingFileSave } from '../hooks/use_pending_file_save'
 import { CardBodyEditor } from './card_body_editor'
 import { CardDeleteDialog } from './card_delete_dialog'
+import { AgentUsageDisplay } from '../agents/agent_usage_display'
+import { cardAgentTokenUsage } from '../../services/agent_usage'
 
 const CARD_BODY_POPOVER_WIDTH = 760
 const FULLSCREEN_INSET = 16
@@ -17,6 +20,11 @@ const FULLSCREEN_INSET = 16
 interface TitleEdit {
     path: string | null
     title: string
+}
+
+interface BodyDirtyState {
+    dirty: boolean
+    path: string | null
 }
 
 interface CardBodyPopoverProps {
@@ -45,10 +53,14 @@ export function CardBodyPopover(props: CardBodyPopoverProps) {
         onTitleChange,
     } = props
     const [deleteCardPath, setDeleteCardPath] = useState<string | null>(null)
+    const [bodyDirtyState, setBodyDirtyState] = useState<BodyDirtyState>({ dirty: false, path: null })
     const [isFullscreen, setIsFullscreen] = useState(false)
     const [popupContentElement, setPopupContentElement] = useState<HTMLDivElement | null>(null)
     const [titleEdit, setTitleEdit] = useState<TitleEdit>({ path: null, title: '' })
     const titleDraft = titleEdit.path === card?.path ? titleEdit.title : card?.header.title ?? ''
+    const hasPendingFileSave = usePendingFileSave(card?.path ?? null)
+    const hasDirtyBody = bodyDirtyState.path === card?.path && bodyDirtyState.dirty
+    const isDirty = hasDirtyBody || hasPendingFileSave
 
     const handleClose = () => {
         setIsFullscreen(false)
@@ -78,6 +90,10 @@ export function CardBodyPopover(props: CardBodyPopoverProps) {
     const handleTitleChange = (event: ChangeEvent<HTMLInputElement>) => {
         if (!card) return
         setTitleEdit({ path: card.path, title: event.target.value })
+    }
+
+    const handleBodyDirtyChange = (path: string, dirty: boolean) => {
+        setBodyDirtyState({ dirty, path })
     }
 
     const commitTitle = () => {
@@ -115,6 +131,7 @@ export function CardBodyPopover(props: CardBodyPopoverProps) {
             <ResizablePopover
                 anchorElement={anchorElement}
                 initialSize={{ width: CARD_BODY_POPOVER_WIDTH }}
+                resizeFromAllSides
                 labelId={titleId}
                 onClose={handleClose}
                 open={!!card && !!anchorElement}
@@ -211,8 +228,8 @@ export function CardBodyPopover(props: CardBodyPopoverProps) {
                             </Box>
                             <Box sx={{ backgroundColor: 'divider', flexShrink: 0, height: 20, width: '1px' }} />
                             <Box sx={{ alignItems: 'center', color: 'text.disabled', display: 'flex', flexShrink: 0, fontSize: 11.5, gap: '5px' }}>
-                                <Box sx={{ backgroundColor: 'success.main', borderRadius: '50%', height: 7, width: 7 }} />
-                                Saved
+                                <Box sx={{ backgroundColor: isDirty ? 'warning.main' : 'success.main', borderRadius: '50%', height: 7, width: 7 }} />
+                                {isDirty ? 'Dirty' : 'Saved'}
                             </Box>
                             <Tooltip title="Close">
                                 <IconButton aria-label="Close card details" onClick={handleClose} size="small" sx={{ height: 30, ml: '4px', width: 30 }}>
@@ -226,6 +243,7 @@ export function CardBodyPopover(props: CardBodyPopoverProps) {
                             isFullscreen={isFullscreen}
                             isMobile={isMobile}
                             onBodyChange={onBodyChange}
+                            onDirtyChange={handleBodyDirtyChange}
                             onToggleFullscreen={toggleFullscreen}
                             overlayContainer={popupContentElement}
                         />
@@ -245,6 +263,7 @@ export function CardBodyPopover(props: CardBodyPopoverProps) {
                             <Button color="error" onClick={openDeleteCardDialog} startIcon={<DeleteOutline />} variant="outlined">Delete</Button>
                             <Button onClick={openAffects} startIcon={<FolderSearchOutline />} variant="outlined">Affects</Button>
                             <Button onClick={openInFileMode} startIcon={<FileDocumentOutline />} variant="outlined">Open in file mode</Button>
+                            <AgentUsageDisplay usage={cardAgentTokenUsage(card)} />
                             <Box sx={{ flex: 1 }} />
                             <Button onClick={handleClose} variant="contained">Close</Button>
                         </Box>

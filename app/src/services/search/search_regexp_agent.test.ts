@@ -26,6 +26,7 @@ function makeBridge(runSearchRegexpAgent: ElectronActionBridge['runSearchRegexpA
         loadActionRunHistory: vi.fn(async () => []),
         onActionExecution: vi.fn(() => () => {}),
         openInEditor: vi.fn(async () => {}),
+        prepareActionPrompt: vi.fn(async () => ({ prompt: '' })),
         runSearchRegexpAgent,
         startAction: vi.fn(async () => 'action-1'),
     }

@@ -3,4 +3,4 @@ export interface CommitSummary {
     commit: string
 }
 
-export function extractCommitSummary(output: string): CommitSummary | null
+export function extractCommitSummaries(output: string): CommitSummary[]

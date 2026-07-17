@@ -7,6 +7,7 @@ import type {
     ProjectReference,
     RunningAgent,
     AgentRunEvent,
+    AgentTokenUsage,
     StorageService,
 } from '../data/data_types'
 import { register } from './service_injector'
@@ -92,6 +93,30 @@ function normalizeEvent(value: unknown): AgentConversationEvent {
     }
 }
 
+function usageNumber(value: unknown) {
+    return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : 0
+}
+
+function normalizeUsage(value: unknown): AgentTokenUsage | undefined {
+    if (value === undefined) return undefined
+    if (value === null || typeof value !== 'object' || Array.isArray(value)) return undefined
+
+    const usage = value as Record<string, unknown>
+    const normalized = {
+        cachedInputTokens: usageNumber(usage.cachedInputTokens),
+        inputTokens: usageNumber(usage.inputTokens),
+        outputTokens: usageNumber(usage.outputTokens),
+        reasoningTokens: usageNumber(usage.reasoningTokens),
+    }
+    const totalTokens = normalized.inputTokens + normalized.cachedInputTokens + normalized.outputTokens + normalized.reasoningTokens
+
+    return {
+        ...normalized,
+        ...(typeof usage.costUsd === 'number' && Number.isFinite(usage.costUsd) && usage.costUsd >= 0 ? { costUsd: usage.costUsd } : {}),
+        totalTokens,
+    }
+}
+
 export function parseAgentConversationLog(content: string, referencePath: string): AgentConversation {
     const payload = requireRecord(JSON.parse(content), 'root')
     const messages = requireArray(payload.messages, 'messages').map(normalizeMessage)
@@ -100,6 +125,7 @@ export function parseAgentConversationLog(content: string, referencePath: string
         ? []
         : requireArray(payload.providerSessions, 'providerSessions').map(normalizeProviderSession)
     const hasExplicitTitle = typeof payload.title === 'string' && payload.title.trim().length > 0
+    const usage = normalizeUsage(payload.usage)
 
     return {
         actionId: nullableString(payload.actionId, 'actionId'),
@@ -114,6 +140,7 @@ export function parseAgentConversationLog(content: string, referencePath: string
         startedAt: requireString(payload.startedAt, 'startedAt'),
         status: requireStatus(payload.status),
         title: hasExplicitTitle ? payload.title as string : requireString(payload.id, 'id'),
+        ...(usage ? { usage } : {}),
     }
 }
 

@@ -18,6 +18,7 @@ import { mapWithConcurrency } from './concurrency'
 import { type RequiredDataServiceDependencies } from './data_service_context'
 import { markdownParsingService } from './markdown_parsing_service'
 import { telemetryService } from './telemetry_service'
+import { dialogService } from './dialog_service'
 
 const AGENT_CONVERSATION_LOAD_CONCURRENCY = 8
 const ON_STATE_ACTION_ERROR_PATH_PREFIX = 'onState'
@@ -64,6 +65,7 @@ async function loadAgentConversationReference(
         return { cardPath: task.cardPath, conversation, error: null }
     } catch (error) {
         const message = error instanceof Error ? error.message : 'Agent log failed to load'
+        telemetryService.captureError(error)
 
         return { cardPath: task.cardPath, conversation: null, error: { message, path: task.reference } }
     }
@@ -98,6 +100,7 @@ export class AgentIntegration {
     private conversationsByCardPath: Map<string, AgentConversation[]> = new Map()
     private readonly dependencies: AgentIntegrationDeps
     private errorsByCardPath: Map<string, AgentConversationError[]> = new Map()
+    private reportedLoadErrorKeys: Set<string> = new Set()
     private readonly saveFile: (file: MarkdownFile) => MarkdownFile
     private scheduledRunCleanup: (() => void) | null = null
 
@@ -118,6 +121,7 @@ export class AgentIntegration {
         this.dependencies.beginAgentConversationLoad()
         this.conversationsByCardPath = new Map()
         this.errorsByCardPath = new Map()
+        this.reportedLoadErrorKeys.clear()
     }
 
     startScheduledRunWatch() {
@@ -175,10 +179,16 @@ export class AgentIntegration {
         })
     }
 
-    loadAgentConversationsInBackground(snapshot: ProjectSnapshot, project: ProjectReference, projectLoadToken: number) {
+    async loadAgentConversationsInBackground(snapshot: ProjectSnapshot, project: ProjectReference, projectLoadToken: number) {
         const cards = [...snapshot.activeCards, ...snapshot.backgroundCards]
         const agentConversationLoadToken = this.dependencies.beginAgentConversationLoad()
-        void this.resolveAndAttachAgentConversations(cards, project, projectLoadToken, agentConversationLoadToken)
+
+        try {
+            await this.resolveAndAttachAgentConversations(cards, project, projectLoadToken, agentConversationLoadToken)
+        } catch (error) {
+            dialogService.warning('Agent logs could not be loaded and were skipped.', { title: 'Some agent logs were not loaded' })
+            telemetryService.captureError(error)
+        }
     }
 
     attachAgentConversations(cards: Pick<ProjectSnapshot, 'activeCards' | 'backgroundCards'>) {
@@ -221,6 +231,7 @@ export class AgentIntegration {
 
         this.conversationsByCardPath = resolved.conversationsByCardPath
         this.errorsByCardPath = this.mergeResolvedAgentErrors(resolved.errorsByCardPath)
+        this.reportNewAgentLoadErrors(resolved.errorsByCardPath)
         this.dependencies.refreshSnapshot(config.workingFolder)
     }
 
@@ -239,6 +250,23 @@ export class AgentIntegration {
         }
 
         return errors
+    }
+
+    private reportNewAgentLoadErrors(errorsByCardPath: Map<string, AgentConversationError[]>) {
+        const newErrors: AgentConversationError[] = []
+        for (const [cardPath, errors] of errorsByCardPath) {
+            for (const error of errors) {
+                const key = `${cardPath}:${error.path}:${error.message}`
+                if (this.reportedLoadErrorKeys.has(key)) continue
+
+                this.reportedLoadErrorKeys.add(key)
+                newErrors.push(error)
+            }
+        }
+        if (newErrors.length === 0) return
+
+        const paths = newErrors.map(({ path }) => path).join(', ')
+        dialogService.warning(`Some agent logs could not be loaded and were skipped: ${paths}`, {title: 'Some agent logs were not loaded'})
     }
 
     private async runStateAction(action: ActionDefinition, context: ActionContext, cardPath: string) {

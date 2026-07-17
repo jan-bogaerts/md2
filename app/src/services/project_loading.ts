@@ -24,6 +24,17 @@ const ACTION_RELOAD_DEBOUNCE_MS = 150
 const JSON_EXTENSION = '.json'
 const MARKDOWN_EXTENSION = '.md'
 const MARKDOWN_RELOAD_DEBOUNCE_MS = 150
+const PROJECT_LOAD_ERROR_REPORTED = Symbol('project-load-error-reported')
+
+type ReportedProjectLoadError = object & { [PROJECT_LOAD_ERROR_REPORTED]?: boolean }
+
+export function isProjectLoadErrorReported(error: unknown) {
+    return typeof error === 'object' && error !== null && !!(error as ReportedProjectLoadError)[PROJECT_LOAD_ERROR_REPORTED]
+}
+
+function markProjectLoadErrorReported(error: unknown) {
+    if (typeof error === 'object' && error !== null) (error as ReportedProjectLoadError)[PROJECT_LOAD_ERROR_REPORTED] = true
+}
 
 function importedNoticeMessage(count: number) {
     return `Imported ${count} external ${count === 1 ? 'file' : 'files'} as new cards.`
@@ -61,6 +72,12 @@ function backgroundProjectLoadFailureMessage(error: unknown) {
     return `Background project data failed to load - search and history may be incomplete. ${detail}`
 }
 
+function reportOptionalProjectLoadFailure(area: string, error: unknown) {
+    const detail = errorMessage(error, 'Unknown error')
+    dialogService.warning(`${area} could not be loaded and was skipped. ${detail}`, { title: 'Project loaded with errors' })
+    telemetryService.captureError(error)
+}
+
 function initializeMissingProjectStates(projectConfig: Partial<ProjectConfig> | null, snapshot: ProjectSnapshot) {
     if (projectConfig?.states !== undefined) return
 
@@ -70,6 +87,7 @@ function initializeMissingProjectStates(projectConfig: Partial<ProjectConfig> | 
 
 export interface ProjectLoadingDeps {
     beginProjectLoad(): number
+    clearLoadedProject(): void
     commitPathsInFlight(): Set<string>
     dispatchChanged(): void
     files(): MarkdownFile[]
@@ -141,35 +159,41 @@ export class ProjectLoading {
         this.actionReloadChangesByPath.clear()
         this.markdownReloadEventsByPath = new Map()
         this.dependencies.replaceProject(project)
-        const projectConfig = await storage.loadProjectConfig(project)
-        configService.loadProjectConfig(projectConfig)
-        await worktreeService.load(project)
-        if (projectConfig === null) {
-            configService.set('project.backgroundShade', createRandomProjectBackgroundShade())
-            await storage.saveProjectConfig(project, configService.getProjectConfig())
-        }
-        const config = resolveProjectConfigPaths(configService.getProjectConfig())
-        if (config.pushMode === 'manual') {
-            await storage.restorePendingCommits?.(project)
-            await storage.loadPendingPush?.(project)
-        }
-        const actionFiles = await storage.loadActionFiles(project, config.actionsFolder)
-        actionService.loadFromFiles(actionFiles)
-        const projectFiles = await storage.loadProjectRoot(project, config.workingFolder)
-        const repositoryFiles: string[] = []
-        this.dependencies.replaceProjectFiles(projectFiles.files, config.workingFolder, repositoryFiles)
-        this.startProjectWatch()
-        const currentSnapshot = this.dependencies.snapshot()
-        if (!currentSnapshot) throw new Error('Project snapshot was not created')
-        initializeMissingProjectStates(projectConfig, currentSnapshot)
-        this.dependencies.dispatchChanged()
-        reportActionLoadIssues()
 
-        this.loadAgentConversationsInBackground(currentSnapshot, project, projectLoadToken)
-        void this.loadFullProjectInBackground(project, config.projectFolder, config.workingFolder, projectLoadToken)
-        telemetryService.trackEvent('open_project')
+        try {
+            const projectConfig = await this.loadProjectConfig(project)
+            await this.loadWorktrees(project)
+            if (projectConfig === null) await this.saveMissingProjectConfig(project)
 
-        return currentSnapshot
+            const config = resolveProjectConfigPaths(configService.getProjectConfig())
+            if (config.pushMode === 'manual') {
+                await storage.restorePendingCommits?.(project)
+                await this.loadPendingPush(project)
+            }
+
+            await this.loadActions(project, config.actionsFolder)
+            const projectFiles = await storage.loadProjectRoot(project, config.workingFolder)
+            const repositoryFiles: string[] = []
+            this.dependencies.replaceProjectFiles(projectFiles.files, config.workingFolder, repositoryFiles)
+            this.tryStartProjectWatch()
+            const currentSnapshot = this.dependencies.snapshot()
+            if (!currentSnapshot) throw new Error('Project snapshot was not created')
+            initializeMissingProjectStates(projectConfig ?? null, currentSnapshot)
+            this.dependencies.dispatchChanged()
+            reportActionLoadIssues()
+
+            this.loadAgentConversationsInBackground(currentSnapshot, project, projectLoadToken)
+            void this.loadFullProjectInBackground(project, config.projectFolder, config.workingFolder, projectLoadToken)
+            telemetryService.trackEvent('open_project')
+
+            return currentSnapshot
+        } catch (error) {
+            this.clearFailedProjectLoad()
+            dialogService.error(error, { fallbackMessage: 'Project could not be loaded', title: 'Project load failed' })
+            telemetryService.captureError(error)
+            markProjectLoadErrorReported(error)
+            throw error
+        }
     }
 
     async saveProjectConfig() {
@@ -275,6 +299,86 @@ export class ProjectLoading {
         this.watchCleanup = null
     }
 
+    private clearFailedProjectLoad() {
+        this.stopProjectWatch()
+        this.clearActionReloadTimeout()
+        this.clearMarkdownReloadTimeout()
+        this.dependencies.beginProjectLoad()
+        this.dependencies.resetAgentConversations()
+        this.dependencies.clearLoadedProject()
+        this.actionReloadChangesByPath.clear()
+        this.markdownReloadEventsByPath.clear()
+        actionService.clear()
+        worktreeService.clear()
+        this.dependencies.dispatchChanged()
+    }
+
+    private async loadProjectConfig(project: ProjectReference) {
+        const { storage } = this.dependencies.requireDependencies()
+
+        try {
+            const projectConfig = await storage.loadProjectConfig(project)
+            configService.loadProjectConfig(projectConfig)
+
+            return projectConfig
+        } catch (error) {
+            configService.loadProjectConfig(null)
+            reportOptionalProjectLoadFailure('Project configuration', error)
+
+            return undefined
+        }
+    }
+
+    private async saveMissingProjectConfig(project: ProjectReference) {
+        const { storage } = this.dependencies.requireDependencies()
+        configService.set('project.backgroundShade', createRandomProjectBackgroundShade())
+
+        try {
+            await storage.saveProjectConfig(project, configService.getProjectConfig())
+        } catch (error) {
+            reportOptionalProjectLoadFailure('Generated project configuration', error)
+        }
+    }
+
+    private async loadWorktrees(project: ProjectReference) {
+        try {
+            await worktreeService.load(project)
+        } catch (error) {
+            worktreeService.clear()
+            reportOptionalProjectLoadFailure('Worktrees', error)
+        }
+    }
+
+    private async loadActions(project: ProjectReference, actionsFolder: string) {
+        const { storage } = this.dependencies.requireDependencies()
+
+        try {
+            const actionFiles = await storage.loadActionFiles(project, actionsFolder)
+            actionService.loadFromFiles(actionFiles)
+        } catch (error) {
+            actionService.clear()
+            reportOptionalProjectLoadFailure('Actions', error)
+        }
+    }
+
+    private async loadPendingPush(project: ProjectReference) {
+        const { storage } = this.dependencies.requireDependencies()
+
+        try {
+            await storage.loadPendingPush?.(project)
+        } catch (error) {
+            reportOptionalProjectLoadFailure('Pending push state', error)
+        }
+    }
+
+    private tryStartProjectWatch() {
+        try {
+            this.startProjectWatch()
+        } catch (error) {
+            reportOptionalProjectLoadFailure('Project file watching', error)
+        }
+    }
+
     private async importExternalCardFiles(files: MarkdownFile[], workingFolder: string) {
         const { config, storage } = this.dependencies.requireDependencies()
         const currentProject = this.dependencies.project()
@@ -318,32 +422,49 @@ export class ProjectLoading {
         projectLoadToken: number,
     ) {
         const { storage } = this.dependencies.requireDependencies()
+        const [projectFilesResult, repositoryFilesResult] = await Promise.allSettled([
+            storage.loadProject(project, projectFolder),
+            storage.listRepositoryFiles(project),
+        ])
+        if (!this.shouldApplyProjectLoad(project, projectLoadToken)) return
 
-        try {
-            const [projectFiles, repositoryFiles] = await Promise.all([
-                storage.loadProject(project, projectFolder),
-                storage.listRepositoryFiles(project),
-            ])
-            if (!this.shouldApplyProjectLoad(project, projectLoadToken)) return
+        let nextFiles = this.dependencies.files()
+        let projectFilesLoaded = false
+        if (projectFilesResult.status === 'fulfilled') {
+            try {
+                const importedFiles = await this.importExternalCardFiles(projectFilesResult.value.files, workingFolder)
+                if (!this.shouldApplyProjectLoad(project, projectLoadToken)) return
 
-            const importedFiles = await this.importExternalCardFiles(projectFiles.files, workingFolder)
-            if (!this.shouldApplyProjectLoad(project, projectLoadToken)) return
-
-            const importedPaths = new Set(importedFiles.map((file) => file.path))
-            const removedImportedPaths = projectFiles.files
-                .filter((file) => !importedPaths.has(file.path))
-                .map((file) => file.path)
-            const remainingFiles = removeFilesByPath(this.dependencies.files(), removedImportedPaths)
-            this.dependencies.replaceProjectFiles(mergeFiles(importedFiles, remainingFiles), workingFolder, repositoryFiles)
-            this.dependencies.dispatchChanged()
-            const currentSnapshot = this.dependencies.snapshot()
-            if (currentSnapshot) this.loadAgentConversationsInBackground(currentSnapshot, project, projectLoadToken)
-        } catch (error) {
-            if (!this.shouldApplyProjectLoad(project, projectLoadToken)) return
-
-            reportWorkspaceError(backgroundProjectLoadFailureMessage(error))
-            telemetryService.captureError(error)
+                const importedPaths = new Set(importedFiles.map((file) => file.path))
+                const removedImportedPaths = projectFilesResult.value.files
+                    .filter((file) => !importedPaths.has(file.path))
+                    .map((file) => file.path)
+                const remainingFiles = removeFilesByPath(this.dependencies.files(), removedImportedPaths)
+                nextFiles = mergeFiles(importedFiles, remainingFiles)
+                projectFilesLoaded = true
+            } catch (error) {
+                reportWorkspaceError(backgroundProjectLoadFailureMessage(error))
+                telemetryService.captureError(error)
+            }
+        } else {
+            reportWorkspaceError(backgroundProjectLoadFailureMessage(projectFilesResult.reason))
+            telemetryService.captureError(projectFilesResult.reason)
         }
+
+        const currentRepositoryFiles = this.dependencies.snapshot()?.repositoryFiles ?? []
+        const repositoryFiles = repositoryFilesResult.status === 'fulfilled'
+            ? repositoryFilesResult.value
+            : currentRepositoryFiles
+        if (repositoryFilesResult.status === 'rejected') {
+            reportOptionalProjectLoadFailure('Repository file index', repositoryFilesResult.reason)
+        }
+        if (!projectFilesLoaded && repositoryFilesResult.status === 'rejected') return
+        if (!this.shouldApplyProjectLoad(project, projectLoadToken)) return
+
+        this.dependencies.replaceProjectFiles(nextFiles, workingFolder, repositoryFiles)
+        this.dependencies.dispatchChanged()
+        const currentSnapshot = this.dependencies.snapshot()
+        if (currentSnapshot) this.loadAgentConversationsInBackground(currentSnapshot, project, projectLoadToken)
     }
 
     private shouldApplyProjectLoad(project: ProjectReference, projectLoadToken: number) {

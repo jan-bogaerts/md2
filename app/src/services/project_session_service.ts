@@ -20,6 +20,7 @@ import { GithubPendingCommitConflictError, GithubStorageService } from './github
 import { markdownParsingService } from './markdown_parsing_service'
 import { register } from './service_injector'
 import { createRandomProjectBackgroundShade } from '../theme/project_background_shade'
+import { isProjectLoadErrorReported } from './project_loading'
 
 export interface MissingWorkingFolderResolution {
     kind: 'missing-working-folder'
@@ -290,7 +291,7 @@ export class ProjectSessionService extends EventTarget {
                 pendingGithubConflictProject: error instanceof GithubPendingCommitConflictError ? error.project : null,
             }
             this.dispatchChanged()
-            dialogService.error(error, { fallbackMessage })
+            if (!isProjectLoadErrorReported(error)) dialogService.error(error, { fallbackMessage })
             throw error
         } finally {
             if (this.state.isLoading) {

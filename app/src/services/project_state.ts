@@ -1,10 +1,13 @@
 import type { MarkdownFile, ProjectCard, ProjectReference, ProjectSnapshot } from '../data/data_types'
-import { markdownParsingService } from './markdown_parsing_service'
+import { markdownParsingService, type CardParseError } from './markdown_parsing_service'
 import { mergeFiles } from './data_service_context'
 
 type CardCollections = Pick<ProjectSnapshot, 'activeCards' | 'backgroundCards'>
 
 type AttachAgentConversations = (cards: CardCollections) => CardCollections
+type ReportCardParseErrors = (errors: CardParseError[]) => void
+
+const ignoreCardParseErrors: ReportCardParseErrors = () => undefined
 
 /** Cache entry tying a produced card to the inputs it was derived from. */
 interface CardCacheEntry {
@@ -32,10 +35,13 @@ export class ProjectState {
     private readonly inFlightCommitPaths: Set<string> = new Set()
     private projectLoadToken = 0
     private cardCacheByPath = new Map<string, CardCacheEntry>()
+    private parseErrorPaths: Set<string> = new Set()
     private readonly attachAgentConversations: AttachAgentConversations
+    private readonly reportCardParseErrors: ReportCardParseErrors
 
-    constructor(attachAgentConversations: AttachAgentConversations) {
+    constructor(attachAgentConversations: AttachAgentConversations, reportCardParseErrors = ignoreCardParseErrors) {
         this.attachAgentConversations = attachAgentConversations
+        this.reportCardParseErrors = reportCardParseErrors
     }
 
     get files() { return this.currentFiles }
@@ -51,6 +57,7 @@ export class ProjectState {
         this.currentSnapshot = null
         this.inFlightCommitPaths.clear()
         this.cardCacheByPath.clear()
+        this.parseErrorPaths.clear()
     }
 
     replaceProject(project: ProjectReference | null) {
@@ -102,7 +109,11 @@ export class ProjectState {
     }
 
     private createSnapshot(files: MarkdownFile[], workingFolder: string, repositoryFiles: string[]): ProjectSnapshot {
-        const cards = this.attachAgentConversations(markdownParsingService.splitCards(files, workingFolder))
+        const parsedCards = markdownParsingService.splitCards(files, workingFolder)
+        const newParseErrors = parsedCards.parseErrors.filter(({ path }) => !this.parseErrorPaths.has(path))
+        this.parseErrorPaths = new Set(parsedCards.parseErrors.map(({ path }) => path))
+        if (newParseErrors.length > 0) this.reportCardParseErrors(newParseErrors)
+        const cards = this.attachAgentConversations(parsedCards)
         const fileContentByPath = new Map(files.map((file) => [file.path, file.content]))
         const nextCache = new Map<string, CardCacheEntry>()
         const activeCards = cards.activeCards.map((card) => this.reuseUnchangedCard(card, fileContentByPath, nextCache))

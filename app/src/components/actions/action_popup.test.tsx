@@ -84,9 +84,10 @@ function renderPopup(overrides: Partial<Parameters<typeof ActionPopup>[0]> = {})
     const onNavigate = vi.fn()
     const onClose = vi.fn()
     const loadHistory = vi.fn(async () => [])
+    const preparePrompt = vi.fn(async (selectedAction: ActionDefinition) => selectedAction.prompt ?? '')
     const runAction = vi.fn(async () => completedResult)
     const scheduleAction = vi.fn(async () => {})
-    render(
+    const rendered = render(
         <ActionPopup
             action={action('Implement')}
             anchorElement={document.body}
@@ -94,17 +95,37 @@ function renderPopup(overrides: Partial<Parameters<typeof ActionPopup>[0]> = {})
             loadHistory={loadHistory}
             onClose={onClose}
             onNavigate={onNavigate}
+            preparePrompt={preparePrompt}
             runAction={runAction}
             scheduleAction={scheduleAction}
             {...overrides}
         />,
     )
 
-    return { loadHistory, onClose, onNavigate, runAction, scheduleAction }
+    const rerenderPopup = (nextOverrides: Partial<Parameters<typeof ActionPopup>[0]>) => {
+        rendered.rerender(
+            <ActionPopup
+                action={action('Implement')}
+                anchorElement={document.body}
+                context={context}
+                loadHistory={loadHistory}
+                onClose={onClose}
+                onNavigate={onNavigate}
+                preparePrompt={preparePrompt}
+                runAction={runAction}
+                scheduleAction={scheduleAction}
+                {...overrides}
+                {...nextOverrides}
+            />,
+        )
+    }
+
+    return { loadHistory, onClose, onNavigate, preparePrompt, rerenderPopup, runAction, scheduleAction }
 }
 
 describe('ActionPopup', () => {
     afterEach(cleanup)
+    afterEach(() => vi.restoreAllMocks())
     afterEach(() => {
         actionExecutionService.stop()
         delete window.md2Actions
@@ -122,6 +143,55 @@ describe('ActionPopup', () => {
             .toBe(Node.DOCUMENT_POSITION_FOLLOWING)
     })
 
+    it('loads the complete prepared prompt and disables Run while loading', async () => {
+        const preparation = deferred<string>()
+        const selectedAction = action('Implement', { prompt: 'Renderer copy', type: 'agent' })
+        const preparePrompt = vi.fn(() => preparation.promise)
+        renderPopup({ action: selectedAction, preparePrompt })
+
+        expect(screen.getByLabelText('Prompt')).toBeDisabled()
+        expect(screen.getByRole('button', { name: 'Run' })).toBeDisabled()
+        expect(screen.getByPlaceholderText('Preparing prompt…')).toBeInTheDocument()
+
+        await act(async () => preparation.resolve('Prepared design/F-010.md'))
+
+        expect(screen.getByLabelText('Prompt')).toHaveValue('Prepared design/F-010.md')
+        expect(screen.getByRole('button', { name: 'Run' })).toBeEnabled()
+        expect(preparePrompt).toHaveBeenCalledWith(selectedAction, context)
+    })
+
+    it('ignores stale preparation and preserves edits for the current action', async () => {
+        const firstPreparation = deferred<string>()
+        const secondPreparation = deferred<string>()
+        const firstAction = action('First', { prompt: 'First renderer copy', type: 'agent' })
+        const secondAction = action('Second', { prompt: 'Second renderer copy', type: 'agent' })
+        const preparePrompt = vi.fn((selectedAction: ActionDefinition) => (
+            selectedAction.id === firstAction.id ? firstPreparation.promise : secondPreparation.promise
+        ))
+        const { rerenderPopup } = renderPopup({ action: firstAction, preparePrompt })
+
+        rerenderPopup({ action: secondAction, preparePrompt })
+        await act(async () => secondPreparation.resolve('Second prepared'))
+        fireEvent.change(screen.getByLabelText('Prompt'), { target: { value: 'Second edited' } })
+        await act(async () => firstPreparation.resolve('First stale'))
+
+        expect(screen.getByLabelText('Prompt')).toHaveValue('Second edited')
+    })
+
+    it('reports prompt preparation errors and keeps Run disabled', async () => {
+        const error = new Error('Prompt preparation failed')
+        const reportError = vi.spyOn(dialogService, 'error')
+        renderPopup({
+            action: action('Implement', { prompt: 'Renderer copy', type: 'agent' }),
+            preparePrompt: vi.fn(async () => { throw error }),
+        })
+
+        await waitFor(() => expect(reportError).toHaveBeenCalledWith(error, { fallbackMessage: 'Could not prepare action prompt' }))
+        expect(screen.getByLabelText('Prompt')).toBeDisabled()
+        expect(screen.getByPlaceholderText('Prompt unavailable')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Run' })).toBeDisabled()
+    })
+
     it('fills a predefined phrase on click and continues with it on double click', async () => {
         const selectedAction = action('Implement', {
             command: null,
@@ -135,7 +205,7 @@ describe('ActionPopup', () => {
         const { runAction } = renderPopup({ action: selectedAction, continueFrom: '.md2-agent-logs/conversation.json' })
 
         fireEvent.click(screen.getByRole('button', { name: 'Run tests' }))
-        expect(screen.getByLabelText('Extra prompt')).toHaveValue('**Run tests**')
+        expect(screen.getByLabelText('Prompt')).toHaveValue('**Run tests**')
         expect(runAction).not.toHaveBeenCalled()
         expect(screen.getByRole('button', { name: 'Show the current diff' })).toBeInTheDocument()
 
@@ -146,7 +216,7 @@ describe('ActionPopup', () => {
             context,
             {
                 continueFrom: '.md2-agent-logs/conversation.json',
-                extraPrompt: '**Run tests**',
+                prompt: '**Run tests**',
                 thinkingLevel: 'none',
             },
             expect.any(Function),
@@ -185,14 +255,14 @@ describe('ActionPopup', () => {
         })
 
         fireEvent.click(screen.getByRole('button', { name: 'Card tests' }))
-        expect(screen.getByLabelText('Extra prompt')).toHaveValue('Run card tests')
+        expect(screen.getByLabelText('Prompt')).toHaveValue('Run card tests')
         expect(runAction).not.toHaveBeenCalled()
 
         fireEvent.doubleClick(screen.getByRole('button', { name: 'Card tests' }))
         await waitFor(() => expect(runAction).toHaveBeenCalledWith(
             selectedAction,
             context,
-            expect.objectContaining({ continueFrom: continuedConversation.path, extraPrompt: 'Run card tests' }),
+            expect.objectContaining({ continueFrom: continuedConversation.path, prompt: 'Run card tests' }),
             expect.any(Function),
         ))
     })
@@ -207,7 +277,7 @@ describe('ActionPopup', () => {
         })
 
         expect(screen.queryByText('Implement the selected card')).not.toBeInTheDocument()
-        expect(screen.getByPlaceholderText('Extra prompt optional')).toBeInTheDocument()
+        expect(await screen.findByLabelText('Prompt')).toBeEnabled()
         expect(screen.getAllByRole('button', { name: 'Close' })).toHaveLength(1)
 
         fireEvent.mouseOver(screen.getByRole('button', { name: 'Implement' }))
@@ -310,7 +380,7 @@ describe('ActionPopup', () => {
             actionId: selectedAction.id, context, executionId: 'execution-1', phase: 'main',
             rootActionId: selectedAction.id, status: 'running', type: 'action',
         }))
-        expect(screen.getByLabelText('Extra prompt')).toBeDisabled()
+        expect(screen.getByLabelText('Prompt')).toBeDisabled()
         expect(screen.getByRole('combobox', { name: 'Agent' })).toHaveAttribute('aria-disabled', 'true')
 
         act(() => emit({
@@ -342,14 +412,14 @@ describe('ActionPopup', () => {
         }))
 
         expect(screen.getByRole('button', { name: 'Continue' })).toBeInTheDocument()
-        fireEvent.change(screen.getByLabelText('Extra prompt'), { target: { value: 'follow up' } })
+        fireEvent.change(screen.getByLabelText('Prompt'), { target: { value: 'follow up' } })
         selectAgent('claude')
         fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
 
         await waitFor(() => expect(runAction).toHaveBeenCalledWith(selectedAction, context, {
             agent: 'claude',
             continueFrom: '.md2-agent-logs/conversation.json',
-            extraPrompt: 'follow up',
+            prompt: 'follow up',
             model: 'sonnet',
             thinkingLevel: 'none',
         }, expect.any(Function)))
@@ -363,14 +433,14 @@ describe('ActionPopup', () => {
             initialPrompt: 'follow persisted turn',
         })
 
-        expect(screen.getByLabelText('Extra prompt')).toHaveValue('follow persisted turn')
+        expect(screen.getByLabelText('Prompt')).toHaveValue('follow persisted turn')
         selectAgent('claude')
         fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
 
         await waitFor(() => expect(runAction).toHaveBeenCalledWith(selectedAction, context, {
             agent: 'claude',
             continueFrom: '.md2-agent-logs/persisted.json',
-            extraPrompt: 'follow persisted turn',
+            prompt: 'follow persisted turn',
             model: 'default',
             thinkingLevel: 'none',
         }, expect.any(Function)))
@@ -434,6 +504,7 @@ describe('ActionPopup', () => {
         const runAction = vi.fn(async () => failedResult)
         renderPopup({ action: action('Implement', { type: 'agent' }), runAction })
 
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Run' })).toBeEnabled())
         fireEvent.click(screen.getByRole('button', { name: 'Run' }))
 
         await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('failed'))
@@ -441,17 +512,17 @@ describe('ActionPopup', () => {
         expect(screen.getByRole('status')).toHaveTextContent('thinking: high')
     })
 
-    it('passes extra prompt input when running an agent action', async () => {
+    it('passes prepared prompt input when running an agent action', async () => {
         const { runAction } = renderPopup({ action: action('Implement', { type: 'agent' }) })
 
-        fireEvent.change(screen.getByLabelText('Extra prompt'), { target: { value: 'focus tests' } })
+        fireEvent.change(screen.getByLabelText('Prompt'), { target: { value: 'focus tests' } })
         fireEvent.click(screen.getByRole('button', { name: 'Run' }))
 
-        const expectedInput = { extraPrompt: 'focus tests', thinkingLevel: 'none' }
+        const expectedInput = { prompt: 'focus tests', thinkingLevel: 'none' }
         await waitFor(() => expect(runAction).toHaveBeenCalledWith(expect.objectContaining({ label: 'Implement' }), context, expectedInput, expect.any(Function)))
     })
 
-    it('runs the card popup with Control+Enter from the extra prompt', async () => {
+    it('runs the card popup with Control+Enter from the prompt', async () => {
         const selectedAction = action('Implement', { type: 'agent' })
         const { runAction } = renderPopup({
             action: selectedAction,
@@ -460,10 +531,10 @@ describe('ActionPopup', () => {
             onSelectAction: vi.fn(),
         })
 
-        fireEvent.change(screen.getByLabelText('Extra prompt'), { target: { value: 'focus tests' } })
-        fireEvent.keyDown(screen.getByLabelText('Extra prompt'), { ctrlKey: true, key: 'Enter' })
+        fireEvent.change(screen.getByLabelText('Prompt'), { target: { value: 'focus tests' } })
+        fireEvent.keyDown(screen.getByLabelText('Prompt'), { ctrlKey: true, key: 'Enter' })
 
-        await waitFor(() => expect(runAction).toHaveBeenCalledWith(selectedAction, context, { extraPrompt: 'focus tests', thinkingLevel: 'none' }, expect.any(Function)))
+        await waitFor(() => expect(runAction).toHaveBeenCalledWith(selectedAction, context, { prompt: 'focus tests', thinkingLevel: 'none' }, expect.any(Function)))
     })
 
     it('passes selected agent and model when running an agent action', async () => {
@@ -476,10 +547,10 @@ describe('ActionPopup', () => {
         })
         const { runAction } = renderPopup({ action: action('Implement', { model: 'gpt-5-mini', type: 'agent' }) })
 
-        fireEvent.change(screen.getByLabelText('Extra prompt'), { target: { value: 'focus tests' } })
+        fireEvent.change(screen.getByLabelText('Prompt'), { target: { value: 'focus tests' } })
         fireEvent.click(screen.getByRole('button', { name: 'Run' }))
 
-        const expectedInput = { agent: 'codex', extraPrompt: 'focus tests', model: 'gpt-5-mini', thinkingLevel: 'none' }
+        const expectedInput = { agent: 'codex', model: 'gpt-5-mini', prompt: 'focus tests', thinkingLevel: 'none' }
         await waitFor(() => expect(runAction).toHaveBeenCalledWith(expect.objectContaining({ label: 'Implement' }), context, expectedInput, expect.any(Function)))
     })
 
@@ -490,12 +561,13 @@ describe('ActionPopup', () => {
         expect(screen.getByRole('combobox', { name: 'Thinking level' })).toBeEnabled()
         expect(screen.getByRole('combobox', { name: 'Thinking level' })).toHaveTextContent('high')
         selectThinkingLevel('low')
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Run' })).toBeEnabled())
         fireEvent.click(screen.getByRole('button', { name: 'Run' }))
 
         await waitFor(() => expect(runAction).toHaveBeenCalledWith(
             selectedAction,
             context,
-            { extraPrompt: '', thinkingLevel: 'low' },
+            { prompt: '', thinkingLevel: 'low' },
             expect.any(Function),
         ))
         expect(selectedAction.thinkingLevel).toBe('high')
@@ -523,12 +595,13 @@ describe('ActionPopup', () => {
         const { runAction } = renderPopup({ action: action('Implement', { agent: 'codex', model: 'gpt-5', thinkingLevel: 'high', type: 'agent' }) })
 
         selectAgent('claude')
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Run' })).toBeEnabled())
         fireEvent.click(screen.getByRole('button', { name: 'Run' }))
 
         await waitFor(() => expect(runAction).toHaveBeenCalledWith(
             expect.objectContaining({ label: 'Implement' }),
             context,
-            { agent: 'claude', extraPrompt: '', model: 'sonnet', thinkingLevel: 'none' },
+            { agent: 'claude', model: 'sonnet', prompt: '', thinkingLevel: 'none' },
             expect.any(Function),
         ))
     })
@@ -559,6 +632,7 @@ describe('ActionPopup', () => {
         })
         renderPopup({ action: action('Implement', { type: 'agent' }), runAction })
 
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Run' })).toBeEnabled())
         fireEvent.click(screen.getByRole('button', { name: 'Run' }))
 
         await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Agent profile claude does not support thinking levels'))
@@ -584,14 +658,15 @@ describe('ActionPopup', () => {
     it('shows and hides a diff view for a commit history entry', async () => {
         const commitEntry = {
             command: 'git commit',
-            commit: {
+            commits: [{
                 actionId: 'action-commit',
+                actionName: 'Commit',
                 branch: 'main',
-                commit: 'abc1234',
-                completedAt: '2026-07-05T10:00:00.000Z',
+                commit: 'abc1234def5678901234567890123456789012ab',
+                committedAt: '2026-07-05T10:00:00.000Z',
                 filePaths: ['design/F-010.md'],
                 repositoryRoot: 'C:/repo',
-            },
+            }],
             completedAt: '2026-07-05T10:00:00.000Z',
             output: 'committed',
             prompt: '',
@@ -621,7 +696,7 @@ describe('ActionPopup', () => {
         const convertPromptToAction = vi.fn(async () => ({ path: 'actions/custom-review.json' }))
         renderPopup({ action: action('Custom prompt', { command: null, prompt: '{{card-prompt}}', type: 'agent' }), convertPromptToAction })
 
-        fireEvent.change(screen.getByLabelText('Extra prompt'), { target: { value: 'review this file' } })
+        fireEvent.change(screen.getByLabelText('Prompt'), { target: { value: 'review this file' } })
         fireEvent.change(screen.getByLabelText('Action label'), { target: { value: 'Custom review' } })
         fireEvent.click(screen.getByRole('button', { name: 'Convert to action' }))
 
@@ -637,14 +712,14 @@ describe('ActionPopup', () => {
             showSaveControls: true,
         })
 
-        fireEvent.change(screen.getByLabelText('Extra prompt'), { target: { value: 'review this file' } })
+        fireEvent.change(screen.getByLabelText('Prompt'), { target: { value: 'review this file' } })
         fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Custom review' } })
         fireEvent.click(screen.getByRole('button', { name: 'Save and run' }))
 
         await waitFor(() => expect(runAction).toHaveBeenCalledWith(
             expect.objectContaining({ label: 'Custom prompt' }),
             context,
-            { extraPrompt: 'review this file', thinkingLevel: 'none' },
+            { prompt: 'review this file', thinkingLevel: 'none' },
             expect.any(Function),
         ))
         expect(convertPromptToAction).toHaveBeenCalledWith({ context, label: 'Custom review', prompt: 'review this file' })
@@ -670,12 +745,13 @@ describe('ActionPopup', () => {
         })
 
         fireEvent.change(screen.getByLabelText('Preset name'), { target: { value: 'Custom review' } })
+        fireEvent.change(screen.getByLabelText('Prompt'), { target: { value: 'Review this card' } })
         fireEvent.click(screen.getByRole('button', { name: 'Run' }))
 
         await waitFor(() => expect(runAction).toHaveBeenCalledWith(
             customPrompt,
             context,
-            { agent: 'codex', extraPrompt: '', model: 'gpt-5', thinkingLevel: 'none' },
+            { agent: 'codex', model: 'gpt-5', prompt: 'Review this card', thinkingLevel: 'none' },
             expect.any(Function),
         ))
         expect(convertPromptToAction).toHaveBeenCalledWith({
@@ -683,11 +759,45 @@ describe('ActionPopup', () => {
             context,
             label: 'Custom review',
             model: 'gpt-5',
-            prompt: '',
+            prompt: 'Review this card',
         })
     })
 
-    it('shows the custom prompt as required and keeps unlabeled agent controls accessible', () => {
+    it('opens the card dialog commit dropdown listing chain commits with performer labels', async () => {
+        const agentAction = action('Implement', { agent: 'codex', model: 'gpt-5', type: 'agent' })
+        const loadHistory = vi.fn(async () => [{
+            completedAt: '2026-07-05T10:00:00.000Z',
+            commits: [{
+                actionId: 'action-lint',
+                actionName: 'Lint fix',
+                branch: 'main',
+                commit: 'abc1234def5678901234567890123456789012ab',
+                committedAt: '2026-07-05T09:59:00.000Z',
+                filePaths: ['design/F-010.md'],
+                repositoryRoot: 'C:/repo',
+            }],
+            output: 'done',
+            prompt: 'run',
+            status: 'completed' as const,
+        }])
+        renderPopup({
+            action: agentAction,
+            actions: [agentAction],
+            loadConversations: vi.fn(async () => []),
+            loadHistory,
+            onAddAction: vi.fn(),
+            onSelectAction: vi.fn(),
+        })
+
+        const toggle = await screen.findByRole('button', { name: 'Commit history' })
+        fireEvent.click(toggle)
+
+        expect(screen.getByText(/Lint fix/u)).toBeInTheDocument()
+        expect(screen.getByText(/abc1234/u)).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Show diff' })).toBeInTheDocument()
+    })
+
+    it('shows the custom prompt as required and keeps unlabeled agent controls accessible', async () => {
         configService.init({
             desktopConfig: {
                 agent: 'codex',
@@ -706,7 +816,8 @@ describe('ActionPopup', () => {
         expect(screen.queryByText('Prompt')).not.toBeInTheDocument()
         expect(screen.queryByText('required')).not.toBeInTheDocument()
         expect(screen.queryByText('optional')).not.toBeInTheDocument()
-        expect(screen.getByPlaceholderText('Prompt required')).toBeInTheDocument()
+        const prompt = await screen.findByLabelText('Prompt')
+        expect(prompt).toHaveAttribute('placeholder', 'Prompt required')
         expect(screen.queryByText('Agent')).not.toBeInTheDocument()
         expect(screen.queryByText('Model')).not.toBeInTheDocument()
         expect(screen.queryByText('Thinking')).not.toBeInTheDocument()
@@ -725,7 +836,7 @@ describe('ActionPopup', () => {
             showSaveControls: true,
         })
 
-        fireEvent.change(screen.getByLabelText('Extra prompt'), { target: { value: 'review this file' } })
+        fireEvent.change(screen.getByLabelText('Prompt'), { target: { value: 'review this file' } })
         fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Custom review' } })
         fireEvent.click(screen.getByRole('button', { name: 'Save and run' }))
 
@@ -801,7 +912,7 @@ describe('ActionPopup', () => {
         const agentControl = screen.getByRole('combobox', { name: 'Agent' })
         const picker = screen.getByRole('combobox', { name: 'Conversation history' })
         const chat = screen.getByLabelText('Conversation chat')
-        const prompt = screen.getByLabelText('Extra prompt')
+        const prompt = screen.getByLabelText('Prompt')
 
         expect(agentControl.compareDocumentPosition(picker)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
         expect(picker.compareDocumentPosition(chat)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)

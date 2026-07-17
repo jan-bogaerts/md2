@@ -63,6 +63,26 @@ function requireText(value, fieldName) {
     return value;
 }
 
+function usageNumber(value) {
+    return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : 0;
+}
+
+function normalizeAgentUsage(value) {
+    if (value === undefined) return undefined;
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+
+    const usage = {
+        cachedInputTokens: usageNumber(value.cachedInputTokens),
+        inputTokens: usageNumber(value.inputTokens),
+        outputTokens: usageNumber(value.outputTokens),
+        reasoningTokens: usageNumber(value.reasoningTokens),
+    };
+    usage.totalTokens = usage.inputTokens + usage.cachedInputTokens + usage.outputTokens + usage.reasoningTokens;
+    if (typeof value.costUsd === 'number' && Number.isFinite(value.costUsd) && value.costUsd >= 0) usage.costUsd = value.costUsd;
+
+    return usage;
+}
+
 function normalizeAgentMessage(value, index) {
     if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`Malformed agent log: messages[${index}] must be an object`);
     const role = requireString(value.role, `messages[${index}].role`);
@@ -107,6 +127,7 @@ function normalizeAgentConversation(content, referencePath) {
     const status = requireString(parsed.status, 'status');
     if (!AGENT_STATUSES.has(status)) throw new Error(`Malformed agent log: invalid status ${status}`);
     const hasExplicitTitle = typeof parsed.title === 'string' && parsed.title.trim().length > 0;
+    const usage = normalizeAgentUsage(parsed.usage);
 
     return {
         actionId: parsed.actionId === null || parsed.actionId === undefined ? null : requireString(parsed.actionId, 'actionId'),
@@ -121,6 +142,7 @@ function normalizeAgentConversation(content, referencePath) {
         startedAt: requireString(parsed.startedAt, 'startedAt'),
         status,
         title: hasExplicitTitle ? parsed.title : parsed.id,
+        ...(usage ? { usage } : {}),
     };
 }
 

@@ -54,6 +54,7 @@ const ACTION_METHODS = [
     'loadActionRunHistory',
     'loadAgentAvailability',
     'openInEditor',
+    'prepareActionPrompt',
     'registerActionSchedule',
     'runSearchRegexpAgent',
     'startAction',

@@ -1,8 +1,8 @@
-import { Box, Button, Stack, Typography } from '@mui/material'
-import { useEffect, useRef, useState } from 'react'
+import { Box, Stack, Typography } from '@mui/material'
+import { useEffect, useRef } from 'react'
 import type { ActionRunHistoryEntry } from '../../data/electron_action_bridge'
 import { dialogService } from '../../services/dialog_service'
-import { DiffView } from './diff_view'
+import { CommitReferenceRow } from './commit_reference_row'
 
 interface HistoryEntryRowProps {
     entry: ActionRunHistoryEntry
@@ -14,29 +14,24 @@ interface ActionRunHistoryProps {
     error: string | null
 }
 
-/** One run history line; commit entries expose a toggleable diff view. */
+/** One run history line with commits produced across its action chain. */
 function HistoryEntryRow(props: HistoryEntryRowProps) {
     const { entry } = props
-    const [showDiff, setShowDiff] = useState(false)
     const agentLabel = entry.agent
         ? ` (${entry.agent}${entry.model ? ` / ${entry.model}` : ''}${entry.thinkingLevel ? ` / ${entry.thinkingLevel}` : ''})`
         : ''
-
-    const handleToggleDiff = () => setShowDiff((previous) => !previous)
 
     return (
         <Box>
             <Typography color="text.secondary" variant="caption">
                 {entry.status}{agentLabel}: {entry.output || entry.prompt}
             </Typography>
-            {entry.commit ? (
-                <Box>
-                    <Button onClick={handleToggleDiff} size="small">
-                        {showDiff ? 'Hide diff' : 'Show diff'}
-                    </Button>
-                    {showDiff ? <DiffView entry={entry} /> : null}
-                </Box>
-            ) : null}
+            {entry.commits?.map((commitReference) => (
+                <CommitReferenceRow
+                    commitReference={commitReference}
+                    key={`${commitReference.repositoryRoot}-${commitReference.commit}`}
+                />
+            ))}
         </Box>
     )
 }

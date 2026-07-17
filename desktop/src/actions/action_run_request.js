@@ -1,5 +1,5 @@
 const ALLOWED_REQUEST_FIELDS = new Set(['actionId', 'context', 'runInput']);
-const ALLOWED_RUN_INPUT_FIELDS = new Set(['agent', 'continueFrom', 'extraPrompt', 'model', 'thinkingLevel']);
+const ALLOWED_RUN_INPUT_FIELDS = new Set(['agent', 'continueFrom', 'extraPrompt', 'model', 'prompt', 'thinkingLevel']);
 const CONTEXT_KINDS = new Set(['card', 'file', 'folder', 'project']);
 
 function readOptionalString(value, fieldName) {
@@ -7,6 +7,13 @@ function readOptionalString(value, fieldName) {
     if (typeof value !== 'string') throw new Error(`Invalid action run input ${fieldName}`);
 
     return value;
+}
+
+function readPrompt(runInput) {
+    if (!Object.hasOwn(runInput, 'prompt')) return {};
+    if (typeof runInput.prompt !== 'string') throw new Error('Invalid action run input prompt');
+
+    return { prompt: runInput.prompt };
 }
 
 function validateContext(context) {
@@ -31,6 +38,7 @@ function validateRunInput(runInput = {}) {
         continueFrom: readOptionalString(runInput.continueFrom, 'continueFrom'),
         extraPrompt: readOptionalString(runInput.extraPrompt, 'extraPrompt') ?? '',
         model: readOptionalString(runInput.model, 'model'),
+        ...readPrompt(runInput),
         thinkingLevel: readOptionalString(runInput.thinkingLevel, 'thinkingLevel'),
     };
 }
@@ -45,4 +53,14 @@ function validateStartRequest(request) {
     return { actionId: request.actionId, context: validateContext(request.context), runInput: validateRunInput(request.runInput) };
 }
 
-module.exports = { validateStartRequest };
+function validatePreparePromptRequest(request) {
+    if (!request || typeof request !== 'object' || Array.isArray(request)) throw new Error('Missing action prompt request');
+    const allowedFields = new Set(['actionId', 'context']);
+    const unsupportedField = Object.keys(request).find((fieldName) => !allowedFields.has(fieldName));
+    if (unsupportedField) throw new Error(`Unsupported action prompt field: ${unsupportedField}`);
+    if (typeof request.actionId !== 'string' || request.actionId.length === 0) throw new Error('Missing actionId');
+
+    return { actionId: request.actionId, context: validateContext(request.context) };
+}
+
+module.exports = { validatePreparePromptRequest, validateStartRequest };

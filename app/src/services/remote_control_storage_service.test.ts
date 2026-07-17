@@ -87,6 +87,22 @@ describe('RemoteControlStorageService', () => {
         await expect(second).resolves.toEqual([{ name: 'main' }])
     })
 
+    it('prepares action prompts through remote control', async () => {
+        installWebSocket()
+        const service = createService()
+        const request = { actionId: 'action-test', context: { file: 'design/F-1.md', kind: 'card' as const } }
+        const preparation = service.prepareActionPrompt(request)
+        const socket = lastSocket()
+
+        socket.open()
+        await flushPromises()
+        const sentRequest = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
+        expect(sentRequest).toMatchObject({ method: 'prepareActionPrompt', params: [request] })
+        socket.receive({ id: sentRequest.id, result: { prompt: 'Prepared prompt' } })
+
+        await expect(preparation).resolves.toEqual({ prompt: 'Prepared prompt' })
+    })
+
     it('rejects error responses', async () => {
         installWebSocket()
         const service = createService()

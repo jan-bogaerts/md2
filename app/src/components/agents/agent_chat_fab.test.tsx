@@ -1,28 +1,33 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { configService } from '../../services/config_service'
 import { AgentChatFab } from './agent_chat_fab'
 
 describe('AgentChatFab', () => {
     beforeEach(() => {
         configService.init()
+        window.md2Actions = {
+            onActionExecution: vi.fn(() => vi.fn()),
+            prepareActionPrompt: vi.fn(async () => ({ prompt: '' })),
+        } as unknown as typeof window.md2Actions
         Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 })
         Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1200 })
     })
 
     afterEach(() => {
         cleanup()
+        delete window.md2Actions
         configService.clear()
     })
 
-    it('opens and closes project-wide run form on plain clicks', () => {
+    it('opens and closes project-wide run form on plain clicks', async () => {
         render(<AgentChatFab />)
         const button = screen.getByRole('button', { name: 'Project agent' })
 
         fireEvent.click(button)
 
         expect(screen.getByRole('dialog', { name: 'Run actions' })).toBeInTheDocument()
-        expect(screen.getByPlaceholderText('Prompt required')).toBeInTheDocument()
+        expect(await screen.findByPlaceholderText('Prompt required')).toBeInTheDocument()
         expect(screen.getByRole('combobox', { name: 'Conversation history' })).toBeInTheDocument()
         expect(screen.getByLabelText('Conversation chat').compareDocumentPosition(screen.getByLabelText('Prompt')))
             .toBe(Node.DOCUMENT_POSITION_FOLLOWING)

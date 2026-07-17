@@ -37,6 +37,10 @@ describe('CardRunButton', () => {
     const onConversationViewed = vi.fn()
 
     beforeEach(() => {
+        window.md2Actions = {
+            onActionExecution: vi.fn(() => vi.fn()),
+            prepareActionPrompt: vi.fn(async () => ({ prompt: '' })),
+        } as unknown as typeof window.md2Actions
         actionService.loadFromFiles([
             file(commandDefinition('branch', { label: 'Create branch' })),
             file(commandDefinition('lint', { description: 'Lint', label: 'Run lint' })),
@@ -106,14 +110,14 @@ describe('CardRunButton', () => {
         expect(actionGroup.getByRole('button', { name: 'Implement' })).toHaveAttribute('aria-pressed', 'false')
     })
 
-    it('shows custom-action save controls from the Run popup', () => {
+    it('shows custom-action save controls from the Run popup', async () => {
         render(<CardRunButton context={cardContext(card, DEFAULT_CARD_TYPES)} onConversationViewed={onConversationViewed} />)
 
         fireEvent.click(screen.getByRole('button', { name: 'Run' }))
         const dialog = within(screen.getByRole('dialog'))
         fireEvent.click(dialog.getByRole('button', { name: 'Add action' }))
 
-        expect(dialog.getByPlaceholderText('Prompt required')).toBeInTheDocument()
+        expect(await dialog.findByPlaceholderText('Prompt required')).toBeInTheDocument()
         expect(dialog.getByLabelText('Preset name')).toHaveFocus()
         expect(dialog.getByRole('button', { name: 'Run' })).toBeDisabled()
     })

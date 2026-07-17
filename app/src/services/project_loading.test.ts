@@ -8,6 +8,7 @@ import { DIALOG_SERVICE_EVENT, dialogService, type DialogServiceMessage, type Di
 import { telemetryService } from './telemetry_service'
 import { GLOBAL_PROGRESS_EVENT, globalProgressService, type GlobalProgress } from './global_progress_service'
 import { createDeferred, createStorage, files, storageFiles, waitForWorkerTurn } from './test_support/data_service_test_support'
+import { markdownParsingService } from './markdown_parsing_service'
 
 function actionDefinition(id: string, overrides: Record<string, unknown> = {}): RawActionDefinition {
     return { command: 'run', description: id, id: `action-${id}`, label: id, type: 'command', ...overrides } as RawActionDefinition
@@ -212,6 +213,59 @@ describe('ProjectLoading', () => {
         expect(warnings.messages.join('\n')).toContain('actions/bad.json')
         expect(warnings.messages.join('\n')).toContain('Missing id')
         warnings.stop()
+    })
+
+    it('uses defaults and keeps opening when project configuration and actions cannot be loaded', async () => {
+        configService.init()
+        const warnings = recordDialogMessages('warning')
+        const storage = createStorage({
+            loadActionFiles: vi.fn(async () => {
+                throw new Error('actions unavailable')
+            }),
+            loadProjectConfig: vi.fn(async () => ({ backgroundShade: 'invalid' as never })),
+            loadProjectRoot: vi.fn(async () => ({ files: [files[0]], workingFolder: 'design' })),
+        })
+        const service = new DataService()
+
+        try {
+            service.init({ storage })
+            const snapshot = await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+
+            expect(snapshot.activeCards.map(({ path }) => path)).toEqual(['design/F-1-root.md'])
+            expect(actionService.getActions()).toEqual([])
+            expect(warnings.messages.join('\n')).toContain('Project configuration could not be loaded')
+            expect(warnings.messages.join('\n')).toContain('Actions could not be loaded')
+        } finally {
+            warnings.stop()
+        }
+    })
+
+    it('skips a card that fails to parse while keeping other cards available', async () => {
+        configService.init()
+        const warnings = recordDialogMessages('warning')
+        const invalidFile = { content: '# Invalid', path: 'design/F-2-invalid.md' }
+        const originalParseCard = markdownParsingService.parseCard
+        const parseCard = vi.spyOn(markdownParsingService, 'parseCard').mockImplementation((file, workingFolder) => {
+            if (file.path === invalidFile.path) throw new Error('invalid test card')
+
+            return originalParseCard(file, workingFolder)
+        })
+        const storage = createStorage({
+            loadProject: vi.fn(async () => ({ files: [files[0], invalidFile], workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: [files[0], invalidFile], workingFolder: 'design' })),
+        })
+        const service = new DataService()
+
+        try {
+            service.init({ storage })
+            const snapshot = await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+
+            expect(snapshot.activeCards.map(({ path }) => path)).toEqual(['design/F-1-root.md'])
+            expect(warnings.messages).toContain(`Some project files could not be loaded and were skipped: ${invalidFile.path}`)
+        } finally {
+            parseCard.mockRestore()
+            warnings.stop()
+        }
     })
 
     it('loads project files and actions from folders inside the configured project folder', async () => {

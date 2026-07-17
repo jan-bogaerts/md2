@@ -2,7 +2,7 @@ import { createRequire } from 'node:module';
 import { describe, expect, it } from 'vitest';
 
 const require = createRequire(import.meta.url);
-const { resolveAgentPrompt, resolvePlaceholders } = require('./action_text');
+const { prepareAgentPrompt, resolveAgentPrompt, resolvePlaceholders } = require('./action_text');
 
 const project = { rootPath: 'C:/repo' };
 
@@ -42,5 +42,19 @@ describe('resolveAgentPrompt', () => {
 
     it('does not append blank input', () => {
         expect(resolveAgentPrompt({ prompt: 'Review' }, {}, project, '  ')).toBe('Review');
+    });
+});
+
+describe('prepareAgentPrompt', () => {
+    it('includes resolved placeholders and tracked-file instruction', () => {
+        const action = { prompt: 'Review {{card-file}} in {{rootProjectFolder}}', trackFileChanges: true };
+
+        expect(prepareAgentPrompt(action, { file: 'design/card.md' }, project)).toBe(
+            'Review design/card.md in C:/repo\n\nDo not stage or commit changes. md2 will commit files captured from provider edit tools.',
+        );
+    });
+
+    it('prepares the custom-prompt action as empty', () => {
+        expect(prepareAgentPrompt({ prompt: '{{card-prompt}}' }, {}, project)).toBe('');
     });
 });

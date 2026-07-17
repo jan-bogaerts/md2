@@ -3,7 +3,8 @@ const { ActionAgentExecutor } = require('./action_agent_executor');
 const { runCommand } = require('./action_command_executor');
 const { resolveActionDefinition } = require('./action_definition_resolver');
 const { ActionExecution } = require('./action_execution');
-const { validateStartRequest } = require('./action_run_request');
+const { prepareAgentPrompt } = require('./action_text');
+const { validatePreparePromptRequest, validateStartRequest } = require('./action_run_request');
 
 const COMPLETED_EXECUTION_LIMIT = 100;
 
@@ -82,6 +83,17 @@ class ActionRunnerService {
         return executionId;
     }
 
+    async prepareActionPrompt(request) {
+        const promptRequest = validatePreparePromptRequest(request);
+        this.requirePreparationReady();
+        const project = { ...this.project };
+        const action = await this.loadRootAction(promptRequest.actionId, project, this.actionsFolder);
+        if (action.type !== 'agent') throw new Error('Cannot prepare a prompt for a command action');
+        const resolution = await this.actionWorktreeExecutionService.resolve(project, action, promptRequest.context);
+
+        return { prompt: prepareAgentPrompt(action, promptRequest.context, resolution.executionProject) };
+    }
+
     async wait(executionId) {
         const execution = this.executions.get(executionId);
         if (execution) return execution.completion;
@@ -151,12 +163,16 @@ class ActionRunnerService {
     }
 
     requireReady() {
+        this.requirePreparationReady();
+        if (!this.agentRunnerService) throw new Error('Action runner has no agent runner service');
+    }
+
+    requirePreparationReady() {
         if (!this.project) throw new Error('Action runner has no project');
         if (!this.actionsFolder) throw new Error('Action runner has no actions folder');
         if (this.projectFolder === null) throw new Error('Action runner has no projectFolder');
         if (!this.localGitService) throw new Error('Action runner has no local Git service');
         if (!this.actionWorktreeExecutionService) throw new Error('Action runner has no worktree execution service');
-        if (!this.agentRunnerService) throw new Error('Action runner has no agent runner service');
         if (!this.agentConfigProvider) throw new Error('Action runner has no agent config provider');
     }
 }

@@ -42,6 +42,34 @@ describe('parseAgentConversationLog', () => {
         expect(conversation.title).toBe('agent-1')
     })
 
+    it('normalizes persisted usage and tolerates malformed fields', () => {
+        const conversation = parseAgentConversationLog(JSON.stringify({
+            cardPath: null,
+            completedAt: null,
+            id: 'agent-1',
+            messages: [],
+            startedAt: '2026-01-01T00:00:00.000Z',
+            status: 'completed',
+            usage: {
+                cachedInputTokens: 4,
+                costUsd: 0.02,
+                inputTokens: 10,
+                outputTokens: 'bad',
+                reasoningTokens: 1,
+                totalTokens: 999,
+            },
+        }), 'design/logs/one.json')
+
+        expect(conversation.usage).toEqual({
+            cachedInputTokens: 4,
+            costUsd: 0.02,
+            inputTokens: 10,
+            outputTokens: 0,
+            reasoningTokens: 1,
+            totalTokens: 15,
+        })
+    })
+
     it('fails malformed logs with missing required data', () => {
         expect(() => parseAgentConversationLog(
             JSON.stringify({ cardPath: 'design/F-1.md', id: 'agent-1', messages: [], status: 'completed' }),

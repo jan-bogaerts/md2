@@ -67,6 +67,63 @@ describe('agent provider protocol', () => {
         expect(events[1].assistantText).toBe('hello');
     });
 
+    it('normalizes Codex usage from the completed turn, splitting cached out of input', () => {
+        const { events, instance } = parser('codex');
+
+        instance.push('{"type":"turn.completed","usage":{"input_tokens":120,"cached_input_tokens":40,"output_tokens":15,"reasoning_output_tokens":5}}\n');
+        instance.finish();
+
+        expect(events[0].usage).toEqual({
+            cachedInputTokens: 40,
+            inputTokens: 80,
+            outputTokens: 15,
+            reasoningTokens: 5,
+            totalTokens: 140,
+        });
+    });
+
+    it('normalizes authoritative Claude result usage and cost', () => {
+        const { events, instance } = parser('claude');
+
+        instance.push('{"type":"assistant","message":{"content":[],"usage":{"input_tokens":999}}}\n');
+        instance.push('{"type":"result","usage":{"input_tokens":20,"output_tokens":7,"cache_creation_input_tokens":8,"cache_read_input_tokens":5},"total_cost_usd":0.012}\n');
+        instance.finish();
+
+        expect(events[0].usage).toBeNull();
+        expect(events[1].usage).toEqual({
+            cachedInputTokens: 13,
+            costUsd: 0.012,
+            inputTokens: 20,
+            outputTokens: 7,
+            reasoningTokens: 0,
+            totalTokens: 40,
+        });
+    });
+
+    it('normalizes missing and malformed terminal usage fields to zero', () => {
+        const { events, instance } = parser('codex');
+
+        instance.push('{"type":"turn.completed","usage":{"input_tokens":"bad","output_tokens":null}}\n');
+        instance.finish();
+
+        expect(events[0].usage).toEqual({
+            cachedInputTokens: 0,
+            inputTokens: 0,
+            outputTokens: 0,
+            reasoningTokens: 0,
+            totalTokens: 0,
+        });
+    });
+
+    it('reports no usage when the terminal event carries no usage object', () => {
+        const { events, instance } = parser('codex');
+
+        instance.push('{"type":"turn.completed"}\n');
+        instance.finish();
+
+        expect(events[0].usage).toBeNull();
+    });
+
     it('extracts normalized root-confined Claude file tool paths', () => {
         const { events, instance } = parser('claude');
         const content = [

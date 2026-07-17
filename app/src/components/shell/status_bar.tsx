@@ -3,12 +3,15 @@ import CardsOutline from 'mdi-material-ui/CardsOutline'
 import CloudUploadOutline from 'mdi-material-ui/CloudUploadOutline'
 import ContentSaveOutline from 'mdi-material-ui/ContentSaveOutline'
 import type { RunningAgent } from '../../data/data_types'
+import type { ProjectAgentUsage } from '../../services/agent_usage'
 import { KeyboardStatus } from './keyboard_status'
 import { RemoteControlStatusIndicator } from './remote_control_status_indicator'
 import { RunningAgentsIndicator } from './running_agents_indicator'
+import { ProjectAgentUsageSummary } from './project_agent_usage_summary'
 
 interface StatusBarProps {
     activeCardCount: number
+    agentUsage: ProjectAgentUsage
     agents: RunningAgent[]
     hasPendingPush: boolean
     hasPendingSave: boolean
@@ -18,7 +21,7 @@ interface StatusBarProps {
 
 /** Compact desktop status bar for board totals, synchronization and agents. */
 export function StatusBar(props: StatusBarProps) {
-    const { activeCardCount, agents, hasPendingPush, hasPendingSave, isPushing, totalCardCount } = props
+    const { activeCardCount, agentUsage, agents, hasPendingPush, hasPendingSave, isPushing, totalCardCount } = props
 
     return (
         <Box
@@ -68,6 +71,7 @@ export function StatusBar(props: StatusBarProps) {
                 <Box component="span">{isPushing ? 'Pushing...' : hasPendingPush ? 'Changes ready to push' : 'Synced'}</Box>
             </Stack>
             <Box sx={{ flex: 1 }} />
+            <ProjectAgentUsageSummary totals={agentUsage} />
             <RemoteControlStatusIndicator />
             <KeyboardStatus />
             <RunningAgentsIndicator agents={agents} />

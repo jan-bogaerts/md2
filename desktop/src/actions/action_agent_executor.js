@@ -1,9 +1,8 @@
 const { buildResumeAgentCommand, resolveAgentCommand } = require('./agent_profiles.mjs');
 const { normalizeConversationContext } = require('./agent_transcript');
-const { resolveAgentPrompt } = require('./action_text');
+const { prepareAgentPrompt, withTrackedFileCommitInstruction } = require('./action_text');
 
 const CONTINUE_INPUT = 'continue';
-const TRACKED_FILE_COMMIT_INSTRUCTION = 'Do not stage or commit changes. md2 will commit files captured from provider edit tools.';
 const WORKTREE_AGENT_REFERENCE_PATTERN = /^worktree:[1-9]\d*:(.*)$/u;
 
 function continuationReferencePath(reference) {
@@ -12,10 +11,6 @@ function continuationReferencePath(reference) {
 
 function withoutProviderConversationId(request) {
     return Object.fromEntries(Object.entries(request).filter(([fieldName]) => fieldName !== 'providerConversationId'));
-}
-
-function withTrackedFileCommitInstruction(prompt, trackFileChanges) {
-    return trackFileChanges ? `${prompt}\n\n${TRACKED_FILE_COMMIT_INSTRUCTION}` : prompt;
 }
 
 class ActionAgentExecutor {
@@ -45,10 +40,15 @@ class ActionAgentExecutor {
 
         const providerSession = sourceConversation?.providerSessions
             ?.find(({ agent }) => agent === resolvedAgent.agent) ?? null;
-        const basePrompt = sourceConversation
-            ? input.runInput.extraPrompt.trim().length > 0 ? input.runInput.extraPrompt : CONTINUE_INPUT
-            : resolveAgentPrompt(input.action, input.context, input.project, input.runInput.extraPrompt);
-        const prompt = withTrackedFileCommitInstruction(basePrompt, input.action.trackFileChanges);
+        const hasPromptOverride = Object.hasOwn(input.runInput, 'prompt');
+        const prompt = hasPromptOverride
+            ? input.runInput.prompt
+            : sourceConversation
+                ? withTrackedFileCommitInstruction(
+                    input.runInput.extraPrompt.trim().length > 0 ? input.runInput.extraPrompt : CONTINUE_INPUT,
+                    input.action.trackFileChanges,
+                )
+                : prepareAgentPrompt(input.action, input.context, input.project, input.runInput.extraPrompt);
         const command = providerSession
             ? buildResumeAgentCommand(resolvedAgent.profile, providerSession.conversationId, resolvedAgent.command)
             : resolvedAgent.command;
@@ -125,4 +125,4 @@ class ActionAgentExecutor {
     }
 }
 
-module.exports = { ActionAgentExecutor, continuationReferencePath, withTrackedFileCommitInstruction };
+module.exports = { ActionAgentExecutor, continuationReferencePath };

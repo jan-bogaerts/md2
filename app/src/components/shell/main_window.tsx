@@ -16,7 +16,9 @@ import { ThemeModeToggle } from './menu/theme_mode_toggle'
 import { SearchControl } from './search/search_control'
 import { SplitLayout } from './split_layout'
 import { StatusBar } from './status_bar'
-import type { RunningAgent } from '../../data/data_types'
+import { DEFAULT_PROJECT_FOLDER, type RunningAgent } from '../../data/data_types'
+import { useProjectConfig } from '../hooks/use_project_config'
+import { projectAgentTokenUsage } from '../../services/agent_usage'
 
 const MOBILE_DRAWER_WIDTH = 300
 const PANEL_PADDING = 2
@@ -38,10 +40,13 @@ export function MainWindow(props: MainWindowProps) {
     const { hasPendingPush, hasPendingSave, project, snapshot } = useProjectState()
     const { isPushing } = useProjectSession()
     const { viewMode } = useWorkspaceView()
+    const projectConfig = useProjectConfig()
     const isConfigPage = location.pathname === '/config'
     const shouldShowNavigationPanel = !project || viewMode === 'text'
     const activeCardCount = snapshot?.activeCards.length ?? 0
     const totalCardCount = activeCardCount + (snapshot?.backgroundCards.length ?? 0)
+    const projectFolder = projectConfig?.projectFolder ?? DEFAULT_PROJECT_FOLDER
+    const agentUsage = useMemo(() => projectAgentTokenUsage(snapshot, projectFolder), [projectFolder, snapshot])
     const regexpAgent = useMemo(
         () => isSearchRegexpAgentAvailable() ? createSearchRegexpAgent() : undefined,
         [],
@@ -122,6 +127,7 @@ export function MainWindow(props: MainWindowProps) {
                         )}
                         <StatusBar
                             activeCardCount={activeCardCount}
+                            agentUsage={agentUsage}
                             agents={agents}
                             hasPendingPush={hasPendingPush}
                             hasPendingSave={hasPendingSave}

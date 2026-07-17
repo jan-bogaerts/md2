@@ -3,101 +3,87 @@ import { describe, expect, it, vi } from 'vitest';
 
 const require = createRequire(import.meta.url);
 const {
-    appendAgentRunHistory,
-    appendCommandRunHistory,
+    appendHistory,
+    captureCommitReferences,
     createAgentHistoryEntry,
     createCommandHistoryEntry,
 } = require('./action_run_history');
 
-const action = { id: 'main' };
+const action = { id: 'main', label: 'Implement', type: 'command' };
 const cardContext = { file: 'design/card.md', kind: 'card' };
 const completedAt = '2026-07-15T10:00:00.000Z';
 const project = { branch: 'worktree', rootPath: 'C:/worktree' };
 
-describe('createCommandHistoryEntry', () => {
-    it('creates command entry without commit', () => {
-        const result = { command: 'test', exitCode: 0, stderr: 'err', stdout: 'out' };
+describe('history entries', () => {
+    it('preserves command output and status without commit ownership', () => {
+        const result = { command: 'test', exitCode: 1, stderr: 'err', stdout: 'out' };
 
-        expect(createCommandHistoryEntry({ action, completedAt, context: cardContext, project, result })).toEqual({command: 'test', completedAt, output: 'outerr', prompt: '', status: 'completed'});
+        expect(createCommandHistoryEntry({ action, completedAt, result })).toEqual({command: 'test', completedAt, output: 'outerr', prompt: '', status: 'failed'});
     });
 
-    it('creates failed command entry with root-commit metadata and card path', () => {
-        const result = { command: 'commit', exitCode: 1, stderr: ' failure', stdout: '[main (root-commit) abcdef1] initial' };
+    it('preserves agent fields without commit ownership', () => {
+        const result = {agent: 'codex', exitCode: 0, model: 'gpt', prompt: 'review', stderr: '', stdout: 'done', thinkingLevel: 'high'};
 
-        expect(createCommandHistoryEntry({ action, completedAt, context: cardContext, project, result })).toEqual({
-            command: 'commit',
-            commit: {
-                actionId: 'main', branch: 'main', commit: 'abcdef1', completedAt,
-                filePaths: ['design/card.md'], repositoryRoot: 'C:/worktree',
-            },
-            completedAt,
-            output: '[main (root-commit) abcdef1] initial failure',
-            prompt: '',
-            status: 'failed',
-        });
+        expect(createAgentHistoryEntry({ action, completedAt, result })).toEqual({agent: 'codex', completedAt, model: 'gpt', output: 'done', prompt: 'review', status: 'completed', thinkingLevel: 'high'});
     });
 });
 
-describe('createAgentHistoryEntry', () => {
-    it('creates agent entry without commit for project context', () => {
-        const result = {agent: 'codex', exitCode: 0, model: 'gpt', prompt: 'review', stderr: '', stdout: 'done', thinkingLevel: 'high'};
-
-        expect(createAgentHistoryEntry({ action, completedAt, context: { kind: 'project' }, project, result })).toEqual({agent: 'codex', completedAt, model: 'gpt', output: 'done', prompt: 'review', status: 'completed', thinkingLevel: 'high'});
-    });
-
-    it('creates agent entry with execution repository metadata', () => {
-        const result = {
-            agent: 'claude', exitCode: 0, model: 'sonnet', prompt: 'review', stderr: '',
-            stdout: '[feature abcdef2] change', thinkingLevel: 'none',
+describe('captureCommitReferences', () => {
+    it('resolves all command summaries with performer and repository metadata', async () => {
+        const result = { exitCode: 0, stderr: '[topic bbbbbbb] second', stdout: '[topic aaaaaaa] first\n' };
+        const localGitService = {
+            resolveCommitMetadata: vi.fn(async (_rootPath, commit) => ({
+                commit: commit.repeat(6).slice(0, 40),
+                committedAt: commit === 'aaaaaaa' ? '2026-07-15T09:00:00+00:00' : '2026-07-15T10:00:00+00:00',
+                filePaths: [`${commit}.md`],
+            })),
         };
 
-        expect(createAgentHistoryEntry({ action, completedAt, context: cardContext, project, result }).commit).toEqual({
-            actionId: 'main', branch: 'feature', commit: 'abcdef2', completedAt,
-            filePaths: ['design/card.md'], repositoryRoot: 'C:/worktree',
+        const references = await captureCommitReferences(localGitService, { action, project, result });
+
+        expect(references).toHaveLength(2);
+        expect(references[0]).toEqual({
+            actionId: 'main', actionName: 'Implement', branch: 'topic', commit: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+            committedAt: '2026-07-15T09:00:00+00:00', filePaths: ['aaaaaaa.md'], repositoryRoot: 'C:/worktree',
         });
     });
 
-    it('uses md2 tracked commit metadata instead of agent stdout', () => {
-        const trackedAction = { ...action, trackFileChanges: true };
-        const result = {
-            agent: 'codex', changedPaths: ['app/a.ts', 'app/b.ts'], exitCode: 0, model: 'gpt', prompt: 'edit',
-            stderr: '', stdout: '[wrong wrong123] agent commit', thinkingLevel: 'high', trackedCommit: 'abcdef3',
-        };
+    it('uses tracked commit hash and execution worktree metadata', async () => {
+        const trackedAction = { ...action, trackFileChanges: true, type: 'agent' };
+        const result = { stderr: '', stdout: '[wrong wrong12] ignored', trackedCommit: 'abcdef3' };
+        const localGitService = {resolveCommitMetadata: vi.fn(async () => ({commit: 'abcdef3456789012345678901234567890123456', committedAt: completedAt, filePaths: ['app/a.ts']}))};
 
-        expect(createAgentHistoryEntry({ action: trackedAction, completedAt, context: cardContext, project, result }).commit).toEqual({
-            actionId: 'main', branch: 'worktree', commit: 'abcdef3', completedAt,
-            filePaths: ['app/a.ts', 'app/b.ts'], repositoryRoot: 'C:/worktree',
-        });
+        await expect(captureCommitReferences(localGitService, { action: trackedAction, project, result })).resolves.toEqual([{
+            actionId: 'main', actionName: 'Implement', branch: 'worktree', commit: 'abcdef3456789012345678901234567890123456',
+            committedAt: completedAt, filePaths: ['app/a.ts'], repositoryRoot: 'C:/worktree',
+        }]);
     });
 
-    it('creates no tracked commit metadata for a no-op run', () => {
-        const trackedAction = { ...action, trackFileChanges: true };
-        const result = {
-            agent: 'codex', changedPaths: [], exitCode: 0, model: 'gpt', prompt: 'edit', stderr: '',
-            stdout: '[wrong wrong123] agent commit', thinkingLevel: 'high',
-        };
+    it('never parses commit summaries from untracked agent output', async () => {
+        const untrackedAgent = { ...action, type: 'agent' };
+        const result = { stderr: '', stdout: '[main abc1234] text that only mentions a commit' };
+        const localGitService = { resolveCommitMetadata: vi.fn() };
 
-        expect(createAgentHistoryEntry({ action: trackedAction, completedAt, context: cardContext, project, result })).not.toHaveProperty('commit');
+        await expect(captureCommitReferences(localGitService, { action: untrackedAgent, project, result })).resolves.toEqual([]);
+        expect(localGitService.resolveCommitMetadata).not.toHaveBeenCalled();
+    });
+
+    it('propagates required Git metadata failure', async () => {
+        const localGitService = { resolveCommitMetadata: vi.fn(async () => { throw new Error('unknown commit'); }) };
+        const result = { stderr: '', stdout: '[topic abcdef1] commit' };
+
+        await expect(captureCommitReferences(localGitService, { action, project, result })).rejects.toThrow('unknown commit');
     });
 });
 
 describe('history persistence', () => {
-    it.each([
-        ['command', appendCommandRunHistory, { command: 'test', exitCode: 0, stderr: '', stdout: '' }],
-        ['agent', appendAgentRunHistory, {agent: 'codex', exitCode: 0, model: 'gpt', prompt: 'review', stderr: '', stdout: '', thinkingLevel: 'none'}],
-    ])('persists %s entry with project folder and context', async (_type, appendRunHistory, result) => {
+    it('persists supplied entry for action and context', async () => {
         const localGitService = { appendActionRunHistory: vi.fn(async () => []) };
-        const input = { action, completedAt, context: cardContext, project, projectFolder: 'design', result };
+        const input = { action, context: cardContext, project, projectFolder: 'design' };
+        const entry = { completedAt, output: 'done', prompt: '', status: 'completed' };
 
-        await appendRunHistory(localGitService, input);
+        await appendHistory(localGitService, input, entry);
 
-        expect(localGitService.appendActionRunHistory).toHaveBeenCalledWith(project, {actionId: 'main', context: cardContext, projectFolder: 'design'}, expect.objectContaining({ completedAt }));
-    });
-
-    it('propagates persistence failure', async () => {
-        const localGitService = { appendActionRunHistory: vi.fn(async () => { throw new Error('write failed'); }) };
-        const result = { command: 'test', exitCode: 0, stderr: '', stdout: '' };
-
-        await expect(appendCommandRunHistory(localGitService, {action, context: cardContext, project, projectFolder: 'design', result})).rejects.toThrow('write failed');
+        expect(localGitService.appendActionRunHistory).toHaveBeenCalledWith(project, {actionId: 'main', context: cardContext, projectFolder: 'design'}, entry);
     });
 });

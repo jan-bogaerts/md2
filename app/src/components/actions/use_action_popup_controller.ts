@@ -22,6 +22,7 @@ import {
     defaultLoadConversation,
     defaultLoadConversations,
     defaultLoadHistory,
+    defaultPreparePrompt,
     defaultRunAction,
     defaultScheduleAction,
     type CancelAction,
@@ -30,12 +31,14 @@ import {
     type LoadConversations,
     type LoadHistory,
     type PopupRunStatus,
+    type PreparePrompt,
     type RunAction,
     type ScheduleAction,
 } from './action_popup_defaults'
 import { createScheduleTrigger } from './action_schedule_trigger'
 
 const DEFAULT_CONVERT_LABEL_LENGTH = 40
+type PromptPreparationStatus = 'failed' | 'loading' | 'ready'
 
 interface ActionPopupControllerInput {
     action: ActionDefinition
@@ -48,6 +51,7 @@ interface ActionPopupControllerInput {
     loadConversation?: LoadConversation
     loadConversations?: LoadConversations
     loadHistory?: LoadHistory
+    preparePrompt?: PreparePrompt
     runAction?: RunAction
     scheduleAction?: ScheduleAction
 }
@@ -103,8 +107,11 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
     const loadHistory = input.loadHistory ?? defaultLoadHistory
     const loadConversation = input.loadConversation ?? defaultLoadConversation
     const loadConversations = input.loadConversations ?? defaultLoadConversations
+    const preparePrompt = input.preparePrompt ?? defaultPreparePrompt
     const runAction = input.runAction ?? defaultRunAction
     const scheduleAction = input.scheduleAction ?? defaultScheduleAction
+    const promptContextKey = conversationContextKey(action.id, context)
+    const promptKey = `${promptContextKey}\u0000${input.continueFrom ?? ''}\u0000${input.initialPrompt ?? ''}`
     const agentProfiles = mergeAgentProfiles(configuredAgentProfiles)
     const defaultAgent = action.agent ?? configuredAgent
     const defaultAgentProfile = findAgentProfile(agentProfiles, defaultAgent)
@@ -114,7 +121,11 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
     const [agentOverride, setAgentOverride] = useState<string | null>(null)
     const [convertMessage, setConvertMessage] = useState<string | null>(null)
     const [conversationHistoryState, setConversationHistoryState] = useState<{ conversations: AgentConversation[], key: string }>({ conversations: [], key: '' })
-    const [extraPrompt, setExtraPrompt] = useState(input.initialPrompt ?? '')
+    const [promptState, setPromptState] = useState<{ key: string, status: PromptPreparationStatus, value: string }>({
+        key: promptKey,
+        status: action.type === 'agent' && !input.continueFrom ? 'loading' : 'ready',
+        value: input.initialPrompt ?? '',
+    })
     const [localExecutionId, setLocalExecutionId] = useState<string | null>(null)
     const [history, setHistory] = useState<ActionRunHistoryEntry[]>([])
     const [historyError, setHistoryError] = useState<string | null>(null)
@@ -127,8 +138,11 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
     const [liveActionKey, setLiveActionKey] = useState<string | null>(null)
     const [selectedConversationState, setSelectedConversationState] = useState<{ conversation: AgentConversation | null, key: string }>({ conversation: null, key: '' })
     const [thinkingLevelOverride, setThinkingLevelOverride] = useState<{ actionId: string, value: ThinkingLevel } | null>(null)
+    const actionRef = useRef(action)
     const contextRef = useRef(context)
     const selectionRequestRef = useRef(0)
+    const promptEditRevisionRef = useRef(0)
+    const promptRequestRef = useRef(0)
     const agent = agentOverride ?? defaultAgent
     const model = modelOverride ?? defaultModel
     const selectedAgentProfile = findAgentProfile(agentProfiles, agent)
@@ -149,7 +163,13 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
                 ? selectedAvailability?.error ?? capabilities.availability.error ?? `Agent executable is unavailable for ${agent}`
                 : null
     const thinkingLevel = thinkingLevelOverride?.actionId === action.id ? thinkingLevelOverride.value : definitionThinkingLevel
-    const conversationKey = conversationContextKey(action.id, context)
+    const conversationKey = promptContextKey
+    const activePromptState: { key: string, status: PromptPreparationStatus, value: string } = promptState.key === promptKey
+        ? promptState
+        : { key: promptKey, status: action.type === 'agent' && !input.continueFrom ? 'loading' : 'ready', value: input.initialPrompt ?? '' }
+    const prompt = activePromptState.value
+    const promptPreparationPending = activePromptState.status === 'loading'
+    const promptPreparationFailed = activePromptState.status === 'failed'
     const selectionKey = `${conversationKey}\u0000${input.continueFrom ?? ''}`
     const conversationHistory = conversationHistoryState.key === conversationKey ? conversationHistoryState.conversations : []
     const conversationHistoryLoading = !!input.enableConversations && conversationHistoryState.key !== conversationKey
@@ -175,8 +195,32 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
     const isFollowUp = action.type === 'agent' && runStatus !== 'running' && !!continuationReference
 
     useEffect(() => {
+        actionRef.current = action
         contextRef.current = context
-    }, [context])
+    }, [action, context])
+
+    useEffect(() => {
+        const requestId = promptRequestRef.current + 1
+        promptRequestRef.current = requestId
+        promptEditRevisionRef.current = 0
+        if (action.type !== 'agent' || input.continueFrom) return
+
+        const editRevision = promptEditRevisionRef.current
+
+        async function loadPreparedPrompt() {
+            try {
+                const preparedPrompt = await preparePrompt(actionRef.current, contextRef.current)
+                if (promptRequestRef.current !== requestId || promptEditRevisionRef.current !== editRevision) return
+                setPromptState({ key: promptKey, status: 'ready', value: preparedPrompt })
+            } catch (error) {
+                if (promptRequestRef.current !== requestId) return
+                setPromptState({ key: promptKey, status: 'failed', value: '' })
+                dialogService.error(error, { fallbackMessage: 'Could not prepare action prompt' })
+            }
+        }
+
+        void loadPreparedPrompt()
+    }, [action.id, action.type, input.continueFrom, preparePrompt, promptKey])
 
     const refreshConversationHistory = async () => {
         if (!input.enableConversations || action.type !== 'agent') return
@@ -258,7 +302,7 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
         }
     }, [action, context, loadHistory])
 
-    const runWithExtraPrompt = async (prompt: string) => {
+    const runWithPrompt = async (currentPrompt: string) => {
         setLocalRunStatus('running')
         setLocalRunResult(null)
         if (action.type === 'agent') setLiveActionKey(conversationKey)
@@ -268,16 +312,16 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
                 ? {
                     ...(agent ? { agent } : {}),
                     ...(isFollowUp && continuationReference ? { continueFrom: continuationReference } : {}),
-                    extraPrompt: prompt,
+                    prompt: currentPrompt,
                     ...(model ? { model } : {}),
                     thinkingLevel,
                 }
-                : { extraPrompt: prompt }
+                : { extraPrompt: currentPrompt }
             const result = await runAction(action, context, runInput, setLocalExecutionId)
             setLocalRunResult(result)
             setLocalRunStatus(result.status)
             setLocalExecutionId(null)
-            if (action.type === 'agent') setExtraPrompt('')
+            if (action.type === 'agent') setPromptState({ key: promptKey, status: 'ready', value: '' })
             setHistory(await loadHistory(action, context))
             await refreshConversationHistory()
         } catch (error) {
@@ -291,17 +335,18 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
     }
 
     const handleRun = async () => {
-        await runWithExtraPrompt(extraPrompt)
+        await runWithPrompt(prompt)
     }
 
     const handlePhraseSelect = (text: string) => {
-        setExtraPrompt(text)
+        promptEditRevisionRef.current += 1
+        setPromptState({ key: promptKey, status: 'ready', value: text })
         setConvertMessage(null)
     }
 
     const handlePhraseDoubleClick = async (text: string) => {
         handlePhraseSelect(text)
-        await runWithExtraPrompt(text)
+        await runWithPrompt(text)
     }
 
     const handleConversationChange = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -352,8 +397,9 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
         }
     }
 
-    const handleExtraPromptChange = (event: ChangeEvent<HTMLInputElement>) => {
-        setExtraPrompt(event.target.value)
+    const handlePromptChange = (event: ChangeEvent<HTMLInputElement>) => {
+        promptEditRevisionRef.current += 1
+        setPromptState({ key: promptKey, status: 'ready', value: event.target.value })
         setConvertMessage(null)
     }
 
@@ -383,13 +429,13 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
     const handleConvertToAction = async () => {
         setConvertMessage(null)
         try {
-            const label = actionLabel.trim().length > 0 ? actionLabel : extraPrompt.trim().slice(0, DEFAULT_CONVERT_LABEL_LENGTH)
+            const label = actionLabel.trim().length > 0 ? actionLabel : prompt.trim().slice(0, DEFAULT_CONVERT_LABEL_LENGTH)
             const convertInput = {
                 ...(agent ? { agent } : {}),
                 context,
                 label,
                 ...(model ? { model } : {}),
-                prompt: extraPrompt,
+                prompt,
             }
             const result = await convertPromptToAction(convertInput)
             setConvertMessage(`Saved ${result.path}`)
@@ -409,7 +455,11 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
         await handleRun()
     }
 
-    const saveDisabled = actionLabel.trim().length === 0 || runStatus === 'running' || !!executionDisabledMessage
+    const saveDisabled = actionLabel.trim().length === 0
+        || runStatus === 'running'
+        || !!executionDisabledMessage
+        || promptPreparationPending
+        || promptPreparationFailed
 
     return {
         actionLabel,
@@ -421,14 +471,16 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
         conversationHistoryLoading,
         conversations,
         displayedConversation,
-        extraPrompt,
+        prompt,
+        promptPreparationFailed,
+        promptPreparationPending,
         executionDisabledMessage,
         handleActionLabelChange,
         handleCancel,
         handleAgentChange,
         handleConvertToAction,
         handleConversationChange,
-        handleExtraPromptChange,
+        handlePromptChange,
         handleModelChange,
         handlePhraseDoubleClick,
         handlePhraseSelect,

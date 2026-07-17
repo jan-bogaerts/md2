@@ -3,7 +3,7 @@ import type { ActionScheduleTrigger } from './action_schedule_types'
 import type { AgentRunEvent } from './data_types'
 import type { AgentAvailability } from './electron_data_bridge'
 import type { ThinkingLevel } from './agent_profiles'
-import type { ActionExecutionEvent, ActionStartRequest } from './action_run_types'
+import type { ActionExecutionEvent, ActionPromptRequest, ActionStartRequest, PreparedActionPrompt } from './action_run_types'
 
 export interface ActionRunHistoryRequest {
     actionId: string
@@ -16,12 +16,13 @@ export interface ActionScheduleRegistrationRequest {
     trigger: ActionScheduleTrigger
 }
 
-/** Commit produced by an action run; presence enables the diff view for a log entry. */
-export interface CommitMetadata {
+/** Commit produced during an action chain and owned by its root run. */
+export interface CommitReference {
     actionId: string
+    actionName: string
     branch: string
     commit: string
-    completedAt: string
+    committedAt: string
     filePaths: string[]
     repositoryRoot: string
 }
@@ -29,7 +30,7 @@ export interface CommitMetadata {
 export interface ActionRunHistoryEntry {
     agent?: string | null
     command?: string
-    commit?: CommitMetadata
+    commits?: CommitReference[]
     completedAt: string
     model?: string
     output: string
@@ -79,6 +80,7 @@ export interface ElectronActionBridge {
     loadAgentAvailability?(): Promise<Record<string, AgentAvailability>>
     onActionExecution(callback: (event: ActionExecutionEvent) => void): () => void
     openInEditor(request: OpenInEditorRequest): Promise<void>
+    prepareActionPrompt(request: ActionPromptRequest): Promise<PreparedActionPrompt>
     registerActionSchedule?(request: ActionScheduleRegistrationRequest): Promise<void>
     runSearchRegexpAgent(input: string, callback?: (event: AgentRunEvent) => void): Promise<string>
     startAction(request: ActionStartRequest): Promise<string>

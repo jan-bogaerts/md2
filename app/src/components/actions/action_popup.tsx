@@ -16,10 +16,12 @@ import {
     type LoadConversation,
     type LoadConversations,
     type LoadHistory,
+    type PreparePrompt,
     type RunAction,
     type ScheduleAction,
 } from './action_popup_defaults'
 import { RelatedActions } from './action_related_actions'
+import { ActionCommitDropdown } from './action_commit_dropdown'
 import { ActionRunHistory } from './action_run_history'
 import { ActionRunStatus } from './action_run_status'
 import { ActionScheduleForm } from './action_schedule_form'
@@ -48,6 +50,7 @@ interface ActionPopupProps {
     loadHistory?: LoadHistory
     loadConversation?: LoadConversation
     loadConversations?: LoadConversations
+    preparePrompt?: PreparePrompt
     runAction?: RunAction
     scheduleAction?: ScheduleAction
 }
@@ -73,8 +76,13 @@ export function ActionPopup(props: ActionPopupProps) {
 
     if (isCardRunDialog) {
         const handlePrimaryRun = showSaveControls ? controller.handleSaveAndRun : controller.handleRun
+        // Newest run first; commits inside one run keep chain execution order.
+        const commitReferences = [...controller.history].reverse().flatMap((entry) => entry.commits ?? [])
         const runDisabled = controller.runStatus === 'running'
             || !!controller.executionDisabledMessage
+            || controller.promptPreparationPending
+            || controller.promptPreparationFailed
+            || (promptRequired && controller.prompt.trim().length === 0)
             || (showSaveControls && controller.saveDisabled)
 
         return (
@@ -132,6 +140,7 @@ export function ActionPopup(props: ActionPopupProps) {
                             agent={controller.agent}
                             agentAvailability={controller.agentAvailability}
                             agentProfiles={controller.agentProfiles}
+                            commitHistory={<ActionCommitDropdown commits={commitReferences} />}
                             compact
                             conversationContent={(
                                 <ActionConversationChat
@@ -152,12 +161,14 @@ export function ActionPopup(props: ActionPopupProps) {
                             )}
                             convertMessage={controller.convertMessage}
                             disabled={controller.runStatus === 'running'}
-                            extraPrompt={controller.extraPrompt}
+                            prompt={controller.prompt}
+                            promptFailed={controller.promptPreparationFailed}
+                            promptLoading={controller.promptPreparationPending}
                             model={controller.model}
                             onActionLabelChange={controller.handleActionLabelChange}
                             onAgentChange={controller.handleAgentChange}
                             onConvertToAction={controller.handleConvertToAction}
-                            onExtraPromptChange={controller.handleExtraPromptChange}
+                            onPromptChange={controller.handlePromptChange}
                             onModelChange={controller.handleModelChange}
                             onThinkingLevelChange={controller.handleThinkingLevelChange}
                             onRunShortcut={runDisabled ? undefined : handlePrimaryRun}
@@ -269,7 +280,14 @@ export function ActionPopup(props: ActionPopupProps) {
                     {controller.runStatus === 'running' ? (
                         <Button disabled={!controller.backendAvailable} onClick={controller.handleCancel} variant="outlined">Cancel</Button>
                     ) : (
-                        <Button disabled={!!controller.executionDisabledMessage} onClick={controller.handleRun} variant="contained">
+                        <Button
+                            disabled={!!controller.executionDisabledMessage
+                                || controller.promptPreparationPending
+                                || controller.promptPreparationFailed
+                                || (promptRequired && controller.prompt.trim().length === 0)}
+                            onClick={controller.handleRun}
+                            variant="contained"
+                        >
                             {controller.isFollowUp ? 'Continue' : 'Run'}
                         </Button>
                     )}
@@ -293,12 +311,14 @@ export function ActionPopup(props: ActionPopupProps) {
                         agentProfiles={controller.agentProfiles}
                         convertMessage={controller.convertMessage}
                         disabled={controller.runStatus === 'running'}
-                        extraPrompt={controller.extraPrompt}
+                        prompt={controller.prompt}
+                        promptFailed={controller.promptPreparationFailed}
+                        promptLoading={controller.promptPreparationPending}
                         model={controller.model}
                         onActionLabelChange={controller.handleActionLabelChange}
                         onAgentChange={controller.handleAgentChange}
                         onConvertToAction={controller.handleConvertToAction}
-                        onExtraPromptChange={controller.handleExtraPromptChange}
+                        onPromptChange={controller.handlePromptChange}
                         onModelChange={controller.handleModelChange}
                         onThinkingLevelChange={controller.handleThinkingLevelChange}
                         onSaveAndRun={controller.handleSaveAndRun}

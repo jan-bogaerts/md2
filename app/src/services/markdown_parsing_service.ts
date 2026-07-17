@@ -17,6 +17,11 @@ export interface ParsedMarkdown {
     rawHeader: string
 }
 
+export interface CardParseError {
+    error: unknown
+    path: string
+}
+
 export interface NewCardHeader {
     affects?: string[]
     agentLogReferences?: string[]
@@ -363,14 +368,21 @@ export const markdownParsingService = {
 
     splitCards(files: MarkdownFile[], workingFolder: string) {
         const markdownFiles = files.filter((file) => isMarkdownFile(file.path))
-        const activeCards = markdownFiles
-            .filter((file) => isRootWorkingFolderFile(file.path, workingFolder))
-            .map((file) => this.parseCard(file, workingFolder))
-        const backgroundCards = markdownFiles
-            .filter((file) => !isRootWorkingFolderFile(file.path, workingFolder))
-            .map((file) => this.parseCard(file, workingFolder))
+        const activeCards: ProjectCard[] = []
+        const backgroundCards: ProjectCard[] = []
+        const parseErrors: CardParseError[] = []
 
-        return { activeCards, backgroundCards }
+        for (const file of markdownFiles) {
+            try {
+                const card = this.parseCard(file, workingFolder)
+                const targetCards = card.isActive ? activeCards : backgroundCards
+                targetCards.push(card)
+            } catch (error) {
+                parseErrors.push({ error, path: file.path })
+            }
+        }
+
+        return { activeCards, backgroundCards, parseErrors }
     },
 
     replaceBody(content: string, body: string) {

@@ -118,4 +118,34 @@ describe('action-files', () => {
             await rm(rootPath, { force: true, recursive: true });
         }
     });
+
+    it('loads normalized usage at the Electron boundary', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-action-files-'));
+
+        try {
+            await mkdir(join(rootPath, '.git'));
+            await writeFile(join(rootPath, 'conversation.json'), JSON.stringify({
+                completedAt: null,
+                events: [],
+                id: 'conversation-1',
+                messages: [],
+                startedAt: 'now',
+                status: 'completed',
+                usage: { cachedInputTokens: 4, costUsd: 0.02, inputTokens: 10, outputTokens: 3, reasoningTokens: 1, totalTokens: 18 },
+            }));
+
+            const conversation = await loadAgentConversation({ branch: 'main', id: 'local', rootPath }, 'conversation.json');
+
+            expect(conversation.usage).toEqual({
+                cachedInputTokens: 4,
+                costUsd: 0.02,
+                inputTokens: 10,
+                outputTokens: 3,
+                reasoningTokens: 1,
+                totalTokens: 18,
+            });
+        } finally {
+            await rm(rootPath, { force: true, recursive: true });
+        }
+    });
 });

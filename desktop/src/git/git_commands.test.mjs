@@ -12,6 +12,7 @@ const {
     commitTrackedPaths,
     ensureInsideRoot,
     requireRootPath,
+    resolveCommitMetadata,
     resolveLocalProject,
     runCommand,
 } = require('./git_commands');
@@ -115,6 +116,24 @@ describe('git-commands', () => {
                 id: resolve(rootPath),
                 rootPath: resolve(rootPath),
             });
+        } finally {
+            await rm(rootPath, { force: true, recursive: true });
+        }
+    });
+
+    it('resolves full commit hash, Git timestamp, and changed paths', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-commit-metadata-'));
+
+        try {
+            await initializeRepository(rootPath);
+            await commitFile(rootPath);
+            const { stdout } = await execFileAsync('git', ['rev-parse', '--short', 'HEAD'], { cwd: rootPath });
+
+            const metadata = await resolveCommitMetadata(rootPath, stdout.trim());
+
+            expect(metadata.commit).toMatch(/^[0-9a-f]{40}$/u);
+            expect(metadata.committedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/u);
+            expect(metadata.filePaths).toEqual(['README.md']);
         } finally {
             await rm(rootPath, { force: true, recursive: true });
         }

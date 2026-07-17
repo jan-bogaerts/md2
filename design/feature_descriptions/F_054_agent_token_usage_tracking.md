@@ -1,7 +1,7 @@
 ---
 id: F_054
 title: track agent token usage per card, version and project
-status: design
+status: ready
 owner: JB
 affects:
 policy:

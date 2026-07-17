@@ -104,7 +104,7 @@ describe('ActionDefinitionFields', () => {
         expect(screen.getByLabelText('Command')).toHaveValue('')
         expect(screen.getByRole('switch', { name: 'Needs worktree' })).toBeChecked()
         expect(screen.getByLabelText('Run when card enters state')).toHaveTextContent('ready')
-        expect(screen.queryByRole('switch', { name: 'Track changed files (run without a worktree)' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('switch', { name: 'Auto commit' })).not.toBeInTheDocument()
     })
 
     it('shows and persists agent file-change tracking with its limitations', () => {
@@ -114,10 +114,10 @@ describe('ActionDefinitionFields', () => {
             type: 'agent',
         } satisfies RawActionDefinition
         const onChange = renderFields(definition)
-        const trackingSwitch = screen.getByRole('switch', { name: 'Track changed files (run without a worktree)' })
+        const trackingSwitch = screen.getByRole('switch', { name: 'Auto commit' })
 
         expect(trackingSwitch).not.toBeChecked()
-        expect(screen.getByText(/Shell writes and concurrent edits to the same file require a worktree/u)).toBeInTheDocument()
+        expect(screen.getByText(/auto commit files agent reported as modified/u)).toBeInTheDocument()
         fireEvent.click(trackingSwitch)
 
         expect(onChange).toHaveBeenCalledWith({ ...definition, trackFileChanges: true })

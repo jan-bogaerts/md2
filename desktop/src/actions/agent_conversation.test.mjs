@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 const require = createRequire(import.meta.url);
 const {
+    accumulateUsage,
     createConversation,
     createEvent,
     createMessage,
@@ -11,6 +12,20 @@ const {
 } = require('./agent_conversation');
 
 describe('agent conversation', () => {
+    it('accumulates token buckets and optional reported cost', () => {
+        const current = { cachedInputTokens: 2, costUsd: 0.1, inputTokens: 10, outputTokens: 3, reasoningTokens: 1, totalTokens: 16 };
+        const turn = { cachedInputTokens: 4, inputTokens: 20, outputTokens: 6, reasoningTokens: 2, totalTokens: 32 };
+
+        expect(accumulateUsage(current, turn)).toEqual({
+            cachedInputTokens: 6,
+            costUsd: 0.1,
+            inputTokens: 30,
+            outputTokens: 9,
+            reasoningTokens: 3,
+            totalTokens: 48,
+        });
+    });
+
     it('creates messages and events in persisted shapes', () => {
         expect(createMessage('message-1', 'assistant', 'done', 'now', 'codex')).toEqual({agent: 'codex', content: 'done', id: 'message-1', role: 'assistant', timestamp: 'now'});
         expect(createEvent('event-1', 'output', 'done', 'now')).toEqual({content: 'done', id: 'event-1', timestamp: 'now', type: 'output'});

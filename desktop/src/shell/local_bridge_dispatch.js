@@ -193,6 +193,11 @@ function createLocalBridgeDispatch(dependencies) {
             return actionRunnerService.subscribe(callback);
         },
         openInEditor: async (request) => diffService.openInEditor(await resolveRepositoryProject(request.repositoryRoot), request),
+        prepareActionPrompt: (request) => {
+            if (!actionRunnerService) throw new Error('Action runner is not available');
+
+            return actionRunnerService.prepareActionPrompt(request);
+        },
         registerActionSchedule: (request) => {
             if (!actionSchedulerService) throw new Error('Action scheduler is not available');
 

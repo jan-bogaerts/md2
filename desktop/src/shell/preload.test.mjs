@@ -79,6 +79,7 @@ describe('preload desktop agent bridge', () => {
         expect(window.require).toBeUndefined();
         expect(exposed.md2Data.openProjectFolder).toEqual(expect.any(Function));
         expect(exposed.md2Data.loadAgentAvailability).toEqual(expect.any(Function));
+        expect(exposed.md2Actions.prepareActionPrompt).toEqual(expect.any(Function));
         expect(exposed.md2Actions.startAction).toEqual(expect.any(Function));
         expect(exposed.md2Actions.runCommand).toBeUndefined();
         expect(exposed.md2Lifecycle.onFlushRequested).toEqual(expect.any(Function));

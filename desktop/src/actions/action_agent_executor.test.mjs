@@ -66,6 +66,23 @@ describe('ActionAgentExecutor', () => {
         expect(input.onActiveRunChange.mock.calls.map(([runId]) => runId)).toEqual(['active-run', null]);
     });
 
+    it('uses a root prompt override unchanged without tracked-file composition', async () => {
+        const { agentRunnerService, executor } = createExecutor();
+        const trackedAction = { ...action, prompt: 'Stored {{card-file}}', trackFileChanges: true };
+
+        await executor.execute(executionInput({ action: trackedAction, runInput: { extraPrompt: 'legacy', prompt: 'Exact edited prompt' } }));
+
+        expect(agentRunnerService.start.mock.calls[0][1].prompt).toBe('Exact edited prompt');
+    });
+
+    it('preserves an empty root prompt override by presence', async () => {
+        const { agentRunnerService, executor } = createExecutor();
+
+        await executor.execute(executionInput({ runInput: { extraPrompt: 'legacy', prompt: '' } }));
+
+        expect(agentRunnerService.start.mock.calls[0][1].prompt).toBe('');
+    });
+
     it('runs project-wide action without card path', async () => {
         const { agentRunnerService, executor } = createExecutor();
         const projectAction = { ...action, prompt: '{{card-prompt}}' };

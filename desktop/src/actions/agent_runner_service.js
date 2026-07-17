@@ -4,6 +4,7 @@ const path = require('node:path');
 const crossSpawn = require('cross-spawn');
 
 const {
+    accumulateUsage,
     createConversation,
     createEvent,
     createMessage,
@@ -194,6 +195,7 @@ class AgentRunnerService {
             stdout: '',
             turnStarted: false,
             termination: null,
+            turnUsage: null,
             writeChain: Promise.resolve(),
         };
         run.parser = createAgentProviderProtocolParser(
@@ -281,6 +283,7 @@ class AgentRunnerService {
         run.missingSession = run.missingSession || providerEvent.missingSession;
         providerEvent.changedPaths.forEach((filePath) => run.changedPaths.add(filePath));
         if (providerEvent.conversationId) run.providerConversationId = providerEvent.conversationId;
+        if (providerEvent.usage) run.turnUsage = providerEvent.usage;
         run.conversation.events.push(createEvent(
             `${runId}-provider-${run.conversation.events.length}`,
             providerEvent.type,
@@ -355,6 +358,7 @@ class AgentRunnerService {
             if (succeeded) {
                 const synchronizedMessage = run.conversation.messages.at(-1);
                 updateProviderSession(run, synchronizedMessage.id, completedAt);
+                if (run.turnUsage) run.conversation.usage = accumulateUsage(run.conversation.usage, run.turnUsage);
             }
             run.conversation.completedAt = completedAt;
             run.conversation.status = run.cancelled ? 'cancelled' : succeeded ? 'completed' : 'failed';

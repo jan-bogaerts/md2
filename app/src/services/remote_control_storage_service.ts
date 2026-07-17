@@ -1,5 +1,5 @@
 import type { ActionFile } from '../data/action_types'
-import type { ActionExecutionEvent, ActionStartRequest } from '../data/action_run_types'
+import type { ActionExecutionEvent, ActionPromptRequest, ActionStartRequest, PreparedActionPrompt } from '../data/action_run_types'
 import type { ActionSchedule } from '../data/action_schedule_types'
 import type {
     ActionRunHistoryEntry,
@@ -295,6 +295,10 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
 
     async openInEditor(request: OpenInEditorRequest): Promise<void> {
         await this.request('openInEditor', [request])
+    }
+
+    async prepareActionPrompt(request: ActionPromptRequest): Promise<PreparedActionPrompt> {
+        return this.request<PreparedActionPrompt>('prepareActionPrompt', [request])
     }
 
     async runSearchRegexpAgent(input: string, callback?: (event: AgentRunEvent) => void): Promise<string> {
