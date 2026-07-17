@@ -40,7 +40,10 @@ describe('ActionService', () => {
         service.setSelectedEditorTab('actions/action.json', 'prompt')
         expect(service.getActionByPath('actions/action.json')?.editorState).toEqual({ selectedTab: 'prompt' })
 
-        service.reloadFromFiles([file({ ...VALID, label: 'Reloaded' })], ['actions/action.json'])
+        service.reloadFromFiles(
+            [file({ ...VALID, label: 'Reloaded' })],
+            [{ origin: 'external', path: 'actions/action.json' }],
+        )
         expect(service.getActionByPath('actions/action.json')?.editorState).toEqual({ selectedTab: 'prompt' })
 
         await service.saveDefinition('actions/action.json', { ...VALID, label: 'Saved' })
@@ -62,7 +65,10 @@ describe('ActionService', () => {
         service.loadFromFiles([file(VALID)])
         const replacement = { ...VALID, id: 'action-replacement', label: 'Replacement' }
 
-        service.reloadFromFiles([file({ ...VALID, type: 'bad' }), file(replacement)], ['actions/action.json'])
+        service.reloadFromFiles(
+            [file({ ...VALID, type: 'bad' }), file(replacement)],
+            [{ origin: 'external', path: 'actions/action.json' }],
+        )
 
         expect(service.getActions().map((action) => action.id)).toContain('action-replacement')
         expect(service.getActions().map((action) => action.id)).not.toContain('action-do')
@@ -130,8 +136,9 @@ describe('ActionService', () => {
         const parse = vi.spyOn(JSON, 'parse')
         const stringify = vi.spyOn(JSON, 'stringify')
 
-        expect(service.validateDefinition('actions/action.json', { ...VALID, icon: undefined, label: '' }))
-            .toMatchObject({ field: 'label', valid: false })
+        service.updateDraft('actions/action.json', { ...VALID, icon: undefined, label: '' })
+
+        expect(service.getDraft('actions/action.json').validation).toMatchObject({ field: 'label', valid: false })
         expect(parse).not.toHaveBeenCalled()
         expect(stringify).not.toHaveBeenCalled()
         parse.mockRestore()
@@ -319,5 +326,89 @@ describe('ActionService', () => {
 
         expect(persistActionFile).toHaveBeenCalledTimes(2)
         expect(service.hasPendingDrafts()).toBe(false)
+    })
+
+    it('keeps graph validation at the persistence boundary', async () => {
+        const persistActionFile = vi.fn(async () => undefined)
+        const service = new ActionService(() => ({ persistActionFile }))
+        service.loadFromFiles([file(VALID)])
+        const stringify = vi.spyOn(JSON, 'stringify')
+
+        service.updateDraft('actions/action.json', { ...VALID, onBefore: ['missing'] })
+
+        expect(service.getDraft('actions/action.json').validation.valid).toBe(true)
+        await expect(service.flushDrafts()).rejects.toThrow(/Unknown action id missing/u)
+        expect(stringify).not.toHaveBeenCalled()
+        expect(persistActionFile).not.toHaveBeenCalled()
+        stringify.mockRestore()
+    })
+
+    it('does not run whole-graph validation for field feedback in a large graph', () => {
+        const service = new ActionService()
+        const actionFiles = Array.from({ length: 200 }, (_value, index) => ({
+            content: JSON.stringify({ ...VALID, id: `action-${index}`, label: `Action ${index}` }),
+            path: `actions/action-${index}.json`,
+        }))
+        service.loadFromFiles(actionFiles)
+        const graphValidation = vi.spyOn(service, 'validateDefinition')
+
+        service.updateDraft('actions/action-0.json', { ...VALID, id: 'action-0', label: '' })
+
+        expect(service.getDraft('actions/action-0.json').validation).toMatchObject({ field: 'label', valid: false })
+        expect(graphValidation).not.toHaveBeenCalled()
+    })
+
+    it('ignores a stale local echo by explicit publication revision', async () => {
+        const persistedFiles: ActionFile[] = []
+        const persistActionFile = vi.fn(async (actionFile: ActionFile) => { persistedFiles.push(actionFile) })
+        const service = new ActionService(() => ({ persistActionFile }))
+        service.loadFromFiles([file(VALID)])
+
+        service.updateDraft('actions/action.json', { ...VALID, label: 'First local edit' })
+        await service.flushDrafts()
+        const firstPublicationRevision = service.getPublicationRevision('actions/action.json')
+        const firstFile = persistedFiles[0]
+        if (!firstFile) throw new Error('Missing first persisted action')
+        service.updateDraft('actions/action.json', { ...VALID, label: 'Newer local edit' })
+        await service.flushDrafts()
+
+        service.reloadFromFiles(
+            [firstFile],
+            [{ origin: 'local', path: firstFile.path, revision: firstPublicationRevision }],
+        )
+
+        expect(service.getDefinitionByPath(firstFile.path)?.label).toBe('Newer local edit')
+        expect(service.getDraft(firstFile.path).conflict).toBeNull()
+    })
+
+    it('treats a genuine external change matching an older snapshot as a conflict', async () => {
+        const service = new ActionService(() => ({ persistActionFile: vi.fn(async () => undefined) }))
+        const initialFile = file(VALID)
+        service.loadFromFiles([initialFile])
+        service.updateDraft('actions/action.json', { ...VALID, label: 'Saved local edit' })
+        await service.flushDrafts()
+        service.updateDraft('actions/action.json', { ...VALID, label: '' })
+
+        service.reloadFromFiles(
+            [initialFile],
+            [{ origin: 'external', path: initialFile.path }],
+        )
+
+        expect(service.getDraft(initialFile.path).conflict?.label).toBe(VALID.label)
+        expect(service.getDraft(initialFile.path).definition.label).toBe('')
+    })
+
+    it('treats reordered arrays as meaningful external changes', () => {
+        const phrases = [{ text: 'First', title: 'First' }, { text: 'Second', title: 'Second' }]
+        const service = new ActionService()
+        service.loadFromFiles([file({ ...VALID, phrases })])
+        service.updateDraft('actions/action.json', { ...VALID, label: '', phrases })
+
+        service.reloadFromFiles(
+            [file({ ...VALID, phrases: [...phrases].reverse() })],
+            [{ origin: 'external', path: 'actions/action.json' }],
+        )
+
+        expect(service.getDraft('actions/action.json').conflict?.phrases).toEqual([...phrases].reverse())
     })
 })

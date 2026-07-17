@@ -11,6 +11,7 @@ import { ActionValidationError } from '../../../shared/action_definitions.mjs'
 import { getService, register } from './service_injector'
 import {
     loadTolerantActionDefinitionGraph,
+    validateActionDefinition,
     validateActionDefinitionGraph,
 } from './action_definition_loader'
 
@@ -25,6 +26,10 @@ export interface ActionServiceState {
     actions: ActionDefinition[]
     error: string | null
 }
+
+export type ActionReloadChange =
+    | { origin: 'external', path: string }
+    | { origin: 'local', path: string, revision: number }
 
 export interface ActionDraftState {
     conflict: RawActionDefinition | null
@@ -86,21 +91,54 @@ function preserveActionEditorStates(currentActions: ActionDefinition[], nextActi
     return nextActions
 }
 
-function normalizedJsonValue(value: unknown): unknown {
-    if (Array.isArray(value)) return value.map(normalizedJsonValue)
-    if (value === null || typeof value !== 'object') return value
+function structuredValuesEqual(left: unknown, right: unknown): boolean {
+    if (left === right) return true
+    if (Array.isArray(left) || Array.isArray(right)) {
+        if (!Array.isArray(left) || !Array.isArray(right) || left.length !== right.length) return false
 
-    const normalizedValue: Record<string, unknown> = {}
-    for (const key of Object.keys(value).sort()) {
-        const fieldValue = (value as Record<string, unknown>)[key]
-        if (fieldValue !== undefined) normalizedValue[key] = normalizedJsonValue(fieldValue)
+        return left.every((value, index) => structuredValuesEqual(value, right[index]))
     }
+    if (left === null || right === null || typeof left !== 'object' || typeof right !== 'object') return false
 
-    return normalizedValue
+    const leftRecord = left as Record<string, unknown>
+    const rightRecord = right as Record<string, unknown>
+    const leftKeys = Object.keys(leftRecord).filter((key) => leftRecord[key] !== undefined)
+    const rightKeys = Object.keys(rightRecord).filter((key) => rightRecord[key] !== undefined)
+    if (leftKeys.length !== rightKeys.length) return false
+
+    return leftKeys.every((key) => Object.hasOwn(rightRecord, key)
+        && rightRecord[key] !== undefined
+        && structuredValuesEqual(leftRecord[key], rightRecord[key]))
 }
 
 function actionDefinitionsEqual(left: RawActionDefinition, right: RawActionDefinition) {
-    return JSON.stringify(normalizedJsonValue(left)) === JSON.stringify(normalizedJsonValue(right))
+    return structuredValuesEqual(left, right)
+}
+
+function actionValidationResult(validate: () => unknown): ActionValidationResult {
+    try {
+        validate()
+
+        return { code: null, error: null, field: null, fieldPath: null, index: null, valid: true }
+    } catch (error) {
+        if (error instanceof ActionValidationError) {
+            return {
+                code: error.code,
+                error: error.message,
+                field: error.field as keyof RawActionDefinition | null,
+                fieldPath: error.fieldPath,
+                index: error.index,
+                valid: false,
+            }
+        }
+        const message = error instanceof Error ? error.message : 'Invalid action definition'
+
+        return { code: null, error: message, field: null, fieldPath: null, index: null, valid: false }
+    }
+}
+
+function validateDraftDefinition(path: string, definition: RawActionDefinition) {
+    return actionValidationResult(() => validateActionDefinition(definition, path))
 }
 
 /** Convert a loaded action back to its canonical editable JSON shape. */
@@ -138,7 +176,7 @@ export class ActionService extends EventTarget {
     private error: string | null = null
     private files: ActionFile[] = []
     private readonly drafts = new Map<string, ManagedActionDraft>()
-    private readonly issuedDefinitionsByPath = new Map<string, Set<RawActionDefinition>>()
+    private readonly publicationRevisionsByPath = new Map<string, number>()
     private readonly persistenceGateway: () => ActionPersistenceGateway
 
     constructor(persistenceGateway: () => ActionPersistenceGateway = defaultPersistenceGateway) {
@@ -153,7 +191,7 @@ export class ActionService extends EventTarget {
         this.error = null
         this.files = []
         this.drafts.clear()
-        this.issuedDefinitionsByPath.clear()
+        this.publicationRevisionsByPath.clear()
         this.dispatchChanged()
     }
 
@@ -161,12 +199,27 @@ export class ActionService extends EventTarget {
         return this.loadFiles(files, false)
     }
 
-    reloadFromFiles(files: ActionFile[], changedPaths: string[]) {
+    reloadFromFiles(files: ActionFile[], changes: ActionReloadChange[]) {
         try {
-            return this.loadFiles(files, true)
+            const localPaths = new Set<string>()
+            for (const change of changes) {
+                if (change.origin === 'external') continue
+                const publishedRevision = this.getPublicationRevision(change.path)
+                if (change.revision > publishedRevision) {
+                    throw new Error(`Unknown local action publication revision ${change.revision} for ${change.path}`)
+                }
+                localPaths.add(change.path)
+            }
+            const reconciledFiles = files.map((file) => {
+                if (!localPaths.has(file.path)) return file
+
+                return this.files.find(({ path }) => path === file.path) ?? file
+            })
+
+            return this.loadFiles(reconciledFiles, true)
         } catch (error) {
             const message = error instanceof Error ? error.message : 'Action reload failed'
-            this.error = `Action reload failed for ${changedPaths.join(', ')}: ${message}`
+            this.error = `Action reload failed for ${changes.map(({ path }) => path).join(', ')}: ${message}`
             this.dispatchChanged()
 
             return this.actions
@@ -178,7 +231,7 @@ export class ActionService extends EventTarget {
         const { actions, definitions, issues } = loadTolerantActionDefinitionGraph(files, { validateAgentCapabilities: false })
         if (!preserveEditorState) {
             this.drafts.clear()
-            this.issuedDefinitionsByPath.clear()
+            this.publicationRevisionsByPath.clear()
         }
         this.actions = preserveEditorState ? preserveActionEditorStates(this.actions, actions) : actions
         this.definitions = definitions
@@ -205,25 +258,7 @@ export class ActionService extends EventTarget {
     }
 
     validateDefinition(path: string, definition: RawActionDefinition): ActionValidationResult {
-        try {
-            validateActionDefinitionGraph(this.definitionsWithDefinition(path, definition))
-
-            return { code: null, error: null, field: null, fieldPath: null, index: null, valid: true }
-        } catch (error) {
-            if (error instanceof ActionValidationError) {
-                return {
-                    code: error.code,
-                    error: error.message,
-                    field: error.field as keyof RawActionDefinition | null,
-                    fieldPath: error.fieldPath,
-                    index: error.index,
-                    valid: false,
-                }
-            }
-            const message = error instanceof Error ? error.message : 'Invalid action definition'
-
-            return { code: null, error: message, field: null, fieldPath: null, index: null, valid: false }
-        }
+        return actionValidationResult(() => validateActionDefinitionGraph(this.definitionsWithDefinition(path, definition)))
     }
 
     async saveDefinition(path: string, definition: RawActionDefinition) {
@@ -235,6 +270,7 @@ export class ActionService extends EventTarget {
         this.files = this.filesWithFile(file)
         this.definitions = definitions
         this.actions = actions
+        this.publicationRevisionsByPath.set(path, (this.publicationRevisionsByPath.get(path) ?? 0) + 1)
         this.error = null
         this.dispatchChanged()
 
@@ -259,7 +295,7 @@ export class ActionService extends EventTarget {
             revision: 0,
             savedRevision: 0,
             saving: false,
-            validation: this.validateDefinition(path, definition),
+            validation: validateDraftDefinition(path, definition),
         }
         this.drafts.set(path, draft)
 
@@ -275,7 +311,7 @@ export class ActionService extends EventTarget {
             definition,
             error: null,
             revision,
-            validation: this.validateDefinition(path, definition),
+            validation: validateDraftDefinition(path, definition),
         }
         this.drafts.set(path, draft)
         this.dispatchChanged()
@@ -310,7 +346,7 @@ export class ActionService extends EventTarget {
             error: null,
             revision,
             savedRevision: revision,
-            validation: this.validateDefinition(path, draft.conflict),
+            validation: validateDraftDefinition(path, draft.conflict),
         })
         this.dispatchChanged()
     }
@@ -338,7 +374,7 @@ export class ActionService extends EventTarget {
         this.error = null
         this.files = []
         this.drafts.clear()
-        this.issuedDefinitionsByPath.clear()
+        this.publicationRevisionsByPath.clear()
         this.dispatchChanged()
     }
 
@@ -356,6 +392,13 @@ export class ActionService extends EventTarget {
 
     getDefinitionByPath(path: string): RawActionDefinition | null {
         return this.definitions.find((entry) => entry.path === path)?.definition ?? null
+    }
+
+    getPublicationRevision(path: string): number {
+        const revision = this.publicationRevisionsByPath.get(path)
+        if (revision === undefined) throw new Error(`Missing local action publication revision: ${path}`)
+
+        return revision
     }
 
     setSelectedEditorTab(path: string, selectedTab: string) {
@@ -391,15 +434,6 @@ export class ActionService extends EventTarget {
             const externalDefinition = this.getDefinitionByPath(path)
             if (!previousDefinition || !externalDefinition || actionDefinitionsEqual(previousDefinition, externalDefinition)) continue
 
-            const issuedDefinitions = this.issuedDefinitionsByPath.get(path)
-            const issuedDefinition = [...(issuedDefinitions ?? [])].find((definition) => (
-                actionDefinitionsEqual(definition, externalDefinition)
-            ))
-            if (issuedDefinition) {
-                issuedDefinitions?.delete(issuedDefinition)
-                continue
-            }
-
             if (draft.revision !== draft.savedRevision) {
                 this.drafts.set(path, { ...draft, conflict: externalDefinition })
                 continue
@@ -412,16 +446,13 @@ export class ActionService extends EventTarget {
                 error: null,
                 revision,
                 savedRevision: revision,
-                validation: this.validateDefinition(path, externalDefinition),
+                validation: validateDraftDefinition(path, externalDefinition),
             })
         }
     }
 
     private queueDraftSave(path: string, definition: RawActionDefinition, revision: number) {
         const current = this.requireDraft(path)
-        const issuedDefinitions = this.issuedDefinitionsByPath.get(path) ?? new Set<RawActionDefinition>()
-        issuedDefinitions.add(definition)
-        this.issuedDefinitionsByPath.set(path, issuedDefinitions)
         const chain = current.chain.then(async () => {
             const startedDraft = this.drafts.get(path)
             if (!startedDraft) return

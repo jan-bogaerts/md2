@@ -438,6 +438,41 @@ describe('ProjectLoading', () => {
         expect(actionService.getActions().map((action) => action.id)).not.toContain('action-do')
     })
 
+    it('marks an action watcher event during its commit as a local publication echo', async () => {
+        vi.useFakeTimers()
+        configService.init()
+        configService.set('react.autoCommitDelayMs', 1000)
+        const initialFile = { content: JSON.stringify(actionDefinition('do')), path: 'actions/do.json' }
+        const commit = createDeferred<StorageProjectFiles['files']>()
+        let watchChange: (event: { changeKind: 'added' | 'changed' | 'removed' | 'unknown'; path: string }) => void = () => {
+            throw new Error('Watcher not registered')
+        }
+        const storage = createStorage({
+            commit: vi.fn(() => commit.promise),
+            loadActionFiles: vi.fn(async () => [initialFile]),
+            watchProject: vi.fn((_project, onChange) => {
+                watchChange = onChange
+
+                return vi.fn()
+            }),
+        })
+        const service = new DataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+
+        actionService.updateDraft(initialFile.path, { ...actionDefinition('do'), label: 'Local edit' })
+        await vi.advanceTimersByTimeAsync(1000)
+        expect(storage.commit).toHaveBeenCalledOnce()
+
+        watchChange({ changeKind: 'changed', path: initialFile.path })
+        await vi.advanceTimersByTimeAsync(150)
+
+        expect(actionService.getDefinitionByPath(initialFile.path)?.label).toBe('Local edit')
+        expect(actionService.getDraft(initialFile.path).conflict).toBeNull()
+        commit.resolve([])
+        await vi.advanceTimersByTimeAsync(0)
+    })
+
     it('surfaces action reload validation errors while loading other usable actions', async () => {
         vi.useFakeTimers()
         configService.init()

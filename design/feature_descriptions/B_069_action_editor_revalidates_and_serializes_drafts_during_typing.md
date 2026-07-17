@@ -1,7 +1,7 @@
 ---
 id: B-069
 title: action editor duplicates graph validation and JSON equality
-status: design
+status: ready
 owner: JB
 affects:
 policy:

@@ -1,5 +1,6 @@
 import {
     parseActionDefinitionFiles,
+    validateActionDefinition as validateSharedActionDefinition,
     validateActionDefinitionGraph as validateSharedActionDefinitionGraph,
 } from '../../../shared/action_definitions.mjs'
 import {
@@ -10,6 +11,7 @@ import type {
     ActionDefinition,
     ActionDefinitionEntry,
     ActionFile,
+    RawActionDefinition,
     RawActionDefinitionEntry,
 } from '../data/action_types'
 import type { AgentProfile } from '../data/agent_profiles'
@@ -62,4 +64,13 @@ export function validateActionDefinitionGraph(
     dependencies: ActionDefinitionLoaderDependencies = defaultLoaderDependencies(),
 ): ActionDefinition[] {
     return validateSharedActionDefinitionGraph(definitions, dependencies)
+}
+
+/** Validate one structured definition without resolving the complete action graph. */
+export function validateActionDefinition(
+    definition: RawActionDefinition,
+    path: string,
+    dependencies: ActionDefinitionLoaderDependencies = defaultLoaderDependencies(),
+) {
+    return validateSharedActionDefinition(definition, path, dependencies)
 }

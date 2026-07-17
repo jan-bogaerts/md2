@@ -2,7 +2,7 @@ import { ACTION_SCHEDULES_FILE } from '../data/action_schedule_types'
 import { deriveStatesFromCards, mergeStatesWithDefaults } from '../data/card_ordering'
 import type { CardSeparator } from '../data/card_identifiers'
 import { resolveProjectConfigPaths, type MarkdownFile, type ProjectAsset, type ProjectConfig, type ProjectReference, type ProjectSnapshot, type ProjectWatchEvent, type StorageService } from '../data/data_types'
-import { actionService } from './action_service'
+import { actionService, type ActionReloadChange } from './action_service'
 import { configService } from './config_service'
 import {
     type RequiredDataServiceDependencies,
@@ -92,7 +92,7 @@ export class ProjectLoading {
         project: ProjectReference,
         projectLoadToken: number,
     ) => void
-    private actionReloadChangedPaths: Set<string> = new Set()
+    private actionReloadChangesByPath: Map<string, ActionReloadChange> = new Map()
     private actionReloadTimeout: number | null = null
     private markdownReloadEventsByPath: Map<string, ProjectWatchEvent> = new Map()
     private markdownReloadTimeout: number | null = null
@@ -114,7 +114,7 @@ export class ProjectLoading {
         this.stopProjectWatch()
         this.clearActionReloadTimeout()
         this.clearMarkdownReloadTimeout()
-        this.actionReloadChangedPaths.clear()
+        this.actionReloadChangesByPath.clear()
         this.markdownReloadEventsByPath = new Map()
         this.dependencies.beginProjectLoad()
     }
@@ -138,7 +138,7 @@ export class ProjectLoading {
         this.clearMarkdownReloadTimeout()
         const projectLoadToken = this.dependencies.beginProjectLoad()
         this.dependencies.resetAgentConversations()
-        this.actionReloadChangedPaths.clear()
+        this.actionReloadChangesByPath.clear()
         this.markdownReloadEventsByPath = new Map()
         this.dependencies.replaceProject(project)
         const projectConfig = await storage.loadProjectConfig(project)
@@ -362,15 +362,18 @@ export class ProjectLoading {
     private handleProjectWatchEvent(event: ProjectWatchEvent) {
         const { config } = this.dependencies.requireDependencies()
         if (isActionDefinitionPath(event.path, config.actionsFolder)) {
-            this.scheduleActionReload(event.path)
+            const change: ActionReloadChange = this.dependencies.commitPathsInFlight().has(event.path)
+                ? { origin: 'local', path: event.path, revision: actionService.getPublicationRevision(event.path) }
+                : { origin: 'external', path: event.path }
+            this.scheduleActionReload(change)
             return
         }
 
         if (isProjectMarkdownPath(event.path, config.projectFolder)) this.scheduleMarkdownReload(event)
     }
 
-    private scheduleActionReload(changedPath: string) {
-        this.actionReloadChangedPaths.add(changedPath)
+    private scheduleActionReload(change: ActionReloadChange) {
+        this.actionReloadChangesByPath.set(change.path, change)
         this.clearActionReloadTimeout()
         this.actionReloadTimeout = window.setTimeout(() => {
             void this.reloadActionsFromCurrentProject()
@@ -469,13 +472,13 @@ export class ProjectLoading {
         const currentProject = this.dependencies.project()
         if (!currentProject) return
 
-        const changedPaths = [...this.actionReloadChangedPaths]
-        if (changedPaths.length === 0) return
+        const changes = [...this.actionReloadChangesByPath.values()]
+        if (changes.length === 0) return
 
         this.clearActionReloadTimeout()
-        this.actionReloadChangedPaths.clear()
+        this.actionReloadChangesByPath.clear()
         const actionFiles = await storage.loadActionFiles(currentProject, config.actionsFolder)
-        actionService.reloadFromFiles(actionFiles, changedPaths)
+        actionService.reloadFromFiles(actionFiles, changes)
         reportActionLoadIssues()
     }
 }

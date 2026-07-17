@@ -1,7 +1,7 @@
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import type { RenderResult } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { ActionDefinition, ActionFile } from '../../data/action_types'
+import type { ActionDefinition, ActionFile, RawActionDefinition } from '../../data/action_types'
 import { configService } from '../../services/config_service'
 import { dataService } from '../../services/data_service'
 import { actionService } from '../../services/action_service'
@@ -47,7 +47,10 @@ function loadAction(overrides: Record<string, unknown> = {}): ActionDefinition {
 }
 
 function reloadAction(overrides: Record<string, unknown> = {}): ActionDefinition {
-    actionService.reloadFromFiles([file(overrides)], ['actions/review.json'])
+    actionService.reloadFromFiles(
+        [file(overrides)],
+        [{ origin: 'external', path: 'actions/review.json' }],
+    )
     const action = actionService.getActionByPath('actions/review.json')
     if (!action) throw new Error('Missing reloaded test action')
 
@@ -401,11 +404,11 @@ describe('ActionEditor', () => {
 
     it('shows a general summary for definition-level errors with no routable field', () => {
         const action = loadAction()
-        // A cycle/definition error has no single field; the editor surfaces it as a summary alert.
-        vi.spyOn(actionService, 'validateDefinition').mockReturnValue({code: 'circular-reference', error: 'Circular action reference: a -> b -> a', field: null, fieldPath: null, index: null, valid: false})
+        const invalidDefinition = { ...definition, unexpected: undefined } as RawActionDefinition
+        actionService.updateDraft('actions/review.json', invalidDefinition)
         renderEditor(action)
 
-        expect(screen.getByRole('alert')).toHaveTextContent('Circular action reference: a -> b -> a')
+        expect(screen.getByRole('alert')).toHaveTextContent('Unknown action field unexpected')
     })
 
     it('auto-saves valid structured changes', async () => {
@@ -585,7 +588,7 @@ describe('ActionEditor', () => {
         expect((screen.getByLabelText('Description') as HTMLInputElement).value).toBe('External change')
     })
 
-    it('ignores a reparsed save echo while newer description edits are dirty', async () => {
+    it('treats an external change matching an older local snapshot as a conflict', async () => {
         vi.useFakeTimers()
         const action = loadAction()
         vi.spyOn(actionService, 'saveDefinition').mockReturnValue(deferred<ActionDefinition>().promise)
@@ -595,11 +598,11 @@ describe('ActionEditor', () => {
         await act(async () => vi.advanceTimersByTime(500))
         fireEvent.change(descriptionInput(), { target: { value: 'Newer local edit' } })
 
-        const reparsedSaveEcho = reloadAction({ description: 'First local edit', phrases: [] })
+        const olderLocalSnapshot = reloadAction({ description: 'First local edit', phrases: [] })
         view.rerender(
             <AppThemeProvider>
                 <ActionEditor
-                    action={reparsedSaveEcho}
+                    action={olderLocalSnapshot}
                     actions={actionService.getActions()}
                     cardTypes={['feature']}
                     repositoryFiles={[]}
@@ -609,7 +612,7 @@ describe('ActionEditor', () => {
             </AppThemeProvider>,
         )
 
-        expect(screen.queryByText(/changed outside the editor/u)).not.toBeInTheDocument()
+        expect(screen.getByText(/changed outside the editor/u)).toBeInTheDocument()
         expect(descriptionInput()).toHaveValue('Newer local edit')
     })
 
@@ -649,7 +652,10 @@ describe('ActionEditor', () => {
             }),
             path: 'actions/review.json',
         }
-        actionService.reloadFromFiles([reorderedFile], ['actions/review.json'])
+        actionService.reloadFromFiles(
+            [reorderedFile],
+            [{ origin: 'external', path: 'actions/review.json' }],
+        )
         const reloadedAction = actionService.getActionByPath('actions/review.json')
         if (!reloadedAction) throw new Error('Missing reloaded action')
 
