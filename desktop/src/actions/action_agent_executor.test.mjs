@@ -49,6 +49,7 @@ function executionInput(overrides = {}) {
         onActiveRunChange: vi.fn(),
         onEvent: vi.fn(),
         project,
+        projectFolder: 'design',
         runInput: { extraPrompt: '' },
         signal: new AbortController().signal,
         ...overrides,

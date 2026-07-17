@@ -1,6 +1,6 @@
 use /caveman skill
 Read and fix the bug described in: 
-`design\feature_descriptions\B_066_running_actions_contract_gaps_after_f047.md`
+`design\feature_descriptions\B_067_logs_are_split_across_project_locations.md`
 
 You do not need to look at the git status. This is not your concern.  The worktree is what it is, you only need to touch what is required for the above mentioned job/feature description.
 

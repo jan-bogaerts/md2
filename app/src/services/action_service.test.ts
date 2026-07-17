@@ -32,6 +32,22 @@ describe('ActionService', () => {
         expect(notified).toBe(1)
     })
 
+    it('keeps temporary editor state on the action object across reloads and saves', async () => {
+        const persistActionFile = vi.fn(async () => undefined)
+        const service = new ActionService(() => ({ persistActionFile }))
+        service.loadFromFiles([file(VALID)])
+
+        service.setSelectedEditorTab('actions/action.json', 'prompt')
+        expect(service.getActionByPath('actions/action.json')?.editorState).toEqual({ selectedTab: 'prompt' })
+
+        service.reloadFromFiles([file({ ...VALID, label: 'Reloaded' })], ['actions/action.json'])
+        expect(service.getActionByPath('actions/action.json')?.editorState).toEqual({ selectedTab: 'prompt' })
+
+        await service.saveDefinition('actions/action.json', { ...VALID, label: 'Saved' })
+        expect(service.getActionByPath('actions/action.json')?.editorState).toEqual({ selectedTab: 'prompt' })
+        expect(persistActionFile).toHaveBeenCalledWith(expect.objectContaining({ content: expect.not.stringContaining('editorState') }))
+    })
+
     it('loads usable definitions and exposes errors from invalid files', () => {
         const service = new ActionService()
         const usable = { ...VALID, id: 'action-usable', label: 'Usable' }

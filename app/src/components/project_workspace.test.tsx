@@ -5,6 +5,7 @@ import { MissingWorkingFolderError, type ProjectConfig, type StorageService } fr
 import type { ElectronDataBridge } from '../data/electron_data_bridge'
 import { configService } from '../services/config_service'
 import { dataService } from '../services/data_service'
+import { actionService } from '../services/action_service'
 import { openFilesService } from '../services/open_files_service'
 import { telemetryService } from '../services/telemetry_service'
 import { workspaceNavigationService } from '../services/workspace_navigation_service'
@@ -174,6 +175,7 @@ describe('ProjectWorkspace', () => {
 
     afterEach(() => {
         cleanup()
+        actionService.clear()
         configService.clear()
         window.localStorage.clear()
         delete window.md2Data
@@ -585,6 +587,29 @@ describe('ProjectWorkspace', () => {
 
         expect(await screen.findByRole('tab', { name: /Root/ })).toBeInTheDocument()
         expect(screen.getByRole('tab', { name: /Old/ })).toBeInTheDocument()
+    })
+
+    it('restores the selected action editor section after switching to cards and back', async () => {
+        window.md2Data = createBridge()
+
+        renderProjectSurface()
+        await openLocalProject()
+        act(() => actionService.loadFromFiles([{
+            content: JSON.stringify({
+                description: 'Review the selected file', id: 'review-id', label: 'Review code',
+                phrases: [{ text: 'Run tests', title: 'Tests' }], prompt: 'Review {{card-file}}', type: 'agent',
+            }),
+            path: 'design/actions/review.json',
+        }]))
+        act(() => workspaceViewService.setViewMode('text'))
+        const tree = within(await screen.findByLabelText('File tree'))
+        fireEvent.click(tree.getByRole('button', { name: 'Review code' }))
+        fireEvent.click(screen.getByRole('tab', { name: 'Tests' }))
+
+        act(() => workspaceViewService.setViewMode('cards'))
+        act(() => workspaceViewService.setViewMode('text'))
+
+        expect(await screen.findByRole('tab', { name: 'Tests' })).toHaveAttribute('aria-selected', 'true')
     })
 
     it('reveals a navigated card and keeps the current card view', async () => {

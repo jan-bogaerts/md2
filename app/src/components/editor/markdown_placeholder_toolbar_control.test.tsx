@@ -27,4 +27,13 @@ describe('MarkdownPlaceholderToolbarControl', () => {
         expect(activeEditor.focus).toHaveBeenCalledOnce()
         expect(screen.queryByRole('menu')).not.toBeInTheDocument()
     })
+
+    it('offers the card title placeholder', () => {
+        vi.spyOn(mdxEditor, 'useCellValue').mockReturnValue({ dispatchCommand: vi.fn(), focus: vi.fn() } as never)
+        render(<MarkdownPlaceholderToolbarControl placeholders={ACTION_PROMPT_PLACEHOLDERS} />)
+
+        fireEvent.click(screen.getByRole('button', { name: 'Insert placeholder' }))
+
+        expect(within(screen.getByRole('menu')).getByRole('menuitem', { name: /card-title/u })).toBeInTheDocument()
+    })
 })

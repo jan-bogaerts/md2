@@ -66,6 +66,16 @@ describe('loadActionDefinitions', () => {
         expect(() => loadActionDefinitions([file('implement', { ...IMPLEMENT, onBefore: [IMPLEMENT.id] })])).toThrow(/Circular action reference/u);
     });
 
+    it('rejects action ids that collide after log filename normalization', () => {
+        const error = validationError([
+            file('first', { ...IMPLEMENT, id: 'action.one' }),
+            file('second', { ...LINT, id: 'action-one' }),
+        ]);
+
+        expect(error).toMatchObject({ code: 'normalized-id-collision', field: 'id', sourcePath: 'actions/second.json' });
+        expect(error.message).toContain('collides with action.one');
+    });
+
     it('attaches stable routing metadata to each validator failure', () => {
         const cases = [
             [{ ...IMPLEMENT, label: '' }, { code: 'missing-field', field: 'label' }],

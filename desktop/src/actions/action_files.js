@@ -14,31 +14,11 @@ const {
     parseActionScheduleFile,
 } = require('./schedule_store');
 const { normalizePath } = require('../../../shared/path_utils.mjs');
+const { actionHistoryFilePath } = require('./project_log_paths');
 
 const JSON_EXTENSION = '.json';
-const ACTION_HISTORY_FOLDER = '.md2-action-history';
 const AGENT_MESSAGE_ROLES = new Set(['agent', 'assistant', 'stderr', 'stdout', 'system', 'user']);
 const AGENT_STATUSES = new Set(['cancelled', 'completed', 'failed', 'running']);
-
-function safeHistorySegment(value) {
-    return value.replace(/[^a-zA-Z0-9._-]/g, '_');
-}
-
-function contextHistoryKey(context) {
-    const file = typeof context.file === 'string' ? context.file : '';
-    const folder = typeof context.folder === 'string' ? context.folder : '';
-    const kind = typeof context.kind === 'string' ? context.kind : '';
-
-    return safeHistorySegment(`${kind}_${file || folder || 'context'}`);
-}
-
-function historyFilePath(rootPath, actionsFolder, actionId, context) {
-    const actionsFolderPath = ensureInsideRoot(rootPath, path.join(rootPath, actionsFolder));
-    const historyFolderPath = ensureInsideRoot(rootPath, path.join(actionsFolderPath, ACTION_HISTORY_FOLDER));
-    const fileName = `${safeHistorySegment(actionId)}_${contextHistoryKey(context)}.json`;
-
-    return ensureInsideRoot(rootPath, path.join(historyFolderPath, fileName));
-}
 
 function scheduleFilePath(rootPath, actionsFolder) {
     const actionsFolderPath = ensureInsideRoot(rootPath, path.join(rootPath, actionsFolder));
@@ -168,9 +148,9 @@ async function loadActionRunHistory(project, request) {
     await assertGitRoot(rootPath);
     if (!request || typeof request.actionId !== 'string' || request.actionId.length === 0) throw new Error('Missing action history actionId');
     if (!request.context || typeof request.context !== 'object') throw new Error('Missing action history context');
-    if (typeof request.actionsFolder !== 'string' || request.actionsFolder.length === 0) throw new Error('Missing action history actionsFolder');
+    if (typeof request.projectFolder !== 'string') throw new Error('Missing action history projectFolder');
 
-    const filePath = historyFilePath(rootPath, request.actionsFolder, request.actionId, request.context);
+    const filePath = actionHistoryFilePath(rootPath, request.projectFolder, request.actionId, request.context);
 
     return readJsonArray(filePath);
 }
@@ -180,9 +160,9 @@ async function appendActionRunHistory(project, request, entry) {
     await assertGitRoot(rootPath);
     if (!request || typeof request.actionId !== 'string' || request.actionId.length === 0) throw new Error('Missing action history actionId');
     if (!request.context || typeof request.context !== 'object') throw new Error('Missing action history context');
-    if (typeof request.actionsFolder !== 'string' || request.actionsFolder.length === 0) throw new Error('Missing action history actionsFolder');
+    if (typeof request.projectFolder !== 'string') throw new Error('Missing action history projectFolder');
 
-    const filePath = historyFilePath(rootPath, request.actionsFolder, request.actionId, request.context);
+    const filePath = actionHistoryFilePath(rootPath, request.projectFolder, request.actionId, request.context);
     const entries = await readJsonArray(filePath);
     const nextEntries = [...entries, entry];
     await fs.promises.mkdir(path.dirname(filePath), { recursive: true });

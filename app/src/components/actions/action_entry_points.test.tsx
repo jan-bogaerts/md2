@@ -192,6 +192,7 @@ describe('entry-point placement in the file tree', () => {
         background[0] = { ...background[0], path: 'design/history/F-9.md' }
         const tree = buildFileTree(active, background, 'design/active', {
             actions: [],
+            hiddenFolderPaths: ['design/logs'],
             projectFolder: 'design',
             repositoryFiles: [],
             specialFolderPaths: ['design/actions', 'design/active', 'design/history'],

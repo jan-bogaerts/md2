@@ -13,6 +13,7 @@ class ActionExecution {
         this.context = snapshot.context;
         this.executionId = snapshot.executionId;
         this.project = snapshot.project;
+        this.projectFolder = snapshot.projectFolder;
         this.rootAction = snapshot.rootAction;
         this.runInput = snapshot.runInput;
         this.actionWorktreeExecutionService = dependencies.actionWorktreeExecutionService;
@@ -144,7 +145,7 @@ class ActionExecution {
                 branch: result.branch ?? project.branch,
                 rootPath: result.repositoryRoot ?? project.rootPath,
             };
-            const historyInput = { action, actionsFolder: this.actionsFolder, context: this.context, project: executionProject, result };
+            const historyInput = { action, context: this.context, project: executionProject, projectFolder: this.projectFolder, result };
             if (action.type === 'agent') await appendAgentRunHistory(this.localGitService, historyInput);
             else await appendCommandRunHistory(this.localGitService, historyInput);
 
@@ -184,6 +185,7 @@ class ActionExecution {
             onActiveRunChange,
             onEvent,
             project,
+            projectFolder: this.projectFolder,
             runInput,
             signal: this.controller.signal,
         });

@@ -39,18 +39,21 @@ type MarkdownEditorProps = MarkdownEditorCommonProps & ({
     historyStore: MarkdownDocumentHistoryStore
     onChange?: never
     onDocumentChange: (documentId: string, markdown: string) => void
+    onDocumentEdit?: (documentId: string, markdown: string) => void
 } | {
     documentId?: never
     historyStore?: never
     onChange: (markdown: string) => void
     onDocumentChange?: never
+    onDocumentEdit?: never
 })
 
 /**
  * Reusable MDXEditor surface for card bodies and files (F-007). The editor is
  * uncontrolled while typing: edits stay inside Lexical and are emitted only
- * on unmount, document switch, or `flushMarkdownEditors`. A document ID and
- * history store let one editor retain independent undo/redo stacks per file.
+ * on unmount, document switch, or `flushMarkdownEditors`. Document editors can
+ * also report live edits without changing buffered flush behavior. A document
+ * ID and history store let one editor retain independent undo/redo stacks per file.
  */
 export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(function MarkdownEditor(props, ref) {
     const {
@@ -69,8 +72,10 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
     const lastEmittedMarkdownRef = useRef(markdown)
     const onChangeRef = useRef(props.onChange)
     const onDocumentChangeRef = useRef(props.onDocumentChange)
+    const onDocumentEditRef = useRef(props.onDocumentEdit)
     onChangeRef.current = props.onChange
     onDocumentChangeRef.current = props.onDocumentChange
+    onDocumentEditRef.current = props.onDocumentEdit
 
     const flush = useCallback(() => {
         if (latestMarkdownRef.current === lastEmittedMarkdownRef.current) return
@@ -135,7 +140,11 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
     }), [flush])
 
     const handleEditorChange = useCallback((nextMarkdown: string) => {
+        if (latestMarkdownRef.current === nextMarkdown) return
+
         latestMarkdownRef.current = nextMarkdown
+        const activeDocumentId = activeDocumentIdRef.current
+        if (activeDocumentId) onDocumentEditRef.current?.(activeDocumentId, nextMarkdown)
     }, [])
 
     const defaultToolbarContents = useCallback(

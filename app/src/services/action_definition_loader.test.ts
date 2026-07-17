@@ -164,6 +164,13 @@ describe('loadActionDefinitions', () => {
         expect(() => loadActionDefinitions([file('a', { ...IMPLEMENT, id: CUSTOM_PROMPT_ACTION_ID })])).toThrow(/Duplicate action id/u)
     })
 
+    it('rejects action IDs that collide after log filename normalization', () => {
+        expect(() => loadActionDefinitions([
+            file('a', { ...IMPLEMENT, id: 'action.one' }),
+            file('b', { ...LINT, id: 'action_one' }),
+        ])).toThrow(/collides with action\.one after log filename normalization/u)
+    })
+
     it('rejects invalid agent, model, and thinking-level combinations', () => {
         expect(() => loadActionDefinitions([file('implement', { ...IMPLEMENT, model: 'gpt-5' })])).toThrow(/model requires agent/u)
         expect(() => loadActionDefinitions([file('implement', { ...IMPLEMENT, agent: 'codex', model: 'bad' })], {profiles: [{ command: ['codex'], models: ['gpt-5'], name: 'codex' }]})).toThrow(/Unknown model/u)

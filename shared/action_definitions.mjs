@@ -1,4 +1,5 @@
 import { validateAgentSelection, validateThinkingLevel } from './agent_profiles.mjs'
+import { normalizeLogFileValue } from './log_paths.mjs'
 
 const ACTION_TYPES = ['agent', 'command']
 const LEGACY_FIELDS = ['after', 'before', 'runIn', 'text']
@@ -355,9 +356,21 @@ export function parseActionDefinitionFiles(files) {
 export function validateActionDefinitionGraph(entries, dependencies = {}) {
     const rawDefinitions = entries.map(({ definition, path }) => validateRawDefinition(definition, path, dependencies))
     const ids = new Set(BUILTIN_ACTIONS.map(({ id }) => id))
+    const normalizedIds = new Map(BUILTIN_ACTIONS.map(({ id }) => [normalizeLogFileValue(id), id]))
     for (const raw of rawDefinitions) {
         if (ids.has(raw.id)) throw fail(`Duplicate action id ${raw.id} in ${raw.sourcePath}`, 'duplicate-id', raw.sourcePath, 'id')
+        const normalizedId = normalizeLogFileValue(raw.id)
+        const collidingId = normalizedIds.get(normalizedId)
+        if (collidingId) {
+            throw fail(
+                `Action id ${raw.id} in ${raw.sourcePath} collides with ${collidingId} after log filename normalization`,
+                'normalized-id-collision',
+                raw.sourcePath,
+                'id',
+            )
+        }
         ids.add(raw.id)
+        normalizedIds.set(normalizedId, raw.id)
     }
 
     const registry = new Map(BUILTIN_ACTIONS.map((action) => [action.id, action]))

@@ -45,7 +45,7 @@ function createRunner(actionFiles = [actionFile('main')], overrides = {}) {
         localGitService,
         ...overrides,
     });
-    runner.startProject(project, 'actions');
+    runner.startProject(project, 'actions', 'design');
 
     return { actionWorktreeExecutionService, agentRunnerService, commandRunner, localGitService, runner };
 }
@@ -61,7 +61,7 @@ describe('ActionRunnerService', () => {
         const runner = new ActionRunnerService({});
 
         await expect(runner.start({ actionId: 'main', context, runInput: {} })).rejects.toThrow('Action runner has no project');
-        runner.startProject(project, 'actions');
+        runner.startProject(project, 'actions', 'design');
         await expect(runner.start({ actionId: 'main', context, runInput: {} })).rejects.toThrow('Action runner has no local Git service');
     });
 
@@ -69,6 +69,7 @@ describe('ActionRunnerService', () => {
         const { runner } = createRunner();
 
         expect(runner.requireActionsFolder()).toBe('actions');
+        expect(runner.requireProjectFolder()).toBe('design');
         runner.stop();
         expect(() => runner.requireActionsFolder()).toThrow('Action runner has no actions folder');
     });
@@ -169,12 +170,12 @@ describe('ActionRunnerService', () => {
         const executionId = await runner.start({ actionId: 'main', context, runInput: {} });
         await vi.waitFor(() => expect(commandRunner).toHaveBeenCalledTimes(1));
 
-        runner.startProject({ branch: 'other', id: 'other', rootPath: 'C:/other' }, 'other-actions');
+        runner.startProject({ branch: 'other', id: 'other', rootPath: 'C:/other' }, 'other-actions', 'other-design');
         resolve();
         await runner.wait(executionId);
 
         expect(commandRunner.mock.calls.map((call) => call[0])).toEqual([project, project]);
-        expect(localGitService.appendActionRunHistory.mock.calls.map((call) => call[1].actionsFolder)).toEqual(['actions', 'actions']);
+        expect(localGitService.appendActionRunHistory.mock.calls.map((call) => call[1].projectFolder)).toEqual(['design', 'design']);
     });
 
     it('delegates cancel and rejects unknown execution id', async () => {

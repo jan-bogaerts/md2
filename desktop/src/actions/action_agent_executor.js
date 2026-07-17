@@ -60,6 +60,7 @@ class ActionAgentExecutor {
             ...(sourceConversation ? { conversation: sourceConversation, reference } : {}),
             ...(contextInput ? { contextInput } : {}),
             prompt,
+            projectFolder: input.projectFolder,
             ...(providerSession ? { providerConversationId: providerSession.conversationId } : {}),
             scopePath: input.context.file ?? 'project',
             title: input.action.label,

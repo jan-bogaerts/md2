@@ -57,6 +57,21 @@ function nextActionName(files: ActionFile[]) {
     return `${NEW_ACTION_NAME}-${suffix}`
 }
 
+function preserveActionEditorStates(currentActions: ActionDefinition[], nextActions: ActionDefinition[]) {
+    const editorStatesByPath = new Map<string, NonNullable<ActionDefinition['editorState']>>()
+    for (const { editorState, sourcePath } of currentActions) {
+        if (!editorState || !sourcePath) continue
+        editorStatesByPath.set(sourcePath, editorState)
+    }
+    for (const action of nextActions) {
+        if (!action.sourcePath) continue
+        const editorState = editorStatesByPath.get(action.sourcePath)
+        if (editorState) action.editorState = editorState
+    }
+
+    return nextActions
+}
+
 /** Convert a loaded action back to its canonical editable JSON shape. */
 export function editableActionDefinition(action: ActionDefinition): RawActionDefinition {
     if (action.builtin) throw new Error(`Built-in action cannot be edited: ${action.id}`)
@@ -108,19 +123,12 @@ export class ActionService extends EventTarget {
     }
 
     loadFromFiles(files: ActionFile[]) {
-        const { actions, definitions, issues } = loadTolerantActionDefinitionGraph(files, { validateAgentCapabilities: false })
-        this.actions = actions
-        this.definitions = definitions
-        this.error = issues.length > 0 ? issues.map(({ message }) => message).join('\n') : null
-        this.files = files
-        this.dispatchChanged()
-
-        return actions
+        return this.loadFiles(files, false)
     }
 
     reloadFromFiles(files: ActionFile[], changedPaths: string[]) {
         try {
-            return this.loadFromFiles(files)
+            return this.loadFiles(files, true)
         } catch (error) {
             const message = error instanceof Error ? error.message : 'Action reload failed'
             this.error = `Action reload failed for ${changedPaths.join(', ')}: ${message}`
@@ -128,6 +136,17 @@ export class ActionService extends EventTarget {
 
             return this.actions
         }
+    }
+
+    private loadFiles(files: ActionFile[], preserveEditorState: boolean) {
+        const { actions, definitions, issues } = loadTolerantActionDefinitionGraph(files, { validateAgentCapabilities: false })
+        this.actions = preserveEditorState ? preserveActionEditorStates(this.actions, actions) : actions
+        this.definitions = definitions
+        this.error = issues.length > 0 ? issues.map(({ message }) => message).join('\n') : null
+        this.files = files
+        this.dispatchChanged()
+
+        return this.actions
     }
 
     createDefinition(actionsFolder: string): { definition: RawActionDefinition, path: string } {
@@ -168,7 +187,7 @@ export class ActionService extends EventTarget {
 
     async saveDefinition(path: string, definition: RawActionDefinition) {
         const definitions = this.definitionsWithDefinition(path, definition)
-        const actions = validateActionDefinitionGraph(definitions)
+        const actions = preserveActionEditorStates(this.actions, validateActionDefinitionGraph(definitions))
         const file = { content: serializeActionDefinition(definition), path }
 
         await this.persistenceGateway().persistActionFile(file)
@@ -206,6 +225,12 @@ export class ActionService extends EventTarget {
 
     getDefinitionByPath(path: string): RawActionDefinition | null {
         return this.definitions.find((entry) => entry.path === path)?.definition ?? null
+    }
+
+    setSelectedEditorTab(path: string, selectedTab: string) {
+        const action = this.getActionByPath(path)
+        if (!action) throw new Error(`Cannot save editor tab for unknown action: ${path}`)
+        action.editorState = { selectedTab }
     }
 
     getActionsForStateTrigger(state: string, context: ActionContext): ActionDefinition[] {

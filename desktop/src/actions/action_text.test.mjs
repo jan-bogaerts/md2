@@ -7,9 +7,11 @@ const { resolveAgentPrompt, resolvePlaceholders } = require('./action_text');
 const project = { rootPath: 'C:/repo' };
 
 describe('resolvePlaceholders', () => {
-    it('resolves project, card file, and card prompt placeholders', () => {
-        expect(resolvePlaceholders('{{rootProjectFolder}} {{card-file}} {{card-prompt}}', { file: 'design/card.md' }, project, 'focus'))
-            .toBe('C:/repo design/card.md focus');
+    it('resolves project, card file, card title, and card prompt placeholders', () => {
+        const context = { file: 'design/card.md', title: 'Placeholder support' };
+
+        expect(resolvePlaceholders('{{rootProjectFolder}} {{card-file}} {{card-title}} {{card-prompt}}', context, project, 'focus'))
+            .toBe('C:/repo design/card.md Placeholder support focus');
     });
 
     it('rejects missing project root', () => {
@@ -18,6 +20,10 @@ describe('resolvePlaceholders', () => {
 
     it('rejects card-file placeholder without file context', () => {
         expect(() => resolvePlaceholders('{{card-file}}', { kind: 'project' }, project, '')).toThrow('Cannot resolve card-file placeholder');
+    });
+
+    it('rejects card-title placeholder without card title', () => {
+        expect(() => resolvePlaceholders('{{card-title}}', { kind: 'card' }, project, '')).toThrow('Cannot resolve card-title placeholder');
     });
 
     it('does not resolve removed placeholder names', () => {

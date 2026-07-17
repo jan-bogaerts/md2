@@ -77,6 +77,32 @@ describe('electron action runner client', () => {
         })
     })
 
+    it('flushes pending card edits before starting the action', async () => {
+        const bridge = createBridge()
+        setActionBridgeOverride(bridge)
+        vi.spyOn(dataService.projectLoading, 'reloadCurrentProjectSnapshot').mockResolvedValue(null)
+        const state = dataService.getState()
+        vi.spyOn(dataService, 'getState').mockReturnValue({ ...state, hasPendingSave: true })
+        const flush = vi.spyOn(dataService.cards, 'flushPendingCommits').mockImplementation(async () => {
+            expect(bridge.startAction).not.toHaveBeenCalled()
+        })
+
+        await runElectronAction(action, context)
+
+        expect(flush).toHaveBeenCalledTimes(1)
+    })
+
+    it('does not flush when no card edits are pending', async () => {
+        const bridge = createBridge()
+        setActionBridgeOverride(bridge)
+        vi.spyOn(dataService.projectLoading, 'reloadCurrentProjectSnapshot').mockResolvedValue(null)
+        const flush = vi.spyOn(dataService.cards, 'flushPendingCommits').mockResolvedValue()
+
+        await runElectronAction(action, context)
+
+        expect(flush).not.toHaveBeenCalled()
+    })
+
     it('cancels by Electron execution id', async () => {
         const bridge = createBridge()
         setActionBridgeOverride(bridge)

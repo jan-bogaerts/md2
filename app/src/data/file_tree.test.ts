@@ -34,6 +34,7 @@ function findChild(nodes: TreeNode[], label: string): TreeNode | undefined {
 function treeOptions(overrides: Partial<FileTreeOptions> = {}): FileTreeOptions {
     return {
         actions: [],
+        hiddenFolderPaths: ['design/logs'],
         projectFolder: 'design',
         repositoryFiles: [],
         specialFolderPaths: ['design/actions', 'design/active', 'design/history'],
@@ -144,6 +145,41 @@ describe('buildFileTree', () => {
         expect(findChild(tree, 'empty')).toMatchObject({ directoryPath: 'design/empty', kind: 'folder' })
         expect(findChild(tree, 'assets')).toMatchObject({ directoryPath: 'design/assets', kind: 'folder' })
         expect(findChild(tree, 'app')).toBeUndefined()
+    })
+
+    it('excludes logs and descendants from every list-tree source', () => {
+        const hiddenAction = {
+            builtin: false,
+            id: 'hidden',
+            label: 'Hidden action',
+            sourcePath: 'design/logs/action.json',
+        } as ActionDefinition
+        const tree = buildFileTree(
+            [],
+            [card('design/logs/conversation.md'), card('design/notes/visible.md')],
+            'design/active',
+            treeOptions({
+                actions: [hiddenAction],
+                repositoryFiles: ['design/logs/history__project__review.json', 'design/history/release.md'],
+            }),
+        )
+
+        expect(findChild(tree, 'logs')).toBeUndefined()
+        expect(findChild(tree, 'notes')).toBeDefined()
+        expect(findChild(tree, 'history')?.kind).toBe('special')
+    })
+
+    it('excludes root logs when projectFolder is empty', () => {
+        const tree = buildFileTree([], [], '', {
+            actions: [],
+            hiddenFolderPaths: ['logs'],
+            projectFolder: '',
+            repositoryFiles: ['logs/conversation__project__one.json', 'notes/readme.md'],
+            specialFolderPaths: ['notes'],
+        })
+
+        expect(findChild(tree, 'logs')).toBeUndefined()
+        expect(findChild(tree, 'notes')).toBeDefined()
     })
 })
 

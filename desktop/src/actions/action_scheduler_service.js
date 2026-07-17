@@ -65,6 +65,7 @@ class ActionSchedulerService {
         this.setTimeout = dependencies?.setTimeout ?? setTimeout;
         this.project = null;
         this.actionsFolder = null;
+        this.projectFolder = null;
         this.executionIdsByScheduleId = new Map();
         this.runningScheduleIds = new Set();
         this.timers = new Map();
@@ -72,8 +73,10 @@ class ActionSchedulerService {
 
     async startProject(project) {
         this.project = requireProject(project);
-        this.actionsFolder = await this.loadActionsFolder();
-        this.actionRunnerService.startProject(this.project, this.actionsFolder);
+        const { actionsFolder, projectFolder } = await this.loadProjectPaths();
+        this.actionsFolder = actionsFolder;
+        this.projectFolder = projectFolder;
+        this.actionRunnerService.startProject(this.project, this.actionsFolder, this.projectFolder);
         await this.reconcile();
     }
 
@@ -83,6 +86,7 @@ class ActionSchedulerService {
         this.executionIdsByScheduleId.clear();
         this.project = null;
         this.actionsFolder = null;
+        this.projectFolder = null;
     }
 
     async registerActionSchedule(request) {
@@ -231,11 +235,11 @@ class ActionSchedulerService {
     }
 
     async appendHistory(actionId, context, entry, project = this.requireCurrentProject()) {
-        const request = { actionId, actionsFolder: await this.requireActionsFolder(), context };
+        const request = { actionId, context, projectFolder: await this.requireProjectFolder() };
         await this.localGitService.appendActionRunHistory(project, request, entry);
     }
 
-    async loadActionsFolder() {
+    async loadProjectPaths() {
         const config = await this.localGitService.loadProjectConfig(this.requireCurrentProject());
         const projectFolder = typeof config?.projectFolder === 'string' ? config.projectFolder : DEFAULT_PROJECT_FOLDER;
         if (config?.actionsFolder !== undefined) {
@@ -243,10 +247,10 @@ class ActionSchedulerService {
                 throw new Error('Invalid project actionsFolder');
             }
 
-            return resolveProjectFolderPath(projectFolder, config.actionsFolder);
+            return { actionsFolder: resolveProjectFolderPath(projectFolder, config.actionsFolder), projectFolder };
         }
 
-        return resolveProjectFolderPath(projectFolder, DEFAULT_ACTIONS_FOLDER);
+        return { actionsFolder: resolveProjectFolderPath(projectFolder, DEFAULT_ACTIONS_FOLDER), projectFolder };
     }
 
     requireCurrentProject() {
@@ -256,9 +260,21 @@ class ActionSchedulerService {
     async requireActionsFolder() {
         if (this.actionsFolder) return this.actionsFolder;
 
-        this.actionsFolder = await this.loadActionsFolder();
+        const { actionsFolder, projectFolder } = await this.loadProjectPaths();
+        this.actionsFolder = actionsFolder;
+        this.projectFolder = projectFolder;
 
         return this.actionsFolder;
+    }
+
+    async requireProjectFolder() {
+        if (this.projectFolder !== null) return this.projectFolder;
+
+        const { actionsFolder, projectFolder } = await this.loadProjectPaths();
+        this.actionsFolder = actionsFolder;
+        this.projectFolder = projectFolder;
+
+        return this.projectFolder;
     }
 }
 

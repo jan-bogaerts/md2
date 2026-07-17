@@ -7,6 +7,7 @@ import {
     createGithubRawResponse,
     createGithubResponse,
     createGithubStatusResponse,
+    createDeferred,
     createStorage,
     files,
     githubProject,
@@ -33,6 +34,26 @@ describe('DataService', () => {
 
         await expect(service.projectLoading.openProject(githubProject)).rejects.toBeInstanceOf(GithubUnauthorizedError)
         expect(handleUnauthorized).toHaveBeenCalledTimes(1)
+    })
+
+    it('reports direct action persistence through the shared pending-save state', async () => {
+        configService.init()
+        const pendingCommit = createDeferred<never[]>()
+        const storage = createStorage({ commit: vi.fn(() => pendingCommit.promise) })
+        const service = new DataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        const pendingStates: boolean[] = []
+        service.addEventListener('changed', () => pendingStates.push(service.getState().hasPendingSave))
+
+        const save = service.persistActionFile({ content: '{}', path: 'actions/review.json' })
+        expect(service.getState().hasPendingSave).toBe(true)
+
+        pendingCommit.resolve([])
+        await save
+        expect(service.getState().hasPendingSave).toBe(false)
+        expect(pendingStates).toContain(true)
+        expect(pendingStates.at(-1)).toBe(false)
     })
 
     it('handles GitHub unauthorized once when a batched commit gets a 401', async () => {

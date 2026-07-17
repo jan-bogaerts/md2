@@ -12,6 +12,10 @@ function createProject(rootPath) {
     return { branch: 'main', id: 'local', rootPath };
 }
 
+function agentRequest(overrides) {
+    return { projectFolder: 'design', ...overrides };
+}
+
 async function prepareProject(rootPath) {
     await mkdir(join(rootPath, '.git'));
     await mkdir(join(rootPath, 'design'));
@@ -60,7 +64,7 @@ describe('AgentRunnerService', () => {
             await prepareProject(rootPath);
             await writeFile(scriptPath, 'process.stdout.write(JSON.stringify({configured:process.argv[2],prompt:process.argv[3],tty:process.stdin.isTTY===true}))\n');
             const command = ['node', scriptPath, 'GPT 5.5'];
-            const result = await service.run(createProject(rootPath), { command, prompt, scopePath: 'project' }, () => undefined);
+            const result = await service.run(createProject(rootPath), agentRequest({ command, prompt, scopePath: 'project' }), () => undefined);
 
             expect(result.stderr).toBe('');
             expect(result.exitCode).toBe(0);
@@ -80,7 +84,7 @@ describe('AgentRunnerService', () => {
             await prepareProject(rootPath);
             await writeFile(scriptPath, "let value='';process.stdin.on('data',chunk=>value+=chunk);process.stdin.on('end',()=>process.stdout.write(String(value.length)))\n");
             const command = ['node', scriptPath];
-            const result = await service.run(createProject(rootPath), { command, contextInput, prompt: 'next', scopePath: 'project' }, () => undefined);
+            const result = await service.run(createProject(rootPath), agentRequest({ command, contextInput, prompt: 'next', scopePath: 'project' }), () => undefined);
 
             expect(result.stdout).toBe(String(contextInput.length));
         } finally {
@@ -99,11 +103,11 @@ describe('AgentRunnerService', () => {
             await prepareProject(rootPath);
             await writeFile(scriptPath, 'process.stdout.write(JSON.stringify(process.argv[3]))\n');
             await writeFile(commandPath, '@echo off\r\nnode "%~dp0test-agent-script.cjs" marker %*\r\n');
-            const result = await service.run(createProject(rootPath), {
+            const result = await service.run(createProject(rootPath), agentRequest({
                 command: [commandPath],
                 prompt,
                 scopePath: 'project',
-            }, () => undefined);
+            }), () => undefined);
 
             expect(result.stderr).toBe('');
             expect(result.exitCode).toBe(0);
@@ -123,12 +127,12 @@ describe('AgentRunnerService', () => {
             await prepareProject(rootPath);
             await writeFile(scriptPath, "console.log(JSON.stringify({type:'thread.started',thread_id:'thread-1'}));console.log(JSON.stringify({type:'turn.started'}));console.log(JSON.stringify({type:'item.completed',item:{type:'agent_message',text:'answer'}}))\n");
             const command = ['node', scriptPath];
-            const result = await service.run(createProject(rootPath), {
+            const result = await service.run(createProject(rootPath), agentRequest({
                 agent: 'codex',
                 cardPath: 'design/F-1.md',
                 command,
                 prompt: 'question',
-            }, (event) => events.push(event));
+            }), (event) => events.push(event));
             const persisted = JSON.parse(await readFile(join(rootPath, result.reference), 'utf8'));
 
             expect(events).toContainEqual(expect.objectContaining({ content: 'answer', type: 'output' }));
@@ -153,12 +157,12 @@ describe('AgentRunnerService', () => {
         try {
             await prepareProject(rootPath);
             await writeFile(scriptPath, `const message=JSON.stringify({type:'error',status:400,error:{type:'invalid_request_error',message:${JSON.stringify(failureMessage)}}});console.log(JSON.stringify({type:'thread.started',thread_id:'thread-1'}));console.log(JSON.stringify({type:'item.completed',item:{type:'error',message:'model warning'}}));console.log(JSON.stringify({type:'turn.started'}));console.log(JSON.stringify({type:'error',message}));console.log(JSON.stringify({type:'turn.failed',error:{message}}));process.exit(1)\n`);
-            const result = await service.run(createProject(rootPath), {
+            const result = await service.run(createProject(rootPath), agentRequest({
                 agent: 'codex',
                 command: ['node', scriptPath],
                 prompt: 'question',
                 scopePath: 'project',
-            }, (event) => events.push(event));
+            }), (event) => events.push(event));
 
             expect(events.filter(({ type }) => type === 'error').map(({ content }) => content)).toEqual(['model warning', failureMessage]);
             expect(result.stderr).toBe(`model warning\n${failureMessage}`);
@@ -177,12 +181,12 @@ describe('AgentRunnerService', () => {
         try {
             await prepareProject(rootPath);
             await writeFile(scriptPath, "console.log(JSON.stringify({type:'thread.started',thread_id:'thread-1'}));console.log(JSON.stringify({type:'turn.started'}));process.stderr.write('completed\\nDebugger list');process.stderr.write('ening on ws://127.0.0.1:60618/id\\nFor help, see: https://nodejs.org/en/docs/inspector\\nDebugger attached.\\nReading additional input from stdin...\\nvisible warning\\nWaiting for the debugger to disconnect...')\n");
-            const result = await service.run(createProject(rootPath), {
+            const result = await service.run(createProject(rootPath), agentRequest({
                 agent: 'codex',
                 command: ['node', scriptPath],
                 prompt: 'question',
                 scopePath: 'project',
-            }, (event) => events.push(event));
+            }), (event) => events.push(event));
             const persisted = JSON.parse(await readFile(join(rootPath, result.reference), 'utf8'));
 
             expect(result.stderr).toBe('visible warning\n');
@@ -201,12 +205,12 @@ describe('AgentRunnerService', () => {
         try {
             await prepareProject(rootPath);
             await writeFile(scriptPath, "console.log(JSON.stringify({type:'item.completed',item:{type:'agent_message',text:'partial answer'}}))\n");
-            const result = await service.run(createProject(rootPath), {
+            const result = await service.run(createProject(rootPath), agentRequest({
                 agent: 'codex',
                 command: ['node', scriptPath],
                 prompt: 'question',
                 scopePath: 'project',
-            }, () => undefined);
+            }), () => undefined);
             const persisted = JSON.parse(await readFile(join(rootPath, result.reference), 'utf8'));
 
             expect(result.exitCode).not.toBe(0);
@@ -227,12 +231,12 @@ describe('AgentRunnerService', () => {
         try {
             await prepareProject(rootPath);
             await writeFile(scriptPath, "console.log('not-json')\n");
-            const result = await service.run(createProject(rootPath), {
+            const result = await service.run(createProject(rootPath), agentRequest({
                 agent: 'claude',
                 command: ['node', scriptPath],
                 prompt: 'question',
                 scopePath: 'project',
-            }, (event) => events.push(event));
+            }), (event) => events.push(event));
             const persisted = JSON.parse(await readFile(join(rootPath, result.reference), 'utf8'));
 
             expect(result.exitCode).not.toBe(0);
@@ -257,10 +261,10 @@ describe('AgentRunnerService', () => {
 
         try {
             await prepareProject(rootPath);
-            const started = await service.start(createProject(rootPath), {
+            const started = await service.start(createProject(rootPath), agentRequest({
                 agent: 'codex', command: ['node', '-e', 'setTimeout(()=>{},10000)'], conversation,
                 prompt: 'next', reference: '.md2-agent-logs/conversation.json', scopePath: 'project',
-            }, (event) => events.push(event));
+            }), (event) => events.push(event));
             service.stop(started.runId);
             await waitForEvent(events, 'closed');
             const persisted = JSON.parse(await readFile(join(rootPath, started.reference), 'utf8'));
@@ -283,16 +287,16 @@ describe('AgentRunnerService', () => {
 
         try {
             await prepareProject(rootPath);
-            const first = await service.start(createProject(rootPath), {
+            const first = await service.start(createProject(rootPath), agentRequest({
                 command: ['node', '-e', 'setTimeout(()=>process.exit(0),100)'], conversation,
                 prompt: 'one', reference: '.md2-agent-logs/one.json', scopePath: 'project',
-            }, (event) => events.push(event));
+            }), (event) => events.push(event));
 
-            await expect(service.start(createProject(rootPath), {
+            await expect(service.start(createProject(rootPath), agentRequest({
                 command: ['node', '-e', 'process.exit(0)'], conversation,
                 prompt: 'two', reference: '.md2-agent-logs/one.json', scopePath: 'project',
-            }, () => undefined)).rejects.toThrow('already has a running turn');
-            const second = await service.start(createProject(rootPath), {command: ['node', '-e', 'process.exit(0)'], prompt: 'other', scopePath: 'project'}, (event) => events.push(event));
+            }), () => undefined)).rejects.toThrow('already has a running turn');
+            const second = await service.start(createProject(rootPath), agentRequest({command: ['node', '-e', 'process.exit(0)'], prompt: 'other', scopePath: 'project'}), (event) => events.push(event));
 
             service.stop(first.runId);
             await waitForEventCount(events, 'closed', 2);
@@ -309,7 +313,7 @@ describe('AgentRunnerService', () => {
 
         try {
             await prepareProject(rootPath);
-            const result = await service.run(createProject(rootPath), {command: ['node', '-e', "process.stdout.write('done')"], prompt: 'go', scopePath: 'project'}, () => undefined);
+            const result = await service.run(createProject(rootPath), agentRequest({command: ['node', '-e', "process.stdout.write('done')"], prompt: 'go', scopePath: 'project'}), () => undefined);
             const persisted = JSON.parse(await readFile(join(rootPath, result.reference), 'utf8'));
 
             expect(persisted.status).toBe('completed');

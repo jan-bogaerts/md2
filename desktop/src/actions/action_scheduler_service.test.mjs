@@ -172,7 +172,7 @@ describe('ActionSchedulerService', () => {
         expect(localGitService.loadActionFiles).toHaveBeenCalledWith(project, 'projects/demo/actions');
         expect(localGitService.histories).toEqual([expect.objectContaining({
             entry: expect.objectContaining({ command: 'echo done', output: 'done', status: 'completed' }),
-            request: expect.objectContaining({ actionId: 'implement', actionsFolder: 'projects/demo/actions' }),
+            request: expect.objectContaining({ actionId: 'implement', projectFolder: 'projects/demo' }),
         })]);
     });
 
@@ -276,7 +276,7 @@ describe('ActionSchedulerService', () => {
         expect(agentRunner).toHaveBeenCalledWith(project, expect.objectContaining({command: ['codex', '--model', 'gpt-5.5', '-c', 'model_reasoning_effort=high', '--search', 'exec', '--json']}), expect.any(Function));
         expect(localGitService.histories[0]).toMatchObject({
             entry: { agent: 'codex', model: 'gpt-5.5', thinkingLevel: 'high' },
-            request: { actionId: 'implement', actionsFolder: 'actions', context },
+            request: { actionId: 'implement', context, projectFolder: '' },
         });
     });
 
@@ -355,7 +355,7 @@ describe('ActionSchedulerService', () => {
 
         expect(localGitService.histories[0]).toMatchObject({
             entry: { output: 'Unknown action: missing', status: 'failed' },
-            request: { actionId: 'missing', actionsFolder: 'actions', context },
+            request: { actionId: 'missing', context, projectFolder: '' },
         });
         expect(localGitService.runCommand).toHaveBeenCalledWith(project, 'echo done');
         expect(localGitService.schedules()).toEqual([

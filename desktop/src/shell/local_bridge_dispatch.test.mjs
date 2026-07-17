@@ -9,6 +9,7 @@ function createDispatch(options = {}) {
     const actionRunnerService = {
         cancel: vi.fn(),
         requireActionsFolder: vi.fn(() => 'actions'),
+        requireProjectFolder: vi.fn(() => 'design'),
         start: vi.fn(async () => 'action-1'),
         subscribe: vi.fn(() => vi.fn()),
     };
@@ -40,6 +41,7 @@ function createDispatch(options = {}) {
         }]),
         loadActionRunHistory: vi.fn(async () => []),
         loadProjectAsset: vi.fn(async () => ({ content: 'aWNvbg==', contentType: 'image/png', encoding: 'base64', path: 'actions/icon.png' })),
+        loadProjectConfig: vi.fn(async () => ({ projectFolder: 'design' })),
         loadProject: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
         loadProjectRoot: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
         resolveLocalProject: vi.fn(async () => ({ branch: 'topic', id: 'C:/repo', rootPath: 'C:/repo' })),
@@ -198,7 +200,8 @@ describe('createLocalBridgeDispatch', () => {
         await dispatch.actionBridge.loadActionRunHistory(request);
 
         expect(actionRunnerService.requireActionsFolder).toHaveBeenCalled();
-        expect(localGitService.loadActionRunHistory).toHaveBeenCalledWith(project, { ...request, actionsFolder: 'actions' });
+        expect(actionRunnerService.requireProjectFolder).toHaveBeenCalled();
+        expect(localGitService.loadActionRunHistory).toHaveBeenCalledWith(project, { ...request, projectFolder: 'design' });
     });
 
 });

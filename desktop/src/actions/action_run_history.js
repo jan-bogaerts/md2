@@ -52,7 +52,7 @@ function createAgentHistoryEntry(input) {
 }
 
 function appendHistory(localGitService, input, entry) {
-    const request = { actionId: input.action.id, actionsFolder: input.actionsFolder, context: input.context };
+    const request = { actionId: input.action.id, context: input.context, projectFolder: input.projectFolder };
 
     return localGitService.appendActionRunHistory(input.project, request, entry);
 }

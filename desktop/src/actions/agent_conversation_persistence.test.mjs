@@ -26,14 +26,14 @@ describe('agent conversation persistence', () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-persistence-'));
         temporaryPaths.push(rootPath);
 
-        expect(agentLogFilePath(rootPath, 'design/card.md', 'agent:1')).toBe(join(rootPath, '.md2-agent-logs', 'design_card.md_agent_1.json'));
+        expect(agentLogFilePath(rootPath, 'design', 'design/card.md', 'agent:1')).toBe(join(rootPath, 'design', 'logs', 'conversation__card__card__agent_1.json'));
         expect(existingLogFilePath(rootPath, '.md2-agent-logs/existing.json')).toBe(join(rootPath, '.md2-agent-logs', 'existing.json'));
     });
 
     it('persists conversations atomically with formatted JSON', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-persistence-'));
         temporaryPaths.push(rootPath);
-        const filePath = join(rootPath, '.md2-agent-logs', 'conversation.json');
+        const filePath = join(rootPath, 'design', 'logs', 'conversation.json');
 
         await persistConversation(filePath, { id: 'agent-1' });
 
@@ -45,7 +45,7 @@ describe('agent conversation persistence', () => {
         temporaryPaths.push(rootPath);
         const run = {
             conversation: { id: 'agent-1' },
-            filePath: join(rootPath, '.md2-agent-logs', 'conversation.json'),
+            filePath: join(rootPath, 'design', 'logs', 'conversation.json'),
             intermediatePersistTimer: null,
             lastIntermediatePersistAt: Date.now(),
             writeChain: Promise.resolve(),

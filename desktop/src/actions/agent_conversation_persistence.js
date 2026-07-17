@@ -2,19 +2,12 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const { ensureInsideRoot } = require('../git/git_commands');
+const { conversationLogFilePath } = require('./project_log_paths');
 
-const AGENT_LOG_FOLDER = '.md2-agent-logs';
 const INTERMEDIATE_PERSIST_INTERVAL_MS = 250;
 
-function safePathSegment(value) {
-    return value.replace(/[^a-zA-Z0-9._-]/g, '_');
-}
-
-function agentLogFilePath(rootPath, scopePath, id) {
-    const folderPath = ensureInsideRoot(rootPath, path.join(rootPath, AGENT_LOG_FOLDER));
-    const fileName = `${safePathSegment(scopePath)}_${safePathSegment(id)}.json`;
-
-    return ensureInsideRoot(rootPath, path.join(folderPath, fileName));
+function agentLogFilePath(rootPath, projectFolder, scopePath, id) {
+    return conversationLogFilePath(rootPath, projectFolder, scopePath, id);
 }
 
 function existingLogFilePath(rootPath, reference) {

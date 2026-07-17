@@ -22,6 +22,8 @@ export interface ActionContextFilterDescriptor {
  * field-by-field against this object, so every matchable property is a string.
  */
 export interface ActionContext {
+    /** Title of the selected card, used for placeholder resolution. */
+    title?: string
     /** Card/file type derived from the id prefix, e.g. `feature`. */
     type?: string
     /** Card state / status, e.g. `design`. */
@@ -65,7 +67,7 @@ export function getCardType(cardTypes: CardTypeConfig[], id: string): string | u
 
 /** Build the action context for a card shown in card view. */
 export function cardContext(card: ProjectCard, cardTypes: CardTypeConfig[]): ActionContext {
-    const context: ActionContext = { file: card.path, kind: 'card' }
+    const context: ActionContext = { file: card.path, kind: 'card', title: card.header.title }
     const type = getCardType(cardTypes, card.header.id)
     if (type) context.type = type
     if (card.header.status) context.state = card.header.status

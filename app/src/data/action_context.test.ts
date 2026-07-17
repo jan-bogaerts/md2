@@ -87,11 +87,12 @@ describe('action context filter descriptors', () => {
 })
 
 describe('cardContext / fileContext / folderContext / projectContext', () => {
-    it('derives type, state, file and kind for a card', () => {
+    it('derives type, state, file, title and kind for a card', () => {
         expect(cardContext(card('F-010', 'design'), DEFAULT_CARD_TYPES)).toEqual({
             file: 'design/F-010.md',
             kind: 'card',
             state: 'design',
+            title: 'F-010',
             type: 'feature',
         })
     })

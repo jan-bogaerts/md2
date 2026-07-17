@@ -2,7 +2,7 @@ import type { ActionContext } from '../data/action_context'
 import type { ActionDefinition } from '../data/action_types'
 import type { ProjectReference } from '../data/data_types'
 
-const PLACEHOLDER_PATTERN = /\{\{\s*(rootProjectFolder|card-file|card-prompt)\s*\}\}/gu
+const PLACEHOLDER_PATTERN = /\{\{\s*(rootProjectFolder|card-file|card-title|card-prompt)\s*\}\}/gu
 const CARD_PROMPT_PLACEHOLDER_PATTERN = /\{\{\s*card-prompt\s*\}\}/u
 
 export function resolvePlaceholders(text: string, context: ActionContext, project: ProjectReference, extraPrompt: string): string {
@@ -14,6 +14,12 @@ export function resolvePlaceholders(text: string, context: ActionContext, projec
         }
 
         if (name === 'card-prompt') return extraPrompt
+
+        if (name === 'card-title') {
+            if (!context.title) throw new Error('Cannot resolve card-title placeholder without a card title')
+
+            return context.title
+        }
 
         if (!context.file) throw new Error('Cannot resolve card-file placeholder without a file context')
 

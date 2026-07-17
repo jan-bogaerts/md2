@@ -6,6 +6,7 @@ import { THEME_MODE_STORAGE_KEY } from '../../theme/use_theme_settings'
 import { MARKDOWN_STYLE_PRESETS } from '../../theme/theme_config'
 import { useAppTheme } from '../../theme/use_app_theme'
 import { MarkdownEditor } from './markdown_editor'
+import { MarkdownDocumentHistoryStore } from './markdown_document_history_store'
 import { flushMarkdownEditors } from './markdown_editor_flush'
 import { buildMarkdownContentSx } from './markdown_style_sx'
 
@@ -54,6 +55,31 @@ describe('MarkdownEditor', () => {
         fireEvent.change(screen.getByRole('textbox'), { target: { value: 'edited' } })
 
         expect(onChange).not.toHaveBeenCalled()
+    })
+
+    it('reports live edits for a document without changing buffered flush behavior', () => {
+        const historyStore = new MarkdownDocumentHistoryStore()
+        const onDocumentChange = vi.fn()
+        const onDocumentEdit = vi.fn()
+        render(
+            <AppThemeProvider>
+                <MarkdownEditor
+                    documentId="prompt"
+                    historyStore={historyStore}
+                    markdown="original"
+                    onDocumentChange={onDocumentChange}
+                    onDocumentEdit={onDocumentEdit}
+                />
+            </AppThemeProvider>,
+        )
+
+        fireEvent.change(screen.getByRole('textbox'), { target: { value: 'edited' } })
+
+        expect(onDocumentEdit).toHaveBeenCalledExactlyOnceWith('prompt', 'edited')
+        expect(onDocumentChange).not.toHaveBeenCalled()
+
+        flushMarkdownEditors()
+        expect(onDocumentChange).toHaveBeenCalledExactlyOnceWith('prompt', 'edited')
     })
 
     it('does not flush editor-normalized markdown when the user made no edit', () => {

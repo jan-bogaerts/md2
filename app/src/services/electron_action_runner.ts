@@ -35,6 +35,7 @@ export async function runElectronAction(
         executionId = startedExecutionId
         onStarted?.(startedExecutionId)
     }
+    if (dataService.getState().hasPendingSave) await dataService.cards.flushPendingCommits()
     const result = await actionExecutionService.startExecution(action, context, input, handleStarted)
     const processingError = takeActionEventProcessingError(executionId)
     if (processingError) throw processingError

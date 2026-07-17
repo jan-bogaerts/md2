@@ -62,19 +62,19 @@ describe('history persistence', () => {
     it.each([
         ['command', appendCommandRunHistory, { command: 'test', exitCode: 0, stderr: '', stdout: '' }],
         ['agent', appendAgentRunHistory, {agent: 'codex', exitCode: 0, model: 'gpt', prompt: 'review', stderr: '', stdout: '', thinkingLevel: 'none'}],
-    ])('persists %s entry with action folder and context', async (_type, appendRunHistory, result) => {
+    ])('persists %s entry with project folder and context', async (_type, appendRunHistory, result) => {
         const localGitService = { appendActionRunHistory: vi.fn(async () => []) };
-        const input = { action, actionsFolder: 'actions', completedAt, context: cardContext, project, result };
+        const input = { action, completedAt, context: cardContext, project, projectFolder: 'design', result };
 
         await appendRunHistory(localGitService, input);
 
-        expect(localGitService.appendActionRunHistory).toHaveBeenCalledWith(project, {actionId: 'main', actionsFolder: 'actions', context: cardContext}, expect.objectContaining({ completedAt }));
+        expect(localGitService.appendActionRunHistory).toHaveBeenCalledWith(project, {actionId: 'main', context: cardContext, projectFolder: 'design'}, expect.objectContaining({ completedAt }));
     });
 
     it('propagates persistence failure', async () => {
         const localGitService = { appendActionRunHistory: vi.fn(async () => { throw new Error('write failed'); }) };
         const result = { command: 'test', exitCode: 0, stderr: '', stdout: '' };
 
-        await expect(appendCommandRunHistory(localGitService, {action, actionsFolder: 'actions', context: cardContext, project, result})).rejects.toThrow('write failed');
+        await expect(appendCommandRunHistory(localGitService, {action, context: cardContext, project, projectFolder: 'design', result})).rejects.toThrow('write failed');
     });
 });

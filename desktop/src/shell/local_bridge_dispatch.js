@@ -171,8 +171,9 @@ function createLocalBridgeDispatch(dependencies) {
             if (!actionRunnerService) throw new Error('Action runner is not available');
 
             const actionsFolder = actionRunnerService.requireActionsFolder();
+            const projectFolder = actionRunnerService.requireProjectFolder();
             const project = await resolveActionProject(request, actionsFolder);
-            const historyRequest = { ...request, actionsFolder };
+            const historyRequest = { ...request, projectFolder };
 
             return localGitService.loadActionRunHistory(project, historyRequest);
         },
@@ -201,11 +202,14 @@ function createLocalBridgeDispatch(dependencies) {
             if (typeof input !== 'string' || input.length === 0) throw new Error('Missing regular expression search input');
 
             const resolved = resolveSearchAgent(readDesktopConfig(desktopConfigStore));
+            const projectConfig = await localGitService.loadProjectConfig(currentLocalProject);
+            const projectFolder = typeof projectConfig?.projectFolder === 'string' ? projectConfig.projectFolder : '';
             const request = {
                 agent: resolved.agent,
                 cardPath: SEARCH_AGENT_CARD_PATH,
                 command: resolved.command,
                 prompt: `${SEARCH_AGENT_PROMPT_PREFIX}${input}`,
+                projectFolder,
                 title: 'Search RegExp',
             };
             const result = await agentRunnerService.run(currentLocalProject, request, callback);

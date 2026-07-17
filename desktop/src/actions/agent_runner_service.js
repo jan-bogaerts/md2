@@ -54,6 +54,12 @@ function requireString(value, fieldName) {
     return value;
 }
 
+function requireProjectFolder(value) {
+    if (typeof value !== 'string') throw new Error('Missing agent projectFolder');
+
+    return value;
+}
+
 function requireCommand(value) {
     if (!Array.isArray(value) || value.length === 0) throw new Error('Missing agent command');
     value.forEach((argument, index) => requireString(argument, `command[${index}]`));
@@ -135,6 +141,7 @@ class AgentRunnerService {
         const scopePath = requireString(request?.scopePath ?? cardPath, 'scopePath');
         const prompt = requireString(request?.prompt, 'prompt');
         const agent = requireString(request?.agent ?? 'generic', 'agent');
+        const projectFolder = requireProjectFolder(request?.projectFolder);
         if (cardPath) ensureInsideRoot(rootPath, path.join(rootPath, cardPath));
 
         const id = `agent-turn-${crypto.randomUUID()}`;
@@ -143,7 +150,7 @@ class AgentRunnerService {
         if (this.runningConversationIds.has(conversation.id)) throw new Error(`Agent conversation already has a running turn: ${conversation.id}`);
         const filePath = request.reference
             ? existingLogFilePath(rootPath, request.reference)
-            : agentLogFilePath(rootPath, scopePath, conversation.id);
+            : agentLogFilePath(rootPath, projectFolder, scopePath, conversation.id);
         const reference = request.reference ?? normalizePath(path.relative(rootPath, filePath));
         const lastMessage = conversation.messages.at(-1);
         if (request.reuseLastUserMessage) {

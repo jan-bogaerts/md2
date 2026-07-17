@@ -10,6 +10,7 @@ import type {
     StorageService,
 } from '../data/data_types'
 import { register } from './service_injector'
+import { projectLogFolder } from '../../../shared/log_paths.mjs'
 
 const VALID_STATUSES = new Set<AgentConversationStatus>(['cancelled', 'completed', 'failed', 'running'])
 const VALID_ROLES = new Set(['agent', 'assistant', 'stderr', 'stdout', 'system', 'user'])
@@ -116,16 +117,18 @@ export function parseAgentConversationLog(content: string, referencePath: string
     }
 }
 
-const AGENT_LOG_FOLDER_PREFIX = '.md2-agent-logs/'
-
 /** Discover persisted agent-log references through any storage implementation. */
-export async function listAgentConversationReferences(storage: StorageService, project: ProjectReference) {
+export async function listAgentConversationReferences(storage: StorageService, project: ProjectReference, projectFolder: string) {
     const paths = await storage.listRepositoryFiles(project)
+    const logFolderPrefix = `${projectLogFolder(projectFolder)}/`
 
     return paths.filter((path) => {
         const normalizedPath = path.replace(/\\/gu, '/')
+        const fileName = normalizedPath.slice(logFolderPrefix.length)
 
-        return normalizedPath.startsWith(AGENT_LOG_FOLDER_PREFIX) && normalizedPath.toLowerCase().endsWith('.json')
+        return normalizedPath.startsWith(logFolderPrefix)
+            && fileName.startsWith('conversation__')
+            && fileName.toLowerCase().endsWith('.json')
     })
 }
 

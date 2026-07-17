@@ -29,20 +29,26 @@ function action(overrides: Partial<ActionDefinition> = {}): ActionDefinition {
     }
 }
 
-const context: ActionContext = { file: 'design/F-010.md', kind: 'card', state: 'design', type: 'feature' }
+const context: ActionContext = { file: 'design/F-010.md', kind: 'card', state: 'design', title: 'Placeholder support', type: 'feature' }
 const project: ProjectReference = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
 
 describe('resolvePlaceholders', () => {
-    it('resolves card file, root project folder, and card prompt placeholders', () => {
-        const resolvedText = resolvePlaceholders('run {{rootProjectFolder}} {{card-file}} {{card-prompt}}', context, project, 'focus tests')
+    it('resolves card file, card title, root project folder, and card prompt placeholders', () => {
+        const resolvedText = resolvePlaceholders('run {{rootProjectFolder}} {{card-file}} {{card-title}} {{card-prompt}}', context, project, 'focus tests')
 
-        expect(resolvedText).toBe('run C:/repo design/F-010.md focus tests')
+        expect(resolvedText).toBe('run C:/repo design/F-010.md Placeholder support focus tests')
     })
 
     it('throws when resolving card-file without a file context', () => {
         const missingFileContext: ActionContext = { kind: 'card', state: 'design', type: 'feature' }
 
         expect(() => resolvePlaceholders('run {{card-file}}', missingFileContext, project, '')).toThrow('Cannot resolve card-file placeholder without a file context')
+    })
+
+    it('throws when resolving card-title without a card title', () => {
+        const missingTitleContext: ActionContext = { file: 'design/F-010.md', kind: 'card' }
+
+        expect(() => resolvePlaceholders('run {{card-title}}', missingTitleContext, project, '')).toThrow('Cannot resolve card-title placeholder without a card title')
     })
 
     it('throws when resolving root project folder without a root path', () => {

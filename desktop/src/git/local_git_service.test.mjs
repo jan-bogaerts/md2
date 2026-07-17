@@ -336,15 +336,13 @@ describe('local-git-service', () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-local-git-'));
         const request = {
             actionId: 'implement',
-            actionsFolder: 'actions',
             context: { file: 'design/F-010.md', kind: 'card', type: 'feature' },
+            projectFolder: 'design',
         };
         const entry = { completedAt: '2026-07-05T10:00:00.000Z', output: 'done', prompt: 'run', status: 'completed' };
 
         try {
             await mkdir(join(rootPath, '.git'));
-            await mkdir(join(rootPath, 'actions'));
-
             await appendActionRunHistory({ branch: 'main', id: 'local', rootPath }, request, entry);
 
             await expect(loadActionRunHistory({ branch: 'main', id: 'local', rootPath }, request)).resolves.toEqual([entry]);

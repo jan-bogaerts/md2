@@ -10,6 +10,7 @@ import { AgentIntegration, type AgentIntegrationDeps } from './agent_integration
 import { ProjectLoading, type ProjectLoadingDeps } from './project_loading'
 import { ProjectState } from './project_state'
 import { ReleaseOperations, type ReleaseOperationsDeps } from './release_operations'
+import { SaveStateService, withSaveStateTracking } from './save_state_service'
 import { getRemarkableMetadataContent, importRemarkableImages, type RemarkableImportInput } from './remarkable_import_service'
 import type { RemarkableImportPlan } from './remarkable_import_service'
 import { register } from './service_injector'
@@ -33,12 +34,16 @@ export class DataService extends EventTarget {
     readonly releases: ReleaseOperations
 
     private commitBatcher: CommitBatcher | null = null
+    private finishPendingCommitBatchSave: (() => void) | null = null
     private remarkableBridge: RemarkableBridge | null = null
     private storage: StorageService | null = null
     private readonly projectState: ProjectState
+    private readonly saveStateService: SaveStateService
 
     constructor() {
         super()
+        this.saveStateService = new SaveStateService()
+        this.saveStateService.addEventListener('changed', () => this.dispatchChanged())
         this.projectState = new ProjectState((cards) => this.agents.attachAgentConversations(cards))
         this.cards = new CardOperations(
             this.createCardOperationsDependencies(),
@@ -55,11 +60,13 @@ export class DataService extends EventTarget {
     }
 
     init(dependencies: DataServiceDependencies) {
+        this.finishPendingCommitBatchSave?.()
+        this.finishPendingCommitBatchSave = null
         this.projectLoading.reset()
         this.agents.reset()
         this.projectState.resetLoadedProject()
         this.remarkableBridge = dependencies.remarkableBridge ?? null
-        this.storage = dependencies.storage
+        this.storage = withSaveStateTracking(dependencies.storage, this.saveStateService)
         worktreeService.init({
             projectProvider: () => this.projectState.project,
             storageProvider: () => this.storage,
@@ -71,7 +78,7 @@ export class DataService extends EventTarget {
             commit: (request) => this.cards.commitFiles(request),
             delayMs,
             onFlushError: (error) => this.reportCommitFlushFailure(error),
-            onPendingChange: () => this.dispatchChanged(),
+            onPendingChange: () => this.syncPendingCommitBatchSaveState(),
             setDelay: (callback, delay) => window.setTimeout(callback, delay),
         })
         this.dispatchChanged()
@@ -85,7 +92,7 @@ export class DataService extends EventTarget {
 
         return {
             hasPendingPush,
-            hasPendingSave: this.commitBatcher?.hasPending() ?? false,
+            hasPendingSave: this.saveStateService.getState().hasPendingSave,
             project: currentProject,
             runningAgents: agentConversationService.getRunningAgents(),
             snapshot: this.projectState.snapshot,
@@ -96,7 +103,7 @@ export class DataService extends EventTarget {
         return getProjectConfigOrNull(this.storage)
     }
     async listAgentConversations(context: ActionContext) {
-        const { storage } = this.requireDependencies()
+        const { config, storage } = this.requireDependencies()
         const currentProject = this.projectState.project
         if (!currentProject) throw new Error('Cannot list agent conversations before a project is open')
 
@@ -112,7 +119,7 @@ export class DataService extends EventTarget {
             return card.agentConversations.filter(({ cardPath }) => cardPath === context.file)
         }
 
-        const references = await listAgentConversationReferences(storage, currentProject)
+        const references = await listAgentConversationReferences(storage, currentProject, config.projectFolder)
         const conversations = await Promise.all(references.map((reference) => loadAgentConversation(storage, currentProject, reference)))
 
         return conversations.filter(({ cardPath }) => cardPath === null)
@@ -224,6 +231,17 @@ export class DataService extends EventTarget {
     }
     private reportCommitFlushFailure(error: unknown) {
         reportCommitFlushFailure(error, () => this.dispatchChanged())
+    }
+    private syncPendingCommitBatchSaveState() {
+        const hasPendingCommitBatch = this.commitBatcher?.hasPending() ?? false
+        if (hasPendingCommitBatch && !this.finishPendingCommitBatchSave) {
+            this.finishPendingCommitBatchSave = this.saveStateService.beginSave()
+            return
+        }
+        if (hasPendingCommitBatch || !this.finishPendingCommitBatchSave) return
+
+        this.finishPendingCommitBatchSave()
+        this.finishPendingCommitBatchSave = null
     }
     private requireDependencies() {
         if (!this.storage) throw new Error('Data service storage is not initialized')

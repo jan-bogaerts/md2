@@ -49,11 +49,24 @@ describe('parseAgentConversationLog', () => {
         )).toThrow('missing startedAt')
     })
 
-    it('discovers only persisted agent logs through the shared storage listing boundary', async () => {
-        const storage = {listRepositoryFiles: async () => ['README.md', '.md2-agent-logs/one.json', '.md2-agent-logs/nested/two.JSON', 'logs/three.json']} as unknown as StorageService
+    it.each([
+        ['design', ['design/logs/conversation__project__one.json']],
+        ['', ['logs/conversation__project__root.json']],
+        ['projects/demo', ['projects/demo/logs/conversation__card__active_f_1__one.JSON']],
+    ])('discovers only conversation logs for projectFolder %j', async (projectFolder, expected) => {
+        const storage = {
+            listRepositoryFiles: async () => [
+                'README.md',
+                'design/logs/conversation__project__one.json',
+                'design/logs/history__project__review.json',
+                'logs/conversation__project__root.json',
+                'projects/demo/logs/conversation__card__active_f_1__one.JSON',
+                '.md2-agent-logs/legacy.json',
+            ],
+        } as unknown as StorageService
 
-        await expect(listAgentConversationReferences(storage, { branch: 'main', id: 'project' }))
-            .resolves.toEqual(['.md2-agent-logs/one.json', '.md2-agent-logs/nested/two.JSON'])
+        await expect(listAgentConversationReferences(storage, { branch: 'main', id: 'project' }, projectFolder))
+            .resolves.toEqual(expected)
     })
 
 })

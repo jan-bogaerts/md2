@@ -7,7 +7,6 @@ import { dataService } from '../../services/data_service'
 import { actionService } from '../../services/action_service'
 import * as actionServiceModule from '../../services/action_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
-import { flushMarkdownEditors } from '../editor/markdown_editor_flush'
 import { ActionEditor } from './action_editor'
 
 const definition = {
@@ -47,21 +46,14 @@ function loadAction(overrides: Record<string, unknown> = {}): ActionDefinition {
     return action
 }
 
-function renderEditor(
-    action: ActionDefinition = loadAction(),
-    states = ['ready'],
-    selectedTab?: string,
-    onSelectedTabChange?: (value: string) => void,
-): RenderResult {
+function renderEditor(action: ActionDefinition = loadAction(), states = ['ready']): RenderResult {
     return render(
         <AppThemeProvider>
             <ActionEditor
                 action={action}
                 actions={actionService.getActions()}
                 cardTypes={['feature']}
-                onSelectedTabChange={onSelectedTabChange}
                 repositoryFiles={[]}
-                selectedTab={selectedTab}
                 specialContextTypes={['actions']}
                 states={states}
             />
@@ -71,6 +63,10 @@ function renderEditor(
 
 function labelInput(): HTMLInputElement {
     return screen.getByLabelText('Label') as HTMLInputElement
+}
+
+function descriptionInput(): HTMLInputElement {
+    return screen.getByLabelText('Description') as HTMLInputElement
 }
 
 describe('ActionEditor', () => {
@@ -130,16 +126,14 @@ describe('ActionEditor', () => {
     })
 
     it('restores the selected section when the editor becomes active again', () => {
-        let selectedTab = 'definition'
-        const handleSelectedTabChange = vi.fn((value: string) => { selectedTab = value })
         const action = loadAction({ phrases: [{ text: 'Run tests', title: 'Tests' }] })
-        const view = renderEditor(action, ['ready'], selectedTab, handleSelectedTabChange)
+        const view = renderEditor(action)
 
         fireEvent.click(screen.getByRole('tab', { name: 'Tests' }))
-        expect(selectedTab).toBe('phrase-0')
+        expect(action.editorState?.selectedTab).toBe('phrase-0')
 
         view.unmount()
-        renderEditor(action, ['ready'], selectedTab, handleSelectedTabChange)
+        renderEditor(action)
 
         expect(screen.getByRole('tab', { name: 'Tests' })).toHaveAttribute('aria-selected', 'true')
     })
@@ -276,7 +270,7 @@ describe('ActionEditor', () => {
         )
     })
 
-    it('saves a flushed prompt edit', async () => {
+    it('auto-saves a prompt edit while the editor remains open', async () => {
         vi.useFakeTimers()
         const action = loadAction()
         const saveDefinition = vi.spyOn(actionService, 'saveDefinition').mockResolvedValue(action)
@@ -284,13 +278,37 @@ describe('ActionEditor', () => {
 
         fireEvent.click(screen.getByRole('tab', { name: 'Prompt' }))
         fireEvent.change(within(screen.getByTestId('mdx-editor')).getByRole('textbox'), {target: { value: 'Updated prompt' }})
-        act(() => flushMarkdownEditors())
         await act(async () => vi.advanceTimersByTime(600))
 
         expect(saveDefinition).toHaveBeenCalledWith(
             'actions/review.json',
             expect.objectContaining({ prompt: 'Updated prompt' }),
         )
+    })
+
+    it('treats an unflushed prompt edit as dirty during an external reload', () => {
+        const action = loadAction()
+        const view = renderEditor(action)
+
+        fireEvent.click(screen.getByRole('tab', { name: 'Prompt' }))
+        fireEvent.change(within(screen.getByTestId('mdx-editor')).getByRole('textbox'), { target: { value: 'Local prompt edit' } })
+
+        const externalAction = loadAction({ description: 'External description' })
+        view.rerender(
+            <AppThemeProvider>
+                <ActionEditor
+                    action={externalAction}
+                    actions={actionService.getActions()}
+                    cardTypes={['feature']}
+                    repositoryFiles={[]}
+                    specialContextTypes={['actions']}
+                    states={['ready']}
+                />
+            </AppThemeProvider>,
+        )
+
+        expect(screen.getByText(/changed outside the editor/u)).toBeInTheDocument()
+        expect(within(screen.getByTestId('mdx-editor')).getByRole('textbox')).toHaveValue('Local prompt edit')
     })
 
     it('adds, edits, auto-saves, and deletes a predefined phrase', async () => {
@@ -305,7 +323,6 @@ describe('ActionEditor', () => {
 
         fireEvent.change(screen.getByLabelText('Phrase title'), { target: { value: 'Run tests' } })
         fireEvent.change(within(screen.getByTestId('mdx-editor')).getAllByRole('textbox')[1], { target: { value: '**Run all tests**' } })
-        act(() => flushMarkdownEditors())
         await act(async () => vi.advanceTimersByTime(600))
 
         expect(screen.getByRole('tab', { name: 'Run tests' })).toBeInTheDocument()
@@ -396,6 +413,20 @@ describe('ActionEditor', () => {
             'actions/review.json',
             expect.objectContaining({ id: 'review-action', label: 'Review code' }),
         )
+    })
+
+    it('does not render saving state inside the action editor', async () => {
+        vi.useFakeTimers()
+        const action = loadAction()
+        const pendingSave = deferred<ActionDefinition>()
+        vi.spyOn(actionService, 'saveDefinition').mockReturnValue(pendingSave.promise)
+        renderEditor(action)
+
+        fireEvent.change(labelInput(), { target: { value: 'Review code' } })
+        await act(async () => vi.advanceTimersByTime(600))
+
+        expect(screen.queryByText('Saving…')).not.toBeInTheDocument()
+        await act(async () => pendingSave.resolve(action))
     })
 
     it('persists and publishes an edit through the real action service', async () => {
@@ -546,6 +577,34 @@ describe('ActionEditor', () => {
         expect((screen.getByLabelText('Description') as HTMLInputElement).value).toBe('External change')
     })
 
+    it('ignores a reparsed save echo while newer description edits are dirty', async () => {
+        vi.useFakeTimers()
+        const action = loadAction()
+        vi.spyOn(actionService, 'saveDefinition').mockReturnValue(deferred<ActionDefinition>().promise)
+        const view = renderEditor(action)
+
+        fireEvent.change(descriptionInput(), { target: { value: 'First local edit' } })
+        await act(async () => vi.advanceTimersByTime(500))
+        fireEvent.change(descriptionInput(), { target: { value: 'Newer local edit' } })
+
+        const reparsedSaveEcho = loadAction({ description: 'First local edit', phrases: [] })
+        view.rerender(
+            <AppThemeProvider>
+                <ActionEditor
+                    action={reparsedSaveEcho}
+                    actions={actionService.getActions()}
+                    cardTypes={['feature']}
+                    repositoryFiles={[]}
+                    specialContextTypes={['actions']}
+                    states={['ready']}
+                />
+            </AppThemeProvider>,
+        )
+
+        expect(screen.queryByText(/changed outside the editor/u)).not.toBeInTheDocument()
+        expect(descriptionInput()).toHaveValue('Newer local edit')
+    })
+
     it('adopts an external reload immediately while the draft is clean', () => {
         const action = loadAction()
         const view = renderEditor(action)
@@ -571,6 +630,7 @@ describe('ActionEditor', () => {
     it('treats property-order-only external reloads as clean structured state', () => {
         const action = loadAction()
         const view = renderEditor(action)
+        fireEvent.change(labelInput(), { target: { value: 'Local edit' } })
         const reorderedFile = {
             content: JSON.stringify({
                 type: 'agent',
@@ -599,7 +659,7 @@ describe('ActionEditor', () => {
         )
 
         expect(screen.queryByText(/changed outside the editor/u)).not.toBeInTheDocument()
-        expect(labelInput().value).toBe('Review')
+        expect(labelInput().value).toBe('Local edit')
     })
 
     it('does not remount the editor or lose focus on a successful save', async () => {

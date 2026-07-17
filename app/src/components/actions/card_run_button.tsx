@@ -6,7 +6,6 @@ import { actionsForContext, type ActionContext } from '../../data/action_context
 import { CUSTOM_PROMPT_ACTION_ID, type ActionDefinition } from '../../data/action_types'
 import type { AgentConversation } from '../../data/data_types'
 import { useActions } from '../hooks/use_actions'
-import { useRunningActionForContext } from '../hooks/use_action_executions'
 import { ActionPopup } from './action_popup'
 
 interface CardRunButtonProps {
@@ -17,7 +16,6 @@ interface CardRunButtonProps {
 /** Opens the card action selector and execution popup from one compact Run button. */
 export function CardRunButton({ context, onConversationViewed }: CardRunButtonProps) {
     const { actions } = useActions()
-    const runningExecution = useRunningActionForContext(context)
     const [popupAnchor, setPopupAnchor] = useState<HTMLElement | null>(null)
     const [selectedAction, setSelectedAction] = useState<ActionDefinition | null>(null)
     const [showSaveControls, setShowSaveControls] = useState(false)
@@ -67,7 +65,6 @@ export function CardRunButton({ context, onConversationViewed }: CardRunButtonPr
     return (
         <>
             <Button
-                disabled={!!runningExecution}
                 onClick={handleRun}
                 size="small"
                 startIcon={<Play sx={{ fontSize: '13px !important' }} />}

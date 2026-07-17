@@ -52,6 +52,7 @@ function createExecution(rootAction, overrides = {}) {
         context,
         executionId: 'execution-1',
         project,
+        projectFolder: 'design',
         rootAction,
         runInput: { extraPrompt: '', ...overrides.runInput },
     }, {
@@ -145,7 +146,7 @@ describe('ActionExecution', () => {
         const localGitService = { appendActionRunHistory: vi.fn(async () => order.push('history')) };
         const events = [];
         const execution = new ActionExecution({
-            actionsFolder: 'actions', context, executionId: 'execution-1', project,
+            actionsFolder: 'actions', context, executionId: 'execution-1', project, projectFolder: 'design',
             rootAction: action('main'), runInput: { extraPrompt: '' },
         }, {
             actionWorktreeExecutionService: {execute: async (primaryProject, _action, _context, run) => run(primaryProject)},

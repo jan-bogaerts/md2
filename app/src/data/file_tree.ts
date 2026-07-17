@@ -17,6 +17,7 @@ export interface TreeNode {
 
 export interface FileTreeOptions {
     actions: ActionDefinition[]
+    hiddenFolderPaths: string[]
     projectFolder: string
     repositoryFiles: string[]
     specialFolderPaths: string[]
@@ -103,21 +104,32 @@ function ensureFolderSegments(root: TreeNode, segments: string[], specialFolderP
     return parent
 }
 
+function isHiddenPath(path: string, hiddenFolderPaths: Set<string>) {
+    const normalizedPath = path.replace(/\\/gu, '/').replace(/\/+$/u, '')
+
+    return [...hiddenFolderPaths].some((hiddenFolderPath) => (
+        normalizedPath === hiddenFolderPath || normalizedPath.startsWith(`${hiddenFolderPath}/`)
+    ))
+}
+
 function buildFolderRoots(
     actions: ActionDefinition[],
     backgroundCards: ProjectCard[],
     projectFolder: string,
     repositoryFiles: string[],
+    hiddenFolderPaths: Set<string>,
     specialFolderPaths: Set<string>,
 ): TreeNode {
     const root: TreeNode = { children: [], directoryPath: projectFolder, id: 'root', kind: 'folder', label: '', path: null }
 
     for (const repositoryFile of repositoryFiles) {
+        if (isHiddenPath(repositoryFile, hiddenFolderPaths)) continue
         const segments = relativeSegmentsInside(repositoryFile, projectFolder)
         ensureFolderSegments(root, segments.slice(0, -1), specialFolderPaths)
     }
 
     for (const card of backgroundCards) {
+        if (isHiddenPath(card.path, hiddenFolderPaths)) continue
         const segments = relativeSegmentsInside(card.path, projectFolder)
         if (segments.length === 0) continue
 
@@ -135,6 +147,7 @@ function buildFolderRoots(
 
     for (const action of actions) {
         if (!action.sourcePath || action.builtin) continue
+        if (isHiddenPath(action.sourcePath, hiddenFolderPaths)) continue
         const segments = relativeSegmentsInside(action.sourcePath, projectFolder)
         if (segments.length === 0) continue
         const parent = ensureFolderSegments(root, segments.slice(0, -1), specialFolderPaths)
@@ -157,9 +170,10 @@ export function buildFileTree(
     workingFolder: string,
     options: FileTreeOptions,
 ): TreeNode[] {
-    const { actions, projectFolder, repositoryFiles, specialFolderPaths } = options
+    const { actions, hiddenFolderPaths, projectFolder, repositoryFiles, specialFolderPaths } = options
+    const hiddenPathSet = new Set(hiddenFolderPaths)
     const specialPathSet = new Set(specialFolderPaths)
-    const root = buildFolderRoots(actions, backgroundCards, projectFolder, repositoryFiles, specialPathSet)
+    const root = buildFolderRoots(actions, backgroundCards, projectFolder, repositoryFiles, hiddenPathSet, specialPathSet)
     const statusGroups = buildStatusGroups(activeCards, projectFolder)
     if (workingFolder === projectFolder) return [...statusGroups, ...root.children]
 

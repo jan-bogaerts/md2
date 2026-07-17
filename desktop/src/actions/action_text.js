@@ -1,12 +1,17 @@
 const { requireRootPath } = require('../git/git_commands');
 
-const PLACEHOLDER_PATTERN = /\{\{\s*(rootProjectFolder|card-file|card-prompt)\s*\}\}/gu;
+const PLACEHOLDER_PATTERN = /\{\{\s*(rootProjectFolder|card-file|card-title|card-prompt)\s*\}\}/gu;
 const CARD_PROMPT_PLACEHOLDER_PATTERN = /\{\{\s*card-prompt\s*\}\}/u;
 
 function resolvePlaceholders(text, context, project, extraPrompt) {
     return text.replace(PLACEHOLDER_PATTERN, (_match, name) => {
         if (name === 'rootProjectFolder') return requireRootPath(project);
         if (name === 'card-prompt') return extraPrompt;
+        if (name === 'card-title') {
+            if (!context.title) throw new Error('Cannot resolve card-title placeholder without a card title');
+
+            return context.title;
+        }
         if (!context.file) throw new Error('Cannot resolve card-file placeholder without a file context');
 
         return context.file;

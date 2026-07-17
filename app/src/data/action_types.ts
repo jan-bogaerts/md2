@@ -1,3 +1,5 @@
+import type { ActionDefinition as SharedActionDefinition } from '../../../shared/action_definitions.mjs'
+
 export {
     ACTION_APPLIES_TO_FIELDS,
     ACTION_DEFINITION_FIELDS,
@@ -12,7 +14,6 @@ export {
 export type {
     ActionAppliesTo,
     ActionAppliesToField,
-    ActionDefinition,
     ActionDefinitionEntry,
     ActionFile,
     ActionPhrase,
@@ -22,3 +23,12 @@ export type {
     RawActionDefinitionEntry,
     RawOnRule,
 } from '../../../shared/action_definitions.mjs'
+
+export interface ActionEditorState {
+    selectedTab: string
+}
+
+/** Loaded action plus temporary editor state that is never serialized. */
+export interface ActionDefinition extends SharedActionDefinition {
+    editorState?: ActionEditorState
+}

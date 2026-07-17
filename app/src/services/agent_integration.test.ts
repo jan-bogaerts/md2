@@ -349,11 +349,15 @@ describe('AgentIntegration', () => {
         emitActionRun({actionId: 'implement', agentEvent, context, executionId: 'action-1', phase: 'main', rootActionId: 'implement', status: 'running', type: 'agent'})
         emitActionRun({
             actionId: 'implement', context, conversation: agentConversation, executionId: 'action-1', executionWorktree: null,
-            phase: 'main', reference: '.md2-agent-logs/one.json', rootActionId: 'implement', status: 'completed', type: 'action',
+            phase: 'main', reference: 'design/logs/conversation__card__f_1_root__one.json', rootActionId: 'implement', status: 'completed', type: 'action',
         })
 
         expect(recordAgentRunEvent).toHaveBeenCalledTimes(1)
         expect(linkAgentConversation).toHaveBeenCalledTimes(1)
-        expect(linkAgentConversation).toHaveBeenCalledWith('design/F-1-root.md', agentConversation, '.md2-agent-logs/one.json')
+        expect(linkAgentConversation).toHaveBeenCalledWith(
+            'design/F-1-root.md',
+            agentConversation,
+            'design/logs/conversation__card__f_1_root__one.json',
+        )
     })
 })

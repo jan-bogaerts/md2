@@ -11,7 +11,7 @@ import { telemetryService } from '../../services/telemetry_service'
 import { markdownParsingService } from '../../services/markdown_parsing_service'
 import { dialogService } from '../../services/dialog_service'
 import { agentAcknowledgementService } from '../../services/agent_acknowledgement_service'
-import { ActionEditor, DEFAULT_ACTION_EDITOR_TAB } from '../actions/action_editor'
+import { ActionEditor } from '../actions/action_editor'
 import { MarkdownDocumentHistoryStore } from '../editor/markdown_document_history_store'
 import { MarkdownEditor } from '../editor/markdown_editor'
 import { LeftPanelSlot } from '../shell/left_panel_slot'
@@ -27,6 +27,7 @@ import { ActionPopup } from '../actions/action_popup'
 import type { AgentConversation } from '../../data/data_types'
 
 const HISTORY_FOLDER_NAME = 'history'
+const LOGS_FOLDER_NAME = 'logs'
 
 interface TextViewProps {
     actionsFolder: string
@@ -142,7 +143,6 @@ export function TextView(props: TextViewProps) {
     })
     const [isAgentPanelOpen, setIsAgentPanelOpen] = useState(false)
     const [markdownHistoryStore] = useState(() => new MarkdownDocumentHistoryStore())
-    const [actionEditorTabs, setActionEditorTabs] = useState<Record<string, string>>({})
     const onDeleteFileRef = useRef(onDeleteFile)
     const onDeleteFolderRef = useRef(onDeleteFolder)
     const onLeftPanelInteractionRef = useRef(onLeftPanelInteraction)
@@ -152,12 +152,14 @@ export function TextView(props: TextViewProps) {
         [actionsFolder, projectFolder, workingFolder],
     )
     const specialContextTypes = useMemo(() => specialFolderPaths.map(folderName), [specialFolderPaths])
+    const hiddenFolderPaths = useMemo(() => [folderPath(projectFolder, LOGS_FOLDER_NAME)], [projectFolder])
     const tree = useMemo(() => buildFileTree(activeCards, backgroundCards, workingFolder, {
         actions,
+        hiddenFolderPaths,
         projectFolder,
         repositoryFiles,
         specialFolderPaths,
-    }), [actions, activeCards, backgroundCards, projectFolder, repositoryFiles, specialFolderPaths, workingFolder])
+    }), [actions, activeCards, backgroundCards, hiddenFolderPaths, projectFolder, repositoryFiles, specialFolderPaths, workingFolder])
     const actionsByPath = useMemo(() => new Map(
         actions
             .filter((action): action is ActionDefinition & { sourcePath: string } => action.sourcePath !== null)
@@ -241,11 +243,6 @@ export function TextView(props: TextViewProps) {
 
     const handleEditorChange = (documentId: string, body: string) => {
         onBodyChange(documentId, body)
-    }
-
-    const handleActionEditorTabChange = (selectedTab: string) => {
-        if (!activePath) throw new Error('Cannot save an action editor tab without an active path')
-        setActionEditorTabs((current) => ({ ...current, [activePath]: selectedTab }))
     }
 
     const handleOpenProperties = (event: ReactMouseEvent<HTMLElement>) => {
@@ -363,9 +360,7 @@ export function TextView(props: TextViewProps) {
                             action={activeAction}
                             actions={actions}
                             cardTypes={cardTypes.map(({ type }) => type)}
-                            onSelectedTabChange={handleActionEditorTabChange}
                             repositoryFiles={repositoryFiles}
-                            selectedTab={activePath ? actionEditorTabs[activePath] ?? DEFAULT_ACTION_EDITOR_TAB : DEFAULT_ACTION_EDITOR_TAB}
                             specialContextTypes={specialContextTypes}
                             states={states.map(({ state }) => state)}
                         />

@@ -29,17 +29,21 @@ class ActionRunnerService {
         this.executions = new Map();
         this.listeners = new Set();
         this.project = null;
+        this.projectFolder = null;
     }
 
-    startProject(project, actionsFolder) {
+    startProject(project, actionsFolder, projectFolder) {
+        if (typeof projectFolder !== 'string') throw new Error('Missing action runner projectFolder');
         this.project = project;
         this.actionsFolder = actionsFolder;
+        this.projectFolder = projectFolder;
     }
 
     stop() {
         for (const execution of this.executions.values()) execution.cancel();
         this.project = null;
         this.actionsFolder = null;
+        this.projectFolder = null;
     }
 
     subscribe(listener) {
@@ -61,6 +65,7 @@ class ActionRunnerService {
             context: startRequest.context,
             executionId,
             project,
+            projectFolder: this.projectFolder,
             rootAction,
             runInput: startRequest.runInput,
         }, {
@@ -96,6 +101,12 @@ class ActionRunnerService {
         if (!this.actionsFolder) throw new Error('Action runner has no actions folder');
 
         return this.actionsFolder;
+    }
+
+    requireProjectFolder() {
+        if (this.projectFolder === null) throw new Error('Action runner has no projectFolder');
+
+        return this.projectFolder;
     }
 
     async loadRootAction(actionId, project, actionsFolder) {
@@ -142,6 +153,7 @@ class ActionRunnerService {
     requireReady() {
         if (!this.project) throw new Error('Action runner has no project');
         if (!this.actionsFolder) throw new Error('Action runner has no actions folder');
+        if (this.projectFolder === null) throw new Error('Action runner has no projectFolder');
         if (!this.localGitService) throw new Error('Action runner has no local Git service');
         if (!this.actionWorktreeExecutionService) throw new Error('Action runner has no worktree execution service');
         if (!this.agentRunnerService) throw new Error('Action runner has no agent runner service');
