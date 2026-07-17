@@ -74,7 +74,7 @@ export function MainWindow(props: MainWindowProps) {
             }}
         >
             <ProjectWorkspace
-                key={session?.project.id ?? 'no-project'}
+                key={session ? `${session.project.id}:${session.project.branch}` : 'no-project'}
                 onLeftPanelInteraction={handleCloseMenu}
             />
         </Box>

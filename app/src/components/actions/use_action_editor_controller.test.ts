@@ -39,10 +39,12 @@ describe('useActionEditorController', () => {
             action,
             actions: actionService.getActions(),
             discardMarkdownDocument,
+            markdownDocumentNamespace: 'test-project',
         }))
 
-        expect(result.current.markdownDocumentId).toBe(actionMarkdownDocumentId('actions/review.json', 'prompt'))
+        expect(result.current.markdownDocumentId).toBe(actionMarkdownDocumentId('test-project', 'actions/review.json', 'prompt'))
         expect(result.current.markdownDocumentIds).toHaveLength(2)
+        expect(actionMarkdownDocumentId('other-project', 'actions/review.json', 'prompt')).not.toBe(result.current.markdownDocumentId)
 
         const phraseIdentity = action.editorState?.phrases[0].identity
         if (!phraseIdentity) throw new Error('Missing phrase editor identity')

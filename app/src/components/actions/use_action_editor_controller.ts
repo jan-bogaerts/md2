@@ -8,8 +8,6 @@ import {
     reconcileActionPhraseEditorState,
 } from './action_phrase_editor_state'
 
-const ACTION_MARKDOWN_DOCUMENT_SEPARATOR = '#action-markdown:'
-
 export interface ActionEditorControllerOptions {
     action: ActionDefinition
     actions: ActionDefinition[]
@@ -19,7 +17,7 @@ export interface ActionEditorControllerOptions {
 
 /** Namespace one prompt or phrase history document to its owning action file. */
 export function actionMarkdownDocumentId(namespace: string, sourcePath: string, editorDocumentId: string) {
-    return `${namespace}${ACTION_MARKDOWN_DOCUMENT_SEPARATOR}${sourcePath}${ACTION_MARKDOWN_DOCUMENT_SEPARATOR}${editorDocumentId}`
+    return JSON.stringify([namespace, sourcePath, editorDocumentId])
 }
 
 /** Bridge ActionService-owned draft state into ActionEditor presentation. */

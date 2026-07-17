@@ -151,6 +151,7 @@ export function TextView(props: TextViewProps) {
     const [isAgentPanelOpen, setIsAgentPanelOpen] = useState(false)
     const [markdownHistoryStore] = useState(() => new MarkdownDocumentHistoryStore())
     const [actionMarkdownOwners, setActionMarkdownOwners] = useState(() => new Map<string, MarkdownDocumentOwnerConfig>())
+    const actionMarkdownOwnersRef = useRef(actionMarkdownOwners)
     const actionMarkdownDocumentsRef = useRef(new Map<string, MarkdownDocumentConfig>())
     const markdownEditorRef = useRef<MarkdownEditorHandle>(null)
     const onDeleteFileRef = useRef(onDeleteFile)
@@ -224,6 +225,9 @@ export function TextView(props: TextViewProps) {
     const activeAction = activePath ? editorActionsByPath.get(activePath) ?? null : null
     const mountedEditorPath = useDeferredValue(activePath)
     const mountedCard = mountedEditorPath ? cardsByPath.get(mountedEditorPath) ?? null : null
+    const mountedMarkdownDocumentId = mountedEditorPath
+        ? cardMarkdownDocumentIdsByPath.get(mountedEditorPath) ?? null
+        : null
 
     const handleConversationViewed = (conversation: AgentConversation) => {
         if (!conversation.cardPath) throw new Error('Cannot acknowledge a project conversation as a card result')
@@ -238,10 +242,28 @@ export function TextView(props: TextViewProps) {
     }
 
     useEffect(() => {
-        const cardDocumentIds = tabs.filter((path) => cardsByPath.has(path))
+        const cardDocumentIds = tabs.flatMap((path) => {
+            const documentId = cardMarkdownDocumentIdsByPath.get(path)
+
+            return documentId ? [documentId] : []
+        })
         const actionDocumentIds = tabs.flatMap((path) => actionMarkdownOwners.get(path)?.documentIds ?? [])
         markdownHistoryStore.retainDocuments([EMPTY_MARKDOWN_DOCUMENT_ID, ...cardDocumentIds, ...actionDocumentIds])
-    }, [actionMarkdownOwners, cardsByPath, markdownHistoryStore, mountedEditorPath, tabs])
+    }, [actionMarkdownOwners, cardMarkdownDocumentIdsByPath, markdownHistoryStore, mountedEditorPath, tabs])
+
+    useEffect(() => {
+        const openPaths = new Set(tabs)
+        const closedOwners = [...actionMarkdownOwnersRef.current.entries()].filter(([path]) => !openPaths.has(path))
+        if (closedOwners.length === 0) return
+
+        const next = new Map(actionMarkdownOwnersRef.current)
+        for (const [path, owner] of closedOwners) {
+            next.delete(path)
+            for (const documentId of owner.documentIds) actionMarkdownDocumentsRef.current.delete(documentId)
+        }
+        actionMarkdownOwnersRef.current = next
+        setActionMarkdownOwners(next)
+    }, [tabs])
 
     const handleSelect = useCallback((path: string) => {
         openTab(path)
@@ -274,23 +296,31 @@ export function TextView(props: TextViewProps) {
             actionDocument.onChange(body)
             return
         }
-        if (!cardsByPath.has(documentId)) throw new Error(`Unknown TextView Markdown document: ${documentId}`)
-        onBodyChange(documentId, body)
-    }, [cardsByPath, onBodyChange])
+        const cardPath = cardPathsByMarkdownDocumentId.get(documentId)
+        if (!cardPath) throw new Error(`Unknown TextView Markdown document: ${documentId}`)
+        onBodyChange(cardPath, body)
+    }, [cardPathsByMarkdownDocumentId, onBodyChange])
 
     const handleMarkdownDocumentEdit = useCallback((documentId: string, body: string) => {
         actionMarkdownDocumentsRef.current.get(documentId)?.onEdit?.(body)
     }, [])
 
     const handleActionMarkdownDocumentOwnerChange = useCallback((owner: MarkdownDocumentOwnerConfig) => {
-        if (owner.activeDocument) actionMarkdownDocumentsRef.current.set(owner.activeDocument.documentId, owner.activeDocument)
-        setActionMarkdownOwners((current) => {
-            if (current.get(owner.ownerPath) === owner) return current
-            const next = new Map(current)
-            next.set(owner.ownerPath, owner)
+        const current = actionMarkdownOwnersRef.current
+        if (current.get(owner.ownerPath) === owner) return
 
-            return next
-        })
+        const previousOwner = current.get(owner.ownerPath)
+        const retainedDocumentIds = new Set(owner.documentIds)
+        for (const documentId of previousOwner?.documentIds ?? []) {
+            if (!retainedDocumentIds.has(documentId)) actionMarkdownDocumentsRef.current.delete(documentId)
+        }
+        if (owner.activeDocument) {
+            actionMarkdownDocumentsRef.current.set(owner.activeDocument.documentId, owner.activeDocument)
+        }
+        const next = new Map(current)
+        next.set(owner.ownerPath, owner)
+        actionMarkdownOwnersRef.current = next
+        setActionMarkdownOwners(next)
     }, [])
 
     const handleDiscardMarkdownDocument = useCallback((documentId: string, markdown: string) => {
@@ -330,12 +360,14 @@ export function TextView(props: TextViewProps) {
     }
 
     const listEditorToolbarContents = useCallback(() => {
-        if (!mountedEditorPath) throw new Error('Cannot render the Markdown toolbar without a document path')
+        if (!mountedEditorPath || !mountedMarkdownDocumentId) {
+            throw new Error('Cannot render the Markdown toolbar without a document path')
+        }
 
         return (
             <ListEditorToolbarControls
                 agentConversationCount={mountedCard?.agentConversations.length ?? 0}
-                documentId={mountedEditorPath}
+                documentId={mountedMarkdownDocumentId}
                 historyStore={markdownHistoryStore}
                 isAgentPanelOpen={isAgentPanelOpen}
                 isPropertiesOpen={!!propertiesAnchorElement}
@@ -344,18 +376,18 @@ export function TextView(props: TextViewProps) {
                 propertiesAvailable={!!mountedCard && Object.keys(mountedCard.headerFields).length > 0}
             />
         )
-    }, [isAgentPanelOpen, markdownHistoryStore, mountedCard, mountedEditorPath, propertiesAnchorElement])
+    }, [isAgentPanelOpen, markdownHistoryStore, mountedCard, mountedEditorPath, mountedMarkdownDocumentId, propertiesAnchorElement])
 
     const cardMarkdownDocument = useMemo<MarkdownDocumentConfig | null>(() => (
-        mountedCard && mountedEditorPath ? {
-            documentId: mountedEditorPath,
+        mountedCard && mountedEditorPath && mountedMarkdownDocumentId ? {
+            documentId: mountedMarkdownDocumentId,
             markdown: mountedCard.content,
             onChange: (body) => onBodyChange(mountedEditorPath, body),
             ownerPath: mountedEditorPath,
             stickyToolbar: true,
             toolbarContents: listEditorToolbarContents,
         } : null
-    ), [listEditorToolbarContents, mountedCard, mountedEditorPath, onBodyChange])
+    ), [listEditorToolbarContents, mountedCard, mountedEditorPath, mountedMarkdownDocumentId, onBodyChange])
     const actionMarkdownDocument = activeAction?.sourcePath
         ? actionMarkdownOwners.get(activeAction.sourcePath)?.activeDocument ?? null
         : null
@@ -437,6 +469,7 @@ export function TextView(props: TextViewProps) {
                             actions={actions}
                             cardTypes={cardTypes.map(({ type }) => type)}
                             discardMarkdownDocument={handleDiscardMarkdownDocument}
+                            markdownDocumentNamespace={projectKey}
                             onMarkdownDocumentOwnerChange={handleActionMarkdownDocumentOwnerChange}
                             repositoryFiles={repositoryFiles}
                             specialContextTypes={specialContextTypes}

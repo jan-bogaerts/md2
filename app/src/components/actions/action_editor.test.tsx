@@ -100,6 +100,7 @@ function ActionEditorHarness(props: { action: ActionDefinition, states: string[]
                 actions={actionService.getActions()}
                 cardTypes={['feature']}
                 discardMarkdownDocument={handleDiscard}
+                markdownDocumentNamespace="test-project"
                 onMarkdownDocumentOwnerChange={handleOwnerChange}
                 repositoryFiles={[]}
                 specialContextTypes={['actions']}
@@ -379,6 +380,25 @@ describe('ActionEditor', () => {
 
         expect(screen.getByText(/changed outside the editor/u)).toBeInTheDocument()
         expect(within(screen.getByTestId('mdx-editor')).getByRole('textbox')).toHaveValue('Local prompt edit')
+    })
+
+    it('replaces active prompt content when an external conflict is reloaded', () => {
+        const action = loadAction()
+        const view = renderEditor(action)
+
+        fireEvent.click(screen.getByRole('tab', { name: 'Prompt' }))
+        const promptEditor = within(screen.getByTestId('mdx-editor')).getByRole('textbox')
+        fireEvent.change(promptEditor, { target: { value: 'Local prompt edit' } })
+
+        const externalAction = reloadAction({ prompt: 'External prompt edit' })
+        view.rerender(
+            <AppThemeProvider>
+                <ActionEditorHarness action={externalAction} states={['ready']} />
+            </AppThemeProvider>,
+        )
+        fireEvent.click(screen.getByRole('button', { name: 'Reload from disk' }))
+
+        expect(within(screen.getByTestId('mdx-editor')).getByRole('textbox')).toHaveValue('External prompt edit')
     })
 
     it('adds, edits, auto-saves, and deletes a predefined phrase', async () => {

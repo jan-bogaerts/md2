@@ -47,6 +47,19 @@ describe('MarkdownDocumentHistoryStore', () => {
         expect(historyStore.sharedHistoryState.redoStack).toEqual([])
     })
 
+    it('replaces one document with empty history after an external content change', () => {
+        const editor = createEditor()
+        const historyStore = new MarkdownDocumentHistoryStore()
+        historyStore.attachEditor(editor, 'alpha.md', '# Alpha')
+        historyStore.sharedHistoryState.undoStack.push(historyEntry(editor))
+        historyStore.sharedHistoryState.redoStack.push(historyEntry(editor))
+
+        historyStore.replaceDocument('alpha.md', '# Alpha external')
+
+        expect(historyStore.canUndo).toBe(false)
+        expect(historyStore.canRedo).toBe(false)
+    })
+
     it('does not record a programmatic document load as an undoable card edit', async () => {
         const editor = createEditor()
         const historyStore = new MarkdownDocumentHistoryStore()

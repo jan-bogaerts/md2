@@ -1,11 +1,7 @@
-import ArrowDownwardOutlined from '@mui/icons-material/ArrowDownwardOutlined'
-import ArrowUpwardOutlined from '@mui/icons-material/ArrowUpwardOutlined'
-import DeleteOutlineOutlined from '@mui/icons-material/DeleteOutlineOutlined'
-import { Box, FormHelperText, IconButton, Stack, Tooltip, Typography } from '@mui/material'
+import { Box, FormHelperText, Stack, Typography } from '@mui/material'
 import { useRef, type ReactNode } from 'react'
 import { ActionSectionLabel } from './action_section_label'
-
-type MoveDirection = 'down' | 'up'
+import { ActionOrderedRowActions, type ActionRowMoveDirection } from './action_ordered_row_actions'
 
 interface ActionOrderedCollectionProps<Item> {
     addControl: ReactNode
@@ -21,7 +17,7 @@ interface ActionOrderedCollectionProps<Item> {
     rowLabel: (index: number) => string
 }
 
-function moveItem<Item>(items: Item[], index: number, direction: MoveDirection) {
+function moveItem<Item>(items: Item[], index: number, direction: ActionRowMoveDirection) {
     const targetIndex = index + (direction === 'up' ? -1 : 1)
     if (targetIndex < 0 || targetIndex >= items.length) return items
     const next = [...items]
@@ -55,7 +51,7 @@ export function ActionOrderedCollection<Item>(props: ActionOrderedCollectionProp
         queueMicrotask(() => controlsRef.current.get(`${index}:${control}`)?.focus())
     }
 
-    const handleMove = (index: number, direction: MoveDirection) => {
+    const handleMove = (index: number, direction: ActionRowMoveDirection) => {
         const next = moveItem(items, index, direction)
         if (next === items) return
         const targetIndex = index + (direction === 'up' ? -1 : 1)
@@ -99,47 +95,14 @@ export function ActionOrderedCollection<Item>(props: ActionOrderedCollectionProp
                         }}
                     >
                         {renderFields(item, index, indexedError)}
-                        <Box className="action-row-actions" sx={{ display: 'flex', justifyContent: 'flex-end', opacity: 0 }}>
-                            <Tooltip title={`Move ${controlLabel} up`}>
-                                <span>
-                                    <IconButton
-                                        aria-label={`Move ${controlLabel} up`}
-                                        disabled={index === 0}
-                                        onClick={() => handleMove(index, 'up')}
-                                        ref={(element) => setControlRef(index, 'up', element)}
-                                        size="small"
-                                        sx={{ '&:focus-visible, &:hover': { bgcolor: 'action.hover', color: 'primary.main' } }}
-                                    >
-                                        <ArrowUpwardOutlined fontSize="small" />
-                                    </IconButton>
-                                </span>
-                            </Tooltip>
-                            <Tooltip title={`Move ${controlLabel} down`}>
-                                <span>
-                                    <IconButton
-                                        aria-label={`Move ${controlLabel} down`}
-                                        disabled={index === items.length - 1}
-                                        onClick={() => handleMove(index, 'down')}
-                                        ref={(element) => setControlRef(index, 'down', element)}
-                                        size="small"
-                                        sx={{ '&:focus-visible, &:hover': { bgcolor: 'action.hover', color: 'primary.main' } }}
-                                    >
-                                        <ArrowDownwardOutlined fontSize="small" />
-                                    </IconButton>
-                                </span>
-                            </Tooltip>
-                            <Tooltip title={`Remove ${controlLabel}`}>
-                                <IconButton
-                                    aria-label={`Remove ${controlLabel}`}
-                                    onClick={() => handleRemove(index)}
-                                    ref={(element) => setControlRef(index, 'remove', element)}
-                                    size="small"
-                                    sx={{ '&:focus-visible, &:hover': { bgcolor: 'action.hover', color: 'primary.main' } }}
-                                >
-                                    <DeleteOutlineOutlined fontSize="small" />
-                                </IconButton>
-                            </Tooltip>
-                        </Box>
+                        <ActionOrderedRowActions
+                            controlLabel={controlLabel}
+                            index={index}
+                            itemCount={items.length}
+                            onMove={handleMove}
+                            onRemove={handleRemove}
+                            setControlRef={setControlRef}
+                        />
                     </Box>
                 )
             })}

@@ -82,6 +82,37 @@ describe('MarkdownEditor', () => {
         expect(onDocumentChange).toHaveBeenCalledExactlyOnceWith('prompt', 'edited')
     })
 
+    it('replaces active document content when its external Markdown changes under the same id', () => {
+        const historyStore = new MarkdownDocumentHistoryStore()
+        const onDocumentChange = vi.fn()
+        const view = render(
+            <AppThemeProvider>
+                <MarkdownEditor
+                    documentId="prompt"
+                    historyStore={historyStore}
+                    markdown="original"
+                    onDocumentChange={onDocumentChange}
+                />
+            </AppThemeProvider>,
+        )
+
+        view.rerender(
+            <AppThemeProvider>
+                <MarkdownEditor
+                    documentId="prompt"
+                    historyStore={historyStore}
+                    markdown="external"
+                    onDocumentChange={onDocumentChange}
+                />
+            </AppThemeProvider>,
+        )
+
+        expect(screen.getByRole('textbox')).toHaveValue('external')
+        expect(onDocumentChange).not.toHaveBeenCalled()
+        expect(historyStore.canUndo).toBe(false)
+        expect(historyStore.canRedo).toBe(false)
+    })
+
     it('does not flush editor-normalized markdown when the user made no edit', () => {
         const onChange = vi.fn()
         const { unmount } = render(

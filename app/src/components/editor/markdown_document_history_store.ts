@@ -87,21 +87,19 @@ export class MarkdownDocumentHistoryStore {
         }
     }
 
-    replaceActiveDocument(documentId: string, markdown: string) {
-        if (this.activeDocumentId !== documentId) {
-            throw new Error(`Cannot replace inactive Markdown document: ${documentId}`)
-        }
-        const editor = this.editor
-        if (!editor) throw new Error('Cannot replace Markdown history before the editor is attached')
-
+    replaceDocument(documentId: string, markdown: string) {
         const document = { historyState: createEmptyHistoryState(), markdown }
-        ensureCurrentEditorState(document.historyState, editor)
         this.documents.set(documentId, document)
-        copyHistoryState(this.sharedHistoryState, document.historyState)
         this.discardedDocumentIds.delete(documentId)
+        if (this.activeDocumentId === documentId) {
+            const editor = this.editor
+            if (!editor) throw new Error('Cannot replace active Markdown history before the editor is attached')
+            ensureCurrentEditorState(document.historyState, editor)
+            copyHistoryState(this.sharedHistoryState, document.historyState)
+            this.syncToolbarAvailability(editor)
+        }
         this.pendingDocumentId = null
         this.switchToken += 1
-        this.syncToolbarAvailability(editor)
     }
 
     switchDocument(

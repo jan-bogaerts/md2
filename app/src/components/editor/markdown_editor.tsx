@@ -131,14 +131,14 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
             const normalizedMarkdown = editorRef.current?.getMarkdown() ?? markdown
             latestMarkdownRef.current = normalizedMarkdown
             lastEmittedMarkdownRef.current = normalizedMarkdown
-            historyStore?.replaceActiveDocument(documentId, normalizedMarkdown)
+            historyStore?.replaceDocument(documentId, normalizedMarkdown)
             return
         }
 
         handleBeforeDocumentSwitch(documentId, markdown)
         editorRef.current?.setMarkdown(markdown)
         handleDocumentSwitch(editorRef.current?.getMarkdown() ?? markdown)
-    }, [documentId, handleBeforeDocumentSwitch, handleDocumentSwitch, markdown])
+    }, [documentId, handleBeforeDocumentSwitch, handleDocumentSwitch, historyStore, markdown])
 
     useEffect(() => {
         const unregister = registerMarkdownEditorFlush(flush)
