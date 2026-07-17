@@ -10,11 +10,11 @@ import { MarkdownDocumentHistoryStore } from '../editor/markdown_document_histor
 import { useWorktrees } from '../hooks/use_worktrees'
 import { ActionDefinitionFields } from './action_definition_fields'
 import { ActionPhraseToolbarControls } from './action_phrase_toolbar_controls'
+import { reconcileActionPhraseEditorState } from './action_phrase_editor_state'
 import { actionPhraseLabel } from './action_phrase_label'
 
 const DEFINITION_TAB = 'definition'
 const PROMPT_TAB = 'prompt'
-const PHRASE_TAB_PREFIX = 'phrase-'
 
 interface ActionEditorProps {
     action: ActionDefinition
@@ -23,10 +23,6 @@ interface ActionEditorProps {
     repositoryFiles: string[]
     specialContextTypes: string[]
     states: string[]
-}
-
-function phraseTabValue(index: number) {
-    return `${PHRASE_TAB_PREFIX}${index}`
 }
 
 export function ActionEditor(props: ActionEditorProps) {
@@ -44,9 +40,17 @@ export function ActionEditor(props: ActionEditorProps) {
     }, [])
     const draft = actionService.getDraft(sourcePath)
     const { conflict, definition, error: saveError, saving, validation } = draft
-    const [selectedTab, setSelectedTab] = useState(action.editorState?.selectedTab ?? DEFINITION_TAB)
+    const phrases = useMemo(() => definition.phrases ?? [], [definition.phrases])
+    const [editorState, setEditorState] = useState(() => reconcileActionPhraseEditorState(action.editorState, phrases))
+    const reconciledEditorState = reconcileActionPhraseEditorState(editorState, phrases)
+    if (reconciledEditorState !== editorState) setEditorState(reconciledEditorState)
+    const { phrases: phraseEditorStates, selectedTab } = reconciledEditorState
     const [markdownHistoryStore] = useState(() => new MarkdownDocumentHistoryStore())
     const markdownEditorRef = useRef<MarkdownEditorHandle>(null)
+
+    useEffect(() => {
+        actionService.setActionEditorState(sourcePath, reconciledEditorState)
+    }, [reconciledEditorState, sourcePath])
 
     const errors = useMemo(() => (
         validation.error && validation.field ? { [validation.field]: validation.error } : {}
@@ -58,25 +62,28 @@ export function ActionEditor(props: ActionEditorProps) {
         actionService.updateDraft(sourcePath, nextDefinition)
     }
 
-    const selectedPhraseIndex = selectedTab.startsWith(PHRASE_TAB_PREFIX)
-        ? Number(selectedTab.slice(PHRASE_TAB_PREFIX.length))
-        : null
-    const selectedPhrase = selectedPhraseIndex === null ? null : definition.phrases?.[selectedPhraseIndex] ?? null
-    const activeTab = selectedPhraseIndex !== null && !selectedPhrase ? PROMPT_TAB : selectedTab
-    const markdownDocumentId = selectedPhraseIndex !== null && selectedPhrase ? phraseTabValue(selectedPhraseIndex) : PROMPT_TAB
+    const selectedPhraseIndex = phraseEditorStates.findIndex(({ identity }) => identity === selectedTab)
+    const selectedPhrase = selectedPhraseIndex < 0 ? null : phrases[selectedPhraseIndex]
+    const activeTab = selectedTab.startsWith('phrase-') && !selectedPhrase ? PROMPT_TAB : selectedTab
+    const markdownDocumentId = selectedPhrase ? selectedTab : PROMPT_TAB
     const markdown = selectedPhrase?.text ?? definition.prompt ?? ''
 
     useEffect(() => {
-        const phraseDocumentIds = (definition.phrases ?? []).map((_phrase, index) => phraseTabValue(index))
+        const phraseDocumentIds = phraseEditorStates.map(({ identity }) => identity)
         markdownHistoryStore.retainDocuments([PROMPT_TAB, ...phraseDocumentIds])
-    }, [definition.phrases, markdownHistoryStore])
+    }, [markdownHistoryStore, phraseEditorStates])
+
+    const storeEditorState = useCallback((nextEditorState: typeof editorState) => {
+        actionService.setActionEditorState(sourcePath, nextEditorState)
+        setEditorState(nextEditorState)
+    }, [sourcePath])
 
     const handleAddPhrase = () => {
-        const phrases = definition.phrases ?? []
-        actionService.updateDraft(sourcePath, { ...definition, phrases: [...phrases, { text: '', title: '' }] })
-        const nextTab = phraseTabValue(phrases.length)
-        actionService.setSelectedEditorTab(sourcePath, nextTab)
-        setSelectedTab(nextTab)
+        const nextPhrases = [...phrases, { text: '', title: '' }]
+        const nextEditorState = reconcileActionPhraseEditorState(editorState, nextPhrases)
+        const nextTab = nextEditorState.phrases[nextEditorState.phrases.length - 1].identity
+        storeEditorState({ ...nextEditorState, selectedTab: nextTab })
+        actionService.updateDraft(sourcePath, { ...definition, phrases: nextPhrases })
     }
 
     const handleTabChange = (_event: SyntheticEvent, value: string) => {
@@ -84,8 +91,7 @@ export function ActionEditor(props: ActionEditorProps) {
             handleAddPhrase()
             return
         }
-        actionService.setSelectedEditorTab(sourcePath, value)
-        setSelectedTab(value)
+        storeEditorState({ ...editorState, selectedTab: value })
     }
 
     const handleMarkdownChange = (documentId: string, text: string) => {
@@ -93,38 +99,60 @@ export function ActionEditor(props: ActionEditorProps) {
             if (definition.prompt !== text) actionService.updateDraft(sourcePath, { ...definition, prompt: text })
             return
         }
-        if (!documentId.startsWith(PHRASE_TAB_PREFIX)) throw new Error(`Unknown action Markdown document: ${documentId}`)
-        const phraseIndex = Number(documentId.slice(PHRASE_TAB_PREFIX.length))
-        if (definition.phrases?.[phraseIndex]?.text === text) return
+        const phraseIndex = phraseEditorStates.findIndex(({ identity }) => identity === documentId)
+        if (phraseIndex < 0) throw new Error(`Unknown action Markdown document: ${documentId}`)
+        if (phrases[phraseIndex]?.text === text) return
+        const nextPhrases = phrases.map((phrase, index) => index === phraseIndex ? { ...phrase, text } : phrase)
+        storeEditorState({
+            ...editorState,
+            phrases: phraseEditorStates.map((entry, index) => index === phraseIndex ? { ...entry, phrase: nextPhrases[index] } : entry),
+        })
         actionService.updateDraft(sourcePath, {
             ...definition,
-            phrases: (definition.phrases ?? []).map((phrase, index) => (
-                index === phraseIndex ? { ...phrase, text } : phrase
-            )),
+            phrases: nextPhrases,
         })
     }
 
     const handlePhraseTitleChange = useCallback((event: ChangeEvent<HTMLInputElement>) => {
-        if (selectedPhraseIndex === null) return
+        if (selectedPhraseIndex < 0) return
         const title = event.target.value
-        actionService.updateDraft(sourcePath, {
-            ...definition,
-            phrases: (definition.phrases ?? []).map((phrase, index) => (
-                index === selectedPhraseIndex ? { ...phrase, title } : phrase
+        const nextPhrases = phrases.map((phrase, index) => index === selectedPhraseIndex ? { ...phrase, title } : phrase)
+        storeEditorState({
+            ...editorState,
+            phrases: phraseEditorStates.map((entry, index) => (
+                index === selectedPhraseIndex ? { ...entry, phrase: nextPhrases[index] } : entry
             )),
         })
-    }, [definition, selectedPhraseIndex, sourcePath])
-
-    const handleDeletePhrase = useCallback(() => {
-        if (selectedPhraseIndex === null) return
-        markdownEditorRef.current?.setMarkdown(selectedPhrase?.text ?? '')
         actionService.updateDraft(sourcePath, {
             ...definition,
-            phrases: (definition.phrases ?? []).filter((_phrase, index) => index !== selectedPhraseIndex),
+            phrases: nextPhrases,
         })
-        actionService.setSelectedEditorTab(sourcePath, PROMPT_TAB)
-        setSelectedTab(PROMPT_TAB)
-    }, [definition, selectedPhrase, selectedPhraseIndex, sourcePath])
+    }, [definition, editorState, phraseEditorStates, phrases, selectedPhraseIndex, sourcePath, storeEditorState])
+
+    const handleDeletePhrase = useCallback(() => {
+        if (selectedPhraseIndex < 0) return
+        markdownEditorRef.current?.setMarkdown(selectedPhrase?.text ?? '')
+        markdownHistoryStore.discardDocument(selectedTab)
+        const nextPhrases = phrases.filter((_phrase, index) => index !== selectedPhraseIndex)
+        storeEditorState({
+            phrases: phraseEditorStates.filter((_entry, index) => index !== selectedPhraseIndex),
+            selectedTab: PROMPT_TAB,
+        })
+        actionService.updateDraft(sourcePath, {
+            ...definition,
+            phrases: nextPhrases,
+        })
+    }, [
+        definition,
+        markdownHistoryStore,
+        phraseEditorStates,
+        phrases,
+        selectedPhrase,
+        selectedPhraseIndex,
+        selectedTab,
+        sourcePath,
+        storeEditorState,
+    ])
 
     const phraseToolbarContents = useCallback(() => {
         if (!selectedPhrase) throw new Error('Missing selected phrase')
@@ -248,11 +276,11 @@ export function ActionEditor(props: ActionEditorProps) {
                 >
                     <Tab label="Definition" value={DEFINITION_TAB} />
                     <Tab label="Prompt" value={PROMPT_TAB} />
-                    {(definition.phrases ?? []).map((phrase, index) => (
+                    {phrases.map((phrase, index) => (
                         <Tab
-                            key={phraseTabValue(index)}
+                            key={phraseEditorStates[index].identity}
                             label={actionPhraseLabel(phrase.title, phrase.text)}
-                            value={phraseTabValue(index)}
+                            value={phraseEditorStates[index].identity}
                         />
                     ))}
                     <Tab aria-label="Add predefined phrase" label="+" value="add-phrase" />

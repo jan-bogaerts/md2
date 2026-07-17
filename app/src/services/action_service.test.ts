@@ -33,22 +33,31 @@ describe('ActionService', () => {
     })
 
     it('keeps temporary editor state on the action object across reloads and saves', async () => {
-        const persistActionFile = vi.fn(async () => undefined)
+        const persistedFiles: ActionFile[] = []
+        const persistActionFile = vi.fn(async (persistedFile: ActionFile) => { persistedFiles.push(persistedFile) })
         const service = new ActionService(() => ({ persistActionFile }))
         service.loadFromFiles([file(VALID)])
 
-        service.setSelectedEditorTab('actions/action.json', 'prompt')
-        expect(service.getActionByPath('actions/action.json')?.editorState).toEqual({ selectedTab: 'prompt' })
+        const editorState = {
+            phrases: [{
+                identity: 'phrase-00000000-0000-4000-8000-000000000001',
+                phrase: { text: 'Transient text', title: 'Transient title' },
+            }],
+            selectedTab: 'prompt',
+        }
+        service.setActionEditorState('actions/action.json', editorState)
+        expect(service.getActionByPath('actions/action.json')?.editorState).toEqual(editorState)
 
         service.reloadFromFiles(
             [file({ ...VALID, label: 'Reloaded' })],
             [{ origin: 'external', path: 'actions/action.json' }],
         )
-        expect(service.getActionByPath('actions/action.json')?.editorState).toEqual({ selectedTab: 'prompt' })
+        expect(service.getActionByPath('actions/action.json')?.editorState).toEqual(editorState)
 
         await service.saveDefinition('actions/action.json', { ...VALID, label: 'Saved' })
-        expect(service.getActionByPath('actions/action.json')?.editorState).toEqual({ selectedTab: 'prompt' })
-        expect(persistActionFile).toHaveBeenCalledWith(expect.objectContaining({ content: expect.not.stringContaining('editorState') }))
+        expect(service.getActionByPath('actions/action.json')?.editorState).toEqual(editorState)
+        expect(persistedFiles[0].content).not.toContain('editorState')
+        expect(persistedFiles[0].content).not.toContain(editorState.phrases[0].identity)
     })
 
     it('loads usable definitions and exposes errors from invalid files', () => {

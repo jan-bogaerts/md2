@@ -141,7 +141,8 @@ describe('ActionEditor', () => {
         const view = renderEditor(action)
 
         fireEvent.click(screen.getByRole('tab', { name: 'Tests' }))
-        expect(action.editorState?.selectedTab).toBe('phrase-0')
+        expect(action.editorState?.selectedTab).toBe(action.editorState?.phrases[0].identity)
+        expect(action.editorState?.selectedTab).toMatch(/^phrase-/u)
 
         view.unmount()
         renderEditor(action)
@@ -388,6 +389,78 @@ describe('ActionEditor', () => {
 
         expect(screen.getByRole('tab', { name: 'Prompt' })).toHaveAttribute('aria-selected', 'true')
         expect(screen.queryByRole('tab', { name: 'Tests' })).not.toBeInTheDocument()
+    })
+
+    it.each([
+        ['first', 'Alpha'],
+        ['middle', 'Beta'],
+        ['last', 'Gamma'],
+    ])('deletes the %s phrase without changing remaining identities', (_position, title) => {
+        const phrases = [
+            { text: 'Alpha text', title: 'Alpha' },
+            { text: 'Beta text', title: 'Beta' },
+            { text: 'Gamma text', title: 'Gamma' },
+        ]
+        const action = loadAction({ phrases })
+        renderEditor(action)
+        const previousIdentities = new Map(action.editorState?.phrases.map((entry) => [entry.phrase.title, entry.identity]))
+
+        fireEvent.click(screen.getByRole('tab', { name: title }))
+        fireEvent.click(screen.getByRole('button', { name: 'Delete this predefined phrase' }))
+
+        expect(screen.getByRole('tab', { name: 'Prompt' })).toHaveAttribute('aria-selected', 'true')
+        expect(action.editorState?.phrases.map(({ phrase }) => phrase.title)).toEqual(
+            phrases.filter((phrase) => phrase.title !== title).map(({ title: phraseTitle }) => phraseTitle),
+        )
+        for (const entry of action.editorState?.phrases ?? []) {
+            expect(entry.identity).toBe(previousIdentities.get(entry.phrase.title))
+        }
+    })
+
+    it('keeps selected phrase identity when an external reload deletes an earlier phrase and reorders survivors', () => {
+        const initialPhrases = [
+            { text: 'Alpha text', title: 'Alpha' },
+            { text: 'Beta text', title: 'Beta' },
+            { text: 'Gamma text', title: 'Gamma' },
+        ]
+        const action = loadAction({ phrases: initialPhrases })
+        const view = renderEditor(action)
+        fireEvent.click(screen.getByRole('tab', { name: 'Beta' }))
+        const selectedIdentity = action.editorState?.selectedTab
+        const gammaIdentity = action.editorState?.phrases[2].identity
+        const externalAction = loadAction({ phrases: [initialPhrases[2], initialPhrases[1]] })
+
+        view.rerender(
+            <AppThemeProvider>
+                <ActionEditor
+                    action={externalAction}
+                    actions={actionService.getActions()}
+                    cardTypes={['feature']}
+                    repositoryFiles={[]}
+                    specialContextTypes={['actions']}
+                    states={['ready']}
+                />
+            </AppThemeProvider>,
+        )
+
+        expect(screen.getByRole('tab', { name: 'Beta' })).toHaveAttribute('aria-selected', 'true')
+        expect(externalAction.editorState?.selectedTab).toBe(selectedIdentity)
+        expect(externalAction.editorState?.phrases.map(({ identity }) => identity)).toEqual([gammaIdentity, selectedIdentity])
+    })
+
+    it('assigns a new identity when adding after deletion', () => {
+        const action = loadAction({ phrases: [{ text: 'Alpha text', title: 'Alpha' }, { text: 'Beta text', title: 'Beta' }] })
+        renderEditor(action)
+        fireEvent.click(screen.getByRole('tab', { name: 'Alpha' }))
+        const deletedIdentity = action.editorState?.selectedTab
+        const betaIdentity = action.editorState?.phrases[1].identity
+        fireEvent.click(screen.getByRole('button', { name: 'Delete this predefined phrase' }))
+
+        fireEvent.click(screen.getByRole('tab', { name: 'Add predefined phrase' }))
+
+        expect(action.editorState?.phrases[0].identity).toBe(betaIdentity)
+        expect(action.editorState?.phrases[1].identity).not.toBe(deletedIdentity)
+        expect(action.editorState?.selectedTab).toBe(action.editorState?.phrases[1].identity)
     })
 
     it('does not save while a newly added filter value is empty', async () => {

@@ -3,6 +3,7 @@ import {
     BUILTIN_CUSTOM_PROMPT,
     BUILTIN_REMARKABLE_CONVERT,
     type ActionDefinition,
+    type ActionEditorState,
     type ActionFile,
     type RawActionDefinition,
     type RawActionDefinitionEntry,
@@ -401,10 +402,10 @@ export class ActionService extends EventTarget {
         return revision
     }
 
-    setSelectedEditorTab(path: string, selectedTab: string) {
+    setActionEditorState(path: string, editorState: ActionEditorState) {
         const action = this.getActionByPath(path)
-        if (!action) throw new Error(`Cannot save editor tab for unknown action: ${path}`)
-        action.editorState = { selectedTab }
+        if (!action) throw new Error(`Cannot save editor state for unknown action: ${path}`)
+        action.editorState = editorState
     }
 
     getActionsForStateTrigger(state: string, context: ActionContext): ActionDefinition[] {

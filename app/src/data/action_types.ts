@@ -1,4 +1,4 @@
-import type { ActionDefinition as SharedActionDefinition } from '../../../shared/action_definitions.mjs'
+import type { ActionDefinition as SharedActionDefinition, ActionPhrase } from '../../../shared/action_definitions.mjs'
 
 export {
     ACTION_APPLIES_TO_FIELDS,
@@ -24,7 +24,13 @@ export type {
     RawOnRule,
 } from '../../../shared/action_definitions.mjs'
 
+export interface ActionPhraseEditorState {
+    identity: string
+    phrase: ActionPhrase
+}
+
 export interface ActionEditorState {
+    phrases: ActionPhraseEditorState[]
     selectedTab: string
 }
 

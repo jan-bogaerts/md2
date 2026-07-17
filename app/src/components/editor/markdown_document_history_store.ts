@@ -30,6 +30,7 @@ function ensureCurrentEditorState(historyState: HistoryState, editor: LexicalEdi
 export class MarkdownDocumentHistoryStore {
     readonly sharedHistoryState = createEmptyHistoryState()
     private activeDocumentId: string | null = null
+    private readonly discardedDocumentIds = new Set<string>()
     private readonly documents = new Map<string, MarkdownDocumentHistory>()
     private editor: LexicalEditor | null = null
     private pendingDocumentId: string | null = null
@@ -69,6 +70,14 @@ export class MarkdownDocumentHistoryStore {
         this.syncToolbarAvailability(editor)
 
         return unregister
+    }
+
+    discardDocument(documentId: string) {
+        if (documentId === this.activeDocumentId) {
+            this.discardedDocumentIds.add(documentId)
+            return
+        }
+        this.documents.delete(documentId)
     }
 
     retainDocuments(documentIds: readonly string[]) {
@@ -115,6 +124,13 @@ export class MarkdownDocumentHistoryStore {
 
     private persistActiveDocument(markdown?: string) {
         if (!this.activeDocumentId) return
+
+        if (this.discardedDocumentIds.delete(this.activeDocumentId)) {
+            this.documents.delete(this.activeDocumentId)
+            this.pendingDocumentId = null
+            this.switchToken += 1
+            return
+        }
 
         const document = this.documents.get(this.activeDocumentId)
         if (!document) throw new Error(`Missing Markdown history for active document: ${this.activeDocumentId}`)

@@ -1,7 +1,7 @@
 ---
 id: B-070
 title: action phrase index identity can mix editor history
-status: design
+status: ready
 owner: JB
 affects:
 policy:
@@ -43,4 +43,3 @@ The remaining phrase can therefore inherit the deleted phrase's tab/document ide
 - [[B-052]]
 - [[B-061]]
 - `design\architecture\initial description\writings\action_editor.md`
-
