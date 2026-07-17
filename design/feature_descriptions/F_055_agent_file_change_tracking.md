@@ -1,7 +1,7 @@
 ---
 id: F_055
 title: optional file-change tracking for agent tasks (worktree-free concurrency)
-status: design
+status: ready
 owner: JB
 affects:
 policy:

@@ -49,6 +49,20 @@ describe('loadActionDefinitions', () => {
         expect(lint.phrases).toEqual([]);
     });
 
+    it('normalizes agent file-change tracking and rejects invalid uses', () => {
+        const tracked = loadActionDefinitions([file('implement', { ...IMPLEMENT, trackFileChanges: true })])
+            .find(({ id }) => id === IMPLEMENT.id);
+        const untracked = loadActionDefinitions([file('implement', IMPLEMENT)])
+            .find(({ id }) => id === IMPLEMENT.id);
+
+        expect(tracked.trackFileChanges).toBe(true);
+        expect(untracked.trackFileChanges).toBe(false);
+        expect(validationError([file('implement', { ...IMPLEMENT, trackFileChanges: 'yes' })]))
+            .toMatchObject({ code: 'invalid-field', field: 'trackFileChanges' });
+        expect(validationError([file('lint', { ...LINT, trackFileChanges: true })]))
+            .toMatchObject({ code: 'field-not-allowed', field: 'trackFileChanges' });
+    });
+
     it.each([
         ['non-list phrases', { ...IMPLEMENT, phrases: 'nope' }],
         ['non-object phrase', { ...IMPLEMENT, phrases: ['nope'] }],
@@ -131,6 +145,7 @@ describe('loadActionDefinitions', () => {
             onBefore: [LINT.id],
             onState: 'ready',
             thinkingLevel: 'high',
+            trackFileChanges: true,
         };
         const profiles = [{ command: ['codex'], models: ['gpt-5'], name: 'codex' }];
 

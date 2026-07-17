@@ -3,11 +3,12 @@ import { describe, expect, it, vi } from 'vitest';
 
 const require = createRequire(import.meta.url);
 const { createAgentProviderProtocolParser } = require('./agent_provider_protocol');
+const ROOT_PATH = 'C:\\repo';
 
 function parser(agent) {
     const events = [];
     const malformed = vi.fn();
-    const instance = createAgentProviderProtocolParser(agent, (event) => events.push(event), malformed);
+    const instance = createAgentProviderProtocolParser(agent, (event) => events.push(event), malformed, ROOT_PATH);
 
     return { events, instance, malformed };
 }
@@ -64,6 +65,52 @@ describe('agent provider protocol', () => {
 
         expect(events[0]).toMatchObject({ conversationId: 'session-1', type: 'system.init' });
         expect(events[1].assistantText).toBe('hello');
+    });
+
+    it('extracts normalized root-confined Claude file tool paths', () => {
+        const { events, instance } = parser('claude');
+        const content = [
+            { input: { file_path: 'design\\card.md' }, name: 'Write', type: 'tool_use' },
+            { input: { file_path: 'design/card.md' }, name: 'Edit', type: 'tool_use' },
+            { input: { file_path: 'C:\\outside\\secret.md' }, name: 'MultiEdit', type: 'tool_use' },
+            { input: { notebook_path: 'notes/review.ipynb' }, name: 'NotebookEdit', type: 'tool_use' },
+            { input: { file_path: 'ignored.md' }, name: 'Read', type: 'tool_use' },
+        ];
+
+        instance.push(`${JSON.stringify({ message: { content }, type: 'assistant' })}\n`);
+        instance.finish();
+
+        expect(events[0].changedPaths).toEqual(['design/card.md', 'notes/review.ipynb']);
+    });
+
+    it('extracts Codex patch paths and rejects escapes', () => {
+        const { events, instance } = parser('codex');
+
+        instance.push(`${JSON.stringify({
+            item: {
+                changes: [
+                    { kind: 'update', path: 'app/src/app.tsx' },
+                    { kind: 'delete', path: '../outside.md' },
+                    { kind: 'update', path: 'app/src/app.tsx' },
+                ],
+                path: 'desktop/src/main.js',
+                type: 'file_change',
+            },
+            type: 'item.completed',
+        })}\n`);
+        instance.finish();
+
+        expect(events[0].changedPaths).toEqual(['desktop/src/main.js', 'app/src/app.tsx']);
+    });
+
+    it('tolerates unknown and malformed changed-path shapes', () => {
+        const { events, instance } = parser('codex');
+
+        instance.push('{"type":"item.completed","item":{"type":"future_patch","changes":"bad"}}\n');
+        instance.push('{"type":"item.completed","item":{"type":"patch","changes":[null,{"kind":"update"}]}}\n');
+        instance.finish();
+
+        expect(events.map(({ changedPaths }) => changedPaths)).toEqual([[], []]);
     });
 
     it('recognizes structured missing-session failures only before turn activity', () => {

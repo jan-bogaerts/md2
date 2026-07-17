@@ -159,6 +159,26 @@ describe('ActionService', () => {
             .toEqual({ code: null, error: null, field: null, fieldPath: null, index: null, valid: true })
     })
 
+    it('round-trips file-change tracking only when enabled', () => {
+        const service = new ActionService()
+        const tracked = {
+            description: 'Track edits', id: 'agent-track', label: 'Track', prompt: 'Edit file',
+            trackFileChanges: true, type: 'agent',
+        } satisfies RawActionDefinition
+        service.loadFromFiles([file(tracked)])
+        const action = service.getActionByPath('actions/action.json')
+        if (!action) throw new Error('Missing tracked action')
+
+        expect(action.trackFileChanges).toBe(true)
+        expect(editableActionDefinition(action).trackFileChanges).toBe(true)
+
+        service.loadFromFiles([file({ ...tracked, trackFileChanges: undefined })])
+        const untrackedAction = service.getActionByPath('actions/action.json')
+        if (!untrackedAction) throw new Error('Missing untracked action')
+        expect(untrackedAction.trackFileChanges).toBe(false)
+        expect(editableActionDefinition(untrackedAction)).not.toHaveProperty('trackFileChanges')
+    })
+
     it('routes validation failures by structured metadata, not message text', () => {
         const service = new ActionService()
         service.loadFromFiles([file(VALID)])

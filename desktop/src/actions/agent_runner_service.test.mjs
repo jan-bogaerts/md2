@@ -125,7 +125,7 @@ describe('AgentRunnerService', () => {
 
         try {
             await prepareProject(rootPath);
-            await writeFile(scriptPath, "console.log(JSON.stringify({type:'thread.started',thread_id:'thread-1'}));console.log(JSON.stringify({type:'turn.started'}));console.log(JSON.stringify({type:'item.completed',item:{type:'agent_message',text:'answer'}}))\n");
+            await writeFile(scriptPath, "console.log(JSON.stringify({type:'thread.started',thread_id:'thread-1'}));console.log(JSON.stringify({type:'turn.started'}));console.log(JSON.stringify({type:'item.completed',item:{type:'file_change',changes:[{path:'design/F-1.md'}]}}));console.log(JSON.stringify({type:'item.completed',item:{type:'agent_message',text:'answer'}}))\n");
             const command = ['node', scriptPath];
             const result = await service.run(createProject(rootPath), agentRequest({
                 agent: 'codex',
@@ -135,6 +135,7 @@ describe('AgentRunnerService', () => {
             }), (event) => events.push(event));
             const persisted = JSON.parse(await readFile(join(rootPath, result.reference), 'utf8'));
 
+            expect(result.changedPaths).toEqual(['design/F-1.md']);
             expect(events).toContainEqual(expect.objectContaining({ content: 'answer', type: 'output' }));
             expect(persisted.messages).toEqual([
                 expect.objectContaining({ content: 'question', role: 'user' }),

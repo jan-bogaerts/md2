@@ -3,6 +3,7 @@ const { normalizeConversationContext } = require('./agent_transcript');
 const { resolveAgentPrompt } = require('./action_text');
 
 const CONTINUE_INPUT = 'continue';
+const TRACKED_FILE_COMMIT_INSTRUCTION = 'Do not stage or commit changes. md2 will commit files captured from provider edit tools.';
 const WORKTREE_AGENT_REFERENCE_PATTERN = /^worktree:[1-9]\d*:(.*)$/u;
 
 function continuationReferencePath(reference) {
@@ -11,6 +12,10 @@ function continuationReferencePath(reference) {
 
 function withoutProviderConversationId(request) {
     return Object.fromEntries(Object.entries(request).filter(([fieldName]) => fieldName !== 'providerConversationId'));
+}
+
+function withTrackedFileCommitInstruction(prompt, trackFileChanges) {
+    return trackFileChanges ? `${prompt}\n\n${TRACKED_FILE_COMMIT_INSTRUCTION}` : prompt;
 }
 
 class ActionAgentExecutor {
@@ -40,9 +45,10 @@ class ActionAgentExecutor {
 
         const providerSession = sourceConversation?.providerSessions
             ?.find(({ agent }) => agent === resolvedAgent.agent) ?? null;
-        const prompt = sourceConversation
+        const basePrompt = sourceConversation
             ? input.runInput.extraPrompt.trim().length > 0 ? input.runInput.extraPrompt : CONTINUE_INPUT
             : resolveAgentPrompt(input.action, input.context, input.project, input.runInput.extraPrompt);
+        const prompt = withTrackedFileCommitInstruction(basePrompt, input.action.trackFileChanges);
         const command = providerSession
             ? buildResumeAgentCommand(resolvedAgent.profile, providerSession.conversationId, resolvedAgent.command)
             : resolvedAgent.command;
@@ -94,6 +100,7 @@ class ActionAgentExecutor {
         const { promise, reject, resolve } = Promise.withResolvers();
         const onComplete = (exitCode, run) => resolve({
             command: request.command,
+            changedPaths: run.changedPaths ? [...run.changedPaths] : [],
             conversation: { ...run.conversation, path: run.reference },
             exitCode,
             missingSession: run.missingSession,
@@ -118,4 +125,4 @@ class ActionAgentExecutor {
     }
 }
 
-module.exports = { ActionAgentExecutor, continuationReferencePath };
+module.exports = { ActionAgentExecutor, continuationReferencePath, withTrackedFileCommitInstruction };

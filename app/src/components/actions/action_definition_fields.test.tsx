@@ -61,6 +61,7 @@ describe('ActionDefinitionFields', () => {
             model: 'gpt-5',
             prompt: 'Keep this prompt until type changes',
             thinkingLevel: 'high',
+            trackFileChanges: true,
             type: 'agent',
         }
         const onChange = renderFields(definition)
@@ -74,6 +75,7 @@ describe('ActionDefinitionFields', () => {
             model: undefined,
             prompt: undefined,
             thinkingLevel: undefined,
+            trackFileChanges: undefined,
             type: 'command',
         })
     })
@@ -102,6 +104,23 @@ describe('ActionDefinitionFields', () => {
         expect(screen.getByLabelText('Command')).toHaveValue('')
         expect(screen.getByRole('switch', { name: 'Needs worktree' })).toBeChecked()
         expect(screen.getByLabelText('Run when card enters state')).toHaveTextContent('ready')
+        expect(screen.queryByRole('switch', { name: 'Track changed files (run without a worktree)' })).not.toBeInTheDocument()
+    })
+
+    it('shows and persists agent file-change tracking with its limitations', () => {
+        const definition = {
+            ...sharedFields,
+            prompt: 'Edit one file',
+            type: 'agent',
+        } satisfies RawActionDefinition
+        const onChange = renderFields(definition)
+        const trackingSwitch = screen.getByRole('switch', { name: 'Track changed files (run without a worktree)' })
+
+        expect(trackingSwitch).not.toBeChecked()
+        expect(screen.getByText(/Shell writes and concurrent edits to the same file require a worktree/u)).toBeInTheDocument()
+        fireEvent.click(trackingSwitch)
+
+        expect(onChange).toHaveBeenCalledWith({ ...definition, trackFileChanges: true })
     })
 
     it('shows label, type, and icon before description without exposing internal identity fields', () => {

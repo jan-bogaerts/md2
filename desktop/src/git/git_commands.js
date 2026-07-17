@@ -6,6 +6,7 @@ const { promisify } = require('node:util');
 const execFileAsync = promisify(execFile);
 const execAsync = promisify(exec);
 const DETACHED_HEAD_BRANCH = 'HEAD (detached)';
+const trackedCommitQueues = new Map();
 
 function requireRootPath(project) {
     if (!project || typeof project.rootPath !== 'string' || project.rootPath.length === 0) {
@@ -95,6 +96,54 @@ async function commitStagedChanges(rootPath, message) {
     await runGit(rootPath, ['commit', '-m', message]);
 }
 
+function normalizeTrackedPaths(rootPath, filePaths) {
+    if (!Array.isArray(filePaths)) throw new Error('Missing tracked file paths');
+    const resolvedRoot = path.resolve(rootPath);
+
+    return [...new Set(filePaths.map((filePath) => {
+        if (typeof filePath !== 'string' || filePath.length === 0) throw new Error('Invalid tracked file path');
+        const resolvedPath = ensureInsideRoot(resolvedRoot, path.resolve(resolvedRoot, filePath));
+        const relativePath = path.relative(resolvedRoot, resolvedPath);
+        if (relativePath.length === 0) throw new Error('Tracked file path must identify a file');
+
+        return relativePath.replace(/\\/gu, '/');
+    }))];
+}
+
+async function hasStagedPathChanges(rootPath, filePaths) {
+    try {
+        await execFileAsync('git', ['diff', '--cached', '--quiet', '--', ...filePaths], { cwd: rootPath });
+
+        return false;
+    } catch (error) {
+        if (error && typeof error === 'object' && error.code === 1) return true;
+
+        throw error;
+    }
+}
+
+async function commitTrackedPathsNow(rootPath, filePaths, message) {
+    await runGit(rootPath, ['add', '--', ...filePaths]);
+    if (!await hasStagedPathChanges(rootPath, filePaths)) return null;
+
+    await runGit(rootPath, ['commit', '--only', '-m', message, '--', ...filePaths]);
+
+    return runGit(rootPath, ['rev-parse', 'HEAD']);
+}
+
+/** Serialize a commit scoped to selected paths and return its hash, or null for no changes. */
+function commitTrackedPaths(rootPath, filePaths, message) {
+    if (typeof message !== 'string' || message.length === 0) throw new Error('Missing tracked commit message');
+    const resolvedRoot = path.resolve(rootPath);
+    const trackedPaths = normalizeTrackedPaths(resolvedRoot, filePaths);
+    if (trackedPaths.length === 0) return Promise.resolve(null);
+    const previousCommit = trackedCommitQueues.get(resolvedRoot) ?? Promise.resolve();
+    const commit = previousCommit.then(() => commitTrackedPathsNow(resolvedRoot, trackedPaths, message));
+    trackedCommitQueues.set(resolvedRoot, commit.catch(() => undefined));
+
+    return commit;
+}
+
 async function assertGitRoot(rootPath) {
     const gitPath = path.join(rootPath, '.git');
 
@@ -156,6 +205,7 @@ module.exports = {
     assertGitRoot,
     checkoutBranch,
     commitStagedChanges,
+    commitTrackedPaths,
     ensureInsideRoot,
     hasStagedChanges,
     hasPendingPush,

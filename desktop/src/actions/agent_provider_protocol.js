@@ -1,3 +1,6 @@
+const path = require('node:path');
+const { normalizePath } = require('../../../shared/path_utils.mjs');
+
 const MISSING_SESSION_CODES = new Set([
     'conversation_not_found',
     'invalid_session_id',
@@ -5,6 +8,44 @@ const MISSING_SESSION_CODES = new Set([
     'session_not_found',
     'thread_not_found',
 ]);
+const CLAUDE_FILE_TOOLS = new Set(['Edit', 'MultiEdit', 'NotebookEdit', 'Write']);
+const CODEX_FILE_ITEM_TYPES = new Set(['file', 'file_change', 'patch']);
+
+function normalizeChangedPath(rootPath, filePath) {
+    if (typeof rootPath !== 'string' || rootPath.length === 0) return null;
+    if (typeof filePath !== 'string' || filePath.length === 0) return null;
+    const resolvedRoot = path.resolve(rootPath);
+    const resolvedPath = path.resolve(resolvedRoot, filePath);
+    const relativePath = path.relative(resolvedRoot, resolvedPath);
+    if (relativePath.length === 0 || relativePath === '..' || relativePath.startsWith(`..${path.sep}`) || path.isAbsolute(relativePath)) return null;
+
+    return normalizePath(relativePath);
+}
+
+function claudeChangedPaths(event) {
+    if (event.type !== 'assistant' || !Array.isArray(event.message?.content)) return [];
+
+    return event.message.content
+        .filter((block) => block?.type === 'tool_use' && CLAUDE_FILE_TOOLS.has(block.name))
+        .map(({ input, name }) => name === 'NotebookEdit' ? input?.notebook_path : input?.file_path)
+        .filter((filePath) => typeof filePath === 'string');
+}
+
+function codexChangedPaths(event) {
+    if (event.type !== 'item.completed' || !CODEX_FILE_ITEM_TYPES.has(event.item?.type)) return [];
+    const changedPaths = typeof event.item.path === 'string' ? [event.item.path] : [];
+    if (!Array.isArray(event.item.changes)) return changedPaths;
+
+    return [...changedPaths, ...event.item.changes
+        .map((change) => change?.path)
+        .filter((filePath) => typeof filePath === 'string')];
+}
+
+function providerChangedPaths(agent, event, rootPath) {
+    const paths = agent === 'codex' ? codexChangedPaths(event) : claudeChangedPaths(event);
+
+    return [...new Set(paths.map((filePath) => normalizeChangedPath(rootPath, filePath)).filter((filePath) => filePath !== null))];
+}
 
 function eventCodes(event) {
     return [event.code, event.error?.code, event.error?.type, event.result?.code, event.subtype]
@@ -84,11 +125,12 @@ function normalizedEventType(agent, event) {
 }
 
 class AgentProviderProtocolParser {
-    constructor(agent, onEvent, onMalformed) {
+    constructor(agent, onEvent, onMalformed, rootPath) {
         this.agent = agent;
         this.buffer = '';
         this.onEvent = onEvent;
         this.onMalformed = onMalformed;
+        this.rootPath = rootPath;
         this.turnStarted = false;
     }
 
@@ -124,6 +166,7 @@ class AgentProviderProtocolParser {
         const assistantText = this.agent === 'codex' ? codexAssistantText(event) : claudeAssistantText(event);
         this.onEvent({
             assistantText,
+            changedPaths: providerChangedPaths(this.agent, event, this.rootPath),
             conversationId: providerConversationId(this.agent, event),
             errorText: providerErrorText(this.agent, event),
             event,
@@ -134,10 +177,10 @@ class AgentProviderProtocolParser {
     }
 }
 
-function createAgentProviderProtocolParser(agent, onEvent, onMalformed) {
+function createAgentProviderProtocolParser(agent, onEvent, onMalformed, rootPath) {
     if (agent !== 'codex' && agent !== 'claude') return null;
 
-    return new AgentProviderProtocolParser(agent, onEvent, onMalformed);
+    return new AgentProviderProtocolParser(agent, onEvent, onMalformed, rootPath);
 }
 
 module.exports = { createAgentProviderProtocolParser };

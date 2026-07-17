@@ -74,6 +74,7 @@ function action(overrides: Partial<ActionDefinition> = {}): ActionDefinition {
         prompt: 'Summarize commits for release',
         sourcePath: 'actions/release-notes.json',
         thinkingLevel: null,
+        trackFileChanges: false,
         type: 'agent',
         ...overrides,
         phrases: overrides.phrases ?? [],

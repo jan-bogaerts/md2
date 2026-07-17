@@ -37,7 +37,9 @@ function createCommandHistoryEntry(input) {
 function createAgentHistoryEntry(input) {
     const completedAt = input.completedAt ?? new Date().toISOString();
     const output = combineOutput(input.result);
-    const commit = createCommitMetadata({ actionId: input.action.id, completedAt, context: input.context, output, project: input.project });
+    const commit = input.action.trackFileChanges
+        ? createTrackedCommitMetadata({ actionId: input.action.id, completedAt, project: input.project, result: input.result })
+        : createCommitMetadata({ actionId: input.action.id, completedAt, context: input.context, output, project: input.project });
 
     return {
         agent: input.result.agent,
@@ -48,6 +50,19 @@ function createAgentHistoryEntry(input) {
         prompt: input.result.prompt,
         status: input.result.exitCode === 0 ? 'completed' : 'failed',
         thinkingLevel: input.result.thinkingLevel,
+    };
+}
+
+function createTrackedCommitMetadata(input) {
+    if (typeof input.result.trackedCommit !== 'string' || input.result.trackedCommit.length === 0) return null;
+
+    return {
+        actionId: input.actionId,
+        branch: input.project.branch,
+        commit: input.result.trackedCommit,
+        completedAt: input.completedAt,
+        filePaths: input.result.changedPaths,
+        repositoryRoot: requireRootPath(input.project),
     };
 }
 
@@ -72,4 +87,5 @@ module.exports = {
     createAgentHistoryEntry,
     createCommandHistoryEntry,
     createCommitMetadata,
+    createTrackedCommitMetadata,
 };

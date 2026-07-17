@@ -17,6 +17,7 @@ interface ActionEditorProps {
     actions: ActionDefinition[]
     cardTypes: string[]
     discardMarkdownDocument: (documentId: string, markdown: string) => void
+    markdownDocumentNamespace: string
     onMarkdownDocumentOwnerChange: (config: MarkdownDocumentOwnerConfig) => void
     repositoryFiles: string[]
     specialContextTypes: string[]
@@ -29,13 +30,14 @@ export function ActionEditor(props: ActionEditorProps) {
         actions,
         cardTypes,
         discardMarkdownDocument,
+        markdownDocumentNamespace,
         onMarkdownDocumentOwnerChange,
         repositoryFiles,
         specialContextTypes,
         states,
     } = props
     const worktrees = useWorktrees()
-    const controller = useActionEditorController({ action, actions, discardMarkdownDocument })
+    const controller = useActionEditorController({ action, actions, discardMarkdownDocument, markdownDocumentNamespace })
     const {
         activeTab,
         canRetry,

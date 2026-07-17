@@ -50,6 +50,7 @@ export interface RawActionDefinition {
     phrases?: ActionPhrase[]
     prompt?: string
     thinkingLevel?: string
+    trackFileChanges?: boolean
     type: ActionType
 }
 
@@ -76,6 +77,7 @@ export interface ActionDefinition {
     prompt: string | null
     sourcePath: string | null
     thinkingLevel: string | null
+    trackFileChanges: boolean
     type: ActionType
 }
 

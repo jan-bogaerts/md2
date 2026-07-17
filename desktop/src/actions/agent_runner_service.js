@@ -107,6 +107,7 @@ function createRunResult(request, exitCode, run) {
         runId: run.id,
         stderr: run.stderr,
         stdout: run.stdout,
+        changedPaths: [...run.changedPaths],
         turnStarted: run.turnStarted,
     };
 }
@@ -173,6 +174,7 @@ class AgentRunnerService {
             agent,
             cancelled: false,
             child,
+            changedPaths: new Set(),
             conversation,
             filePath,
             id,
@@ -198,6 +200,7 @@ class AgentRunnerService {
             agent,
             (event) => this.handleProviderEvent(id, event),
             (line) => this.handleMalformedOutput(id, line),
+            rootPath,
         );
         this.processes.set(id, run);
         this.runningConversationIds.add(conversation.id);
@@ -276,6 +279,7 @@ class AgentRunnerService {
         const timestamp = new Date().toISOString();
         run.turnStarted = run.turnStarted || providerEvent.turnStarted;
         run.missingSession = run.missingSession || providerEvent.missingSession;
+        providerEvent.changedPaths.forEach((filePath) => run.changedPaths.add(filePath));
         if (providerEvent.conversationId) run.providerConversationId = providerEvent.conversationId;
         run.conversation.events.push(createEvent(
             `${runId}-provider-${run.conversation.events.length}`,

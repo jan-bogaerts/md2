@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process';
-import { mkdtemp, mkdir, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { createRequire } from 'node:module';
@@ -9,6 +9,7 @@ import { describe, expect, it } from 'vitest';
 const require = createRequire(import.meta.url);
 const execFileAsync = promisify(execFile);
 const {
+    commitTrackedPaths,
     ensureInsideRoot,
     requireRootPath,
     resolveLocalProject,
@@ -114,6 +115,69 @@ describe('git-commands', () => {
                 id: resolve(rootPath),
                 rootPath: resolve(rootPath),
             });
+        } finally {
+            await rm(rootPath, { force: true, recursive: true });
+        }
+    });
+
+    it('creates serialized commits scoped to disjoint tracked paths', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-tracked-commits-'));
+
+        try {
+            await initializeRepository(rootPath);
+            await writeFile(join(rootPath, 'first.md'), 'first');
+            await writeFile(join(rootPath, 'second.md'), 'second');
+            await runGit(rootPath, ['add', '.']);
+            await runGit(rootPath, ['commit', '-m', 'Initial']);
+            await writeFile(join(rootPath, 'first.md'), 'first changed');
+            await writeFile(join(rootPath, 'second.md'), 'second changed');
+
+            const [firstCommit, secondCommit] = await Promise.all([
+                commitTrackedPaths(rootPath, ['first.md'], 'First action'),
+                commitTrackedPaths(rootPath, ['second.md'], 'Second action'),
+            ]);
+            const { stdout: firstFiles } = await execFileAsync('git', ['show', '--pretty=format:', '--name-only', firstCommit], { cwd: rootPath });
+            const { stdout: secondFiles } = await execFileAsync('git', ['show', '--pretty=format:', '--name-only', secondCommit], { cwd: rootPath });
+
+            expect(firstFiles.trim()).toBe('first.md');
+            expect(secondFiles.trim()).toBe('second.md');
+        } finally {
+            await rm(rootPath, { force: true, recursive: true });
+        }
+    });
+
+    it('preserves unrelated staged changes and handles rename paths', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-tracked-rename-'));
+
+        try {
+            await initializeRepository(rootPath);
+            await writeFile(join(rootPath, 'old.md'), 'renamed');
+            await writeFile(join(rootPath, 'unrelated.md'), 'before');
+            await runGit(rootPath, ['add', '.']);
+            await runGit(rootPath, ['commit', '-m', 'Initial']);
+            await writeFile(join(rootPath, 'unrelated.md'), 'staged elsewhere');
+            await runGit(rootPath, ['add', 'unrelated.md']);
+            await rename(join(rootPath, 'old.md'), join(rootPath, 'new.md'));
+
+            const commit = await commitTrackedPaths(rootPath, ['old.md', 'new.md'], 'Rename file');
+            const { stdout: committedFiles } = await execFileAsync('git', ['show', '--no-renames', '--pretty=format:', '--name-only', commit], { cwd: rootPath });
+            const { stdout: stagedFiles } = await execFileAsync('git', ['diff', '--cached', '--name-only'], { cwd: rootPath });
+
+            expect(committedFiles.trim().split(/\r?\n/u)).toEqual(['new.md', 'old.md']);
+            expect(stagedFiles.trim()).toBe('unrelated.md');
+        } finally {
+            await rm(rootPath, { force: true, recursive: true });
+        }
+    });
+
+    it('returns null when tracked paths have no changes', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-tracked-noop-'));
+
+        try {
+            await initializeRepository(rootPath);
+            await commitFile(rootPath);
+
+            await expect(commitTrackedPaths(rootPath, ['README.md'], 'No changes')).resolves.toBeNull();
         } finally {
             await rm(rootPath, { force: true, recursive: true });
         }

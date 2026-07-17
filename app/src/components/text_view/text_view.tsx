@@ -32,6 +32,10 @@ const HISTORY_FOLDER_NAME = 'history'
 const LOGS_FOLDER_NAME = 'logs'
 const EMPTY_MARKDOWN_DOCUMENT_ID = '__text-view-empty__'
 
+function cardMarkdownDocumentId(projectKey: string, path: string) {
+    return JSON.stringify([projectKey, path])
+}
+
 interface TextViewProps {
     actionsFolder: string
     activeCards: ProjectCard[]
@@ -183,6 +187,12 @@ export function TextView(props: TextViewProps) {
 
         return map
     }, [activeCards, backgroundCards])
+    const cardMarkdownDocumentIdsByPath = useMemo(() => new Map(
+        [...cardsByPath.keys()].map((path) => [path, cardMarkdownDocumentId(projectKey, path)]),
+    ), [cardsByPath, projectKey])
+    const cardPathsByMarkdownDocumentId = useMemo(() => new Map(
+        [...cardMarkdownDocumentIdsByPath].map(([path, documentId]) => [documentId, path]),
+    ), [cardMarkdownDocumentIdsByPath])
     const availablePaths = useMemo(
         () => [...cardsByPath.keys(), ...editorActionsByPath.keys()],
         [cardsByPath, editorActionsByPath],

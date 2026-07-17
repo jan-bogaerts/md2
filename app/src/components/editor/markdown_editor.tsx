@@ -68,6 +68,8 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
     const { markdownStyleConfig, mode } = useAppTheme()
     const editorRef = useRef<MDXEditorMethods>(null)
     const activeDocumentIdRef = useRef(documentId)
+    const receivedDocumentIdRef = useRef(documentId)
+    const receivedMarkdownRef = useRef(markdown)
     const latestMarkdownRef = useRef(markdown)
     const lastEmittedMarkdownRef = useRef(markdown)
     const onChangeRef = useRef(props.onChange)
@@ -113,7 +115,25 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
     }, [])
 
     useEffect(() => {
-        if (!documentId || activeDocumentIdRef.current === documentId) return
+        const receivedDocumentId = receivedDocumentIdRef.current
+        const receivedMarkdown = receivedMarkdownRef.current
+        receivedDocumentIdRef.current = documentId
+        receivedMarkdownRef.current = markdown
+        if (!documentId) return
+
+        if (activeDocumentIdRef.current === documentId) {
+            const externallyReplaced = receivedDocumentId === documentId
+                && receivedMarkdown !== markdown
+                && latestMarkdownRef.current !== markdown
+            if (!externallyReplaced) return
+
+            editorRef.current?.setMarkdown(markdown)
+            const normalizedMarkdown = editorRef.current?.getMarkdown() ?? markdown
+            latestMarkdownRef.current = normalizedMarkdown
+            lastEmittedMarkdownRef.current = normalizedMarkdown
+            historyStore?.replaceActiveDocument(documentId, normalizedMarkdown)
+            return
+        }
 
         handleBeforeDocumentSwitch(documentId, markdown)
         editorRef.current?.setMarkdown(markdown)

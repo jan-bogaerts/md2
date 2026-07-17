@@ -261,6 +261,70 @@ describe('ActionExecution', () => {
         }));
     });
 
+    it('commits successful tracked agent paths before writing explicit history metadata', async () => {
+        const agentExecutor = {
+            execute: vi.fn(async () => ({
+                agent: 'codex', changedPaths: ['app/a.ts', 'app/b.ts'], conversation: { id: 'conversation' },
+                exitCode: 0, model: 'gpt', prompt: 'run', reference: 'run.json', runId: 'conversation',
+                stderr: '', stdout: '[wrong wrong123] agent commit', thinkingLevel: 'none',
+            })),
+        };
+        const commitTrackedPaths = vi.fn(async () => 'abcdef3');
+        const rootAction = action('main', {agent: 'codex', model: 'gpt', prompt: 'run', trackFileChanges: true, type: 'agent'});
+        const { execution, localGitService } = createExecution(rootAction, {
+            agentExecutor,
+            localGitService: { commitTrackedPaths },
+        });
+
+        await expect(execution.completion).resolves.toMatchObject({ status: 'completed' });
+
+        expect(commitTrackedPaths).toHaveBeenCalledWith('C:/repo', ['app/a.ts', 'app/b.ts'], 'main');
+        expect(localGitService.appendActionRunHistory.mock.calls[0][2].commit).toMatchObject({commit: 'abcdef3', filePaths: ['app/a.ts', 'app/b.ts']});
+    });
+
+    it.each([
+        ['no changed paths', 0, []],
+        ['failed turn', 1, ['app/a.ts']],
+    ])('does not create tracked commit for %s', async (_label, exitCode, changedPaths) => {
+        const agentExecutor = {
+            execute: vi.fn(async () => ({
+                agent: 'codex', changedPaths, conversation: { id: 'conversation' }, exitCode, model: 'gpt',
+                prompt: 'run', reference: 'run.json', runId: 'conversation', stderr: '', stdout: '', thinkingLevel: 'none',
+            })),
+        };
+        const commitTrackedPaths = vi.fn(async () => 'abcdef3');
+        const rootAction = action('main', {agent: 'codex', model: 'gpt', prompt: 'run', trackFileChanges: true, type: 'agent'});
+        const { execution } = createExecution(rootAction, { agentExecutor, localGitService: { commitTrackedPaths } });
+
+        await execution.completion;
+
+        expect(commitTrackedPaths).not.toHaveBeenCalled();
+    });
+
+    it('does not commit tracked paths after cancellation', async () => {
+        const agentCompletion = deferred();
+        const agentExecutor = {
+            execute: vi.fn(async () => {
+                await agentCompletion.promise;
+
+                return {
+                    agent: 'codex', changedPaths: ['app/a.ts'], conversation: { id: 'conversation' }, exitCode: 0,
+                    model: 'gpt', prompt: 'run', reference: 'run.json', runId: 'conversation', stderr: '', stdout: '',
+                    thinkingLevel: 'none',
+                };
+            }),
+        };
+        const commitTrackedPaths = vi.fn(async () => 'abcdef3');
+        const rootAction = action('main', {agent: 'codex', model: 'gpt', prompt: 'run', trackFileChanges: true, type: 'agent'});
+        const { execution } = createExecution(rootAction, { agentExecutor, localGitService: { commitTrackedPaths } });
+        execution.cancel();
+        agentCompletion.resolve();
+
+        await execution.completion;
+
+        expect(commitTrackedPaths).not.toHaveBeenCalled();
+    });
+
     it('fails command continuation with established message', async () => {
         const { commandRunner, execution } = createExecution(action('main'), {runInput: { continueFrom: 'source.json' }});
 

@@ -77,6 +77,17 @@ describe('ActionAgentExecutor', () => {
         expect(request).not.toHaveProperty('cardPath');
     });
 
+    it('instructs tracked runs not to stage or self-commit', async () => {
+        const { agentRunnerService, executor } = createExecutor();
+        const trackedAction = { ...action, trackFileChanges: true };
+
+        await executor.execute(executionInput({ action: trackedAction }));
+
+        expect(agentRunnerService.start.mock.calls[0][1].prompt).toBe(
+            'Review design/card.md\n\nDo not stage or commit changes. md2 will commit files captured from provider edit tools.',
+        );
+    });
+
     it('resumes same provider after cursor with normalized reference and explicit prompt', async () => {
         const profile = {command: ['agent', 'start'], models: ['default'], name: 'custom', resumeCommand: ['agent', 'resume', '{{sessionId}}']};
         const agentConfigProvider = () => ({ agent: 'custom', agentProfiles: [profile], model: 'default' });

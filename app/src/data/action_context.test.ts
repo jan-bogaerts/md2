@@ -33,6 +33,7 @@ function action(name: string, appliesTo: ActionDefinition['appliesTo']): ActionD
         prompt: null,
         sourcePath: `actions/${name}.json`,
         thinkingLevel: null,
+        trackFileChanges: false,
         type: 'command',
     }
 }

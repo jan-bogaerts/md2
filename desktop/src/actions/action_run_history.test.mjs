@@ -56,6 +56,29 @@ describe('createAgentHistoryEntry', () => {
             filePaths: ['design/card.md'], repositoryRoot: 'C:/worktree',
         });
     });
+
+    it('uses md2 tracked commit metadata instead of agent stdout', () => {
+        const trackedAction = { ...action, trackFileChanges: true };
+        const result = {
+            agent: 'codex', changedPaths: ['app/a.ts', 'app/b.ts'], exitCode: 0, model: 'gpt', prompt: 'edit',
+            stderr: '', stdout: '[wrong wrong123] agent commit', thinkingLevel: 'high', trackedCommit: 'abcdef3',
+        };
+
+        expect(createAgentHistoryEntry({ action: trackedAction, completedAt, context: cardContext, project, result }).commit).toEqual({
+            actionId: 'main', branch: 'worktree', commit: 'abcdef3', completedAt,
+            filePaths: ['app/a.ts', 'app/b.ts'], repositoryRoot: 'C:/worktree',
+        });
+    });
+
+    it('creates no tracked commit metadata for a no-op run', () => {
+        const trackedAction = { ...action, trackFileChanges: true };
+        const result = {
+            agent: 'codex', changedPaths: [], exitCode: 0, model: 'gpt', prompt: 'edit', stderr: '',
+            stdout: '[wrong wrong123] agent commit', thinkingLevel: 'high',
+        };
+
+        expect(createAgentHistoryEntry({ action: trackedAction, completedAt, context: cardContext, project, result })).not.toHaveProperty('commit');
+    });
 });
 
 describe('history persistence', () => {

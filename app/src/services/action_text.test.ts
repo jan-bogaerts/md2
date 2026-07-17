@@ -23,6 +23,7 @@ function action(overrides: Partial<ActionDefinition> = {}): ActionDefinition {
         prompt: 'implement {{card-file}}',
         sourcePath: 'actions/implement.json',
         thinkingLevel: null,
+        trackFileChanges: false,
         type: 'agent',
         ...overrides,
         phrases: overrides.phrases ?? [],

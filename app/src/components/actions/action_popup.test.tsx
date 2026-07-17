@@ -31,6 +31,7 @@ function action(name: string, overrides: Partial<ActionDefinition> = {}): Action
         prompt: null,
         sourcePath: `actions/${name}.json`,
         thinkingLevel: null,
+        trackFileChanges: false,
         type: 'command',
         ...overrides,
     }

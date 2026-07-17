@@ -140,17 +140,34 @@ class ActionExecution {
             const result = action.type === 'agent'
                 ? await this.executeAgentAction(action, phase, isRoot, project)
                 : await this.executeCommandAction(action, phase, isRoot, project);
+            const committedResult = await this.commitTrackedAgentChanges(project, action, result);
             const executionProject = {
                 ...project,
-                branch: result.branch ?? project.branch,
-                rootPath: result.repositoryRoot ?? project.rootPath,
+                branch: committedResult.branch ?? project.branch,
+                rootPath: committedResult.repositoryRoot ?? project.rootPath,
             };
-            const historyInput = { action, context: this.context, project: executionProject, projectFolder: this.projectFolder, result };
+            const historyInput = {
+                action,
+                context: this.context,
+                project: executionProject,
+                projectFolder: this.projectFolder,
+                result: committedResult,
+            };
             if (action.type === 'agent') await appendAgentRunHistory(this.localGitService, historyInput);
             else await appendCommandRunHistory(this.localGitService, historyInput);
 
-            return result;
+            return committedResult;
         });
+    }
+
+    async commitTrackedAgentChanges(project, action, result) {
+        if (action.type !== 'agent' || !action.trackFileChanges) return result;
+        if (result.exitCode !== 0 || this.controller.signal.aborted) return result;
+        const changedPaths = result.changedPaths ?? [];
+        if (changedPaths.length === 0) return result;
+        const trackedCommit = await this.localGitService.commitTrackedPaths(project.rootPath, changedPaths, action.label);
+
+        return { ...result, trackedCommit };
     }
 
     executeCommandAction(action, phase, isRoot, project) {
