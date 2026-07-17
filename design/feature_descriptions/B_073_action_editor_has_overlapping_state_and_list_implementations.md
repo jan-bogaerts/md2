@@ -1,7 +1,7 @@
 ---
 id: B-073
 title: action editor has overlapping state and list implementations
-status: design
+status: ready
 owner: JB
 affects:
 policy:

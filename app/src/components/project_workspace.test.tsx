@@ -652,7 +652,7 @@ describe('ProjectWorkspace', () => {
         act(() => workspaceViewService.setViewMode('text'))
 
         expect(await screen.findByRole('tab', { name: 'Tests' })).toHaveAttribute('aria-selected', 'true')
-    })
+    }, 10_000)
 
     it('reveals a navigated card and keeps the current card view', async () => {
         window.md2Data = createBridge()

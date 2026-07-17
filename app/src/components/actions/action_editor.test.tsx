@@ -1,5 +1,7 @@
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import type { RenderResult } from '@testing-library/react'
+import { Box } from '@mui/material'
+import { useCallback, useRef, useState } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ActionDefinition, ActionFile, RawActionDefinition } from '../../data/action_types'
 import { configService } from '../../services/config_service'
@@ -7,6 +9,9 @@ import { dataService } from '../../services/data_service'
 import { actionService } from '../../services/action_service'
 import * as actionServiceModule from '../../services/action_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
+import type { MarkdownDocumentConfig, MarkdownDocumentOwnerConfig } from '../editor/markdown_document_config'
+import { MarkdownDocumentHistoryStore } from '../editor/markdown_document_history_store'
+import { MarkdownEditor, type MarkdownEditorHandle } from '../editor/markdown_editor'
 import { ActionEditor } from './action_editor'
 
 const definition = {
@@ -57,17 +62,69 @@ function reloadAction(overrides: Record<string, unknown> = {}): ActionDefinition
     return action
 }
 
-function renderEditor(action: ActionDefinition = loadAction(), states = ['ready']): RenderResult {
-    return render(
-        <AppThemeProvider>
+function ActionEditorHarness(props: { action: ActionDefinition, states: string[] }) {
+    const { action, states } = props
+    const [historyStore] = useState(() => new MarkdownDocumentHistoryStore())
+    const [owner, setOwner] = useState<MarkdownDocumentOwnerConfig | null>(null)
+    const documentsRef = useRef(new Map<string, MarkdownDocumentConfig>())
+    const editorRef = useRef<MarkdownEditorHandle>(null)
+    const handleOwnerChange = useCallback((nextOwner: MarkdownDocumentOwnerConfig) => {
+        if (nextOwner.activeDocument) documentsRef.current.set(nextOwner.activeDocument.documentId, nextOwner.activeDocument)
+        setOwner(nextOwner)
+        historyStore.retainDocuments(nextOwner.documentIds)
+    }, [historyStore])
+    const handleChange = useCallback((documentId: string, markdown: string) => {
+        const document = documentsRef.current.get(documentId)
+        if (!document) throw new Error(`Missing test Markdown document: ${documentId}`)
+        document.onChange(markdown)
+    }, [])
+    const handleEdit = useCallback((documentId: string, markdown: string) => {
+        documentsRef.current.get(documentId)?.onEdit?.(markdown)
+    }, [])
+    const handleDiscard = useCallback((documentId: string, markdown: string) => {
+        editorRef.current?.setMarkdown(markdown)
+        documentsRef.current.delete(documentId)
+        historyStore.discardDocument(documentId)
+    }, [historyStore])
+    const activeDocument = owner?.activeDocument ?? {
+        documentId: '__action-editor-test-empty__',
+        markdown: '',
+        onChange: () => undefined,
+        ownerPath: '__action-editor-test-empty__',
+    }
+
+    return (
+        <Box sx={{ display: 'flex', flexDirection: 'column' }}>
             <ActionEditor
                 action={action}
                 actions={actionService.getActions()}
                 cardTypes={['feature']}
+                discardMarkdownDocument={handleDiscard}
+                onMarkdownDocumentOwnerChange={handleOwnerChange}
                 repositoryFiles={[]}
                 specialContextTypes={['actions']}
                 states={states}
             />
+            <Box hidden={!owner?.activeDocument} sx={{ order: 1 }}>
+                <MarkdownEditor
+                    documentId={activeDocument.documentId}
+                    historyStore={historyStore}
+                    markdown={activeDocument.markdown}
+                    onDocumentChange={handleChange}
+                    onDocumentEdit={handleEdit}
+                    placeholders={activeDocument.placeholders}
+                    ref={editorRef}
+                    toolbarContents={activeDocument.toolbarContents}
+                />
+            </Box>
+        </Box>
+    )
+}
+
+function renderEditor(action: ActionDefinition = loadAction(), states = ['ready']): RenderResult {
+    return render(
+        <AppThemeProvider>
+            <ActionEditorHarness action={action} states={states} />
         </AppThemeProvider>,
     )
 }
@@ -115,7 +172,7 @@ describe('ActionEditor', () => {
         const content = screen.getByTestId('action-editor-content')
         const tabs = screen.getByRole('tablist', { name: 'Action editor sections' })
 
-        expect(editor).toHaveStyle({ display: 'flex', flex: '1', flexDirection: 'column', minHeight: '0' })
+        expect(editor).toHaveStyle({ display: 'contents' })
         expect(content).toHaveStyle({ flex: '1', minHeight: '0', overflowY: 'auto' })
         expect(content.nextElementSibling).toContainElement(tabs)
         expect(content.nextElementSibling?.parentElement).toBe(editor)
@@ -154,10 +211,11 @@ describe('ActionEditor', () => {
         renderEditor(loadAction({ phrases: [{ text: 'Run tests', title: 'Tests' }] }))
         fireEvent.click(screen.getByRole('tab', { name: 'Tests' }))
         const publishedAction = actionService.getActionByPath('actions/review.json')
-        if (!publishedAction?.editorState) throw new Error('Missing published editor state')
+        const editorState = publishedAction?.editorState
+        if (!editorState) throw new Error('Missing published editor state')
 
         act(() => actionService.setActionEditorState('actions/review.json', {
-            ...publishedAction.editorState,
+            phrases: editorState.phrases,
             selectedTab: 'prompt',
         }))
 
@@ -192,7 +250,7 @@ describe('ActionEditor', () => {
         renderEditor(loadAction({ command: 'npm run test', prompt: undefined, type: 'command' }))
 
         expect(screen.getByLabelText('Command')).toHaveValue('npm run test')
-        expect(screen.queryByTestId('mdx-editor')).not.toBeInTheDocument()
+        expect(screen.getByTestId('mdx-editor').parentElement?.parentElement).toHaveAttribute('hidden')
     })
 
     it('shows a stale onState value as unavailable without an out-of-range warning', () => {
@@ -222,14 +280,7 @@ describe('ActionEditor', () => {
 
         view.rerender(
             <AppThemeProvider>
-                <ActionEditor
-                    action={action}
-                    actions={actionService.getActions()}
-                    cardTypes={['feature']}
-                    repositoryFiles={[]}
-                    specialContextTypes={['actions']}
-                    states={['done']}
-                />
+                <ActionEditorHarness action={action} states={['done']} />
             </AppThemeProvider>,
         )
 
@@ -322,14 +373,7 @@ describe('ActionEditor', () => {
         const externalAction = reloadAction({ description: 'External description' })
         view.rerender(
             <AppThemeProvider>
-                <ActionEditor
-                    action={externalAction}
-                    actions={actionService.getActions()}
-                    cardTypes={['feature']}
-                    repositoryFiles={[]}
-                    specialContextTypes={['actions']}
-                    states={['ready']}
-                />
+                <ActionEditorHarness action={externalAction} states={['ready']} />
             </AppThemeProvider>,
         )
 
@@ -390,14 +434,7 @@ describe('ActionEditor', () => {
         const externalAction = reloadAction({ phrases: [] })
         view.rerender(
             <AppThemeProvider>
-                <ActionEditor
-                    action={externalAction}
-                    actions={actionService.getActions()}
-                    cardTypes={['feature']}
-                    repositoryFiles={[]}
-                    specialContextTypes={['actions']}
-                    states={['ready']}
-                />
+                <ActionEditorHarness action={externalAction} states={['ready']} />
             </AppThemeProvider>,
         )
 
@@ -446,14 +483,7 @@ describe('ActionEditor', () => {
 
         view.rerender(
             <AppThemeProvider>
-                <ActionEditor
-                    action={externalAction}
-                    actions={actionService.getActions()}
-                    cardTypes={['feature']}
-                    repositoryFiles={[]}
-                    specialContextTypes={['actions']}
-                    states={['ready']}
-                />
+                <ActionEditorHarness action={externalAction} states={['ready']} />
             </AppThemeProvider>,
         )
 
@@ -654,14 +684,7 @@ describe('ActionEditor', () => {
         const externalAction = reloadAction({ description: 'External change' })
         view.rerender(
             <AppThemeProvider>
-                <ActionEditor
-                    action={externalAction}
-                    actions={actionService.getActions()}
-                    cardTypes={['feature']}
-                    repositoryFiles={[]}
-                    specialContextTypes={['actions']}
-                    states={['ready']}
-                />
+                <ActionEditorHarness action={externalAction} states={['ready']} />
             </AppThemeProvider>,
         )
 
@@ -688,14 +711,7 @@ describe('ActionEditor', () => {
         const olderLocalSnapshot = reloadAction({ description: 'First local edit', phrases: [] })
         view.rerender(
             <AppThemeProvider>
-                <ActionEditor
-                    action={olderLocalSnapshot}
-                    actions={actionService.getActions()}
-                    cardTypes={['feature']}
-                    repositoryFiles={[]}
-                    specialContextTypes={['actions']}
-                    states={['ready']}
-                />
+                <ActionEditorHarness action={olderLocalSnapshot} states={['ready']} />
             </AppThemeProvider>,
         )
 
@@ -710,14 +726,7 @@ describe('ActionEditor', () => {
 
         view.rerender(
             <AppThemeProvider>
-                <ActionEditor
-                    action={externalAction}
-                    actions={actionService.getActions()}
-                    cardTypes={['feature']}
-                    repositoryFiles={[]}
-                    specialContextTypes={['actions']}
-                    states={['ready']}
-                />
+                <ActionEditorHarness action={externalAction} states={['ready']} />
             </AppThemeProvider>,
         )
 
@@ -748,14 +757,7 @@ describe('ActionEditor', () => {
 
         view.rerender(
             <AppThemeProvider>
-                <ActionEditor
-                    action={reloadedAction}
-                    actions={actionService.getActions()}
-                    cardTypes={['feature']}
-                    repositoryFiles={[]}
-                    specialContextTypes={['actions']}
-                    states={['ready']}
-                />
+                <ActionEditorHarness action={reloadedAction} states={['ready']} />
             </AppThemeProvider>,
         )
 

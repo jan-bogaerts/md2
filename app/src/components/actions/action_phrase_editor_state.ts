@@ -1,8 +1,8 @@
 import type { ActionEditorState, ActionPhrase, ActionPhraseEditorState } from '../../data/action_types'
 
-const DEFINITION_TAB = 'definition'
+export const ACTION_DEFINITION_TAB = 'definition'
 const PHRASE_TAB_PREFIX = 'phrase-'
-const PROMPT_TAB = 'prompt'
+export const ACTION_PROMPT_TAB = 'prompt'
 
 function phraseMatches(left: ActionPhrase, right: ActionPhrase) {
     return left.text === right.text && left.title === right.title
@@ -25,10 +25,10 @@ export function reconcileActionPhraseEditorState(
         const [matching] = unmatched.splice(matchingIndex, 1)
         return matching
     })
-    const selectedTab = current?.selectedTab ?? DEFINITION_TAB
+    const selectedTab = current?.selectedTab ?? ACTION_DEFINITION_TAB
     const selectedPhraseExists = nextPhrases.some(({ identity }) => identity === selectedTab)
     const nextSelectedTab = selectedTab.startsWith(PHRASE_TAB_PREFIX) && !selectedPhraseExists
-        ? PROMPT_TAB
+        ? ACTION_PROMPT_TAB
         : selectedTab
 
     const unchanged = current

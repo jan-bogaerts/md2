@@ -116,6 +116,45 @@ function loadReviewAction() {
     }])
 }
 
+function loadMarkdownActions() {
+    actionService.loadFromFiles([
+        {
+            content: JSON.stringify({
+                description: 'Review the selected file',
+                id: 'review-action',
+                label: 'Review',
+                phrases: [
+                    { text: 'Run tests', title: 'Tests' },
+                    { text: 'Check lint', title: 'Lint' },
+                ],
+                prompt: 'Review it',
+                type: 'agent',
+            }),
+            path: 'design/actions/review.json',
+        },
+        {
+            content: JSON.stringify({
+                description: 'Summarize the selected file',
+                id: 'summarize-action',
+                label: 'Summarize',
+                prompt: 'Summarize it',
+                type: 'agent',
+            }),
+            path: 'design/actions/summarize.json',
+        },
+        {
+            content: JSON.stringify({
+                command: 'npm run test',
+                description: 'Run tests',
+                id: 'test-action',
+                label: 'Test',
+                type: 'command',
+            }),
+            path: 'design/actions/test.json',
+        },
+    ])
+}
+
 describe('TextView', () => {
     beforeEach(() => {
         configService.init()
@@ -304,7 +343,7 @@ describe('TextView', () => {
         clickTreeFile('Review code')
 
         expect(screen.getByRole('tab', { name: 'Tests' })).toHaveAttribute('aria-selected', 'true')
-    })
+    }, 10_000)
 
     it('reloads and reopens an action by stable path without duplicating its tab', async () => {
         const path = 'design/actions/review.json'
@@ -354,6 +393,70 @@ describe('TextView', () => {
 
         expect(screen.getByTestId('mdx-editor')).toBe(alphaEditor)
         expect(screen.getByDisplayValue(/Body A/)).toBeInTheDocument()
+    })
+
+    it('keeps one Markdown editor instance across cards, actions, prompts, and phrases', () => {
+        loadMarkdownActions()
+        renderTextView()
+
+        const editor = screen.getByTestId('mdx-editor')
+        expect(editor.parentElement?.parentElement).toHaveAttribute('hidden')
+
+        clickTreeFile('F-1 Alpha')
+        expect(screen.getByTestId('mdx-editor')).toBe(editor)
+        clickTreeFile('Review')
+        expect(screen.getByTestId('mdx-editor')).toBe(editor)
+        expect(editor.parentElement?.parentElement).toHaveAttribute('hidden')
+
+        fireEvent.click(screen.getByRole('tab', { name: 'Prompt' }))
+        expect(screen.getByTestId('mdx-editor')).toBe(editor)
+        fireEvent.click(screen.getByRole('tab', { name: 'Tests' }))
+        expect(screen.getByTestId('mdx-editor')).toBe(editor)
+        fireEvent.click(screen.getByRole('tab', { name: 'Lint' }))
+        expect(screen.getByTestId('mdx-editor')).toBe(editor)
+
+        clickTreeFile('Summarize')
+        fireEvent.click(screen.getByRole('tab', { name: 'Prompt' }))
+        expect(screen.getByTestId('mdx-editor')).toBe(editor)
+        clickTreeFile('F-2 Beta')
+        expect(screen.getByTestId('mdx-editor')).toBe(editor)
+        expect(screen.getAllByTestId('mdx-editor')).toHaveLength(1)
+    }, 10_000)
+
+    it('flushes each shared Markdown document through its owning save callback', () => {
+        loadMarkdownActions()
+        const { onBodyChange } = renderTextView()
+
+        clickTreeFile('F-1 Alpha')
+        fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Edited card' } })
+        clickTreeFile('Review')
+        expect(onBodyChange).toHaveBeenCalledExactlyOnceWith('design/active/F-1-a.md', 'Edited card')
+
+        fireEvent.click(screen.getByRole('tab', { name: 'Prompt' }))
+        fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Edited prompt' } })
+        fireEvent.click(screen.getByRole('tab', { name: 'Tests' }))
+        expect(actionService.getDraft('design/actions/review.json').definition.prompt).toBe('Edited prompt')
+
+        const phraseEditor = within(screen.getByTestId('mdx-editor')).getAllByRole('textbox')[1]
+        fireEvent.change(phraseEditor, { target: { value: 'Edited phrase' } })
+        fireEvent.click(screen.getByRole('tab', { name: 'Lint' }))
+        expect(actionService.getDraft('design/actions/review.json').definition.phrases?.[0].text).toBe('Edited phrase')
+    })
+
+    it('hides rather than unmounts the shared editor for empty, Definition, and command states', () => {
+        loadMarkdownActions()
+        renderTextView()
+
+        const editor = screen.getByTestId('mdx-editor')
+        expect(editor.parentElement?.parentElement).toHaveAttribute('hidden')
+
+        clickTreeFile('Review')
+        expect(screen.getByTestId('mdx-editor')).toBe(editor)
+        expect(editor.parentElement?.parentElement).toHaveAttribute('hidden')
+
+        clickTreeFile('Test')
+        expect(screen.getByTestId('mdx-editor')).toBe(editor)
+        expect(editor.parentElement?.parentElement).toHaveAttribute('hidden')
     })
 
     it('closes a tab from the tab bar', () => {

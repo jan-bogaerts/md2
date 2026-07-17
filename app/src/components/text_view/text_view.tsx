@@ -14,7 +14,8 @@ import { actionService } from '../../services/action_service'
 import { agentAcknowledgementService } from '../../services/agent_acknowledgement_service'
 import { ActionEditor } from '../actions/action_editor'
 import { MarkdownDocumentHistoryStore } from '../editor/markdown_document_history_store'
-import { MarkdownEditor } from '../editor/markdown_editor'
+import { MarkdownEditor, type MarkdownEditorHandle } from '../editor/markdown_editor'
+import type { MarkdownDocumentConfig, MarkdownDocumentOwnerConfig } from '../editor/markdown_document_config'
 import { LeftPanelSlot } from '../shell/left_panel_slot'
 import { CardPropertiesPanel } from './card_properties_panel'
 import { CardPropertiesPopover } from './card_properties_popover'
@@ -29,6 +30,7 @@ import type { AgentConversation } from '../../data/data_types'
 
 const HISTORY_FOLDER_NAME = 'history'
 const LOGS_FOLDER_NAME = 'logs'
+const EMPTY_MARKDOWN_DOCUMENT_ID = '__text-view-empty__'
 
 interface TextViewProps {
     actionsFolder: string
@@ -144,6 +146,9 @@ export function TextView(props: TextViewProps) {
     })
     const [isAgentPanelOpen, setIsAgentPanelOpen] = useState(false)
     const [markdownHistoryStore] = useState(() => new MarkdownDocumentHistoryStore())
+    const [actionMarkdownOwners, setActionMarkdownOwners] = useState(() => new Map<string, MarkdownDocumentOwnerConfig>())
+    const actionMarkdownDocumentsRef = useRef(new Map<string, MarkdownDocumentConfig>())
+    const markdownEditorRef = useRef<MarkdownEditorHandle>(null)
     const onDeleteFileRef = useRef(onDeleteFile)
     const onDeleteFolderRef = useRef(onDeleteFolder)
     const onLeftPanelInteractionRef = useRef(onLeftPanelInteraction)
@@ -223,8 +228,10 @@ export function TextView(props: TextViewProps) {
     }
 
     useEffect(() => {
-        markdownHistoryStore.retainDocuments(tabs)
-    }, [markdownHistoryStore, mountedEditorPath, tabs])
+        const cardDocumentIds = tabs.filter((path) => cardsByPath.has(path))
+        const actionDocumentIds = tabs.flatMap((path) => actionMarkdownOwners.get(path)?.documentIds ?? [])
+        markdownHistoryStore.retainDocuments([EMPTY_MARKDOWN_DOCUMENT_ID, ...cardDocumentIds, ...actionDocumentIds])
+    }, [actionMarkdownOwners, cardsByPath, markdownHistoryStore, mountedEditorPath, tabs])
 
     const handleSelect = useCallback((path: string) => {
         openTab(path)
@@ -251,9 +258,36 @@ export function TextView(props: TextViewProps) {
         telemetryService.trackEvent('navigation')
     }
 
-    const handleEditorChange = (documentId: string, body: string) => {
+    const handleMarkdownDocumentChange = useCallback((documentId: string, body: string) => {
+        const actionDocument = actionMarkdownDocumentsRef.current.get(documentId)
+        if (actionDocument) {
+            actionDocument.onChange(body)
+            return
+        }
+        if (!cardsByPath.has(documentId)) throw new Error(`Unknown TextView Markdown document: ${documentId}`)
         onBodyChange(documentId, body)
-    }
+    }, [cardsByPath, onBodyChange])
+
+    const handleMarkdownDocumentEdit = useCallback((documentId: string, body: string) => {
+        actionMarkdownDocumentsRef.current.get(documentId)?.onEdit?.(body)
+    }, [])
+
+    const handleActionMarkdownDocumentOwnerChange = useCallback((owner: MarkdownDocumentOwnerConfig) => {
+        if (owner.activeDocument) actionMarkdownDocumentsRef.current.set(owner.activeDocument.documentId, owner.activeDocument)
+        setActionMarkdownOwners((current) => {
+            if (current.get(owner.ownerPath) === owner) return current
+            const next = new Map(current)
+            next.set(owner.ownerPath, owner)
+
+            return next
+        })
+    }, [])
+
+    const handleDiscardMarkdownDocument = useCallback((documentId: string, markdown: string) => {
+        markdownEditorRef.current?.setMarkdown(markdown)
+        markdownHistoryStore.discardDocument(documentId)
+        actionMarkdownDocumentsRef.current.delete(documentId)
+    }, [markdownHistoryStore])
 
     const handleOpenProperties = (event: ReactMouseEvent<HTMLElement>) => {
         setPropertiesAnchorElement(event.currentTarget)
@@ -301,6 +335,27 @@ export function TextView(props: TextViewProps) {
             />
         )
     }, [isAgentPanelOpen, markdownHistoryStore, mountedCard, mountedEditorPath, propertiesAnchorElement])
+
+    const cardMarkdownDocument = useMemo<MarkdownDocumentConfig | null>(() => (
+        mountedCard && mountedEditorPath ? {
+            documentId: mountedEditorPath,
+            markdown: mountedCard.content,
+            onChange: (body) => onBodyChange(mountedEditorPath, body),
+            ownerPath: mountedEditorPath,
+            stickyToolbar: true,
+            toolbarContents: listEditorToolbarContents,
+        } : null
+    ), [listEditorToolbarContents, mountedCard, mountedEditorPath, onBodyChange])
+    const actionMarkdownDocument = activeAction?.sourcePath
+        ? actionMarkdownOwners.get(activeAction.sourcePath)?.activeDocument ?? null
+        : null
+    const activeMarkdownDocument = activeAction ? actionMarkdownDocument : cardMarkdownDocument
+    const renderedMarkdownDocument = activeMarkdownDocument ?? {
+        documentId: EMPTY_MARKDOWN_DOCUMENT_ID,
+        markdown: '',
+        onChange: () => undefined,
+        ownerPath: EMPTY_MARKDOWN_DOCUMENT_ID,
+    }
 
     const continuationAction = continuation.conversation?.actionId
         ? actions.find(({ id }) => id === continuation.conversation?.actionId) ?? null
@@ -356,8 +411,9 @@ export function TextView(props: TextViewProps) {
                     data-testid="editor-content-pane"
                     sx={{
                         alignItems: activeCard || activeAction ? undefined : 'center',
-                        display: activeAction ? 'flex' : activeCard ? 'block' : 'flex',
+                        display: 'flex',
                         flex: 1,
+                        flexDirection: 'column',
                         justifyContent: activeCard ? undefined : 'center',
                         minHeight: 0,
                         overflow: activeAction ? 'hidden' : 'auto',
@@ -370,24 +426,30 @@ export function TextView(props: TextViewProps) {
                             action={activeAction}
                             actions={actions}
                             cardTypes={cardTypes.map(({ type }) => type)}
+                            discardMarkdownDocument={handleDiscardMarkdownDocument}
+                            onMarkdownDocumentOwnerChange={handleActionMarkdownDocumentOwnerChange}
                             repositoryFiles={repositoryFiles}
                             specialContextTypes={specialContextTypes}
                             states={states.map(({ state }) => state)}
                         />
-                    ) : mountedCard && mountedEditorPath ? (
-                        <MarkdownEditor
-                            documentId={mountedEditorPath}
-                            historyStore={markdownHistoryStore}
-                            markdown={mountedCard.content}
-                            onDocumentChange={handleEditorChange}
-                            stickyToolbar
-                            toolbarContents={listEditorToolbarContents}
-                        />
-                    ) : (
+                    ) : !mountedCard ? (
                         <Typography color="text.secondary" variant="body2">
                             Select a file from the tree to open it.
                         </Typography>
-                    )}
+                    ) : null}
+                    <Box hidden={!activeMarkdownDocument} sx={{ flex: 1, minHeight: 0, order: 1, overflowY: 'auto' }}>
+                        <MarkdownEditor
+                            documentId={renderedMarkdownDocument.documentId}
+                            historyStore={markdownHistoryStore}
+                            markdown={renderedMarkdownDocument.markdown}
+                            onDocumentChange={handleMarkdownDocumentChange}
+                            onDocumentEdit={handleMarkdownDocumentEdit}
+                            placeholders={renderedMarkdownDocument.placeholders}
+                            ref={markdownEditorRef}
+                            stickyToolbar={renderedMarkdownDocument.stickyToolbar}
+                            toolbarContents={renderedMarkdownDocument.toolbarContents}
+                        />
+                    </Box>
                 </Box>
                 {isAgentPanelOpen && activeCard ? (
                     <>

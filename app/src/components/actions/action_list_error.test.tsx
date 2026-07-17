@@ -1,4 +1,5 @@
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { useState } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ActionDefinition } from '../../data/action_types'
 import { AppThemeProvider } from '../../theme/theme_provider'
@@ -212,5 +213,32 @@ describe('action list section errors', () => {
 
         fireEvent.mouseOver(removeButton)
         expect(await screen.findByRole('tooltip', { name: 'Remove Before action' })).toBeVisible()
+    })
+
+    it('retains row-control focus after shared reorder and removal mechanics', async () => {
+        const actions = [
+            { id: 'first', label: 'First' },
+            { id: 'second', label: 'Second' },
+        ] as ActionDefinition[]
+
+        function ControlledLinks() {
+            const [value, setValue] = useState<string[] | undefined>(['first', 'second'])
+
+            return <ActionLinkListEditor actions={actions} label="After" onChange={setValue} value={value} />
+        }
+
+        renderNode(<ControlledLinks />)
+        const moveButton = screen.getAllByRole('button', { name: 'Move After action down' })[0]
+        moveButton.focus()
+        fireEvent.click(moveButton)
+        await act(async () => undefined)
+
+        expect(screen.getAllByRole('button', { name: 'Move After action down' })[1]).toHaveFocus()
+
+        const removeButton = screen.getAllByRole('button', { name: 'Remove After action' })[0]
+        removeButton.focus()
+        fireEvent.click(removeButton)
+        await act(async () => undefined)
+        expect(screen.getByRole('button', { name: 'Remove After action' })).toHaveFocus()
     })
 })
