@@ -63,7 +63,7 @@ describe('agent provider protocol', () => {
         instance.push('{"type":"assistant","message":{"content":[{"type":"text","text":"hello"},{"type":"tool_use","name":"Read"}]}}\n');
         instance.finish();
 
-        expect(events[0]).toMatchObject({ conversationId: 'session-1', type: 'system.init' });
+        expect(events[0]).toMatchObject({ conversationId: 'session-1', transcriptEvents: [] });
         expect(events[1].assistantText).toBe('hello');
     });
 

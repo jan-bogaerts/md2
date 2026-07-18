@@ -4,6 +4,7 @@ import CloudUploadOutline from 'mdi-material-ui/CloudUploadOutline'
 import ContentSaveOutline from 'mdi-material-ui/ContentSaveOutline'
 import type { RunningAgent } from '../../data/data_types'
 import type { ProjectAgentUsage } from '../../services/agents/agent_usage'
+import type { LocalSaveState } from '../../services/data/data_service'
 import { KeyboardStatus } from './keyboard_status'
 import { RemoteControlStatusIndicator } from './remote_control_status_indicator'
 import { RunningAgentsIndicator } from './running_agents_indicator'
@@ -14,14 +15,15 @@ interface StatusBarProps {
     agentUsage: ProjectAgentUsage
     agents: RunningAgent[]
     hasPendingPush: boolean
-    hasPendingSave: boolean
     isPushing: boolean
+    localSaveState: LocalSaveState
     totalCardCount: number
 }
 
 /** Compact desktop status bar for board totals, synchronization and agents. */
 export function StatusBar(props: StatusBarProps) {
-    const { activeCardCount, agentUsage, agents, hasPendingPush, hasPendingSave, isPushing, totalCardCount } = props
+    const { activeCardCount, agentUsage, agents, hasPendingPush, isPushing, localSaveState, totalCardCount } = props
+    const isSaving = localSaveState === 'saving'
 
     return (
         <Box
@@ -57,10 +59,10 @@ export function StatusBar(props: StatusBarProps) {
             <Stack
                 direction="row"
                 spacing={0.75}
-                sx={{ alignItems: 'center', color: hasPendingSave ? 'warning.main' : 'text.secondary' }}
+                sx={{ alignItems: 'center', color: localSaveState === 'saved' ? 'text.secondary' : 'warning.main' }}
             >
-                {hasPendingSave ? <CircularProgress aria-label="Saving" color="inherit" size={14} /> : <ContentSaveOutline sx={{ fontSize: 14 }} />}
-                <Box component="span">{hasPendingSave ? 'Saving changes...' : 'Saved locally'}</Box>
+                {isSaving ? <CircularProgress aria-label="Saving" color="inherit" size={14} /> : <ContentSaveOutline sx={{ fontSize: 14 }} />}
+                <Box component="span">{isSaving ? 'Saving changes...' : localSaveState === 'dirty' ? 'Dirty' : 'Saved locally'}</Box>
             </Stack>
             <Stack
                 direction="row"

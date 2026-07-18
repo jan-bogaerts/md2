@@ -1,4 +1,4 @@
-const AGENT_MESSAGE_ROLES = new Set(['agent', 'assistant', 'stderr', 'stdout', 'system', 'user'])
+const AGENT_MESSAGE_ROLES = new Set(['assistant', 'user'])
 const AGENT_STATUSES = new Set(['cancelled', 'completed', 'failed', 'running'])
 
 function requiredString(value, fieldName) {

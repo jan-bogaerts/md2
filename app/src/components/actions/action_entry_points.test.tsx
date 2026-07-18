@@ -11,6 +11,7 @@ import { cardContext, folderContext } from '../../data/action_context'
 import { DEFAULT_CARD_TYPES, type ProjectCard } from '../../data/data_types'
 import type { ActionExecutionEvent } from '../../data/action_run_types'
 import { actionExecutionService } from '../../services/actions/action_execution_service'
+import { AppThemeProvider } from '../../theme/theme_provider'
 
 function file(definition: { id: string }): ActionFile {
     return { content: JSON.stringify(definition), path: `actions/${definition.id}.json` }
@@ -111,6 +112,19 @@ describe('ActionEntryPoints filtering', () => {
         expect(screen.getByRole('menuitem', { name: 'Custom prompt' })).toBeInTheDocument()
     })
 
+    it('can restrict entry points to actions explicitly scoped to the context kind', () => {
+        actionService.loadFromFiles([
+            file(agentDefinition('generic', { label: 'Generic' })),
+            file(agentDefinition('project', { appliesTo: { kind: 'project' }, label: 'Project action' })),
+        ])
+
+        render(<ActionEntryPoints context={{ kind: 'project' }} variant="icons" visibility="explicit-context" />)
+
+        expect(screen.getByRole('button', { name: 'Project action' })).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Generic' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Custom prompt' })).not.toBeInTheDocument()
+    })
+
     it.each(['completed', 'failed', 'cancelled', 'okButNotAfter'] as const)(
         'disables card entry points while running and enables them after %s',
         (terminalStatus) => {
@@ -151,26 +165,39 @@ describe('ActionEntryPoints popup', () => {
         ])
     })
 
-    it('opens the universal popup with the first action selected from an icon entry point', () => {
-        render(<ActionEntryPoints context={cardContext(featureCard, DEFAULT_CARD_TYPES)} variant="icons" />)
+    it('opens the universal popup with the clicked action selected from an icon entry point', () => {
+        render(
+            <AppThemeProvider>
+                <ActionEntryPoints context={cardContext(featureCard, DEFAULT_CARD_TYPES)} variant="icons" />
+            </AppThemeProvider>,
+        )
 
         fireEvent.click(screen.getByRole('button', { name: 'Implement' }))
 
         const dialog = screen.getByRole('dialog')
         expect(within(dialog).getByRole('button', { name: 'Run' })).toBeInTheDocument()
-        expect(within(dialog).getByRole('button', { name: 'Create branch' })).toHaveAttribute('aria-pressed', 'true')
+        expect(within(dialog).getByRole('button', { name: 'Implement' })).toHaveAttribute('aria-pressed', 'true')
     })
 
     it('opens a popup from a menu-item entry point', () => {
-        render(<MenuList><ActionEntryPoints context={cardContext(featureCard, DEFAULT_CARD_TYPES)} variant="menuItems" /></MenuList>)
+        render(
+            <AppThemeProvider>
+                <MenuList><ActionEntryPoints context={cardContext(featureCard, DEFAULT_CARD_TYPES)} variant="menuItems" /></MenuList>
+            </AppThemeProvider>,
+        )
 
         fireEvent.click(screen.getByRole('menuitem', { name: 'Implement' }))
 
-        expect(within(screen.getByRole('dialog')).getByRole('button', { name: 'Run' })).toBeInTheDocument()
+        const dialog = within(screen.getByRole('dialog'))
+        expect(dialog.getByRole('button', { name: 'Implement' })).toHaveAttribute('aria-pressed', 'true')
     })
 
     it('switches actions through the universal selector without related-action shortcuts', () => {
-        render(<ActionEntryPoints context={cardContext(featureCard, DEFAULT_CARD_TYPES)} variant="icons" />)
+        render(
+            <AppThemeProvider>
+                <ActionEntryPoints context={cardContext(featureCard, DEFAULT_CARD_TYPES)} variant="icons" />
+            </AppThemeProvider>,
+        )
 
         fireEvent.click(screen.getByRole('button', { name: 'Implement' }))
         const dialog = within(screen.getByRole('dialog'))

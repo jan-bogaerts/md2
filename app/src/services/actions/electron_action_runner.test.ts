@@ -4,7 +4,7 @@ import type { ActionExecutionEvent } from '../../data/action_run_types'
 import { setActionBridgeOverride, type ElectronActionBridge } from '../../data/electron_action_bridge'
 import { dataService } from '../data/data_service'
 import { actionExecutionService } from './action_execution_service'
-import { cancelElectronAction, recordActionEventProcessingError, runElectronAction } from './electron_action_runner'
+import { cancelElectronAction, runElectronAction } from './electron_action_runner'
 
 const action: ActionDefinition = {
     agent: null,
@@ -50,7 +50,15 @@ function createBridge(): ElectronActionBridge {
             const emit = callback as unknown as (event: ActionExecutionEvent) => void
             emit({
                 actionId: 'test', command: 'npm test', context, executionId: 'action-1', phase: 'main', rootActionId: 'test',
-                status: 'completed', stderr: '', stdout: 'ok', type: 'action',
+                status: 'running', type: 'action',
+            })
+            emit({
+                actionId: 'test', context, executionId: 'action-1', phase: 'main', rootActionId: 'test', status: 'running', type: 'update',
+                update: { content: 'ok', kind: 'output' },
+            })
+            emit({
+                actionId: 'test', command: 'npm test', context, executionId: 'action-1', phase: 'main', rootActionId: 'test',
+                status: 'completed', type: 'action',
             })
             emit({ actionId: 'test', context, executionId: 'action-1', phase: 'main', rootActionId: 'test', status: 'completed', type: 'execution' })
 
@@ -75,7 +83,7 @@ describe('electron action runner client', () => {
 
         expect(bridge.startAction).toHaveBeenCalledWith({ actionId: 'test', context, runInput: { extraPrompt: 'focus' } })
         expect(result).toEqual({
-            logs: [{ actionName: 'test', command: 'npm test', message: 'test completed', phase: 'main', status: 'completed', stderr: '', stdout: 'ok' }],
+            logs: [{ actionId: 'test', actionName: 'test', command: 'npm test', message: 'test completed', phase: 'main', status: 'completed', stderr: '', stdout: 'ok' }],
             status: 'completed',
         })
     })
@@ -120,17 +128,6 @@ describe('electron action runner client', () => {
         const processingError = new Error('snapshot reload failed')
         setActionBridgeOverride(bridge)
         vi.spyOn(dataService.projectLoading, 'reloadCurrentProjectSnapshot').mockRejectedValue(processingError)
-
-        await expect(runElectronAction(action, context)).rejects.toBe(processingError)
-
-    })
-
-    it('rejects with original shared-consumer error', async () => {
-        const bridge = createBridge()
-        const processingError = new Error('conversation linking failed')
-        setActionBridgeOverride(bridge)
-        vi.spyOn(dataService.projectLoading, 'reloadCurrentProjectSnapshot').mockResolvedValue(null)
-        recordActionEventProcessingError('action-1', processingError)
 
         await expect(runElectronAction(action, context)).rejects.toBe(processingError)
 

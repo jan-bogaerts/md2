@@ -126,6 +126,47 @@ describe('ResizablePopper', () => {
         expect(dialog.style.top).toBe('')
     })
 
+    it('centers an unanchored draggable popper and moves it from its drag handle', () => {
+        Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800, writable: true })
+        Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1200, writable: true })
+        render(
+            <ResizablePopper
+                anchorElement={null}
+                draggable
+                initialSize={{ height: 300, width: 400 }}
+                labelId="popper-title"
+                onClose={vi.fn()}
+                open
+                resizeFromAllSides
+                resizeLabel="Resize draggable popper"
+            >
+                <div data-drag-handle="true"><h2 id="popper-title">Draggable popper</h2></div>
+            </ResizablePopper>,
+        )
+        const dialog = screen.getByRole('dialog', { name: 'Draggable popper' })
+        const dragHandle = screen.getByRole('heading', { name: 'Draggable popper' })
+        dialog.getBoundingClientRect = vi.fn(() => new DOMRect(
+            Number.parseFloat(dialog.style.left),
+            Number.parseFloat(dialog.style.top),
+            Number.parseFloat(dialog.style.width),
+            Number.parseFloat(dialog.style.height),
+        ))
+
+        expect(dialog).toHaveStyle({ height: '300px', left: '400px', position: 'fixed', top: '250px', width: '400px' })
+        fireEvent.pointerDown(dragHandle, { clientX: 450, clientY: 275, pointerId: 1 })
+        fireEvent.pointerMove(window, { clientX: 550, clientY: 325, pointerId: 1 })
+        fireEvent.pointerUp(window, { pointerId: 1 })
+
+        expect(dialog).toHaveStyle({ left: '500px', top: '300px' })
+
+        const resizeHandle = screen.getByRole('separator', { name: 'Resize draggable popper from top-left' })
+        fireEvent.pointerDown(resizeHandle, { clientX: 500, clientY: 300, pointerId: 2 })
+        fireEvent.pointerMove(window, { clientX: 450, clientY: 250, pointerId: 2 })
+        fireEvent.pointerUp(window, { pointerId: 2 })
+
+        expect(dialog).toHaveStyle({ height: '350px', left: '450px', top: '250px', width: '450px' })
+    })
+
     it('restores a saved size when reopened', () => {
         const storageKey = 'test.resizablePopperSize'
         window.localStorage.removeItem(storageKey)

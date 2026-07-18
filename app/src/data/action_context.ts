@@ -110,3 +110,12 @@ export function actionMatchesContext(action: ActionDefinition, context: ActionCo
 export function actionsForContext(actions: ActionDefinition[], context: ActionContext): ActionDefinition[] {
     return actions.filter((action) => (!action.builtin || action.id === CUSTOM_PROMPT_ACTION_ID) && actionMatchesContext(action, context))
 }
+
+/** Context actions in selector order, with the built-in custom prompt last. */
+export function displayActionsForContext(actions: ActionDefinition[], context: ActionContext): ActionDefinition[] {
+    const contextActions = actionsForContext(actions, context)
+    const customPrompt = contextActions.find(({ id }) => id === CUSTOM_PROMPT_ACTION_ID)
+    const configuredActions = contextActions.filter(({ id }) => id !== CUSTOM_PROMPT_ACTION_ID)
+
+    return customPrompt ? [...configuredActions, customPrompt] : configuredActions
+}

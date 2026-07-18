@@ -9,9 +9,15 @@ interface PopperSize {
     width?: number
 }
 
+interface PopperPosition {
+    left: number
+    top: number
+}
+
 interface ResizablePopperProps {
     anchorElement: HTMLElement | null
     children: ReactNode
+    draggable?: boolean
     fullHeight?: boolean
     initialSize: PopperSize
     labelId: string
@@ -33,10 +39,12 @@ const VIEWPORT_MARGIN = 16
 const ALL_RESIZE_DIRECTIONS = ['top', 'right', 'bottom', 'left', 'top-right', 'bottom-right', 'bottom-left', 'top-left'] as const
 type ResizeDirection = typeof ALL_RESIZE_DIRECTIONS[number]
 
+const PREVENT_VIEWPORT_OVERFLOW_MODIFIER = { name: 'preventOverflow', options: { altAxis: true, padding: VIEWPORT_MARGIN, tether: false } } as const
 const VIEWPORT_MODIFIERS: NonNullable<PopperProps['modifiers']> = [
-    { name: 'preventOverflow', options: { altAxis: true, padding: VIEWPORT_MARGIN, tether: false } },
+    PREVENT_VIEWPORT_OVERFLOW_MODIFIER,
     { name: 'flip', options: { padding: VIEWPORT_MARGIN } },
 ]
+const FULL_HEIGHT_VIEWPORT_MODIFIERS: NonNullable<PopperProps['modifiers']> = [PREVENT_VIEWPORT_OVERFLOW_MODIFIER]
 const VIEWPORT_POPPER_OPTIONS: NonNullable<PopperProps['popperOptions']> = { strategy: 'fixed' }
 
 function loadSize(initialSize: PopperSize, storageKey?: string): PopperSize {
@@ -87,11 +95,26 @@ function clampDetachedLeft(left: number, width: number) {
     return Math.min(Math.max(0, left), Math.max(0, window.innerWidth - width))
 }
 
+function clampDetachedTop(top: number, height: number) {
+    return Math.min(Math.max(0, top), Math.max(0, window.innerHeight - height))
+}
+
+function centeredPosition(size: PopperSize): PopperPosition {
+    const width = size.width ?? MIN_WIDTH
+    const height = size.height ?? MIN_HEIGHT
+
+    return {
+        left: clampDetachedLeft((window.innerWidth - width) / 2, width),
+        top: clampDetachedTop((window.innerHeight - height) / 2, height),
+    }
+}
+
 /** A non-modal anchored surface with configurable drag handles for resizing its content. */
 export function ResizablePopper(props: ResizablePopperProps) {
     const {
         anchorElement,
         children,
+        draggable = false,
         fullHeight = false,
         initialSize,
         labelId,
@@ -105,6 +128,7 @@ export function ResizablePopper(props: ResizablePopperProps) {
         storageKey,
     } = props
     const [size, setSize] = useState(() => loadSize(initialSize, storageKey))
+    const [position, setPosition] = useState<PopperPosition | null>(() => draggable ? centeredPosition(size) : null)
     const [detachedLeft, setDetachedLeft] = useState<number | null>(null)
     const anchoredLeftRef = useRef<number | null>(null)
     const paperRef = useRef<HTMLDivElement | null>(null)
@@ -134,6 +158,19 @@ export function ResizablePopper(props: ResizablePopperProps) {
 
         return () => window.removeEventListener('resize', handleViewportResize)
     }, [fullHeight, size.width])
+    useEffect(() => {
+        if (!draggable || fullHeight) return
+
+        const handleViewportResize = () => {
+            setPosition((current) => current ? {
+                left: clampDetachedLeft(current.left, size.width ?? MIN_WIDTH),
+                top: clampDetachedTop(current.top, size.height ?? MIN_HEIGHT),
+            } : centeredPosition(size))
+        }
+        window.addEventListener('resize', handleViewportResize)
+
+        return () => window.removeEventListener('resize', handleViewportResize)
+    }, [draggable, fullHeight, size])
 
     const handleKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
         if (event.key !== 'Escape') return
@@ -148,6 +185,33 @@ export function ResizablePopper(props: ResizablePopperProps) {
         anchoredLeftRef.current = paperRef.current.getBoundingClientRect().left
     }
 
+    const startDrag = (event: ReactPointerEvent) => {
+        if (!draggable || fullHeight) return
+
+        const target = event.target
+        if (!(target instanceof Element) || !target.closest('[data-drag-handle="true"]')) return
+        if (target.closest('button, input, select, textarea, a, [role="button"]')) return
+
+        event.preventDefault()
+        resizeRef.current?.abort()
+        if (!paperRef.current) throw new Error('Missing draggable popper paper element')
+
+        const controller = new AbortController()
+        const bounds = paperRef.current.getBoundingClientRect()
+        const start = { left: bounds.left, top: bounds.top, x: event.clientX, y: event.clientY }
+        resizeRef.current = controller
+
+        window.addEventListener('pointermove', (move: PointerEvent) => {
+            const width = size.width ?? bounds.width
+            const height = size.height ?? bounds.height
+            setPosition({
+                left: clampDetachedLeft(start.left + move.clientX - start.x, width),
+                top: clampDetachedTop(start.top + move.clientY - start.y, height),
+            })
+        }, { signal: controller.signal })
+        window.addEventListener('pointerup', () => controller.abort(), { signal: controller.signal })
+    }
+
     const startResize = (event: ReactPointerEvent) => {
         event.preventDefault()
         resizeRef.current?.abort()
@@ -159,6 +223,8 @@ export function ResizablePopper(props: ResizablePopperProps) {
         const bounds = paperRef.current.getBoundingClientRect()
         const start = {
             height: size.height ?? bounds.height,
+            left: bounds.left,
+            top: bounds.top,
             width: size.width ?? bounds.width,
             x: event.clientX,
             y: event.clientY,
@@ -177,28 +243,37 @@ export function ResizablePopper(props: ResizablePopperProps) {
             const height = Math.max(MIN_HEIGHT, start.height + (resizesTop ? -verticalDelta : resizesBottom ? verticalDelta : 0))
 
             setSize({ height, width })
+            if (draggable) {
+                const left = resizesLeft ? start.left + start.width - width : start.left
+                const top = resizesTop ? start.top + start.height - height : start.top
+                setPosition({ left: clampDetachedLeft(left, width), top: clampDetachedTop(top, height) })
+            }
         }, { signal: controller.signal })
         window.addEventListener('pointerup', () => controller.abort(), { signal: controller.signal })
     }
 
     const paperStyle: CSSProperties = fullHeight
         ? { height: '100vh', left: detachedLeft ?? 0, position: 'fixed', top: 0, width: size.width }
-        : size
+        : draggable
+            ? { ...size, left: position?.left ?? 0, position: 'fixed', top: position?.top ?? 0 }
+            : size
+    const detached = draggable || fullHeight
 
     return (
         <Popper
-            anchorEl={anchorElement}
-            modifiers={VIEWPORT_MODIFIERS}
+            anchorEl={anchorElement ?? (draggable ? document.body : null)}
+            modifiers={fullHeight ? FULL_HEIGHT_VIEWPORT_MODIFIERS : VIEWPORT_MODIFIERS}
             open={open}
             placement={placement}
             popperOptions={VIEWPORT_POPPER_OPTIONS}
-            sx={{ left: fullHeight ? '0 !important' : undefined, top: fullHeight ? '0 !important' : undefined, transform: fullHeight ? 'none !important' : undefined, zIndex: 'modal' }}
+            sx={{ left: detached ? '0 !important' : undefined, top: detached ? '0 !important' : undefined, transform: detached ? 'none !important' : undefined, zIndex: 'modal' }}
         >
             <Paper
                 aria-labelledby={labelId}
                 data-full-height={fullHeight ? 'true' : undefined}
                 onClickCapture={handlePaperClickCapture}
                 onKeyDown={handleKeyDown}
+                onPointerDownCapture={startDrag}
                 ref={paperRef}
                 role="dialog"
                 style={paperStyle}

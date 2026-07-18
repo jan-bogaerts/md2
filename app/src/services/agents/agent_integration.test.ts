@@ -1,5 +1,5 @@
 ﻿import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { AgentConversation, AgentRunEvent, MarkdownFile, StorageProjectFiles } from '../../data/data_types'
+import type { AgentConversation, MarkdownFile, StorageProjectFiles } from '../../data/data_types'
 import type { ActionExecutionEvent } from '../../data/action_run_types'
 import { runElectronAction } from '../actions/electron_action_runner'
 import { actionExecutionService } from '../actions/action_execution_service'
@@ -94,6 +94,7 @@ describe('AgentIntegration', () => {
         configService.init()
         vi.mocked(runElectronAction).mockResolvedValueOnce({
             logs: [{
+                actionId: 'ready-action',
                 actionName: 'ready-action',
                 command: 'run',
                 message: 'Ready failed with exit code 1',
@@ -299,7 +300,7 @@ describe('AgentIntegration', () => {
         )
     })
 
-    it('reports desktop-owned scheduled action runs in running agent state', async () => {
+    it('tracks desktop-owned scheduled runs only in the shared execution store', async () => {
         configService.init()
         let scheduledRunCallback: ((event: ActionExecutionEvent) => void) | null = null
         window.md2Actions = {
@@ -319,14 +320,15 @@ describe('AgentIntegration', () => {
 
         const context = { file: 'design/F-1-root.md', kind: 'card' as const }
         emitScheduledRun({ actionId: 'implement', context, executionId: 'schedule-1', phase: 'main', rootActionId: 'implement', status: 'running', type: 'execution' })
-        expect(service.getState().runningAgents).toEqual([expect.objectContaining({ label: 'Action implement' })])
+        expect(actionExecutionService.getRunningSnapshot()).toEqual([expect.objectContaining({ executionId: 'schedule-1' })])
+        expect(service.getState().runningAgents).toEqual([])
 
         emitScheduledRun({ actionId: 'implement', context, executionId: 'schedule-1', phase: 'main', rootActionId: 'implement', status: 'completed', type: 'execution' })
 
-        expect(service.getState().runningAgents).toHaveLength(0)
+        expect(actionExecutionService.getRunningSnapshot()).toHaveLength(0)
     })
 
-    it('records and links action agent events through one global consumer', () => {
+    it('links the final conversation reference and loads it once', async () => {
         configService.init()
         let actionRunCallback: ((event: ActionExecutionEvent) => void) | null = null
         window.md2Actions = {
@@ -336,28 +338,21 @@ describe('AgentIntegration', () => {
                 return vi.fn()
             },
         } as unknown as typeof window.md2Actions
+        const storage = createStorage()
         const service = new DataService()
-        service.init({ storage: createStorage() })
-        const recordAgentRunEvent = vi.spyOn(service.agents, 'recordAgentRunEvent').mockImplementation(() => undefined)
-        const linkAgentConversation = vi.spyOn(service.agents, 'linkAgentConversation').mockImplementation((file) => ({ content: '', path: file }))
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
         if (!actionRunCallback) throw new Error('Action run callback not registered')
         const emitActionRun = actionRunCallback as (event: ActionExecutionEvent) => void
-        const agentConversation = { ...conversation(), cardPath: 'design/F-1-root.md' }
-        const agentEvent: AgentRunEvent = { content: 'output', conversation: agentConversation, runId: 'agent-1', type: 'output' }
 
         const context = { file: 'design/F-1-root.md', kind: 'card' as const }
-        emitActionRun({actionId: 'implement', agentEvent, context, executionId: 'action-1', phase: 'main', rootActionId: 'implement', status: 'running', type: 'agent'})
         emitActionRun({
-            actionId: 'implement', context, conversation: agentConversation, executionId: 'action-1', executionWorktree: null,
-            phase: 'main', reference: 'design/logs/conversation__card__f_1_root__one.json', rootActionId: 'implement', status: 'completed', type: 'action',
+            actionId: 'implement', context, executionId: 'action-1', executionWorktree: null, phase: 'main',
+            reference: '.md2-agent-logs/one.json', rootActionId: 'implement', status: 'completed', type: 'action',
         })
 
-        expect(recordAgentRunEvent).toHaveBeenCalledTimes(1)
-        expect(linkAgentConversation).toHaveBeenCalledTimes(1)
-        expect(linkAgentConversation).toHaveBeenCalledWith(
-            'design/F-1-root.md',
-            agentConversation,
-            'design/logs/conversation__card__f_1_root__one.json',
-        )
+        await vi.waitFor(() => expect(storage.loadAgentConversation).toHaveBeenCalledTimes(1))
+        await vi.waitFor(() => expect(service.getState().snapshot?.activeCards[0].agentConversations).toHaveLength(1))
+        expect(service.getState().snapshot?.activeCards[0].header.agentLogReferences).toEqual(['.md2-agent-logs/one.json'])
     })
 })

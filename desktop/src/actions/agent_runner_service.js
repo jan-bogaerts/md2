@@ -8,7 +8,6 @@ const {
     createConversation,
     createEvent,
     createMessage,
-    hasRequiredProviderConversationId,
     updateProviderSession,
 } = require('./agent_conversation');
 const {
@@ -91,10 +90,35 @@ function terminateProcess(child) {
     });
 }
 
-function emitRunEvent(run, type, content) {
+function emitRunEvent(run, event) {
     if (!run.onEvent) return;
 
-    run.onEvent({ content, conversation: { ...run.conversation, path: run.reference }, runId: run.id, type });
+    run.onEvent({ ...event, runId: run.id });
+}
+
+function assistantMessageId(runId) {
+    return `${runId}-assistant`;
+}
+
+function appendAssistantOutput(run, content, timestamp) {
+    run.stdout += content;
+    const messageId = assistantMessageId(run.id);
+    const currentIndex = run.conversation.messages.findIndex(({ id }) => id === messageId);
+    if (currentIndex < 0) {
+        run.conversation.messages.push(createMessage(messageId, 'assistant', content, timestamp, run.agent));
+        return;
+    }
+
+    const current = run.conversation.messages[currentIndex];
+    run.conversation.messages[currentIndex] = { ...current, content: `${current.content}${content}`, timestamp };
+}
+
+function completeAssistantOutput(run, completedAt) {
+    const messageId = assistantMessageId(run.id);
+    const currentIndex = run.conversation.messages.findIndex(({ id }) => id === messageId);
+    if (currentIndex < 0) return;
+
+    run.conversation.messages[currentIndex] = { ...run.conversation.messages[currentIndex], timestamp: completedAt };
 }
 
 function createRunResult(request, exitCode, run) {
@@ -181,7 +205,6 @@ class AgentRunnerService {
             id,
             intermediatePersistTimer: null,
             lastIntermediatePersistAt: 0,
-            malformedOutput: false,
             missingSession: false,
             onComplete,
             onCompletionError,
@@ -215,7 +238,16 @@ class AgentRunnerService {
         });
         if (typeof request.contextInput === 'string' && request.contextInput.length > 0) child.stdin.write(request.contextInput);
         child.stdin.end();
-        emitRunEvent(run, 'started', '');
+        const userMessage = conversation.messages.at(-1);
+        if (!userMessage || userMessage.role !== 'user') throw new Error('Missing current agent user message');
+        emitRunEvent(run, {
+            conversationId: conversation.id,
+            reference,
+            startedAt,
+            title: conversation.title,
+            type: 'started',
+            userMessage,
+        });
 
         return { conversation: { ...conversation, path: reference }, reference, runId: id };
     }
@@ -257,12 +289,14 @@ class AgentRunnerService {
         const run = this.processes.get(runId);
         if (!run) return;
 
-        if (channel === 'stdout') run.stdout += content;
-        else run.stderr += content;
         const timestamp = new Date().toISOString();
-        run.conversation.events.push(createEvent(`${runId}-${channel}-${run.conversation.events.length}`, channel, content, timestamp));
+        if (channel === 'stdout') appendAssistantOutput(run, content, timestamp);
+        else {
+            run.stderr += content;
+            run.conversation.events.push(createEvent(`${runId}-error-${run.conversation.events.length}`, 'error', content, timestamp));
+        }
         void queueThrottledConversationPersist(run);
-        emitRunEvent(run, channel, content);
+        emitRunEvent(run, { content, type: channel === 'stdout' ? 'output' : 'error' });
     }
 
     flushStderr(runId) {
@@ -284,22 +318,23 @@ class AgentRunnerService {
         providerEvent.changedPaths.forEach((filePath) => run.changedPaths.add(filePath));
         if (providerEvent.conversationId) run.providerConversationId = providerEvent.conversationId;
         if (providerEvent.usage) run.turnUsage = providerEvent.usage;
-        run.conversation.events.push(createEvent(
-            `${runId}-provider-${run.conversation.events.length}`,
-            providerEvent.type,
-            JSON.stringify(providerEvent.event),
-            timestamp,
-        ));
+        for (const transcriptEvent of providerEvent.transcriptEvents) {
+            run.conversation.events.push(createEvent(
+                `${runId}-provider-${run.conversation.events.length}`,
+                transcriptEvent.type,
+                transcriptEvent.content,
+                timestamp,
+            ));
+        }
         if (providerEvent.assistantText.length > 0) {
-            run.stdout += providerEvent.assistantText;
-            emitRunEvent(run, 'output', providerEvent.assistantText);
+            appendAssistantOutput(run, providerEvent.assistantText, timestamp);
+            emitRunEvent(run, { content: providerEvent.assistantText, type: 'output' });
         } else if (providerEvent.errorText.length > 0 && !run.reportedProviderErrors.has(providerEvent.errorText)) {
             const separator = run.stderr.length > 0 && !run.stderr.endsWith('\n') ? '\n' : '';
             run.reportedProviderErrors.add(providerEvent.errorText);
             run.stderr += `${separator}${providerEvent.errorText}`;
-            emitRunEvent(run, 'error', providerEvent.errorText);
-        } else {
-            emitRunEvent(run, 'provider', JSON.stringify(providerEvent.event));
+            run.conversation.events.push(createEvent(`${runId}-error-${run.conversation.events.length}`, 'error', providerEvent.errorText, timestamp));
+            emitRunEvent(run, { content: providerEvent.errorText, type: 'error' });
         }
         void queueThrottledConversationPersist(run);
     }
@@ -308,13 +343,10 @@ class AgentRunnerService {
         const run = this.processes.get(runId);
         if (!run) return;
 
-        run.malformedOutput = true;
         const timestamp = new Date().toISOString();
         const message = `Malformed ${run.agent} JSONL event: ${line}`;
-        run.stderr += message;
-        run.conversation.events.push(createEvent(`${runId}-malformed-${run.conversation.events.length}`, 'error', message, timestamp));
-        emitRunEvent(run, 'error', message);
-        run.termination = terminateProcess(run.child);
+        run.conversation.events.push(createEvent(`${runId}-malformed-${run.conversation.events.length}`, 'diagnostic', message, timestamp));
+        void queueThrottledConversationPersist(run);
     }
 
     handleError(runId, error) {
@@ -326,7 +358,7 @@ class AgentRunnerService {
         run.stderr += message;
         run.conversation.events.push(createEvent(`${runId}-error-${run.conversation.events.length}`, 'error', message, timestamp));
         void queueConversationPersist(run);
-        emitRunEvent(run, 'error', message);
+        emitRunEvent(run, { content: message, type: 'error' });
     }
 
     async handleClose(runId, exitCode) {
@@ -340,21 +372,10 @@ class AgentRunnerService {
             clearIntermediatePersist(run);
             await run.writeChain;
             const completedAt = new Date().toISOString();
-            const providerConversationIdPresent = hasRequiredProviderConversationId(run);
             const succeeded = exitCode === 0
-                && !run.malformedOutput
                 && !run.missingSession
-                && !run.cancelled
-                && providerConversationIdPresent;
-            if (!providerConversationIdPresent) {
-                const message = `Missing ${run.agent} conversation id in structured output`;
-                run.stderr += message;
-                run.conversation.events.push(createEvent(`${runId}-missing-conversation-id`, 'error', message, completedAt));
-                emitRunEvent(run, 'error', message);
-            }
-            if (run.stdout.length > 0) {
-                run.conversation.messages.push(createMessage(`${runId}-assistant`, 'assistant', run.stdout, completedAt, run.agent));
-            }
+                && !run.cancelled;
+            completeAssistantOutput(run, completedAt);
             if (succeeded) {
                 const synchronizedMessage = run.conversation.messages.at(-1);
                 updateProviderSession(run, synchronizedMessage.id, completedAt);
@@ -366,7 +387,7 @@ class AgentRunnerService {
             await queueConversationPersist(run);
             this.processes.delete(runId);
             this.runningConversationIds.delete(run.conversation.id);
-            emitRunEvent(run, 'closed', String(exitCode));
+            emitRunEvent(run, { reference: run.reference, status: run.conversation.status, type: 'closed' });
             if (run.onComplete) run.onComplete(succeeded ? 0 : exitCode || 1, run);
         } catch (error) {
             if (run.onCompletionError) run.onCompletionError(error);

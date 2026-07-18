@@ -9,9 +9,9 @@ interface ListEditorToolbarControlsProps {
     agentConversationCount: number
     documentId: string
     historyStore: MarkdownDocumentHistoryStore
-    isAgentPanelOpen: boolean
+    isAgentPopupOpen: boolean
     isPropertiesOpen: boolean
-    onToggleAgentPanel: () => void
+    onToggleAgentPopup: () => void
     onOpenProperties: (event: MouseEvent<HTMLElement>) => void
     propertiesAvailable: boolean
 }
@@ -22,16 +22,16 @@ export function ListEditorToolbarControls(props: ListEditorToolbarControlsProps)
         agentConversationCount,
         documentId,
         historyStore,
-        isAgentPanelOpen,
+        isAgentPopupOpen,
         isPropertiesOpen,
         onOpenProperties,
-        onToggleAgentPanel,
+        onToggleAgentPopup,
         propertiesAvailable,
     } = props
     const endControls = (
         <>
             <Separator />
-            <Button onClick={onToggleAgentPanel} size="small" variant={isAgentPanelOpen ? 'contained' : 'outlined'}>
+            <Button onClick={onToggleAgentPopup} size="small" variant={isAgentPopupOpen ? 'contained' : 'outlined'}>
                 Agents{agentConversationCount > 0 ? ` (${agentConversationCount})` : ''}
             </Button>
             {propertiesAvailable ? (

@@ -30,7 +30,7 @@ describe('action entry-point parity', () => {
                 const executionId = `action-${requests.length}`
                 const actionEvent: ActionExecutionEvent = {
                     actionId: request.actionId, command: 'run', context: request.context, executionId, phase: 'main', rootActionId: request.actionId,
-                    status: 'completed', stderr: '', stdout: 'done', type: 'action',
+                    status: 'completed', type: 'action',
                 }
                 const executionEvent: ActionExecutionEvent = {
                     actionId: request.actionId, context: request.context, executionId, phase: 'main', rootActionId: request.actionId,

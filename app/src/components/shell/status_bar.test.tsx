@@ -15,8 +15,8 @@ describe('StatusBar', () => {
                 agentUsage={EMPTY_AGENT_USAGE}
                 agents={[]}
                 hasPendingPush={false}
-                hasPendingSave={false}
                 isPushing={false}
+                localSaveState="saved"
                 totalCardCount={5}
             />,
         )
@@ -39,8 +39,8 @@ describe('StatusBar', () => {
                 agentUsage={EMPTY_AGENT_USAGE}
                 agents={[]}
                 hasPendingPush={false}
-                hasPendingSave={false}
                 isPushing={false}
+                localSaveState="saved"
                 totalCardCount={0}
             />,
         )
@@ -48,22 +48,40 @@ describe('StatusBar', () => {
         expect(screen.queryByRole('textbox', { name: 'Status' })).toBeNull()
     })
 
-    it('shows local saving and pending push independently', () => {
+    it('shows dirty local changes without save progress', () => {
         render(
             <StatusBar
                 activeCardCount={0}
                 agentUsage={EMPTY_AGENT_USAGE}
                 agents={[]}
                 hasPendingPush
-                hasPendingSave
                 isPushing={false}
+                localSaveState="dirty"
+                totalCardCount={0}
+            />,
+        )
+
+        expect(screen.queryByRole('progressbar', { name: 'Saving' })).not.toBeInTheDocument()
+        expect(screen.getByText('Dirty')).toBeInTheDocument()
+        expect(screen.getByText('Changes ready to push')).toBeInTheDocument()
+    })
+
+    it('shows save progress while local persistence is active', () => {
+        render(
+            <StatusBar
+                activeCardCount={0}
+                agentUsage={EMPTY_AGENT_USAGE}
+                agents={[]}
+                hasPendingPush={false}
+                isPushing={false}
+                localSaveState="saving"
                 totalCardCount={0}
             />,
         )
 
         expect(screen.getByRole('progressbar', { name: 'Saving' })).toBeInTheDocument()
         expect(screen.getByText('Saving changes...')).toBeInTheDocument()
-        expect(screen.getByText('Changes ready to push')).toBeInTheDocument()
+        expect(screen.queryByText('Dirty')).not.toBeInTheDocument()
     })
 
     it('shows push progress instead of the pending push status', () => {
@@ -73,8 +91,8 @@ describe('StatusBar', () => {
                 agentUsage={EMPTY_AGENT_USAGE}
                 agents={[]}
                 hasPendingPush
-                hasPendingSave={false}
                 isPushing
+                localSaveState="saved"
                 totalCardCount={0}
             />,
         )
@@ -102,8 +120,8 @@ describe('StatusBar', () => {
                 agentUsage={agentUsage}
                 agents={[]}
                 hasPendingPush={false}
-                hasPendingSave={false}
                 isPushing={false}
+                localSaveState="saved"
                 totalCardCount={0}
             />,
         )

@@ -1,9 +1,10 @@
 import type { ActionContext } from '../../data/action_context'
 import type { ActionDefinition } from '../../data/action_types'
-import type { AgentConversation } from '../../data/data_types'
+import type { AgentConversationMessage } from '../../data/data_types'
 import type {
     ActionExecutionEvent,
     ActionExecutionStatus,
+    ActionExecutionUpdate,
     ActionRunInput,
     ActionRunLogEntry,
     ActionRunResult,
@@ -20,13 +21,22 @@ const RETAINED_EXECUTION_LIMIT = 100
 export interface LiveActionExecution {
     activeActionId: string | null
     activeActionType: ActionDefinition['type'] | null
-    conversation: AgentConversation | null
+    agentTurn: LiveAgentTurn | null
     context: ActionContext
     executionId: string
     logs: ActionRunLogEntry[]
     reference: string | null
     rootActionId: string
     status: ActionExecutionStatus
+}
+
+export interface LiveAgentTurn {
+    assistantText: string
+    conversationId: string
+    reference: string
+    startedAt: string
+    title: string
+    userMessage: AgentConversationMessage
 }
 
 export interface ActionExecutionSnapshot {
@@ -45,42 +55,58 @@ function actionType(actionId: string) {
 
 function createLog(event: ActionExecutionEvent): ActionRunLogEntry {
     return {
+        actionId: event.actionId,
         actionName: actionName(event.actionId),
-        command: event.command ?? null,
-        message: event.message ?? `${actionName(event.actionId)} ${event.status}`,
+        command: event.type === 'action' ? event.command ?? null : null,
+        message: event.type === 'action' ? event.message ?? `${actionName(event.actionId)} ${event.status}` : `${actionName(event.actionId)} running`,
         phase: event.phase,
         status: event.status,
-        stderr: event.stderr ?? '',
-        stdout: event.stdout ?? '',
-        ...(event.thinkingLevel ? { thinkingLevel: event.thinkingLevel } : {}),
+        stderr: '',
+        stdout: '',
+        ...(event.type === 'action' && event.thinkingLevel ? { thinkingLevel: event.thinkingLevel } : {}),
     }
 }
 
-function updateLogs(logs: ActionRunLogEntry[], event: ActionExecutionEvent) {
+function runningLogIndex(logs: ActionRunLogEntry[], event: ActionExecutionEvent) {
+    return logs.findLastIndex((log) => log.actionId === event.actionId && log.phase === event.phase && log.status === 'running')
+}
+
+function updateActionLogs(logs: ActionRunLogEntry[], event: Extract<ActionExecutionEvent, { type: 'action' }>) {
+    const currentIndex = runningLogIndex(logs, event)
+    if (currentIndex < 0) return [...logs, createLog(event)]
+    const current = logs[currentIndex]
+    const next = [...logs]
+    next[currentIndex] = {
+        ...current,
+        command: event.command ?? current.command,
+        message: event.message ?? `${actionName(event.actionId)} ${event.status}`,
+        status: event.status,
+        ...(event.thinkingLevel ? { thinkingLevel: event.thinkingLevel } : {}),
+    }
+
+    return next
+}
+
+function updateOutputLogs(
+    logs: ActionRunLogEntry[],
+    event: Extract<ActionExecutionEvent, { type: 'update' }>,
+    update: Extract<ActionExecutionUpdate, { kind: 'error' | 'output' }>,
+) {
     const currentIndex = logs.findLastIndex((log) => (
-        log.actionName === actionName(event.actionId) && log.phase === event.phase && log.status === 'running'
+        log.actionId === event.actionId && log.phase === event.phase && log.status === 'running'
     ))
-    if (event.status === 'running' && currentIndex >= 0) {
-        const current = logs[currentIndex]
-        const next = [...logs]
-        next[currentIndex] = {
-            ...current,
-            command: event.command ?? current.command,
-            message: event.message ?? current.message,
-            stderr: `${current.stderr}${event.stderr ?? ''}`,
-            stdout: `${current.stdout}${event.stdout ?? ''}`,
-        }
-
-        return next
+    const current = currentIndex >= 0 ? logs[currentIndex] : createLog(event)
+    const updated = {
+        ...current,
+        command: update.command ?? current.command,
+        stderr: update.kind === 'error' ? `${current.stderr}${update.content}` : current.stderr,
+        stdout: update.kind === 'output' ? `${current.stdout}${update.content}` : current.stdout,
     }
-    if (event.status !== 'running' && currentIndex >= 0) {
-        const next = [...logs]
-        next[currentIndex] = createLog(event)
+    if (currentIndex < 0) return [...logs, updated]
+    const next = [...logs]
+    next[currentIndex] = updated
 
-        return next
-    }
-
-    return [...logs, createLog(event)]
+    return next
 }
 
 function contextKey(context: ActionContext) {
@@ -102,6 +128,7 @@ export async function cancelActionExecution(executionId: string) {
 export class ActionExecutionService extends EventTarget {
     private eventListeners = new Set<EventListener>()
     private executions = new Map<string, LiveActionExecution>()
+    private runningSnapshot: LiveActionExecution[] = []
     private snapshot: ActionExecutionSnapshot = { executions: [] }
     private subscribedBridge: ElectronActionBridge | null = null
     private unsubscribeBridge: (() => void) | null = null
@@ -134,6 +161,10 @@ export class ActionExecutionService extends EventTarget {
         return this.snapshot
     }
 
+    getRunningSnapshot() {
+        return this.runningSnapshot
+    }
+
     getExecution(actionId: string, context: ActionContext) {
         const expectedContext = contextKey(context)
 
@@ -147,15 +178,15 @@ export class ActionExecutionService extends EventTarget {
 
         const expectedContext = contextKey(context)
 
-        return this.snapshot.executions.find((execution) => (
-            execution.status === 'running' && contextKey(execution.context) === expectedContext
+        return this.runningSnapshot.find((execution) => (
+            contextKey(execution.context) === expectedContext
         )) ?? null
     }
 
     getRunningExecutionForFile(filePath: string | null) {
         if (!filePath) return null
 
-        return this.snapshot.executions.find((execution) => execution.status === 'running' && execution.context.file === filePath) ?? null
+        return this.runningSnapshot.find((execution) => execution.context.file === filePath) ?? null
     }
 
     subscribeEvents(listener: EventListener) {
@@ -202,7 +233,7 @@ export class ActionExecutionService extends EventTarget {
         const current = this.executions.get(event.executionId) ?? {
             activeActionId: null,
             activeActionType: null,
-            conversation: null,
+            agentTurn: null,
             context: event.context,
             executionId: event.executionId,
             logs: [],
@@ -217,24 +248,19 @@ export class ActionExecutionService extends EventTarget {
                 ...next,
                 activeActionId: event.status === 'running' ? event.actionId : null,
                 activeActionType: event.status === 'running' ? actionType(event.actionId) : null,
-                conversation: event.conversation ?? next.conversation,
-                logs: updateLogs(next.logs, event),
+                logs: updateActionLogs(next.logs, event),
                 reference: event.reference ?? next.reference,
             }
         }
-        if (event.type === 'agent' && event.agentEvent) {
-            const { agentEvent } = event
-            const streamEvent = {
-                ...event,
-                stderr: agentEvent.type === 'error' || agentEvent.type === 'stderr' ? agentEvent.content : '',
-                stdout: agentEvent.type === 'output' ? agentEvent.content : '',
-                type: 'action' as const,
-            }
-            next = {
-                ...next,
-                conversation: agentEvent.conversation,
-                logs: streamEvent.stderr || streamEvent.stdout ? updateLogs(next.logs, streamEvent) : next.logs,
-            }
+        if (event.type === 'update' && event.update.kind === 'agentStarted') {
+            const { conversationId, reference, startedAt, title, userMessage } = event.update
+            next = { ...next, agentTurn: { assistantText: '', conversationId, reference, startedAt, title, userMessage } }
+        }
+        if (event.type === 'update' && event.update.kind !== 'agentStarted') {
+            const agentTurn = event.update.kind === 'output' && next.agentTurn
+                ? { ...next.agentTurn, assistantText: `${next.agentTurn.assistantText}${event.update.content}` }
+                : next.agentTurn
+            next = { ...next, agentTurn, logs: updateOutputLogs(next.logs, event, event.update) }
         }
         this.executions.set(event.executionId, next)
         while (this.executions.size > RETAINED_EXECUTION_LIMIT) this.executions.delete(this.executions.keys().next().value as string)
@@ -244,7 +270,12 @@ export class ActionExecutionService extends EventTarget {
 
     private publish() {
         this.snapshot = { executions: [...this.executions.values()] }
+        const nextRunningSnapshot = this.snapshot.executions.filter(({ status }) => status === 'running')
+        const runningChanged = nextRunningSnapshot.length !== this.runningSnapshot.length
+            || nextRunningSnapshot.some(({ executionId }, index) => this.runningSnapshot[index]?.executionId !== executionId)
+        if (runningChanged) this.runningSnapshot = nextRunningSnapshot
         this.dispatchEvent(new CustomEvent('changed'))
+        if (runningChanged) this.dispatchEvent(new CustomEvent('runningChanged'))
     }
 }
 

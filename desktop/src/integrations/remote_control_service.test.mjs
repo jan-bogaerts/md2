@@ -61,7 +61,7 @@ function createDispatcher(overrides = {}) {
             throw new Error('method failed');
         },
         runSearchRegexpAgent: async (_input, onEvent) => {
-            onEvent({ content: 'hello', conversation: { id: 'run-1' }, runId: 'run-1', type: 'stdout' });
+            onEvent({ content: 'hello', runId: 'run-1', type: 'output' });
 
             return 'foo.*bar';
         },
@@ -156,7 +156,7 @@ describe('RemoteControlService', () => {
         expect(agentPush).toEqual({
             event: 'agentRun',
             payload: {
-                event: { content: 'hello', conversation: { id: 'run-1' }, runId: 'run-1', type: 'stdout' },
+                event: { content: 'hello', runId: 'run-1', type: 'output' },
                 requestId: 'agent-1',
             },
         });

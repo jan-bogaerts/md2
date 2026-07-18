@@ -190,7 +190,7 @@ export interface RunningAgent {
 }
 
 export type AgentConversationStatus = 'cancelled' | 'completed' | 'failed' | 'running'
-export type AgentMessageRole = 'agent' | 'assistant' | 'stderr' | 'stdout' | 'system' | 'user'
+export type AgentMessageRole = 'assistant' | 'user'
 
 export interface AgentConversationMessage {
     agent?: string
@@ -245,12 +245,27 @@ export interface AgentConversationError {
     path: string
 }
 
-export interface AgentRunEvent {
-    content: string
-    conversation: AgentConversation
-    runId: string
-    type: string
-}
+export type AgentRunEvent =
+    | {
+        conversationId: string
+        reference: string
+        runId: string
+        startedAt: string
+        title: string
+        type: 'started'
+        userMessage: AgentConversationMessage
+    }
+    | {
+        content: string
+        runId: string
+        type: 'error' | 'output'
+    }
+    | {
+        reference: string
+        runId: string
+        status: AgentConversationStatus
+        type: 'closed'
+    }
 
 export interface StorageProjectFiles {
     files: MarkdownFile[]

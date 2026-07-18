@@ -29,7 +29,7 @@ function executionEvent(status: ActionExecutionEvent['status']): ActionExecution
 describe('ActionExecutionService', () => {
     afterEach(() => setActionBridgeOverride(null))
 
-    it('tracks context, streams chunks, and replaces them with terminal output', () => {
+    it('tracks context and accumulates output deltas until the action finishes', () => {
         const { bridge, emit } = bridgeWithEvents()
         setActionBridgeOverride(bridge)
         const service = new ActionExecutionService()
@@ -38,11 +38,15 @@ describe('ActionExecutionService', () => {
         emit(executionEvent('running'))
         emit({
             actionId: 'build', command: 'npm test', context, executionId: 'execution-1', phase: 'main', rootActionId: 'build',
-            status: 'running', stdout: 'first ', type: 'action',
+            status: 'running', type: 'action',
         })
         emit({
-            actionId: 'build', context, executionId: 'execution-1', phase: 'main', rootActionId: 'build', status: 'running',
-            stderr: 'warning', type: 'action',
+            actionId: 'build', context, executionId: 'execution-1', phase: 'main', rootActionId: 'build', status: 'running', type: 'update',
+            update: { content: 'first ', kind: 'output' },
+        })
+        emit({
+            actionId: 'build', context, executionId: 'execution-1', phase: 'main', rootActionId: 'build', status: 'running', type: 'update',
+            update: { content: 'warning', kind: 'error' },
         })
 
         expect(service.getRunningExecutionForFile(context.file)).toMatchObject({ executionId: 'execution-1' })
@@ -50,12 +54,12 @@ describe('ActionExecutionService', () => {
 
         emit({
             actionId: 'build', context, executionId: 'execution-1', phase: 'main', rootActionId: 'build', status: 'cancelled',
-            stderr: '', stdout: 'final', type: 'action',
+            type: 'action',
         })
         emit(executionEvent('cancelled'))
 
         expect(service.getRunningExecutionForFile(context.file)).toBeNull()
-        expect(service.getSnapshot().executions[0].logs[0]).toMatchObject({ status: 'cancelled', stdout: 'final' })
+        expect(service.getSnapshot().executions[0].logs[0]).toMatchObject({ status: 'cancelled', stderr: 'warning', stdout: 'first ' })
         service.stop()
     })
 
@@ -72,30 +76,47 @@ describe('ActionExecutionService', () => {
         service.stop()
     })
 
-    it('adds live agent assistant output to shared execution logs', () => {
+    it('builds a live agent turn from start metadata and output deltas', () => {
         const { bridge, emit } = bridgeWithEvents()
         setActionBridgeOverride(bridge)
         const service = new ActionExecutionService()
         service.start()
-        const conversation = {
-            actionId: 'review', cardPath: context.file, completedAt: null, events: [], hasExplicitTitle: true, id: 'conversation-1', messages: [], path: 'log.json',
-            providerSessions: [], startedAt: 'now', status: 'running' as const, title: 'Review',
-        }
+        const userMessage = { content: 'Review this', id: 'message-1', role: 'user' as const, timestamp: 'now' }
 
         emit({ actionId: 'review', context, executionId: 'execution-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'execution' })
         emit({ actionId: 'review', context, executionId: 'execution-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'action' })
         emit({
-            actionId: 'review',
-            agentEvent: { content: 'live answer', conversation, runId: 'turn-1', type: 'output' },
-            context,
-            executionId: 'execution-1',
-            phase: 'main',
-            rootActionId: 'review',
-            status: 'running',
-            type: 'agent',
+            actionId: 'review', context, executionId: 'execution-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
+            update: { conversationId: 'conversation-1', kind: 'agentStarted', reference: 'log.json', startedAt: 'now', title: 'Review', userMessage },
+        })
+        emit({
+            actionId: 'review', context, executionId: 'execution-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
+            update: { content: 'live answer', kind: 'output' },
         })
 
-        expect(service.getSnapshot().executions[0]).toMatchObject({ conversation, logs: [{ stdout: 'live answer' }] })
+        expect(service.getSnapshot().executions[0]).toMatchObject({
+            agentTurn: { assistantText: 'live answer', conversationId: 'conversation-1', reference: 'log.json', userMessage },
+            logs: [{ stdout: 'live answer' }],
+        })
+        service.stop()
+    })
+
+    it('does not notify running-only subscribers for output deltas', () => {
+        const { bridge, emit } = bridgeWithEvents()
+        setActionBridgeOverride(bridge)
+        const service = new ActionExecutionService()
+        const runningChanged = vi.fn()
+        service.addEventListener('runningChanged', runningChanged)
+        service.start()
+
+        emit(executionEvent('running'))
+        emit({
+            actionId: 'build', context, executionId: 'execution-1', phase: 'main', rootActionId: 'build', status: 'running', type: 'update',
+            update: { content: 'chunk', kind: 'output' },
+        })
+        emit(executionEvent('completed'))
+
+        expect(runningChanged).toHaveBeenCalledTimes(2)
         service.stop()
     })
 })

@@ -2,7 +2,7 @@
 import { GithubUnauthorizedError } from '../../auth/github_api_client'
 import { configService } from '../config/config_service'
 import { actionService } from '../actions/action_service'
-import { DataService } from './data_service'
+import { DataService, type LocalSaveState } from './data_service'
 import { GithubStorageService } from '../github/github_storage_service'
 import { openFilesService } from '.././open_files_service'
 import {
@@ -39,25 +39,33 @@ describe('DataService', () => {
         expect(handleUnauthorized).toHaveBeenCalledTimes(1)
     })
 
-    it('keeps action persistence pending until the configured commit batch completes', async () => {
+    it('distinguishes queued dirty changes from active saving', async () => {
         vi.useFakeTimers()
         configService.init()
-        const storage = createStorage()
+        const commit = createDeferred<never[]>()
+        const storage = createStorage({ commit: vi.fn(() => commit.promise) })
         const service = new DataService()
         service.init({ storage })
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
-        const pendingStates: boolean[] = []
-        service.addEventListener('changed', () => pendingStates.push(service.getState().hasPendingSave))
+        const saveStates: LocalSaveState[] = []
+        service.addEventListener('changed', () => saveStates.push(service.getState().localSaveState))
 
         await service.persistActionFile({ content: '{}', path: 'actions/review.json' })
         expect(service.getState().hasPendingSave).toBe(true)
+        expect(service.getState().localSaveState).toBe('dirty')
         expect(storage.commit).not.toHaveBeenCalled()
 
-        await vi.advanceTimersByTimeAsync(30000)
+        const flush = service.flushPendingChanges()
+        await vi.waitFor(() => expect(storage.commit).toHaveBeenCalledTimes(1))
+        expect(service.getState().localSaveState).toBe('saving')
+
+        commit.resolve([])
+        await flush
         expect(service.getState().hasPendingSave).toBe(false)
-        expect(storage.commit).toHaveBeenCalledTimes(1)
-        expect(pendingStates).toContain(true)
-        expect(pendingStates.at(-1)).toBe(false)
+        expect(service.getState().localSaveState).toBe('saved')
+        expect(saveStates).toContain('dirty')
+        expect(saveStates).toContain('saving')
+        expect(saveStates.at(-1)).toBe('saved')
     })
 
     it('discards queued action persistence before lifecycle flushing', async () => {

@@ -22,10 +22,12 @@ import type { CardParseError } from './markdown_parsing_service'
 import { openFilesService } from '.././open_files_service'
 
 export type { RemarkableImportInput }
+export type LocalSaveState = 'dirty' | 'saved' | 'saving'
 
 export interface DataServiceState {
     hasPendingPush: boolean
     hasPendingSave: boolean
+    localSaveState: LocalSaveState
     project: ProjectReference | null
     runningAgents: RunningAgent[]
     snapshot: ProjectSnapshot | null
@@ -53,7 +55,6 @@ export class DataService extends EventTarget {
     readonly releases: ReleaseOperations
 
     private commitBatcher: CommitBatcher | null = null
-    private finishPendingCommitBatchSave: (() => void) | null = null
     private remarkableBridge: RemarkableBridge | null = null
     private storage: StorageService | null = null
     private readonly projectState: ProjectState
@@ -80,8 +81,6 @@ export class DataService extends EventTarget {
     }
 
     init(dependencies: DataServiceDependencies) {
-        this.finishPendingCommitBatchSave?.()
-        this.finishPendingCommitBatchSave = null
         this.projectLoading.reset()
         this.agents.reset()
         this.projectState.resetLoadedProject()
@@ -98,7 +97,7 @@ export class DataService extends EventTarget {
             commit: (request) => this.cards.commitFiles(request),
             delayMs,
             onFlushError: (error) => this.reportCommitFlushFailure(error),
-            onPendingChange: () => this.syncPendingCommitBatchSaveState(),
+            onPendingChange: () => this.dispatchChanged(),
             setDelay: (callback, delay) => window.setTimeout(callback, delay),
         })
         this.dispatchChanged()
@@ -106,13 +105,19 @@ export class DataService extends EventTarget {
 
     getState(): DataServiceState {
         const currentProject = this.projectState.project
+        const { isSaving } = this.saveStateService.getState()
+        const hasPendingCommitBatch = this.commitBatcher?.hasPending() ?? false
+        const hasPendingDrafts = actionService.hasPendingDrafts()
+        const hasPendingSave = isSaving || hasPendingCommitBatch || hasPendingDrafts
+        const localSaveState = isSaving ? 'saving' : hasPendingSave ? 'dirty' : 'saved'
         const hasPendingPush = currentProject
             ? this.storage?.hasPendingPush?.(currentProject) ?? false
             : false
 
         return {
             hasPendingPush,
-            hasPendingSave: this.saveStateService.getState().hasPendingSave || actionService.hasPendingDrafts(),
+            hasPendingSave,
+            localSaveState,
             project: currentProject,
             runningAgents: agentConversationService.getRunningAgents(),
             snapshot: this.projectState.snapshot,
@@ -233,7 +238,6 @@ export class DataService extends EventTarget {
     private createAgentIntegrationDependencies(): AgentIntegrationDeps {
         return {
             beginAgentConversationLoad: () => this.projectState.beginAgentConversationLoad(),
-            dispatchChanged: () => this.dispatchChanged(),
             isCurrentAgentConversationLoad: (agentConversationLoadToken) => (
                 this.projectState.isCurrentAgentConversationLoad(agentConversationLoadToken)
             ),
@@ -284,17 +288,6 @@ export class DataService extends EventTarget {
     }
     private reportCommitFlushFailure(error: unknown) {
         reportCommitFlushFailure(error, () => this.dispatchChanged())
-    }
-    private syncPendingCommitBatchSaveState() {
-        const hasPendingCommitBatch = this.commitBatcher?.hasPending() ?? false
-        if (hasPendingCommitBatch && !this.finishPendingCommitBatchSave) {
-            this.finishPendingCommitBatchSave = this.saveStateService.beginSave()
-            return
-        }
-        if (hasPendingCommitBatch || !this.finishPendingCommitBatchSave) return
-
-        this.finishPendingCommitBatchSave()
-        this.finishPendingCommitBatchSave = null
     }
     private requireDependencies() {
         if (!this.storage) throw new Error('Data service storage is not initialized')

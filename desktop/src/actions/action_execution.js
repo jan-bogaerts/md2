@@ -69,7 +69,7 @@ class ActionExecution {
             failure = error;
             status = 'failed';
             const message = errorMessage(error, `${this.rootAction.label} history recording failed`);
-            this.publish(this.rootAction, 'main', 'failed', { message, stderr: message, stdout: '', type: 'action' });
+            this.publish(this.rootAction, 'main', 'failed', { message, type: 'action' });
         }
 
         const result = {
@@ -108,13 +108,10 @@ class ActionExecution {
             if (this.controller.signal.aborted) {
                 this.publish(action, phase, 'cancelled', {
                     command: Array.isArray(result.command) ? result.command.join(' ') : result.command,
-                    conversation: result.conversation,
                     executionWorktree: result.executionWorktree,
                     message: 'Action cancelled',
                     reference: result.reference,
                     runId: result.runId,
-                    stderr: result.stderr,
-                    stdout: result.stdout,
                     thinkingLevel: result.thinkingLevel,
                     type: 'action',
                 });
@@ -127,13 +124,10 @@ class ActionExecution {
             const output = combineOutput(result);
             this.publish(action, phase, status, {
                 command: Array.isArray(result.command) ? result.command.join(' ') : result.command,
-                conversation: result.conversation,
                 executionWorktree: result.executionWorktree,
                 message: status === 'completed' ? `${action.label} completed` : `${action.label} failed with exit code ${result.exitCode}`,
                 reference: result.reference,
                 runId: result.runId,
-                stderr: result.stderr,
-                stdout: result.stdout,
                 thinkingLevel: result.thinkingLevel,
                 type: 'action',
             });
@@ -148,7 +142,7 @@ class ActionExecution {
             if (error instanceof ActionPhaseError) throw error;
 
             const message = errorMessage(error, `${action.label} failed`);
-            this.publish(action, phase, 'failed', { message, stderr: message, stdout: '', type: 'action' });
+            this.publish(action, phase, 'failed', { message, type: 'action' });
             throw new ActionPhaseError(message, phase, rootPhase, error);
         }
     }
@@ -225,12 +219,10 @@ class ActionExecution {
     }
 
     executeCommandAction(action, phase, isRoot, project) {
-        const onOutput = ({ command, stderr, stdout }) => this.publish(action, phase, 'running', {
-            command,
-            stderr,
-            stdout,
-            type: 'action',
-        });
+        const onOutput = ({ command, stderr, stdout }) => {
+            if (stdout.length > 0) this.publish(action, phase, 'running', { type: 'update', update: { command, content: stdout, kind: 'output' } });
+            if (stderr.length > 0) this.publish(action, phase, 'running', { type: 'update', update: { command, content: stderr, kind: 'error' } });
+        };
 
         return executeCommandAction({
             action,
@@ -247,7 +239,18 @@ class ActionExecution {
         const onActiveRunChange = (runId) => {
             this.activeAgentRunId = runId;
         };
-        const onEvent = (agentEvent) => this.publish(action, phase, 'running', { agentEvent, type: 'agent' });
+        const onEvent = (agentEvent) => {
+            if (agentEvent.type === 'started') {
+                const { conversationId, reference, startedAt, title, userMessage } = agentEvent;
+                const update = { conversationId, kind: 'agentStarted', reference, startedAt, title, userMessage };
+                this.publish(action, phase, 'running', { type: 'update', update });
+                return;
+            }
+            if (agentEvent.type === 'closed') return;
+
+            const update = { content: agentEvent.content, kind: agentEvent.type };
+            this.publish(action, phase, 'running', { type: 'update', update });
+        };
         const runInput = isRoot ? this.runInput : { extraPrompt: '' };
 
         return this.agentExecutor.execute({

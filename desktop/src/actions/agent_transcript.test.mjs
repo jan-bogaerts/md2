@@ -7,9 +7,9 @@ const { normalizeConversationContext } = require('./agent_transcript');
 function conversation() {
     return {
         events: [
-            { content: JSON.stringify({ item: { aggregated_output: 'tests passed', type: 'command_execution' }, type: 'item.completed' }), id: 'e1', timestamp: '2026-01-01T00:00:02.500Z', type: 'item.completed' },
-            { content: JSON.stringify({ item: { text: 'hidden', type: 'reasoning' }, type: 'item.completed' }), id: 'e2', timestamp: '2026-01-01T00:00:02.600Z', type: 'item.completed' },
-            { content: 'permission denied', id: 'e3', timestamp: '2026-01-01T00:00:02.700Z', type: 'stderr' },
+            { content: 'tests passed', id: 'e1', timestamp: '2026-01-01T00:00:02.500Z', type: 'tool.command_execution' },
+            { content: 'hidden', id: 'e2', timestamp: '2026-01-01T00:00:02.600Z', type: 'diagnostic' },
+            { content: 'permission denied', id: 'e3', timestamp: '2026-01-01T00:00:02.700Z', type: 'error' },
         ],
         messages: [
             { content: 'first', id: 'm1', role: 'user', timestamp: '2026-01-01T00:00:01.000Z' },
@@ -40,7 +40,7 @@ describe('normalizeConversationContext', () => {
         expect(result).not.toContain('answer');
     });
 
-    it('uses full history when legacy cursor does not exist', () => {
+    it('uses full history when the provider cursor does not exist', () => {
         expect(normalizeConversationContext(conversation(), 'missing')).toContain('first');
     });
 });

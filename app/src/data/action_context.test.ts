@@ -4,6 +4,7 @@ import {
     actionMatchesContext,
     actionsForContext,
     cardContext,
+    displayActionsForContext,
     fileContext,
     folderContext,
     getCardType,
@@ -162,5 +163,14 @@ describe('actionsForContext', () => {
 
         expect(actionsForContext(actions, projectContext()).map(({ id }) => id))
             .toEqual([BUILTIN_CUSTOM_PROMPT.id, 'action-project-only'])
+    })
+})
+
+describe('displayActionsForContext', () => {
+    it('places the custom prompt after configured matching actions', () => {
+        const actions = [BUILTIN_CUSTOM_PROMPT, action('feature-only', { type: 'feature' })]
+
+        expect(displayActionsForContext(actions, cardContext(card('F-010', 'design'), DEFAULT_CARD_TYPES)).map(({ id }) => id))
+            .toEqual(['action-feature-only', BUILTIN_CUSTOM_PROMPT.id])
     })
 })

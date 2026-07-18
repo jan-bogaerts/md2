@@ -15,29 +15,29 @@ const STORAGE_SAVE_METHODS = new Set<PropertyKey>([
 ])
 
 export interface SaveState {
-    hasPendingSave: boolean
+    isSaving: boolean
 }
 
-/** Tracks queued and active local persistence operations for global UI state. */
+/** Tracks active local persistence operations for global UI state. */
 export class SaveStateService extends EventTarget {
-    private pendingSaveCount = 0
+    private activeSaveCount = 0
 
     beginSave() {
-        this.pendingSaveCount += 1
-        if (this.pendingSaveCount === 1) this.dispatchChanged()
+        this.activeSaveCount += 1
+        if (this.activeSaveCount === 1) this.dispatchChanged()
 
         let finished = false
 
         return () => {
             if (finished) return
             finished = true
-            this.pendingSaveCount -= 1
-            if (this.pendingSaveCount === 0) this.dispatchChanged()
+            this.activeSaveCount -= 1
+            if (this.activeSaveCount === 0) this.dispatchChanged()
         }
     }
 
     getState(): SaveState {
-        return { hasPendingSave: this.pendingSaveCount > 0 }
+        return { isSaving: this.activeSaveCount > 0 }
     }
 
     async track<T>(operation: () => Promise<T>): Promise<T> {

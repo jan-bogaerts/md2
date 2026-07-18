@@ -38,7 +38,7 @@ export function MainWindow(props: MainWindowProps) {
     const theme = useTheme()
     const isMobile = useMediaQuery(theme.breakpoints.down('md'))
     const [isMenuOpen, setIsMenuOpen] = useState(false)
-    const { hasPendingPush, hasPendingSave, project, snapshot } = useProjectState()
+    const { hasPendingPush, localSaveState, project, snapshot } = useProjectState()
     const { isPushing } = useProjectSession()
     const { viewMode } = useWorkspaceView()
     const projectConfig = useProjectConfig()
@@ -135,7 +135,7 @@ export function MainWindow(props: MainWindowProps) {
                             agentUsage={agentUsage}
                             agents={agents}
                             hasPendingPush={hasPendingPush}
-                            hasPendingSave={hasPendingSave}
+                            localSaveState={localSaveState}
                             isPushing={isPushing}
                             totalCardCount={totalCardCount}
                         />

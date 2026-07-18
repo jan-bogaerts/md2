@@ -28,6 +28,7 @@ interface ActionPopupContentProps {
     actions: ActionDefinition[]
     anchorElement: HTMLElement | null
     context: ActionContext
+    draggable?: boolean
     fullHeight: boolean
     onAddAction: () => void
     onClose: () => void
@@ -42,7 +43,7 @@ interface ActionPopupContentProps {
 /** Presentation and execution behavior for the internally selected popup action. */
 export function ActionPopupContent(props: ActionPopupContentProps) {
     const {
-        action, actions, anchorElement, context, fullHeight, onAddAction, onClose, onSelectAction,
+        action, actions, anchorElement, context, draggable, fullHeight, onAddAction, onClose, onSelectAction,
         onToggleFullHeight, open, showSaveControls, titleId,
     } = props
     const controller = useActionPopupController({
@@ -66,6 +67,7 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
     return (
         <ResizablePopper
             anchorElement={anchorElement}
+            draggable={draggable}
             fullHeight={fullHeight}
             initialSize={{ height: 450, width: 400 }}
             labelId={titleId}
@@ -89,7 +91,13 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
             >
                 Run actions
             </Typography>
-            <Box sx={{ alignItems: 'flex-start', borderBottom: 1, borderColor: 'divider', display: 'flex', gap: 1, px: 1.5, py: 1.5 }}>
+            <Box
+                data-drag-handle={draggable ? 'true' : undefined}
+                sx={{
+                    alignItems: 'flex-start', borderBottom: 1, borderColor: 'divider', cursor: draggable ? 'move' : undefined,
+                    display: 'flex', gap: 1, px: 1.5, py: 1.5,
+                }}
+            >
                 <ActionSelector
                     adding={showSaveControls}
                     actions={actions}

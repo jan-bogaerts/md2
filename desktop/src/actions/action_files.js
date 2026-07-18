@@ -19,7 +19,7 @@ const { actionHistoryFilePath } = require('./project_log_paths');
 
 const JSON_EXTENSION = '.json';
 const actionHistoryWriteQueues = new Map();
-const COMMIT_STAT_FIELDS = ['filesChanged', 'insertions', 'deletions'];
+const ACTION_HISTORY_STATUSES = new Set(['completed', 'failed']);
 
 function scheduleFilePath(rootPath, actionsFolder) {
     const actionsFolderPath = ensureInsideRoot(rootPath, path.join(rootPath, actionsFolder));
@@ -37,29 +37,52 @@ async function readJsonArray(filePath) {
     return parsed;
 }
 
-function requireCommitStat(value, fieldName) {
-    if (!Number.isInteger(value) || value < 0) throw new Error(`Malformed action history: ${fieldName} must be a non-negative integer`);
+function isNonNegativeInteger(value) {
+    return Number.isInteger(value) && value >= 0;
 }
 
-function validateCommitReference(commitReference, entryIndex, commitIndex) {
-    if (!commitReference || typeof commitReference !== 'object' || Array.isArray(commitReference)) {
-        throw new Error(`Malformed action history: entries[${entryIndex}].commits[${commitIndex}] must be an object`);
-    }
-    const fieldPath = `entries[${entryIndex}].commits[${commitIndex}]`;
-    for (const field of COMMIT_STAT_FIELDS) requireCommitStat(commitReference[field], `${fieldPath}.${field}`);
+function isUsableCommitReference(value) {
+    return !!value
+        && typeof value === 'object'
+        && !Array.isArray(value)
+        && typeof value.actionId === 'string'
+        && typeof value.actionName === 'string'
+        && typeof value.branch === 'string'
+        && typeof value.commit === 'string'
+        && typeof value.committedAt === 'string'
+        && isNonNegativeInteger(value.deletions)
+        && Array.isArray(value.filePaths)
+        && value.filePaths.every((filePath) => typeof filePath === 'string')
+        && isNonNegativeInteger(value.filesChanged)
+        && isNonNegativeInteger(value.insertions)
+        && typeof value.repositoryRoot === 'string';
 }
 
-function validateActionHistory(entries) {
-    for (const [entryIndex, entry] of entries.entries()) {
-        if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
-            throw new Error(`Malformed action history: entries[${entryIndex}] must be an object`);
-        }
-        if (entry.commits === undefined) continue;
-        if (!Array.isArray(entry.commits)) throw new Error(`Malformed action history: entries[${entryIndex}].commits must be an array`);
-        entry.commits.forEach((commitReference, commitIndex) => validateCommitReference(commitReference, entryIndex, commitIndex));
-    }
+function normalizeActionHistoryEntry(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+    if (typeof value.completedAt !== 'string') return null;
+    if (typeof value.output !== 'string') return null;
+    if (typeof value.prompt !== 'string') return null;
+    if (!ACTION_HISTORY_STATUSES.has(value.status)) return null;
 
-    return entries;
+    const entry = {
+        completedAt: value.completedAt,
+        output: value.output,
+        prompt: value.prompt,
+        status: value.status,
+    };
+    const commits = Array.isArray(value.commits) ? value.commits.filter(isUsableCommitReference) : [];
+    if (commits.length > 0) entry.commits = commits;
+    if (typeof value.agent === 'string' || value.agent === null) entry.agent = value.agent;
+    if (typeof value.command === 'string') entry.command = value.command;
+    if (typeof value.model === 'string') entry.model = value.model;
+    if (typeof value.thinkingLevel === 'string') entry.thinkingLevel = value.thinkingLevel;
+
+    return entry;
+}
+
+function normalizeActionHistory(entries) {
+    return entries.map(normalizeActionHistoryEntry).filter((entry) => entry !== null);
 }
 
 async function readActionScheduleFile(filePath) {
@@ -99,7 +122,7 @@ async function loadActionRunHistory(project, request) {
 
     const filePath = actionHistoryFilePath(rootPath, request.projectFolder, request.actionId, request.context);
 
-    return validateActionHistory(await readJsonArray(filePath));
+    return normalizeActionHistory(await readJsonArray(filePath));
 }
 
 async function writeActionRunHistory(rootPath, filePath, entry) {

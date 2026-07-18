@@ -140,6 +140,7 @@ export function FileTreeNodeRow(props: NodeRendererProps<TreeNode>) {
                 anchorEl={menuAnchor}
                 anchorPosition={menuPosition ?? undefined}
                 anchorReference={menuPosition ? 'anchorPosition' : 'anchorEl'}
+                keepMounted
                 onClose={closeMenu}
                 open={!!menuAnchor || !!menuPosition}
             >

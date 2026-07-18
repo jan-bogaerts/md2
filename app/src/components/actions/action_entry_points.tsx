@@ -1,7 +1,8 @@
 import { IconButton, ListItemIcon, MenuItem, Stack, Tooltip } from '@mui/material'
 import { useEffect, useMemo, useState } from 'react'
-import { actionsForContext, type ActionContext } from '../../data/action_context'
-import { CUSTOM_PROMPT_ACTION_ID, type ActionDefinition } from '../../data/action_types'
+import type { MouseEvent } from 'react'
+import { displayActionsForContext, type ActionContext } from '../../data/action_context'
+import type { ActionDefinition } from '../../data/action_types'
 import { useActions } from '../hooks/use_actions'
 import { useRunningActionForContext } from '../hooks/use_action_executions'
 import { ActionIcon } from './action_icon'
@@ -10,16 +11,22 @@ import { ActionPopup } from './action_popup'
 
 /** How action entry points are rendered in an existing toolbar or menu. */
 export type ActionEntryVariant = 'icons' | 'menuItems'
+export type ActionEntryVisibility = 'all-matching' | 'explicit-context'
 
 interface ActionEntryPointsProps {
-    actions?: ActionDefinition[]
     context: ActionContext
     onMenuItemSelected?: () => void
     popupAnchorElement?: HTMLElement | null
     variant: ActionEntryVariant
+    visibility?: ActionEntryVisibility
 }
 
 const DEFAULT_ICON_SOURCE: ActionIconSource = { dataUri: null }
+
+interface ActionPopupState {
+    actionId: string
+    anchorElement: HTMLElement
+}
 
 /**
  * Context-sensitive action entry points shown close to a card/file/folder. Filters
@@ -28,21 +35,21 @@ const DEFAULT_ICON_SOURCE: ActionIconSource = { dataUri: null }
  * related action with the same context.
  */
 export function ActionEntryPoints(props: ActionEntryPointsProps) {
-    const { actions: suppliedActions, context, onMenuItemSelected, popupAnchorElement, variant } = props
+    const { context, onMenuItemSelected, popupAnchorElement, variant, visibility = 'all-matching' } = props
     const { actions: loadedActions } = useActions()
-    const actions = suppliedActions ?? loadedActions
     const runningExecution = useRunningActionForContext(context)
     const executionDisabled = !!runningExecution
     const [iconSources, setIconSources] = useState<Record<string, ActionIconSource>>({})
-    const [popupAnchor, setPopupAnchor] = useState<HTMLElement | null>(null)
+    const [popupState, setPopupState] = useState<ActionPopupState | null>(null)
 
     const matching = useMemo(() => {
-        const contextActions = actionsForContext(actions, context)
-        const customPrompt = contextActions.find((action) => action.id === CUSTOM_PROMPT_ACTION_ID)
-        const configuredActions = contextActions.filter((action) => action.id !== CUSTOM_PROMPT_ACTION_ID)
+        const contextActions = displayActionsForContext(loadedActions, context)
+        if (visibility === 'explicit-context') {
+            return contextActions.filter((action) => action.appliesTo?.kind === context.kind)
+        }
 
-        return customPrompt ? [...configuredActions, customPrompt] : configuredActions
-    }, [actions, context])
+        return contextActions
+    }, [context, loadedActions, visibility])
 
     useEffect(() => {
         let isActive = true
@@ -63,21 +70,30 @@ export function ActionEntryPoints(props: ActionEntryPointsProps) {
 
     if (matching.length === 0) return null
 
-    const open = (anchorElement: HTMLElement) => {
+    const open = (actionId: string, anchorElement: HTMLElement) => {
         onMenuItemSelected?.()
-        setPopupAnchor(anchorElement)
+        setPopupState({ actionId, anchorElement })
+    }
+
+    const handleOpen = (event: MouseEvent<HTMLElement>) => {
+        const { actionId } = event.currentTarget.dataset
+        if (!actionId) throw new Error('Missing action id on action entry point')
+
+        open(actionId, popupAnchorElement ?? event.currentTarget)
     }
 
     const iconSourceFor = (action: ActionDefinition) => iconSources[action.id] ?? DEFAULT_ICON_SOURCE
 
     const closePopup = () => {
-        setPopupAnchor(null)
+        setPopupState(null)
     }
 
-    const popup = popupAnchor ? (
+    const popup = popupState ? (
         <ActionPopup
-            anchorElement={popupAnchor}
+            anchorElement={popupState.anchorElement}
             context={context}
+            initialActionId={popupState.actionId}
+            key={popupState.actionId}
             onClose={closePopup}
         />
     ) : null
@@ -86,9 +102,10 @@ export function ActionEntryPoints(props: ActionEntryPointsProps) {
         <>
             {matching.map((action) => (
                 <MenuItem
+                    data-action-id={action.id}
                     disabled={executionDisabled}
                     key={action.id}
-                    onClick={(event) => open(popupAnchorElement ?? event.currentTarget)}
+                    onClick={handleOpen}
                 >
                     <ListItemIcon>
                         <ActionIcon fontSize="small" source={iconSourceFor(action)} />
@@ -108,8 +125,9 @@ export function ActionEntryPoints(props: ActionEntryPointsProps) {
                 <Tooltip key={action.id} title={action.label}>
                     <IconButton
                         aria-label={action.label}
+                        data-action-id={action.id}
                         disabled={executionDisabled}
-                        onClick={(event) => open(event.currentTarget)}
+                        onClick={handleOpen}
                         size="small"
                     >
                         <ActionIcon fontSize="small" source={iconSourceFor(action)} />

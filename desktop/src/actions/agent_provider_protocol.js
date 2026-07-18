@@ -110,6 +110,43 @@ function codexAssistantText(event) {
     return typeof event.item.text === 'string' ? event.item.text : '';
 }
 
+function normalizedContent(value) {
+    if (value === undefined || value === null) return null;
+    const content = typeof value === 'string' ? value : JSON.stringify(value);
+
+    return content.length > 0 ? content : null;
+}
+
+function codexTranscriptEvents(event) {
+    if (event.type !== 'item.completed' || !event.item) return [];
+    if (event.item.type === 'agent_message' || event.item.type === 'reasoning' || event.item.type === 'error') return [];
+    const content = normalizedContent(
+        event.item.aggregated_output
+        ?? event.item.output
+        ?? event.item.result
+        ?? event.item.changes
+        ?? event.item.command
+        ?? event.item.path
+        ?? event.item.name,
+    );
+
+    return content ? [{ content, type: `tool.${event.item.type}` }] : [];
+}
+
+function claudeTranscriptEvents(event) {
+    if (event.type !== 'user' || !Array.isArray(event.message?.content)) return [];
+
+    return event.message.content
+        .filter((block) => block?.type === 'tool_result')
+        .map(({ content }) => normalizedContent(content))
+        .filter((content) => content !== null)
+        .map((content) => ({ content, type: 'tool.result' }));
+}
+
+function providerTranscriptEvents(agent, event) {
+    return agent === 'codex' ? codexTranscriptEvents(event) : claudeTranscriptEvents(event);
+}
+
 function nestedErrorMessage(value) {
     if (typeof value === 'string') {
         try {
@@ -158,13 +195,6 @@ function isMissingSession(agent, event, turnStarted) {
     return isFailureEvent && eventCodes(event).some((code) => MISSING_SESSION_CODES.has(code));
 }
 
-function normalizedEventType(agent, event) {
-    if (agent === 'codex') return event.type;
-    if (agent === 'claude' && event.type === 'system') return `system.${event.subtype ?? 'event'}`;
-
-    return event.type;
-}
-
 class AgentProviderProtocolParser {
     constructor(agent, onEvent, onMalformed, rootPath) {
         this.agent = agent;
@@ -210,10 +240,9 @@ class AgentProviderProtocolParser {
             changedPaths: providerChangedPaths(this.agent, event, this.rootPath),
             conversationId: providerConversationId(this.agent, event),
             errorText: providerErrorText(this.agent, event),
-            event,
             missingSession,
+            transcriptEvents: providerTranscriptEvents(this.agent, event),
             turnStarted: this.turnStarted,
-            type: normalizedEventType(this.agent, event),
             usage: providerUsage(this.agent, event),
         });
     }

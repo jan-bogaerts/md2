@@ -33,8 +33,13 @@ function makeBridge(runSearchRegexpAgent: ElectronActionBridge['runSearchRegexpA
 }
 
 function emitAgentEvents(callback?: (event: AgentRunEvent) => void) {
-    callback?.({ content: '', conversation: conversation(), runId: 'agent-1', type: 'started' })
-    callback?.({ content: '', conversation: conversation(), runId: 'agent-1', type: 'closed' })
+    const agentConversation = conversation()
+    const userMessage = { content: 'Find matches', id: 'message-1', role: 'user' as const, timestamp: agentConversation.startedAt }
+    callback?.({
+        conversationId: agentConversation.id, reference: agentConversation.path, runId: 'agent-1', startedAt: agentConversation.startedAt,
+        title: agentConversation.title, type: 'started', userMessage,
+    })
+    callback?.({ reference: agentConversation.path, runId: 'agent-1', status: agentConversation.status, type: 'closed' })
 }
 
 describe('extractRegexpExpression', () => {

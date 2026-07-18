@@ -1,0 +1,17 @@
+- generic [ref=f1e1]:
+  - button "Anchor" [ref=f1e106]
+  - tooltip "Run actions":
+    - dialog [ref=f1e108]:
+      - paragraph [ref=f1e109]: Run actions
+      - generic [ref=f1e110]:
+        - generic [ref=f1e111]:
+          - group "Actions" [ref=f1e113]:
+            - button "Test action" [pressed] [ref=f1e114] [cursor=pointer]
+            - button "Custom prompt" [ref=f1e115] [cursor=pointer]
+          - button "Add action" [ref=f1e116] [cursor=pointer]
+        - button "Collapse downward" [active] [ref=f1e143] [cursor=pointer]
+        - button "Close" [ref=f1e122] [cursor=pointer]
+      - generic [ref=f1e126]:
+        - button [ref=f1e127] [cursor=pointer]
+        - button [ref=f1e131] [cursor=pointer]
+  - tooltip "Collapse downward" [ref=f1e146]

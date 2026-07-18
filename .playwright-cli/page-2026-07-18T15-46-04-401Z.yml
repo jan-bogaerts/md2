@@ -1,0 +1,25 @@
+- generic [ref=f1e1]:
+  - button "Anchor" [ref=f1e106]
+  - tooltip [ref=f1e107]:
+    - dialog [ref=f1e108]:
+      - paragraph [ref=f1e109]: Run actions
+      - generic [ref=f1e110]:
+        - generic [ref=f1e111]:
+          - group "Actions" [ref=f1e113]:
+            - button "Test action" [pressed] [ref=f1e114] [cursor=pointer]
+            - button "Custom prompt" [ref=f1e115] [cursor=pointer]
+          - button "Add action" [ref=f1e116] [cursor=pointer]
+        - button "Expand upward" [active] [ref=f1e149] [cursor=pointer]
+        - button "Close" [ref=f1e122] [cursor=pointer]
+      - generic [ref=f1e126]:
+        - button [ref=f1e127] [cursor=pointer]
+        - button [ref=f1e131] [cursor=pointer]
+      - separator "Resize action popup from top" [ref=f1e152]
+      - separator "Resize action popup from right" [ref=f1e153]
+      - separator "Resize action popup from bottom" [ref=f1e154]
+      - separator "Resize action popup from left" [ref=f1e155]
+      - separator "Resize action popup from top-right" [ref=f1e156]
+      - separator "Resize action popup from bottom-right" [ref=f1e157]
+      - separator "Resize action popup from bottom-left" [ref=f1e158]
+      - separator "Resize action popup from top-left" [ref=f1e159]
+  - tooltip "Expand upward" [ref=f1e160]

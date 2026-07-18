@@ -13,6 +13,10 @@ function withoutProviderConversationId(request) {
     return Object.fromEntries(Object.entries(request).filter(([fieldName]) => fieldName !== 'providerConversationId'));
 }
 
+function withoutConversation(result) {
+    return Object.fromEntries(Object.entries(result).filter(([fieldName]) => fieldName !== 'conversation'));
+}
+
 class ActionAgentExecutor {
     constructor(dependencies) {
         this.agentConfigProvider = dependencies.agentConfigProvider;
@@ -76,8 +80,9 @@ class ActionAgentExecutor {
             contextInput: sourceConversation ? normalizeConversationContext(sourceConversation) : '',
         };
         const result = await this.runAgentTurn(input, request, fallback);
+        const executionResult = withoutConversation(result);
 
-        return { ...result, agent: resolvedAgent.agent, model: resolvedAgent.model, thinkingLevel: resolvedAgent.thinkingLevel };
+        return { ...executionResult, agent: resolvedAgent.agent, model: resolvedAgent.model, thinkingLevel: resolvedAgent.thinkingLevel };
     }
 
     async runAgentTurn(input, request, fallback) {

@@ -18,6 +18,22 @@ function useActionExecutionSnapshot() {
     )
 }
 
+function useRunningActionExecutionSnapshot() {
+    useEffect(() => {
+        actionExecutionService.start()
+    }, [])
+
+    return useSyncExternalStore(
+        (listener) => {
+            actionExecutionService.addEventListener('runningChanged', listener)
+
+            return () => actionExecutionService.removeEventListener('runningChanged', listener)
+        },
+        () => actionExecutionService.getRunningSnapshot(),
+        () => actionExecutionService.getRunningSnapshot(),
+    )
+}
+
 export function useActionExecution(actionId: string, context: ActionContext) {
     useActionExecutionSnapshot()
 
@@ -25,17 +41,21 @@ export function useActionExecution(actionId: string, context: ActionContext) {
 }
 
 export function useRunningActionForContext(context: ActionContext) {
-    useActionExecutionSnapshot()
+    useRunningActionExecutionSnapshot()
 
     return actionExecutionService.getRunningExecutionForContext(context)
 }
 
 export function useRunningActionForFile(filePath: string | null) {
-    useActionExecutionSnapshot()
+    useRunningActionExecutionSnapshot()
 
     return actionExecutionService.getRunningExecutionForFile(filePath)
 }
 
 export function useActionExecutions() {
     return useActionExecutionSnapshot().executions
+}
+
+export function useRunningActionExecutions() {
+    return useRunningActionExecutionSnapshot()
 }

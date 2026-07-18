@@ -10,8 +10,9 @@ import {
     type ThinkingLevel,
     validateThinkingLevel,
 } from '../../data/agent_profiles'
-import type { ActionRunResult } from '../../data/action_run_types'
+import type { ActionExecutionStatus, ActionRunResult } from '../../data/action_run_types'
 import type { AgentConversation } from '../../data/data_types'
+import type { LiveAgentTurn } from '../../services/actions/action_execution_service'
 import { dialogService } from '../../services/dialog_service'
 import { useActionExecution } from '../hooks/use_action_executions'
 import { useConfigValueOrFallback } from '../hooks/use_config_value'
@@ -77,6 +78,50 @@ function conversationContextKey(actionId: string, context: ActionContext) {
         .join('\u0000')
 
     return `${actionId}\u0000${contextValues}`
+}
+
+function liveAgentConversation(
+    turn: LiveAgentTurn,
+    actionId: string,
+    context: ActionContext,
+    status: ActionExecutionStatus,
+    base: AgentConversation | null,
+): AgentConversation {
+    const assistantMessageId = `${turn.userMessage.id}-assistant-draft`
+    const priorMessages = (base?.messages ?? []).filter(({ id }) => id !== turn.userMessage.id && id !== assistantMessageId)
+    const messages = [
+        ...priorMessages,
+        turn.userMessage,
+        ...(turn.assistantText.length > 0 ? [{
+            content: turn.assistantText,
+            id: assistantMessageId,
+            role: 'assistant' as const,
+            timestamp: turn.startedAt,
+        }] : []),
+    ]
+    const conversationStatus = status === 'running'
+        ? 'running'
+        : status === 'cancelled'
+            ? 'cancelled'
+            : status === 'failed'
+                ? 'failed'
+                : 'completed'
+
+    return {
+        actionId,
+        cardPath: context.file ?? null,
+        completedAt: null,
+        events: base?.events ?? [],
+        hasExplicitTitle: base?.hasExplicitTitle ?? true,
+        id: turn.conversationId,
+        messages,
+        path: turn.reference,
+        providerSessions: base?.providerSessions ?? [],
+        startedAt: base?.startedAt ?? turn.startedAt,
+        status: conversationStatus,
+        title: base?.title ?? turn.title,
+        ...(base?.usage ? { usage: base.usage } : {}),
+    }
 }
 
 export function mergeConversationHistory(
@@ -177,6 +222,7 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
     const conversationHistory = conversationHistoryState.key === conversationKey ? conversationHistoryState.conversations : []
     const conversationHistoryLoading = !!input.enableConversations && conversationHistoryState.key !== conversationKey
     const selectedConversation = selectedConversationState.key === selectionKey ? selectedConversationState.conversation : null
+    const selectedHistory = selectedConversation ? [...conversationHistory, selectedConversation] : conversationHistory
     const sharedExecution = useActionExecution(action.id, context)
     const executionId = sharedExecution?.executionId ?? localExecutionId
     const runStatus = sharedExecution?.status ?? localRunStatus
@@ -184,12 +230,16 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
     const showLiveConversation = !input.enableConversations
         ? !!sharedExecution
         : liveActionKey === conversationKey || runStatus === 'running'
-    const sharedConversation = showLiveConversation ? sharedExecution?.conversation ?? null : null
-    const liveConversation = sharedConversation
-        ? { ...sharedConversation, path: sharedExecution?.reference ?? sharedConversation.path }
+    const sharedAgentTurn = showLiveConversation ? sharedExecution?.agentTurn ?? null : null
+    const baseLiveConversation = sharedAgentTurn
+        ? selectedHistory.find(({ id }) => id === sharedAgentTurn.conversationId) ?? null
+        : null
+    const liveConversation = sharedAgentTurn
+        ? sharedExecution?.status !== 'running' && baseLiveConversation?.status !== 'running'
+            ? baseLiveConversation
+            : liveAgentConversation(sharedAgentTurn, action.id, context, sharedExecution?.status ?? 'running', baseLiveConversation)
         : null
     const displayedConversation = liveConversation ?? selectedConversation
-    const selectedHistory = selectedConversation ? [...conversationHistory, selectedConversation] : conversationHistory
     const conversations = mergeConversationHistory(selectedHistory, action.id, context, liveConversation)
     const continuationReference = liveConversation?.path
         ?? selectedConversation?.path
@@ -293,7 +343,7 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
         async function loadRunHistory() {
             setHistoryError(null)
             try {
-                const entries = await loadHistory(action, context)
+                const entries = await loadHistory(actionRef.current, contextRef.current)
                 if (isActive) setHistory(entries)
             } catch (error) {
                 if (isActive) setHistoryError(error instanceof Error ? error.message : 'Could not load run history')
@@ -305,7 +355,7 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
         return () => {
             isActive = false
         }
-    }, [action, context, loadHistory])
+    }, [loadHistory, promptContextKey])
 
     const runWithPrompt = async (currentPrompt: string) => {
         setLocalRunStatus('running')
@@ -335,7 +385,7 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
         } catch (error) {
             const message = error instanceof Error ? error.message : 'Action run failed'
             setLocalRunResult({
-                logs: [{ actionName: action.label, command: null, message, phase: 'main', status: 'failed', stderr: message, stdout: '' }],
+                logs: [{ actionId: action.id, actionName: action.label, command: null, message, phase: 'main', status: 'failed', stderr: message, stdout: '' }],
                 status: 'failed',
             })
             setLocalRunStatus('failed')

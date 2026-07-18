@@ -1,4 +1,4 @@
-import { Box, Divider, Typography } from '@mui/material'
+import { Box, Typography } from '@mui/material'
 import type { MouseEvent as ReactMouseEvent } from 'react'
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import { buildFileTree, fileLabel } from '../../data/file_tree'
@@ -8,7 +8,6 @@ import { getCardIdPrefix } from '../../data/card_identifiers'
 import { defaultColumnAccent, type CardTypeConfig, type ProjectCard, type StateConfig } from '../../data/data_types'
 import { telemetryService } from '../../services/telemetry/telemetry_service'
 import { markdownParsingService } from '../../services/data/markdown_parsing_service'
-import { dialogService } from '../../services/dialog_service'
 import { actionService } from '../../services/actions/action_service'
 import { agentAcknowledgementService } from '../../services/agents/agent_acknowledgement_service'
 import { ActionEditor } from '../actions/action_editor'
@@ -23,7 +22,6 @@ import { ListEditorToolbarControls } from './list_editor_toolbar_controls'
 import { TabBar, type OpenTab, type OpenTabKind } from './tab_bar'
 import { useOpenTabs } from './use_open_tabs'
 import { useActions } from '../hooks/use_actions'
-import { AgentConversationList } from '../agents/agent_conversation_list'
 import { ActionPopup } from '../actions/action_popup'
 import type { AgentConversation } from '../../data/data_types'
 
@@ -141,13 +139,7 @@ export function TextView(props: TextViewProps) {
     } = props
     const { actions } = useActions()
     const [propertiesAnchorElement, setPropertiesAnchorElement] = useState<HTMLElement | null>(null)
-    const [agentPanelAnchorElement, setAgentPanelAnchorElement] = useState<HTMLElement | null>(null)
-    const [continuation, setContinuation] = useState<{ cardPath: string | null, conversation: AgentConversation | null, prompt: string }>({
-        cardPath: null,
-        conversation: null,
-        prompt: '',
-    })
-    const [isAgentPanelOpen, setIsAgentPanelOpen] = useState(false)
+    const [isAgentPopupOpen, setIsAgentPopupOpen] = useState(false)
     const [markdownHistoryStore] = useState(() => new MarkdownDocumentHistoryStore())
     const [actionMarkdownOwners, setActionMarkdownOwners] = useState(() => new Map<string, MarkdownDocumentOwnerConfig>())
     const actionMarkdownOwnersRef = useRef(actionMarkdownOwners)
@@ -232,12 +224,6 @@ export function TextView(props: TextViewProps) {
         if (!conversation.cardPath) throw new Error('Cannot acknowledge a project conversation as a card result')
 
         agentAcknowledgementService.acknowledge(projectKey, conversation.cardPath, [conversation])
-    }
-
-    const handleConversationsViewed = (conversations: AgentConversation[]) => {
-        if (!activeCard) throw new Error('Cannot acknowledge agent conversations without an active card')
-
-        agentAcknowledgementService.acknowledge(projectKey, activeCard.path, conversations)
     }
 
     useEffect(() => {
@@ -336,27 +322,8 @@ export function TextView(props: TextViewProps) {
         setPropertiesAnchorElement(null)
     }
 
-    const handleToggleAgentPanel = () => {
-        setIsAgentPanelOpen((current) => !current)
-        setAgentPanelAnchorElement(document.activeElement instanceof HTMLElement ? document.activeElement : null)
-    }
-
-    const handleContinueConversation = (conversation: AgentConversation) => {
-        if (conversation.actionId && !actions.some(({ id }) => id === conversation.actionId)) {
-            dialogService.error(`Unknown originating action: ${conversation.actionId}`)
-            return
-        }
-
-        setContinuation({ cardPath: activeCard?.path ?? null, conversation, prompt: '' })
-    }
-
-    const handleStartConversation = (prompt: string) => {
-        setContinuation({ cardPath: activeCard?.path ?? null, conversation: null, prompt })
-    }
-
-    const handleCloseConversationPopup = () => {
-        setContinuation({ cardPath: null, conversation: null, prompt: '' })
-    }
+    const handleToggleAgentPopup = () => setIsAgentPopupOpen((current) => !current)
+    const handleCloseAgentPopup = () => setIsAgentPopupOpen(false)
 
     const listEditorToolbarContents = useCallback(() => {
         if (!mountedEditorPath || !mountedMarkdownDocumentId) {
@@ -368,14 +335,14 @@ export function TextView(props: TextViewProps) {
                 agentConversationCount={mountedCard?.agentConversations.length ?? 0}
                 documentId={mountedMarkdownDocumentId}
                 historyStore={markdownHistoryStore}
-                isAgentPanelOpen={isAgentPanelOpen}
+                isAgentPopupOpen={isAgentPopupOpen}
                 isPropertiesOpen={!!propertiesAnchorElement}
                 onOpenProperties={handleOpenProperties}
-                onToggleAgentPanel={handleToggleAgentPanel}
+                onToggleAgentPopup={handleToggleAgentPopup}
                 propertiesAvailable={!!mountedCard && Object.keys(mountedCard.headerFields).length > 0}
             />
         )
-    }, [isAgentPanelOpen, markdownHistoryStore, mountedCard, mountedEditorPath, mountedMarkdownDocumentId, propertiesAnchorElement])
+    }, [isAgentPopupOpen, markdownHistoryStore, mountedCard, mountedEditorPath, mountedMarkdownDocumentId, propertiesAnchorElement])
 
     const cardMarkdownDocument = useMemo<MarkdownDocumentConfig | null>(() => (
         mountedCard && mountedEditorPath && mountedMarkdownDocumentId ? {
@@ -398,18 +365,17 @@ export function TextView(props: TextViewProps) {
         ownerPath: EMPTY_MARKDOWN_DOCUMENT_ID,
     }
 
-    const conversationPopup = activeCard
-        && continuation.cardPath === activeCard.path
-        && (continuation.conversation || continuation.prompt)
-        ? (
-            <ActionPopup
-                anchorElement={agentPanelAnchorElement}
-                context={fileContext(activeCard, cardTypes)}
-                key={`${continuation.conversation?.path ?? 'new'}:${continuation.prompt}`}
-                onClose={handleCloseConversationPopup}
-                onConversationViewed={handleConversationViewed}
-            />
-        ) : null
+    const agentPopup = activeCard && isAgentPopupOpen ? (
+        <ActionPopup
+            anchorElement={null}
+            context={fileContext(activeCard, cardTypes)}
+            draggable
+            key={activeCard.path}
+            onClose={handleCloseAgentPopup}
+            onConversationViewed={handleConversationViewed}
+            open
+        />
+    ) : null
 
     const propertiesPopup = activeCard && Object.keys(activeCard.headerFields).length > 0 ? (
         <CardPropertiesPopover
@@ -487,24 +453,9 @@ export function TextView(props: TextViewProps) {
                         />
                     </Box>
                 </Box>
-                {isAgentPanelOpen && activeCard ? (
-                    <>
-                        <Divider />
-                        <Box sx={{ maxHeight: '40%', minHeight: 160, overflow: 'auto', p: 2 }}>
-                            <AgentConversationList
-                                context={fileContext(activeCard, cardTypes)}
-                                conversations={activeCard.agentConversations}
-                                errors={activeCard.agentConversationErrors}
-                                onConversationsViewed={handleConversationsViewed}
-                                onContinue={handleContinueConversation}
-                                onStart={handleStartConversation}
-                            />
-                        </Box>
-                    </>
-                ) : null}
             </Box>
             {propertiesPopup}
-            {conversationPopup}
+            {agentPopup}
         </Box>
     )
 

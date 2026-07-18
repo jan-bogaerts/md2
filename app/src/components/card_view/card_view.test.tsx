@@ -257,7 +257,8 @@ describe('CardView', () => {
     })
 
     it('shows dirty immediately when the card body is edited', () => {
-        renderCardView()
+        const cardWithTrailingNewline = { ...cards[0], content: `${cards[0].content}\n` }
+        renderCardView({ cards: [cardWithTrailingNewline] })
 
         fireEvent.click(screen.getByRole('button', { name: 'Drag F-1' }))
         expect(within(screen.getByRole('dialog')).getByText('Saved')).toBeInTheDocument()

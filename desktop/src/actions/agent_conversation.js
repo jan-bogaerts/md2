@@ -60,17 +60,10 @@ function updateProviderSession(run, synchronizedThroughMessageId, completedAt) {
         : [...sessions, nextSession];
 }
 
-function hasRequiredProviderConversationId(run) {
-    if (run.agent !== 'codex' && run.agent !== 'claude') return true;
-
-    return !!(run.providerConversationId ?? run.request.providerConversationId);
-}
-
 module.exports = {
     accumulateUsage,
     createConversation,
     createEvent,
     createMessage,
-    hasRequiredProviderConversationId,
     updateProviderSession,
 };

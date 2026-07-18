@@ -4,7 +4,6 @@ import type { ActionExecutionEvent } from '../../data/action_run_types'
 import {
     type AgentConversation,
     type AgentConversationError,
-    type AgentRunEvent,
     type MarkdownFile,
     type ProjectReference,
     type ProjectSnapshot,
@@ -12,8 +11,8 @@ import {
 } from '../../data/data_types'
 import { actionService } from '../actions/action_service'
 import { actionExecutionService } from '../actions/action_execution_service'
-import { agentConversationService, loadAgentConversation } from './agent_conversation_service'
-import { recordActionEventProcessingError, runElectronAction } from '../actions/electron_action_runner'
+import { loadAgentConversation } from './agent_conversation_service'
+import { runElectronAction } from '../actions/electron_action_runner'
 import { mapWithConcurrency } from '.././concurrency'
 import { type RequiredDataServiceDependencies } from '../data/data_service_context'
 import { markdownParsingService } from '../data/markdown_parsing_service'
@@ -39,7 +38,6 @@ type AgentConversationLoadResult =
 
 export interface AgentIntegrationDeps {
     beginAgentConversationLoad(): number
-    dispatchChanged(): void
     isCurrentAgentConversationLoad(agentConversationLoadToken: number): boolean
     isCurrentLoad(project: ProjectReference, projectLoadToken: number): boolean
     project(): ProjectReference | null
@@ -96,7 +94,6 @@ async function resolveAgentConversations(
 }
 
 export class AgentIntegration {
-    private actionRunIds: Map<string, string> = new Map()
     private conversationsByCardPath: Map<string, AgentConversation[]> = new Map()
     private readonly dependencies: AgentIntegrationDeps
     private errorsByCardPath: Map<string, AgentConversationError[]> = new Map()
@@ -130,7 +127,6 @@ export class AgentIntegration {
             try {
                 this.handleActionExecutionEvent(event)
             } catch (error) {
-                recordActionEventProcessingError(event.executionId, error)
                 telemetryService.captureError(error)
             }
         })
@@ -141,8 +137,6 @@ export class AgentIntegration {
 
         this.scheduledRunCleanup()
         this.scheduledRunCleanup = null
-        for (const runningAgentId of this.actionRunIds.values()) agentConversationService.finishRunningAgent(runningAgentId)
-        this.actionRunIds.clear()
     }
 
     async continueAgentConversation(cardPath: string, sourcePath: string) {
@@ -161,22 +155,32 @@ export class AgentIntegration {
         return runElectronAction(action, fileContext(card, config.cardTypes), { continueFrom: sourcePath })
     }
 
-    recordAgentRunEvent(cardPath: string, event: AgentRunEvent) {
-        this.upsertAgentConversation(cardPath, event.conversation)
-    }
-
-    linkAgentConversation(cardPath: string, conversation: AgentConversation, reference: string) {
+    private linkAgentConversationReference(cardPath: string, reference: string) {
         const { config } = this.dependencies.requireDependencies()
         const existingFile = this.dependencies.requireFile(cardPath)
         const card = markdownParsingService.parseCard(existingFile, config.workingFolder)
         const nextReferences = [...new Set([...card.header.agentLogReferences, reference])]
-        this.upsertAgentConversation(cardPath, conversation)
-
-        return this.saveFile({
+        this.saveFile({
             content: markdownParsingService.setAgentLogReferences(existingFile.content, nextReferences),
             path: cardPath,
             sha: existingFile.sha,
         })
+        void this.loadLinkedAgentConversation(cardPath, reference)
+    }
+
+    private async loadLinkedAgentConversation(cardPath: string, reference: string) {
+        const project = this.dependencies.project()
+        if (!project) return
+        const { storage } = this.dependencies.requireDependencies()
+        const result = await loadAgentConversationReference({ cardPath, reference }, project, storage)
+        if (result.error) {
+            const errors = [...(this.errorsByCardPath.get(cardPath) ?? []), result.error]
+            this.errorsByCardPath.set(cardPath, errors)
+            this.reportNewAgentLoadErrors(new Map([[cardPath, [result.error]]]))
+            return
+        }
+
+        this.upsertAgentConversation(cardPath, result.conversation)
     }
 
     async loadAgentConversationsInBackground(snapshot: ProjectSnapshot, project: ProjectReference, projectLoadToken: number) {
@@ -289,39 +293,16 @@ export class AgentIntegration {
     }
 
     private handleActionExecutionEvent(event: ActionExecutionEvent) {
-        if (event.type === 'execution') this.handleActionExecutionStatus(event)
         if (event.type === 'action') this.linkActionConversation(event)
-        if (!event.agentEvent) return
-
-        if (!event.agentEvent.conversation.cardPath) {
-            this.dependencies.dispatchChanged()
-            return
-        }
-
-        this.recordAgentRunEvent(event.agentEvent.conversation.cardPath, event.agentEvent)
     }
 
     private linkActionConversation(event: ActionExecutionEvent) {
-        if (event.status === 'running' || !event.conversation?.cardPath || !event.reference) return
+        if (event.type !== 'action' || event.status === 'running' || !event.context.file || !event.reference) return
 
         const reference = event.executionWorktree === null || event.executionWorktree === undefined
             ? event.reference
             : `worktree:${event.executionWorktree}:${event.reference}`
-        this.linkAgentConversation(event.conversation.cardPath, event.conversation, reference)
-    }
-
-    private handleActionExecutionStatus(event: ActionExecutionEvent) {
-        if (event.status === 'running' && !this.actionRunIds.has(event.executionId)) {
-            this.actionRunIds.set(event.executionId, agentConversationService.startRunningAgent(`Action ${event.rootActionId}`))
-            return
-        }
-        if (event.status === 'running') return
-
-        const runningAgentId = this.actionRunIds.get(event.executionId)
-        if (!runningAgentId) return
-
-        agentConversationService.finishRunningAgent(runningAgentId)
-        this.actionRunIds.delete(event.executionId)
+        this.linkAgentConversationReference(event.context.file, reference)
     }
 
     private upsertAgentConversation(cardPath: string, conversation: AgentConversation) {

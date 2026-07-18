@@ -2,8 +2,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useCallback } from 'react'
 import { TextView } from './text_view'
-import { DEFAULT_CARD_TYPES, DEFAULT_STATES, type AgentConversation, type ProjectCard } from '../../data/data_types'
-import { agentAcknowledgementService } from '../../services/agents/agent_acknowledgement_service'
+import { DEFAULT_CARD_TYPES, DEFAULT_STATES, type ProjectCard } from '../../data/data_types'
 import { telemetryService } from '../../services/telemetry/telemetry_service'
 import { openFilesService } from '../../services/open_files_service'
 import { actionService } from '../../services/actions/action_service'
@@ -728,7 +727,7 @@ describe('TextView', () => {
         expect(document.querySelector('[data-sticky-toolbar="true"]')).not.toBeNull()
     })
 
-    it('opens the card-bound persisted conversation panel from the editor toolbar', () => {
+    it('opens the standard action popup without an anchor from the editor toolbar', () => {
         renderTextView()
 
         clickTreeFile('F-1 Alpha')
@@ -736,32 +735,12 @@ describe('TextView', () => {
         const editorToolbar = within(screen.getByTestId('mdx-editor-toolbar'))
         fireEvent.click(editorToolbar.getByRole('button', { name: 'Agents' }))
 
-        expect(screen.getByText('No agent conversations.')).toBeInTheDocument()
-    })
-
-    it('acknowledges completed conversations when the agent panel displays them', () => {
-        const completedConversation: AgentConversation = {
-            actionId: 'review',
-            cardPath: activeCards[0].path,
-            completedAt: '2026-07-15T10:01:00.000Z',
-            events: [],
-            hasExplicitTitle: true,
-            id: 'conversation-1',
-            messages: [{ content: 'Review complete', id: 'message-1', role: 'assistant', timestamp: '2026-07-15T10:01:00.000Z' }],
-            path: '.md2-agent-logs/conversation-1.json',
-            providerSessions: [],
-            startedAt: '2026-07-15T10:00:00.000Z',
-            status: 'completed',
-            title: 'Review',
-        }
-        const cardWithConversation = { ...activeCards[0], agentConversations: [completedConversation] }
-        const acknowledge = vi.spyOn(agentAcknowledgementService, 'acknowledge').mockImplementation(() => undefined)
-        renderTextView({ activeCards: [cardWithConversation, activeCards[1]] })
-
-        clickTreeFile('F-1 Alpha')
-        fireEvent.click(within(screen.getByTestId('mdx-editor-toolbar')).getByRole('button', { name: 'Agents (1)' }))
-
-        expect(acknowledge).toHaveBeenCalledWith('project:main', activeCards[0].path, [completedConversation])
+        const dialog = within(screen.getByRole('dialog', { name: 'Run actions' }))
+        expect(dialog.getByRole('button', { name: 'Custom prompt' })).toHaveAttribute('aria-pressed', 'true')
+        expect(dialog.getByRole('button', { name: 'Schedule' })).toBeInTheDocument()
+        expect(dialog.getByRole('button', { name: 'Run' })).toBeInTheDocument()
+        expect(screen.queryByText('No agent conversations.')).not.toBeInTheDocument()
+        expect(screen.getByRole('dialog', { name: 'Run actions' })).toHaveStyle({ position: 'fixed' })
     })
 
     it('publishes the desktop tree without a Browse files button', () => {

@@ -175,14 +175,15 @@ describe('ActionExecution', () => {
             localGitService,
             publisher: (event) => {
                 events.push(event);
-                if (event.type === 'action') order.push(`${event.status}:${event.stdout ?? ''}`);
+                if (event.type === 'action') order.push(`${event.status}:`);
+                if (event.type === 'update') order.push(`${event.status}:${event.update.content}`);
             },
         });
         execution.start((completion) => completion);
 
         await execution.completion;
 
-        expect(order).toEqual(['running:', 'running:chunk', 'process', 'completed:done', 'history']);
+        expect(order).toEqual(['running:', 'running:chunk', 'process', 'completed:', 'history']);
         expect(events.every((event) => event.context === context)).toBe(true);
     });
 
@@ -260,10 +261,10 @@ describe('ActionExecution', () => {
     it('publishes nested agent events and terminal metadata', async () => {
         const agentExecutor = {
             execute: vi.fn(async (input) => {
-                input.onEvent({ content: 'chunk', type: 'stdout' });
+                input.onEvent({ content: 'chunk', type: 'output' });
 
                 return {
-                    agent: 'codex', conversation: { id: 'conversation' }, exitCode: 0, model: 'gpt', prompt: 'run',
+                    agent: 'codex', exitCode: 0, model: 'gpt', prompt: 'run',
                     reference: 'run.json', runId: 'conversation', stderr: '', stdout: 'done', thinkingLevel: 'high',
                 };
             }),
@@ -273,11 +274,8 @@ describe('ActionExecution', () => {
 
         await execution.completion;
 
-        expect(events).toContainEqual(expect.objectContaining({agentEvent: { content: 'chunk', type: 'stdout' }, status: 'running', type: 'agent'}));
-        expect(events).toContainEqual(expect.objectContaining({
-            conversation: { id: 'conversation' }, reference: 'run.json', runId: 'conversation',
-            status: 'completed', thinkingLevel: 'high', type: 'action',
-        }));
+        expect(events).toContainEqual(expect.objectContaining({status: 'running', type: 'update', update: { content: 'chunk', kind: 'output' }}));
+        expect(events).toContainEqual(expect.objectContaining({reference: 'run.json', runId: 'conversation', status: 'completed', thinkingLevel: 'high', type: 'action'}));
     });
 
     it('commits successful tracked agent paths before writing explicit history metadata', async () => {

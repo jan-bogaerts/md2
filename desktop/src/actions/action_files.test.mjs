@@ -51,7 +51,7 @@ describe('action-files', () => {
         }
     });
 
-    it('rejects incomplete and negative persisted commit statistics', async () => {
+    it('drops an unusable commit without discarding its history entry', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-action-history-validation-'));
         const project = { branch: 'main', id: 'local', rootPath };
         const request = {
@@ -67,7 +67,9 @@ describe('action-files', () => {
                 completedAt: 'now', output: '', prompt: '', status: 'completed',
             });
 
-            await expect(loadActionRunHistory(project, request)).rejects.toThrow('filesChanged must be a non-negative integer');
+            await expect(loadActionRunHistory(project, request)).resolves.toEqual([
+                { completedAt: 'now', output: '', prompt: '', status: 'completed' },
+            ]);
         } finally {
             await rm(rootPath, { force: true, recursive: true });
         }
@@ -98,7 +100,7 @@ describe('action-files', () => {
         }
     });
 
-    it('rejects malformed conversation messages at the Electron boundary', async () => {
+    it('discards malformed conversation entries at the Electron boundary', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-action-files-'));
 
         try {
@@ -112,8 +114,9 @@ describe('action-files', () => {
                 status: 'running',
             }));
 
-            await expect(loadAgentConversation({ branch: 'main', id: 'local', rootPath }, 'conversation.json'))
-                .rejects.toThrow('messages[0].id');
+            const conversation = await loadAgentConversation({ branch: 'main', id: 'local', rootPath }, 'conversation.json');
+
+            expect(conversation.messages).toEqual([]);
         } finally {
             await rm(rootPath, { force: true, recursive: true });
         }

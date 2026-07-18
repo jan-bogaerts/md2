@@ -65,10 +65,13 @@ describe('AgentRunnerService', () => {
             await writeFile(scriptPath, 'process.stdout.write(JSON.stringify({configured:process.argv[2],prompt:process.argv[3],tty:process.stdin.isTTY===true}))\n');
             const command = ['node', scriptPath, 'GPT 5.5'];
             const result = await service.run(createProject(rootPath), agentRequest({ command, prompt, scopePath: 'project' }), () => undefined);
+            const persisted = JSON.parse(await readFile(join(rootPath, result.reference), 'utf8'));
 
             expect(result.stderr).toBe('');
             expect(result.exitCode).toBe(0);
             expect(JSON.parse(result.stdout)).toEqual({ configured: 'GPT 5.5', prompt, tty: false });
+            expect(persisted.messages.at(-1)).toMatchObject({ content: result.stdout, role: 'assistant' });
+            expect(persisted.events).not.toContainEqual(expect.objectContaining({ type: 'stdout' }));
         } finally {
             await rm(rootPath, { force: true, recursive: true });
         }
@@ -117,7 +120,7 @@ describe('AgentRunnerService', () => {
         }
     });
 
-    it('streams structured events and persists assistant text separately from protocol events', async () => {
+    it('streams output deltas and persists normalized transcript data', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-runner-'));
         const service = new AgentRunnerService();
         const events = [];
@@ -137,11 +140,13 @@ describe('AgentRunnerService', () => {
 
             expect(result.changedPaths).toEqual(['design/F-1.md']);
             expect(events).toContainEqual(expect.objectContaining({ content: 'answer', type: 'output' }));
+            expect(events.every((event) => !Object.hasOwn(event, 'conversation'))).toBe(true);
             expect(persisted.messages).toEqual([
                 expect.objectContaining({ content: 'question', role: 'user' }),
                 expect.objectContaining({ agent: 'codex', content: 'answer', role: 'assistant' }),
             ]);
-            expect(persisted.events).toContainEqual(expect.objectContaining({ type: 'thread.started' }));
+            expect(persisted.events).toContainEqual(expect.objectContaining({ type: 'tool.file_change' }));
+            expect(persisted.events).not.toContainEqual(expect.objectContaining({ type: 'thread.started' }));
             expect(persisted.providerSessions).toEqual([expect.objectContaining({ agent: 'codex', conversationId: 'thread-1' })]);
         } finally {
             await rm(rootPath, { force: true, recursive: true });
@@ -261,14 +266,14 @@ describe('AgentRunnerService', () => {
             const persisted = JSON.parse(await readFile(join(rootPath, result.reference), 'utf8'));
 
             expect(result.stderr).toBe('visible warning\n');
-            expect(events.filter(({ type }) => type === 'stderr').map(({ content }) => content)).toEqual(['visible warning\n']);
-            expect(persisted.events.filter(({ type }) => type === 'stderr').map(({ content }) => content)).toEqual(['visible warning\n']);
+            expect(events.filter(({ type }) => type === 'error').map(({ content }) => content)).toEqual(['visible warning\n']);
+            expect(persisted.events.filter(({ type }) => type === 'error').map(({ content }) => content)).toEqual(['visible warning\n']);
         } finally {
             await rm(rootPath, { force: true, recursive: true });
         }
     });
 
-    it('fails a new provider turn without an explicit structured conversation id', async () => {
+    it('completes without a provider conversation id and keeps transcript fallback available', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-runner-'));
         const service = new AgentRunnerService();
         const scriptPath = join(rootPath, 'missing-session.cjs');
@@ -284,16 +289,16 @@ describe('AgentRunnerService', () => {
             }), () => undefined);
             const persisted = JSON.parse(await readFile(join(rootPath, result.reference), 'utf8'));
 
-            expect(result.exitCode).not.toBe(0);
-            expect(persisted.status).toBe('failed');
+            expect(result.exitCode).toBe(0);
+            expect(persisted.status).toBe('completed');
             expect(persisted.messages.at(-1)).toMatchObject({ content: 'partial answer', role: 'assistant' });
-            expect(persisted.events).toContainEqual(expect.objectContaining({ content: 'Missing codex conversation id in structured output', type: 'error' }));
+            expect(persisted.providerSessions).toEqual([]);
         } finally {
             await rm(rootPath, { force: true, recursive: true });
         }
     });
 
-    it('fails malformed provider JSONL visibly without storing it as assistant text', async () => {
+    it('keeps malformed provider JSONL as a diagnostic without failing the turn', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-runner-'));
         const service = new AgentRunnerService();
         const events = [];
@@ -310,9 +315,10 @@ describe('AgentRunnerService', () => {
             }), (event) => events.push(event));
             const persisted = JSON.parse(await readFile(join(rootPath, result.reference), 'utf8'));
 
-            expect(result.exitCode).not.toBe(0);
-            expect(events).toContainEqual(expect.objectContaining({ type: 'error' }));
-            expect(persisted.status).toBe('failed');
+            expect(result.exitCode).toBe(0);
+            expect(events.some(({ type }) => type === 'error')).toBe(false);
+            expect(persisted.events).toContainEqual(expect.objectContaining({content: 'Malformed claude JSONL event: not-json', type: 'diagnostic'}));
+            expect(persisted.status).toBe('completed');
             expect(persisted.messages).toHaveLength(1);
         } finally {
             await rm(rootPath, { force: true, recursive: true });

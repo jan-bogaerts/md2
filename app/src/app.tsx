@@ -6,6 +6,7 @@ import { MainWindow } from './components/shell/main_window'
 import { StartupSplash } from './components/shell/startup_splash'
 import { RemoteControlButton } from './components/shell/remote_control_button'
 import { useProjectState } from './components/hooks/use_project_state'
+import { useRunningActionExecutions } from './components/hooks/use_action_executions'
 import { AppThemeProvider } from './theme/theme_provider'
 import { readStartupSplashPreference } from './services/config/config_service'
 import { dialogService } from './services/dialog_service'
@@ -13,7 +14,12 @@ import { dialogService } from './services/dialog_service'
 export function App() {
     const auth = useGithubAuth()
     const bootstrap = useAppBootstrap(auth.accessToken)
-    const { runningAgents } = useProjectState()
+    const { runningAgents: directRunningAgents } = useProjectState()
+    const runningActionExecutions = useRunningActionExecutions()
+    const runningAgents = [
+        ...directRunningAgents,
+        ...runningActionExecutions.map(({ executionId, rootActionId }) => ({ id: executionId, label: `Action ${rootActionId}` })),
+    ]
     const showStartupSplash = readStartupSplashPreference()
     const reportedBootstrapErrorRef = useRef<string | null>(null)
 

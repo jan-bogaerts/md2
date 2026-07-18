@@ -87,6 +87,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
     const receivedMarkdownRef = useRef(markdown)
     const latestMarkdownRef = useRef(markdown)
     const lastEmittedMarkdownRef = useRef(markdown)
+    const dirtyBaselineEstablishedRef = useRef(false)
     const onChangeRef = useRef(props.onChange)
     const onDirtyChangeRef = useRef(props.onDirtyChange)
     const onDocumentChangeRef = useRef(props.onDocumentChange)
@@ -132,6 +133,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         const normalizedMarkdown = editorRef.current.getMarkdown()
         latestMarkdownRef.current = normalizedMarkdown
         lastEmittedMarkdownRef.current = normalizedMarkdown
+        dirtyBaselineEstablishedRef.current = true
     }, [])
 
     useEffect(() => {
@@ -184,7 +186,9 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         if (latestMarkdownRef.current === nextMarkdown) return
 
         latestMarkdownRef.current = nextMarkdown
-        onDirtyChangeRef.current?.(nextMarkdown !== lastEmittedMarkdownRef.current)
+        if (dirtyBaselineEstablishedRef.current) {
+            onDirtyChangeRef.current?.(nextMarkdown !== lastEmittedMarkdownRef.current)
+        }
         onLiveChangeRef.current?.(nextMarkdown)
         const activeDocumentId = activeDocumentIdRef.current
         if (activeDocumentId) onDocumentEditRef.current?.(activeDocumentId, nextMarkdown)

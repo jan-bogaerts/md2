@@ -7,7 +7,6 @@ const {
     createConversation,
     createEvent,
     createMessage,
-    hasRequiredProviderConversationId,
     updateProviderSession,
 } = require('./agent_conversation');
 
@@ -57,7 +56,7 @@ describe('agent conversation', () => {
         expect(resumed.providerSessions).not.toBe(conversation.providerSessions);
     });
 
-    it('updates provider session cursor and validates required provider ids', () => {
+    it('updates a provider session cursor when an id is available', () => {
         const run = {
             agent: 'codex',
             conversation: { providerSessions: [] },
@@ -65,7 +64,6 @@ describe('agent conversation', () => {
             request: {},
         };
 
-        expect(hasRequiredProviderConversationId(run)).toBe(true);
         updateProviderSession(run, 'message-1', 'now');
         expect(run.conversation.providerSessions).toEqual([{
             agent: 'codex',
@@ -74,7 +72,8 @@ describe('agent conversation', () => {
             lastUsedAt: 'now',
             synchronizedThroughMessageId: 'message-1',
         }]);
-        expect(hasRequiredProviderConversationId({ ...run, providerConversationId: null, request: {} })).toBe(false);
-        expect(hasRequiredProviderConversationId({ ...run, agent: 'generic', providerConversationId: null, request: {} })).toBe(true);
+        const runWithoutConversationId = { ...run, conversation: { providerSessions: [] }, providerConversationId: null };
+        updateProviderSession(runWithoutConversationId, 'message-2', 'later');
+        expect(runWithoutConversationId.conversation.providerSessions).toEqual([]);
     });
 });

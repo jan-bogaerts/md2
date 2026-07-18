@@ -107,6 +107,7 @@ npm run lint-fix
 - dialogs have buttons in the bottom right corner
 - use the `dialogService` to show errors, warnings,...
 - for styling, read and use this guide: `design\STYLE_GUIDE.md`
+- application states belong in services, not in components.
 
 
 ## Testing

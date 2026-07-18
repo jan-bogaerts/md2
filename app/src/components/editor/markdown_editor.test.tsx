@@ -176,14 +176,16 @@ describe('MarkdownEditor', () => {
         expect(historyStore.canRedo).toBe(false)
     })
 
-    it('does not flush editor-normalized markdown when the user made no edit', () => {
+    it('does not report editor-normalized markdown as a user edit', () => {
         const onChange = vi.fn()
+        const onDirtyChange = vi.fn()
         const { unmount } = render(
             <AppThemeProvider>
-                <MarkdownEditor markdown="original  \n" onChange={onChange} />
+                <MarkdownEditor markdown="original  \n" onChange={onChange} onDirtyChange={onDirtyChange} />
             </AppThemeProvider>,
         )
 
+        expect(onDirtyChange).not.toHaveBeenCalledWith(true)
         unmount()
 
         expect(onChange).not.toHaveBeenCalled()

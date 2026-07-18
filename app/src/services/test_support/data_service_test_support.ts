@@ -46,7 +46,7 @@ export function conversation(path = '.md2-agent-logs/one.json'): AgentConversati
         events: [],
         hasExplicitTitle: true,
         id: 'agent-1',
-        messages: [{ content: 'done', id: 'm1', role: 'agent', timestamp: '2026-01-01T00:01:00.000Z' }],
+        messages: [{ content: 'done', id: 'm1', role: 'assistant', timestamp: '2026-01-01T00:01:00.000Z' }],
         path,
         providerSessions: [],
         startedAt: '2026-01-01T00:00:00.000Z',

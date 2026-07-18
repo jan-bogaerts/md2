@@ -288,6 +288,7 @@ export function ProjectCardView(props: ProjectCardViewProps) {
                 anchorEl={actionsAnchorElement}
                 anchorPosition={actionsMenuPosition ?? undefined}
                 anchorReference={actionsMenuPosition ? 'anchorPosition' : 'anchorEl'}
+                keepMounted
                 onClose={closeCardActions}
                 open={!!actionsAnchorElement || !!actionsMenuPosition}
             >

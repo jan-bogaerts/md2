@@ -1,5 +1,5 @@
 import type { ActionContext } from './action_context'
-import type { AgentConversation, AgentRunEvent } from './data_types'
+import type { AgentConversationMessage } from './data_types'
 import type { ThinkingLevel } from './agent_profiles'
 
 export type ActionRunStatus = 'cancelled' | 'completed' | 'failed' | 'okButNotAfter'
@@ -30,27 +30,52 @@ export interface ActionStartRequest {
     runInput: ActionRunInput
 }
 
-export interface ActionExecutionEvent {
+interface ActionExecutionEventBase {
     actionId: string
-    agentEvent?: AgentRunEvent
-    command?: string
-    conversation?: AgentConversation
     context: ActionContext
     executionId: string
-    executionWorktree?: number | null
-    message?: string | null
     phase: ActionRunPhase
-    reference?: string
     rootActionId: string
-    runId?: string
-    status: ActionExecutionStatus
-    stderr?: string
-    stdout?: string
-    thinkingLevel?: ThinkingLevel
-    type: 'action' | 'agent' | 'execution'
 }
 
+export type ActionExecutionUpdate =
+    | {
+        conversationId: string
+        kind: 'agentStarted'
+        reference: string
+        startedAt: string
+        title: string
+        userMessage: AgentConversationMessage
+    }
+    | {
+        command?: string
+        content: string
+        kind: 'error' | 'output'
+    }
+
+export type ActionExecutionEvent =
+    | ActionExecutionEventBase & {
+        status: ActionExecutionStatus
+        type: 'execution'
+    }
+    | ActionExecutionEventBase & {
+        command?: string
+        executionWorktree?: number | null
+        message?: string | null
+        reference?: string
+        runId?: string
+        status: ActionExecutionStatus
+        thinkingLevel?: ThinkingLevel
+        type: 'action'
+    }
+    | ActionExecutionEventBase & {
+        status: 'running'
+        type: 'update'
+        update: ActionExecutionUpdate
+    }
+
 export interface ActionRunLogEntry {
+    actionId: string
     actionName: string
     command: string | null
     message: string

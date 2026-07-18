@@ -125,7 +125,8 @@ describe('ActionPopup', () => {
     })
 
     it('expands upward and restores the anchored size after collapse', () => {
-        renderPopup()
+        const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+        const { onClose } = renderPopup()
         const dialog = screen.getByRole('dialog')
 
         fireEvent.click(screen.getByRole('button', { name: 'Expand upward' }))
@@ -133,5 +134,11 @@ describe('ActionPopup', () => {
 
         fireEvent.click(screen.getByRole('button', { name: 'Collapse downward' }))
         expect(dialog.style.height).toBe('450px')
+
+        fireEvent.click(screen.getByRole('button', { name: 'Expand upward' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+
+        expect(onClose).toHaveBeenCalledOnce()
+        expect(consoleError).not.toHaveBeenCalled()
     })
 })
