@@ -209,8 +209,6 @@ export function ActionPopup(props: ActionPopupProps) {
                     {action.type !== 'agent' ? (
                         <ActionRunHistory compact entries={controller.history} error={controller.historyError} />
                     ) : null}
-                    <RelatedActions actions={action.onBefore} label="Before" onNavigate={onNavigate} />
-                    <RelatedActions actions={action.onAfter} label="After" onNavigate={onNavigate} />
                 </Stack>
                 <Box sx={{ alignItems: 'center', bgcolor: 'background.default', borderTop: 1, borderColor: 'divider', display: 'flex', gap: 1, px: 2, py: 1.5 }}>
                     {showUsageSummary && action.type === 'agent' && props.context.file ? (

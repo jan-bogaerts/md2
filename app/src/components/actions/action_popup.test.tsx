@@ -913,7 +913,7 @@ describe('ActionPopup', () => {
         expect(JSON.parse(window.localStorage.getItem(PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY) ?? '{}')).toEqual({ height: 450, width: 400 })
     })
 
-    it('orders agent controls, chat, divider, and prompt without inline run history', async () => {
+    it('orders agent controls, chat, resize splitter, and prompt without inline run history', async () => {
         const selectedAction = action('Implement', { type: 'agent' })
         renderPopup({
             action: selectedAction,
@@ -926,14 +926,35 @@ describe('ActionPopup', () => {
         const agentControl = screen.getByRole('combobox', { name: 'Agent' })
         const picker = screen.getByRole('combobox', { name: 'Conversation history' })
         const chat = screen.getByLabelText('Conversation chat')
+        const splitter = screen.getByRole('separator', { name: 'Resize prompt' })
         const prompt = screen.getByLabelText('Prompt')
 
         expect(agentControl.compareDocumentPosition(picker)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
         expect(picker.compareDocumentPosition(chat)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
-        expect(chat.compareDocumentPosition(prompt)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
-        expect(chat.parentElement?.nextElementSibling?.tagName).toBe('HR')
+        expect(chat.compareDocumentPosition(splitter)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+        expect(splitter.compareDocumentPosition(prompt)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+        expect(chat.parentElement?.nextElementSibling).toBe(splitter)
         expect(screen.queryByText('Run history')).not.toBeInTheDocument()
         expect(screen.queryByText('No previous runs')).not.toBeInTheDocument()
+    })
+
+    it('persists the prompt height after dragging the resize splitter', async () => {
+        window.localStorage.removeItem('md2.actionPromptHeight')
+        const selectedAction = action('Implement', { type: 'agent' })
+        renderPopup({
+            action: selectedAction,
+            actions: [selectedAction],
+            loadConversations: vi.fn(async () => []),
+            onAddAction: vi.fn(),
+            onSelectAction: vi.fn(),
+        })
+
+        const splitter = await screen.findByRole('separator', { name: 'Resize prompt' })
+        fireEvent.pointerDown(splitter, { clientY: 300, pointerId: 1 })
+        fireEvent.pointerMove(splitter, { clientY: 240, pointerId: 1 })
+        fireEvent.pointerUp(splitter, { pointerId: 1 })
+
+        expect(window.localStorage.getItem('md2.actionPromptHeight')).not.toBeNull()
     })
 
     it('shows only conversations created by the selected action', async () => {

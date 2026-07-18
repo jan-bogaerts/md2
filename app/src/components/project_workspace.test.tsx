@@ -2,6 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useCallback } from 'react'
 import { MissingWorkingFolderError, type ProjectConfig, type StorageService } from '../data/data_types'
+import { setActionBridgeOverride, type ElectronActionBridge } from '../data/electron_action_bridge'
 import type { ElectronDataBridge } from '../data/electron_data_bridge'
 import { configService } from '../services/config/config_service'
 import { dataService } from '../services/data/data_service'
@@ -78,6 +79,13 @@ function createBridge(): ElectronDataBridge {
         selectWorktreeFolder: vi.fn(async () => null),
         watchProject: vi.fn(() => vi.fn()),
     }
+}
+
+function createActionBridge(): ElectronActionBridge {
+    return {
+        onActionExecution: vi.fn(() => vi.fn()),
+        prepareActionPrompt: vi.fn(async () => ({ prompt: '' })),
+    } as unknown as ElectronActionBridge
 }
 
 function createResetStorage(): StorageService {
@@ -178,6 +186,8 @@ describe('ProjectWorkspace', () => {
         actionService.clear()
         configService.clear()
         window.localStorage.clear()
+        setActionBridgeOverride(null)
+        delete window.md2Actions
         delete window.md2Data
         delete window.md2Lifecycle
         vi.restoreAllMocks()
@@ -203,6 +213,7 @@ describe('ProjectWorkspace', () => {
 
     it('opens a local project and shows root cards in the card view before background cards', async () => {
         const bridge = createBridge()
+        window.md2Actions = createActionBridge()
         window.md2Data = bridge
 
         renderProjectSurface()
@@ -220,6 +231,7 @@ describe('ProjectWorkspace', () => {
     })
 
     it('keeps project agent available across card and text views', async () => {
+        window.md2Actions = createActionBridge()
         window.md2Data = createBridge()
         renderProjectSurface()
         await openLocalProject()
@@ -228,6 +240,23 @@ describe('ProjectWorkspace', () => {
         workspaceViewService.setViewMode('text')
 
         expect(await screen.findByLabelText('File tree')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Project agent' })).toBeInTheDocument()
+    })
+
+    it('hides project agent in a browser without an Electron execution backend', async () => {
+        await dataService.projectLoading.openProject({ branch: 'main', id: 'web-project' })
+
+        renderProjectSurface()
+
+        expect(screen.queryByRole('button', { name: 'Project agent' })).toBeNull()
+    })
+
+    it('shows project agent in a browser connected to an Electron server', async () => {
+        setActionBridgeOverride(createActionBridge())
+        await dataService.projectLoading.openProject({ branch: 'main', id: 'remote-project' })
+
+        renderProjectSurface()
+
         expect(screen.getByRole('button', { name: 'Project agent' })).toBeInTheDocument()
     })
 

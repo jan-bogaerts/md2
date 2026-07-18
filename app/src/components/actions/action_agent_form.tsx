@@ -1,8 +1,21 @@
-import { Box, Button, Divider, MenuItem, Stack, TextField, Typography } from '@mui/material'
-import { useEffect, useRef, type ChangeEvent, type KeyboardEvent, type ReactNode } from 'react'
+import { Box, Button, MenuItem, Stack, TextField, Typography } from '@mui/material'
+import { useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
 import { THINKING_LEVELS, type AgentProfile, type ThinkingLevel } from '../../data/agent_profiles'
 import type { AgentAvailability } from '../../data/electron_data_bridge'
 import { MarkdownEditor, type MarkdownEditorHandle } from '../editor/markdown_editor'
+
+const MIN_PROMPT_HEIGHT = 72
+const MIN_CHAT_HEIGHT = 96
+const DEFAULT_PROMPT_HEIGHT = 140
+const PROMPT_RESIZE_STEP = 24
+const PROMPT_HEIGHT_STORAGE_KEY = 'md2.actionPromptHeight'
+
+function readStoredPromptHeight(): number {
+    const storedValue = window.localStorage.getItem(PROMPT_HEIGHT_STORAGE_KEY)
+    const parsedValue = storedValue ? Number.parseInt(storedValue, 10) : Number.NaN
+
+    return Number.isNaN(parsedValue) ? DEFAULT_PROMPT_HEIGHT : parsedValue
+}
 
 interface ActionAgentFormProps {
     actionLabel: string
@@ -80,6 +93,68 @@ export function ActionAgentForm(props: ActionAgentFormProps) {
         promptEditorRef.current?.setMarkdown(promptRef.current)
     }, [promptResetToken])
 
+    // Draggable splitter above the prompt editor: the prompt keeps a resizable pixel
+    // height while the chat log flexes into the remaining space.
+    const splitContainerRef = useRef<HTMLDivElement>(null)
+    const promptHeightStartRef = useRef(0)
+    const pointerStartYRef = useRef(0)
+    const [promptHeight, setPromptHeight] = useState(readStoredPromptHeight)
+    const [resizingPrompt, setResizingPrompt] = useState(false)
+
+    const clampPromptHeight = (proposed: number) => {
+        const container = splitContainerRef.current
+        const available = container ? container.getBoundingClientRect().height - MIN_CHAT_HEIGHT : proposed
+        const max = Math.max(MIN_PROMPT_HEIGHT, available)
+
+        return Math.min(Math.max(proposed, MIN_PROMPT_HEIGHT), max)
+    }
+
+    const persistPromptHeight = (height: number) => {
+        window.localStorage.setItem(PROMPT_HEIGHT_STORAGE_KEY, String(Math.round(height)))
+    }
+
+    const handleSplitPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+        event.preventDefault()
+        promptHeightStartRef.current = promptHeight
+        pointerStartYRef.current = event.clientY
+        setResizingPrompt(true)
+        event.currentTarget.setPointerCapture?.(event.pointerId)
+    }
+
+    const handleSplitPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+        if (!resizingPrompt) return
+
+        // Dragging up (smaller clientY) grows the prompt below the splitter.
+        const delta = pointerStartYRef.current - event.clientY
+        setPromptHeight(clampPromptHeight(promptHeightStartRef.current + delta))
+    }
+
+    const handleSplitPointerUp = (event: ReactPointerEvent<HTMLDivElement>) => {
+        if (!resizingPrompt) return
+
+        setResizingPrompt(false)
+        event.currentTarget.releasePointerCapture?.(event.pointerId)
+        setPromptHeight((height) => {
+            persistPromptHeight(height)
+
+            return height
+        })
+    }
+
+    const handleSplitKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+        const nextByKey: Record<string, number> = {
+            ArrowDown: promptHeight - PROMPT_RESIZE_STEP,
+            ArrowUp: promptHeight + PROMPT_RESIZE_STEP,
+        }
+        const next = nextByKey[event.key]
+        if (next === undefined) return
+
+        event.preventDefault()
+        const clamped = clampPromptHeight(next)
+        setPromptHeight(clamped)
+        persistPromptHeight(clamped)
+    }
+
     const handleNameKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
         if (event.key !== 'Enter' || !onRunShortcut) return
 
@@ -107,7 +182,7 @@ export function ActionAgentForm(props: ActionAgentFormProps) {
         }
 
         return (
-            <Stack spacing={2} sx={{ flex: 1, minHeight: 0 }}>
+            <Stack ref={splitContainerRef} spacing={2} sx={{ flex: 1, minHeight: 0 }}>
                 {showSaveControls ? (
                     <Stack spacing={0.75}>
                         <Box sx={{ alignItems: 'baseline', display: 'flex', gap: 0.75 }}>
@@ -212,8 +287,30 @@ export function ActionAgentForm(props: ActionAgentFormProps) {
                     {commitHistory}
                     {conversationPicker}
                 </Box>
-                <Box sx={{ flex: 2, minHeight: 0, overflowY: 'auto' }}>{conversationContent}</Box>
-                <Divider />
+                <Box sx={{ flex: 1, minHeight: MIN_CHAT_HEIGHT, overflowY: 'auto' }}>{conversationContent}</Box>
+                <Box
+                    aria-label="Resize prompt"
+                    aria-orientation="horizontal"
+                    aria-valuemin={MIN_PROMPT_HEIGHT}
+                    aria-valuenow={Math.round(promptHeight)}
+                    onKeyDown={handleSplitKeyDown}
+                    onPointerDown={handleSplitPointerDown}
+                    onPointerMove={handleSplitPointerMove}
+                    onPointerUp={handleSplitPointerUp}
+                    role="separator"
+                    sx={{
+                        bgcolor: resizingPrompt ? 'primary.main' : 'divider',
+                        borderRadius: '2px',
+                        cursor: 'row-resize',
+                        flexShrink: 0,
+                        height: '3px',
+                        mx: 'auto',
+                        my: '2px',
+                        width: 48,
+                        '&:hover': { bgcolor: 'primary.main' },
+                    }}
+                    tabIndex={0}
+                />
                 <Box
                     aria-label={promptLabel}
                     onKeyDown={handlePromptKeyDown}
@@ -221,8 +318,8 @@ export function ActionAgentForm(props: ActionAgentFormProps) {
                         borderRadius: '9px',
                         border: 1,
                         borderColor: (theme) => theme.palette.mode === 'dark' ? '#364152' : '#d5dbe3',
-                        flex: 1,
-                        minHeight: 120,
+                        flexShrink: 0,
+                        height: promptHeight,
                         overflowY: 'auto',
                         px: 1,
                         '&:focus-within': {

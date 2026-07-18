@@ -10,6 +10,7 @@ const APPLICATION_ICON_SOURCE = `${import.meta.env.BASE_URL}favicon.svg`
 
 interface MainToolbarProps {
     isMobile: boolean
+    mobileAction: ReactNode
     onOpenMenu: () => void
     panel: ReactNode
     search: ReactNode
@@ -21,7 +22,7 @@ interface MainToolbarProps {
  * Interactive controls opt out of dragging so the remaining row space can move the window.
  */
 export function MainToolbar(props: MainToolbarProps) {
-    const { isMobile, onOpenMenu, panel, search, tabs } = props
+    const { isMobile, mobileAction, onOpenMenu, panel, search, tabs } = props
 
     return (
         <AppBar
@@ -56,6 +57,11 @@ export function MainToolbar(props: MainToolbarProps) {
                     {tabs}
                 </Box>
                 <Box sx={{ flex: 1, minWidth: 16 }} />
+                {isMobile ? (
+                    <Box style={NO_DRAG_REGION}>
+                        {mobileAction}
+                    </Box>
+                ) : null}
                 {isMobile ? (
                     <Box style={NO_DRAG_REGION}>
                         {search}

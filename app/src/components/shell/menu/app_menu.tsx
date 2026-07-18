@@ -37,6 +37,7 @@ import { Menu } from './menu'
 import { BranchMenuSelect } from './branch_menu_select'
 import { MenuIconButton } from './menu_icon_button'
 import { MenuSelect } from './menu_select'
+import { MobileCreateMenu } from './mobile_create_menu'
 import { Section } from './section'
 import { Tab } from './tab'
 
@@ -217,10 +218,48 @@ export function AppMenu(props: AppMenuProps) {
         </Tabs>
     )
 
+    const viewSection = (
+        <Section label="View">
+            <ToggleButtonGroup
+                exclusive
+                onChange={handleViewModeChange}
+                size="small"
+                sx={{
+                    bgcolor: 'action.selected',
+                    borderRadius: 1,
+                    gap: 0.25,
+                    p: 0.375,
+                    '& .MuiToggleButtonGroup-grouped': { border: 0, borderRadius: '6px !important', height: 28, px: 1.25 },
+                    '& .Mui-selected': { bgcolor: 'background.paper', boxShadow: '0 1px 2px rgba(16,24,40,0.1)' },
+                }}
+                value={viewMode}
+            >
+                <Tooltip title="Cards view">
+                    <ToggleButton aria-label="Cards view" value="cards">
+                        <CardsOutline fontSize="small" />
+                        <Box component="span" sx={{ ml: 0.75 }}>Board</Box>
+                    </ToggleButton>
+                </Tooltip>
+                <Tooltip title="Text view">
+                    <ToggleButton aria-label="Text view" value="text">
+                        <TextBoxOutline fontSize="small" />
+                        <Box component="span" sx={{ ml: 0.75 }}>List</Box>
+                    </ToggleButton>
+                </Tooltip>
+            </ToggleButtonGroup>
+        </Section>
+    )
+
     const menuPanel = (
         <Menu>
             <Box role="tabpanel" sx={{ display: currentTab === 'home' ? 'block' : 'none' }}>
                 <Tab>
+                    {isMobile ? (
+                        <>
+                            {viewSection}
+                            <Divider flexItem orientation="vertical" sx={{ my: 1.5 }} />
+                        </>
+                    ) : null}
                     <Section label="Project">
                         <MenuIconButton label="Open project" onClick={handleOpenProject}>
                             <FolderOpen fontSize="small" />
@@ -249,52 +288,28 @@ export function AppMenu(props: AppMenuProps) {
                         </MenuIconButton>
                         {extraActions}
                     </Section>
-                    <Divider flexItem orientation="vertical" sx={{ my: 1.5 }} />
-                    <Section label="View">
-                        <ToggleButtonGroup
-                            exclusive
-                            onChange={handleViewModeChange}
-                            size="small"
-                            sx={{
-                                bgcolor: 'action.selected',
-                                borderRadius: 1,
-                                gap: 0.25,
-                                p: 0.375,
-                                '& .MuiToggleButtonGroup-grouped': { border: 0, borderRadius: '6px !important', height: 28, px: 1.25 },
-                                '& .Mui-selected': { bgcolor: 'background.paper', boxShadow: '0 1px 2px rgba(16,24,40,0.1)' },
-                            }}
-                            value={viewMode}
-                        >
-                            <Tooltip title="Cards view">
-                                <ToggleButton aria-label="Cards view" value="cards">
-                                    <CardsOutline fontSize="small" />
-                                    <Box component="span" sx={{ ml: 0.75 }}>Board</Box>
-                                </ToggleButton>
-                            </Tooltip>
-                            <Tooltip title="Text view">
-                                <ToggleButton aria-label="Text view" value="text">
-                                    <TextBoxOutline fontSize="small" />
-                                    <Box component="span" sx={{ ml: 0.75 }}>List</Box>
-                                </ToggleButton>
-                            </Tooltip>
-                        </ToggleButtonGroup>
-                    </Section>
-                    <Divider flexItem orientation="vertical" sx={{ my: 1.5 }} />
-                    <Button disabled={!project} onClick={handleCreateAction} size="small" variant="outlined">New action</Button>
-                    <Button
-                        disabled={!actions.isProjectOpen}
-                        onClick={handleOpenCardDialog}
-                        size="small"
-                        startIcon={<FileDocumentPlusOutline fontSize="small" />}
-                        sx={{ height: 34, px: 1.75 }}
-                        variant="contained"
-                    >
-                        New card
-                    </Button>
-                    <Box sx={{ flex: 1 }} />
-                    <Section label="Account">
-                        <GithubAuthToolbarButton auth={auth} />
-                    </Section>
+                    {!isMobile ? (
+                        <>
+                            <Divider flexItem orientation="vertical" sx={{ my: 1.5 }} />
+                            {viewSection}
+                            <Divider flexItem orientation="vertical" sx={{ my: 1.5 }} />
+                            <Button disabled={!project} onClick={handleCreateAction} size="small" variant="outlined">New action</Button>
+                            <Button
+                                disabled={!actions.isProjectOpen}
+                                onClick={handleOpenCardDialog}
+                                size="small"
+                                startIcon={<FileDocumentPlusOutline fontSize="small" />}
+                                sx={{ height: 34, px: 1.75 }}
+                                variant="contained"
+                            >
+                                New card
+                            </Button>
+                            <Box sx={{ flex: 1 }} />
+                            <Section label="Account">
+                                <GithubAuthToolbarButton auth={auth} />
+                            </Section>
+                        </>
+                    ) : null}
                 </Tab>
             </Box>
             <Box role="tabpanel" sx={{ display: currentTab === 'agents' ? 'block' : 'none' }}>
@@ -414,6 +429,14 @@ export function AppMenu(props: AppMenuProps) {
     return (
         <MainToolbar
             isMobile={isMobile}
+            mobileAction={isMobile && currentTab === 'home' ? (
+                <MobileCreateMenu
+                    isNewActionDisabled={!project}
+                    isNewCardDisabled={!actions.isProjectOpen}
+                    onCreateAction={handleCreateAction}
+                    onCreateCard={handleOpenCardDialog}
+                />
+            ) : null}
             onOpenMenu={onOpenMobileMenu}
             panel={menuPanel}
             search={search}

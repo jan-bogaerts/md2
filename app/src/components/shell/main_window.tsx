@@ -13,6 +13,7 @@ import { LeftPanelSlotProvider } from './left_panel_slot_provider'
 import { LeftPanelTarget } from './left_panel_target'
 import { AppMenu } from './menu/app_menu'
 import { ThemeModeToggle } from './menu/theme_mode_toggle'
+import { GithubAuthToolbarButton } from './github_auth_toolbar_button'
 import { SearchControl } from './search/search_control'
 import { SplitLayout } from './split_layout'
 import { StatusBar } from './status_bar'
@@ -113,7 +114,11 @@ export function MainWindow(props: MainWindowProps) {
                                         <Divider />
                                         <Box sx={{ flex: 1, overflow: 'auto' }}>{leftPanel}</Box>
                                     </>
-                                ) : null}
+                                ) : <Box sx={{ flex: 1 }} />}
+                                <Divider />
+                                <Box component="footer" sx={{ display: 'flex', justifyContent: 'flex-end', p: 1.5 }}>
+                                    <GithubAuthToolbarButton auth={auth} />
+                                </Box>
                             </Box>
                         </Drawer>
                         <Box sx={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>{rightPanel}</Box>

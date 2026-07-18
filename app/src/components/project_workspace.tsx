@@ -12,6 +12,7 @@ import {
     type ProjectCard,
     type ProjectReference,
 } from '../data/data_types'
+import { hasExecutionBackend } from '../data/electron_action_bridge'
 import { dataService } from '../services/data/data_service'
 import { dialogService } from '../services/dialog_service'
 import { getElectronLifecycleBridge, type ElectronLifecycleBridge } from '../services/electron_lifecycle_bridge'
@@ -323,7 +324,7 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
                     </Stack>
                 )}
             </Box>
-            {isProjectOpen ? <AgentChatFab /> : null}
+            {isProjectOpen && hasExecutionBackend() ? <AgentChatFab /> : null}
         </Paper>
     )
 }
