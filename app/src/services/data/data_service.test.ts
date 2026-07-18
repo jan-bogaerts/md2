@@ -6,6 +6,7 @@ import { DataService } from './data_service'
 import { GithubStorageService } from '../github/github_storage_service'
 import { openFilesService } from '.././open_files_service'
 import {
+    createDeferred,
     createGithubRawResponse,
     createGithubResponse,
     createGithubStatusResponse,
@@ -145,6 +146,55 @@ describe('DataService', () => {
 
         expect(storage.commit).toHaveBeenCalledTimes(2)
         expect(storage.push).toHaveBeenCalledTimes(2)
+    })
+
+    it('finishes an action rename when watcher reload wins the race with commit completion', async () => {
+        vi.useFakeTimers()
+        configService.init()
+        configService.set('react.autoCommitDelayMs', 2000)
+        const originalDefinition = {
+            command: 'echo test',
+            description: 'Test action',
+            id: 'test-action',
+            label: 'Test 1',
+            phrases: [],
+            type: 'command' as const,
+        }
+        const renamedDefinition = { ...originalDefinition, label: 'Test 1b' }
+        const commit = createDeferred<never[]>()
+        const loadActionFiles = vi.fn()
+            .mockResolvedValueOnce([{ content: JSON.stringify(originalDefinition), path: 'actions/test-1.json' }])
+            .mockResolvedValueOnce([{ content: JSON.stringify(renamedDefinition), path: 'actions/test-1b.json' }])
+        let watchChange: (event: { changeKind: 'added' | 'changed' | 'removed' | 'unknown'; path: string }) => void = () => {
+            throw new Error('Watcher not registered')
+        }
+        const storage = createStorage({
+            commit: vi.fn(() => commit.promise),
+            loadActionFiles,
+            watchProject: vi.fn((_project, onChange) => {
+                watchChange = onChange
+
+                return vi.fn()
+            }),
+        })
+        const service = new DataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        openFilesService.openFile('actions/test-1.json')
+
+        actionService.updateDraft('actions/test-1.json', renamedDefinition)
+        await actionService.flushDrafts()
+        await vi.advanceTimersByTimeAsync(2000)
+        watchChange({ changeKind: 'removed', path: 'actions/test-1.json' })
+        watchChange({ changeKind: 'added', path: 'actions/test-1b.json' })
+        await vi.advanceTimersByTimeAsync(150)
+        commit.resolve([])
+
+        await vi.waitFor(() => {
+            expect(actionService.getActionByPath('actions/test-1b.json')?.label).toBe('Test 1b')
+            expect(actionService.getDraft('actions/test-1b.json')).toMatchObject({ deleted: false })
+            expect(openFilesService.getSnapshot().activePath).toBe('actions/test-1b.json')
+        })
     })
 
     it('handles GitHub unauthorized once when a batched commit gets a 401', async () => {

@@ -573,7 +573,7 @@ export class ActionService extends EventTarget {
             : sourceDraft ?? targetDraft
         const sourceDefinition = this.definitions.find((entry) => entry.path === fromPath)?.definition
         const targetDefinition = this.definitions.find((entry) => entry.path === toPath)?.definition
-        const committedDraftDefinition = draft?.committedRevision === draft?.revision && draft.validation.valid
+        const committedDraftDefinition = draft && draft.committedRevision === draft.revision && draft.validation.valid
             ? draft.definition
             : undefined
         const definition = sourceDefinition ?? committedDraftDefinition ?? targetDefinition
