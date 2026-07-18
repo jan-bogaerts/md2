@@ -1,5 +1,5 @@
 import { Paper, Stack, Typography } from '@mui/material'
-import type { ConfigEntry, ConfigKey, ConfigValues } from '../../services/config_service'
+import type { ConfigEntry, ConfigKey, ConfigValues } from '../../services/config/config_service'
 import { ConfigValueEditor } from './config_value_editor'
 
 const CONFIG_SECTION_PADDING = 3

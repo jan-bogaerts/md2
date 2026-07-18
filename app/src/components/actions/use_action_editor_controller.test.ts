@@ -2,8 +2,8 @@ import { act, cleanup, renderHook } from '@testing-library/react'
 import type { SyntheticEvent } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ActionDefinition } from '../../data/action_types'
-import { actionService } from '../../services/action_service'
-import { dataService } from '../../services/data_service'
+import { actionService } from '../../services/actions/action_service'
+import { dataService } from '../../services/data/data_service'
 import { actionMarkdownDocumentId, useActionEditorController } from './use_action_editor_controller'
 
 function loadAction(): ActionDefinition {
@@ -42,9 +42,9 @@ describe('useActionEditorController', () => {
             markdownDocumentNamespace: 'test-project',
         }))
 
-        expect(result.current.markdownDocumentId).toBe(actionMarkdownDocumentId('test-project', 'actions/review.json', 'prompt'))
+        expect(result.current.markdownDocumentId).toBe(actionMarkdownDocumentId('test-project', 'review-action', 'prompt'))
         expect(result.current.markdownDocumentIds).toHaveLength(2)
-        expect(actionMarkdownDocumentId('other-project', 'actions/review.json', 'prompt')).not.toBe(result.current.markdownDocumentId)
+        expect(actionMarkdownDocumentId('other-project', 'review-action', 'prompt')).not.toBe(result.current.markdownDocumentId)
 
         const phraseIdentity = action.editorState?.phrases[0].identity
         if (!phraseIdentity) throw new Error('Missing phrase editor identity')

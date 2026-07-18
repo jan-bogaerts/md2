@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react'
-import { dataService, type DataService, type DataServiceState } from '../../services/data_service'
+import { dataService, type DataService, type DataServiceState } from '../../services/data/data_service'
 
 const snapshots = new WeakMap<DataService, DataServiceState>()
 

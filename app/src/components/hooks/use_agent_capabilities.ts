@@ -2,7 +2,7 @@ import { useSyncExternalStore } from 'react'
 import {
     agentCapabilitiesService,
     type AgentCapabilitiesService,
-} from '../../services/agent_capabilities_service'
+} from '../../services/agents/agent_capabilities_service'
 
 export function useAgentCapabilities(service: AgentCapabilitiesService = agentCapabilitiesService) {
     return useSyncExternalStore(

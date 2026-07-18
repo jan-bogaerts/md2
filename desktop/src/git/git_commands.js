@@ -8,6 +8,11 @@ const execAsync = promisify(exec);
 const DETACHED_HEAD_BRANCH = 'HEAD (detached)';
 const LITERAL_PATHSPEC_ARGUMENT = '--literal-pathspecs';
 const trackedCommitQueues = new Map();
+const SHORT_STAT_PATTERNS = {
+    deletions: /(\d+) deletions?\(-\)/u,
+    filesChanged: /(\d+) files? changed/u,
+    insertions: /(\d+) insertions?\(\+\)/u,
+};
 
 function requireRootPath(project) {
     if (!project || typeof project.rootPath !== 'string' || project.rootPath.length === 0) {
@@ -42,6 +47,17 @@ async function runGit(rootPath, args) {
     const { stdout } = await execFileAsync('git', args, { cwd: rootPath });
 
     return stdout.trim();
+}
+
+/** Parse Git short-stat output, where omitted categories mean zero. */
+function parseShortStat(output) {
+    if (typeof output !== 'string') throw new Error('Git short-stat output must be a string');
+
+    return Object.fromEntries(Object.entries(SHORT_STAT_PATTERNS).map(([field, pattern]) => {
+        const match = output.match(pattern);
+
+        return [field, match ? Number.parseInt(match[1], 10) : 0];
+    }));
 }
 
 async function readCurrentBranch(rootPath) {
@@ -160,10 +176,15 @@ async function resolveCommitMetadata(rootPath, commit) {
     const committedAt = await runGit(resolvedRoot, ['show', '-s', '--format=%cI', fullCommit]);
     const changedPathsOutput = await runGit(resolvedRoot, ['diff-tree', '--root', '--no-commit-id', '--name-only', '-r', fullCommit]);
     const filePaths = changedPathsOutput.split(/\r?\n/u).filter((filePath) => filePath.length > 0);
+    const parents = (await runGit(resolvedRoot, ['rev-list', '--parents', '-n', '1', fullCommit])).split(/\s+/u);
+    const shortStatOutput = parents.length === 1
+        ? await runGit(resolvedRoot, ['diff-tree', '--root', '--shortstat', '--no-commit-id', '-r', fullCommit])
+        : await runGit(resolvedRoot, ['diff', '--shortstat', `${fullCommit}^`, fullCommit]);
+    const { deletions, filesChanged, insertions } = parseShortStat(shortStatOutput);
 
     if (committedAt.length === 0) throw new Error(`Git returned no timestamp for commit ${fullCommit}`);
 
-    return { commit: fullCommit, committedAt, filePaths };
+    return { commit: fullCommit, committedAt, deletions, filePaths, filesChanged, insertions };
 }
 
 async function assertGitRoot(rootPath) {
@@ -234,6 +255,7 @@ module.exports = {
     hasPendingPush,
     listBranches,
     pathExists,
+    parseShortStat,
     push,
     resolveCommitMetadata,
     resolveLocalProject,

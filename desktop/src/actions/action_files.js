@@ -20,6 +20,7 @@ const JSON_EXTENSION = '.json';
 const AGENT_MESSAGE_ROLES = new Set(['agent', 'assistant', 'stderr', 'stdout', 'system', 'user']);
 const AGENT_STATUSES = new Set(['cancelled', 'completed', 'failed', 'running']);
 const actionHistoryWriteQueues = new Map();
+const COMMIT_STAT_FIELDS = ['filesChanged', 'insertions', 'deletions'];
 
 function scheduleFilePath(rootPath, actionsFolder) {
     const actionsFolderPath = ensureInsideRoot(rootPath, path.join(rootPath, actionsFolder));
@@ -35,6 +36,31 @@ async function readJsonArray(filePath) {
     if (!Array.isArray(parsed)) throw new Error('Action history file must contain an array');
 
     return parsed;
+}
+
+function requireCommitStat(value, fieldName) {
+    if (!Number.isInteger(value) || value < 0) throw new Error(`Malformed action history: ${fieldName} must be a non-negative integer`);
+}
+
+function validateCommitReference(commitReference, entryIndex, commitIndex) {
+    if (!commitReference || typeof commitReference !== 'object' || Array.isArray(commitReference)) {
+        throw new Error(`Malformed action history: entries[${entryIndex}].commits[${commitIndex}] must be an object`);
+    }
+    const fieldPath = `entries[${entryIndex}].commits[${commitIndex}]`;
+    for (const field of COMMIT_STAT_FIELDS) requireCommitStat(commitReference[field], `${fieldPath}.${field}`);
+}
+
+function validateActionHistory(entries) {
+    for (const [entryIndex, entry] of entries.entries()) {
+        if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+            throw new Error(`Malformed action history: entries[${entryIndex}] must be an object`);
+        }
+        if (entry.commits === undefined) continue;
+        if (!Array.isArray(entry.commits)) throw new Error(`Malformed action history: entries[${entryIndex}].commits must be an array`);
+        entry.commits.forEach((commitReference, commitIndex) => validateCommitReference(commitReference, entryIndex, commitIndex));
+    }
+
+    return entries;
 }
 
 async function readActionScheduleFile(filePath) {
@@ -175,7 +201,7 @@ async function loadActionRunHistory(project, request) {
 
     const filePath = actionHistoryFilePath(rootPath, request.projectFolder, request.actionId, request.context);
 
-    return readJsonArray(filePath);
+    return validateActionHistory(await readJsonArray(filePath));
 }
 
 async function writeActionRunHistory(rootPath, filePath, entry) {

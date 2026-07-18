@@ -4,8 +4,8 @@ import { App } from './app'
 import { LAST_PROJECT_STORAGE_KEY } from './data/project_session'
 import type { ElectronDataBridge } from './data/electron_data_bridge'
 import type { StorageService } from './data/data_types'
-import { configService, REACT_CONFIG_STORAGE_KEY } from './services/config_service'
-import { dataService } from './services/data_service'
+import { configService, REACT_CONFIG_STORAGE_KEY } from './services/config/config_service'
+import { dataService } from './services/data/data_service'
 
 vi.mock('./auth/use_github_auth', () => ({
     useGithubAuth: () => ({

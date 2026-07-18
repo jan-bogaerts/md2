@@ -51,6 +51,21 @@ describe('OpenFilesService', () => {
         expect(event.detail.path).toBe('b.md')
     })
 
+    it('replaces an open path without changing its position or active state', () => {
+        const service = new OpenFilesService()
+        service.openFile('a.md')
+        service.openFile('actions/new-action.json')
+        service.openFile('c.md')
+        service.activateFile('actions/new-action.json')
+
+        service.replaceFilePath('actions/new-action.json', 'actions/review-code.json')
+
+        expect(service.getSnapshot()).toEqual({
+            activePath: 'actions/review-code.json',
+            paths: ['a.md', 'actions/review-code.json', 'c.md'],
+        })
+    })
+
     it('removes unavailable files and emits a removed event for each one', () => {
         const service = new OpenFilesService()
         const listener = vi.fn()

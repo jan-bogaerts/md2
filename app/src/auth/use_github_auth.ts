@@ -1,5 +1,5 @@
 ﻿import { useEffect, useState } from 'react'
-import { githubAuthService, initDefaultGithubAuthService, type GithubAuthService } from '../services/github_auth_service'
+import { githubAuthService, initDefaultGithubAuthService, type GithubAuthService } from '../services/github/github_auth_service'
 import type { AuthSnapshot } from './github_auth_types'
 
 export interface UseGithubAuthResult extends AuthSnapshot {

@@ -52,11 +52,13 @@ describe('ActionRunHistory', () => {
             commits: [
                 {
                     actionId: 'action-first', actionName: 'Prepare', branch: 'main', commit: 'abc123456789',
-                    committedAt: firstCommittedAt, filePaths: ['design/F-010.md'], repositoryRoot: 'C:/repo',
+                    committedAt: firstCommittedAt, deletions: 0, filePaths: ['design/F-010.md'], filesChanged: 1,
+                    insertions: 1, repositoryRoot: 'C:/repo',
                 },
                 {
                     actionId: 'action-second', actionName: 'Finish', branch: 'topic', commit: 'def567890123',
-                    committedAt: secondCommittedAt, filePaths: ['app/a.ts'], repositoryRoot: 'C:/worktree',
+                    committedAt: secondCommittedAt, deletions: 1, filePaths: ['app/a.ts'], filesChanged: 1,
+                    insertions: 0, repositoryRoot: 'C:/worktree',
                 },
             ],
             completedAt: '2026-07-05T10:00:00.000Z',

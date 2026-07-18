@@ -4,11 +4,18 @@ type DelayId = number
 
 interface CommitBatcherDependencies {
     clearDelay: (delayId: DelayId) => void
-    commit: (request: CommitRequest) => Promise<void>
+    commit: (request: CommitRequest) => Promise<unknown>
     delayMs?: number
     onFlushError?: (error: unknown) => void
     onPendingChange: () => void
     setDelay: (callback: () => void, delayMs: number) => DelayId
+}
+
+interface PendingFileChange {
+    file: MarkdownFile
+    fromPath: string
+    moveSource: boolean
+    onCommitted?: (fromPath: string, toPath: string) => void
 }
 
 export class CommitBatcher {
@@ -17,7 +24,7 @@ export class CommitBatcher {
     private readonly commit
     private readonly delayMs
     private pendingBranch: string | null
-    private readonly pendingFiles
+    private readonly pendingChanges
     private readonly pendingMessagesByPath
     private readonly onFlushError: ((error: unknown) => void) | null
     private readonly onPendingChange: () => void
@@ -30,7 +37,7 @@ export class CommitBatcher {
         this.commit = dependencies.commit
         this.delayMs = dependencies.delayMs ?? AUTO_COMMIT_DELAY_MS
         this.pendingBranch = null
-        this.pendingFiles = new Map<string, MarkdownFile>()
+        this.pendingChanges = new Map<string, PendingFileChange>()
         this.pendingMessagesByPath = new Map<string, string[]>()
         this.onFlushError = dependencies.onFlushError ?? null
         this.onPendingChange = dependencies.onPendingChange
@@ -41,10 +48,29 @@ export class CommitBatcher {
     schedule(branch: string, files: MarkdownFile[], message: string) {
         this.pendingBranch = branch
         files.forEach((file) => {
-            this.pendingFiles.set(file.path, file)
+            this.pendingChanges.set(file.path, { file, fromPath: file.path, moveSource: false })
             this.addPendingMessage(file.path, message)
         })
 
+        this.scheduleFlush()
+    }
+
+    schedulePathChange(
+        branch: string,
+        fromPath: string,
+        file: MarkdownFile,
+        message: string,
+        onCommitted: (fromPath: string, toPath: string) => void,
+        sourceExists = true,
+    ) {
+        this.pendingBranch = branch
+        this.pendingChanges.set(fromPath, { file, fromPath, moveSource: sourceExists, onCommitted })
+        this.addPendingMessage(fromPath, message)
+
+        this.scheduleFlush()
+    }
+
+    private scheduleFlush() {
         if (this.scheduledDelayId !== null) return
 
         this.scheduledDelayId = this.setDelay(this.createFlushCallback(), this.delayMs)
@@ -52,18 +78,24 @@ export class CommitBatcher {
     }
 
     hasPending() {
-        return this.pendingFiles.size > 0 && this.pendingBranch !== null
+        return this.pendingChanges.size > 0 && this.pendingBranch !== null
     }
 
     hasPendingFile(path: string) {
-        return this.pendingFiles.has(path)
+        return [...this.pendingChanges.values()].some(({ file, fromPath }) => fromPath === path || file.path === path)
     }
 
     discardPendingFile(path: string) {
-        if (!this.pendingFiles.delete(path)) return
+        const entry = [...this.pendingChanges.entries()].find(([, { file, fromPath }]) => (
+            fromPath === path || file.path === path
+        ))
+        if (!entry) return
 
-        this.pendingMessagesByPath.delete(path)
-        if (this.pendingFiles.size === 0) {
+        const [changeKey] = entry
+        this.pendingChanges.delete(changeKey)
+
+        this.pendingMessagesByPath.delete(changeKey)
+        if (this.pendingChanges.size === 0) {
             this.pendingBranch = null
             this.clearScheduledDelay()
         }
@@ -79,14 +111,27 @@ export class CommitBatcher {
         if (!this.hasPending()) return
 
         this.clearScheduledDelay()
-        const pendingFiles = [...this.pendingFiles.values()]
+        const pendingChanges = [...this.pendingChanges.values()]
+        const files = pendingChanges
+            .filter(({ moveSource }) => !moveSource)
+            .map(({ file }) => file)
+        const moves = pendingChanges
+            .filter(({ moveSource }) => moveSource)
+            .map(({ file, fromPath }) => ({
+                content: file.content,
+                ...(file.encoding ? { encoding: file.encoding } : {}),
+                fromPath,
+                ...(file.sha ? { sha: file.sha } : {}),
+                toPath: file.path,
+            }))
         const request = {
             branch: this.pendingBranch as string,
-            files: pendingFiles,
+            files,
             message: this.createCommitMessage(),
+            ...(moves.length > 0 ? { moves } : {}),
         }
 
-        this.activeFlush = this.commitSnapshot(request, pendingFiles)
+        this.activeFlush = this.commitSnapshot(request, pendingChanges)
         try {
             await this.activeFlush
         } finally {
@@ -101,14 +146,24 @@ export class CommitBatcher {
         this.pendingMessagesByPath.set(path, [...messages, message])
     }
 
-    private async commitSnapshot(request: CommitRequest, files: MarkdownFile[]) {
+    private async commitSnapshot(request: CommitRequest, changes: PendingFileChange[]) {
         await this.commit(request)
-        for (const file of files) {
-            if (this.pendingFiles.get(file.path) !== file) continue
-            this.pendingFiles.delete(file.path)
-            this.pendingMessagesByPath.delete(file.path)
+        for (const change of changes) {
+            const { file, fromPath, onCommitted } = change
+            const current = this.pendingChanges.get(fromPath)
+            if (current === change) {
+                this.pendingChanges.delete(fromPath)
+                this.pendingMessagesByPath.delete(fromPath)
+            } else if (current && file.path !== fromPath) {
+                this.pendingChanges.delete(fromPath)
+                this.pendingChanges.set(file.path, { ...current, fromPath: file.path, moveSource: true })
+                const messages = this.pendingMessagesByPath.get(fromPath)
+                this.pendingMessagesByPath.delete(fromPath)
+                if (messages) this.pendingMessagesByPath.set(file.path, messages)
+            }
+            onCommitted?.(fromPath, file.path)
         }
-        if (this.pendingFiles.size === 0) this.pendingBranch = null
+        if (this.pendingChanges.size === 0) this.pendingBranch = null
         this.onPendingChange()
     }
 
@@ -119,7 +174,7 @@ export class CommitBatcher {
 
         const body = distinctMessages.map((message) => `- ${message}`).join('\n')
 
-        return `Update ${this.pendingFiles.size} files\n\n${body}`
+        return `Update ${this.pendingChanges.size} files\n\n${body}`
     }
 
     private createFlushCallback() {

@@ -1,7 +1,7 @@
 ﻿import { describe, expect, it } from 'vitest'
 import { DEFAULT_CARD_BODY_TEMPLATE, DEFAULT_CARD_TYPES } from './data_types'
 import { createCardFile, getNextCardNumber, slugifyTitle } from './card_naming'
-import { markdownParsingService } from '../services/markdown_parsing_service'
+import { markdownParsingService } from '../services/data/markdown_parsing_service'
 import { files } from '../services/test_support/data_service_test_support'
 
 describe('cardNaming', () => {

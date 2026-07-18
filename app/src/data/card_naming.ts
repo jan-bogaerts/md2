@@ -1,4 +1,4 @@
-﻿import { markdownParsingService } from '../services/markdown_parsing_service'
+﻿import { markdownParsingService } from '../services/data/markdown_parsing_service'
 import type { CardDraft, CardTypeConfig, MarkdownFile } from './data_types'
 import { buildCardId, type CardSeparator } from './card_identifiers'
 

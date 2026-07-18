@@ -12,13 +12,13 @@ import {
     type ProjectCard,
     type ProjectReference,
 } from '../data/data_types'
-import { dataService } from '../services/data_service'
+import { dataService } from '../services/data/data_service'
 import { dialogService } from '../services/dialog_service'
 import { getElectronLifecycleBridge, type ElectronLifecycleBridge } from '../services/electron_lifecycle_bridge'
 import { openFilesService } from '../services/open_files_service'
-import { telemetryService } from '../services/telemetry_service'
-import { workspaceViewService } from '../services/workspace_view_service'
-import { workspaceNavigationService, type WorkspaceOpenRequest } from '../services/workspace_navigation_service'
+import { telemetryService } from '../services/telemetry/telemetry_service'
+import { workspaceViewService } from '../services/project/workspace_view_service'
+import { workspaceNavigationService, type WorkspaceOpenRequest } from '../services/project/workspace_navigation_service'
 import { CardView } from './card_view/card_view'
 import { AgentChatFab } from './agents/agent_chat_fab'
 import { flushMarkdownEditors } from './editor/markdown_editor_flush'

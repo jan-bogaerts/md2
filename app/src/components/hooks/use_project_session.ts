@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react'
-import { projectSessionService, type ProjectSessionService } from '../../services/project_session_service'
+import { projectSessionService, type ProjectSessionService } from '../../services/project/project_session_service'
 
 export function useProjectSession(service: ProjectSessionService = projectSessionService) {
     return useSyncExternalStore(

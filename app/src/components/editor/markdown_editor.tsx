@@ -28,8 +28,17 @@ export interface MarkdownEditorHandle {
 
 interface MarkdownEditorCommonProps {
     markdown: string
+    /** Omit the format toolbar entirely (e.g. a bare prompt editor). */
+    hideToolbar?: boolean
+    /**
+     * Fired on every keystroke with the current markdown. Unlike `onChange`
+     * (buffered until flush), this reports live edits so a controller can keep
+     * derived UI state in sync while typing.
+     */
+    onLiveChange?: (markdown: string) => void
     overlayContainer?: HTMLElement | null
     placeholders?: readonly ActionPlaceholder[]
+    readOnly?: boolean
     stickyToolbar?: boolean
     toolbarContents?: () => ReactNode
 }
@@ -60,8 +69,10 @@ type MarkdownEditorProps = MarkdownEditorCommonProps & ({
 export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(function MarkdownEditor(props, ref) {
     const {
         markdown,
+        hideToolbar = false,
         overlayContainer,
         placeholders = EMPTY_PLACEHOLDERS,
+        readOnly = false,
         stickyToolbar = false,
         toolbarContents: customToolbarContents,
     } = props
@@ -78,10 +89,12 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
     const onDirtyChangeRef = useRef(props.onDirtyChange)
     const onDocumentChangeRef = useRef(props.onDocumentChange)
     const onDocumentEditRef = useRef(props.onDocumentEdit)
+    const onLiveChangeRef = useRef(props.onLiveChange)
     onChangeRef.current = props.onChange
     onDirtyChangeRef.current = props.onDirtyChange
     onDocumentChangeRef.current = props.onDocumentChange
     onDocumentEditRef.current = props.onDocumentEdit
+    onLiveChangeRef.current = props.onLiveChange
 
     const flush = useCallback(() => {
         if (latestMarkdownRef.current === lastEmittedMarkdownRef.current) return
@@ -170,6 +183,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
 
         latestMarkdownRef.current = nextMarkdown
         onDirtyChangeRef.current?.(nextMarkdown !== lastEmittedMarkdownRef.current)
+        onLiveChangeRef.current?.(nextMarkdown)
         const activeDocumentId = activeDocumentIdRef.current
         if (activeDocumentId) onDocumentEditRef.current?.(activeDocumentId, nextMarkdown)
     }, [])
@@ -197,7 +211,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         codeBlockPlugin({ defaultCodeBlockLanguage: DEFAULT_CODE_LANGUAGE }),
         codeMirrorPlugin({ codeBlockLanguages: CODE_BLOCK_LANGUAGES }),
         markdownShortcutPlugin(),
-        toolbarPlugin({ toolbarContents }),
+        ...(hideToolbar ? [] : [toolbarPlugin({ toolbarContents })]),
         markdownPlaceholderPlugin({ overlayContainer, placeholders }),
         ...(historyStore && documentId ? [markdownDocumentHistoryPlugin({
             documentId,
@@ -217,6 +231,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
                 onChange={handleEditorChange}
                 overlayContainer={overlayContainer}
                 plugins={plugins}
+                readOnly={readOnly}
                 ref={editorRef}
                 suppressSharedHistory={!!historyStore}
             />

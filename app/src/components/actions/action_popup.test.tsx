@@ -1,15 +1,16 @@
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ActionPopup, CARD_RUN_POPUP_SIZE_STORAGE_KEY, PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY } from './action_popup'
 import { CUSTOM_PROMPT_ACTION_ID, type ActionDefinition } from '../../data/action_types'
 import type { ActionContext } from '../../data/action_context'
 import type { ActionRunResult } from '../../data/action_run_types'
-import { configService } from '../../services/config_service'
-import { actionExecutionService } from '../../services/action_execution_service'
-import { agentCapabilitiesService } from '../../services/agent_capabilities_service'
+import { configService } from '../../services/config/config_service'
+import { actionExecutionService } from '../../services/actions/action_execution_service'
+import { agentCapabilitiesService } from '../../services/agents/agent_capabilities_service'
 import type { ActionExecutionEvent } from '../../data/action_run_types'
 import type { AgentConversation } from '../../data/data_types'
 import { dialogService } from '../../services/dialog_service'
+import { AppThemeProvider } from '../../theme/theme_provider'
 
 function action(name: string, overrides: Partial<ActionDefinition> = {}): ActionDefinition {
     return {
@@ -80,6 +81,11 @@ function selectAgent(agent: string) {
     fireEvent.click(screen.getByRole('option', { name: agent }))
 }
 
+/** The card popup renders the prompt as a markdown editor whose textbox lives inside the labelled region. */
+function cardPromptTextbox() {
+    return within(screen.getByLabelText('Prompt')).getByRole('textbox')
+}
+
 function renderPopup(overrides: Partial<Parameters<typeof ActionPopup>[0]> = {}) {
     const onNavigate = vi.fn()
     const onClose = vi.fn()
@@ -88,22 +94,7 @@ function renderPopup(overrides: Partial<Parameters<typeof ActionPopup>[0]> = {})
     const runAction = vi.fn(async () => completedResult)
     const scheduleAction = vi.fn(async () => {})
     const rendered = render(
-        <ActionPopup
-            action={action('Implement')}
-            anchorElement={document.body}
-            context={context}
-            loadHistory={loadHistory}
-            onClose={onClose}
-            onNavigate={onNavigate}
-            preparePrompt={preparePrompt}
-            runAction={runAction}
-            scheduleAction={scheduleAction}
-            {...overrides}
-        />,
-    )
-
-    const rerenderPopup = (nextOverrides: Partial<Parameters<typeof ActionPopup>[0]>) => {
-        rendered.rerender(
+        <AppThemeProvider>
             <ActionPopup
                 action={action('Implement')}
                 anchorElement={document.body}
@@ -115,8 +106,27 @@ function renderPopup(overrides: Partial<Parameters<typeof ActionPopup>[0]> = {})
                 runAction={runAction}
                 scheduleAction={scheduleAction}
                 {...overrides}
-                {...nextOverrides}
-            />,
+            />
+        </AppThemeProvider>,
+    )
+
+    const rerenderPopup = (nextOverrides: Partial<Parameters<typeof ActionPopup>[0]>) => {
+        rendered.rerender(
+            <AppThemeProvider>
+                <ActionPopup
+                    action={action('Implement')}
+                    anchorElement={document.body}
+                    context={context}
+                    loadHistory={loadHistory}
+                    onClose={onClose}
+                    onNavigate={onNavigate}
+                    preparePrompt={preparePrompt}
+                    runAction={runAction}
+                    scheduleAction={scheduleAction}
+                    {...overrides}
+                    {...nextOverrides}
+                />
+            </AppThemeProvider>,
         )
     }
 
@@ -255,7 +265,7 @@ describe('ActionPopup', () => {
         })
 
         fireEvent.click(screen.getByRole('button', { name: 'Card tests' }))
-        expect(screen.getByLabelText('Prompt')).toHaveValue('Run card tests')
+        expect(cardPromptTextbox()).toHaveValue('Run card tests')
         expect(runAction).not.toHaveBeenCalled()
 
         fireEvent.doubleClick(screen.getByRole('button', { name: 'Card tests' }))
@@ -531,8 +541,9 @@ describe('ActionPopup', () => {
             onSelectAction: vi.fn(),
         })
 
-        fireEvent.change(screen.getByLabelText('Prompt'), { target: { value: 'focus tests' } })
-        fireEvent.keyDown(screen.getByLabelText('Prompt'), { ctrlKey: true, key: 'Enter' })
+        const promptTextbox = cardPromptTextbox()
+        fireEvent.change(promptTextbox, { target: { value: 'focus tests' } })
+        fireEvent.keyDown(promptTextbox, { ctrlKey: true, key: 'Enter' })
 
         await waitFor(() => expect(runAction).toHaveBeenCalledWith(selectedAction, context, { prompt: 'focus tests', thinkingLevel: 'none' }, expect.any(Function)))
     })
@@ -664,7 +675,10 @@ describe('ActionPopup', () => {
                 branch: 'main',
                 commit: 'abc1234def5678901234567890123456789012ab',
                 committedAt: '2026-07-05T10:00:00.000Z',
+                deletions: 2,
                 filePaths: ['design/F-010.md'],
+                filesChanged: 1,
+                insertions: 4,
                 repositoryRoot: 'C:/repo',
             }],
             completedAt: '2026-07-05T10:00:00.000Z',
@@ -745,7 +759,7 @@ describe('ActionPopup', () => {
         })
 
         fireEvent.change(screen.getByLabelText('Preset name'), { target: { value: 'Custom review' } })
-        fireEvent.change(screen.getByLabelText('Prompt'), { target: { value: 'Review this card' } })
+        fireEvent.change(cardPromptTextbox(), { target: { value: 'Review this card' } })
         fireEvent.click(screen.getByRole('button', { name: 'Run' }))
 
         await waitFor(() => expect(runAction).toHaveBeenCalledWith(
@@ -763,38 +777,39 @@ describe('ActionPopup', () => {
         })
     })
 
-    it('opens the card dialog commit dropdown listing chain commits with performer labels', async () => {
-        const agentAction = action('Implement', { agent: 'codex', model: 'gpt-5', type: 'agent' })
-        const loadHistory = vi.fn(async () => [{
-            completedAt: '2026-07-05T10:00:00.000Z',
-            commits: [{
-                actionId: 'action-lint',
-                actionName: 'Lint fix',
-                branch: 'main',
-                commit: 'abc1234def5678901234567890123456789012ab',
-                committedAt: '2026-07-05T09:59:00.000Z',
-                filePaths: ['design/F-010.md'],
-                repositoryRoot: 'C:/repo',
-            }],
-            output: 'done',
-            prompt: 'run',
-            status: 'completed' as const,
-        }])
+    it('shows loaded action-card token and line totals in the card agent popup', async () => {
+        const agentAction = action('Implement', { type: 'agent' })
+        const matchingConversation = conversation('matching', {usage: { cachedInputTokens: 2, inputTokens: 10, outputTokens: 3, reasoningTokens: 1, totalTokens: 16 }})
+        const otherConversation = conversation('other', {
+            actionId: 'action-review',
+            usage: { cachedInputTokens: 0, inputTokens: 100, outputTokens: 0, reasoningTokens: 0, totalTokens: 100 },
+        })
         renderPopup({
             action: agentAction,
             actions: [agentAction],
-            loadConversations: vi.fn(async () => []),
-            loadHistory,
+            loadConversations: vi.fn(async () => [matchingConversation, otherConversation]),
+            loadHistory: vi.fn(async () => [{
+                commits: [{
+                    actionId: 'action-linked', actionName: 'Linked', branch: 'main',
+                    commit: 'abc1234def5678901234567890123456789012ab', committedAt: 'now', deletions: 3,
+                    filePaths: ['design/F-010.md'], filesChanged: 1, insertions: 5, repositoryRoot: 'C:/repo',
+                }],
+                completedAt: 'now', output: '', prompt: '', status: 'failed' as const,
+            }]),
             onAddAction: vi.fn(),
             onSelectAction: vi.fn(),
         })
 
-        const toggle = await screen.findByRole('button', { name: 'Commit history' })
-        fireEvent.click(toggle)
+        expect(await screen.findByText('tokens: 16')).toBeInTheDocument()
+        expect(screen.getByText('lines: 8')).toBeInTheDocument()
+    })
 
-        expect(screen.getByText(/Lint fix/u)).toBeInTheDocument()
-        expect(screen.getByText(/abc1234/u)).toBeInTheDocument()
-        expect(screen.getByRole('button', { name: 'Show diff' })).toBeInTheDocument()
+    it('omits combined usage summary for project-context actions', async () => {
+        renderPopup({ action: action('Implement', { type: 'agent' }), context: { kind: 'project' } })
+
+        await screen.findByLabelText('Prompt')
+        expect(screen.queryByText(/tokens:/u)).not.toBeInTheDocument()
+        expect(screen.queryByText(/lines:/u)).not.toBeInTheDocument()
     })
 
     it('shows the custom prompt as required and keeps unlabeled agent controls accessible', async () => {
@@ -816,8 +831,7 @@ describe('ActionPopup', () => {
         expect(screen.queryByText('Prompt')).not.toBeInTheDocument()
         expect(screen.queryByText('required')).not.toBeInTheDocument()
         expect(screen.queryByText('optional')).not.toBeInTheDocument()
-        const prompt = await screen.findByLabelText('Prompt')
-        expect(prompt).toHaveAttribute('placeholder', 'Prompt required')
+        await screen.findByLabelText('Prompt')
         expect(screen.queryByText('Agent')).not.toBeInTheDocument()
         expect(screen.queryByText('Model')).not.toBeInTheDocument()
         expect(screen.queryByText('Thinking')).not.toBeInTheDocument()
@@ -1003,7 +1017,9 @@ describe('ActionPopup', () => {
             onSelectAction: vi.fn(),
             runAction: vi.fn(async () => completedResult),
         }
-        const { rerender } = render(<ActionPopup {...popupProps} context={{ ...context }} />)
+        const { rerender } = render(
+            <AppThemeProvider><ActionPopup {...popupProps} context={{ ...context }} /></AppThemeProvider>,
+        )
         const picker = await screen.findByRole('combobox', { name: 'Conversation history' })
         await waitFor(() => expect(picker).toBeEnabled())
         fireEvent.mouseDown(picker)
@@ -1011,7 +1027,7 @@ describe('ActionPopup', () => {
         await screen.findByText('Answer remains visible')
 
         await act(async () => {
-            rerender(<ActionPopup {...popupProps} context={{ ...context }} />)
+            rerender(<AppThemeProvider><ActionPopup {...popupProps} context={{ ...context }} /></AppThemeProvider>)
             await Promise.resolve()
         })
 

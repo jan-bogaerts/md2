@@ -23,7 +23,10 @@ export interface CommitReference {
     branch: string
     commit: string
     committedAt: string
+    deletions: number
     filePaths: string[]
+    filesChanged: number
+    insertions: number
     repositoryRoot: string
 }
 

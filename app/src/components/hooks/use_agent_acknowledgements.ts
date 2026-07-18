@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react'
-import { agentAcknowledgementService } from '../../services/agent_acknowledgement_service'
+import { agentAcknowledgementService } from '../../services/agents/agent_acknowledgement_service'
 
 let revision = 0
 

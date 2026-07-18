@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import type { ConfigEntry } from '../../services/config_service'
+import type { ConfigEntry } from '../../services/config/config_service'
 import { ConfigValueEditor } from './config_value_editor'
 
 describe('ConfigValueEditor', () => {

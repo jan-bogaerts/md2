@@ -1,7 +1,7 @@
 import { buildReleaseMoves, findReleaseAssetPaths } from '../data/release_archiving'
 import type { MarkdownFile, ProjectAsset, ProjectReference, ProjectSnapshot } from '../data/data_types'
-import { type RequiredDataServiceDependencies } from './data_service_context'
-import { telemetryService } from './telemetry_service'
+import { type RequiredDataServiceDependencies } from './data/data_service_context'
+import { telemetryService } from './telemetry/telemetry_service'
 
 export interface ReleaseOperationsDeps {
     files(): MarkdownFile[]

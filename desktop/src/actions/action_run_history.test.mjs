@@ -35,7 +35,10 @@ describe('captureCommitReferences', () => {
             resolveCommitMetadata: vi.fn(async (_rootPath, commit) => ({
                 commit: commit.repeat(6).slice(0, 40),
                 committedAt: commit === 'aaaaaaa' ? '2026-07-15T09:00:00+00:00' : '2026-07-15T10:00:00+00:00',
+                deletions: 2,
                 filePaths: [`${commit}.md`],
+                filesChanged: 1,
+                insertions: 4,
             })),
         };
 
@@ -44,18 +47,25 @@ describe('captureCommitReferences', () => {
         expect(references).toHaveLength(2);
         expect(references[0]).toEqual({
             actionId: 'main', actionName: 'Implement', branch: 'topic', commit: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
-            committedAt: '2026-07-15T09:00:00+00:00', filePaths: ['aaaaaaa.md'], repositoryRoot: 'C:/worktree',
+            committedAt: '2026-07-15T09:00:00+00:00', deletions: 2, filePaths: ['aaaaaaa.md'], filesChanged: 1,
+            insertions: 4, repositoryRoot: 'C:/worktree',
         });
     });
 
     it('uses tracked commit hash and execution worktree metadata', async () => {
         const trackedAction = { ...action, trackFileChanges: true, type: 'agent' };
         const result = { stderr: '', stdout: '[wrong wrong12] ignored', trackedCommit: 'abcdef3' };
-        const localGitService = {resolveCommitMetadata: vi.fn(async () => ({commit: 'abcdef3456789012345678901234567890123456', committedAt: completedAt, filePaths: ['app/a.ts']}))};
+        const localGitService = {
+            resolveCommitMetadata: vi.fn(async () => ({
+                commit: 'abcdef3456789012345678901234567890123456', committedAt: completedAt, deletions: 0,
+                filePaths: ['app/a.ts'], filesChanged: 1, insertions: 3,
+            })),
+        };
 
         await expect(captureCommitReferences(localGitService, { action: trackedAction, project, result })).resolves.toEqual([{
             actionId: 'main', actionName: 'Implement', branch: 'worktree', commit: 'abcdef3456789012345678901234567890123456',
-            committedAt: completedAt, filePaths: ['app/a.ts'], repositoryRoot: 'C:/worktree',
+            committedAt: completedAt, deletions: 0, filePaths: ['app/a.ts'], filesChanged: 1, insertions: 3,
+            repositoryRoot: 'C:/worktree',
         }]);
     });
 

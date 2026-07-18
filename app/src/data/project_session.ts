@@ -1,7 +1,7 @@
-import { GithubStorageService } from '../services/github_storage_service'
-import { githubAuthService } from '../services/github_auth_service'
-import { LocalGitStorageService } from '../services/local_git_storage_service'
-import { RemoteControlStorageService } from '../services/remote_control_storage_service'
+import { GithubStorageService } from '../services/github/github_storage_service'
+import { githubAuthService } from '../services/github/github_auth_service'
+import { LocalGitStorageService } from '../services/data/local_git_storage_service'
+import { RemoteControlStorageService } from '../services/data/remote_control_storage_service'
 import type { ProjectReference, StorageService } from './data_types'
 
 export const LAST_PROJECT_STORAGE_KEY = 'md2.lastProject'

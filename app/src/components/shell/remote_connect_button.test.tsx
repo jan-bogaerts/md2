@@ -6,7 +6,7 @@ import {
     REMOTE_CONTROL_ENDPOINT_KEY,
     REMOTE_CONTROL_TOKEN_KEY,
 } from '../../data/remote_control_connection'
-import { projectSessionService } from '../../services/project_session_service'
+import { projectSessionService } from '../../services/project/project_session_service'
 import { OPEN_PROJECT_DIALOG_EVENT, type OpenProjectDialogDetail } from '../project_command_events'
 import { RemoteConnectButton } from './remote_connect_button'
 

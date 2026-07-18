@@ -1,7 +1,7 @@
 ﻿import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { MarkdownFile } from '../data/data_types'
-import { configService } from './config_service'
-import { DataService } from './data_service'
+import { configService } from './config/config_service'
+import { DataService } from './data/data_service'
 import { createStorage, files, storageFiles } from './test_support/data_service_test_support'
 
 describe('ReleaseOperations', () => {

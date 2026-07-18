@@ -4,10 +4,10 @@ import { Box } from '@mui/material'
 import { useCallback, useRef, useState } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ActionDefinition, ActionFile, RawActionDefinition } from '../../data/action_types'
-import { configService } from '../../services/config_service'
-import { dataService } from '../../services/data_service'
-import { actionService } from '../../services/action_service'
-import * as actionServiceModule from '../../services/action_service'
+import { configService } from '../../services/config/config_service'
+import { dataService } from '../../services/data/data_service'
+import { actionService } from '../../services/actions/action_service'
+import * as actionServiceModule from '../../services/actions/action_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import type { MarkdownDocumentConfig, MarkdownDocumentOwnerConfig } from '../editor/markdown_document_config'
 import { MarkdownDocumentHistoryStore } from '../editor/markdown_document_history_store'
@@ -345,6 +345,7 @@ describe('ActionEditor', () => {
         expect(saveDefinition).toHaveBeenCalledWith(
             'actions/review.json',
             expect.objectContaining({ label: 'Review repaired' }),
+            'actions/review-repaired.json',
         )
     })
 
@@ -361,6 +362,7 @@ describe('ActionEditor', () => {
         expect(saveDefinition).toHaveBeenCalledWith(
             'actions/review.json',
             expect.objectContaining({ prompt: 'Updated prompt' }),
+            'actions/review.json',
         )
     })
 
@@ -419,6 +421,7 @@ describe('ActionEditor', () => {
         expect(saveDefinition).toHaveBeenLastCalledWith(
             'actions/review.json',
             expect.objectContaining({ phrases: [{ text: '**Run all tests**', title: 'Run tests' }] }),
+            'actions/review.json',
         )
 
         fireEvent.click(screen.getByRole('button', { name: 'Delete this predefined phrase' }))
@@ -428,6 +431,7 @@ describe('ActionEditor', () => {
         expect(saveDefinition).toHaveBeenLastCalledWith(
             'actions/review.json',
             expect.objectContaining({ phrases: [] }),
+            'actions/review.json',
         )
     })
 
@@ -560,6 +564,7 @@ describe('ActionEditor', () => {
         expect(saveDefinition).toHaveBeenCalledWith(
             'actions/review.json',
             expect.objectContaining({ id: 'review-action', label: 'Review code' }),
+            'actions/review-code.json',
         )
     })
 
@@ -588,10 +593,15 @@ describe('ActionEditor', () => {
         fireEvent.change(labelInput(), { target: { value: 'Published label' } })
         await act(async () => vi.advanceTimersByTime(600))
 
-        expect(persistActionFile).toHaveBeenCalledWith({
-            content: expect.stringContaining('"label": "Published label"'),
-            path: 'actions/review.json',
-        })
+        expect(persistActionFile).toHaveBeenCalledWith(
+            {
+                content: expect.stringContaining('"label": "Published label"'),
+                path: 'actions/published-label.json',
+            },
+            'actions/review.json',
+            expect.any(Function),
+            true,
+        )
         expect(actionService.getActionByPath('actions/review.json')?.label).toBe('Published label')
         expect(changed).toHaveBeenCalled()
         actionService.removeEventListener('changed', changed)
@@ -617,6 +627,7 @@ describe('ActionEditor', () => {
         expect(saveDefinition).toHaveBeenLastCalledWith(
             'actions/review.json',
             expect.objectContaining({ label: 'Retry this value' }),
+            'actions/retry-this-value.json',
         )
         expect(screen.queryByText('disk unavailable')).not.toBeInTheDocument()
     })
@@ -647,6 +658,7 @@ describe('ActionEditor', () => {
         expect(saveDefinition).toHaveBeenLastCalledWith(
             'actions/review.json',
             expect.objectContaining({ label: 'Review code 2' }),
+            'actions/review-code-2.json',
         )
     })
 
@@ -690,6 +702,7 @@ describe('ActionEditor', () => {
         expect(saveDefinition).toHaveBeenCalledWith(
             'actions/review.json',
             expect.objectContaining({ label: 'Review code' }),
+            'actions/review-code.json',
         )
     })
 

@@ -18,7 +18,7 @@ import { SplitLayout } from './split_layout'
 import { StatusBar } from './status_bar'
 import { DEFAULT_PROJECT_FOLDER, type RunningAgent } from '../../data/data_types'
 import { useProjectConfig } from '../hooks/use_project_config'
-import { projectAgentTokenUsage } from '../../services/agent_usage'
+import { projectAgentTokenUsage } from '../../services/agents/agent_usage'
 
 const MOBILE_DRAWER_WIDTH = 300
 const PANEL_PADDING = 2

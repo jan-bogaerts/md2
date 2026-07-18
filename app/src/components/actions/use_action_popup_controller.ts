@@ -126,6 +126,9 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
         status: action.type === 'agent' && !input.continueFrom ? 'loading' : 'ready',
         value: input.initialPrompt ?? '',
     })
+    // Bumped whenever the prompt is replaced externally (prepared, phrase, cleared) but
+    // never while typing, so an uncontrolled markdown editor can reseed only on real resets.
+    const [promptResetToken, setPromptResetToken] = useState(0)
     const [localExecutionId, setLocalExecutionId] = useState<string | null>(null)
     const [history, setHistory] = useState<ActionRunHistoryEntry[]>([])
     const [historyError, setHistoryError] = useState<string | null>(null)
@@ -212,9 +215,11 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
                 const preparedPrompt = await preparePrompt(actionRef.current, contextRef.current)
                 if (promptRequestRef.current !== requestId || promptEditRevisionRef.current !== editRevision) return
                 setPromptState({ key: promptKey, status: 'ready', value: preparedPrompt })
+                setPromptResetToken((token) => token + 1)
             } catch (error) {
                 if (promptRequestRef.current !== requestId) return
                 setPromptState({ key: promptKey, status: 'failed', value: '' })
+                setPromptResetToken((token) => token + 1)
                 dialogService.error(error, { fallbackMessage: 'Could not prepare action prompt' })
             }
         }
@@ -321,7 +326,10 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
             setLocalRunResult(result)
             setLocalRunStatus(result.status)
             setLocalExecutionId(null)
-            if (action.type === 'agent') setPromptState({ key: promptKey, status: 'ready', value: '' })
+            if (action.type === 'agent') {
+                setPromptState({ key: promptKey, status: 'ready', value: '' })
+                setPromptResetToken((token) => token + 1)
+            }
             setHistory(await loadHistory(action, context))
             await refreshConversationHistory()
         } catch (error) {
@@ -341,6 +349,7 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
     const handlePhraseSelect = (text: string) => {
         promptEditRevisionRef.current += 1
         setPromptState({ key: promptKey, status: 'ready', value: text })
+        setPromptResetToken((token) => token + 1)
         setConvertMessage(null)
     }
 
@@ -397,9 +406,9 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
         }
     }
 
-    const handlePromptChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const handlePromptChange = (value: string) => {
         promptEditRevisionRef.current += 1
-        setPromptState({ key: promptKey, status: 'ready', value: event.target.value })
+        setPromptState({ key: promptKey, status: 'ready', value })
         setConvertMessage(null)
     }
 
@@ -474,6 +483,7 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
         prompt,
         promptPreparationFailed,
         promptPreparationPending,
+        promptResetToken,
         executionDisabledMessage,
         handleActionLabelChange,
         handleCancel,

@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react'
-import { configService, type ConfigKey, type ConfigValues } from '../../services/config_service'
+import { configService, type ConfigKey, type ConfigValues } from '../../services/config/config_service'
 
 type ConfigValueSnapshot<K extends ConfigKey> = ConfigValues[K]
 

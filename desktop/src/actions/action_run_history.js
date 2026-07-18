@@ -55,7 +55,10 @@ async function captureCommitReferences(localGitService, input) {
             branch: candidate.branch,
             commit: metadata.commit,
             committedAt: metadata.committedAt,
+            deletions: metadata.deletions,
             filePaths: metadata.filePaths,
+            filesChanged: metadata.filesChanged,
+            insertions: metadata.insertions,
             repositoryRoot,
         });
     }

@@ -1,4 +1,4 @@
-import { Box, Typography } from '@mui/material'
+import { Tooltip, Typography } from '@mui/material'
 import type { AgentTokenUsage } from '../../data/data_types'
 
 const TOKEN_NUMBER_FORMAT = new Intl.NumberFormat('en-US')
@@ -15,25 +15,20 @@ function tokenCount(value: number) {
 /** Compact read-only token bucket and provider-reported cost summary. */
 export function AgentUsageDisplay(props: AgentUsageDisplayProps) {
     const { usage } = props
-    const accessibleLabel = [
-        `Token usage: ${usage.totalTokens} total`,
-        `${usage.inputTokens} input`,
-        `${usage.cachedInputTokens} cached input`,
-        `${usage.outputTokens} output`,
-        `${usage.reasoningTokens} reasoning`,
-        ...(usage.costUsd === undefined ? [] : [`$${COST_NUMBER_FORMAT.format(usage.costUsd)} reported cost`]),
+    const tooltipLabel = [
+        `total: ${tokenCount(usage.totalTokens)}`,
+        `input: ${tokenCount(usage.inputTokens)}`,
+        `cached input: ${tokenCount(usage.cachedInputTokens)}`,
+        `output: ${tokenCount(usage.outputTokens)}`,
+        `reasoning: ${tokenCount(usage.reasoningTokens)}`,
+        ...(usage.costUsd === undefined ? [] : [`reported cost: $${COST_NUMBER_FORMAT.format(usage.costUsd)}`]),
     ].join(', ')
 
     return (
-        <Box aria-label={accessibleLabel} sx={{ alignItems: 'center', color: 'text.secondary', display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
-            <Typography component="span" variant="caption"><strong>{tokenCount(usage.totalTokens)}</strong> tokens</Typography>
-            <Typography component="span" variant="caption">input {tokenCount(usage.inputTokens)}</Typography>
-            <Typography component="span" variant="caption">cached {tokenCount(usage.cachedInputTokens)}</Typography>
-            <Typography component="span" variant="caption">output {tokenCount(usage.outputTokens)}</Typography>
-            <Typography component="span" variant="caption">reasoning {tokenCount(usage.reasoningTokens)}</Typography>
-            {usage.costUsd === undefined ? null : (
-                <Typography component="span" variant="caption">${COST_NUMBER_FORMAT.format(usage.costUsd)}</Typography>
-            )}
-        </Box>
+        <Tooltip describeChild title={tooltipLabel}>
+            <Typography component="span" sx={{ color: 'text.secondary', cursor: 'help' }} tabIndex={0} variant="caption">
+                tokens: {tokenCount(usage.totalTokens)}
+            </Typography>
+        </Tooltip>
     )
 }

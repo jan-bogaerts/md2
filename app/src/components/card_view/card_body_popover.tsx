@@ -12,7 +12,7 @@ import { usePendingFileSave } from '../hooks/use_pending_file_save'
 import { CardBodyEditor } from './card_body_editor'
 import { CardDeleteDialog } from './card_delete_dialog'
 import { AgentUsageDisplay } from '../agents/agent_usage_display'
-import { cardAgentTokenUsage } from '../../services/agent_usage'
+import { cardAgentTokenUsage } from '../../services/agents/agent_usage'
 
 const CARD_BODY_POPOVER_WIDTH = 760
 const FULLSCREEN_INSET = 16

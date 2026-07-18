@@ -3,12 +3,12 @@ import { DndContext } from '@dnd-kit/core'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { CardView } from './card_view'
 import { CardColumn } from './card_column'
-import { actionService } from '../../services/action_service'
+import { actionService } from '../../services/actions/action_service'
 import type { ActionFile } from '../../data/action_types'
 import { DEFAULT_CARD_TYPES, type CardTypeConfig, type ProjectCard } from '../../data/data_types'
-import { telemetryService } from '../../services/telemetry_service'
+import { telemetryService } from '../../services/telemetry/telemetry_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
-import { dataService } from '../../services/data_service'
+import { dataService } from '../../services/data/data_service'
 
 function card(id: string, title: string, status: string, policy: Record<string, boolean> = {}): ProjectCard {
     return {
@@ -221,7 +221,7 @@ describe('CardView', () => {
         expect(within(dialog).getByTestId('block-type-select')).toBeInTheDocument()
         expect(within(dialog).getByTestId('insert-code-block')).toBeInTheDocument()
         expect(within(dialog).getByTestId('mdx-editor-overlay')).toBeInTheDocument()
-        expect(within(dialog).getByLabelText('Token usage: 0 total, 0 input, 0 cached input, 0 output, 0 reasoning')).toBeInTheDocument()
+        expect(within(dialog).getByText('tokens: 0')).toBeInTheDocument()
         expect(trackEvent).toHaveBeenCalledWith('navigation')
 
         trackEvent.mockRestore()

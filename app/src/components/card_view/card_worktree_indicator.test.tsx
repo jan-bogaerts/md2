@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { AgentConversation, ProjectCard, WorktreeRecord } from '../../data/data_types'
-import { agentAcknowledgementService } from '../../services/agent_acknowledgement_service'
+import { agentAcknowledgementService } from '../../services/agents/agent_acknowledgement_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import { CardWorktreeIndicator } from './card_worktree_indicator'
 

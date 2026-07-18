@@ -14,7 +14,7 @@ import {
 import type { SelectChangeEvent } from '@mui/material'
 import { Fragment, useState } from 'react'
 import type { ChangeEvent } from 'react'
-import type { ConfigEntry, ConfigValue } from '../../services/config_service'
+import type { ConfigEntry, ConfigValue } from '../../services/config/config_service'
 import { defaultModelForProfile, findAgentProfile, mergeAgentProfiles, type AgentProfile } from '../../data/agent_profiles'
 import { AgentProfilesEditor } from './agent_profiles_editor'
 

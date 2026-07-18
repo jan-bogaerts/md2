@@ -5,7 +5,7 @@ import Circle from 'mdi-material-ui/Circle'
 import { useState } from 'react'
 import type { MouseEvent } from 'react'
 import type { ProjectCard, WorktreeRecord } from '../../data/data_types'
-import { hasUnseenAgentResult } from '../../services/agent_acknowledgement_service'
+import { hasUnseenAgentResult } from '../../services/agents/agent_acknowledgement_service'
 
 interface CardWorktreeIndicatorProps {
     card: ProjectCard

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { actionService, type ActionService, type ActionServiceState } from '../../services/action_service'
+import { actionService, type ActionService, type ActionServiceState } from '../../services/actions/action_service'
 
 function getChangedState(event: Event): ActionServiceState {
     return (event as CustomEvent<ActionServiceState>).detail

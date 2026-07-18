@@ -1,4 +1,4 @@
-import { RemoteControlStorageService } from '../services/remote_control_storage_service'
+import { RemoteControlStorageService } from '../services/data/remote_control_storage_service'
 import type { StorageService } from './data_types'
 import { setActionBridgeOverride } from './electron_action_bridge'
 import type { StorageType } from './project_session'

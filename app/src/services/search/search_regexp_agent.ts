@@ -1,6 +1,6 @@
 import { type ElectronActionBridge, getElectronActionBridge } from '../../data/electron_action_bridge'
 import type { AgentRunEvent } from '../../data/data_types'
-import { agentConversationService } from '../agent_conversation_service'
+import { agentConversationService } from '../agents/agent_conversation_service'
 import type { SearchRegexpAgent } from './search_types'
 
 const CODE_FENCE_PATTERN = /^```[^\n]*\n([\s\S]*?)\n?```$/u

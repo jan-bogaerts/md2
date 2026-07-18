@@ -1,7 +1,7 @@
 import { act, cleanup, renderHook } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 import type { ProjectConfig } from '../../data/data_types'
-import type { DataService } from '../../services/data_service'
+import type { DataService } from '../../services/data/data_service'
 import { useProjectConfig } from './use_project_config'
 
 const firstConfig: ProjectConfig = {

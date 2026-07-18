@@ -61,6 +61,20 @@ export class OpenFilesService extends EventTarget {
         this.dispatchFileEvent('removed', path)
     }
 
+    replaceFilePath(fromPath: string, toPath: string) {
+        requirePath(fromPath)
+        requirePath(toPath)
+        const index = this.snapshot.paths.indexOf(fromPath)
+        if (index === -1 || fromPath === toPath) return
+        if (this.snapshot.paths.includes(toPath)) throw new Error(`Cannot replace open file path with existing path: ${toPath}`)
+
+        const paths = this.snapshot.paths.map((path) => path === fromPath ? toPath : path)
+        const activePath = this.snapshot.activePath === fromPath ? toPath : this.snapshot.activePath
+        this.update({ activePath, paths })
+        this.dispatchFileEvent('removed', fromPath)
+        this.dispatchFileEvent('added', toPath)
+    }
+
     retainAvailableFiles(availablePaths: string[]) {
         const availablePathSet = new Set(availablePaths)
         const paths = this.snapshot.paths.filter((path) => availablePathSet.has(path))

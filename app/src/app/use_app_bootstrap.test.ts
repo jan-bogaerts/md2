@@ -5,8 +5,8 @@ import { useAppBootstrap } from './use_app_bootstrap'
 import { LAST_PROJECT_STORAGE_KEY } from '../data/project_session'
 import type { ElectronDataBridge } from '../data/electron_data_bridge'
 import { getElectronActionBridge, setActionBridgeOverride, type ElectronActionBridge } from '../data/electron_action_bridge'
-import { configService } from '../services/config_service'
-import { agentCapabilitiesService } from '../services/agent_capabilities_service'
+import { configService } from '../services/config/config_service'
+import { agentCapabilitiesService } from '../services/agents/agent_capabilities_service'
 
 function createActionBridge(): ElectronActionBridge {
     return {

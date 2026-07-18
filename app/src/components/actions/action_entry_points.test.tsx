@@ -3,14 +3,14 @@ import { MenuList } from '@mui/material'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ActionEntryPoints } from './action_entry_points'
 import { FileTreeView } from '../text_view/file_tree_view'
-import { actionService } from '../../services/action_service'
-import { dataService } from '../../services/data_service'
+import { actionService } from '../../services/actions/action_service'
+import { dataService } from '../../services/data/data_service'
 import type { ActionFile } from '../../data/action_types'
 import { buildFileTree } from '../../data/file_tree'
 import { cardContext, folderContext } from '../../data/action_context'
 import { DEFAULT_CARD_TYPES, type ProjectCard } from '../../data/data_types'
 import type { ActionExecutionEvent } from '../../data/action_run_types'
-import { actionExecutionService } from '../../services/action_execution_service'
+import { actionExecutionService } from '../../services/actions/action_execution_service'
 
 function file(definition: { id: string }): ActionFile {
     return { content: JSON.stringify(definition), path: `actions/${definition.id}.json` }

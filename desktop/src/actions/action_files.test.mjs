@@ -51,6 +51,28 @@ describe('action-files', () => {
         }
     });
 
+    it('rejects incomplete and negative persisted commit statistics', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-action-history-validation-'));
+        const project = { branch: 'main', id: 'local', rootPath };
+        const request = {
+            actionId: 'implement',
+            context: { file: 'design/F-010.md', kind: 'card', type: 'feature' },
+            projectFolder: 'design',
+        };
+
+        try {
+            await mkdir(join(rootPath, '.git'));
+            await appendActionRunHistory(project, request, {
+                commits: [{ deletions: 0, filesChanged: -1, insertions: 0 }],
+                completedAt: 'now', output: '', prompt: '', status: 'completed',
+            });
+
+            await expect(loadActionRunHistory(project, request)).rejects.toThrow('filesChanged must be a non-negative integer');
+        } finally {
+            await rm(rootPath, { force: true, recursive: true });
+        }
+    });
+
     it('preserves every concurrent append to one action history file', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-action-files-'));
         const project = { branch: 'main', id: 'local', rootPath };

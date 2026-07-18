@@ -1,9 +1,9 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { CardHeader, ProjectCard, ProjectSnapshot } from '../../../data/data_types'
-import { actionService } from '../../../services/action_service'
-import { workspaceNavigationService } from '../../../services/workspace_navigation_service'
-import { workspaceViewService } from '../../../services/workspace_view_service'
+import { actionService } from '../../../services/actions/action_service'
+import { workspaceNavigationService } from '../../../services/project/workspace_navigation_service'
+import { workspaceViewService } from '../../../services/project/workspace_view_service'
 import { DialogDisplay } from '../../dialog_display'
 import { SearchControl } from './search_control'
 

@@ -151,6 +151,103 @@ describe('CommitBatcher', () => {
         expect(commit.mock.calls[1][0].files).toEqual([{ content: 'new', path: 'actions/review.json' }])
     })
 
+    it('coalesces repeated path changes into one move with the latest content', async () => {
+        const commit = vi.fn<CommitCallback>(async () => undefined)
+        const onCommitted = vi.fn()
+        const batcher = new CommitBatcher({
+            clearDelay: window.clearTimeout,
+            commit,
+            delayMs: 30000,
+            onPendingChange: vi.fn(),
+            setDelay: window.setTimeout,
+        })
+
+        batcher.schedulePathChange('main', 'actions/new-action.json', {
+            content: 'first',
+            path: 'actions/review-c.json',
+        }, 'Rename action', onCommitted)
+        batcher.schedulePathChange('main', 'actions/new-action.json', {
+            content: 'latest',
+            path: 'actions/review-code.json',
+        }, 'Rename action', onCommitted)
+        await batcher.flush()
+
+        expect(commit).toHaveBeenCalledOnce()
+        expect(commit.mock.calls[0][0]).toMatchObject({
+            files: [],
+            moves: [{
+                content: 'latest',
+                fromPath: 'actions/new-action.json',
+                toPath: 'actions/review-code.json',
+            }],
+        })
+        expect(onCommitted).toHaveBeenCalledOnce()
+        expect(onCommitted).toHaveBeenCalledWith('actions/new-action.json', 'actions/review-code.json')
+    })
+
+    it('retargets an uncommitted creation without scheduling a move', async () => {
+        const commit = vi.fn<CommitCallback>(async () => undefined)
+        const onCommitted = vi.fn()
+        const batcher = new CommitBatcher({
+            clearDelay: window.clearTimeout,
+            commit,
+            delayMs: 30000,
+            onPendingChange: vi.fn(),
+            setDelay: window.setTimeout,
+        })
+        batcher.schedule('main', [{ content: 'initial', path: 'actions/new-action.json' }], 'Create action')
+
+        batcher.schedulePathChange('main', 'actions/new-action.json', {
+            content: 'latest',
+            path: 'actions/review-code.json',
+        }, 'Rename action', onCommitted, false)
+        await batcher.flush()
+
+        expect(commit.mock.calls[0][0]).toEqual({
+            branch: 'main',
+            files: [{ content: 'latest', path: 'actions/review-code.json' }],
+            message: 'Update 1 files\n\n- Create action\n- Rename action',
+        })
+        expect(onCommitted).toHaveBeenCalledWith('actions/new-action.json', 'actions/review-code.json')
+    })
+
+    it('rebases edits queued while a move is being committed', async () => {
+        const firstCommit = createDeferred<void>()
+        const commit = vi.fn<CommitCallback>()
+            .mockImplementationOnce(async () => firstCommit.promise)
+            .mockImplementationOnce(async () => undefined)
+        const firstCommitted = vi.fn()
+        const secondCommitted = vi.fn()
+        const batcher = new CommitBatcher({
+            clearDelay: window.clearTimeout,
+            commit,
+            delayMs: 30000,
+            onPendingChange: vi.fn(),
+            setDelay: window.setTimeout,
+        })
+        batcher.schedulePathChange('main', 'actions/new-action.json', {
+            content: 'first',
+            path: 'actions/review.json',
+        }, 'Rename action', firstCommitted)
+
+        const pendingFlush = batcher.flush()
+        batcher.schedulePathChange('main', 'actions/new-action.json', {
+            content: 'latest',
+            path: 'actions/review-code.json',
+        }, 'Rename action', secondCommitted)
+        firstCommit.resolve()
+        await pendingFlush
+        await batcher.flush()
+
+        expect(commit.mock.calls[1][0].moves).toEqual([{
+            content: 'latest',
+            fromPath: 'actions/review.json',
+            toPath: 'actions/review-code.json',
+        }])
+        expect(firstCommitted).toHaveBeenCalledWith('actions/new-action.json', 'actions/review.json')
+        expect(secondCommitted).toHaveBeenCalledWith('actions/review.json', 'actions/review-code.json')
+    })
+
     it('discards a pending file without committing it', async () => {
         vi.useFakeTimers()
         const commit = vi.fn<CommitCallback>(async () => undefined)

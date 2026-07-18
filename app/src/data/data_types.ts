@@ -144,6 +144,7 @@ export interface CommitRequest {
     branch: string
     files: MarkdownFile[]
     message: string
+    moves?: MoveFile[]
 }
 
 export type CommitResult = MarkdownFile[]

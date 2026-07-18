@@ -7,11 +7,11 @@ import { BUILTIN_CUSTOM_PROMPT } from '../../data/action_types'
 import { fileContext } from '../../data/action_context'
 import { getCardIdPrefix } from '../../data/card_identifiers'
 import { defaultColumnAccent, type CardTypeConfig, type ProjectCard, type StateConfig } from '../../data/data_types'
-import { telemetryService } from '../../services/telemetry_service'
-import { markdownParsingService } from '../../services/markdown_parsing_service'
+import { telemetryService } from '../../services/telemetry/telemetry_service'
+import { markdownParsingService } from '../../services/data/markdown_parsing_service'
 import { dialogService } from '../../services/dialog_service'
-import { actionService } from '../../services/action_service'
-import { agentAcknowledgementService } from '../../services/agent_acknowledgement_service'
+import { actionService } from '../../services/actions/action_service'
+import { agentAcknowledgementService } from '../../services/agents/agent_acknowledgement_service'
 import { ActionEditor } from '../actions/action_editor'
 import { MarkdownDocumentHistoryStore } from '../editor/markdown_document_history_store'
 import { MarkdownEditor, type MarkdownEditorHandle } from '../editor/markdown_editor'
@@ -464,7 +464,7 @@ export function TextView(props: TextViewProps) {
                 >
                     {activeAction ? (
                         <ActionEditor
-                            key={activeAction.sourcePath ?? undefined}
+                            key={activeAction.id}
                             action={activeAction}
                             actions={actions}
                             cardTypes={cardTypes.map(({ type }) => type)}

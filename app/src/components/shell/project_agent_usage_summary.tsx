@@ -1,7 +1,7 @@
 import DataUsageOutlined from '@mui/icons-material/DataUsageOutlined'
 import { Box, Button, Divider, Popover, Stack, Typography } from '@mui/material'
 import { useState, type MouseEvent } from 'react'
-import type { ProjectAgentUsage } from '../../services/agent_usage'
+import type { ProjectAgentUsage } from '../../services/agents/agent_usage'
 import { AgentUsageDisplay } from '../agents/agent_usage_display'
 
 interface ProjectAgentUsageSummaryProps {

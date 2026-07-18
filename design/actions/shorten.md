@@ -1,1 +1,1 @@
- `design\feature_descriptions\F_005_card_view.md` is too verbose. make it more digestible, shorten it without loosing any detail.
+ `design\architecture\data_saving_and_commits.md` is too verbose. make it more digestible, shorten it without loosing any detail.

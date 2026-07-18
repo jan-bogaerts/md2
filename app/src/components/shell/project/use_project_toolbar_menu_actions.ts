@@ -11,7 +11,7 @@ import {
 import { getElectronDataBridge } from '../../../data/electron_data_bridge'
 import type { StorageType } from '../../../data/project_session'
 import { dialogService } from '../../../services/dialog_service'
-import { projectSessionService, type ProjectOpenResolution } from '../../../services/project_session_service'
+import { projectSessionService, type ProjectOpenResolution } from '../../../services/project/project_session_service'
 import { useProjectConfig } from '../../hooks/use_project_config'
 import { useProjectSession } from '../../hooks/use_project_session'
 import { useProjectState } from '../../hooks/use_project_state'

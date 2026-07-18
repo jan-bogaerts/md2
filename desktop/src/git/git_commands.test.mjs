@@ -11,6 +11,7 @@ const execFileAsync = promisify(execFile);
 const {
     commitTrackedPaths,
     ensureInsideRoot,
+    parseShortStat,
     requireRootPath,
     resolveCommitMetadata,
     resolveLocalProject,
@@ -34,6 +35,16 @@ async function commitFile(rootPath) {
 }
 
 describe('git-commands', () => {
+    it('parses optional singular and plural short-stat categories', () => {
+        expect(parseShortStat(' 3 files changed, 12 insertions(+), 1 deletion(-)')).toEqual({
+            deletions: 1,
+            filesChanged: 3,
+            insertions: 12,
+        });
+        expect(parseShortStat(' 1 file changed')).toEqual({ deletions: 0, filesChanged: 1, insertions: 0 });
+        expect(parseShortStat('')).toEqual({ deletions: 0, filesChanged: 0, insertions: 0 });
+    });
+
     it('requires a project root path', () => {
         expect(() => requireRootPath({ id: 'local' })).toThrow('Missing local Git project rootPath');
     });
@@ -134,6 +145,24 @@ describe('git-commands', () => {
             expect(metadata.commit).toMatch(/^[0-9a-f]{40}$/u);
             expect(metadata.committedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/u);
             expect(metadata.filePaths).toEqual(['README.md']);
+            expect(metadata).toMatchObject({ deletions: 0, filesChanged: 1, insertions: 1 });
+        } finally {
+            await rm(rootPath, { force: true, recursive: true });
+        }
+    });
+
+    it('reports binary files without inventing text line changes', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-binary-commit-metadata-'));
+
+        try {
+            await initializeRepository(rootPath);
+            await writeFile(join(rootPath, 'image.bin'), Buffer.from([0, 1, 2, 3]));
+            await runGit(rootPath, ['add', 'image.bin']);
+            await runGit(rootPath, ['commit', '-m', 'Binary']);
+
+            const metadata = await resolveCommitMetadata(rootPath, 'HEAD');
+
+            expect(metadata).toMatchObject({ deletions: 0, filesChanged: 1, insertions: 0 });
         } finally {
             await rm(rootPath, { force: true, recursive: true });
         }

@@ -21,7 +21,6 @@ import {
     type ScheduleAction,
 } from './action_popup_defaults'
 import { RelatedActions } from './action_related_actions'
-import { ActionCommitDropdown } from './action_commit_dropdown'
 import { ActionRunHistory } from './action_run_history'
 import { ActionRunStatus } from './action_run_status'
 import { ActionScheduleForm } from './action_schedule_form'
@@ -31,6 +30,7 @@ import { useActionPopupController } from './use_action_popup_controller'
 import { ActionConversationChat } from './action_conversation_chat'
 import { ActionConversationPicker } from './action_conversation_picker'
 import { ActionPhraseButtons } from './action_phrase_buttons'
+import { ActionUsageSummary } from './action_usage_summary'
 
 interface ActionPopupProps {
     action: ActionDefinition
@@ -76,8 +76,7 @@ export function ActionPopup(props: ActionPopupProps) {
 
     if (isCardRunDialog) {
         const handlePrimaryRun = showSaveControls ? controller.handleSaveAndRun : controller.handleRun
-        // Newest run first; commits inside one run keep chain execution order.
-        const commitReferences = [...controller.history].reverse().flatMap((entry) => entry.commits ?? [])
+        const showUsageSummary = props.context.kind === 'card' && !!props.context.file
         const runDisabled = controller.runStatus === 'running'
             || !!controller.executionDisabledMessage
             || controller.promptPreparationPending
@@ -140,7 +139,6 @@ export function ActionPopup(props: ActionPopupProps) {
                             agent={controller.agent}
                             agentAvailability={controller.agentAvailability}
                             agentProfiles={controller.agentProfiles}
-                            commitHistory={<ActionCommitDropdown commits={commitReferences} />}
                             compact
                             conversationContent={(
                                 <ActionConversationChat
@@ -174,6 +172,7 @@ export function ActionPopup(props: ActionPopupProps) {
                             onRunShortcut={runDisabled ? undefined : handlePrimaryRun}
                             onSaveAndRun={controller.handleSaveAndRun}
                             promptRequired={promptRequired}
+                            promptResetToken={controller.promptResetToken}
                             saveDisabled={controller.saveDisabled}
                             selectedAgentModels={controller.selectedAgentModels}
                             showSaveControls={showSaveControls}
@@ -214,9 +213,27 @@ export function ActionPopup(props: ActionPopupProps) {
                     <RelatedActions actions={action.onAfter} label="After" onNavigate={onNavigate} />
                 </Stack>
                 <Box sx={{ alignItems: 'center', bgcolor: 'background.default', borderTop: 1, borderColor: 'divider', display: 'flex', gap: 1, px: 2, py: 1.5 }}>
+                    {showUsageSummary && action.type === 'agent' && props.context.file ? (
+                        <ActionUsageSummary
+                            actionId={action.id}
+                            cardPath={props.context.file}
+                            conversations={controller.conversations}
+                            history={controller.history}
+                        />
+                    ) : null}
                     <Box sx={{ flex: 1 }} />
                     {controller.runStatus === 'running' ? (
                         <Button disabled={!controller.backendAvailable} onClick={controller.handleCancel} size="small" variant="outlined">Cancel</Button>
+                    ) : null}
+                    {showSaveControls ? (
+                        <Button
+                            disabled={controller.saveDisabled}
+                            onClick={controller.handleConvertToAction}
+                            size="small"
+                            variant="outlined"
+                        >
+                            Save
+                        </Button>
                     ) : null}
                     <Button
                         disabled={controller.runStatus === 'running' || !controller.backendAvailable}
@@ -323,6 +340,7 @@ export function ActionPopup(props: ActionPopupProps) {
                         onThinkingLevelChange={controller.handleThinkingLevelChange}
                         onSaveAndRun={controller.handleSaveAndRun}
                         promptRequired={promptRequired}
+                        promptResetToken={controller.promptResetToken}
                         saveDisabled={controller.saveDisabled}
                         selectedAgentModels={controller.selectedAgentModels}
                         showSaveControls={showSaveControls}

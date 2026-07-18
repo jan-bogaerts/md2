@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react'
-import { worktreeService } from '../../services/worktree_service'
+import { worktreeService } from '../../services/project/worktree_service'
 
 function subscribe(onStoreChange: () => void) {
     worktreeService.addEventListener('changed', onStoreChange)

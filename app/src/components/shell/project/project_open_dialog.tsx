@@ -18,7 +18,7 @@ import type { ChangeEvent } from 'react'
 import { useState } from 'react'
 import { DEFAULT_PROJECT_FOLDER, type BranchReference, type ProjectReference, type RepositoryReference, type TopLevelFolderReference } from '../../../data/data_types'
 import { tryReadRemoteControlConnection } from '../../../data/remote_control_connection'
-import type { ProjectOpenResolution } from '../../../services/project_session_service'
+import type { ProjectOpenResolution } from '../../../services/project/project_session_service'
 import { ProjectFolderSetupForm } from './project_folder_setup_form'
 import { WorkingFolderChooserDialog } from './working_folder_chooser_dialog'
 

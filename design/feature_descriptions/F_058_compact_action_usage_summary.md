@@ -1,7 +1,7 @@
 ---
 id: F_058
 title: show compact token and changed-line usage summaries
-status: design
+status: ready
 owner: JB
 affects:
   - desktop/src/actions/action_run_history.js

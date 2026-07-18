@@ -3,12 +3,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useCallback } from 'react'
 import { TextView } from './text_view'
 import { DEFAULT_CARD_TYPES, DEFAULT_STATES, type AgentConversation, type ProjectCard } from '../../data/data_types'
-import { agentAcknowledgementService } from '../../services/agent_acknowledgement_service'
-import { telemetryService } from '../../services/telemetry_service'
+import { agentAcknowledgementService } from '../../services/agents/agent_acknowledgement_service'
+import { telemetryService } from '../../services/telemetry/telemetry_service'
 import { openFilesService } from '../../services/open_files_service'
-import { actionService } from '../../services/action_service'
-import { configService } from '../../services/config_service'
-import { dataService } from '../../services/data_service'
+import { actionService } from '../../services/actions/action_service'
+import { configService } from '../../services/config/config_service'
+import { dataService } from '../../services/data/data_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import { LeftPanelSlotProvider } from '../shell/left_panel_slot_provider'
 import { LeftPanelTarget } from '../shell/left_panel_target'
@@ -588,7 +588,12 @@ describe('TextView', () => {
         fireEvent.change(screen.getByLabelText('Label'), { target: { value: 'Recovered' } })
         fireEvent.click(screen.getByRole('button', { name: 'Recreate file' }))
 
-        await waitFor(() => expect(persistActionFile).toHaveBeenCalledWith(expect.objectContaining({path: 'design/actions/review.json'})))
+        await waitFor(() => expect(persistActionFile).toHaveBeenCalledWith(
+            expect.objectContaining({path: 'design/actions/recovered.json'}),
+            'design/actions/review.json',
+            expect.any(Function),
+            false,
+        ))
         await waitFor(() => expect(screen.queryByText(/action file was deleted outside the editor/u)).not.toBeInTheDocument())
         expect(screen.getByRole('tab', { name: 'Recovered' })).toBeInTheDocument()
     })

@@ -208,6 +208,20 @@ async function listTopLevelFolders(project) {
 async function commit(request, project) {
     const rootPath = requireRootPath(project);
 
+    for (const move of request.moves ?? []) {
+        if (!move || typeof move.fromPath !== 'string' || move.fromPath.length === 0) throw new Error('Missing commit move source path');
+        if (typeof move.toPath !== 'string' || move.toPath.length === 0) throw new Error('Missing commit move target path');
+        if (typeof move.content !== 'string') throw new Error('Missing commit move content');
+
+        const sourcePath = ensureInsideRoot(rootPath, path.join(rootPath, move.fromPath));
+        const targetPath = ensureInsideRoot(rootPath, path.join(rootPath, move.toPath));
+        const data = move.encoding === 'base64' ? Buffer.from(move.content, 'base64') : move.content;
+        await fs.promises.mkdir(path.dirname(targetPath), { recursive: true });
+        await runGit(rootPath, ['mv', normalizePath(path.relative(rootPath, sourcePath)), normalizePath(path.relative(rootPath, targetPath))]);
+        await fs.promises.writeFile(targetPath, data);
+        await runGit(rootPath, ['add', move.toPath]);
+    }
+
     for (const file of request.files) {
         const filePath = ensureInsideRoot(rootPath, path.join(rootPath, file.path));
         const data = file.encoding === 'base64' ? Buffer.from(file.content, 'base64') : file.content;

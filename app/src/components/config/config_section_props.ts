@@ -1,4 +1,4 @@
-import type { ConfigEntry, ConfigKey, ConfigValues } from '../../services/config_service'
+import type { ConfigEntry, ConfigKey, ConfigValues } from '../../services/config/config_service'
 
 export interface ConfigSectionProps {
     draft: ConfigValues

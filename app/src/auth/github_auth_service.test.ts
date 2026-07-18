@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { GithubAuthService, type GithubAuthServiceDependencies } from '../services/github_auth_service'
+import { GithubAuthService, type GithubAuthServiceDependencies } from '../services/github/github_auth_service'
 import { GithubUnauthorizedError } from './github_api_client'
 import { AUTH_TOKEN_STORAGE_KEY, type AuthStorage, type GithubUser } from './github_auth_types'
 

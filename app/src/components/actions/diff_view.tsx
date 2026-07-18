@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import DiffViewer from 'react-diff-viewer-continued'
 import type { CommitReference, DiffFile, DiffResult, OpenInEditorRequest } from '../../data/electron_action_bridge'
 import { dialogService } from '../../services/dialog_service'
-import { generateDiff as defaultGenerateDiff, openDiffLine as defaultOpenDiffLine } from '../../services/diff_service'
+import { generateDiff as defaultGenerateDiff, openDiffLine as defaultOpenDiffLine } from '../../services/data/diff_service'
 import { resolveClickedLine } from './diff_line_mapping'
 
 type GenerateDiff = (commitReference: CommitReference) => Promise<DiffResult>

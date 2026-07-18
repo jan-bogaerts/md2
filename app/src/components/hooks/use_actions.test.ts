@@ -1,7 +1,7 @@
 import { act, renderHook } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { useActions } from './use_actions'
-import { ActionService } from '../../services/action_service'
+import { ActionService } from '../../services/actions/action_service'
 import { CUSTOM_PROMPT_ACTION_ID, REMARKABLE_CONVERT_ACTION_ID, type ActionFile } from '../../data/action_types'
 
 function file(definition: unknown): ActionFile {

@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react'
 import type { ProjectConfig } from '../../data/data_types'
-import { dataService, type DataService } from '../../services/data_service'
+import { dataService, type DataService } from '../../services/data/data_service'
 
 const snapshots = new WeakMap<DataService, ProjectConfig | null>()
 

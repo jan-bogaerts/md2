@@ -1,7 +1,7 @@
 import { Button, Menu, MenuItem } from '@mui/material'
 import type { MouseEvent } from 'react'
 import { useCallback, useState } from 'react'
-import { projectSessionService } from '../../services/project_session_service'
+import { projectSessionService } from '../../services/project/project_session_service'
 import { BranchSwitchDialog } from './project/branch_switch_dialog'
 import { CompleteReleaseDialog } from './project/complete_release_dialog'
 import { NewCardDialog } from './project/new_card_dialog'

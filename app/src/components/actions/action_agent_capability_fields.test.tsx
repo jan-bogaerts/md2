@@ -1,8 +1,8 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { RawActionDefinition } from '../../data/action_types'
-import { AgentCapabilitiesService, type AgentCapabilitiesProvider } from '../../services/agent_capabilities_service'
-import { configService } from '../../services/config_service'
+import { AgentCapabilitiesService, type AgentCapabilitiesProvider } from '../../services/agents/agent_capabilities_service'
+import { configService } from '../../services/config/config_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import { ActionAgentCapabilityFields } from './action_agent_capability_fields'
 

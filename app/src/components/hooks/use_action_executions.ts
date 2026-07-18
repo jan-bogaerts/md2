@@ -1,6 +1,6 @@
 import { useEffect, useSyncExternalStore } from 'react'
 import type { ActionContext } from '../../data/action_context'
-import { actionExecutionService } from '../../services/action_execution_service'
+import { actionExecutionService } from '../../services/actions/action_execution_service'
 
 function useActionExecutionSnapshot() {
     useEffect(() => {

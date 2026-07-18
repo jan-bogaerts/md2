@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 import { StatusBar } from './status_bar'
-import { projectAgentTokenUsage } from '../../services/agent_usage'
+import { projectAgentTokenUsage } from '../../services/agents/agent_usage'
 
 const EMPTY_AGENT_USAGE = projectAgentTokenUsage(null, 'design')
 
@@ -112,6 +112,7 @@ describe('StatusBar', () => {
         expect(screen.getByRole('heading', { name: 'Project agent usage' })).toBeInTheDocument()
         expect(screen.getByText('Current')).toBeInTheDocument()
         expect(screen.getByText('v1')).toBeInTheDocument()
-        expect(screen.getByLabelText(/Token usage: 48 total, 30 input, 6 cached input/)).toHaveTextContent('$0.02')
+        expect(screen.getByText('tokens: 48')).toBeInTheDocument()
+        expect(screen.queryByText('$0.02')).not.toBeInTheDocument()
     })
 })

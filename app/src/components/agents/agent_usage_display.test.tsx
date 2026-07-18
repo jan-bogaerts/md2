@@ -1,9 +1,9 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { AgentUsageDisplay } from './agent_usage_display'
 
 describe('AgentUsageDisplay', () => {
-    it('shows every token bucket and reported cost', () => {
+    it('shows only total inline and complete reported-cost detail on focus', async () => {
         render(<AgentUsageDisplay usage={{
             cachedInputTokens: 234,
             costUsd: 0.0125,
@@ -13,13 +13,19 @@ describe('AgentUsageDisplay', () => {
             totalTokens: 1284,
         }} />)
 
-        const summary = screen.getByLabelText('Token usage: 1284 total, 1000 input, 234 cached input, 40 output, 10 reasoning, $0.0125 reported cost')
-        expect(summary).toHaveTextContent('1,284 tokens')
-        expect(summary).toHaveTextContent('cached 234')
-        expect(summary).toHaveTextContent('$0.0125')
+        const summary = screen.getByText('tokens: 1,284')
+        expect(summary).not.toHaveTextContent('input')
+        expect(summary).not.toHaveTextContent('$')
+
+        fireEvent.keyDown(document, { key: 'Tab' })
+        summary.focus()
+
+        expect(await screen.findByRole('tooltip')).toHaveTextContent(
+            'total: 1,284, input: 1,000, cached input: 234, output: 40, reasoning: 10, reported cost: $0.0125',
+        )
     })
 
-    it('omits cost when no provider reported it', () => {
+    it('omits cost when no provider reported it', async () => {
         render(<AgentUsageDisplay usage={{
             cachedInputTokens: 0,
             inputTokens: 0,
@@ -28,6 +34,10 @@ describe('AgentUsageDisplay', () => {
             totalTokens: 0,
         }} />)
 
-        expect(screen.getByLabelText('Token usage: 0 total, 0 input, 0 cached input, 0 output, 0 reasoning')).not.toHaveTextContent('$')
+        const summary = screen.getByText('tokens: 0')
+        fireEvent.mouseOver(summary)
+
+        const tooltip = await screen.findByText('total: 0, input: 0, cached input: 0, output: 0, reasoning: 0')
+        expect(tooltip).not.toHaveTextContent('$')
     })
 })

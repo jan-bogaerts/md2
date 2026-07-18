@@ -4,10 +4,10 @@ import type { ActionDefinition } from '../../data/action_types'
 import type { ActionRunInput, ActionRunResult } from '../../data/action_run_types'
 import type { AgentConversation } from '../../data/data_types'
 import { getElectronActionBridge, type ActionRunHistoryEntry } from '../../data/electron_action_bridge'
-import { defaultActionHistoryLoader, loadActionHistory } from '../../services/action_history'
-import { actionFilePath, createActionDefinition, type ConvertPromptToActionInput } from '../../services/action_definition_writer'
-import { dataService } from '../../services/data_service'
-import { cancelElectronAction, runElectronAction } from '../../services/electron_action_runner'
+import { defaultActionHistoryLoader, loadActionHistory } from '../../services/actions/action_history'
+import { actionFilePath, createActionDefinition, type ConvertPromptToActionInput } from '../../services/actions/action_definition_writer'
+import { dataService } from '../../services/data/data_service'
+import { cancelElectronAction, runElectronAction } from '../../services/actions/electron_action_runner'
 
 export type PopupRunStatus = 'idle' | 'running' | ActionRunResult['status']
 export type CancelAction = (executionId: string) => Promise<void>

@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { configService } from '../../services/config_service'
+import { configService } from '../../services/config/config_service'
+import { AppThemeProvider } from '../../theme/theme_provider'
 import { AgentChatFab } from './agent_chat_fab'
 
 describe('AgentChatFab', () => {
@@ -21,13 +22,13 @@ describe('AgentChatFab', () => {
     })
 
     it('opens and closes project-wide run form on plain clicks', async () => {
-        render(<AgentChatFab />)
+        render(<AgentChatFab />, { wrapper: AppThemeProvider })
         const button = screen.getByRole('button', { name: 'Project agent' })
 
         fireEvent.click(button)
 
         expect(screen.getByRole('dialog', { name: 'Run actions' })).toBeInTheDocument()
-        expect(await screen.findByPlaceholderText('Prompt required')).toBeInTheDocument()
+        expect(await screen.findByLabelText('Prompt')).toBeInTheDocument()
         expect(screen.getByRole('combobox', { name: 'Conversation history' })).toBeInTheDocument()
         expect(screen.getByLabelText('Conversation chat').compareDocumentPosition(screen.getByLabelText('Prompt')))
             .toBe(Node.DOCUMENT_POSITION_FOLLOWING)
@@ -39,7 +40,7 @@ describe('AgentChatFab', () => {
     })
 
     it('moves without opening popup when pointer gesture crosses drag threshold', () => {
-        render(<AgentChatFab />)
+        render(<AgentChatFab />, { wrapper: AppThemeProvider })
         const button = screen.getByRole('button', { name: 'Project agent' })
 
         fireEvent.pointerDown(button, { clientX: 1140, clientY: 740, pointerId: 1 })
@@ -55,7 +56,7 @@ describe('AgentChatFab', () => {
     })
 
     it('keeps the popup anchored to the FAB when resized from the top-left', () => {
-        render(<AgentChatFab />)
+        render(<AgentChatFab />, { wrapper: AppThemeProvider })
         const button = screen.getByRole('button', { name: 'Project agent' })
         fireEvent.click(button)
         const dialog = screen.getByRole('dialog', { name: 'Run actions' })

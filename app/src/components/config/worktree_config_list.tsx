@@ -2,7 +2,7 @@ import { Box, IconButton, Stack, Tooltip, Typography } from '@mui/material'
 import Plus from 'mdi-material-ui/Plus'
 import { useWorktreeDraft } from '../hooks/use_worktrees'
 import { dialogService } from '../../services/dialog_service'
-import { worktreeService } from '../../services/worktree_service'
+import { worktreeService } from '../../services/project/worktree_service'
 import { WorktreeConfigRow } from './worktree_config_row'
 
 export function WorktreeConfigList() {

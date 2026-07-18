@@ -193,6 +193,41 @@ describe('MarkdownEditor', () => {
         expect(screen.getByTestId('mdx-editor')).toContainElement(screen.getByTestId('mdx-editor-toolbar'))
     })
 
+    it('omits the toolbar when hideToolbar is set', () => {
+        render(
+            <AppThemeProvider>
+                <MarkdownEditor hideToolbar markdown="" onChange={vi.fn()} />
+            </AppThemeProvider>,
+        )
+
+        expect(screen.queryByTestId('mdx-editor-toolbar')).not.toBeInTheDocument()
+    })
+
+    it('reports live edits through onLiveChange while buffering onChange', () => {
+        const onChange = vi.fn()
+        const onLiveChange = vi.fn()
+        render(
+            <AppThemeProvider>
+                <MarkdownEditor markdown="original" onChange={onChange} onLiveChange={onLiveChange} />
+            </AppThemeProvider>,
+        )
+
+        fireEvent.change(screen.getByRole('textbox'), { target: { value: 'edited' } })
+
+        expect(onLiveChange).toHaveBeenLastCalledWith('edited')
+        expect(onChange).not.toHaveBeenCalled()
+    })
+
+    it('renders read-only when requested', () => {
+        render(
+            <AppThemeProvider>
+                <MarkdownEditor markdown="locked" onChange={vi.fn()} readOnly />
+            </AppThemeProvider>,
+        )
+
+        expect(screen.getByRole('textbox')).toHaveAttribute('readonly')
+    })
+
     it('shows placeholder insertion only when placeholders are configured', () => {
         const view = render(
             <AppThemeProvider>

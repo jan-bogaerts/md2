@@ -1,7 +1,8 @@
 import { Box, Button, Divider, MenuItem, Stack, TextField, Typography } from '@mui/material'
-import type { ChangeEvent, KeyboardEvent, ReactNode } from 'react'
+import { useEffect, useRef, type ChangeEvent, type KeyboardEvent, type ReactNode } from 'react'
 import { THINKING_LEVELS, type AgentProfile, type ThinkingLevel } from '../../data/agent_profiles'
 import type { AgentAvailability } from '../../data/electron_data_bridge'
+import { MarkdownEditor, type MarkdownEditorHandle } from '../editor/markdown_editor'
 
 interface ActionAgentFormProps {
     actionLabel: string
@@ -21,12 +22,13 @@ interface ActionAgentFormProps {
     onActionLabelChange: (event: ChangeEvent<HTMLInputElement>) => void
     onAgentChange: (event: ChangeEvent<HTMLInputElement>) => void
     onConvertToAction: () => void
-    onPromptChange: (event: ChangeEvent<HTMLInputElement>) => void
+    onPromptChange: (value: string) => void
     onModelChange: (event: ChangeEvent<HTMLInputElement>) => void
     onThinkingLevelChange: (event: ChangeEvent<HTMLInputElement>) => void
     onRunShortcut?: () => void
     onSaveAndRun: () => void
     promptRequired: boolean
+    promptResetToken: number
     saveDisabled: boolean
     selectedAgentModels: string[]
     showSaveControls: boolean
@@ -59,6 +61,7 @@ export function ActionAgentForm(props: ActionAgentFormProps) {
         onRunShortcut,
         onSaveAndRun,
         promptRequired,
+        promptResetToken,
         saveDisabled,
         selectedAgentModels,
         showSaveControls,
@@ -66,6 +69,16 @@ export function ActionAgentForm(props: ActionAgentFormProps) {
     } = props
     const promptLabel = 'Prompt'
     const promptPlaceholder = promptLoading ? 'Preparing prompt…' : promptFailed ? 'Prompt unavailable' : promptRequired ? 'Prompt required' : 'Prompt'
+    // The compact prompt editor is uncontrolled while typing; reseed it only when the
+    // controller replaces the prompt externally (prepared/phrase/cleared), tracked by token.
+    const promptEditorRef = useRef<MarkdownEditorHandle>(null)
+    const promptRef = useRef(prompt)
+    useEffect(() => {
+        promptRef.current = prompt
+    })
+    useEffect(() => {
+        promptEditorRef.current?.setMarkdown(promptRef.current)
+    }, [promptResetToken])
 
     const handleNameKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
         if (event.key !== 'Enter' || !onRunShortcut) return
@@ -199,33 +212,34 @@ export function ActionAgentForm(props: ActionAgentFormProps) {
                     {commitHistory}
                     {conversationPicker}
                 </Box>
-                <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>{conversationContent}</Box>
+                <Box sx={{ flex: 2, minHeight: 0, overflowY: 'auto' }}>{conversationContent}</Box>
                 <Divider />
-                <Stack spacing={0.75}>
-                    <TextField
-                        disabled={disabled || promptLoading || promptFailed}
-                        fullWidth
-                        minRows={4}
-                        multiline
+                <Box
+                    aria-label={promptLabel}
+                    onKeyDown={handlePromptKeyDown}
+                    sx={{
+                        borderRadius: '9px',
+                        border: 1,
+                        borderColor: (theme) => theme.palette.mode === 'dark' ? '#364152' : '#d5dbe3',
+                        flex: 1,
+                        minHeight: 120,
+                        overflowY: 'auto',
+                        px: 1,
+                        '&:focus-within': {
+                            borderColor: 'primary.main',
+                            boxShadow: (theme) => `0 0 0 3px ${theme.palette.action.selected}`,
+                        },
+                    }}
+                >
+                    <MarkdownEditor
+                        hideToolbar
+                        markdown={prompt}
                         onChange={onPromptChange}
-                        onKeyDown={handlePromptKeyDown}
-                        placeholder={promptPlaceholder}
-                        slotProps={{ htmlInput: { 'aria-label': promptLabel } }}
-                        sx={{
-                            ...fieldSx,
-                            minHeight: 96,
-                            '& .MuiOutlinedInput-root': {
-                                ...fieldSx['& .MuiOutlinedInput-root'],
-                                alignItems: 'flex-start',
-                                minHeight: 96,
-                                py: 0.25,
-                            },
-                            '& textarea': { resize: 'none' },
-                        }}
-                        value={prompt}
-                        variant="outlined"
+                        onLiveChange={onPromptChange}
+                        readOnly={disabled || promptLoading || promptFailed}
+                        ref={promptEditorRef}
                     />
-                </Stack>
+                </Box>
                 {convertMessage ? (
                     <Typography color="text.secondary" role="status" variant="caption">
                         {convertMessage}
@@ -289,7 +303,7 @@ export function ActionAgentForm(props: ActionAgentFormProps) {
                 disabled={disabled || promptLoading || promptFailed}
                 minRows={3}
                 multiline
-                onChange={onPromptChange}
+                onChange={(event) => onPromptChange(event.target.value)}
                 placeholder={promptPlaceholder}
                 slotProps={{ htmlInput: { 'aria-label': promptLabel } }}
                 sx={{

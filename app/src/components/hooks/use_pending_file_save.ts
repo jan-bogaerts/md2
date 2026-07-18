@@ -1,5 +1,5 @@
 import { useCallback, useSyncExternalStore } from 'react'
-import { dataService } from '../../services/data_service'
+import { dataService } from '../../services/data/data_service'
 
 function subscribe(onStoreChange: () => void) {
     dataService.addEventListener('changed', onStoreChange)

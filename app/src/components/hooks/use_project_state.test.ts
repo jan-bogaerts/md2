@@ -1,7 +1,7 @@
 import { cleanup, renderHook } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 import type { ProjectReference } from '../../data/data_types'
-import type { DataService, DataServiceState } from '../../services/data_service'
+import type { DataService, DataServiceState } from '../../services/data/data_service'
 import { useProjectState } from './use_project_state'
 
 const emptyState: DataServiceState = {

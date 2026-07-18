@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ProjectReference, StorageService, WorktreeRecord } from '../../data/data_types'
-import { worktreeService } from '../../services/worktree_service'
+import { worktreeService } from '../../services/project/worktree_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import { WorktreeConfigList } from './worktree_config_list'
 

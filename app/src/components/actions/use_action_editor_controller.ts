@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type ChangeEvent, type SyntheticEvent } from 'react'
 import type { ActionDefinition, RawActionDefinition } from '../../data/action_types'
-import { actionService } from '../../services/action_service'
+import { actionService } from '../../services/actions/action_service'
 import { openFilesService } from '../../services/open_files_service'
 import {
     ACTION_DEFINITION_TAB,
@@ -15,9 +15,9 @@ export interface ActionEditorControllerOptions {
     markdownDocumentNamespace: string
 }
 
-/** Namespace one prompt or phrase history document to its owning action file. */
-export function actionMarkdownDocumentId(namespace: string, sourcePath: string, editorDocumentId: string) {
-    return JSON.stringify([namespace, sourcePath, editorDocumentId])
+/** Namespace one prompt or phrase history document to its stable owning action. */
+export function actionMarkdownDocumentId(namespace: string, actionId: string, editorDocumentId: string) {
+    return JSON.stringify([namespace, actionId, editorDocumentId])
 }
 
 /** Bridge ActionService-owned draft state into ActionEditor presentation. */
@@ -53,11 +53,11 @@ export function useActionEditorController(options: ActionEditorControllerOptions
     const selectedPhrase = selectedPhraseIndex < 0 ? null : phrases[selectedPhraseIndex]
     const activeTab = selectedTab.startsWith('phrase-') && !selectedPhrase ? ACTION_PROMPT_TAB : selectedTab
     const editorDocumentId = selectedPhrase ? selectedTab : ACTION_PROMPT_TAB
-    const markdownDocumentId = actionMarkdownDocumentId(markdownDocumentNamespace, sourcePath, editorDocumentId)
+    const markdownDocumentId = actionMarkdownDocumentId(markdownDocumentNamespace, action.id, editorDocumentId)
     const markdownDocumentIds = useMemo(() => [
-        actionMarkdownDocumentId(markdownDocumentNamespace, sourcePath, ACTION_PROMPT_TAB),
-        ...phraseEditorStates.map(({ identity }) => actionMarkdownDocumentId(markdownDocumentNamespace, sourcePath, identity)),
-    ], [markdownDocumentNamespace, phraseEditorStates, sourcePath])
+        actionMarkdownDocumentId(markdownDocumentNamespace, action.id, ACTION_PROMPT_TAB),
+        ...phraseEditorStates.map(({ identity }) => actionMarkdownDocumentId(markdownDocumentNamespace, action.id, identity)),
+    ], [action.id, markdownDocumentNamespace, phraseEditorStates])
     const markdown = selectedPhrase?.text ?? definition.prompt ?? ''
 
     const storeEditorState = useCallback((nextEditorState: typeof editorState) => {

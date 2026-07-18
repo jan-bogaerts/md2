@@ -1,6 +1,6 @@
 import { act, cleanup, renderHook } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
-import { configService } from '../../services/config_service'
+import { configService } from '../../services/config/config_service'
 import { useConfigValue } from './use_config_value'
 
 describe('useConfigValue', () => {

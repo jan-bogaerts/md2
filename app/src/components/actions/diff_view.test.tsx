@@ -22,7 +22,10 @@ const commitReference: CommitReference = {
     branch: 'main',
     commit: 'abc1234',
     committedAt: '2026-07-05T10:00:00.000Z',
+    deletions: 0,
     filePaths: ['design/F-010.md'],
+    filesChanged: 1,
+    insertions: 1,
     repositoryRoot: 'C:/repo',
 }
 
