@@ -319,6 +319,73 @@ describe('ActionService', () => {
         expect(service.getDraft('actions/review-code.json').definition.label).toBe('Review Code!')
     })
 
+    it('reconciles a committed rename after the watcher has already loaded the target path', async () => {
+        let completeMove: ((fromPath: string, toPath: string) => void) | undefined
+        let pending = true
+        const persistActionFile = vi.fn(async (
+            _actionFile: ActionFile,
+            _sourcePath?: string,
+            onPathCommitted?: (fromPath: string, toPath: string) => void,
+        ) => {
+            completeMove = onPathCommitted
+        })
+        const service = new ActionService(() => ({
+            hasPendingActionFile: () => pending,
+            persistActionFile,
+        }))
+        service.loadFromFiles([fileAt('actions/test-1.json', { ...VALID, label: 'Test 1' })])
+        const renamedDefinition = { ...service.getDraft('actions/test-1.json').definition, label: 'Test 1b' }
+
+        service.updateDraft('actions/test-1.json', renamedDefinition)
+        await service.flushDrafts()
+        service.reloadFromFiles(
+            [fileAt('actions/test-1b.json', renamedDefinition)],
+            [
+                { origin: 'local', path: 'actions/test-1.json', revision: service.getPublicationRevision('actions/test-1.json') },
+                { origin: 'local', path: 'actions/test-1b.json', revision: service.getPublicationRevision('actions/test-1b.json') },
+            ],
+        )
+        pending = false
+
+        expect(() => completeMove?.('actions/test-1.json', 'actions/test-1b.json')).not.toThrow()
+        expect(() => completeMove?.('actions/test-1.json', 'actions/test-1b.json')).not.toThrow()
+        expect(service.getActionByPath('actions/test-1.json')).toBeNull()
+        expect(service.getActionByPath('actions/test-1b.json')?.label).toBe('Test 1b')
+        expect(service.getDraft('actions/test-1b.json')).toMatchObject({ deleted: false, definition: renamedDefinition })
+    })
+
+    it('keeps a newer staged value separate while reconciling an earlier committed rename', async () => {
+        let completeMove: ((fromPath: string, toPath: string) => void) | undefined
+        const persistActionFile = vi.fn(async (
+            _actionFile: ActionFile,
+            _sourcePath?: string,
+            onPathCommitted?: (fromPath: string, toPath: string) => void,
+        ) => {
+            completeMove = onPathCommitted
+        })
+        const service = new ActionService(() => ({
+            hasPendingActionFile: () => true,
+            persistActionFile,
+        }))
+        service.loadFromFiles([fileAt('actions/test-1.json', { ...VALID, label: 'Test 1' })])
+        const renamedDefinition = { ...service.getDraft('actions/test-1.json').definition, label: 'Test 1b' }
+
+        service.updateDraft('actions/test-1.json', renamedDefinition)
+        await service.flushDrafts()
+        service.stageDraft('actions/test-1.json', { ...renamedDefinition, label: '' })
+        service.reloadFromFiles(
+            [fileAt('actions/test-1b.json', renamedDefinition)],
+            [
+                { origin: 'local', path: 'actions/test-1.json', revision: service.getPublicationRevision('actions/test-1.json') },
+                { origin: 'local', path: 'actions/test-1b.json', revision: service.getPublicationRevision('actions/test-1b.json') },
+            ],
+        )
+
+        expect(() => completeMove?.('actions/test-1.json', 'actions/test-1b.json')).not.toThrow()
+        expect(service.getActionByPath('actions/test-1b.json')?.label).toBe('Test 1b')
+        expect(service.getDraft('actions/test-1b.json').definition.label).toBe('')
+    })
+
     it('adds a suffix when a label-derived action path is already occupied', async () => {
         const persistedFiles: ActionFile[] = []
         const persistActionFile = vi.fn(async (actionFile: ActionFile) => { persistedFiles.push(actionFile) })
@@ -444,6 +511,58 @@ describe('ActionService', () => {
         expect(service.hasPendingDrafts()).toBe(false)
         expect(persistActionFile).toHaveBeenCalledWith(
             expect.objectContaining({ content: expect.stringContaining('"label": "Repaired"') }),
+            'actions/action.json',
+            expect.any(Function),
+            true,
+        )
+    })
+
+    it('stages editor changes without validation, events, or persistence', () => {
+        const persistActionFile = vi.fn(async () => undefined)
+        const service = new ActionService(() => ({ persistActionFile }))
+        service.loadFromFiles([file(VALID)])
+        const changed = vi.fn()
+        service.addEventListener('changed', changed)
+
+        service.stageDraft('actions/action.json', { ...VALID, label: '' })
+
+        expect(service.getDraft('actions/action.json')).toMatchObject({
+            definition: expect.objectContaining({ label: '' }),
+            revision: 1,
+            validation: { valid: true },
+        })
+        expect(service.hasPendingDrafts()).toBe(true)
+        expect(changed).not.toHaveBeenCalled()
+        expect(persistActionFile).not.toHaveBeenCalled()
+    })
+
+    it('validates and persists a staged editor change only when committed', async () => {
+        const persistActionFile = vi.fn(async () => undefined)
+        const service = new ActionService(() => ({ persistActionFile }))
+        service.loadFromFiles([file(VALID)])
+        service.stageDraft('actions/action.json', { ...VALID, label: 'Committed edit' })
+
+        service.commitDraft('actions/action.json')
+        await service.flushDrafts()
+
+        expect(persistActionFile).toHaveBeenCalledWith(
+            expect.objectContaining({ content: expect.stringContaining('"label": "Committed edit"') }),
+            'actions/action.json',
+            expect.any(Function),
+            true,
+        )
+    })
+
+    it('commits staged editor changes before flushing pending work', async () => {
+        const persistActionFile = vi.fn(async () => undefined)
+        const service = new ActionService(() => ({ persistActionFile }))
+        service.loadFromFiles([file(VALID)])
+        service.stageDraft('actions/action.json', { ...VALID, label: 'Flush edit' })
+
+        await service.flushDrafts()
+
+        expect(persistActionFile).toHaveBeenCalledWith(
+            expect.objectContaining({ content: expect.stringContaining('"label": "Flush edit"') }),
             'actions/action.json',
             expect.any(Function),
             true,

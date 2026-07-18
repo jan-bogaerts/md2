@@ -306,7 +306,7 @@ export function ActionAgentForm(props: ActionAgentFormProps) {
                         height: '3px',
                         mx: 'auto',
                         my: '2px',
-                        width: 48,
+                        width: '100%',
                         '&:hover': { bgcolor: 'primary.main' },
                     }}
                     tabIndex={0}

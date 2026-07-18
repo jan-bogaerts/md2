@@ -54,6 +54,7 @@ export interface ActionDraftState {
 interface ManagedActionDraft extends ActionDraftState {
     action: ActionDefinition
     chain: Promise<void>
+    committedRevision: number
     deletionRevision: number
     recreating: boolean
     targetPath: string
@@ -288,7 +289,7 @@ export class ActionService extends EventTarget {
         const actions = preserveActionEditorStates(this.actions, validateActionDefinitionGraph(definitions))
         const content = serializeActionDefinition(definition)
         const persistedFile = { content, path: targetPath }
-        const publishedFile = { content, path }
+        const sourceStateFile = { content, path }
 
         const sourceExists = this.files.some((file) => file.path === path) && !this.uncommittedCreationPaths.has(path)
         if (sourceExists && targetPath === path) {
@@ -299,7 +300,7 @@ export class ActionService extends EventTarget {
                 await this.persistenceGateway().persistActionFile(
                     persistedFile,
                     path,
-                    (fromPath, toPath) => this.completePersistence(fromPath, toPath),
+                    (fromPath, toPath) => this.reconcileCommittedPath(fromPath, toPath),
                     sourceExists,
                 )
             } catch (error) {
@@ -311,7 +312,7 @@ export class ActionService extends EventTarget {
         if (draft?.deleted && !draft.recreating) {
             throw new Error(`Action save cancelled after external deletion: ${path}`)
         }
-        this.files = this.filesWithFile(publishedFile)
+        this.files = this.filesWithFile(sourceStateFile)
         this.definitions = definitions
         this.actions = actions
         this.publicationRevisionsByPath.set(path, (this.publicationRevisionsByPath.get(path) ?? 0) + 1)
@@ -340,6 +341,7 @@ export class ActionService extends EventTarget {
         const draft: ManagedActionDraft = {
             action,
             chain: Promise.resolve(),
+            committedRevision: 0,
             conflict: null,
             definition,
             deleted: false,
@@ -365,6 +367,7 @@ export class ActionService extends EventTarget {
         const draft = {
             ...current,
             conflict: null,
+            committedRevision: revision,
             definition,
             error: null,
             revision,
@@ -378,6 +381,38 @@ export class ActionService extends EventTarget {
         return draft
     }
 
+    /** Store an editor value and mark the draft dirty without validation, events, or persistence. */
+    stageDraft(path: string, definition: RawActionDefinition) {
+        const current = this.requireDraft(path)
+        const draft = {
+            ...current,
+            conflict: null,
+            definition,
+            error: null,
+            revision: current.revision + 1,
+        }
+        this.drafts.set(path, draft)
+
+        return draft
+    }
+
+    /** Validate and queue the latest staged value at an editor commit boundary. */
+    commitDraft(path: string) {
+        const current = this.requireDraft(path)
+        if (current.committedRevision === current.revision) return current
+
+        const validation = validateDraftDefinition(path, current.definition)
+        const targetPath = validation.valid ? this.desiredActionPath(path, current.definition.label) : current.targetPath
+        const draft = { ...current, committedRevision: current.revision, targetPath, validation }
+        this.drafts.set(path, draft)
+        this.dispatchChanged()
+        if (draft.validation.valid && !draft.conflict && !draft.deleted) {
+            this.queueDraftSave(path, draft.definition, draft.revision, targetPath)
+        }
+
+        return draft
+    }
+
     retryDraft(path: string) {
         const draft = this.requireDraft(path)
         if (draft.deleted) throw new Error(`Cannot retry a deleted action draft: ${path}`)
@@ -386,6 +421,7 @@ export class ActionService extends EventTarget {
     }
 
     keepDraft(path: string) {
+        this.commitDraft(path)
         const draft = this.requireDraft(path)
         this.drafts.set(path, { ...draft, conflict: null })
         this.dispatchChanged()
@@ -400,6 +436,7 @@ export class ActionService extends EventTarget {
         const revision = draft.revision + 1
         this.drafts.set(path, {
             ...draft,
+            committedRevision: revision,
             conflict: null,
             definition: draft.conflict,
             error: null,
@@ -441,6 +478,7 @@ export class ActionService extends EventTarget {
     }
 
     async flushDrafts() {
+        for (const path of this.drafts.keys()) this.commitDraft(path)
         const deletedDraft = [...this.drafts.entries()].find(([, draft]) => draft.deleted)
         if (deletedDraft) throw new Error(`Action ${deletedDraft[0]} was deleted and requires explicit recovery or discard`)
         const invalidDraft = [...this.drafts.entries()].find(([, draft]) => (
@@ -523,23 +561,54 @@ export class ActionService extends EventTarget {
         return suffixedActionPath(desiredPath, suffix)
     }
 
-    private completePersistence(fromPath: string, toPath: string) {
+    private reconcileCommittedPath(fromPath: string, toPath: string) {
         this.uncommittedCreationPaths.delete(fromPath)
         this.uncommittedCreationPaths.delete(toPath)
         if (fromPath === toPath) return
-        if (this.files.some(({ path }) => path === toPath)) throw new Error(`Cannot rename action to existing path: ${toPath}`)
 
-        this.files = this.files.map((file) => file.path === fromPath ? { ...file, path: toPath } : file)
-        this.definitions = this.definitions.map((entry) => entry.path === fromPath ? { ...entry, path: toPath } : entry)
-        for (const action of this.actions) {
-            if (action.sourcePath === fromPath) action.sourcePath = toPath
+        const sourceDraft = this.drafts.get(fromPath)
+        const targetDraft = this.drafts.get(toPath)
+        const draft = sourceDraft && targetDraft
+            ? sourceDraft.revision >= targetDraft.revision ? sourceDraft : targetDraft
+            : sourceDraft ?? targetDraft
+        const sourceDefinition = this.definitions.find((entry) => entry.path === fromPath)?.definition
+        const targetDefinition = this.definitions.find((entry) => entry.path === toPath)?.definition
+        const committedDraftDefinition = draft?.committedRevision === draft?.revision && draft.validation.valid
+            ? draft.definition
+            : undefined
+        const definition = sourceDefinition ?? committedDraftDefinition ?? targetDefinition
+        if (!definition) throw new Error(`Missing action definition after committed rename from ${fromPath} to ${toPath}`)
+        if (targetDefinition && targetDefinition.id !== definition.id) {
+            throw new Error(`Committed action rename resolved to a different action at ${toPath}`)
         }
 
-        const draft = this.drafts.get(fromPath)
+        const sourceFile = this.files.find((file) => file.path === fromPath)
+        const targetFile = this.files.find((file) => file.path === toPath)
+        const content = draft ? serializeActionDefinition(definition) : sourceFile?.content ?? targetFile?.content
+        if (!content) throw new Error(`Missing action file after committed rename from ${fromPath} to ${toPath}`)
+        const committedFile = { ...targetFile, ...sourceFile, content, path: toPath }
+        this.files = [...this.files.filter(({ path }) => path !== fromPath && path !== toPath), committedFile]
+        this.definitions = [
+            ...this.definitions.filter(({ path }) => path !== fromPath && path !== toPath),
+            { definition, path: toPath },
+        ]
+
+        const editorState = this.actions.find((action) => action.sourcePath === fromPath)?.editorState
+            ?? this.actions.find((action) => action.sourcePath === toPath)?.editorState
+            ?? draft?.action.editorState
+        this.actions = preserveActionEditorStates(this.actions, validateActionDefinitionGraph(this.definitions))
+        const committedAction = this.getActionByPath(toPath)
+        if (!committedAction) throw new Error(`Missing action after committed rename from ${fromPath} to ${toPath}`)
+        if (editorState) committedAction.editorState = editorState
+
+        this.drafts.delete(fromPath)
+        this.drafts.delete(toPath)
         if (draft) {
-            this.drafts.delete(fromPath)
             this.drafts.set(toPath, {
                 ...draft,
+                action: committedAction,
+                conflict: null,
+                deleted: false,
                 targetPath: draft.targetPath === fromPath ? toPath : draft.targetPath,
             })
         }
@@ -548,6 +617,7 @@ export class ActionService extends EventTarget {
             this.publicationRevisionsByPath.get(fromPath) ?? 0,
             this.publicationRevisionsByPath.get(toPath) ?? 0,
         )
+        this.publicationRevisionsByPath.delete(fromPath)
         this.publicationRevisionsByPath.set(toPath, revision)
         this.dispatchChanged()
     }
@@ -615,6 +685,7 @@ export class ActionService extends EventTarget {
             this.drafts.set(path, {
                 ...draft,
                 action: externalAction,
+                committedRevision: revision,
                 conflict: null,
                 definition: externalDefinition,
                 error: null,

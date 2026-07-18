@@ -8,6 +8,7 @@ import { configService } from '../../services/config/config_service'
 import { dataService } from '../../services/data/data_service'
 import { actionService } from '../../services/actions/action_service'
 import * as actionServiceModule from '../../services/actions/action_service'
+import { dialogService } from '../../services/dialog_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import type { MarkdownDocumentConfig, MarkdownDocumentOwnerConfig } from '../editor/markdown_document_config'
 import { MarkdownDocumentHistoryStore } from '../editor/markdown_document_history_store'
@@ -109,6 +110,7 @@ function ActionEditorHarness(props: { action: ActionDefinition, states: string[]
             <Box hidden={!owner?.activeDocument} sx={{ order: 1 }}>
                 <MarkdownEditor
                     documentId={activeDocument.documentId}
+                    flushOnBlur={activeDocument.flushOnBlur}
                     historyStore={historyStore}
                     markdown={activeDocument.markdown}
                     onDocumentChange={handleChange}
@@ -297,6 +299,7 @@ describe('ActionEditor', () => {
 
         fireEvent.mouseDown(screen.getByLabelText('Run when card enters state'))
         fireEvent.click(within(screen.getByRole('listbox')).getByRole('option', { name: 'No state trigger' }))
+        fireEvent.blur(screen.getByRole('combobox', { name: 'Run when card enters state' }))
 
         expect(screen.queryByText(/This trigger cannot run until cleared or replaced/u)).not.toBeInTheDocument()
         await act(async () => vi.advanceTimersByTime(600))
@@ -319,9 +322,20 @@ describe('ActionEditor', () => {
         renderEditor()
         const parse = vi.spyOn(JSON, 'parse')
         const serialize = vi.spyOn(actionServiceModule, 'serializeActionDefinition')
+        const changed = vi.fn()
+        actionService.addEventListener('changed', changed)
 
         fireEvent.change(labelInput(), { target: { value: ' \t\u2003' } })
+        expect(screen.queryByText(/Missing action field label/u)).not.toBeInTheDocument()
+        expect(saveDefinition).not.toHaveBeenCalled()
+        expect(parse).not.toHaveBeenCalled()
+        expect(serialize).not.toHaveBeenCalled()
+        expect(changed).not.toHaveBeenCalled()
+
+        fireEvent.blur(labelInput())
         expect(screen.getByText(/Missing action field label/u)).toBeInTheDocument()
+        expect(changed).toHaveBeenCalledOnce()
+        actionService.removeEventListener('changed', changed)
 
         await act(async () => vi.advanceTimersByTime(600))
         expect(saveDefinition).not.toHaveBeenCalled()
@@ -336,9 +350,11 @@ describe('ActionEditor', () => {
         renderEditor(action)
 
         fireEvent.change(labelInput(), { target: { value: '   ' } })
+        fireEvent.blur(labelInput())
         expect(screen.getByText('Fix validation errors to save.')).toBeInTheDocument()
 
         fireEvent.change(labelInput(), { target: { value: 'Review repaired' } })
+        fireEvent.blur(labelInput())
         expect(screen.queryByText('Changes save automatically.')).not.toBeInTheDocument()
         await act(async () => vi.advanceTimersByTime(600))
 
@@ -356,7 +372,15 @@ describe('ActionEditor', () => {
         renderEditor(action)
 
         fireEvent.click(screen.getByRole('tab', { name: 'Prompt' }))
-        fireEvent.change(within(screen.getByTestId('mdx-editor')).getByRole('textbox'), {target: { value: 'Updated prompt' }})
+        const changed = vi.fn()
+        actionService.addEventListener('changed', changed)
+        const promptEditor = within(screen.getByTestId('mdx-editor')).getByRole('textbox')
+        fireEvent.focus(promptEditor)
+        fireEvent.change(promptEditor, {target: { value: 'Updated prompt' }})
+        expect(saveDefinition).not.toHaveBeenCalled()
+        expect(changed).not.toHaveBeenCalled()
+
+        fireEvent.blur(promptEditor)
         await act(async () => vi.advanceTimersByTime(600))
 
         expect(saveDefinition).toHaveBeenCalledWith(
@@ -364,6 +388,28 @@ describe('ActionEditor', () => {
             expect.objectContaining({ prompt: 'Updated prompt' }),
             'actions/review.json',
         )
+        actionService.removeEventListener('changed', changed)
+    })
+
+    it('shows prompt validation on the tab and through the dialog service', async () => {
+        const reportError = vi.spyOn(dialogService, 'error')
+        renderEditor()
+
+        fireEvent.click(screen.getByRole('tab', { name: 'Prompt' }))
+        const promptEditor = within(screen.getByTestId('mdx-editor')).getByRole('textbox')
+        fireEvent.focus(promptEditor)
+        fireEvent.change(promptEditor, { target: { value: '   ' } })
+        fireEvent.blur(promptEditor)
+
+        const promptTab = screen.getByRole('tab', { name: 'Prompt' })
+        const validationError = 'Missing action field prompt in actions/review.json'
+        expect(promptTab).toHaveStyle({ color: 'rgb(211, 47, 47)' })
+        expect(screen.queryByText(validationError)).not.toBeInTheDocument()
+        expect(screen.queryByText('Fix validation errors to save.')).not.toBeInTheDocument()
+        expect(reportError).toHaveBeenCalledWith(validationError, { title: 'Invalid action' })
+
+        fireEvent.mouseOver(within(promptTab).getByText('Prompt'))
+        expect(await screen.findByRole('tooltip')).toHaveTextContent(validationError)
     })
 
     it('treats an unflushed prompt edit as dirty during an external reload', () => {
@@ -414,7 +460,10 @@ describe('ActionEditor', () => {
         expect(screen.getByRole('button', { name: 'Delete this predefined phrase' })).toBeInTheDocument()
 
         fireEvent.change(screen.getByLabelText('Phrase title'), { target: { value: 'Run tests' } })
-        fireEvent.change(within(screen.getByTestId('mdx-editor')).getAllByRole('textbox')[1], { target: { value: '**Run all tests**' } })
+        const phraseEditor = within(screen.getByTestId('mdx-editor')).getAllByRole('textbox')[1]
+        fireEvent.focus(phraseEditor)
+        fireEvent.change(phraseEditor, { target: { value: '**Run all tests**' } })
+        fireEvent.blur(phraseEditor)
         await act(async () => vi.advanceTimersByTime(600))
 
         expect(screen.getByRole('tab', { name: 'Run tests' })).toBeInTheDocument()
@@ -543,13 +592,15 @@ describe('ActionEditor', () => {
         expect(saveDefinition).not.toHaveBeenCalled()
     })
 
-    it('shows a general summary for definition-level errors with no routable field', () => {
+    it('reports definition-level errors with no routable field without an inline alert', () => {
+        const reportError = vi.spyOn(dialogService, 'error')
         const action = loadAction()
         const invalidDefinition = { ...definition, unexpected: undefined } as RawActionDefinition
         actionService.updateDraft('actions/review.json', invalidDefinition)
         renderEditor(action)
 
-        expect(screen.getByRole('alert')).toHaveTextContent('Unknown action field unexpected')
+        expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+        expect(reportError).toHaveBeenCalledWith('Unknown action field unexpected in actions/review.json', { title: 'Invalid action' })
     })
 
     it('auto-saves valid structured changes', async () => {
@@ -559,6 +610,7 @@ describe('ActionEditor', () => {
         renderEditor(action)
 
         fireEvent.change(labelInput(), { target: { value: 'Review code' } })
+        fireEvent.blur(labelInput())
         await act(async () => vi.advanceTimersByTime(600))
 
         expect(saveDefinition).toHaveBeenCalledWith(
@@ -591,6 +643,7 @@ describe('ActionEditor', () => {
         renderEditor(action)
 
         fireEvent.change(labelInput(), { target: { value: 'Published label' } })
+        fireEvent.blur(labelInput())
         await act(async () => vi.advanceTimersByTime(600))
 
         expect(persistActionFile).toHaveBeenCalledWith(
@@ -616,6 +669,7 @@ describe('ActionEditor', () => {
         renderEditor(action)
 
         fireEvent.change(labelInput(), { target: { value: 'Retry this value' } })
+        fireEvent.blur(labelInput())
         await act(async () => vi.advanceTimersByTime(600))
 
         expect(screen.getByRole('alert')).toHaveTextContent('disk unavailable')
@@ -645,6 +699,7 @@ describe('ActionEditor', () => {
         renderEditor(action)
 
         fireEvent.change(labelInput(), { target: { value: 'Review code' } })
+        fireEvent.blur(labelInput())
         await act(async () => vi.advanceTimersByTime(600))
         expect(saveDefinition).toHaveBeenCalledTimes(1)
 
@@ -654,6 +709,7 @@ describe('ActionEditor', () => {
         await act(async () => saves[0].resolve(action))
         expect(labelInput().value).toBe('Review code 2')
 
+        fireEvent.blur(labelInput())
         await act(async () => vi.advanceTimersByTime(600))
         expect(saveDefinition).toHaveBeenLastCalledWith(
             'actions/review.json',
@@ -675,10 +731,12 @@ describe('ActionEditor', () => {
         renderEditor(action)
 
         fireEvent.change(labelInput(), { target: { value: 'Review code' } })
+        fireEvent.blur(labelInput())
         await act(async () => vi.advanceTimersByTime(600))
 
         // Queue a newer save behind the first one, then fail the first one.
         fireEvent.change(labelInput(), { target: { value: 'Review code 2' } })
+        fireEvent.blur(labelInput())
         await act(async () => vi.advanceTimersByTime(600))
         await act(async () => saves[0].reject(new Error('stale boom')))
 

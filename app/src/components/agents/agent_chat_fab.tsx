@@ -1,10 +1,8 @@
 import { Fab, Tooltip } from '@mui/material'
 import RobotOutline from 'mdi-material-ui/RobotOutline'
-import { useMemo, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import type { MouseEvent, PointerEvent as ReactPointerEvent } from 'react'
-import { actionsForContext, projectContext } from '../../data/action_context'
-import { CUSTOM_PROMPT_ACTION_ID, type ActionDefinition } from '../../data/action_types'
-import { useActions } from '../hooks/use_actions'
+import { projectContext } from '../../data/action_context'
 import { ActionPopup } from '../actions/action_popup'
 
 const FAB_MARGIN = 16
@@ -40,17 +38,9 @@ function clampPosition(left: number, top: number): FabPosition {
 
 /** Project-wide free-form agent launcher, movable anywhere in application viewport. */
 export function AgentChatFab() {
-    const { actions } = useActions()
-    const matchingActions = useMemo(() => actionsForContext(actions, PROJECT_CONTEXT), [actions])
-    const customPrompt = matchingActions.find(({ id }) => id === CUSTOM_PROMPT_ACTION_ID) ?? null
     const [position, setPosition] = useState(initialPosition)
     const [anchorElement, setAnchorElement] = useState<HTMLElement | null>(null)
-    const [selectedActionId, setSelectedActionId] = useState(CUSTOM_PROMPT_ACTION_ID)
-    const [showSaveControls, setShowSaveControls] = useState(false)
     const dragRef = useRef<DragState | null>(null)
-    const selectedAction = matchingActions.find(({ id }) => id === selectedActionId) ?? customPrompt
-
-    if (!customPrompt) throw new Error('Missing project-wide custom prompt action')
 
     const handlePointerDown = (event: ReactPointerEvent<HTMLButtonElement>) => {
         dragRef.current = {
@@ -96,22 +86,6 @@ export function AgentChatFab() {
 
     const handleClose = () => {
         setAnchorElement(null)
-        setShowSaveControls(false)
-    }
-
-    const handleNavigate = (action: ActionDefinition) => {
-        setSelectedActionId(action.id)
-        setShowSaveControls(false)
-    }
-
-    const handleSelectAction = (action: ActionDefinition) => {
-        setSelectedActionId(action.id)
-        setShowSaveControls(false)
-    }
-
-    const handleAddAction = () => {
-        setSelectedActionId(customPrompt.id)
-        setShowSaveControls((current) => !current)
     }
 
     return (
@@ -129,17 +103,11 @@ export function AgentChatFab() {
                     <RobotOutline />
                 </Fab>
             </Tooltip>
-            {anchorElement && selectedAction ? (
+            {anchorElement ? (
                 <ActionPopup
-                    action={selectedAction}
-                    actions={matchingActions}
                     anchorElement={anchorElement}
                     context={PROJECT_CONTEXT}
-                    onAddAction={handleAddAction}
                     onClose={handleClose}
-                    onNavigate={handleNavigate}
-                    onSelectAction={handleSelectAction}
-                    showSaveControls={showSaveControls}
                 />
             ) : null}
         </>

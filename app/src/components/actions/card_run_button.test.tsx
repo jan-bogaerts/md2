@@ -34,6 +34,13 @@ const card: ProjectCard = {
     path: 'design/F-010.md',
 }
 
+function renderCardRunButton(onConversationViewed: () => void) {
+    render(
+        <CardRunButton context={cardContext(card, DEFAULT_CARD_TYPES)} onConversationViewed={onConversationViewed} />,
+        { wrapper: AppThemeProvider },
+    )
+}
+
 describe('CardRunButton', () => {
     const onConversationViewed = vi.fn()
 
@@ -58,7 +65,7 @@ describe('CardRunButton', () => {
     })
 
     it('shows one Run button and toggles the card action popup', () => {
-        render(<CardRunButton context={cardContext(card, DEFAULT_CARD_TYPES)} onConversationViewed={onConversationViewed} />, { wrapper: AppThemeProvider })
+        renderCardRunButton(onConversationViewed)
 
         const runButton = screen.getByRole('button', { name: 'Run' })
         fireEvent.click(runButton)
@@ -67,7 +74,7 @@ describe('CardRunButton', () => {
         const actionGroup = within(dialog.getByRole('group', { name: 'Actions' }))
         const actionButtons = actionGroup.getAllByRole('button')
         expect(actionButtons.map((button) => button.textContent)).toEqual(['Create branch', 'Run lint', 'Implement', 'Custom prompt'])
-        expect(dialog.getByRole('button', { name: 'Implement' })).toHaveAttribute('aria-pressed', 'true')
+        expect(dialog.getByRole('button', { name: 'Create branch' })).toHaveAttribute('aria-pressed', 'true')
 
         fireEvent.click(runButton)
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
@@ -97,11 +104,11 @@ describe('CardRunButton', () => {
         fireEvent.click(runButton)
 
         expect(screen.getByRole('dialog')).toBeInTheDocument()
-        expect(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
+        expect(within(screen.getByRole('dialog')).getByRole('button', { name: 'Create branch' })).toHaveAttribute('aria-pressed', 'true')
     })
 
     it('selects one action at a time inside the Run popup', () => {
-        render(<CardRunButton context={cardContext(card, DEFAULT_CARD_TYPES)} onConversationViewed={onConversationViewed} />, { wrapper: AppThemeProvider })
+        renderCardRunButton(onConversationViewed)
 
         fireEvent.click(screen.getByRole('button', { name: 'Run' }))
         const actionGroup = within(screen.getByRole('group', { name: 'Actions' }))
@@ -112,7 +119,7 @@ describe('CardRunButton', () => {
     })
 
     it('shows custom-action save controls from the Run popup', async () => {
-        render(<CardRunButton context={cardContext(card, DEFAULT_CARD_TYPES)} onConversationViewed={onConversationViewed} />, { wrapper: AppThemeProvider })
+        renderCardRunButton(onConversationViewed)
 
         fireEvent.click(screen.getByRole('button', { name: 'Run' }))
         const dialog = within(screen.getByRole('dialog'))

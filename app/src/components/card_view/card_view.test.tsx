@@ -331,9 +331,9 @@ describe('CardView', () => {
         fireEvent.contextMenu(screen.getByText('First'))
         fireEvent.click(screen.getByRole('menuitem', { name: 'Implement' }))
 
-        const dialog = screen.getByRole('dialog')
-        expect(within(dialog).getByRole('heading', { name: 'Implement' })).toBeInTheDocument()
-        expect(within(dialog).getByRole('button', { name: 'Run' })).toBeInTheDocument()
+        const dialog = within(screen.getByRole('dialog', { name: 'Run actions' }))
+        expect(dialog.getByRole('button', { name: 'Implement' })).toHaveAttribute('aria-pressed', 'true')
+        expect(dialog.getByRole('button', { name: 'Run' })).toBeInTheDocument()
     })
 
     it('opens existing card commands from the icon button menu', () => {

@@ -61,6 +61,7 @@ describe('StatusBar', () => {
             />,
         )
 
+        expect(screen.getByRole('progressbar', { name: 'Saving' })).toBeInTheDocument()
         expect(screen.getByText('Saving changes...')).toBeInTheDocument()
         expect(screen.getByText('Changes ready to push')).toBeInTheDocument()
     })

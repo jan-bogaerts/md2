@@ -12,3 +12,8 @@ declare global {
 export function getElectronLifecycleBridge() {
     return window.md2Lifecycle ?? null
 }
+
+
+export const isElectron = () => {
+    return window.md2Lifecycle ?? null
+}

@@ -6,6 +6,7 @@ import { MainToolbar } from './main_toolbar'
 const search = <input aria-label="Search project" />
 const tabs = <button type="button">Home</button>
 const panel = <div>Project section</div>
+const mobileAction = <button type="button">Create</button>
 
 const DRAG = 'drag'
 const NO_DRAG = 'no-drag'
@@ -19,6 +20,7 @@ function renderToolbar(isMobile = false, onOpenMenu = vi.fn()) {
         <AppThemeProvider>
             <MainToolbar
                 isMobile={isMobile}
+                mobileAction={mobileAction}
                 onOpenMenu={onOpenMenu}
                 panel={panel}
                 search={search}
@@ -50,6 +52,14 @@ describe('MainToolbar', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Open menu' }))
 
         expect(onOpenMenu).toHaveBeenCalledTimes(1)
+    })
+
+    it('renders the mobile action immediately before search', () => {
+        renderToolbar(true)
+
+        const createButton = screen.getByRole('button', { name: 'Create' })
+        const searchInput = screen.getByRole('textbox', { name: 'Search project' })
+        expect(createButton.parentElement?.nextElementSibling).toContainElement(searchInput)
     })
 
     it('renders tabs before search and panel below the row', () => {

@@ -29,6 +29,7 @@ function renderFields(definition: RawActionDefinition, onChange = vi.fn()) {
                 errorIndex={null}
                 errors={{}}
                 onChange={onChange}
+                onCommit={vi.fn()}
                 repositoryFiles={[]}
                 specialContextTypes={['actions']}
                 states={['ready']}

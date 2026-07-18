@@ -35,7 +35,6 @@ export function ActionEntryPoints(props: ActionEntryPointsProps) {
     const executionDisabled = !!runningExecution
     const [iconSources, setIconSources] = useState<Record<string, ActionIconSource>>({})
     const [popupAnchor, setPopupAnchor] = useState<HTMLElement | null>(null)
-    const [stack, setStack] = useState<ActionDefinition[]>([])
 
     const matching = useMemo(() => {
         const contextActions = actionsForContext(actions, context)
@@ -64,31 +63,22 @@ export function ActionEntryPoints(props: ActionEntryPointsProps) {
 
     if (matching.length === 0) return null
 
-    const open = (action: ActionDefinition, anchorElement: HTMLElement) => {
+    const open = (anchorElement: HTMLElement) => {
         onMenuItemSelected?.()
         setPopupAnchor(anchorElement)
-        setStack([action])
     }
 
-    const navigate = (action: ActionDefinition) => {
-        setStack((current) => [...current, action])
-    }
-
-    const current = stack.at(-1) ?? null
     const iconSourceFor = (action: ActionDefinition) => iconSources[action.id] ?? DEFAULT_ICON_SOURCE
 
     const closePopup = () => {
         setPopupAnchor(null)
-        setStack([])
     }
 
-    const popup = current ? (
+    const popup = popupAnchor ? (
         <ActionPopup
-            action={current}
             anchorElement={popupAnchor}
             context={context}
             onClose={closePopup}
-            onNavigate={navigate}
         />
     ) : null
 
@@ -98,7 +88,7 @@ export function ActionEntryPoints(props: ActionEntryPointsProps) {
                 <MenuItem
                     disabled={executionDisabled}
                     key={action.id}
-                    onClick={(event) => open(action, popupAnchorElement ?? event.currentTarget)}
+                    onClick={(event) => open(popupAnchorElement ?? event.currentTarget)}
                 >
                     <ListItemIcon>
                         <ActionIcon fontSize="small" source={iconSourceFor(action)} />
@@ -119,7 +109,7 @@ export function ActionEntryPoints(props: ActionEntryPointsProps) {
                     <IconButton
                         aria-label={action.label}
                         disabled={executionDisabled}
-                        onClick={(event) => open(action, event.currentTarget)}
+                        onClick={(event) => open(event.currentTarget)}
                         size="small"
                     >
                         <ActionIcon fontSize="small" source={iconSourceFor(action)} />

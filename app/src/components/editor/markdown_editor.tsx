@@ -6,7 +6,7 @@ import {
     type MDXEditorMethods,
 } from '@mdxeditor/editor'
 import '@mdxeditor/editor/style.css'
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, type ReactNode } from 'react'
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, type FocusEvent, type ReactNode } from 'react'
 import type { ActionPlaceholder } from '../../data/action_placeholders'
 import { useAppTheme } from '../../theme/use_app_theme'
 import { markdownDocumentHistoryPlugin } from './markdown_document_history_realm_plugin'
@@ -27,6 +27,7 @@ export interface MarkdownEditorHandle {
 }
 
 interface MarkdownEditorCommonProps {
+    flushOnBlur?: boolean
     markdown: string
     /** Omit the format toolbar entirely (e.g. a bare prompt editor). */
     hideToolbar?: boolean
@@ -69,6 +70,7 @@ type MarkdownEditorProps = MarkdownEditorCommonProps & ({
 export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(function MarkdownEditor(props, ref) {
     const {
         markdown,
+        flushOnBlur = false,
         hideToolbar = false,
         overlayContainer,
         placeholders = EMPTY_PLACEHOLDERS,
@@ -188,6 +190,11 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         if (activeDocumentId) onDocumentEditRef.current?.(activeDocumentId, nextMarkdown)
     }, [])
 
+    const handleBlur = (event: FocusEvent<HTMLDivElement>) => {
+        if (!flushOnBlur || event.currentTarget.contains(event.relatedTarget)) return
+        flush()
+    }
+
     const defaultToolbarContents = useCallback(
         () => <MarkdownFormatToolbarControls overlayContainer={overlayContainer} placeholders={placeholders} />,
         [overlayContainer, placeholders],
@@ -223,7 +230,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
     ]
 
     return (
-        <Box data-sticky-toolbar={stickyToolbar} sx={editorSx}>
+        <Box data-sticky-toolbar={stickyToolbar} onBlur={handleBlur} sx={editorSx}>
             <MDXEditor
                 className={mode === 'dark' ? 'dark-theme' : 'light-theme'}
                 contentEditableClassName="mdxeditor-content"

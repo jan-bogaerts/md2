@@ -1,7 +1,7 @@
 import {
     Divider, FormControlLabel, FormHelperText, MenuItem, Paper, Stack, Switch, Grid,
 } from '@mui/material'
-import type { ChangeEvent } from 'react'
+import type { ChangeEvent, MouseEvent } from 'react'
 import type { ActionDefinition, RawActionDefinition } from '../../data/action_types'
 import type { WorktreeRecord } from '../../data/data_types'
 import { ActionAgentCapabilityFields } from './action_agent_capability_fields'
@@ -20,6 +20,7 @@ interface ActionDefinitionFieldsProps {
     errorIndex: number | null
     errors: Partial<Record<keyof RawActionDefinition, string>>
     onChange: (definition: RawActionDefinition) => void
+    onCommit: () => void
     repositoryFiles: string[]
     specialContextTypes: string[]
     states: string[]
@@ -27,7 +28,10 @@ interface ActionDefinitionFieldsProps {
 }
 
 export function ActionDefinitionFields(props: ActionDefinitionFieldsProps) {
-    const {actions, cardTypes, definition, errorIndex, errors, onChange, repositoryFiles, specialContextTypes, states, worktrees} = props
+    const {
+        actions, cardTypes, definition, errorIndex, errors, onChange, onCommit, repositoryFiles,
+        specialContextTypes, states, worktrees,
+    } = props
     const iconPaths = repositoryFiles.filter((path) => ICON_FILE_PATTERN.test(path))
     if (definition.icon && !iconPaths.includes(definition.icon)) iconPaths.unshift(definition.icon)
     const missingState = definition.onState && !states.includes(definition.onState) ? definition.onState : null
@@ -85,8 +89,12 @@ export function ActionDefinitionFields(props: ActionDefinitionFieldsProps) {
         onChange({ ...definition, onAfter })
     }
 
+    const handleClick = (event: MouseEvent<HTMLElement>) => {
+        if (event.target instanceof Element && event.target.closest('button')) onCommit()
+    }
+
     return (
-        <Paper variant="outlined" sx={{ maxWidth: 720, mb: 2, p: 2.5 }}>
+        <Paper onBlur={onCommit} onClick={handleClick} variant="outlined" sx={{ maxWidth: 720, mb: 2, p: 2.5 }}>
             <Stack spacing={2}>
                 <ActionSectionLabel component="h2">Action definition</ActionSectionLabel>
                 <Stack direction={{ md: 'row', xs: 'column' }} spacing={1}>

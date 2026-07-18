@@ -4,6 +4,7 @@ import type { ActionPlaceholder } from '../../data/action_placeholders'
 /** Active document supplied to TextView's lifetime-stable Markdown editor. */
 export interface MarkdownDocumentConfig {
     documentId: string
+    flushOnBlur?: boolean
     markdown: string
     onChange: (markdown: string) => void
     onEdit?: (markdown: string) => void

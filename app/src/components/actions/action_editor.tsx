@@ -1,10 +1,12 @@
-import { Alert, Box, Button, FormHelperText, Stack, Tab, Tabs, Typography } from '@mui/material'
+import { Alert, Box, Button, Stack, Tab, Tabs, Typography } from '@mui/material'
 import { useCallback, useEffect, useMemo } from 'react'
 import type { ActionDefinition } from '../../data/action_types'
 import { ACTION_PROMPT_PLACEHOLDERS } from '../../data/action_placeholders'
+import { dialogService } from '../../services/dialog_service'
 import type { MarkdownDocumentOwnerConfig } from '../editor/markdown_document_config'
 import { useWorktrees } from '../hooks/use_worktrees'
 import { ActionDefinitionFields } from './action_definition_fields'
+import { ActionEditorTab } from './action_editor_tab'
 import { ActionPhraseToolbarControls } from './action_phrase_toolbar_controls'
 import { actionPhraseLabel } from './action_phrase_label'
 import {
@@ -45,13 +47,15 @@ export function ActionEditor(props: ActionEditorProps) {
         definition,
         deleted,
         errors,
-        generalError,
         handleDefinitionChange,
+        handleDefinitionCommit,
         handleDeletePhrase,
         handleDiscardDeleted,
         handleKeepMine,
         handleMarkdownChange,
-        handlePhraseTitleChange,
+        handleMarkdownEdit,
+        handlePhraseTitleCommit,
+        handlePhraseTitleEdit,
         handleRecreateDeleted,
         handleReloadExternal,
         handleRetry,
@@ -76,17 +80,19 @@ export function ActionEditor(props: ActionEditorProps) {
         return (
             <ActionPhraseToolbarControls
                 onDelete={handleDeletePhrase}
-                onTitleChange={handlePhraseTitleChange}
+                onTitleCommit={handlePhraseTitleCommit}
+                onTitleEdit={handlePhraseTitleEdit}
                 title={selectedPhrase.title}
             />
         )
-    }, [handleDeletePhrase, handlePhraseTitleChange, selectedPhrase])
+    }, [handleDeletePhrase, handlePhraseTitleCommit, handlePhraseTitleEdit, selectedPhrase])
     const activeMarkdownDocument = useMemo(() => (
         definition.type === 'agent' && activeTab !== ACTION_DEFINITION_TAB ? {
             documentId: markdownDocumentId,
+            flushOnBlur: true,
             markdown,
             onChange: handleMarkdownChange,
-            onEdit: handleMarkdownChange,
+            onEdit: handleMarkdownEdit,
             ownerPath: sourcePath,
             placeholders: selectedPhrase ? undefined : ACTION_PROMPT_PLACEHOLDERS,
             toolbarContents: selectedPhrase ? phraseToolbarContents : undefined,
@@ -95,6 +101,7 @@ export function ActionEditor(props: ActionEditorProps) {
         activeTab,
         definition.type,
         handleMarkdownChange,
+        handleMarkdownEdit,
         markdown,
         markdownDocumentId,
         phraseToolbarContents,
@@ -111,9 +118,20 @@ export function ActionEditor(props: ActionEditorProps) {
         onMarkdownDocumentOwnerChange(markdownDocumentOwner)
     }, [markdownDocumentOwner, onMarkdownDocumentOwnerChange])
 
-    const markdownFieldError = selectedPhrase ? errors.phrases : errors.prompt
-    const showMarkdownStatus = !!saveError || !!generalError || deleted || !!conflict || !!status || !!markdownFieldError
-    const showActionContent = definition.type !== 'agent' || activeTab === ACTION_DEFINITION_TAB || showMarkdownStatus
+    const definitionError = validation.error && validation.field !== 'prompt' && validation.field !== 'phrases'
+        ? validation.error
+        : undefined
+    const promptError = errors.prompt
+    const phraseErrorIndex = validation.field === 'phrases' ? validation.index : null
+    const showActionContent = definition.type !== 'agent'
+        || activeTab === ACTION_DEFINITION_TAB
+        || !!saveError
+        || deleted
+        || !!conflict
+
+    useEffect(() => {
+        if (validation.error) dialogService.error(validation.error, { title: 'Invalid action' })
+    }, [validation.error])
 
     return (
         <Box data-testid="action-editor" sx={{ display: 'contents' }}>
@@ -131,7 +149,6 @@ export function ActionEditor(props: ActionEditorProps) {
                         {saveError}
                     </Alert>
                 ) : null}
-                {generalError ? <Alert severity="error" sx={{ mb: 2 }}>{generalError}</Alert> : null}
                 {deleted ? (
                     <Alert
                         action={(
@@ -177,16 +194,13 @@ export function ActionEditor(props: ActionEditorProps) {
                                 errorIndex={validation.index}
                                 errors={errors}
                                 onChange={handleDefinitionChange}
+                                onCommit={handleDefinitionCommit}
                                 repositoryFiles={repositoryFiles}
                                 specialContextTypes={specialContextTypes}
                                 states={states}
                                 worktrees={worktrees}
                             />
                         ) : null}
-                        <Box hidden={activeTab === ACTION_DEFINITION_TAB}>
-                            {selectedPhrase && errors.phrases ? <FormHelperText error>{errors.phrases}</FormHelperText> : null}
-                            {!selectedPhrase && errors.prompt ? <FormHelperText error>{errors.prompt}</FormHelperText> : null}
-                        </Box>
                     </>
                 ) : (
                     <ActionDefinitionFields
@@ -196,13 +210,14 @@ export function ActionEditor(props: ActionEditorProps) {
                         errorIndex={validation.index}
                         errors={errors}
                         onChange={handleDefinitionChange}
+                        onCommit={handleDefinitionCommit}
                         repositoryFiles={repositoryFiles}
                         specialContextTypes={specialContextTypes}
                         states={states}
                         worktrees={worktrees}
                     />
                 )}
-                {status ? (
+                {status && (definition.type !== 'agent' || activeTab === ACTION_DEFINITION_TAB) ? (
                     <Typography color={validation.valid ? 'text.secondary' : 'error'} sx={{ mt: 1 }} variant="caption">
                         {status}
                     </Typography>
@@ -217,10 +232,11 @@ export function ActionEditor(props: ActionEditorProps) {
                     value={activeTab}
                     variant="scrollable"
                 >
-                    <Tab label="Definition" value={ACTION_DEFINITION_TAB} />
-                    <Tab label="Prompt" value="prompt" />
+                    <ActionEditorTab error={definitionError} label="Definition" value={ACTION_DEFINITION_TAB} />
+                    <ActionEditorTab error={promptError} label="Prompt" value="prompt" />
                     {phrases.map((phrase, index) => (
-                        <Tab
+                        <ActionEditorTab
+                            error={phraseErrorIndex === index ? errors.phrases : undefined}
                             key={phraseEditorStates[index].identity}
                             label={actionPhraseLabel(phrase.title, phrase.text)}
                             value={phraseEditorStates[index].identity}

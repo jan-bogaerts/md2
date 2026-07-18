@@ -1,18 +1,31 @@
 import DeleteOutlineOutlined from '@mui/icons-material/DeleteOutlineOutlined'
 import { Box, IconButton, TextField, Tooltip, Typography } from '@mui/material'
-import { useId, type ChangeEvent } from 'react'
+import { useId, useState, type ChangeEvent } from 'react'
 import { MarkdownFormatToolbarControls } from '../editor/markdown_format_toolbar_controls'
 
 interface ActionPhraseToolbarControlsProps {
     onDelete: () => void
-    onTitleChange: (event: ChangeEvent<HTMLInputElement>) => void
+    onTitleCommit: (title: string) => void
+    onTitleEdit: (title: string) => void
     title: string
 }
 
 /** Markdown controls and phrase metadata shown above a predefined phrase editor. */
 export function ActionPhraseToolbarControls(props: ActionPhraseToolbarControlsProps) {
-    const { onDelete, onTitleChange, title } = props
+    const { onDelete, onTitleCommit, onTitleEdit, title } = props
+    const [titleDraft, setTitleDraft] = useState({ baseline: title, value: title })
     const titleId = useId()
+    const draftTitle = titleDraft.baseline === title ? titleDraft.value : title
+
+    const handleTitleChange = (event: ChangeEvent<HTMLInputElement>) => {
+        const nextTitle = event.target.value
+        setTitleDraft({ baseline: title, value: nextTitle })
+        onTitleEdit(nextTitle)
+    }
+
+    const handleTitleBlur = () => {
+        if (draftTitle !== title) onTitleCommit(draftTitle)
+    }
     const deleteControl = (
         <Tooltip title="Delete this predefined phrase">
             <IconButton aria-label="Delete this predefined phrase" onClick={onDelete} size="small">
@@ -30,7 +43,7 @@ export function ActionPhraseToolbarControls(props: ActionPhraseToolbarControlsPr
                 <Typography color="text.secondary" component="label" htmlFor={titleId} sx={{ fontWeight: 600 }} variant="caption">
                     Phrase title
                 </Typography>
-                <TextField fullWidth id={titleId} onChange={onTitleChange} size="small" value={title} />
+                <TextField fullWidth id={titleId} onBlur={handleTitleBlur} onChange={handleTitleChange} size="small" value={draftTitle} />
             </Box>
         </Box>
     )

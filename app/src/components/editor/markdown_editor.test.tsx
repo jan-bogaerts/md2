@@ -100,6 +100,51 @@ describe('MarkdownEditor', () => {
         expect(onDocumentChange).toHaveBeenCalledExactlyOnceWith('prompt', 'edited')
     })
 
+    it('flushes a document edit on blur only when requested by its owner', () => {
+        const historyStore = new MarkdownDocumentHistoryStore()
+        const onDocumentChange = vi.fn()
+        render(
+            <AppThemeProvider>
+                <MarkdownEditor
+                    documentId="prompt"
+                    flushOnBlur
+                    historyStore={historyStore}
+                    markdown="original"
+                    onDocumentChange={onDocumentChange}
+                />
+            </AppThemeProvider>,
+        )
+        const editor = screen.getByRole('textbox')
+        fireEvent.focus(editor)
+        fireEvent.change(editor, { target: { value: 'edited' } })
+
+        fireEvent.blur(editor)
+
+        expect(onDocumentChange).toHaveBeenCalledExactlyOnceWith('prompt', 'edited')
+    })
+
+    it('keeps the default document edit buffered on blur', () => {
+        const historyStore = new MarkdownDocumentHistoryStore()
+        const onDocumentChange = vi.fn()
+        render(
+            <AppThemeProvider>
+                <MarkdownEditor
+                    documentId="card"
+                    historyStore={historyStore}
+                    markdown="original"
+                    onDocumentChange={onDocumentChange}
+                />
+            </AppThemeProvider>,
+        )
+        const editor = screen.getByRole('textbox')
+        fireEvent.focus(editor)
+        fireEvent.change(editor, { target: { value: 'edited' } })
+
+        fireEvent.blur(editor)
+
+        expect(onDocumentChange).not.toHaveBeenCalled()
+    })
+
     it('replaces active document content when its external Markdown changes under the same id', () => {
         const historyStore = new MarkdownDocumentHistoryStore()
         const onDocumentChange = vi.fn()

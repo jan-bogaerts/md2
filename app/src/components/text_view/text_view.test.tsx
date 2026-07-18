@@ -578,6 +578,7 @@ describe('TextView', () => {
         renderTextView()
         clickTreeFile('Review')
         fireEvent.change(screen.getByLabelText('Label'), { target: { value: '' } })
+        fireEvent.blur(screen.getByLabelText('Label'))
 
         act(() => actionService.reloadFromFiles([], [{ origin: 'external', path: 'design/actions/review.json' }]))
 
@@ -586,6 +587,7 @@ describe('TextView', () => {
         expect(screen.getByRole('button', { name: 'Recreate file' })).toBeDisabled()
 
         fireEvent.change(screen.getByLabelText('Label'), { target: { value: 'Recovered' } })
+        fireEvent.blur(screen.getByLabelText('Label'))
         fireEvent.click(screen.getByRole('button', { name: 'Recreate file' }))
 
         await waitFor(() => expect(persistActionFile).toHaveBeenCalledWith(
@@ -606,6 +608,7 @@ describe('TextView', () => {
         renderTextView()
         clickTreeFile('Review')
         fireEvent.change(screen.getByLabelText('Label'), { target: { value: '' } })
+        fireEvent.blur(screen.getByLabelText('Label'))
         act(() => actionService.reloadFromFiles([], [{ origin: 'external', path: 'design/actions/review.json' }]))
 
         fireEvent.click(screen.getByRole('button', { name: 'Discard draft' }))

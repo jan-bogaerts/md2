@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import Menu from 'mdi-material-ui/Menu'
 import { DRAG_REGION, NO_DRAG_REGION } from '../drag_region'
 import { ThemeToggleButton } from '../theme_toggle_button'
+import { isElectron } from '../../../services/electron_lifecycle_bridge'
 
 const MENU_ROW_HEIGHT = 44
 const SEARCH_WIDTH = 286
@@ -74,7 +75,7 @@ export function MainToolbar(props: MainToolbarProps) {
                 {!isMobile ? (
                     <Box
                         style={NO_DRAG_REGION}
-                        sx={{ display: 'flex', flex: `0 0 ${SEARCH_WIDTH}px`, ml: 0.5, minWidth: 180, mr: '130px' }}
+                        sx={{ display: 'flex', flex: `0 0 ${SEARCH_WIDTH}px`, ml: 0.5, minWidth: 180, mr: isElectron() ? '130px' : 0 }}
                     >
                         {search}
                     </Box>

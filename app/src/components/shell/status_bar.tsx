@@ -59,7 +59,7 @@ export function StatusBar(props: StatusBarProps) {
                 spacing={0.75}
                 sx={{ alignItems: 'center', color: hasPendingSave ? 'warning.main' : 'text.secondary' }}
             >
-                <ContentSaveOutline sx={{ fontSize: 14 }} />
+                {hasPendingSave ? <CircularProgress aria-label="Saving" color="inherit" size={14} /> : <ContentSaveOutline sx={{ fontSize: 14 }} />}
                 <Box component="span">{hasPendingSave ? 'Saving changes...' : 'Saved locally'}</Box>
             </Stack>
             <Stack

@@ -7,7 +7,7 @@ interface ActionSelectorProps {
     adding: boolean
     actions: ActionDefinition[]
     onAdd: () => void
-    onSelect: (action: ActionDefinition) => void
+    onSelect: (actionId: string) => void
     selectedAction: ActionDefinition
 }
 
@@ -16,8 +16,7 @@ export function ActionSelector(props: ActionSelectorProps) {
     const { adding, actions, onAdd, onSelect, selectedAction } = props
 
     const handleChange = (_event: MouseEvent<HTMLElement>, actionId: string | null) => {
-        const action = actions.find((candidate) => candidate.id === actionId)
-        if (action) onSelect(action)
+        if (actionId) onSelect(actionId)
     }
 
     return (

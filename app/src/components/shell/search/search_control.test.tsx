@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { CardHeader, ProjectCard, ProjectSnapshot } from '../../../data/data_types'
 import { actionService } from '../../../services/actions/action_service'
@@ -128,8 +128,8 @@ describe('SearchControl', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Search actions' }))
         fireEvent.click(screen.getByRole('button', { name: /Run search job/ }))
 
-        expect(screen.getByRole('dialog')).toBeInTheDocument()
-        expect(screen.getByRole('heading', { name: 'Run search job' })).toBeInTheDocument()
+        const dialog = within(screen.getByRole('dialog', { name: 'Run actions' }))
+        expect(dialog.getByRole('button', { name: 'Run search job' })).toHaveAttribute('aria-pressed', 'true')
     })
 
     it('opens action search results in an editor tab from text view', () => {

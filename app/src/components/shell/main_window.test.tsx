@@ -1,5 +1,6 @@
 ﻿import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { within } from '@testing-library/react'
 import type { UseGithubAuthResult } from '../../auth/use_github_auth'
 import type { ElectronActionBridge } from '../../data/electron_action_bridge'
 import type { MarkdownFile, StorageService } from '../../data/data_types'
@@ -182,11 +183,14 @@ describe('MainWindow', () => {
         expect(screen.getByRole('textbox', { name: 'Search project' })).toHaveFocus()
     })
 
-    it('keeps GitHub authentication reachable from the toolbar', () => {
+    it('keeps GitHub authentication in the mobile drawer footer', () => {
         mockMatchMedia(true)
         renderWindow()
 
-        fireEvent.click(screen.getByRole('button', { name: 'GitHub account' }))
+        expect(screen.queryByRole('button', { name: 'GitHub account' })).toBeNull()
+        fireEvent.click(screen.getByRole('button', { name: 'Open menu' }))
+        const drawerFooter = screen.getByRole('contentinfo')
+        fireEvent.click(within(drawerFooter).getByRole('button', { name: 'GitHub account' }))
 
         expect(screen.getByLabelText('Personal access token')).toBeInTheDocument()
     })

@@ -151,14 +151,14 @@ describe('ActionEntryPoints popup', () => {
         ])
     })
 
-    it('opens a popup bound to the action with a Run command from an icon entry point', () => {
+    it('opens the universal popup with the first action selected from an icon entry point', () => {
         render(<ActionEntryPoints context={cardContext(featureCard, DEFAULT_CARD_TYPES)} variant="icons" />)
 
         fireEvent.click(screen.getByRole('button', { name: 'Implement' }))
 
         const dialog = screen.getByRole('dialog')
         expect(within(dialog).getByRole('button', { name: 'Run' })).toBeInTheDocument()
-        expect(within(dialog).getByRole('heading', { name: 'Implement' })).toBeInTheDocument()
+        expect(within(dialog).getByRole('button', { name: 'Create branch' })).toHaveAttribute('aria-pressed', 'true')
     })
 
     it('opens a popup from a menu-item entry point', () => {
@@ -169,15 +169,16 @@ describe('ActionEntryPoints popup', () => {
         expect(within(screen.getByRole('dialog')).getByRole('button', { name: 'Run' })).toBeInTheDocument()
     })
 
-    it('navigates a before shortcut to a new popup for the related action, same context', () => {
+    it('switches actions through the universal selector without related-action shortcuts', () => {
         render(<ActionEntryPoints context={cardContext(featureCard, DEFAULT_CARD_TYPES)} variant="icons" />)
 
         fireEvent.click(screen.getByRole('button', { name: 'Implement' }))
-        fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Create branch' }))
+        const dialog = within(screen.getByRole('dialog'))
+        fireEvent.click(dialog.getByRole('button', { name: 'Run lint' }))
 
-        const dialog = screen.getByRole('dialog')
-        expect(within(dialog).getByText('Create branch')).toBeInTheDocument()
-        expect(within(dialog).queryByRole('button', { name: 'Create branch' })).not.toBeInTheDocument()
+        expect(dialog.getByRole('button', { name: 'Run lint' })).toHaveAttribute('aria-pressed', 'true')
+        expect(screen.queryByText('Before')).not.toBeInTheDocument()
+        expect(screen.queryByText('After')).not.toBeInTheDocument()
     })
 })
 

@@ -45,7 +45,7 @@ export function SearchControl(props: SearchControlProps) {
     const [isSearchFocused, setIsSearchFocused] = useState(false)
     const [isDismissed, setIsDismissed] = useState(false)
     const [isAgentBusy, setIsAgentBusy] = useState(false)
-    const [actionStack, setActionStack] = useState<ActionDefinition[]>([])
+    const [actionPopupOpen, setActionPopupOpen] = useState(false)
     const [controlElement, setControlElement] = useState<HTMLDivElement | null>(null)
     const [searchAnchorElement, setSearchAnchorElement] = useState<HTMLElement | null>(null)
 
@@ -155,19 +155,13 @@ export function SearchControl(props: SearchControlProps) {
             return
         }
 
-        setActionStack([action])
+        setActionPopupOpen(true)
         setIsDismissed(true)
     }
 
-    const handleNavigateAction = (action: ActionDefinition) => {
-        setActionStack((current) => [...current, action])
-    }
-
     const closeActionPopup = () => {
-        setActionStack([])
+        setActionPopupOpen(false)
     }
-
-    const currentAction = actionStack.at(-1) ?? null
 
     const searchPanel = (
         <Box onBlur={handleControlBlur} ref={setControlElement} sx={{ maxWidth: RESULTS_WIDTH, position: 'relative', width: '100%' }}>
@@ -285,13 +279,11 @@ export function SearchControl(props: SearchControlProps) {
                     ) : null}
                 </Paper>
             ) : null}
-            {currentAction ? (
+            {actionPopupOpen ? (
                 <ActionPopup
-                    action={currentAction}
                     anchorElement={controlElement}
                     context={SEARCH_ACTION_CONTEXT}
                     onClose={closeActionPopup}
-                    onNavigate={handleNavigateAction}
                 />
             ) : null}
         </Box>

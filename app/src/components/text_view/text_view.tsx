@@ -3,7 +3,6 @@ import type { MouseEvent as ReactMouseEvent } from 'react'
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import { buildFileTree, fileLabel } from '../../data/file_tree'
 import type { ActionDefinition } from '../../data/action_types'
-import { BUILTIN_CUSTOM_PROMPT } from '../../data/action_types'
 import { fileContext } from '../../data/action_context'
 import { getCardIdPrefix } from '../../data/card_identifiers'
 import { defaultColumnAccent, type CardTypeConfig, type ProjectCard, type StateConfig } from '../../data/data_types'
@@ -399,23 +398,16 @@ export function TextView(props: TextViewProps) {
         ownerPath: EMPTY_MARKDOWN_DOCUMENT_ID,
     }
 
-    const continuationAction = continuation.conversation?.actionId
-        ? actions.find(({ id }) => id === continuation.conversation?.actionId) ?? null
-        : BUILTIN_CUSTOM_PROMPT
     const conversationPopup = activeCard
         && continuation.cardPath === activeCard.path
         && (continuation.conversation || continuation.prompt)
-        && continuationAction ? (
+        ? (
             <ActionPopup
-                action={continuationAction}
                 anchorElement={agentPanelAnchorElement}
-                continueFrom={continuation.conversation?.path}
                 context={fileContext(activeCard, cardTypes)}
-                initialPrompt={continuation.prompt}
                 key={`${continuation.conversation?.path ?? 'new'}:${continuation.prompt}`}
                 onClose={handleCloseConversationPopup}
                 onConversationViewed={handleConversationViewed}
-                onNavigate={() => undefined}
             />
         ) : null
 
@@ -483,6 +475,7 @@ export function TextView(props: TextViewProps) {
                     <Box hidden={!activeMarkdownDocument} sx={{ flex: 1, minHeight: 0, order: 1, overflowY: 'auto' }}>
                         <MarkdownEditor
                             documentId={renderedMarkdownDocument.documentId}
+                            flushOnBlur={renderedMarkdownDocument.flushOnBlur}
                             historyStore={markdownHistoryStore}
                             markdown={renderedMarkdownDocument.markdown}
                             onDocumentChange={handleMarkdownDocumentChange}

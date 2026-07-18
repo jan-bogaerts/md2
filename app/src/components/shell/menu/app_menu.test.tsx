@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { UseGithubAuthResult } from '../../../auth/use_github_auth'
 import type { StorageService } from '../../../data/data_types'
@@ -74,7 +74,7 @@ function createResetStorage(): StorageService {
     }
 }
 
-function renderMenu() {
+function renderMenu(isMobile = false) {
     return render(
         <AppThemeProvider>
             <DialogDisplay />
@@ -83,7 +83,7 @@ function renderMenu() {
                 auth={auth}
                 extraActions={null}
                 isGithubAuthenticated={false}
-                isMobile={false}
+                isMobile={isMobile}
                 onOpenConfig={vi.fn()}
                 onOpenMobileMenu={vi.fn()}
                 search={<input aria-label="Search project" />}
@@ -144,6 +144,56 @@ describe('AppMenu', () => {
         expect(completeReleaseButton).toBeInTheDocument()
         expect(newCardButton).not.toBeVisible()
         expect(screen.getByRole('button', { name: 'New action', hidden: true })).not.toBeVisible()
+    })
+
+    it('renders mobile Home controls in responsive order and hides desktop-only actions', () => {
+        renderMenu(true)
+
+        const viewSection = screen.getByRole('group', { name: 'View' })
+        const projectSection = screen.getByRole('group', { name: 'Project' })
+        const openProjectButton = screen.getByRole('button', { name: 'Open project' })
+        const branchSelect = screen.getByRole('combobox', { name: 'Switch branch' })
+        expect(viewSection.compareDocumentPosition(projectSection) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+        expect(openProjectButton.compareDocumentPosition(branchSelect) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+        expect(screen.queryByRole('button', { name: 'New action' })).toBeNull()
+        expect(screen.queryByRole('button', { name: 'New card' })).toBeNull()
+        expect(screen.queryByRole('button', { name: 'GitHub account' })).toBeNull()
+        expect(screen.getByRole('button', { name: 'Create' })).toBeInTheDocument()
+    })
+
+    it('keeps the mobile create menu on Home and preserves the Run toolbar', () => {
+        renderMenu(true)
+
+        fireEvent.click(screen.getByRole('button', { name: 'Create' }))
+        expect(screen.getByRole('menuitem', { name: 'New action' })).toHaveAttribute('aria-disabled', 'true')
+        expect(screen.getByRole('menuitem', { name: 'New card' })).toHaveAttribute('aria-disabled', 'true')
+        fireEvent.keyDown(screen.getByRole('menu'), { key: 'Escape' })
+
+        fireEvent.click(screen.getByRole('tab', { name: 'Run' }))
+
+        expect(screen.queryByRole('button', { name: 'Create' })).toBeNull()
+        expect(screen.getByRole('button', { name: 'Complete release' })).toBeInTheDocument()
+    })
+
+    it('runs both mobile create actions through their existing handlers', async () => {
+        const bridge = createBridge()
+        window.md2Data = bridge
+        const listener = vi.fn()
+        workspaceNavigationService.addEventListener('open', listener)
+        renderMenu(true)
+        await openLocalProject()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Create' }))
+        fireEvent.click(screen.getByRole('menuitem', { name: 'New card' }))
+        expect(screen.getByRole('dialog', { name: 'New card' })).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+        await waitFor(() => expect(screen.queryByRole('dialog', { name: 'New card' })).toBeNull())
+
+        fireEvent.click(screen.getByRole('button', { name: 'Create' }))
+        fireEvent.click(screen.getByRole('menuitem', { name: 'New action' }))
+        await waitFor(() => expect(listener).toHaveBeenCalledOnce())
+
+        workspaceNavigationService.removeEventListener('open', listener)
     })
 
     it('opens a local project from the Home project section', async () => {
@@ -229,7 +279,8 @@ describe('AppMenu', () => {
         expect(screen.queryByRole('button', { name: 'Custom prompt' })).not.toBeInTheDocument()
 
         fireEvent.click(screen.getByRole('button', { name: 'Review project' }))
-        expect(screen.getByText('Review project', { selector: 'h6' })).toBeInTheDocument()
+        const dialog = within(screen.getByRole('dialog', { name: 'Run actions' }))
+        expect(dialog.getByRole('button', { name: 'Review project' })).toHaveAttribute('aria-pressed', 'true')
     })
 
     it('shows and refreshes the default agent settings', async () => {

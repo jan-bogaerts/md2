@@ -1,7 +1,7 @@
 ---
 id: F_059
 title: mobile toolbar
-status: design
+status: ready
 owner: JB
 affects:
 policy:
