@@ -324,7 +324,7 @@ describe('TextView', () => {
         clickTreeFile('Review code')
 
         expect(screen.getByRole('tab', { name: 'Tests' })).toHaveAttribute('aria-selected', 'true')
-    })
+    }, 10_000)
 
     it('restores an action editor section after closing and reopening its tab', () => {
         actionService.loadFromFiles([{

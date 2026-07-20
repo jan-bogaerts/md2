@@ -1,8 +1,7 @@
-﻿import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { MarkdownFile } from '../data/data_types'
 import { configService } from './config/config_service'
-import { DataService } from './data/data_service'
-import { createStorage, files, storageFiles } from './test_support/data_service_test_support'
+import { createDataService, createStorage, files, storageFiles } from './test_support/data_service_test_support'
 
 describe('ReleaseOperations', () => {
     afterEach(() => {
@@ -31,7 +30,7 @@ describe('ReleaseOperations', () => {
                 .mockResolvedValueOnce({ files: releaseFiles, workingFolder: 'design' })
                 .mockResolvedValueOnce({ files: archivedFiles, workingFolder: 'design' }),
         })
-        const service = new DataService()
+        const service = createDataService()
         service.init({ storage })
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
@@ -83,7 +82,7 @@ describe('ReleaseOperations', () => {
             })),
             loadProjectRoot: vi.fn(async () => ({ files: releaseFiles, workingFolder: 'design' })),
         })
-        const service = new DataService()
+        const service = createDataService()
         service.init({ storage })
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
@@ -114,7 +113,7 @@ describe('ReleaseOperations', () => {
     it('rejects invalid release names before moving files', async () => {
         configService.init()
         const storage = createStorage()
-        const service = new DataService()
+        const service = createDataService()
         service.init({ storage })
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
@@ -131,7 +130,7 @@ describe('ReleaseOperations', () => {
                 workingFolder: 'design',
             })),
         })
-        const service = new DataService()
+        const service = createDataService()
         service.init({ storage })
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
@@ -149,7 +148,7 @@ describe('ReleaseOperations', () => {
                 .mockResolvedValueOnce({ files: archivedFiles, workingFolder: 'design' }),
             loadProjectConfig: vi.fn(async () => ({ backgroundShade: 'blue' as const, projectFolder: '', pushMode: 'manual' as const, workingFolder: 'design' })),
         })
-        const service = new DataService()
+        const service = createDataService()
         service.init({ storage })
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })

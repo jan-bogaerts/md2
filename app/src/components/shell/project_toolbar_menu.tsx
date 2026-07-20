@@ -7,7 +7,7 @@ import { CompleteReleaseDialog } from './project/complete_release_dialog'
 import { NewCardDialog } from './project/new_card_dialog'
 import { ProjectOpenDialog } from './project/project_open_dialog'
 import { useProjectToolbarMenuActions } from './project/use_project_toolbar_menu_actions'
-import { useProjectState } from '../hooks/use_project_state'
+import { useProjectPersistence } from '../hooks/use_project_persistence'
 
 type ProjectDialogMode = 'open' | 'branch' | 'card' | 'release'
 
@@ -21,7 +21,7 @@ export function ProjectToolbarMenu(props: ProjectToolbarMenuProps) {
     const { accessToken, isGithubAuthenticated } = props
     const [anchorElement, setAnchorElement] = useState<HTMLElement | null>(null)
     const [dialogMode, setDialogMode] = useState<ProjectDialogMode | null>(null)
-    const { hasPendingPush, hasPendingSave } = useProjectState()
+    const { hasPendingPush, hasPendingSave } = useProjectPersistence()
     const isMenuOpen = !!anchorElement
 
     const openDialog = useCallback((mode: ProjectDialogMode) => {

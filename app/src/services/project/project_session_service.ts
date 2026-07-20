@@ -21,6 +21,7 @@ import { markdownParsingService } from '../data/markdown_parsing_service'
 import { register } from '.././service_injector'
 import { createRandomProjectBackgroundShade } from '../../theme/project_background_shade'
 import { isProjectLoadErrorReported } from './project_loading'
+import { projectPersistenceService } from './project_persistence_service'
 
 export interface MissingWorkingFolderResolution {
     kind: 'missing-working-folder'
@@ -118,7 +119,7 @@ async function createMissingWorkingFolderResolution(
 
 async function loadProjectSession(storage: StorageService, storageType: StorageType, project: ProjectReference) {
     try {
-        await dataService.flushPendingChanges()
+        await projectPersistenceService.flushPendingChanges()
         dataService.init({ storage })
         activateStorageService(storageType, storage)
         await dataService.projectLoading.openProject(project)
@@ -196,7 +197,7 @@ export class ProjectSessionService extends EventTarget {
         await this.withLoading('Working folder selection failed', async () => {
             const storage = createStorageService(resolution.storageType, accessToken)
             await persistWorkingFolder(storage, resolution.project, folder.path)
-            await dataService.flushPendingChanges()
+            await projectPersistenceService.flushPendingChanges()
             dataService.init({ storage })
             activateStorageService(resolution.storageType, storage)
             await dataService.projectLoading.openProject(resolution.project)
@@ -209,7 +210,7 @@ export class ProjectSessionService extends EventTarget {
             const storage = createStorageService(resolution.storageType, accessToken)
             const project = await storage.createWorkingFolderFromTemplate(resolution.project, resolution.resolvedWorkingFolder)
             await persistWorkingFolder(storage, project, resolution.configuredWorkingFolder)
-            await dataService.flushPendingChanges()
+            await projectPersistenceService.flushPendingChanges()
             dataService.init({ storage })
             activateStorageService(resolution.storageType, storage)
             await dataService.projectLoading.openProject(project)
@@ -230,7 +231,7 @@ export class ProjectSessionService extends EventTarget {
             const project = await storage.createWorkingFolderFromTemplate(resolution.project, resolvedConfig.workingFolder)
             await storage.saveProjectConfig(project, projectConfig)
             configService.loadProjectConfig(projectConfig)
-            await dataService.flushPendingChanges()
+            await projectPersistenceService.flushPendingChanges()
             dataService.init({ storage })
             activateStorageService(resolution.storageType, storage)
             await dataService.projectLoading.openProject(project)
@@ -253,7 +254,7 @@ export class ProjectSessionService extends EventTarget {
 
         try {
             await this.withLoading('Push failed', async () => {
-                await dataService.flushPendingChanges()
+                await projectPersistenceService.flushPendingChanges()
                 await dataService.projectLoading.push()
             })
         } finally {

@@ -1,7 +1,7 @@
 ---
 id: J-018
 title: extract aggregate project persistence coordination from DataService
-status: design
+status: ready
 owner: JB
 affects:
   - app/src/services/data/data_service.ts

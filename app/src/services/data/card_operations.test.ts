@@ -1,10 +1,10 @@
-﻿import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { CommitRequest, MarkdownFile, StorageService } from '../../data/data_types'
 import { configService } from '../config/config_service'
-import { DataService } from './data_service'
+import { projectPersistenceService } from '../project/project_persistence_service'
 import { DIALOG_SERVICE_EVENT, dialogService, type DialogServiceMessage, type DialogSeverity } from '.././dialog_service'
 import { telemetryService } from '../telemetry/telemetry_service'
-import { activeCardFile, createStorage, storageFiles } from '.././test_support/data_service_test_support'
+import { activeCardFile, createDataService, createStorage, storageFiles } from '.././test_support/data_service_test_support'
 
 function recordDialogMessages(severity: DialogSeverity) {
     const messages: string[] = []
@@ -30,7 +30,7 @@ describe('CardOperations', () => {
     it('creates cards with commits and auto-pushes when configured', async () => {
         configService.init()
         const storage = createStorage()
-        const service = new DataService()
+        const service = createDataService()
         service.init({ storage })
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
@@ -47,7 +47,7 @@ describe('CardOperations', () => {
             loadProjectConfig: vi.fn(async () => ({ projectFolder: 'design', workingFolder: 'active' })),
             loadProjectRoot: vi.fn(async () => ({ files: [], workingFolder: 'design/active' })),
         })
-        const service = new DataService()
+        const service = createDataService()
         service.init({ storage })
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
@@ -79,7 +79,7 @@ describe('CardOperations', () => {
             loadProjectConfig: vi.fn(async () => ({ projectFolder: 'design', workingFolder: 'active' })),
             loadProjectRoot: vi.fn(async () => ({ files: [], workingFolder: 'design/active' })),
         })
-        const service = new DataService()
+        const service = createDataService()
         service.init({ storage })
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
@@ -112,7 +112,7 @@ describe('CardOperations', () => {
             loadProjectConfig: vi.fn(async () => ({ projectFolder: 'design', workingFolder: 'active' })),
             loadProjectRoot: vi.fn(async () => ({ files: [], workingFolder: 'design/active' })),
         })
-        const service = new DataService()
+        const service = createDataService()
         service.init({ storage })
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
@@ -136,7 +136,7 @@ describe('CardOperations', () => {
                 throw pushError
             }),
         })
-        const service = new DataService()
+        const service = createDataService()
         const errors = recordDialogMessages('error')
         const captureError = vi.spyOn(telemetryService, 'captureError').mockImplementation(() => undefined)
         const trackEvent = vi.spyOn(telemetryService, 'trackEvent').mockImplementation(() => undefined)
@@ -163,7 +163,7 @@ describe('CardOperations', () => {
     it('creates job and bug cards with the type-specific id prefix', async () => {
         configService.init()
         const storage = createStorage()
-        const service = new DataService()
+        const service = createDataService()
         service.init({ storage })
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
@@ -177,7 +177,7 @@ describe('CardOperations', () => {
     it('emits usage events after project and card operations succeed', async () => {
         configService.init()
         const storage = createStorage()
-        const service = new DataService()
+        const service = createDataService()
         const trackEvent = vi.spyOn(telemetryService, 'trackEvent').mockImplementation(() => undefined)
 
         service.init({ storage })
@@ -198,7 +198,7 @@ describe('CardOperations', () => {
                 throw new Error('commit failed')
             }),
         })
-        const service = new DataService()
+        const service = createDataService()
         const trackEvent = vi.spyOn(telemetryService, 'trackEvent').mockImplementation(() => undefined)
 
         service.init({ storage })
@@ -214,7 +214,7 @@ describe('CardOperations', () => {
     it('leaves commits unpushed in manual mode', async () => {
         configService.init()
         const storage = createStorage({loadProjectConfig: vi.fn(async () => ({ backgroundShade: 'blue' as const, projectFolder: '', pushMode: 'manual' as const, workingFolder: 'design' }))})
-        const service = new DataService()
+        const service = createDataService()
         service.init({ storage })
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
@@ -233,7 +233,7 @@ describe('CardOperations', () => {
             loadProject: vi.fn(async () => ({ files: policyFiles, workingFolder: 'design' })),
             loadProjectRoot: vi.fn(async () => ({ files: policyFiles, workingFolder: 'design' })),
         })
-        const service = new DataService()
+        const service = createDataService()
         service.init({ storage })
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
@@ -253,7 +253,7 @@ describe('CardOperations', () => {
             loadProject: vi.fn(async () => ({ files: policyFiles, workingFolder: 'design' })),
             loadProjectRoot: vi.fn(async () => ({ files: policyFiles, workingFolder: 'design' })),
         })
-        const service = new DataService()
+        const service = createDataService()
         service.init({ storage })
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
@@ -276,7 +276,7 @@ describe('CardOperations', () => {
             loadProject: vi.fn(async () => ({ files: moveFiles, workingFolder: 'design' })),
             loadProjectRoot: vi.fn(async () => ({ files: moveFiles, workingFolder: 'design' })),
         })
-        const service = new DataService()
+        const service = createDataService()
         service.init({ storage })
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
@@ -310,7 +310,7 @@ describe('CardOperations', () => {
             loadProject: vi.fn(async () => ({ files: moveFiles, workingFolder: 'design' })),
             loadProjectRoot: vi.fn(async () => ({ files: moveFiles, workingFolder: 'design' })),
         })
-        const service = new DataService()
+        const service = createDataService()
 
         try {
             service.init({ storage })
@@ -341,7 +341,7 @@ describe('CardOperations', () => {
                 .mockResolvedValueOnce({ files: refreshedFiles, workingFolder: 'design' }),
             loadProjectRoot: vi.fn(async () => ({ files: deletionFiles, workingFolder: 'design' })),
         })
-        const service = new DataService()
+        const service = createDataService()
         service.init({ storage })
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
@@ -375,7 +375,7 @@ describe('CardOperations', () => {
                 .mockResolvedValueOnce({ files: [deletionFiles[0]], workingFolder: 'design' }),
             loadProjectRoot: vi.fn(async () => ({ files: deletionFiles, workingFolder: 'design' })),
         })
-        const service = new DataService()
+        const service = createDataService()
         service.init({ storage })
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
@@ -398,7 +398,7 @@ describe('CardOperations', () => {
             loadProjectRoot: vi.fn(async () => ({ files: deletionFiles, workingFolder: 'design' })),
             loadProjectConfig: vi.fn(async () => ({ backgroundShade: 'blue' as const, projectFolder: '', pushMode: 'manual' as const, workingFolder: 'design' })),
         })
-        const service = new DataService()
+        const service = createDataService()
         service.init({ storage })
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
@@ -421,7 +421,7 @@ describe('CardOperations', () => {
             loadProject: vi.fn(async () => ({ files: deletionFiles, workingFolder: 'design' })),
             loadProjectRoot: vi.fn(async () => ({ files: deletionFiles, workingFolder: 'design' })),
         })
-        const service = new DataService()
+        const service = createDataService()
         service.init({ storage })
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
@@ -446,7 +446,7 @@ describe('CardOperations', () => {
                 .mockResolvedValueOnce({ files: [deletionFiles[0]], workingFolder: 'design' }),
             loadProjectRoot: vi.fn(async () => ({ files: deletionFiles, workingFolder: 'design' })),
         })
-        const service = new DataService()
+        const service = createDataService()
         service.init({ storage })
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
@@ -464,7 +464,7 @@ describe('CardOperations', () => {
     it('edits a card title inline and persists it through the header', async () => {
         configService.init()
         const storage = createStorage()
-        const service = new DataService()
+        const service = createDataService()
         service.init({ storage })
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
@@ -486,7 +486,7 @@ describe('CardOperations', () => {
             loadProject: vi.fn(async () => ({ files: headerFiles, workingFolder: 'design' })),
             loadProjectRoot: vi.fn(async () => ({ files: headerFiles, workingFolder: 'design' })),
         })
-        const service = new DataService()
+        const service = createDataService()
         service.init({ storage })
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
@@ -500,7 +500,7 @@ describe('CardOperations', () => {
     it('preserves the frontmatter header when a card body is edited', async () => {
         configService.init()
         const storage = createStorage()
-        const service = new DataService()
+        const service = createDataService()
         service.init({ storage })
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
@@ -515,7 +515,7 @@ describe('CardOperations', () => {
     it('does not rebuild, dispatch, or commit when saved content is unchanged', async () => {
         configService.init()
         const storage = createStorage()
-        const service = new DataService()
+        const service = createDataService()
         service.init({ storage })
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
         await vi.waitFor(() => expect(service.getState().snapshot?.repositoryFiles).toHaveLength(3))
@@ -549,7 +549,7 @@ describe('CardOperations', () => {
             loadProject: vi.fn(async () => ({ files: staleShaFiles, workingFolder: 'design' })),
             loadProjectRoot: vi.fn(async () => ({ files: staleShaFiles, workingFolder: 'design' })),
         })
-        const service = new DataService()
+        const service = createDataService()
         service.init({ storage })
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
@@ -569,7 +569,7 @@ describe('CardOperations', () => {
     it('updates card affects through the shared header rewrite and save flow', async () => {
         configService.init()
         const storage = createStorage()
-        const service = new DataService()
+        const service = createDataService()
         service.init({ storage })
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
@@ -589,7 +589,7 @@ describe('CardOperations', () => {
             throw error
         })
         const storage = createStorage({ commit })
-        const service = new DataService()
+        const service = createDataService()
         const errors = recordDialogMessages('error')
         const captureError = vi.spyOn(telemetryService, 'captureError').mockImplementation(() => undefined)
 
@@ -602,12 +602,12 @@ describe('CardOperations', () => {
 
             expect(errors.messages).toContain('network down')
             expect(captureError).toHaveBeenCalledWith(error)
-            expect(service.getState().hasPendingSave).toBe(true)
+            expect(projectPersistenceService.getSnapshot().hasPendingSave).toBe(true)
 
             commit.mockImplementation(async (request) => request.files)
             await service.cards.flushPendingCommits()
 
-            expect(service.getState().hasPendingSave).toBe(false)
+            expect(projectPersistenceService.getSnapshot().hasPendingSave).toBe(false)
             expect(commit).toHaveBeenCalledTimes(2)
         } finally {
             errors.stop()

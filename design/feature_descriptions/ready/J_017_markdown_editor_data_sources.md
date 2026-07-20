@@ -6,16 +6,28 @@ owner: JB
 affects:
   - app/src/services/open_files_service.ts
   - app/src/services/open_files_service.test.ts
+  - app/src/services/data/data_service.ts
+  - app/src/services/actions/action_service.ts
+  - app/src/components/editor/markdown_data_source.ts
+  - app/src/components/editor/card_markdown_data_source.ts
+  - app/src/components/editor/action_markdown_data_source.ts
   - app/src/components/editor/markdown_editor.tsx
   - app/src/components/editor/markdown_editor.test.tsx
-  - app/src/components/editor/markdown_document_config.ts
+  - app/src/components/editor/markdown_editor_state_store.ts
   - app/src/components/editor/markdown_document_history_store.ts
   - app/src/components/text_view/text_view.tsx
   - app/src/components/text_view/text_view.test.tsx
+  - app/src/components/text_view/card_editor.tsx
   - app/src/components/text_view/use_open_tabs.ts
   - app/src/components/actions/action_editor.tsx
+  - app/src/components/actions/action_editor.test.tsx
   - app/src/components/actions/use_action_editor_controller.ts
+  - app/src/components/card_view/card_view.tsx
+  - app/src/components/card_view/card_body_popover.tsx
   - app/src/components/card_view/card_body_editor.tsx
+  - app/src/components/card_view/card_body_editor.test.tsx
+  - app/src/components/project_workspace.tsx
+  - app/src/components/project_workspace.test.tsx
 policy:
   checkLinting: true
   requireTests: true
@@ -23,197 +35,308 @@ policy:
 
 ## Goal
 
-Stop feeding Markdown editors their content through React props that originate in a global store, and stop hoisting one shared `MDXEditor` above every editing surface. Each editing surface owns its own editor instance and pulls content from a `MarkdownDataSource` it also writes back through.
+Replace props derived from global snapshots with stable Markdown data sources: they resolve current domain objects, notify editors of document-specific changes, and accept document-aware writes. Each editing binding owns its own editor and undo store.
 
-The purpose is responsiveness. Today every `DataService` `'changed'` event — which fires on every editor flush, every agent-conversation update, and every save-state transition — re-renders `ProjectWorkspace`, `TextView`, and the Lexical tree beneath them, even when the edited document is untouched. After this refactor a Markdown editor re-renders only when its own document is genuinely replaced.
-
-This is a structural refactor. Document content, commit batching, undo semantics, dirty tracking, and all persisted data are unchanged.
+Result: save-state transitions and unrelated card/action changes no longer replace editor content or re-render editor owners. Document content, commit batching, dirty tracking, undo semantics, and persisted data stay unchanged unless noted here.
 
 ## Prerequisite
 
-[[J-018]] must be implemented and landed before this feature. J-018 removes aggregate action persistence monitoring from `DataService` and gives card/project data and actions direct owner-specific event paths. `OpenFilesService` and the Markdown data sources defined here must use those direct events; they must not subscribe to action changes forwarded through `DataService`.
+[[J-018]] must land first — it removes aggregate action persistence monitoring from `DataService`. This feature needs direct owner events instead:
 
-## Current architecture
+- card/project renewal from `DataService`
+- action and action-editor changes from `ActionService`
+- persistence state from `ProjectPersistenceService`, only where save presentation needs it
 
-### The hoisted editor
+Neither `OpenFilesService` nor a Markdown data source may consume action changes forwarded indirectly through `DataService`.
 
-`TextView` owns one lifetime-stable `MarkdownEditor` (`text_view.tsx:442`), rendered inside a `<Box hidden>` and reused for card bodies, action prompts, and action phrases alike. Because the editor sits above every surface that needs it, content has to travel up and back down:
+## Current architecture (problems)
 
-- `ActionEditor` cannot render its own editor, so `use_action_editor_controller` builds a `MarkdownDocumentOwnerConfig` and pushes it **upward** through `onMarkdownDocumentOwnerChange` (`text_view.tsx:293-309`).
-- `TextView` maintains two mutable ref maps, `actionMarkdownOwnersRef` and `actionMarkdownDocumentsRef`, plus a mirrored `actionMarkdownOwners` state, to reconcile owners against open tabs (`text_view.tsx:239-251`).
-- Card bodies take the other route: `cardMarkdownDocument` is memoised from the snapshot card (`text_view.tsx:347-356`) and writes flow out through `onBodyChange` → `ProjectWorkspace.handleBodyChange` → `dataService.cards.updateCardBody`.
-- `renderedMarkdownDocument` falls back to a synthetic `EMPTY_MARKDOWN_DOCUMENT_ID` document so the editor always has something to render.
+**Hoisted list editor** — `TextView` owns one `MarkdownEditor`, reused for card bodies, action prompts, and action phrases. Action config travels up through `MarkdownDocumentOwnerConfig`, mutable maps, and mirrored React state; card content travels from the project snapshot through props and writes back through `ProjectWorkspace`. The editor is uncontrolled while typing, so it reverse-engineers document switches from `documentId`/`markdown` prop changes, and keeps a synthetic empty document mounted when nothing is active.
 
-### The prop-diffing effect
+**Renewable domain objects** — `ProjectState` reuses a `ProjectCard` object while content/sha/activity/conversations are unchanged, and only creates a new object on genuine renewal. Cards have stable `header.internalId`; paths are persistence addresses, not identity. `ActionService` produces renewable `ActionDefinition`s, but some action-editor-state changes mutate the existing object and still emit `changed` — object identity alone isn't a complete action-tab signal.
 
-Because content arrives as a prop while the editor is uncontrolled during typing, `markdown_editor.tsx:139-163` reverse-engineers intent from prop deltas. It compares the previous `documentId`/`markdown` against the current pair and against `latestMarkdownRef` to decide between three cases: nothing happened, the document was switched, or the content was replaced externally. This is the single most fragile part of the editor and exists only because the editor is told about changes rather than notified of them.
+**Undo history** — `MarkdownDocumentHistoryStore` swaps independent document histories through one Lexical `HistoryState`, bound to one Lexical editor. It must never be shared by two mounted editor instances.
 
-### Object renewal already exists
+**Open files** — `OpenFilesService` stores paths; `TextView` separately resolves paths to cards/actions, derives available paths, and pushes them back via `retainAvailableFiles`.
 
-`ProjectCard` objects are not produced by `StorageService`, which knows only `MarkdownFile`. Cards are derived in `ProjectState.createSnapshot` (`project_state.ts:111-139`). `reuseUnchangedCard` (`project_state.ts:146-164`) returns the **previously produced card object** whenever content, sha, `isActive`, and conversations are unchanged, and a fresh object only on genuine change. Card object identity is therefore already an exact "this object was renewed" signal. The same holds for `ActionDefinition` objects via `ActionService`.
+## Terminology
 
-### Undo history
-
-`MarkdownDocumentHistoryStore` gives one editor instance independent undo stacks per document. It owns a single `sharedHistoryState` (`markdown_document_history_store.ts:31`) handed to `registerHistory(editor, this.sharedHistoryState)` (`:69`). Lexical binds that one `HistoryState` object to that one editor for its lifetime, so per-document undo is emulated by swapping the object's *contents* (`copyHistoryState`) on switch and re-pointing every stack entry's `.editor` (`rebindHistoryState`, `:17-21`).
-
-Retention is currently driven by an effect that recomputes card document IDs and action owner document IDs and calls `retainDocuments` (`text_view.tsx:229-237`). `discardDocument` is called separately when a phrase is deleted (`use_action_editor_controller.ts:163`).
-
-### Open files
-
-`OpenFilesService` tracks paths only. `TextView` separately derives `cardsByPath`, `editorActionsByPath`, and `availablePaths` from the snapshot on every render and feeds `availablePaths` back into `useOpenTabs`, which calls `retainAvailableFiles` from an effect.
-
-## Target architecture
-
-### `MarkdownDataSource`
-
-A read-write interface owned by whoever knows how the document is persisted. It is an `EventTarget`.
+- **Domain object**: renewable `ProjectCard` or `ActionDefinition` produced by its owning service.
+- **Open document**: stable wrapper retained for one list-tab lifetime, exposing the latest domain object without using its path as identity.
+- **Markdown document ID**: stable identity of one editable Markdown body. Card body ID = `card.header.internalId`. Action prompt/phrase IDs combine namespace, action ID, and stable editor document ID.
+- **Binding**: one editor's current Markdown document selection.
 
 ```ts
-export interface MarkdownDataSource extends EventTarget {
-    readonly documentId: string
-    getMarkdown(): string
-    /** Live, per keystroke. Stages without committing. */
-    edit(markdown: string): void
-    /** On flush, document switch, blur, or unmount. */
-    commit(markdown: string): void
+export type MarkdownBindingKind = 'board-card' | 'list-card' | 'list-action'
+```
+
+Board and list card selections are separate — opening a board popup does not open or activate a list tab.
+
+## Stable open documents
+
+`OpenFilesSnapshot` contains stable objects only — never paths, ID-only stand-ins, or raw renewable domain objects.
+
+```ts
+export interface OpenDocument extends EventTarget {
+    readonly kind: 'card' | 'action'
+    getObject(): ProjectCard | ActionDefinition
+}
+
+export interface OpenFilesSnapshot {
+    activeDocument: OpenDocument | null
+    documents: readonly OpenDocument[]
 }
 ```
 
-Events it dispatches:
+```ts
+openDocument(object: ProjectCard | ActionDefinition): OpenDocument
+activateDocument(document: OpenDocument): void
+closeDocument(document: OpenDocument): void
+```
+
+`openDocument` returns and activates the existing wrapper if the object is already open; otherwise it creates one stable wrapper. `added`/`removed` events carry that wrapper; `changed` carries `OpenFilesSnapshot`.
+
+Rules:
+
+- One `OpenDocument` instance per open list-tab lifetime.
+- Domain renewal updates `getObject()`'s return value without replacing the wrapper.
+- Content renewal emits granular metadata/object events, not a new snapshot.
+- Snapshot identity changes only on tab open/close/reorder/activate.
+- Open/activate/close use `OpenDocument` objects; public snapshots and events contain no paths.
+- File-tree/navigation paths resolve to current domain objects at the system boundary before opening a tab.
+- Tab label, current persistence path, and source path all come from `getObject()`.
+- Action path rename needs no `OpenFilesService.replaceFilePath` — the open object is unchanged.
+- `retainAvailableFiles` is removed; the service reconciles open entries against direct card/action owner events.
+
+Closing an open document discards its list-editor histories. Reopening the same domain object creates a new `OpenDocument` and fresh history.
+
+## Markdown data sources
+
+Data sources represent the card/action collections of their owning services — stable service objects, not one wrapper per card/action and not aliases for renewable domain objects.
+
+```ts
+export interface MarkdownDataSource extends EventTarget {
+    getMarkdown(documentId: string): string
+    edit(binding: MarkdownBindingKind, documentId: string, markdown: string): void
+    commit(binding: MarkdownBindingKind, documentId: string, markdown: string): boolean
+}
+```
+
+Every write includes the outgoing `documentId`, so a tab change can't redirect buffered text into the incoming document. `commit()` returns `true` only when the synchronous domain update was accepted/scheduled; on `false` the editor keeps its last emitted baseline and dirty state for retry, and one failed editor doesn't stop the global flush registry from flushing others.
+
+### Events
+
+```ts
+export interface ActiveMarkdownDocumentChangedDetail {
+    binding: MarkdownBindingKind
+    documentId: string | null
+}
+
+export interface MarkdownReplacedDetail {
+    documentId: string
+    originBinding: MarkdownBindingKind | null
+}
+```
 
 | Event | Meaning | Editor response |
 | --- | --- | --- |
-| `markdownReplaced` | The underlying object was renewed with content the editor did not author | `setMarkdown` with the new content, then re-baseline the active history document |
-| `documentChanged` | The source now represents a different document (action tab switch) | Flush the outgoing document, switch history, `setMarkdown` |
+| `activeDocumentChanged` | One binding selected another document or went idle | Flush old ID, load new ID via `getMarkdown`, switch history; `null` leaves editor mounted and idle |
+| `markdownReplaced` | Current domain content changed outside this binding | Non-origin binding reloads the matching active ID and re-baselines history |
 
-`documentId` keeps its current meaning and encoding: `JSON.stringify([projectKey, path])` for cards, `JSON.stringify([namespace, actionId, editorDocumentId])` for action prompt/phrase documents.
+Editors ignore events for other bindings or inactive documents.
 
-### Implementations
+### Card data source
 
-- **`CardMarkdownDataSource`** — holds the open-file entry for one card. `getMarkdown()` returns `card.content`. `commit()` calls `dataService.cards.updateCardBody(path, markdown)`. `edit()` is a no-op for cards, matching today's behaviour where card bodies are buffered until flush. Emits `markdownReplaced` when `OpenFilesService` reports the card object was renewed with content the source did not write.
-- **`ActionMarkdownDataSource`** — holds the open-file entry for one action plus the currently selected tab. `getMarkdown()` returns the selected phrase text or the prompt. `edit()` calls `actionService.stageDraft`, `commit()` additionally calls `actionService.commitDraft` — exactly the split `handleMarkdownEdit`/`handleMarkdownChange` implement today. Emits `documentChanged` when the selected tab changes, and `markdownReplaced` on external draft reload or conflict resolution.
+`CardMarkdownDataSource` resolves card bodies by `header.internalId` through current `DataService` snapshot objects.
 
-Both call the same service entry points the props path calls today, so `CommitBatcher` scheduling, `hasPendingSave`, `localSaveState`, and the quit-time flush handshake are untouched. Nothing routes around the batcher.
+- `getMarkdown()` returns current `card.content`.
+- `edit()` records authorship/dirty coordination only; card bodies stay buffered until commit.
+- `commit()` resolves the latest card, reads its current path, and calls the existing card-body persistence entry point.
+- `board-card` and `list-card` maintain independent active document IDs.
+- Object renewal compares previous/next content — header, save-state, or conversation-only renewal does not emit `markdownReplaced`.
 
-### Echo suppression (required)
+Card paths never form a Markdown document ID: rename preserves identity/history because `internalId` is unchanged. Missing `internalId` fails fast.
 
-Each data source keeps `lastWrittenMarkdown`. When a renewal arrives whose content equals `lastWrittenMarkdown`, the source emits **nothing**. Without this, every flush produces a new card object, which produces `markdownReplaced`, which calls `setMarkdown`, which resets the cursor and clears the undo stack on every save. This is the single most important invariant in the feature and must be covered by tests.
+### Action data source
 
-### Editor instancing
+`ActionMarkdownDataSource` resolves action drafts and selected prompt/phrase documents through `ActionService`.
 
-Exactly **two** editor surfaces exist, and both are mounted for the whole time the workspace is in list-view mode:
+- `getMarkdown()` returns prompt/phrase text by full Markdown document ID.
+- `edit()` calls `actionService.stageDraft` for the identified prompt/phrase.
+- `commit()` stages the identified text, updates phrase editor state when required, then calls `actionService.commitDraft`.
+- Prompt uses the stable prompt editor document ID; phrase uses its stable phrase editor identity, never array index.
+- Action owner events are inspected for selection changes even when `ActionDefinition` identity is unchanged.
+- External draft reload/conflict resolution emits `markdownReplaced` for affected documents.
 
-- `CardEditor` (extracted from `TextView`'s inline branch) renders the card editor.
-- `ActionEditor` renders its own editor directly, and `MarkdownDocumentOwnerConfig`, `onMarkdownDocumentOwnerChange`, `actionMarkdownOwnersRef`, `actionMarkdownDocumentsRef`, and the `EMPTY_MARKDOWN_DOCUMENT_ID` placeholder are all deleted.
+The full Markdown document ID already encodes action owner identity plus prompt/phrase editor identity — no separate path or phrase index is used.
 
-**Invariant: switching tabs never mounts or unmounts an editor.** Both surfaces are rendered unconditionally and toggled with `hidden` — exactly one visible at a time — as the current `<Box hidden>` at `text_view.tsx:441` already does for the single hoisted editor. A tab switch changes which surface is visible and which data source that surface is bound to; it never changes the React tree shape.
+## Echo suppression and multiple editors
 
-This rules out the conditional-branch rendering used today, where `activeAction ? <ActionEditor …> : …` (`text_view.tsx:423-440`) mounts and unmounts `ActionEditor` on every switch between a card tab and an action tab. That branch becomes a `hidden` toggle.
+Each data source tracks authored content per Markdown document, not one scalar for the whole source:
 
-A surface renders whichever data source `OpenFilesService` reports as active for its kind. When no tab of that kind is open, the surface stays mounted and idle rather than unmounting.
+```ts
+type LastWrittenMarkdown = {
+    markdown: string
+    originBinding: MarkdownBindingKind
+}
 
-### `TextView` survives view switches
+const lastWrittenMarkdownByDocumentId = new Map<string, LastWrittenMarkdown>()
+```
 
-The same rule applies one level up. `ProjectWorkspace` currently renders `viewMode === 'cards' ? <CardView …> : <TextView …>` (`project_workspace.tsx:270-313`), so switching to board view unmounts `TextView` and, with it, both editor surfaces and both undo histories — even though the tabs themselves survive, because `OpenFilesService` is a singleton that outlives the view.
+When renewed content equals the last written content: the originating binding ignores the echo (cursor/undo stay intact); another binding currently showing the same document is replaced and re-baselined (so board and list can't diverge); unrelated bindings receive nothing. Needed because board and list may independently bind the same card while both stay mounted.
 
-That ternary becomes a `hidden` toggle over both views, matching the tab-level invariant: **switching between board and list view never mounts or unmounts `TextView`.** Undo lifetime then equals tab lifetime everywhere, with no second mechanism.
+## Binding state
 
-Two consequences to handle:
+Data sources expose three independent current selections:
 
-- **`LeftPanelSlot` must be gated on visibility.** `TextView` portals its file tree into the shell left panel (`text_view.tsx:464`), and `LeftPanelSlot` registers/unregisters the slot on mount/unmount (`left_panel_slot.tsx:14-18`). A permanently mounted `TextView` would keep the file tree in the left panel while board view is showing. Render the `LeftPanelSlot` subtree only while list view is active, so slot registration still follows visibility even though the component does not.
-- **Both views stay subscribed.** `CardView` and `TextView` will both be mounted and both subscribed to their stores. This is acceptable only because the data-source work above stops store events from re-rendering editor content; verify the hidden view does not do layout or measurement work while hidden.
+```ts
+interface MarkdownBindingsSnapshot {
+    activeBoardCardDocumentId: string | null
+    activeListCardDocumentId: string | null
+    activeListActionDocumentId: string | null
+}
+```
 
-Keep the `isProjectOpen` guard as it is: with no project open, neither view is mounted.
+- Opening/closing a board popup changes only `board-card`.
+- Activating a list card tab changes `list-card`.
+- Activating an action tab or selecting prompt/phrase changes `list-action`.
+- Switching the visible list tab from card to action leaves the hidden `list-card` binding's document/history untouched.
+- No binding uses `activePath`.
 
-### `MarkdownEditor` prop shapes
+The active list tab remains an `OpenDocument` in `OpenFilesSnapshot`; visibility derives from its `kind`, while editor document selection comes from binding events.
 
-The component keeps two modes:
+## Editor modes
 
-- **Data-source mode** — `dataSource` plus presentation props. No `markdown`, no `onChange`/`onDocumentChange`/`onDocumentEdit`. Used by anything backed by a persisted project object.
-- **Props mode** — `markdown` + `onChange`, as today, for transient local buffers. `markdown` is demoted to a **mount-time initial value only**; it is no longer read after mount.
+`MarkdownEditor` keeps two explicit modes.
 
-`documentId`/`historyStore` move off the public props and are read from the data source in data-source mode.
+**Data-source mode** — for persisted project Markdown. Receives stable source, binding kind, binding-owned history store, and presentation props; never `markdown`, `onChange`, `onDocumentChange`, or `onDocumentEdit`.
 
-The effect at `markdown_editor.tsx:139-163` is **deleted**, not bypassed. Data-source mode replaces it with explicit events. Props mode does not need it: both remaining props-mode call sites already perform external replacement through the imperative handle (`action_agent_form.tsx:93`, `new_card_dialog.tsx:128`).
+```ts
+interface MarkdownEditorDataSourceProps extends MarkdownEditorPresentationProps {
+    binding: MarkdownBindingKind
+    dataSource: MarkdownDataSource
+    historyStore: MarkdownDocumentHistoryStore
+    stateStore: MarkdownEditorStateStore
+}
+```
 
-The rule to apply when adding future call sites: **data source for anything backed by a persisted project object, plain props for transient local buffers.**
+Document ID and content come from binding/source events. The editor stays mounted when binding becomes `null`; it flushes outgoing content and goes idle without a synthetic domain document. The prop-diffing effect is deleted, replaced by source-event subscription.
 
-### `OpenFilesService`
+**Props mode** — only for transient local buffers (`new_card_dialog`, `action_agent_form`). `markdown` is mount-time initial content; external replacement still goes through `MarkdownEditorHandle.setMarkdown()`.
 
-It gains object ownership while keeping its current path-based API surface.
+Presentation props unchanged: `flushOnBlur`, `stickyToolbar`, `hideToolbar`, `readOnly`, `overlayContainer`, `placeholders`, `toolbarContents`.
 
-- Subscribes once to `DataService` `'changed'` and `ActionService` `'changed'`.
-- For each open path, re-resolves the current `ProjectCard` or `ActionDefinition` and compares by **object identity**.
-- Emits a per-file `fileRenewed` event only for entries whose identity actually changed, and `activeFile` only when the active entry changes. A `DataService` event that touches nothing open produces no emission at all. This firehose-to-signal conversion is where the re-render reduction comes from.
-- Keeps one `MarkdownDataSource` per open file and exposes it, so surfaces read a stable source object rather than constructing one per render.
-- Absorbs `retainAvailableFiles`: it now derives available paths from the services it subscribes to instead of receiving them from `useOpenTabs`. `TextView` stops computing and passing `availablePaths`.
-- `syncProject`/`clear` additionally drop data sources and history for the closed project.
+## Editor instances and history ownership
 
-`replaceFilePath`, `openFile`, `activateFile`, `closeFile`, and the existing `changed`/`added`/`removed` events keep their current contracts. `DataService.completeActionPathChange` (`data_service.ts:42-49`) continues to work unchanged.
+Each binding kind owns its own `MarkdownDocumentHistoryStore` — stores belong to editor bindings, never shared data sources: `board-card` for the board popup editor, `list-card` for the persistent list card editor, `list-action` for the persistent list action editor. No store is attached to two Lexical editors concurrently.
 
-### Undo history ownership
+List view has two lifetime-stable editor surfaces: `CardEditor` owns the `list-card` editor/store, `ActionEditor` owns the `list-action` editor/store. Both mount for the full `TextView` lifetime and toggle with `hidden` — switching list tabs never mounts/unmounts either. Remove `key={activeAction.id}` and all hoisted owner configuration/maps.
 
-Undo lifetime equals **tab lifetime**: close a tab and its stack is gone; reopen the document and it starts a fresh stack.
+The board popup uses `board-card` binding and its own store, switching explicitly when another card opens (never via a renewed `card` prop). Closing the board binding flushes it and applies board-popup history lifetime independently from list tabs.
 
-There are exactly two stores, one per editor surface. They must be per-instance rather than shared, because `sharedHistoryState` is bound to a single editor via `registerHistory`, so the two concurrently mounted surfaces cannot share one store.
+List history lifetime equals list-tab lifetime:
 
-Because neither surface ever unmounts — not on a tab switch, and not on a board/list view switch — each store simply lives as long as its surface, and per-document swapping inside a store handles everything else: card A → card B within the card surface, and prompt → phrase within the action surface. No history has to survive an unmount, so no registry, and no store hoisted above `TextView`.
+- opening creates histories lazily by Markdown document ID
+- closing discards IDs no longer owned by any open document
+- phrase deletion discards only that phrase ID
+- path rename changes no history
+- project switch clears every store
+- close + reopen starts fresh even though domain document ID is stable
 
-`attachEditor`'s `rebindHistoryState` pass (`:45`) stays as-is: still correct, no longer on any routine path.
+History retention reconciles final open Markdown document-ID sets; it never discards from an intermediate path-level `removed` event.
 
-Retention moves off the derived-ID effect and onto `OpenFilesService` events:
+## Dirty and saved presentation
 
-- Opening a file registers its document IDs (one for a card, prompt + one per phrase for an action).
-- Closing a file discards them.
-- `discardDocument` stays for phrase deletion, which kills a document while its file remains open.
-- Project switch clears everything via the existing `syncProject`.
+Dirty buffer state is per editor instance, not shared data-source state. Add a small external store:
 
-`card_body_editor.tsx`'s `key={card.path}` (`:79`) is removed; remounting per card is what destroys undo history there today.
+```ts
+export class MarkdownEditorStateStore extends EventTarget {
+    getSnapshot(): boolean
+    setDirty(dirty: boolean): void
+}
+```
 
-### Call sites
+It emits only when the boolean changes. The editor sets dirty on first local edit and resets after commit, document replacement, or document switch.
 
-| Call site | Content origin | Change |
-| --- | --- | --- |
-| `text_view.tsx:442` (card body) | snapshot card | Data-source mode, moved into a `CardEditor` surface |
-| `action_editor.tsx` (via owner config) | action draft | Data-source mode, editor rendered locally |
-| `card_body_editor.tsx:80` | `card.content` from the snapshot | Data-source mode; drop `key={card.path}` |
-| `new_card_dialog.tsx:247` | local `useState` | Unchanged, props mode |
-| `action_agent_form.tsx:331` | transient run prompt | Unchanged, props mode |
+A leaf status component subscribes via `useSyncExternalStore` and combines editor dirty state with existing pending-file-save state. `CardBodyPopover` holds no dirty React state, so keystrokes re-render only the status leaf, not the popup parent.
 
-Props-mode call sites do not re-render from the global store, and the editor ignores the `markdown` prop after mount, so leaving them alone costs nothing.
+## `TextView` and view lifetime
 
-## Implementation notes
+`ProjectWorkspace` keeps `CardView` and `TextView` mounted while a project is open, toggling with `hidden` — so `TextView` preserves both list editor instances/stores across board/list switches.
 
-- `handleMarkdownDocumentChange` and `handleMarkdownDocumentEdit` (`text_view.tsx:278-291`) disappear along with the document maps; each data source routes its own writes.
-- `handleDiscardMarkdownDocument` (`text_view.tsx:311-315`) moves to the action surface, which now holds its own editor ref.
-- `registerMarkdownEditorFlush` and the unmount flush in `markdown_editor.tsx:165-172` stay exactly as they are. Verified: the registry is a `Set` and `flushMarkdownEditors` iterates all entries (`markdown_editor_flush.ts:19`), while each editor's `flush` is a `useCallback` with `[]` deps and so contributes a distinct closure per instance. Going from one mounted editor to several needs no change, and the quit-time handshake keeps flushing every one of them.
-- `MarkdownDocumentConfig` and `MarkdownDocumentOwnerConfig` are deleted; `markdown_document_config.ts` is removed if nothing else uses it.
-- Keep the `flushOnBlur`, `stickyToolbar`, `hideToolbar`, `readOnly`, `overlayContainer`, `placeholders`, and `toolbarContents` props exactly as they are — they are presentation, not data.
-- The action editor's `editorState` reconciliation and draft/conflict handling in `use_action_editor_controller` keep their current behaviour; only the markdown in/out path moves to the data source.
+`LeftPanelSlot` stays conditional on list visibility so board view shows no file tree. Hidden editor surfaces do no layout/measurement work.
+
+`ProjectWorkspace` passes an explicit `visible` prop to both views. A view becoming hidden closes/resets all transient UI it owns. Every portaled surface also gates `open` with `visible` (MUI portals render outside the hidden subtree) — applies to: board card-body popover and its delete dialog, affects dialog, list card-properties popover, list agent popup, drag overlay/active drag state.
+
+Hiding board view closes its card-body popup, flushing the `board-card` editor before unmount. Hiding list view closes only transient overlays; both list editors remain mounted.
+
+The no-project guard is unchanged: neither view mounts without an open project.
+
+## Service subscriptions after J-018
+
+- `OpenFilesService` and `CardMarkdownDataSource` subscribe to direct project/card renewal from `DataService`.
+- `OpenFilesService` and `ActionMarkdownDataSource` subscribe directly to `ActionService`.
+- Neither subscribes to generic persistence events.
+- J-018 guarantees `DataService` no longer forwards `ActionService` changes, so one action change causes one action reconciliation.
+- Constructors only register services; explicit idempotent initialization attaches owner subscriptions once.
+
+## Call-site changes
+
+| Call site | Change |
+| --- | --- |
+| `text_view.tsx` card body | Move into persistent `CardEditor`; use `list-card` data-source mode |
+| `action_editor.tsx` | Render local persistent Markdown editor; use `list-action` data-source mode |
+| `card_body_editor.tsx` | Use `board-card` data-source mode; remove `key={card.path}` and body/dirty prop routing |
+| `new_card_dialog.tsx` | Keep props mode |
+| `action_agent_form.tsx` | Keep props mode and imperative reset |
+| `use_open_tabs.ts` | Consume stable `OpenDocument` snapshot; remove available-path retention |
+| `project_workspace.tsx` | Keep both views mounted; provide visibility gating |
+
+Delete `MarkdownDocumentConfig`, `MarkdownDocumentOwnerConfig`, action Markdown owner maps, synthetic empty document, and hoisted Markdown change/edit handlers once no call sites remain.
+
+`registerMarkdownEditorFlush` stays a set of per-instance callbacks; quit-time flush still flushes every mounted editor.
+
+## Error handling
+
+Data sources own synchronous write-error reporting, since persistence callbacks no longer route through React parents.
+
+- Wrap card/action `edit`/`commit` domain calls at the data-source boundary.
+- Report failures through `dialogService.error` with the same operation/path context current callers use.
+- A failed `commit` returns `false`, keeps editor dirty state, and does not update last-written echo state or advance the emitted baseline.
+- A successful synchronous schedule returns `true`; later commit-batch failure stays visible through pending persistence state and existing `ProjectPersistenceService` handling.
+- No React error state, and no routing errors back through `ProjectWorkspace`.
+- Tests cover both synchronous data-source failure and asynchronous commit-batch failure.
 
 ## Acceptance criteria
 
-- Typing in a card body does not re-render `ProjectWorkspace` or `TextView`, and does not call `setMarkdown` on the editor.
-- A `DataService` `'changed'` event that renews no open file produces no `OpenFilesService` emission and no editor re-render.
-- Saving a card produces no cursor jump and no undo-stack reset (echo suppression).
-- An externally renewed card — agent write, external reload — replaces the editor content and re-baselines that document's undo stack.
-- Switching action tabs (prompt ↔ phrase) flushes the outgoing document and restores the incoming document's undo stack.
-- Switching between an open card tab and an open action tab and back preserves both tabs' undo stacks.
-- No tab switch mounts or unmounts an editor: both surfaces stay mounted and only their `hidden` state changes. This is worth asserting directly in a test, since a conditional-branch regression would be invisible except as a performance and undo-history loss.
-- Switching list → board → list preserves every open tab's undo stack, and does not remount `TextView`.
-- The file tree is absent from the left panel while board view is showing, even though `TextView` remains mounted.
-- Closing a tab and reopening the same document yields an empty undo stack.
-- Deleting a phrase discards that document's history while the action's other documents keep theirs.
-- Commit batching is unchanged: edits still schedule through `CommitBatcher`, `hasPendingSave`/`localSaveState` report as before, and the quit-time flush handshake still flushes every mounted editor.
-- Action rename still updates the open tab path (`completeActionPathChange`).
-- Project switch clears open files, data sources, and all undo history.
-- `new_card_dialog` and `action_agent_form` behave exactly as before.
-- The prop-diffing effect at `markdown_editor.tsx:139-163` no longer exists.
+- J-018 is implemented first.
+- Open-files snapshot/events contain stable `OpenDocument` objects, never paths or raw renewable domain objects.
+- Card Markdown document ID is `header.internalId`; file rename preserves identity and history.
+- Every action edit/commit includes the full outgoing Markdown document ID; prompt text can't overwrite an incoming phrase.
+- Echo tracking is per Markdown document, preserving originating cursor/undo while syncing another bound editor.
+- Board card, list card, and list action bindings are independent and nullable.
+- No list tab switch mounts or unmounts either list editor.
+- A binding going idle leaves its editor mounted without a synthetic domain document.
+- Data-source mode has no `markdown` or change callbacks; the prop-diffing effect no longer exists.
+- Saving a card does not call `setMarkdown` on the originating editor.
+- External replacement reloads only matching active documents and re-baselines their histories.
+- Action prompt/phrase switching flushes the outgoing ID and restores the incoming history.
+- Card/action list-tab switching preserves both list histories.
+- Board/list view switching preserves list histories and does not remount `TextView`.
+- File tree is absent from the left panel in board view.
+- Closing/reopening a list document starts fresh history; phrase deletion discards only that phrase's history.
+- Dirty keystrokes re-render only the leaf status subscriber, not popup/editor parent.
+- Commit batching, pending-save state, and quit-time flush remain unchanged.
+- Synchronous data-source write failure surfaces via `dialogService`, leaves the editor dirty, and doesn't block other editors from flushing.
+- Action rename retains the open document and histories without path replacement in `OpenFilesService`.
+- Project switch clears open documents, bindings, and histories.
+- Transient props-mode editors behave as before.
+- Data-source commit failures still reach user-visible error reporting.
+- Switching views closes all transient overlays owned by the hidden view; no portaled UI remains visible or interactive.
 
 ## See also
 
-- [[J-018]] — prerequisite extraction of aggregate persistence coordination from `DataService`
-
-- [[F-007]] — the shared Markdown editor surface this refactor restructures
-- [[J-005]] — `DataService` collaborator split, whose `'changed'` firehose this filters
-- [[F-2]] — `ProjectWorkspace` god component; this removes part of its editor plumbing
+- [[J-018]] — required persistence-coordinator extraction
+- [[F-007]] — shared Markdown editor behavior restructured here
+- [[J-005]] — DataService collaborator split
+- [[F-2]] — ProjectWorkspace responsibility reduction

@@ -3,9 +3,9 @@ import type { ActionExecutionEvent, ActionStartRequest } from '../../data/action
 import { actionService } from './action_service'
 import { actionExecutionService } from './action_execution_service'
 import { configService } from '../config/config_service'
-import { DataService, dataService } from '../data/data_service'
+import { dataService } from '../data/data_service'
 import { runElectronAction } from './electron_action_runner'
-import { createStorage } from '.././test_support/data_service_test_support'
+import { createDataService, createStorage } from '.././test_support/data_service_test_support'
 
 describe('action entry-point parity', () => {
     afterEach(() => {
@@ -53,7 +53,7 @@ describe('action entry-point parity', () => {
             loadProject: vi.fn(async () => ({ files: [cardFile], workingFolder: 'design' })),
             loadProjectRoot: vi.fn(async () => ({ files: [cardFile], workingFolder: 'design' })),
         })
-        const service = new DataService()
+        const service = createDataService()
         service.init({ storage })
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
         const action = actionService.getActions().find((candidate) => candidate.id === 'action-ready')

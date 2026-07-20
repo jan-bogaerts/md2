@@ -21,6 +21,7 @@ import { projectContext } from '../../../data/action_context'
 import type { UseGithubAuthResult } from '../../../auth/use_github_auth'
 import { useConfigValue, useHasDesktopConfig } from '../../hooks/use_config_value'
 import { useProjectState } from '../../hooks/use_project_state'
+import { useProjectPersistence } from '../../hooks/use_project_persistence'
 import { useProjectConfig } from '../../hooks/use_project_config'
 import { useWorkspaceView } from '../../hooks/use_workspace_view'
 import { ActionEntryPoints } from '../../actions/action_entry_points'
@@ -69,7 +70,8 @@ function persistDesktopConfig() {
 /** Tabbed app menu hosting project, account and agent actions. */
 export function AppMenu(props: AppMenuProps) {
     const { accessToken, auth, extraActions, isGithubAuthenticated, isMobile, onOpenConfig, onOpenMobileMenu, search } = props
-    const { hasPendingPush, hasPendingSave, project } = useProjectState()
+    const { project } = useProjectState()
+    const { hasPendingPush, hasPendingSave } = useProjectPersistence()
     const projectConfig = useProjectConfig()
     const { viewMode } = useWorkspaceView()
     const [currentTab, setCurrentTab] = useState<AppMenuTab>('home')

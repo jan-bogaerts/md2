@@ -1,3 +1,3 @@
-we are preparing to implement [J_017_markdown_editor_data_sources.md](design/feature_descriptions/ready/J_017_markdown_editor_data_sources.md) . go over the document and think about how you would implement this. go over every step in detail to see if everything is clear and can be implemented without any issues.
+we are preparing to implement `design\feature_descriptions\ready\F_060_card_commit_diff_viewer.md`. go over the document and think about how you would implement this. go over every step in detail to see if everything is clear and can be implemented without any issues.
 report back on any problems you encounter.
 use [$caveman](C:\\Users\\janbo\\Documents\\dev\\md2\\.agents\\skills\\caveman\\SKILL.md)

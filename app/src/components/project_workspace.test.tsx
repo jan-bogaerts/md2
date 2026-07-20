@@ -11,6 +11,7 @@ import { openFilesService } from '../services/open_files_service'
 import { telemetryService } from '../services/telemetry/telemetry_service'
 import { workspaceNavigationService } from '../services/project/workspace_navigation_service'
 import { workspaceViewService } from '../services/project/workspace_view_service'
+import { projectPersistenceService } from '../services/project/project_persistence_service'
 import { AppThemeProvider } from '../theme/theme_provider'
 import { DialogDisplay } from './dialog_display'
 import { ProjectWorkspace } from './project_workspace'
@@ -176,6 +177,7 @@ function mockGithubFetch() {
 describe('ProjectWorkspace', () => {
     beforeEach(() => {
         configService.init({ desktopConfig: null })
+        projectPersistenceService.init({ actionService, dataService })
         dataService.init({ storage: createResetStorage() })
         openFilesService.clear()
         workspaceViewService.setViewMode('cards')
@@ -329,11 +331,11 @@ describe('ProjectWorkspace', () => {
         await screen.findByText('Root')
 
         dataService.cards.updateCardBody('design/F-1-root.md', 'Changed while open')
-        await waitFor(() => expect(dataService.getState().hasPendingSave).toBe(true))
+        await waitFor(() => expect(projectPersistenceService.getSnapshot().hasPendingSave).toBe(true))
         document.dispatchEvent(new Event('visibilitychange'))
 
         await waitFor(() => expect(bridge.commit).toHaveBeenCalledWith(expect.objectContaining({files: [expect.objectContaining({ path: 'design/F-1-root.md' })]})))
-        expect(dataService.getState().hasPendingSave).toBe(false)
+        expect(projectPersistenceService.getSnapshot().hasPendingSave).toBe(false)
 
         visibilityState.mockRestore()
     })
@@ -351,7 +353,7 @@ describe('ProjectWorkspace', () => {
         expect(cleanClose.defaultPrevented).toBe(false)
 
         dataService.cards.updateCardBody('design/F-1-root.md', 'Changed before close')
-        await waitFor(() => expect(dataService.getState().hasPendingSave).toBe(true))
+        await waitFor(() => expect(projectPersistenceService.getSnapshot().hasPendingSave).toBe(true))
 
         const pendingClose = new Event('beforeunload', { cancelable: true })
         window.dispatchEvent(pendingClose)
@@ -374,7 +376,7 @@ describe('ProjectWorkspace', () => {
 
         expect(pendingClose.defaultPrevented).toBe(true)
         expect(actionService.getDraft('actions/run.json').definition.label).toBe('')
-        expect(dataService.getState().hasPendingSave).toBe(true)
+        expect(projectPersistenceService.getSnapshot().hasPendingSave).toBe(true)
     })
 
     it('confirms close when storage has unpushed commits', async () => {
@@ -409,7 +411,7 @@ describe('ProjectWorkspace', () => {
         await screen.findByText('Root')
 
         dataService.cards.updateCardBody('design/F-1-root.md', 'Changed before quit')
-        await waitFor(() => expect(dataService.getState().hasPendingSave).toBe(true))
+        await waitFor(() => expect(projectPersistenceService.getSnapshot().hasPendingSave).toBe(true))
         act(() => flushRequested?.('quit-1'))
 
         await waitFor(() => expect(bridge.commit).toHaveBeenCalled())
@@ -437,7 +439,7 @@ describe('ProjectWorkspace', () => {
 
         await screen.findByText(/invalid unsaved changes/u)
         expect(window.md2Lifecycle.confirmFlush).not.toHaveBeenCalled()
-        expect(dataService.getState().hasPendingSave).toBe(true)
+        expect(projectPersistenceService.getSnapshot().hasPendingSave).toBe(true)
     })
 
     it('asks for a folder and persists an existing choice when the configured working folder is missing', async () => {

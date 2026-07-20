@@ -4,10 +4,10 @@ import { MarkdownDocumentHistoryPlugin } from './markdown_document_history_plugi
 import type { MarkdownDocumentHistoryStore } from './markdown_document_history_store'
 
 interface MarkdownDocumentHistoryPluginParams {
-    documentId: string
+    documentId: string | null
     historyStore: MarkdownDocumentHistoryStore
     markdown: string
-    onBeforeSwitch: (documentId: string, markdown: string) => string
+    onBeforeSwitch: (documentId: string | null, markdown: string) => string
     onDidSwitch: (markdown: string) => void
 }
 
@@ -30,7 +30,7 @@ export const markdownDocumentHistoryPlugin = realmPlugin<MarkdownDocumentHistory
     },
     update(realm, params) {
         if (!params) throw new Error('Markdown document history plugin requires parameters')
-        if (params.historyStore.isActiveDocument(params.documentId)) return
+        if (params.documentId && params.historyStore.isActiveDocument(params.documentId)) return
 
         const editor = realm.getValue(rootEditor$)
         if (!editor) throw new Error('Cannot switch Markdown document history without an editor')

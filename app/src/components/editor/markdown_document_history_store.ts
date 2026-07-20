@@ -39,10 +39,17 @@ export class MarkdownDocumentHistoryStore {
     get canRedo() { return this.sharedHistoryState.redoStack.length > 0 }
     get canUndo() { return this.sharedHistoryState.undoStack.length > 0 }
 
-    attachEditor(editor: LexicalEditor, documentId: string, markdown: string) {
+    attachEditor(editor: LexicalEditor, documentId: string | null, markdown: string) {
         this.persistActiveDocument()
         this.editor = editor
         for (const { historyState } of this.documents.values()) rebindHistoryState(historyState, editor)
+
+        if (!documentId) {
+            copyHistoryState(this.sharedHistoryState, createEmptyHistoryState())
+            this.activeDocumentId = null
+            this.pendingDocumentId = null
+            return
+        }
 
         const document = this.requireDocument(documentId, markdown)
         copyHistoryState(this.sharedHistoryState, document.historyState)
@@ -103,7 +110,7 @@ export class MarkdownDocumentHistoryStore {
     }
 
     switchDocument(
-        documentId: string,
+        documentId: string | null,
         markdown: string,
         currentMarkdown: string,
         replaceMarkdown: (markdown: string) => void,
@@ -113,6 +120,16 @@ export class MarkdownDocumentHistoryStore {
         if (this.activeDocumentId === documentId) return
 
         this.persistActiveDocument(currentMarkdown)
+        if (!documentId) {
+            copyHistoryState(this.sharedHistoryState, createEmptyHistoryState())
+            replaceMarkdown('')
+            this.activeDocumentId = null
+            this.pendingDocumentId = null
+            this.switchToken += 1
+            this.syncToolbarAvailability(editor)
+            return
+        }
+
         const document = this.requireDocument(documentId, markdown)
         copyHistoryState(this.sharedHistoryState, createEmptyHistoryState())
         replaceMarkdown(markdown)
@@ -121,6 +138,16 @@ export class MarkdownDocumentHistoryStore {
         this.switchToken += 1
         const switchToken = this.switchToken
         queueMicrotask(() => this.completeDocumentSwitch(documentId, document, editor, switchToken))
+    }
+
+    clear() {
+        this.documents.clear()
+        this.discardedDocumentIds.clear()
+        this.activeDocumentId = null
+        this.pendingDocumentId = null
+        this.switchToken += 1
+        copyHistoryState(this.sharedHistoryState, createEmptyHistoryState())
+        if (this.editor) this.syncToolbarAvailability(this.editor)
     }
 
     private completeDocumentSwitch(

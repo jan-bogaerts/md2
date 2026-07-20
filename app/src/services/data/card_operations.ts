@@ -17,6 +17,7 @@ const FOLDER_PLACEHOLDER_NAME = '.gitkeep'
 export interface CardOperationsDeps {
     commitPathsInFlight(): Set<string>
     dispatchChanged(): void
+    dispatchPersistenceChanged(): void
     files(): MarkdownFile[]
     mergeCommittedFiles(files: MarkdownFile[], workingFolder: string): void
     project(): ProjectReference | null
@@ -278,11 +279,11 @@ export class CardOperations {
         try {
             await commitBatcher.flush()
         } catch (error) {
-            reportCommitFlushFailure(error, this.dependencies.dispatchChanged)
+            reportCommitFlushFailure(error, this.dependencies.dispatchPersistenceChanged)
             throw error
         }
 
-        if (hadPendingCommits) this.dependencies.dispatchChanged()
+        if (hadPendingCommits) this.dependencies.dispatchPersistenceChanged()
     }
 
     async commitFiles(request: CommitRequest) {
@@ -308,7 +309,7 @@ export class CardOperations {
 
         const currentProject = this.dependencies.project()
         if (currentProject && config.pushMode === 'auto') await storage.push(currentProject)
-        if (config.pushMode === 'manual') this.dependencies.dispatchChanged()
+        if (config.pushMode === 'manual') this.dependencies.dispatchPersistenceChanged()
 
         return updatedFiles
     }

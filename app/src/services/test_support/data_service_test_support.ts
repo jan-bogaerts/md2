@@ -5,6 +5,16 @@ import type {
     MarkdownFile,
     StorageService,
 } from '../../data/data_types'
+import { actionService } from '../actions/action_service'
+import { DataService } from '../data/data_service'
+import { projectPersistenceService } from '../project/project_persistence_service'
+
+export function createDataService() {
+    const service = new DataService()
+    projectPersistenceService.init({ actionService, dataService: service })
+
+    return service
+}
 
 export const files: MarkdownFile[] = [
     { content: '---\nid: F-1\ntitle: Root\nstatus: active\naffects:\n  - app/src/app.tsx\n---\n\n# Root', path: 'design/F-1-root.md' },

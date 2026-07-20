@@ -20,6 +20,7 @@ import { openFilesService } from '../services/open_files_service'
 import { telemetryService } from '../services/telemetry/telemetry_service'
 import { workspaceViewService } from '../services/project/workspace_view_service'
 import { workspaceNavigationService, type WorkspaceOpenRequest } from '../services/project/workspace_navigation_service'
+import { projectPersistenceService } from '../services/project/project_persistence_service'
 import { CardView } from './card_view/card_view'
 import { AgentChatFab } from './agents/agent_chat_fab'
 import { flushMarkdownEditors } from './editor/markdown_editor_flush'
@@ -35,7 +36,7 @@ const EMPTY_REPOSITORY_FILES: string[] = []
 
 function flushPendingCommits() {
     flushMarkdownEditors()
-    void dataService.flushPendingChanges().catch((error: unknown) => {
+    void projectPersistenceService.flushPendingChanges().catch((error: unknown) => {
         dialogService.error(error, { fallbackMessage: 'Pending changes could not be saved' })
     })
 }
@@ -43,7 +44,7 @@ function flushPendingCommits() {
 async function flushAndConfirmPendingCommits(lifecycleBridge: ElectronLifecycleBridge, requestId: string) {
     try {
         flushMarkdownEditors()
-        await dataService.flushPendingChanges()
+        await projectPersistenceService.flushPendingChanges()
         lifecycleBridge.confirmFlush(requestId)
     } catch (error) {
         dialogService.error(error, { fallbackMessage: 'Pending changes could not be saved before closing' })
@@ -95,7 +96,7 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
     useEffect(() => {
         const handleBeforeUnload = (event: BeforeUnloadEvent) => {
             flushMarkdownEditors()
-            const { hasPendingPush, hasPendingSave } = dataService.getState()
+            const { hasPendingPush, hasPendingSave } = projectPersistenceService.getSnapshot()
             // In Electron, vetoing beforeunload silently cancels the window close (no confirm
             // dialog), leaving the app unclosable. The main process flushes pending commits on
             // quit instead, so only prompt in a plain browser build.
@@ -113,7 +114,7 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
 
         const handleBlur = () => {
             flushMarkdownEditors()
-            if (dataService.getState().hasPendingSave) flushPendingCommits()
+            if (projectPersistenceService.getSnapshot().hasPendingSave) flushPendingCommits()
         }
 
         document.addEventListener('visibilitychange', handleVisibilityChange)

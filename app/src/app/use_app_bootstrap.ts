@@ -5,7 +5,12 @@ import type { ProjectReference, ProjectSnapshot, StorageService } from '../data/
 import { configService } from '../services/config/config_service'
 import { agentCapabilitiesService } from '../services/agents/agent_capabilities_service'
 import { actionExecutionService } from '../services/actions/action_execution_service'
+import { actionService } from '../services/actions/action_service'
 import { dataService } from '../services/data/data_service'
+import { projectPersistenceService } from '../services/project/project_persistence_service'
+import { openFilesService } from '../services/open_files_service'
+import { cardMarkdownDataSource } from '../components/editor/card_markdown_data_source'
+import { actionMarkdownDataSource } from '../components/editor/action_markdown_data_source'
 import { readDesktopConfigFromBridge } from '../services/config/config_persistence'
 import { isProjectLoadErrorReported } from '../services/project/project_loading'
 
@@ -42,6 +47,10 @@ async function resolveRestoredProject(lastProject: LastProject, storage: Storage
 /** Start services and open the last project. Returns null when there is nothing to restore. */
 async function loadLastProjectSession(accessToken: string | null): Promise<ProjectSession | null> {
     ensureConfigServiceInitialized()
+    projectPersistenceService.init({ actionService, dataService })
+    openFilesService.init({ actionService, dataService })
+    cardMarkdownDataSource.init(dataService)
+    actionMarkdownDataSource.init(actionService)
     actionExecutionService.start()
     await agentCapabilitiesService.initialize()
     const lastProject = readLastProject()

@@ -134,8 +134,8 @@ describe('markdownParsingService.splitCards', () => {
         expect(parseCard).toHaveBeenCalledTimes(3)
         expect(parseCard.mock.calls.map(([file]) => file.path)).toEqual([
             'design/F-1-root.md',
-            'design/free note.md',
             'design/history/F-3-old.md',
+            'design/free note.md',
         ])
         parseCard.mockRestore()
     })

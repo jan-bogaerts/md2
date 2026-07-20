@@ -1,13 +1,13 @@
-﻿import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { DEFAULT_STATES, defaultColumnAccent, type StorageProjectFiles, type StorageService } from '../../data/data_types'
 import type { RawActionDefinition } from '../../data/action_types'
 import { actionService } from '../actions/action_service'
 import { configService } from '../config/config_service'
-import { DataService } from '../data/data_service'
+import type { DataService } from '../data/data_service'
 import { DIALOG_SERVICE_EVENT, dialogService, type DialogServiceMessage, type DialogSeverity } from '.././dialog_service'
 import { telemetryService } from '../telemetry/telemetry_service'
 import { GLOBAL_PROGRESS_EVENT, globalProgressService, type GlobalProgress } from '.././global_progress_service'
-import { createDeferred, createStorage, files, storageFiles, waitForWorkerTurn } from '.././test_support/data_service_test_support'
+import { createDataService, createDeferred, createStorage, files, storageFiles, waitForWorkerTurn } from '.././test_support/data_service_test_support'
 import { markdownParsingService } from '../data/markdown_parsing_service'
 
 function actionDefinition(id: string, overrides: Record<string, unknown> = {}): RawActionDefinition {
@@ -40,7 +40,7 @@ describe('ProjectLoading', () => {
     it('blocks project navigation while an invalid action draft remains unsaved', async () => {
         configService.init()
         const storage = createStorage()
-        const service = new DataService()
+        const service = createDataService()
         service.init({ storage })
         await service.projectLoading.openProject({ branch: 'main', id: 'first' })
         actionService.loadFromFiles([{
@@ -59,7 +59,7 @@ describe('ProjectLoading', () => {
     it('blocks project switching until a deleted dirty action is recovered or discarded', async () => {
         configService.init()
         const storage = createStorage()
-        const service = new DataService()
+        const service = createDataService()
         service.init({ storage })
         await service.projectLoading.openProject({ branch: 'main', id: 'first' })
         actionService.loadFromFiles([{
@@ -89,7 +89,7 @@ describe('ProjectLoading', () => {
             loadProjectConfig: vi.fn(async () => ({ backgroundShade: 'blue' as const, projectFolder: '', workingFolder: 'design' })),
             loadProjectRoot: vi.fn(async () => ({ files: rootFiles, workingFolder: 'design' })),
         })
-        const service = new DataService()
+        const service = createDataService()
         service.init({ storage })
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
@@ -109,7 +109,7 @@ describe('ProjectLoading', () => {
             loadProject: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
             loadProjectRoot: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
         })
-        const service = new DataService()
+        const service = createDataService()
         service.init({ storage })
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
@@ -120,7 +120,7 @@ describe('ProjectLoading', () => {
     it('assigns and saves a visible shade when opening a project without config', async () => {
         configService.init()
         const storage = createStorage({ loadProjectConfig: vi.fn(async () => null) })
-        const service = new DataService()
+        const service = createDataService()
         service.init({ storage })
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
@@ -135,7 +135,7 @@ describe('ProjectLoading', () => {
     it('renames card files one at a time while publishing global progress', async () => {
         configService.init()
         const storage = createStorage({loadProjectConfig: vi.fn(async () => ({ backgroundShade: 'blue' as const, cardSeparator: '-' as const, projectFolder: '', workingFolder: 'design' }))})
-        const service = new DataService()
+        const service = createDataService()
         service.init({ storage })
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
         const progressStates: Array<GlobalProgress | null> = []
@@ -171,7 +171,7 @@ describe('ProjectLoading', () => {
         configService.init()
         const configuredStates = [{ alwaysVisible: true, state: 'configured' }]
         const storage = createStorage({loadProjectConfig: vi.fn(async () => ({ backgroundShade: 'blue' as const, projectFolder: '', states: configuredStates, workingFolder: 'design' }))})
-        const service = new DataService()
+        const service = createDataService()
         service.init({ storage })
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
@@ -184,7 +184,7 @@ describe('ProjectLoading', () => {
         configService.init()
         const actionFile = { content: JSON.stringify(actionDefinition('do')), path: 'actions/do.json' }
         const storage = createStorage({ loadActionFiles: vi.fn(async () => [actionFile]) })
-        const service = new DataService()
+        const service = createDataService()
         service.init({ storage })
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
@@ -203,7 +203,7 @@ describe('ProjectLoading', () => {
                 { content: JSON.stringify({ command: 'npm test' }), path: 'actions/defaulted.json' },
             ]),
         })
-        const service = new DataService()
+        const service = createDataService()
         service.init({ storage })
 
         const snapshot = await service.projectLoading.openProject({ branch: 'main', id: 'project' })
@@ -225,14 +225,18 @@ describe('ProjectLoading', () => {
             loadProjectConfig: vi.fn(async () => ({ backgroundShade: 'invalid' as never })),
             loadProjectRoot: vi.fn(async () => ({ files: [files[0]], workingFolder: 'design' })),
         })
-        const service = new DataService()
+        const service = createDataService()
 
         try {
             service.init({ storage })
             const snapshot = await service.projectLoading.openProject({ branch: 'main', id: 'project' })
 
-            expect(snapshot.activeCards.map(({ path }) => path)).toEqual(['design/F-1-root.md'])
-            expect(actionService.getActions()).toEqual([])
+            expect(snapshot.activeCards).toEqual([])
+            expect(snapshot.backgroundCards.map(({ path }) => path)).toEqual(['design/F-1-root.md'])
+            expect(actionService.getActions().map(({ id }) => id)).toEqual([
+                'md2.custom-prompt',
+                'md2.convert-remarkable-images-to-text',
+            ])
             expect(warnings.messages.join('\n')).toContain('Project configuration could not be loaded')
             expect(warnings.messages.join('\n')).toContain('Actions could not be loaded')
         } finally {
@@ -254,7 +258,7 @@ describe('ProjectLoading', () => {
             loadProject: vi.fn(async () => ({ files: [files[0], invalidFile], workingFolder: 'design' })),
             loadProjectRoot: vi.fn(async () => ({ files: [files[0], invalidFile], workingFolder: 'design' })),
         })
-        const service = new DataService()
+        const service = createDataService()
 
         try {
             service.init({ storage })
@@ -282,7 +286,7 @@ describe('ProjectLoading', () => {
             loadProjectConfig: vi.fn(async () => ({ actionsFolder: 'actions', backgroundShade: 'blue' as const, projectFolder: 'projects/demo', workingFolder: 'design' })),
             loadProjectRoot: vi.fn(async () => ({ files: [projectFile], workingFolder: 'design' })),
         })
-        const service = new DataService()
+        const service = createDataService()
         service.init({ storage })
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
@@ -309,7 +313,7 @@ describe('ProjectLoading', () => {
             loadProject: vi.fn(async () => fullProject.promise),
             loadProjectRoot: vi.fn(async () => ({ files: rootFiles, workingFolder: 'design' })),
         })
-        const service = new DataService()
+        const service = createDataService()
         service.init({ storage })
         service.addEventListener('changed', () => {
             snapshots.push(service.getState().snapshot)
@@ -340,7 +344,7 @@ describe('ProjectLoading', () => {
             }),
             loadProjectRoot: vi.fn(async () => ({ files: [files[0]], workingFolder: 'design' })),
         })
-        const service = new DataService()
+        const service = createDataService()
         const captureError = vi.spyOn(telemetryService, 'captureError').mockImplementation(() => undefined)
 
         try {
@@ -372,7 +376,7 @@ describe('ProjectLoading', () => {
             loadProject,
             loadProjectRoot: vi.fn(async () => ({ files: [files[0]], workingFolder: 'design' })),
         })
-        const service = new DataService()
+        const service = createDataService()
         const captureError = vi.spyOn(telemetryService, 'captureError').mockImplementation(() => undefined)
 
         try {
@@ -402,7 +406,7 @@ describe('ProjectLoading', () => {
             loadProject: vi.fn(async () => ({ files: fullFiles, workingFolder: 'design' })),
             loadProjectRoot: vi.fn(async () => ({ files: rootFiles, workingFolder: 'design' })),
         })
-        const service = new DataService()
+        const service = createDataService()
 
         try {
             service.init({ storage })
@@ -442,7 +446,7 @@ describe('ProjectLoading', () => {
             loadProject: vi.fn(async () => ({ files: [...storageFiles, completeFile], workingFolder: 'design' })),
             loadProjectRoot: vi.fn(async () => ({ files: [files[0], completeFile], workingFolder: 'design' })),
         })
-        const service = new DataService()
+        const service = createDataService()
         service.init({ storage })
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
@@ -462,7 +466,7 @@ describe('ProjectLoading', () => {
                 throw new Error('commit failed')
             }),
         })
-        const service = new DataService()
+        const service = createDataService()
 
         try {
             service.init({ storage })
@@ -499,7 +503,7 @@ describe('ProjectLoading', () => {
                 return vi.fn()
             }),
         })
-        const service = new DataService()
+        const service = createDataService()
         service.init({ storage })
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
@@ -532,7 +536,7 @@ describe('ProjectLoading', () => {
                 return vi.fn()
             }),
         })
-        const service = new DataService()
+        const service = createDataService()
         service.init({ storage })
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
 
@@ -569,7 +573,7 @@ describe('ProjectLoading', () => {
                 return vi.fn()
             }),
         })
-        const service = new DataService()
+        const service = createDataService()
         service.init({ storage })
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
@@ -602,7 +606,7 @@ describe('ProjectLoading', () => {
                 return vi.fn()
             }),
         })
-        const service = new DataService()
+        const service = createDataService()
         service.init({ storage })
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
@@ -631,7 +635,7 @@ describe('ProjectLoading', () => {
                 return vi.fn()
             }),
         })
-        const service = new DataService()
+        const service = createDataService()
         service.init({ storage })
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
 
@@ -668,7 +672,7 @@ describe('ProjectLoading', () => {
                 return vi.fn()
             }),
         })
-        const service = new DataService()
+        const service = createDataService()
         service.init({ storage })
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
 
@@ -693,7 +697,7 @@ describe('ProjectLoading', () => {
                 return vi.fn()
             }),
         })
-        const service = new DataService()
+        const service = createDataService()
         service.init({ storage })
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
 
@@ -722,7 +726,7 @@ describe('ProjectLoading', () => {
                 return vi.fn()
             }),
         })
-        const service = new DataService()
+        const service = createDataService()
         service.init({ storage })
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
 
@@ -749,7 +753,7 @@ describe('ProjectLoading', () => {
                 return vi.fn()
             }),
         })
-        const service = new DataService()
+        const service = createDataService()
         service.init({ storage })
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
         watchChange({ changeKind: 'changed', path: 'design/F-1-root.md' })
@@ -776,7 +780,7 @@ describe('ProjectLoading', () => {
                 return vi.fn()
             }),
         })
-        const service = new DataService()
+        const service = createDataService()
         service.init({ storage })
         const conflicts = recordDialogMessages('error')
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })

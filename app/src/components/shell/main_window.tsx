@@ -6,6 +6,7 @@ import type { UseGithubAuthResult } from '../../auth/use_github_auth'
 import { ConfigPage } from '../config/config_page'
 import { ProjectWorkspace } from '../project_workspace'
 import { useProjectState } from '../hooks/use_project_state'
+import { useProjectPersistence } from '../hooks/use_project_persistence'
 import { useProjectSession } from '../hooks/use_project_session'
 import { useWorkspaceView } from '../hooks/use_workspace_view'
 import { createSearchRegexpAgent, isSearchRegexpAgentAvailable } from '../../services/search/search_regexp_agent'
@@ -38,7 +39,8 @@ export function MainWindow(props: MainWindowProps) {
     const theme = useTheme()
     const isMobile = useMediaQuery(theme.breakpoints.down('md'))
     const [isMenuOpen, setIsMenuOpen] = useState(false)
-    const { hasPendingPush, localSaveState, project, snapshot } = useProjectState()
+    const { project, snapshot } = useProjectState()
+    const { hasPendingPush, localSaveState } = useProjectPersistence()
     const { isPushing } = useProjectSession()
     const { viewMode } = useWorkspaceView()
     const projectConfig = useProjectConfig()

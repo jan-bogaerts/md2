@@ -19,6 +19,7 @@ import { worktreeService } from './worktree_service'
 import { planCardSeparatorMigration } from '../data/card_separator_migration'
 import { globalProgressService } from '.././global_progress_service'
 import { dialogService } from '.././dialog_service'
+import { GithubUnauthorizedError } from '../../auth/github_api_client'
 
 const ACTION_RELOAD_DEBOUNCE_MS = 150
 const JSON_EXTENSION = '.json'
@@ -85,13 +86,23 @@ function initializeMissingProjectStates(projectConfig: Partial<ProjectConfig> | 
     configService.set('project.states', mergeStatesWithDefaults(derivedStates))
 }
 
+async function loadWorktrees(project: ProjectReference) {
+    try {
+        await worktreeService.load(project)
+    } catch (error) {
+        worktreeService.clear()
+        reportOptionalProjectLoadFailure('Worktrees', error)
+    }
+}
+
 export interface ProjectLoadingDeps {
     beginProjectLoad(): number
     clearLoadedProject(): void
     commitPathsInFlight(): Set<string>
     dispatchChanged(): void
+    dispatchPersistenceChanged(): void
     files(): MarkdownFile[]
-    flushPendingCommits(): Promise<void>
+    flushPendingChanges(): Promise<void>
     isCurrentLoad(project: ProjectReference, projectLoadToken: number): boolean
     project(): ProjectReference | null
     replaceFiles(files: MarkdownFile[], workingFolder: string): void
@@ -152,7 +163,7 @@ export class ProjectLoading {
 
     async openProject(project: ProjectReference) {
         const { storage } = this.dependencies.requireDependencies()
-        await this.dependencies.flushPendingCommits()
+        await this.dependencies.flushPendingChanges()
         this.clearMarkdownReloadTimeout()
         const projectLoadToken = this.dependencies.beginProjectLoad()
         this.dependencies.resetAgentConversations()
@@ -162,7 +173,7 @@ export class ProjectLoading {
 
         try {
             const projectConfig = await this.loadProjectConfig(project)
-            await this.loadWorktrees(project)
+            await loadWorktrees(project)
             if (projectConfig === null) await this.saveMissingProjectConfig(project)
 
             const config = resolveProjectConfigPaths(configService.getProjectConfig())
@@ -202,7 +213,7 @@ export class ProjectLoading {
         if (!currentProject) throw new Error('Cannot save project config before a project is open')
 
         await storage.saveProjectConfig(currentProject, configService.getProjectConfig())
-        this.dependencies.dispatchChanged()
+        this.dependencies.dispatchPersistenceChanged()
     }
 
     async updateCardSeparator(previousSeparator: CardSeparator, nextSeparator: CardSeparator) {
@@ -212,7 +223,7 @@ export class ProjectLoading {
         const currentProject = this.dependencies.project()
         if (!currentProject) throw new Error('Cannot rename card files before a project is open')
 
-        await this.dependencies.flushPendingCommits()
+        await this.dependencies.flushPendingChanges()
         const projectFiles = await storage.loadProject(currentProject, config.projectFolder)
         const moves = planCardSeparatorMigration(projectFiles.files, previousSeparator, nextSeparator)
         if (moves.length === 0) return 0
@@ -260,7 +271,7 @@ export class ProjectLoading {
         const currentProject = this.dependencies.project()
         if (!currentProject) throw new Error('Cannot switch branch before a project is open')
 
-        await this.dependencies.flushPendingCommits()
+        await this.dependencies.flushPendingChanges()
         const project = await storage.checkoutBranch(currentProject, branch)
 
         return this.openProject(project)
@@ -272,7 +283,7 @@ export class ProjectLoading {
         if (!currentProject) throw new Error('Cannot push before a project is open')
 
         await storage.push(currentProject)
-        this.dependencies.dispatchChanged()
+        this.dependencies.dispatchPersistenceChanged()
     }
 
     async reloadCurrentProjectSnapshot() {
@@ -322,6 +333,8 @@ export class ProjectLoading {
 
             return projectConfig
         } catch (error) {
+            if (error instanceof GithubUnauthorizedError) throw error
+
             configService.loadProjectConfig(null)
             reportOptionalProjectLoadFailure('Project configuration', error)
 
@@ -337,15 +350,6 @@ export class ProjectLoading {
             await storage.saveProjectConfig(project, configService.getProjectConfig())
         } catch (error) {
             reportOptionalProjectLoadFailure('Generated project configuration', error)
-        }
-    }
-
-    private async loadWorktrees(project: ProjectReference) {
-        try {
-            await worktreeService.load(project)
-        } catch (error) {
-            worktreeService.clear()
-            reportOptionalProjectLoadFailure('Worktrees', error)
         }
     }
 
@@ -407,7 +411,7 @@ export class ProjectLoading {
         }
 
         if (config.pushMode === 'auto') await storage.push(currentProject)
-        if (config.pushMode === 'manual') this.dependencies.dispatchChanged()
+        if (config.pushMode === 'manual') this.dependencies.dispatchPersistenceChanged()
 
         reportWorkspaceNotice(importedNoticeMessage(plan.moves.length))
         telemetryService.trackEvent('external_file_import')

@@ -3,6 +3,7 @@ import type { ActionDefinition } from '../../data/action_types'
 import type { ActionExecutionEvent } from '../../data/action_run_types'
 import { setActionBridgeOverride, type ElectronActionBridge } from '../../data/electron_action_bridge'
 import { dataService } from '../data/data_service'
+import { projectPersistenceService } from '../project/project_persistence_service'
 import { actionExecutionService } from './action_execution_service'
 import { cancelElectronAction, runElectronAction } from './electron_action_runner'
 
@@ -92,9 +93,9 @@ describe('electron action runner client', () => {
         const bridge = createBridge()
         setActionBridgeOverride(bridge)
         vi.spyOn(dataService.projectLoading, 'reloadCurrentProjectSnapshot').mockResolvedValue(null)
-        const state = dataService.getState()
-        vi.spyOn(dataService, 'getState').mockReturnValue({ ...state, hasPendingSave: true })
-        const flush = vi.spyOn(dataService, 'flushPendingChanges').mockImplementation(async () => {
+        const snapshot = projectPersistenceService.getSnapshot()
+        vi.spyOn(projectPersistenceService, 'getSnapshot').mockReturnValue({ ...snapshot, hasPendingSave: true })
+        const flush = vi.spyOn(projectPersistenceService, 'flushPendingChanges').mockImplementation(async () => {
             expect(bridge.startAction).not.toHaveBeenCalled()
         })
 
@@ -107,7 +108,8 @@ describe('electron action runner client', () => {
         const bridge = createBridge()
         setActionBridgeOverride(bridge)
         vi.spyOn(dataService.projectLoading, 'reloadCurrentProjectSnapshot').mockResolvedValue(null)
-        const flush = vi.spyOn(dataService, 'flushPendingChanges').mockResolvedValue()
+        vi.spyOn(projectPersistenceService, 'getSnapshot').mockReturnValue({ hasPendingPush: false, hasPendingSave: false, localSaveState: 'saved' })
+        const flush = vi.spyOn(projectPersistenceService, 'flushPendingChanges').mockResolvedValue()
 
         await runElectronAction(action, context)
 

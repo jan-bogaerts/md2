@@ -5,9 +5,6 @@ import type { DataService, DataServiceState } from '../../services/data/data_ser
 import { useProjectState } from './use_project_state'
 
 const emptyState: DataServiceState = {
-    hasPendingPush: false,
-    hasPendingSave: false,
-    localSaveState: 'saved',
     project: null,
     runningAgents: [],
     snapshot: null,
@@ -16,9 +13,6 @@ const emptyState: DataServiceState = {
 const loadedProject: ProjectReference = { branch: 'main', id: 'project' }
 
 const loadedState: DataServiceState = {
-    hasPendingPush: false,
-    hasPendingSave: false,
-    localSaveState: 'saved',
     project: loadedProject,
     runningAgents: [],
     snapshot: { activeCards: [], backgroundCards: [], repositoryFiles: [], workingFolder: 'design' },
@@ -39,6 +33,10 @@ class TestProjectStateService extends EventTarget {
     setState(state: DataServiceState) {
         this.state = state
         this.dispatchEvent(new Event('changed'))
+    }
+
+    publishPersistenceChange() {
+        this.dispatchEvent(new Event('persistenceChanged'))
     }
 
     override addEventListener(
@@ -66,16 +64,17 @@ describe('useProjectState', () => {
         expect(result.current.project).toEqual(loadedProject)
     })
 
-    it('publishes dirty-to-saving transitions while a save remains pending', () => {
+    it('does not re-render for persistence-only events', () => {
         const service = new TestProjectStateService()
-        const { result } = renderHook(() => useProjectState(service as unknown as DataService))
-        const dirtyState = { ...emptyState, hasPendingSave: true, localSaveState: 'dirty' as const }
-        const savingState = { ...dirtyState, localSaveState: 'saving' as const }
+        let renderCount = 0
+        renderHook(() => {
+            renderCount += 1
 
-        act(() => service.setState(dirtyState))
-        expect(result.current.localSaveState).toBe('dirty')
+            return useProjectState(service as unknown as DataService)
+        })
 
-        act(() => service.setState(savingState))
-        expect(result.current.localSaveState).toBe('saving')
+        act(() => service.publishPersistenceChange())
+
+        expect(renderCount).toBe(1)
     })
 })

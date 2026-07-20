@@ -1,6 +1,6 @@
 use /caveman skill
 Read and implement the feature/job described in: 
-`design\feature_descriptions\F_059_mobile_toolbar.md`
+`design\feature_descriptions\ready\J_018_extract_project_persistence_coordinator.md`
 
 You do not need to look at the git status. This is not your concern.  The worktree is what it is, you only need to touch what is required for the above mentioned job/feature description.
 

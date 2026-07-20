@@ -1,23 +1,85 @@
+import type { ActionDefinition } from '../data/action_types'
+import type { ProjectCard, ProjectReference, ProjectSnapshot } from '../data/data_types'
+import type { ActionService } from './actions/action_service'
+import type { DataService, DataServiceState } from './data/data_service'
 import { register } from './service_injector'
 
-export interface OpenFileEventDetail {
-    path: string
+export type OpenDocumentObject = ProjectCard | ActionDefinition
+
+export interface OpenDocument extends EventTarget {
+    readonly kind: 'action' | 'card'
+    getObject(): OpenDocumentObject
+}
+
+export interface OpenDocumentEventDetail {
+    document: OpenDocument
 }
 
 export interface OpenFilesSnapshot {
-    activePath: string | null
-    paths: string[]
+    activeDocument: OpenDocument | null
+    documents: readonly OpenDocument[]
 }
 
-const EMPTY_SNAPSHOT: OpenFilesSnapshot = { activePath: null, paths: [] }
-
-function requirePath(path: string) {
-    if (!path) throw new Error('Cannot track an open file without a path')
+interface OpenFilesDependencies {
+    actionService: ActionService
+    dataService: DataService
 }
 
-/** Tracks the files open in the workspace, independent of file type or active view. */
+const EMPTY_SNAPSHOT: OpenFilesSnapshot = { activeDocument: null, documents: [] }
+
+function isProjectCard(object: OpenDocumentObject): object is ProjectCard {
+    return 'header' in object
+}
+
+function requireDocumentIdentity(object: OpenDocumentObject) {
+    if (!isProjectCard(object)) return object.id
+    if (!object.header.internalId) throw new Error(`Cannot open card without an internal ID: ${object.path}`)
+
+    return object.header.internalId
+}
+
+function projectKey(project: ProjectReference | null) {
+    return project ? `${project.id}:${project.branch}` : null
+}
+
+function snapshotObjects(snapshot: ProjectSnapshot | null, actions: ActionDefinition[]) {
+    return [...(snapshot?.activeCards ?? []), ...(snapshot?.backgroundCards ?? []), ...actions]
+}
+
+class ManagedOpenDocument extends EventTarget implements OpenDocument {
+    readonly kind: 'action' | 'card'
+    readonly identity: string
+    private object: OpenDocumentObject
+
+    constructor(object: OpenDocumentObject) {
+        super()
+        this.kind = isProjectCard(object) ? 'card' : 'action'
+        this.identity = requireDocumentIdentity(object)
+        this.object = object
+    }
+
+    getObject() {
+        return this.object
+    }
+
+    renew(object: OpenDocumentObject) {
+        if (this.kind !== (isProjectCard(object) ? 'card' : 'action') || this.identity !== requireDocumentIdentity(object)) {
+            throw new Error(`Cannot renew open ${this.kind} document with a different object`)
+        }
+        if (this.object === object) return
+
+        const previousObject = this.object
+        this.object = object
+        this.dispatchEvent(new CustomEvent('changed', { detail: { object, previousObject } }))
+    }
+}
+
+/** Tracks stable domain-document wrappers for list tabs. */
 export class OpenFilesService extends EventTarget {
-    private projectKey: string | null = null
+    private actionService: ActionService | null = null
+    private dataService: DataService | null = null
+    private initialized = false
+    private loadedProjectKey: string | null = null
     private snapshot = EMPTY_SNAPSHOT
 
     constructor() {
@@ -25,90 +87,127 @@ export class OpenFilesService extends EventTarget {
         register('openFilesService', this)
     }
 
+    init(dependencies: OpenFilesDependencies) {
+        if (this.initialized) return
+
+        this.actionService = dependencies.actionService
+        this.dataService = dependencies.dataService
+        this.actionService.addEventListener('changed', this.handleActionChanged)
+        this.dataService.addEventListener('changed', this.handleDataChanged)
+        this.initialized = true
+        this.reconcile()
+    }
+
     getSnapshot(): OpenFilesSnapshot {
         return this.snapshot
     }
 
-    openFile(path: string) {
-        requirePath(path)
-        if (this.snapshot.paths.includes(path)) {
-            this.update({ ...this.snapshot, activePath: path })
+    openDocument(object: OpenDocumentObject): OpenDocument {
+        const existing = this.findOpenDocument(object)
+        if (existing) {
+            existing.renew(object)
+            this.activateDocument(existing)
 
-            return
+            return existing
         }
 
-        this.update({ activePath: path, paths: [...this.snapshot.paths, path] })
-        this.dispatchFileEvent('added', path)
+        const document = new ManagedOpenDocument(object)
+        this.update({ activeDocument: document, documents: [...this.snapshot.documents, document] })
+        this.dispatchDocumentEvent('added', document)
+
+        return document
     }
 
-    activateFile(path: string) {
-        requirePath(path)
-        if (!this.snapshot.paths.includes(path)) return
+    activateDocument(document: OpenDocument) {
+        if (!this.snapshot.documents.includes(document) || this.snapshot.activeDocument === document) return
 
-        this.update({ ...this.snapshot, activePath: path })
+        this.update({ ...this.snapshot, activeDocument: document })
     }
 
-    closeFile(path: string) {
-        requirePath(path)
-        const index = this.snapshot.paths.indexOf(path)
+    closeDocument(document: OpenDocument) {
+        const index = this.snapshot.documents.indexOf(document)
         if (index === -1) return
 
-        const paths = this.snapshot.paths.filter((openPath) => openPath !== path)
-        const activePath = this.snapshot.activePath === path
-            ? paths[index] ?? paths[index - 1] ?? null
-            : this.snapshot.activePath
-        this.update({ activePath, paths })
-        this.dispatchFileEvent('removed', path)
-    }
-
-    replaceFilePath(fromPath: string, toPath: string) {
-        requirePath(fromPath)
-        requirePath(toPath)
-        const index = this.snapshot.paths.indexOf(fromPath)
-        if (index === -1 || fromPath === toPath) return
-        if (this.snapshot.paths.includes(toPath)) throw new Error(`Cannot replace open file path with existing path: ${toPath}`)
-
-        const paths = this.snapshot.paths.map((path) => path === fromPath ? toPath : path)
-        const activePath = this.snapshot.activePath === fromPath ? toPath : this.snapshot.activePath
-        this.update({ activePath, paths })
-        this.dispatchFileEvent('removed', fromPath)
-        this.dispatchFileEvent('added', toPath)
-    }
-
-    retainAvailableFiles(availablePaths: string[]) {
-        const availablePathSet = new Set(availablePaths)
-        const paths = this.snapshot.paths.filter((path) => availablePathSet.has(path))
-        if (paths.length === this.snapshot.paths.length) return
-
-        const removedPaths = this.snapshot.paths.filter((path) => !availablePathSet.has(path))
-        const activePath = this.snapshot.activePath && paths.includes(this.snapshot.activePath)
-            ? this.snapshot.activePath
-            : paths[0] ?? null
-        this.update({ activePath, paths })
-        for (const path of removedPaths) this.dispatchFileEvent('removed', path)
-    }
-
-    syncProject(projectKey: string | null) {
-        if (this.projectKey === projectKey) return
-
-        this.projectKey = projectKey
-        this.clear()
+        const documents = this.snapshot.documents.filter((candidate) => candidate !== document)
+        const activeDocument = this.snapshot.activeDocument === document
+            ? documents[index] ?? documents[index - 1] ?? null
+            : this.snapshot.activeDocument
+        this.update({ activeDocument, documents })
+        this.dispatchDocumentEvent('removed', document)
     }
 
     clear() {
-        if (this.snapshot.paths.length === 0) return
+        if (this.snapshot.documents.length === 0) return
 
-        const removedPaths = this.snapshot.paths
+        const removedDocuments = this.snapshot.documents
         this.update(EMPTY_SNAPSHOT)
-        for (const path of removedPaths) this.dispatchFileEvent('removed', path)
+        for (const document of removedDocuments) this.dispatchDocumentEvent('removed', document)
     }
 
-    private dispatchFileEvent(name: 'added' | 'removed', path: string) {
-        this.dispatchEvent(new CustomEvent<OpenFileEventDetail>(name, { detail: { path } }))
+    private readonly handleActionChanged = () => this.reconcile()
+    private readonly handleDataChanged = (event: Event) => {
+        const { project } = (event as CustomEvent<DataServiceState>).detail
+        const nextProjectKey = projectKey(project)
+        if (nextProjectKey !== this.loadedProjectKey) {
+            this.loadedProjectKey = nextProjectKey
+            this.clear()
+        }
+        this.reconcile()
+    }
+
+    private reconcile() {
+        if (!this.actionService || !this.dataService) throw new Error('Open files service is not initialized')
+
+        const { project, snapshot } = this.dataService.getState()
+        const nextProjectKey = projectKey(project)
+        if (nextProjectKey !== this.loadedProjectKey) {
+            this.loadedProjectKey = nextProjectKey
+            this.clear()
+        }
+        const actions = [...this.actionService.getActions(), ...this.actionService.getDeletedDraftActions()]
+        const objects = snapshotObjects(snapshot, actions)
+        const objectsByKey = new Map(objects.map((object) => [this.objectKey(object), object]))
+        const removedDocuments: OpenDocument[] = []
+        const documents = this.snapshot.documents.filter((document) => {
+            const object = objectsByKey.get(this.documentKey(document))
+            if (!object) {
+                removedDocuments.push(document)
+                return false
+            }
+            ;(document as ManagedOpenDocument).renew(object)
+            return true
+        })
+        if (removedDocuments.length === 0) return
+
+        const activeDocument = this.snapshot.activeDocument && documents.includes(this.snapshot.activeDocument)
+            ? this.snapshot.activeDocument
+            : documents[0] ?? null
+        this.update({ activeDocument, documents })
+        for (const document of removedDocuments) this.dispatchDocumentEvent('removed', document)
+    }
+
+    private findOpenDocument(object: OpenDocumentObject) {
+        const key = this.objectKey(object)
+
+        return this.snapshot.documents.find((document) => this.documentKey(document) === key) as ManagedOpenDocument | undefined
+    }
+
+    private objectKey(object: OpenDocumentObject) {
+        const kind = isProjectCard(object) ? 'card' : 'action'
+
+        return `${kind}:${requireDocumentIdentity(object)}`
+    }
+
+    private documentKey(document: OpenDocument) {
+        return `${document.kind}:${(document as ManagedOpenDocument).identity}`
+    }
+
+    private dispatchDocumentEvent(name: 'added' | 'removed', document: OpenDocument) {
+        this.dispatchEvent(new CustomEvent<OpenDocumentEventDetail>(name, { detail: { document } }))
     }
 
     private update(snapshot: OpenFilesSnapshot) {
-        if (snapshot.activePath === this.snapshot.activePath && snapshot.paths === this.snapshot.paths) return
+        if (snapshot.activeDocument === this.snapshot.activeDocument && snapshot.documents === this.snapshot.documents) return
 
         this.snapshot = snapshot
         this.dispatchEvent(new CustomEvent<OpenFilesSnapshot>('changed', { detail: snapshot }))

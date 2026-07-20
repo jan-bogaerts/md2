@@ -5,12 +5,17 @@ status: design
 owner: JB
 affects:
   - shared/log_paths.mjs
+  - app/src/data/action_context.ts
+  - app/src/data/electron_action_bridge.ts
+  - desktop/src/actions/action_execution.js
   - desktop/src/actions/action_files.js
+  - desktop/src/actions/agent_conversation_persistence.js
+  - desktop/src/actions/agent_runner_service.js
   - desktop/src/actions/project_log_paths.js
   - desktop/src/git/diff_service.js
+  - desktop/src/git/worktree_service.js
   - desktop/src/shell/local_bridge_dispatch.js
   - desktop/src/shell/preload.js
-  - app/src/data/electron_action_bridge.ts
   - app/src/services/data/remote_control_storage_service.ts
   - app/src/services/data/diff_service.ts
   - app/src/services/actions/card_commit_history.ts
@@ -28,110 +33,152 @@ policy:
 
 ## Goal
 
-From a card, let the user see what agent runs actually changed. The card details popup (and the same card opened in file mode) gets a diff icon that lists every commit produced by any action run on that card; picking one shows the card's own body diff in place of the editor and gives access to the other files the commit touched.
+From a card, show every Git commit produced by a root action run started on that card. Selecting a commit shows the card body diff in place of the editor and gives access to other files changed by the commit.
 
 ## Source note
 
 `design/architecture/initial description/card_dif.md`:
 
-> Card popup shows diff icon when commits available
-> - all commits done during agent run, done on the card.
-> - when clicked, shows context menu with all available commits. use action + date & time (short) as menu item labels.
-> - markdown editor component should already support showing diffs, we also have react-diff-viewer-continued.
+> Card popup shows diff icon when commits available. All commits done during agent run, done on the card. When clicked, shows context menu with all available commits, labeled `action + date & time (short)`. Markdown editor should already support showing diffs; we also have react-diff-viewer-continued.
 
 ## Current state
 
-F_055/F_056 already produce and persist the data this feature needs:
+F_055/F_056 collect `CommitReference[]` for one root action chain, including commits from linked `onBefore`/`on`/`onAfter` actions. Current persistence is unsuitable for card history:
 
-- One action run persists an `ActionRunHistoryEntry` with `commits: CommitReference[]` (root-owned, chain order) into `<projectFolder>/logs/history__card__<scope>__<actionId>.json`, named by `historyLogFileName` ([shared/log_paths.mjs](../../../shared/log_paths.mjs)). `<scope>` is derived from the card's `context.file`, so **all** action history for one card shares a filename prefix.
-- `CommitReference` carries `actionId`, `actionName`, `branch`, `commit`, `committedAt`, `repositoryRoot`, `filePaths`, and the insertion/deletion/file counts.
-- `generateDiff(commitReference)` ([app/src/services/data/diff_service.ts](../../../app/src/services/data/diff_service.ts)) renders a commit through the configured `project.diffCommand` template (default `git show {{commit}}`) and returns normalized `DiffFile[]`; `DiffView` renders it with `react-diff-viewer-continued` and opens VS Code on a line click.
-- The **action** popup already has this shape for a single action: `ActionCommitDropdown` → `CommitReferenceRow` → `DiffView`.
-- `loadActionRunHistory` only reads one `(actionId, context)` pair. There is no way to ask for "everything that happened to this card", and no way to read a file's content at a given commit.
-- The card popup ([card_body_popover.tsx](../../../app/src/components/card_view/card_body_editor.tsx)) has no commit affordance. The markdown editor does not currently register MDXEditor's `diffSourcePlugin`.
+- action history is split into path-derived, per-action files under the ignored `logs` folder — unstable identity (collides after moves/normalization) and stored per-worktree instead of one project-owned location;
+- conversation files are persisted before execution and rewritten ~every 250 ms, even though live rendering uses in-memory events;
+- `ActionContext` has the card path but not its stable `header.internalId`;
+- `generateDiff(commitReference)` renders via `project.diffCommand`, and `DiffView` already renders whole-commit diffs;
+- card popup and file-mode toolbar have no card commit control;
+- the markdown editor doesn't register MDXEditor's `diffSourcePlugin`.
 
-## Behavior
+No existing project data or compatibility migration must be supported.
 
-### Commit collection
+## Project activity storage
 
-- A card's commit list is the union of `commits[]` from **every** `history__card__<scope>__*.json` file whose `<scope>` matches the card's context — i.e. every action ever run on that card, including actions that were since renamed, deleted, or no longer match the card's `appliesTo`.
-- Deduplicate by `repositoryRoot` + `commit`. Sort newest `committedAt` first. Cap at 50; older commits are dropped, not paged.
-- Legacy singular `commit` records are not read (F_056 decision, 2026-07-17).
-- The list is scoped to the card, not to the file the commit touched: a commit made by a run on this card is listed even if it never touched the card's own markdown file.
+Activity is project data and must be committed so every collaborator can see it. Replace ignored `logs` persistence with tracked files in the **primary checkout**:
 
-### Icon and menu
+- card activity: `<projectFolder>/activity/card__<cardInternalId>.json`;
+- project-origin activity: `<projectFolder>/activity/project.json` (no card id).
 
-- A commit icon (`SourceCommit`, matching `ActionCommitDropdown`) sits in the **card popup header bar**, between the Dirty/Saved indicator and the Close button. The same control appears in **file mode** (`text_view`) as an end control in `ListEditorToolbarControls`, next to Agents/Properties, for card documents only.
-- The icon is hidden when the card has no commits. It shows a count badge when there is more than one.
-- Clicking opens a menu listing each commit, newest first, labelled **`<actionName> · <short date & time>`** using the user's locale (`dateStyle: 'short', timeStyle: 'short'`). The short hash and `+insertions/−deletions` are shown as dimmed secondary text on the row; the full hash is the row's `title`.
-- The menu re-reads its data when an action execution for this card completes, so a run finishing while the popup is open adds its commits without reopening.
+One card file owns all action-run and conversation activity for that card, filed by `header.internalId` — never path, title, display id, or normalized path prefix.
 
-### Picking a commit
+The renderer adds `cardInternalId` to every card/file `ActionContext`; a card-origin execution without it fails before starting. The root execution snapshots its origin once; child actions inherit it even in another worktree.
 
-Selecting a commit enters **diff mode** for that card surface:
+Each completed root execution appends one `ActionActivityRecord` with at least:
 
-- The card body editor is replaced in place by a read-only diff of the card's markdown **body** (frontmatter/header block excluded, matching what the editor normally renders), rendered with MDXEditor's `diffSourcePlugin` in `viewMode: 'diff'`.
-- The diff is **commit vs its first parent**: old side = card file at `<commit>^`, new side = card file at `<commit>`. It shows what that run changed, not what changed since.
-- A header strip above the diff shows the action name, full timestamp, short hash, and an **Exit diff** control returning to the live editor. `Escape` and closing the popup also exit diff mode.
-- If the commit did not touch the card's own file, the editor is not switched; the menu row goes straight to the other-files list.
-- Below the diff, an **"Also changed (n)"** row lists the commit's other `filePaths`. Clicking one opens the existing `DiffView` in a popover for the whole commit, scrolled to that file, with its existing click-a-line-to-open-VS-Code behaviour.
+- `executionId`, start/completion timestamps, terminal status;
+- root action `id` and snapshotted `label`;
+- origin kind and, for card origin, `cardInternalId`;
+- all commit references from the root and child actions, in execution order;
+- conversation ids created by that execution.
 
-### Availability
+Each commit reference keeps full hash, timestamp, source branch, changed paths/counts, and performer action id/label when different from the root action — never a filesystem path for card ownership. Absolute `repositoryRoot` paths are machine-local and must not be required in tracked activity data.
 
-- The feature requires an execution bridge (`getElectronActionBridge()`), which is satisfied both by Electron local mode and by a remote-control connection — `generateDiff`, `openInEditor`, and the new methods are all proxied by `remote_control_storage_service`. The icon is hidden when there is no bridge (GitHub-only mode in a plain browser).
-- `openInEditor` opens VS Code on the **desktop** host; that is accepted behaviour when triggered from a remote client.
+All reads/writes use the primary project root, even for actions executed in a linked worktree. A project-scoped activity writer serializes read-modify-write, writes atomically, then commits only the changed activity file via `commitTrackedPaths` — after action commit collection, and not itself added to the activity record.
 
-## Implementation notes
+## Conversation persistence
 
-### New bridge methods
+Running conversations stay in `AgentRunnerService` memory; structured events keep streaming directly to the live UI.
 
-Both are action-bridge methods (add to `ACTION_METHODS` in [preload.js](../../../desktop/src/shell/preload.js), to `local_bridge_dispatch.js`, to `ElectronActionBridge`, and to `remote_control_storage_service.ts`):
+Write the conversation to its activity file once, when the turn reaches `completed`, `failed`, or `cancelled` — finishing the atomic write before the terminal `closed` event publishes. Remove initial and throttled intermediate writes.
 
-- `loadCardCommitHistory({ context, projectFolder }): Promise<CommitReference[]>` — desktop-side, in `action_files.js`. Computes the card's scope value with a new exported helper in `shared/log_paths.mjs` (extract the `history__card__<scope>__` prefix construction out of `historyLogFileName` so both sides use one implementation), lists the project log folder, reads every matching file, normalizes with the existing `normalizeActionHistoryEntry`/`isUsableCommitReference` guards, then flattens, dedupes, sorts, and caps. Unreadable or malformed files are skipped, not fatal.
-- `readFileAtCommit({ repositoryRoot, commit, path, parent }): Promise<{ content: string, exists: boolean }>` — in `desktop/src/git/diff_service.js`. Runs `git show <commit>[^]:<path>` with `cwd: repositoryRoot`. A missing path at that revision (file added by the commit, or a root commit with no parent) returns `{ content: '', exists: false }` rather than throwing. `path` must pass `ensureInsideRoot`.
+A hard crash may lose the unfinished turn; completed/failed/cancelled turns remain persisted. Continuation only reads terminally persisted conversations; concurrent turns for one conversation stay forbidden.
 
-`CommitReference.filePaths` and `path` are relative to `CommitReference.repositoryRoot`, which may be a worktree, not the project root. Resolve the card's file path against `repositoryRoot` before comparing or reading — do not assume it equals the project root.
+## Commit visibility
 
-### Renderer
+Commits made in a linked worktree are visible through the primary checkout (shared Git object database), so diff commands run from the primary repository root with the stored hash.
 
-- `app/src/services/actions/card_commit_history.ts` — thin loader over the bridge; returns `[]` when no bridge is present. Keep the dedupe/sort/cap assertions covered by tests here too, so the renderer does not trust bridge ordering.
-- `app/src/components/hooks/use_card_commits.ts` — loads for a card path, resubscribes on action-execution completion for that file (same source as `useRunningActionForFile`), cancels on unmount/card change via the existing `isActive` pattern.
-- Diff mode renders a **separate, read-only `MarkdownEditor` instance** rather than switching the live editor's content. The live editor stays mounted-or-remounted with the card's real body so the autosave/dirty pipeline and `markdown_document_history_store` never see historical content. This is deliberate: feeding old content into the live editor would make the commit batcher persist it.
-- Body extraction on both sides uses `markdownParsingService.parse(content).body`, so a commit that only changed frontmatter produces an empty diff — show "No body changes in this commit" and the "Also changed" list.
-- Card and file-mode surfaces share one `CardCommitMenu` + `CardCommitDiffPanel` pair; only the toolbar host differs.
-- The existing `generateDiff` passes `filePaths[0]` as the template's `{{file}}`; the default template ignores it. Leave that untouched — the "Also changed" popover wants the whole-commit diff.
+For each stored commit:
+
+- show it when reachable from primary branch HEAD;
+- before merge, also show it when its source branch belongs to a currently valid, registered worktree and the commit is reachable from that branch;
+- once its worktree is no longer valid/registered and it's unreachable from primary HEAD, treat it as discarded and hide it (record stays in activity);
+
+Supports the app's normal full-branch merge flow only — no inference across patches, rebases, squash merges, or cherry-picks. Ancestry is used solely to tell merged worktree commits from discarded ones after the worktree disappears.
+
+Visibility is re-evaluated on activity load and after project/worktree state changes. A visible hash whose Git object is unavailable locally keeps its row and reports unavailability on selection.
+
+## Commit menu
+
+- `SourceCommit` icon in the card popup header, between Dirty/Saved and Close; same control in `ListEditorToolbarControls` beside Agents/Properties for file-mode cards.
+- Hidden when no visible commits exist; count badge when more than one.
+- Newest first across activity records, labeled `<root action label> · <short date & time>` (user locale).
+- Secondary text: short hash and `+insertions/−deletions`; full hash as row `title`.
+- Reloads after an action execution for this `cardInternalId` completes, and after worktree/project state changes.
+- All records persist; no exact UI cap required — a reasonable display limit (e.g. 50) may be applied for performance, with older entries stated as hidden. Paging not required.
+
+## Picking a commit
+
+Selecting a commit enters diff mode on that card surface:
+
+- compares the card file at `<commit>^` vs `<commit>`, each run through `markdownParsingService.parse(content).body` so frontmatter is excluded;
+- replaces the live editor visually with a separate read-only `MarkdownEditor` (`diffSourcePlugin`, `viewMode: 'diff'`) — historical content never enters the live editor or its autosave/dirty/history services;
+- shows root action label, full timestamp, short hash, and an **Exit diff** control above the diff;
+- first `Escape` exits diff mode and keeps the popup open; a second `Escape` closes the popup; closing the popup also clears diff mode.
+
+If the commit didn't touch the card's current file path, skip body diff mode and open the other-files list directly (card rename tracking out of scope).
+
+Below the body diff, an **Also changed (n)** row lists other changed paths; selecting one opens existing `DiffView` for the whole commit, scrolled to that file, with existing `openInEditor` line-click behavior.
+
+## Bridge and renderer changes
+
+Add action-bridge methods through preload, local dispatch, `ElectronActionBridge`, and remote-control proxy:
+
+- `loadCardActivity({ cardInternalId }): Promise<CardActivityFile>` — reads the primary checkout activity file, validates it, filters commit visibility, returns activity for that card identity;
+- `readFileAtCommit({ commit, path, parent }): Promise<{ content: string, exists: boolean }>` — runs `git show <commit>[^]:<path>` from the primary repository root; missing paths, and a missing parent for a root commit, return `{ content: '', exists: false }`.
+
+Git paths are repository-relative and pass existing root/path validation. Malformed activity is a visible load error, not silently treated as empty history.
+
+Renderer responsibilities:
+
+- `card_commit_history.ts` loads/validates card activity; no execution bridge means no commits;
+- `use_card_commits.ts` keys requests by `cardInternalId`, refreshes on matching root execution completion and worktree/project changes, discards stale async results after card change/unmount;
+- card popup and file mode share `CardCommitMenu`/`CardCommitDiffPanel`, each with independent diff selection state;
+- historical diff uses a separate read-only editor instance; whether the live editor stays mounted is an implementation detail, but historical content must never enter live editor state or persistence pipelines.
 
 ## Edge cases
 
-- Card has runs but no commits → icon hidden.
-- Commit exists in history but the object is gone from git (worktree pruned, branch deleted, history rewritten): the row still lists, selecting it shows "Commit is no longer available in the repository" and offers no diff.
-- Card file was renamed after the commit: `readFileAtCommit` for the current path returns `exists: false` on both sides → treat as "commit did not touch this card's file" and show only the other-files list. Rename following is out of scope.
-- Root commit (no parent) → old side is empty; the whole body renders as added.
-- Binary or very large files in "Also changed" are handled by the existing `DiffView`/`parseUnifiedDiff` behaviour; this feature adds no new handling.
-- More than 50 commits: only the newest 50 are listed, and the menu footer states that older commits are not shown.
-- Card deleted or popup closed while a diff is loading: the in-flight load is discarded.
-- Two cards open in file mode: each tab keeps its own independent diff-mode state.
-- Commits recorded against a worktree that has since been removed: `repositoryRoot` no longer exists → same "no longer available" message.
+- No commits from a root run: activity still records the run/conversation; icon stays hidden.
+- Linked actions commit on different worktree branches: one root activity record, visibility evaluated per commit.
+- Worktree commit before merge: visible while worktree valid/registered.
+- Worktree removed after full merge: stays visible (reachable from primary HEAD).
+- Worktree removed without merge: hidden but retained in activity.
+- Commit object unavailable locally: row stays if otherwise visible; selecting shows `Commit is no longer available in this repository`.
+- Root commit: old body empty, new body renders as added.
+- Frontmatter-only commit: show `No body changes in this commit`, then other changed files.
+- Card renamed after commit: current path may not exist at either revision; show only other changed files.
+- Card deleted or surface closed while loading: discard result.
+- Two local executions update one card: writer serializes writes, keeps separate `executionId` records.
+- Two collaborators edit the same tracked activity file on different branches: normal Git conflict handling applies.
 
 ## Acceptance criteria
 
-- A card with commits from two different actions shows one icon whose menu lists both, newest first, labelled with action name and short local date/time.
-- A card with no commits, or a session with no execution bridge, shows no icon.
-- Selecting a commit that touched the card replaces the editor with a read-only body diff of `<commit>^` → `<commit>`; exiting restores the live editor with the card's current body and no dirty state, and no commit is written as a result of entering or leaving diff mode.
-- Selecting a commit that did not touch the card's file shows the "Also changed" list without switching the editor.
-- Clicking a file in "Also changed" opens the existing `DiffView` for that commit, and clicking a line opens VS Code.
-- The same icon, menu, and diff behaviour work in file mode.
-- A run completing while the popup is open adds its commits to the menu without reopening the popup.
-- Commits produced by an action that was since deleted from the actions folder still appear.
-- The same feature works over a remote-control connection.
-- Tests cover: multi-action aggregation and dedupe, ordering and the 50 cap, malformed/unreadable history files, scope matching for the card path, `readFileAtCommit` for added/missing/root-commit cases, worktree-relative path resolution, diff-mode enter/exit leaving the live editor and autosave untouched, frontmatter-only commits, missing-commit rendering, and both toolbar hosts.
+- Activity stored once per card under tracked `<projectFolder>/activity`, keyed by `cardInternalId`, written in the primary checkout regardless of execution worktree.
+- One root execution creates one activity record with commits from root + all child actions, plus root action id/label and card identity.
+- No path-prefix aggregation or path-derived card ownership remains.
+- Conversation turns write once at terminal completion/failure/cancellation; live UI keeps streaming from memory.
+- A card with commits from two root executions shows one icon, newest first.
+- Unmerged commits from valid registered worktrees are viewable before merge; remain visible after full merge; hidden if worktree removed unmerged.
+- Selecting a commit that touched the card shows a read-only body diff (first parent vs. commit) without changing dirty/autosave/history state.
+- First `Escape` exits diff mode keeping popup open; second `Escape` closes popup.
+- Selecting a commit that didn't touch the current card path opens other changed files without entering body diff mode.
+- Other-file diff and VS Code line opening work locally and through remote control.
+- Same menu/diff behavior in card popup and file mode.
+- Missing bridge hides icon; malformed activity reports a visible error.
+- Tests cover: stable-id storage, root/child aggregation, serialized atomic writes, single terminal conversation write, primary/worktree visibility, discarded worktree hiding, full-merge retention, missing commit, root commit, frontmatter-only diff, Escape order, both toolbar hosts, remote proxy, no live-editor persistence side effects.
+
+## Documentation impact
+
+Update F_050/F_012 conversation persistence wording and F_056 history ownership/storage wording. No migration or legacy schema support required.
 
 ## See also
 
 - `design/architecture/initial description/card_dif.md`
 - `design/feature_descriptions/F_055_agent_file_change_tracking.md`
 - `design/feature_descriptions/F_056_root_action_commit_history.md`
+- `design/feature_descriptions/ready/F_050_one_shot_agent_conversations.md`
 - `app/src/components/actions/action_commit_dropdown.tsx`
 - `app/src/components/actions/diff_view.tsx`
 - `desktop/src/git/diff_service.js`
-- `shared/log_paths.mjs`
+- `desktop/src/git/worktree_service.js`

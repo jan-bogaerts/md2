@@ -128,12 +128,12 @@ describe('App', () => {
 
         render(<App />)
 
-        expect(await screen.findByText('Could not restore last project: repository folder moved')).toBeInTheDocument()
+        expect(await screen.findByText('repository folder moved')).toBeInTheDocument()
         expect(screen.getByRole('heading', { name: 'No project open' })).toBeInTheDocument()
 
         fireEvent.click(screen.getByRole('button', { name: 'Close' }))
 
-        expect(screen.queryByText('Could not restore last project: repository folder moved')).toBeNull()
+        expect(screen.queryByText('repository folder moved')).toBeNull()
     })
 
     it('does not show a restore error when no previous project exists', async () => {

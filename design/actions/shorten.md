@@ -1,1 +1,1 @@
- `design\architecture\data_saving_and_commits.md` is too verbose. make it more digestible, shorten it without loosing any detail.
+ `design\feature_descriptions\ready\F_060_card_commit_diff_viewer.md` is too verbose. make it more digestible, shorten it without loosing any detail.

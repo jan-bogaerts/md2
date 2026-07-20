@@ -5,7 +5,9 @@ import type { UseGithubAuthResult } from '../../auth/use_github_auth'
 import type { ElectronActionBridge } from '../../data/electron_action_bridge'
 import type { MarkdownFile, StorageService } from '../../data/data_types'
 import { configService } from '../../services/config/config_service'
+import { actionService } from '../../services/actions/action_service'
 import { dataService } from '../../services/data/data_service'
+import { projectPersistenceService } from '../../services/project/project_persistence_service'
 import * as searchRegexpAgent from '../../services/search/search_regexp_agent'
 import { workspaceViewService } from '../../services/project/workspace_view_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
@@ -85,6 +87,7 @@ async function openProjectWithCards() {
         { content: '---\nid: F-1\ntitle: Root\nstatus: active\naffects:\n---\n\n# Root', path: 'design/F-1-root.md' },
         { content: '# Old', path: 'design/history/F-2-old.md' },
     ]
+    projectPersistenceService.init({ actionService, dataService })
     dataService.init({ storage: createStorage(files) })
     await dataService.projectLoading.openProject({ branch: 'main', id: 'project' })
 }
@@ -110,6 +113,7 @@ function mockMatchMedia(matches: boolean) {
 describe('MainWindow', () => {
     beforeEach(() => {
         configService.init({ desktopConfig: null })
+        projectPersistenceService.init({ actionService, dataService })
         dataService.init({ storage: createStorage() })
     })
 

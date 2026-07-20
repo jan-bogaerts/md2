@@ -1,12 +1,13 @@
-﻿import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { GithubUnauthorizedError } from '../../auth/github_api_client'
 import { configService } from '../config/config_service'
 import { actionService } from '../actions/action_service'
-import { DataService, type LocalSaveState } from './data_service'
+import { projectPersistenceService } from '../project/project_persistence_service'
 import { GithubStorageService } from '../github/github_storage_service'
 import { openFilesService } from '.././open_files_service'
 import {
     createDeferred,
+    createDataService,
     createGithubRawResponse,
     createGithubResponse,
     createGithubStatusResponse,
@@ -19,6 +20,7 @@ describe('DataService', () => {
     afterEach(() => {
         vi.useRealTimers()
         delete window.md2Actions
+        actionService.clear()
         configService.clear()
         openFilesService.clear()
     })
@@ -32,54 +34,71 @@ describe('DataService', () => {
             fetchImplementation: vi.fn().mockResolvedValue(createGithubStatusResponse(401)),
             onUnauthorized: handleUnauthorized,
         })
-        const service = new DataService()
+        const service = createDataService()
         service.init({ storage: githubStorage })
 
         await expect(service.projectLoading.openProject(githubProject)).rejects.toBeInstanceOf(GithubUnauthorizedError)
         expect(handleUnauthorized).toHaveBeenCalledTimes(1)
     })
 
-    it('distinguishes queued dirty changes from active saving', async () => {
+    it('does not emit project-data changes for queued or active persistence transitions', async () => {
         vi.useFakeTimers()
         configService.init()
         const commit = createDeferred<never[]>()
         const storage = createStorage({ commit: vi.fn(() => commit.promise) })
-        const service = new DataService()
+        const service = createDataService()
         service.init({ storage })
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
-        const saveStates: LocalSaveState[] = []
-        service.addEventListener('changed', () => saveStates.push(service.getState().localSaveState))
+        await vi.advanceTimersByTimeAsync(0)
+        const dataChanged = vi.fn()
+        service.addEventListener('changed', dataChanged)
 
         await service.persistActionFile({ content: '{}', path: 'actions/review.json' })
-        expect(service.getState().hasPendingSave).toBe(true)
-        expect(service.getState().localSaveState).toBe('dirty')
+        expect(projectPersistenceService.getSnapshot().hasPendingSave).toBe(true)
         expect(storage.commit).not.toHaveBeenCalled()
 
-        const flush = service.flushPendingChanges()
+        const flush = projectPersistenceService.flushPendingChanges()
         await vi.waitFor(() => expect(storage.commit).toHaveBeenCalledTimes(1))
-        expect(service.getState().localSaveState).toBe('saving')
 
         commit.resolve([])
         await flush
-        expect(service.getState().hasPendingSave).toBe(false)
-        expect(service.getState().localSaveState).toBe('saved')
-        expect(saveStates).toContain('dirty')
-        expect(saveStates).toContain('saving')
-        expect(saveStates.at(-1)).toBe('saved')
+        expect(projectPersistenceService.getSnapshot().hasPendingSave).toBe(false)
+        expect(dataChanged).not.toHaveBeenCalled()
+    })
+
+    it('does not forward action-only editor changes through DataService or persistence state', async () => {
+        configService.init()
+        const service = createDataService()
+        service.init({ storage: createStorage() })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        actionService.loadFromFiles([{
+            content: JSON.stringify({ command: 'npm test', description: 'Run tests', id: 'test', label: 'Test', type: 'command' }),
+            path: 'actions/test.json',
+        }])
+        const dataChanged = vi.fn()
+        const persistenceChanged = vi.fn()
+        service.addEventListener('changed', dataChanged)
+        projectPersistenceService.addEventListener('changed', persistenceChanged)
+
+        actionService.setActionEditorState('actions/test.json', { phrases: [], selectedTab: 'settings' })
+
+        expect(dataChanged).not.toHaveBeenCalled()
+        expect(persistenceChanged).not.toHaveBeenCalled()
+        projectPersistenceService.removeEventListener('changed', persistenceChanged)
     })
 
     it('discards queued action persistence before lifecycle flushing', async () => {
         vi.useFakeTimers()
         configService.init()
         const storage = createStorage()
-        const service = new DataService()
+        const service = createDataService()
         service.init({ storage })
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
         await service.persistActionFile({ content: '{"label":"Draft"}', path: 'actions/review.json' })
 
         expect(service.hasPendingActionFile('actions/review.json')).toBe(true)
         service.discardPendingActionFile('actions/review.json')
-        await service.flushPendingChanges()
+        await projectPersistenceService.flushPendingChanges()
         await vi.advanceTimersByTimeAsync(30000)
 
         expect(service.hasPendingActionFile('actions/review.json')).toBe(false)
@@ -91,7 +110,7 @@ describe('DataService', () => {
         configService.init()
         configService.set('react.autoCommitDelayMs', 2000)
         const storage = createStorage()
-        const service = new DataService()
+        const service = createDataService()
         service.init({ storage })
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
         actionService.loadFromFiles([
@@ -185,7 +204,7 @@ describe('DataService', () => {
                 return vi.fn()
             }),
         })
-        const service = new DataService()
+        const service = createDataService()
         service.init({ storage })
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
         openFilesService.openFile('actions/test-1.json')
@@ -237,7 +256,7 @@ describe('DataService', () => {
         })
         const githubStorage = new GithubStorageService()
         githubStorage.init({ accessToken: 'token', fetchImplementation, onUnauthorized: handleUnauthorized })
-        const service = new DataService()
+        const service = createDataService()
         service.init({ storage: githubStorage })
 
         await service.projectLoading.openProject(githubProject)
@@ -257,7 +276,7 @@ describe('DataService', () => {
             listImageFiles: vi.fn(async () => []),
             testConnection: vi.fn(async () => ({ message: null, ok: true })),
         }
-        const service = new DataService()
+        const service = createDataService()
         service.init({ remarkableBridge, storage })
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
 
@@ -282,7 +301,7 @@ describe('DataService', () => {
     it('rejects Remarkable import when no bridge is available', async () => {
         configService.init()
         const storage = createStorage()
-        const service = new DataService()
+        const service = createDataService()
         service.init({ storage })
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
 

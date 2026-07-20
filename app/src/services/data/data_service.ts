@@ -3,7 +3,6 @@ import type { ActionContext } from '../../data/action_context'
 import { resolveProjectConfigPaths, type MarkdownFile, type ProjectConfig, type ProjectReference, type ProjectSnapshot, type RunningAgent, type StorageService } from '../../data/data_types'
 import type { RemarkableBridge } from '../../data/remarkable_bridge'
 import { agentConversationService, listAgentConversationReferences, loadAgentConversation } from '../agents/agent_conversation_service'
-import { actionService } from '../actions/action_service'
 import { CardOperations, type CardOperationsDeps } from './card_operations'
 import { configService } from '../config/config_service'
 import { type DataServiceDependencies, getProjectConfigOrNull, reportCommitFlushFailure } from './data_service_context'
@@ -14,23 +13,23 @@ import { ReleaseOperations, type ReleaseOperationsDeps } from '.././release_oper
 import { SaveStateService, withSaveStateTracking } from '../project/save_state_service'
 import { getRemarkableMetadataContent, importRemarkableImages, type RemarkableImportInput } from '../remarkable/remarkable_import_service'
 import type { RemarkableImportPlan } from '../remarkable/remarkable_import_service'
-import { register } from '.././service_injector'
+import { getService, register } from '.././service_injector'
 import { telemetryService } from '../telemetry/telemetry_service'
 import { worktreeService } from '../project/worktree_service'
 import { dialogService } from '.././dialog_service'
 import type { CardParseError } from './markdown_parsing_service'
-import { openFilesService } from '.././open_files_service'
 
 export type { RemarkableImportInput }
-export type LocalSaveState = 'dirty' | 'saved' | 'saving'
-
 export interface DataServiceState {
-    hasPendingPush: boolean
-    hasPendingSave: boolean
-    localSaveState: LocalSaveState
     project: ProjectReference | null
     runningAgents: RunningAgent[]
     snapshot: ProjectSnapshot | null
+}
+
+export interface DataPersistenceSnapshot {
+    hasPendingCardCommit: boolean
+    hasPendingPush: boolean
+    isSaving: boolean
 }
 
 function reportCardParseErrors(errors: CardParseError[]) {
@@ -39,13 +38,9 @@ function reportCardParseErrors(errors: CardParseError[]) {
     errors.forEach(({ error }) => telemetryService.captureError(error))
 }
 
-function completeActionPathChange(
-    onPathCommitted: (fromPath: string, toPath: string) => void,
-    fromPath: string,
-    toPath: string,
-) {
-    onPathCommitted(fromPath, toPath)
-    openFilesService.replaceFilePath(fromPath, toPath)
+async function flushAggregatePendingChanges() {
+    const persistenceService = getService<{ flushPendingChanges(): Promise<void> }>('projectPersistenceService')
+    await persistenceService.flushPendingChanges()
 }
 
 export class DataService extends EventTarget {
@@ -59,12 +54,12 @@ export class DataService extends EventTarget {
     private storage: StorageService | null = null
     private readonly projectState: ProjectState
     private readonly saveStateService: SaveStateService
+    private persistenceSnapshot: DataPersistenceSnapshot = { hasPendingCardCommit: false, hasPendingPush: false, isSaving: false }
 
     constructor() {
         super()
         this.saveStateService = new SaveStateService()
-        this.saveStateService.addEventListener('changed', () => this.dispatchChanged())
-        actionService.addEventListener('changed', () => this.dispatchChanged())
+        this.saveStateService.addEventListener('changed', () => this.dispatchPersistenceChanged())
         this.projectState = new ProjectState((cards) => this.agents.attachAgentConversations(cards), reportCardParseErrors)
         this.cards = new CardOperations(
             this.createCardOperationsDependencies(),
@@ -97,39 +92,33 @@ export class DataService extends EventTarget {
             commit: (request) => this.cards.commitFiles(request),
             delayMs,
             onFlushError: (error) => this.reportCommitFlushFailure(error),
-            onPendingChange: () => this.dispatchChanged(),
+            onPendingChange: () => this.dispatchPersistenceChanged(),
             setDelay: (callback, delay) => window.setTimeout(callback, delay),
         })
         this.dispatchChanged()
+        this.dispatchPersistenceChanged()
     }
 
     getState(): DataServiceState {
-        const currentProject = this.projectState.project
-        const { isSaving } = this.saveStateService.getState()
-        const hasPendingCommitBatch = this.commitBatcher?.hasPending() ?? false
-        const hasPendingDrafts = actionService.hasPendingDrafts()
-        const hasPendingSave = isSaving || hasPendingCommitBatch || hasPendingDrafts
-        const localSaveState = isSaving ? 'saving' : hasPendingSave ? 'dirty' : 'saved'
-        const hasPendingPush = currentProject
-            ? this.storage?.hasPendingPush?.(currentProject) ?? false
-            : false
-
         return {
-            hasPendingPush,
-            hasPendingSave,
-            localSaveState,
-            project: currentProject,
+            project: this.projectState.project,
             runningAgents: agentConversationService.getRunningAgents(),
             snapshot: this.projectState.snapshot,
         }
     }
 
+    getPersistenceSnapshot(): DataPersistenceSnapshot {
+        const currentProject = this.projectState.project
+
+        return {
+            hasPendingCardCommit: this.commitBatcher?.hasPending() ?? false,
+            hasPendingPush: currentProject ? this.storage?.hasPendingPush?.(currentProject) ?? false : false,
+            isSaving: this.saveStateService.getState().isSaving,
+        }
+    }
+
     getConfig(): ProjectConfig | null {
         return getProjectConfigOrNull(this.storage)
-    }
-    async flushPendingChanges() {
-        if (actionService.hasPendingDrafts()) await actionService.flushDrafts()
-        if (this.commitBatcher) await this.cards.flushPendingCommits()
     }
     async listAgentConversations(context: ActionContext) {
         const { config, storage } = this.requireDependencies()
@@ -179,11 +168,10 @@ export class DataService extends EventTarget {
                 sourcePath,
                 file,
                 `Rename ${sourcePath} to ${file.path}`,
-                completeActionPathChange.bind(null, onPathCommitted),
+                onPathCommitted,
                 sourceExists,
             )
         }
-        this.dispatchChanged()
     }
 
     discardPendingActionFile(path: string) {
@@ -222,6 +210,7 @@ export class DataService extends EventTarget {
     private createCardOperationsDependencies(): CardOperationsDeps {
         return {
             dispatchChanged: () => this.dispatchChanged(),
+            dispatchPersistenceChanged: () => this.dispatchPersistenceChanged(),
             commitPathsInFlight: () => this.projectState.commitPathsInFlight,
             files: () => this.projectState.files,
             mergeCommittedFiles: (files, workingFolder) => this.projectState.mergeCommittedFiles(files, workingFolder),
@@ -256,8 +245,9 @@ export class DataService extends EventTarget {
             clearLoadedProject: () => this.projectState.resetLoadedProject(),
             commitPathsInFlight: () => this.projectState.commitPathsInFlight,
             dispatchChanged: () => this.dispatchChanged(),
+            dispatchPersistenceChanged: () => this.dispatchPersistenceChanged(),
             files: () => this.projectState.files,
-            flushPendingCommits: () => this.flushPendingChanges(),
+            flushPendingChanges: flushAggregatePendingChanges,
             isCurrentLoad: (project, projectLoadToken) => this.projectState.isCurrentLoad(project, projectLoadToken),
             project: () => this.projectState.project,
             replaceFiles: (files, workingFolder) => this.projectState.replaceFiles(files, workingFolder),
@@ -287,7 +277,7 @@ export class DataService extends EventTarget {
         this.dispatchChanged()
     }
     private reportCommitFlushFailure(error: unknown) {
-        reportCommitFlushFailure(error, () => this.dispatchChanged())
+        reportCommitFlushFailure(error, () => this.dispatchPersistenceChanged())
     }
     private requireDependencies() {
         if (!this.storage) throw new Error('Data service storage is not initialized')
@@ -296,7 +286,20 @@ export class DataService extends EventTarget {
         return { commitBatcher: this.commitBatcher, config, storage: this.storage }
     }
     private dispatchChanged() {
+        this.dispatchPersistenceChanged()
         this.dispatchEvent(new CustomEvent<DataServiceState>('changed', { detail: this.getState() }))
+    }
+    private dispatchPersistenceChanged() {
+        const nextSnapshot = this.getPersistenceSnapshot()
+        if (DataService.isSamePersistenceSnapshot(this.persistenceSnapshot, nextSnapshot)) return
+
+        this.persistenceSnapshot = nextSnapshot
+        this.dispatchEvent(new CustomEvent<DataPersistenceSnapshot>('persistenceChanged', { detail: nextSnapshot }))
+    }
+    private static isSamePersistenceSnapshot(first: DataPersistenceSnapshot, second: DataPersistenceSnapshot) {
+        return first.hasPendingCardCommit === second.hasPendingCardCommit
+            && first.hasPendingPush === second.hasPendingPush
+            && first.isSaving === second.isSaving
     }
 }
 

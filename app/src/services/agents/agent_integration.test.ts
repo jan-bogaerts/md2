@@ -1,11 +1,10 @@
-﻿import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { AgentConversation, MarkdownFile, StorageProjectFiles } from '../../data/data_types'
 import type { ActionExecutionEvent } from '../../data/action_run_types'
 import { runElectronAction } from '../actions/electron_action_runner'
 import { actionExecutionService } from '../actions/action_execution_service'
 import { configService } from '../config/config_service'
-import { DataService } from '../data/data_service'
-import { conversation, createDeferred, createStorage, waitForWorkerTurn } from '.././test_support/data_service_test_support'
+import { conversation, createDataService, createDeferred, createStorage, waitForWorkerTurn } from '.././test_support/data_service_test_support'
 
 vi.mock('../actions/electron_action_runner', () => ({ runElectronAction: vi.fn(async () => ({ logs: [], status: 'completed' })) }))
 
@@ -41,7 +40,7 @@ describe('AgentIntegration', () => {
             loadProject: vi.fn(async () => ({ files: moveFiles, workingFolder: 'design' })),
             loadProjectRoot: vi.fn(async () => ({ files: moveFiles, workingFolder: 'design' })),
         })
-        const service = new DataService()
+        const service = createDataService()
         service.init({ storage })
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
@@ -78,7 +77,7 @@ describe('AgentIntegration', () => {
             loadProject: vi.fn(async () => ({ files: moveFiles, workingFolder: 'design' })),
             loadProjectRoot: vi.fn(async () => ({ files: moveFiles, workingFolder: 'design' })),
         })
-        const service = new DataService()
+        const service = createDataService()
         service.init({ storage })
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
@@ -126,7 +125,7 @@ describe('AgentIntegration', () => {
             loadProject: vi.fn(async () => ({ files: moveFiles, workingFolder: 'design' })),
             loadProjectRoot: vi.fn(async () => ({ files: moveFiles, workingFolder: 'design' })),
         })
-        const service = new DataService()
+        const service = createDataService()
         service.init({ storage })
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
@@ -162,7 +161,7 @@ describe('AgentIntegration', () => {
             loadProject: vi.fn(async () => ({ files: moveFiles, workingFolder: 'design' })),
             loadProjectRoot: vi.fn(async () => ({ files: moveFiles, workingFolder: 'design' })),
         })
-        const service = new DataService()
+        const service = createDataService()
         service.init({ storage })
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
@@ -186,7 +185,7 @@ describe('AgentIntegration', () => {
             loadProject: vi.fn(async () => fullProject.promise),
             loadProjectRoot: vi.fn(async () => ({ files: agentFiles, workingFolder: 'design' })),
         })
-        const service = new DataService()
+        const service = createDataService()
         service.init({ storage })
 
         const snapshot = await service.projectLoading.openProject({ branch: 'main', id: 'project' })
@@ -231,7 +230,7 @@ describe('AgentIntegration', () => {
             loadProject: vi.fn(async () => fullProject.promise),
             loadProjectRoot: vi.fn(async () => ({ files: [agentFile], workingFolder: 'design' })),
         })
-        const service = new DataService()
+        const service = createDataService()
         service.init({ storage })
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
@@ -259,7 +258,7 @@ describe('AgentIntegration', () => {
             loadProject: vi.fn(async () => fullProject.promise),
             loadProjectRoot: vi.fn(async () => ({ files: agentFiles, workingFolder: 'design' })),
         })
-        const service = new DataService()
+        const service = createDataService()
         service.init({ storage })
 
         const snapshot = await service.projectLoading.openProject({ branch: 'main', id: 'project' })
@@ -286,7 +285,7 @@ describe('AgentIntegration', () => {
             loadProject: vi.fn(async () => ({ files: [cardFile], workingFolder: 'design' })),
             loadProjectRoot: vi.fn(async () => ({ files: [cardFile], workingFolder: 'design' })),
         })
-        const service = new DataService()
+        const service = createDataService()
         service.init({ storage })
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
@@ -311,7 +310,7 @@ describe('AgentIntegration', () => {
             },
         } as unknown as typeof window.md2Actions
         const storage = createStorage()
-        const service = new DataService()
+        const service = createDataService()
         service.init({ storage })
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
@@ -339,7 +338,7 @@ describe('AgentIntegration', () => {
             },
         } as unknown as typeof window.md2Actions
         const storage = createStorage()
-        const service = new DataService()
+        const service = createDataService()
         service.init({ storage })
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
         if (!actionRunCallback) throw new Error('Action run callback not registered')

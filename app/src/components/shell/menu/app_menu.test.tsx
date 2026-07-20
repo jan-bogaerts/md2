@@ -8,6 +8,7 @@ import { configService } from '../../../services/config/config_service'
 import { dataService } from '../../../services/data/data_service'
 import { workspaceNavigationService } from '../../../services/project/workspace_navigation_service'
 import { workspaceViewService } from '../../../services/project/workspace_view_service'
+import { projectPersistenceService } from '../../../services/project/project_persistence_service'
 import { AppThemeProvider } from '../../../theme/theme_provider'
 import { DialogDisplay } from '../../dialog_display'
 import { AppMenu } from './app_menu'
@@ -101,6 +102,7 @@ describe('AppMenu', () => {
     beforeEach(() => {
         configService.init({ desktopConfig: null })
         actionService.clear()
+        projectPersistenceService.init({ actionService, dataService })
         dataService.init({ storage: createResetStorage() })
         workspaceViewService.setViewMode('cards')
         const { selectedPath } = workspaceViewService.getSnapshot()
@@ -225,7 +227,7 @@ describe('AppMenu', () => {
         fireEvent.click(screen.getByRole('button', { name: 'New action' }))
 
         await waitFor(() => expect(listener).toHaveBeenCalledOnce())
-        await dataService.flushPendingChanges()
+        await projectPersistenceService.flushPendingChanges()
         const commitRequest = vi.mocked(bridge.commit).mock.calls.at(-1)?.[0]
         const actionFile = commitRequest?.files[0]
         if (!actionFile) throw new Error('Missing persisted action file')

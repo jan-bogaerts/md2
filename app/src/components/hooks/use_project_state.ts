@@ -4,10 +4,7 @@ import { dataService, type DataService, type DataServiceState } from '../../serv
 const snapshots = new WeakMap<DataService, DataServiceState>()
 
 function isSameDataServiceState(first: DataServiceState, second: DataServiceState) {
-    return first.hasPendingPush === second.hasPendingPush
-        && first.hasPendingSave === second.hasPendingSave
-        && first.localSaveState === second.localSaveState
-        && first.project === second.project
+    return first.project === second.project
         && first.runningAgents === second.runningAgents
         && first.snapshot === second.snapshot
 }

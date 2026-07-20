@@ -1,12 +1,15 @@
 ﻿import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ElectronDataBridge } from '../../data/electron_data_bridge'
+import { beforeEach } from 'vitest'
 import { getElectronActionBridge, setActionBridgeOverride, type ElectronActionBridge } from '../../data/electron_action_bridge'
 import { LAST_PROJECT_STORAGE_KEY } from '../../data/project_session'
 import { configureRemoteControlConnection, REMOTE_CONTROL_ENDPOINT_KEY, REMOTE_CONTROL_TOKEN_KEY } from '../../data/remote_control_connection'
 import { RemoteControlStorageService } from '../data/remote_control_storage_service'
 import { configService } from '../config/config_service'
+import { actionService } from '../actions/action_service'
 import { dataService } from '../data/data_service'
 import { ProjectSessionService } from './project_session_service'
+import { projectPersistenceService } from './project_persistence_service'
 
 function createActionBridge(): ElectronActionBridge {
     return {
@@ -58,6 +61,10 @@ function mockProjectOpen() {
 }
 
 describe('ProjectSessionService storage activation', () => {
+    beforeEach(() => {
+        projectPersistenceService.init({ actionService, dataService })
+    })
+
     afterEach(() => {
         vi.restoreAllMocks()
         vi.unstubAllGlobals()
@@ -141,7 +148,7 @@ describe('ProjectSessionService storage activation', () => {
         const pendingPush = new Promise<void>((resolve) => {
             resolvePush = resolve
         })
-        vi.spyOn(dataService.cards, 'flushPendingCommits').mockResolvedValue()
+        vi.spyOn(projectPersistenceService, 'flushPendingChanges').mockResolvedValue()
         vi.spyOn(dataService.projectLoading, 'push').mockReturnValue(pendingPush)
         const service = new ProjectSessionService()
 

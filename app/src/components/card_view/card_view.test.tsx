@@ -365,7 +365,7 @@ describe('CardView', () => {
         const dialog = screen.getByRole('dialog')
         expect(within(dialog).getByDisplayValue(/Body of F-1/)).toBeInTheDocument()
         expect(within(dialog).getByRole('button', { name: 'Affects' })).toBeInTheDocument()
-        expect(screen.getByRole('separator', { name: 'Resize card details popup' })).toBeInTheDocument()
+        expect(screen.getByRole('separator', { name: 'Resize card details popup from right' })).toBeInTheDocument()
     })
 
     it('highlights the card matching the selected path', () => {
