@@ -14,13 +14,13 @@ describe('ReleaseOperations', () => {
         configService.init()
         const releaseFiles: MarkdownFile[] = [
             files[0],
-            { content: '---\nid: F-2\ntitle: Imported\nstatus: active\n---\n\n# Imported', path: 'design/F-2-imported.md' },
+            { content: '---\nid: F-2\ninternalId: imported-card\ntitle: Imported\nstatus: active\n---\n\n# Imported', path: 'design/F-2-imported.md' },
             files[1],
         ]
         const archivedFiles: MarkdownFile[] = [
             { content: files[0].content, path: 'design/history/v1/F-1-root.md' },
             { content: releaseFiles[1].content, path: 'design/history/v1/F-2-imported.md' },
-            { content: '# Old', path: 'design/history/F-3-old.md' },
+            files[1],
         ]
         const storage = createStorage({
             listRepositoryFiles: vi.fn()
@@ -64,7 +64,7 @@ describe('ReleaseOperations', () => {
     it('loads referenced assets and includes them in the release move batch', async () => {
         configService.init()
         const releaseFiles: MarkdownFile[] = [
-            { content: '---\nid: F-1\ntitle: Root\nstatus: active\n---\n\n# Root\n\n![note](note.png)', path: 'design/F-1-root.md' },
+            { content: '---\nid: F-1\ninternalId: root-card\ntitle: Root\nstatus: active\n---\n\n# Root\n\n![note](note.png)', path: 'design/F-1-root.md' },
         ]
         const archivedFiles: MarkdownFile[] = [
             { content: releaseFiles[0].content, path: 'design/history/v1/F-1-root.md' },

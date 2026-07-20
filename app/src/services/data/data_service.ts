@@ -252,6 +252,9 @@ export class DataService extends EventTarget {
             project: () => this.projectState.project,
             replaceFiles: (files, workingFolder) => this.projectState.replaceFiles(files, workingFolder),
             replaceProject: (project) => this.projectState.replaceProject(project),
+            ensureCardInternalIds: async () => {
+                if (this.cards.ensureCardInternalIds() > 0) await this.cards.flushPendingCommits()
+            },
             replaceProjectFiles: (files, workingFolder, repositoryFiles) => (
                 this.projectState.replaceProjectFiles(files, workingFolder, repositoryFiles)
             ),

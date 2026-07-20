@@ -76,13 +76,13 @@ function tabData(
     actionsFolder: string,
     document: OpenDocument,
 ): OpenTab {
-    const object = document.getObject()
     if (document.kind === 'action') {
-        const action = object as ActionDefinition
+        const action = document.getObject()
         if (!action.sourcePath) throw new Error(`Open action has no source path: ${action.id}`)
-        return { color: null, document, id: null, kind: 'action', label: action.label, path: action.sourcePath, title: action.label }
+        return { color: null, document, id: null, key: `action:${action.id}`, kind: 'action', label: action.label, path: action.sourcePath, title: action.label }
     }
-    const card = object as ProjectCard
+    const card = document.getObject()
+    if (!card.header.internalId) throw new Error(`Open card has no internal ID: ${card.path}`)
     const label = fileLabel(card)
     const id = label.startsWith(`${card.header.id} `) ? card.header.id : null
 
@@ -90,6 +90,7 @@ function tabData(
         color: cardTypeColor(card, cardTypes),
         document,
         id,
+        key: `card:${card.header.internalId}`,
         kind: tabKind(card, actionsFolder),
         label,
         path: card.path,
@@ -109,11 +110,10 @@ function folderName(path: string): string {
 }
 
 function openDocumentPath(document: OpenDocument) {
-    const object = document.getObject()
-    if (document.kind === 'card') return (object as ProjectCard).path
+    if (document.kind === 'card') return document.getObject().path
 
-    const { sourcePath } = object as ActionDefinition
-    if (!sourcePath) throw new Error(`Open action has no source path: ${object.id}`)
+    const { id, sourcePath } = document.getObject()
+    if (!sourcePath) throw new Error(`Open action has no source path: ${id}`)
     return sourcePath
 }
 
@@ -153,6 +153,8 @@ export function TextView(props: TextViewProps) {
         [actionsFolder, projectFolder, workingFolder],
     )
     const specialContextTypes = useMemo(() => specialFolderPaths.map(folderName), [specialFolderPaths])
+    const actionCardTypes = useMemo(() => cardTypes.map(({ type }) => type), [cardTypes])
+    const actionStates = useMemo(() => states.map(({ state }) => state), [states])
     const hiddenFolderPaths = useMemo(() => [folderPath(projectFolder, LOGS_FOLDER_NAME)], [projectFolder])
     const tree = useMemo(() => buildFileTree(activeCards, backgroundCards, workingFolder, {
         actions,
@@ -213,17 +215,16 @@ export function TextView(props: TextViewProps) {
     }, [requestedNonce])
 
     const openTabs = tabs.map((document) => tabData(cardTypes, actionsFolder, document))
-    const activeObject = activeDocument?.getObject() ?? null
-    const activeCard = activeDocument?.kind === 'card' ? activeObject as ProjectCard : null
-    const activeAction = activeDocument?.kind === 'action' ? activeObject as ActionDefinition : null
+    const activeCard = activeDocument?.kind === 'card' ? activeDocument.getObject() : null
+    const activeAction = activeDocument?.kind === 'action' ? activeDocument.getObject() : null
     const activePath = activeDocument ? openDocumentPath(activeDocument) : null
     const listActionDocumentId = actionMarkdownDataSource.getActiveDocumentId('list-action')
     const listActionId = listActionDocumentId ? parseActionMarkdownDocumentId(listActionDocumentId).actionId : null
     const boundActionDocument = listActionId
         ? tabs.find((document) => document.kind === 'action'
-            && (document.getObject() as ActionDefinition).id === listActionId)
+            && document.getObject().id === listActionId)
         : null
-    const boundAction = boundActionDocument?.getObject() as ActionDefinition | undefined
+    const boundAction = boundActionDocument?.kind === 'action' ? boundActionDocument.getObject() : null
     const listAction = activeAction ?? boundAction ?? null
 
     useEffect(() => {
@@ -262,16 +263,16 @@ export function TextView(props: TextViewProps) {
         telemetryService.trackEvent('navigation')
     }
 
-    const handleOpenProperties = (event: ReactMouseEvent<HTMLElement>) => {
+    const handleOpenProperties = useCallback((event: ReactMouseEvent<HTMLElement>) => {
         setPropertiesAnchorElement(event.currentTarget)
-    }
+    }, [])
 
-    const handleCloseProperties = () => {
+    const handleCloseProperties = useCallback(() => {
         setPropertiesAnchorElement(null)
-    }
+    }, [])
 
-    const handleToggleAgentPopup = () => setIsAgentPopupOpen((current) => !current)
-    const handleCloseAgentPopup = () => setIsAgentPopupOpen(false)
+    const handleToggleAgentPopup = useCallback(() => setIsAgentPopupOpen((current) => !current), [])
+    const handleCloseAgentPopup = useCallback(() => setIsAgentPopupOpen(false), [])
 
 
     const agentPopup = visible && activeCard && isAgentPopupOpen ? (
@@ -333,11 +334,11 @@ export function TextView(props: TextViewProps) {
                         <ListActionEditor
                             action={listAction}
                             actions={actions}
-                            cardTypes={cardTypes.map(({ type }) => type)}
+                            cardTypes={actionCardTypes}
                             markdownDocumentNamespace={projectKey}
                             repositoryFiles={repositoryFiles}
                             specialContextTypes={specialContextTypes}
-                            states={states.map(({ state }) => state)}
+                            states={actionStates}
                         />
                     </Box>
                     {!activeAction && !activeCard ? (

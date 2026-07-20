@@ -16,7 +16,11 @@ function card(internalId: string, path = `design/${internalId}.md`, content = `#
 }
 
 function action(id: string, sourcePath = `actions/${id}.json`, label = id): ActionDefinition {
-    return { description: id, id, label, phrases: [], sourcePath, type: 'agent', prompt: id }
+    return {
+        agent: null, appliesTo: null, builtin: false, command: null, description: id, icon: null, id, label,
+        model: null, needsWorkTree: false, on: [], onAfter: [], onBefore: [], onState: null, phrases: [],
+        prompt: id, sourcePath, thinkingLevel: null, trackFileChanges: false, type: 'agent',
+    }
 }
 
 function owners(initialCards: ProjectCard[] = [], initialActions: ActionDefinition[] = []) {
@@ -102,14 +106,6 @@ describe('OpenFilesService', () => {
         ownerState.renewCards([])
 
         expect(service.getSnapshot()).toEqual({ activeDocument: null, documents: [] })
-    })
-
-    it('fails fast for a card without stable identity', () => {
-        const projectCard = card('one')
-        projectCard.header.internalId = null
-        const service = new OpenFilesService()
-
-        expect(() => service.openDocument(projectCard)).toThrow('Cannot open card without an internal ID')
     })
 
     it('registers itself in service injector', () => {

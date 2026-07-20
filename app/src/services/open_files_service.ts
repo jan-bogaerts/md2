@@ -5,10 +5,17 @@ import { register } from './service_injector'
 
 export type OpenDocumentObject = ProjectCard | ActionDefinition
 
-export interface OpenDocument extends EventTarget {
-    readonly kind: 'action' | 'card'
-    getObject(): OpenDocumentObject
+export interface ActionOpenDocument extends EventTarget {
+    readonly kind: 'action'
+    getObject(): ActionDefinition
 }
+
+export interface CardOpenDocument extends EventTarget {
+    readonly kind: 'card'
+    getObject(): ProjectCard
+}
+
+export type OpenDocument = ActionOpenDocument | CardOpenDocument
 
 export interface OpenDocumentEventDetail {
     document: OpenDocument
@@ -30,9 +37,9 @@ function isProjectCard(object: OpenDocumentObject): object is ProjectCard {
     return 'header' in object
 }
 
-function requireDocumentIdentity(object: OpenDocumentObject) {
+function documentIdentity(object: OpenDocumentObject) {
     if (!isProjectCard(object)) return object.id
-    if (!object.header.internalId) throw new Error(`Cannot open card without an internal ID: ${object.path}`)
+    if (!object.header.internalId) throw new Error(`Card identity was not added before opening: ${object.path}`)
 
     return object.header.internalId
 }
@@ -43,20 +50,18 @@ function projectKey(project: ProjectReference | null) {
 
 function snapshotObjects(snapshot: ProjectSnapshot | null, actions: ActionDefinition[]) {
     const cards = [...(snapshot?.activeCards ?? []), ...(snapshot?.backgroundCards ?? [])]
-        .filter(({ header }) => !!header.internalId)
 
     return [...cards, ...actions]
 }
 
-class ManagedOpenDocument extends EventTarget implements OpenDocument {
-    readonly kind: 'action' | 'card'
+abstract class ManagedOpenDocumentBase<T extends OpenDocumentObject> extends EventTarget {
+    abstract readonly kind: 'action' | 'card'
     readonly identity: string
-    private object: OpenDocumentObject
+    private object: T
 
-    constructor(object: OpenDocumentObject) {
+    constructor(object: T) {
         super()
-        this.kind = isProjectCard(object) ? 'card' : 'action'
-        this.identity = requireDocumentIdentity(object)
+        this.identity = documentIdentity(object)
         this.object = object
     }
 
@@ -64,8 +69,8 @@ class ManagedOpenDocument extends EventTarget implements OpenDocument {
         return this.object
     }
 
-    renew(object: OpenDocumentObject) {
-        if (this.kind !== (isProjectCard(object) ? 'card' : 'action') || this.identity !== requireDocumentIdentity(object)) {
+    renew(object: T) {
+        if (this.identity !== documentIdentity(object)) {
             throw new Error(`Cannot renew open ${this.kind} document with a different object`)
         }
         if (this.object === object) return
@@ -74,6 +79,33 @@ class ManagedOpenDocument extends EventTarget implements OpenDocument {
         this.object = object
         this.dispatchEvent(new CustomEvent('changed', { detail: { object, previousObject } }))
     }
+}
+
+class ManagedActionOpenDocument extends ManagedOpenDocumentBase<ActionDefinition> implements ActionOpenDocument {
+    readonly kind = 'action' as const
+}
+
+class ManagedCardOpenDocument extends ManagedOpenDocumentBase<ProjectCard> implements CardOpenDocument {
+    readonly kind = 'card' as const
+}
+
+type ManagedOpenDocument = ManagedActionOpenDocument | ManagedCardOpenDocument
+
+function createManagedOpenDocument(object: OpenDocumentObject): ManagedOpenDocument {
+    return isProjectCard(object) ? new ManagedCardOpenDocument(object) : new ManagedActionOpenDocument(object)
+}
+
+function renewManagedDocument(document: ManagedOpenDocument, object: OpenDocumentObject) {
+    if (document.kind === 'card' && isProjectCard(object)) {
+        document.renew(object)
+        return
+    }
+    if (document.kind === 'action' && !isProjectCard(object)) {
+        document.renew(object)
+        return
+    }
+
+    throw new Error(`Cannot renew open ${document.kind} document with a different object kind`)
 }
 
 /** Tracks stable domain-document wrappers for list tabs. */
@@ -107,13 +139,13 @@ export class OpenFilesService extends EventTarget {
     openDocument(object: OpenDocumentObject): OpenDocument {
         const existing = this.findOpenDocument(object)
         if (existing) {
-            existing.renew(object)
+            renewManagedDocument(existing, object)
             this.activateDocument(existing)
 
             return existing
         }
 
-        const document = new ManagedOpenDocument(object)
+        const document = createManagedOpenDocument(object)
         this.update({ activeDocument: document, documents: [...this.snapshot.documents, document] })
         this.dispatchDocumentEvent('added', document)
 
@@ -159,7 +191,6 @@ export class OpenFilesService extends EventTarget {
 
     private reconcile() {
         if (!this.actionService || !this.dataService) throw new Error('Open files service is not initialized')
-
         const { project, snapshot } = this.dataService.getState()
         const nextProjectKey = projectKey(project)
         if (nextProjectKey !== this.loadedProjectKey) {
@@ -176,8 +207,7 @@ export class OpenFilesService extends EventTarget {
                 removedDocuments.push(document)
                 return false
             }
-            const managedDocument = document as ManagedOpenDocument
-            managedDocument.renew(object)
+            renewManagedDocument(document as ManagedOpenDocument, object)
             return true
         })
         if (removedDocuments.length === 0) return
@@ -198,7 +228,7 @@ export class OpenFilesService extends EventTarget {
     private static objectKey(object: OpenDocumentObject) {
         const kind = isProjectCard(object) ? 'card' : 'action'
 
-        return `${kind}:${requireDocumentIdentity(object)}`
+        return `${kind}:${documentIdentity(object)}`
     }
 
     private static documentKey(document: OpenDocument) {

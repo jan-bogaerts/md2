@@ -1,6 +1,6 @@
 import { alpha, Box, Button, IconButton, InputBase, Tooltip, Typography } from '@mui/material'
 import type { ChangeEvent, KeyboardEvent } from 'react'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import Close from 'mdi-material-ui/Close'
 import DeleteOutline from 'mdi-material-ui/DeleteOutline'
 import FileDocumentOutline from 'mdi-material-ui/FileDocumentOutline'
@@ -117,9 +117,9 @@ export function CardBodyPopover(props: CardBodyPopoverProps) {
         if (event.key === 'Escape' && card) setTitleEdit({ path: card.path, title: card.header.title })
     }
 
-    const toggleFullscreen = () => {
+    const toggleFullscreen = useCallback(() => {
         setIsFullscreen((current) => !current)
-    }
+    }, [])
 
     const deleteCard = async (path: string) => {
         setIsFullscreen(false)

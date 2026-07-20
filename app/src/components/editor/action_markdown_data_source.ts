@@ -20,8 +20,13 @@ type ActionMarkdownOwner = EventTarget & Pick<ActionService,
 >
 
 function reportActionWriteError(documentId: string, error: unknown) {
-    const { actionId } = parseActionMarkdownDocumentId(documentId)
-    dialogService.error(error, { fallbackMessage: `Action update failed: ${actionId}` })
+    let context = documentId
+    try {
+        context = parseActionMarkdownDocumentId(documentId).actionId
+    } catch {
+        // Keep malformed ID itself as error context.
+    }
+    dialogService.error(error, { fallbackMessage: `Action update failed: ${context}` })
 }
 
 /** Namespace one prompt or phrase history document to its stable owning action. */
@@ -43,6 +48,7 @@ export function parseActionMarkdownDocumentId(documentId: string): ActionMarkdow
 export class ActionMarkdownDataSource extends MarkdownDataSourceBase {
     private readonly lastWrittenMarkdownByDocumentId = new Map<string, LastWrittenMarkdown>()
     private readonly markdownByDocumentId = new Map<string, string>()
+    private documentNamespace: string | null = null
     private service: ActionMarkdownOwner | null = null
 
     init(service: ActionMarkdownOwner) {
@@ -60,6 +66,19 @@ export class ActionMarkdownDataSource extends MarkdownDataSourceBase {
         this.markdownByDocumentId.set(documentId, markdown)
 
         return markdown
+    }
+
+    setActiveActionDocument(namespace: string, documentId: string | null) {
+        if (this.documentNamespace !== namespace) {
+            this.clearBindings()
+            this.lastWrittenMarkdownByDocumentId.clear()
+            this.markdownByDocumentId.clear()
+            this.documentNamespace = namespace
+        }
+        if (documentId && parseActionMarkdownDocumentId(documentId).namespace !== namespace) {
+            throw new Error(`Action Markdown document namespace does not match active project: ${documentId}`)
+        }
+        this.setActiveDocument('list-action', documentId)
     }
 
     edit(binding: MarkdownBindingKind, documentId: string, markdown: string) {
@@ -161,7 +180,10 @@ export class ActionMarkdownDataSource extends MarkdownDataSourceBase {
     }
 
     private resolveDocument(documentId: string) {
-        const { actionId, editorDocumentId } = parseActionMarkdownDocumentId(documentId)
+        const { actionId, editorDocumentId, namespace } = parseActionMarkdownDocumentId(documentId)
+        if (namespace !== this.documentNamespace) {
+            throw new Error(`Action Markdown document belongs to inactive project: ${documentId}`)
+        }
         const service = this.requireService()
         const action = [...service.getActions(), ...service.getDeletedDraftActions()].find(({ id }) => id === actionId)
         if (!action?.sourcePath) throw new Error(`Unknown action Markdown document: ${documentId}`)

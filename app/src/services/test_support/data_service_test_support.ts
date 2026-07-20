@@ -17,8 +17,8 @@ export function createDataService() {
 }
 
 export const files: MarkdownFile[] = [
-    { content: '---\nid: F-1\ntitle: Root\nstatus: active\naffects:\n  - app/src/app.tsx\n---\n\n# Root', path: 'design/F-1-root.md' },
-    { content: '# Old', path: 'design/history/F-3-old.md' },
+    { content: '---\nid: F-1\ninternalId: root-card\ntitle: Root\nstatus: active\naffects:\n  - app/src/app.tsx\n---\n\n# Root', path: 'design/F-1-root.md' },
+    { content: '---\ninternalId: old-card\n---\n\n# Old', path: 'design/history/F-3-old.md' },
     { content: '# Imported', path: 'design/free note.md' },
 ]
 export const storageFiles = files.filter((file) => file.path !== 'design/free note.md')

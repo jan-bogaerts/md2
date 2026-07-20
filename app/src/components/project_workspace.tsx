@@ -205,8 +205,7 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
             const folderPrefix = `${path.replace(/\/+$/u, '')}/`
             const documents = openFilesService.getSnapshot().documents
             for (const document of documents) {
-                const object = document.getObject()
-                const openPath = document.kind === 'card' ? (object as ProjectCard).path : object.sourcePath
+                const openPath = document.kind === 'card' ? document.getObject().path : document.getObject().sourcePath
                 if (openPath?.startsWith(folderPrefix)) openFilesService.closeDocument(document)
             }
             const selectedPath = workspaceViewService.getSnapshot().selectedPath

@@ -1,5 +1,5 @@
 import { Box } from '@mui/material'
-import { useCallback, useEffect, useState, type MouseEvent } from 'react'
+import { memo, useCallback, useEffect, useState, type MouseEvent } from 'react'
 import { cardMarkdownDataSource } from '../editor/card_markdown_data_source'
 import { MarkdownDocumentHistoryStore } from '../editor/markdown_document_history_store'
 import { MarkdownEditor } from '../editor/markdown_editor'
@@ -18,7 +18,7 @@ interface CardEditorProps {
 }
 
 /** Lifetime-stable list card Markdown editor and its private undo store. */
-export function CardEditor(props: CardEditorProps) {
+export const CardEditor = memo(function CardEditor(props: CardEditorProps) {
     const { activeCard, hidden, isAgentPopupOpen, isPropertiesOpen, onOpenProperties, onToggleAgentPopup } = props
     const [historyStore] = useState(() => new MarkdownDocumentHistoryStore())
     const [stateStore] = useState(() => new MarkdownEditorStateStore())
@@ -28,7 +28,7 @@ export function CardEditor(props: CardEditorProps) {
             const { document } = (event as CustomEvent<OpenDocumentEventDetail>).detail
             if (document.kind !== 'card') return
 
-            const card = document.getObject() as ProjectCard
+            const card = document.getObject()
             if (!card.header.internalId) throw new Error(`Cannot discard card history without an internal ID: ${card.path}`)
             historyStore.discardDocument(card.header.internalId)
             if (cardMarkdownDataSource.getActiveDocumentId('list-card') === card.header.internalId) {
@@ -72,4 +72,4 @@ export function CardEditor(props: CardEditorProps) {
             />
         </Box>
     )
-}
+})

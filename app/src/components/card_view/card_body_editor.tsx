@@ -1,5 +1,5 @@
 import { Box } from '@mui/material'
-import { useCallback } from 'react'
+import { memo, useCallback } from 'react'
 import { MarkdownEditor } from '../editor/markdown_editor'
 import { cardMarkdownDataSource } from '../editor/card_markdown_data_source'
 import type { MarkdownDocumentHistoryStore } from '../editor/markdown_document_history_store'
@@ -16,11 +16,9 @@ interface CardBodyEditorProps {
 }
 
 /**
- * Body editing surface for a card. Renders the shared markdown editor (F-007);
- * edits flow up as markdown through `onBodyChange`, and `DataService` preserves
- * the frontmatter/header block via the shared parsing service.
+ * Body editing surface for a card, bound directly to the card Markdown data source.
  */
-export function CardBodyEditor(props: CardBodyEditorProps) {
+export const CardBodyEditor = memo(function CardBodyEditor(props: CardBodyEditorProps) {
     const { historyStore, isFullscreen, isMobile = false, onToggleFullscreen, overlayContainer, stateStore } = props
     const ToolbarContents = useCallback(
         () => <CardPopupToolbarControls isFullscreen={isFullscreen} onToggleFullscreen={onToggleFullscreen} />,
@@ -80,4 +78,4 @@ export function CardBodyEditor(props: CardBodyEditorProps) {
             />
         </Box>
     )
-}
+})

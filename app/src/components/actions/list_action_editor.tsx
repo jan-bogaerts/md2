@@ -1,5 +1,5 @@
 import { Box } from '@mui/material'
-import { useCallback, useEffect, useState } from 'react'
+import { memo, useCallback, useEffect, useState } from 'react'
 import type { ActionDefinition } from '../../data/action_types'
 import { openFilesService, type OpenDocumentEventDetail } from '../../services/open_files_service'
 import {
@@ -23,7 +23,7 @@ interface ListActionEditorProps {
 }
 
 /** Lifetime-stable list action editor surface and binding-owned undo store. */
-export function ListActionEditor(props: ListActionEditorProps) {
+export const ListActionEditor = memo(function ListActionEditor(props: ListActionEditorProps) {
     const { action, actions, cardTypes, markdownDocumentNamespace, repositoryFiles, specialContextTypes, states } = props
     const [historyStore] = useState(() => new MarkdownDocumentHistoryStore())
     const [stateStore] = useState(() => new MarkdownEditorStateStore())
@@ -39,14 +39,14 @@ export function ListActionEditor(props: ListActionEditorProps) {
             const { document } = (event as CustomEvent<OpenDocumentEventDetail>).detail
             if (document.kind !== 'action') return
 
-            const removedAction = document.getObject() as ActionDefinition
+            const removedAction = document.getObject()
             for (const { identity } of removedAction.editorState?.phrases ?? []) {
                 discardMarkdownDocument(actionMarkdownDocumentId(markdownDocumentNamespace, removedAction.id, identity))
             }
             discardMarkdownDocument(actionMarkdownDocumentId(markdownDocumentNamespace, removedAction.id, 'prompt'))
             const activeDocumentId = actionMarkdownDataSource.getActiveDocumentId('list-action')
             if (activeDocumentId && parseActionMarkdownDocumentId(activeDocumentId).actionId === removedAction.id) {
-                actionMarkdownDataSource.setActiveDocument('list-action', null)
+                actionMarkdownDataSource.setActiveActionDocument(markdownDocumentNamespace, null)
                 setPresentation(null)
             }
         }
@@ -55,7 +55,7 @@ export function ListActionEditor(props: ListActionEditorProps) {
         return () => openFilesService.removeEventListener('removed', handleRemoved)
     }, [discardMarkdownDocument, markdownDocumentNamespace])
 
-    useEffect(() => () => actionMarkdownDataSource.setActiveDocument('list-action', null), [])
+    useEffect(() => () => actionMarkdownDataSource.setActiveActionDocument(markdownDocumentNamespace, null), [markdownDocumentNamespace])
 
     return (
         <Box data-testid="list-action-editor" sx={{ display: 'contents' }}>
@@ -85,4 +85,4 @@ export function ListActionEditor(props: ListActionEditorProps) {
             </Box>
         </Box>
     )
-}
+})

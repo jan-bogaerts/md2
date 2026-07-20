@@ -22,7 +22,6 @@ function listCards(service: CardMarkdownOwner) {
     const snapshot = service.getState().snapshot
 
     return [...(snapshot?.activeCards ?? []), ...(snapshot?.backgroundCards ?? [])]
-        .filter(({ header }) => !!header.internalId)
 }
 
 function loadedProjectKey(service: CardMarkdownOwner) {

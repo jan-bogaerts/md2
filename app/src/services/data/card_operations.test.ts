@@ -4,7 +4,7 @@ import { configService } from '../config/config_service'
 import { projectPersistenceService } from '../project/project_persistence_service'
 import { DIALOG_SERVICE_EVENT, dialogService, type DialogServiceMessage, type DialogSeverity } from '.././dialog_service'
 import { telemetryService } from '../telemetry/telemetry_service'
-import { activeCardFile, createDataService, createStorage, storageFiles } from '.././test_support/data_service_test_support'
+import { activeCardFile, createDataService, createStorage } from '.././test_support/data_service_test_support'
 
 function recordDialogMessages(severity: DialogSeverity) {
     const messages: string[] = []
@@ -25,6 +25,28 @@ describe('CardOperations', () => {
         vi.useRealTimers()
         delete window.md2Actions
         configService.clear()
+    })
+
+    it('adds and persists a missing card internal ID during project load', async () => {
+        configService.init()
+        const legacyFile = {
+            content: '---\nid: F-1\ntitle: Legacy\nstatus: todo\n---\n\n# Legacy',
+            path: 'design/F-1-legacy.md',
+        }
+        const storage = createStorage({loadProjectRoot: vi.fn(async () => ({ files: [legacyFile], workingFolder: 'design' }))})
+        const service = createDataService()
+        service.init({ storage })
+
+        const snapshot = await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+
+        expect(snapshot.activeCards[0].header.internalId).toEqual(expect.any(String))
+        expect(service.getPersistenceSnapshot().hasPendingCardCommit).toBe(false)
+        expect(service.getState().snapshot?.activeCards[0].header.internalId).toBe(snapshot.activeCards[0].header.internalId)
+        expect(storage.commit).toHaveBeenCalledWith({
+            branch: 'main',
+            files: [expect.objectContaining({ content: expect.stringContaining('internalId:'), path: legacyFile.path })],
+            message: 'Add missing card internal IDs',
+        })
     })
 
     it('creates cards with commits and auto-pushes when configured', async () => {
@@ -479,7 +501,7 @@ describe('CardOperations', () => {
     it('edits a header field while preserving unknown header fields unchanged', async () => {
         configService.init()
         const headerFiles: MarkdownFile[] = [{
-            content: '---\ncustomField: keep me\nid: F-1\ntitle: Root\nstatus: active\n---\n\n# Root',
+            content: '---\ncustomField: keep me\nid: F-1\ninternalId: card-1\ntitle: Root\nstatus: active\n---\n\n# Root',
             path: 'design/F-1-root.md',
         }]
         const storage = createStorage({
@@ -494,7 +516,7 @@ describe('CardOperations', () => {
         await service.cards.flushPendingCommits()
 
         const committed = (storage.commit as ReturnType<typeof vi.fn>).mock.calls.at(-1)?.[0] as CommitRequest
-        expect(committed.files[0].content).toBe('---\ncustomField: keep me\nid: F-1\ntitle: Root\nstatus: ready\n---\n\n# Root')
+        expect(committed.files[0].content).toBe('---\ncustomField: keep me\nid: F-1\ninternalId: card-1\ntitle: Root\nstatus: ready\n---\n\n# Root')
     })
 
     it('preserves the frontmatter header when a card body is edited', async () => {
@@ -514,7 +536,14 @@ describe('CardOperations', () => {
 
     it('does not rebuild, dispatch, or commit when saved content is unchanged', async () => {
         configService.init()
-        const storage = createStorage()
+        const stableFile: MarkdownFile = {
+            content: '---\nid: F-1\ninternalId: card-1\ntitle: Root\nstatus: active\n---\n\n# Root',
+            path: 'design/F-1-root.md',
+        }
+        const storage = createStorage({
+            loadProject: vi.fn(async () => ({ files: [stableFile], workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: [stableFile], workingFolder: 'design' })),
+        })
         const service = createDataService()
         service.init({ storage })
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
@@ -523,7 +552,7 @@ describe('CardOperations', () => {
         const handleChanged = vi.fn()
         service.addEventListener('changed', handleChanged)
 
-        service.cards.saveFile(storageFiles[0])
+        service.cards.saveFile(stableFile)
         await service.cards.flushPendingCommits()
 
         expect(service.getState().snapshot).toBe(snapshot)
@@ -534,7 +563,7 @@ describe('CardOperations', () => {
     it('uses the committed sha from the first body update for the next body update', async () => {
         configService.init()
         const staleShaFiles: MarkdownFile[] = [{
-            content: '---\nid: F-1\ntitle: Root\nstatus: active\n---\n\n# Root',
+            content: '---\nid: F-1\ninternalId: card-1\ntitle: Root\nstatus: active\n---\n\n# Root',
             path: 'design/F-1-root.md',
             sha: 'sha-1',
         }]

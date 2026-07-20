@@ -24,11 +24,24 @@ export function useActionEditorController(options: ActionEditorControllerOptions
 
     const [, setEditorRevision] = useState(0)
     useEffect(() => {
-        const handleChanged = () => setEditorRevision((current) => current + 1)
+        let previousAction = actionService.getActionByPath(sourcePath)
+        let previousDraft = actionService.getDraft(sourcePath)
+        let previousEditorState = previousAction?.editorState
+        const handleChanged = () => {
+            const nextAction = actionService.getActionByPath(sourcePath)
+            const nextDraft = actionService.getDraft(sourcePath)
+            const nextEditorState = nextAction?.editorState
+            if (nextAction === previousAction && nextDraft === previousDraft && nextEditorState === previousEditorState) return
+
+            previousAction = nextAction
+            previousDraft = nextDraft
+            previousEditorState = nextEditorState
+            setEditorRevision((current) => current + 1)
+        }
         actionService.addEventListener('changed', handleChanged)
 
         return () => actionService.removeEventListener('changed', handleChanged)
-    }, [])
+    }, [sourcePath])
 
     const draft = actionService.getDraft(sourcePath)
     const { conflict, definition, deleted, error: saveError, saving, validation } = draft

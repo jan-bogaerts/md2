@@ -56,6 +56,8 @@ async function pushCreatedItem(
 }
 
 export class CardOperations {
+    private generatedInternalIdProjectKey: string | null = null
+    private readonly generatedInternalIdsByPath = new Map<string, string>()
     private readonly dependencies: CardOperationsDeps
     private readonly triggerStateActions: (cardPath: string, state: string) => void
 
@@ -160,6 +162,49 @@ export class CardOperations {
             path,
             sha: existingFile.sha,
         })
+    }
+
+    /** Adds persisted identities to legacy cards loaded without an internal ID. */
+    ensureCardInternalIds() {
+        const snapshot = this.dependencies.snapshot()
+        const cards = [...(snapshot?.activeCards ?? []), ...(snapshot?.backgroundCards ?? [])]
+        const { commitBatcher, config } = this.dependencies.requireDependencies()
+        const currentProject = this.dependencies.project()
+        if (!currentProject) throw new Error('Cannot add card identities before a project is open')
+        const projectKey = `${currentProject.id}:${currentProject.branch}`
+        if (projectKey !== this.generatedInternalIdProjectKey) {
+            this.generatedInternalIdProjectKey = projectKey
+            this.generatedInternalIdsByPath.clear()
+        }
+        for (const card of cards) {
+            if (card.header.internalId) this.generatedInternalIdsByPath.delete(card.path)
+        }
+        const cardsWithoutInternalId = cards.filter(({ header }) => !header.internalId)
+        if (cardsWithoutInternalId.length === 0) return 0
+
+        const filesToPersist: MarkdownFile[] = []
+        const updatedFiles = cardsWithoutInternalId.map((card) => {
+            const existingFile = this.dependencies.requireFile(card.path)
+            const generatedInternalId = this.generatedInternalIdsByPath.get(card.path)
+            const internalId = generatedInternalId ?? markdownParsingService.generateInternalId()
+            this.generatedInternalIdsByPath.set(card.path, internalId)
+            const updatedFile = {
+                ...existingFile,
+                content: markdownParsingService.rewriteHeader(existingFile.content, { internalId }),
+            }
+            if (!generatedInternalId) filesToPersist.push(updatedFile)
+
+            return updatedFile
+        })
+        const updatedFilesByPath = new Map(updatedFiles.map((file) => [file.path, file]))
+        const files = this.dependencies.files().map((file) => updatedFilesByPath.get(file.path) ?? file)
+        this.dependencies.replaceFiles(files, config.workingFolder)
+        if (filesToPersist.length > 0) {
+            commitBatcher.schedule(currentProject.branch, filesToPersist, 'Add missing card internal IDs')
+        }
+        this.dependencies.dispatchChanged()
+
+        return filesToPersist.length
     }
 
     updateCardTitle(path: string, title: string) {

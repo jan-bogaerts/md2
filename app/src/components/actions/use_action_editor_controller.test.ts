@@ -18,6 +18,9 @@ function loadAction(): ActionDefinition {
             type: 'agent',
         }),
         path: 'actions/review.json',
+    }, {
+        content: JSON.stringify({description: 'Other action', id: 'other-action', label: 'Other', prompt: 'Other prompt', type: 'agent'}),
+        path: 'actions/other.json',
     }])
     const action = actionService.getActionByPath('actions/review.json')
     if (!action) throw new Error('Missing test action')
@@ -53,5 +56,24 @@ describe('useActionEditorController', () => {
         act(() => result.current.handleDeletePhrase())
         expect(discardMarkdownDocument).toHaveBeenCalledWith(phraseDocumentId)
         expect(actionService.getDraft('actions/review.json').definition.phrases).toEqual([])
+    })
+
+    it('does not rerender for an unrelated action editor-state event', () => {
+        const action = loadAction()
+        let renderCount = 0
+        renderHook(() => {
+            renderCount += 1
+            return useActionEditorController({
+                action,
+                actions: actionService.getActions(),
+                discardMarkdownDocument: vi.fn(),
+                markdownDocumentNamespace: 'test-project',
+            })
+        })
+        const initialRenderCount = renderCount
+
+        act(() => actionService.setActionEditorState('actions/other.json', { phrases: [], selectedTab: 'prompt' }))
+
+        expect(renderCount).toBe(initialRenderCount)
     })
 })

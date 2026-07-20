@@ -101,6 +101,7 @@ export interface ProjectLoadingDeps {
     commitPathsInFlight(): Set<string>
     dispatchChanged(): void
     dispatchPersistenceChanged(): void
+    ensureCardInternalIds(): Promise<void>
     files(): MarkdownFile[]
     flushPendingChanges(): Promise<void>
     isCurrentLoad(project: ProjectReference, projectLoadToken: number): boolean
@@ -186,6 +187,7 @@ export class ProjectLoading {
             const projectFiles = await storage.loadProjectRoot(project, config.workingFolder)
             const repositoryFiles: string[] = []
             this.dependencies.replaceProjectFiles(projectFiles.files, config.workingFolder, repositoryFiles)
+            await this.dependencies.ensureCardInternalIds()
             this.tryStartProjectWatch()
             const currentSnapshot = this.dependencies.snapshot()
             if (!currentSnapshot) throw new Error('Project snapshot was not created')
@@ -296,6 +298,7 @@ export class ProjectLoading {
         const projectFiles = await storage.loadProject(currentProject, config.projectFolder)
         const repositoryFiles = await storage.listRepositoryFiles(currentProject)
         this.dependencies.replaceProjectFiles(projectFiles.files, config.workingFolder, repositoryFiles)
+        await this.dependencies.ensureCardInternalIds()
         this.dependencies.dispatchChanged()
         const currentSnapshot = this.dependencies.snapshot()
         if (currentSnapshot) this.loadAgentConversationsInBackground(currentSnapshot, project, projectLoadToken)
@@ -466,6 +469,7 @@ export class ProjectLoading {
         if (!this.shouldApplyProjectLoad(project, projectLoadToken)) return
 
         this.dependencies.replaceProjectFiles(nextFiles, workingFolder, repositoryFiles)
+        await this.dependencies.ensureCardInternalIds()
         this.dependencies.dispatchChanged()
         const currentSnapshot = this.dependencies.snapshot()
         if (currentSnapshot) this.loadAgentConversationsInBackground(currentSnapshot, project, projectLoadToken)
@@ -573,6 +577,7 @@ export class ProjectLoading {
         const repositoryFiles = await storage.listRepositoryFiles(currentProject)
         const { config } = this.dependencies.requireDependencies()
         this.dependencies.replaceProjectFiles(importedFiles, config.workingFolder, repositoryFiles)
+        await this.dependencies.ensureCardInternalIds()
         this.dependencies.dispatchChanged()
     }
 

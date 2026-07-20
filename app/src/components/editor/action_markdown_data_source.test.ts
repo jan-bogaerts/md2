@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { ActionService } from '../../services/actions/action_service'
 import { ActionMarkdownDataSource, actionMarkdownDocumentId } from './action_markdown_data_source'
 import type { MarkdownReplacedDetail } from './markdown_data_source'
+import { dialogService } from '../../services/dialog_service'
 
 function setup() {
     const service = new ActionService(() => ({ persistActionFile: vi.fn(async () => undefined) }))
@@ -18,6 +19,7 @@ function setup() {
     })
     const source = new ActionMarkdownDataSource()
     source.init(service)
+    source.setActiveActionDocument('project', null)
 
     return { service, source }
 }
@@ -47,5 +49,20 @@ describe('ActionMarkdownDataSource', () => {
 
         const detail = (replaced.mock.calls[0][0] as CustomEvent<MarkdownReplacedDetail>).detail
         expect(detail).toEqual({ documentId: promptId, originBinding: 'list-action' })
+    })
+
+    it('rejects a document from another project namespace', () => {
+        const { source } = setup()
+        const foreignPromptId = actionMarkdownDocumentId('other-project', 'review', 'prompt')
+
+        expect(source.commit('list-action', foreignPromptId, 'Edited')).toBe(false)
+    })
+
+    it('reports malformed document IDs without throwing from the error boundary', () => {
+        const { source } = setup()
+        const reportError = vi.spyOn(dialogService, 'error')
+
+        expect(source.commit('list-action', 'not-json', 'Edited')).toBe(false)
+        expect(reportError).toHaveBeenCalledWith(expect.any(Error), {fallbackMessage: 'Action update failed: not-json'})
     })
 })

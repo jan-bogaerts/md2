@@ -90,18 +90,26 @@ export function ActionEditor(props: ActionEditorProps) {
         const documentId = definition.type === 'agent' && activeTab !== ACTION_DEFINITION_TAB
             ? markdownDocumentId
             : null
-        actionMarkdownDataSource.setActiveDocument('list-action', documentId)
+        actionMarkdownDataSource.setActiveActionDocument(markdownDocumentNamespace, documentId)
         onMarkdownPresentationChange(documentId ? {
             placeholders: selectedPhrase ? undefined : ACTION_PROMPT_PLACEHOLDERS,
             toolbarContents: selectedPhrase ? phraseToolbarContents : undefined,
         } : null)
 
-    }, [activeTab, definition.type, markdownDocumentId, onMarkdownPresentationChange, phraseToolbarContents, selectedPhrase])
+    }, [
+        activeTab,
+        definition.type,
+        markdownDocumentId,
+        markdownDocumentNamespace,
+        onMarkdownPresentationChange,
+        phraseToolbarContents,
+        selectedPhrase,
+    ])
 
     useEffect(() => () => {
-        actionMarkdownDataSource.setActiveDocument('list-action', null)
+        actionMarkdownDataSource.setActiveActionDocument(markdownDocumentNamespace, null)
         onMarkdownPresentationChange(null)
-    }, [onMarkdownPresentationChange])
+    }, [markdownDocumentNamespace, onMarkdownPresentationChange])
 
     const definitionError = validation.error && validation.field !== 'prompt' && validation.field !== 'phrases'
         ? validation.error

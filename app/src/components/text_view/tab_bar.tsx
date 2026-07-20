@@ -12,8 +12,8 @@ export type OpenTabKind = 'action' | 'card' | 'markdown'
 export interface OpenTab {
     color: string | null
     document: OpenDocument
-    document: OpenDocument
     id: string | null
+    key: string
     kind: OpenTabKind
     label: string
     path: string
@@ -69,7 +69,7 @@ export function TabBar(props: TabBarProps) {
                 {tabs.map((tab) => (
                     <Tab
                         aria-label={tab.label}
-                        key={tab.path}
+                        key={tab.key}
                         component="div"
                         label={(
                             <Box sx={{ alignItems: 'center', display: 'flex', gap: 1, maxWidth: 240, minWidth: 0 }}>

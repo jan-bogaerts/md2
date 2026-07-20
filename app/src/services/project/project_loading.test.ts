@@ -82,7 +82,7 @@ describe('ProjectLoading', () => {
         configService.init()
         const rootFiles = [
             { ...files[0], content: files[0].content.replace('status: active', 'status: design') },
-            { content: '---\nid: F-2\ntitle: Ready\nstatus: ready for implementation\n---\n', path: 'design/F-2-ready.md' },
+            { content: '---\nid: F-2\ninternalId: ready-card\ntitle: Ready\nstatus: ready for implementation\n---\n', path: 'design/F-2-ready.md' },
         ]
         const storage = createStorage({
             loadProject: vi.fn(async () => ({ files: rootFiles, workingFolder: 'design' })),
@@ -478,7 +478,7 @@ describe('ProjectLoading', () => {
 
             expect(service.getState().snapshot?.activeCards.some((card) => card.path === 'design/notes.md')).toBe(true)
             expect(service.getState().snapshot?.activeCards.some((card) => card.path === 'design/F-4-notes.md')).toBe(false)
-            expect(storage.push).not.toHaveBeenCalled()
+            expect(storage.push).toHaveBeenCalledWith({ branch: 'main', id: 'project' })
         } finally {
             errors.stop()
         }

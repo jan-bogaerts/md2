@@ -23,6 +23,8 @@ function owner(initialCard: ProjectCard) {
         const current = snapshot.activeCards[0]
         snapshot = { ...snapshot, activeCards: [{ ...current, content: markdown, path }] }
         eventTarget.dispatchEvent(new CustomEvent('changed'))
+
+        return { content: markdown, path }
     })
 
     return Object.assign(eventTarget, {
@@ -76,7 +78,7 @@ describe('CardMarkdownDataSource', () => {
         cardOwner.updateCardBody.mockImplementation(() => { throw new Error('write failed') })
         const source = new CardMarkdownDataSource()
         source.init(cardOwner)
-        const reportError = vi.spyOn(dialogService, 'error').mockImplementation(() => undefined)
+        const reportError = vi.spyOn(dialogService, 'error')
 
         expect(source.commit('list-card', 'card-1', 'Edited')).toBe(false)
         expect(reportError).toHaveBeenCalledWith(expect.any(Error), { fallbackMessage: 'Body update failed: design/F-1.md' })
