@@ -1,7 +1,6 @@
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import type { RenderResult } from '@testing-library/react'
 import { Box } from '@mui/material'
-import { useCallback, useRef, useState } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ActionDefinition, ActionFile, RawActionDefinition } from '../../data/action_types'
 import { configService } from '../../services/config/config_service'
@@ -10,10 +9,8 @@ import { actionService } from '../../services/actions/action_service'
 import * as actionServiceModule from '../../services/actions/action_service'
 import { dialogService } from '../../services/dialog_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
-import type { MarkdownDocumentConfig, MarkdownDocumentOwnerConfig } from '../editor/markdown_document_config'
-import { MarkdownDocumentHistoryStore } from '../editor/markdown_document_history_store'
-import { MarkdownEditor, type MarkdownEditorHandle } from '../editor/markdown_editor'
-import { ActionEditor } from './action_editor'
+import { actionMarkdownDataSource } from '../editor/action_markdown_data_source'
+import { ListActionEditor } from './list_action_editor'
 
 const definition = {
     description: 'Review the selected file',
@@ -65,61 +62,18 @@ function reloadAction(overrides: Record<string, unknown> = {}): ActionDefinition
 
 function ActionEditorHarness(props: { action: ActionDefinition, states: string[] }) {
     const { action, states } = props
-    const [historyStore] = useState(() => new MarkdownDocumentHistoryStore())
-    const [owner, setOwner] = useState<MarkdownDocumentOwnerConfig | null>(null)
-    const documentsRef = useRef(new Map<string, MarkdownDocumentConfig>())
-    const editorRef = useRef<MarkdownEditorHandle>(null)
-    const handleOwnerChange = useCallback((nextOwner: MarkdownDocumentOwnerConfig) => {
-        if (nextOwner.activeDocument) documentsRef.current.set(nextOwner.activeDocument.documentId, nextOwner.activeDocument)
-        setOwner(nextOwner)
-        historyStore.retainDocuments(nextOwner.documentIds)
-    }, [historyStore])
-    const handleChange = useCallback((documentId: string, markdown: string) => {
-        const document = documentsRef.current.get(documentId)
-        if (!document) throw new Error(`Missing test Markdown document: ${documentId}`)
-        document.onChange(markdown)
-    }, [])
-    const handleEdit = useCallback((documentId: string, markdown: string) => {
-        documentsRef.current.get(documentId)?.onEdit?.(markdown)
-    }, [])
-    const handleDiscard = useCallback((documentId: string, markdown: string) => {
-        editorRef.current?.setMarkdown(markdown)
-        documentsRef.current.delete(documentId)
-        historyStore.discardDocument(documentId)
-    }, [historyStore])
-    const activeDocument = owner?.activeDocument ?? {
-        documentId: '__action-editor-test-empty__',
-        markdown: '',
-        onChange: () => undefined,
-        ownerPath: '__action-editor-test-empty__',
-    }
 
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-            <ActionEditor
+            <ListActionEditor
                 action={action}
                 actions={actionService.getActions()}
                 cardTypes={['feature']}
-                discardMarkdownDocument={handleDiscard}
                 markdownDocumentNamespace="test-project"
-                onMarkdownDocumentOwnerChange={handleOwnerChange}
                 repositoryFiles={[]}
                 specialContextTypes={['actions']}
                 states={states}
             />
-            <Box hidden={!owner?.activeDocument} sx={{ order: 1 }}>
-                <MarkdownEditor
-                    documentId={activeDocument.documentId}
-                    flushOnBlur={activeDocument.flushOnBlur}
-                    historyStore={historyStore}
-                    markdown={activeDocument.markdown}
-                    onDocumentChange={handleChange}
-                    onDocumentEdit={handleEdit}
-                    placeholders={activeDocument.placeholders}
-                    ref={editorRef}
-                    toolbarContents={activeDocument.toolbarContents}
-                />
-            </Box>
         </Box>
     )
 }
@@ -143,6 +97,7 @@ function descriptionInput(): HTMLInputElement {
 describe('ActionEditor', () => {
     beforeEach(() => {
         configService.init()
+        actionMarkdownDataSource.init(actionService)
     })
 
     afterEach(() => {

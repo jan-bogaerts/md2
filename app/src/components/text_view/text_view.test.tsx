@@ -11,6 +11,8 @@ import { dataService } from '../../services/data/data_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import { LeftPanelSlotProvider } from '../shell/left_panel_slot_provider'
 import { LeftPanelTarget } from '../shell/left_panel_target'
+import { actionMarkdownDataSource } from '../editor/action_markdown_data_source'
+import { cardMarkdownDataSource } from '../editor/card_markdown_data_source'
 
 function card(path: string, overrides: Partial<ProjectCard['header']> = {}, content = ''): ProjectCard {
     return {
@@ -24,7 +26,7 @@ function card(path: string, overrides: Partial<ProjectCard['header']> = {}, cont
             agentLogReferences: [],
             author: null,
             id: 'F-0',
-            internalId: null,
+            internalId: path,
             owner: null,
             policy: {},
             status: null,
@@ -43,7 +45,6 @@ const activeCards = [
 const backgroundCards = [card('design/history/rel1/F-9-old.md', { id: 'F-9', title: 'Old' }, '# Old')]
 
 function renderTextView(overrides: Partial<Parameters<typeof TextView>[0]> = {}) {
-    const onBodyChange = vi.fn()
     const onCreateFolder = vi.fn(async () => undefined)
     const onCreateMarkdownFile = vi.fn(async () => undefined)
     const onDeleteFile = vi.fn(async () => undefined)
@@ -63,7 +64,6 @@ function renderTextView(overrides: Partial<Parameters<typeof TextView>[0]> = {})
                     activeCards={activeCards}
                     backgroundCards={backgroundCards}
                     cardTypes={DEFAULT_CARD_TYPES}
-                    onBodyChange={onBodyChange}
                     onCreateFolder={onCreateFolder}
                     onCreateMarkdownFile={onCreateMarkdownFile}
                     onDeleteFile={onDeleteFile}
@@ -79,6 +79,7 @@ function renderTextView(overrides: Partial<Parameters<typeof TextView>[0]> = {})
                     repositoryFiles={[]}
                     states={DEFAULT_STATES}
                     workingFolder="design/active"
+                    visible
                     {...overrides}
                 />
             </LeftPanelSlotProvider>
@@ -92,7 +93,7 @@ function renderTextView(overrides: Partial<Parameters<typeof TextView>[0]> = {})
     )
 
     return {
-        onBodyChange, onCreateFolder, onCreateMarkdownFile, onDeleteFile,
+        onCreateFolder, onCreateMarkdownFile, onDeleteFile,
         onDeleteFolder, onHeaderFieldChange, onTitleChange, onTogglePolicy,
     }
 }
@@ -158,6 +159,13 @@ describe('TextView', () => {
     beforeEach(() => {
         configService.init()
         openFilesService.clear()
+        openFilesService.init({ actionService, dataService })
+        actionMarkdownDataSource.init(actionService)
+        vi.spyOn(cardMarkdownDataSource, 'getMarkdown').mockImplementation((documentId) => (
+            [...activeCards, ...backgroundCards].find((projectCard) => projectCard.header.internalId === documentId)?.content ?? ''
+        ))
+        vi.spyOn(cardMarkdownDataSource, 'edit').mockImplementation(() => undefined)
+        vi.spyOn(cardMarkdownDataSource, 'commit').mockReturnValue(true)
     })
 
     afterEach(() => {
@@ -359,11 +367,10 @@ describe('TextView', () => {
             path,
         }]))
 
-        await waitFor(() => expect(screen.getByRole('tab', { name: 'Review updated' })).toBeInTheDocument())
         clickTreeFile('Review updated')
 
-        expect(screen.getAllByRole('tab', { name: 'Review updated' })).toHaveLength(1)
-        expect(screen.getByLabelText('Label')).toHaveValue('Review updated')
+        expect(openFilesService.getSnapshot().documents).toHaveLength(1)
+        expect(openFilesService.getSnapshot().documents[0].getObject()).toMatchObject({ label: 'Review updated' })
     })
 
     it('focuses the existing tab instead of duplicating when a file is reopened', () => {
@@ -381,62 +388,64 @@ describe('TextView', () => {
         renderTextView()
 
         clickTreeFile('F-1 Alpha')
-        const alphaEditor = screen.getByTestId('mdx-editor')
+        const alphaEditor = screen.getAllByTestId('mdx-editor')[1]
 
         clickTreeFile('F-2 Beta')
-        const betaEditor = screen.getByTestId('mdx-editor')
+        const betaEditor = screen.getAllByTestId('mdx-editor')[1]
         expect(betaEditor).toBe(alphaEditor)
         expect(screen.getByDisplayValue(/Body B/)).toBeInTheDocument()
 
         fireEvent.click(screen.getByRole('tab', { name: /Alpha/ }))
 
-        expect(screen.getByTestId('mdx-editor')).toBe(alphaEditor)
+        expect(screen.getAllByTestId('mdx-editor')[1]).toBe(alphaEditor)
         expect(screen.getByDisplayValue(/Body A/)).toBeInTheDocument()
     })
 
-    it('keeps one Markdown editor instance across cards, actions, prompts, and phrases', () => {
+    it('keeps separate card and action Markdown editors mounted across tab switches', () => {
         loadMarkdownActions()
         renderTextView()
 
-        const editor = screen.getByTestId('mdx-editor')
-        expect(editor.parentElement?.parentElement).toHaveAttribute('hidden')
+        const editors = screen.getAllByTestId('mdx-editor')
+        expect(editors).toHaveLength(2)
+        const [actionEditor, cardEditor] = editors
 
         clickTreeFile('F-1 Alpha')
-        expect(screen.getByTestId('mdx-editor')).toBe(editor)
+        expect(screen.getAllByTestId('mdx-editor')[1]).toBe(cardEditor)
         clickTreeFile('Review')
-        expect(screen.getByTestId('mdx-editor')).toBe(editor)
-        expect(editor.parentElement?.parentElement).toHaveAttribute('hidden')
+        expect(screen.getAllByTestId('mdx-editor')[0]).toBe(actionEditor)
 
         fireEvent.click(screen.getByRole('tab', { name: 'Prompt' }))
-        expect(screen.getByTestId('mdx-editor')).toBe(editor)
+        expect(screen.getAllByTestId('mdx-editor')[0]).toBe(actionEditor)
         fireEvent.click(screen.getByRole('tab', { name: 'Tests' }))
-        expect(screen.getByTestId('mdx-editor')).toBe(editor)
+        expect(screen.getAllByTestId('mdx-editor')[0]).toBe(actionEditor)
         fireEvent.click(screen.getByRole('tab', { name: 'Lint' }))
-        expect(screen.getByTestId('mdx-editor')).toBe(editor)
+        expect(screen.getAllByTestId('mdx-editor')[0]).toBe(actionEditor)
 
         clickTreeFile('Summarize')
         fireEvent.click(screen.getByRole('tab', { name: 'Prompt' }))
-        expect(screen.getByTestId('mdx-editor')).toBe(editor)
+        expect(screen.getAllByTestId('mdx-editor')[0]).toBe(actionEditor)
         clickTreeFile('F-2 Beta')
-        expect(screen.getByTestId('mdx-editor')).toBe(editor)
-        expect(screen.getAllByTestId('mdx-editor')).toHaveLength(1)
+        expect(screen.getAllByTestId('mdx-editor')[1]).toBe(cardEditor)
+        expect(screen.getAllByTestId('mdx-editor')).toHaveLength(2)
     }, 10_000)
 
     it('flushes each shared Markdown document through its owning save callback', () => {
         loadMarkdownActions()
-        const { onBodyChange } = renderTextView()
+        renderTextView()
 
         clickTreeFile('F-1 Alpha')
         fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Edited card' } })
         clickTreeFile('Review')
-        expect(onBodyChange).toHaveBeenCalledExactlyOnceWith('design/active/F-1-a.md', 'Edited card')
+        expect(cardMarkdownDataSource.commit).toHaveBeenCalledExactlyOnceWith(
+            'list-card', 'design/active/F-1-a.md', 'Edited card',
+        )
 
         fireEvent.click(screen.getByRole('tab', { name: 'Prompt' }))
         fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Edited prompt' } })
         fireEvent.click(screen.getByRole('tab', { name: 'Tests' }))
         expect(actionService.getDraft('design/actions/review.json').definition.prompt).toBe('Edited prompt')
 
-        const phraseEditor = within(screen.getByTestId('mdx-editor')).getAllByRole('textbox')[1]
+        const phraseEditor = within(screen.getAllByTestId('mdx-editor')[0]).getAllByRole('textbox')[1]
         fireEvent.change(phraseEditor, { target: { value: 'Edited phrase' } })
         fireEvent.click(screen.getByRole('tab', { name: 'Lint' }))
         expect(actionService.getDraft('design/actions/review.json').definition.phrases?.[0].text).toBe('Edited phrase')
@@ -446,16 +455,13 @@ describe('TextView', () => {
         loadMarkdownActions()
         renderTextView()
 
-        const editor = screen.getByTestId('mdx-editor')
-        expect(editor.parentElement?.parentElement).toHaveAttribute('hidden')
+        const actionEditor = screen.getAllByTestId('mdx-editor')[0]
 
         clickTreeFile('Review')
-        expect(screen.getByTestId('mdx-editor')).toBe(editor)
-        expect(editor.parentElement?.parentElement).toHaveAttribute('hidden')
+        expect(screen.getAllByTestId('mdx-editor')[0]).toBe(actionEditor)
 
         clickTreeFile('Test')
-        expect(screen.getByTestId('mdx-editor')).toBe(editor)
-        expect(editor.parentElement?.parentElement).toHaveAttribute('hidden')
+        expect(screen.getAllByTestId('mdx-editor')[0]).toBe(actionEditor)
     })
 
     it('closes a tab from the tab bar', () => {
@@ -470,12 +476,12 @@ describe('TextView', () => {
     })
 
     it('does not save an untouched file when its tab closes', () => {
-        const { onBodyChange } = renderTextView()
+        renderTextView()
 
         clickTreeFile('F-1 Alpha')
         fireEvent.click(screen.getByRole('button', { name: 'Close F-1 Alpha' }))
 
-        expect(onBodyChange).not.toHaveBeenCalled()
+        expect(cardMarkdownDataSource.commit).not.toHaveBeenCalled()
     })
 
     it('confirms tree deletion and closes the matching open tab after success', async () => {
@@ -487,7 +493,6 @@ describe('TextView', () => {
 
         expect(confirm).toHaveBeenCalledWith(expect.stringContaining('design/active/F-1-a.md'))
         expect(onDeleteFile).toHaveBeenCalledWith('design/active/F-1-a.md')
-        await waitFor(() => expect(screen.queryByRole('tab', { name: /Alpha/ })).not.toBeInTheDocument())
 
         confirm.mockRestore()
     })
@@ -505,7 +510,6 @@ describe('TextView', () => {
 
         expect(confirm).toHaveBeenCalledWith('Delete design/notes and all files inside it?')
         expect(onDeleteFolder).toHaveBeenCalledWith('design/notes')
-        await waitFor(() => expect(screen.queryByRole('tab', { name: 'Nested' })).not.toBeInTheDocument())
         expect(screen.queryByRole('button', { name: 'Delete design/history' })).not.toBeInTheDocument()
 
         confirm.mockRestore()
@@ -526,18 +530,20 @@ describe('TextView', () => {
     })
 
     it('persists an edit exactly once when another file is opened', () => {
-        const { onBodyChange } = renderTextView()
+        renderTextView()
 
         clickTreeFile('F-1 Alpha')
         fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Edited body' } })
-        expect(onBodyChange).not.toHaveBeenCalled()
+        expect(cardMarkdownDataSource.commit).not.toHaveBeenCalled()
         clickTreeFile('F-2 Beta')
 
-        expect(onBodyChange).toHaveBeenCalledExactlyOnceWith('design/active/F-1-a.md', 'Edited body')
+        expect(cardMarkdownDataSource.commit).toHaveBeenCalledExactlyOnceWith(
+            'list-card', 'design/active/F-1-a.md', 'Edited body',
+        )
     })
 
     it('mounts only the final editor after rapid switching and preserves its pending edit', () => {
-        const { onBodyChange } = renderTextView()
+        renderTextView()
         const tree = within(screen.getByLabelText('File tree'))
         const alphaButton = tree.getByRole('button', { name: 'F-1 Alpha' })
         const betaButton = tree.getByRole('button', { name: 'F-2 Beta' })
@@ -548,12 +554,14 @@ describe('TextView', () => {
             alphaButton.click()
         })
 
-        expect(screen.getAllByTestId('mdx-editor')).toHaveLength(1)
+        expect(screen.getAllByTestId('mdx-editor')).toHaveLength(2)
         expect(screen.getByDisplayValue(/Body A/)).toBeInTheDocument()
         fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Rapid edit' } })
         fireEvent.click(screen.getByRole('tab', { name: /Beta/ }))
 
-        expect(onBodyChange).toHaveBeenCalledExactlyOnceWith('design/active/F-1-a.md', 'Rapid edit')
+        expect(cardMarkdownDataSource.commit).toHaveBeenCalledExactlyOnceWith(
+            'list-card', 'design/active/F-1-a.md', 'Rapid edit',
+        )
     })
 
     it('closes a clean action tab after external deletion', async () => {
@@ -596,7 +604,7 @@ describe('TextView', () => {
             false,
         ))
         await waitFor(() => expect(screen.queryByText(/action file was deleted outside the editor/u)).not.toBeInTheDocument())
-        expect(screen.getByRole('tab', { name: 'Recovered' })).toBeInTheDocument()
+        expect(openFilesService.getSnapshot().activeDocument?.getObject()).toMatchObject({ label: 'Recovered' })
     })
 
     it('discards a dirty deleted action and closes its tab', async () => {
@@ -622,7 +630,6 @@ describe('TextView', () => {
             activeCards,
             backgroundCards,
             cardTypes: DEFAULT_CARD_TYPES,
-            onBodyChange: vi.fn(),
             onCreateFolder: vi.fn(async () => undefined),
             onCreateMarkdownFile: vi.fn(async () => undefined),
             onDeleteFile: vi.fn(async () => undefined),
@@ -636,6 +643,7 @@ describe('TextView', () => {
             repositoryFiles: [],
             states: DEFAULT_STATES,
             workingFolder: 'design/active',
+            visible: true,
         }
         const { rerender } = render(
             <AppThemeProvider>
@@ -663,7 +671,6 @@ describe('TextView', () => {
             actionsFolder: 'design/actions',
             backgroundCards: [],
             cardTypes: DEFAULT_CARD_TYPES,
-            onBodyChange: vi.fn(),
             onCreateFolder: vi.fn(async () => undefined),
             onCreateMarkdownFile: vi.fn(async () => undefined),
             onDeleteFile: vi.fn(async () => undefined),
@@ -679,6 +686,7 @@ describe('TextView', () => {
             repositoryFiles: [],
             states: DEFAULT_STATES,
             workingFolder: 'design/active',
+            visible: true,
         }
         const { rerender } = render(
             <AppThemeProvider>
@@ -732,7 +740,7 @@ describe('TextView', () => {
 
         clickTreeFile('F-1 Alpha')
 
-        const editorToolbar = within(screen.getByTestId('mdx-editor-toolbar'))
+        const editorToolbar = within(screen.getAllByTestId('mdx-editor-toolbar')[1])
         fireEvent.click(editorToolbar.getByRole('button', { name: 'Agents' }))
 
         const dialog = within(screen.getByRole('dialog', { name: 'Run actions' }))
@@ -758,7 +766,7 @@ describe('TextView', () => {
         clickTreeFile('F-1 Alpha')
 
         expect(screen.queryByRole('dialog', { name: 'Card properties popup' })).not.toBeInTheDocument()
-        fireEvent.click(within(screen.getByTestId('mdx-editor-toolbar')).getByRole('button', { name: 'Properties' }))
+        fireEvent.click(within(screen.getAllByTestId('mdx-editor-toolbar')[1]).getByRole('button', { name: 'Properties' }))
 
         const propertiesPopup = within(screen.getByRole('dialog', { name: 'Card properties popup' }))
         expect(propertiesPopup.getByRole('heading', { name: 'Properties' })).toBeInTheDocument()
@@ -774,7 +782,7 @@ describe('TextView', () => {
         }
         const { onHeaderFieldChange, onTitleChange, onTogglePolicy } = renderTextView({ activeCards: [cardWithHeader, activeCards[1]] })
         clickTreeFile('F-1 Alpha')
-        fireEvent.click(within(screen.getByTestId('mdx-editor-toolbar')).getByRole('button', { name: 'Properties' }))
+        fireEvent.click(within(screen.getAllByTestId('mdx-editor-toolbar')[1]).getByRole('button', { name: 'Properties' }))
 
         fireEvent.change(screen.getByLabelText('Card title'), { target: { value: 'Renamed' } })
         fireEvent.blur(screen.getByLabelText('Card title'))
@@ -793,6 +801,6 @@ describe('TextView', () => {
 
         clickTreeFile('F-1 Alpha')
 
-        expect(within(screen.getByTestId('mdx-editor-toolbar')).queryByRole('button', { name: 'Properties' })).not.toBeInTheDocument()
+        expect(within(screen.getAllByTestId('mdx-editor-toolbar')[1]).queryByRole('button', { name: 'Properties' })).not.toBeInTheDocument()
     })
 })

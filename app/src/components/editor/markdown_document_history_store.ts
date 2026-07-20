@@ -38,6 +38,7 @@ export class MarkdownDocumentHistoryStore {
 
     get canRedo() { return this.sharedHistoryState.redoStack.length > 0 }
     get canUndo() { return this.sharedHistoryState.undoStack.length > 0 }
+    get hasAttachedEditor() { return !!this.editor }
 
     attachEditor(editor: LexicalEditor, documentId: string | null, markdown: string) {
         this.persistActiveDocument()

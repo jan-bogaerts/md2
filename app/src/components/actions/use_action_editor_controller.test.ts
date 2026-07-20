@@ -4,7 +4,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ActionDefinition } from '../../data/action_types'
 import { actionService } from '../../services/actions/action_service'
 import { dataService } from '../../services/data/data_service'
-import { actionMarkdownDocumentId, useActionEditorController } from './use_action_editor_controller'
+import { actionMarkdownDocumentId } from '../editor/action_markdown_data_source'
+import { useActionEditorController } from './use_action_editor_controller'
 
 function loadAction(): ActionDefinition {
     actionService.loadFromFiles([{
@@ -43,20 +44,14 @@ describe('useActionEditorController', () => {
         }))
 
         expect(result.current.markdownDocumentId).toBe(actionMarkdownDocumentId('test-project', 'review-action', 'prompt'))
-        expect(result.current.markdownDocumentIds).toHaveLength(2)
         expect(actionMarkdownDocumentId('other-project', 'review-action', 'prompt')).not.toBe(result.current.markdownDocumentId)
 
         const phraseIdentity = action.editorState?.phrases[0].identity
         if (!phraseIdentity) throw new Error('Missing phrase editor identity')
         act(() => result.current.handleTabChange({} as SyntheticEvent, phraseIdentity))
-        expect(result.current.markdown).toBe('Run tests')
-
-        act(() => result.current.handleMarkdownChange('Run focused tests'))
-        expect(actionService.getDraft('actions/review.json').definition.phrases?.[0].text).toBe('Run focused tests')
-
         const phraseDocumentId = result.current.markdownDocumentId
         act(() => result.current.handleDeletePhrase())
-        expect(discardMarkdownDocument).toHaveBeenCalledWith(phraseDocumentId, 'Run focused tests')
+        expect(discardMarkdownDocument).toHaveBeenCalledWith(phraseDocumentId)
         expect(actionService.getDraft('actions/review.json').definition.phrases).toEqual([])
     })
 })

@@ -1,7 +1,7 @@
 import { Box } from '@mui/material'
 import { DndContext, DragOverlay, PointerSensor, closestCorners, useSensor, useSensors } from '@dnd-kit/core'
 import type { DragEndEvent, DragMoveEvent, DragStartEvent } from '@dnd-kit/core'
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { buildCardColumns } from '../../data/card_ordering'
 import type { CardTypeConfig, ProjectCard, StateConfig } from '../../data/data_types'
 import { useWorktrees } from '../hooks/use_worktrees'
@@ -20,7 +20,6 @@ interface CardViewProps {
     cards: ProjectCard[]
     isMobile: boolean
     onAffectsChange: (path: string, affects: string[]) => void
-    onBodyChange: (path: string, body: string) => void
     onDeleteCard: (path: string) => Promise<void>
     onMoveCard: (path: string, targetStatus: string, targetIndex: number) => void
     onOpenInFileMode: (path: string) => void
@@ -32,6 +31,7 @@ interface CardViewProps {
     repositoryFiles: string[]
     selectedPath: string | null
     states: StateConfig[]
+    visible: boolean
 }
 
 type CardDragPositionEvent = DragEndEvent | DragMoveEvent
@@ -91,7 +91,6 @@ export function CardView(props: CardViewProps) {
         cards,
         isMobile,
         onAffectsChange,
-        onBodyChange,
         onDeleteCard,
         onMoveCard,
         onOpenInFileMode,
@@ -103,6 +102,7 @@ export function CardView(props: CardViewProps) {
         repositoryFiles,
         selectedPath,
         states,
+        visible,
     } = props
     const worktrees = useWorktrees()
     useAgentAcknowledgements()
@@ -144,6 +144,21 @@ export function CardView(props: CardViewProps) {
         setDropPreview(null)
         initialCardBoundsRef.current.clear()
     }
+
+    useEffect(() => {
+        if (visible) return
+
+        queueMicrotask(() => {
+            setOpenBodyPath(null)
+            setBodyAnchorElement(null)
+            setOpenAffectsPath(null)
+            setActiveCardPath(null)
+            setActiveCardHeight(null)
+            setActiveCardWidth(null)
+            setDropPreview(null)
+            initialCardBoundsRef.current.clear()
+        })
+    }, [visible])
 
     const handleDragStart = (event: DragStartEvent) => {
         initialCardBoundsRef.current = measureCardVerticalBounds()
@@ -198,6 +213,7 @@ export function CardView(props: CardViewProps) {
         >
             <Box
                 aria-label="Card columns"
+                hidden={!visible}
                 sx={{
                     alignItems: 'flex-start',
                     display: 'flex',
@@ -231,21 +247,21 @@ export function CardView(props: CardViewProps) {
                 ))}
             </Box>
             <DragOverlay>
-                {activeCard ? <CardDragOverlay card={activeCard} cardTypes={cardTypes} width={activeCardWidth} /> : null}
+                {visible && activeCard ? <CardDragOverlay card={activeCard} cardTypes={cardTypes} width={activeCardWidth} /> : null}
             </DragOverlay>
             <CardBodyPopover
                 anchorElement={bodyAnchorElement}
                 card={openCard}
                 isMobile={isMobile}
-                onBodyChange={onBodyChange}
                 onClose={handleCloseBody}
                 onDeleteCard={handleDeleteCard}
                 onOpenAffects={handleOpenAffects}
                 onOpenInFileMode={handleOpenInFileMode}
                 onTitleChange={onTitleChange}
+                visible={visible}
             />
             <AffectsEditorDialog
-                card={affectsCard}
+                card={visible ? affectsCard : null}
                 onClose={handleCloseAffects}
                 onSave={onAffectsChange}
                 repositoryFiles={repositoryFiles}

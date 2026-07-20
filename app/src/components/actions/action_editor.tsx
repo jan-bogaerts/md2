@@ -1,9 +1,9 @@
 import { Alert, Box, Button, Stack, Tab, Tabs, Typography } from '@mui/material'
-import { useCallback, useEffect, useMemo } from 'react'
+import { useCallback, useEffect, type ReactNode } from 'react'
 import type { ActionDefinition } from '../../data/action_types'
 import { ACTION_PROMPT_PLACEHOLDERS } from '../../data/action_placeholders'
 import { dialogService } from '../../services/dialog_service'
-import type { MarkdownDocumentOwnerConfig } from '../editor/markdown_document_config'
+import { actionMarkdownDataSource } from '../editor/action_markdown_data_source'
 import { useWorktrees } from '../hooks/use_worktrees'
 import { ActionDefinitionFields } from './action_definition_fields'
 import { ActionEditorTab } from './action_editor_tab'
@@ -18,12 +18,17 @@ interface ActionEditorProps {
     action: ActionDefinition
     actions: ActionDefinition[]
     cardTypes: string[]
-    discardMarkdownDocument: (documentId: string, markdown: string) => void
+    discardMarkdownDocument: (documentId: string) => void
     markdownDocumentNamespace: string
-    onMarkdownDocumentOwnerChange: (config: MarkdownDocumentOwnerConfig) => void
+    onMarkdownPresentationChange: (presentation: ActionMarkdownPresentation | null) => void
     repositoryFiles: string[]
     specialContextTypes: string[]
     states: string[]
+}
+
+export interface ActionMarkdownPresentation {
+    placeholders?: typeof ACTION_PROMPT_PLACEHOLDERS
+    toolbarContents?: () => ReactNode
 }
 
 export function ActionEditor(props: ActionEditorProps) {
@@ -33,7 +38,7 @@ export function ActionEditor(props: ActionEditorProps) {
         cardTypes,
         discardMarkdownDocument,
         markdownDocumentNamespace,
-        onMarkdownDocumentOwnerChange,
+        onMarkdownPresentationChange,
         repositoryFiles,
         specialContextTypes,
         states,
@@ -52,24 +57,19 @@ export function ActionEditor(props: ActionEditorProps) {
         handleDeletePhrase,
         handleDiscardDeleted,
         handleKeepMine,
-        handleMarkdownChange,
-        handleMarkdownEdit,
         handlePhraseTitleCommit,
         handlePhraseTitleEdit,
         handleRecreateDeleted,
         handleReloadExternal,
         handleRetry,
         handleTabChange,
-        markdown,
         markdownDocumentId,
-        markdownDocumentIds,
         phraseEditorStates,
         phrases,
         saveError,
         saving,
         selectableActions,
         selectedPhrase,
-        sourcePath,
         status,
         validation,
     } = controller
@@ -86,37 +86,22 @@ export function ActionEditor(props: ActionEditorProps) {
             />
         )
     }, [handleDeletePhrase, handlePhraseTitleCommit, handlePhraseTitleEdit, selectedPhrase])
-    const activeMarkdownDocument = useMemo(() => (
-        definition.type === 'agent' && activeTab !== ACTION_DEFINITION_TAB ? {
-            documentId: markdownDocumentId,
-            flushOnBlur: true,
-            markdown,
-            onChange: handleMarkdownChange,
-            onEdit: handleMarkdownEdit,
-            ownerPath: sourcePath,
+    useEffect(() => {
+        const documentId = definition.type === 'agent' && activeTab !== ACTION_DEFINITION_TAB
+            ? markdownDocumentId
+            : null
+        actionMarkdownDataSource.setActiveDocument('list-action', documentId)
+        onMarkdownPresentationChange(documentId ? {
             placeholders: selectedPhrase ? undefined : ACTION_PROMPT_PLACEHOLDERS,
             toolbarContents: selectedPhrase ? phraseToolbarContents : undefined,
-        } : null
-    ), [
-        activeTab,
-        definition.type,
-        handleMarkdownChange,
-        handleMarkdownEdit,
-        markdown,
-        markdownDocumentId,
-        phraseToolbarContents,
-        selectedPhrase,
-        sourcePath,
-    ])
-    const markdownDocumentOwner = useMemo(() => ({
-        activeDocument: activeMarkdownDocument,
-        documentIds: markdownDocumentIds,
-        ownerPath: sourcePath,
-    }), [activeMarkdownDocument, markdownDocumentIds, sourcePath])
+        } : null)
 
-    useEffect(() => {
-        onMarkdownDocumentOwnerChange(markdownDocumentOwner)
-    }, [markdownDocumentOwner, onMarkdownDocumentOwnerChange])
+    }, [activeTab, definition.type, markdownDocumentId, onMarkdownPresentationChange, phraseToolbarContents, selectedPhrase])
+
+    useEffect(() => () => {
+        actionMarkdownDataSource.setActiveDocument('list-action', null)
+        onMarkdownPresentationChange(null)
+    }, [onMarkdownPresentationChange])
 
     const definitionError = validation.error && validation.field !== 'prompt' && validation.field !== 'phrases'
         ? validation.error

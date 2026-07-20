@@ -1,6 +1,5 @@
 import type { ProjectCard } from '../../data/data_types'
 import type { DataService } from '../../services/data/data_service'
-import { dataService } from '../../services/data/data_service'
 import { dialogService } from '../../services/dialog_service'
 import { MarkdownDataSourceBase, type MarkdownBindingKind } from './markdown_data_source'
 
@@ -15,22 +14,35 @@ function requireInternalId(card: ProjectCard) {
     return card.header.internalId
 }
 
-function listCards(service: DataService) {
+type CardMarkdownOwner = EventTarget & Pick<DataService, 'getState'> & {
+    cards: Pick<DataService['cards'], 'updateCardBody'>
+}
+
+function listCards(service: CardMarkdownOwner) {
     const snapshot = service.getState().snapshot
 
     return [...(snapshot?.activeCards ?? []), ...(snapshot?.backgroundCards ?? [])]
+        .filter(({ header }) => !!header.internalId)
+}
+
+function loadedProjectKey(service: CardMarkdownOwner) {
+    const { project } = service.getState()
+
+    return project ? `${project.id}:${project.branch}` : null
 }
 
 /** Resolves and writes card bodies by stable card internal ID. */
 export class CardMarkdownDataSource extends MarkdownDataSourceBase {
     private readonly markdownByDocumentId = new Map<string, string>()
     private readonly lastWrittenMarkdownByDocumentId = new Map<string, LastWrittenMarkdown>()
-    private service: DataService | null = null
+    private loadedProjectKey: string | null = null
+    private service: CardMarkdownOwner | null = null
 
-    init(service: DataService) {
+    init(service: CardMarkdownOwner) {
         if (this.service) return
 
         this.service = service
+        this.loadedProjectKey = loadedProjectKey(service)
         this.captureCurrentMarkdown()
         service.addEventListener('changed', this.handleChanged)
     }
@@ -40,28 +52,40 @@ export class CardMarkdownDataSource extends MarkdownDataSourceBase {
     }
 
     edit(binding: MarkdownBindingKind, documentId: string, markdown: string) {
-        this.requireCardBinding(binding)
-        this.requireCard(documentId)
-        this.lastWrittenMarkdownByDocumentId.set(documentId, { markdown, originBinding: binding })
+        CardMarkdownDataSource.requireCardBinding(binding)
+        try {
+            this.requireCard(documentId)
+            this.lastWrittenMarkdownByDocumentId.set(documentId, { markdown, originBinding: binding })
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: `Body update failed: ${documentId}` })
+        }
     }
 
     commit(binding: MarkdownBindingKind, documentId: string, markdown: string) {
-        this.requireCardBinding(binding)
-        const card = this.requireCard(documentId)
+        CardMarkdownDataSource.requireCardBinding(binding)
         const previousWrittenMarkdown = this.lastWrittenMarkdownByDocumentId.get(documentId)
         this.lastWrittenMarkdownByDocumentId.set(documentId, { markdown, originBinding: binding })
+        const card = listCards(this.requireService()).find((candidate) => candidate.header.internalId === documentId)
         try {
+            if (!card) throw new Error(`Unknown card Markdown document: ${documentId}`)
             this.requireService().cards.updateCardBody(card.path, markdown)
             return true
         } catch (error) {
             if (previousWrittenMarkdown) this.lastWrittenMarkdownByDocumentId.set(documentId, previousWrittenMarkdown)
             else this.lastWrittenMarkdownByDocumentId.delete(documentId)
-            dialogService.error(error, { fallbackMessage: `Body update failed: ${card.path}` })
+            dialogService.error(error, { fallbackMessage: `Body update failed: ${card?.path ?? documentId}` })
             return false
         }
     }
 
     private readonly handleChanged = () => {
+        const nextProjectKey = loadedProjectKey(this.requireService())
+        if (nextProjectKey !== this.loadedProjectKey) {
+            this.loadedProjectKey = nextProjectKey
+            this.markdownByDocumentId.clear()
+            this.lastWrittenMarkdownByDocumentId.clear()
+            this.clearBindings()
+        }
         const cards = listCards(this.requireService())
         const nextMarkdownByDocumentId = new Map<string, string>()
         for (const card of cards) {
@@ -90,7 +114,7 @@ export class CardMarkdownDataSource extends MarkdownDataSourceBase {
         return card
     }
 
-    private requireCardBinding(binding: MarkdownBindingKind) {
+    private static requireCardBinding(binding: MarkdownBindingKind) {
         if (binding === 'list-action') throw new Error('Card Markdown source cannot use list-action binding')
     }
 

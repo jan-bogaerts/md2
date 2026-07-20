@@ -1,7 +1,6 @@
 import type { ActionDefinition } from '../data/action_types'
 import type { ProjectCard, ProjectReference, ProjectSnapshot } from '../data/data_types'
-import type { ActionService } from './actions/action_service'
-import type { DataService, DataServiceState } from './data/data_service'
+import type { DataServiceState } from './data/data_service'
 import { register } from './service_injector'
 
 export type OpenDocumentObject = ProjectCard | ActionDefinition
@@ -21,8 +20,8 @@ export interface OpenFilesSnapshot {
 }
 
 interface OpenFilesDependencies {
-    actionService: ActionService
-    dataService: DataService
+    actionService: EventTarget & Pick<import('./actions/action_service').ActionService, 'getActions' | 'getDeletedDraftActions'>
+    dataService: EventTarget & Pick<import('./data/data_service').DataService, 'getState'>
 }
 
 const EMPTY_SNAPSHOT: OpenFilesSnapshot = { activeDocument: null, documents: [] }
@@ -43,7 +42,10 @@ function projectKey(project: ProjectReference | null) {
 }
 
 function snapshotObjects(snapshot: ProjectSnapshot | null, actions: ActionDefinition[]) {
-    return [...(snapshot?.activeCards ?? []), ...(snapshot?.backgroundCards ?? []), ...actions]
+    const cards = [...(snapshot?.activeCards ?? []), ...(snapshot?.backgroundCards ?? [])]
+        .filter(({ header }) => !!header.internalId)
+
+    return [...cards, ...actions]
 }
 
 class ManagedOpenDocument extends EventTarget implements OpenDocument {
@@ -76,8 +78,8 @@ class ManagedOpenDocument extends EventTarget implements OpenDocument {
 
 /** Tracks stable domain-document wrappers for list tabs. */
 export class OpenFilesService extends EventTarget {
-    private actionService: ActionService | null = null
-    private dataService: DataService | null = null
+    private actionService: OpenFilesDependencies['actionService'] | null = null
+    private dataService: OpenFilesDependencies['dataService'] | null = null
     private initialized = false
     private loadedProjectKey: string | null = null
     private snapshot = EMPTY_SNAPSHOT
@@ -166,15 +168,16 @@ export class OpenFilesService extends EventTarget {
         }
         const actions = [...this.actionService.getActions(), ...this.actionService.getDeletedDraftActions()]
         const objects = snapshotObjects(snapshot, actions)
-        const objectsByKey = new Map(objects.map((object) => [this.objectKey(object), object]))
+        const objectsByKey = new Map(objects.map((object) => [OpenFilesService.objectKey(object), object]))
         const removedDocuments: OpenDocument[] = []
         const documents = this.snapshot.documents.filter((document) => {
-            const object = objectsByKey.get(this.documentKey(document))
+            const object = objectsByKey.get(OpenFilesService.documentKey(document))
             if (!object) {
                 removedDocuments.push(document)
                 return false
             }
-            ;(document as ManagedOpenDocument).renew(object)
+            const managedDocument = document as ManagedOpenDocument
+            managedDocument.renew(object)
             return true
         })
         if (removedDocuments.length === 0) return
@@ -187,18 +190,18 @@ export class OpenFilesService extends EventTarget {
     }
 
     private findOpenDocument(object: OpenDocumentObject) {
-        const key = this.objectKey(object)
+        const key = OpenFilesService.objectKey(object)
 
-        return this.snapshot.documents.find((document) => this.documentKey(document) === key) as ManagedOpenDocument | undefined
+        return this.snapshot.documents.find((document) => OpenFilesService.documentKey(document) === key) as ManagedOpenDocument | undefined
     }
 
-    private objectKey(object: OpenDocumentObject) {
+    private static objectKey(object: OpenDocumentObject) {
         const kind = isProjectCard(object) ? 'card' : 'action'
 
         return `${kind}:${requireDocumentIdentity(object)}`
     }
 
-    private documentKey(document: OpenDocument) {
+    private static documentKey(document: OpenDocument) {
         return `${document.kind}:${(document as ManagedOpenDocument).identity}`
     }
 

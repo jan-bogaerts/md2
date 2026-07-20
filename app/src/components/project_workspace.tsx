@@ -89,7 +89,6 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
 
     useEffect(() => {
         const projectKey = workspaceProjectKey(project)
-        openFilesService.syncProject(projectKey)
         workspaceViewService.syncProject(projectKey)
     }, [project])
 
@@ -164,10 +163,6 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
         runWorkspaceEdit(() => dataService.cards.updateCardTitle(path, title), `Title update failed: ${path}`)
     }
 
-    const handleBodyChange = (path: string, body: string) => {
-        runWorkspaceEdit(() => dataService.cards.updateCardBody(path, body), `Body update failed: ${path}`)
-    }
-
     const handleAffectsChange = (path: string, affects: string[]) => {
         runWorkspaceEdit(() => dataService.cards.updateCardAffects(path, affects), `Affects update failed: ${path}`)
     }
@@ -187,7 +182,6 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
     const handleDeleteCard = async (path: string) => {
         try {
             await dataService.cards.deleteCard(path)
-            openFilesService.closeFile(path)
             clearDeletedPathState(path)
         } catch (error) {
             dialogService.error(error, { fallbackMessage: `Card delete failed: ${path}` })
@@ -209,8 +203,11 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
         try {
             await dataService.cards.deleteFolder(path)
             const folderPrefix = `${path.replace(/\/+$/u, '')}/`
-            for (const openPath of openFilesService.getSnapshot().paths) {
-                if (openPath.startsWith(folderPrefix)) openFilesService.closeFile(openPath)
+            const documents = openFilesService.getSnapshot().documents
+            for (const document of documents) {
+                const object = document.getObject()
+                const openPath = document.kind === 'card' ? (object as ProjectCard).path : object.sourcePath
+                if (openPath?.startsWith(folderPrefix)) openFilesService.closeDocument(document)
             }
             const selectedPath = workspaceViewService.getSnapshot().selectedPath
             if (selectedPath?.startsWith(folderPrefix)) clearDeletedPathState(selectedPath)
@@ -269,13 +266,12 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
                 tabIndex={0}
             >
                 {isProjectOpen ? (
-                    viewMode === 'cards' ? (
+                    <>
                         <CardView
                             cardTypes={cardTypes}
                             cards={activeCards}
                             isMobile={isMobile}
                             onAffectsChange={handleAffectsChange}
-                            onBodyChange={handleBodyChange}
                             onDeleteCard={handleDeleteCard}
                             onMoveCard={handleMoveCard}
                             onOpenInFileMode={handleOpenInFileMode}
@@ -287,15 +283,14 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
                             repositoryFiles={repositoryFiles}
                             selectedPath={selectedPath}
                             states={states}
+                            visible={viewMode === 'cards'}
                         />
-                    ) : (
                         <TextView
                             actionsFolder={actionsFolder}
                             activeCards={activeCards}
                             backgroundCards={backgroundCards}
                             cardTypes={cardTypes}
                             onLeftPanelInteraction={onLeftPanelInteraction}
-                            onBodyChange={handleBodyChange}
                             onCreateFolder={handleCreateFolder}
                             onCreateMarkdownFile={handleCreateMarkdownFile}
                             onDeleteFile={handleDeleteFile}
@@ -310,8 +305,9 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
                             repositoryFiles={repositoryFiles}
                             states={states}
                             workingFolder={workingFolder}
+                            visible={viewMode === 'text'}
                         />
-                    )
+                    </>
                 ) : (
                     <Stack
                         spacing={2}

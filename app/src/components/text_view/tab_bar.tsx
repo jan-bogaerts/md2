@@ -5,11 +5,14 @@ import Close from 'mdi-material-ui/Close'
 import FileDocumentOutline from 'mdi-material-ui/FileDocumentOutline'
 import LightningBolt from 'mdi-material-ui/LightningBolt'
 import type { MouseEvent, SyntheticEvent } from 'react'
+import type { OpenDocument } from '../../services/open_files_service'
 
 export type OpenTabKind = 'action' | 'card' | 'markdown'
 
 export interface OpenTab {
     color: string | null
+    document: OpenDocument
+    document: OpenDocument
     id: string | null
     kind: OpenTabKind
     label: string
@@ -18,27 +21,28 @@ export interface OpenTab {
 }
 
 interface TabBarProps {
-    activePath: string | null
-    onActivate: (path: string) => void
-    onClose: (path: string) => void
+    activeDocument: OpenDocument | null
+    onActivate: (document: OpenDocument) => void
+    onClose: (document: OpenDocument) => void
     tabs: OpenTab[]
 }
 
 /** Horizontal bar of compact open-file tabs with card identity and close buttons. */
 export function TabBar(props: TabBarProps) {
-    const { activePath, onActivate, onClose, tabs } = props
+    const { activeDocument, onActivate, onClose, tabs } = props
     const theme = useTheme()
 
-    const handleChange = (_event: SyntheticEvent, value: string) => {
+    const handleChange = (_event: SyntheticEvent, value: OpenDocument) => {
         onActivate(value)
     }
 
     const handleClose = (event: MouseEvent<HTMLButtonElement>) => {
         event.stopPropagation()
-        const path = event.currentTarget.dataset.path
-        if (!path) throw new Error('Missing path for tab close button')
+        const index = Number(event.currentTarget.dataset.index)
+        const document = tabs[index]?.document
+        if (!document) throw new Error('Missing document for tab close button')
 
-        onClose(path)
+        onClose(document)
     }
 
     return (
@@ -59,7 +63,7 @@ export function TabBar(props: TabBarProps) {
                     },
                     '& .MuiTab-root.Mui-selected': { color: 'text.primary' },
                 }}
-                value={activePath ?? false}
+                value={activeDocument ?? false}
                 variant="scrollable"
             >
                 {tabs.map((tab) => (
@@ -96,7 +100,7 @@ export function TabBar(props: TabBarProps) {
                                 <IconButton
                                     aria-label={`Close ${tab.label}`}
                                     component="span"
-                                    data-path={tab.path}
+                                    data-index={tabs.indexOf(tab)}
                                     onClick={handleClose}
                                     size="small"
                                     sx={{ color: 'text.disabled', flexShrink: 0, height: 20, width: 20 }}
@@ -105,7 +109,7 @@ export function TabBar(props: TabBarProps) {
                                 </IconButton>
                             </Box>
                         )}
-                        value={tab.path}
+                        value={tab.document}
                     />
                 ))}
             </Tabs>

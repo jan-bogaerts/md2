@@ -1,15 +1,16 @@
 import { Box } from '@mui/material'
 import { useCallback } from 'react'
-import type { ProjectCard } from '../../data/data_types'
 import { MarkdownEditor } from '../editor/markdown_editor'
+import { cardMarkdownDataSource } from '../editor/card_markdown_data_source'
+import type { MarkdownDocumentHistoryStore } from '../editor/markdown_document_history_store'
+import type { MarkdownEditorStateStore } from '../editor/markdown_editor_state_store'
 import { CardPopupToolbarControls } from './card_popup_toolbar_controls'
 
 interface CardBodyEditorProps {
-    card: ProjectCard
+    historyStore: MarkdownDocumentHistoryStore
     isMobile?: boolean
     isFullscreen: boolean
-    onBodyChange: (path: string, body: string) => void
-    onDirtyChange: (path: string, dirty: boolean) => void
+    stateStore: MarkdownEditorStateStore
     onToggleFullscreen: () => void
     overlayContainer?: HTMLElement | null
 }
@@ -20,18 +21,11 @@ interface CardBodyEditorProps {
  * the frontmatter/header block via the shared parsing service.
  */
 export function CardBodyEditor(props: CardBodyEditorProps) {
-    const { card, isFullscreen, isMobile = false, onBodyChange, onDirtyChange, onToggleFullscreen, overlayContainer } = props
+    const { historyStore, isFullscreen, isMobile = false, onToggleFullscreen, overlayContainer, stateStore } = props
     const ToolbarContents = useCallback(
         () => <CardPopupToolbarControls isFullscreen={isFullscreen} onToggleFullscreen={onToggleFullscreen} />,
         [isFullscreen, onToggleFullscreen],
     )
-    const handleBodyChange = useCallback((body: string) => {
-        onBodyChange(card.path, body)
-    }, [card.path, onBodyChange])
-    const handleDirtyChange = useCallback((dirty: boolean) => {
-        onDirtyChange(card.path, dirty)
-    }, [card.path, onDirtyChange])
-
     return (
         <Box
             sx={{
@@ -76,11 +70,11 @@ export function CardBodyEditor(props: CardBodyEditorProps) {
             }}
         >
             <MarkdownEditor
-                key={card.path}
-                markdown={card.content}
-                onChange={handleBodyChange}
-                onDirtyChange={handleDirtyChange}
+                binding="board-card"
+                dataSource={cardMarkdownDataSource}
+                historyStore={historyStore}
                 overlayContainer={overlayContainer}
+                stateStore={stateStore}
                 stickyToolbar={isMobile}
                 toolbarContents={ToolbarContents}
             />

@@ -1,24 +1,10 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
-import { CardBodyEditor } from './card_body_editor'
-import type { ProjectCard } from '../../data/data_types'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AppThemeProvider } from '../../theme/theme_provider'
-
-function card(overrides: Partial<ProjectCard> = {}): ProjectCard {
-    return {
-        agentConversationErrors: [],
-        agentConversations: [],
-        headerFields: {},
-        content: '# Alpha\n\nOriginal body',
-        header: {
-            affects: [], after: null, agentLogReferences: [], author: null, id: 'F-1', internalId: 'f-1', owner: null, policy: {}, status: 'todo',
-            title: 'Alpha',
-        },
-        isActive: true,
-        path: 'design/F-1-a.md',
-        ...overrides,
-    }
-}
+import { cardMarkdownDataSource } from '../editor/card_markdown_data_source'
+import { MarkdownDocumentHistoryStore } from '../editor/markdown_document_history_store'
+import { MarkdownEditorStateStore } from '../editor/markdown_editor_state_store'
+import { CardBodyEditor } from './card_body_editor'
 
 function renderCardBodyEditor(props: Parameters<typeof CardBodyEditor>[0]) {
     return render(
@@ -30,46 +16,55 @@ function renderCardBodyEditor(props: Parameters<typeof CardBodyEditor>[0]) {
 
 function editorProps(overrides: Partial<Parameters<typeof CardBodyEditor>[0]> = {}): Parameters<typeof CardBodyEditor>[0] {
     return {
-        card: card(),
+        historyStore: new MarkdownDocumentHistoryStore(),
         isFullscreen: false,
-        onBodyChange: vi.fn(),
-        onDirtyChange: vi.fn(),
         onToggleFullscreen: vi.fn(),
+        stateStore: new MarkdownEditorStateStore(),
         ...overrides,
     }
 }
 
 describe('CardBodyEditor', () => {
-    afterEach(cleanup)
+    beforeEach(() => {
+        cardMarkdownDataSource.setActiveDocument('board-card', 'f-1')
+        vi.spyOn(cardMarkdownDataSource, 'getMarkdown').mockReturnValue('# Alpha\n\nOriginal body')
+        vi.spyOn(cardMarkdownDataSource, 'edit').mockImplementation(() => undefined)
+        vi.spyOn(cardMarkdownDataSource, 'commit').mockReturnValue(true)
+    })
 
-    it('seeds the editor with the card body only', () => {
+    afterEach(() => {
+        cleanup()
+        cardMarkdownDataSource.setActiveDocument('board-card', null)
+        vi.restoreAllMocks()
+    })
+
+    it('loads body through board-card data source binding', () => {
         renderCardBodyEditor(editorProps())
 
         expect(screen.getByRole('textbox')).toHaveValue('# Alpha\n\nOriginal body')
+        expect(cardMarkdownDataSource.getMarkdown).toHaveBeenCalledWith('f-1')
     })
 
-    it('reports body edits with the card path when the editor unmounts (popup close)', () => {
-        const onBodyChange = vi.fn()
-        const { unmount } = renderCardBodyEditor(editorProps({ onBodyChange }))
-
+    it('commits outgoing document ID when editor unmounts', () => {
+        const { unmount } = renderCardBodyEditor(editorProps())
         fireEvent.change(screen.getByRole('textbox'), { target: { value: '# Alpha\n\nEdited body' } })
-        expect(onBodyChange).not.toHaveBeenCalled()
+
         unmount()
 
-        expect(onBodyChange).toHaveBeenCalledWith('design/F-1-a.md', '# Alpha\n\nEdited body')
+        expect(cardMarkdownDataSource.commit).toHaveBeenCalledWith('board-card', 'f-1', '# Alpha\n\nEdited body')
     })
 
-    it('reports local dirty state while body edits remain buffered', () => {
-        const onDirtyChange = vi.fn()
-        renderCardBodyEditor(editorProps({ onDirtyChange }))
+    it('publishes dirty state without parent callback', () => {
+        const stateStore = new MarkdownEditorStateStore()
+        renderCardBodyEditor(editorProps({ stateStore }))
 
         fireEvent.change(screen.getByRole('textbox'), { target: { value: '# Alpha\n\nEdited body' } })
 
-        expect(onDirtyChange).toHaveBeenLastCalledWith('design/F-1-a.md', true)
+        expect(stateStore.getSnapshot()).toBe(true)
     })
 
-    it('keeps the toolbar sticky on mobile', () => {
-        const { container } = renderCardBodyEditor(editorProps({isMobile: true}))
+    it('keeps toolbar sticky on mobile', () => {
+        const { container } = renderCardBodyEditor(editorProps({ isMobile: true }))
 
         expect(container.querySelector('[data-sticky-toolbar="true"]')).not.toBeNull()
     })

@@ -1,6 +1,5 @@
 import type { ActionDefinition, ActionEditorState, RawActionDefinition } from '../../data/action_types'
 import type { ActionService } from '../../services/actions/action_service'
-import { actionService } from '../../services/actions/action_service'
 import { dialogService } from '../../services/dialog_service'
 import { ACTION_PROMPT_TAB } from '../actions/action_phrase_editor_state'
 import { MarkdownDataSourceBase, type MarkdownBindingKind } from './markdown_data_source'
@@ -14,6 +13,15 @@ interface ActionMarkdownDocumentIdentity {
 interface LastWrittenMarkdown {
     markdown: string
     originBinding: MarkdownBindingKind
+}
+
+type ActionMarkdownOwner = EventTarget & Pick<ActionService,
+    'commitDraft' | 'getActions' | 'getDeletedDraftActions' | 'getDraft' | 'setActionEditorState' | 'stageDraft'
+>
+
+function reportActionWriteError(documentId: string, error: unknown) {
+    const { actionId } = parseActionMarkdownDocumentId(documentId)
+    dialogService.error(error, { fallbackMessage: `Action update failed: ${actionId}` })
 }
 
 /** Namespace one prompt or phrase history document to its stable owning action. */
@@ -35,9 +43,9 @@ export function parseActionMarkdownDocumentId(documentId: string): ActionMarkdow
 export class ActionMarkdownDataSource extends MarkdownDataSourceBase {
     private readonly lastWrittenMarkdownByDocumentId = new Map<string, LastWrittenMarkdown>()
     private readonly markdownByDocumentId = new Map<string, string>()
-    private service: ActionService | null = null
+    private service: ActionMarkdownOwner | null = null
 
-    init(service: ActionService) {
+    init(service: ActionMarkdownOwner) {
         if (this.service) return
 
         this.service = service
@@ -46,14 +54,16 @@ export class ActionMarkdownDataSource extends MarkdownDataSourceBase {
 
     getMarkdown(documentId: string) {
         const { definition, editorDocumentId } = this.resolveDocument(documentId)
-        if (editorDocumentId === ACTION_PROMPT_TAB) return definition.prompt ?? ''
+        const markdown = editorDocumentId === ACTION_PROMPT_TAB
+            ? definition.prompt ?? ''
+            : this.requirePhrase(documentId).phrase.text
+        this.markdownByDocumentId.set(documentId, markdown)
 
-        const { phrase } = this.requirePhrase(documentId)
-        return phrase.text
+        return markdown
     }
 
     edit(binding: MarkdownBindingKind, documentId: string, markdown: string) {
-        this.requireActionBinding(binding)
+        ActionMarkdownDataSource.requireActionBinding(binding)
         const previousWrittenMarkdown = this.lastWrittenMarkdownByDocumentId.get(documentId)
         this.lastWrittenMarkdownByDocumentId.set(documentId, { markdown, originBinding: binding })
         try {
@@ -61,12 +71,12 @@ export class ActionMarkdownDataSource extends MarkdownDataSourceBase {
         } catch (error) {
             if (previousWrittenMarkdown) this.lastWrittenMarkdownByDocumentId.set(documentId, previousWrittenMarkdown)
             else this.lastWrittenMarkdownByDocumentId.delete(documentId)
-            this.reportWriteError(documentId, error)
+            reportActionWriteError(documentId, error)
         }
     }
 
     commit(binding: MarkdownBindingKind, documentId: string, markdown: string) {
-        this.requireActionBinding(binding)
+        ActionMarkdownDataSource.requireActionBinding(binding)
         const previousWrittenMarkdown = this.lastWrittenMarkdownByDocumentId.get(documentId)
         this.lastWrittenMarkdownByDocumentId.set(documentId, { markdown, originBinding: binding })
         try {
@@ -77,7 +87,7 @@ export class ActionMarkdownDataSource extends MarkdownDataSourceBase {
         } catch (error) {
             if (previousWrittenMarkdown) this.lastWrittenMarkdownByDocumentId.set(documentId, previousWrittenMarkdown)
             else this.lastWrittenMarkdownByDocumentId.delete(documentId)
-            this.reportWriteError(documentId, error)
+            reportActionWriteError(documentId, error)
             return false
         }
     }
@@ -121,7 +131,6 @@ export class ActionMarkdownDataSource extends MarkdownDataSourceBase {
             }
         }
         this.requireService().stageDraft(sourcePath, nextDefinition)
-        this.markdownByDocumentId.set(documentId, markdown)
 
         return resolved
     }
@@ -161,12 +170,7 @@ export class ActionMarkdownDataSource extends MarkdownDataSourceBase {
         return { action, definition, editorDocumentId, sourcePath: action.sourcePath }
     }
 
-    private reportWriteError(documentId: string, error: unknown) {
-        const { action } = this.resolveDocument(documentId)
-        dialogService.error(error, { fallbackMessage: `Action update failed: ${action.sourcePath}` })
-    }
-
-    private requireActionBinding(binding: MarkdownBindingKind) {
+    private static requireActionBinding(binding: MarkdownBindingKind) {
         if (binding !== 'list-action') throw new Error(`Action Markdown source cannot use ${binding} binding`)
     }
 

@@ -1,6 +1,6 @@
 import { Box, Typography } from '@mui/material'
 import type { MouseEvent as ReactMouseEvent } from 'react'
-import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { buildFileTree, fileLabel } from '../../data/file_tree'
 import type { ActionDefinition } from '../../data/action_types'
 import { fileContext } from '../../data/action_context'
@@ -10,36 +10,29 @@ import { telemetryService } from '../../services/telemetry/telemetry_service'
 import { markdownParsingService } from '../../services/data/markdown_parsing_service'
 import { actionService } from '../../services/actions/action_service'
 import { agentAcknowledgementService } from '../../services/agents/agent_acknowledgement_service'
-import { ActionEditor } from '../actions/action_editor'
-import { MarkdownDocumentHistoryStore } from '../editor/markdown_document_history_store'
-import { MarkdownEditor, type MarkdownEditorHandle } from '../editor/markdown_editor'
-import type { MarkdownDocumentConfig, MarkdownDocumentOwnerConfig } from '../editor/markdown_document_config'
+import { ListActionEditor } from '../actions/list_action_editor'
+import { cardMarkdownDataSource } from '../editor/card_markdown_data_source'
+import { actionMarkdownDataSource, parseActionMarkdownDocumentId } from '../editor/action_markdown_data_source'
 import { LeftPanelSlot } from '../shell/left_panel_slot'
 import { CardPropertiesPanel } from './card_properties_panel'
 import { CardPropertiesPopover } from './card_properties_popover'
 import { FileTreeView } from './file_tree_view'
-import { ListEditorToolbarControls } from './list_editor_toolbar_controls'
 import { TabBar, type OpenTab, type OpenTabKind } from './tab_bar'
 import { useOpenTabs } from './use_open_tabs'
 import { useActions } from '../hooks/use_actions'
 import { ActionPopup } from '../actions/action_popup'
 import type { AgentConversation } from '../../data/data_types'
+import type { OpenDocument } from '../../services/open_files_service'
+import { CardEditor } from './card_editor'
 
 const HISTORY_FOLDER_NAME = 'history'
 const LOGS_FOLDER_NAME = 'logs'
-const EMPTY_MARKDOWN_DOCUMENT_ID = '__text-view-empty__'
-
-function cardMarkdownDocumentId(projectKey: string, path: string) {
-    return JSON.stringify([projectKey, path])
-}
-
 interface TextViewProps {
     actionsFolder: string
     activeCards: ProjectCard[]
     backgroundCards: ProjectCard[]
     cardTypes: CardTypeConfig[]
     onLeftPanelInteraction: () => void
-    onBodyChange: (path: string, body: string) => void
     onCreateFolder: (parentDirectory: string, name: string) => Promise<void>
     onCreateMarkdownFile: (parentDirectory: string, name: string) => Promise<void>
     onDeleteFile: (path: string) => Promise<void>
@@ -54,6 +47,7 @@ interface TextViewProps {
     repositoryFiles: string[]
     states: StateConfig[]
     workingFolder: string
+    visible: boolean
 }
 
 function cardTypeColor(card: ProjectCard, cardTypes: CardTypeConfig[]) {
@@ -78,26 +72,27 @@ function tabKind(card: ProjectCard, actionsFolder: string): OpenTabKind {
 }
 
 function tabData(
-    actionsByPath: Map<string, ActionDefinition>,
-    cardsByPath: Map<string, ProjectCard>,
     cardTypes: CardTypeConfig[],
     actionsFolder: string,
-    path: string,
+    document: OpenDocument,
 ): OpenTab {
-    const action = actionsByPath.get(path)
-    if (action) {
-        return { color: null, id: null, kind: 'action', label: action.label, path, title: action.label }
+    const object = document.getObject()
+    if (document.kind === 'action') {
+        const action = object as ActionDefinition
+        if (!action.sourcePath) throw new Error(`Open action has no source path: ${action.id}`)
+        return { color: null, document, id: null, kind: 'action', label: action.label, path: action.sourcePath, title: action.label }
     }
-    const card = cardsByPath.get(path)
-    const label = card ? fileLabel(card) : path
-    const id = card && label.startsWith(`${card.header.id} `) ? card.header.id : null
+    const card = object as ProjectCard
+    const label = fileLabel(card)
+    const id = label.startsWith(`${card.header.id} `) ? card.header.id : null
 
     return {
-        color: card ? cardTypeColor(card, cardTypes) : null,
+        color: cardTypeColor(card, cardTypes),
+        document,
         id,
-        kind: card ? tabKind(card, actionsFolder) : 'markdown',
+        kind: tabKind(card, actionsFolder),
         label,
-        path,
+        path: card.path,
         title: id ? label.slice(id.length + 1) : label,
     }
 }
@@ -113,6 +108,15 @@ function folderName(path: string): string {
     return name
 }
 
+function openDocumentPath(document: OpenDocument) {
+    const object = document.getObject()
+    if (document.kind === 'card') return (object as ProjectCard).path
+
+    const { sourcePath } = object as ActionDefinition
+    if (!sourcePath) throw new Error(`Open action has no source path: ${object.id}`)
+    return sourcePath
+}
+
 /** Text view: a folder/status tree plus tabbed, editable open files. */
 export function TextView(props: TextViewProps) {
     const {
@@ -121,7 +125,6 @@ export function TextView(props: TextViewProps) {
         backgroundCards,
         cardTypes,
         onLeftPanelInteraction,
-        onBodyChange,
         onCreateFolder,
         onCreateMarkdownFile,
         onDeleteFile,
@@ -136,15 +139,11 @@ export function TextView(props: TextViewProps) {
         repositoryFiles,
         states,
         workingFolder,
+        visible,
     } = props
     const { actions } = useActions()
     const [propertiesAnchorElement, setPropertiesAnchorElement] = useState<HTMLElement | null>(null)
     const [isAgentPopupOpen, setIsAgentPopupOpen] = useState(false)
-    const [markdownHistoryStore] = useState(() => new MarkdownDocumentHistoryStore())
-    const [actionMarkdownOwners, setActionMarkdownOwners] = useState(() => new Map<string, MarkdownDocumentOwnerConfig>())
-    const actionMarkdownOwnersRef = useRef(actionMarkdownOwners)
-    const actionMarkdownDocumentsRef = useRef(new Map<string, MarkdownDocumentConfig>())
-    const markdownEditorRef = useRef<MarkdownEditorHandle>(null)
     const onDeleteFileRef = useRef(onDeleteFile)
     const onDeleteFolderRef = useRef(onDeleteFolder)
     const onLeftPanelInteractionRef = useRef(onLeftPanelInteraction)
@@ -179,17 +178,7 @@ export function TextView(props: TextViewProps) {
 
         return map
     }, [activeCards, backgroundCards])
-    const cardMarkdownDocumentIdsByPath = useMemo(() => new Map(
-        [...cardsByPath.keys()].map((path) => [path, cardMarkdownDocumentId(projectKey, path)]),
-    ), [cardsByPath, projectKey])
-    const cardPathsByMarkdownDocumentId = useMemo(() => new Map(
-        [...cardMarkdownDocumentIdsByPath].map(([path, documentId]) => [documentId, path]),
-    ), [cardMarkdownDocumentIdsByPath])
-    const availablePaths = useMemo(
-        () => [...cardsByPath.keys(), ...editorActionsByPath.keys()],
-        [cardsByPath, editorActionsByPath],
-    )
-    const { activePath, activateTab, closeTab, openTab, tabs } = useOpenTabs(availablePaths)
+    const { activeDocument, activateTab, closeTab, openTab, tabs } = useOpenTabs()
     const statusColors = useMemo(() => new Map(
         tree
             .filter((node) => node.kind === 'status')
@@ -207,18 +196,42 @@ export function TextView(props: TextViewProps) {
     })
 
     useEffect(() => {
-        if (requestedPath) openTab(requestedPath)
+        if (visible) return
+
+        queueMicrotask(() => {
+            setPropertiesAnchorElement(null)
+            setIsAgentPopupOpen(false)
+        })
+    }, [visible])
+
+    useEffect(() => {
+        if (!requestedPath) return
+
+        const object = editorActionsByPath.get(requestedPath) ?? cardsByPath.get(requestedPath)
+        if (object) openTab(object)
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [requestedNonce])
 
-    const openTabs = tabs.map((path) => tabData(editorActionsByPath, cardsByPath, cardTypes, actionsFolder, path))
-    const activeCard = activePath ? cardsByPath.get(activePath) ?? null : null
-    const activeAction = activePath ? editorActionsByPath.get(activePath) ?? null : null
-    const mountedEditorPath = useDeferredValue(activePath)
-    const mountedCard = mountedEditorPath ? cardsByPath.get(mountedEditorPath) ?? null : null
-    const mountedMarkdownDocumentId = mountedEditorPath
-        ? cardMarkdownDocumentIdsByPath.get(mountedEditorPath) ?? null
+    const openTabs = tabs.map((document) => tabData(cardTypes, actionsFolder, document))
+    const activeObject = activeDocument?.getObject() ?? null
+    const activeCard = activeDocument?.kind === 'card' ? activeObject as ProjectCard : null
+    const activeAction = activeDocument?.kind === 'action' ? activeObject as ActionDefinition : null
+    const activePath = activeDocument ? openDocumentPath(activeDocument) : null
+    const listActionDocumentId = actionMarkdownDataSource.getActiveDocumentId('list-action')
+    const listActionId = listActionDocumentId ? parseActionMarkdownDocumentId(listActionDocumentId).actionId : null
+    const boundActionDocument = listActionId
+        ? tabs.find((document) => document.kind === 'action'
+            && (document.getObject() as ActionDefinition).id === listActionId)
         : null
+    const boundAction = boundActionDocument?.getObject() as ActionDefinition | undefined
+    const listAction = activeAction ?? boundAction ?? null
+
+    useEffect(() => {
+        if (!activeCard) return
+        const documentId = activeCard.header.internalId
+        if (!documentId) throw new Error(`Cannot edit card without an internal ID: ${activeCard.path}`)
+        cardMarkdownDataSource.setActiveDocument('list-card', documentId)
+    }, [activeCard])
 
     const handleConversationViewed = (conversation: AgentConversation) => {
         if (!conversation.cardPath) throw new Error('Cannot acknowledge a project conversation as a card result')
@@ -226,93 +239,28 @@ export function TextView(props: TextViewProps) {
         agentAcknowledgementService.acknowledge(projectKey, conversation.cardPath, [conversation])
     }
 
-    useEffect(() => {
-        const cardDocumentIds = tabs.flatMap((path) => {
-            const documentId = cardMarkdownDocumentIdsByPath.get(path)
-
-            return documentId ? [documentId] : []
-        })
-        const actionDocumentIds = tabs.flatMap((path) => actionMarkdownOwners.get(path)?.documentIds ?? [])
-        markdownHistoryStore.retainDocuments([EMPTY_MARKDOWN_DOCUMENT_ID, ...cardDocumentIds, ...actionDocumentIds])
-    }, [actionMarkdownOwners, cardMarkdownDocumentIdsByPath, markdownHistoryStore, mountedEditorPath, tabs])
-
-    useEffect(() => {
-        const openPaths = new Set(tabs)
-        const closedOwners = [...actionMarkdownOwnersRef.current.entries()].filter(([path]) => !openPaths.has(path))
-        if (closedOwners.length === 0) return
-
-        const next = new Map(actionMarkdownOwnersRef.current)
-        for (const [path, owner] of closedOwners) {
-            next.delete(path)
-            for (const documentId of owner.documentIds) actionMarkdownDocumentsRef.current.delete(documentId)
-        }
-        actionMarkdownOwnersRef.current = next
-        setActionMarkdownOwners(next)
-    }, [tabs])
-
     const handleSelect = useCallback((path: string) => {
-        openTab(path)
+        const object = editorActionsByPath.get(path) ?? cardsByPath.get(path)
+        if (!object) throw new Error(`Cannot open unknown document: ${path}`)
+        openTab(object)
         onLeftPanelInteractionRef.current()
         telemetryService.trackEvent('navigation')
-    }, [openTab])
+    }, [cardsByPath, editorActionsByPath, openTab])
 
     const handleDeleteFile = useCallback(async (path: string) => {
         await onDeleteFileRef.current(path)
-        closeTab(path)
         onLeftPanelInteractionRef.current()
-    }, [closeTab])
+    }, [])
 
     const handleDeleteFolder = useCallback(async (path: string) => {
         await onDeleteFolderRef.current(path)
-        for (const tabPath of tabs) {
-            if (isPathInFolder(tabPath, path)) closeTab(tabPath)
-        }
         onLeftPanelInteractionRef.current()
-    }, [closeTab, tabs])
+    }, [])
 
-    const handleActivateTab = (path: string) => {
-        activateTab(path)
+    const handleActivateTab = (document: OpenDocument) => {
+        activateTab(document)
         telemetryService.trackEvent('navigation')
     }
-
-    const handleMarkdownDocumentChange = useCallback((documentId: string, body: string) => {
-        const actionDocument = actionMarkdownDocumentsRef.current.get(documentId)
-        if (actionDocument) {
-            actionDocument.onChange(body)
-            return
-        }
-        const cardPath = cardPathsByMarkdownDocumentId.get(documentId)
-        if (!cardPath) throw new Error(`Unknown TextView Markdown document: ${documentId}`)
-        onBodyChange(cardPath, body)
-    }, [cardPathsByMarkdownDocumentId, onBodyChange])
-
-    const handleMarkdownDocumentEdit = useCallback((documentId: string, body: string) => {
-        actionMarkdownDocumentsRef.current.get(documentId)?.onEdit?.(body)
-    }, [])
-
-    const handleActionMarkdownDocumentOwnerChange = useCallback((owner: MarkdownDocumentOwnerConfig) => {
-        const current = actionMarkdownOwnersRef.current
-        if (current.get(owner.ownerPath) === owner) return
-
-        const previousOwner = current.get(owner.ownerPath)
-        const retainedDocumentIds = new Set(owner.documentIds)
-        for (const documentId of previousOwner?.documentIds ?? []) {
-            if (!retainedDocumentIds.has(documentId)) actionMarkdownDocumentsRef.current.delete(documentId)
-        }
-        if (owner.activeDocument) {
-            actionMarkdownDocumentsRef.current.set(owner.activeDocument.documentId, owner.activeDocument)
-        }
-        const next = new Map(current)
-        next.set(owner.ownerPath, owner)
-        actionMarkdownOwnersRef.current = next
-        setActionMarkdownOwners(next)
-    }, [])
-
-    const handleDiscardMarkdownDocument = useCallback((documentId: string, markdown: string) => {
-        markdownEditorRef.current?.setMarkdown(markdown)
-        markdownHistoryStore.discardDocument(documentId)
-        actionMarkdownDocumentsRef.current.delete(documentId)
-    }, [markdownHistoryStore])
 
     const handleOpenProperties = (event: ReactMouseEvent<HTMLElement>) => {
         setPropertiesAnchorElement(event.currentTarget)
@@ -325,47 +273,8 @@ export function TextView(props: TextViewProps) {
     const handleToggleAgentPopup = () => setIsAgentPopupOpen((current) => !current)
     const handleCloseAgentPopup = () => setIsAgentPopupOpen(false)
 
-    const listEditorToolbarContents = useCallback(() => {
-        if (!mountedEditorPath || !mountedMarkdownDocumentId) {
-            throw new Error('Cannot render the Markdown toolbar without a document path')
-        }
 
-        return (
-            <ListEditorToolbarControls
-                agentConversationCount={mountedCard?.agentConversations.length ?? 0}
-                documentId={mountedMarkdownDocumentId}
-                historyStore={markdownHistoryStore}
-                isAgentPopupOpen={isAgentPopupOpen}
-                isPropertiesOpen={!!propertiesAnchorElement}
-                onOpenProperties={handleOpenProperties}
-                onToggleAgentPopup={handleToggleAgentPopup}
-                propertiesAvailable={!!mountedCard && Object.keys(mountedCard.headerFields).length > 0}
-            />
-        )
-    }, [isAgentPopupOpen, markdownHistoryStore, mountedCard, mountedEditorPath, mountedMarkdownDocumentId, propertiesAnchorElement])
-
-    const cardMarkdownDocument = useMemo<MarkdownDocumentConfig | null>(() => (
-        mountedCard && mountedEditorPath && mountedMarkdownDocumentId ? {
-            documentId: mountedMarkdownDocumentId,
-            markdown: mountedCard.content,
-            onChange: (body) => onBodyChange(mountedEditorPath, body),
-            ownerPath: mountedEditorPath,
-            stickyToolbar: true,
-            toolbarContents: listEditorToolbarContents,
-        } : null
-    ), [listEditorToolbarContents, mountedCard, mountedEditorPath, mountedMarkdownDocumentId, onBodyChange])
-    const actionMarkdownDocument = activeAction?.sourcePath
-        ? actionMarkdownOwners.get(activeAction.sourcePath)?.activeDocument ?? null
-        : null
-    const activeMarkdownDocument = activeAction ? actionMarkdownDocument : cardMarkdownDocument
-    const renderedMarkdownDocument = activeMarkdownDocument ?? {
-        documentId: EMPTY_MARKDOWN_DOCUMENT_ID,
-        markdown: '',
-        onChange: () => undefined,
-        ownerPath: EMPTY_MARKDOWN_DOCUMENT_ID,
-    }
-
-    const agentPopup = activeCard && isAgentPopupOpen ? (
+    const agentPopup = visible && activeCard && isAgentPopupOpen ? (
         <ActionPopup
             anchorElement={null}
             context={fileContext(activeCard, cardTypes)}
@@ -381,7 +290,7 @@ export function TextView(props: TextViewProps) {
         <CardPropertiesPopover
             anchorElement={propertiesAnchorElement}
             onClose={handleCloseProperties}
-            open={!!propertiesAnchorElement}
+            open={visible && !!propertiesAnchorElement}
         >
             <CardPropertiesPanel
                 affects={activeCard.header.affects}
@@ -404,7 +313,7 @@ export function TextView(props: TextViewProps) {
     const editorPane = (
         <Box sx={{ display: 'flex', flex: 1, flexDirection: 'column', minWidth: 0 }}>
             {activeCard || activeAction ? (
-                <TabBar activePath={activePath} onActivate={handleActivateTab} onClose={closeTab} tabs={openTabs} />
+                <TabBar activeDocument={activeDocument} onActivate={handleActivateTab} onClose={closeTab} tabs={openTabs} />
             ) : null}
             <Box sx={{ display: 'flex', flex: 1, flexDirection: 'column', minHeight: 0 }}>
                 <Box
@@ -420,38 +329,30 @@ export function TextView(props: TextViewProps) {
                         p: activeCard || activeAction ? 0 : 2,
                     }}
                 >
-                    {activeAction ? (
-                        <ActionEditor
-                            key={activeAction.id}
-                            action={activeAction}
+                    <Box hidden={!activeAction} sx={{ display: activeAction ? 'contents' : 'none' }}>
+                        <ListActionEditor
+                            action={listAction}
                             actions={actions}
                             cardTypes={cardTypes.map(({ type }) => type)}
-                            discardMarkdownDocument={handleDiscardMarkdownDocument}
                             markdownDocumentNamespace={projectKey}
-                            onMarkdownDocumentOwnerChange={handleActionMarkdownDocumentOwnerChange}
                             repositoryFiles={repositoryFiles}
                             specialContextTypes={specialContextTypes}
                             states={states.map(({ state }) => state)}
                         />
-                    ) : !mountedCard ? (
+                    </Box>
+                    {!activeAction && !activeCard ? (
                         <Typography color="text.secondary" variant="body2">
                             Select a file from the tree to open it.
                         </Typography>
                     ) : null}
-                    <Box hidden={!activeMarkdownDocument} sx={{ flex: 1, minHeight: 0, order: 1, overflowY: 'auto' }}>
-                        <MarkdownEditor
-                            documentId={renderedMarkdownDocument.documentId}
-                            flushOnBlur={renderedMarkdownDocument.flushOnBlur}
-                            historyStore={markdownHistoryStore}
-                            markdown={renderedMarkdownDocument.markdown}
-                            onDocumentChange={handleMarkdownDocumentChange}
-                            onDocumentEdit={handleMarkdownDocumentEdit}
-                            placeholders={renderedMarkdownDocument.placeholders}
-                            ref={markdownEditorRef}
-                            stickyToolbar={renderedMarkdownDocument.stickyToolbar}
-                            toolbarContents={renderedMarkdownDocument.toolbarContents}
-                        />
-                    </Box>
+                    <CardEditor
+                        activeCard={activeCard}
+                        hidden={!activeCard}
+                        isAgentPopupOpen={isAgentPopupOpen}
+                        isPropertiesOpen={!!propertiesAnchorElement}
+                        onOpenProperties={handleOpenProperties}
+                        onToggleAgentPopup={handleToggleAgentPopup}
+                    />
                 </Box>
             </Box>
             {propertiesPopup}
@@ -461,7 +362,7 @@ export function TextView(props: TextViewProps) {
 
     return (
         <>
-            <LeftPanelSlot>
+            {visible ? <LeftPanelSlot>
                 <Box
                     aria-label="File tree"
                     sx={{ bgcolor: 'action.hover', display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}
@@ -480,8 +381,8 @@ export function TextView(props: TextViewProps) {
                         statusColors={statusColors}
                     />
                 </Box>
-            </LeftPanelSlot>
-            <Box sx={{ display: 'flex', flex: 1, minHeight: 0 }}>
+            </LeftPanelSlot> : null}
+            <Box hidden={!visible} sx={{ display: 'flex', flex: 1, minHeight: 0 }}>
                 {editorPane}
             </Box>
         </>

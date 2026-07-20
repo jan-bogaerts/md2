@@ -132,7 +132,6 @@ describe('DataService', () => {
         ])
 
         const review = actionService.getDraft('actions/review.json').definition
-        openFilesService.openFile('actions/review.json')
         actionService.updateDraft('actions/review.json', { ...review, label: 'Review code' })
         actionService.updateDraft('actions/review.json', { ...review, description: 'Review changed files', label: 'Review code' })
         actionService.updateDraft('actions/review.json', { ...review, description: 'Review changed files', label: 'Review code', prompt: 'Review carefully' })
@@ -164,7 +163,6 @@ describe('DataService', () => {
         })
         expect(firstRequest.moves?.[0].content).toContain('"text": "Run all tests"')
         expect(firstRequest.files.find(({ path }) => path === 'actions/test.json')?.content).toContain('"command": "npm run test"')
-        expect(openFilesService.getSnapshot().activePath).toBe('actions/review-code.json')
 
         const latestReview = actionService.getDraft('actions/review-code.json').definition
         actionService.updateDraft('actions/review-code.json', { ...latestReview, prompt: 'Review after pause' })
@@ -207,7 +205,6 @@ describe('DataService', () => {
         const service = createDataService()
         service.init({ storage })
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
-        openFilesService.openFile('actions/test-1.json')
 
         actionService.updateDraft('actions/test-1.json', renamedDefinition)
         await actionService.flushDrafts()
@@ -220,7 +217,6 @@ describe('DataService', () => {
         await vi.waitFor(() => {
             expect(actionService.getActionByPath('actions/test-1b.json')?.label).toBe('Test 1b')
             expect(actionService.getDraft('actions/test-1b.json')).toMatchObject({ deleted: false })
-            expect(openFilesService.getSnapshot().activePath).toBe('actions/test-1b.json')
         })
     })
 

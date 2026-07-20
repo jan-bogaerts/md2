@@ -1,7 +1,7 @@
 ---
 id: J-017
 title: drive Markdown editors from data sources instead of hoisted props
-status: design
+status: ready
 owner: JB
 affects:
   - app/src/services/open_files_service.ts

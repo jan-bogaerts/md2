@@ -9,6 +9,7 @@ import { DEFAULT_CARD_TYPES, type CardTypeConfig, type ProjectCard } from '../..
 import { telemetryService } from '../../services/telemetry/telemetry_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import { dataService } from '../../services/data/data_service'
+import { cardMarkdownDataSource } from '../editor/card_markdown_data_source'
 
 function card(id: string, title: string, status: string, policy: Record<string, boolean> = {}): ProjectCard {
     return {
@@ -47,7 +48,7 @@ function createColumnHandlers() {
 }
 
 function createCardHandlers() {
-    return { ...createColumnHandlers(), onAffectsChange: vi.fn(), onBodyChange: vi.fn(), onMoveCard: vi.fn() }
+    return { ...createColumnHandlers(), onAffectsChange: vi.fn(), onMoveCard: vi.fn() }
 }
 
 function renderCardView(overrides: Partial<Parameters<typeof CardView>[0]> = {}) {
@@ -67,6 +68,7 @@ function renderCardView(overrides: Partial<Parameters<typeof CardView>[0]> = {})
                     { alwaysVisible: false, state: 'todo' },
                     { alwaysVisible: false, state: 'done' },
                 ]}
+                visible
                 {...handlers}
                 {...overrides}
             />
@@ -79,6 +81,11 @@ function renderCardView(overrides: Partial<Parameters<typeof CardView>[0]> = {})
 describe('CardView', () => {
     beforeEach(() => {
         vi.spyOn(dataService, 'hasPendingActionFile').mockReturnValue(false)
+        vi.spyOn(cardMarkdownDataSource, 'getMarkdown').mockImplementation((documentId) => (
+            cards.find((projectCard) => projectCard.header.internalId === documentId)?.content ?? ''
+        ))
+        vi.spyOn(cardMarkdownDataSource, 'edit').mockImplementation(() => undefined)
+        vi.spyOn(cardMarkdownDataSource, 'commit').mockReturnValue(true)
     })
 
     afterEach(() => {
@@ -376,7 +383,6 @@ describe('CardView', () => {
                     cards={cards}
                     isMobile={false}
                     onAffectsChange={vi.fn()}
-                    onBodyChange={vi.fn()}
                     onDeleteCard={vi.fn(async () => undefined)}
                     onMoveCard={vi.fn()}
                     onOpenInFileMode={vi.fn()}
@@ -391,6 +397,7 @@ describe('CardView', () => {
                         { alwaysVisible: false, state: 'todo' },
                         { alwaysVisible: false, state: 'done' },
                     ]}
+                    visible
                 />
             </AppThemeProvider>,
         )

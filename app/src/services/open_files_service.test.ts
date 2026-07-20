@@ -1,107 +1,118 @@
 import { describe, expect, it, vi } from 'vitest'
+import type { ActionDefinition } from '../data/action_types'
+import type { ProjectCard, ProjectSnapshot } from '../data/data_types'
 import { getService } from './service_injector'
-import { OpenFilesService, type OpenFileEventDetail } from './open_files_service'
+import { OpenFilesService, type OpenDocumentEventDetail } from './open_files_service'
+
+function card(internalId: string, path = `design/${internalId}.md`, content = `# ${internalId}`): ProjectCard {
+    return {
+        agentConversationErrors: [], agentConversations: [], content,
+        header: {
+            affects: [], after: null, agentLogReferences: [], author: null, id: internalId.toUpperCase(), internalId,
+            owner: null, policy: {}, status: 'todo', title: internalId, worktree: null,
+        },
+        headerFields: { id: internalId.toUpperCase() }, isActive: true, path,
+    }
+}
+
+function action(id: string, sourcePath = `actions/${id}.json`, label = id): ActionDefinition {
+    return { description: id, id, label, phrases: [], sourcePath, type: 'agent', prompt: id }
+}
+
+function owners(initialCards: ProjectCard[] = [], initialActions: ActionDefinition[] = []) {
+    let snapshot: ProjectSnapshot = { activeCards: initialCards, backgroundCards: [], repositoryFiles: [], workingFolder: 'design' }
+    let actions = initialActions
+    const dataOwner = Object.assign(new EventTarget(), {getState: () => ({ project: { branch: 'main', id: 'project' }, runningAgents: [], snapshot })})
+    const actionOwner = Object.assign(new EventTarget(), {
+        getActions: () => actions,
+        getDeletedDraftActions: () => [],
+    })
+
+    return {
+        actionOwner,
+        dataOwner,
+        renewActions: (nextActions: ActionDefinition[]) => {
+            actions = nextActions
+            actionOwner.dispatchEvent(new CustomEvent('changed'))
+        },
+        renewCards: (nextCards: ProjectCard[]) => {
+            snapshot = { ...snapshot, activeCards: nextCards }
+            dataOwner.dispatchEvent(new CustomEvent('changed', { detail: dataOwner.getState() }))
+        },
+    }
+}
 
 describe('OpenFilesService', () => {
-    it('tracks files of any type and emits an added event for each new path', () => {
+    it('keeps one stable wrapper while card metadata and path renew', () => {
+        const firstCard = card('card-1')
+        const ownerState = owners([firstCard])
         const service = new OpenFilesService()
-        const listener = vi.fn()
-        service.addEventListener('added', listener)
+        service.init({ actionService: ownerState.actionOwner, dataService: ownerState.dataOwner })
+        const changed = vi.fn()
+        service.addEventListener('changed', changed)
+        const document = service.openDocument(firstCard)
 
-        service.openFile('design/F-1-card.md')
-        service.openFile('actions/review.json')
-        service.openFile('notes/readme.md')
+        const renamedCard = card('card-1', 'design/renamed.md')
+        ownerState.renewCards([renamedCard])
 
-        expect(service.getSnapshot()).toEqual({
-            activePath: 'notes/readme.md',
-            paths: ['design/F-1-card.md', 'actions/review.json', 'notes/readme.md'],
-        })
-        expect(listener).toHaveBeenCalledTimes(3)
-        const event = listener.mock.calls[1][0] as CustomEvent<OpenFileEventDetail>
-        expect(event.detail.path).toBe('actions/review.json')
+        expect(service.getSnapshot()).toEqual({ activeDocument: document, documents: [document] })
+        expect(document.getObject()).toBe(renamedCard)
+        expect(changed).toHaveBeenCalledOnce()
     })
 
-    it('activates an existing file without emitting another added event', () => {
+    it('retains an action document across path rename', () => {
+        const firstAction = action('review')
+        const ownerState = owners([], [firstAction])
         const service = new OpenFilesService()
-        const listener = vi.fn()
-        service.addEventListener('added', listener)
-        service.openFile('a.md')
-        service.openFile('b.md')
+        service.init({ actionService: ownerState.actionOwner, dataService: ownerState.dataOwner })
+        const document = service.openDocument(firstAction)
 
-        service.openFile('a.md')
+        const renamedAction = action('review', 'actions/review-code.json', 'Review code')
+        ownerState.renewActions([renamedAction])
 
-        expect(service.getSnapshot()).toEqual({ activePath: 'a.md', paths: ['a.md', 'b.md'] })
-        expect(listener).toHaveBeenCalledTimes(2)
+        expect(service.getSnapshot().activeDocument).toBe(document)
+        expect(document.getObject()).toBe(renamedAction)
     })
 
-    it('focuses a neighbouring file and emits removed when a file is closed', () => {
+    it('activates and closes by wrapper identity', () => {
+        const firstCard = card('one')
+        const secondCard = card('two')
+        const ownerState = owners([firstCard, secondCard])
         const service = new OpenFilesService()
-        const listener = vi.fn()
-        service.addEventListener('removed', listener)
-        service.openFile('a.md')
-        service.openFile('b.md')
-        service.openFile('c.md')
-        service.activateFile('b.md')
+        service.init({ actionService: ownerState.actionOwner, dataService: ownerState.dataOwner })
+        const firstDocument = service.openDocument(firstCard)
+        const secondDocument = service.openDocument(secondCard)
+        const removed = vi.fn()
+        service.addEventListener('removed', removed)
 
-        service.closeFile('b.md')
+        service.activateDocument(firstDocument)
+        service.closeDocument(firstDocument)
 
-        expect(service.getSnapshot()).toEqual({ activePath: 'c.md', paths: ['a.md', 'c.md'] })
-        expect(listener).toHaveBeenCalledOnce()
-        const event = listener.mock.calls[0][0] as CustomEvent<OpenFileEventDetail>
-        expect(event.detail.path).toBe('b.md')
+        expect(service.getSnapshot()).toEqual({ activeDocument: secondDocument, documents: [secondDocument] })
+        expect((removed.mock.calls[0][0] as CustomEvent<OpenDocumentEventDetail>).detail.document).toBe(firstDocument)
     })
 
-    it('replaces an open path without changing its position or active state', () => {
+    it('reconciles deleted domain objects without a path-retention call', () => {
+        const projectCard = card('one')
+        const ownerState = owners([projectCard])
         const service = new OpenFilesService()
-        service.openFile('a.md')
-        service.openFile('actions/new-action.json')
-        service.openFile('c.md')
-        service.activateFile('actions/new-action.json')
+        service.init({ actionService: ownerState.actionOwner, dataService: ownerState.dataOwner })
+        service.openDocument(projectCard)
 
-        service.replaceFilePath('actions/new-action.json', 'actions/review-code.json')
+        ownerState.renewCards([])
 
-        expect(service.getSnapshot()).toEqual({
-            activePath: 'actions/review-code.json',
-            paths: ['a.md', 'actions/review-code.json', 'c.md'],
-        })
+        expect(service.getSnapshot()).toEqual({ activeDocument: null, documents: [] })
     })
 
-    it('removes unavailable files and emits a removed event for each one', () => {
-        const service = new OpenFilesService()
-        const listener = vi.fn()
-        service.addEventListener('removed', listener)
-        service.openFile('a.md')
-        service.openFile('b.md')
-        service.openFile('c.md')
-
-        service.retainAvailableFiles(['b.md'])
-
-        expect(service.getSnapshot()).toEqual({ activePath: 'b.md', paths: ['b.md'] })
-        expect(listener).toHaveBeenCalledTimes(2)
-    })
-
-    it('clears open files when the project changes', () => {
-        const service = new OpenFilesService()
-        const listener = vi.fn()
-        service.syncProject('one:main')
-        service.openFile('a.md')
-        service.addEventListener('removed', listener)
-
-        service.syncProject('two:main')
-
-        expect(service.getSnapshot()).toEqual({ activePath: null, paths: [] })
-        expect(listener).toHaveBeenCalledOnce()
-    })
-
-    it('fails fast when a file operation has no path', () => {
+    it('fails fast for a card without stable identity', () => {
+        const projectCard = card('one')
+        projectCard.header.internalId = null
         const service = new OpenFilesService()
 
-        expect(() => service.openFile('')).toThrow('Cannot track an open file without a path')
-        expect(() => service.activateFile('')).toThrow('Cannot track an open file without a path')
-        expect(() => service.closeFile('')).toThrow('Cannot track an open file without a path')
+        expect(() => service.openDocument(projectCard)).toThrow('Cannot open card without an internal ID')
     })
 
-    it('registers itself in the service injector', () => {
+    it('registers itself in service injector', () => {
         expect(getService('openFilesService')).toBeInstanceOf(OpenFilesService)
     })
 })

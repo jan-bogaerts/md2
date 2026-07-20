@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import { ACTION_PROMPT_PLACEHOLDERS } from '../../data/action_placeholders'
@@ -9,6 +9,30 @@ import { MarkdownEditor } from './markdown_editor'
 import { MarkdownDocumentHistoryStore } from './markdown_document_history_store'
 import { flushMarkdownEditors } from './markdown_editor_flush'
 import { buildMarkdownContentSx } from './markdown_style_sx'
+import { MarkdownDataSourceBase, type MarkdownBindingKind } from './markdown_data_source'
+import { MarkdownEditorStateStore } from './markdown_editor_state_store'
+
+class TestMarkdownDataSource extends MarkdownDataSourceBase {
+    readonly commit = vi.fn(() => true)
+    readonly edit = vi.fn()
+    private readonly markdownByDocumentId = new Map<string, string>()
+
+    getMarkdown(documentId: string) {
+        const markdown = this.markdownByDocumentId.get(documentId)
+        if (markdown === undefined) throw new Error(`Unknown test document: ${documentId}`)
+        return markdown
+    }
+
+    select(binding: MarkdownBindingKind, documentId: string, markdown: string) {
+        this.markdownByDocumentId.set(documentId, markdown)
+        this.setActiveDocument(binding, documentId)
+    }
+
+    replace(documentId: string, markdown: string, originBinding: MarkdownBindingKind | null = null) {
+        this.markdownByDocumentId.set(documentId, markdown)
+        this.dispatchMarkdownReplaced({ documentId, originBinding })
+    }
+}
 
 function renderEditor(markdown = '') {
     return render(
@@ -75,42 +99,78 @@ describe('MarkdownEditor', () => {
         expect(onDirtyChange).toHaveBeenLastCalledWith(false)
     })
 
-    it('reports live edits for a document without changing buffered flush behavior', () => {
+    it('stages data-source edits and keeps commit buffered until flush', () => {
+        const dataSource = new TestMarkdownDataSource()
+        dataSource.select('list-action', 'prompt', 'original')
         const historyStore = new MarkdownDocumentHistoryStore()
-        const onDocumentChange = vi.fn()
-        const onDocumentEdit = vi.fn()
         render(
             <AppThemeProvider>
                 <MarkdownEditor
-                    documentId="prompt"
+                    binding="list-action"
+                    dataSource={dataSource}
                     historyStore={historyStore}
-                    markdown="original"
-                    onDocumentChange={onDocumentChange}
-                    onDocumentEdit={onDocumentEdit}
+                    stateStore={new MarkdownEditorStateStore()}
                 />
             </AppThemeProvider>,
         )
 
         fireEvent.change(screen.getByRole('textbox'), { target: { value: 'edited' } })
 
-        expect(onDocumentEdit).toHaveBeenCalledExactlyOnceWith('prompt', 'edited')
-        expect(onDocumentChange).not.toHaveBeenCalled()
+        expect(dataSource.edit).toHaveBeenCalledExactlyOnceWith('list-action', 'prompt', 'edited')
+        expect(dataSource.commit).not.toHaveBeenCalled()
 
         flushMarkdownEditors()
-        expect(onDocumentChange).toHaveBeenCalledExactlyOnceWith('prompt', 'edited')
+        expect(dataSource.commit).toHaveBeenCalledExactlyOnceWith('list-action', 'prompt', 'edited')
     })
 
-    it('flushes a document edit on blur only when requested by its owner', () => {
-        const historyStore = new MarkdownDocumentHistoryStore()
-        const onDocumentChange = vi.fn()
+    it('keeps a failed editor dirty without blocking another editor flush', () => {
+        const failedDataSource = new TestMarkdownDataSource()
+        const successfulDataSource = new TestMarkdownDataSource()
+        const failedStateStore = new MarkdownEditorStateStore()
+        const successfulStateStore = new MarkdownEditorStateStore()
+        failedDataSource.select('list-card', 'failed-card', 'failed original')
+        successfulDataSource.select('board-card', 'saved-card', 'saved original')
+        failedDataSource.commit.mockReturnValue(false)
         render(
             <AppThemeProvider>
                 <MarkdownEditor
-                    documentId="prompt"
+                    binding="list-card"
+                    dataSource={failedDataSource}
+                    historyStore={new MarkdownDocumentHistoryStore()}
+                    stateStore={failedStateStore}
+                />
+                <MarkdownEditor
+                    binding="board-card"
+                    dataSource={successfulDataSource}
+                    historyStore={new MarkdownDocumentHistoryStore()}
+                    stateStore={successfulStateStore}
+                />
+            </AppThemeProvider>,
+        )
+        const [failedEditor, successfulEditor] = screen.getAllByRole('textbox')
+        fireEvent.change(failedEditor, { target: { value: 'failed edit' } })
+        fireEvent.change(successfulEditor, { target: { value: 'saved edit' } })
+
+        flushMarkdownEditors()
+
+        expect(failedDataSource.commit).toHaveBeenCalledExactlyOnceWith('list-card', 'failed-card', 'failed edit')
+        expect(successfulDataSource.commit).toHaveBeenCalledExactlyOnceWith('board-card', 'saved-card', 'saved edit')
+        expect(failedStateStore.getSnapshot()).toBe(true)
+        expect(successfulStateStore.getSnapshot()).toBe(false)
+    })
+
+    it('flushes a data-source edit on blur only when requested', () => {
+        const dataSource = new TestMarkdownDataSource()
+        dataSource.select('list-action', 'prompt', 'original')
+        const historyStore = new MarkdownDocumentHistoryStore()
+        render(
+            <AppThemeProvider>
+                <MarkdownEditor
+                    binding="list-action"
+                    dataSource={dataSource}
                     flushOnBlur
                     historyStore={historyStore}
-                    markdown="original"
-                    onDocumentChange={onDocumentChange}
+                    stateStore={new MarkdownEditorStateStore()}
                 />
             </AppThemeProvider>,
         )
@@ -120,19 +180,20 @@ describe('MarkdownEditor', () => {
 
         fireEvent.blur(editor)
 
-        expect(onDocumentChange).toHaveBeenCalledExactlyOnceWith('prompt', 'edited')
+        expect(dataSource.commit).toHaveBeenCalledExactlyOnceWith('list-action', 'prompt', 'edited')
     })
 
-    it('keeps the default document edit buffered on blur', () => {
+    it('keeps default data-source edits buffered on blur', () => {
+        const dataSource = new TestMarkdownDataSource()
+        dataSource.select('list-card', 'card', 'original')
         const historyStore = new MarkdownDocumentHistoryStore()
-        const onDocumentChange = vi.fn()
         render(
             <AppThemeProvider>
                 <MarkdownEditor
-                    documentId="card"
+                    binding="list-card"
+                    dataSource={dataSource}
                     historyStore={historyStore}
-                    markdown="original"
-                    onDocumentChange={onDocumentChange}
+                    stateStore={new MarkdownEditorStateStore()}
                 />
             </AppThemeProvider>,
         )
@@ -142,36 +203,28 @@ describe('MarkdownEditor', () => {
 
         fireEvent.blur(editor)
 
-        expect(onDocumentChange).not.toHaveBeenCalled()
+        expect(dataSource.commit).not.toHaveBeenCalled()
     })
 
-    it('replaces active document content when its external Markdown changes under the same id', () => {
+    it('replaces matching active content from a non-origin source event', () => {
+        const dataSource = new TestMarkdownDataSource()
+        dataSource.select('list-action', 'prompt', 'original')
         const historyStore = new MarkdownDocumentHistoryStore()
-        const onDocumentChange = vi.fn()
-        const view = render(
+        render(
             <AppThemeProvider>
                 <MarkdownEditor
-                    documentId="prompt"
+                    binding="list-action"
+                    dataSource={dataSource}
                     historyStore={historyStore}
-                    markdown="original"
-                    onDocumentChange={onDocumentChange}
+                    stateStore={new MarkdownEditorStateStore()}
                 />
             </AppThemeProvider>,
         )
 
-        view.rerender(
-            <AppThemeProvider>
-                <MarkdownEditor
-                    documentId="prompt"
-                    historyStore={historyStore}
-                    markdown="external"
-                    onDocumentChange={onDocumentChange}
-                />
-            </AppThemeProvider>,
-        )
+        act(() => dataSource.replace('prompt', 'external'))
 
         expect(screen.getByRole('textbox')).toHaveValue('external')
-        expect(onDocumentChange).not.toHaveBeenCalled()
+        expect(dataSource.commit).not.toHaveBeenCalled()
         expect(historyStore.canUndo).toBe(false)
         expect(historyStore.canRedo).toBe(false)
     })

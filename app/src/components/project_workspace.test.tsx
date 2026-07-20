@@ -12,6 +12,7 @@ import { telemetryService } from '../services/telemetry/telemetry_service'
 import { workspaceNavigationService } from '../services/project/workspace_navigation_service'
 import { workspaceViewService } from '../services/project/workspace_view_service'
 import { projectPersistenceService } from '../services/project/project_persistence_service'
+import { cardMarkdownDataSource } from './editor/card_markdown_data_source'
 import { AppThemeProvider } from '../theme/theme_provider'
 import { DialogDisplay } from './dialog_display'
 import { ProjectWorkspace } from './project_workspace'
@@ -25,8 +26,14 @@ const BRANCHES_URL = 'https://api.github.com/repos/octo/demo/branches'
 
 function createBridge(): ElectronDataBridge {
     const files = [
-        { content: '---\nid: F-1\ntitle: Root\nstatus: active\naffects:\n---\n\n# Root', path: 'design/F-1-root.md' },
-        { content: '# Old', path: 'design/history/F-2-old.md' },
+        {
+            content: '---\nid: F-1\ninternalId: root-card\ntitle: Root\nstatus: active\naffects:\n---\n\n# Root',
+            path: 'design/F-1-root.md',
+        },
+        {
+            content: '---\nid: F-2\ninternalId: old-card\ntitle: Old\naffects:\n---\n\n# Old',
+            path: 'design/history/F-2-old.md',
+        },
     ]
 
     return {
@@ -179,6 +186,8 @@ describe('ProjectWorkspace', () => {
         configService.init({ desktopConfig: null })
         projectPersistenceService.init({ actionService, dataService })
         dataService.init({ storage: createResetStorage() })
+        openFilesService.init({ actionService, dataService })
+        cardMarkdownDataSource.init(dataService)
         openFilesService.clear()
         workspaceViewService.setViewMode('cards')
     })

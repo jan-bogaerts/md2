@@ -163,11 +163,25 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
             if (detail.binding !== binding) return
 
             const markdown = detail.documentId ? dataSource.getMarkdown(detail.documentId) : ''
-            setActiveDocument({ documentId: detail.documentId, markdown })
+            const currentMarkdown = handleBeforeDocumentSwitch(detail.documentId, markdown)
+            const replaceMarkdown = (nextMarkdown: string) => {
+                replacingMarkdownRef.current = true
+                editorRef.current?.setMarkdown(nextMarkdown)
+                replacingMarkdownRef.current = false
+            }
+            if (historyStore.hasAttachedEditor) historyStore.switchDocument(detail.documentId, markdown, currentMarkdown, replaceMarkdown)
+            else replaceMarkdown(markdown)
+            const normalizedMarkdown = editorRef.current?.getMarkdown() ?? markdown
+            handleDocumentSwitch(normalizedMarkdown)
+            setActiveDocument({ documentId: detail.documentId, markdown: normalizedMarkdown })
         }
         const handleMarkdownReplaced = (event: Event) => {
             const detail = (event as CustomEvent<MarkdownReplacedDetail>).detail
-            if (detail.documentId !== activeDocumentIdRef.current || detail.originBinding === binding) return
+            if (detail.documentId !== activeDocumentIdRef.current) return
+            if (detail.originBinding === binding) {
+                setActiveDocument({ documentId: detail.documentId, markdown: latestMarkdownRef.current })
+                return
+            }
 
             const markdown = dataSource.getMarkdown(detail.documentId)
             replacingMarkdownRef.current = true
@@ -182,12 +196,17 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         }
         dataSource.addEventListener('activeDocumentChanged', handleActiveDocumentChanged)
         dataSource.addEventListener('markdownReplaced', handleMarkdownReplaced)
+        const currentDocumentId = dataSource.getActiveDocumentId(binding)
+        if (currentDocumentId !== activeDocumentIdRef.current) {
+            const detail: ActiveMarkdownDocumentChangedDetail = { binding, documentId: currentDocumentId }
+            handleActiveDocumentChanged(new CustomEvent('activeDocumentChanged', { detail }))
+        }
 
         return () => {
             dataSource.removeEventListener('activeDocumentChanged', handleActiveDocumentChanged)
             dataSource.removeEventListener('markdownReplaced', handleMarkdownReplaced)
         }
-    }, [binding, dataSource, historyStore, setDirty])
+    }, [binding, dataSource, handleBeforeDocumentSwitch, handleDocumentSwitch, historyStore, setDirty])
 
     useEffect(() => {
         const unregister = registerMarkdownEditorFlush(flush)
