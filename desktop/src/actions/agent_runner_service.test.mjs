@@ -7,6 +7,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const require = createRequire(import.meta.url);
 const { AgentRunnerService } = require('./agent_runner_service');
+const { findActivityConversation } = require('../../../shared/card_activity.mjs');
+const { conversationActivityReference, parseConversationActivityReference } = require('../../../shared/log_paths.mjs');
 
 function createProject(rootPath) {
     return { branch: 'main', id: 'local', rootPath };
@@ -14,6 +16,13 @@ function createProject(rootPath) {
 
 function agentRequest(overrides) {
     return { projectFolder: 'design', ...overrides };
+}
+
+async function readPersistedConversation(rootPath, reference) {
+    const { activityPath, conversationId } = parseConversationActivityReference(reference);
+    const activity = JSON.parse(await readFile(join(rootPath, activityPath), 'utf8'));
+
+    return findActivityConversation(activity, conversationId);
 }
 
 async function prepareProject(rootPath) {
@@ -65,7 +74,7 @@ describe('AgentRunnerService', () => {
             await writeFile(scriptPath, 'process.stdout.write(JSON.stringify({configured:process.argv[2],prompt:process.argv[3],tty:process.stdin.isTTY===true}))\n');
             const command = ['node', scriptPath, 'GPT 5.5'];
             const result = await service.run(createProject(rootPath), agentRequest({ command, prompt, scopePath: 'project' }), () => undefined);
-            const persisted = JSON.parse(await readFile(join(rootPath, result.reference), 'utf8'));
+            const persisted = await readPersistedConversation(rootPath, result.reference);
 
             expect(result.stderr).toBe('');
             expect(result.exitCode).toBe(0);
@@ -136,7 +145,7 @@ describe('AgentRunnerService', () => {
                 command,
                 prompt: 'question',
             }), (event) => events.push(event));
-            const persisted = JSON.parse(await readFile(join(rootPath, result.reference), 'utf8'));
+            const persisted = await readPersistedConversation(rootPath, result.reference);
 
             expect(result.changedPaths).toEqual(['design/F-1.md']);
             expect(events).toContainEqual(expect.objectContaining({ content: 'answer', type: 'output' }));
@@ -168,7 +177,7 @@ describe('AgentRunnerService', () => {
                 agent: 'codex', command: ['node', secondScriptPath], conversation: first.conversation,
                 prompt: 'second', reference: first.reference, scopePath: 'project',
             }), () => undefined);
-            const persisted = JSON.parse(await readFile(join(rootPath, second.reference), 'utf8'));
+            const persisted = await readPersistedConversation(rootPath, second.reference);
 
             expect(persisted.usage).toEqual({
                 cachedInputTokens: 6,
@@ -191,7 +200,7 @@ describe('AgentRunnerService', () => {
             await prepareProject(rootPath);
             await writeFile(scriptPath, "console.log(JSON.stringify({type:'system',subtype:'init',session_id:'session-1'}));console.log(JSON.stringify({type:'assistant',message:{content:[{type:'text',text:'done'}],usage:{input_tokens:999}}}));console.log(JSON.stringify({type:'result',usage:{input_tokens:20,output_tokens:7,cache_creation_input_tokens:8,cache_read_input_tokens:5},total_cost_usd:0.012}))\n");
             const result = await service.run(createProject(rootPath), agentRequest({agent: 'claude', command: ['node', scriptPath], prompt: 'question', scopePath: 'project'}), () => undefined);
-            const persisted = JSON.parse(await readFile(join(rootPath, result.reference), 'utf8'));
+            const persisted = await readPersistedConversation(rootPath, result.reference);
 
             expect(persisted.usage).toEqual({
                 cachedInputTokens: 13,
@@ -215,7 +224,7 @@ describe('AgentRunnerService', () => {
             await prepareProject(rootPath);
             await writeFile(scriptPath, "console.log(JSON.stringify({type:'thread.started',thread_id:'thread-1'}));console.log(JSON.stringify({type:'turn.started'}));console.log(JSON.stringify({type:'turn.completed',usage:{input_tokens:10}}));process.exit(1)\n");
             const result = await service.run(createProject(rootPath), agentRequest({agent: 'codex', command: ['node', scriptPath], prompt: 'fail', scopePath: 'project'}), () => undefined);
-            const persisted = JSON.parse(await readFile(join(rootPath, result.reference), 'utf8'));
+            const persisted = await readPersistedConversation(rootPath, result.reference);
 
             expect(persisted.usage).toBeUndefined();
         } finally {
@@ -263,7 +272,7 @@ describe('AgentRunnerService', () => {
                 prompt: 'question',
                 scopePath: 'project',
             }), (event) => events.push(event));
-            const persisted = JSON.parse(await readFile(join(rootPath, result.reference), 'utf8'));
+            const persisted = await readPersistedConversation(rootPath, result.reference);
 
             expect(result.stderr).toBe('visible warning\n');
             expect(events.filter(({ type }) => type === 'error').map(({ content }) => content)).toEqual(['visible warning\n']);
@@ -287,7 +296,7 @@ describe('AgentRunnerService', () => {
                 prompt: 'question',
                 scopePath: 'project',
             }), () => undefined);
-            const persisted = JSON.parse(await readFile(join(rootPath, result.reference), 'utf8'));
+            const persisted = await readPersistedConversation(rootPath, result.reference);
 
             expect(result.exitCode).toBe(0);
             expect(persisted.status).toBe('completed');
@@ -313,7 +322,7 @@ describe('AgentRunnerService', () => {
                 prompt: 'question',
                 scopePath: 'project',
             }), (event) => events.push(event));
-            const persisted = JSON.parse(await readFile(join(rootPath, result.reference), 'utf8'));
+            const persisted = await readPersistedConversation(rootPath, result.reference);
 
             expect(result.exitCode).toBe(0);
             expect(events.some(({ type }) => type === 'error')).toBe(false);
@@ -340,11 +349,11 @@ describe('AgentRunnerService', () => {
             await prepareProject(rootPath);
             const started = await service.start(createProject(rootPath), agentRequest({
                 agent: 'codex', command: ['node', '-e', 'setTimeout(()=>{},10000)'], conversation,
-                prompt: 'next', reference: '.md2-agent-logs/conversation.json', scopePath: 'project',
+                prompt: 'next', reference: conversationActivityReference('design/activity/project.json', conversation.id), scopePath: 'project',
             }), (event) => events.push(event));
             service.stop(started.runId);
             await waitForEvent(events, 'closed');
-            const persisted = JSON.parse(await readFile(join(rootPath, started.reference), 'utf8'));
+            const persisted = await readPersistedConversation(rootPath, started.reference);
 
             expect(persisted.status).toBe('cancelled');
             expect(persisted.providerSessions[0].synchronizedThroughMessageId).toBe('message-1');
@@ -366,12 +375,12 @@ describe('AgentRunnerService', () => {
             await prepareProject(rootPath);
             const first = await service.start(createProject(rootPath), agentRequest({
                 command: ['node', '-e', 'setTimeout(()=>process.exit(0),100)'], conversation,
-                prompt: 'one', reference: '.md2-agent-logs/one.json', scopePath: 'project',
+                prompt: 'one', reference: conversationActivityReference('design/activity/project.json', conversation.id), scopePath: 'project',
             }), (event) => events.push(event));
 
             await expect(service.start(createProject(rootPath), agentRequest({
                 command: ['node', '-e', 'process.exit(0)'], conversation,
-                prompt: 'two', reference: '.md2-agent-logs/one.json', scopePath: 'project',
+                prompt: 'two', reference: conversationActivityReference('design/activity/project.json', conversation.id), scopePath: 'project',
             }), () => undefined)).rejects.toThrow('already has a running turn');
             const second = await service.start(createProject(rootPath), agentRequest({command: ['node', '-e', 'process.exit(0)'], prompt: 'other', scopePath: 'project'}), (event) => events.push(event));
 
@@ -391,10 +400,11 @@ describe('AgentRunnerService', () => {
         try {
             await prepareProject(rootPath);
             const result = await service.run(createProject(rootPath), agentRequest({command: ['node', '-e', "process.stdout.write('done')"], prompt: 'go', scopePath: 'project'}), () => undefined);
-            const persisted = JSON.parse(await readFile(join(rootPath, result.reference), 'utf8'));
+            const persisted = await readPersistedConversation(rootPath, result.reference);
+            const { activityPath } = parseConversationActivityReference(result.reference);
 
             expect(persisted.status).toBe('completed');
-            expect(renameSpy.mock.calls.some(([from, to]) => String(from).endsWith('.tmp') && to === join(rootPath, result.reference))).toBe(true);
+            expect(renameSpy.mock.calls.some(([from, to]) => String(from).endsWith('.tmp') && to === join(rootPath, activityPath))).toBe(true);
         } finally {
             await rm(rootPath, { force: true, recursive: true });
         }

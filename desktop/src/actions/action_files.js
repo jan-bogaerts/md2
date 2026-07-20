@@ -14,12 +14,9 @@ const {
     parseActionScheduleFile,
 } = require('./schedule_store');
 const { normalizePath } = require('../../../shared/path_utils.mjs');
-const { parseAgentConversation } = require('../../../shared/agent_conversations.mjs');
-const { actionHistoryFilePath } = require('./project_log_paths');
+const { loadActivityConversation, readActivityFile, resolveActivityPath } = require('./activity_files');
 
 const JSON_EXTENSION = '.json';
-const actionHistoryWriteQueues = new Map();
-const ACTION_HISTORY_STATUSES = new Set(['completed', 'failed']);
 
 function scheduleFilePath(rootPath, actionsFolder) {
     const actionsFolderPath = ensureInsideRoot(rootPath, path.join(rootPath, actionsFolder));
@@ -27,62 +24,24 @@ function scheduleFilePath(rootPath, actionsFolder) {
     return ensureInsideRoot(rootPath, path.join(actionsFolderPath, ACTION_SCHEDULES_FILE));
 }
 
-async function readJsonArray(filePath) {
-    if (!await pathExists(filePath)) return [];
+function activityOrigin(context) {
+    if (context.kind !== 'card' && context.kind !== 'file') return { kind: 'project' };
+    if (typeof context.cardInternalId !== 'string' || context.cardInternalId.length === 0) {
+        throw new Error('Card action history requires cardInternalId');
+    }
 
-    const content = await fs.promises.readFile(filePath, 'utf8');
-    const parsed = JSON.parse(content);
-    if (!Array.isArray(parsed)) throw new Error('Action history file must contain an array');
-
-    return parsed;
+    return { cardInternalId: context.cardInternalId, kind: 'card' };
 }
 
-function isNonNegativeInteger(value) {
-    return Number.isInteger(value) && value >= 0;
-}
+function historyEntry(record, repositoryRoot) {
+    const commits = record.commits.map((commit) => ({
+        ...commit,
+        actionId: commit.actionId ?? record.rootActionId,
+        actionName: commit.actionName ?? record.rootActionLabel,
+        repositoryRoot,
+    }));
 
-function isUsableCommitReference(value) {
-    return !!value
-        && typeof value === 'object'
-        && !Array.isArray(value)
-        && typeof value.actionId === 'string'
-        && typeof value.actionName === 'string'
-        && typeof value.branch === 'string'
-        && typeof value.commit === 'string'
-        && typeof value.committedAt === 'string'
-        && isNonNegativeInteger(value.deletions)
-        && Array.isArray(value.filePaths)
-        && value.filePaths.every((filePath) => typeof filePath === 'string')
-        && isNonNegativeInteger(value.filesChanged)
-        && isNonNegativeInteger(value.insertions)
-        && typeof value.repositoryRoot === 'string';
-}
-
-function normalizeActionHistoryEntry(value) {
-    if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
-    if (typeof value.completedAt !== 'string') return null;
-    if (typeof value.output !== 'string') return null;
-    if (typeof value.prompt !== 'string') return null;
-    if (!ACTION_HISTORY_STATUSES.has(value.status)) return null;
-
-    const entry = {
-        completedAt: value.completedAt,
-        output: value.output,
-        prompt: value.prompt,
-        status: value.status,
-    };
-    const commits = Array.isArray(value.commits) ? value.commits.filter(isUsableCommitReference) : [];
-    if (commits.length > 0) entry.commits = commits;
-    if (typeof value.agent === 'string' || value.agent === null) entry.agent = value.agent;
-    if (typeof value.command === 'string') entry.command = value.command;
-    if (typeof value.model === 'string') entry.model = value.model;
-    if (typeof value.thinkingLevel === 'string') entry.thinkingLevel = value.thinkingLevel;
-
-    return entry;
-}
-
-function normalizeActionHistory(entries) {
-    return entries.map(normalizeActionHistoryEntry).filter((entry) => entry !== null);
+    return commits.length > 0 ? { ...record.history, commits } : record.history;
 }
 
 async function readActionScheduleFile(filePath) {
@@ -120,42 +79,13 @@ async function loadActionRunHistory(project, request) {
     if (!request.context || typeof request.context !== 'object') throw new Error('Missing action history context');
     if (typeof request.projectFolder !== 'string') throw new Error('Missing action history projectFolder');
 
-    const filePath = actionHistoryFilePath(rootPath, request.projectFolder, request.actionId, request.context);
+    const origin = activityOrigin(request.context);
+    const { absolutePath } = resolveActivityPath(rootPath, request.projectFolder, origin);
+    const activity = await readActivityFile(absolutePath, origin);
 
-    return normalizeActionHistory(await readJsonArray(filePath));
-}
-
-async function writeActionRunHistory(rootPath, filePath, entry) {
-    await assertGitRoot(rootPath);
-    const entries = await readJsonArray(filePath);
-    const nextEntries = [...entries, entry];
-    await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
-    await fs.promises.writeFile(filePath, `${JSON.stringify(nextEntries, null, 2)}\n`);
-
-    return nextEntries;
-}
-
-function queueActionRunHistoryWrite(rootPath, filePath, entry) {
-    const previousWrite = actionHistoryWriteQueues.get(filePath) ?? Promise.resolve();
-    const write = previousWrite.then(() => writeActionRunHistory(rootPath, filePath, entry));
-    const queueTail = write.catch(() => undefined);
-    actionHistoryWriteQueues.set(filePath, queueTail);
-    void queueTail.finally(() => {
-        if (actionHistoryWriteQueues.get(filePath) === queueTail) actionHistoryWriteQueues.delete(filePath);
-    });
-
-    return write;
-}
-
-async function appendActionRunHistory(project, request, entry) {
-    const rootPath = requireRootPath(project);
-    if (!request || typeof request.actionId !== 'string' || request.actionId.length === 0) throw new Error('Missing action history actionId');
-    if (!request.context || typeof request.context !== 'object') throw new Error('Missing action history context');
-    if (typeof request.projectFolder !== 'string') throw new Error('Missing action history projectFolder');
-
-    const filePath = actionHistoryFilePath(rootPath, request.projectFolder, request.actionId, request.context);
-
-    return queueActionRunHistoryWrite(rootPath, filePath, entry);
+    return activity.records
+        .filter(({ rootActionId }) => rootActionId === request.actionId)
+        .map((record) => historyEntry(record, rootPath));
 }
 
 async function loadActionSchedules(project, actionsFolder) {
@@ -193,18 +123,12 @@ async function cancelActionSchedule(project, actionsFolder, scheduleId) {
 }
 
 async function loadAgentConversation(project, referencePath) {
-    const rootPath = requireRootPath(project);
-    await assertGitRoot(rootPath);
     if (typeof referencePath !== 'string' || referencePath.length === 0) throw new Error('Missing agent log path');
 
-    const filePath = ensureInsideRoot(rootPath, path.join(rootPath, referencePath));
-    const content = await fs.promises.readFile(filePath, 'utf8');
-
-    return parseAgentConversation(content, referencePath);
+    return loadActivityConversation(project, referencePath);
 }
 
 module.exports = {
-    appendActionRunHistory,
     cancelActionSchedule,
     loadActionFiles,
     loadActionRunHistory,

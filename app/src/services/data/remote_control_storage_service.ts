@@ -4,11 +4,15 @@ import type { ActionSchedule } from '../../data/action_schedule_types'
 import type {
     ActionRunHistoryEntry,
     ActionRunHistoryRequest,
+    CardActivityRequest,
     DiffRequest,
     DiffResult,
     ElectronActionBridge,
+    HistoricalFileContent,
     OpenInEditorRequest,
+    ReadFileAtCommitRequest,
 } from '../../data/electron_action_bridge'
+import type { CardActivityFile } from '../../../../shared/card_activity.mjs'
 import type { AgentAvailability } from '../../data/electron_data_bridge'
 import type {
     AgentConversation,
@@ -284,6 +288,10 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         return this.request<ActionRunHistoryEntry[]>('loadActionRunHistory', [request])
     }
 
+    async loadCardActivity(request: CardActivityRequest): Promise<CardActivityFile> {
+        return this.request<CardActivityFile>('loadCardActivity', [request])
+    }
+
     async loadAgentAvailability(): Promise<Record<string, AgentAvailability>> {
         return this.request<Record<string, AgentAvailability>>('loadAgentAvailability', [])
     }
@@ -313,6 +321,10 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
 
     async prepareActionPrompt(request: ActionPromptRequest): Promise<PreparedActionPrompt> {
         return this.request<PreparedActionPrompt>('prepareActionPrompt', [request])
+    }
+
+    async readFileAtCommit(request: ReadFileAtCommitRequest): Promise<HistoricalFileContent> {
+        return this.request<HistoricalFileContent>('readFileAtCommit', [request])
     }
 
     async runSearchRegexpAgent(input: string, callback?: (event: AgentRunEvent) => void): Promise<string> {

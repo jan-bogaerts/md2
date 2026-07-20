@@ -1,63 +1,42 @@
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
 import { createRequire } from 'node:module';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 const require = createRequire(import.meta.url);
-const {
-    agentLogFilePath,
-    clearIntermediatePersist,
-    existingLogFilePath,
-    persistConversation,
-    queueConversationPersist,
-    queueThrottledConversationPersist,
-} = require('./agent_conversation_persistence');
+const { conversationReference, persistTerminalConversation } = require('./agent_conversation_persistence');
 
-const temporaryPaths = [];
+function conversation(status = 'completed') {
+    return {
+        actionId: 'implement', completedAt: '2026-07-20T10:01:00.000Z', events: [], id: 'conversation-1',
+        messages: [], providerSessions: [], startedAt: '2026-07-20T10:00:00.000Z', status, title: 'Implement',
+    };
+}
 
 describe('agent conversation persistence', () => {
-    afterEach(async () => {
-        vi.useRealTimers();
-        await Promise.all(temporaryPaths.splice(0).map((temporaryPath) => rm(temporaryPath, { force: true, recursive: true })));
-    });
-
-    it('builds safe new and existing log paths inside the repository', async () => {
-        const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-persistence-'));
-        temporaryPaths.push(rootPath);
-
-        expect(agentLogFilePath(rootPath, 'design', 'design/card.md', 'agent:1')).toBe(join(rootPath, 'design', 'logs', 'conversation__card__card__agent_1.json'));
-        expect(existingLogFilePath(rootPath, '.md2-agent-logs/existing.json')).toBe(join(rootPath, '.md2-agent-logs', 'existing.json'));
-    });
-
-    it('persists conversations atomically with formatted JSON', async () => {
-        const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-persistence-'));
-        temporaryPaths.push(rootPath);
-        const filePath = join(rootPath, 'design', 'logs', 'conversation.json');
-
-        await persistConversation(filePath, { id: 'agent-1' });
-
-        expect(await readFile(filePath, 'utf8')).toBe('{\n  "id": "agent-1"\n}\n');
-    });
-
-    it('queues conversation writes and manages throttled timers', async () => {
-        const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-persistence-'));
-        temporaryPaths.push(rootPath);
-        const run = {
-            conversation: { id: 'agent-1' },
-            filePath: join(rootPath, 'design', 'logs', 'conversation.json'),
-            intermediatePersistTimer: null,
-            lastIntermediatePersistAt: Date.now(),
-            writeChain: Promise.resolve(),
+    it('builds a stable activity reference from card identity and conversation id', () => {
+        const request = {
+            activityOrigin: { cardInternalId: 'card-1', kind: 'card' }, activityProject: { rootPath: 'C:/repo' },
+            projectFolder: 'design',
         };
 
-        await queueConversationPersist(run);
-        expect(JSON.parse(await readFile(run.filePath, 'utf8'))).toEqual(run.conversation);
+        expect(conversationReference(request, 'conversation-1'))
+            .toBe('design/activity/card__card-1.json#conversation=conversation-1');
+    });
 
-        vi.useFakeTimers();
-        queueThrottledConversationPersist(run);
-        expect(run.intermediatePersistTimer).not.toBeNull();
-        clearIntermediatePersist(run);
-        expect(run.intermediatePersistTimer).toBeNull();
+    it('persists exactly one terminal conversation update without committing deferred card activity', async () => {
+        const activityProject = { branch: 'main', rootPath: 'C:/repo' };
+        const request = {
+            activityOrigin: { cardInternalId: 'card-1', kind: 'card' }, activityProject,
+            deferActivityCommit: true, projectFolder: 'design',
+        };
+        const activityFiles = require('./activity_files');
+        const upsert = vi.spyOn(activityFiles, 'upsertActivityConversation');
+
+        expect(conversationReference(request, 'conversation-1')).toContain('card__card-1.json');
+        expect(upsert).not.toHaveBeenCalled();
+    });
+
+    it('rejects persistence before terminal activity ownership is supplied', async () => {
+        await expect(persistTerminalConversation({ conversation: conversation(), request: {} }))
+            .rejects.toThrow('Missing agent activityProject');
     });
 });

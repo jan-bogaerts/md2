@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 const require = createRequire(import.meta.url);
 const { ActionRunnerService } = require('./action_runner_service');
 
-const context = { file: 'design/F-010.md', kind: 'card', state: 'design', type: 'feature' };
+const context = { cardInternalId: 'card-010', file: 'design/F-010.md', kind: 'card', state: 'design', type: 'feature' };
 const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
 
 function actionFile(id, overrides = {}) {
@@ -22,8 +22,15 @@ function actionFile(id, overrides = {}) {
 }
 
 function createRunner(actionFiles = [actionFile('main')], overrides = {}) {
+    const appendActionRunHistory = vi.fn(async () => []);
     const localGitService = {
-        appendActionRunHistory: vi.fn(async () => []),
+        appendActionActivity: vi.fn(async (_project, projectFolder, _origin, record) => {
+            await appendActionRunHistory(project, { actionId: record.rootActionId, context, projectFolder }, record.history);
+
+            return { relativePath: 'design/activity/card__card-010.json' };
+        }),
+        appendActionRunHistory,
+        commitActivityFile: vi.fn(async () => 'activity-commit'),
         loadActionFiles: vi.fn(async () => actionFiles),
         loadAgentConversation: vi.fn(),
     };
@@ -102,7 +109,7 @@ describe('ActionRunnerService', () => {
         expect(actionWorktreeExecutionService.resolve).toHaveBeenCalledWith(project, expect.objectContaining({ id: 'main' }), context);
         expect(actionWorktreeExecutionService.execute).not.toHaveBeenCalled();
         expect(agentRunnerService.start).not.toHaveBeenCalled();
-        expect(localGitService.appendActionRunHistory).not.toHaveBeenCalled();
+        expect(localGitService.appendActionActivity).not.toHaveBeenCalled();
     });
 
     it('drops unknown persisted fields before execution', async () => {
@@ -143,7 +150,7 @@ describe('ActionRunnerService', () => {
 
         await expect(runToCompletion(runner)).resolves.toMatchObject({ status: 'completed' });
         expect(commandRunner.mock.calls.map((call) => call[1])).toEqual(['before', 'main', 'matched', 'after']);
-        expect(localGitService.appendActionRunHistory).toHaveBeenCalledTimes(4);
+        expect(localGitService.appendActionActivity).toHaveBeenCalledOnce();
         expect(events.filter(({ status, type }) => status === 'completed' && type === 'action').map(({ actionId, phase }) => ({actionId, phase}))).toEqual([
             { actionId: 'before', phase: 'before' },
             { actionId: 'main', phase: 'main' },
@@ -195,7 +202,7 @@ describe('ActionRunnerService', () => {
         await runner.wait(executionId);
 
         expect(commandRunner.mock.calls.map((call) => call[0])).toEqual([project, project]);
-        expect(localGitService.appendActionRunHistory.mock.calls.map((call) => call[1].projectFolder)).toEqual(['design', 'design']);
+        expect(localGitService.appendActionActivity.mock.calls[0][1]).toBe('design');
     });
 
     it('delegates cancel and rejects unknown execution id', async () => {

@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import type { ProjectCard, ProjectSnapshot } from '../../data/data_types'
 import { dialogService } from '../../services/dialog_service'
 import { CardMarkdownDataSource } from './card_markdown_data_source'
-import type { MarkdownReplacedDetail } from './markdown_data_source'
+import type { ActiveMarkdownDocumentChangedDetail, MarkdownReplacedDetail } from './markdown_data_source'
 
 function card(content: string, path = 'design/F-1.md'): ProjectCard {
     return {
@@ -98,5 +98,33 @@ describe('CardMarkdownDataSource', () => {
             activeListActionDocumentId: null,
             activeListCardDocumentId: null,
         })
+    })
+
+    it('marks project-switch binding clears as discards so editors drop buffers instead of committing', () => {
+        const cardOwner = owner(card('Original'))
+        const source = new CardMarkdownDataSource()
+        source.init(cardOwner)
+        source.setActiveDocument('list-card', 'card-1')
+        const changed = vi.fn()
+        source.addEventListener('activeDocumentChanged', changed)
+
+        cardOwner.switchProject()
+
+        const detail = (changed.mock.calls[0][0] as CustomEvent<ActiveMarkdownDocumentChangedDetail>).detail
+        expect(detail).toEqual({ binding: 'list-card', discard: true, documentId: null })
+    })
+
+    it('reports an unresolvable edit once instead of on every keystroke', () => {
+        const cardOwner = owner(card('Original'))
+        const source = new CardMarkdownDataSource()
+        source.init(cardOwner)
+        const reportError = vi.spyOn(dialogService, 'error')
+        reportError.mockClear()
+
+        source.edit('list-card', 'missing-card', 'a')
+        source.edit('list-card', 'missing-card', 'ab')
+        source.edit('list-card', 'missing-card', 'abc')
+
+        expect(reportError).toHaveBeenCalledOnce()
     })
 })

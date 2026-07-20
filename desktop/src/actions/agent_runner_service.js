@@ -11,16 +11,11 @@ const {
     updateProviderSession,
 } = require('./agent_conversation');
 const {
-    agentLogFilePath,
-    clearIntermediatePersist,
-    existingLogFilePath,
-    persistConversation,
-    queueConversationPersist,
-    queueThrottledConversationPersist,
+    conversationReference,
+    persistTerminalConversation,
 } = require('./agent_conversation_persistence');
 const { createAgentProviderProtocolParser } = require('./agent_provider_protocol');
 const { assertGitRoot, ensureInsideRoot, requireRootPath } = require('../git/git_commands');
-const { normalizePath } = require('../../../shared/path_utils.mjs');
 
 const HIDDEN_STDERR_LINES = [
     /^completed$/i,
@@ -158,26 +153,28 @@ class AgentRunnerService {
         return completion;
     }
 
-    async start(project, request, onEvent, onComplete, onCompletionError) {
+    async start(project, requestValue, onEvent, onComplete, onCompletionError) {
+        const request = {
+            activityOrigin: { kind: 'project' },
+            activityProject: project,
+            deferActivityCommit: true,
+            ...requestValue,
+        };
         const rootPath = requireRootPath(project);
         await assertGitRoot(rootPath);
         const command = requireCommand(request?.command);
         readOptionalString(request?.actionId, 'actionId');
         const cardPath = readOptionalString(request?.cardPath, 'cardPath');
-        const scopePath = requireString(request?.scopePath ?? cardPath, 'scopePath');
         const prompt = requireString(request?.prompt, 'prompt');
         const agent = requireString(request?.agent ?? 'generic', 'agent');
-        const projectFolder = requireProjectFolder(request?.projectFolder);
+        requireProjectFolder(request?.projectFolder);
         if (cardPath) ensureInsideRoot(rootPath, path.join(rootPath, cardPath));
 
         const id = `agent-turn-${crypto.randomUUID()}`;
         const startedAt = new Date().toISOString();
         const conversation = createConversation(request, `agent-${crypto.randomUUID()}`, startedAt);
         if (this.runningConversationIds.has(conversation.id)) throw new Error(`Agent conversation already has a running turn: ${conversation.id}`);
-        const filePath = request.reference
-            ? existingLogFilePath(rootPath, request.reference)
-            : agentLogFilePath(rootPath, projectFolder, scopePath, conversation.id);
-        const reference = request.reference ?? normalizePath(path.relative(rootPath, filePath));
+        const reference = request.reference ?? conversationReference(request, conversation.id);
         const lastMessage = conversation.messages.at(-1);
         if (request.reuseLastUserMessage) {
             if (lastMessage?.role !== 'user' || lastMessage.content !== prompt) throw new Error('Missing failed-turn user message for agent retry');
@@ -185,8 +182,6 @@ class AgentRunnerService {
             conversation.messages.push(createMessage(`${id}-user`, 'user', prompt, startedAt));
         }
         conversation.events.push(createEvent(`${id}-started`, 'started', command.join(' '), startedAt));
-        await persistConversation(filePath, conversation);
-
         const [executable, ...configuredArguments] = command;
         const argumentsList = [...configuredArguments, prompt];
         const child = crossSpawn(executable, argumentsList, {
@@ -201,10 +196,7 @@ class AgentRunnerService {
             child,
             changedPaths: new Set(),
             conversation,
-            filePath,
             id,
-            intermediatePersistTimer: null,
-            lastIntermediatePersistAt: 0,
             missingSession: false,
             onComplete,
             onCompletionError,
@@ -219,7 +211,6 @@ class AgentRunnerService {
             turnStarted: false,
             termination: null,
             turnUsage: null,
-            writeChain: Promise.resolve(),
         };
         run.parser = createAgentProviderProtocolParser(
             agent,
@@ -295,7 +286,6 @@ class AgentRunnerService {
             run.stderr += content;
             run.conversation.events.push(createEvent(`${runId}-error-${run.conversation.events.length}`, 'error', content, timestamp));
         }
-        void queueThrottledConversationPersist(run);
         emitRunEvent(run, { content, type: channel === 'stdout' ? 'output' : 'error' });
     }
 
@@ -336,7 +326,6 @@ class AgentRunnerService {
             run.conversation.events.push(createEvent(`${runId}-error-${run.conversation.events.length}`, 'error', providerEvent.errorText, timestamp));
             emitRunEvent(run, { content: providerEvent.errorText, type: 'error' });
         }
-        void queueThrottledConversationPersist(run);
     }
 
     handleMalformedOutput(runId, line) {
@@ -346,7 +335,6 @@ class AgentRunnerService {
         const timestamp = new Date().toISOString();
         const message = `Malformed ${run.agent} JSONL event: ${line}`;
         run.conversation.events.push(createEvent(`${runId}-malformed-${run.conversation.events.length}`, 'diagnostic', message, timestamp));
-        void queueThrottledConversationPersist(run);
     }
 
     handleError(runId, error) {
@@ -357,7 +345,6 @@ class AgentRunnerService {
         const message = error instanceof Error ? error.message : 'Agent process failed';
         run.stderr += message;
         run.conversation.events.push(createEvent(`${runId}-error-${run.conversation.events.length}`, 'error', message, timestamp));
-        void queueConversationPersist(run);
         emitRunEvent(run, { content: message, type: 'error' });
     }
 
@@ -369,8 +356,6 @@ class AgentRunnerService {
             if (run.termination) await run.termination;
             run.parser?.finish();
             this.flushStderr(runId);
-            clearIntermediatePersist(run);
-            await run.writeChain;
             const completedAt = new Date().toISOString();
             const succeeded = exitCode === 0
                 && !run.missingSession
@@ -384,7 +369,7 @@ class AgentRunnerService {
             run.conversation.completedAt = completedAt;
             run.conversation.status = run.cancelled ? 'cancelled' : succeeded ? 'completed' : 'failed';
             run.conversation.events.push(createEvent(`${runId}-closed`, 'closed', String(exitCode), completedAt));
-            await queueConversationPersist(run);
+            await persistTerminalConversation(run);
             this.processes.delete(runId);
             this.runningConversationIds.delete(run.conversation.id);
             emitRunEvent(run, { reference: run.reference, status: run.conversation.status, type: 'closed' });

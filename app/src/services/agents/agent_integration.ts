@@ -299,10 +299,7 @@ export class AgentIntegration {
     private linkActionConversation(event: ActionExecutionEvent) {
         if (event.type !== 'action' || event.status === 'running' || !event.context.file || !event.reference) return
 
-        const reference = event.executionWorktree === null || event.executionWorktree === undefined
-            ? event.reference
-            : `worktree:${event.executionWorktree}:${event.reference}`
-        this.linkAgentConversationReference(event.context.file, reference)
+        this.linkAgentConversationReference(event.context.file, event.reference)
     }
 
     private upsertAgentConversation(cardPath: string, conversation: AgentConversation) {

@@ -1,5 +1,5 @@
 import { Box, Typography } from '@mui/material'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState, type Ref } from 'react'
 import DiffViewer from 'react-diff-viewer-continued'
 import type { CommitReference, DiffFile, DiffResult, OpenInEditorRequest } from '../../data/electron_action_bridge'
 import { dialogService } from '../../services/dialog_service'
@@ -12,16 +12,18 @@ type OpenDiffLine = (request: OpenInEditorRequest) => Promise<void>
 interface DiffViewProps {
     commitReference: CommitReference
     generateDiff?: GenerateDiff
+    initialPath?: string
     openDiffLine?: OpenDiffLine
 }
 
 interface DiffFileViewProps {
+    containerRef?: Ref<HTMLDivElement>
     file: DiffFile
     onOpenLine: (request: OpenInEditorRequest) => void
 }
 
 function DiffFileView(props: DiffFileViewProps) {
-    const { file, onOpenLine } = props
+    const { containerRef, file, onOpenLine } = props
 
     const handleLineNumberClick = (lineId: string) => {
         const request = resolveClickedLine(file, lineId)
@@ -29,7 +31,7 @@ function DiffFileView(props: DiffFileViewProps) {
     }
 
     return (
-        <Box sx={{ mt: 1 }}>
+        <Box ref={containerRef} sx={{ mt: 1 }}>
             <Typography sx={{ fontFamily: 'monospace' }} variant="caption">
                 {file.path}
             </Typography>
@@ -50,11 +52,16 @@ function DiffFileView(props: DiffFileViewProps) {
  * through the configured Electron command and opens VS Code when a changed line is clicked.
  */
 export function DiffView(props: DiffViewProps) {
-    const { commitReference } = props
+    const { commitReference, initialPath } = props
     const generateDiff = props.generateDiff ?? defaultGenerateDiff
     const openDiffLine = props.openDiffLine ?? defaultOpenDiffLine
     const [result, setResult] = useState<DiffResult | null>(null)
     const [isUnavailable, setIsUnavailable] = useState(false)
+    const initialFileRef = useRef<HTMLDivElement | null>(null)
+
+    useEffect(() => {
+        if (result && initialPath) initialFileRef.current?.scrollIntoView({ block: 'start' })
+    }, [initialPath, result])
 
     useEffect(() => {
         let isActive = true
@@ -108,7 +115,12 @@ export function DiffView(props: DiffViewProps) {
     return (
         <Box role="region" aria-label="Commit diff">
             {result.files.map((file) => (
-                <DiffFileView file={file} key={file.path} onOpenLine={handleOpenLine} />
+                <DiffFileView
+                    containerRef={file.path === initialPath ? initialFileRef : undefined}
+                    file={file}
+                    key={file.path}
+                    onOpenLine={handleOpenLine}
+                />
             ))}
         </Box>
     )

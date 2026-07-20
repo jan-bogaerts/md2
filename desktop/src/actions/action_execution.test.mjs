@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 const require = createRequire(import.meta.url);
 const { ActionExecution } = require('./action_execution');
 
-const context = { file: 'design/card.md', kind: 'card' };
+const context = { cardInternalId: 'card-1', file: 'design/card.md', kind: 'card' };
 const project = { branch: 'main', rootPath: 'C:/repo' };
 
 function action(id, overrides = {}) {
@@ -28,8 +28,21 @@ function deferred() {
 
 function createExecution(rootAction, overrides = {}) {
     const events = [];
+    const appendActionRunHistory = overrides.localGitService?.appendActionRunHistory ?? vi.fn(async () => []);
     const localGitService = {
-        appendActionRunHistory: vi.fn(async () => []),
+        appendActionActivity: vi.fn(async (_project, _projectFolder, _origin, record) => {
+            const commits = record.commits.map((commit) => ({
+                ...commit,
+                actionId: commit.actionId ?? record.rootActionId,
+                actionName: commit.actionName ?? record.rootActionLabel,
+                repositoryRoot: project.rootPath,
+            }));
+            await appendActionRunHistory(project, { actionId: record.rootActionId, context }, { ...record.history, commits });
+
+            return { relativePath: 'design/activity/card__card-1.json' };
+        }),
+        appendActionRunHistory,
+        commitActivityFile: vi.fn(async () => 'activity-commit'),
         ...overrides.localGitService,
     };
     const commandRunner = overrides.commandRunner ?? vi.fn(async (_project, command, _signal, onOutput) => {
@@ -49,12 +62,14 @@ function createExecution(rootAction, overrides = {}) {
     const agentExecutor = overrides.agentExecutor ?? { execute: vi.fn() };
     const execution = new ActionExecution({
         actionsFolder: 'actions',
+        activityOrigin: { cardInternalId: 'card-1', kind: 'card' },
         context,
         executionId: 'execution-1',
         project,
         projectFolder: 'design',
         rootAction,
         runInput: { extraPrompt: '', ...overrides.runInput },
+        startedAt: '2026-07-20T10:00:00.000Z',
     }, {
         actionWorktreeExecutionService,
         agentExecutor,
@@ -162,11 +177,19 @@ describe('ActionExecution', () => {
 
             return { command, exitCode: 0, stderr: '', stdout: 'done' };
         });
-        const localGitService = { appendActionRunHistory: vi.fn(async () => order.push('history')) };
+        const localGitService = {
+            appendActionActivity: vi.fn(async () => {
+                order.push('history');
+
+                return { relativePath: 'design/activity/card__card-1.json' };
+            }),
+            commitActivityFile: vi.fn(async () => 'activity-commit'),
+        };
         const events = [];
         const execution = new ActionExecution({
-            actionsFolder: 'actions', context, executionId: 'execution-1', project, projectFolder: 'design',
-            rootAction: action('main'), runInput: { extraPrompt: '' },
+            actionsFolder: 'actions', activityOrigin: { cardInternalId: 'card-1', kind: 'card' }, context,
+            executionId: 'execution-1', project, projectFolder: 'design', rootAction: action('main'),
+            runInput: { extraPrompt: '' }, startedAt: '2026-07-20T10:00:00.000Z',
         }, {
             actionWorktreeExecutionService: {execute: async (primaryProject, _action, _context, run) => run(primaryProject)},
             agentExecutor: { execute: vi.fn() },
@@ -332,19 +355,14 @@ describe('ActionExecution', () => {
                 return { ...await run(executionProject), branch: executionProject.branch, repositoryRoot: executionProject.rootPath };
             }),
         };
-        const { execution } = createExecution(rootAction, { actionWorktreeExecutionService, commandRunner, localGitService });
+        const executionValues = createExecution(rootAction, { actionWorktreeExecutionService, commandRunner, localGitService });
+        const { execution, localGitService: service } = executionValues;
 
         await expect(execution.completion).resolves.toMatchObject({ status: 'completed' });
 
-        const writes = localGitService.appendActionRunHistory.mock.calls;
-        const rootWrite = writes.find((call) => call[1].actionId === 'main');
-        expect(writes.filter((call) => call[1].actionId !== 'main').every((call) => !('commits' in call[2]))).toBe(true);
-        expect(rootWrite[2].commits.map(({ actionId, repositoryRoot }) => ({ actionId, repositoryRoot }))).toEqual([
-            { actionId: 'before', repositoryRoot: 'C:/repo/before' },
-            { actionId: 'main', repositoryRoot: 'C:/repo/main' },
-            { actionId: 'matching', repositoryRoot: 'C:/repo/matching' },
-            { actionId: 'after', repositoryRoot: 'C:/repo/after' },
-        ]);
+        const record = service.appendActionActivity.mock.calls[0][3];
+        expect(record.commits.map(({ actionId }) => actionId ?? 'main')).toEqual(['before', 'main', 'matching', 'after']);
+        expect(record.commits.every((commit) => !Object.hasOwn(commit, 'repositoryRoot'))).toBe(true);
     });
 
     it('keeps multiple command summaries once and gives directly started action ownership', async () => {
@@ -374,13 +392,12 @@ describe('ActionExecution', () => {
             commitTrackedPaths: vi.fn(async () => 'abcdef3'),
             resolveCommitMetadata: vi.fn(async () => ({commit: 'abcdef3456789012345678901234567890123456', committedAt: '2026-07-15T10:00:00+00:00', filePaths: ['app/a.ts']})),
         };
-        const { execution } = createExecution(rootAction, { agentExecutor, localGitService });
+        const { execution, localGitService: service } = createExecution(rootAction, { agentExecutor, localGitService });
 
         await execution.completion;
 
-        const writes = localGitService.appendActionRunHistory.mock.calls;
-        expect(writes.find((call) => call[1].actionId === 'tracked')[2]).not.toHaveProperty('commits');
-        expect(writes.find((call) => call[1].actionId === 'main')[2].commits[0].actionId).toBe('tracked');
+        expect(service.appendActionActivity).toHaveBeenCalledOnce();
+        expect(service.appendActionActivity.mock.calls[0][3].commits[0].actionId).toBe('tracked');
     });
 
     it('retains captured commits when a later action fails', async () => {

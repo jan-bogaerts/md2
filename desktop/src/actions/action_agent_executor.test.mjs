@@ -5,7 +5,7 @@ const require = createRequire(import.meta.url);
 const { ActionAgentExecutor } = require('./action_agent_executor');
 
 const action = { agent: 'codex', id: 'main', label: 'Main', model: 'gpt-5.5', prompt: 'Review {{card-file}}', type: 'agent' };
-const cardContext = { file: 'design/card.md', kind: 'card' };
+const cardContext = { cardInternalId: 'card-1', file: 'design/card.md', kind: 'card' };
 const project = { branch: 'main', rootPath: 'C:/repo' };
 
 function conversation(overrides = {}) {
@@ -45,11 +45,13 @@ function createExecutor(overrides = {}) {
 function executionInput(overrides = {}) {
     return {
         action,
+        activityOrigin: { cardInternalId: 'card-1', kind: 'card' },
         context: cardContext,
         onActiveRunChange: vi.fn(),
         onEvent: vi.fn(),
         project,
         projectFolder: 'design',
+        primaryProject: project,
         runInput: { extraPrompt: '' },
         signal: new AbortController().signal,
         ...overrides,
@@ -62,7 +64,7 @@ describe('ActionAgentExecutor', () => {
         const input = executionInput({ runInput: { agent: 'codex', extraPrompt: 'focus', model: 'gpt-5.5', thinkingLevel: 'high' } });
 
         await expect(executor.execute(input)).resolves.toMatchObject({agent: 'codex', exitCode: 0, model: 'gpt-5.5', prompt: 'Review design/card.md\n\nfocus', thinkingLevel: 'high'});
-        expect(agentRunnerService.start).toHaveBeenCalledWith(project, expect.objectContaining({cardPath: cardContext.file, prompt: 'Review design/card.md\n\nfocus', scopePath: cardContext.file}), expect.any(Function), expect.any(Function), expect.any(Function));
+        expect(agentRunnerService.start).toHaveBeenCalledWith(project, expect.objectContaining({activityOrigin: { cardInternalId: 'card-1', kind: 'card' }, cardPath: cardContext.file, prompt: 'Review design/card.md\n\nfocus'}), expect.any(Function), expect.any(Function), expect.any(Function));
         expect(input.onActiveRunChange.mock.calls.map(([runId]) => runId)).toEqual(['active-run', null]);
     });
 
@@ -87,10 +89,10 @@ describe('ActionAgentExecutor', () => {
         const { agentRunnerService, executor } = createExecutor();
         const projectAction = { ...action, prompt: '{{card-prompt}}' };
 
-        await executor.execute(executionInput({action: projectAction, context: { kind: 'project' }, runInput: { extraPrompt: 'review project' }}));
+        await executor.execute(executionInput({action: projectAction, activityOrigin: { kind: 'project' }, context: { kind: 'project' }, runInput: { extraPrompt: 'review project' }}));
 
         const request = agentRunnerService.start.mock.calls[0][1];
-        expect(request).toMatchObject({ prompt: 'review project', scopePath: 'project' });
+        expect(request).toMatchObject({ activityOrigin: { kind: 'project' }, prompt: 'review project' });
         expect(request).not.toHaveProperty('cardPath');
     });
 
@@ -120,13 +122,13 @@ describe('ActionAgentExecutor', () => {
 
         await executor.execute(executionInput({
             action: customAction,
-            runInput: { continueFrom: 'worktree:2:.md2-agent-logs/source.json', extraPrompt: 'next' },
+            runInput: { continueFrom: 'design/activity/card__card-1.json#conversation=conversation-1', extraPrompt: 'next' },
         }));
 
-        expect(localGitService.loadAgentConversation).toHaveBeenCalledWith(project, '.md2-agent-logs/source.json');
+        expect(localGitService.loadAgentConversation).toHaveBeenCalledWith(project, 'design/activity/card__card-1.json#conversation=conversation-1');
         expect(agentRunnerService.start.mock.calls[0][1]).toMatchObject({
             command: ['agent', 'resume', 'session-1'], contextInput: expect.stringContaining('new'),
-            prompt: 'next', providerConversationId: 'session-1', reference: '.md2-agent-logs/source.json',
+            prompt: 'next', providerConversationId: 'session-1', reference: 'design/activity/card__card-1.json#conversation=conversation-1',
         });
     });
 

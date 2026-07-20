@@ -16,7 +16,7 @@ interface ResizablePopoverProps {
     children: ReactNode
     initialSize: PopoverSize
     labelId: string
-    onClose: () => void
+    onClose: (reason?: 'backdropClick' | 'escapeKeyDown') => void
     open: boolean
     paperSx?: SxProps<Theme>
     resizeCorner?: ResizeCorner
@@ -79,9 +79,9 @@ export function ResizablePopover(props: ResizablePopoverProps) {
 
     useEffect(() => () => resizeRef.current?.abort(), [])
 
-    const handleClose = () => {
+    const handleClose = (_event: unknown, reason: 'backdropClick' | 'escapeKeyDown') => {
         resizeRef.current?.abort()
-        onClose()
+        onClose(reason)
     }
 
     const startResize = (event: ReactPointerEvent) => {

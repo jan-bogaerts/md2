@@ -16,6 +16,10 @@ import { cardMarkdownDataSource } from '../editor/card_markdown_data_source'
 import { MarkdownDocumentHistoryStore } from '../editor/markdown_document_history_store'
 import { MarkdownEditorStateStore } from '../editor/markdown_editor_state_store'
 import { CardBodySaveStatus } from './card_body_save_status'
+import { CardCommitMenu } from './card_commit_menu'
+import { CardCommitDiffPanel } from './card_commit_diff_panel'
+import { useCardCommits } from '../hooks/use_card_commits'
+import type { CardCommit } from '../../services/actions/card_commit_history'
 
 const CARD_BODY_POPOVER_WIDTH = 760
 const FULLSCREEN_INSET = 16
@@ -23,6 +27,11 @@ const FULLSCREEN_INSET = 16
 interface TitleEdit {
     path: string | null
     title: string
+}
+
+interface SelectedCardCommit {
+    cardInternalId: string
+    commit: CardCommit
 }
 
 interface CardBodyPopoverProps {
@@ -55,8 +64,13 @@ export function CardBodyPopover(props: CardBodyPopoverProps) {
     const [stateStore] = useState(() => new MarkdownEditorStateStore())
     const [isFullscreen, setIsFullscreen] = useState(false)
     const [popupContentElement, setPopupContentElement] = useState<HTMLDivElement | null>(null)
+    const [selectedCardCommit, setSelectedCardCommit] = useState<SelectedCardCommit | null>(null)
     const [titleEdit, setTitleEdit] = useState<TitleEdit>({ path: null, title: '' })
     const titleDraft = titleEdit.path === card?.path ? titleEdit.title : card?.header.title ?? ''
+    const cardCommits = useCardCommits(visible ? card?.header.internalId ?? null : null)
+    const selectedCommit = visible && selectedCardCommit && selectedCardCommit.cardInternalId === card?.header.internalId
+        ? selectedCardCommit.commit
+        : null
 
     useEffect(() => {
         const documentId = visible ? card?.header.internalId ?? null : null
@@ -70,13 +84,28 @@ export function CardBodyPopover(props: CardBodyPopoverProps) {
         historyStore.clear()
     }, [historyStore])
 
-    const handleClose = () => {
+    const closePopover = () => {
         cardMarkdownDataSource.setActiveDocument('board-card', null)
         historyStore.clear()
         setIsFullscreen(false)
+        setSelectedCardCommit(null)
         setTitleEdit({ path: null, title: '' })
         onClose()
     }
+
+    const handlePopoverClose = (reason?: 'backdropClick' | 'escapeKeyDown') => {
+        if (reason === 'escapeKeyDown' && selectedCommit) {
+            setSelectedCardCommit(null)
+            return
+        }
+        closePopover()
+    }
+
+    const selectCommit = (commit: CardCommit) => {
+        if (!card?.header.internalId) throw new Error('Cannot select card commit without an internal ID')
+        setSelectedCardCommit({ cardInternalId: card.header.internalId, commit })
+    }
+    const clearSelectedCommit = () => setSelectedCardCommit(null)
 
     const openInFileMode = () => {
         if (!card) return
@@ -139,7 +168,7 @@ export function CardBodyPopover(props: CardBodyPopoverProps) {
                 initialSize={{ width: CARD_BODY_POPOVER_WIDTH }}
                 resizeFromAllSides
                 labelId={titleId}
-                onClose={handleClose}
+                onClose={handlePopoverClose}
                 open={visible && !!card && !!anchorElement}
                 paperSx={{
                     backgroundColor: 'background.paper',
@@ -159,7 +188,10 @@ export function CardBodyPopover(props: CardBodyPopoverProps) {
                 resizeLabel="Resize card details popup"
             >
                 {card ? (
-                    <Box ref={setPopupContentElement} sx={{ display: 'flex', flex: 1, flexDirection: 'column', minHeight: 0 }}>
+                    <Box
+                        ref={setPopupContentElement}
+                        sx={{ display: 'flex', flex: 1, flexDirection: 'column', minHeight: 0 }}
+                    >
                         <Box
                             sx={{
                                 alignItems: 'baseline',
@@ -228,27 +260,44 @@ export function CardBodyPopover(props: CardBodyPopoverProps) {
                                 })}
                                 value={titleDraft}
                             />
-                            <Box sx={{ alignItems: 'center', color: 'text.disabled', display: 'flex', flexShrink: 0, fontSize: 11.5, gap: '5px' }}>
+                            <Box sx={{
+                                alignItems: 'center',
+                                color: 'text.disabled',
+                                display: 'flex',
+                                flexShrink: 0,
+                                fontSize: 11.5,
+                                gap: '5px',
+                            }}>
                                 <Box sx={{ backgroundColor: runningExecution ? 'success.main' : 'text.disabled', borderRadius: '50%', height: 7, width: 7 }} />
                                 {statusLabel}
                             </Box>
                             <Box sx={{ backgroundColor: 'divider', flexShrink: 0, height: 20, width: '1px' }} />
                             <CardBodySaveStatus path={card.path} stateStore={stateStore} />
+                            <CardCommitMenu commits={cardCommits.commits} error={cardCommits.error} onSelect={selectCommit} />
                             <Tooltip title="Close">
-                                <IconButton aria-label="Close card details" onClick={handleClose} size="small" sx={{ height: 30, ml: '4px', width: 30 }}>
+                                <IconButton aria-label="Close card details" onClick={closePopover} size="small" sx={{ height: 30, ml: '4px', width: 30 }}>
                                     <Close sx={{ fontSize: 17 }} />
                                 </IconButton>
                             </Tooltip>
                         </Box>
 
-                        <CardBodyEditor
-                            historyStore={historyStore}
-                            isFullscreen={isFullscreen}
-                            isMobile={isMobile}
-                            stateStore={stateStore}
-                            onToggleFullscreen={toggleFullscreen}
-                            overlayContainer={popupContentElement}
-                        />
+                        {selectedCommit ? (
+                            <CardCommitDiffPanel
+                                cardPath={card.path}
+                                commit={selectedCommit}
+                                key={selectedCommit.commit}
+                                onExit={clearSelectedCommit}
+                            />
+                        ) : (
+                            <CardBodyEditor
+                                historyStore={historyStore}
+                                isFullscreen={isFullscreen}
+                                isMobile={isMobile}
+                                stateStore={stateStore}
+                                onToggleFullscreen={toggleFullscreen}
+                                overlayContainer={popupContentElement}
+                            />
+                        )}
 
                         <Box
                             sx={{
@@ -267,7 +316,7 @@ export function CardBodyPopover(props: CardBodyPopoverProps) {
                             <Button onClick={openInFileMode} startIcon={<FileDocumentOutline />} variant="outlined">Open in file mode</Button>
                             <AgentUsageDisplay usage={cardAgentTokenUsage(card)} />
                             <Box sx={{ flex: 1 }} />
-                            <Button onClick={handleClose} variant="contained">Close</Button>
+                            <Button onClick={closePopover} variant="contained">Close</Button>
                         </Box>
                     </Box>
                 ) : null}

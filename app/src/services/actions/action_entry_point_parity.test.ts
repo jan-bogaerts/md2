@@ -58,7 +58,7 @@ describe('action entry-point parity', () => {
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
         const action = actionService.getActions().find((candidate) => candidate.id === 'action-ready')
         if (!action) throw new Error('Action not loaded')
-        const context = { file: cardFile.path, kind: 'card' as const, state: 'ready', title: 'A', type: 'feature' }
+        const context = { cardInternalId: 'a', file: cardFile.path, kind: 'card' as const, state: 'ready', title: 'A', type: 'feature' }
 
         const manualResult = await runElectronAction(action, context)
         service.cards.moveCard(cardFile.path, 'ready', 0)

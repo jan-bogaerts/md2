@@ -10,11 +10,6 @@ interface ActionMarkdownDocumentIdentity {
     namespace: string
 }
 
-interface LastWrittenMarkdown {
-    markdown: string
-    originBinding: MarkdownBindingKind
-}
-
 type ActionMarkdownOwner = EventTarget & Pick<ActionService,
     'commitDraft' | 'getActions' | 'getDeletedDraftActions' | 'getDraft' | 'setActionEditorState' | 'stageDraft'
 >
@@ -46,7 +41,6 @@ export function parseActionMarkdownDocumentId(documentId: string): ActionMarkdow
 
 /** Resolves and writes action prompt/phrase Markdown by full stable document ID. */
 export class ActionMarkdownDataSource extends MarkdownDataSourceBase {
-    private readonly lastWrittenMarkdownByDocumentId = new Map<string, LastWrittenMarkdown>()
     private readonly markdownByDocumentId = new Map<string, string>()
     private documentNamespace: string | null = null
     private service: ActionMarkdownOwner | null = null
@@ -70,8 +64,8 @@ export class ActionMarkdownDataSource extends MarkdownDataSourceBase {
 
     setActiveActionDocument(namespace: string, documentId: string | null) {
         if (this.documentNamespace !== namespace) {
-            this.clearBindings()
-            this.lastWrittenMarkdownByDocumentId.clear()
+            this.clearBindings(true)
+            this.clearWrittenMarkdown()
             this.markdownByDocumentId.clear()
             this.documentNamespace = namespace
         }
@@ -83,29 +77,25 @@ export class ActionMarkdownDataSource extends MarkdownDataSourceBase {
 
     edit(binding: MarkdownBindingKind, documentId: string, markdown: string) {
         ActionMarkdownDataSource.requireActionBinding(binding)
-        const previousWrittenMarkdown = this.lastWrittenMarkdownByDocumentId.get(documentId)
-        this.lastWrittenMarkdownByDocumentId.set(documentId, { markdown, originBinding: binding })
+        const previousWrittenMarkdown = this.recordWrittenMarkdown(binding, documentId, markdown)
         try {
             this.stageDocument(documentId, markdown)
         } catch (error) {
-            if (previousWrittenMarkdown) this.lastWrittenMarkdownByDocumentId.set(documentId, previousWrittenMarkdown)
-            else this.lastWrittenMarkdownByDocumentId.delete(documentId)
+            this.restoreWrittenMarkdown(documentId, previousWrittenMarkdown)
             reportActionWriteError(documentId, error)
         }
     }
 
     commit(binding: MarkdownBindingKind, documentId: string, markdown: string) {
         ActionMarkdownDataSource.requireActionBinding(binding)
-        const previousWrittenMarkdown = this.lastWrittenMarkdownByDocumentId.get(documentId)
-        this.lastWrittenMarkdownByDocumentId.set(documentId, { markdown, originBinding: binding })
+        const previousWrittenMarkdown = this.recordWrittenMarkdown(binding, documentId, markdown)
         try {
             const { action, editorDocumentId, sourcePath } = this.stageDocument(documentId, markdown)
             if (editorDocumentId !== ACTION_PROMPT_TAB) this.updatePhraseEditorState(action, editorDocumentId, sourcePath)
             this.requireService().commitDraft(sourcePath)
             return true
         } catch (error) {
-            if (previousWrittenMarkdown) this.lastWrittenMarkdownByDocumentId.set(documentId, previousWrittenMarkdown)
-            else this.lastWrittenMarkdownByDocumentId.delete(documentId)
+            this.restoreWrittenMarkdown(documentId, previousWrittenMarkdown)
             reportActionWriteError(documentId, error)
             return false
         }
@@ -113,7 +103,7 @@ export class ActionMarkdownDataSource extends MarkdownDataSourceBase {
 
     forgetDocument(documentId: string) {
         this.markdownByDocumentId.delete(documentId)
-        this.lastWrittenMarkdownByDocumentId.delete(documentId)
+        this.forgetWrittenMarkdown(documentId)
     }
 
     private readonly handleChanged = () => {
@@ -128,9 +118,7 @@ export class ActionMarkdownDataSource extends MarkdownDataSourceBase {
             if (markdown === previousMarkdown) continue
 
             this.markdownByDocumentId.set(documentId, markdown)
-            const lastWritten = this.lastWrittenMarkdownByDocumentId.get(documentId)
-            const originBinding = lastWritten?.markdown === markdown ? lastWritten.originBinding : null
-            if (originBinding) this.lastWrittenMarkdownByDocumentId.delete(documentId)
+            const originBinding = this.takeEchoOriginBinding(documentId, markdown)
             this.dispatchMarkdownReplaced({ documentId, originBinding })
         }
     }

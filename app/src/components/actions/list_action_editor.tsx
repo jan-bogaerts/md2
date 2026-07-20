@@ -10,6 +10,7 @@ import {
 import { MarkdownDocumentHistoryStore } from '../editor/markdown_document_history_store'
 import { MarkdownEditor } from '../editor/markdown_editor'
 import { MarkdownEditorStateStore } from '../editor/markdown_editor_state_store'
+import { ACTION_PROMPT_TAB } from './action_phrase_editor_state'
 import { ActionEditor, type ActionMarkdownPresentation } from './action_editor'
 
 interface ListActionEditorProps {
@@ -43,7 +44,7 @@ export const ListActionEditor = memo(function ListActionEditor(props: ListAction
             for (const { identity } of removedAction.editorState?.phrases ?? []) {
                 discardMarkdownDocument(actionMarkdownDocumentId(markdownDocumentNamespace, removedAction.id, identity))
             }
-            discardMarkdownDocument(actionMarkdownDocumentId(markdownDocumentNamespace, removedAction.id, 'prompt'))
+            discardMarkdownDocument(actionMarkdownDocumentId(markdownDocumentNamespace, removedAction.id, ACTION_PROMPT_TAB))
             const activeDocumentId = actionMarkdownDataSource.getActiveDocumentId('list-action')
             if (activeDocumentId && parseActionMarkdownDocumentId(activeDocumentId).actionId === removedAction.id) {
                 actionMarkdownDataSource.setActiveActionDocument(markdownDocumentNamespace, null)

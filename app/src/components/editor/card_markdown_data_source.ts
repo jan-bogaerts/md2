@@ -3,11 +3,6 @@ import type { DataService } from '../../services/data/data_service'
 import { dialogService } from '../../services/dialog_service'
 import { MarkdownDataSourceBase, type MarkdownBindingKind } from './markdown_data_source'
 
-interface LastWrittenMarkdown {
-    markdown: string
-    originBinding: MarkdownBindingKind
-}
-
 function requireInternalId(card: ProjectCard) {
     if (!card.header.internalId) throw new Error(`Card Markdown requires an internal ID: ${card.path}`)
 
@@ -33,7 +28,7 @@ function loadedProjectKey(service: CardMarkdownOwner) {
 /** Resolves and writes card bodies by stable card internal ID. */
 export class CardMarkdownDataSource extends MarkdownDataSourceBase {
     private readonly markdownByDocumentId = new Map<string, string>()
-    private readonly lastWrittenMarkdownByDocumentId = new Map<string, LastWrittenMarkdown>()
+    private readonly reportedEditFailureDocumentIds = new Set<string>()
     private loadedProjectKey: string | null = null
     private service: CardMarkdownOwner | null = null
 
@@ -54,24 +49,26 @@ export class CardMarkdownDataSource extends MarkdownDataSourceBase {
         CardMarkdownDataSource.requireCardBinding(binding)
         try {
             this.requireCard(documentId)
-            this.lastWrittenMarkdownByDocumentId.set(documentId, { markdown, originBinding: binding })
+            this.reportedEditFailureDocumentIds.delete(documentId)
+            this.recordWrittenMarkdown(binding, documentId, markdown)
         } catch (error) {
+            if (this.reportedEditFailureDocumentIds.has(documentId)) return
+
+            this.reportedEditFailureDocumentIds.add(documentId)
             dialogService.error(error, { fallbackMessage: `Body update failed: ${documentId}` })
         }
     }
 
     commit(binding: MarkdownBindingKind, documentId: string, markdown: string) {
         CardMarkdownDataSource.requireCardBinding(binding)
-        const previousWrittenMarkdown = this.lastWrittenMarkdownByDocumentId.get(documentId)
-        this.lastWrittenMarkdownByDocumentId.set(documentId, { markdown, originBinding: binding })
+        const previousWrittenMarkdown = this.recordWrittenMarkdown(binding, documentId, markdown)
         const card = listCards(this.requireService()).find((candidate) => candidate.header.internalId === documentId)
         try {
             if (!card) throw new Error(`Unknown card Markdown document: ${documentId}`)
             this.requireService().cards.updateCardBody(card.path, markdown)
             return true
         } catch (error) {
-            if (previousWrittenMarkdown) this.lastWrittenMarkdownByDocumentId.set(documentId, previousWrittenMarkdown)
-            else this.lastWrittenMarkdownByDocumentId.delete(documentId)
+            this.restoreWrittenMarkdown(documentId, previousWrittenMarkdown)
             dialogService.error(error, { fallbackMessage: `Body update failed: ${card?.path ?? documentId}` })
             return false
         }
@@ -82,8 +79,9 @@ export class CardMarkdownDataSource extends MarkdownDataSourceBase {
         if (nextProjectKey !== this.loadedProjectKey) {
             this.loadedProjectKey = nextProjectKey
             this.markdownByDocumentId.clear()
-            this.lastWrittenMarkdownByDocumentId.clear()
-            this.clearBindings()
+            this.reportedEditFailureDocumentIds.clear()
+            this.clearWrittenMarkdown()
+            this.clearBindings(true)
         }
         const cards = listCards(this.requireService())
         const nextMarkdownByDocumentId = new Map<string, string>()
@@ -93,9 +91,7 @@ export class CardMarkdownDataSource extends MarkdownDataSourceBase {
             const previousMarkdown = this.markdownByDocumentId.get(documentId)
             if (previousMarkdown === undefined || previousMarkdown === card.content) continue
 
-            const lastWritten = this.lastWrittenMarkdownByDocumentId.get(documentId)
-            const originBinding = lastWritten?.markdown === card.content ? lastWritten.originBinding : null
-            if (originBinding) this.lastWrittenMarkdownByDocumentId.delete(documentId)
+            const originBinding = this.takeEchoOriginBinding(documentId, card.content)
             this.dispatchMarkdownReplaced({ documentId, originBinding })
         }
         this.markdownByDocumentId.clear()

@@ -1,9 +1,9 @@
 import { Box } from '@mui/material'
 import {
-    MDXEditor, codeBlockPlugin, codeMirrorPlugin,
+    MDXEditor, codeBlockPlugin, codeMirrorPlugin, diffSourcePlugin,
     headingsPlugin, imagePlugin, linkDialogPlugin, linkPlugin, listsPlugin, markdownShortcutPlugin, quotePlugin,
     tablePlugin, thematicBreakPlugin, toolbarPlugin,
-    type MDXEditorMethods,
+    type MDXEditorMethods, type ViewMode,
 } from '@mdxeditor/editor'
 import '@mdxeditor/editor/style.css'
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState, type FocusEvent, type ReactNode } from 'react'
@@ -34,6 +34,7 @@ export interface MarkdownEditorHandle {
 }
 
 interface MarkdownEditorPresentationProps {
+    diffMarkdown?: string
     flushOnBlur?: boolean
     /** Omit format toolbar entirely. */
     hideToolbar?: boolean
@@ -42,6 +43,7 @@ interface MarkdownEditorPresentationProps {
     readOnly?: boolean
     stickyToolbar?: boolean
     toolbarContents?: () => ReactNode
+    viewMode?: ViewMode
 }
 
 interface MarkdownEditorDataSourceProps extends MarkdownEditorPresentationProps {
@@ -84,12 +86,14 @@ function initialDocument(props: MarkdownEditorProps): ActiveDocument {
 export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(function MarkdownEditor(props, ref) {
     const {
         flushOnBlur = false,
+        diffMarkdown,
         hideToolbar = false,
         overlayContainer,
         placeholders = EMPTY_PLACEHOLDERS,
         readOnly = false,
         stickyToolbar = false,
         toolbarContents: customToolbarContents,
+        viewMode,
     } = props
     const dataSource = props.dataSource
     const binding = props.binding
@@ -168,6 +172,9 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
             if (detail.binding !== binding) return
 
             pendingDocumentChangeRef.current = detail
+            // A discarded switch means the outgoing document's domain data is gone
+            // (project switch): drop the buffer instead of committing it.
+            if (detail.discard) lastEmittedMarkdownRef.current = latestMarkdownRef.current
             if (!flush()) return
 
             const pendingDetail = pendingDocumentChangeRef.current
@@ -287,6 +294,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         codeBlockPlugin({ defaultCodeBlockLanguage: DEFAULT_CODE_LANGUAGE }),
         codeMirrorPlugin({ codeBlockLanguages: CODE_BLOCK_LANGUAGES }),
         markdownShortcutPlugin(),
+        ...(viewMode ? [diffSourcePlugin({ diffMarkdown: diffMarkdown ?? '', viewMode })] : []),
         ...(hideToolbar ? [] : [toolbarPlugin({ toolbarContents })]),
         markdownPlaceholderPlugin({ overlayContainer, placeholders }),
         ...(historyStore ? [markdownDocumentHistoryPlugin({
@@ -307,7 +315,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
                 onChange={handleEditorChange}
                 overlayContainer={overlayContainer}
                 plugins={plugins}
-                readOnly={readOnly || !activeDocument.documentId && !!dataSource}
+                readOnly={readOnly || (!activeDocument.documentId && !!dataSource)}
                 ref={editorRef}
                 suppressSharedHistory={!!historyStore}
             />

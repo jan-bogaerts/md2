@@ -7,7 +7,8 @@
 } from '../../data/data_types'
 import { register } from '.././service_injector'
 import { parseAgentConversation } from '../../../../shared/agent_conversations.mjs'
-import { projectLogFolder } from '../../../../shared/log_paths.mjs'
+import { activityFilePath, conversationActivityReference } from '../../../../shared/log_paths.mjs'
+import { parseActivityFile } from '../../../../shared/card_activity.mjs'
 
 type Listener = () => void
 
@@ -18,16 +19,13 @@ export function parseAgentConversationLog(content: string, referencePath: string
 /** Discover persisted agent-log references through any storage implementation. */
 export async function listAgentConversationReferences(storage: StorageService, project: ProjectReference, projectFolder: string) {
     const paths = await storage.listRepositoryFiles(project)
-    const logFolderPrefix = `${projectLogFolder(projectFolder)}/`
+    const projectActivityPath = activityFilePath(projectFolder, { kind: 'project' })
+    if (!paths.includes(projectActivityPath)) return []
+    if (!storage.loadFile) throw new Error('Project activity loading requires file reads')
+    const file = await storage.loadFile(project, projectActivityPath)
+    const activity = parseActivityFile(file.content, { kind: 'project' })
 
-    return paths.filter((path) => {
-        const normalizedPath = path.replace(/\\/gu, '/')
-        const fileName = normalizedPath.slice(logFolderPrefix.length)
-
-        return normalizedPath.startsWith(logFolderPrefix)
-            && fileName.startsWith('conversation__')
-            && fileName.toLowerCase().endsWith('.json')
-    })
+    return activity.conversations.map(({ id }) => conversationActivityReference(projectActivityPath, id))
 }
 
 export async function loadAgentConversation(storage: StorageService, project: ProjectReference, path: string) {

@@ -2,7 +2,6 @@ const { ActionCancellationError } = require('./action_cancellation_error');
 const { executeCommandAction } = require('./action_command_executor');
 const { ActionPhaseError } = require('./action_phase_error');
 const {
-    appendHistory,
     captureCommitReferences,
     combineOutput,
     createAgentHistoryEntry,
@@ -16,12 +15,14 @@ function errorMessage(error, fallback) {
 class ActionExecution {
     constructor(snapshot, dependencies) {
         this.actionsFolder = snapshot.actionsFolder;
+        this.activityOrigin = snapshot.activityOrigin;
         this.context = snapshot.context;
         this.executionId = snapshot.executionId;
         this.project = snapshot.project;
         this.projectFolder = snapshot.projectFolder;
         this.rootAction = snapshot.rootAction;
         this.runInput = snapshot.runInput;
+        this.startedAt = snapshot.startedAt;
         this.actionWorktreeExecutionService = dependencies.actionWorktreeExecutionService;
         this.agentExecutor = dependencies.agentExecutor;
         this.agentRunnerService = dependencies.agentRunnerService;
@@ -31,9 +32,10 @@ class ActionExecution {
         this.activeAgentRunId = null;
         this.commitReferenceKeys = new Set();
         this.commitReferences = [];
+        this.conversationIds = [];
         this.completion = null;
         this.controller = new AbortController();
-        this.rootHistory = null;
+        this.rootHistoryEntry = null;
     }
 
     start(finalize) {
@@ -48,11 +50,6 @@ class ActionExecution {
 
     async run() {
         this.publish(this.rootAction, 'main', 'running', { type: 'execution' });
-        this.rootHistory = {
-            entry: null,
-            input: { action: this.rootAction, context: this.context, project: this.project, projectFolder: this.projectFolder },
-        };
-
         let status = 'completed';
         let failure = null;
         try {
@@ -64,7 +61,7 @@ class ActionExecution {
         }
 
         try {
-            await this.persistRootHistory();
+            await this.persistRootActivity(status, failure);
         } catch (error) {
             failure = error;
             status = 'failed';
@@ -174,8 +171,10 @@ class ActionExecution {
                 : createCommandHistoryEntry(historyInput);
             const commitReferences = await captureCommitReferences(this.localGitService, historyInput);
             this.collectCommitReferences(commitReferences);
-            if (isRoot) this.rootHistory = { entry, input: historyInput };
-            else await appendHistory(this.localGitService, historyInput, entry);
+            if (isRoot) this.rootHistoryEntry = entry;
+            if (action.type === 'agent' && typeof committedResult.runId === 'string') {
+                this.conversationIds.push(committedResult.runId);
+            }
 
             return committedResult;
         });
@@ -190,17 +189,42 @@ class ActionExecution {
         }
     }
 
-    persistRootHistory() {
-        if (!this.rootHistory) return Promise.resolve();
-        // The chain can fail or be cancelled before the root action itself produced an entry;
-        // commits collected from earlier linked actions must still be retained on the root entry.
-        if (!this.rootHistory.entry && this.commitReferences.length === 0) return Promise.resolve();
-        const { input } = this.rootHistory;
-        const entry = this.rootHistory.entry
-            ?? { completedAt: new Date().toISOString(), output: '', prompt: '', status: 'failed' };
-        const rootEntry = this.commitReferences.length > 0 ? { ...entry, commits: this.commitReferences } : entry;
+    async persistRootActivity(status, failure) {
+        const completedAt = new Date().toISOString();
+        const commits = this.commitReferences.map((reference) => {
+            const persisted = Object.fromEntries(Object.entries(reference).filter(([fieldName]) => fieldName !== 'repositoryRoot'));
+            if (reference.actionId === this.rootAction.id) {
+                delete persisted.actionId;
+                delete persisted.actionName;
+            }
 
-        return appendHistory(this.localGitService, input, rootEntry);
+            return persisted;
+        });
+        const history = this.rootHistoryEntry
+            ?? { completedAt, output: failure ? errorMessage(failure, 'Action failed') : '', prompt: '', status: 'failed' };
+        const record = {
+            commits,
+            completedAt,
+            conversationIds: [...new Set(this.conversationIds)],
+            executionId: this.executionId,
+            history,
+            origin: this.activityOrigin,
+            rootActionId: this.rootAction.id,
+            rootActionLabel: this.rootAction.label,
+            startedAt: this.startedAt,
+            status,
+        };
+        const { relativePath } = await this.localGitService.appendActionActivity(
+            this.project,
+            this.projectFolder,
+            this.activityOrigin,
+            record,
+        );
+        await this.localGitService.commitActivityFile(
+            this.project,
+            relativePath,
+            `Record ${this.rootAction.label} activity`,
+        );
     }
 
     async commitTrackedAgentChanges(project, action, result) {
@@ -255,11 +279,13 @@ class ActionExecution {
 
         return this.agentExecutor.execute({
             action,
+            activityOrigin: this.activityOrigin,
             context: this.context,
             onActiveRunChange,
             onEvent,
             project,
             projectFolder: this.projectFolder,
+            primaryProject: this.project,
             runInput,
             signal: this.controller.signal,
         });

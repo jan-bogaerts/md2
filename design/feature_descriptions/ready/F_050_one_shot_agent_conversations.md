@@ -27,12 +27,12 @@ The configured Codex and Claude commands are adapted to structured one-shot mode
 - Run Codex with `exec --json` and Claude with `--print --verbose --output-format stream-json` so output is streamed as structured events.
 - Pass the current user message as the prompt argument. The initial prompt and every follow-up must support multiline content without shell interpolation or command-line corruption.
 - Use normal subprocess stdin/stdout/stderr pipes rather than a PTY. One-shot structured modes do not require terminal emulation.
-- Stream structured events into the existing live execution UI and persist them incrementally. Disable additional conversation input while a turn is running; do not send follow-up text to the active process.
+- Stream structured events into the existing live execution UI from memory. Persist the conversation once at terminal completion. Disable additional conversation input while a turn is running; do not send follow-up text to the active process.
 - Cancellation terminates only the current turn. A failed or cancelled turn does not advance the provider continuation cursor.
 
 ### Persisted conversation
 
-- The MD² conversation log is the source of truth and always stores the full ordered transcript. Do not truncate stored messages.
+- The card or project activity file in the primary checkout is the persisted source of truth and always stores the full ordered transcript. Do not truncate stored messages.
 - Store user and assistant messages separately from provider event noise. Keep structured tool, command, file-change, usage, failure, and lifecycle events in the event list when needed for the execution UI and audit history.
 - Record which agent produced each assistant turn.
 - Replace the single `nativeSessionId` concept with provider-session records. Each record contains at least:
@@ -79,12 +79,12 @@ The configured Codex and Claude commands are adapted to structured one-shot mode
 
 ## Data flow
 
-1. Append the user message to the MD² transcript and persist the running turn.
+1. Append the user message to the in-memory MD² transcript.
 2. Resolve the selected profile and its provider-session cursor.
 3. Choose new-session, native-resume, switched-provider, or missing-id fallback invocation.
 4. Start one structured subprocess and stream parsed events.
 5. Append assistant output and terminal state to the transcript.
-6. Persist the provider id/cursor and completed transcript atomically.
+6. Persist the provider id/cursor and terminal transcript atomically to the owning activity file before publishing `closed`.
 7. Exit the process. The next user message starts another process.
 
 ## Edge cases and failure modes
@@ -99,7 +99,7 @@ The configured Codex and Claude commands are adapted to structured one-shot mode
 
 ## Compatibility and documentation impact
 
-- Existing logs with `nativeSessionId` or no id continue through the full-history path until they acquire provider-session records.
+- No legacy path-derived conversation-log migration or fallback is provided; continuations read terminal conversations from activity files.
 - This feature replaces live stdin semantics in F-010d, F-012, F-023, F-047, and the running-actions architecture note. Those documents must be updated when this feature moves to implementation; do not keep both live-stdin and process-per-turn contracts.
 - B-025's truncated transcript fallback is superseded by full normalized history and structured provider ids.
 - Action chains and scheduled actions still await one agent turn and consume its final result. They do not gain follow-up UI.

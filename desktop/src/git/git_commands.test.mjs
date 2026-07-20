@@ -12,6 +12,7 @@ const {
     commitTrackedPaths,
     ensureInsideRoot,
     parseShortStat,
+    readFileAtCommit,
     requireRootPath,
     resolveCommitMetadata,
     resolveLocalProject,
@@ -52,6 +53,30 @@ describe('git-commands', () => {
     it('rejects paths that escape the root', () => {
         expect(() => ensureInsideRoot('C:\\repo', 'C:\\outside\\file.md')).toThrow('Local Git path escapes project root');
     });
+
+    it('reads root-commit files with an empty parent and preserves file content', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-git-historical-'));
+        try {
+            await initializeRepository(rootPath);
+            await writeFile(join(rootPath, 'card.md'), '---\ntitle: Card\n---\n\nBody\n');
+            await runGit(rootPath, ['add', 'card.md']);
+            await runGit(rootPath, ['commit', '-m', 'Root card']);
+            const { stdout } = await execFileAsync('git', ['rev-parse', 'HEAD'], { cwd: rootPath });
+            const commit = stdout.trim();
+            const project = { branch: 'main', rootPath };
+
+            await expect(readFileAtCommit(project, { commit, parent: true, path: 'card.md' }))
+                .resolves.toEqual({ content: '', exists: false });
+            await expect(readFileAtCommit(project, { commit, parent: false, path: 'card.md' }))
+                .resolves.toEqual({ content: '---\ntitle: Card\n---\n\nBody\n', exists: true });
+            await expect(readFileAtCommit(project, { commit, parent: false, path: 'missing.md' }))
+                .resolves.toEqual({ content: '', exists: false });
+            await expect(readFileAtCommit(project, { commit, parent: false, path: '../outside.md' }))
+                .rejects.toThrow('escapes project root');
+        } finally {
+            await rm(rootPath, { force: true, recursive: true });
+        }
+    }, 15000);
 
     it('runs commands from the project root and captures output', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-git-commands-'));

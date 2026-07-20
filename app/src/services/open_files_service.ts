@@ -1,6 +1,5 @@
 import type { ActionDefinition } from '../data/action_types'
 import type { ProjectCard, ProjectReference, ProjectSnapshot } from '../data/data_types'
-import type { DataServiceState } from './data/data_service'
 import { register } from './service_injector'
 
 export type OpenDocumentObject = ProjectCard | ActionDefinition
@@ -179,15 +178,7 @@ export class OpenFilesService extends EventTarget {
     }
 
     private readonly handleActionChanged = () => this.reconcile()
-    private readonly handleDataChanged = (event: Event) => {
-        const { project } = (event as CustomEvent<DataServiceState>).detail
-        const nextProjectKey = projectKey(project)
-        if (nextProjectKey !== this.loadedProjectKey) {
-            this.loadedProjectKey = nextProjectKey
-            this.clear()
-        }
-        this.reconcile()
-    }
+    private readonly handleDataChanged = () => this.reconcile()
 
     private reconcile() {
         if (!this.actionService || !this.dataService) throw new Error('Open files service is not initialized')

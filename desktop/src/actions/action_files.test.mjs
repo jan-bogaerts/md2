@@ -1,174 +1,104 @@
-import { mkdtemp, mkdir, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createRequire } from 'node:module';
 import { describe, expect, it } from 'vitest';
 
 const require = createRequire(import.meta.url);
-const {
-    appendActionRunHistory,
-    loadActionFiles,
-    loadActionRunHistory,
-    loadAgentConversation,
-} = require('./action_files');
+const { appendActionActivity } = require('./activity_files');
+const { loadActionFiles, loadActionRunHistory, loadAgentConversation } = require('./action_files');
+const { conversationActivityReference } = require('../../../shared/log_paths.mjs');
+
+const origin = { cardInternalId: 'card-1', kind: 'card' };
+const context = { cardInternalId: 'card-1', file: 'design/F-010.md', kind: 'card', type: 'feature' };
+
+function activityRecord(executionId, output = 'done') {
+    return {
+        commits: [], completedAt: '2026-07-20T10:01:00.000Z', conversationIds: [], executionId,
+        history: { completedAt: '2026-07-20T10:01:00.000Z', output, prompt: 'run', status: 'completed' },
+        origin, rootActionId: 'implement', rootActionLabel: 'Implement', startedAt: '2026-07-20T10:00:00.000Z',
+        status: 'completed',
+    };
+}
+
+async function createRoot(prefix) {
+    const rootPath = await mkdtemp(join(tmpdir(), prefix));
+    await mkdir(join(rootPath, '.git'));
+
+    return rootPath;
+}
 
 describe('action-files', () => {
-    it('loads json action files from the actions folder', async () => {
-        const rootPath = await mkdtemp(join(tmpdir(), 'md2-action-files-'));
-
+    it('loads JSON action files while skipping schedules and non-JSON files', async () => {
+        const rootPath = await createRoot('md2-action-files-');
         try {
-            await mkdir(join(rootPath, '.git'));
             await mkdir(join(rootPath, 'actions'));
             await writeFile(join(rootPath, 'actions', 'implement.json'), '{"name":"implement"}');
             await writeFile(join(rootPath, 'actions', '.md2-schedules.json'), '{"schedules":[]}');
             await writeFile(join(rootPath, 'actions', 'notes.md'), '# skip me');
 
-            const files = await loadActionFiles({ branch: 'main', id: 'local', rootPath }, 'actions');
-
-            expect(files).toEqual([{ content: '{"name":"implement"}', path: 'actions/implement.json' }]);
+            await expect(loadActionFiles({ branch: 'main', rootPath }, 'actions'))
+                .resolves.toEqual([{ content: '{"name":"implement"}', path: 'actions/implement.json' }]);
         } finally {
             await rm(rootPath, { force: true, recursive: true });
         }
     });
 
-    it('persists and loads action run history for the same action and context', async () => {
-        const rootPath = await mkdtemp(join(tmpdir(), 'md2-action-files-'));
-        const request = {
-            actionId: 'implement',
-            context: { file: 'design/F-010.md', kind: 'card', type: 'feature' },
-            projectFolder: 'design',
-        };
-        const entry = { completedAt: '2026-07-05T10:00:00.000Z', output: 'done', prompt: 'run', status: 'completed' };
-
+    it('loads root action history from stable card activity', async () => {
+        const rootPath = await createRoot('md2-action-history-');
+        const project = { branch: 'main', rootPath };
         try {
-            await mkdir(join(rootPath, '.git'));
-            await appendActionRunHistory({ branch: 'main', id: 'local', rootPath }, request, entry);
+            await appendActionActivity(project, 'design', origin, activityRecord('execution-1'));
 
-            await expect(loadActionRunHistory({ branch: 'main', id: 'local', rootPath }, request)).resolves.toEqual([entry]);
-            await expect(stat(join(rootPath, 'design', 'logs', 'history__card__f_010__implement.json'))).resolves.toBeDefined();
+            await expect(loadActionRunHistory(project, { actionId: 'implement', context, projectFolder: 'design' }))
+                .resolves.toEqual([{ completedAt: '2026-07-20T10:01:00.000Z', output: 'done', prompt: 'run', status: 'completed' }]);
         } finally {
             await rm(rootPath, { force: true, recursive: true });
         }
     });
 
-    it('drops an unusable commit without discarding its history entry', async () => {
-        const rootPath = await mkdtemp(join(tmpdir(), 'md2-action-history-validation-'));
-        const project = { branch: 'main', id: 'local', rootPath };
-        const request = {
-            actionId: 'implement',
-            context: { file: 'design/F-010.md', kind: 'card', type: 'feature' },
-            projectFolder: 'design',
-        };
-
+    it('serializes concurrent card activity appends without dropping records', async () => {
+        const rootPath = await createRoot('md2-action-concurrency-');
+        const project = { branch: 'main', rootPath };
         try {
-            await mkdir(join(rootPath, '.git'));
-            await appendActionRunHistory(project, request, {
-                commits: [{ deletions: 0, filesChanged: -1, insertions: 0 }],
-                completedAt: 'now', output: '', prompt: '', status: 'completed',
-            });
+            await Promise.all(Array.from({ length: 20 }, (_value, index) => (
+                appendActionActivity(project, 'design', origin, activityRecord(`execution-${index}`, `done-${index}`))
+            )));
+            const content = await readFile(join(rootPath, 'design', 'activity', 'card__card-1.json'), 'utf8');
 
-            await expect(loadActionRunHistory(project, request)).resolves.toEqual([
-                { completedAt: 'now', output: '', prompt: '', status: 'completed' },
-            ]);
+            expect(JSON.parse(content).records).toHaveLength(20);
         } finally {
             await rm(rootPath, { force: true, recursive: true });
         }
     });
 
-    it('preserves every concurrent append to one action history file', async () => {
-        const rootPath = await mkdtemp(join(tmpdir(), 'md2-action-files-'));
-        const project = { branch: 'main', id: 'local', rootPath };
-        const request = {
-            actionId: 'implement',
-            context: { file: 'design/F-010.md', kind: 'card', type: 'feature' },
-            projectFolder: 'design',
-        };
-        const entries = Array.from({ length: 20 }, (_value, index) => ({
-            completedAt: `2026-07-05T10:00:${String(index).padStart(2, '0')}.000Z`,
-            output: `done-${index}`,
-            prompt: 'run',
-            status: 'completed',
-        }));
-
+    it('reports malformed activity instead of returning empty history', async () => {
+        const rootPath = await createRoot('md2-action-malformed-');
+        const activityFolder = join(rootPath, 'design', 'activity');
         try {
-            await mkdir(join(rootPath, '.git'));
-            await Promise.all(entries.map((entry) => appendActionRunHistory(project, request, entry)));
+            await mkdir(activityFolder, { recursive: true });
+            await writeFile(join(activityFolder, 'card__card-1.json'), '{"version":1,"origin":{"kind":"card","cardInternalId":"wrong"},"records":[],"conversations":[]}');
 
-            await expect(loadActionRunHistory(project, request)).resolves.toEqual(entries);
+            await expect(loadActionRunHistory({ branch: 'main', rootPath }, { actionId: 'implement', context, projectFolder: 'design' }))
+                .rejects.toThrow('origin does not match');
         } finally {
             await rm(rootPath, { force: true, recursive: true });
         }
     });
 
-    it('discards malformed conversation entries at the Electron boundary', async () => {
-        const rootPath = await mkdtemp(join(tmpdir(), 'md2-action-files-'));
-
+    it('loads a terminal conversation embedded in activity by compound reference', async () => {
+        const rootPath = await createRoot('md2-action-conversation-');
+        const activityFolder = join(rootPath, 'design', 'activity');
+        const reference = conversationActivityReference('design/activity/card__card-1.json', 'conversation-1');
         try {
-            await mkdir(join(rootPath, '.git'));
-            await writeFile(join(rootPath, 'conversation.json'), JSON.stringify({
-                completedAt: null,
-                events: [],
-                id: 'conversation-1',
-                messages: [{ content: 'missing identity', role: 'user', timestamp: 'now' }],
-                startedAt: 'now',
-                status: 'running',
+            await mkdir(activityFolder, { recursive: true });
+            await writeFile(join(activityFolder, 'card__card-1.json'), JSON.stringify({
+                conversations: [{ completedAt: 'done', events: [], id: 'conversation-1', messages: [], providerSessions: [], startedAt: 'start', status: 'completed', title: 'Run' }],
+                origin, records: [], version: 1,
             }));
 
-            const conversation = await loadAgentConversation({ branch: 'main', id: 'local', rootPath }, 'conversation.json');
-
-            expect(conversation.messages).toEqual([]);
-        } finally {
-            await rm(rootPath, { force: true, recursive: true });
-        }
-    });
-
-    it('preserves missing-title metadata at the Electron boundary', async () => {
-        const rootPath = await mkdtemp(join(tmpdir(), 'md2-action-files-'));
-
-        try {
-            await mkdir(join(rootPath, '.git'));
-            await writeFile(join(rootPath, 'conversation.json'), JSON.stringify({
-                completedAt: null,
-                events: [],
-                id: 'conversation-1',
-                messages: [],
-                startedAt: 'now',
-                status: 'completed',
-            }));
-
-            const conversation = await loadAgentConversation({ branch: 'main', id: 'local', rootPath }, 'conversation.json');
-
-            expect(conversation).toMatchObject({ hasExplicitTitle: false, title: 'conversation-1' });
-        } finally {
-            await rm(rootPath, { force: true, recursive: true });
-        }
-    });
-
-    it('loads normalized usage at the Electron boundary', async () => {
-        const rootPath = await mkdtemp(join(tmpdir(), 'md2-action-files-'));
-
-        try {
-            await mkdir(join(rootPath, '.git'));
-            await writeFile(join(rootPath, 'conversation.json'), JSON.stringify({
-                completedAt: null,
-                events: [],
-                id: 'conversation-1',
-                messages: [],
-                startedAt: 'now',
-                status: 'completed',
-                usage: { cachedInputTokens: 4, costUsd: 0.02, inputTokens: 10, outputTokens: 3, reasoningTokens: 1, totalTokens: 18 },
-            }));
-
-            const conversation = await loadAgentConversation({ branch: 'main', id: 'local', rootPath }, 'conversation.json');
-
-            expect(conversation.usage).toEqual({
-                cachedInputTokens: 4,
-                costUsd: 0.02,
-                inputTokens: 10,
-                outputTokens: 3,
-                reasoningTokens: 1,
-                totalTokens: 18,
-            });
+            await expect(loadAgentConversation({ branch: 'main', rootPath }, reference))
+                .resolves.toMatchObject({ id: 'conversation-1', path: reference, status: 'completed' });
         } finally {
             await rm(rootPath, { force: true, recursive: true });
         }

@@ -3,14 +3,12 @@ import { describe, expect, it, vi } from 'vitest';
 
 const require = createRequire(import.meta.url);
 const {
-    appendHistory,
     captureCommitReferences,
     createAgentHistoryEntry,
     createCommandHistoryEntry,
 } = require('./action_run_history');
 
 const action = { id: 'main', label: 'Implement', type: 'command' };
-const cardContext = { file: 'design/card.md', kind: 'card' };
 const completedAt = '2026-07-15T10:00:00.000Z';
 const project = { branch: 'worktree', rootPath: 'C:/worktree' };
 
@@ -83,17 +81,5 @@ describe('captureCommitReferences', () => {
         const result = { stderr: '', stdout: '[topic abcdef1] commit' };
 
         await expect(captureCommitReferences(localGitService, { action, project, result })).rejects.toThrow('unknown commit');
-    });
-});
-
-describe('history persistence', () => {
-    it('persists supplied entry for action and context', async () => {
-        const localGitService = { appendActionRunHistory: vi.fn(async () => []) };
-        const input = { action, context: cardContext, project, projectFolder: 'design' };
-        const entry = { completedAt, output: 'done', prompt: '', status: 'completed' };
-
-        await appendHistory(localGitService, input, entry);
-
-        expect(localGitService.appendActionRunHistory).toHaveBeenCalledWith(project, {actionId: 'main', context: cardContext, projectFolder: 'design'}, entry);
     });
 });

@@ -35,7 +35,7 @@ The second setting currently belongs to the agent action definition, not the car
 
 - Define the **root action** as the action named by the execution start request. For a card button this is the action the user selected in the UI. Scheduled and state-triggered executions use their start-request action as root too.
 - Collect commit references in execution order for the whole root execution, across the root action and all recursively invoked `onBefore`, matching `on`, and `onAfter` actions.
-- Persist collected references as `commits: CommitReference[]` on the root action's existing history entry for the same card context. One root invocation remains one history entry.
+- Persist collected references as `commits: CommitReference[]` on one root activity record in the stable card/project activity file. One root invocation remains one activity record.
 - Do not attach those commit references to linked-action history entries. A linked action still keeps its own output/status history entry. When that same action is started directly, it becomes root and owns commits from that execution.
 - Preserve existing history-entry output, prompt, command, agent, and status semantics. This feature changes commit ownership and cardinality only.
 - Apply the same ownership rule to both detected command-action commits and md2-created tracked-file commits.
@@ -44,15 +44,15 @@ Each `CommitReference` stores:
 
 - stable performer `actionId`;
 - performer `actionName`, snapshotted from the executed action definition so later renames do not rewrite history labels;
-- full commit hash, branch, repository root, and changed file paths needed by the existing diff flow;
+- full commit hash, source branch, and changed file paths/counts needed by the diff flow; absolute repository roots are runtime-only and are not tracked;
 - `committedAt`, read from Git for the referenced commit rather than inferred from root-run completion time.
 
 ## Implementation notes
 
 - Add an execution-scoped commit accumulator to `ActionExecution`. Commit creation/detection returns references to that accumulator; history persistence must not use global or action/card-only mutable state because concurrent runs can share the same root action and card.
 - Defer persistence of the root action's history entry until its chain has finished, so commits from `onAfter` and matching `on` actions are included. Persist linked-action entries without commit metadata.
-- Keep repository root and branch on each reference. Linked actions can execute in independently resolved worktrees, so root-entry metadata cannot safely be shared across the list.
-- Replace singular summary extraction with extraction of every Git commit summary in command output. Deduplicate repeated references by repository root plus commit hash while preserving first-seen execution order.
+- Keep source branch on each reference. Resolve Git operations against the primary checkout at runtime; machine-local worktree roots never enter tracked activity.
+- Replace singular summary extraction with extraction of every Git commit summary in command output. Deduplicate repeated references by commit hash while preserving first-seen execution order.
 - Resolve each detected commit's Git timestamp and changed paths at capture time. A failure to resolve required metadata fails history recording clearly; do not invent empty paths or timestamps.
 - Change diff generation to accept one `CommitReference`. Each commit row owns its own Show/Hide diff state and uses its own repository metadata.
 
@@ -75,7 +75,7 @@ The non-agent run-history list keeps the same per-run commit rows inline. Runs w
 - A tracked agent reports no changed paths or `commitTrackedPaths` returns no commit: add no reference.
 - Concurrent executions for the same root action and card never mix commits; `executionId` scopes in-memory collection.
 - Cancellation stops later actions but retains references for commits completed before cancellation.
-- Card rename/move behavior stays governed by the existing context-keyed history files; changing that lookup is outside this feature.
+- Card rename/move keeps activity ownership because storage is keyed by stable `header.internalId`; historical body lookup still uses the card's current path, so rename tracking is outside this feature.
 
 ## Persisted-history compatibility decision
 

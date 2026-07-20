@@ -180,7 +180,6 @@ class ActionSchedulerService {
             await this.updateScheduleStatus(scheduleId, 'running');
             const result = await this.runScheduledAction(schedule);
             const status = scheduleStatusFromResult(result.status);
-            if (status === 'failed') await this.recordSchedulerFailure(schedule, result.failure ?? 'Scheduled action failed');
             await this.updateScheduleStatus(scheduleId, status);
         } catch (error) {
             const schedule = await this.findRunningSchedule(scheduleId);
@@ -230,13 +229,30 @@ class ActionSchedulerService {
     async recordSchedulerFailure(schedule, message) {
         if (!schedule) return;
 
+        const project = this.requireCurrentProject();
+        const projectFolder = await this.requireProjectFolder();
+        const completedAt = new Date(this.now()).toISOString();
+        const origin = schedule.context.kind === 'card' || schedule.context.kind === 'file'
+            ? { cardInternalId: schedule.context.cardInternalId, kind: 'card' }
+            : { kind: 'project' };
+        if (origin.kind === 'card' && (typeof origin.cardInternalId !== 'string' || origin.cardInternalId.length === 0)) {
+            throw new Error('Scheduled card activity requires cardInternalId');
+        }
         const entry = createFailureEntry(message);
-        await this.appendHistory(schedule.actionId, schedule.context, entry);
-    }
-
-    async appendHistory(actionId, context, entry, project = this.requireCurrentProject()) {
-        const request = { actionId, context, projectFolder: await this.requireProjectFolder() };
-        await this.localGitService.appendActionRunHistory(project, request, entry);
+        const record = {
+            commits: [],
+            completedAt,
+            conversationIds: [],
+            executionId: `schedule-${schedule.id}`,
+            history: entry,
+            origin,
+            rootActionId: schedule.actionId,
+            rootActionLabel: schedule.actionId,
+            startedAt: completedAt,
+            status: 'failed',
+        };
+        const { relativePath } = await this.localGitService.appendActionActivity(project, projectFolder, origin, record);
+        await this.localGitService.commitActivityFile(project, relativePath, `Record ${schedule.actionId} activity`);
     }
 
     async loadProjectPaths() {

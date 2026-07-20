@@ -7,6 +7,7 @@ const execFileAsync = promisify(execFile);
 const execAsync = promisify(exec);
 const DETACHED_HEAD_BRANCH = 'HEAD (detached)';
 const LITERAL_PATHSPEC_ARGUMENT = '--literal-pathspecs';
+const FULL_COMMIT_PATTERN = /^[0-9a-f]{40}$/iu;
 const trackedCommitQueues = new Map();
 const SHORT_STAT_PATTERNS = {
     deletions: /(\d+) deletions?\(-\)/u,
@@ -187,6 +188,67 @@ async function resolveCommitMetadata(rootPath, commit) {
     return { commit: fullCommit, committedAt, deletions, filePaths, filesChanged, insertions };
 }
 
+function repositoryRelativePath(rootPath, filePath) {
+    if (typeof filePath !== 'string' || filePath.length === 0) throw new Error('Missing repository file path');
+    const resolvedRoot = path.resolve(rootPath);
+    const resolvedPath = ensureInsideRoot(resolvedRoot, path.resolve(resolvedRoot, filePath));
+    const relativePath = path.relative(resolvedRoot, resolvedPath).replace(/\\/gu, '/');
+    if (relativePath.length === 0) throw new Error('Repository file path must identify a file');
+
+    return relativePath;
+}
+
+async function commitExists(rootPath, commit) {
+    if (typeof commit !== 'string' || commit.length === 0) throw new Error('Missing commit hash');
+    try {
+        await runGit(rootPath, ['cat-file', '-e', `${commit}^{commit}`]);
+
+        return true;
+    } catch (error) {
+        if (error && typeof error === 'object' && typeof error.code === 'number') return false;
+
+        throw error;
+    }
+}
+
+async function isCommitAncestor(rootPath, commit, descendant = 'HEAD') {
+    if (!await commitExists(rootPath, commit)) return false;
+    try {
+        await runGit(rootPath, ['merge-base', '--is-ancestor', commit, descendant]);
+
+        return true;
+    } catch (error) {
+        if (error && typeof error === 'object' && error.code === 1) return false;
+
+        throw error;
+    }
+}
+
+async function readFileAtCommit(project, request) {
+    const rootPath = requireRootPath(project);
+    await assertGitRoot(rootPath);
+    if (!request || typeof request.commit !== 'string' || !FULL_COMMIT_PATTERN.test(request.commit)) throw new Error('Invalid historical file commit');
+    if (typeof request.parent !== 'boolean') throw new Error('Missing historical file parent flag');
+    const filePath = repositoryRelativePath(rootPath, request.path);
+    if (!await commitExists(rootPath, request.commit)) throw new Error('Commit is no longer available in this repository');
+    let revision = request.commit;
+    if (request.parent) {
+        const commitLine = await runGit(rootPath, ['rev-list', '--parents', '-n', '1', request.commit]);
+        if (commitLine.split(/\s+/u).length === 1) return { content: '', exists: false };
+        revision = `${request.commit}^`;
+    }
+    try {
+        await runGit(rootPath, ['cat-file', '-e', `${revision}:${filePath}`]);
+    } catch (error) {
+        if (error && typeof error === 'object' && typeof error.code === 'number') return { content: '', exists: false };
+        throw error;
+    }
+
+    const { stdout } = await execFileAsync('git', ['show', `${revision}:${filePath}`], { cwd: rootPath, maxBuffer: 1024 * 1024 * 32 });
+
+    return { content: stdout, exists: true };
+}
+
 async function assertGitRoot(rootPath) {
     const gitPath = path.join(rootPath, '.git');
 
@@ -248,15 +310,18 @@ async function push(project) {
 module.exports = {
     assertGitRoot,
     checkoutBranch,
+    commitExists,
     commitStagedChanges,
     commitTrackedPaths,
     ensureInsideRoot,
     hasStagedChanges,
     hasPendingPush,
+    isCommitAncestor,
     listBranches,
     pathExists,
     parseShortStat,
     push,
+    readFileAtCommit,
     resolveCommitMetadata,
     resolveLocalProject,
     requireRootPath,

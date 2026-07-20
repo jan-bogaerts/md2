@@ -41,11 +41,13 @@ function createDispatch(options = {}) {
             path: 'actions/test.json',
         }]),
         loadActionRunHistory: vi.fn(async () => []),
+        loadCardActivity: vi.fn(async () => ({ conversations: [], origin: { cardInternalId: 'card-1', kind: 'card' }, records: [], version: 1 })),
         loadProjectAsset: vi.fn(async () => ({ content: 'aWNvbg==', contentType: 'image/png', encoding: 'base64', path: 'actions/icon.png' })),
         loadProjectConfig: vi.fn(async () => ({ projectFolder: 'design' })),
         loadProject: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
         loadProjectRoot: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
         resolveLocalProject: vi.fn(async () => ({ branch: 'topic', id: 'C:/repo', rootPath: 'C:/repo' })),
+        readFileAtCommit: vi.fn(async () => ({ content: '# Card', exists: true })),
         runCommand: vi.fn(async () => ({ exitCode: 0, stderr: '', stdout: 'ok' })),
         watchProject: vi.fn(() => vi.fn()),
     };
@@ -69,7 +71,7 @@ function createDispatch(options = {}) {
         localGitService,
         openProjectFolder: options.openProjectFolder,
         readDesktopConfig: () => desktopConfig,
-        worktreeService: { resolvePath: vi.fn() },
+        worktreeService: { load: vi.fn(async () => []), resolvePath: vi.fn() },
     });
 
     return { actionRunnerService, actionSchedulerService, agentExecutableAvailability, agentRunnerService, dispatch, localGitService };
@@ -161,7 +163,7 @@ describe('createLocalBridgeDispatch', () => {
 
         await dispatch.actionBridge.runSearchRegexpAgent('find beta cards', vi.fn());
 
-        expect(agentRunnerService.run).toHaveBeenCalledWith(project, expect.objectContaining({cardPath: '.md2-search-regexp', command: ['codex', '--search', 'exec', '--json'], prompt: expect.stringContaining('find beta cards')}), expect.any(Function));
+        expect(agentRunnerService.run).toHaveBeenCalledWith(project, expect.objectContaining({activityOrigin: { kind: 'project' }, command: ['codex', '--search', 'exec', '--json'], prompt: expect.stringContaining('find beta cards')}), expect.any(Function));
     });
 
     it('invokes shared method table for remote control', async () => {
@@ -208,9 +210,22 @@ describe('createLocalBridgeDispatch', () => {
 
         await dispatch.actionBridge.loadActionRunHistory(request);
 
-        expect(actionRunnerService.requireActionsFolder).toHaveBeenCalled();
         expect(actionRunnerService.requireProjectFolder).toHaveBeenCalled();
         expect(localGitService.loadActionRunHistory).toHaveBeenCalledWith(project, { ...request, projectFolder: 'design' });
+    });
+
+    it('loads card activity and historical files through the primary checkout', async () => {
+        const { actionRunnerService, dispatch, localGitService } = createDispatch();
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
+        const fileRequest = { commit: 'a'.repeat(40), parent: false, path: 'design/F-1.md' };
+        await dispatch.dataBridge.loadProject(project, 'design');
+
+        await dispatch.actionBridge.loadCardActivity({ cardInternalId: 'card-1' });
+        await dispatch.actionBridge.readFileAtCommit(fileRequest);
+
+        expect(actionRunnerService.requireProjectFolder).toHaveBeenCalled();
+        expect(localGitService.loadCardActivity).toHaveBeenCalledWith(project, 'design', 'card-1', []);
+        expect(localGitService.readFileAtCommit).toHaveBeenCalledWith(project, fileRequest);
     });
 
 });

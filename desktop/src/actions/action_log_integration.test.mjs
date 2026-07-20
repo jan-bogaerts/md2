@@ -10,8 +10,8 @@ const { ActionWorktreeExecutionService } = require('./action_worktree_execution_
 const { AgentRunnerService } = require('./agent_runner_service');
 const localGitService = require('../git/local_git_service');
 
-describe('action log integration', () => {
-    it('writes conversation and history records together under nested project logs', async () => {
+describe('action activity integration', () => {
+    it('writes terminal conversation and root record together under stable card activity', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-action-log-worktree-'));
         const projectFolder = 'projects/demo';
         const actionsFolder = `${projectFolder}/actions`;
@@ -43,28 +43,26 @@ describe('action log integration', () => {
                     model: 'gpt-5',
                 }),
                 agentRunnerService: new AgentRunnerService(),
-                localGitService,
+                localGitService: { ...localGitService, commitActivityFile: async () => null },
             });
             runner.startProject(project, actionsFolder, projectFolder);
 
             const executionId = await runner.start({
                 actionId: 'review.card',
-                context: { file: `${projectFolder}/active/F-1 Test.md`, kind: 'card' },
+                context: { cardInternalId: 'card-1', file: `${projectFolder}/active/F-1 Test.md`, kind: 'card' },
                 runInput: {},
             });
             await expect(runner.wait(executionId)).resolves.toMatchObject({ status: 'completed' });
 
-            const logFolder = join(rootPath, projectFolder, 'logs');
-            const files = await readdir(logFolder);
-            const conversationFile = files.find((file) => file.startsWith('conversation__'));
-            expect(files).toContain('history__card__active_f_1_test__review_card.json');
-            expect(conversationFile).toMatch(/^conversation__card__active_f_1_test__agent_[a-z0-9_]+\.json$/u);
-            const conversation = JSON.parse(await readFile(join(logFolder, conversationFile), 'utf8'));
-            const history = JSON.parse(await readFile(join(logFolder, 'history__card__active_f_1_test__review_card.json'), 'utf8'));
-            expect(conversation).toMatchObject({ actionId: 'review.card', cardPath: `${projectFolder}/active/F-1 Test.md`, status: 'completed' });
-            expect(history).toEqual([expect.objectContaining({ output: 'done', status: 'completed' })]);
-            await expect(readdir(join(rootPath, '.md2-agent-logs'))).rejects.toThrow();
-            await expect(readdir(join(rootPath, actionsFolder, '.md2-action-history'))).rejects.toThrow();
+            const activityFolder = join(rootPath, projectFolder, 'activity');
+            expect(await readdir(activityFolder)).toEqual(['card__card-1.json']);
+            const activity = JSON.parse(await readFile(join(activityFolder, 'card__card-1.json'), 'utf8'));
+            expect(activity.conversations).toEqual([expect.objectContaining({ actionId: 'review.card', cardPath: `${projectFolder}/active/F-1 Test.md`, status: 'completed' })]);
+            expect(activity.records).toEqual([expect.objectContaining({
+                conversationIds: [activity.conversations[0].id],
+                history: expect.objectContaining({ output: 'done', status: 'completed' }),
+                rootActionId: 'review.card',
+            })]);
         } finally {
             await rm(rootPath, { force: true, recursive: true });
         }

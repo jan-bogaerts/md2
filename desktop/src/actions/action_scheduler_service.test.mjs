@@ -6,7 +6,7 @@ const { ActionSchedulerService } = require('./action_scheduler_service');
 const { ActionRunnerService } = require('./action_runner_service');
 
 const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
-const context = { file: 'design/F-022.md', kind: 'card', type: 'feature' };
+const context = { cardInternalId: 'card-022', file: 'design/F-022.md', kind: 'card', type: 'feature' };
 const now = Date.parse('2026-07-06T10:00:00.000Z');
 const MAX_TIMER_DELAY_MS = 2147483647;
 
@@ -77,11 +77,14 @@ function createLocalGitService(initialSchedules, actionFiles = [createAction()],
     const histories = [];
 
     return {
-        appendActionRunHistory: vi.fn(async (_project, request, entry) => {
+        appendActionActivity: vi.fn(async (_project, projectFolder, _origin, record) => {
+            const request = { actionId: record.rootActionId, context, projectFolder };
+            const entry = { ...record.history, commits: record.commits };
             histories.push({ entry, request });
 
-            return histories.map((history) => history.entry);
+            return { relativePath: 'design/activity/card__card-022.json' };
         }),
+        commitActivityFile: vi.fn(async () => 'activity-commit'),
         cancelActionSchedule: vi.fn(async (_project, _actionsFolder, scheduleId) => {
             schedules = schedules.map((schedule) => {
                 if (schedule.id !== scheduleId) return schedule;
@@ -316,7 +319,7 @@ describe('ActionSchedulerService', () => {
             ['codex', '--model', 'gpt-5.5', '-c', 'model_reasoning_effort=low', '--search', 'exec', '--json'],
             ['codex', '--model', 'gpt-5.5', '-c', 'model_reasoning_effort=high', '--search', 'exec', '--json'],
         ]);
-        expect(localGitService.histories.map(({ entry }) => entry.thinkingLevel)).toEqual(['low', 'high']);
+        expect(localGitService.histories.map(({ entry }) => entry.thinkingLevel)).toEqual(['high']);
     });
 
     it.each([

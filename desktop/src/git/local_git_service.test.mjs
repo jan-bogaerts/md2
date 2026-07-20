@@ -11,7 +11,6 @@ const GIT_INTEGRATION_TEST_TIMEOUT_MS = 15000;
 
 const require = createRequire(import.meta.url);
 const {
-    appendActionRunHistory,
     cancelActionSchedule,
     commit,
     createWorkingFolderFromTemplate,
@@ -21,7 +20,6 @@ const {
     listRepositoryFiles,
     listTopLevelFolders,
     loadActionFiles,
-    loadActionRunHistory,
     loadActionSchedules,
     loadAgentConversation,
     loadFile,
@@ -332,32 +330,13 @@ describe('local-git-service', () => {
         }
     });
 
-    it('persists and loads action run history for the same action and context', async () => {
-        const rootPath = await mkdtemp(join(tmpdir(), 'md2-local-git-'));
-        const request = {
-            actionId: 'implement',
-            context: { file: 'design/F-010.md', kind: 'card', type: 'feature' },
-            projectFolder: 'design',
-        };
-        const entry = { completedAt: '2026-07-05T10:00:00.000Z', output: 'done', prompt: 'run', status: 'completed' };
-
-        try {
-            await mkdir(join(rootPath, '.git'));
-            await appendActionRunHistory({ branch: 'main', id: 'local', rootPath }, request, entry);
-
-            await expect(loadActionRunHistory({ branch: 'main', id: 'local', rootPath }, request)).resolves.toEqual([entry]);
-        } finally {
-            await rm(rootPath, { force: true, recursive: true });
-        }
-    });
-
-    it('rejects agent log paths that escape the project root', async () => {
+    it('rejects activity conversation paths that escape the project root', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-local-git-'));
 
         try {
             await mkdir(join(rootPath, '.git'));
 
-            await expect(loadAgentConversation({ branch: 'main', id: 'local', rootPath }, '../agent-log.json')).rejects.toThrow(
+            await expect(loadAgentConversation({ branch: 'main', id: 'local', rootPath }, '../activity.json#conversation=agent-1')).rejects.toThrow(
                 'Local Git path escapes project root',
             );
         } finally {

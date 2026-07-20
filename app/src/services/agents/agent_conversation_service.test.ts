@@ -78,23 +78,27 @@ describe('parseAgentConversationLog', () => {
     })
 
     it.each([
-        ['design', ['design/logs/conversation__project__one.json']],
-        ['', ['logs/conversation__project__root.json']],
-        ['projects/demo', ['projects/demo/logs/conversation__card__active_f_1__one.JSON']],
-    ])('discovers only conversation logs for projectFolder %j', async (projectFolder, expected) => {
+        ['design', 'design/activity/project.json'],
+        ['', 'activity/project.json'],
+        ['projects/demo', 'projects/demo/activity/project.json'],
+    ])('discovers project conversations from activity for projectFolder %j', async (projectFolder, projectActivityPath) => {
         const storage = {
             listRepositoryFiles: async () => [
                 'README.md',
-                'design/logs/conversation__project__one.json',
-                'design/logs/history__project__review.json',
-                'logs/conversation__project__root.json',
-                'projects/demo/logs/conversation__card__active_f_1__one.JSON',
-                '.md2-agent-logs/legacy.json',
+                projectActivityPath,
+                `${projectFolder ? `${projectFolder}/` : ''}activity/card__card-1.json`,
             ],
+            loadFile: async () => ({
+                content: JSON.stringify({
+                    conversations: [{ completedAt: 'done', events: [], id: 'conversation-1', messages: [], providerSessions: [], startedAt: 'start', status: 'completed', title: 'Project run' }],
+                    origin: { kind: 'project' }, records: [], version: 1,
+                }),
+                path: projectActivityPath,
+            }),
         } as unknown as StorageService
 
         await expect(listAgentConversationReferences(storage, { branch: 'main', id: 'project' }, projectFolder))
-            .resolves.toEqual(expected)
+            .resolves.toEqual([`${projectActivityPath}#conversation=conversation-1`])
     })
 
 })

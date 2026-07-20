@@ -3,10 +3,8 @@ const { normalizeConversationContext } = require('./agent_transcript');
 const { prepareAgentPrompt, withTrackedFileCommitInstruction } = require('./action_text');
 
 const CONTINUE_INPUT = 'continue';
-const WORKTREE_AGENT_REFERENCE_PATTERN = /^worktree:[1-9]\d*:(.*)$/u;
-
 function continuationReferencePath(reference) {
-    return WORKTREE_AGENT_REFERENCE_PATTERN.exec(reference)?.[1] ?? reference;
+    return reference;
 }
 
 function withoutProviderConversationId(request) {
@@ -34,7 +32,7 @@ class ActionAgentExecutor {
         });
         const sourceConversation = input.runInput.continueFrom
             ? await this.localGitService.loadAgentConversation(
-                input.project,
+                input.primaryProject,
                 continuationReferencePath(input.runInput.continueFrom),
             )
             : null;
@@ -65,14 +63,16 @@ class ActionAgentExecutor {
         const request = {
             actionId: input.action.id,
             agent: resolvedAgent.agent,
+            activityOrigin: input.activityOrigin,
+            activityProject: input.primaryProject,
             ...(input.context.file ? { cardPath: input.context.file } : {}),
             command,
+            deferActivityCommit: true,
             ...(sourceConversation ? { conversation: sourceConversation, reference } : {}),
             ...(contextInput ? { contextInput } : {}),
             prompt,
             projectFolder: input.projectFolder,
             ...(providerSession ? { providerConversationId: providerSession.conversationId } : {}),
-            scopePath: input.context.file ?? 'project',
             title: input.action.label,
         };
         const fallback = {

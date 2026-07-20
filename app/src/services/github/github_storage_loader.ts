@@ -1,7 +1,8 @@
 import type { ActionFile } from '../../data/action_types'
 import { ACTION_SCHEDULES_FILE } from '../../data/action_schedule_types'
 import { MissingWorkingFolderError, type AgentConversation, type MarkdownFile, type ProjectReference } from '../../data/data_types'
-import { parseAgentConversationLog } from '../agents/agent_conversation_service'
+import { findActivityConversation, parseActivityFile } from '../../../../shared/card_activity.mjs'
+import { parseConversationActivityReference } from '../../../../shared/log_paths.mjs'
 import {
     normalizeBranches,
     normalizeProjectAsset,
@@ -90,9 +91,12 @@ export class GithubStorageLoader {
 
     async loadAgentConversation(project: ProjectReference, path: string): Promise<AgentConversation> {
         this.context.requireGithubProject(project)
-        const file = await this.gitData.readFile(project, path)
+        const { activityPath, conversationId } = parseConversationActivityReference(path)
+        const file = await this.gitData.readFile(project, activityPath)
+        const activity = parseActivityFile(file.content)
+        const conversation = findActivityConversation(activity, conversationId)
 
-        return parseAgentConversationLog(file.content, path)
+        return { ...conversation, path }
     }
 
     async loadProjectAsset(project: ProjectReference, path: string) {

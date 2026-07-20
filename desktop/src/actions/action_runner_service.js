@@ -12,6 +12,18 @@ function createExecutionId() {
     return `action-${crypto.randomUUID()}`;
 }
 
+function activityOrigin(context) {
+    if (context.kind === 'card' || context.kind === 'file') {
+        if (typeof context.cardInternalId !== 'string' || context.cardInternalId.length === 0) {
+            throw new Error('Card-origin action requires cardInternalId');
+        }
+
+        return { cardInternalId: context.cardInternalId, kind: 'card' };
+    }
+
+    return { kind: 'project' };
+}
+
 class ActionRunnerService {
     constructor(dependencies) {
         this.actionWorktreeExecutionService = dependencies?.actionWorktreeExecutionService;
@@ -57,18 +69,21 @@ class ActionRunnerService {
     async start(request) {
         const startRequest = validateStartRequest(request);
         this.requireReady();
+        const origin = activityOrigin(startRequest.context);
         const project = { ...this.project };
         const actionsFolder = this.actionsFolder;
         const rootAction = await this.loadRootAction(startRequest.actionId, project, actionsFolder);
         const executionId = createExecutionId();
         const execution = new ActionExecution({
             actionsFolder,
+            activityOrigin: origin,
             context: startRequest.context,
             executionId,
             project,
             projectFolder: this.projectFolder,
             rootAction,
             runInput: startRequest.runInput,
+            startedAt: new Date().toISOString(),
         }, {
             actionWorktreeExecutionService: this.actionWorktreeExecutionService,
             agentExecutor: this.agentExecutor,

@@ -1,7 +1,7 @@
 ---
 id: F_060
 title: card commit diff viewer
-status: design
+status: ready
 owner: JB
 affects:
   - shared/log_paths.mjs
@@ -136,6 +136,8 @@ Renderer responsibilities:
 - `use_card_commits.ts` keys requests by `cardInternalId`, refreshes on matching root execution completion and worktree/project changes, discards stale async results after card change/unmount;
 - card popup and file mode share `CardCommitMenu`/`CardCommitDiffPanel`, each with independent diff selection state;
 - historical diff uses a separate read-only editor instance; whether the live editor stays mounted is an implementation detail, but historical content must never enter live editor state or persistence pipelines.
+
+> **Known issue (2026-07-20):** the current implementation renders `CardCommitDiffPanel` *instead of* the live editor (`CardEditor` and `CardBodyPopover`), unmounting the persistent editor surface while its binding stays active. This conflicts with [[J-017]]'s invariant that list/board editors stay mounted and toggle with `hidden`. Content is safe (flush-on-unmount, history rebinds on remount), but entering/exiting diff mode pays a full editor remount and weakens the J-017 lifetime guarantee. Preferred fix: keep the live editor mounted and hidden while diff mode is active.
 
 ## Edge cases
 

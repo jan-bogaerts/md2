@@ -1,4 +1,5 @@
 import type { ActionContext } from './action_context'
+import type { CardActivityFile } from '../../../shared/card_activity.mjs'
 import type { ActionScheduleTrigger } from './action_schedule_types'
 import type { AgentRunEvent } from './data_types'
 import type { AgentAvailability } from './electron_data_bridge'
@@ -8,6 +9,21 @@ import type { ActionExecutionEvent, ActionPromptRequest, ActionStartRequest, Pre
 export interface ActionRunHistoryRequest {
     actionId: string
     context: ActionContext
+}
+
+export interface CardActivityRequest {
+    cardInternalId: string
+}
+
+export interface ReadFileAtCommitRequest {
+    commit: string
+    parent: boolean
+    path: string
+}
+
+export interface HistoricalFileContent {
+    content: string
+    exists: boolean
 }
 
 export interface ActionScheduleRegistrationRequest {
@@ -80,10 +96,12 @@ export interface ElectronActionBridge {
     cancelActionExecution(executionId: string): Promise<void>
     generateDiff(request: DiffRequest): Promise<DiffResult>
     loadActionRunHistory(request: ActionRunHistoryRequest): Promise<ActionRunHistoryEntry[]>
+    loadCardActivity?(request: CardActivityRequest): Promise<CardActivityFile>
     loadAgentAvailability?(): Promise<Record<string, AgentAvailability>>
     onActionExecution(callback: (event: ActionExecutionEvent) => void): () => void
     openInEditor(request: OpenInEditorRequest): Promise<void>
     prepareActionPrompt(request: ActionPromptRequest): Promise<PreparedActionPrompt>
+    readFileAtCommit?(request: ReadFileAtCommitRequest): Promise<HistoricalFileContent>
     registerActionSchedule?(request: ActionScheduleRegistrationRequest): Promise<void>
     runSearchRegexpAgent(input: string, callback?: (event: AgentRunEvent) => void): Promise<string>
     startAction(request: ActionStartRequest): Promise<string>

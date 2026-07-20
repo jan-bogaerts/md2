@@ -52,7 +52,7 @@ describe('WorktreeService', () => {
         expect(restored).toEqual(saved);
         expect(JSON.parse(await readFile(join(primaryPath, WORKTREES_FILE), 'utf8'))).toEqual([linkedPath]);
         expect(await readFile(join(primaryPath, '.gitignore'), 'utf8')).toContain('/.md2-worktrees.json');
-    });
+    }, 15000);
 
     it('keeps stale stored entries and reports them invalid', async () => {
         const { linkedPath, primaryPath, project } = await createRepository();

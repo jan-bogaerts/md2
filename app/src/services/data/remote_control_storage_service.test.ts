@@ -103,6 +103,28 @@ describe('RemoteControlStorageService', () => {
         await expect(preparation).resolves.toEqual({ prompt: 'Prepared prompt' })
     })
 
+    it('proxies card activity and historical file requests', async () => {
+        installWebSocket()
+        const service = createService()
+        const activityRequest = { cardInternalId: 'card-1' }
+        const fileRequest = { commit: 'a'.repeat(40), parent: true, path: 'design/F-1.md' }
+        const activity = service.loadCardActivity(activityRequest)
+        const historicalFile = service.readFileAtCommit(fileRequest)
+        const socket = lastSocket()
+
+        socket.open()
+        await flushPromises()
+        const activityMessage = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
+        const fileMessage = JSON.parse(socket.sent[1]) as { id: string, method: string, params: unknown[] }
+        expect(activityMessage).toMatchObject({ method: 'loadCardActivity', params: [activityRequest] })
+        expect(fileMessage).toMatchObject({ method: 'readFileAtCommit', params: [fileRequest] })
+        socket.receive({ id: activityMessage.id, result: { conversations: [], origin: { cardInternalId: 'card-1', kind: 'card' }, records: [], version: 1 } })
+        socket.receive({ id: fileMessage.id, result: { content: '# Card', exists: true } })
+
+        await expect(activity).resolves.toMatchObject({ version: 1 })
+        await expect(historicalFile).resolves.toEqual({ content: '# Card', exists: true })
+    })
+
     it('rejects error responses', async () => {
         installWebSocket()
         const service = createService()

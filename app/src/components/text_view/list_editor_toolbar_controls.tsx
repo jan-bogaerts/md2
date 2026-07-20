@@ -4,14 +4,19 @@ import type { MouseEvent } from 'react'
 import { MarkdownDocumentUndoRedo } from '../editor/markdown_document_undo_redo'
 import type { MarkdownDocumentHistoryStore } from '../editor/markdown_document_history_store'
 import { MarkdownFormatToolbarControls } from '../editor/markdown_format_toolbar_controls'
+import { CardCommitMenu } from '../card_view/card_commit_menu'
+import type { CardCommit } from '../../services/actions/card_commit_history'
 
 interface ListEditorToolbarControlsProps {
     agentConversationCount: number
+    cardCommits: CardCommit[]
+    cardCommitsError: Error | null
     documentId: string
     historyStore: MarkdownDocumentHistoryStore
     isAgentPopupOpen: boolean
     isPropertiesOpen: boolean
     onToggleAgentPopup: () => void
+    onSelectCardCommit: (commit: CardCommit) => void
     onOpenProperties: (event: MouseEvent<HTMLElement>) => void
     propertiesAvailable: boolean
 }
@@ -20,12 +25,15 @@ interface ListEditorToolbarControlsProps {
 export function ListEditorToolbarControls(props: ListEditorToolbarControlsProps) {
     const {
         agentConversationCount,
+        cardCommits,
+        cardCommitsError,
         documentId,
         historyStore,
         isAgentPopupOpen,
         isPropertiesOpen,
         onOpenProperties,
         onToggleAgentPopup,
+        onSelectCardCommit,
         propertiesAvailable,
     } = props
     const endControls = (
@@ -34,6 +42,7 @@ export function ListEditorToolbarControls(props: ListEditorToolbarControlsProps)
             <Button onClick={onToggleAgentPopup} size="small" variant={isAgentPopupOpen ? 'contained' : 'outlined'}>
                 Agents{agentConversationCount > 0 ? ` (${agentConversationCount})` : ''}
             </Button>
+            <CardCommitMenu commits={cardCommits} error={cardCommitsError} onSelect={onSelectCardCommit} />
             {propertiesAvailable ? (
                 <Button
                     aria-haspopup="dialog"

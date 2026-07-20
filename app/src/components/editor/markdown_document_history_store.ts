@@ -88,13 +88,6 @@ export class MarkdownDocumentHistoryStore {
         this.documents.delete(documentId)
     }
 
-    retainDocuments(documentIds: readonly string[]) {
-        const retainedIds = new Set(documentIds)
-        for (const documentId of this.documents.keys()) {
-            if (!retainedIds.has(documentId) && documentId !== this.activeDocumentId) this.documents.delete(documentId)
-        }
-    }
-
     replaceDocument(documentId: string, markdown: string) {
         const document = { historyState: createEmptyHistoryState(), markdown }
         this.documents.set(documentId, document)

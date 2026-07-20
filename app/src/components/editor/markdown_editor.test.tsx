@@ -160,6 +160,29 @@ describe('MarkdownEditor', () => {
         expect(successfulStateStore.getSnapshot()).toBe(false)
     })
 
+    it('drops the dirty buffer without committing when the binding clears with discard', () => {
+        const dataSource = new TestMarkdownDataSource()
+        const stateStore = new MarkdownEditorStateStore()
+        dataSource.select('list-card', 'card-1', 'original')
+        render(
+            <AppThemeProvider>
+                <MarkdownEditor
+                    binding="list-card"
+                    dataSource={dataSource}
+                    historyStore={new MarkdownDocumentHistoryStore()}
+                    stateStore={stateStore}
+                />
+            </AppThemeProvider>,
+        )
+        fireEvent.change(screen.getByRole('textbox'), { target: { value: 'edited' } })
+
+        act(() => dataSource.clearBindings(true))
+
+        expect(dataSource.commit).not.toHaveBeenCalled()
+        expect(stateStore.getSnapshot()).toBe(false)
+        expect(screen.getByRole('textbox')).toHaveValue('')
+    })
+
     it('keeps the outgoing dirty document active until a failed switch can retry', async () => {
         const dataSource = new TestMarkdownDataSource()
         const stateStore = new MarkdownEditorStateStore()
