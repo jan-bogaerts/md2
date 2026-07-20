@@ -1,6 +1,6 @@
 import type { ConfigSectionProps } from './config_section_props'
 import { ConfigSectionLayout } from './config_section_layout'
-import { getElectronDataBridge } from '../../data/electron_data_bridge'
+import { worktreeService } from '../../services/project/worktree_service'
 import { WorktreeConfigList } from './worktree_config_list'
 
 const PROJECT_CONFIG_SECTION_ID = 'project'
@@ -20,7 +20,7 @@ export function ProjectConfigSection(props: ConfigSectionProps) {
                 onChange={onChange}
                 onValidityChange={onValidityChange}
             />
-            {getElectronDataBridge() ? <WorktreeConfigList /> : null}
+            {worktreeService.isSupported() ? <WorktreeConfigList /> : null}
         </>
     )
 }

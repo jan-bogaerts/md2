@@ -16,6 +16,11 @@ export class WorktreeService extends EventTarget {
         return this.records
     }
 
+    /** Whether the active storage backend can list worktrees (local desktop or a remote-controlled desktop). */
+    isSupported() {
+        return !!this.storageProvider?.()?.loadWorktrees
+    }
+
     getDraft() {
         return this.draftRecords
     }

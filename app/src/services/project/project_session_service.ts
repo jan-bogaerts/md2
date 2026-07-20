@@ -175,9 +175,10 @@ export class ProjectSessionService extends EventTarget {
         storageType: StorageType,
         project: ProjectReference,
         accessToken: string | null,
+        existingStorage?: StorageService,
     ): Promise<ProjectOpenResolution | null> {
         return this.withLoading('Project load failed', async () => {
-            const storage = createStorageService(storageType, accessToken)
+            const storage = existingStorage ?? createStorageService(storageType, accessToken)
             if (storageType === 'github' || storageType === 'local') {
                 const projectConfig = await storage.loadProjectConfig(project)
                 if (projectConfig !== null) return loadProjectSession(storage, storageType, project)

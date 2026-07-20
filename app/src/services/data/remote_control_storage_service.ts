@@ -27,6 +27,7 @@ import type {
     StorageProjectFiles,
     StorageService,
     TopLevelFolderReference,
+    WorktreeRecord,
 } from '../../data/data_types'
 import { readRemoteControlConnection, type RemoteControlConnectionSettings } from '../../data/remote_control_connection'
 
@@ -204,6 +205,19 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
 
     async listTopLevelFolders(project: ProjectReference): Promise<TopLevelFolderReference[]> {
         return this.request<TopLevelFolderReference[]>('listTopLevelFolders', [project])
+    }
+
+    async loadWorktrees(project: ProjectReference): Promise<WorktreeRecord[]> {
+        return this.request<WorktreeRecord[]>('loadWorktrees', [project])
+    }
+
+    async saveWorktrees(project: ProjectReference, folders: string[]): Promise<WorktreeRecord[]> {
+        return this.request<WorktreeRecord[]>('saveWorktrees', [project, folders])
+    }
+
+    // Runs on the desktop host: the folder picker opens on the machine sharing the remote-control server.
+    async selectWorktreeFolder(registeredFolders: string[]): Promise<WorktreeRecord | null> {
+        return this.request<WorktreeRecord | null>('selectWorktreeFolder', [registeredFolders])
     }
 
     async loadPendingPush(project: ProjectReference) {

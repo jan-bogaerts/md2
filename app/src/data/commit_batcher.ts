@@ -71,8 +71,7 @@ export class CommitBatcher {
     }
 
     private scheduleFlush() {
-        if (this.scheduledDelayId !== null) return
-
+        this.clearScheduledDelay()
         this.scheduledDelayId = this.setDelay(this.createFlushCallback(), this.delayMs)
         this.onPendingChange()
     }

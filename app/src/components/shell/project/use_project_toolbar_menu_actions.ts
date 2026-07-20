@@ -127,6 +127,7 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
             const detail = (event as CustomEvent<OpenProjectDialogDetail>).detail
             setInitialProjectSource(detail?.source ?? null)
             setInitialRemoteProject(detail?.project ?? null)
+            setProjectOpenResolution(detail?.resolution ?? null)
             onOpenDialog('open')
             if (isGithubAuthenticated) void loadRepositories()
         }

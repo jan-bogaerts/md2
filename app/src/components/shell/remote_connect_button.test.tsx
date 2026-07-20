@@ -128,8 +128,34 @@ describe('RemoteConnectButton', () => {
         await connectTo('ws://192.168.0.10:1234', 'token-1')
 
         expect(await screen.findByRole('button', { name: 'Connected' })).toBeInTheDocument()
-        await waitFor(() => expect(openProjectSpy).toHaveBeenCalledWith('remote', MockWebSocket.activeProject, null))
+        await waitFor(() => expect(openProjectSpy).toHaveBeenCalledWith('remote', MockWebSocket.activeProject, null, expect.anything()))
         expect(openProjectListener).not.toHaveBeenCalled()
+        window.removeEventListener(OPEN_PROJECT_DIALOG_EVENT, openProjectListener)
+    })
+
+    it('surfaces the missing-working-folder resolution instead of a blank open-project dialog', async () => {
+        installWebSocket('open')
+        const activeProject = { branch: 'main', id: '/repo', rootPath: '/repo' }
+        MockWebSocket.activeProject = activeProject
+        const resolution = {
+            configuredWorkingFolder: 'working',
+            folders: [],
+            kind: 'missing-working-folder' as const,
+            project: activeProject,
+            resolvedWorkingFolder: 'working',
+            storageType: 'remote' as const,
+        }
+        vi.spyOn(projectSessionService, 'openProject').mockResolvedValue(resolution)
+        const openProjectListener = vi.fn()
+        window.addEventListener(OPEN_PROJECT_DIALOG_EVENT, openProjectListener)
+        render(<RemoteConnectButton />)
+
+        await connectTo('ws://192.168.0.10:1234', 'token-1')
+
+        expect(await screen.findByRole('button', { name: 'Connected' })).toBeInTheDocument()
+        await waitFor(() => expect(openProjectListener).toHaveBeenCalledOnce())
+        const detail = (openProjectListener.mock.calls[0][0] as CustomEvent<OpenProjectDialogDetail>).detail
+        expect(detail).toEqual({ project: activeProject, resolution, source: 'remote' })
         window.removeEventListener(OPEN_PROJECT_DIALOG_EVENT, openProjectListener)
     })
 

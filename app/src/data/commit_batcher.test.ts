@@ -23,7 +23,32 @@ describe('CommitBatcher', () => {
 
         expect(commit).toHaveBeenCalledTimes(1)
         expect(commit.mock.calls[0][0]).toMatchObject({ files: [{ content: 'two', path: 'design/F-1-root.md' }], message: 'Update root' })
-        expect(onPendingChange).toHaveBeenCalledTimes(2)
+        expect(onPendingChange).toHaveBeenCalledTimes(3)
+        vi.useRealTimers()
+    })
+
+    it('resets the delay on each new change so continuous edits commit as one batch', async () => {
+        vi.useFakeTimers()
+        const commit = vi.fn<CommitCallback>(async () => undefined)
+        const batcher = new CommitBatcher({
+            clearDelay: window.clearTimeout,
+            commit,
+            delayMs: 30000,
+            onPendingChange: vi.fn(),
+            setDelay: window.setTimeout,
+        })
+
+        batcher.schedule('main', [{ content: 'one', path: 'design/F-1-root.md' }], 'Update root')
+        await vi.advanceTimersByTimeAsync(20000)
+        batcher.schedule('main', [{ content: 'two', path: 'design/F-1-root.md' }], 'Update root')
+        await vi.advanceTimersByTimeAsync(20000)
+
+        expect(commit).not.toHaveBeenCalled()
+
+        await vi.advanceTimersByTimeAsync(10000)
+
+        expect(commit).toHaveBeenCalledTimes(1)
+        expect(commit.mock.calls[0][0]).toMatchObject({ files: [{ content: 'two', path: 'design/F-1-root.md' }] })
         vi.useRealTimers()
     })
 

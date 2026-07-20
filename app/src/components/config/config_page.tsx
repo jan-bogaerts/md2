@@ -8,7 +8,6 @@ import { dialogService } from '../../services/dialog_service'
 import { DesktopConfigSection } from './desktop_config_section'
 import { ProjectConfigSection } from './project_config_section'
 import { ReactConfigSection } from './react_config_section'
-import { getElectronDataBridge } from '../../data/electron_data_bridge'
 import { worktreeService } from '../../services/project/worktree_service'
 import { useAppTheme } from '../../theme/use_app_theme'
 import {
@@ -93,7 +92,7 @@ export function ConfigPage(props: ConfigPageProps) {
 
         const currentDraft = configService.getDraft()
         if (!currentDraft) configService.loadDraft()
-        if (getElectronDataBridge() && configService.hasProjectConfig() && !worktreeService.getDraft()) {
+        if (worktreeService.isSupported() && configService.hasProjectConfig() && !worktreeService.getDraft()) {
             worktreeService.loadDraft()
         }
 

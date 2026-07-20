@@ -80,6 +80,17 @@ describe('ProjectSessionService storage activation', () => {
         expect(getElectronActionBridge()).toBeInstanceOf(RemoteControlStorageService)
     })
 
+    it('reuses an existing remote storage connection when opening a remote project', async () => {
+        mockProjectOpen()
+        const storage = new RemoteControlStorageService()
+        storage.init({ endpoint: 'ws://127.0.0.1:1234', token: 'token-1' })
+        const service = new ProjectSessionService()
+
+        await service.openProject('remote', { branch: 'main', id: 'remote', rootPath: '/repo' }, null, storage)
+
+        expect(getElectronActionBridge()).toBe(storage)
+    })
+
     it('restores the preload action bridge when opening a local project after remote storage', async () => {
         mockProjectOpen()
         const preloadBridge = createActionBridge()

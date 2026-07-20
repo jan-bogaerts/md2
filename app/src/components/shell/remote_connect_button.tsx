@@ -37,8 +37,8 @@ export function RemoteConnectButton() {
             const activeProject = await service.getActiveProject().catch(() => null)
             if (activeProject) {
                 try {
-                    const resolution = await projectSessionService.openProject('remote', activeProject, null)
-                    if (resolution) requestOpenProjectDialog('remote', activeProject)
+                    const resolution = await projectSessionService.openProject('remote', activeProject, null, service)
+                    if (resolution) requestOpenProjectDialog('remote', activeProject, resolution)
                 } catch {
                     requestOpenProjectDialog('remote', activeProject)
                 }

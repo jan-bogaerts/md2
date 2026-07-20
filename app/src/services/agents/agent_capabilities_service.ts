@@ -92,6 +92,13 @@ export class AgentCapabilitiesService extends EventTarget {
         return this.availabilityPromise
     }
 
+    /** Re-read agent availability from the currently active bridge, discarding the cached result. */
+    reload() {
+        this.availabilityPromise = this.loadAvailability()
+
+        return this.availabilityPromise
+    }
+
     clear() {
         this.modelRequest += 1
         this.thinkingLevelRequest += 1
