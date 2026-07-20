@@ -29,6 +29,7 @@ function createConversation(request, id, startedAt) {
 
     return {
         actionId: request.actionId ?? null,
+        cardInternalId: request.activityOrigin.kind === 'card' ? request.activityOrigin.cardInternalId : null,
         ...(request.cardPath ? { cardPath: request.cardPath } : {}),
         completedAt: null,
         events: [],

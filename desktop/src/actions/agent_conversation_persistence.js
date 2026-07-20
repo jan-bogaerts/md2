@@ -1,7 +1,6 @@
 const {
     activityConversationReference,
-    commitActivityFile,
-    upsertActivityConversation,
+    upsertAndCommitActivityConversation,
 } = require('./activity_files');
 
 function requireActivityRequest(request) {
@@ -20,19 +19,13 @@ function conversationReference(request, conversationId) {
 
 async function persistTerminalConversation(run) {
     const request = requireActivityRequest(run.request);
-    const { relativePath } = await upsertActivityConversation(
+    await upsertAndCommitActivityConversation(
         request.activityProject,
         request.projectFolder,
         request.activityOrigin,
         run.conversation,
+        `Update ${request.activityOrigin.kind} activity`,
     );
-    if (!request.deferActivityCommit) {
-        await commitActivityFile(
-            request.activityProject,
-            relativePath,
-            `Update ${request.activityOrigin.kind} activity`,
-        );
-    }
 }
 
 module.exports = { conversationReference, persistTerminalConversation };

@@ -28,6 +28,7 @@ interface ResolvedAgentConversations {
 }
 
 interface AgentConversationLoadTask {
+    cardInternalId: string
     cardPath: string
     reference: string
 }
@@ -58,11 +59,13 @@ async function loadAgentConversationReference(
 ): Promise<AgentConversationLoadResult> {
     try {
         const conversation = await loadAgentConversation(storage, project, task.reference)
-        if (conversation.cardPath !== task.cardPath) throw new Error(`Agent log belongs to ${conversation.cardPath}, not ${task.cardPath}`)
+        if (conversation.cardInternalId !== task.cardInternalId) {
+            throw new Error(`Agent conversation belongs to ${conversation.cardInternalId}, not ${task.cardInternalId}`)
+        }
 
         return { cardPath: task.cardPath, conversation, error: null }
     } catch (error) {
-        const message = error instanceof Error ? error.message : 'Agent log failed to load'
+        const message = error instanceof Error ? error.message : 'Agent conversation failed to load'
         telemetryService.captureError(error)
 
         return { cardPath: task.cardPath, conversation: null, error: { message, path: task.reference } }
@@ -76,7 +79,16 @@ async function resolveAgentConversations(
 ): Promise<ResolvedAgentConversations> {
     const conversationsByCardPath = new Map<string, AgentConversation[]>()
     const errorsByCardPath = new Map<string, AgentConversationError[]>()
-    const tasks = cards.flatMap((card) => card.header.agentLogReferences.map((reference) => ({ cardPath: card.path, reference })))
+    const tasks = cards.flatMap((card) => {
+        const cardInternalId = card.header.internalId
+        if (!cardInternalId) throw new Error(`Cannot load card conversations without an internal ID: ${card.path}`)
+
+        return card.header.agentLogReferences.map((reference) => ({
+            cardInternalId,
+            cardPath: card.path,
+            reference,
+        }))
+    })
     const results = await mapWithConcurrency(tasks, AGENT_CONVERSATION_LOAD_CONCURRENCY, async (task) => (
         loadAgentConversationReference(task, project, storage)
     ))
@@ -165,14 +177,15 @@ export class AgentIntegration {
             path: cardPath,
             sha: existingFile.sha,
         })
-        void this.loadLinkedAgentConversation(cardPath, reference)
+        if (!card.header.internalId) throw new Error(`Cannot link a card conversation without an internal ID: ${cardPath}`)
+        void this.loadLinkedAgentConversation(card.header.internalId, cardPath, reference)
     }
 
-    private async loadLinkedAgentConversation(cardPath: string, reference: string) {
+    private async loadLinkedAgentConversation(cardInternalId: string, cardPath: string, reference: string) {
         const project = this.dependencies.project()
         if (!project) return
         const { storage } = this.dependencies.requireDependencies()
-        const result = await loadAgentConversationReference({ cardPath, reference }, project, storage)
+        const result = await loadAgentConversationReference({ cardInternalId, cardPath, reference }, project, storage)
         if (result.error) {
             const errors = [...(this.errorsByCardPath.get(cardPath) ?? []), result.error]
             this.errorsByCardPath.set(cardPath, errors)
@@ -190,7 +203,7 @@ export class AgentIntegration {
         try {
             await this.resolveAndAttachAgentConversations(cards, project, projectLoadToken, agentConversationLoadToken)
         } catch (error) {
-            dialogService.warning('Agent logs could not be loaded and were skipped.', { title: 'Some agent logs were not loaded' })
+            dialogService.warning('Agent conversations could not be loaded and were skipped.', { title: 'Some agent conversations were not loaded' })
             telemetryService.captureError(error)
         }
     }
@@ -270,7 +283,7 @@ export class AgentIntegration {
         if (newErrors.length === 0) return
 
         const paths = newErrors.map(({ path }) => path).join(', ')
-        dialogService.warning(`Some agent logs could not be loaded and were skipped: ${paths}`, {title: 'Some agent logs were not loaded'})
+        dialogService.warning(`Some agent conversations could not be loaded and were skipped: ${paths}`, {title: 'Some agent conversations were not loaded'})
     }
 
     private async runStateAction(action: ActionDefinition, context: ActionContext, cardPath: string) {

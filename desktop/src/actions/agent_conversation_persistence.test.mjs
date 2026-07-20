@@ -22,12 +22,9 @@ describe('agent conversation persistence', () => {
             .toBe('design/activity/card__card-1.json#conversation=conversation-1');
     });
 
-    it('persists exactly one terminal conversation update without committing deferred card activity', async () => {
+    it('builds terminal persistence requests without compatibility mode flags', async () => {
         const activityProject = { branch: 'main', rootPath: 'C:/repo' };
-        const request = {
-            activityOrigin: { cardInternalId: 'card-1', kind: 'card' }, activityProject,
-            deferActivityCommit: true, projectFolder: 'design',
-        };
+        const request = {activityOrigin: { cardInternalId: 'card-1', kind: 'card' }, activityProject, projectFolder: 'design'};
         const activityFiles = require('./activity_files');
         const upsert = vi.spyOn(activityFiles, 'upsertActivityConversation');
 

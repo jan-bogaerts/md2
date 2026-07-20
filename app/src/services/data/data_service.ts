@@ -134,13 +134,15 @@ export class DataService extends EventTarget {
             const card = cards.find(({ path }) => path === context.file)
             if (!card) throw new Error(`Cannot list agent conversations for unknown card: ${context.file}`)
 
-            return card.agentConversations.filter(({ cardPath }) => cardPath === context.file)
+            if (!context.cardInternalId) throw new Error(`Missing cardInternalId for ${context.kind} agent conversation context`)
+
+            return card.agentConversations.filter(({ cardInternalId }) => cardInternalId === context.cardInternalId)
         }
 
         const references = await listAgentConversationReferences(storage, currentProject, config.projectFolder)
         const conversations = await Promise.all(references.map((reference) => loadAgentConversation(storage, currentProject, reference)))
 
-        return conversations.filter(({ cardPath }) => cardPath === null)
+        return conversations.filter(({ cardInternalId }) => cardInternalId === null)
     }
     async loadAgentConversation(path: string) {
         const { storage } = this.requireDependencies()
@@ -246,6 +248,7 @@ export class DataService extends EventTarget {
             commitPathsInFlight: () => this.projectState.commitPathsInFlight,
             dispatchChanged: () => this.dispatchChanged(),
             dispatchPersistenceChanged: () => this.dispatchPersistenceChanged(),
+            dispatchRepositoryChanged: (event) => this.dispatchEvent(new CustomEvent('repositoryChanged', { detail: event })),
             files: () => this.projectState.files,
             flushPendingChanges: flushAggregatePendingChanges,
             isCurrentLoad: (project, projectLoadToken) => this.projectState.isCurrentLoad(project, projectLoadToken),

@@ -1,16 +1,20 @@
 import { Box, Typography } from '@mui/material'
 import { useEffect, useRef, useState, type Ref } from 'react'
 import DiffViewer from 'react-diff-viewer-continued'
-import type { CommitReference, DiffFile, DiffResult, OpenInEditorRequest } from '../../data/electron_action_bridge'
+import type { DiffFile, DiffResult, OpenInEditorRequest } from '../../data/electron_action_bridge'
 import { dialogService } from '../../services/dialog_service'
-import { generateDiff as defaultGenerateDiff, openDiffLine as defaultOpenDiffLine } from '../../services/data/diff_service'
+import {
+    generateDiff as defaultGenerateDiff,
+    openDiffLine as defaultOpenDiffLine,
+    type DiffCommitReference,
+} from '../../services/data/diff_service'
 import { resolveClickedLine } from './diff_line_mapping'
 
-type GenerateDiff = (commitReference: CommitReference) => Promise<DiffResult>
+type GenerateDiff = (commitReference: DiffCommitReference) => Promise<DiffResult>
 type OpenDiffLine = (request: OpenInEditorRequest) => Promise<void>
 
 interface DiffViewProps {
-    commitReference: CommitReference
+    commitReference: DiffCommitReference
     generateDiff?: GenerateDiff
     initialPath?: string
     openDiffLine?: OpenDiffLine

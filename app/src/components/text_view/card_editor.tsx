@@ -36,6 +36,11 @@ export const CardEditor = memo(function CardEditor(props: CardEditorProps) {
     }, [activeCard?.header.internalId])
 
     useEffect(() => {
+        const activeCardId = activeCard?.header.internalId ?? null
+        setSelection((current) => current && current.cardId !== activeCardId ? null : current)
+    }, [activeCard?.header.internalId])
+
+    useEffect(() => {
         if (!selectedCommit) return undefined
         const handleKeyDown = (event: KeyboardEvent) => {
             if (event.key !== 'Escape') return
@@ -55,6 +60,7 @@ export const CardEditor = memo(function CardEditor(props: CardEditorProps) {
             const card = document.getObject()
             if (!card.header.internalId) throw new Error(`Cannot discard card history without an internal ID: ${card.path}`)
             historyStore.discardDocument(card.header.internalId)
+            setSelection((current) => current?.cardId === card.header.internalId ? null : current)
             if (cardMarkdownDataSource.getActiveDocumentId('list-card') === card.header.internalId) {
                 cardMarkdownDataSource.setActiveDocument('list-card', null)
             }

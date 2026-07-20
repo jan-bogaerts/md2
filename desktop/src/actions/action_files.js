@@ -123,7 +123,7 @@ async function cancelActionSchedule(project, actionsFolder, scheduleId) {
 }
 
 async function loadAgentConversation(project, referencePath) {
-    if (typeof referencePath !== 'string' || referencePath.length === 0) throw new Error('Missing agent log path');
+    if (typeof referencePath !== 'string' || referencePath.length === 0) throw new Error('Missing agent conversation reference');
 
     return loadActivityConversation(project, referencePath);
 }

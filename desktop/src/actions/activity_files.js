@@ -7,7 +7,7 @@ const {
     activityFilePath,
     conversationActivityReference,
     parseConversationActivityReference,
-} = require('../../../shared/log_paths.mjs');
+} = require('../../../shared/activity_paths.mjs');
 const {
     assertGitRoot,
     commitExists,
@@ -19,6 +19,7 @@ const {
 } = require('../git/git_commands');
 
 const activityWriteQueues = new Map();
+const VISIBILITY_CHECK_CONCURRENCY = 8;
 
 function requireProjectFolder(value) {
     if (typeof value !== 'string') throw new Error('Missing activity projectFolder');
@@ -79,6 +80,21 @@ async function updateActivity(project, projectFolder, origin, update) {
     return { activity, relativePath };
 }
 
+async function updateAndCommitActivity(project, projectFolder, origin, update, message) {
+    const rootPath = requireRootPath(project);
+    await assertGitRoot(rootPath);
+    const { absolutePath, relativePath } = resolveActivityPath(rootPath, projectFolder, origin);
+
+    return queueActivityUpdate(absolutePath, async () => {
+        const current = await readActivityFile(absolutePath, origin);
+        const next = update(current);
+        await writeActivityFile(absolutePath, next);
+        const commit = await commitTrackedPaths(rootPath, [relativePath], message);
+
+        return { activity: next, commit, relativePath };
+    });
+}
+
 async function appendActionActivity(project, projectFolder, origin, record) {
     return updateActivity(project, projectFolder, origin, (activity) => ({
         ...activity,
@@ -86,21 +102,36 @@ async function appendActionActivity(project, projectFolder, origin, record) {
     }));
 }
 
-async function upsertActivityConversation(project, projectFolder, origin, conversation) {
+async function appendAndCommitActionActivity(project, projectFolder, origin, record, message) {
+    return updateAndCommitActivity(project, projectFolder, origin, (activity) => ({
+        ...activity,
+        records: [...activity.records, record],
+    }), message);
+}
+
+function upsertConversation(activity, conversation) {
     const storedConversation = Object.fromEntries(Object.entries(conversation).filter(([fieldName]) => fieldName !== 'path'));
 
-    return updateActivity(project, projectFolder, origin, (activity) => ({
+    return {
         ...activity,
         conversations: activity.conversations.some(({ id }) => id === storedConversation.id)
             ? activity.conversations.map((current) => (current.id === storedConversation.id ? storedConversation : current))
             : [...activity.conversations, storedConversation],
-    }));
+    };
 }
 
-async function commitActivityFile(project, relativePath, message) {
-    const rootPath = requireRootPath(project);
+async function upsertActivityConversation(project, projectFolder, origin, conversation) {
+    return updateActivity(project, projectFolder, origin, (activity) => upsertConversation(activity, conversation));
+}
 
-    return commitTrackedPaths(rootPath, [relativePath], message);
+async function upsertAndCommitActivityConversation(project, projectFolder, origin, conversation, message) {
+    return updateAndCommitActivity(
+        project,
+        projectFolder,
+        origin,
+        (activity) => upsertConversation(activity, conversation),
+        message,
+    );
 }
 
 async function loadActivityConversation(project, reference) {
@@ -129,6 +160,31 @@ async function visibleCommit(rootPath, primaryBranch, validBranches, commit) {
         : null;
 }
 
+async function runVisibilityWorker(state) {
+    while (state.nextIndex < state.tasks.length) {
+        const taskIndex = state.nextIndex;
+        state.nextIndex += 1;
+        const { commit } = state.tasks[taskIndex];
+        state.results[taskIndex] = await visibleCommit(state.rootPath, state.primaryBranch, state.validBranches, commit);
+    }
+}
+
+async function filterVisibleCommits(rootPath, primaryBranch, validBranches, records) {
+    const tasks = records.flatMap((record, recordIndex) => (
+        record.commits.map((commit) => ({ commit, recordIndex }))
+    ));
+    const state = { nextIndex: 0, primaryBranch, results: Array(tasks.length), rootPath, tasks, validBranches };
+    const workerCount = Math.min(VISIBILITY_CHECK_CONCURRENCY, tasks.length);
+    await Promise.all(Array.from({ length: workerCount }, () => runVisibilityWorker(state)));
+    const commitsByRecord = records.map(() => []);
+    for (const [taskIndex, visible] of state.results.entries()) {
+        if (!visible) continue;
+        commitsByRecord[tasks[taskIndex].recordIndex].push(visible);
+    }
+
+    return records.map((record, recordIndex) => ({ ...record, commits: commitsByRecord[recordIndex] }));
+}
+
 async function loadCardActivity(project, projectFolder, cardInternalId, worktrees) {
     const rootPath = requireRootPath(project);
     await assertGitRoot(rootPath);
@@ -137,15 +193,7 @@ async function loadCardActivity(project, projectFolder, cardInternalId, worktree
     const { absolutePath } = resolveActivityPath(rootPath, projectFolder, origin);
     const activity = await readActivityFile(absolutePath, origin);
     const validBranches = new Set(worktrees.filter(({ valid }) => valid).map(({ branch }) => branch));
-    const records = [];
-    for (const record of activity.records) {
-        const commits = [];
-        for (const commit of record.commits) {
-            const visible = await visibleCommit(rootPath, project.branch, validBranches, commit);
-            if (visible) commits.push(visible);
-        }
-        records.push({ ...record, commits });
-    }
+    const records = await filterVisibleCommits(rootPath, project.branch, validBranches, activity.records);
 
     return { ...activity, records };
 }
@@ -156,11 +204,12 @@ function activityConversationReference(projectFolder, origin, conversationId) {
 
 module.exports = {
     activityConversationReference,
+    appendAndCommitActionActivity,
     appendActionActivity,
-    commitActivityFile,
     loadCardActivity,
     loadActivityConversation,
     readActivityFile,
     resolveActivityPath,
+    upsertAndCommitActivityConversation,
     upsertActivityConversation,
 };

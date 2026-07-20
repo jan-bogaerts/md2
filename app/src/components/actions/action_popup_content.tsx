@@ -198,10 +198,10 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
                 ) : null}
             </Stack>
             <Box sx={{ alignItems: 'center', bgcolor: 'background.default', borderTop: 1, borderColor: 'divider', display: 'flex', gap: 1, px: 2, py: 1.5 }}>
-                {showUsageSummary && action.type === 'agent' && context.file ? (
+                {showUsageSummary && action.type === 'agent' && context.cardInternalId ? (
                     <ActionUsageSummary
                         actionId={action.id}
-                        cardPath={context.file}
+                        cardInternalId={context.cardInternalId}
                         conversations={controller.conversations}
                         history={controller.history}
                     />

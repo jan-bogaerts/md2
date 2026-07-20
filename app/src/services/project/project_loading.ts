@@ -101,6 +101,7 @@ export interface ProjectLoadingDeps {
     commitPathsInFlight(): Set<string>
     dispatchChanged(): void
     dispatchPersistenceChanged(): void
+    dispatchRepositoryChanged(event: ProjectWatchEvent): void
     ensureCardInternalIds(): Promise<void>
     files(): MarkdownFile[]
     flushPendingChanges(): Promise<void>
@@ -489,6 +490,7 @@ export class ProjectLoading {
     }
 
     private handleProjectWatchEvent(event: ProjectWatchEvent) {
+        this.dependencies.dispatchRepositoryChanged(event)
         const { config } = this.dependencies.requireDependencies()
         if (isActionDefinitionPath(event.path, config.actionsFolder)) {
             const change: ActionReloadChange = this.dependencies.commitPathsInFlight().has(event.path)

@@ -2,11 +2,19 @@ import { parseAgentConversation } from './agent_conversations.mjs'
 
 const ACTIVITY_VERSION = 1
 const ACTION_ACTIVITY_STATUSES = new Set(['cancelled', 'completed', 'failed', 'okButNotAfter'])
+const TERMINAL_CONVERSATION_STATUSES = new Set(['cancelled', 'completed', 'failed'])
 
 function requiredString(value, fieldName, allowEmpty = false) {
     if (typeof value !== 'string' || (!allowEmpty && value.length === 0)) throw new Error(`Malformed activity file: missing ${fieldName}`)
 
     return value
+}
+
+function requiredTimestamp(value, fieldName) {
+    const timestamp = requiredString(value, fieldName)
+    if (Number.isNaN(Date.parse(timestamp))) throw new Error(`Malformed activity file: invalid ${fieldName}`)
+
+    return timestamp
 }
 
 function nonNegativeInteger(value, fieldName) {
@@ -29,12 +37,16 @@ function parseOrigin(value) {
     return { cardInternalId: requiredString(value.cardInternalId, 'origin.cardInternalId'), kind: 'card' }
 }
 
+function sameOrigin(first, second) {
+    return first.kind === second.kind && first.cardInternalId === second.cardInternalId
+}
+
 function parseCommit(value, index) {
     if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`Malformed activity file: invalid commits[${index}]`)
     const commit = {
         branch: requiredString(value.branch, `commits[${index}].branch`),
         commit: requiredString(value.commit, `commits[${index}].commit`),
-        committedAt: requiredString(value.committedAt, `commits[${index}].committedAt`),
+        committedAt: requiredTimestamp(value.committedAt, `commits[${index}].committedAt`),
         deletions: nonNegativeInteger(value.deletions, `commits[${index}].deletions`),
         filePaths: requiredStringArray(value.filePaths, `commits[${index}].filePaths`),
         filesChanged: nonNegativeInteger(value.filesChanged, `commits[${index}].filesChanged`),
@@ -58,7 +70,7 @@ function parseHistory(value, index) {
     const status = requiredString(value.status, `records[${index}].history.status`)
     if (status !== 'completed' && status !== 'failed') throw new Error(`Malformed activity file: invalid records[${index}].history.status`)
     const history = {
-        completedAt: requiredString(value.completedAt, `records[${index}].history.completedAt`),
+        completedAt: requiredTimestamp(value.completedAt, `records[${index}].history.completedAt`),
         output: requiredString(value.output, `records[${index}].history.output`, true),
         prompt: requiredString(value.prompt, `records[${index}].history.prompt`, true),
         status,
@@ -72,30 +84,36 @@ function parseHistory(value, index) {
     return history
 }
 
-function parseRecord(value, index) {
+function parseRecord(value, index, activityOrigin) {
     if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`Malformed activity file: invalid records[${index}]`)
     const status = requiredString(value.status, `records[${index}].status`)
     if (!ACTION_ACTIVITY_STATUSES.has(status)) throw new Error(`Malformed activity file: invalid records[${index}].status`)
     if (!Array.isArray(value.commits)) throw new Error(`Malformed activity file: invalid records[${index}].commits`)
     if (!Array.isArray(value.conversationIds)) throw new Error(`Malformed activity file: invalid records[${index}].conversationIds`)
 
+    const origin = parseOrigin(value.origin)
+    if (!sameOrigin(origin, activityOrigin)) throw new Error(`Malformed activity file: records[${index}].origin does not match activity origin`)
+
     return {
         commits: value.commits.map(parseCommit),
-        completedAt: requiredString(value.completedAt, `records[${index}].completedAt`),
+        completedAt: requiredTimestamp(value.completedAt, `records[${index}].completedAt`),
         conversationIds: requiredStringArray(value.conversationIds, `records[${index}].conversationIds`),
         executionId: requiredString(value.executionId, `records[${index}].executionId`),
         history: parseHistory(value.history, index),
-        origin: parseOrigin(value.origin),
+        origin,
         rootActionId: requiredString(value.rootActionId, `records[${index}].rootActionId`),
         rootActionLabel: requiredString(value.rootActionLabel, `records[${index}].rootActionLabel`),
-        startedAt: requiredString(value.startedAt, `records[${index}].startedAt`),
+        startedAt: requiredTimestamp(value.startedAt, `records[${index}].startedAt`),
         status,
     }
 }
 
-function parseConversation(value, index) {
+function parseConversation(value, index, activityOrigin) {
     try {
         const parsed = parseAgentConversation(JSON.stringify(value), '')
+        if (!TERMINAL_CONVERSATION_STATUSES.has(parsed.status)) throw new Error(`conversation status is not terminal: ${parsed.status}`)
+        const expectedCardInternalId = activityOrigin.kind === 'card' ? activityOrigin.cardInternalId : null
+        if (parsed.cardInternalId !== expectedCardInternalId) throw new Error('conversation cardInternalId does not match activity origin')
 
         return Object.fromEntries(Object.entries(parsed).filter(([fieldName]) => fieldName !== 'path'))
     } catch (error) {
@@ -117,15 +135,15 @@ export function parseActivityFile(content, expectedOrigin = null) {
     const origin = parseOrigin(value.origin)
     if (expectedOrigin) {
         const expected = parseOrigin(expectedOrigin)
-        if (origin.kind !== expected.kind || origin.cardInternalId !== expected.cardInternalId) {
+        if (!sameOrigin(origin, expected)) {
             throw new Error('Malformed activity file: origin does not match requested activity')
         }
     }
 
     return {
-        conversations: value.conversations.map(parseConversation),
+        conversations: value.conversations.map((conversation, index) => parseConversation(conversation, index, origin)),
         origin,
-        records: value.records.map(parseRecord),
+        records: value.records.map((record, index) => parseRecord(record, index, origin)),
         version: ACTIVITY_VERSION,
     }
 }
@@ -133,6 +151,9 @@ export function parseActivityFile(content, expectedOrigin = null) {
 export function findActivityConversation(activity, conversationId) {
     const conversation = activity.conversations.find(({ id }) => id === conversationId)
     if (!conversation) throw new Error(`Activity conversation not found: ${conversationId}`)
+    if (!TERMINAL_CONVERSATION_STATUSES.has(conversation.status)) {
+        throw new Error(`Activity conversation is not terminal: ${conversationId}`)
+    }
 
     return conversation
 }

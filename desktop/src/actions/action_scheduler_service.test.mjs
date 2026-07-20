@@ -77,14 +77,13 @@ function createLocalGitService(initialSchedules, actionFiles = [createAction()],
     const histories = [];
 
     return {
-        appendActionActivity: vi.fn(async (_project, projectFolder, _origin, record) => {
+        appendAndCommitActionActivity: vi.fn(async (_project, projectFolder, _origin, record) => {
             const request = { actionId: record.rootActionId, context, projectFolder };
             const entry = { ...record.history, commits: record.commits };
             histories.push({ entry, request });
 
             return { relativePath: 'design/activity/card__card-022.json' };
         }),
-        commitActivityFile: vi.fn(async () => 'activity-commit'),
         cancelActionSchedule: vi.fn(async (_project, _actionsFolder, scheduleId) => {
             schedules = schedules.map((schedule) => {
                 if (schedule.id !== scheduleId) return schedule;

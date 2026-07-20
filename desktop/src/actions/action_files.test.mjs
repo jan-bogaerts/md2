@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
 const require = createRequire(import.meta.url);
 const { appendActionActivity } = require('./activity_files');
 const { loadActionFiles, loadActionRunHistory, loadAgentConversation } = require('./action_files');
-const { conversationActivityReference } = require('../../../shared/log_paths.mjs');
+const { conversationActivityReference } = require('../../../shared/activity_paths.mjs');
 
 const origin = { cardInternalId: 'card-1', kind: 'card' };
 const context = { cardInternalId: 'card-1', file: 'design/F-010.md', kind: 'card', type: 'feature' };

@@ -1,7 +1,7 @@
 import { Box, Button, Divider, Stack, Typography } from '@mui/material'
 import { useEffect, useState, type MouseEvent } from 'react'
-import type { CommitReference } from '../../data/electron_action_bridge'
 import { loadCardBodyDiff, type CardBodyDiff, type CardCommit } from '../../services/actions/card_commit_history'
+import type { DiffCommitReference } from '../../services/data/diff_service'
 import { DiffView } from '../actions/diff_view'
 import { MarkdownEditor } from '../editor/markdown_editor'
 
@@ -15,18 +15,11 @@ function ignoreHistoricalChange() {
     // Historical editor is read-only and intentionally disconnected from persistence.
 }
 
-function diffReference(commit: CardCommit): CommitReference {
+function diffReference(commit: CardCommit): DiffCommitReference {
     return {
-        actionId: commit.actionId ?? commit.record.rootActionId,
-        actionName: commit.actionName ?? commit.record.rootActionLabel,
         branch: commit.branch,
         commit: commit.commit,
-        committedAt: commit.committedAt,
-        deletions: commit.deletions,
         filePaths: commit.filePaths,
-        filesChanged: commit.filesChanged,
-        insertions: commit.insertions,
-        repositoryRoot: '',
     }
 }
 
@@ -46,6 +39,7 @@ export function CardCommitDiffPanel(props: CardCommitDiffPanelProps) {
 
     useEffect(() => {
         let active = true
+        if (commit.available === false) return () => { active = false }
         if (!touchesCurrentPath) return () => { active = false }
         void loadCardBodyDiff(commit, cardPath).then((nextDiff) => {
             if (active) setBodyDiff(nextDiff)
@@ -57,6 +51,9 @@ export function CardCommitDiffPanel(props: CardCommitDiffPanelProps) {
     }, [cardPath, commit, touchesCurrentPath])
 
     const hasBodyChanges = !!bodyDiff && bodyDiff.oldBody !== bodyDiff.newBody
+    const displayError = commit.available === false
+        ? new Error('Commit is no longer available in this repository')
+        : error
 
     return (
         <Box aria-label="Card commit diff" role="region" sx={{ display: 'flex', flex: 1, flexDirection: 'column', minHeight: 0, overflowY: 'auto' }}>
@@ -69,8 +66,8 @@ export function CardCommitDiffPanel(props: CardCommitDiffPanelProps) {
                 </Box>
                 <Button onClick={onExit} size="small" variant="outlined">Exit diff</Button>
             </Box>
-            {error ? <Typography color="error" role="alert" sx={{ p: 2 }}>{error.message}</Typography> : null}
-            {touchesCurrentPath && !error && !bodyDiff ? <Typography sx={{ p: 2 }}>Loading diff…</Typography> : null}
+            {displayError ? <Typography color="error" role="alert" sx={{ p: 2 }}>{displayError.message}</Typography> : null}
+            {touchesCurrentPath && !displayError && !bodyDiff ? <Typography sx={{ p: 2 }}>Loading diff…</Typography> : null}
             {touchesCurrentPath && bodyDiff && !hasBodyChanges ? (
                 <Typography color="text.secondary" sx={{ p: 2 }}>No body changes in this commit</Typography>
             ) : null}

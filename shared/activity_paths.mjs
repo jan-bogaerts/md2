@@ -4,15 +4,6 @@ function normalizeFolderPath(folderPath) {
     return folderPath.replace(/\\/gu, '/').replace(/^\/+|\/+$/gu, '')
 }
 
-export function normalizeLogFileValue(value) {
-    if (typeof value !== 'string' || value.length === 0) throw new Error('Missing log filename value')
-
-    const normalized = value.toLowerCase().replace(/[^a-z0-9]+/gu, '_').replace(/^_+|_+$/gu, '')
-    if (normalized.length === 0) throw new Error(`Log filename value has no letters or digits: ${value}`)
-
-    return normalized
-}
-
 function requireActivityId(value, fieldName) {
     if (typeof value !== 'string' || value.length === 0) throw new Error(`Missing ${fieldName}`)
     if (!ACTIVITY_ID_PATTERN.test(value) || value === '.' || value === '..') throw new Error(`Invalid ${fieldName}: ${value}`)

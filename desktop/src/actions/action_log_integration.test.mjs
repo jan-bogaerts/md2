@@ -43,7 +43,15 @@ describe('action activity integration', () => {
                     model: 'gpt-5',
                 }),
                 agentRunnerService: new AgentRunnerService(),
-                localGitService: { ...localGitService, commitActivityFile: async () => null },
+                localGitService: {
+                    ...localGitService,
+                    appendAndCommitActionActivity: (activityProject, activityProjectFolder, origin, record) => (
+                        localGitService.appendActionActivity(activityProject, activityProjectFolder, origin, record)
+                    ),
+                    upsertAndCommitActivityConversation: (activityProject, activityProjectFolder, origin, conversation) => (
+                        localGitService.upsertActivityConversation(activityProject, activityProjectFolder, origin, conversation)
+                    ),
+                },
             });
             runner.startProject(project, actionsFolder, projectFolder);
 
@@ -57,7 +65,7 @@ describe('action activity integration', () => {
             const activityFolder = join(rootPath, projectFolder, 'activity');
             expect(await readdir(activityFolder)).toEqual(['card__card-1.json']);
             const activity = JSON.parse(await readFile(join(activityFolder, 'card__card-1.json'), 'utf8'));
-            expect(activity.conversations).toEqual([expect.objectContaining({ actionId: 'review.card', cardPath: `${projectFolder}/active/F-1 Test.md`, status: 'completed' })]);
+            expect(activity.conversations).toEqual([expect.objectContaining({actionId: 'review.card', cardInternalId: 'card-1', status: 'completed'})]);
             expect(activity.records).toEqual([expect.objectContaining({
                 conversationIds: [activity.conversations[0].id],
                 history: expect.objectContaining({ output: 'done', status: 'completed' }),

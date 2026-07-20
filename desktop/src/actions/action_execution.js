@@ -214,15 +214,11 @@ class ActionExecution {
             startedAt: this.startedAt,
             status,
         };
-        const { relativePath } = await this.localGitService.appendActionActivity(
+        await this.localGitService.appendAndCommitActionActivity(
             this.project,
             this.projectFolder,
             this.activityOrigin,
             record,
-        );
-        await this.localGitService.commitActivityFile(
-            this.project,
-            relativePath,
             `Record ${this.rootAction.label} activity`,
         );
     }

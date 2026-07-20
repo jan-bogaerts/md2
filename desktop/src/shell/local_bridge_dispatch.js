@@ -178,7 +178,6 @@ function createLocalBridgeDispatch(dependencies) {
                 activityOrigin: { kind: 'project' },
                 activityProject: currentLocalProject,
                 command: resolved.command,
-                deferActivityCommit: false,
                 prompt: `${SEARCH_AGENT_PROMPT_PREFIX}${input}`,
                 projectFolder,
                 title: 'Search RegExp',

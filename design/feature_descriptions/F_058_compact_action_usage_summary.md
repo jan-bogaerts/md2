@@ -32,7 +32,7 @@ F_056 stores every commit produced by a root action chain in `commits[]` on that
 - Show the input, cached input, output, reasoning, and provider-reported cost in a tooltip on that label. Omit cost when no provider reported it.
 - Apply the compact token presentation everywhere `AgentUsageDisplay` is used. The project usage popup keeps its project/current/release grouping, but each row shows only its total until hovered or focused.
 - In an agent action popup opened for a card, show one compact summary for that action and card:
-  - `tokens: <total>` is the sum of the loaded conversations whose `actionId` and `cardPath` match the current action and card;
+  - `tokens: <total>` is the sum of the loaded conversations whose `actionId` and stable `cardInternalId` match the current action and card;
   - `lines: <total>` is the sum of insertions and deletions reported for every commit in the loaded root-action history for that same action and card.
 - Show `lines` only when the current action/card history contains at least one commit. A commit with no textual changes still produces `lines: 0`.
 - The line tooltip shows total files changed, insertions, and deletions, followed by the short hash and insertion/deletion counts for each commit in run order. The existing commit-history popup remains the place to inspect commit metadata and full diffs.

@@ -1,4 +1,3 @@
-export function normalizeLogFileValue(value: string): string
 export function projectActivityFolder(projectFolder: string): string
 export function cardActivityFileName(cardInternalId: string): string
 export function projectActivityFileName(): string

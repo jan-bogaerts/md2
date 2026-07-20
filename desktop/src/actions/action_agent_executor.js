@@ -36,8 +36,9 @@ class ActionAgentExecutor {
                 continuationReferencePath(input.runInput.continueFrom),
             )
             : null;
-        if (sourceConversation && sourceConversation.cardPath !== (input.context.file ?? null)) {
-            throw new Error(`Agent log belongs to ${sourceConversation.cardPath}, not ${input.context.file}`);
+        const expectedCardInternalId = input.activityOrigin.kind === 'card' ? input.activityOrigin.cardInternalId : null;
+        if (sourceConversation && sourceConversation.cardInternalId !== expectedCardInternalId) {
+            throw new Error(`Agent conversation belongs to ${sourceConversation.cardInternalId}, not ${expectedCardInternalId}`);
         }
 
         const providerSession = sourceConversation?.providerSessions
@@ -67,7 +68,6 @@ class ActionAgentExecutor {
             activityProject: input.primaryProject,
             ...(input.context.file ? { cardPath: input.context.file } : {}),
             command,
-            deferActivityCommit: true,
             ...(sourceConversation ? { conversation: sourceConversation, reference } : {}),
             ...(contextInput ? { contextInput } : {}),
             prompt,

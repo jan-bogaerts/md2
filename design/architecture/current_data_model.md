@@ -19,7 +19,7 @@ I treated “identifier” as a path being stored in state, used as a map/set ke
 | Tabs | [tab_bar.tsx](C:/Users/janbo/Documents/dev/md2/app/src/components/text_view/tab_bar.tsx:20), [use_open_tabs.ts](C:/Users/janbo/Documents/dev/md2/app/src/components/text_view/use_open_tabs.ts:15) | A tab’s identity and value are its path; `activePath` identifies the active object. |
 | Search results | [search_results.tsx](C:/Users/janbo/Documents/dev/md2/app/src/components/shell/search/search_results.tsx:15) | Card/file results use `match.path` as React key and navigation target. |
 | Action editor | [use_action_editor_controller.ts](C:/Users/janbo/Documents/dev/md2/app/src/components/actions/use_action_editor_controller.ts:26) | An action draft is keyed by its source JSON file’s `sourcePath`, despite the action also having a stable `id`. |
-| Conversations | [action_conversation_picker.tsx](C:/Users/janbo/Documents/dev/md2/app/src/components/actions/action_conversation_picker.tsx:36), `ActionPopupContent`, `useActionPopupController` | Conversation log files are selected by `conversation.path`; conversations are associated with cards through `cardPath`. |
+| Conversations | [action_conversation_picker.tsx](C:/Users/janbo/Documents/dev/md2/app/src/components/actions/action_conversation_picker.tsx:36), `ActionPopupContent`, `useActionPopupController` | Conversation records are selected by compound activity reference; card ownership uses stable `cardInternalId`. |
 | Action status/usage | `useActionExecutions`, `ActionUsageSummary`, `usePendingFileSave` | Running executions, usage, and pending saves are queried by card/file path. |
 | Diff viewer | [diff_view.tsx](C:/Users/janbo/Documents/dev/md2/app/src/components/actions/diff_view.tsx:111) | Diff file objects use `file.path` as their React key and editor target. |
 | Remarkable import | [remarkable_import_panel.tsx](C:/Users/janbo/Documents/dev/md2/app/src/components/remarkable_import_panel.tsx:73) | Device files are selected by path; an existing target card is selected by `card.path`. |
@@ -85,7 +85,7 @@ Examples:
 ```text
 design/active/F-12-search.md
 actions/review-code.json
-design/logs/conversation__card__active_f_12_search__abc.json
+design/activity/card__550e8400-e29b-41d4-a716-446655440000.json
 ```
 
 Electron normalizes these to forward slashes. When reading a file, it calculates:
@@ -110,20 +110,20 @@ Paths are then used for:
 - Emitting filesystem-watch events.
 - Identifying action source JSON files.
 - Scoping action contexts through `context.file`.
-- Associating conversations through `cardPath`.
-- Deriving conversation and action-history log filenames.
+- Keeping `cardPath` as historical execution metadata, not ownership.
+- Locating card activity through stable `cardInternalId`.
 - Locking concurrent tracked actions per card path.
 - Recording changed files and commit metadata.
 
 A particularly important example is action locking: Electron constructs a `cardKey` from `rootPath + context.file`, so the card’s filepath becomes its concurrency identity: [action_worktree_execution_service.js](C:/Users/janbo/Documents/dev/md2/desktop/src/actions/action_worktree_execution_service.js:120).
 
-Similarly, conversation continuation verifies:
+Conversation continuation verifies stable ownership:
 
 ```text
-sourceConversation.cardPath === currentContext.file
+sourceConversation.cardInternalId === currentContext.cardInternalId
 ```
 
-And action-history filenames are derived from `context.file`: [log_paths.mjs](C:/Users/janbo/Documents/dev/md2/shared/log_paths.mjs:44).
+Card activity filenames are derived from `cardInternalId`: [activity_paths.mjs](C:/Users/janbo/Documents/dev/md2/shared/activity_paths.mjs:22).
 
 ## Overall conclusion
 
@@ -131,6 +131,6 @@ There are three identity approaches in the current model:
 
 - Cards have potentially stable `header.internalId` and user-facing `header.id`.
 - Actions use stable `action.id` for execution, but `sourcePath` for editing.
-- UI selection, tabs, card operations, conversations, histories, and some Electron locks use mutable file paths.
+- UI selection, tabs, card operations, and some Electron locks use mutable file paths; conversations and activity history use stable card identity.
 
-Therefore, a card rename or move is not merely a storage-location change. Unless every stored path reference is migrated, it can affect open UI state, pending edits, execution association, conversation association, schedule context, action history location, and concurrency locking.
+Therefore, a card rename or move still affects path-based UI and execution concerns, but conversation and activity ownership remain attached through stable card identity.

@@ -2,7 +2,7 @@ import type { ActionFile } from '../../data/action_types'
 import { ACTION_SCHEDULES_FILE } from '../../data/action_schedule_types'
 import { MissingWorkingFolderError, type AgentConversation, type MarkdownFile, type ProjectReference } from '../../data/data_types'
 import { findActivityConversation, parseActivityFile } from '../../../../shared/card_activity.mjs'
-import { parseConversationActivityReference } from '../../../../shared/log_paths.mjs'
+import { parseConversationActivityReference } from '../../../../shared/activity_paths.mjs'
 import {
     normalizeBranches,
     normalizeProjectAsset,

@@ -226,6 +226,7 @@ export interface AgentTokenUsage {
 
 export interface AgentConversation {
     actionId?: string | null
+    cardInternalId?: string | null
     cardPath: string | null
     completedAt: string | null
     events: AgentConversationEvent[]

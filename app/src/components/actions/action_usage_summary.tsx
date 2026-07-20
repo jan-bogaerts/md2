@@ -8,7 +8,7 @@ const NUMBER_FORMAT = new Intl.NumberFormat('en-US')
 
 interface ActionUsageSummaryProps {
     actionId: string
-    cardPath: string
+    cardInternalId: string
     conversations: AgentConversation[]
     history: ActionRunHistoryEntry[]
 }
@@ -37,8 +37,8 @@ function commitLine(commit: CommitReference) {
 
 /** Compact token and changed-line totals for one agent action on one card. */
 export function ActionUsageSummary(props: ActionUsageSummaryProps) {
-    const { actionId, cardPath, conversations, history } = props
-    const usage = actionCardAgentTokenUsage(conversations, actionId, cardPath)
+    const { actionId, cardInternalId, conversations, history } = props
+    const usage = actionCardAgentTokenUsage(conversations, actionId, cardInternalId)
     const lines = lineUsage(history)
     const totalLines = lines.insertions + lines.deletions
     const lineTooltip = (

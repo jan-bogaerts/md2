@@ -8,7 +8,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 const require = createRequire(import.meta.url);
 const { AgentRunnerService } = require('./agent_runner_service');
 const { findActivityConversation } = require('../../../shared/card_activity.mjs');
-const { conversationActivityReference, parseConversationActivityReference } = require('../../../shared/log_paths.mjs');
+const { conversationActivityReference, parseConversationActivityReference } = require('../../../shared/activity_paths.mjs');
 
 function createProject(rootPath) {
     return { branch: 'main', id: 'local', rootPath };

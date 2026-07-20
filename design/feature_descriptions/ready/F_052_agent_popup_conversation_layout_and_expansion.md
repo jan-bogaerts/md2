@@ -33,10 +33,10 @@ Action history is keyed by action id and context and stores output summaries; an
 ### Conversation history dropdown
 
 - Replace `ActionRunHistory` in the agent popup with the dropdown; do not derive the picker from `ActionRunHistoryEntry` summaries.
-- Each item represents exactly one persisted `AgentConversation` belonging to the popup context. Card popups include conversations whose `cardPath` matches the card. Project popups include project-scoped conversations whose `cardPath` is `null`. Do not mix conversations from another card or scope.
+- Each item represents exactly one persisted `AgentConversation` belonging to the popup context. Card popups include conversations whose stable `cardInternalId` matches the card. Project popups include project-scoped conversations whose `cardInternalId` is `null`. Do not mix conversations from another card or scope.
 - Sort conversations newest first by `startedAt` and display the date and local time for every item.
 - When the log contains a non-empty explicit `title`, use it as the item text and show the date/time with it. Without an explicit title, use the date/time as the item text. Preserve whether the title was explicit during parsing instead of presenting the current id fallback as a title.
-- Add a listing/loading boundary that works for local Git, GitHub and remote-control storage. Card frontmatter references can remain the card discovery source; project scope needs an explicit way to discover its conversation references. Keep path validation and the existing `cardPath` ownership check.
+- Add a listing/loading boundary that works for local Git, GitHub and remote-control storage. Card frontmatter references can remain the card discovery source; project scope needs an explicit way to discover its conversation references. Keep path validation and stable `cardInternalId` ownership checks.
 - Refresh the picker after a run is persisted. A running conversation may appear immediately, but it must not be duplicated when the persisted record arrives.
 
 ### Full-height mode

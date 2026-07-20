@@ -19,9 +19,9 @@ export function cardAgentTokenUsage(card: ProjectCard): AgentTokenUsage {
 }
 
 /** Aggregate loaded conversations belonging to one action on one card. */
-export function actionCardAgentTokenUsage(conversations: AgentConversation[], actionId: string, cardPath: string): AgentTokenUsage {
+export function actionCardAgentTokenUsage(conversations: AgentConversation[], actionId: string, cardInternalId: string): AgentTokenUsage {
     const matchingUsage = conversations
-        .filter((conversation) => conversation.actionId === actionId && conversation.cardPath === cardPath)
+        .filter((conversation) => conversation.actionId === actionId && conversation.cardInternalId === cardInternalId)
         .map(({ usage }) => usage)
 
     return sumAgentTokenUsage(matchingUsage)
@@ -38,7 +38,7 @@ function releaseName(cardPath: string, projectFolder: string) {
     return releaseSegments.length >= 2 && releaseSegments[0].length > 0 ? releaseSegments[0] : null
 }
 
-/** Aggregate loaded agent logs by current board, archived release, and project. */
+/** Aggregate loaded agent conversations by current board, archived release, and project. */
 export function projectAgentTokenUsage(snapshot: ProjectSnapshot | null, projectFolder: string): ProjectAgentUsage {
     const activeCards = snapshot?.activeCards ?? []
     const backgroundCards = snapshot?.backgroundCards ?? []

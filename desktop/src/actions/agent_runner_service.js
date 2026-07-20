@@ -157,7 +157,6 @@ class AgentRunnerService {
         const request = {
             activityOrigin: { kind: 'project' },
             activityProject: project,
-            deferActivityCommit: true,
             ...requestValue,
         };
         const rootPath = requireRootPath(project);

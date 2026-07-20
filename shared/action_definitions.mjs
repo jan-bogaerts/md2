@@ -1,5 +1,12 @@
 import { validateAgentSelection, validateThinkingLevel } from './agent_profiles.mjs'
-import { normalizeLogFileValue } from './log_paths.mjs'
+
+function normalizeActionId(value) {
+    if (typeof value !== 'string' || value.length === 0) throw new Error('Missing action id')
+    const normalized = value.toLowerCase().replace(/[^a-z0-9]+/gu, '_').replace(/^_+|_+$/gu, '')
+    if (normalized.length === 0) throw new Error(`Action id has no letters or digits: ${value}`)
+
+    return normalized
+}
 
 const ACTION_TYPES = ['agent', 'command']
 const LEGACY_FIELDS = ['after', 'before', 'runIn', 'text']
@@ -361,14 +368,14 @@ export function parseActionDefinitionFiles(files) {
 export function validateActionDefinitionGraph(entries, dependencies = {}) {
     const rawDefinitions = entries.map(({ definition, path }) => validateRawDefinition(definition, path, dependencies))
     const ids = new Set(BUILTIN_ACTIONS.map(({ id }) => id))
-    const normalizedIds = new Map(BUILTIN_ACTIONS.map(({ id }) => [normalizeLogFileValue(id), id]))
+    const normalizedIds = new Map(BUILTIN_ACTIONS.map(({ id }) => [normalizeActionId(id), id]))
     for (const raw of rawDefinitions) {
         if (ids.has(raw.id)) throw fail(`Duplicate action id ${raw.id} in ${raw.sourcePath}`, 'duplicate-id', raw.sourcePath, 'id')
-        const normalizedId = normalizeLogFileValue(raw.id)
+        const normalizedId = normalizeActionId(raw.id)
         const collidingId = normalizedIds.get(normalizedId)
         if (collidingId) {
             throw fail(
-                `Action id ${raw.id} in ${raw.sourcePath} collides with ${collidingId} after log filename normalization`,
+                `Action id ${raw.id} in ${raw.sourcePath} collides with ${collidingId} after normalization`,
                 'normalized-id-collision',
                 raw.sourcePath,
                 'id',

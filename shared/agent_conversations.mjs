@@ -2,7 +2,7 @@ const AGENT_MESSAGE_ROLES = new Set(['assistant', 'user'])
 const AGENT_STATUSES = new Set(['cancelled', 'completed', 'failed', 'running'])
 
 function requiredString(value, fieldName) {
-    if (typeof value !== 'string' || value.length === 0) throw new Error(`Malformed agent log: missing ${fieldName}`)
+    if (typeof value !== 'string' || value.length === 0) throw new Error(`Malformed agent conversation: missing ${fieldName}`)
 
     return value
 }
@@ -74,16 +74,17 @@ function normalizeArray(value, normalize) {
 /** Parse one canonical conversation record while discarding malformed optional entries. */
 export function parseAgentConversation(content, referencePath) {
     const parsed = JSON.parse(content)
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('Malformed agent log: root must be an object')
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('Malformed agent conversation: root must be an object')
     const id = requiredString(parsed.id, 'id')
     const status = requiredString(parsed.status, 'status')
-    if (!AGENT_STATUSES.has(status)) throw new Error(`Malformed agent log: invalid status ${status}`)
+    if (!AGENT_STATUSES.has(status)) throw new Error(`Malformed agent conversation: invalid status ${status}`)
     const startedAt = requiredString(parsed.startedAt, 'startedAt')
     const hasExplicitTitle = typeof parsed.title === 'string' && parsed.title.trim().length > 0
     const usage = normalizeUsage(parsed.usage)
 
     return {
         actionId: optionalString(parsed.actionId),
+        cardInternalId: optionalString(parsed.cardInternalId),
         cardPath: optionalString(parsed.cardPath),
         completedAt: optionalString(parsed.completedAt),
         events: normalizeArray(parsed.events, normalizeEvent),

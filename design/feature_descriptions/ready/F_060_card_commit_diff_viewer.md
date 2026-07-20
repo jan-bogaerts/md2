@@ -4,14 +4,14 @@ title: card commit diff viewer
 status: ready
 owner: JB
 affects:
-  - shared/log_paths.mjs
+  - shared/activity_paths.mjs
   - app/src/data/action_context.ts
   - app/src/data/electron_action_bridge.ts
   - desktop/src/actions/action_execution.js
   - desktop/src/actions/action_files.js
   - desktop/src/actions/agent_conversation_persistence.js
   - desktop/src/actions/agent_runner_service.js
-  - desktop/src/actions/project_log_paths.js
+  - desktop/src/actions/activity_files.js
   - desktop/src/git/diff_service.js
   - desktop/src/git/worktree_service.js
   - desktop/src/shell/local_bridge_dispatch.js

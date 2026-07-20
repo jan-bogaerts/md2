@@ -10,6 +10,7 @@ const project = { branch: 'main', rootPath: 'C:/repo' };
 
 function conversation(overrides = {}) {
     return {
+        cardInternalId: cardContext.cardInternalId,
         cardPath: cardContext.file,
         events: [],
         id: 'conversation-1',
@@ -147,10 +148,10 @@ describe('ActionAgentExecutor', () => {
 
     it('rejects conversation from another context card', async () => {
         const { agentRunnerService, executor, localGitService } = createExecutor();
-        localGitService.loadAgentConversation.mockResolvedValueOnce(conversation({ cardPath: 'design/other.md' }));
+        localGitService.loadAgentConversation.mockResolvedValueOnce(conversation({ cardInternalId: 'card-2' }));
 
         await expect(executor.execute(executionInput({ runInput: { continueFrom: 'source.json', extraPrompt: '' } })))
-            .rejects.toThrow('Agent log belongs to design/other.md, not design/card.md');
+            .rejects.toThrow('Agent conversation belongs to card-2, not card-1');
         expect(agentRunnerService.start).not.toHaveBeenCalled();
     });
 

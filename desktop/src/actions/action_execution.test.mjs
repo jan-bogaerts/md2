@@ -30,7 +30,7 @@ function createExecution(rootAction, overrides = {}) {
     const events = [];
     const appendActionRunHistory = overrides.localGitService?.appendActionRunHistory ?? vi.fn(async () => []);
     const localGitService = {
-        appendActionActivity: vi.fn(async (_project, _projectFolder, _origin, record) => {
+        appendAndCommitActionActivity: vi.fn(async (_project, _projectFolder, _origin, record) => {
             const commits = record.commits.map((commit) => ({
                 ...commit,
                 actionId: commit.actionId ?? record.rootActionId,
@@ -42,7 +42,6 @@ function createExecution(rootAction, overrides = {}) {
             return { relativePath: 'design/activity/card__card-1.json' };
         }),
         appendActionRunHistory,
-        commitActivityFile: vi.fn(async () => 'activity-commit'),
         ...overrides.localGitService,
     };
     const commandRunner = overrides.commandRunner ?? vi.fn(async (_project, command, _signal, onOutput) => {
@@ -178,12 +177,11 @@ describe('ActionExecution', () => {
             return { command, exitCode: 0, stderr: '', stdout: 'done' };
         });
         const localGitService = {
-            appendActionActivity: vi.fn(async () => {
+            appendAndCommitActionActivity: vi.fn(async () => {
                 order.push('history');
 
                 return { relativePath: 'design/activity/card__card-1.json' };
             }),
-            commitActivityFile: vi.fn(async () => 'activity-commit'),
         };
         const events = [];
         const execution = new ActionExecution({
@@ -360,7 +358,7 @@ describe('ActionExecution', () => {
 
         await expect(execution.completion).resolves.toMatchObject({ status: 'completed' });
 
-        const record = service.appendActionActivity.mock.calls[0][3];
+        const record = service.appendAndCommitActionActivity.mock.calls[0][3];
         expect(record.commits.map(({ actionId }) => actionId ?? 'main')).toEqual(['before', 'main', 'matching', 'after']);
         expect(record.commits.every((commit) => !Object.hasOwn(commit, 'repositoryRoot'))).toBe(true);
     });
@@ -396,8 +394,8 @@ describe('ActionExecution', () => {
 
         await execution.completion;
 
-        expect(service.appendActionActivity).toHaveBeenCalledOnce();
-        expect(service.appendActionActivity.mock.calls[0][3].commits[0].actionId).toBe('tracked');
+        expect(service.appendAndCommitActionActivity).toHaveBeenCalledOnce();
+        expect(service.appendAndCommitActionActivity.mock.calls[0][3].commits[0].actionId).toBe('tracked');
     });
 
     it('retains captured commits when a later action fails', async () => {

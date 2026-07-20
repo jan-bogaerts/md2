@@ -7,7 +7,7 @@
 } from '../../data/data_types'
 import { register } from '.././service_injector'
 import { parseAgentConversation } from '../../../../shared/agent_conversations.mjs'
-import { activityFilePath, conversationActivityReference } from '../../../../shared/log_paths.mjs'
+import { activityFilePath, conversationActivityReference } from '../../../../shared/activity_paths.mjs'
 import { parseActivityFile } from '../../../../shared/card_activity.mjs'
 
 type Listener = () => void
@@ -16,7 +16,7 @@ export function parseAgentConversationLog(content: string, referencePath: string
     return parseAgentConversation(content, referencePath)
 }
 
-/** Discover persisted agent-log references through any storage implementation. */
+/** Discover persisted agent-conversation references through any storage implementation. */
 export async function listAgentConversationReferences(storage: StorageService, project: ProjectReference, projectFolder: string) {
     const paths = await storage.listRepositoryFiles(project)
     const projectActivityPath = activityFilePath(projectFolder, { kind: 'project' })
@@ -29,7 +29,7 @@ export async function listAgentConversationReferences(storage: StorageService, p
 }
 
 export async function loadAgentConversation(storage: StorageService, project: ProjectReference, path: string) {
-    if (!storage.loadAgentConversation) throw new Error('Agent log loading requires a storage bridge')
+    if (!storage.loadAgentConversation) throw new Error('Agent conversation loading requires a storage bridge')
 
     return storage.loadAgentConversation(project, path)
 }

@@ -251,8 +251,13 @@ class ActionSchedulerService {
             startedAt: completedAt,
             status: 'failed',
         };
-        const { relativePath } = await this.localGitService.appendActionActivity(project, projectFolder, origin, record);
-        await this.localGitService.commitActivityFile(project, relativePath, `Record ${schedule.actionId} activity`);
+        await this.localGitService.appendAndCommitActionActivity(
+            project,
+            projectFolder,
+            origin,
+            record,
+            `Record ${schedule.actionId} activity`,
+        );
     }
 
     async loadProjectPaths() {

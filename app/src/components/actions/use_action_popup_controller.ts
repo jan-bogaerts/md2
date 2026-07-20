@@ -58,7 +58,9 @@ interface ActionPopupControllerInput {
 }
 
 function belongsToContext(conversation: AgentConversation, context: ActionContext) {
-    return context.kind === 'project' ? conversation.cardPath === null : conversation.cardPath === context.file
+    return context.kind === 'project'
+        ? conversation.cardInternalId === null
+        : conversation.cardInternalId === context.cardInternalId
 }
 
 function belongsToAction(conversation: AgentConversation, actionId: string, context: ActionContext) {
@@ -109,6 +111,7 @@ function liveAgentConversation(
 
     return {
         actionId,
+        cardInternalId: context.cardInternalId ?? null,
         cardPath: context.file ?? null,
         completedAt: null,
         events: base?.events ?? [],

@@ -21,9 +21,9 @@ export function CardCommitMenu(props: CardCommitMenuProps) {
     const handleOpen = (event: MouseEvent<HTMLElement>) => setAnchorElement(event.currentTarget)
     const handleClose = () => setAnchorElement(null)
     const selectCommit = (event: MouseEvent<HTMLButtonElement>) => {
-        const commitKey = event.currentTarget.dataset.commitKey
-        const commit = commits.find(({ record }) => record.executionId === commitKey)
-        if (!commit) throw new Error(`Card commit menu selection not found: ${commitKey}`)
+        const commitIndex = Number(event.currentTarget.dataset.commitIndex)
+        const commit = commits[commitIndex]
+        if (!Number.isInteger(commitIndex) || !commit) throw new Error(`Card commit menu selection not found: ${commitIndex}`)
         onSelect(commit)
         handleClose()
     }
@@ -44,11 +44,11 @@ export function CardCommitMenu(props: CardCommitMenuProps) {
             </Tooltip>
             <Popover anchorEl={anchorElement} onClose={handleClose} open={!!anchorElement}>
                 <Stack sx={{ maxHeight: 360, minWidth: 340, overflowY: 'auto', p: 1 }}>
-                    {commits.map((commit) => (
+                    {commits.map((commit, commitIndex) => (
                         <Box
                             component="button"
-                            data-commit-key={commit.record.executionId}
-                            key={`${commit.record.executionId}:${commit.commit}`}
+                            data-commit-index={commitIndex}
+                            key={`${commit.record.executionId}:${commit.commit}:${commitIndex}`}
                             onClick={selectCommit}
                             title={commit.commit}
                             sx={{

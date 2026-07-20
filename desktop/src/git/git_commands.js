@@ -212,7 +212,6 @@ async function commitExists(rootPath, commit) {
 }
 
 async function isCommitAncestor(rootPath, commit, descendant = 'HEAD') {
-    if (!await commitExists(rootPath, commit)) return false;
     try {
         await runGit(rootPath, ['merge-base', '--is-ancestor', commit, descendant]);
 
