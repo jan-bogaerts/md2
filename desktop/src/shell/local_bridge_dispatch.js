@@ -49,6 +49,9 @@ function createLocalBridgeDispatch(dependencies) {
         getActiveProject: () => currentLocalProject,
         hasPendingPush: (project) => localGitService.hasPendingPush(project),
         listBranches: (project) => localGitService.listBranches(project),
+        listAgentConversationReferences: (project, projectFolder) => (
+            localGitService.listAgentConversationReferences(project, projectFolder)
+        ),
         listRepositoryFiles: (project) => localGitService.listRepositoryFiles(project),
         listTopLevelFolders: (project) => localGitService.listTopLevelFolders(project),
         loadWorktrees: (project) => worktreeService.load(project),

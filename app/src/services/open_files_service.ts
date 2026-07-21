@@ -53,6 +53,10 @@ function snapshotObjects(snapshot: ProjectSnapshot | null, actions: ActionDefini
     return [...cards, ...actions]
 }
 
+function objectPath(object: OpenDocumentObject) {
+    return isProjectCard(object) ? object.path : object.sourcePath
+}
+
 abstract class ManagedOpenDocumentBase<T extends OpenDocumentObject> extends EventTarget {
     abstract readonly kind: 'action' | 'card'
     readonly identity: string
@@ -151,6 +155,13 @@ export class OpenFilesService extends EventTarget {
         return document
     }
 
+    openPath(path: string): OpenDocument {
+        const object = this.currentObjects().find((candidate) => objectPath(candidate) === path)
+        if (!object) throw new Error(`Cannot open unknown document: ${path}`)
+
+        return this.openDocument(object)
+    }
+
     activateDocument(document: OpenDocument) {
         if (!this.snapshot.documents.includes(document) || this.snapshot.activeDocument === document) return
 
@@ -182,14 +193,13 @@ export class OpenFilesService extends EventTarget {
 
     private reconcile() {
         if (!this.actionService || !this.dataService) throw new Error('Open files service is not initialized')
-        const { project, snapshot } = this.dataService.getState()
+        const { project } = this.dataService.getState()
         const nextProjectKey = projectKey(project)
         if (nextProjectKey !== this.loadedProjectKey) {
             this.loadedProjectKey = nextProjectKey
             this.clear()
         }
-        const actions = [...this.actionService.getActions(), ...this.actionService.getDeletedDraftActions()]
-        const objects = snapshotObjects(snapshot, actions)
+        const objects = this.currentObjects()
         const objectsByKey = new Map(objects.map((object) => [OpenFilesService.objectKey(object), object]))
         const removedDocuments: OpenDocument[] = []
         const documents = this.snapshot.documents.filter((document) => {
@@ -208,6 +218,14 @@ export class OpenFilesService extends EventTarget {
             : documents[0] ?? null
         this.update({ activeDocument, documents })
         for (const document of removedDocuments) this.dispatchDocumentEvent('removed', document)
+    }
+
+    private currentObjects() {
+        if (!this.actionService || !this.dataService) throw new Error('Open files service is not initialized')
+        const { snapshot } = this.dataService.getState()
+        const actions = [...this.actionService.getActions(), ...this.actionService.getDeletedDraftActions()]
+
+        return snapshotObjects(snapshot, actions)
     }
 
     private findOpenDocument(object: OpenDocumentObject) {

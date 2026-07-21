@@ -46,13 +46,29 @@ describe('ActionWorktreeExecutionService', () => {
         expect(execution).toMatchObject({ branch: 'card', executionWorktree: 1, repositoryRoot: 'C:/worktrees/card' });
     });
 
+    it('runs needsWorkTree actions in the assigned project worktree', async () => {
+        const runner = vi.fn(async () => result());
+
+        const execution = await service().execute(
+            primaryProject,
+            action(true),
+            { kind: 'project', worktree: '1' },
+            runner,
+        );
+
+        expect(runner).toHaveBeenCalledWith({ branch: 'card', id: 'C:/worktrees/card', rootPath: 'C:/worktrees/card' });
+        expect(execution).toMatchObject({ branch: 'card', executionWorktree: 1, repositoryRoot: 'C:/worktrees/card' });
+    });
+
     it('rejects needsWorkTree actions without an assigned card worktree', async () => {
         const runner = vi.fn(async () => result());
 
         await expect(service().execute(primaryProject, action(true), { kind: 'card' }, runner))
-            .rejects.toThrow(/requires a card worktree assignment/u);
+            .rejects.toThrow(/requires a worktree assignment/u);
+        await expect(service().execute(primaryProject, action(true), { kind: 'project' }, runner))
+            .rejects.toThrow(/requires a worktree assignment/u);
         await expect(service().execute(primaryProject, action(true), { kind: 'file', worktree: '1' }, runner))
-            .rejects.toThrow(/requires card context/u);
+            .rejects.toThrow(/requires card or project context/u);
         expect(runner).not.toHaveBeenCalled();
     });
 

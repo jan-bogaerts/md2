@@ -64,4 +64,27 @@ describe('WorktreeService', () => {
         expect(service.getDraft()).toBeNull()
         expect(service.getRecords()).toHaveLength(2)
     })
+
+    it('keeps a valid project action assignment only for the loaded-project session', async () => {
+        const storage = createStorage()
+        const service = new WorktreeService()
+        service.init({ projectProvider: () => project, storageProvider: () => storage })
+        await service.load(project)
+
+        service.setProjectActionWorktree(1)
+        expect(service.getProjectActionWorktree()).toBe(1)
+
+        await service.load({ ...project, id: 'next-project' })
+        expect(service.getProjectActionWorktree()).toBeNull()
+    })
+
+    it('rejects unavailable project action assignments', async () => {
+        const storage = createStorage()
+        const service = new WorktreeService()
+        service.init({ projectProvider: () => project, storageProvider: () => storage })
+        await service.load(project)
+
+        expect(() => service.setProjectActionWorktree(2)).toThrow('Configured worktree 2 does not exist')
+        expect(service.getProjectActionWorktree()).toBeNull()
+    })
 })

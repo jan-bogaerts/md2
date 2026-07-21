@@ -78,10 +78,13 @@ describe('CardBodyPopover commit diff', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Card commit history' }))
         fireEvent.click(screen.getByRole('button', { name: /Implement/ }))
         expect(screen.getByLabelText('Card commit diff')).toBeInTheDocument()
+        expect(screen.getByLabelText('Live card editor')).toBeInTheDocument()
+        expect(screen.getByLabelText('Live card editor')).not.toBeVisible()
         const dialog = screen.getByRole('dialog')
 
         fireEvent.keyDown(dialog, { key: 'Escape' })
         expect(screen.queryByLabelText('Card commit diff')).not.toBeInTheDocument()
+        expect(screen.getByLabelText('Live card editor')).toBeVisible()
         expect(onClose).not.toHaveBeenCalled()
 
         fireEvent.keyDown(dialog, { key: 'Escape' })

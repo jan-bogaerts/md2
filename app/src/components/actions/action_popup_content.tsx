@@ -7,8 +7,12 @@ import Play from 'mdi-material-ui/Play'
 import type { ActionContext } from '../../data/action_context'
 import { CUSTOM_PROMPT_ACTION_ID, type ActionDefinition } from '../../data/action_types'
 import type { AgentConversation } from '../../data/data_types'
+import type { WorktreeRecord } from '../../data/data_types'
 import { ResizablePopper } from '../resizable_popper'
-import { ActionAgentForm } from './action_agent_form'
+import { WorktreeSelector, type WorktreeAssignment } from '../worktree_selector'
+import { ActionAgentPresetName } from './action_agent_preset_name'
+import { ActionAgentPrompt } from './action_agent_prompt'
+import { ActionAgentSelectors } from './action_agent_selectors'
 import { ActionConversationChat } from './action_conversation_chat'
 import { ActionConversationPicker } from './action_conversation_picker'
 import { ActionPhraseButtons } from './action_phrase_buttons'
@@ -22,12 +26,14 @@ import { useActionPopupController } from './use_action_popup_controller'
 
 export const CARD_RUN_POPUP_SIZE_STORAGE_KEY = 'md2.cardRunPopupSize'
 export const PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY = 'md2.projectAgentPopupSize'
+const MIN_CHAT_HEIGHT = 96
 
 interface ActionPopupContentProps {
     action: ActionDefinition
     actions: ActionDefinition[]
     anchorElement: HTMLElement | null
-    context: ActionContext
+    assignmentContext: ActionContext
+    baseContext: ActionContext
     draggable?: boolean
     fullHeight: boolean
     onAddAction: () => void
@@ -35,34 +41,65 @@ interface ActionPopupContentProps {
     onConversationViewed?: (conversation: AgentConversation) => void
     onSelectAction: (actionId: string) => void
     onToggleFullHeight: () => void
+    onWorktreeAssign: (worktree: number | null) => void
     open: boolean
     showSaveControls: boolean
     titleId: string
+    primaryPath: string | null
+    worktrees: WorktreeRecord[]
+}
+
+function worktreeValidationMessage(action: ActionDefinition, context: ActionContext, worktrees: WorktreeRecord[]) {
+    if (!action.needsWorkTree) return null
+    if (context.kind !== 'card' && context.kind !== 'project') {
+        return `Action "${action.label}" requires card or project context when needsWorkTree is set`
+    }
+    if (context.worktreeError) return context.worktreeError
+    if (context.worktree === undefined) return `Action "${action.label}" requires a worktree assignment`
+    if (!/^[1-9]\d*$/u.test(context.worktree)) return `Invalid worktree index: ${context.worktree}`
+
+    const worktree = Number.parseInt(context.worktree, 10)
+    if (!Number.isSafeInteger(worktree)) return `Invalid worktree index: ${context.worktree}`
+    const record = worktrees[worktree - 1]
+    if (!record) return `Configured worktree ${worktree} does not exist`
+    if (!record.valid) return `Configured worktree ${worktree} is invalid: ${record.error}`
+
+    return null
 }
 
 /** Presentation and execution behavior for the internally selected popup action. */
 export function ActionPopupContent(props: ActionPopupContentProps) {
     const {
-        action, actions, anchorElement, context, draggable, fullHeight, onAddAction, onClose, onSelectAction,
-        onToggleFullHeight, open, showSaveControls, titleId,
+        action, actions, anchorElement, assignmentContext, baseContext, draggable, fullHeight, onAddAction, onClose, onSelectAction,
+        onToggleFullHeight, onWorktreeAssign, open, primaryPath, showSaveControls, titleId, worktrees,
     } = props
     const controller = useActionPopupController({
         action,
-        context,
+        context: assignmentContext,
+        scheduleContext: baseContext,
         enableConversations: action.type === 'agent',
+        executionValidationError: worktreeValidationMessage(action, assignmentContext, worktrees),
     })
     const promptRequired = action.id === CUSTOM_PROMPT_ACTION_ID
-    const sizeStorageKey = context.kind === 'project'
+    const sizeStorageKey = baseContext.kind === 'project'
         ? PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY
         : CARD_RUN_POPUP_SIZE_STORAGE_KEY
     const handlePrimaryRun = showSaveControls ? controller.handleSaveAndRun : controller.handleRun
-    const showUsageSummary = context.kind === 'card' && !!context.file
+    const showUsageSummary = baseContext.kind === 'card' && !!baseContext.file
     const runDisabled = controller.runStatus === 'running'
         || !!controller.executionDisabledMessage
         || controller.promptPreparationPending
         || controller.promptPreparationFailed
         || (promptRequired && controller.prompt.trim().length === 0)
         || (showSaveControls && controller.saveDisabled)
+    const parsedWorktree = assignmentContext.worktree && /^[1-9]\d*$/u.test(assignmentContext.worktree)
+        ? Number.parseInt(assignmentContext.worktree, 10)
+        : null
+    const worktreeAssignment: WorktreeAssignment = {
+        worktree: parsedWorktree,
+        worktreeError: assignmentContext.worktreeError ?? null,
+        worktreeValue: assignmentContext.worktree ?? null,
+    }
 
     return (
         <ResizablePopper
@@ -94,10 +131,35 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
             <Box
                 data-drag-handle={draggable ? 'true' : undefined}
                 sx={{
-                    alignItems: 'flex-start', borderBottom: 1, borderColor: 'divider', cursor: draggable ? 'move' : undefined,
-                    display: 'flex', gap: 1, px: 1.5, py: 1.5,
+                    borderBottom: 1, borderColor: 'divider', cursor: draggable ? 'move' : undefined,
+                    display: 'flex', flexDirection: 'column', gap: 1, px: 1.5, py: 1.5,
                 }}
             >
+                <Box data-testid="action-popup-toolbar" sx={{ alignItems: 'center', display: 'flex', gap: 1 }}>
+                    {baseContext.kind === 'card' || baseContext.kind === 'file' || baseContext.kind === 'project' ? (
+                        <WorktreeSelector
+                            assignment={worktreeAssignment}
+                            disabled={controller.runStatus === 'running'}
+                            onAssign={onWorktreeAssign}
+                            primaryPath={primaryPath}
+                            worktrees={worktrees}
+                        />
+                    ) : null}
+                    <Box sx={{ flex: 1 }} />
+                    <Tooltip title={fullHeight ? 'Collapse downward' : 'Expand upward'}>
+                        <IconButton
+                            aria-label={fullHeight ? 'Collapse downward' : 'Expand upward'}
+                            onClick={onToggleFullHeight}
+                            size="small"
+                            sx={{ flexShrink: 0, height: 30, width: 30 }}
+                        >
+                            {fullHeight ? <ArrowCollapseVertical sx={{ fontSize: 18 }} /> : <ArrowExpandVertical sx={{ fontSize: 18 }} />}
+                        </IconButton>
+                    </Tooltip>
+                    <IconButton aria-label="Close" onClick={onClose} size="small" sx={{ flexShrink: 0, height: 30, width: 30 }}>
+                        <Close sx={{ fontSize: 18 }} />
+                    </IconButton>
+                </Box>
                 <ActionSelector
                     adding={showSaveControls}
                     actions={actions}
@@ -105,37 +167,31 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
                     onSelect={onSelectAction}
                     selectedAction={action}
                 />
-                <Tooltip title={fullHeight ? 'Collapse downward' : 'Expand upward'}>
-                    <IconButton
-                        aria-label={fullHeight ? 'Collapse downward' : 'Expand upward'}
-                        onClick={onToggleFullHeight}
-                        size="small"
-                        sx={{ flexShrink: 0, height: 30, width: 30 }}
-                    >
-                        {fullHeight ? <ArrowCollapseVertical sx={{ fontSize: 18 }} /> : <ArrowExpandVertical sx={{ fontSize: 18 }} />}
-                    </IconButton>
-                </Tooltip>
-                <IconButton aria-label="Close" onClick={onClose} size="small" sx={{ flexShrink: 0, height: 30, width: 30 }}>
-                    <Close sx={{ fontSize: 18 }} />
-                </IconButton>
             </Box>
-            <Stack spacing={2} sx={{ flex: 1, minHeight: 0, overflow: 'auto', px: 2.5, py: 2.25 }}>
+            <Stack spacing={2} sx={{ flex: 1, minHeight: 0, overflow: 'auto', px: 1.5, py: 1 }}>
                 {action.type === 'agent' ? (
-                    <ActionAgentForm
-                        actionLabel={controller.actionLabel}
-                        agent={controller.agent}
-                        agentAvailability={controller.agentAvailability}
-                        agentProfiles={controller.agentProfiles}
-                        compact
-                        conversationContent={(
-                            <ActionConversationChat
-                                conversation={controller.displayedConversation}
-                                logs={controller.runLogs}
-                                onConversationViewed={props.onConversationViewed}
-                                status={controller.runStatus}
+                    <Stack spacing={1} sx={{ flex: 1, minHeight: 0 }}>
+                        {showSaveControls ? (
+                            <ActionAgentPresetName
+                                actionLabel={controller.actionLabel}
+                                onActionLabelChange={controller.handleActionLabelChange}
+                                onRunShortcut={runDisabled ? undefined : handlePrimaryRun}
                             />
-                        )}
-                        conversationPicker={(
+                        ) : null}
+                        <Box sx={{ alignItems: 'center', color: 'text.secondary', display: 'flex', flexWrap: 'wrap', fontSize: 12, gap: 0.75 }}>
+                            <ActionAgentSelectors
+                                agent={controller.agent}
+                                agentAvailability={controller.agentAvailability}
+                                agentProfiles={controller.agentProfiles}
+                                disabled={controller.runStatus === 'running'}
+                                model={controller.model}
+                                onAgentChange={controller.handleAgentChange}
+                                onModelChange={controller.handleModelChange}
+                                onThinkingLevelChange={controller.handleThinkingLevelChange}
+                                selectedAgentModels={controller.selectedAgentModels}
+                                thinkingLevel={controller.thinkingLevel}
+                            />
+                            <Box sx={{ flex: 1 }} />
                             <ActionConversationPicker
                                 conversations={controller.conversations}
                                 disabled={controller.runStatus === 'running'}
@@ -143,28 +199,26 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
                                 onChange={controller.handleConversationChange}
                                 selectedPath={controller.displayedConversation?.path ?? ''}
                             />
-                        )}
-                        convertMessage={controller.convertMessage}
-                        disabled={controller.runStatus === 'running'}
-                        prompt={controller.prompt}
-                        promptFailed={controller.promptPreparationFailed}
-                        promptLoading={controller.promptPreparationPending}
-                        model={controller.model}
-                        onActionLabelChange={controller.handleActionLabelChange}
-                        onAgentChange={controller.handleAgentChange}
-                        onConvertToAction={controller.handleConvertToAction}
-                        onPromptChange={controller.handlePromptChange}
-                        onModelChange={controller.handleModelChange}
-                        onThinkingLevelChange={controller.handleThinkingLevelChange}
-                        onRunShortcut={runDisabled ? undefined : handlePrimaryRun}
-                        onSaveAndRun={controller.handleSaveAndRun}
-                        promptRequired={promptRequired}
-                        promptResetToken={controller.promptResetToken}
-                        saveDisabled={controller.saveDisabled}
-                        selectedAgentModels={controller.selectedAgentModels}
-                        showSaveControls={showSaveControls}
-                        thinkingLevel={controller.thinkingLevel}
-                    />
+                        </Box>
+                        <Box sx={{ flex: 1, minHeight: MIN_CHAT_HEIGHT, overflowY: 'auto' }}>
+                            <ActionConversationChat
+                                conversation={controller.displayedConversation}
+                                logs={controller.runLogs}
+                                onConversationViewed={props.onConversationViewed}
+                                status={controller.runStatus}
+                            />
+                        </Box>
+                        <ActionAgentPrompt
+                            convertMessage={controller.convertMessage}
+                            disabled={controller.runStatus === 'running'}
+                            onPromptChange={controller.handlePromptChange}
+                            onRunShortcut={runDisabled ? undefined : handlePrimaryRun}
+                            prompt={controller.prompt}
+                            promptFailed={controller.promptPreparationFailed}
+                            promptLoading={controller.promptPreparationPending}
+                            promptResetToken={controller.promptResetToken}
+                        />
+                    </Stack>
                 ) : null}
                 {controller.isFollowUp && action.phrases.length > 0 ? (
                     <ActionPhraseButtons
@@ -193,15 +247,20 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
                         {controller.executionDisabledMessage}
                     </Typography>
                 ) : null}
+                {controller.executionValidationError ? (
+                    <Typography color="error.main" role="alert" variant="caption">
+                        {controller.executionValidationError}
+                    </Typography>
+                ) : null}
                 {action.type !== 'agent' ? (
                     <ActionRunHistory compact entries={controller.history} error={controller.historyError} />
                 ) : null}
             </Stack>
             <Box sx={{ alignItems: 'center', bgcolor: 'background.default', borderTop: 1, borderColor: 'divider', display: 'flex', gap: 1, px: 2, py: 1.5 }}>
-                {showUsageSummary && action.type === 'agent' && context.cardInternalId ? (
+                {showUsageSummary && action.type === 'agent' && assignmentContext.cardInternalId ? (
                     <ActionUsageSummary
                         actionId={action.id}
-                        cardInternalId={context.cardInternalId}
+                        cardInternalId={assignmentContext.cardInternalId}
                         conversations={controller.conversations}
                         history={controller.history}
                     />

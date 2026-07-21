@@ -7,13 +7,14 @@ import { conversationPickerLabel, formatConversationDateTime } from './action_co
 function conversation(overrides: Partial<AgentConversation> = {}): AgentConversation {
     return {
         actionId: 'action-review',
+        cardInternalId: 'card-1',
         cardPath: 'design/F-1.md',
         completedAt: '2026-07-15T10:01:00.000Z',
         events: [],
         hasExplicitTitle: true,
         id: 'conversation-1',
         messages: [],
-        path: '.md2-agent-logs/conversation-1.json',
+        path: 'design/activity/card__card-1.json#conversation=conversation-1',
         providerSessions: [],
         startedAt: '2026-07-15T10:00:00.000Z',
         status: 'completed',
@@ -33,11 +34,11 @@ describe('conversation picker data', () => {
     })
 
     it('filters context, sorts newest first, and replaces live duplicates', () => {
-        const context: ActionContext = { file: 'design/F-1.md', kind: 'card' }
+        const context: ActionContext = { cardInternalId: 'card-1', file: 'design/F-1.md', kind: 'card' }
         const older = conversation({ id: 'older', path: 'older.json', startedAt: '2026-07-14T10:00:00.000Z' })
         const newest = conversation({ id: 'newest', path: 'newest.json', startedAt: '2026-07-15T10:00:00.000Z' })
         const otherAction = conversation({ actionId: 'action-implement', id: 'other-action', path: 'other-action.json' })
-        const otherCard = conversation({ cardPath: 'design/F-2.md', id: 'other', path: 'other.json' })
+        const otherCard = conversation({ cardInternalId: 'card-2', cardPath: 'design/F-2.md', id: 'other', path: 'other.json' })
         const liveNewest = conversation({ id: 'newest', messages: [{ content: 'live', id: 'm1', role: 'assistant', timestamp: 'now' }], path: 'live-newest.json' })
 
         const result = mergeConversationHistory([older, newest, otherAction, otherCard], 'action-review', context, liveNewest)
@@ -47,7 +48,7 @@ describe('conversation picker data', () => {
     })
 
     it('keeps project conversations separate from card conversations', () => {
-        const projectConversation = conversation({ cardPath: null, id: 'project', path: 'project.json' })
+        const projectConversation = conversation({ cardInternalId: null, cardPath: null, id: 'project', path: 'project.json' })
 
         expect(mergeConversationHistory([conversation(), projectConversation], 'action-review', { kind: 'project' }, null))
             .toEqual([projectConversation])

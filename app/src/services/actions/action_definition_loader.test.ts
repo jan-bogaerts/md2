@@ -164,11 +164,11 @@ describe('loadActionDefinitions', () => {
         expect(() => loadActionDefinitions([file('a', { ...IMPLEMENT, id: CUSTOM_PROMPT_ACTION_ID })])).toThrow(/Duplicate action id/u)
     })
 
-    it('rejects action IDs that collide after log filename normalization', () => {
+    it('rejects action IDs that collide after normalization', () => {
         expect(() => loadActionDefinitions([
             file('a', { ...IMPLEMENT, id: 'action.one' }),
             file('b', { ...LINT, id: 'action_one' }),
-        ])).toThrow(/collides with action\.one after log filename normalization/u)
+        ])).toThrow(/collides with action\.one after normalization/u)
     })
 
     it('rejects invalid agent, model, and thinking-level combinations', () => {

@@ -74,8 +74,6 @@ function renderTextView(overrides: Partial<Parameters<typeof TextView>[0]> = {})
                     onTogglePolicy={onTogglePolicy}
                     projectFolder="design"
                     projectKey="project:main"
-                    requestedNonce={0}
-                    requestedPath={null}
                     repositoryFiles={[]}
                     states={DEFAULT_STATES}
                     workingFolder="design/active"
@@ -174,6 +172,15 @@ describe('TextView', () => {
         actionService.clear()
         configService.clear()
         vi.restoreAllMocks()
+    })
+
+    it('keeps hidden text view mounted without occupying layout', () => {
+        renderTextView({ visible: false })
+
+        const emptyState = screen.getByText('Select a file from the tree to open it.')
+
+        expect(emptyState).not.toBeVisible()
+        expect(emptyState.closest('[hidden]')).toHaveStyle({ display: 'none' })
     })
 
     it('centers the empty state without file controls or separators', () => {
@@ -624,48 +631,6 @@ describe('TextView', () => {
         expect(persistActionFile).not.toHaveBeenCalled()
     })
 
-    it('opens the requested file when the open nonce changes', () => {
-        const shared = {
-            actionsFolder: 'design/actions',
-            activeCards,
-            backgroundCards,
-            cardTypes: DEFAULT_CARD_TYPES,
-            onCreateFolder: vi.fn(async () => undefined),
-            onCreateMarkdownFile: vi.fn(async () => undefined),
-            onDeleteFile: vi.fn(async () => undefined),
-            onDeleteFolder: vi.fn(async () => undefined),
-            onHeaderFieldChange: vi.fn(),
-            onLeftPanelInteraction: vi.fn(),
-            onTitleChange: vi.fn(),
-            onTogglePolicy: vi.fn(),
-            projectFolder: 'design',
-            projectKey: 'project:main',
-            repositoryFiles: [],
-            states: DEFAULT_STATES,
-            workingFolder: 'design/active',
-            visible: true,
-        }
-        const { rerender } = render(
-            <AppThemeProvider>
-                <LeftPanelSlotProvider>
-                    <LeftPanelTarget fallback="No project navigation available." />
-                    <TextView {...shared} requestedNonce={0} requestedPath={null} />
-                </LeftPanelSlotProvider>
-            </AppThemeProvider>,
-        )
-
-        rerender(
-            <AppThemeProvider>
-                <LeftPanelSlotProvider>
-                    <LeftPanelTarget fallback="No project navigation available." />
-                    <TextView {...shared} requestedNonce={1} requestedPath="design/active/F-2-b.md" />
-                </LeftPanelSlotProvider>
-            </AppThemeProvider>,
-        )
-
-        expect(screen.getByRole('tab', { name: /Beta/ })).toBeInTheDocument()
-    })
-
     it('updates the left-panel tree when cards change without a view-mode switch', () => {
         const shared = {
             actionsFolder: 'design/actions',
@@ -679,8 +644,6 @@ describe('TextView', () => {
             onLeftPanelInteraction: vi.fn(),
             onTitleChange: vi.fn(),
             onTogglePolicy: vi.fn(),
-            requestedNonce: 0,
-            requestedPath: null,
             projectFolder: 'design',
             projectKey: 'project:main',
             repositoryFiles: [],

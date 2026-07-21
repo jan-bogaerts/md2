@@ -9,11 +9,11 @@ function requireActionContext(context) {
 function worktreeIndex(context) {
     if (context.worktree === undefined) return null;
     if (typeof context.worktree !== 'string' || !/^[1-9]\d*$/u.test(context.worktree)) {
-        throw new Error(`Invalid card worktree index: ${String(context.worktree)}`);
+        throw new Error(`Invalid worktree index: ${String(context.worktree)}`);
     }
 
     const index = Number.parseInt(context.worktree, 10);
-    if (!Number.isSafeInteger(index)) throw new Error(`Invalid card worktree index: ${context.worktree}`);
+    if (!Number.isSafeInteger(index)) throw new Error(`Invalid worktree index: ${context.worktree}`);
 
     return index;
 }
@@ -43,10 +43,12 @@ class ActionWorktreeExecutionService {
     async resolve(primaryProject, action, context) {
         if (!action.needsWorkTree) return { executionProject: primaryProject, executionWorktree: null };
         if (context.worktreeError) throw new Error(context.worktreeError);
-        if (context.kind !== 'card') throw new Error(`Action "${action.label}" requires card context when needsWorkTree is set`);
+        if (context.kind !== 'card' && context.kind !== 'project') {
+            throw new Error(`Action "${action.label}" requires card or project context when needsWorkTree is set`);
+        }
 
         const index = worktreeIndex(context);
-        if (index === null) throw new Error(`Action "${action.label}" requires a card worktree assignment`);
+        if (index === null) throw new Error(`Action "${action.label}" requires a worktree assignment`);
 
         const record = await this.worktreeService.resolve(primaryProject, index);
 

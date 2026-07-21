@@ -9,6 +9,7 @@ import {
     folderContext,
     getCardType,
     projectContext,
+    projectContextWithWorktree,
     validateActionContextFilterValue,
 } from './action_context'
 import { BUILTIN_CUSTOM_PROMPT, BUILTIN_REMARKABLE_CONVERT, type ActionDefinition } from './action_types'
@@ -80,6 +81,10 @@ describe('action context filter descriptors', () => {
             supportedContextKinds: ['folder'],
             valueSource: 'folder',
         })
+        expect(ACTION_CONTEXT_FILTER_DESCRIPTORS.find(({ key }) => key === 'worktree')).toMatchObject({
+            supportedContextKinds: ['card', 'file', 'project'],
+            valueSource: 'worktree',
+        })
     })
 
     it('requires a non-empty filter value', () => {
@@ -116,6 +121,11 @@ describe('cardContext / fileContext / folderContext / projectContext', () => {
 
     it('builds project-wide context without a card or file', () => {
         expect(projectContext()).toEqual({ kind: 'project' })
+    })
+
+    it('adds and removes a project-session worktree assignment', () => {
+        expect(projectContextWithWorktree(projectContext(), 2)).toEqual({ kind: 'project', worktree: '2' })
+        expect(projectContextWithWorktree({ kind: 'project', worktree: '2' }, null)).toEqual({ kind: 'project' })
     })
 })
 

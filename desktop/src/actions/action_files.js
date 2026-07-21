@@ -34,6 +34,8 @@ function activityOrigin(context) {
 }
 
 function historyEntry(record, repositoryRoot) {
+    // Activity files stay machine-independent. Reintroduce the checkout root and
+    // performer defaults only in the legacy action-history response consumed by DiffView.
     const commits = record.commits.map((commit) => ({
         ...commit,
         actionId: commit.actionId ?? record.rootActionId,

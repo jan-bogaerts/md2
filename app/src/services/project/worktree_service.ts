@@ -3,6 +3,7 @@ import { register } from '.././service_injector'
 
 export class WorktreeService extends EventTarget {
     private draftRecords: WorktreeRecord[] | null = null
+    private projectActionWorktree: number | null = null
     private projectProvider: (() => ProjectReference | null) | null = null
     private records: WorktreeRecord[] = []
     private storageProvider: (() => StorageService | null) | null = null
@@ -14,6 +15,10 @@ export class WorktreeService extends EventTarget {
 
     getRecords() {
         return this.records
+    }
+
+    getProjectActionWorktree() {
+        return this.projectActionWorktree
     }
 
     /** Whether the active storage backend can list worktrees (local desktop or a remote-controlled desktop). */
@@ -34,6 +39,7 @@ export class WorktreeService extends EventTarget {
     async load(project: ProjectReference) {
         const storage = this.requireStorage()
         this.draftRecords = null
+        this.projectActionWorktree = null
         this.records = storage.loadWorktrees ? await storage.loadWorktrees(project) : []
         this.dispatchChanged()
 
@@ -42,7 +48,21 @@ export class WorktreeService extends EventTarget {
 
     clear() {
         this.draftRecords = null
+        this.projectActionWorktree = null
         this.records = []
+        this.dispatchChanged()
+    }
+
+    setProjectActionWorktree(worktree: number | null) {
+        if (worktree !== null) {
+            if (!Number.isInteger(worktree) || worktree <= 0) throw new Error(`Invalid project worktree index: ${String(worktree)}`)
+            const record = this.records[worktree - 1]
+            if (!record) throw new Error(`Configured worktree ${worktree} does not exist`)
+            if (!record.valid) throw new Error(`Configured worktree ${worktree} is invalid: ${record.error}`)
+        }
+        if (this.projectActionWorktree === worktree) return
+
+        this.projectActionWorktree = worktree
         this.dispatchChanged()
     }
 

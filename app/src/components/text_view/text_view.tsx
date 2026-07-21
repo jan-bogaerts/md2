@@ -1,29 +1,14 @@
-import { Box, Typography } from '@mui/material'
-import type { MouseEvent as ReactMouseEvent } from 'react'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { buildFileTree, fileLabel } from '../../data/file_tree'
+import { Box } from '@mui/material'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { buildFileTree } from '../../data/file_tree'
 import type { ActionDefinition } from '../../data/action_types'
-import { fileContext } from '../../data/action_context'
-import { getCardIdPrefix } from '../../data/card_identifiers'
 import { defaultColumnAccent, type CardTypeConfig, type ProjectCard, type StateConfig } from '../../data/data_types'
-import { telemetryService } from '../../services/telemetry/telemetry_service'
-import { markdownParsingService } from '../../services/data/markdown_parsing_service'
 import { actionService } from '../../services/actions/action_service'
-import { agentAcknowledgementService } from '../../services/agents/agent_acknowledgement_service'
-import { ListActionEditor } from '../actions/list_action_editor'
-import { cardMarkdownDataSource } from '../editor/card_markdown_data_source'
-import { actionMarkdownDataSource, parseActionMarkdownDocumentId } from '../editor/action_markdown_data_source'
 import { LeftPanelSlot } from '../shell/left_panel_slot'
-import { CardPropertiesPanel } from './card_properties_panel'
-import { CardPropertiesPopover } from './card_properties_popover'
 import { FileTreeView } from './file_tree_view'
-import { TabBar, type OpenTab, type OpenTabKind } from './tab_bar'
-import { useOpenTabs } from './use_open_tabs'
 import { useActions } from '../hooks/use_actions'
-import { ActionPopup } from '../actions/action_popup'
-import type { AgentConversation } from '../../data/data_types'
-import type { OpenDocument } from '../../services/open_files_service'
-import { CardEditor } from './card_editor'
+import type { OpenDocumentObject } from '../../services/open_files_service'
+import { TextEditorPane } from './text_editor_pane'
 
 const HISTORY_FOLDER_NAME = 'history'
 const LOGS_FOLDER_NAME = 'logs'
@@ -42,60 +27,10 @@ interface TextViewProps {
     onTogglePolicy: (path: string, policyKey: string) => void
     projectFolder: string
     projectKey: string
-    requestedNonce: number
-    requestedPath: string | null
     repositoryFiles: string[]
     states: StateConfig[]
     workingFolder: string
     visible: boolean
-}
-
-function cardTypeColor(card: ProjectCard, cardTypes: CardTypeConfig[]) {
-    const idPrefix = getCardIdPrefix(card.header.id)
-    const cardType = cardTypes.find((candidate) => candidate.idPrefix === idPrefix)
-
-    return cardType?.color ?? null
-}
-
-function isPathInFolder(path: string, folder: string) {
-    const normalizedPath = path.replace(/\\/gu, '/')
-    const normalizedFolder = folder.replace(/\\/gu, '/').replace(/\/+$/u, '')
-
-    return normalizedPath.startsWith(`${normalizedFolder}/`)
-}
-
-function tabKind(card: ProjectCard, actionsFolder: string): OpenTabKind {
-    if (isPathInFolder(card.path, actionsFolder)) return 'action'
-    if (typeof card.headerFields.id === 'string' || markdownParsingService.followsCardNamingConvention(card.path)) return 'card'
-
-    return 'markdown'
-}
-
-function tabData(
-    cardTypes: CardTypeConfig[],
-    actionsFolder: string,
-    document: OpenDocument,
-): OpenTab {
-    if (document.kind === 'action') {
-        const action = document.getObject()
-        if (!action.sourcePath) throw new Error(`Open action has no source path: ${action.id}`)
-        return { color: null, document, id: null, key: `action:${action.id}`, kind: 'action', label: action.label, path: action.sourcePath, title: action.label }
-    }
-    const card = document.getObject()
-    if (!card.header.internalId) throw new Error(`Open card has no internal ID: ${card.path}`)
-    const label = fileLabel(card)
-    const id = label.startsWith(`${card.header.id} `) ? card.header.id : null
-
-    return {
-        color: cardTypeColor(card, cardTypes),
-        document,
-        id,
-        key: `card:${card.header.internalId}`,
-        kind: tabKind(card, actionsFolder),
-        label,
-        path: card.path,
-        title: id ? label.slice(id.length + 1) : label,
-    }
 }
 
 function folderPath(parentFolder: string, childFolder: string) {
@@ -107,14 +42,6 @@ function folderName(path: string): string {
     if (!name) throw new Error(`Cannot derive context type from folder path: ${path}`)
 
     return name
-}
-
-function openDocumentPath(document: OpenDocument) {
-    if (document.kind === 'card') return document.getObject().path
-
-    const { id, sourcePath } = document.getObject()
-    if (!sourcePath) throw new Error(`Open action has no source path: ${id}`)
-    return sourcePath
 }
 
 /** Text view: a folder/status tree plus tabbed, editable open files. */
@@ -134,16 +61,12 @@ export function TextView(props: TextViewProps) {
         onTogglePolicy,
         projectFolder,
         projectKey,
-        requestedNonce,
-        requestedPath,
         repositoryFiles,
         states,
         workingFolder,
         visible,
     } = props
     const { actions } = useActions()
-    const [propertiesAnchorElement, setPropertiesAnchorElement] = useState<HTMLElement | null>(null)
-    const [isAgentPopupOpen, setIsAgentPopupOpen] = useState(false)
     const onDeleteFileRef = useRef(onDeleteFile)
     const onDeleteFolderRef = useRef(onDeleteFolder)
     const onLeftPanelInteractionRef = useRef(onLeftPanelInteraction)
@@ -153,7 +76,6 @@ export function TextView(props: TextViewProps) {
         [actionsFolder, projectFolder, workingFolder],
     )
     const specialContextTypes = useMemo(() => specialFolderPaths.map(folderName), [specialFolderPaths])
-    const actionCardTypes = useMemo(() => cardTypes.map(({ type }) => type), [cardTypes])
     const actionStates = useMemo(() => states.map(({ state }) => state), [states])
     const hiddenFolderPaths = useMemo(() => [folderPath(projectFolder, LOGS_FOLDER_NAME)], [projectFolder])
     const tree = useMemo(() => buildFileTree(activeCards, backgroundCards, workingFolder, {
@@ -163,24 +85,21 @@ export function TextView(props: TextViewProps) {
         repositoryFiles,
         specialFolderPaths,
     }), [actions, activeCards, backgroundCards, hiddenFolderPaths, projectFolder, repositoryFiles, specialFolderPaths, workingFolder])
-    const actionsByPath = useMemo(() => new Map(
-        actions
-            .filter((action): action is ActionDefinition & { sourcePath: string } => action.sourcePath !== null)
-            .map((action) => [action.sourcePath, action]),
-    ), [actions])
-    const editorActionsByPath = useMemo(() => new Map([
-        ...actionsByPath,
-        ...actionService.getDeletedDraftActions()
-            .filter((action): action is ActionDefinition & { sourcePath: string } => action.sourcePath !== null)
-            .map((action) => [action.sourcePath, action] as const),
-    ]), [actionsByPath])
     const cardsByPath = useMemo(() => {
         const map = new Map<string, ProjectCard>()
         for (const card of [...activeCards, ...backgroundCards]) map.set(card.path, card)
 
         return map
     }, [activeCards, backgroundCards])
-    const { activeDocument, activateTab, closeTab, openTab, tabs } = useOpenTabs()
+    const objectsByPath = useMemo(() => new Map<string, OpenDocumentObject>([
+        ...cardsByPath,
+        ...actions
+            .filter((action): action is ActionDefinition & { sourcePath: string } => action.sourcePath !== null)
+            .map((action) => [action.sourcePath, action] as const),
+        ...actionService.getDeletedDraftActions()
+            .filter((action): action is ActionDefinition & { sourcePath: string } => action.sourcePath !== null)
+            .map((action) => [action.sourcePath, action] as const),
+    ]), [actions, cardsByPath])
     const statusColors = useMemo(() => new Map(
         tree
             .filter((node) => node.kind === 'status')
@@ -197,57 +116,6 @@ export function TextView(props: TextViewProps) {
         onLeftPanelInteractionRef.current = onLeftPanelInteraction
     })
 
-    useEffect(() => {
-        if (visible) return
-
-        queueMicrotask(() => {
-            setPropertiesAnchorElement(null)
-            setIsAgentPopupOpen(false)
-        })
-    }, [visible])
-
-    useEffect(() => {
-        if (!requestedPath) return
-
-        const object = editorActionsByPath.get(requestedPath) ?? cardsByPath.get(requestedPath)
-        if (object) openTab(object)
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [requestedNonce])
-
-    const openTabs = tabs.map((document) => tabData(cardTypes, actionsFolder, document))
-    const activeCard = activeDocument?.kind === 'card' ? activeDocument.getObject() : null
-    const activeAction = activeDocument?.kind === 'action' ? activeDocument.getObject() : null
-    const activePath = activeDocument ? openDocumentPath(activeDocument) : null
-    const listActionDocumentId = actionMarkdownDataSource.getActiveDocumentId('list-action')
-    const listActionId = listActionDocumentId ? parseActionMarkdownDocumentId(listActionDocumentId).actionId : null
-    const boundActionDocument = listActionId
-        ? tabs.find((document) => document.kind === 'action'
-            && document.getObject().id === listActionId)
-        : null
-    const boundAction = boundActionDocument?.kind === 'action' ? boundActionDocument.getObject() : null
-    const listAction = activeAction ?? boundAction ?? null
-
-    useEffect(() => {
-        if (!activeCard) return
-        const documentId = activeCard.header.internalId
-        if (!documentId) throw new Error(`Cannot edit card without an internal ID: ${activeCard.path}`)
-        cardMarkdownDataSource.setActiveDocument('list-card', documentId)
-    }, [activeCard])
-
-    const handleConversationViewed = (conversation: AgentConversation) => {
-        if (!conversation.cardPath) throw new Error('Cannot acknowledge a project conversation as a card result')
-
-        agentAcknowledgementService.acknowledge(projectKey, conversation.cardPath, [conversation])
-    }
-
-    const handleSelect = useCallback((path: string) => {
-        const object = editorActionsByPath.get(path) ?? cardsByPath.get(path)
-        if (!object) throw new Error(`Cannot open unknown document: ${path}`)
-        openTab(object)
-        onLeftPanelInteractionRef.current()
-        telemetryService.trackEvent('navigation')
-    }, [cardsByPath, editorActionsByPath, openTab])
-
     const handleDeleteFile = useCallback(async (path: string) => {
         await onDeleteFileRef.current(path)
         onLeftPanelInteractionRef.current()
@@ -257,109 +125,6 @@ export function TextView(props: TextViewProps) {
         await onDeleteFolderRef.current(path)
         onLeftPanelInteractionRef.current()
     }, [])
-
-    const handleActivateTab = (document: OpenDocument) => {
-        activateTab(document)
-        telemetryService.trackEvent('navigation')
-    }
-
-    const handleOpenProperties = useCallback((event: ReactMouseEvent<HTMLElement>) => {
-        setPropertiesAnchorElement(event.currentTarget)
-    }, [])
-
-    const handleCloseProperties = useCallback(() => {
-        setPropertiesAnchorElement(null)
-    }, [])
-
-    const handleToggleAgentPopup = useCallback(() => setIsAgentPopupOpen((current) => !current), [])
-    const handleCloseAgentPopup = useCallback(() => setIsAgentPopupOpen(false), [])
-
-
-    const agentPopup = visible && activeCard && isAgentPopupOpen ? (
-        <ActionPopup
-            anchorElement={null}
-            context={fileContext(activeCard, cardTypes)}
-            draggable
-            key={activeCard.path}
-            onClose={handleCloseAgentPopup}
-            onConversationViewed={handleConversationViewed}
-            open
-        />
-    ) : null
-
-    const propertiesPopup = activeCard && Object.keys(activeCard.headerFields).length > 0 ? (
-        <CardPropertiesPopover
-            anchorElement={propertiesAnchorElement}
-            onClose={handleCloseProperties}
-            open={visible && !!propertiesAnchorElement}
-        >
-            <CardPropertiesPanel
-                affects={activeCard.header.affects}
-                author={activeCard.header.author}
-                id={activeCard.header.id}
-                key={`${activeCard.path}:${activeCard.header.title}:${activeCard.header.author ?? ''}`}
-                onAuthorChange={(author) => onHeaderFieldChange(activeCard.path, 'author', author)}
-                onAutoMergeChange={() => onTogglePolicy(activeCard.path, 'autoMerge')}
-                onTitleChange={(title) => onTitleChange(activeCard.path, title)}
-                policy={activeCard.header.policy}
-                status={activeCard.header.status}
-                statusColor={activeCard.header.status
-                    ? statusColors.get(activeCard.header.status) ?? defaultColumnAccent(0)
-                    : undefined}
-                title={activeCard.header.title}
-            />
-        </CardPropertiesPopover>
-    ) : null
-
-    const editorPane = (
-        <Box sx={{ display: 'flex', flex: 1, flexDirection: 'column', minWidth: 0 }}>
-            {activeCard || activeAction ? (
-                <TabBar activeDocument={activeDocument} onActivate={handleActivateTab} onClose={closeTab} tabs={openTabs} />
-            ) : null}
-            <Box sx={{ display: 'flex', flex: 1, flexDirection: 'column', minHeight: 0 }}>
-                <Box
-                    data-testid="editor-content-pane"
-                    sx={{
-                        alignItems: activeCard || activeAction ? undefined : 'center',
-                        display: 'flex',
-                        flex: 1,
-                        flexDirection: 'column',
-                        justifyContent: activeCard ? undefined : 'center',
-                        minHeight: 0,
-                        overflow: activeAction ? 'hidden' : 'auto',
-                        p: activeCard || activeAction ? 0 : 2,
-                    }}
-                >
-                    <Box hidden={!activeAction} sx={{ display: activeAction ? 'contents' : 'none' }}>
-                        <ListActionEditor
-                            action={listAction}
-                            actions={actions}
-                            cardTypes={actionCardTypes}
-                            markdownDocumentNamespace={projectKey}
-                            repositoryFiles={repositoryFiles}
-                            specialContextTypes={specialContextTypes}
-                            states={actionStates}
-                        />
-                    </Box>
-                    {!activeAction && !activeCard ? (
-                        <Typography color="text.secondary" variant="body2">
-                            Select a file from the tree to open it.
-                        </Typography>
-                    ) : null}
-                    <CardEditor
-                        activeCard={activeCard}
-                        hidden={!activeCard}
-                        isAgentPopupOpen={isAgentPopupOpen}
-                        isPropertiesOpen={!!propertiesAnchorElement}
-                        onOpenProperties={handleOpenProperties}
-                        onToggleAgentPopup={handleToggleAgentPopup}
-                    />
-                </Box>
-            </Box>
-            {propertiesPopup}
-            {agentPopup}
-        </Box>
-    )
 
     return (
         <>
@@ -372,19 +137,32 @@ export function TextView(props: TextViewProps) {
                         cardTypes={cardTypes}
                         cardsByPath={cardsByPath}
                         nodes={tree}
+                        objectsByPath={objectsByPath}
                         onCreateFolder={onCreateFolder}
                         onCreateMarkdownFile={onCreateMarkdownFile}
                         onDeleteFile={handleDeleteFile}
                         onDeleteFolder={handleDeleteFolder}
-                        onSelect={handleSelect}
+                        onLeftPanelInteraction={onLeftPanelInteraction}
                         projectFolder={projectFolder}
-                        selectedPath={activePath}
                         statusColors={statusColors}
                     />
                 </Box>
             </LeftPanelSlot> : null}
-            <Box hidden={!visible} sx={{ display: 'flex', flex: 1, minHeight: 0 }}>
-                {editorPane}
+            <Box hidden={!visible} sx={{ display: visible ? 'flex' : 'none', flex: 1, minHeight: 0 }}>
+                <TextEditorPane
+                    actions={actions}
+                    actionsFolder={actionsFolder}
+                    cardTypes={cardTypes}
+                    markdownDocumentNamespace={projectKey}
+                    onHeaderFieldChange={onHeaderFieldChange}
+                    onTitleChange={onTitleChange}
+                    onTogglePolicy={onTogglePolicy}
+                    repositoryFiles={repositoryFiles}
+                    specialContextTypes={specialContextTypes}
+                    states={actionStates}
+                    statusColors={statusColors}
+                    visible={visible}
+                />
             </Box>
         </>
     )

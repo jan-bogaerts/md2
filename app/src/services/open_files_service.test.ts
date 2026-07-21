@@ -96,6 +96,29 @@ describe('OpenFilesService', () => {
         expect((removed.mock.calls[0][0] as CustomEvent<OpenDocumentEventDetail>).detail.document).toBe(firstDocument)
     })
 
+    it('resolves and opens current documents by path', () => {
+        const projectCard = card('one')
+        const reviewAction = action('review')
+        const ownerState = owners([projectCard], [reviewAction])
+        const service = new OpenFilesService()
+        service.init({ actionService: ownerState.actionOwner, dataService: ownerState.dataOwner })
+
+        const cardDocument = service.openPath(projectCard.path)
+        const actionDocument = service.openPath(reviewAction.sourcePath ?? '')
+
+        expect(cardDocument.getObject()).toBe(projectCard)
+        expect(actionDocument.getObject()).toBe(reviewAction)
+        expect(service.getSnapshot().activeDocument).toBe(actionDocument)
+    })
+
+    it('fails when opening an unknown path', () => {
+        const ownerState = owners()
+        const service = new OpenFilesService()
+        service.init({ actionService: ownerState.actionOwner, dataService: ownerState.dataOwner })
+
+        expect(() => service.openPath('design/missing.md')).toThrow('Cannot open unknown document: design/missing.md')
+    })
+
     it('reconciles deleted domain objects without a path-retention call', () => {
         const projectCard = card('one')
         const ownerState = owners([projectCard])

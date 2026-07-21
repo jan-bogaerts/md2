@@ -288,7 +288,11 @@ export function CardBodyPopover(props: CardBodyPopoverProps) {
                                 key={selectedCommit.commit}
                                 onExit={clearSelectedCommit}
                             />
-                        ) : (
+                        ) : null}
+                        <Box
+                            hidden={!!selectedCommit}
+                            sx={{ display: selectedCommit ? 'none' : 'flex', flex: 1, flexDirection: 'column', minHeight: 0 }}
+                        >
                             <CardBodyEditor
                                 historyStore={historyStore}
                                 isFullscreen={isFullscreen}
@@ -297,7 +301,7 @@ export function CardBodyPopover(props: CardBodyPopoverProps) {
                                 onToggleFullscreen={toggleFullscreen}
                                 overlayContainer={popupContentElement}
                             />
-                        )}
+                        </Box>
 
                         <Box
                             sx={{

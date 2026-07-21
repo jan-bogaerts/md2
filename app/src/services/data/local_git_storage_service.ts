@@ -139,6 +139,13 @@ export class LocalGitStorageService implements StorageService {
         return this.requireBridge().listRepositoryFiles(project)
     }
 
+    async listAgentConversationReferences(project: ProjectReference, projectFolder: string): Promise<string[]> {
+        const bridge = this.requireBridge()
+        if (!bridge.listAgentConversationReferences) throw new Error('Electron local Git bridge cannot list agent conversations')
+
+        return bridge.listAgentConversationReferences(project, projectFolder)
+    }
+
     async listTopLevelFolders(project: ProjectReference): Promise<TopLevelFolderReference[]> {
         return this.requireBridge().listTopLevelFolders(project)
     }

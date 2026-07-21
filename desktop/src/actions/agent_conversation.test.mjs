@@ -31,8 +31,9 @@ describe('agent conversation', () => {
     });
 
     it('creates a new running conversation', () => {
-        expect(createConversation({ actionId: 'review', cardPath: 'design/card.md', title: 'Review' }, 'agent-1', 'now')).toEqual({
+        expect(createConversation({ actionId: 'review', activityOrigin: { cardInternalId: 'card-1', kind: 'card' }, cardPath: 'design/card.md', title: 'Review' }, 'agent-1', 'now')).toEqual({
             actionId: 'review',
+            cardInternalId: 'card-1',
             cardPath: 'design/card.md',
             completedAt: null,
             events: [],
@@ -48,7 +49,7 @@ describe('agent conversation', () => {
 
     it('resumes a conversation without persisting its path', () => {
         const conversation = {completedAt: 'before', events: [], id: 'agent-1', messages: [], path: 'log.json', providerSessions: [], status: 'completed'};
-        const resumed = createConversation({ conversation }, 'unused', 'unused');
+        const resumed = createConversation({ activityOrigin: { kind: 'project' }, conversation }, 'unused', 'unused');
 
         expect(resumed).toEqual({ completedAt: null, events: [], id: 'agent-1', messages: [], providerSessions: [], status: 'running' });
         expect(resumed.events).not.toBe(conversation.events);

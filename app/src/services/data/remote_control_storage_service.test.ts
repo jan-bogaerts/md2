@@ -125,6 +125,22 @@ describe('RemoteControlStorageService', () => {
         await expect(historicalFile).resolves.toEqual({ content: '# Card', exists: true })
     })
 
+    it('lists agent conversation references through remote control', async () => {
+        installWebSocket()
+        const service = createService()
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
+        const references = service.listAgentConversationReferences(project, 'design')
+        const socket = lastSocket()
+
+        socket.open()
+        await flushPromises()
+        const sentRequest = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
+        expect(sentRequest).toMatchObject({ method: 'listAgentConversationReferences', params: [project, 'design'] })
+        socket.receive({ id: sentRequest.id, result: ['design/activity/project.json#conversation=conversation-1'] })
+
+        await expect(references).resolves.toEqual(['design/activity/project.json#conversation=conversation-1'])
+    })
+
     it('rejects error responses', async () => {
         installWebSocket()
         const service = createService()

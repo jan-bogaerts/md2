@@ -160,6 +160,17 @@ describe('LocalGitStorageService binary write path', () => {
         expect(file).toEqual({ content: '# Root', path: 'design/F-1-card.md' })
     })
 
+    it('forwards agent conversation reference listing to the bridge', async () => {
+        const references = ['design/activity/project.json#conversation=conversation-1']
+        const listAgentConversationReferences = vi.fn().mockResolvedValue(references)
+        const service = new LocalGitStorageService()
+        service.init({ bridge: createBridge({ listAgentConversationReferences }) })
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
+
+        await expect(service.listAgentConversationReferences(project, 'design')).resolves.toEqual(references)
+        expect(listAgentConversationReferences).toHaveBeenCalledWith(project, 'design')
+    })
+
     it('forwards project asset reads to the bridge unchanged', async () => {
         const loadProjectAsset = vi.fn().mockResolvedValue({
             content: 'aWNvbg==',

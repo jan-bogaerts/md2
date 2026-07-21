@@ -60,6 +60,7 @@ export interface ProjectAsset {
 export interface CardHeader {
     affects: string[]
     after: string | null
+    /** Terminal conversation references inside activity files; the name mirrors the persisted `agents` field. */
     agentLogReferences: string[]
     author: string | null
     id: string
@@ -283,6 +284,7 @@ export interface StorageService {
     discardPendingCommits?(project: ProjectReference): void
     hasPendingPush?(project: ProjectReference): boolean
     listBranches(project: ProjectReference): Promise<BranchReference[]>
+    listAgentConversationReferences?(project: ProjectReference, projectFolder: string): Promise<string[]>
     listRepositories(): Promise<RepositoryReference[]>
     loadActionFiles(project: ProjectReference, actionsFolder: string): Promise<ActionFile[]>
     loadActionSchedules?(project: ProjectReference, actionsFolder: string): Promise<ActionSchedule[]>

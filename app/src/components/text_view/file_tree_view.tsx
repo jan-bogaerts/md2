@@ -5,6 +5,9 @@ import { type NodeApi, Tree } from 'react-arborist'
 import { useEffect, useRef, useState } from 'react'
 import type { CardTypeConfig, ProjectCard } from '../../data/data_types'
 import type { TreeNode } from '../../data/file_tree'
+import { openFilesService, type OpenDocument, type OpenDocumentObject } from '../../services/open_files_service'
+import { telemetryService } from '../../services/telemetry/telemetry_service'
+import { useOpenFiles } from '../hooks/use_open_files'
 import { CreateTreeItemDialog, type CreateTreeItemKind } from './create_tree_item_dialog'
 import { FileTreeContext, type FileTreeContextValue } from './file_tree_context'
 import { FileTreeNodeRow } from './file_tree_node_row'
@@ -20,13 +23,13 @@ interface FileTreeViewProps {
     cardTypes: CardTypeConfig[]
     cardsByPath: Map<string, ProjectCard>
     nodes: TreeNode[]
+    objectsByPath: Map<string, OpenDocumentObject>
     onCreateFolder: (parentDirectory: string, name: string) => Promise<void>
     onCreateMarkdownFile: (parentDirectory: string, name: string) => Promise<void>
     onDeleteFile: (path: string) => Promise<void>
     onDeleteFolder: (path: string) => Promise<void>
-    onSelect: (path: string) => void
+    onLeftPanelInteraction: () => void
     projectFolder: string
-    selectedPath: string | null
     statusColors: Map<string, string>
 }
 
@@ -52,6 +55,15 @@ function treeNodeChildren(node: TreeNode): readonly TreeNode[] | null {
 
 function treeRowHeight(node: NodeApi<TreeNode>): number {
     return node.data.kind === 'file' ? FILE_ROW_HEIGHT : GROUP_ROW_HEIGHT
+}
+
+function documentPath(document: OpenDocument | null) {
+    if (!document) return null
+    if (document.kind === 'card') return document.getObject().path
+    const { id, sourcePath } = document.getObject()
+    if (!sourcePath) throw new Error(`Open action has no source path: ${id}`)
+
+    return sourcePath
 }
 
 function useElementHeight(): [React.RefObject<HTMLDivElement | null>, number] {
@@ -82,9 +94,10 @@ function useElementHeight(): [React.RefObject<HTMLDivElement | null>, number] {
 /** Virtualized status/folder tree with compact card rows and hover-only actions. */
 export function FileTreeView(props: FileTreeViewProps) {
     const {
-        cardTypes, cardsByPath, nodes, onCreateFolder, onCreateMarkdownFile, onDeleteFile, onDeleteFolder,
-        onSelect, projectFolder, selectedPath, statusColors,
+        cardTypes, cardsByPath, nodes, objectsByPath, onCreateFolder, onCreateMarkdownFile, onDeleteFile, onDeleteFolder,
+        onLeftPanelInteraction, projectFolder, statusColors,
     } = props
+    const { activeDocument } = useOpenFiles()
     const [creationRequest, setCreationRequest] = useState<CreationRequest | null>(null)
     const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
     const [treeContainerRef, treeHeight] = useElementHeight()
@@ -99,15 +112,19 @@ export function FileTreeView(props: FileTreeViewProps) {
 
     const handleActivateNode = (node: NodeApi<TreeNode>) => {
         if (node.data.path) {
+            const object = objectsByPath.get(node.data.path)
+            if (!object) throw new Error(`Cannot open unknown document: ${node.data.path}`)
             setSelectedNodeId(null)
-            onSelect(node.data.path)
+            openFilesService.openDocument(object)
+            onLeftPanelInteraction()
+            telemetryService.trackEvent('navigation')
             return
         }
 
         node.toggle()
     }
 
-    const effectiveSelectedNodeId = selectedNodeId ?? selectedPath
+    const effectiveSelectedNodeId = selectedNodeId ?? documentPath(activeDocument)
     const selectedNode = effectiveSelectedNodeId ? findTreeNode(nodes, effectiveSelectedNodeId) : null
     const toolbarParentDirectory = selectedNode?.directoryPath ?? projectFolder
 

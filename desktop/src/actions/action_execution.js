@@ -108,7 +108,7 @@ class ActionExecution {
                     executionWorktree: result.executionWorktree,
                     message: 'Action cancelled',
                     reference: result.reference,
-                    runId: result.runId,
+                    runId: result.conversationId,
                     thinkingLevel: result.thinkingLevel,
                     type: 'action',
                 });
@@ -124,7 +124,7 @@ class ActionExecution {
                 executionWorktree: result.executionWorktree,
                 message: status === 'completed' ? `${action.label} completed` : `${action.label} failed with exit code ${result.exitCode}`,
                 reference: result.reference,
-                runId: result.runId,
+                runId: result.conversationId,
                 thinkingLevel: result.thinkingLevel,
                 type: 'action',
             });
@@ -172,8 +172,8 @@ class ActionExecution {
             const commitReferences = await captureCommitReferences(this.localGitService, historyInput);
             this.collectCommitReferences(commitReferences);
             if (isRoot) this.rootHistoryEntry = entry;
-            if (action.type === 'agent' && typeof committedResult.runId === 'string') {
-                this.conversationIds.push(committedResult.runId);
+            if (action.type === 'agent' && typeof committedResult.conversationId === 'string') {
+                this.conversationIds.push(committedResult.conversationId);
             }
 
             return committedResult;

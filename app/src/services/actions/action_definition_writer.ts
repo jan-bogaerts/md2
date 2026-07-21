@@ -1,5 +1,6 @@
 import type { ActionContext } from '../../data/action_context'
 import type { RawActionDefinition } from '../../data/action_types'
+import { generateUuid } from '../../data/uuid'
 
 const ACTION_FILE_EXTENSION = '.json'
 
@@ -30,7 +31,7 @@ export function createActionDefinition(input: ConvertPromptToActionInput): RawAc
         ...(input.agent ? { agent: input.agent } : {}),
         appliesTo: input.context.type ? { type: input.context.type } : undefined,
         description: description && description.length > 0 ? description : `Custom prompt action: ${input.label.trim()}`,
-        id: crypto.randomUUID(),
+        id: generateUuid(),
         label: input.label.trim(),
         ...(input.model ? { model: input.model } : {}),
         phrases: [],

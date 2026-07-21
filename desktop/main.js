@@ -10,7 +10,7 @@ if (existsSync(desktopEnvironmentPath)) process.loadEnvFile(desktopEnvironmentPa
 const Store = require('electron-store');
 const { readDesktopConfig, resolveBridgeAllowedOrigins, writeDesktopConfig } = require('./src/shell/config');
 const { AgentRunnerService } = require('./src/actions/agent_runner_service');
-const { loadAgentExecutableAvailability } = require('./src/actions/agent_executable_availability');
+const { AgentExecutableResolver, loadAgentExecutableAvailability } = require('./src/actions/agent_executable_availability');
 const { ActionSchedulerService } = require('./src/actions/action_scheduler_service');
 const { ActionRunnerService } = require('./src/actions/action_runner_service');
 const diffService = require('./src/git/diff_service');
@@ -55,7 +55,8 @@ const SUBSCRIPTION_METHODS = new Set(['onActionExecution', 'watchProject']);
 
 const store = new Store();
 Store.initRenderer();
-const agentRunnerService = new AgentRunnerService();
+const agentExecutableResolver = new AgentExecutableResolver();
+const agentRunnerService = new AgentRunnerService({ executableResolver: agentExecutableResolver });
 const worktreeService = new WorktreeService({ runGit: localGitService.runGit });
 const actionWorktreeExecutionService = new ActionWorktreeExecutionService({
     runGit: localGitService.runGit,
@@ -76,7 +77,7 @@ const localBridgeDispatch = createLocalBridgeDispatch({
     actionRunnerService,
     actionSchedulerService,
     actionWorktreeExecutionService,
-    agentExecutableAvailability: loadAgentExecutableAvailability,
+    agentExecutableAvailability: (profiles) => loadAgentExecutableAvailability(profiles, { resolver: agentExecutableResolver }),
     agentRunnerService,
     desktopConfigStore: store,
     diffService,

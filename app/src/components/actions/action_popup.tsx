@@ -1,8 +1,13 @@
 import { useId, useMemo, useState } from 'react'
-import { displayActionsForContext, type ActionContext } from '../../data/action_context'
+import { displayActionsForContext, projectContextWithWorktree, type ActionContext } from '../../data/action_context'
 import { CUSTOM_PROMPT_ACTION_ID } from '../../data/action_types'
 import type { AgentConversation } from '../../data/data_types'
+import { dataService } from '../../services/data/data_service'
+import { dialogService } from '../../services/dialog_service'
+import { worktreeService } from '../../services/project/worktree_service'
 import { useActions } from '../hooks/use_actions'
+import { useProjectState } from '../hooks/use_project_state'
+import { useProjectActionWorktree, useWorktrees } from '../hooks/use_worktrees'
 import { ActionPopupContent } from './action_popup_content'
 
 export { CARD_RUN_POPUP_SIZE_STORAGE_KEY, PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY } from './action_popup_content'
@@ -21,7 +26,14 @@ interface ActionPopupProps {
 export function ActionPopup(props: ActionPopupProps) {
     const { anchorElement, context, initialActionId, open } = props
     const { actions: loadedActions } = useActions()
-    const actions = useMemo(() => displayActionsForContext(loadedActions, context), [context, loadedActions])
+    const { project } = useProjectState()
+    const projectActionWorktree = useProjectActionWorktree()
+    const worktrees = useWorktrees()
+    const effectiveContext = useMemo(
+        () => projectContextWithWorktree(context, projectActionWorktree),
+        [context, projectActionWorktree],
+    )
+    const actions = useMemo(() => displayActionsForContext(loadedActions, effectiveContext), [effectiveContext, loadedActions])
     const [selectedActionId, setSelectedActionId] = useState<string | null>(initialActionId ?? null)
     const [showSaveControls, setShowSaveControls] = useState(false)
     const [fullHeight, setFullHeight] = useState(false)
@@ -43,6 +55,20 @@ export function ActionPopup(props: ActionPopupProps) {
 
     const handleToggleFullHeight = () => setFullHeight((current) => !current)
 
+    const handleWorktreeAssign = (worktree: number | null) => {
+        try {
+            if (context.kind === 'project') worktreeService.setProjectActionWorktree(worktree)
+            else {
+                if ((context.kind !== 'card' && context.kind !== 'file') || !context.file) {
+                    throw new Error('Worktree assignment requires card context')
+                }
+                dataService.cards.updateCardWorktree(context.file, worktree)
+            }
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: 'Could not update worktree assignment' })
+        }
+    }
+
     if (!selectedAction) return null
 
     return (
@@ -50,13 +76,18 @@ export function ActionPopup(props: ActionPopupProps) {
             {...props}
             action={selectedAction}
             actions={actions}
+            assignmentContext={effectiveContext}
+            baseContext={context}
             fullHeight={fullHeight}
             onAddAction={handleAddAction}
             onSelectAction={handleSelectAction}
             onToggleFullHeight={handleToggleFullHeight}
+            onWorktreeAssign={handleWorktreeAssign}
             open={open ?? !!anchorElement}
+            primaryPath={project?.rootPath ?? project?.id ?? null}
             showSaveControls={showSaveControls}
             titleId={titleId}
+            worktrees={worktrees}
         />
     )
 }

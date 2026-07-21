@@ -187,6 +187,10 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         return this.request<AgentConversation>('loadAgentConversation', [path])
     }
 
+    async listAgentConversationReferences(project: ProjectReference, projectFolder: string): Promise<string[]> {
+        return this.request<string[]>('listAgentConversationReferences', [project, projectFolder])
+    }
+
     async loadProjectAsset(_project: ProjectReference, path: string): Promise<ProjectAsset> {
         return this.request<ProjectAsset>('loadProjectAsset', [path])
     }

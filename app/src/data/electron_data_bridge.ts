@@ -42,6 +42,7 @@ export interface ElectronDataBridge {
     loadProjectConfig(project: ProjectReference): Promise<Partial<ProjectConfig> | null>
     loadWorktrees?(project: ProjectReference): Promise<WorktreeRecord[]>
     listRepositoryFiles(project: ProjectReference): Promise<string[]>
+    listAgentConversationReferences?(project: ProjectReference, projectFolder: string): Promise<string[]>
     listBranches(project: ProjectReference): Promise<BranchReference[]>
     listTopLevelFolders(project: ProjectReference): Promise<TopLevelFolderReference[]>
     moveFiles(request: MoveFilesRequest): Promise<void>

@@ -25,7 +25,7 @@ describe('generateDiff', () => {
 
         expect(generateDiffBridge).toHaveBeenCalledWith({
             branch: 'topic', commit: 'abc123456789', filePath: 'app/a.ts',
-            repositoryRoot: 'C:/worktree', template: 'git show {{commit}}',
+            template: 'git show {{commit}}',
         })
     })
 })

@@ -51,7 +51,7 @@ const ACTION_CONTEXT_FILTER_METADATA: Record<ActionAppliesToField, Omit<ActionCo
     kind: { label: 'Target kind', supportedContextKinds: ['card', 'file', 'folder', 'project'], valueSource: 'kind', validate: validateActionContextFilterValue },
     state: { label: 'Card state', supportedContextKinds: ['card', 'file'], valueSource: 'state', validate: validateActionContextFilterValue },
     type: { label: 'Context type', supportedContextKinds: ['card', 'file', 'folder'], valueSource: 'type', validate: validateActionContextFilterValue },
-    worktree: { label: 'Worktree', supportedContextKinds: ['card', 'file'], valueSource: 'worktree', validate: validateActionContextFilterValue },
+    worktree: { label: 'Worktree', supportedContextKinds: ['card', 'file', 'project'], valueSource: 'worktree', validate: validateActionContextFilterValue },
     worktreeError: { label: 'Worktree error', supportedContextKinds: ['card', 'file'], valueSource: 'text', validate: validateActionContextFilterValue },
 }
 
@@ -96,6 +96,19 @@ export function folderContext(folder: string, isSpecial = false): ActionContext 
 /** Build context for actions that run against the opened project rather than a card or file. */
 export function projectContext(): ActionContext {
     return { kind: 'project' }
+}
+
+/** Add or remove the session assignment used by project-wide popup actions. */
+export function projectContextWithWorktree(context: ActionContext, worktree: number | null): ActionContext {
+    if (context.kind !== 'project') return context
+    if (worktree === null) {
+        const unassignedContext = { ...context }
+        delete unassignedContext.worktree
+
+        return unassignedContext
+    }
+
+    return { ...context, worktree: String(worktree) }
 }
 
 /**

@@ -52,6 +52,7 @@
     "react": "^19.2.7",
     "react-arborist": "^3.13.2",
     "react-diff-viewer-continued": "^4.2.2",
-    "react-dom": "^19.2.7"
+    "react-dom": "^19.2.7",
+    "uuid": "^14.0.1"
   }
 }

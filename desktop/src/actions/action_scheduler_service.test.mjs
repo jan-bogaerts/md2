@@ -118,7 +118,7 @@ function createScheduler(localGitService, timerDependencies = {}) {
     const configuredAgentRunnerService = timerDependencies.agentRunnerService ?? { run: vi.fn() };
     const agentRunnerService = {
         start: vi.fn(async (executionProject, request, onEvent, onComplete) => {
-            void configuredAgentRunnerService.run(executionProject, request, onEvent).then((result) => onComplete(result.exitCode, {conversation: { id: 'agent-1' }, reference: '.md2-agent-logs/one.json', stderr: result.stderr, stdout: result.stdout}));
+            void configuredAgentRunnerService.run(executionProject, request, onEvent).then((result) => onComplete(result.exitCode, {conversation: { id: 'agent-1' }, reference: 'design/activity/project.json#conversation=agent-1', stderr: result.stderr, stdout: result.stdout}));
 
             return { runId: 'agent-1' };
         }),

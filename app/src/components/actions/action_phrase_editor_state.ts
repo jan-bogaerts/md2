@@ -1,4 +1,5 @@
 import type { ActionEditorState, ActionPhrase, ActionPhraseEditorState } from '../../data/action_types'
+import { generateUuid } from '../../data/uuid'
 
 export const ACTION_DEFINITION_TAB = 'definition'
 const PHRASE_TAB_PREFIX = 'phrase-'
@@ -9,7 +10,7 @@ function phraseMatches(left: ActionPhrase, right: ActionPhrase) {
 }
 
 function newPhraseEditorState(phrase: ActionPhrase): ActionPhraseEditorState {
-    return { identity: `${PHRASE_TAB_PREFIX}${crypto.randomUUID()}`, phrase }
+    return { identity: `${PHRASE_TAB_PREFIX}${generateUuid()}`, phrase }
 }
 
 /** Reconcile transient editor identities with current persisted phrase values. */

@@ -22,6 +22,7 @@ function usage(
 function card(path: string, usages: Array<AgentTokenUsage | undefined>): ProjectCard {
     const agentConversations = usages.map((agentUsage, index) => ({
         actionId: null,
+        cardInternalId: path,
         cardPath: path,
         completedAt: 'now',
         events: [],
@@ -69,7 +70,7 @@ describe('agent usage aggregation', () => {
         })
     })
 
-    it('sums every loaded log for a card and preserves reported cost', () => {
+    it('sums every loaded conversation for a card and preserves reported cost', () => {
         const total = cardAgentTokenUsage(card('design/F-1.md', [usage(10, 2, 3, 1, 0.01), usage(20, 4, 6, 2), undefined]))
 
         expect(total).toEqual({
@@ -82,7 +83,7 @@ describe('agent usage aggregation', () => {
         })
     })
 
-    it('returns zero for cards with no loaded or usage-bearing logs', () => {
+    it('returns zero for cards with no loaded or usage-bearing conversations', () => {
         expect(cardAgentTokenUsage(card('design/F-1.md', []))).toEqual({
             cachedInputTokens: 0,
             inputTokens: 0,

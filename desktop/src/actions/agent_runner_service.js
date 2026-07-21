@@ -15,6 +15,7 @@ const {
     persistTerminalConversation,
 } = require('./agent_conversation_persistence');
 const { createAgentProviderProtocolParser } = require('./agent_provider_protocol');
+const { AgentExecutableResolver } = require('./agent_executable_availability');
 const { assertGitRoot, ensureInsideRoot, requireRootPath } = require('../git/git_commands');
 
 const HIDDEN_STDERR_LINES = [
@@ -133,7 +134,9 @@ function createRunResult(request, exitCode, run) {
 }
 
 class AgentRunnerService {
-    constructor() {
+    constructor(dependencies = {}) {
+        this.persistTerminalConversation = dependencies.persistTerminalConversation ?? persistTerminalConversation;
+        this.executableResolver = dependencies.executableResolver ?? new AgentExecutableResolver();
         this.processes = new Map();
         this.runningConversationIds = new Set();
     }
@@ -181,7 +184,9 @@ class AgentRunnerService {
             conversation.messages.push(createMessage(`${id}-user`, 'user', prompt, startedAt));
         }
         conversation.events.push(createEvent(`${id}-started`, 'started', command.join(' '), startedAt));
-        const [executable, ...configuredArguments] = command;
+        const [configuredExecutable, ...configuredArguments] = command;
+        const resolvedExecutable = await this.executableResolver.find(configuredExecutable, { cwd: rootPath, env: process.env });
+        const executable = resolvedExecutable ?? configuredExecutable;
         const argumentsList = [...configuredArguments, prompt];
         const child = crossSpawn(executable, argumentsList, {
             cwd: rootPath,
@@ -368,7 +373,7 @@ class AgentRunnerService {
             run.conversation.completedAt = completedAt;
             run.conversation.status = run.cancelled ? 'cancelled' : succeeded ? 'completed' : 'failed';
             run.conversation.events.push(createEvent(`${runId}-closed`, 'closed', String(exitCode), completedAt));
-            await persistTerminalConversation(run);
+            await this.persistTerminalConversation(run);
             this.processes.delete(runId);
             this.runningConversationIds.delete(run.conversation.id);
             emitRunEvent(run, { reference: run.reference, status: run.conversation.status, type: 'closed' });

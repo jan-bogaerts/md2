@@ -8,7 +8,12 @@ import { describe, expect, it } from 'vitest';
 
 const require = createRequire(import.meta.url);
 const execFileAsync = promisify(execFile);
-const { appendActionActivity, loadCardActivity } = require('./activity_files');
+const {
+    appendActionActivity,
+    listAgentConversationReferences,
+    loadCardActivity,
+    upsertActivityConversation,
+} = require('./activity_files');
 
 async function git(rootPath, args) {
     const { stdout } = await execFileAsync('git', args, { cwd: rootPath });
@@ -50,6 +55,7 @@ describe('card activity visibility', () => {
             await writeFile(join(primaryPath, 'design', 'card.md'), 'Initial\n');
             await git(primaryPath, ['add', '.']);
             await git(primaryPath, ['commit', '-m', 'Initial']);
+            const initialCommit = await git(primaryPath, ['rev-parse', 'HEAD']);
             await git(primaryPath, ['worktree', 'add', '-b', 'feature', linkedPath]);
             await writeFile(join(linkedPath, 'design', 'card.md'), 'Changed\n');
             await git(linkedPath, ['add', '.']);
@@ -67,6 +73,10 @@ describe('card activity visibility', () => {
             expect((await loadCardActivity(project, 'design', 'card-1', [])).records[0].commits)
                 .toEqual([expect.objectContaining({ available: true, commit })]);
 
+            await git(primaryPath, ['checkout', '-b', 'alternate', initialCommit]);
+            expect((await loadCardActivity(project, 'design', 'card-1', [])).records[0].commits)
+                .toEqual([expect.objectContaining({ available: true, commit })]);
+
             const missingCommit = 'f'.repeat(40);
             await appendActionActivity(project, 'design', origin, activityRecord('execution-2', [commitReference(missingCommit, 'main')]));
             expect((await loadCardActivity(project, 'design', 'card-1', [])).records[1].commits)
@@ -75,4 +85,32 @@ describe('card activity visibility', () => {
             await rm(parentPath, { force: true, recursive: true });
         }
     }, 15000);
+});
+
+describe('project activity conversations', () => {
+    it('lists conversation references without routing activity JSON through markdown loading', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-project-activity-'));
+        const project = { branch: 'main', rootPath };
+        try {
+            await git(rootPath, ['init', '-b', 'main']);
+            await git(rootPath, ['config', 'user.email', 'md2-test@example.com']);
+            await git(rootPath, ['config', 'user.name', 'MD2 Test']);
+            await upsertActivityConversation(project, 'design', { kind: 'project' }, {
+                completedAt: '2026-07-21T10:01:00.000Z',
+                events: [],
+                id: 'conversation-1',
+                messages: [],
+                providerSessions: [],
+                startedAt: '2026-07-21T10:00:00.000Z',
+                status: 'completed',
+                title: 'Project run',
+            });
+
+            await expect(listAgentConversationReferences(project, 'design')).resolves.toEqual([
+                'design/activity/project.json#conversation=conversation-1',
+            ]);
+        } finally {
+            await rm(rootPath, { force: true, recursive: true });
+        }
+    });
 });

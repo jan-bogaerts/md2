@@ -26,6 +26,7 @@ const DATA_METHODS = [
     'deleteFolder',
     'hasPendingPush',
     'listBranches',
+    'listAgentConversationReferences',
     'listRepositoryFiles',
     'listTopLevelFolders',
     'loadActionFiles',

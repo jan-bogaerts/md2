@@ -46,5 +46,6 @@ export interface CardActivityFile {
 }
 
 export function createActivityFile(origin: ActivityOrigin): CardActivityFile
+export function parseActivityValue(value: unknown, expectedOrigin?: ActivityOrigin | null): CardActivityFile
 export function parseActivityFile(content: string, expectedOrigin?: ActivityOrigin | null): CardActivityFile
 export function findActivityConversation(activity: CardActivityFile, conversationId: string): Omit<AgentConversation, 'path'>

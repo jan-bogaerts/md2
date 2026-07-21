@@ -2,7 +2,7 @@ import {
     Box, Button, Paper, Stack, Typography,
     useMediaQuery, useTheme,
 } from '@mui/material'
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import {
     DEFAULT_CARD_TYPES,
     DEFAULT_ACTIONS_FOLDER,
@@ -77,7 +77,6 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
     const activeCards = snapshot?.activeCards ?? EMPTY_CARDS
     const backgroundCards = snapshot?.backgroundCards ?? EMPTY_CARDS
     const repositoryFiles = snapshot?.repositoryFiles ?? EMPTY_REPOSITORY_FILES
-    const [requestedNonce, setRequestedNonce] = useState(0)
     const { selectedPath, viewMode } = useWorkspaceView()
     const isProjectOpen = !!project
     const projectConfig = useProjectConfig()
@@ -140,9 +139,9 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
         const handleNavigationOpen = (event: Event) => {
             const { path } = (event as CustomEvent<WorkspaceOpenRequest>).detail
             // Reveal the card/file without changing the current view mode: highlight it in card view
-            // and queue it as a text-view tab for when that view is shown.
+            // and open it in the service-owned text-view tabs.
             workspaceViewService.selectPath(path)
-            setRequestedNonce((nonce) => nonce + 1)
+            runWorkspaceEdit(() => openFilesService.openPath(path), `File open failed: ${path}`)
             telemetryService.trackEvent('navigation')
         }
 
@@ -236,7 +235,7 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
 
     const handleOpenInFileMode = (path: string) => {
         workspaceViewService.selectPath(path)
-        setRequestedNonce((nonce) => nonce + 1)
+        runWorkspaceEdit(() => openFilesService.openPath(path), `File open failed: ${path}`)
         workspaceViewService.setViewMode('text')
         telemetryService.trackEvent('navigation')
     }
@@ -299,8 +298,6 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
                             onTogglePolicy={handleTogglePolicy}
                             projectFolder={projectFolder}
                             projectKey={`${project.id}:${project.branch}`}
-                            requestedNonce={requestedNonce}
-                            requestedPath={selectedPath}
                             repositoryFiles={repositoryFiles}
                             states={states}
                             workingFolder={workingFolder}

@@ -7,8 +7,6 @@
 } from '../../data/data_types'
 import { register } from '.././service_injector'
 import { parseAgentConversation } from '../../../../shared/agent_conversations.mjs'
-import { activityFilePath, conversationActivityReference } from '../../../../shared/activity_paths.mjs'
-import { parseActivityFile } from '../../../../shared/card_activity.mjs'
 
 type Listener = () => void
 
@@ -18,14 +16,9 @@ export function parseAgentConversationLog(content: string, referencePath: string
 
 /** Discover persisted agent-conversation references through any storage implementation. */
 export async function listAgentConversationReferences(storage: StorageService, project: ProjectReference, projectFolder: string) {
-    const paths = await storage.listRepositoryFiles(project)
-    const projectActivityPath = activityFilePath(projectFolder, { kind: 'project' })
-    if (!paths.includes(projectActivityPath)) return []
-    if (!storage.loadFile) throw new Error('Project activity loading requires file reads')
-    const file = await storage.loadFile(project, projectActivityPath)
-    const activity = parseActivityFile(file.content, { kind: 'project' })
+    if (!storage.listAgentConversationReferences) throw new Error('Agent conversation listing requires a storage bridge')
 
-    return activity.conversations.map(({ id }) => conversationActivityReference(projectActivityPath, id))
+    return storage.listAgentConversationReferences(project, projectFolder)
 }
 
 export async function loadAgentConversation(storage: StorageService, project: ProjectReference, path: string) {

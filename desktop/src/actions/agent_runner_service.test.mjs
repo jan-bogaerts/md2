@@ -7,8 +7,21 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const require = createRequire(import.meta.url);
 const { AgentRunnerService } = require('./agent_runner_service');
+const { upsertActivityConversation } = require('./activity_files');
 const { findActivityConversation } = require('../../../shared/card_activity.mjs');
 const { conversationActivityReference, parseConversationActivityReference } = require('../../../shared/activity_paths.mjs');
+
+function createService(dependencies = {}) {
+    return new AgentRunnerService({
+        ...dependencies,
+        persistTerminalConversation: (run) => upsertActivityConversation(
+            run.request.activityProject,
+            run.request.projectFolder,
+            run.request.activityOrigin,
+            run.conversation,
+        ),
+    });
+}
 
 function createProject(rootPath) {
     return { branch: 'main', id: 'local', rootPath };
@@ -65,7 +78,7 @@ describe('AgentRunnerService', () => {
 
     it('uses pipes and preserves configured arguments and the prompt', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-runner-'));
-        const service = new AgentRunnerService();
+        const service = createService();
         const prompt = 'Reply with exactly: "spawn test ok"\n& echo %PATH%';
         const scriptPath = join(rootPath, 'read-prompt.cjs');
 
@@ -88,7 +101,7 @@ describe('AgentRunnerService', () => {
 
     it('passes large transcript context through stdin', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-runner-'));
-        const service = new AgentRunnerService();
+        const service = createService();
         const contextInput = 'history\n'.repeat(20000);
         const scriptPath = join(rootPath, 'read-context.cjs');
 
@@ -106,8 +119,9 @@ describe('AgentRunnerService', () => {
 
     it.runIf(process.platform === 'win32')('runs configured Windows command scripts with preserved arguments', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-runner-'));
-        const service = new AgentRunnerService();
         const commandPath = join(rootPath, 'test-agent.cmd');
+        const executableResolver = { find: vi.fn(async () => commandPath) };
+        const service = createService({ executableResolver });
         const scriptPath = join(rootPath, 'test-agent-script.cjs');
         const prompt = 'spawn test ok';
 
@@ -116,7 +130,7 @@ describe('AgentRunnerService', () => {
             await writeFile(scriptPath, 'process.stdout.write(JSON.stringify(process.argv[3]))\n');
             await writeFile(commandPath, '@echo off\r\nnode "%~dp0test-agent-script.cjs" marker %*\r\n');
             const result = await service.run(createProject(rootPath), agentRequest({
-                command: [commandPath],
+                command: ['test-agent'],
                 prompt,
                 scopePath: 'project',
             }), () => undefined);
@@ -124,6 +138,7 @@ describe('AgentRunnerService', () => {
             expect(result.stderr).toBe('');
             expect(result.exitCode).toBe(0);
             expect(JSON.parse(result.stdout)).toBe(prompt);
+            expect(executableResolver.find).toHaveBeenCalledWith('test-agent', { cwd: rootPath, env: process.env });
         } finally {
             await rm(rootPath, { force: true, recursive: true });
         }
@@ -131,7 +146,7 @@ describe('AgentRunnerService', () => {
 
     it('streams output deltas and persists normalized transcript data', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-runner-'));
-        const service = new AgentRunnerService();
+        const service = createService();
         const events = [];
         const scriptPath = join(rootPath, 'structured-output.cjs');
 
@@ -164,7 +179,7 @@ describe('AgentRunnerService', () => {
 
     it('persists and accumulates normalized usage across resumed turns', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-runner-'));
-        const service = new AgentRunnerService();
+        const service = createService();
         const firstScriptPath = join(rootPath, 'first-usage.cjs');
         const secondScriptPath = join(rootPath, 'second-usage.cjs');
 
@@ -193,7 +208,7 @@ describe('AgentRunnerService', () => {
 
     it('persists normalized Claude result usage and reported cost', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-runner-'));
-        const service = new AgentRunnerService();
+        const service = createService();
         const scriptPath = join(rootPath, 'claude-usage.cjs');
 
         try {
@@ -217,7 +232,7 @@ describe('AgentRunnerService', () => {
 
     it('does not count usage from a failed turn', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-runner-'));
-        const service = new AgentRunnerService();
+        const service = createService();
         const scriptPath = join(rootPath, 'failed-usage.cjs');
 
         try {
@@ -234,7 +249,7 @@ describe('AgentRunnerService', () => {
 
     it('streams structured provider failures and returns their messages in stderr once', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-runner-'));
-        const service = new AgentRunnerService();
+        const service = createService();
         const events = [];
         const scriptPath = join(rootPath, 'structured-failure.cjs');
         const failureMessage = "The 'GPT' model is not supported when using Codex with a ChatGPT account.";
@@ -259,7 +274,7 @@ describe('AgentRunnerService', () => {
 
     it('hides agent lifecycle and debugger noise from stderr', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-runner-'));
-        const service = new AgentRunnerService();
+        const service = createService();
         const events = [];
         const scriptPath = join(rootPath, 'noisy-stderr.cjs');
 
@@ -284,7 +299,7 @@ describe('AgentRunnerService', () => {
 
     it('completes without a provider conversation id and keeps transcript fallback available', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-runner-'));
-        const service = new AgentRunnerService();
+        const service = createService();
         const scriptPath = join(rootPath, 'missing-session.cjs');
 
         try {
@@ -309,7 +324,7 @@ describe('AgentRunnerService', () => {
 
     it('keeps malformed provider JSONL as a diagnostic without failing the turn', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-runner-'));
-        const service = new AgentRunnerService();
+        const service = createService();
         const events = [];
         const scriptPath = join(rootPath, 'malformed-output.cjs');
 
@@ -336,7 +351,7 @@ describe('AgentRunnerService', () => {
 
     it('cancels only the active turn without advancing its provider cursor', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-runner-'));
-        const service = new AgentRunnerService();
+        const service = createService();
         const events = [];
         const conversation = {
             actionId: 'implement', completedAt: 'earlier', events: [], id: 'conversation-1',
@@ -364,7 +379,7 @@ describe('AgentRunnerService', () => {
 
     it('rejects concurrent turns for one conversation while allowing separate conversations', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-runner-'));
-        const service = new AgentRunnerService();
+        const service = createService();
         const events = [];
         const conversation = {
             actionId: null, completedAt: null, events: [], id: 'conversation-1', messages: [], providerSessions: [],
@@ -394,7 +409,7 @@ describe('AgentRunnerService', () => {
 
     it('writes final completion atomically before reporting closed', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-runner-'));
-        const service = new AgentRunnerService();
+        const service = createService();
         const renameSpy = vi.spyOn(fsPromises, 'rename');
 
         try {
@@ -405,6 +420,30 @@ describe('AgentRunnerService', () => {
 
             expect(persisted.status).toBe('completed');
             expect(renameSpy.mock.calls.some(([from, to]) => String(from).endsWith('.tmp') && to === join(rootPath, activityPath))).toBe(true);
+        } finally {
+            await rm(rootPath, { force: true, recursive: true });
+        }
+    });
+
+    it('uses the injected terminal persistence once before publishing closed', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-runner-'));
+        const lifecycle = [];
+        const persistTerminalConversation = vi.fn(async (run) => {
+            lifecycle.push('persist');
+            expect(run.conversation.status).toBe('completed');
+        });
+        const service = new AgentRunnerService({ persistTerminalConversation });
+
+        try {
+            await prepareProject(rootPath);
+            await service.run(
+                createProject(rootPath),
+                agentRequest({command: ['node', '-e', "process.stdout.write('done')"], prompt: 'go', scopePath: 'project'}),
+                (event) => lifecycle.push(event.type),
+            );
+
+            expect(persistTerminalConversation).toHaveBeenCalledOnce();
+            expect(lifecycle.indexOf('persist')).toBeLessThan(lifecycle.indexOf('closed'));
         } finally {
             await rm(rootPath, { force: true, recursive: true });
         }

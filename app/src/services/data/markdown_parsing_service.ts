@@ -1,4 +1,5 @@
 import type { CardHeader, MarkdownFile, ProjectCard } from '../../data/data_types'
+import { generateUuid } from '../../data/uuid'
 
 const HEADER_DELIMITER = '---'
 const MARKDOWN_EXTENSION = '.md'
@@ -24,6 +25,7 @@ export interface CardParseError {
 
 export interface NewCardHeader {
     affects?: string[]
+    /** Activity conversation references serialized through the existing `agents` frontmatter field. */
     agentLogReferences?: string[]
     author?: string | null
     id: string
@@ -469,6 +471,6 @@ export const markdownParsingService = {
     },
 
     generateInternalId() {
-        return crypto.randomUUID()
+        return generateUuid()
     },
 }

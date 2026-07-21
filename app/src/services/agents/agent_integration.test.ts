@@ -174,7 +174,7 @@ describe('AgentIntegration', () => {
         configService.init()
         const agentFiles: MarkdownFile[] = [
             {
-                content: '---\nid: F-1\ntitle: Root\nstatus: active\nagents:\n  - .md2-agent-logs/one.json\n---\n\n# Root',
+                content: '---\nid: F-1\ninternalId: root-card\ntitle: Root\nstatus: active\nagents:\n  - design/activity/card__root-card.json#conversation=agent-1\n---\n\n# Root',
                 path: 'design/F-1-root.md',
             },
         ]
@@ -202,11 +202,12 @@ describe('AgentIntegration', () => {
         configService.init()
         let activeLoads = 0
         let maxActiveLoads = 0
-        const agentReferences = Array.from({ length: 10 }, (_item, index) => `.md2-agent-logs/${index}.json`)
+        const agentReferences = Array.from({ length: 10 }, (_item, index) => `design/activity/card__root-card.json#conversation=agent-${index}`)
         const agentFile: MarkdownFile = {
             content: [
                 '---',
                 'id: F-1',
+                'internalId: root-card',
                 'title: Root',
                 'status: active',
                 'agents:',
@@ -246,7 +247,7 @@ describe('AgentIntegration', () => {
         configService.init()
         const agentFiles: MarkdownFile[] = [
             {
-                content: '---\nid: F-1\ntitle: Root\nstatus: active\nagents:\n  - .md2-agent-logs/missing.json\n---\n\n# Root',
+                content: '---\nid: F-1\ninternalId: root-card\ntitle: Root\nstatus: active\nagents:\n  - design/activity/card__root-card.json#conversation=missing\n---\n\n# Root',
                 path: 'design/F-1-root.md',
             },
         ]
@@ -268,16 +269,16 @@ describe('AgentIntegration', () => {
 
         await vi.waitFor(() => {
             expect(service.getState().snapshot?.activeCards[0].agentConversationErrors).toEqual([
-                { message: 'Agent log not found', path: '.md2-agent-logs/missing.json' },
+                { message: 'Agent log not found', path: 'design/activity/card__root-card.json#conversation=missing' },
             ])
         })
     })
 
     it('continues a conversation through its originating Electron action', async () => {
         configService.init()
-        const sourceConversation = { ...conversation('.md2-agent-logs/one.json'), actionId: 'md2.custom-prompt' }
+        const sourceConversation = { ...conversation(), actionId: 'md2.custom-prompt' }
         const cardFile = {
-            content: '---\nid: F-1\ntitle: Root\nstatus: active\nagents:\n  - .md2-agent-logs/one.json\n---\n\n# Root',
+            content: '---\nid: F-1\ninternalId: root-card\ntitle: Root\nstatus: active\nagents:\n  - design/activity/card__root-card.json#conversation=agent-1\n---\n\n# Root',
             path: 'design/F-1-root.md',
         }
         const storage = createStorage({
@@ -290,12 +291,12 @@ describe('AgentIntegration', () => {
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
         await vi.waitFor(() => expect(service.getState().snapshot?.activeCards[0].agentConversations).toHaveLength(1))
-        await service.agents.continueAgentConversation('design/F-1-root.md', '.md2-agent-logs/one.json')
+        await service.agents.continueAgentConversation('design/F-1-root.md', 'design/activity/card__root-card.json#conversation=agent-1')
 
         expect(runElectronAction).toHaveBeenCalledWith(
             expect.objectContaining({ id: 'md2.custom-prompt' }),
             expect.objectContaining({ file: 'design/F-1-root.md', kind: 'file' }),
-            { continueFrom: '.md2-agent-logs/one.json' },
+            { continueFrom: 'design/activity/card__root-card.json#conversation=agent-1' },
         )
     })
 
@@ -317,7 +318,7 @@ describe('AgentIntegration', () => {
         if (!scheduledRunCallback) throw new Error('Scheduled run callback not registered')
         const emitScheduledRun = scheduledRunCallback as (event: ActionExecutionEvent) => void
 
-        const context = { file: 'design/F-1-root.md', kind: 'card' as const }
+        const context = { cardInternalId: 'root-card', file: 'design/F-1-root.md', kind: 'card' as const }
         emitScheduledRun({ actionId: 'implement', context, executionId: 'schedule-1', phase: 'main', rootActionId: 'implement', status: 'running', type: 'execution' })
         expect(actionExecutionService.getRunningSnapshot()).toEqual([expect.objectContaining({ executionId: 'schedule-1' })])
         expect(service.getState().runningAgents).toEqual([])
@@ -344,14 +345,14 @@ describe('AgentIntegration', () => {
         if (!actionRunCallback) throw new Error('Action run callback not registered')
         const emitActionRun = actionRunCallback as (event: ActionExecutionEvent) => void
 
-        const context = { file: 'design/F-1-root.md', kind: 'card' as const }
+        const context = { cardInternalId: 'root-card', file: 'design/F-1-root.md', kind: 'card' as const }
         emitActionRun({
             actionId: 'implement', context, executionId: 'action-1', executionWorktree: null, phase: 'main',
-            reference: '.md2-agent-logs/one.json', rootActionId: 'implement', status: 'completed', type: 'action',
+            reference: 'design/activity/card__root-card.json#conversation=agent-1', rootActionId: 'implement', status: 'completed', type: 'action',
         })
 
         await vi.waitFor(() => expect(storage.loadAgentConversation).toHaveBeenCalledTimes(1))
         await vi.waitFor(() => expect(service.getState().snapshot?.activeCards[0].agentConversations).toHaveLength(1))
-        expect(service.getState().snapshot?.activeCards[0].header.agentLogReferences).toEqual(['.md2-agent-logs/one.json'])
+        expect(service.getState().snapshot?.activeCards[0].header.agentLogReferences).toEqual(['design/activity/card__root-card.json#conversation=agent-1'])
     })
 })

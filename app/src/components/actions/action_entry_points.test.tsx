@@ -12,6 +12,7 @@ import { DEFAULT_CARD_TYPES, type ProjectCard } from '../../data/data_types'
 import type { ActionExecutionEvent } from '../../data/action_run_types'
 import { actionExecutionService } from '../../services/actions/action_execution_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
+import type { OpenDocumentObject } from '../../services/open_files_service'
 
 function file(definition: { id: string }): ActionFile {
     return { content: JSON.stringify(definition), path: `actions/${definition.id}.json` }
@@ -234,13 +235,13 @@ describe('entry-point placement in the file tree', () => {
                 cardTypes={DEFAULT_CARD_TYPES}
                 cardsByPath={cardsByPath}
                 nodes={tree}
+                objectsByPath={new Map<string, OpenDocumentObject>(cardsByPath)}
                 onCreateFolder={createFolder}
                 onCreateMarkdownFile={createMarkdownFile}
                 onDeleteFile={async () => undefined}
                 onDeleteFolder={async () => undefined}
-                onSelect={() => {}}
+                onLeftPanelInteraction={() => {}}
                 projectFolder="design"
-                selectedPath={null}
                 statusColors={new Map([['todo', '#9c4dcc']])}
             />,
         )

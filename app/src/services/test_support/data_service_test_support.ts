@@ -49,8 +49,9 @@ export function createGithubStatusResponse(status: number) {
     } as Response
 }
 
-export function conversation(path = '.md2-agent-logs/one.json'): AgentConversation {
+export function conversation(path = 'design/activity/card__root-card.json#conversation=agent-1'): AgentConversation {
     return {
+        cardInternalId: 'root-card',
         cardPath: 'design/F-1-root.md',
         completedAt: '2026-01-01T00:01:00.000Z',
         events: [],

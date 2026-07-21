@@ -8,6 +8,7 @@ import {
     type RawActionDefinition,
     type RawActionDefinitionEntry,
 } from '../../data/action_types'
+import { generateUuid } from '../../data/uuid'
 import { ActionValidationError } from '../../../../shared/action_definitions.mjs'
 import { getService, register } from '.././service_injector'
 import {
@@ -270,7 +271,7 @@ export class ActionService extends EventTarget {
         const name = nextActionName(this.files)
         const definition: RawActionDefinition = {
             description: 'Describe this action.',
-            id: crypto.randomUUID(),
+            id: generateUuid(),
             label: 'New action',
             phrases: [],
             prompt: 'Describe what the agent should do.',

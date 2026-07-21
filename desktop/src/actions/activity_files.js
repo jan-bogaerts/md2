@@ -145,6 +145,16 @@ async function loadActivityConversation(project, reference) {
     return { ...conversation, path: reference };
 }
 
+async function listAgentConversationReferences(project, projectFolder) {
+    const rootPath = requireRootPath(project);
+    await assertGitRoot(rootPath);
+    const origin = { kind: 'project' };
+    const { absolutePath, relativePath } = resolveActivityPath(rootPath, projectFolder, origin);
+    const activity = await readActivityFile(absolutePath, origin);
+
+    return activity.conversations.map(({ id }) => conversationActivityReference(relativePath, id));
+}
+
 async function visibleCommit(rootPath, primaryBranch, validBranches, commit) {
     const available = await commitExists(rootPath, commit.commit);
     if (!available) {
@@ -152,7 +162,7 @@ async function visibleCommit(rootPath, primaryBranch, validBranches, commit) {
             ? { ...commit, available: false }
             : null;
     }
-    if (await isCommitAncestor(rootPath, commit.commit)) return { ...commit, available: true };
+    if (await isCommitAncestor(rootPath, commit.commit, `refs/heads/${primaryBranch}`)) return { ...commit, available: true };
     if (!validBranches.has(commit.branch)) return null;
 
     return await isCommitAncestor(rootPath, commit.commit, `refs/heads/${commit.branch}`)
@@ -206,6 +216,7 @@ module.exports = {
     activityConversationReference,
     appendAndCommitActionActivity,
     appendActionActivity,
+    listAgentConversationReferences,
     loadCardActivity,
     loadActivityConversation,
     readActivityFile,

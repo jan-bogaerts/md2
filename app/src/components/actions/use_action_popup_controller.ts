@@ -48,12 +48,14 @@ interface ActionPopupControllerInput {
     context: ActionContext
     convertPromptToAction?: ConvertPromptToAction
     enableConversations?: boolean
+    executionValidationError?: string | null
     initialPrompt?: string
     loadConversation?: LoadConversation
     loadConversations?: LoadConversations
     loadHistory?: LoadHistory
     preparePrompt?: PreparePrompt
     runAction?: RunAction
+    scheduleContext?: ActionContext
     scheduleAction?: ScheduleAction
 }
 
@@ -366,6 +368,8 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
         if (action.type === 'agent') setLiveActionKey(conversationKey)
 
         try {
+            if (input.executionValidationError) throw new Error(input.executionValidationError)
+
             const runInput = action.type === 'agent'
                 ? {
                     ...(agent ? { agent } : {}),
@@ -392,6 +396,7 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
                 status: 'failed',
             })
             setLocalRunStatus('failed')
+            dialogService.error(error, { fallbackMessage: 'Action run failed' })
         }
     }
 
@@ -452,7 +457,7 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
 
         try {
             const trigger = createScheduleTrigger(scheduleTimestamp)
-            await scheduleAction(action, context, trigger)
+            await scheduleAction(action, input.scheduleContext ?? context, trigger)
             setScheduleMessage('Schedule registered')
         } catch (error) {
             setScheduleMessage(error instanceof Error ? error.message : 'Could not register schedule')
@@ -538,6 +543,7 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
         promptPreparationPending,
         promptResetToken,
         executionDisabledMessage,
+        executionValidationError: input.executionValidationError ?? null,
         handleActionLabelChange,
         handleCancel,
         handleAgentChange,

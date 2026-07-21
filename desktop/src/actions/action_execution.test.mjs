@@ -264,7 +264,7 @@ describe('ActionExecution', () => {
 
                 return {
                     agent: 'codex', conversation: { id: 'conversation' }, exitCode: 1, model: 'gpt', prompt: 'run',
-                    reference: 'run.json', runId: 'conversation', stderr: '', stdout: '', thinkingLevel: 'none',
+                    conversationId: 'conversation', reference: 'run.json', stderr: '', stdout: '', thinkingLevel: 'none',
                 };
             }),
         };
@@ -286,7 +286,7 @@ describe('ActionExecution', () => {
 
                 return {
                     agent: 'codex', exitCode: 0, model: 'gpt', prompt: 'run',
-                    reference: 'run.json', runId: 'conversation', stderr: '', stdout: 'done', thinkingLevel: 'high',
+                    conversationId: 'conversation', reference: 'run.json', stderr: '', stdout: 'done', thinkingLevel: 'high',
                 };
             }),
         };
@@ -303,7 +303,7 @@ describe('ActionExecution', () => {
         const agentExecutor = {
             execute: vi.fn(async () => ({
                 agent: 'codex', changedPaths: ['app/a.ts', 'app/b.ts'], conversation: { id: 'conversation' },
-                exitCode: 0, model: 'gpt', prompt: 'run', reference: 'run.json', runId: 'conversation',
+                conversationId: 'conversation', exitCode: 0, model: 'gpt', prompt: 'run', reference: 'run.json',
                 stderr: '', stdout: '[wrong wrong123] agent commit', thinkingLevel: 'none',
             })),
         };
@@ -472,7 +472,7 @@ describe('ActionExecution', () => {
         const agentExecutor = {
             execute: vi.fn(async () => ({
                 agent: 'codex', changedPaths, conversation: { id: 'conversation' }, exitCode, model: 'gpt',
-                prompt: 'run', reference: 'run.json', runId: 'conversation', stderr: '', stdout: '', thinkingLevel: 'none',
+                conversationId: 'conversation', prompt: 'run', reference: 'run.json', stderr: '', stdout: '', thinkingLevel: 'none',
             })),
         };
         const commitTrackedPaths = vi.fn(async () => 'abcdef3');
@@ -492,7 +492,7 @@ describe('ActionExecution', () => {
 
                 return {
                     agent: 'codex', changedPaths: ['app/a.ts'], conversation: { id: 'conversation' }, exitCode: 0,
-                    model: 'gpt', prompt: 'run', reference: 'run.json', runId: 'conversation', stderr: '', stdout: '',
+                    conversationId: 'conversation', model: 'gpt', prompt: 'run', reference: 'run.json', stderr: '', stdout: '',
                     thinkingLevel: 'none',
                 };
             }),

@@ -94,6 +94,15 @@ describe('CardView', () => {
         vi.restoreAllMocks()
     })
 
+    it('keeps hidden card columns mounted without occupying layout', () => {
+        renderCardView({ visible: false })
+
+        const cardColumns = screen.getByLabelText('Card columns', { selector: '[hidden]' })
+
+        expect(cardColumns).not.toBeVisible()
+        expect(cardColumns).toHaveStyle({ display: 'none' })
+    })
+
     it('groups cards into a column per status with id and title', () => {
         renderCardView()
 

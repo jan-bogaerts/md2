@@ -11,6 +11,10 @@ export function useWorktrees() {
     return useSyncExternalStore(subscribe, () => worktreeService.getRecords())
 }
 
+export function useProjectActionWorktree() {
+    return useSyncExternalStore(subscribe, () => worktreeService.getProjectActionWorktree())
+}
+
 export function useWorktreeDraft() {
     return useSyncExternalStore(subscribe, () => worktreeService.getDraft())
 }

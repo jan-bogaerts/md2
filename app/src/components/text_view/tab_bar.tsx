@@ -5,35 +5,85 @@ import Close from 'mdi-material-ui/Close'
 import FileDocumentOutline from 'mdi-material-ui/FileDocumentOutline'
 import LightningBolt from 'mdi-material-ui/LightningBolt'
 import type { MouseEvent, SyntheticEvent } from 'react'
-import type { OpenDocument } from '../../services/open_files_service'
+import { fileLabel } from '../../data/file_tree'
+import { getCardIdPrefix } from '../../data/card_identifiers'
+import type { CardTypeConfig, ProjectCard } from '../../data/data_types'
+import { markdownParsingService } from '../../services/data/markdown_parsing_service'
+import { openFilesService, type OpenDocument } from '../../services/open_files_service'
+import { telemetryService } from '../../services/telemetry/telemetry_service'
+import { useOpenFiles } from '../hooks/use_open_files'
 
-export type OpenTabKind = 'action' | 'card' | 'markdown'
+type OpenTabKind = 'action' | 'card' | 'markdown'
 
-export interface OpenTab {
+interface OpenTab {
     color: string | null
     document: OpenDocument
     id: string | null
     key: string
     kind: OpenTabKind
     label: string
-    path: string
     title: string
 }
 
 interface TabBarProps {
-    activeDocument: OpenDocument | null
-    onActivate: (document: OpenDocument) => void
-    onClose: (document: OpenDocument) => void
-    tabs: OpenTab[]
+    actionsFolder: string
+    cardTypes: CardTypeConfig[]
+}
+
+function cardTypeColor(card: ProjectCard, cardTypes: CardTypeConfig[]) {
+    const idPrefix = getCardIdPrefix(card.header.id)
+    const cardType = cardTypes.find((candidate) => candidate.idPrefix === idPrefix)
+
+    return cardType?.color ?? null
+}
+
+function isPathInFolder(path: string, folder: string) {
+    const normalizedPath = path.replace(/\\/gu, '/')
+    const normalizedFolder = folder.replace(/\\/gu, '/').replace(/\/+$/u, '')
+
+    return normalizedPath.startsWith(`${normalizedFolder}/`)
+}
+
+function tabKind(card: ProjectCard, actionsFolder: string): OpenTabKind {
+    if (isPathInFolder(card.path, actionsFolder)) return 'action'
+    if (typeof card.headerFields.id === 'string' || markdownParsingService.followsCardNamingConvention(card.path)) return 'card'
+
+    return 'markdown'
+}
+
+function tabData(cardTypes: CardTypeConfig[], actionsFolder: string, document: OpenDocument): OpenTab {
+    if (document.kind === 'action') {
+        const action = document.getObject()
+        if (!action.sourcePath) throw new Error(`Open action has no source path: ${action.id}`)
+
+        return { color: null, document, id: null, key: `action:${action.id}`, kind: 'action', label: action.label, title: action.label }
+    }
+    const card = document.getObject()
+    if (!card.header.internalId) throw new Error(`Open card has no internal ID: ${card.path}`)
+    const label = fileLabel(card)
+    const id = label.startsWith(`${card.header.id} `) ? card.header.id : null
+
+    return {
+        color: cardTypeColor(card, cardTypes),
+        document,
+        id,
+        key: `card:${card.header.internalId}`,
+        kind: tabKind(card, actionsFolder),
+        label,
+        title: id ? label.slice(id.length + 1) : label,
+    }
 }
 
 /** Horizontal bar of compact open-file tabs with card identity and close buttons. */
 export function TabBar(props: TabBarProps) {
-    const { activeDocument, onActivate, onClose, tabs } = props
+    const { actionsFolder, cardTypes } = props
+    const { activeDocument, documents } = useOpenFiles()
+    const tabs = documents.map((document) => tabData(cardTypes, actionsFolder, document))
     const theme = useTheme()
 
     const handleChange = (_event: SyntheticEvent, value: OpenDocument) => {
-        onActivate(value)
+        openFilesService.activateDocument(value)
+        telemetryService.trackEvent('navigation')
     }
 
     const handleClose = (event: MouseEvent<HTMLButtonElement>) => {
@@ -42,8 +92,10 @@ export function TabBar(props: TabBarProps) {
         const document = tabs[index]?.document
         if (!document) throw new Error('Missing document for tab close button')
 
-        onClose(document)
+        openFilesService.closeDocument(document)
     }
+
+    if (tabs.length === 0) return null
 
     return (
         <Box sx={{ borderBottom: 1, borderColor: 'divider', minHeight: 40 }}>

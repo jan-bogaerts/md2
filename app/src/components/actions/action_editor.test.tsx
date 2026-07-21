@@ -8,6 +8,7 @@ import { dataService } from '../../services/data/data_service'
 import { actionService } from '../../services/actions/action_service'
 import * as actionServiceModule from '../../services/actions/action_service'
 import { dialogService } from '../../services/dialog_service'
+import { openFilesService } from '../../services/open_files_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import { actionMarkdownDataSource } from '../editor/action_markdown_data_source'
 import { ListActionEditor } from './list_action_editor'
@@ -61,12 +62,11 @@ function reloadAction(overrides: Record<string, unknown> = {}): ActionDefinition
 }
 
 function ActionEditorHarness(props: { action: ActionDefinition, states: string[] }) {
-    const { action, states } = props
+    const { states } = props
 
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column' }}>
             <ListActionEditor
-                action={action}
                 actions={actionService.getActions()}
                 cardTypes={['feature']}
                 markdownDocumentNamespace="test-project"
@@ -79,6 +79,8 @@ function ActionEditorHarness(props: { action: ActionDefinition, states: string[]
 }
 
 function renderEditor(action: ActionDefinition = loadAction(), states = ['ready']): RenderResult {
+    openFilesService.openDocument(action)
+
     return render(
         <AppThemeProvider>
             <ActionEditorHarness action={action} states={states} />
@@ -97,11 +99,13 @@ function descriptionInput(): HTMLInputElement {
 describe('ActionEditor', () => {
     beforeEach(() => {
         configService.init()
+        openFilesService.clear()
         actionMarkdownDataSource.init(actionService)
     })
 
     afterEach(() => {
         cleanup()
+        openFilesService.clear()
         actionService.clear()
         configService.clear()
         vi.restoreAllMocks()

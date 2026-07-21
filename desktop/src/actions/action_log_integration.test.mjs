@@ -42,7 +42,14 @@ describe('action activity integration', () => {
                     agentProfiles: [{ command: ['node', scriptPath], models: ['gpt-5'], name: 'codex' }],
                     model: 'gpt-5',
                 }),
-                agentRunnerService: new AgentRunnerService(),
+                agentRunnerService: new AgentRunnerService({
+                    persistTerminalConversation: (run) => localGitService.upsertActivityConversation(
+                        run.request.activityProject,
+                        run.request.projectFolder,
+                        run.request.activityOrigin,
+                        run.conversation,
+                    ),
+                }),
                 localGitService: {
                     ...localGitService,
                     appendAndCommitActionActivity: (activityProject, activityProjectFolder, origin, record) => (

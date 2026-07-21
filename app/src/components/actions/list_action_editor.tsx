@@ -1,7 +1,7 @@
 import { Box } from '@mui/material'
-import { memo, useCallback, useEffect, useState } from 'react'
+import { memo, useCallback, useEffect, useRef, useState } from 'react'
 import type { ActionDefinition } from '../../data/action_types'
-import { openFilesService, type OpenDocumentEventDetail } from '../../services/open_files_service'
+import { openFilesService, type ActionOpenDocument, type OpenDocumentEventDetail } from '../../services/open_files_service'
 import {
     actionMarkdownDataSource,
     actionMarkdownDocumentId,
@@ -12,9 +12,9 @@ import { MarkdownEditor } from '../editor/markdown_editor'
 import { MarkdownEditorStateStore } from '../editor/markdown_editor_state_store'
 import { ACTION_PROMPT_TAB } from './action_phrase_editor_state'
 import { ActionEditor, type ActionMarkdownPresentation } from './action_editor'
+import { useOpenFiles } from '../hooks/use_open_files'
 
 interface ListActionEditorProps {
-    action: ActionDefinition | null
     actions: ActionDefinition[]
     cardTypes: string[]
     markdownDocumentNamespace: string
@@ -25,7 +25,12 @@ interface ListActionEditorProps {
 
 /** Lifetime-stable list action editor surface and binding-owned undo store. */
 export const ListActionEditor = memo(function ListActionEditor(props: ListActionEditorProps) {
-    const { action, actions, cardTypes, markdownDocumentNamespace, repositoryFiles, specialContextTypes, states } = props
+    const { actions, cardTypes, markdownDocumentNamespace, repositoryFiles, specialContextTypes, states } = props
+    const { activeDocument } = useOpenFiles()
+    const activeActionDocument = activeDocument?.kind === 'action' ? activeDocument : null
+    const retainedActionDocument = useRef<ActionOpenDocument | null>(null)
+    if (activeActionDocument) retainedActionDocument.current = activeActionDocument
+    const action = retainedActionDocument.current?.getObject() ?? null
     const [historyStore] = useState(() => new MarkdownDocumentHistoryStore())
     const [stateStore] = useState(() => new MarkdownEditorStateStore())
     const [presentation, setPresentation] = useState<ActionMarkdownPresentation | null>(null)
@@ -41,6 +46,7 @@ export const ListActionEditor = memo(function ListActionEditor(props: ListAction
             if (document.kind !== 'action') return
 
             const removedAction = document.getObject()
+            if (retainedActionDocument.current === document) retainedActionDocument.current = null
             for (const { identity } of removedAction.editorState?.phrases ?? []) {
                 discardMarkdownDocument(actionMarkdownDocumentId(markdownDocumentNamespace, removedAction.id, identity))
             }
@@ -59,7 +65,11 @@ export const ListActionEditor = memo(function ListActionEditor(props: ListAction
     useEffect(() => () => actionMarkdownDataSource.setActiveActionDocument(markdownDocumentNamespace, null), [markdownDocumentNamespace])
 
     return (
-        <Box data-testid="list-action-editor" sx={{ display: 'contents' }}>
+        <Box
+            data-testid="list-action-editor"
+            hidden={!activeActionDocument}
+            sx={{ display: activeActionDocument ? 'contents' : 'none' }}
+        >
             {action ? (
                 <ActionEditor
                     action={action}

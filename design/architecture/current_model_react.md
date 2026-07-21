@@ -45,7 +45,7 @@ CardHeader
 ├─ status
 ├─ after                      previous card's internalId
 ├─ affects: string[]          repository-relative filepaths
-├─ agentLogReferences[]       repository-relative log paths
+├─ agentLogReferences[]       activity-file conversation references (serialized as `agents`)
 ├─ policy
 ├─ worktree
 ├─ author / owner

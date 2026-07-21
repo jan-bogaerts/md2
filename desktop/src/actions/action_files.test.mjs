@@ -93,7 +93,7 @@ describe('action-files', () => {
         try {
             await mkdir(activityFolder, { recursive: true });
             await writeFile(join(activityFolder, 'card__card-1.json'), JSON.stringify({
-                conversations: [{ completedAt: 'done', events: [], id: 'conversation-1', messages: [], providerSessions: [], startedAt: 'start', status: 'completed', title: 'Run' }],
+                conversations: [{ cardInternalId: 'card-1', completedAt: 'done', events: [], id: 'conversation-1', messages: [], providerSessions: [], startedAt: 'start', status: 'completed', title: 'Run' }],
                 origin, records: [], version: 1,
             }));
 

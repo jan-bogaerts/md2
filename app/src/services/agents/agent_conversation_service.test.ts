@@ -82,20 +82,7 @@ describe('parseAgentConversationLog', () => {
         ['', 'activity/project.json'],
         ['projects/demo', 'projects/demo/activity/project.json'],
     ])('discovers project conversations from activity for projectFolder %j', async (projectFolder, projectActivityPath) => {
-        const storage = {
-            listRepositoryFiles: async () => [
-                'README.md',
-                projectActivityPath,
-                `${projectFolder ? `${projectFolder}/` : ''}activity/card__card-1.json`,
-            ],
-            loadFile: async () => ({
-                content: JSON.stringify({
-                    conversations: [{ completedAt: 'done', events: [], id: 'conversation-1', messages: [], providerSessions: [], startedAt: 'start', status: 'completed', title: 'Project run' }],
-                    origin: { kind: 'project' }, records: [], version: 1,
-                }),
-                path: projectActivityPath,
-            }),
-        } as unknown as StorageService
+        const storage = {listAgentConversationReferences: async () => [`${projectActivityPath}#conversation=conversation-1`]} as unknown as StorageService
 
         await expect(listAgentConversationReferences(storage, { branch: 'main', id: 'project' }, projectFolder))
             .resolves.toEqual([`${projectActivityPath}#conversation=conversation-1`])

@@ -216,7 +216,7 @@ export function CardView(props: CardViewProps) {
                 hidden={!visible}
                 sx={{
                     alignItems: 'flex-start',
-                    display: 'flex',
+                    display: visible ? 'flex' : 'none',
                     flexDirection: isMobile ? 'column' : 'row',
                     gap: 2,
                     height: '100%',

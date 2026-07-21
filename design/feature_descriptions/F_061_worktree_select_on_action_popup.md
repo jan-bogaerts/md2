@@ -1,7 +1,7 @@
 ---
 id: F-061
 title: Select workTree from action popup
-status: design
+status: ready
 owner: JB
 affects:
 policy:

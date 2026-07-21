@@ -126,8 +126,7 @@ export function createActivityFile(origin) {
     return { conversations: [], origin: parseOrigin(origin), records: [], version: ACTIVITY_VERSION }
 }
 
-export function parseActivityFile(content, expectedOrigin = null) {
-    const value = JSON.parse(content)
+export function parseActivityValue(value, expectedOrigin = null) {
     if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Malformed activity file: root must be an object')
     if (value.version !== ACTIVITY_VERSION) throw new Error(`Malformed activity file: unsupported version ${String(value.version)}`)
     if (!Array.isArray(value.records)) throw new Error('Malformed activity file: records must be an array')
@@ -146,6 +145,10 @@ export function parseActivityFile(content, expectedOrigin = null) {
         records: value.records.map((record, index) => parseRecord(record, index, origin)),
         version: ACTIVITY_VERSION,
     }
+}
+
+export function parseActivityFile(content, expectedOrigin = null) {
+    return parseActivityValue(JSON.parse(content), expectedOrigin)
 }
 
 export function findActivityConversation(activity, conversationId) {
