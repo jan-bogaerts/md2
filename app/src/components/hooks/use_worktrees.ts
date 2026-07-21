@@ -18,3 +18,7 @@ export function useProjectActionWorktree() {
 export function useWorktreeAdding() {
     return useSyncExternalStore(subscribe, () => worktreeService.isAdding())
 }
+
+export function useWorktreePreparing(cardPath: string | null) {
+    return useSyncExternalStore(subscribe, () => (cardPath ? worktreeService.isPreparingCard(cardPath) : false))
+}

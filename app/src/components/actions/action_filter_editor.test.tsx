@@ -112,9 +112,15 @@ describe('ActionFilterEditor', () => {
         expect(screen.getByLabelText('Worktree')).toHaveTextContent('2 (current)')
     })
 
-    it('clears the old value when changing fields and preserves filter order', () => {
+    it('keeps a changed field local until its replacement value is selected', () => {
         const onChange = vi.fn()
-        render(<FilterEditorHarness initialValue={{ state: 'ready', kind: 'card', type: 'feature' }} onChange={onChange} />)
+        render(
+            <FilterEditorHarness
+                initialValue={{ state: 'ready', kind: 'card', type: 'feature' }}
+                onChange={onChange}
+                repositoryFiles={['src/file.ts']}
+            />,
+        )
 
         expect(screen.getAllByLabelText('Context field').map((field) => field.textContent)).toEqual([
             'Card state', 'Target kind', 'Context type',
@@ -123,7 +129,13 @@ describe('ActionFilterEditor', () => {
         fireEvent.mouseDown(screen.getAllByLabelText('Context field')[0])
         fireEvent.click(within(screen.getByRole('listbox')).getByRole('option', { name: 'Repository file' }))
 
-        expect(onChange).toHaveBeenLastCalledWith({ file: '', kind: 'card', type: 'feature' })
+        expect(onChange).not.toHaveBeenCalled()
+        expect(screen.queryByText('Required value')).not.toBeInTheDocument()
+
+        fireEvent.mouseDown(screen.getByLabelText('Repository file'))
+        fireEvent.click(within(screen.getByRole('listbox')).getByRole('option', { name: 'src/file.ts' }))
+
+        expect(onChange).toHaveBeenLastCalledWith({ file: 'src/file.ts', kind: 'card', type: 'feature' })
     })
 
     it('disables fields already used by another filter', () => {
@@ -145,16 +157,29 @@ describe('ActionFilterEditor', () => {
         expect(onChange).toHaveBeenLastCalledWith({ worktreeError: 'unavailable' })
     })
 
-    it('adds an empty required value and removes the final filter', () => {
+    it('keeps a newly added filter local until its required value is selected', () => {
         const onChange = vi.fn()
         render(<FilterEditorHarness onChange={onChange} />)
 
         fireEvent.click(screen.getByRole('button', { name: 'Add filter' }))
-        expect(screen.getByText('Required value')).toBeInTheDocument()
+        expect(screen.queryByText('Required value')).not.toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Add filter' })).toBeDisabled()
-        expect(onChange).toHaveBeenLastCalledWith({ kind: '' })
+        expect(onChange).not.toHaveBeenCalled()
+
+        fireEvent.mouseDown(screen.getByLabelText('Target kind'))
+        fireEvent.click(within(screen.getByRole('listbox')).getByRole('option', { name: 'card' }))
+
+        expect(onChange).toHaveBeenLastCalledWith({ kind: 'card' })
+    })
+
+    it('removes a newly added filter without publishing an incomplete value', () => {
+        const onChange = vi.fn()
+        render(<FilterEditorHarness onChange={onChange} />)
+
+        fireEvent.click(screen.getByRole('button', { name: 'Add filter' }))
 
         fireEvent.click(screen.getByRole('button', { name: 'Remove kind filter' }))
-        expect(onChange).toHaveBeenLastCalledWith(undefined)
+        expect(screen.getByText('No filters. The action is available in every context.')).toBeInTheDocument()
+        expect(onChange).not.toHaveBeenCalled()
     })
 })

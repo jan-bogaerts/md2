@@ -4,7 +4,6 @@ import { WorktreeSelector } from '../worktree_selector'
 
 interface CardWorktreeIndicatorProps {
     card: ProjectCard
-    onAssign: (cardPath: string, worktree: number | null) => void
     primaryPath: string
     projectKey: string
     worktrees: WorktreeRecord[]
@@ -21,21 +20,19 @@ function isConversationWaiting(card: ProjectCard) {
 }
 
 export function CardWorktreeIndicator(props: CardWorktreeIndicatorProps) {
-    const { card, onAssign, primaryPath, projectKey, worktrees } = props
+    const { card, primaryPath, projectKey, worktrees } = props
     const isWaiting = isConversationWaiting(card)
     const isRunning = !isWaiting && card.agentConversations.some((conversation) => conversation.status === 'running')
     const isUnseen = !isWaiting && !isRunning
         && hasUnseenAgentResult(projectKey, card.path, card.agentConversations)
     const agentState = isWaiting ? 'waiting for input' : isRunning ? 'running' : isUnseen ? 'unseen result' : 'idle'
 
-    const handleAssign = (worktree: number | null) => onAssign(card.path, worktree)
-
     return (
         <WorktreeSelector
             agentState={agentState}
             assignment={card.header}
+            assignmentTarget={{ kind: 'card', path: card.path }}
             labelPrefix={card.header.id}
-            onAssign={handleAssign}
             primaryPath={primaryPath}
             worktrees={worktrees}
         />

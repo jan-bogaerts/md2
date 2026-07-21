@@ -18,11 +18,13 @@ import type {
     AgentConversation,
     AgentRunEvent,
     BranchReference,
+    CommitWorktreeRequest,
     CommitRequest,
     CommitResult,
     DeleteFileRequest,
     DeleteFolderRequest,
     MoveFilesRequest,
+    PrepareWorktreeRequest,
     ProjectAsset,
     ProjectConfig,
     ProjectReference,
@@ -32,6 +34,7 @@ import type {
     StorageService,
     TopLevelFolderReference,
     WorktreeRecord,
+    WorktreeOperationRequest,
 } from '../../data/data_types'
 import { readRemoteControlConnection, type RemoteControlConnectionSettings } from '../../data/remote_control_connection'
 
@@ -241,6 +244,30 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
     async push(project: ProjectReference): Promise<void> {
         await this.request('push', [project])
         this.pendingPushBranches.delete(project.branch)
+    }
+
+    async prepareWorktree(request: PrepareWorktreeRequest): Promise<WorktreeRecord[]> {
+        return this.request<WorktreeRecord[]>('prepareWorktree', [request])
+    }
+
+    async commitWorktree(request: CommitWorktreeRequest): Promise<WorktreeRecord[]> {
+        return this.request<WorktreeRecord[]>('commitWorktree', [request])
+    }
+
+    async discardWorktreeChanges(request: WorktreeOperationRequest): Promise<WorktreeRecord[]> {
+        return this.request<WorktreeRecord[]>('discardWorktreeChanges', [request])
+    }
+
+    async parkWorktree(request: WorktreeOperationRequest): Promise<WorktreeRecord[]> {
+        return this.request<WorktreeRecord[]>('parkWorktree', [request])
+    }
+
+    async pullWorktree(request: WorktreeOperationRequest): Promise<WorktreeRecord[]> {
+        return this.request<WorktreeRecord[]>('pullWorktree', [request])
+    }
+
+    async pushWorktree(request: WorktreeOperationRequest): Promise<WorktreeRecord[]> {
+        return this.request<WorktreeRecord[]>('pushWorktree', [request])
     }
 
     async saveActionSchedules(project: ProjectReference, actionsFolder: string, schedules: ActionSchedule[]): Promise<ActionSchedule[]> {

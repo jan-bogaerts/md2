@@ -5,6 +5,9 @@ import SourceBranch from 'mdi-material-ui/SourceBranch'
 import { useState } from 'react'
 import type { MouseEvent } from 'react'
 import type { WorktreeRecord } from '../data/data_types'
+import { dialogService } from '../services/dialog_service'
+import { worktreeService } from '../services/project/worktree_service'
+import { useWorktreePreparing } from './hooks/use_worktrees'
 
 export interface WorktreeAssignment {
     worktree?: number | null
@@ -12,12 +15,14 @@ export interface WorktreeAssignment {
     worktreeValue?: string | null
 }
 
+export type WorktreeAssignmentTarget = { kind: 'card', path: string } | { kind: 'project' }
+
 interface WorktreeSelectorProps {
     agentState?: 'idle' | 'running' | 'unseen result' | 'waiting for input'
     assignment: WorktreeAssignment
+    assignmentTarget: WorktreeAssignmentTarget
     disabled?: boolean
     labelPrefix?: string
-    onAssign: (worktree: number | null) => void
     primaryPath: string | null
     worktrees: WorktreeRecord[]
 }
@@ -47,8 +52,11 @@ function agentStateDescription(agentState: WorktreeSelectorProps['agentState']) 
 
 /** Shared worktree assignment button and menu used by cards and action popups. */
 export function WorktreeSelector(props: WorktreeSelectorProps) {
-    const { agentState, assignment, disabled = false, labelPrefix, onAssign, primaryPath, worktrees } = props
+    const { agentState, assignment, assignmentTarget, disabled = false, labelPrefix, primaryPath, worktrees } = props
     const [anchorElement, setAnchorElement] = useState<HTMLElement | null>(null)
+    const cardPath = assignmentTarget.kind === 'card' ? assignmentTarget.path : null
+    const preparing = useWorktreePreparing(cardPath)
+    const selectorDisabled = disabled || preparing
     const state = assignmentState(assignment, worktrees)
     const isWaiting = agentState === 'waiting for input'
     const isRunning = agentState === 'running'
@@ -68,22 +76,30 @@ export function WorktreeSelector(props: WorktreeSelectorProps) {
         setAnchorElement(event.currentTarget)
     }
     const handleClose = () => setAnchorElement(null)
-    const handlePrimary = () => {
-        onAssign(null)
-        handleClose()
+    const assignWorktree = async (worktree: number | null) => {
+        try {
+            if (assignmentTarget.kind === 'project') worktreeService.setProjectActionWorktree(worktree)
+            else await worktreeService.setCardWorktree(assignmentTarget.path, worktree)
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: 'Could not update worktree assignment' })
+        }
     }
-    const handleWorktree = (event: MouseEvent<HTMLElement>) => {
+    const handlePrimary = async () => {
+        handleClose()
+        await assignWorktree(null)
+    }
+    const handleWorktree = async (event: MouseEvent<HTMLElement>) => {
         const worktree = Number.parseInt(event.currentTarget.dataset.worktree ?? '', 10)
         if (!Number.isInteger(worktree)) throw new Error('Missing worktree menu index')
 
-        onAssign(worktree)
         handleClose()
+        await assignWorktree(worktree)
     }
 
     const button = (
         <IconButton
             aria-label={label}
-            disabled={disabled}
+            disabled={selectorDisabled}
             onClick={handleOpen}
             size="small"
             sx={{
@@ -107,7 +123,7 @@ export function WorktreeSelector(props: WorktreeSelectorProps) {
 
     return (
         <>
-            <Tooltip title={tooltip}>{disabled ? <span>{button}</span> : button}</Tooltip>
+            <Tooltip title={tooltip}>{selectorDisabled ? <span>{button}</span> : button}</Tooltip>
             <Menu anchorEl={anchorElement} onClose={handleClose} open={!!anchorElement}>
                 <MenuItem onClick={handlePrimary} selected={assignment.worktree === null && !assignment.worktreeError}>
                     Primary{primaryPath ? ` — ${primaryPath}` : ''}
@@ -115,6 +131,8 @@ export function WorktreeSelector(props: WorktreeSelectorProps) {
                 {worktrees.map((record, index) => (record.valid ? (
                     <MenuItem
                         data-worktree={index + 1}
+                        disabled={assignmentTarget.kind === 'card'
+                            && !worktreeService.isWorktreeAvailableForCard(index + 1, assignmentTarget.path)}
                         key={`${index}-${record.path}`}
                         onClick={handleWorktree}
                         selected={assignment.worktree === index + 1}

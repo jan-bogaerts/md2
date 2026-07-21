@@ -85,10 +85,13 @@ export class GithubStorageWriter {
     }
 
     async deleteFile(request: DeleteFileRequest) {
-        if (!request.sha) throw new Error(`Cannot delete GitHub file without sha: ${request.path}`)
-
         const branchHead = await this.gitData.getBranchHead(request.branch)
-        await this.gitData.assertPathShasMatch(branchHead.treeSha, [{ path: request.path, sha: request.sha }])
+        if (request.sha) {
+            await this.gitData.assertPathShasMatch(branchHead.treeSha, [{ path: request.path, sha: request.sha }])
+        } else {
+            const entries = await this.gitData.getRecursiveTreeEntries(branchHead.treeSha)
+            if (!entries.has(request.path)) throw new Error(`Cannot delete missing GitHub file: ${request.path}`)
+        }
         await this.createPendingCommit(request.branch, request.message, branchHead, [{ path: request.path, sha: null }])
     }
 

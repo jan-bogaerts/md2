@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { TreeNode } from '../../data/file_tree'
 import type { ProjectCard } from '../../data/data_types'
@@ -77,6 +77,21 @@ describe('FileTreeView', () => {
         expect(screen.getByText('File 0')).toBeInTheDocument()
         expect(screen.queryByText('File 99')).not.toBeInTheDocument()
         expect(screen.getByRole('tree')).toBeInTheDocument()
+    })
+
+    it('moves the active highlight when the active document changes', () => {
+        const nodes = [fileNode(1), fileNode(2)]
+        renderTree(nodes)
+
+        act(() => openFilesService.openDocument(projectCard(nodes[0].path!)))
+
+        expect(screen.getByRole('button', { name: 'File 1' }).parentElement).toHaveAttribute('data-selected', 'true')
+        expect(screen.getByRole('button', { name: 'File 2' }).parentElement).not.toHaveAttribute('data-selected')
+
+        act(() => openFilesService.openDocument(projectCard(nodes[1].path!)))
+
+        expect(screen.getByRole('button', { name: 'File 1' }).parentElement).not.toHaveAttribute('data-selected')
+        expect(screen.getByRole('button', { name: 'File 2' }).parentElement).toHaveAttribute('data-selected', 'true')
     })
 
     it('constrains rows to the tree viewport', () => {

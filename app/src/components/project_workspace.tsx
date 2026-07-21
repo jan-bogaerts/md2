@@ -16,7 +16,7 @@ import { hasExecutionBackend } from '../data/electron_action_bridge'
 import { dataService } from '../services/data/data_service'
 import { dialogService } from '../services/dialog_service'
 import { getElectronLifecycleBridge, type ElectronLifecycleBridge } from '../services/electron_lifecycle_bridge'
-import { openFilesService } from '../services/open_files_service'
+import { openFilesService, type OpenDocument } from '../services/open_files_service'
 import { telemetryService } from '../services/telemetry/telemetry_service'
 import { workspaceViewService } from '../services/project/workspace_view_service'
 import { workspaceNavigationService, type WorkspaceOpenRequest } from '../services/project/workspace_navigation_service'
@@ -63,6 +63,10 @@ function workspaceProjectKey(project: ProjectReference | null) {
     if (!project) return null
 
     return `${project.id}:${project.branch}`
+}
+
+function openDocumentPath(document: OpenDocument) {
+    return document.kind === 'card' ? document.getObject().path : document.getObject().sourcePath
 }
 
 interface ProjectWorkspaceProps {
@@ -166,12 +170,14 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
         runWorkspaceEdit(() => dataService.cards.updateCardAffects(path, affects), `Affects update failed: ${path}`)
     }
 
-    const handleWorktreeChange = (path: string, worktree: number | null) => {
-        runWorkspaceEdit(() => dataService.cards.updateCardWorktree(path, worktree), `Worktree assignment failed: ${path}`)
-    }
-
     const clearDeletedPathState = (path: string) => {
         workspaceViewService.clearSelectedPath(path)
+    }
+
+    const closeDeletedFile = (path: string) => {
+        const document = openFilesService.getSnapshot().documents.find((candidate) => openDocumentPath(candidate) === path)
+        if (document) openFilesService.closeDocument(document)
+        clearDeletedPathState(path)
     }
 
     const handleDeleteCard = async (path: string) => {
@@ -187,7 +193,7 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
     const handleDeleteFile = async (path: string) => {
         try {
             await dataService.cards.deleteFile(path)
-            clearDeletedPathState(path)
+            closeDeletedFile(path)
         } catch (error) {
             dialogService.error(error, { fallbackMessage: `File delete failed: ${path}` })
             throw error
@@ -271,7 +277,6 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
                             onOpenInFileMode={handleOpenInFileMode}
                             onTitleChange={handleTitleChange}
                             onTogglePolicy={handleTogglePolicy}
-                            onWorktreeChange={handleWorktreeChange}
                             primaryPath={project.rootPath ?? project.id}
                             projectKey={`${project.id}:${project.branch}`}
                             repositoryFiles={repositoryFiles}

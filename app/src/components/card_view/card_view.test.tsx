@@ -9,6 +9,7 @@ import { DEFAULT_CARD_TYPES, type CardTypeConfig, type ProjectCard } from '../..
 import { telemetryService } from '../../services/telemetry/telemetry_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import { dataService } from '../../services/data/data_service'
+import { worktreeService } from '../../services/project/worktree_service'
 import { cardMarkdownDataSource } from '../editor/card_markdown_data_source'
 
 function card(id: string, title: string, status: string, policy: Record<string, boolean> = {}): ProjectCard {
@@ -43,7 +44,6 @@ function createColumnHandlers() {
         onOpenInFileMode: vi.fn(),
         onTitleChange: vi.fn(),
         onTogglePolicy: vi.fn(),
-        onWorktreeChange: vi.fn(),
     }
 }
 
@@ -397,7 +397,6 @@ describe('CardView', () => {
                     onOpenInFileMode={vi.fn()}
                     onTitleChange={vi.fn()}
                     onTogglePolicy={vi.fn()}
-                    onWorktreeChange={vi.fn()}
                     primaryPath="C:\\project"
                     projectKey="project:main"
                     repositoryFiles={[]}
@@ -417,13 +416,14 @@ describe('CardView', () => {
     })
 
     it('removes board conversation controls and assigns the primary worktree', () => {
-        const handlers = renderCardView()
+        const setCardWorktree = vi.spyOn(worktreeService, 'setCardWorktree').mockResolvedValue(undefined)
+        renderCardView()
 
         expect(screen.queryByRole('button', { name: /Agent conversations/u })).not.toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: /F-1: C:.*project; agent idle/u }))
         fireEvent.click(screen.getByRole('menuitem', { name: /Primary — C:.*project/u }))
 
-        expect(handlers.onWorktreeChange).toHaveBeenCalledWith('design/F-1.md', null)
+        expect(setCardWorktree).toHaveBeenCalledWith('design/F-1.md', null)
     })
 
     it('shows the affects control in the card popup and saves changes', () => {

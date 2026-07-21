@@ -1,6 +1,7 @@
 ﻿import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useCallback } from 'react'
+import type { ActionFile } from '../data/action_types'
 import { MissingWorkingFolderError, type ProjectConfig, type StorageService } from '../data/data_types'
 import { setActionBridgeOverride, type ElectronActionBridge } from '../data/electron_action_bridge'
 import type { ElectronDataBridge } from '../data/electron_data_bridge'
@@ -24,7 +25,7 @@ const GITHUB_REPOSITORIES_URL = 'https://api.github.com/user/repos?per_page=100&
 const OWNER_REPOSITORY_URL = 'https://api.github.com/repos/octo/demo'
 const BRANCHES_URL = 'https://api.github.com/repos/octo/demo/branches'
 
-function createBridge(): ElectronDataBridge {
+function createBridge(actionFiles: ActionFile[] = []): ElectronDataBridge {
     const files = [
         {
             content: '---\nid: F-1\ninternalId: root-card\ntitle: Root\nstatus: active\naffects:\n---\n\n# Root',
@@ -56,9 +57,9 @@ function createBridge(): ElectronDataBridge {
         }),
         hasPendingPush: vi.fn(async () => false),
         listBranches: vi.fn(async () => [{ name: 'main' }, { name: 'feature' }]),
-        listRepositoryFiles: vi.fn(async () => ['app/src/app.tsx', 'design/F-1-root.md']),
+        listRepositoryFiles: vi.fn(async () => ['app/src/app.tsx', 'design/F-1-root.md', ...actionFiles.map(({ path }) => path)]),
         listTopLevelFolders: vi.fn(async () => [{ name: 'design', path: 'design' }]),
-        loadActionFiles: vi.fn(async () => []),
+        loadActionFiles: vi.fn(async () => actionFiles),
         loadFile: vi.fn(async (_project, path) => {
             const file = files.find((candidate) => candidate.path === path)
             if (!file) throw new Error(`Missing file: ${path}`)
@@ -693,6 +694,30 @@ describe('ProjectWorkspace', () => {
 
         expect(await screen.findByRole('tab', { name: 'Tests' })).toHaveAttribute('aria-selected', 'true')
     }, 10_000)
+
+    it('closes an open action document when its file is deleted from the tree', async () => {
+        const actionFile = {
+            content: JSON.stringify({description: 'Run the test suite', id: 'test-action', label: 'Test', command: 'npm run test', type: 'command'}),
+            path: 'design/actions/test.json',
+        }
+        const bridge = createBridge([actionFile])
+        const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
+        window.md2Data = bridge
+
+        renderProjectSurface()
+        await openLocalProject()
+        act(() => workspaceViewService.setViewMode('text'))
+        const tree = within(await screen.findByLabelText('File tree'))
+        fireEvent.click(tree.getByRole('button', { name: 'Test' }))
+        expect(openFilesService.getSnapshot().activeDocument?.kind).toBe('action')
+
+        fireEvent.click(tree.getByRole('button', { name: 'Delete design/actions/test.json' }))
+
+        expect(confirm).toHaveBeenCalledWith('Delete design/actions/test.json?')
+        await waitFor(() => expect(bridge.deleteFile).toHaveBeenCalledWith(expect.objectContaining({ path: actionFile.path })))
+        expect(openFilesService.getSnapshot().documents).toHaveLength(0)
+        expect(screen.queryByRole('tab', { name: /Test/u })).not.toBeInTheDocument()
+    })
 
     it('reveals a navigated card and keeps the current card view', async () => {
         window.md2Data = createBridge()

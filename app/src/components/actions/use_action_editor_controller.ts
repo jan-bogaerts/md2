@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type SyntheticEvent } from 'react'
-import type { ActionDefinition, RawActionDefinition } from '../../data/action_types'
+import type { ActionDefinition } from '../../data/action_types'
 import { actionService } from '../../services/actions/action_service'
 import { openFilesService } from '../../services/open_files_service'
 import { actionMarkdownDocumentId } from '../editor/action_markdown_data_source'
@@ -71,13 +71,6 @@ export function useActionEditorController(options: ActionEditorControllerOptions
     const storeEditorState = useCallback((nextEditorState: typeof editorState) => {
         actionService.setActionEditorState(sourcePath, nextEditorState)
     }, [sourcePath])
-
-    const handleDefinitionChange = (nextDefinition: RawActionDefinition) => {
-        actionService.stageDraft(sourcePath, nextDefinition)
-        setEditorRevision((current) => current + 1)
-    }
-
-    const handleDefinitionCommit = () => actionService.commitDraft(sourcePath)
 
     const handleAddPhrase = () => {
         const currentDefinition = actionService.getDraft(sourcePath).definition
@@ -170,8 +163,6 @@ export function useActionEditorController(options: ActionEditorControllerOptions
         editorDocumentId,
         editorState,
         errors,
-        handleDefinitionChange,
-        handleDefinitionCommit,
         handleDeletePhrase,
         handleDiscardDeleted,
         handleKeepMine: () => actionService.keepDraft(sourcePath),

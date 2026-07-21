@@ -1,5 +1,4 @@
 import { Box, Typography } from '@mui/material'
-import type { ActionDefinition } from '../../data/action_types'
 import type { CardTypeConfig } from '../../data/data_types'
 import { ListActionEditor } from '../actions/list_action_editor'
 import { useOpenFiles } from '../hooks/use_open_files'
@@ -7,7 +6,6 @@ import { CardEditor } from './card_editor'
 import { TabBar } from './tab_bar'
 
 interface TextEditorPaneProps {
-    actions: ActionDefinition[]
     actionsFolder: string
     cardTypes: CardTypeConfig[]
     markdownDocumentNamespace: string
@@ -21,7 +19,7 @@ interface TextEditorPaneProps {
 /** Layout for the service-owned active document and its lifetime-stable editors. */
 export function TextEditorPane(props: TextEditorPaneProps) {
     const {
-        actions, actionsFolder, cardTypes, markdownDocumentNamespace, repositoryFiles,
+        actionsFolder, cardTypes, markdownDocumentNamespace, repositoryFiles,
         specialContextTypes, states, statusColors, visible,
     } = props
     const { activeDocument } = useOpenFiles()
@@ -47,7 +45,6 @@ export function TextEditorPane(props: TextEditorPaneProps) {
                     }}
                 >
                     <ListActionEditor
-                        actions={actions}
                         cardTypes={cardTypes.map(({ type }) => type)}
                         markdownDocumentNamespace={markdownDocumentNamespace}
                         repositoryFiles={repositoryFiles}

@@ -1,7 +1,7 @@
 import AddOutlined from '@mui/icons-material/AddOutlined'
 import DeleteOutlineOutlined from '@mui/icons-material/DeleteOutlineOutlined'
 import { Box, Button, IconButton, MenuItem, Stack, Tooltip, Typography } from '@mui/material'
-import type { ChangeEvent, MouseEvent } from 'react'
+import { useState, type ChangeEvent, type MouseEvent } from 'react'
 import {
     ACTION_CONTEXT_FILTER_DESCRIPTORS,
     type ActionContextFilterDescriptor,
@@ -10,10 +10,16 @@ import type { ActionAppliesTo, ActionAppliesToField } from '../../data/action_ty
 import type { WorktreeRecord } from '../../data/data_types'
 import { ActionEditorField } from './action_editor_field'
 import { ActionSectionLabel } from './action_section_label'
+import { ActionEditorTextField } from './action_editor_text_field'
 
 interface FilterOption {
     label: string
     value: string
+}
+
+interface PendingFilter {
+    field: ActionAppliesToField
+    index: number
 }
 
 interface ActionFilterEditorProps {
@@ -76,15 +82,20 @@ function replaceEntry(
 
 export function ActionFilterEditor(props: ActionFilterEditorProps) {
     const { error, onChange, value } = props
-    const entries = Object.entries(value ?? {}) as [ActionAppliesToField, string][]
+    const [pendingFilter, setPendingFilter] = useState<PendingFilter | null>(null)
+    const persistedEntries = Object.entries(value ?? {}) as [ActionAppliesToField, string][]
+    const entries: [ActionAppliesToField, string][] = pendingFilter
+        ? persistedEntries.map((entry, index) => index === pendingFilter.index ? [pendingFilter.field, ''] : entry)
+        : persistedEntries
+    if (pendingFilter?.index === persistedEntries.length) entries.push([pendingFilter.field, ''])
     const descriptorByKey = new Map(ACTION_CONTEXT_FILTER_DESCRIPTORS.map((descriptor) => [descriptor.key, descriptor]))
     const hasIncompleteRow = entries.some(([field, fieldValue]) => !field || !fieldValue)
     const hasEveryFilter = entries.length === ACTION_CONTEXT_FILTER_DESCRIPTORS.length
 
     const handleAdd = () => {
-        const descriptor = ACTION_CONTEXT_FILTER_DESCRIPTORS.find(({ key }) => !Object.hasOwn(value ?? {}, key))
+        const descriptor = ACTION_CONTEXT_FILTER_DESCRIPTORS.find(({ key }) => !entries.some(([field]) => field === key))
         if (!descriptor) throw new Error('No applicability filter available')
-        onChange({ ...value, [descriptor.key]: '' })
+        setPendingFilter({ field: descriptor.key, index: entries.length })
     }
 
     const handleFieldChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -92,7 +103,7 @@ export function ActionFilterEditor(props: ActionFilterEditorProps) {
         const previousEntry = entries[index]
         if (!previousEntry) throw new Error(`Missing applicability filter at index ${index}`)
 
-        onChange(replaceEntry(entries, index, event.target.value as ActionAppliesToField, ''))
+        setPendingFilter({ field: event.target.value as ActionAppliesToField, index })
     }
 
     const handleValueChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -101,7 +112,11 @@ export function ActionFilterEditor(props: ActionFilterEditorProps) {
         if (!entry) throw new Error(`Missing applicability filter at index ${index}`)
 
         const [field] = entry
-        onChange(replaceEntry(entries, index, field, event.target.value))
+        const nextFilters = index === persistedEntries.length
+            ? { ...value, [field]: event.target.value }
+            : replaceEntry(persistedEntries, index, field, event.target.value)
+        onChange(nextFilters)
+        setPendingFilter(null)
     }
 
     const handleRemove = (event: MouseEvent<HTMLButtonElement>) => {
@@ -109,7 +124,9 @@ export function ActionFilterEditor(props: ActionFilterEditorProps) {
         const entry = entries[index]
         if (!entry) throw new Error(`Missing applicability filter at index ${index}`)
 
-        const nextEntries = entries.filter((_entry, entryIndex) => entryIndex !== index)
+        const nextEntries = persistedEntries.filter((_entry, entryIndex) => entryIndex !== index)
+        setPendingFilter(null)
+        if (pendingFilter?.index === persistedEntries.length) return
         onChange(nextEntries.length > 0 ? Object.fromEntries(nextEntries) : undefined)
     }
 
@@ -124,7 +141,7 @@ export function ActionFilterEditor(props: ActionFilterEditorProps) {
             {entries.map(([field, fieldValue], index) => {
                 const descriptor = descriptorByKey.get(field)
                 if (!descriptor) throw new Error(`Missing applicability filter descriptor: ${field}`)
-                const valueError = descriptor.validate(fieldValue)
+                const valueError = pendingFilter?.index === index ? null : descriptor.validate(fieldValue)
                 const options = includeCurrentOption(optionsForDescriptor(descriptor, props), fieldValue)
 
                 return (
@@ -152,7 +169,7 @@ export function ActionFilterEditor(props: ActionFilterEditorProps) {
                         >
                             {ACTION_CONTEXT_FILTER_DESCRIPTORS.map((option) => (
                                 <MenuItem
-                                    disabled={Object.hasOwn(value ?? {}, option.key) && option.key !== field}
+                                    disabled={entries.some(([entryField]) => entryField === option.key) && option.key !== field}
                                     key={option.key}
                                     value={option.key}
                                 >
@@ -160,19 +177,33 @@ export function ActionFilterEditor(props: ActionFilterEditorProps) {
                                 </MenuItem>
                             ))}
                         </ActionEditorField>
-                        <ActionEditorField
-                            error={!!valueError || !!error}
-                            fieldId={'action-filter-value-' + index}
-                            helperText={valueError ?? error}
-                            label={descriptor.label}
-                            name={String(index)}
-                            onChange={handleValueChange}
-                            select={descriptor.valueSource !== 'text'}
-                            size="small"
-                            value={fieldValue}
-                        >
-                            {options.map((option) => <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>)}
-                        </ActionEditorField>
+                        {descriptor.valueSource === 'text' ? (
+                            <ActionEditorTextField
+                                error={!!valueError || !!error}
+                                fieldId={'action-filter-value-' + index}
+                                helperText={valueError ?? error}
+                                label={descriptor.label}
+                                name={String(index)}
+                                onChange={handleValueChange}
+                                size="small"
+                                source={value as ActionAppliesTo}
+                                value={fieldValue}
+                            />
+                        ) : (
+                            <ActionEditorField
+                                error={!!valueError || !!error}
+                                fieldId={'action-filter-value-' + index}
+                                helperText={valueError ?? error}
+                                label={descriptor.label}
+                                name={String(index)}
+                                onChange={handleValueChange}
+                                select
+                                size="small"
+                                value={fieldValue}
+                            >
+                                {options.map((option) => <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>)}
+                            </ActionEditorField>
+                        )}
                         <Box className="action-row-actions" sx={{ display: 'flex', justifyContent: 'flex-end', opacity: 0 }}>
                             <Tooltip title={`Remove ${field || 'custom'} filter`}>
                                 <IconButton

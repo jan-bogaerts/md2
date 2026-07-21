@@ -1,7 +1,7 @@
 import { Stack, TextField, Typography } from '@mui/material'
 import type { TextFieldProps } from '@mui/material'
 
-interface ActionEditorFieldProps extends Omit<TextFieldProps, 'id' | 'label' | 'slotProps'> {
+export interface ActionEditorFieldProps extends Omit<TextFieldProps, 'id' | 'label' | 'slotProps'> {
     fieldId: string
     label: string
 }

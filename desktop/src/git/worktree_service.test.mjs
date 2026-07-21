@@ -77,4 +77,34 @@ describe('WorktreeService', () => {
 
         expect(records[0]).toMatchObject({ branch: null, error: expect.stringMatching(/detached HEAD/u), valid: false });
     });
+
+    it('prepares a clean linked worktree on a new branch based on the opened project branch', async () => {
+        const { linkedPath, primaryPath, project } = await createRepository();
+        const service = new WorktreeService({ runGit: gitCommands.runGit });
+        const primaryCommit = await git(primaryPath, 'rev-parse', 'main');
+
+        const records = await service.prepare(project, 1, 'card-title');
+
+        expect(await git(linkedPath, 'branch', '--show-current')).toBe('card-title');
+        expect(await git(linkedPath, 'rev-parse', 'HEAD')).toBe(primaryCommit);
+        expect(records[0]).toMatchObject({ branch: 'card-title', valid: true });
+    }, 15000);
+
+    it('rejects dirty worktrees without changing their branch', async () => {
+        const { linkedPath, project } = await createRepository();
+        const service = new WorktreeService({ runGit: gitCommands.runGit });
+        await writeFile(join(linkedPath, 'dirty.txt'), 'dirty\n');
+
+        await expect(service.prepare(project, 1, 'card-title')).rejects.toThrow('Linked worktree has uncommitted changes');
+        expect(await git(linkedPath, 'branch', '--show-current')).toBe('feature');
+    }, 15000);
+
+    it('rejects an existing card branch without changing the linked worktree branch', async () => {
+        const { linkedPath, primaryPath, project } = await createRepository();
+        const service = new WorktreeService({ runGit: gitCommands.runGit });
+        await git(primaryPath, 'branch', 'card-title');
+
+        await expect(service.prepare(project, 1, 'card-title')).rejects.toThrow();
+        expect(await git(linkedPath, 'branch', '--show-current')).toBe('feature');
+    });
 });

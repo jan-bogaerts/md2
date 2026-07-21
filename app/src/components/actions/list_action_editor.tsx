@@ -1,6 +1,5 @@
 import { Box } from '@mui/material'
 import { memo, useCallback, useEffect, useRef, useState } from 'react'
-import type { ActionDefinition } from '../../data/action_types'
 import { openFilesService, type ActionOpenDocument, type OpenDocumentEventDetail } from '../../services/open_files_service'
 import {
     actionMarkdownDataSource,
@@ -15,7 +14,6 @@ import { ActionEditor, type ActionMarkdownPresentation } from './action_editor'
 import { useOpenFiles } from '../hooks/use_open_files'
 
 interface ListActionEditorProps {
-    actions: ActionDefinition[]
     cardTypes: string[]
     markdownDocumentNamespace: string
     repositoryFiles: string[]
@@ -25,7 +23,7 @@ interface ListActionEditorProps {
 
 /** Lifetime-stable list action editor surface and binding-owned undo store. */
 export const ListActionEditor = memo(function ListActionEditor(props: ListActionEditorProps) {
-    const { actions, cardTypes, markdownDocumentNamespace, repositoryFiles, specialContextTypes, states } = props
+    const { cardTypes, markdownDocumentNamespace, repositoryFiles, specialContextTypes, states } = props
     const { activeDocument } = useOpenFiles()
     const activeActionDocument = activeDocument?.kind === 'action' ? activeDocument : null
     const retainedActionDocument = useRef<ActionOpenDocument | null>(null)
@@ -72,8 +70,6 @@ export const ListActionEditor = memo(function ListActionEditor(props: ListAction
         >
             {action ? (
                 <ActionEditor
-                    action={action}
-                    actions={actions}
                     cardTypes={cardTypes}
                     discardMarkdownDocument={discardMarkdownDocument}
                     markdownDocumentNamespace={markdownDocumentNamespace}

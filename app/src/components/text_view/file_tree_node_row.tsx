@@ -18,6 +18,7 @@ import { getCardIdPrefix } from '../../data/card_identifiers'
 import type { CardTypeConfig, ProjectCard } from '../../data/data_types'
 import type { TreeNode, TreeNodeKind } from '../../data/file_tree'
 import { ActionEntryPoints } from '../actions/action_entry_points'
+import { useIsActiveDocument } from '../hooks/use_active_document'
 import { useFileTreeContext } from './file_tree_context'
 
 function nodeContext(node: TreeNode, cardTypes: CardTypeConfig[], cardsByPath: Map<string, ProjectCard>): ActionContext | null {
@@ -52,6 +53,8 @@ export function FileTreeNodeRow(props: NodeRendererProps<TreeNode>) {
     const [menuPosition, setMenuPosition] = useState<{ left: number, top: number } | null>(null)
     const theme = useTheme()
     const treeNode = node.data
+    const isActiveDocument = useIsActiveDocument(treeNode.path)
+    const isSelected = node.isSelected || (node.tree.hasNoSelection && isActiveDocument)
     const context = nodeContext(treeNode, cardTypes, cardsByPath)
     const card = treeNode.path ? cardsByPath.get(treeNode.path) : undefined
     const accentColor = cardTypeColor(card, cardTypes, theme.palette.primary.main)
@@ -173,7 +176,7 @@ export function FileTreeNodeRow(props: NodeRendererProps<TreeNode>) {
     if (treeNode.kind === 'file') {
         return (
             <Box
-                data-selected={node.isSelected ? 'true' : undefined}
+                data-selected={isSelected ? 'true' : undefined}
                 onContextMenu={openContextMenu}
                 style={style}
                 sx={{
@@ -194,7 +197,7 @@ export function FileTreeNodeRow(props: NodeRendererProps<TreeNode>) {
             >
                 <ListItemButton
                     onClick={handleRowClick}
-                    selected={node.isSelected}
+                    selected={isSelected}
                     sx={{
                         borderRadius: 0.875,
                         flex: 1,
@@ -248,7 +251,7 @@ export function FileTreeNodeRow(props: NodeRendererProps<TreeNode>) {
 
     return (
         <Box
-            data-selected={node.isSelected ? 'true' : undefined}
+            data-selected={isSelected ? 'true' : undefined}
             onContextMenu={openContextMenu}
             style={style}
             sx={{
@@ -269,7 +272,7 @@ export function FileTreeNodeRow(props: NodeRendererProps<TreeNode>) {
         >
             <ListItemButton
                 onClick={handleRowClick}
-                selected={node.isSelected}
+                selected={isSelected}
                 sx={{
                     borderRadius: 0.75,
                     flex: 1,

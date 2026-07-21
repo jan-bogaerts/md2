@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ActionDefinition, RawActionDefinition } from '../../data/action_types'
+import { actionService } from '../../services/actions/action_service'
 import { configService } from '../../services/config/config_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import { ActionDefinitionFields } from './action_definition_fields'
@@ -16,7 +17,19 @@ const sharedFields = {
     onState: 'ready',
 }
 
-function renderFields(definition: RawActionDefinition, onChange = vi.fn()) {
+const SOURCE_PATH = 'actions/check.json'
+
+function renderFields(definition: RawActionDefinition) {
+    const persistedDefinition = definition.type === 'command' && !definition.command
+        ? { ...definition, command: 'run' }
+        : definition
+    actionService.loadFromFiles([
+        { content: JSON.stringify(persistedDefinition), path: SOURCE_PATH },
+        { content: JSON.stringify({ command: 'before', description: 'Before', id: 'before', label: 'Before', type: 'command' }), path: 'actions/before.json' },
+        { content: JSON.stringify({ command: 'after', description: 'After', id: 'after', label: 'After', type: 'command' }), path: 'actions/after.json' },
+    ])
+    actionService.getDraft(SOURCE_PATH)
+    actionService.stageDraft(SOURCE_PATH, definition)
     render(
         <AppThemeProvider>
             <ActionDefinitionFields
@@ -25,12 +38,8 @@ function renderFields(definition: RawActionDefinition, onChange = vi.fn()) {
                     { id: 'after', label: 'After' },
                 ] as ActionDefinition[]}
                 cardTypes={['feature']}
-                definition={definition}
-                errorIndex={null}
-                errors={{}}
-                onChange={onChange}
-                onCommit={vi.fn()}
                 repositoryFiles={[]}
+                sourcePath={SOURCE_PATH}
                 specialContextTypes={['actions']}
                 states={['ready']}
                 worktrees={[]}
@@ -38,7 +47,7 @@ function renderFields(definition: RawActionDefinition, onChange = vi.fn()) {
         </AppThemeProvider>,
     )
 
-    return onChange
+    return () => actionService.getDraft(SOURCE_PATH).definition
 }
 
 function selectType(label: string) {
@@ -51,6 +60,7 @@ describe('ActionDefinitionFields', () => {
 
     afterEach(() => {
         cleanup()
+        actionService.clear()
         configService.clear()
         vi.restoreAllMocks()
     })
@@ -65,11 +75,11 @@ describe('ActionDefinitionFields', () => {
             trackFileChanges: true,
             type: 'agent',
         }
-        const onChange = renderFields(definition)
+        const getDefinition = renderFields(definition)
 
         selectType('Command')
 
-        expect(onChange).toHaveBeenCalledWith({
+        expect(getDefinition()).toEqual({
             ...sharedFields,
             agent: undefined,
             command: '',
@@ -87,11 +97,11 @@ describe('ActionDefinitionFields', () => {
             command: 'npm run test',
             type: 'command',
         }
-        const onChange = renderFields(definition)
+        const getDefinition = renderFields(definition)
 
         selectType('Agent')
 
-        expect(onChange).toHaveBeenCalledWith({
+        expect(getDefinition()).toEqual({
             ...sharedFields,
             command: undefined,
             prompt: '',
@@ -100,7 +110,7 @@ describe('ActionDefinitionFields', () => {
     })
 
     it('renders command fields and routes helper text to its control', () => {
-        renderFields({ ...sharedFields, command: '', type: 'command' }, vi.fn())
+        renderFields({ ...sharedFields, command: '', type: 'command' })
 
         expect(screen.getByLabelText('Command')).toHaveValue('')
         expect(screen.getByRole('switch', { name: 'Needs worktree' })).toBeChecked()
@@ -114,14 +124,14 @@ describe('ActionDefinitionFields', () => {
             prompt: 'Edit one file',
             type: 'agent',
         } satisfies RawActionDefinition
-        const onChange = renderFields(definition)
+        const getDefinition = renderFields(definition)
         const trackingSwitch = screen.getByRole('switch', { name: 'Auto commit' })
 
         expect(trackingSwitch).not.toBeChecked()
         expect(screen.getByText(/auto commit files agent reported as modified/u)).toBeInTheDocument()
         fireEvent.click(trackingSwitch)
 
-        expect(onChange).toHaveBeenCalledWith({ ...definition, trackFileChanges: true })
+        expect(getDefinition()).toEqual({ ...definition, trackFileChanges: true })
     })
 
     it('shows label, type, and icon before description without exposing internal identity fields', () => {

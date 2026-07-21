@@ -101,7 +101,37 @@ function createLocalBridgeDispatch(dependencies) {
 
             return worktreeService.add(project, folderPath);
         },
+        prepareWorktree: (request) => {
+            if (!request || typeof request !== 'object') throw new Error('Missing worktree preparation request');
+
+            return worktreeService.prepare(request.project, request.worktree, request.branchName);
+        },
+        commitWorktree: (request) => {
+            if (!request || typeof request !== 'object') throw new Error('Missing worktree commit request');
+
+            return worktreeService.commit(request.project, request.worktree, request.message);
+        },
+        discardWorktreeChanges: (request) => {
+            if (!request || typeof request !== 'object') throw new Error('Missing worktree discard request');
+
+            return worktreeService.discard(request.project, request.worktree);
+        },
+        parkWorktree: (request) => {
+            if (!request || typeof request !== 'object') throw new Error('Missing worktree parking request');
+
+            return worktreeService.park(request.project, request.worktree);
+        },
+        pullWorktree: (request) => {
+            if (!request || typeof request !== 'object') throw new Error('Missing worktree pull request');
+
+            return worktreeService.pull(request.project, request.worktree);
+        },
         push: (project) => localGitService.push(project),
+        pushWorktree: (request) => {
+            if (!request || typeof request !== 'object') throw new Error('Missing worktree push request');
+
+            return worktreeService.push(request.project, request.worktree);
+        },
         resolveProject: async (project) => {
             const resolvedProject = await localGitService.resolveLocalProject(project.rootPath);
             currentLocalProject = resolvedProject;

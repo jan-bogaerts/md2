@@ -144,7 +144,6 @@ export function TextView(props: TextViewProps) {
             </LeftPanelSlot> : null}
             <Box hidden={!visible} sx={{ display: visible ? 'flex' : 'none', flex: 1, minHeight: 0 }}>
                 <TextEditorPane
-                    actions={actions}
                     actionsFolder={actionsFolder}
                     cardTypes={cardTypes}
                     markdownDocumentNamespace={projectKey}

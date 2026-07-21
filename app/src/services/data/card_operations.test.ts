@@ -407,6 +407,32 @@ describe('CardOperations', () => {
         expect(storage.deleteFile).toHaveBeenCalledWith(expect.objectContaining({ path: 'design/B-1-b.md', sha: 'sha-b' }))
     })
 
+    it('deletes an action file that is indexed in the repository but not loaded as a card', async () => {
+        configService.init()
+        const actionPath = 'design/actions/test.json'
+        let deleted = false
+        const deleteFile = vi.fn(async () => { deleted = true })
+        const storage = createStorage({
+            deleteFile,
+            listRepositoryFiles: vi.fn(async () => deleted ? [] : [actionPath]),
+            loadProject: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
+        })
+        const service = createDataService()
+        service.init({ storage })
+
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        await vi.waitFor(() => expect(service.getState().snapshot?.repositoryFiles).toContain(actionPath))
+        await service.cards.deleteFile(actionPath)
+
+        expect(deleteFile).toHaveBeenCalledWith({
+            branch: 'main',
+            message: `Delete ${actionPath}`,
+            path: actionPath,
+        })
+        expect(service.getState().snapshot?.repositoryFiles).not.toContain(actionPath)
+    })
+
     it('leaves deleted files unpushed in manual mode', async () => {
         configService.init()
         const deletionFiles = [

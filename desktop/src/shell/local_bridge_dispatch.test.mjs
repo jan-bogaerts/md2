@@ -63,6 +63,7 @@ function createDispatch(options = {}) {
     const worktreeService = {
         add: vi.fn(async () => [{ branch: 'feature', error: null, path: 'C:/feature', valid: true }]),
         load: vi.fn(async () => []),
+        prepare: vi.fn(async () => [{ branch: 'card-title', error: null, path: 'C:/feature', valid: true }]),
         remove: vi.fn(async () => []),
         resolvePath: vi.fn(),
     };
@@ -151,6 +152,17 @@ describe('createLocalBridgeDispatch', () => {
 
         await expect(dispatch.dataBridge.removeWorktree(project, 'C:/feature')).resolves.toEqual([]);
         expect(worktreeService.remove).toHaveBeenCalledWith(project, 'C:/feature');
+    });
+
+    it('delegates card worktree preparation', async () => {
+        const { dispatch, worktreeService } = createDispatch();
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
+        const request = { branchName: 'card-title', project, worktree: 1 };
+
+        await expect(dispatch.dataBridge.prepareWorktree(request)).resolves.toEqual([
+            { branch: 'card-title', error: null, path: 'C:/feature', valid: true },
+        ]);
+        expect(worktreeService.prepare).toHaveBeenCalledWith(project, 1, 'card-title');
     });
 
     it('revalidates and normalizes a stored local project', async () => {

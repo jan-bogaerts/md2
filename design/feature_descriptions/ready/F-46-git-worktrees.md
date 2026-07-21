@@ -20,6 +20,8 @@ Allow Electron to manage linked Git worktrees, assign cards to them, run `needsW
 - **Linked worktree**: another folder created through `git worktree add`.
 - **Card worktree**: the linked worktree assigned to a card.
 - Git worktrees share one object database but normally check out different branches.
+- One linked worktree can be reserved by only one active card. Background cards do not reserve worktrees.
+- Project-agent session assignments can use any linked worktree, including one reserved by a card.
 - Config can create and remove linked worktrees. Removing one deletes its checkout folder but retains its branch and commits.
 - Action execution only uses linked worktrees reported by Git; it never creates one.
 
@@ -52,6 +54,10 @@ Allow Electron to manage linked Git worktrees, assign cards to them, run `needsW
 
 - Use `CardWorktreeIndicator` in the lower-right of board cards.
 - Show the stored one-based worktree index and allow assignment to Primary/unassigned or any valid linked worktree.
+- Disable worktrees reserved by another active card. The card's current assignment remains available to itself.
+- On card assignment, Electron rejects a dirty worktree, creates a new branch from the opened project branch, and only then persists the assignment.
+- Derive the branch name with the same configured title slugification used for card filenames. Reject an existing branch instead of reusing or resetting it.
+- Background cards do not reserve their stored worktree. Project-agent assignment does not use card reservations and does not prepare a branch.
 - Invalid/out-of-range assignments remain visible in red with the exact validation error.
 - Preserve the aggregate card-agent states: running, waiting for input, completed/failed unseen, and idle/acknowledged.
 - Do not infer waiting state from stdout text; an Electron adapter must emit it explicitly.
@@ -66,13 +72,16 @@ Allow Electron to manage linked Git worktrees, assign cards to them, run `needsW
 - Resolve `{{rootProjectFolder}}`, file paths, agent logs, action history, and diff metadata against the prepared execution worktree.
 - The renderer sends only action id, context, and run-specific input. Electron reloads the definition, resolves `needsWorkTree`, and validates the selected worktree.
 - Apply `needsWorkTree` to each linked action when it executes through the Electron `onBefore`/main/`on`/`onAfter` chain.
-- Worktree preparation never commits, pushes, merges, cherry-picks, or transfers changes automatically. Users create explicit command actions for those operations, and ordinary action error handling reports their failures.
+- Selector-time card worktree preparation only creates the card branch. It never commits, pushes, merges, cherry-picks, or transfers changes automatically.
+- Action execution resolves the prepared assignment but never creates, removes, assigns, or prepares a worktree.
 
 ## Edge cases and failure modes
 
 - A detached, locked, or prunable worktree reports its exact invalid state.
 - Adding or removing a worktree can shift list indices; cards retain their stored values.
 - A dirty or otherwise unusable worktree blocks preparation and shows the Git error.
+- An existing card-title branch blocks preparation and leaves the previous assignment unchanged.
+- Concurrent assignment attempts cannot reserve the same worktree for two active cards.
 - An unassigned card or non-card context cannot run an action that requires a worktree.
 - Card rename or move retains its worktree assignment.
 - An explicit commit, push, merge, or cherry-pick action reports its own process result; MD² adds no special integration behavior.
@@ -90,6 +99,9 @@ Allow Electron to manage linked Git worktrees, assign cards to them, run `needsW
 ## Acceptance criteria
 
 - Electron users can add, view, and remove linked worktrees from Config > Project.
+- Active cards cannot select a worktree reserved by another active card; background cards release their reservation.
+- Successful card assignment creates a title-slug branch from the opened project branch before persisting the worktree index.
+- Dirty worktrees and existing branch names fail without changing the card assignment.
 - Git is the sole worktree source; card assignments use one-based indices from Git's current linked-worktree order.
 - Invalid assignments remain visible, explain the problem, and cannot be used for execution.
 - Actions without `needsWorkTree` run in the opened project folder.

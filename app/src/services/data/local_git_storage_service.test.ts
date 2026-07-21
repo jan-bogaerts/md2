@@ -36,13 +36,17 @@ describe('LocalGitStorageService binary write path', () => {
         const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
         const worktree = { branch: 'feature', error: null, path: 'C:/feature', valid: true }
         const addWorktree = vi.fn().mockResolvedValue([worktree])
+        const prepareWorktree = vi.fn().mockResolvedValue([{ ...worktree, branch: 'card-title' }])
         const removeWorktree = vi.fn().mockResolvedValue([])
         const service = new LocalGitStorageService()
-        service.init({ bridge: createBridge({ addWorktree, removeWorktree }) })
+        service.init({ bridge: createBridge({ addWorktree, prepareWorktree, removeWorktree }) })
+        const preparationRequest = { branchName: 'card-title', project, worktree: 1 }
 
         await expect(service.addWorktree(project)).resolves.toEqual([worktree])
+        await expect(service.prepareWorktree(preparationRequest)).resolves.toEqual([{ ...worktree, branch: 'card-title' }])
         await expect(service.removeWorktree(project, worktree.path)).resolves.toEqual([])
         expect(addWorktree).toHaveBeenCalledWith(project)
+        expect(prepareWorktree).toHaveBeenCalledWith(preparationRequest)
         expect(removeWorktree).toHaveBeenCalledWith(project, worktree.path)
     })
 

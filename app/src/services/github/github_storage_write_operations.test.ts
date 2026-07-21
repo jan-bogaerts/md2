@@ -231,19 +231,35 @@ describe('GithubStorageService', () => {
         })
     })
 
-    it('rejects GitHub deletion without a sha before calling the contents API', async () => {
+    it('resolves the current GitHub file when deletion has no loaded sha', async () => {
         const fetchImplementation = vi.fn()
         queueProjectTree(fetchImplementation, [{ path: 'design', sha: 'design-tree', type: 'tree' }])
+        fetchImplementation
+            .mockResolvedValueOnce(createResponse({ object: { sha: 'base-commit', type: 'commit' }, ref: 'refs/heads/main' }))
+            .mockResolvedValueOnce(createResponse({ sha: 'base-commit', tree: { sha: 'base-tree' } }))
+            .mockResolvedValueOnce(createResponse({
+                tree: [{ path: 'design/actions/test.json', sha: 'action-sha', type: 'blob' }],
+                truncated: false,
+            }))
+            .mockResolvedValueOnce(createResponse({ sha: 'new-tree' }))
+            .mockResolvedValueOnce(createResponse({ sha: 'pending-commit', tree: { sha: 'new-tree' } }))
         const service = new GithubStorageService()
         service.init({ accessToken: 'token', fetchImplementation })
 
         await service.loadProject(project, 'design')
-        await expect(service.deleteFile({
+        await service.deleteFile({
             branch: 'main',
-            message: 'Delete obsolete card',
-            path: 'design/F-1-root.md',
-        })).rejects.toThrow('Cannot delete GitHub file without sha: design/F-1-root.md')
-        expect(fetchImplementation).toHaveBeenCalledTimes(3)
+            message: 'Delete action',
+            path: 'design/actions/test.json',
+        })
+
+        const treeCall = fetchImplementation.mock.calls.find(([url, init]) => (
+            url.includes('/repos/owner/repo/git/trees') && init.method === 'POST'
+        ))
+        expect(JSON.parse(treeCall?.[1].body)).toEqual({
+            base_tree: 'base-tree',
+            tree: [{ mode: '100644', path: 'design/actions/test.json', sha: null, type: 'blob' }],
+        })
     })
 
     it('deletes every file under a folder in one tree and commit', async () => {

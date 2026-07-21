@@ -110,8 +110,32 @@ export interface ProjectReference {
 export interface WorktreeRecord {
     branch: string | null
     error: string | null
+    parkingBranch: string
     path: string
+    status: WorktreeStatus
     valid: boolean
+}
+
+export interface WorktreeStatus {
+    ahead: number
+    behind: number
+    dirty: boolean
+    hasUpstream: boolean
+}
+
+export interface PrepareWorktreeRequest {
+    branchName: string
+    project: ProjectReference
+    worktree: number
+}
+
+export interface WorktreeOperationRequest {
+    project: ProjectReference
+    worktree: number
+}
+
+export interface CommitWorktreeRequest extends WorktreeOperationRequest {
+    message: string
 }
 
 export interface RepositoryReference extends ProjectReference {
@@ -278,10 +302,12 @@ export interface StorageService {
     addWorktree?(project: ProjectReference): Promise<WorktreeRecord[] | null>
     checkoutBranch(project: ProjectReference, branch: string): Promise<ProjectReference>
     commit(request: CommitRequest): Promise<CommitResult>
+    commitWorktree?(request: CommitWorktreeRequest): Promise<WorktreeRecord[]>
     createProject(project: ProjectReference, workingFolder: string): Promise<ProjectReference>
     createWorkingFolderFromTemplate(project: ProjectReference, workingFolder: string): Promise<ProjectReference>
     deleteFile(request: DeleteFileRequest): Promise<void>
     deleteFolder(request: DeleteFolderRequest): Promise<void>
+    discardWorktreeChanges?(request: WorktreeOperationRequest): Promise<WorktreeRecord[]>
     discardPendingCommits?(project: ProjectReference): void
     hasPendingPush?(project: ProjectReference): boolean
     listBranches(project: ProjectReference): Promise<BranchReference[]>
@@ -303,7 +329,11 @@ export interface StorageService {
     listTopLevelFolders(project: ProjectReference): Promise<TopLevelFolderReference[]>
     loadPendingPush?(project: ProjectReference): Promise<void>
     moveFiles(request: MoveFilesRequest): Promise<void>
+    parkWorktree?(request: WorktreeOperationRequest): Promise<WorktreeRecord[]>
+    prepareWorktree?(request: PrepareWorktreeRequest): Promise<WorktreeRecord[]>
+    pullWorktree?(request: WorktreeOperationRequest): Promise<WorktreeRecord[]>
     push(project: ProjectReference): Promise<void>
+    pushWorktree?(request: WorktreeOperationRequest): Promise<WorktreeRecord[]>
     saveActionSchedules?(project: ProjectReference, actionsFolder: string, schedules: ActionSchedule[]): Promise<ActionSchedule[]>
     saveProjectConfig(project: ProjectReference, config: ProjectConfig): Promise<void>
     removeWorktree?(project: ProjectReference, folderPath: string): Promise<WorktreeRecord[]>

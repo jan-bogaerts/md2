@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { AgentConversation, ProjectCard, WorktreeRecord } from '../../data/data_types'
 import { agentAcknowledgementService } from '../../services/agents/agent_acknowledgement_service'
+import { worktreeService } from '../../services/project/worktree_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import { CardWorktreeIndicator } from './card_worktree_indicator'
 
@@ -40,29 +41,28 @@ function card(worktree: number | null, conversations: AgentConversation[] = []):
 const validWorktree: WorktreeRecord = { branch: 'feature', error: null, path: 'C:\\feature', valid: true }
 
 function renderIndicator(projectCard: ProjectCard, worktrees: WorktreeRecord[] = [validWorktree]) {
-    const onAssign = vi.fn()
     render(
         <AppThemeProvider>
-            <CardWorktreeIndicator card={projectCard} onAssign={onAssign} primaryPath="C:\\primary" projectKey="project:main" worktrees={worktrees} />
+            <CardWorktreeIndicator card={projectCard} primaryPath="C:\\primary" projectKey="project:main" worktrees={worktrees} />
         </AppThemeProvider>,
     )
-
-    return onAssign
 }
 
 describe('CardWorktreeIndicator', () => {
     afterEach(() => {
         cleanup()
         window.localStorage.clear()
+        vi.restoreAllMocks()
     })
 
-    it('shows one-based assignment, accessible folder label and assignment menu', () => {
-        const onAssign = renderIndicator(card(1))
+    it('shows an accessible folder label and delegates worktree assignment', () => {
+        const setCardWorktree = vi.spyOn(worktreeService, 'setCardWorktree').mockResolvedValue(undefined)
+        renderIndicator(card(null))
 
-        fireEvent.click(screen.getByRole('button', { name: /F-1: C:\\feature; agent idle/u }))
-        fireEvent.click(screen.getByRole('menuitem', { name: /1 — C:\\feature/u }))
+        fireEvent.click(screen.getByRole('button', { name: 'F-1: C:\\\\primary; agent idle' }))
+        fireEvent.click(screen.getByRole('menuitem', { name: '1 — C:\\feature' }))
 
-        expect(onAssign).toHaveBeenCalledWith('design/F-1.md', 1)
+        expect(setCardWorktree).toHaveBeenCalledWith('design/F-1.md', 1)
     })
 
     it('shows an out-of-bounds index in an error state', async () => {
@@ -87,20 +87,20 @@ describe('CardWorktreeIndicator', () => {
         const waiting = conversation('running', [{ content: '', id: 'wait', timestamp: '2026-01-01T00:00:30.000Z', type: 'waiting' }])
         const { rerender } = render(
             <AppThemeProvider>
-                <CardWorktreeIndicator card={card(null, [waiting])} onAssign={vi.fn()} primaryPath="project" projectKey="project:main" worktrees={[]} />
+                <CardWorktreeIndicator card={card(null, [waiting])} primaryPath="project" projectKey="project:main" worktrees={[]} />
             </AppThemeProvider>,
         )
         expect(screen.getByRole('button', { name: /agent waiting for input/u })).toBeInTheDocument()
 
-        rerender(<AppThemeProvider><CardWorktreeIndicator card={card(null, [conversation('running')])} onAssign={vi.fn()} primaryPath="project" projectKey="project:main" worktrees={[]} /></AppThemeProvider>)
+        rerender(<AppThemeProvider><CardWorktreeIndicator card={card(null, [conversation('running')])} primaryPath="project" projectKey="project:main" worktrees={[]} /></AppThemeProvider>)
         expect(screen.getByRole('button', { name: /agent running/u })).toBeInTheDocument()
 
         const completed = conversation('completed')
-        rerender(<AppThemeProvider><CardWorktreeIndicator card={card(null, [completed])} onAssign={vi.fn()} primaryPath="project" projectKey="project:main" worktrees={[]} /></AppThemeProvider>)
+        rerender(<AppThemeProvider><CardWorktreeIndicator card={card(null, [completed])} primaryPath="project" projectKey="project:main" worktrees={[]} /></AppThemeProvider>)
         expect(screen.getByRole('button', { name: /agent unseen result/u })).toBeInTheDocument()
 
         agentAcknowledgementService.acknowledge('project:main', 'design/F-1.md', [completed])
-        rerender(<AppThemeProvider><CardWorktreeIndicator card={card(null, [completed])} onAssign={vi.fn()} primaryPath="project" projectKey="project:main" worktrees={[]} /></AppThemeProvider>)
+        rerender(<AppThemeProvider><CardWorktreeIndicator card={card(null, [completed])} primaryPath="project" projectKey="project:main" worktrees={[]} /></AppThemeProvider>)
         expect(screen.getByRole('button', { name: /agent idle/u })).toBeInTheDocument()
     })
 })

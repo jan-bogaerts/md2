@@ -23,7 +23,6 @@ export interface CardHandlers {
     onOpenInFileMode: (path: string) => void
     onTogglePolicy: (path: string, policyKey: string) => void
     onTitleChange: (path: string, title: string) => void
-    onWorktreeChange: (path: string, worktree: number | null) => void
 }
 
 interface ProjectCardViewProps extends CardHandlers {
@@ -46,7 +45,7 @@ interface MenuPosition {
 export function ProjectCardView(props: ProjectCardViewProps) {
     const { card, cardTypes, color, isBodyOpen, isSelected, primaryPath, projectKey, worktrees } = props
     const { onOpenBody, onOpenInFileMode } = props
-    const { onDeleteCard, onTogglePolicy, onTitleChange, onWorktreeChange } = props
+    const { onDeleteCard, onTogglePolicy, onTitleChange } = props
     const theme = useTheme()
     const sortable = useSortable({ id: card.path })
     const { attributes, isDragging, listeners, node, setActivatorNodeRef, setNodeRef, transform, transition } = sortable
@@ -277,7 +276,6 @@ export function ProjectCardView(props: ProjectCardViewProps) {
                     <Box sx={{ flex: 1 }} />
                     <CardWorktreeIndicator
                         card={card}
-                        onAssign={onWorktreeChange}
                         primaryPath={primaryPath}
                         projectKey={projectKey}
                         worktrees={worktrees}

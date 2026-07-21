@@ -4,7 +4,6 @@ import type { ActionContext } from '../../data/action_context'
 import type { ActionFile } from '../../data/action_types'
 import type { ProjectReference, StorageService, WorktreeRecord } from '../../data/data_types'
 import { actionService } from '../../services/actions/action_service'
-import { dataService } from '../../services/data/data_service'
 import { dialogService } from '../../services/dialog_service'
 import { worktreeService } from '../../services/project/worktree_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
@@ -51,7 +50,13 @@ describe('ActionPopup', () => {
             file(commandDefinition('second', { label: 'Second action' })),
         ])
         const storage = worktreeStorage()
-        worktreeService.init({ projectProvider: () => project, storageProvider: () => storage })
+        worktreeService.init({
+            assignCardWorktree: vi.fn(),
+            cardSeparatorProvider: () => '-',
+            projectProvider: () => project,
+            snapshotProvider: () => null,
+            storageProvider: () => storage,
+        })
         await worktreeService.load(project)
     })
 
@@ -139,18 +144,18 @@ describe('ActionPopup', () => {
         expect(screen.getByRole('group', { name: 'Actions' })).toBeInTheDocument()
     })
 
-    it('persists card assignment changes through card operations', () => {
-        const updateCardWorktree = vi.spyOn(dataService.cards, 'updateCardWorktree').mockReturnValue({ content: '', path: context.file as string })
+    it('delegates card assignment to the worktree preparation workflow', async () => {
+        const setCardWorktree = vi.spyOn(worktreeService, 'setCardWorktree').mockResolvedValue(undefined)
         renderPopup()
 
         fireEvent.click(screen.getByRole('button', { name: 'Primary worktree' }))
         fireEvent.click(screen.getByRole('menuitem', { name: /1 — C:\\feature/u }))
 
-        expect(updateCardWorktree).toHaveBeenCalledWith('design/F-010.md', 1)
+        await waitFor(() => expect(setCardWorktree).toHaveBeenCalledWith('design/F-010.md', 1))
     })
 
-    it('keeps card selection and reports the error when assignment saving fails', () => {
-        vi.spyOn(dataService.cards, 'updateCardWorktree').mockImplementation(() => { throw new Error('save failed') })
+    it('keeps card selection and reports the error when worktree preparation fails', async () => {
+        vi.spyOn(worktreeService, 'setCardWorktree').mockRejectedValue(new Error('preparation failed'))
         const reportError = vi.spyOn(dialogService, 'error')
         renderPopup()
 
@@ -158,7 +163,10 @@ describe('ActionPopup', () => {
         fireEvent.click(screen.getByRole('menuitem', { name: /1 — C:\\feature/u }))
 
         expect(screen.getByRole('button', { name: 'Primary worktree' })).toBeInTheDocument()
-        expect(reportError).toHaveBeenCalledWith(expect.objectContaining({ message: 'save failed' }), {fallbackMessage: 'Could not update worktree assignment'})
+        await waitFor(() => expect(reportError).toHaveBeenCalledWith(
+            expect.objectContaining({ message: 'preparation failed' }),
+            { fallbackMessage: 'Could not update worktree assignment' },
+        ))
     })
 
     it('uses project session assignment for action filtering and resets it on project load', async () => {

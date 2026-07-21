@@ -9,7 +9,7 @@ import { CUSTOM_PROMPT_ACTION_ID, type ActionDefinition } from '../../data/actio
 import type { AgentConversation } from '../../data/data_types'
 import type { WorktreeRecord } from '../../data/data_types'
 import { ResizablePopper } from '../resizable_popper'
-import { WorktreeSelector, type WorktreeAssignment } from '../worktree_selector'
+import { WorktreeSelector, type WorktreeAssignment, type WorktreeAssignmentTarget } from '../worktree_selector'
 import { ActionAgentPresetName } from './action_agent_preset_name'
 import { ActionAgentPrompt } from './action_agent_prompt'
 import { ActionAgentSelectors } from './action_agent_selectors'
@@ -41,7 +41,6 @@ interface ActionPopupContentProps {
     onConversationViewed?: (conversation: AgentConversation) => void
     onSelectAction: (actionId: string) => void
     onToggleFullHeight: () => void
-    onWorktreeAssign: (worktree: number | null) => void
     open: boolean
     showSaveControls: boolean
     titleId: string
@@ -67,11 +66,18 @@ function worktreeValidationMessage(action: ActionDefinition, context: ActionCont
     return null
 }
 
+function worktreeAssignmentTarget(context: ActionContext): WorktreeAssignmentTarget {
+    if (context.kind === 'project') return { kind: 'project' }
+    if ((context.kind === 'card' || context.kind === 'file') && context.file) return { kind: 'card', path: context.file }
+
+    throw new Error('Worktree assignment requires card, file, or project context')
+}
+
 /** Presentation and execution behavior for the internally selected popup action. */
 export function ActionPopupContent(props: ActionPopupContentProps) {
     const {
         action, actions, anchorElement, assignmentContext, baseContext, draggable, fullHeight, onAddAction, onClose, onSelectAction,
-        onToggleFullHeight, onWorktreeAssign, open, primaryPath, showSaveControls, titleId, worktrees,
+        onToggleFullHeight, open, primaryPath, showSaveControls, titleId, worktrees,
     } = props
     const controller = useActionPopupController({
         action,
@@ -100,6 +106,9 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
         worktreeError: assignmentContext.worktreeError ?? null,
         worktreeValue: assignmentContext.worktree ?? null,
     }
+    const assignmentTarget = baseContext.kind === 'card' || baseContext.kind === 'file' || baseContext.kind === 'project'
+        ? worktreeAssignmentTarget(baseContext)
+        : null
 
     return (
         <ResizablePopper
@@ -136,11 +145,11 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
                 }}
             >
                 <Box data-testid="action-popup-toolbar" sx={{ alignItems: 'center', display: 'flex', gap: 1 }}>
-                    {baseContext.kind === 'card' || baseContext.kind === 'file' || baseContext.kind === 'project' ? (
+                    {assignmentTarget ? (
                         <WorktreeSelector
                             assignment={worktreeAssignment}
+                            assignmentTarget={assignmentTarget}
                             disabled={controller.runStatus === 'running'}
-                            onAssign={onWorktreeAssign}
                             primaryPath={primaryPath}
                             worktrees={worktrees}
                         />

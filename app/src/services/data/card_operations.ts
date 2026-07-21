@@ -251,15 +251,17 @@ export class CardOperations {
         const card = this.dependencies.snapshot()?.activeCards.find((currentCard) => currentCard.path === path)
         if (!card) throw new Error(`Cannot delete an active card that is not loaded: ${path}`)
 
-        return this.deleteLoadedFile(path, true)
+        return this.deleteProjectFile(path, true)
     }
 
     async deleteFile(path: string) {
-        this.dependencies.requireFile(path)
+        const loadedFile = this.dependencies.files().some((file) => file.path === path)
+        const repositoryFile = this.dependencies.snapshot()?.repositoryFiles.includes(path) ?? false
+        if (!loadedFile && !repositoryFile) throw new Error(`Cannot delete a file that is not loaded: ${path}`)
 
         const activeCard = this.dependencies.snapshot()?.activeCards.some((card) => card.path === path) ?? false
 
-        return this.deleteLoadedFile(path, activeCard)
+        return this.deleteProjectFile(path, activeCard)
     }
 
     async deleteFolder(path: string) {
@@ -383,14 +385,14 @@ export class CardOperations {
         return updatedFiles
     }
 
-    private async deleteLoadedFile(path: string, repairActiveOrdering: boolean) {
+    private async deleteProjectFile(path: string, repairActiveOrdering: boolean) {
         const { config, storage } = this.dependencies.requireDependencies()
         const currentProject = this.dependencies.project()
         if (!currentProject) throw new Error('Cannot delete a file before a project is open')
 
         await this.flushPendingCommitBatch()
 
-        const existingFile = this.dependencies.requireFile(path)
+        const existingFile = this.dependencies.files().find((file) => file.path === path)
         const repairFile = repairActiveOrdering ? this.createDeleteRepairFile(path) : null
 
         if (repairFile) {
@@ -405,7 +407,7 @@ export class CardOperations {
             branch: currentProject.branch,
             message: `Delete ${path}`,
             path,
-            sha: existingFile.sha,
+            ...(existingFile?.sha ? { sha: existingFile.sha } : {}),
         })
 
         if (config.pushMode === 'auto') await storage.push(currentProject)

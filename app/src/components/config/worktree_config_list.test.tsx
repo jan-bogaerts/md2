@@ -10,6 +10,16 @@ const project: ProjectReference = { branch: 'main', id: 'project', rootPath: 'C:
 const first: WorktreeRecord = { branch: 'one', error: null, path: 'C:\\one', valid: true }
 const second: WorktreeRecord = { branch: 'two', error: null, path: 'C:\\two', valid: true }
 
+function initWorktreeService(storage: StorageService) {
+    worktreeService.init({
+        assignCardWorktree: vi.fn(),
+        cardSeparatorProvider: () => '-',
+        projectProvider: () => project,
+        snapshotProvider: () => null,
+        storageProvider: () => storage,
+    })
+}
+
 describe('WorktreeConfigList', () => {
     afterEach(() => {
         cleanup()
@@ -22,7 +32,7 @@ describe('WorktreeConfigList', () => {
             loadWorktrees: vi.fn(async () => [first]),
             removeWorktree: vi.fn(async () => [second]),
         } as unknown as StorageService
-        worktreeService.init({ projectProvider: () => project, storageProvider: () => storage })
+        initWorktreeService(storage)
         await worktreeService.load(project)
 
         render(<AppThemeProvider><WorktreeConfigList /></AppThemeProvider>)
@@ -44,7 +54,7 @@ describe('WorktreeConfigList', () => {
             addWorktree: vi.fn(() => pendingAddition.promise),
             loadWorktrees: vi.fn(async () => [first]),
         } as unknown as StorageService
-        worktreeService.init({ projectProvider: () => project, storageProvider: () => storage })
+        initWorktreeService(storage)
         await worktreeService.load(project)
 
         render(<AppThemeProvider><WorktreeConfigList /></AppThemeProvider>)

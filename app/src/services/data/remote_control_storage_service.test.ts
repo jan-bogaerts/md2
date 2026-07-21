@@ -92,19 +92,25 @@ describe('RemoteControlStorageService', () => {
         const service = createService()
         const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
         const addition = service.addWorktree(project)
+        const preparationRequest = { branchName: 'card-title', project, worktree: 1 }
+        const preparation = service.prepareWorktree(preparationRequest)
         const removal = service.removeWorktree(project, 'C:/feature')
         const socket = lastSocket()
 
         socket.open()
         await flushPromises()
         const addRequest = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
-        const removeRequest = JSON.parse(socket.sent[1]) as { id: string, method: string, params: unknown[] }
+        const prepareRequest = JSON.parse(socket.sent[1]) as { id: string, method: string, params: unknown[] }
+        const removeRequest = JSON.parse(socket.sent[2]) as { id: string, method: string, params: unknown[] }
         expect(addRequest).toMatchObject({ method: 'addWorktree', params: [project] })
+        expect(prepareRequest).toMatchObject({ method: 'prepareWorktree', params: [preparationRequest] })
         expect(removeRequest).toMatchObject({ method: 'removeWorktree', params: [project, 'C:/feature'] })
         socket.receive({ id: addRequest.id, result: [] })
+        socket.receive({ id: prepareRequest.id, result: [] })
         socket.receive({ id: removeRequest.id, result: [] })
 
         await expect(addition).resolves.toEqual([])
+        await expect(preparation).resolves.toEqual([])
         await expect(removal).resolves.toEqual([])
     })
 

@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { WorktreeRecord } from '../data/data_types'
+import { worktreeService } from '../services/project/worktree_service'
 import { AppThemeProvider } from '../theme/theme_provider'
 import { WorktreeSelector } from './worktree_selector'
 
@@ -10,14 +11,17 @@ const worktrees: WorktreeRecord[] = [
 ]
 
 describe('WorktreeSelector', () => {
-    afterEach(cleanup)
+    afterEach(() => {
+        cleanup()
+        vi.restoreAllMocks()
+    })
 
     it('lists Primary and valid linked worktrees while retaining the current invalid assignment', () => {
         render(
             <AppThemeProvider>
                 <WorktreeSelector
                     assignment={{ worktree: 2, worktreeError: null, worktreeValue: '2' }}
-                    onAssign={vi.fn()}
+                    assignmentTarget={{ kind: 'card', path: 'design/F-1.md' }}
                     primaryPath={'C:\\primary'}
                     worktrees={worktrees}
                 />
@@ -35,7 +39,13 @@ describe('WorktreeSelector', () => {
     it('cannot open while execution is running', () => {
         render(
             <AppThemeProvider>
-                <WorktreeSelector assignment={{ worktree: null }} disabled onAssign={vi.fn()} primaryPath={null} worktrees={worktrees} />
+                <WorktreeSelector
+                    assignment={{ worktree: null }}
+                    assignmentTarget={{ kind: 'card', path: 'design/F-1.md' }}
+                    disabled
+                    primaryPath={null}
+                    worktrees={worktrees}
+                />
             </AppThemeProvider>,
         )
 
@@ -43,5 +53,26 @@ describe('WorktreeSelector', () => {
         expect(button).toBeDisabled()
         fireEvent.click(button)
         expect(screen.queryByRole('menu')).not.toBeInTheDocument()
+    })
+
+    it('disables a worktree reserved by another active card', () => {
+        vi.spyOn(worktreeService, 'isWorktreeAvailableForCard').mockReturnValue(false)
+        const setCardWorktree = vi.spyOn(worktreeService, 'setCardWorktree')
+        render(
+            <AppThemeProvider>
+                <WorktreeSelector
+                    assignment={{ worktree: null }}
+                    assignmentTarget={{ kind: 'card', path: 'design/F-1.md' }}
+                    primaryPath={null}
+                    worktrees={worktrees}
+                />
+            </AppThemeProvider>,
+        )
+
+        fireEvent.click(screen.getByRole('button', { name: 'Primary worktree' }))
+        const reservedWorktree = screen.getByRole('menuitem', { name: '1 — C:\\feature' })
+        expect(reservedWorktree).toHaveAttribute('aria-disabled', 'true')
+        fireEvent.click(reservedWorktree)
+        expect(setCardWorktree).not.toHaveBeenCalled()
     })
 })

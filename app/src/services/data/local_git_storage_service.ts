@@ -2,12 +2,14 @@ import type { ActionFile } from '../../data/action_types'
 import type { ActionSchedule } from '../../data/action_schedule_types'
 import type {
     BranchReference,
+    CommitWorktreeRequest,
     CommitResult,
     CommitRequest,
     DeleteFileRequest,
     DeleteFolderRequest,
     AgentConversation,
     MoveFilesRequest,
+    PrepareWorktreeRequest,
     ProjectConfig,
     ProjectReference,
     RepositoryReference,
@@ -16,6 +18,7 @@ import type {
     StorageService,
     TopLevelFolderReference,
     WorktreeRecord,
+    WorktreeOperationRequest,
 } from '../../data/data_types'
 import { getElectronDataBridge, type ElectronDataBridge } from '../../data/electron_data_bridge'
 
@@ -174,6 +177,13 @@ export class LocalGitStorageService implements StorageService {
         return []
     }
 
+    async commitWorktree(request: CommitWorktreeRequest): Promise<WorktreeRecord[]> {
+        const bridge = this.requireBridge()
+        if (!bridge.commitWorktree) throw new Error('Electron local Git bridge cannot commit worktree changes')
+
+        return bridge.commitWorktree(request)
+    }
+
     async deleteFile(request: DeleteFileRequest): Promise<void> {
         await this.requireBridge().deleteFile(request)
         this.pendingPushBranches.add(request.branch)
@@ -184,6 +194,13 @@ export class LocalGitStorageService implements StorageService {
         this.pendingPushBranches.add(request.branch)
     }
 
+    async discardWorktreeChanges(request: WorktreeOperationRequest): Promise<WorktreeRecord[]> {
+        const bridge = this.requireBridge()
+        if (!bridge.discardWorktreeChanges) throw new Error('Electron local Git bridge cannot discard worktree changes')
+
+        return bridge.discardWorktreeChanges(request)
+    }
+
     async moveFiles(request: MoveFilesRequest): Promise<void> {
         await this.requireBridge().moveFiles(request)
         this.pendingPushBranches.add(request.branch)
@@ -192,6 +209,34 @@ export class LocalGitStorageService implements StorageService {
     async push(project: ProjectReference): Promise<void> {
         await this.requireBridge().push(project)
         this.pendingPushBranches.delete(project.branch)
+    }
+
+    async prepareWorktree(request: PrepareWorktreeRequest): Promise<WorktreeRecord[]> {
+        const bridge = this.requireBridge()
+        if (!bridge.prepareWorktree) throw new Error('Electron local Git bridge cannot prepare worktrees')
+
+        return bridge.prepareWorktree(request)
+    }
+
+    async parkWorktree(request: WorktreeOperationRequest): Promise<WorktreeRecord[]> {
+        const bridge = this.requireBridge()
+        if (!bridge.parkWorktree) throw new Error('Electron local Git bridge cannot park worktrees')
+
+        return bridge.parkWorktree(request)
+    }
+
+    async pullWorktree(request: WorktreeOperationRequest): Promise<WorktreeRecord[]> {
+        const bridge = this.requireBridge()
+        if (!bridge.pullWorktree) throw new Error('Electron local Git bridge cannot pull worktrees')
+
+        return bridge.pullWorktree(request)
+    }
+
+    async pushWorktree(request: WorktreeOperationRequest): Promise<WorktreeRecord[]> {
+        const bridge = this.requireBridge()
+        if (!bridge.pushWorktree) throw new Error('Electron local Git bridge cannot push worktrees')
+
+        return bridge.pushWorktree(request)
     }
 
     async saveProjectConfig(project: ProjectReference, config: ProjectConfig): Promise<void> {

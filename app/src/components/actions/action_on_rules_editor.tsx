@@ -2,9 +2,9 @@ import AddOutlined from '@mui/icons-material/AddOutlined'
 import { Button } from '@mui/material'
 import type { ChangeEvent } from 'react'
 import type { ActionDefinition, RawOnRule } from '../../data/action_types'
-import { ActionEditorField } from './action_editor_field'
 import { ActionOrderedCollection } from './action_ordered_collection'
 import { ActionSelectorField } from './action_selector_field'
+import { ActionEditorTextField } from './action_editor_text_field'
 
 interface ActionOnRulesEditorProps {
     actions: ActionDefinition[]
@@ -33,7 +33,7 @@ export function ActionOnRulesEditor(props: ActionOnRulesEditorProps) {
     const handleCollectionChange = (next: RawOnRule[]) => onChange(next.length > 0 ? next : undefined)
     const renderFields = (rule: RawOnRule, index: number, indexedError: string | undefined) => (
         <>
-            <ActionEditorField
+            <ActionEditorTextField
                 error={!!indexedError}
                 fieldId={`action-output-condition-${index}`}
                 helperText={indexedError}
@@ -41,6 +41,7 @@ export function ActionOnRulesEditor(props: ActionOnRulesEditorProps) {
                 name={`condition:${index}`}
                 onChange={handleChange}
                 size="small"
+                source={rule}
                 value={rule.condition}
             />
             <ActionSelectorField

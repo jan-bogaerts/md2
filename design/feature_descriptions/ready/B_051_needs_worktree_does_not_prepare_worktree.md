@@ -13,6 +13,8 @@ policy:
 
 `needsWorkTree` execution must use a folder from Git's current linked-worktree list selected by the card's one-based worktree assignment. Action execution must not create, remove, or assign worktrees.
 
+Card assignment is separate: the selector prepares a clean linked worktree on a card-title branch before saving its index. This preparation never occurs during action execution.
+
 The current service resolves assigned card worktrees, but the contract and errors must be consistent across manual, linked, state-triggered, and scheduled runs.
 
 ## Fix

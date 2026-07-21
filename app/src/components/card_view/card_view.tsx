@@ -25,7 +25,6 @@ interface CardViewProps {
     onOpenInFileMode: (path: string) => void
     onTogglePolicy: (path: string, policyKey: string) => void
     onTitleChange: (path: string, title: string) => void
-    onWorktreeChange: (path: string, worktree: number | null) => void
     primaryPath: string
     projectKey: string
     repositoryFiles: string[]
@@ -96,7 +95,6 @@ export function CardView(props: CardViewProps) {
         onOpenInFileMode,
         onTogglePolicy,
         onTitleChange,
-        onWorktreeChange,
         primaryPath,
         projectKey,
         repositoryFiles,
@@ -237,7 +235,6 @@ export function CardView(props: CardViewProps) {
                         onOpenInFileMode={handleOpenInFileMode}
                         onTitleChange={onTitleChange}
                         onTogglePolicy={onTogglePolicy}
-                        onWorktreeChange={onWorktreeChange}
                         openBodyPath={openBodyPath}
                         primaryPath={primaryPath}
                         projectKey={projectKey}

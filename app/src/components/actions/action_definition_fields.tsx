@@ -2,36 +2,57 @@ import {
     Divider, FormControlLabel, FormHelperText, MenuItem, Paper, Stack, Switch, Grid,
 } from '@mui/material'
 import type { ChangeEvent, MouseEvent } from 'react'
+import { memo, useEffect, useState } from 'react'
 import type { ActionDefinition, RawActionDefinition } from '../../data/action_types'
 import type { WorktreeRecord } from '../../data/data_types'
+import { actionService } from '../../services/actions/action_service'
 import { ActionAgentCapabilityFields } from './action_agent_capability_fields'
 import { ActionEditorField } from './action_editor_field'
 import { ActionFilterEditor } from './action_filter_editor'
 import { ActionLinkListEditor } from './action_link_list_editor'
 import { ActionOnRulesEditor } from './action_on_rules_editor'
 import { ActionSectionLabel } from './action_section_label'
+import { ActionEditorTextField } from './action_editor_text_field'
 
 const ICON_FILE_PATTERN = /\.(svg|png|jpe?g|gif|webp)$/iu
 
 interface ActionDefinitionFieldsProps {
     actions: ActionDefinition[]
     cardTypes: string[]
-    definition: RawActionDefinition
-    errorIndex: number | null
-    errors: Partial<Record<keyof RawActionDefinition, string>>
-    onChange: (definition: RawActionDefinition) => void
-    onCommit: () => void
     repositoryFiles: string[]
+    sourcePath: string
     specialContextTypes: string[]
     states: string[]
     worktrees: WorktreeRecord[]
 }
 
-export function ActionDefinitionFields(props: ActionDefinitionFieldsProps) {
+export const ActionDefinitionFields = memo(function ActionDefinitionFields(props: ActionDefinitionFieldsProps) {
     const {
-        actions, cardTypes, definition, errorIndex, errors, onChange, onCommit, repositoryFiles,
+        actions, cardTypes, repositoryFiles, sourcePath,
         specialContextTypes, states, worktrees,
     } = props
+    const [, setDraftRevision] = useState(0)
+    useEffect(() => {
+        let previousDraft = actionService.getDraft(sourcePath)
+        const handleChanged = () => {
+            const nextDraft = actionService.getDraft(sourcePath)
+            if (nextDraft === previousDraft) return
+
+            previousDraft = nextDraft
+            setDraftRevision((current) => current + 1)
+        }
+        actionService.addEventListener('changed', handleChanged)
+
+        return () => actionService.removeEventListener('changed', handleChanged)
+    }, [sourcePath])
+    const { definition, validation } = actionService.getDraft(sourcePath)
+    const errors = validation.error && validation.field ? { [validation.field]: validation.error } : {}
+    const errorIndex = validation.index
+    const selectableActions = actions.filter(({ id }) => id !== definition.id)
+    const handleDefinitionChange = (nextDefinition: RawActionDefinition) => {
+        actionService.stageDraft(sourcePath, nextDefinition)
+    }
+    const handleDefinitionCommit = () => actionService.commitDraft(sourcePath)
     const iconPaths = repositoryFiles.filter((path) => ICON_FILE_PATTERN.test(path))
     if (definition.icon && !iconPaths.includes(definition.icon)) iconPaths.unshift(definition.icon)
     const missingState = definition.onState && !states.includes(definition.onState) ? definition.onState : null
@@ -40,20 +61,20 @@ export function ActionDefinitionFields(props: ActionDefinitionFieldsProps) {
         : undefined)
 
     const handleRequiredTextChange = (event: ChangeEvent<HTMLInputElement>) => {
-        onChange({ ...definition, [event.target.name]: event.target.value })
+        handleDefinitionChange({ ...definition, [event.target.name]: event.target.value })
     }
 
     const handleOptionalTextChange = (event: ChangeEvent<HTMLInputElement>) => {
-        onChange({ ...definition, [event.target.name]: event.target.value || undefined })
+        handleDefinitionChange({ ...definition, [event.target.name]: event.target.value || undefined })
     }
 
     const handleTypeChange = (event: ChangeEvent<HTMLInputElement>) => {
         if (event.target.value === 'agent') {
-            onChange({ ...definition, command: undefined, prompt: definition.prompt ?? '', type: 'agent' })
+            handleDefinitionChange({ ...definition, command: undefined, prompt: definition.prompt ?? '', type: 'agent' })
             return
         }
 
-        onChange({
+        handleDefinitionChange({
             ...definition,
             agent: undefined,
             command: definition.command ?? '',
@@ -66,39 +87,40 @@ export function ActionDefinitionFields(props: ActionDefinitionFieldsProps) {
     }
 
     const handleNeedsWorkTreeChange = (event: ChangeEvent<HTMLInputElement>) => {
-        onChange({ ...definition, needsWorkTree: event.target.checked || undefined })
+        handleDefinitionChange({ ...definition, needsWorkTree: event.target.checked || undefined })
     }
 
     const handleTrackFileChangesChange = (event: ChangeEvent<HTMLInputElement>) => {
-        onChange({ ...definition, trackFileChanges: event.target.checked || undefined })
+        handleDefinitionChange({ ...definition, trackFileChanges: event.target.checked || undefined })
     }
 
     const handleFiltersChange = (appliesTo: RawActionDefinition['appliesTo']) => {
-        onChange({ ...definition, appliesTo })
+        handleDefinitionChange({ ...definition, appliesTo })
+        setDraftRevision((current) => current + 1)
     }
 
     const handleOnBeforeChange = (onBefore: string[] | undefined) => {
-        onChange({ ...definition, onBefore })
+        handleDefinitionChange({ ...definition, onBefore })
     }
 
     const handleOnChange = (on: RawActionDefinition['on']) => {
-        onChange({ ...definition, on })
+        handleDefinitionChange({ ...definition, on })
     }
 
     const handleOnAfterChange = (onAfter: string[] | undefined) => {
-        onChange({ ...definition, onAfter })
+        handleDefinitionChange({ ...definition, onAfter })
     }
 
     const handleClick = (event: MouseEvent<HTMLElement>) => {
-        if (event.target instanceof Element && event.target.closest('button')) onCommit()
+        if (event.target instanceof Element && event.target.closest('button')) handleDefinitionCommit()
     }
 
     return (
-        <Paper onBlur={onCommit} onClick={handleClick} variant="outlined" sx={{ maxWidth: 720, mb: 2, p: 2.5 }}>
+        <Paper onBlur={handleDefinitionCommit} onClick={handleClick} variant="outlined" sx={{ maxWidth: 720, mb: 2, p: 2.5 }}>
             <Stack spacing={2}>
                 <ActionSectionLabel component="h2">Action definition</ActionSectionLabel>
                 <Stack direction={{ md: 'row', xs: 'column' }} spacing={1}>
-                    <ActionEditorField error={!!errors.label} fieldId="action-label" fullWidth helperText={errors.label} label="Label" name="label" onChange={handleRequiredTextChange} size="small" value={definition.label} />
+                    <ActionEditorTextField error={!!errors.label} fieldId="action-label" fullWidth helperText={errors.label} label="Label" name="label" onChange={handleRequiredTextChange} size="small" source={definition} value={definition.label} />
                     <ActionEditorField
                         error={!!errors.type}
                         fieldId="action-type"
@@ -118,7 +140,7 @@ export function ActionDefinitionFields(props: ActionDefinitionFieldsProps) {
                         {iconPaths.map((path) => <MenuItem key={path} value={path}>{path}</MenuItem>)}
                     </ActionEditorField>
                 </Stack>
-                <ActionEditorField error={!!errors.description} fieldId="action-description" fullWidth helperText={errors.description} label="Description" name="description" onChange={handleRequiredTextChange} size="small" value={definition.description} />
+                <ActionEditorTextField error={!!errors.description} fieldId="action-description" fullWidth helperText={errors.description} label="Description" name="description" onChange={handleRequiredTextChange} size="small" source={definition} value={definition.description} />
                 <Divider />
                 <Grid
                     sx={{
@@ -168,9 +190,9 @@ export function ActionDefinitionFields(props: ActionDefinitionFieldsProps) {
                     ) : null}
                 </Grid>
                 {definition.type === 'agent' ? (
-                    <ActionAgentCapabilityFields definition={definition} errors={errors} onChange={onChange} />
+                    <ActionAgentCapabilityFields definition={definition} errors={errors} onChange={handleDefinitionChange} />
                 ) : (
-                    <ActionEditorField
+                    <ActionEditorTextField
                         error={!!errors.command}
                         fieldId="action-command"
                         fullWidth
@@ -180,6 +202,7 @@ export function ActionDefinitionFields(props: ActionDefinitionFieldsProps) {
                         multiline
                         name="command"
                         onChange={handleRequiredTextChange}
+                        source={definition}
                         value={definition.command ?? ''}
                     />
                 )}
@@ -196,7 +219,7 @@ export function ActionDefinitionFields(props: ActionDefinitionFieldsProps) {
                 />
                 <Divider />
                 <ActionLinkListEditor
-                    actions={actions}
+                    actions={selectableActions}
                     emptyText="No actions run before this one."
                     error={errors.onBefore}
                     errorIndex={errorIndex}
@@ -206,7 +229,7 @@ export function ActionDefinitionFields(props: ActionDefinitionFieldsProps) {
                 />
                 <Divider />
                 <ActionOnRulesEditor
-                    actions={actions}
+                    actions={selectableActions}
                     error={errors.on}
                     errorIndex={errorIndex}
                     onChange={handleOnChange}
@@ -214,7 +237,7 @@ export function ActionDefinitionFields(props: ActionDefinitionFieldsProps) {
                 />
                 <Divider />
                 <ActionLinkListEditor
-                    actions={actions}
+                    actions={selectableActions}
                     emptyText="No actions run after this one."
                     error={errors.onAfter}
                     errorIndex={errorIndex}
@@ -225,4 +248,4 @@ export function ActionDefinitionFields(props: ActionDefinitionFieldsProps) {
             </Stack>
         </Paper>
     )
-}
+})

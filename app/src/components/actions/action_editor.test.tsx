@@ -12,6 +12,7 @@ import { openFilesService } from '../../services/open_files_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import { actionMarkdownDataSource } from '../editor/action_markdown_data_source'
 import { ListActionEditor } from './list_action_editor'
+import * as actionEditorControllerModule from './use_action_editor_controller'
 
 const definition = {
     description: 'Review the selected file',
@@ -67,7 +68,6 @@ function ActionEditorHarness(props: { action: ActionDefinition, states: string[]
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column' }}>
             <ListActionEditor
-                actions={actionService.getActions()}
                 cardTypes={['feature']}
                 markdownDocumentNamespace="test-project"
                 repositoryFiles={[]}
@@ -125,6 +125,22 @@ describe('ActionEditor', () => {
 
         expect(screen.getByLabelText('Command')).toBeInTheDocument()
         expect(screen.queryByRole('tab', { name: 'Prompt' })).not.toBeInTheDocument()
+    })
+
+    it('keeps definition keystrokes local until child commit handling', () => {
+        const useController = vi.spyOn(actionEditorControllerModule, 'useActionEditorController')
+        renderEditor()
+        const renderCount = useController.mock.calls.length
+
+        fireEvent.change(labelInput(), { target: { value: 'Review updated' } })
+
+        expect(labelInput()).toHaveValue('Review updated')
+        expect(actionService.getDraft('actions/review.json').definition.label).toBe('Review updated')
+        expect(useController).toHaveBeenCalledTimes(renderCount)
+
+        fireEvent.blur(labelInput())
+
+        expect(useController.mock.calls.length).toBeGreaterThan(renderCount)
     })
 
     it('keeps the section tabs outside the full-height scrolling content', () => {
@@ -539,16 +555,30 @@ describe('ActionEditor', () => {
         expect(action.editorState?.selectedTab).toBe(action.editorState?.phrases[1].identity)
     })
 
-    it('does not save while a newly added filter value is empty', async () => {
+    it('does not validate or save while a newly added filter value is empty', async () => {
         vi.useFakeTimers()
         const saveDefinition = vi.spyOn(actionService, 'saveDefinition')
+        const reportError = vi.spyOn(dialogService, 'error')
         renderEditor()
 
         fireEvent.click(screen.getByRole('button', { name: 'Add filter' }))
-        fireEvent.change(labelInput(), { target: { value: 'Review code' } })
 
         await act(async () => vi.advanceTimersByTime(600))
+        expect(actionService.getDraft('actions/review.json').validation.valid).toBe(true)
+        expect(actionService.getDraft('actions/review.json').definition.appliesTo).toBeUndefined()
+        expect(reportError).not.toHaveBeenCalled()
         expect(saveDefinition).not.toHaveBeenCalled()
+    })
+
+    it('publishes a newly added filter after its value is selected', () => {
+        renderEditor()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Add filter' }))
+        fireEvent.mouseDown(screen.getByLabelText('Target kind'))
+        fireEvent.click(within(screen.getByRole('listbox')).getByRole('option', { name: 'card' }))
+
+        expect(actionService.getDraft('actions/review.json').definition.appliesTo).toEqual({ kind: 'card' })
+        expect(screen.getByRole('combobox', { name: 'Target kind' })).toHaveTextContent('card')
     })
 
     it('reports definition-level errors with no routable field without an inline alert', () => {
