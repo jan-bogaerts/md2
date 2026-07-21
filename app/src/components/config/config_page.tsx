@@ -8,7 +8,6 @@ import { dialogService } from '../../services/dialog_service'
 import { DesktopConfigSection } from './desktop_config_section'
 import { ProjectConfigSection } from './project_config_section'
 import { ReactConfigSection } from './react_config_section'
-import { worktreeService } from '../../services/project/worktree_service'
 import { useAppTheme } from '../../theme/use_app_theme'
 import {
     cloneMarkdownStyleConfig,
@@ -92,15 +91,10 @@ export function ConfigPage(props: ConfigPageProps) {
 
         const currentDraft = configService.getDraft()
         if (!currentDraft) configService.loadDraft()
-        if (worktreeService.isSupported() && configService.hasProjectConfig() && !worktreeService.getDraft()) {
-            worktreeService.loadDraft()
-        }
-
         return () => {
             // React StrictMode mounts, unmounts, and remounts effects; delay discard so the remount can cancel it.
             draftDiscardTimeoutRef.current = window.setTimeout(() => {
                 configService.discardDraft()
-                worktreeService.discardDraft()
                 draftDiscardTimeoutRef.current = null
             }, DRAFT_DISCARD_DELAY_MS)
         }
@@ -151,7 +145,6 @@ export function ConfigPage(props: ConfigPageProps) {
             const nextCardSeparator = draft['project.cardSeparator']
             const shouldUpdateCardSeparator = configService.hasProjectConfig()
                 && previousCardSeparator !== nextCardSeparator
-            if (worktreeService.getDraft()) await worktreeService.saveDraft()
             if (shouldUpdateCardSeparator) {
                 await dataService.projectLoading.updateCardSeparator(previousCardSeparator, nextCardSeparator)
             }
@@ -172,7 +165,6 @@ export function ConfigPage(props: ConfigPageProps) {
 
     const handleCancelClick = () => {
         configService.discardDraft()
-        worktreeService.discardDraft()
         navigateTo('/')
     }
 

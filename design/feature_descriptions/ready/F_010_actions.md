@@ -41,7 +41,7 @@ The existing implementation uses a React-side `ActionRunner`, name-based action 
 - Execute `onBefore` -> main -> matching `on` actions -> `onAfter` in configured order. Reject cycles before execution.
 - Stop the chain on the first failure. `onBefore` failure prevents main. Main failure prevents `on` and `onAfter`. A matched-`on` failure prevents remaining `on` and all `onAfter`. `onAfter` starts only after main and every matched `on` succeed; its failure stops later `onAfter`, fails that linked action, and finishes the selected run as `okButNotAfter`.
 - `Cancel` stops the active Electron process and remaining chain and marks the run cancelled.
-- When `needsWorkTree` is set, Electron requires card context and resolves the card's valid assignment from the configured worktree list. It does not create a worktree or automatically commit, push, merge, cherry-pick, or transfer changes.
+- When `needsWorkTree` is set, Electron requires card context and resolves the card's valid assignment from Git's linked-worktree list. It does not create a worktree or automatically commit, push, merge, cherry-pick, or transfer changes.
 - A card keeps its current action in memory. While set, all action entry points for that card are disabled. Completion, failure, or cancellation clears it and publishes an event; it is never persisted.
 - Trigger `onState` actions through the same Electron runner.
 - Watch the actions folder in local Electron mode and publish validated definition changes to React.

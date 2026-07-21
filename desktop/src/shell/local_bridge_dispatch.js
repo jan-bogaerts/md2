@@ -93,13 +93,13 @@ function createLocalBridgeDispatch(dependencies) {
 
             return project;
         },
-        selectWorktreeFolder: async (registeredFolders) => {
+        addWorktree: async (project) => {
             if (!openWorktreeFolder) throw new Error('Worktree folder picker is not available');
 
             const folderPath = await openWorktreeFolder();
             if (!folderPath) return null;
 
-            return worktreeService.validateForAdd(currentLocalProject, folderPath, registeredFolders);
+            return worktreeService.add(project, folderPath);
         },
         push: (project) => localGitService.push(project),
         resolveProject: async (project) => {
@@ -111,7 +111,7 @@ function createLocalBridgeDispatch(dependencies) {
         },
         saveActionSchedules: (project, actionsFolder, schedules) => localGitService.saveActionSchedules(project, actionsFolder, schedules),
         saveProjectConfig: (project, config) => localGitService.saveProjectConfig(project, config),
-        saveWorktrees: (project, folders) => worktreeService.save(project, folders),
+        removeWorktree: (project, folderPath) => worktreeService.remove(project, folderPath),
         stopAgent: (runId) => agentRunnerService.stop(runId),
         watchProject: (project, callback) => localGitService.watchProject(project, (event) => {
             if (actionSchedulerService) void actionSchedulerService.handleProjectChange(event);

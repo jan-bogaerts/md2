@@ -23,7 +23,7 @@ I treated “identifier” as a path being stored in state, used as a map/set ke
 | Action status/usage | `useActionExecutions`, `ActionUsageSummary`, `usePendingFileSave` | Running executions, usage, and pending saves are queried by card/file path. |
 | Diff viewer | [diff_view.tsx](C:/Users/janbo/Documents/dev/md2/app/src/components/actions/diff_view.tsx:111) | Diff file objects use `file.path` as their React key and editor target. |
 | Remarkable import | [remarkable_import_panel.tsx](C:/Users/janbo/Documents/dev/md2/app/src/components/remarkable_import_panel.tsx:73) | Device files are selected by path; an existing target card is selected by `card.path`. |
-| Folder/worktree configuration | `WorkingFolderChooserDialog`, `WorktreeConfigList` | Folder/worktree records are selected or keyed using their paths. |
+| Folder configuration/worktree management | `WorkingFolderChooserDialog`, `WorktreeConfigList` | Folder records and Git-reported worktrees are selected or keyed using their paths. |
 
 The underlying tree model explicitly assigns file nodes `id: card.path`: [file_tree.ts](C:/Users/janbo/Documents/dev/md2/app/src/data/file_tree.ts:64).
 

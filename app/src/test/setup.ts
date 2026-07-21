@@ -5,6 +5,11 @@ import { vi } from 'vitest'
 // swap it for a textarea stub with the same markdown/onChange contract.
 vi.mock('@mdxeditor/editor', () => import('./mdx_editor_stub'))
 vi.mock('@mdxeditor/editor/style.css', () => ({}))
+vi.mock('@lexical/react/LexicalComposerContext', async () => {
+    const { useLexicalComposerContextStub } = await import('./lexical_composer_context_stub')
+
+    return { useLexicalComposerContext: useLexicalComposerContextStub }
+})
 
 if (!window.matchMedia) {
     window.matchMedia = (query: string) => ({

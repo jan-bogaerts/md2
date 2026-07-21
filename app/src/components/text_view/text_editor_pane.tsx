@@ -11,9 +11,6 @@ interface TextEditorPaneProps {
     actionsFolder: string
     cardTypes: CardTypeConfig[]
     markdownDocumentNamespace: string
-    onHeaderFieldChange: (path: string, key: string, value: string) => void
-    onTitleChange: (path: string, title: string) => void
-    onTogglePolicy: (path: string, policyKey: string) => void
     repositoryFiles: string[]
     specialContextTypes: string[]
     states: string[]
@@ -24,8 +21,8 @@ interface TextEditorPaneProps {
 /** Layout for the service-owned active document and its lifetime-stable editors. */
 export function TextEditorPane(props: TextEditorPaneProps) {
     const {
-        actions, actionsFolder, cardTypes, markdownDocumentNamespace, onHeaderFieldChange, onTitleChange,
-        onTogglePolicy, repositoryFiles, specialContextTypes, states, statusColors, visible,
+        actions, actionsFolder, cardTypes, markdownDocumentNamespace, repositoryFiles,
+        specialContextTypes, states, statusColors, visible,
     } = props
     const { activeDocument } = useOpenFiles()
     const hasActiveAction = activeDocument?.kind === 'action'
@@ -62,15 +59,12 @@ export function TextEditorPane(props: TextEditorPaneProps) {
                             Select a file from the tree to open it.
                         </Typography>
                     ) : null}
-                    <CardEditor
-                        cardTypes={cardTypes}
-                        onHeaderFieldChange={onHeaderFieldChange}
-                        onTitleChange={onTitleChange}
-                        onTogglePolicy={onTogglePolicy}
-                        projectKey={markdownDocumentNamespace}
-                        statusColors={statusColors}
-                        visible={visible}
-                    />
+                    <Box
+                        hidden={!hasActiveCard}
+                        sx={{ display: hasActiveCard ? 'flex' : 'none', flex: 1, flexDirection: 'column', minHeight: 0 }}
+                    >
+                        <CardEditor cardTypes={cardTypes} statusColors={statusColors} visible={visible} />
+                    </Box>
                 </Box>
             </Box>
         </Box>

@@ -15,6 +15,6 @@ export function useProjectActionWorktree() {
     return useSyncExternalStore(subscribe, () => worktreeService.getProjectActionWorktree())
 }
 
-export function useWorktreeDraft() {
-    return useSyncExternalStore(subscribe, () => worktreeService.getDraft())
+export function useWorktreeAdding() {
+    return useSyncExternalStore(subscribe, () => worktreeService.isAdding())
 }

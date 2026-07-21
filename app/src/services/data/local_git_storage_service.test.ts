@@ -32,6 +32,20 @@ function createBridge(overrides: Partial<ElectronDataBridge> = {}): ElectronData
 }
 
 describe('LocalGitStorageService binary write path', () => {
+    it('forwards linked worktree mutations to the bridge', async () => {
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
+        const worktree = { branch: 'feature', error: null, path: 'C:/feature', valid: true }
+        const addWorktree = vi.fn().mockResolvedValue([worktree])
+        const removeWorktree = vi.fn().mockResolvedValue([])
+        const service = new LocalGitStorageService()
+        service.init({ bridge: createBridge({ addWorktree, removeWorktree }) })
+
+        await expect(service.addWorktree(project)).resolves.toEqual([worktree])
+        await expect(service.removeWorktree(project, worktree.path)).resolves.toEqual([])
+        expect(addWorktree).toHaveBeenCalledWith(project)
+        expect(removeWorktree).toHaveBeenCalledWith(project, worktree.path)
+    })
+
     it('forwards stored project revalidation to the bridge', async () => {
         const project = { branch: 'main', id: 'C:/nested', rootPath: 'C:/nested' }
         const resolvedProject = { branch: 'topic', id: 'C:/repo', rootPath: 'C:/repo' }

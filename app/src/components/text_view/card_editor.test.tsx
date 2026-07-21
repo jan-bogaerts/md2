@@ -4,7 +4,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ProjectCard } from '../../data/data_types'
 import type { CardCommit } from '../../services/actions/card_commit_history'
 import { openFilesService } from '../../services/open_files_service'
+import { listCardCommitDiffDataSource } from '../card_view/list_card_commit_diff_data_source'
 import { CardEditor } from './card_editor'
+
+const markdownEditorRender = vi.hoisted(() => vi.fn())
 
 const commit: CardCommit = {
     branch: 'main',
@@ -31,16 +34,17 @@ const commit: CardCommit = {
 vi.mock('../hooks/use_card_commits', () => ({ useCardCommits: () => ({ commits: [commit], error: null }) }))
 
 vi.mock('../editor/markdown_editor', () => ({
-    MarkdownEditor: ({ toolbarContents }: { toolbarContents: () => ReactNode }) => (
-        <div aria-label="Live file editor">{toolbarContents()}</div>
-    ),
+    MarkdownEditor: ({ toolbarContents }: { toolbarContents: () => ReactNode }) => {
+        markdownEditorRender()
+
+        return <div aria-label="Live file editor">{toolbarContents()}</div>
+    },
 }))
 
 vi.mock('./list_editor_toolbar_controls', () => ({
-    ListEditorToolbarControls: ({ cardCommits, onSelectCardCommit }: {
-        cardCommits: CardCommit[]
-        onSelectCardCommit: (selectedCommit: CardCommit) => void
-    }) => <button onClick={() => onSelectCardCommit(cardCommits[0])} type="button">Select file commit</button>,
+    ListEditorToolbarControls: () => (
+        <button onClick={() => listCardCommitDiffDataSource.select(commit)} type="button">Select file commit</button>
+    ),
 }))
 
 vi.mock('../card_view/card_commit_diff_panel', () => ({CardCommitDiffPanel: () => <div aria-label="File card commit diff" />}))
@@ -60,21 +64,24 @@ const card: ProjectCard = {
 
 const editorProps = {
     cardTypes: [],
-    onHeaderFieldChange: vi.fn(),
-    onTitleChange: vi.fn(),
-    onTogglePolicy: vi.fn(),
-    projectKey: 'project:main',
     statusColors: new Map<string, string>(),
     visible: true,
 }
 
+const secondCard: ProjectCard = {
+    ...card,
+    header: { ...card.header, id: 'F-061', internalId: 'card-061', title: 'Second card' },
+    path: 'design/F-061.md',
+}
+
 afterEach(() => {
     cleanup()
+    listCardCommitDiffDataSource.clear()
     openFilesService.clear()
 })
 
 describe('CardEditor commit diff', () => {
-    it('keeps hidden editor mounted without occupying layout', () => {
+    it('keeps its lifetime editor mounted when the list binding clears', () => {
         openFilesService.openDocument(card)
         render(<CardEditor {...editorProps} />)
 
@@ -82,8 +89,7 @@ describe('CardEditor commit diff', () => {
 
         const liveEditor = screen.getByLabelText('Live file editor')
 
-        expect(liveEditor).not.toBeVisible()
-        expect(liveEditor.closest('[hidden]')).toHaveStyle({ display: 'none' })
+        expect(liveEditor).toBeVisible()
     })
 
     it('keeps the live file editor mounted and exits diff mode with Escape', () => {
@@ -101,5 +107,17 @@ describe('CardEditor commit diff', () => {
 
         expect(screen.queryByLabelText('File card commit diff')).not.toBeInTheDocument()
         expect(liveEditor).toBeVisible()
+    })
+
+    it('does not rerender the live editor when a tab change closes the selected diff', () => {
+        markdownEditorRender.mockClear()
+        openFilesService.openDocument(card)
+        render(<CardEditor {...editorProps} />)
+        fireEvent.click(screen.getByRole('button', { name: 'Select file commit' }))
+
+        act(() => openFilesService.openDocument(secondCard))
+
+        expect(screen.queryByLabelText('File card commit diff')).not.toBeInTheDocument()
+        expect(markdownEditorRender).toHaveBeenCalledTimes(1)
     })
 })

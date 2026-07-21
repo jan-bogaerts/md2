@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process';
-import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
@@ -8,7 +8,7 @@ import worktreeModule from './worktree_service.js';
 import gitCommands from './git_commands.js';
 
 const execFileAsync = promisify(execFile);
-const { WORKTREES_FILE, WorktreeService } = worktreeModule;
+const { WorktreeService } = worktreeModule;
 const temporaryFolders = [];
 
 async function git(rootPath, ...args) {
@@ -32,7 +32,7 @@ async function createRepository() {
     await git(primaryPath, 'branch', 'feature');
     await git(primaryPath, 'worktree', 'add', linkedPath, 'feature');
 
-    return { linkedPath, primaryPath, project: { branch: 'main', id: primaryPath, rootPath: primaryPath } };
+    return { linkedPath, parentPath, primaryPath, project: { branch: 'main', id: primaryPath, rootPath: primaryPath } };
 }
 
 afterEach(async () => {
@@ -40,54 +40,41 @@ afterEach(async () => {
 });
 
 describe('WorktreeService', () => {
-    it('validates, saves and restores ordered linked worktrees while updating gitignore', async () => {
-        const { linkedPath, primaryPath, project } = await createRepository();
+    it('loads linked worktrees directly from Git while excluding the primary worktree', async () => {
+        const { linkedPath, project } = await createRepository();
         const service = new WorktreeService({ runGit: gitCommands.runGit });
 
-        const record = await service.validateForAdd(project, linkedPath);
-        const saved = await service.save(project, [record.path]);
-        const restored = await service.load(project);
-
-        expect(saved).toEqual([{ branch: 'feature', error: null, path: linkedPath, valid: true }]);
-        expect(restored).toEqual(saved);
-        expect(JSON.parse(await readFile(join(primaryPath, WORKTREES_FILE), 'utf8'))).toEqual([linkedPath]);
-        expect(await readFile(join(primaryPath, '.gitignore'), 'utf8')).toContain('/.md2-worktrees.json');
+        await expect(service.load(project)).resolves.toEqual([
+            { branch: 'feature', error: null, path: linkedPath, valid: true },
+        ]);
     }, 15000);
 
-    it('keeps stale stored entries and reports them invalid', async () => {
+    it('adds a linked worktree using the selected folder name as the branch', async () => {
+        const { parentPath, project } = await createRepository();
+        const secondPath = join(parentPath, 'second');
+        const service = new WorktreeService({ runGit: gitCommands.runGit });
+        await mkdir(secondPath);
+
+        const records = await service.add(project, secondPath);
+
+        expect(records).toContainEqual({ branch: 'second', error: null, path: secondPath, valid: true });
+    }, 15000);
+
+    it('removes a clean linked worktree without deleting its branch', async () => {
         const { linkedPath, primaryPath, project } = await createRepository();
         const service = new WorktreeService({ runGit: gitCommands.runGit });
-        await writeFile(join(primaryPath, WORKTREES_FILE), `${JSON.stringify([linkedPath])}\n`);
-        await rm(linkedPath, { force: true, recursive: true });
+
+        await expect(service.remove(project, linkedPath)).resolves.toEqual([]);
+        await expect(git(primaryPath, 'show-ref', '--verify', 'refs/heads/feature')).resolves.toMatch(/refs\/heads\/feature/u);
+    }, 15000);
+
+    it('reports detached worktrees as invalid', async () => {
+        const { linkedPath, project } = await createRepository();
+        const service = new WorktreeService({ runGit: gitCommands.runGit });
+        await git(linkedPath, 'checkout', '--detach');
 
         const records = await service.load(project);
 
-        expect(records).toHaveLength(1);
-        expect(records[0]).toMatchObject({ path: linkedPath, valid: false });
-        expect(records[0].error).toMatch(/ENOENT|cannot find|no such file/iu);
-    });
-
-    it('rejects detached worktrees and worktrees from another clone', async () => {
-        const { linkedPath, primaryPath, project } = await createRepository();
-        const service = new WorktreeService({ runGit: gitCommands.runGit });
-        await git(linkedPath, 'checkout', '--detach');
-        const detached = await service.validateForAdd(project, linkedPath).catch((error) => error);
-
-        const clonePath = join(primaryPath, '..', 'clone');
-        await git(primaryPath, 'clone', primaryPath, clonePath);
-        const clone = await service.validateForAdd(project, clonePath).catch((error) => error);
-
-        expect(detached).toBeInstanceOf(Error);
-        expect(detached.message).toMatch(/detached HEAD/u);
-        expect(clone).toBeInstanceOf(Error);
-        expect(clone.message).toMatch(/common directory/u);
-    });
-
-    it('fails clearly for invalid JSON', async () => {
-        const { primaryPath, project } = await createRepository();
-        const service = new WorktreeService({ runGit: gitCommands.runGit });
-        await writeFile(join(primaryPath, WORKTREES_FILE), '{bad');
-
-        await expect(service.load(project)).rejects.toThrow(/Invalid JSON/u);
+        expect(records[0]).toMatchObject({ branch: null, error: expect.stringMatching(/detached HEAD/u), valid: false });
     });
 });

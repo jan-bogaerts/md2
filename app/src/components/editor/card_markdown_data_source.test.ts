@@ -26,9 +26,12 @@ function owner(initialCard: ProjectCard) {
 
         return { content: markdown, path }
     })
+    const toggleCardPolicy = vi.fn()
+    const updateCardHeaderFields = vi.fn()
+    const updateCardTitle = vi.fn()
 
     return Object.assign(eventTarget, {
-        cards: { updateCardBody },
+        cards: { toggleCardPolicy, updateCardBody, updateCardHeaderFields, updateCardTitle },
         getState: () => ({ project, runningAgents: [], snapshot }),
         renew: (nextCard: ProjectCard) => {
             snapshot = { ...snapshot, activeCards: [nextCard] }
@@ -39,10 +42,32 @@ function owner(initialCard: ProjectCard) {
             eventTarget.dispatchEvent(new CustomEvent('changed'))
         },
         updateCardBody,
+        updateCardHeaderFields,
+        updateCardTitle,
+        toggleCardPolicy,
     })
 }
 
 describe('CardMarkdownDataSource', () => {
+    it('follows the active card owned by the open-files service', () => {
+        const activeCard = card('Original')
+        const document = Object.assign(new EventTarget(), { kind: 'card' as const, getObject: () => activeCard })
+        let activeDocument: typeof document | null = null
+        const getSnapshot = () => ({ activeDocument, documents: activeDocument ? [activeDocument] : [] })
+        const listCards = Object.assign(new EventTarget(), { getSnapshot })
+        const source = new CardMarkdownDataSource()
+        const closed = vi.fn()
+        source.addEventListener('cardDocumentClosed', closed)
+        source.bindListCards(listCards)
+
+        activeDocument = document
+        listCards.dispatchEvent(new Event('changed'))
+        listCards.dispatchEvent(new CustomEvent('removed', { detail: { document } }))
+
+        expect(source.getActiveDocumentId('list-card')).toBe('card-1')
+        expect(closed).toHaveBeenCalledOnce()
+    })
+
     it('commits by internal ID while resolving latest path and marks echo origin', () => {
         const cardOwner = owner(card('Original'))
         const source = new CardMarkdownDataSource()
@@ -126,5 +151,21 @@ describe('CardMarkdownDataSource', () => {
         source.edit('list-card', 'missing-card', 'abc')
 
         expect(reportError).toHaveBeenCalledOnce()
+    })
+
+    it('updates active card properties by the latest resolved path', () => {
+        const cardOwner = owner(card('Original'))
+        const source = new CardMarkdownDataSource()
+        source.init(cardOwner)
+        source.setActiveDocument('list-card', 'card-1')
+        cardOwner.renew(card('Original', 'design/renamed.md'))
+
+        source.updateActiveCardTitle('list-card', 'Renamed')
+        source.updateActiveCardHeaderField('list-card', 'author', 'JB')
+        source.toggleActiveCardPolicy('list-card', 'autoMerge')
+
+        expect(cardOwner.updateCardTitle).toHaveBeenCalledWith('design/renamed.md', 'Renamed')
+        expect(cardOwner.updateCardHeaderFields).toHaveBeenCalledWith('design/renamed.md', { author: 'JB' })
+        expect(cardOwner.toggleCardPolicy).toHaveBeenCalledWith('design/renamed.md', 'autoMerge')
     })
 })

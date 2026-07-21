@@ -83,8 +83,8 @@ function createBridge(): ElectronDataBridge {
         push: vi.fn(),
         resolveProject: vi.fn(async (project) => project),
         saveProjectConfig: vi.fn(),
-        saveWorktrees: vi.fn(async () => []),
-        selectWorktreeFolder: vi.fn(async () => null),
+        addWorktree: vi.fn(async () => null),
+        removeWorktree: vi.fn(async () => []),
         watchProject: vi.fn(() => vi.fn()),
     }
 }

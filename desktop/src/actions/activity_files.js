@@ -198,7 +198,7 @@ async function filterVisibleCommits(rootPath, primaryBranch, validBranches, reco
 async function loadCardActivity(project, projectFolder, cardInternalId, worktrees) {
     const rootPath = requireRootPath(project);
     await assertGitRoot(rootPath);
-    if (!Array.isArray(worktrees)) throw new Error('Missing registered worktrees');
+    if (!Array.isArray(worktrees)) throw new Error('Missing linked worktrees');
     const origin = { cardInternalId, kind: 'card' };
     const { absolutePath } = resolveActivityPath(rootPath, projectFolder, origin);
     const activity = await readActivityFile(absolutePath, origin);

@@ -81,6 +81,10 @@ function isResponse(message: RemoteControlResponse | RemoteControlEvent): messag
 }
 
 export class RemoteControlStorageService implements StorageService, ElectronActionBridge {
+    async addWorktree(project: ProjectReference): Promise<WorktreeRecord[] | null> {
+        return this.request<WorktreeRecord[] | null>('addWorktree', [project])
+    }
+
     private actionExecutionCallbacks: Map<string, (event: ActionExecutionEvent) => void>
     private connectPromise: Promise<void> | null
     private endpoint: string
@@ -219,13 +223,8 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         return this.request<WorktreeRecord[]>('loadWorktrees', [project])
     }
 
-    async saveWorktrees(project: ProjectReference, folders: string[]): Promise<WorktreeRecord[]> {
-        return this.request<WorktreeRecord[]>('saveWorktrees', [project, folders])
-    }
-
-    // Runs on the desktop host: the folder picker opens on the machine sharing the remote-control server.
-    async selectWorktreeFolder(registeredFolders: string[]): Promise<WorktreeRecord | null> {
-        return this.request<WorktreeRecord | null>('selectWorktreeFolder', [registeredFolders])
+    async removeWorktree(project: ProjectReference, folderPath: string): Promise<WorktreeRecord[]> {
+        return this.request<WorktreeRecord[]>('removeWorktree', [project, folderPath])
     }
 
     async loadPendingPush(project: ProjectReference) {

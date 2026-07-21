@@ -7,24 +7,23 @@ import EditOutlined from '@mui/icons-material/EditOutlined'
 import PolicyOutlined from '@mui/icons-material/PolicyOutlined'
 import ScheduleOutlined from '@mui/icons-material/ScheduleOutlined'
 import TitleOutlined from '@mui/icons-material/TitleOutlined'
-import type { ChangeEvent, KeyboardEvent } from 'react'
-import { useState } from 'react'
+import { useState, type ChangeEvent, type KeyboardEvent } from 'react'
+import { defaultColumnAccent } from '../../data/data_types'
+import { cardMarkdownDataSource } from '../editor/card_markdown_data_source'
+import { useActiveCard } from '../hooks/use_active_card'
 
 const AUTO_MERGE_POLICY_KEY = 'autoMerge'
 const MANUAL_POLICY_VALUE = 'manual'
 const AUTO_MERGE_POLICY_VALUE = 'autoMerge'
 
+interface PropertyDraft {
+    baseline: string
+    documentId: string | null
+    value: string
+}
+
 interface CardPropertiesPanelProps {
-    affects: string[]
-    author: string | null
-    id: string
-    onAuthorChange: (author: string) => void
-    onAutoMergeChange: (enabled: boolean) => void
-    onTitleChange: (title: string) => void
-    policy: Record<string, boolean>
-    status: string | null
-    statusColor?: string
-    title: string
+    statusColors: Map<string, string>
 }
 
 const rowSx = {
@@ -65,58 +64,72 @@ const inputSx = {
 
 /** Compact editor for user-facing card properties inside the toolbar popup. */
 export function CardPropertiesPanel(props: CardPropertiesPanelProps) {
-    const {
-        affects, author, id, onAuthorChange, onAutoMergeChange, onTitleChange,
-        policy, status, statusColor, title,
-    } = props
-    const [authorDraft, setAuthorDraft] = useState(author ?? '')
-    const [titleDraft, setTitleDraft] = useState(title)
-    const autoMergeEnabled = policy[AUTO_MERGE_POLICY_KEY] ?? false
+    const { statusColors } = props
+    const card = useActiveCard('list-card')
+    const documentId = card?.header.internalId ?? null
+    const author = card?.header.author ?? null
+    const title = card?.header.title ?? ''
+    const authorValue = author ?? ''
+    const [authorEdit, setAuthorEdit] = useState<PropertyDraft>({ baseline: authorValue, documentId, value: authorValue })
+    const [titleEdit, setTitleEdit] = useState<PropertyDraft>({ baseline: title, documentId, value: title })
+    const authorDraft = authorEdit.documentId === documentId && authorEdit.baseline === authorValue
+        ? authorEdit.value
+        : authorValue
+    const titleDraft = titleEdit.documentId === documentId && titleEdit.baseline === title ? titleEdit.value : title
+    const autoMergeEnabled = card?.header.policy[AUTO_MERGE_POLICY_KEY] ?? false
     const policyValue = autoMergeEnabled ? AUTO_MERGE_POLICY_VALUE : MANUAL_POLICY_VALUE
+    const affects = card?.header.affects ?? []
     const affectsValue = affects.length > 0 ? affects.join(', ') : 'None'
-    const statusValue = status ?? 'None'
+    const statusValue = card?.header.status ?? 'None'
+    const statusColor = card?.header.status
+        ? statusColors.get(card.header.status) ?? defaultColumnAccent(0)
+        : undefined
 
     const handleTitleChange = (event: ChangeEvent<HTMLInputElement>) => {
-        setTitleDraft(event.target.value)
+        setTitleEdit({ baseline: title, documentId, value: event.target.value })
     }
 
     const commitTitle = () => {
         const nextTitle = titleDraft.trim()
         if (nextTitle.length === 0) {
-            setTitleDraft(title)
+            setTitleEdit({ baseline: title, documentId, value: title })
             return
         }
-        if (nextTitle !== title) onTitleChange(nextTitle)
+        if (nextTitle !== title) cardMarkdownDataSource.updateActiveCardTitle('list-card', nextTitle)
     }
 
     const handleTitleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
         if (event.key === 'Enter') event.currentTarget.blur()
         if (event.key === 'Escape') {
-            setTitleDraft(title)
+            setTitleEdit({ baseline: title, documentId, value: title })
             event.currentTarget.blur()
         }
     }
 
     const handleAuthorChange = (event: ChangeEvent<HTMLInputElement>) => {
-        setAuthorDraft(event.target.value)
+        setAuthorEdit({ baseline: authorValue, documentId, value: event.target.value })
     }
 
     const commitAuthor = () => {
-        if (authorDraft !== (author ?? '')) onAuthorChange(authorDraft)
+        if (authorDraft !== (author ?? '')) {
+            cardMarkdownDataSource.updateActiveCardHeaderField('list-card', 'author', authorDraft)
+        }
     }
 
     const handleAuthorKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
         if (event.key === 'Enter') event.currentTarget.blur()
         if (event.key === 'Escape') {
-            setAuthorDraft(author ?? '')
+            setAuthorEdit({ baseline: authorValue, documentId, value: authorValue })
             event.currentTarget.blur()
         }
     }
 
     const handlePolicyChange = (event: SelectChangeEvent) => {
         const shouldAutoMerge = event.target.value === AUTO_MERGE_POLICY_VALUE
-        if (shouldAutoMerge !== autoMergeEnabled) onAutoMergeChange(shouldAutoMerge)
+        if (shouldAutoMerge !== autoMergeEnabled) cardMarkdownDataSource.toggleActiveCardPolicy('list-card', AUTO_MERGE_POLICY_KEY)
     }
+
+    if (!card) return null
 
     return (
         <Box
@@ -144,7 +157,7 @@ export function CardPropertiesPanel(props: CardPropertiesPanelProps) {
                         fontFamily: 'monospace', fontSize: 11, fontWeight: 600, px: 0.75, py: 0.25,
                     }}
                 >
-                    {id}
+                    {card.header.id}
                 </Box>
             </Box>
             <Box sx={{ columnGap: '24px', display: 'grid', gridTemplateColumns: '1fr 1fr', rowGap: '2px' }}>

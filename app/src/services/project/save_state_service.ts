@@ -2,6 +2,7 @@ import type { StorageService } from '../../data/data_types'
 
 const SAVE_STATE_EVENT = 'changed'
 const STORAGE_SAVE_METHODS = new Set<PropertyKey>([
+    'addWorktree',
     'cancelActionSchedule',
     'commit',
     'createProject',
@@ -9,9 +10,9 @@ const STORAGE_SAVE_METHODS = new Set<PropertyKey>([
     'deleteFile',
     'deleteFolder',
     'moveFiles',
+    'removeWorktree',
     'saveActionSchedules',
     'saveProjectConfig',
-    'saveWorktrees',
 ])
 
 export interface SaveState {

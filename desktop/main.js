@@ -108,7 +108,7 @@ async function openProjectFolder(window) {
 async function openWorktreeFolder(window) {
     const result = await dialog.showOpenDialog(window, {
         properties: ['openDirectory'],
-        title: 'Register linked Git worktree',
+        title: 'Choose linked Git worktree folder',
     });
 
     if (result.canceled || result.filePaths.length === 0) return null;

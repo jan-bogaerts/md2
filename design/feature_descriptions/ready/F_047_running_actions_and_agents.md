@@ -29,7 +29,7 @@ Implemented. One Electron-owned runner handles manual, scheduled, `onState`, rel
 - Load model choices from configured agent profiles. Built-in Codex and Claude profiles provide default model lists.
 - Use fixed thinking levels: `none`, `low`, `medium`, `high`, and `max`. `none` passes no thinking-level override.
 - Check Codex and Claude executable availability and disable unavailable agents with a clear explanation.
-- For `needsWorkTree`, require card context with a valid assignment from the configured worktree list. Do not create, register, or assign worktrees during execution.
+- For `needsWorkTree`, require card context with a valid assignment from Git's linked-worktree list. Do not create, remove, or assign worktrees during execution.
 - Remove the React action runner and separate scheduled chain runner after all callers use the Electron runner.
 
 ## Test plan
@@ -52,7 +52,7 @@ Implemented. One Electron-owned runner handles manual, scheduled, `onState`, rel
 - Structured agent output streams live, running-turn input is disabled, completed conversations start one-shot follow-ups, and history remains keyed by action id and context.
 - The popup, conversation panel, card action state, history, and global indicator show consistent live and terminal execution state.
 - Codex and Claude availability reflects executable checks; model choices come from configured profiles with built-in defaults; thinking choices are `none`, `low`, `medium`, `high`, and `max`.
-- `needsWorkTree` runs only with valid card-assigned configured worktrees and rejects missing, invalid, or non-card contexts before process start.
+- `needsWorkTree` runs only with valid card-assigned linked worktrees and rejects missing, invalid, or non-card contexts before process start.
 - Web mode keeps definitions editable and disables execution controls with a clear explanation when no Electron backend is available.
 - App and desktop lint, typecheck, and tests pass.
 

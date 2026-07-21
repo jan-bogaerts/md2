@@ -17,6 +17,7 @@ const REMOTE_CONTROL_STOP_CHANNEL = 'md2-remote-control:stop';
 const THEME_SET_MODE_CHANNEL = 'md2-theme:set-mode';
 
 const DATA_METHODS = [
+    'addWorktree',
     'cancelActionSchedule',
     'checkoutBranch',
     'commit',
@@ -42,11 +43,10 @@ const DATA_METHODS = [
     'moveFiles',
     'openProjectFolder',
     'push',
+    'removeWorktree',
     'resolveProject',
     'saveActionSchedules',
     'saveProjectConfig',
-    'saveWorktrees',
-    'selectWorktreeFolder',
     'stopAgent',
 ];
 const ACTION_METHODS = [

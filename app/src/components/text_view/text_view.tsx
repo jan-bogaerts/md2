@@ -22,9 +22,6 @@ interface TextViewProps {
     onCreateMarkdownFile: (parentDirectory: string, name: string) => Promise<void>
     onDeleteFile: (path: string) => Promise<void>
     onDeleteFolder: (path: string) => Promise<void>
-    onHeaderFieldChange: (path: string, key: string, value: string) => void
-    onTitleChange: (path: string, title: string) => void
-    onTogglePolicy: (path: string, policyKey: string) => void
     projectFolder: string
     projectKey: string
     repositoryFiles: string[]
@@ -56,9 +53,6 @@ export function TextView(props: TextViewProps) {
         onCreateMarkdownFile,
         onDeleteFile,
         onDeleteFolder,
-        onHeaderFieldChange,
-        onTitleChange,
-        onTogglePolicy,
         projectFolder,
         projectKey,
         repositoryFiles,
@@ -154,9 +148,6 @@ export function TextView(props: TextViewProps) {
                     actionsFolder={actionsFolder}
                     cardTypes={cardTypes}
                     markdownDocumentNamespace={projectKey}
-                    onHeaderFieldChange={onHeaderFieldChange}
-                    onTitleChange={onTitleChange}
-                    onTogglePolicy={onTogglePolicy}
                     repositoryFiles={repositoryFiles}
                     specialContextTypes={specialContextTypes}
                     states={actionStates}

@@ -74,7 +74,7 @@ describe('ActionFilterEditor', () => {
         expect(options.getAllByRole('option').map((option) => option.textContent)).toEqual(['design', 'ready'])
     })
 
-    it('offers repository files, folder names, and registered worktrees while retaining stale values', () => {
+    it('offers repository files, folder names, and linked worktrees while retaining stale values', () => {
         const repositoryFiles = ['src\\feature folder\\file name.ts']
         render(
             <FilterEditorHarness

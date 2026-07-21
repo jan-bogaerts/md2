@@ -21,7 +21,7 @@ User can select the active worktree from the action popup. When the action popup
 ## implementation details
 
 - Add an accessible worktree icon/menu at the upper left, on the same row as the right-aligned expand and close buttons. Move the action selector to a second row.
-- List only valid registered linked worktrees, plus an unassigned option. Keep invalid card assignments visible with their existing error.
+- List only valid linked worktrees reported by Git, plus an unassigned option. Keep invalid card assignments visible with their existing error.
 - In card context, initialize from the card assignment and persist changes through `updateCardWorktree`; keep the previous selection if saving fails.
 - In project context, keep the assignment in renderer service state for the current opened-project session only. Reset it when the project closes or changes; do not write it to project files, config, or schedules.
 - Use the effective assignment for action filtering, prompt preparation, and execution. Electron resolves it only when `needsWorkTree` is true, accepting card or project context; missing, invalid, or unavailable assignments fail before process start. Actions without `needsWorkTree` still run in the primary worktree.

@@ -44,7 +44,7 @@
 - An action definition can set `needsWorkTree` when it must run in a dedicated Git worktree.
 - When `needsWorkTree` is not set, the action runs in the currently opened project folder.
 - When `needsWorkTree` is set, the action requires card context and a valid worktree assignment on that card.
-- The card's one-based worktree value selects a folder from the configured worktree list.
+- The card's one-based worktree value selects a folder from Git's current linked-worktree list.
 - A missing assignment, invalid index, unavailable folder, or non-card context rejects the run before a process starts and shows the validation error.
 - Action execution never creates, registers, or assigns a worktree.
 - Worktree preparation does not automatically commit, push, merge, cherry-pick, or transfer changes. Those operations only happen when the user defines and runs explicit actions for them; their failures are normal action failures shown in the execution UI.

@@ -36,9 +36,9 @@ export function WorktreeConfigRow(props: WorktreeConfigRowProps) {
                     {record.path}
                 </Typography>
             </Tooltip>
-            <Tooltip title={`Unregister worktree ${index + 1}`}>
+            <Tooltip title={`Remove worktree ${index + 1}`}>
                 <IconButton
-                    aria-label={`Unregister worktree ${index + 1}`}
+                    aria-label={`Remove worktree ${index + 1}`}
                     className="worktree-delete"
                     onClick={handleRemove}
                     size="small"

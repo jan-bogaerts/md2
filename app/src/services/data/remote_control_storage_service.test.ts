@@ -87,6 +87,28 @@ describe('RemoteControlStorageService', () => {
         await expect(second).resolves.toEqual([{ name: 'main' }])
     })
 
+    it('proxies linked worktree mutations', async () => {
+        installWebSocket()
+        const service = createService()
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
+        const addition = service.addWorktree(project)
+        const removal = service.removeWorktree(project, 'C:/feature')
+        const socket = lastSocket()
+
+        socket.open()
+        await flushPromises()
+        const addRequest = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
+        const removeRequest = JSON.parse(socket.sent[1]) as { id: string, method: string, params: unknown[] }
+        expect(addRequest).toMatchObject({ method: 'addWorktree', params: [project] })
+        expect(removeRequest).toMatchObject({ method: 'removeWorktree', params: [project, 'C:/feature'] })
+        socket.receive({ id: addRequest.id, result: [] })
+        socket.receive({ id: removeRequest.id, result: [] })
+
+        await expect(addition).resolves.toEqual([])
+        await expect(removal).resolves.toEqual([])
+    })
+
+
     it('prepares action prompts through remote control', async () => {
         installWebSocket()
         const service = createService()

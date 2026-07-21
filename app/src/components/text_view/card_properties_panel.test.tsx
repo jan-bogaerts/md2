@@ -1,35 +1,38 @@
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import type { ProjectCard } from '../../data/data_types'
 import { AppThemeProvider } from '../../theme/theme_provider'
+import { cardMarkdownDataSource } from '../editor/card_markdown_data_source'
 import { CardPropertiesPanel } from './card_properties_panel'
 
-function renderPanel(overrides: Partial<Parameters<typeof CardPropertiesPanel>[0]> = {}) {
-    const onAuthorChange = vi.fn()
-    const onAutoMergeChange = vi.fn()
-    const onTitleChange = vi.fn()
+const card: ProjectCard = {
+    agentConversationErrors: [], agentConversations: [], content: '', headerFields: { author: 'JB' }, isActive: true,
+    header: {
+        affects: [], after: null, agentLogReferences: [], author: 'JB', id: 'F-1', internalId: 'card-1',
+        owner: null, policy: {}, status: 'design', title: 'Alpha', worktree: null, worktreeError: null, worktreeValue: null,
+    },
+    path: 'design/F-1.md',
+}
+
+function renderPanel(activeCard: ProjectCard = card) {
+    vi.spyOn(cardMarkdownDataSource, 'getActiveCard').mockReturnValue(activeCard)
+    const updateAuthor = vi.spyOn(cardMarkdownDataSource, 'updateActiveCardHeaderField').mockImplementation(() => undefined)
+    const updateTitle = vi.spyOn(cardMarkdownDataSource, 'updateActiveCardTitle').mockImplementation(() => undefined)
+    const togglePolicy = vi.spyOn(cardMarkdownDataSource, 'toggleActiveCardPolicy').mockImplementation(() => undefined)
     render(
         <AppThemeProvider>
-            <CardPropertiesPanel
-                affects={[]}
-                author="JB"
-                id="F-1"
-                onAuthorChange={onAuthorChange}
-                onAutoMergeChange={onAutoMergeChange}
-                onTitleChange={onTitleChange}
-                policy={{}}
-                status="design"
-                statusColor="#123456"
-                title="Alpha"
-                {...overrides}
-            />
+            <CardPropertiesPanel statusColors={new Map([['design', '#123456']])} />
         </AppThemeProvider>,
     )
 
-    return { onAuthorChange, onAutoMergeChange, onTitleChange }
+    return { togglePolicy, updateAuthor, updateTitle }
 }
 
 describe('CardPropertiesPanel', () => {
-    afterEach(cleanup)
+    afterEach(() => {
+        cleanup()
+        vi.restoreAllMocks()
+    })
 
     it('shows only requested properties and empty Affects state', () => {
         renderPanel()
@@ -46,25 +49,25 @@ describe('CardPropertiesPanel', () => {
         expect(properties.queryByText('Internal ID')).not.toBeInTheDocument()
     })
 
-    it('commits controlled Title and Author edits on blur', () => {
-        const { onAuthorChange, onTitleChange } = renderPanel()
+    it('commits Title and Author edits through the active card data source', () => {
+        const { updateAuthor, updateTitle } = renderPanel()
 
         fireEvent.change(screen.getByLabelText('Card title'), { target: { value: 'Beta' } })
         fireEvent.blur(screen.getByLabelText('Card title'))
         fireEvent.change(screen.getByLabelText('Card author'), { target: { value: 'AB' } })
         fireEvent.blur(screen.getByLabelText('Card author'))
 
-        expect(onTitleChange).toHaveBeenCalledWith('Beta')
-        expect(onAuthorChange).toHaveBeenCalledWith('AB')
+        expect(updateTitle).toHaveBeenCalledWith('list-card', 'Beta')
+        expect(updateAuthor).toHaveBeenCalledWith('list-card', 'author', 'AB')
     })
 
     it('selects Manual or Auto-merge through the policy chip', () => {
-        const { onAutoMergeChange } = renderPanel()
+        const { togglePolicy } = renderPanel()
 
         fireEvent.mouseDown(screen.getByLabelText('Card policy'))
         fireEvent.click(screen.getByRole('option', { name: 'Auto-merge' }))
 
-        expect(onAutoMergeChange).toHaveBeenCalledWith(true)
+        expect(togglePolicy).toHaveBeenCalledWith('list-card', 'autoMerge')
     })
 
     it('shows a non-collapsible section heading', () => {

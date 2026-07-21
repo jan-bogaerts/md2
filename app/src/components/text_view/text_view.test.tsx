@@ -49,9 +49,6 @@ function renderTextView(overrides: Partial<Parameters<typeof TextView>[0]> = {})
     const onCreateMarkdownFile = vi.fn(async () => undefined)
     const onDeleteFile = vi.fn(async () => undefined)
     const onDeleteFolder = vi.fn(async () => undefined)
-    const onHeaderFieldChange = vi.fn()
-    const onTitleChange = vi.fn()
-    const onTogglePolicy = vi.fn()
 
     function TextViewHarness() {
         const handleLeftPanelInteraction = useCallback(() => undefined, [])
@@ -68,10 +65,7 @@ function renderTextView(overrides: Partial<Parameters<typeof TextView>[0]> = {})
                     onCreateMarkdownFile={onCreateMarkdownFile}
                     onDeleteFile={onDeleteFile}
                     onDeleteFolder={onDeleteFolder}
-                    onHeaderFieldChange={onHeaderFieldChange}
                     onLeftPanelInteraction={handleLeftPanelInteraction}
-                    onTitleChange={onTitleChange}
-                    onTogglePolicy={onTogglePolicy}
                     projectFolder="design"
                     projectKey="project:main"
                     repositoryFiles={[]}
@@ -92,7 +86,7 @@ function renderTextView(overrides: Partial<Parameters<typeof TextView>[0]> = {})
 
     return {
         onCreateFolder, onCreateMarkdownFile, onDeleteFile,
-        onDeleteFolder, onHeaderFieldChange, onTitleChange, onTogglePolicy,
+        onDeleteFolder,
     }
 }
 
@@ -164,6 +158,11 @@ describe('TextView', () => {
         ))
         vi.spyOn(cardMarkdownDataSource, 'edit').mockImplementation(() => undefined)
         vi.spyOn(cardMarkdownDataSource, 'commit').mockReturnValue(true)
+        vi.spyOn(cardMarkdownDataSource, 'getActiveCard').mockImplementation(() => {
+            const activeDocument = openFilesService.getSnapshot().activeDocument
+
+            return activeDocument?.kind === 'card' ? activeDocument.getObject() : null
+        })
     })
 
     afterEach(() => {
@@ -640,10 +639,7 @@ describe('TextView', () => {
             onCreateMarkdownFile: vi.fn(async () => undefined),
             onDeleteFile: vi.fn(async () => undefined),
             onDeleteFolder: vi.fn(async () => undefined),
-            onHeaderFieldChange: vi.fn(),
             onLeftPanelInteraction: vi.fn(),
-            onTitleChange: vi.fn(),
-            onTogglePolicy: vi.fn(),
             projectFolder: 'design',
             projectKey: 'project:main',
             repositoryFiles: [],
@@ -743,7 +739,10 @@ describe('TextView', () => {
             header: { ...activeCards[0].header, author: 'JB' },
             headerFields: { author: 'JB', id: 'F-1', status: 'todo', title: 'Alpha' },
         }
-        const { onHeaderFieldChange, onTitleChange, onTogglePolicy } = renderTextView({ activeCards: [cardWithHeader, activeCards[1]] })
+        const updateAuthor = vi.spyOn(cardMarkdownDataSource, 'updateActiveCardHeaderField').mockImplementation(() => undefined)
+        const updateTitle = vi.spyOn(cardMarkdownDataSource, 'updateActiveCardTitle').mockImplementation(() => undefined)
+        const togglePolicy = vi.spyOn(cardMarkdownDataSource, 'toggleActiveCardPolicy').mockImplementation(() => undefined)
+        renderTextView({ activeCards: [cardWithHeader, activeCards[1]] })
         clickTreeFile('F-1 Alpha')
         fireEvent.click(within(screen.getAllByTestId('mdx-editor-toolbar')[1]).getByRole('button', { name: 'Properties' }))
 
@@ -754,9 +753,9 @@ describe('TextView', () => {
         fireEvent.mouseDown(screen.getByLabelText('Card policy'))
         fireEvent.click(screen.getByRole('option', { name: 'Auto-merge' }))
 
-        expect(onTitleChange).toHaveBeenCalledWith('design/active/F-1-a.md', 'Renamed')
-        expect(onHeaderFieldChange).toHaveBeenCalledWith('design/active/F-1-a.md', 'author', 'AB')
-        expect(onTogglePolicy).toHaveBeenCalledWith('design/active/F-1-a.md', 'autoMerge')
+        expect(updateTitle).toHaveBeenCalledWith('list-card', 'Renamed')
+        expect(updateAuthor).toHaveBeenCalledWith('list-card', 'author', 'AB')
+        expect(togglePolicy).toHaveBeenCalledWith('list-card', 'autoMerge')
     })
 
     it('renders no Properties toolbar button for files without frontmatter', () => {

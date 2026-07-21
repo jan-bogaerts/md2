@@ -1,30 +1,22 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
-const WORKTREES_FILE = '.md2-worktrees.json';
-const WORKTREES_IGNORE_ENTRY = '/.md2-worktrees.json';
-
 function pathKey(folderPath) {
     const normalized = path.normalize(folderPath);
 
     return process.platform === 'win32' ? normalized.toLowerCase() : normalized;
 }
 
-function gitErrorMessage(error) {
-    if (error && typeof error === 'object' && typeof error.stderr === 'string' && error.stderr.trim().length > 0) {
-        return error.stderr.trim();
-    }
-    if (error instanceof Error) return error.message;
+function worktreeError(worktree) {
+    if (worktree.locked) return `Worktree is locked: ${worktree.locked}`;
+    if (worktree.prunable) return `Worktree is prunable: ${worktree.prunable}`;
+    if (worktree.detached || !worktree.branch) return 'Worktree has detached HEAD; a named branch is required';
 
-    return 'Unknown Git error';
+    return null;
 }
 
 async function canonicalPath(folderPath) {
     return path.resolve(await fs.promises.realpath(folderPath));
-}
-
-async function canonicalGitPath(rootPath, gitPath) {
-    return canonicalPath(path.resolve(rootPath, gitPath));
 }
 
 function parseWorktreeList(output) {
@@ -46,47 +38,6 @@ function parseWorktreeList(output) {
     });
 }
 
-function requireFolderList(value) {
-    if (!Array.isArray(value)) throw new Error(`${WORKTREES_FILE} must contain a JSON array`);
-
-    return value.map((folderPath, index) => {
-        if (typeof folderPath !== 'string' || folderPath.length === 0) {
-            throw new Error(`${WORKTREES_FILE} entry ${index + 1} must be a folder path string`);
-        }
-
-        return folderPath;
-    });
-}
-
-async function ensureWorktreesIgnored(primaryRoot) {
-    const ignorePath = path.join(primaryRoot, '.gitignore');
-    let content = '';
-    try {
-        content = await fs.promises.readFile(ignorePath, 'utf8');
-    } catch (error) {
-        if (!error || typeof error !== 'object' || error.code !== 'ENOENT') throw error;
-    }
-    const lines = content.split(/\r?\n/u);
-    if (lines.includes(WORKTREES_IGNORE_ENTRY)) return;
-
-    const separator = content.length > 0 && !content.endsWith('\n') ? '\n' : '';
-    await fs.promises.writeFile(ignorePath, `${content}${separator}${WORKTREES_IGNORE_ENTRY}\n`);
-}
-
-async function readStoredFolders(primaryRoot) {
-    const filePath = path.join(primaryRoot, WORKTREES_FILE);
-    try {
-        const content = await fs.promises.readFile(filePath, 'utf8');
-
-        return requireFolderList(JSON.parse(content));
-    } catch (error) {
-        if (error && typeof error === 'object' && error.code === 'ENOENT') return [];
-        if (error instanceof SyntaxError) throw new Error(`Invalid JSON in ${WORKTREES_FILE}: ${error.message}`, { cause: error });
-
-        throw error;
-    }
-}
-
 class WorktreeService {
     constructor(dependencies) {
         this.runGit = dependencies.runGit;
@@ -94,33 +45,38 @@ class WorktreeService {
 
     async load(project) {
         const primaryRoot = await WorktreeService.requirePrimaryRoot(project);
-        await ensureWorktreesIgnored(primaryRoot);
-        const folders = await readStoredFolders(primaryRoot);
+        const worktrees = parseWorktreeList(await this.runGit(primaryRoot, ['worktree', 'list', '--porcelain']));
 
-        return this.validateStoredFolders(primaryRoot, folders);
+        return worktrees.filter((worktree) => pathKey(path.resolve(worktree.path)) !== pathKey(primaryRoot)).map((worktree) => {
+            const error = worktreeError(worktree);
+
+            return { branch: worktree.branch, error, path: path.resolve(worktree.path), valid: error === null };
+        });
     }
 
-    async save(project, folders) {
+    async add(project, folderPath) {
         const primaryRoot = await WorktreeService.requirePrimaryRoot(project);
-        const folderList = requireFolderList(folders);
-        await ensureWorktreesIgnored(primaryRoot);
-        const existingFolders = await readStoredFolders(primaryRoot);
-        const records = await this.validateStoredFolders(primaryRoot, folderList);
-        const existingKeys = new Set(existingFolders.map((folderPath) => pathKey(path.resolve(folderPath))));
-        const invalidRecord = records.find((record) => !record.valid && !existingKeys.has(pathKey(record.path)));
-        if (invalidRecord) throw new Error(`Cannot save invalid worktree "${invalidRecord.path}": ${invalidRecord.error}`);
+        if (typeof folderPath !== 'string' || folderPath.length === 0) throw new Error('Missing linked worktree folder');
+        if (pathKey(path.resolve(folderPath)) === pathKey(primaryRoot)) throw new Error('Primary worktree cannot be added as a linked worktree');
 
-        await fs.promises.writeFile(path.join(primaryRoot, WORKTREES_FILE), `${JSON.stringify(records.map((record) => record.path), null, 2)}\n`);
+        await this.runGit(primaryRoot, ['worktree', 'add', path.resolve(folderPath)]);
 
-        return records;
+        return this.load(project);
     }
 
-    async validateForAdd(project, folderPath, registeredFolders = []) {
+    async remove(project, folderPath) {
         const primaryRoot = await WorktreeService.requirePrimaryRoot(project);
-        const record = await this.validateFolder(primaryRoot, folderPath, registeredFolders);
-        if (!record.valid) throw new Error(record.error);
+        if (typeof folderPath !== 'string' || folderPath.length === 0) throw new Error('Missing linked worktree folder');
+        const resolvedFolder = path.resolve(folderPath);
+        if (pathKey(resolvedFolder) === pathKey(primaryRoot)) throw new Error('Primary worktree cannot be removed');
+        const worktrees = await this.load(project);
+        if (!worktrees.some((worktree) => pathKey(worktree.path) === pathKey(resolvedFolder))) {
+            throw new Error('Folder is not a linked worktree');
+        }
 
-        return record;
+        await this.runGit(primaryRoot, ['worktree', 'remove', resolvedFolder]);
+
+        return this.load(project);
     }
 
     async resolve(project, index) {
@@ -143,61 +99,10 @@ class WorktreeService {
 
         const records = await this.load(project);
         const record = records.find((candidate) => pathKey(candidate.path) === pathKey(canonicalFolder));
-        if (!record) throw new Error('Execution repository root is not a registered worktree');
+        if (!record) throw new Error('Execution repository root is not a linked worktree');
         if (!record.valid) throw new Error(`Execution repository root is invalid: ${record.error}`);
 
         return record;
-    }
-
-    async validateStoredFolders(primaryRoot, folders) {
-        const records = [];
-        const registeredFolders = [];
-        for (const folderPath of folders) {
-            const record = await this.validateFolder(primaryRoot, folderPath, registeredFolders);
-            records.push(record);
-            registeredFolders.push(record.path);
-        }
-
-        return records;
-    }
-
-    async validateFolder(primaryRoot, folderPath, registeredFolders) {
-        try {
-            const canonicalFolder = await canonicalPath(folderPath);
-            const topLevel = await canonicalPath(await this.runGit(canonicalFolder, ['rev-parse', '--show-toplevel']));
-            if (pathKey(topLevel) !== pathKey(canonicalFolder)) throw new Error('Selected folder is not a worktree root');
-            if (pathKey(canonicalFolder) === pathKey(primaryRoot)) throw new Error('Primary worktree cannot be registered as a linked worktree');
-            if (registeredFolders.some((registeredFolder) => pathKey(registeredFolder) === pathKey(canonicalFolder))) {
-                throw new Error('Worktree folder is already registered');
-            }
-
-            const primaryCommonPath = await canonicalGitPath(primaryRoot, await this.runGit(primaryRoot, ['rev-parse', '--git-common-dir']));
-            const linkedCommonPath = await canonicalGitPath(canonicalFolder, await this.runGit(canonicalFolder, ['rev-parse', '--git-common-dir']));
-            if (pathKey(primaryCommonPath) !== pathKey(linkedCommonPath)) {
-                throw new Error('Selected folder does not share the primary repository Git common directory');
-            }
-
-            const worktrees = parseWorktreeList(await this.runGit(primaryRoot, ['worktree', 'list', '--porcelain']));
-            const worktree = worktrees.find((candidate) => pathKey(path.resolve(candidate.path)) === pathKey(canonicalFolder));
-            if (!worktree) throw new Error('Selected folder is not registered by Git as a linked worktree');
-            if (worktree.locked) throw new Error(`Worktree is locked: ${worktree.locked}`);
-            if (worktree.prunable) throw new Error(`Worktree is prunable: ${worktree.prunable}`);
-            if (worktree.detached || !worktree.branch) throw new Error('Worktree has detached HEAD; a named branch is required');
-
-            const primaryBranch = await this.runGit(primaryRoot, ['symbolic-ref', '--quiet', '--short', 'HEAD']);
-            if (primaryBranch === worktree.branch) throw new Error(`Branch "${worktree.branch}" is already checked out in the primary worktree`);
-            const registeredKeys = new Set(registeredFolders.map((registeredFolder) => pathKey(registeredFolder)));
-            const duplicateBranch = worktrees.find((candidate) => (
-                candidate.branch === worktree.branch
-                && pathKey(path.resolve(candidate.path)) !== pathKey(canonicalFolder)
-                && registeredKeys.has(pathKey(path.resolve(candidate.path)))
-            ));
-            if (duplicateBranch) throw new Error(`Branch "${worktree.branch}" is already checked out in another registered worktree`);
-
-            return { branch: worktree.branch, error: null, path: canonicalFolder, valid: true };
-        } catch (error) {
-            return { branch: null, error: gitErrorMessage(error), path: path.resolve(folderPath), valid: false };
-        }
     }
 
     static async requirePrimaryRoot(project) {
@@ -209,11 +114,4 @@ class WorktreeService {
     }
 }
 
-module.exports = {
-    WORKTREES_FILE,
-    WORKTREES_IGNORE_ENTRY,
-    WorktreeService,
-    ensureWorktreesIgnored,
-    parseWorktreeList,
-    readStoredFolders,
-};
+module.exports = { WorktreeService, parseWorktreeList };

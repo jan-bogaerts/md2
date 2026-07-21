@@ -24,6 +24,7 @@ export interface AgentAvailability {
 }
 
 export interface ElectronDataBridge {
+    addWorktree?(project: ProjectReference): Promise<WorktreeRecord[] | null>
     checkoutBranch(project: ProjectReference, branch: string): Promise<ProjectReference>
     commit(request: CommitRequest): Promise<CommitResult>
     createProject(project: ProjectReference, workingFolder: string): Promise<ProjectReference>
@@ -51,8 +52,7 @@ export interface ElectronDataBridge {
     resolveProject(project: ProjectReference): Promise<ProjectReference>
     saveActionSchedules?(project: ProjectReference, actionsFolder: string, schedules: ActionSchedule[]): Promise<ActionSchedule[]>
     saveProjectConfig(project: ProjectReference, config: ProjectConfig): Promise<void>
-    saveWorktrees?(project: ProjectReference, folders: string[]): Promise<WorktreeRecord[]>
-    selectWorktreeFolder?(registeredFolders: string[]): Promise<WorktreeRecord | null>
+    removeWorktree?(project: ProjectReference, folderPath: string): Promise<WorktreeRecord[]>
     stopAgent?(runId: string): Promise<void>
     watchProject(project: ProjectReference, callback: (event: ProjectWatchEvent) => void): () => void
     loadFile(project: ProjectReference, path: string): Promise<MarkdownFile>

@@ -60,6 +60,12 @@ function createDispatch(options = {}) {
         })),
         resolve: vi.fn(async (primaryProject) => ({ executionProject: primaryProject, transferRecord: null })),
     };
+    const worktreeService = {
+        add: vi.fn(async () => [{ branch: 'feature', error: null, path: 'C:/feature', valid: true }]),
+        load: vi.fn(async () => []),
+        remove: vi.fn(async () => []),
+        resolvePath: vi.fn(),
+    };
     const desktopConfig = options.desktopConfig ?? {agent: 'codex', agentProfiles: [{ command: ['codex'], models: ['gpt-5'], name: 'codex' }], model: 'gpt-5'};
     const dispatch = createLocalBridgeDispatch({
         actionRunnerService,
@@ -71,11 +77,20 @@ function createDispatch(options = {}) {
         diffService: { generateDiff: vi.fn(), openInEditor: vi.fn() },
         localGitService,
         openProjectFolder: options.openProjectFolder,
+        openWorktreeFolder: options.openWorktreeFolder,
         readDesktopConfig: () => desktopConfig,
-        worktreeService: { load: vi.fn(async () => []), resolvePath: vi.fn() },
+        worktreeService,
     });
 
-    return { actionRunnerService, actionSchedulerService, agentExecutableAvailability, agentRunnerService, dispatch, localGitService };
+    return {
+        actionRunnerService,
+        actionSchedulerService,
+        agentExecutableAvailability,
+        agentRunnerService,
+        dispatch,
+        localGitService,
+        worktreeService,
+    };
 }
 
 describe('createLocalBridgeDispatch', () => {
@@ -117,6 +132,25 @@ describe('createLocalBridgeDispatch', () => {
 
         expect(localGitService.resolveLocalProject).not.toHaveBeenCalled();
         expect(localGitService.commit).toHaveBeenCalledWith(expect.any(Object), currentProject);
+    });
+
+    it('adds a worktree at the selected folder and returns refreshed Git worktrees', async () => {
+        const openWorktreeFolder = vi.fn(async () => 'C:/feature');
+        const { dispatch, worktreeService } = createDispatch({ openWorktreeFolder });
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
+
+        await expect(dispatch.dataBridge.addWorktree(project)).resolves.toEqual([
+            { branch: 'feature', error: null, path: 'C:/feature', valid: true },
+        ]);
+        expect(worktreeService.add).toHaveBeenCalledWith(project, 'C:/feature');
+    });
+
+    it('delegates linked worktree removal', async () => {
+        const { dispatch, worktreeService } = createDispatch();
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
+
+        await expect(dispatch.dataBridge.removeWorktree(project, 'C:/feature')).resolves.toEqual([]);
+        expect(worktreeService.remove).toHaveBeenCalledWith(project, 'C:/feature');
     });
 
     it('revalidates and normalizes a stored local project', async () => {

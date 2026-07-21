@@ -170,10 +170,6 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
         runWorkspaceEdit(() => dataService.cards.updateCardWorktree(path, worktree), `Worktree assignment failed: ${path}`)
     }
 
-    const handleHeaderFieldChange = (path: string, key: string, value: string) => {
-        runWorkspaceEdit(() => dataService.cards.updateCardHeaderFields(path, { [key]: value }), `Header update failed: ${path}`)
-    }
-
     const clearDeletedPathState = (path: string) => {
         workspaceViewService.clearSelectedPath(path)
     }
@@ -293,9 +289,6 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
                             onCreateMarkdownFile={handleCreateMarkdownFile}
                             onDeleteFile={handleDeleteFile}
                             onDeleteFolder={handleDeleteFolder}
-                            onHeaderFieldChange={handleHeaderFieldChange}
-                            onTitleChange={handleTitleChange}
-                            onTogglePolicy={handleTogglePolicy}
                             projectFolder={projectFolder}
                             projectKey={`${project.id}:${project.branch}`}
                             repositoryFiles={repositoryFiles}

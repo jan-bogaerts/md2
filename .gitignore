@@ -144,4 +144,3 @@ vite.config.ts.timestamp-*
 .vite/
 
 /.claude/skills/
-/.md2-worktrees.json

@@ -275,6 +275,7 @@ export interface StorageProjectFiles {
 }
 
 export interface StorageService {
+    addWorktree?(project: ProjectReference): Promise<WorktreeRecord[] | null>
     checkoutBranch(project: ProjectReference, branch: string): Promise<ProjectReference>
     commit(request: CommitRequest): Promise<CommitResult>
     createProject(project: ProjectReference, workingFolder: string): Promise<ProjectReference>
@@ -305,8 +306,7 @@ export interface StorageService {
     push(project: ProjectReference): Promise<void>
     saveActionSchedules?(project: ProjectReference, actionsFolder: string, schedules: ActionSchedule[]): Promise<ActionSchedule[]>
     saveProjectConfig(project: ProjectReference, config: ProjectConfig): Promise<void>
-    saveWorktrees?(project: ProjectReference, folders: string[]): Promise<WorktreeRecord[]>
-    selectWorktreeFolder?(registeredFolders: string[]): Promise<WorktreeRecord | null>
+    removeWorktree?(project: ProjectReference, folderPath: string): Promise<WorktreeRecord[]>
     stopAgent?(project: ProjectReference, runId: string): Promise<void>
     watchProject?(project: ProjectReference, onChange: (event: ProjectWatchEvent) => void): () => void
 }

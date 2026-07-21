@@ -2,8 +2,12 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { CardCommit } from '../../services/actions/card_commit_history'
+import type { ProjectCard } from '../../data/data_types'
 import { AppThemeProvider } from '../../theme/theme_provider'
+import { listCardCommitDiffDataSource } from '../card_view/list_card_commit_diff_data_source'
 import { MarkdownDocumentHistoryStore } from '../editor/markdown_document_history_store'
+import { cardMarkdownDataSource } from '../editor/card_markdown_data_source'
+import * as cardCommitsHook from '../hooks/use_card_commits'
 import { ListEditorToolbarControls } from './list_editor_toolbar_controls'
 
 vi.mock('../editor/markdown_format_toolbar_controls', () => ({MarkdownFormatToolbarControls: ({ endControls }: { endControls: ReactNode }) => <div>{endControls}</div>}))
@@ -36,26 +40,33 @@ function commit(): CardCommit {
     }
 }
 
-afterEach(cleanup)
+afterEach(() => {
+    cleanup()
+    vi.restoreAllMocks()
+})
+
+const card: ProjectCard = {
+    agentConversationErrors: [], agentConversations: [], content: '', headerFields: { author: 'JB' }, isActive: true,
+    header: {
+        affects: [], after: null, agentLogReferences: [], author: null, id: 'F-060', internalId: 'card-060',
+        owner: null, policy: {}, status: 'ready', title: 'Card', worktree: null, worktreeError: null, worktreeValue: null,
+    },
+    path: 'design/F-060.md',
+}
 
 describe('ListEditorToolbarControls', () => {
     it('hosts the card commit menu and forwards file-mode selections', () => {
         const cardCommit = commit()
-        const onSelectCardCommit = vi.fn()
+        const selectCardCommit = vi.spyOn(listCardCommitDiffDataSource, 'select').mockImplementation(() => undefined)
+        vi.spyOn(cardMarkdownDataSource, 'getActiveCard').mockReturnValue(card)
+        vi.spyOn(cardCommitsHook, 'useCardCommits').mockReturnValue({ commits: [cardCommit], error: null, loading: false, reload: vi.fn() })
         render(
             <AppThemeProvider>
                 <ListEditorToolbarControls
-                    agentConversationCount={0}
-                    cardCommits={[cardCommit]}
-                    cardCommitsError={null}
-                    documentId="card-060"
+                    cardTypes={[]}
                     historyStore={new MarkdownDocumentHistoryStore()}
-                    isAgentPopupOpen={false}
-                    isPropertiesOpen={false}
-                    onOpenProperties={vi.fn()}
-                    onSelectCardCommit={onSelectCardCommit}
-                    onToggleAgentPopup={vi.fn()}
-                    propertiesAvailable
+                    statusColors={new Map()}
+                    visible
                 />
             </AppThemeProvider>,
         )
@@ -63,6 +74,6 @@ describe('ListEditorToolbarControls', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Card commit history' }))
         fireEvent.click(screen.getByRole('button', { name: /Implement/ }))
 
-        expect(onSelectCardCommit).toHaveBeenCalledWith(cardCommit)
+        expect(selectCardCommit).toHaveBeenCalledWith(cardCommit)
     })
 })

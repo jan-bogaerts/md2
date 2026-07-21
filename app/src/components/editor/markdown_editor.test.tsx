@@ -428,6 +428,21 @@ describe('MarkdownEditor', () => {
         expect(screen.getByRole('textbox')).toHaveAttribute('readonly')
     })
 
+    it('does not infer read-only state from an empty data-source binding', () => {
+        render(
+            <AppThemeProvider>
+                <MarkdownEditor
+                    binding="list-card"
+                    dataSource={new TestMarkdownDataSource()}
+                    historyStore={new MarkdownDocumentHistoryStore()}
+                    stateStore={new MarkdownEditorStateStore()}
+                />
+            </AppThemeProvider>,
+        )
+
+        expect(screen.getByRole('textbox')).not.toHaveAttribute('readonly')
+    })
+
     it('shows placeholder insertion only when placeholders are configured', () => {
         const view = render(
             <AppThemeProvider>

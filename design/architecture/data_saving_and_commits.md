@@ -76,7 +76,7 @@ A push failure after a successful commit remains a durable local save and visibl
 
 ## Immediate operations
 
-Commands needing an immediate repository result bypass `CommitBatcher`: creating cards or folders, deleting files, moving release files, and saving project, schedule, or worktree configuration.
+Commands needing an immediate repository result bypass `CommitBatcher`: creating cards or folders, deleting files, moving release files, saving project or schedule configuration, and adding or removing Git worktrees.
 
 Callers flush first when ordering matters. Typing-driven updates must use the batcher.
 

@@ -21,6 +21,8 @@ vi.mock('../editor/markdown_editor', () => ({
 
 vi.mock('../actions/diff_view', () => ({DiffView: ({ initialPath }: { initialPath: string }) => <div aria-label={`Whole commit diff ${initialPath}`} />}))
 
+vi.mock('../hooks/use_active_card', () => ({ useActiveCard: () => ({ path: 'design/F-060.md' }) }))
+
 const cardPath = 'design/F-060.md'
 
 function cardCommit(overrides: Partial<CardCommit> = {}): CardCommit {
@@ -58,7 +60,7 @@ function installBridge(readFileAtCommit: ElectronActionBridge['readFileAtCommit'
 function renderPanel(commit = cardCommit()) {
     render(
         <AppThemeProvider>
-            <CardCommitDiffPanel cardPath={cardPath} commit={commit} onExit={vi.fn()} />
+            <CardCommitDiffPanel binding="board-card" commit={commit} onExit={vi.fn()} />
         </AppThemeProvider>,
     )
 }

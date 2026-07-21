@@ -4,9 +4,11 @@ import { loadCardBodyDiff, type CardBodyDiff, type CardCommit } from '../../serv
 import type { DiffCommitReference } from '../../services/data/diff_service'
 import { DiffView } from '../actions/diff_view'
 import { MarkdownEditor } from '../editor/markdown_editor'
+import type { MarkdownBindingKind } from '../editor/markdown_data_source'
+import { useActiveCard } from '../hooks/use_active_card'
 
 interface CardCommitDiffPanelProps {
-    cardPath: string
+    binding: Exclude<MarkdownBindingKind, 'list-action'>
     commit: CardCommit
     onExit: () => void
 }
@@ -25,8 +27,10 @@ function diffReference(commit: CardCommit): DiffCommitReference {
 
 /** Read-only body diff plus navigation to other files changed by one card commit. */
 export function CardCommitDiffPanel(props: CardCommitDiffPanelProps) {
-    const { cardPath, commit, onExit } = props
-    const touchesCurrentPath = commit.filePaths.includes(cardPath)
+    const { binding, commit, onExit } = props
+    const card = useActiveCard(binding)
+    const cardPath = card?.path ?? null
+    const touchesCurrentPath = !!cardPath && commit.filePaths.includes(cardPath)
     const otherPaths = commit.filePaths.filter((path) => path !== cardPath)
     const [bodyDiff, setBodyDiff] = useState<CardBodyDiff | null>(null)
     const [error, setError] = useState<Error | null>(null)
@@ -39,7 +43,7 @@ export function CardCommitDiffPanel(props: CardCommitDiffPanelProps) {
 
     useEffect(() => {
         let active = true
-        if (commit.available === false) return () => { active = false }
+        if (!cardPath || commit.available === false) return () => { active = false }
         if (!touchesCurrentPath) return () => { active = false }
         void loadCardBodyDiff(commit, cardPath).then((nextDiff) => {
             if (active) setBodyDiff(nextDiff)
@@ -49,6 +53,8 @@ export function CardCommitDiffPanel(props: CardCommitDiffPanelProps) {
 
         return () => { active = false }
     }, [cardPath, commit, touchesCurrentPath])
+
+    if (!cardPath) return null
 
     const hasBodyChanges = !!bodyDiff && bodyDiff.oldBody !== bodyDiff.newBody
     const displayError = commit.available === false

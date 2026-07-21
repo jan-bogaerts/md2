@@ -92,7 +92,7 @@ Commits made in a linked worktree are visible through the primary checkout (shar
 For each stored commit:
 
 - show it when reachable from primary branch HEAD;
-- before merge, also show it when its source branch belongs to a currently valid, registered worktree and the commit is reachable from that branch;
+- before merge, also show it when its source branch belongs to a currently valid linked worktree and the commit is reachable from that branch;
 - once its worktree is no longer valid/registered and it's unreachable from primary HEAD, treat it as discarded and hide it (record stays in activity);
 
 Supports the app's normal full-branch merge flow only — no inference across patches, rebases, squash merges, or cherry-picks. Ancestry is used solely to tell merged worktree commits from discarded ones after the worktree disappears.
@@ -159,7 +159,7 @@ Renderer responsibilities:
 - No path-prefix aggregation or path-derived card ownership remains.
 - Conversation turns write once at terminal completion/failure/cancellation; live UI keeps streaming from memory.
 - A card with commits from two root executions shows one icon, newest first.
-- Unmerged commits from valid registered worktrees are viewable before merge; remain visible after full merge; hidden if worktree removed unmerged.
+- Unmerged commits from valid linked worktrees are viewable before merge; remain visible after full merge; hidden if worktree removed unmerged.
 - Selecting a commit that touched the card shows a read-only body diff (first parent vs. commit) without changing dirty/autosave/history state.
 - First `Escape` exits diff mode keeping popup open; second `Escape` closes popup.
 - Selecting a commit that didn't touch the current card path opens other changed files without entering body diff mode.

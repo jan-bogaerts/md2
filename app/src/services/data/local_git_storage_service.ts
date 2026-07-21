@@ -32,6 +32,13 @@ export class LocalGitStorageService implements StorageService {
         this.pendingPushBranches = new Set()
     }
 
+    async addWorktree(project: ProjectReference): Promise<WorktreeRecord[] | null> {
+        const bridge = this.requireBridge()
+        if (!bridge.addWorktree) throw new Error('Electron local Git bridge cannot add worktrees')
+
+        return bridge.addWorktree(project)
+    }
+
     init(dependencies: LocalGitStorageDependencies = {}) {
         const bridge = dependencies.bridge ?? getElectronDataBridge()
 
@@ -192,18 +199,11 @@ export class LocalGitStorageService implements StorageService {
         this.pendingPushBranches.add(project.branch)
     }
 
-    async saveWorktrees(project: ProjectReference, folders: string[]): Promise<WorktreeRecord[]> {
+    async removeWorktree(project: ProjectReference, folderPath: string): Promise<WorktreeRecord[]> {
         const bridge = this.requireBridge()
-        if (!bridge.saveWorktrees) throw new Error('Electron local Git bridge cannot save worktrees')
+        if (!bridge.removeWorktree) throw new Error('Electron local Git bridge cannot remove worktrees')
 
-        return bridge.saveWorktrees(project, folders)
-    }
-
-    async selectWorktreeFolder(registeredFolders: string[]): Promise<WorktreeRecord | null> {
-        const bridge = this.requireBridge()
-        if (!bridge.selectWorktreeFolder) throw new Error('Electron local Git bridge cannot select worktrees')
-
-        return bridge.selectWorktreeFolder(registeredFolders)
+        return bridge.removeWorktree(project, folderPath)
     }
 
     hasPendingPush(project: ProjectReference) {

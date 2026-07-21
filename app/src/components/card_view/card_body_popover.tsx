@@ -283,7 +283,7 @@ export function CardBodyPopover(props: CardBodyPopoverProps) {
 
                         {selectedCommit ? (
                             <CardCommitDiffPanel
-                                cardPath={card.path}
+                                binding="board-card"
                                 commit={selectedCommit}
                                 key={selectedCommit.commit}
                                 onExit={clearSelectedCommit}

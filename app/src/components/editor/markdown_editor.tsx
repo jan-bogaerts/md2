@@ -6,7 +6,7 @@ import {
     type MDXEditorMethods, type ViewMode,
 } from '@mdxeditor/editor'
 import '@mdxeditor/editor/style.css'
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState, type FocusEvent, type ReactNode } from 'react'
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, type FocusEvent, type ReactNode } from 'react'
 import type { ActionPlaceholder } from '../../data/action_placeholders'
 import { useAppTheme } from '../../theme/use_app_theme'
 import { markdownDocumentHistoryPlugin } from './markdown_document_history_realm_plugin'
@@ -19,7 +19,6 @@ import type {
     ActiveMarkdownDocumentChangedDetail,
     MarkdownBindingKind,
     MarkdownDataSource,
-    MarkdownReplacedDetail,
 } from './markdown_data_source'
 import { buildMarkdownContentSx } from './markdown_style_sx'
 
@@ -70,12 +69,12 @@ interface MarkdownEditorLocalProps extends MarkdownEditorPresentationProps {
 
 type MarkdownEditorProps = MarkdownEditorDataSourceProps | MarkdownEditorLocalProps
 
-interface ActiveDocument {
+interface MarkdownDocumentSnapshot {
     documentId: string | null
     markdown: string
 }
 
-function initialDocument(props: MarkdownEditorProps): ActiveDocument {
+function initialDocument(props: MarkdownEditorProps): MarkdownDocumentSnapshot {
     if (!props.dataSource) return { documentId: null, markdown: props.markdown }
 
     const documentId = props.dataSource.getActiveDocumentId(props.binding)
@@ -99,19 +98,20 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
     const binding = props.binding
     const historyStore = props.historyStore
     const stateStore = props.stateStore
-    const [activeDocument, setActiveDocument] = useState(() => initialDocument(props))
+    const initialDocumentRef = useRef<MarkdownDocumentSnapshot | null>(null)
+    if (!initialDocumentRef.current) initialDocumentRef.current = initialDocument(props)
+    const initialDocumentSnapshot = initialDocumentRef.current
     const { markdownStyleConfig, mode } = useAppTheme()
     const editorRef = useRef<MDXEditorMethods>(null)
-    const activeDocumentIdRef = useRef(activeDocument.documentId)
-    const latestMarkdownRef = useRef(activeDocument.markdown)
-    const lastEmittedMarkdownRef = useRef(activeDocument.markdown)
+    const activeDocumentIdRef = useRef(initialDocumentSnapshot.documentId)
+    const latestMarkdownRef = useRef(initialDocumentSnapshot.markdown)
+    const lastEmittedMarkdownRef = useRef(initialDocumentSnapshot.markdown)
     const dirtyBaselineEstablishedRef = useRef(false)
     const replacingMarkdownRef = useRef(false)
     const onChangeRef = useRef(props.onChange)
     const onDirtyChangeRef = useRef(props.onDirtyChange)
     const onLiveChangeRef = useRef(props.onLiveChange)
     const applyPendingDocumentChangeRef = useRef<() => void>(() => undefined)
-    const pendingDocumentChangeRef = useRef<ActiveMarkdownDocumentChangedDetail | null>(null)
     onChangeRef.current = props.onChange
     onDirtyChangeRef.current = props.onDirtyChange
     onLiveChangeRef.current = props.onLiveChange
@@ -139,10 +139,12 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         return true
     }, [binding, dataSource, setDirty])
 
-    const handleBeforeDocumentSwitch = useCallback((nextDocumentId: string | null, nextMarkdown: string) => {
+    const prepareDocumentSwitch = useCallback((detail: ActiveMarkdownDocumentChangedDetail, nextMarkdown: string) => {
+        if (detail.discard) lastEmittedMarkdownRef.current = latestMarkdownRef.current
+        if (!flush()) return null
+
         const currentMarkdown = latestMarkdownRef.current
-        flush()
-        activeDocumentIdRef.current = nextDocumentId
+        activeDocumentIdRef.current = detail.documentId
         latestMarkdownRef.current = nextMarkdown
         lastEmittedMarkdownRef.current = nextMarkdown
         setDirty(false)
@@ -150,10 +152,48 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         return currentMarkdown
     }, [flush, setDirty])
 
-    const handleDocumentSwitch = useCallback((normalizedMarkdown: string) => {
+    const completeDocumentSwitch = useCallback((normalizedMarkdown: string) => {
         latestMarkdownRef.current = normalizedMarkdown
         lastEmittedMarkdownRef.current = normalizedMarkdown
+        setDirty(false)
+    }, [setDirty])
+
+    const getMarkdown = useCallback(() => editorRef.current?.getMarkdown() ?? latestMarkdownRef.current, [])
+    const getDocumentId = useCallback(() => activeDocumentIdRef.current, [])
+
+    const replaceMarkdown = useCallback((markdown: string) => {
+        replacingMarkdownRef.current = true
+        editorRef.current?.setMarkdown(markdown)
+        replacingMarkdownRef.current = false
     }, [])
+
+    const setPendingDocumentChangeRetry = useCallback((retry: () => void) => {
+        applyPendingDocumentChangeRef.current = retry
+    }, [])
+
+    const historyPluginConfig = useMemo(() => historyStore && binding && dataSource
+        ? {
+            binding,
+            completeDocumentSwitch,
+            dataSource,
+            getDocumentId,
+            getMarkdown,
+            historyStore,
+            prepareDocumentSwitch,
+            replaceMarkdown,
+            setPendingDocumentChangeRetry,
+        }
+        : null, [
+        binding,
+        completeDocumentSwitch,
+        dataSource,
+        getDocumentId,
+        getMarkdown,
+        historyStore,
+        prepareDocumentSwitch,
+        replaceMarkdown,
+        setPendingDocumentChangeRetry,
+    ])
 
     useEffect(() => {
         if (!editorRef.current) throw new Error('Cannot baseline markdown before editor is mounted')
@@ -163,77 +203,6 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         lastEmittedMarkdownRef.current = normalizedMarkdown
         dirtyBaselineEstablishedRef.current = true
     }, [])
-
-    useEffect(() => {
-        if (!dataSource || !binding || !historyStore) return undefined
-
-        const handleActiveDocumentChanged = (event: Event) => {
-            const detail = (event as CustomEvent<ActiveMarkdownDocumentChangedDetail>).detail
-            if (detail.binding !== binding) return
-
-            pendingDocumentChangeRef.current = detail
-            // A discarded switch means the outgoing document's domain data is gone
-            // (project switch): drop the buffer instead of committing it.
-            if (detail.discard) lastEmittedMarkdownRef.current = latestMarkdownRef.current
-            if (!flush()) return
-
-            const pendingDetail = pendingDocumentChangeRef.current
-            if (!pendingDetail) return
-            pendingDocumentChangeRef.current = null
-            const markdown = pendingDetail.documentId ? dataSource.getMarkdown(pendingDetail.documentId) : ''
-            const currentMarkdown = handleBeforeDocumentSwitch(pendingDetail.documentId, markdown)
-            const replaceMarkdown = (nextMarkdown: string) => {
-                replacingMarkdownRef.current = true
-                editorRef.current?.setMarkdown(nextMarkdown)
-                replacingMarkdownRef.current = false
-            }
-            if (historyStore.hasAttachedEditor) {
-                historyStore.switchDocument(pendingDetail.documentId, markdown, currentMarkdown, replaceMarkdown)
-            }
-            else replaceMarkdown(markdown)
-            const normalizedMarkdown = editorRef.current?.getMarkdown() ?? markdown
-            handleDocumentSwitch(normalizedMarkdown)
-            setActiveDocument({ documentId: pendingDetail.documentId, markdown: normalizedMarkdown })
-        }
-        const handleMarkdownReplaced = (event: Event) => {
-            const detail = (event as CustomEvent<MarkdownReplacedDetail>).detail
-            if (detail.documentId !== activeDocumentIdRef.current) return
-            if (detail.originBinding === binding) {
-                setActiveDocument({ documentId: detail.documentId, markdown: latestMarkdownRef.current })
-                return
-            }
-
-            const markdown = dataSource.getMarkdown(detail.documentId)
-            replacingMarkdownRef.current = true
-            editorRef.current?.setMarkdown(markdown)
-            replacingMarkdownRef.current = false
-            const normalizedMarkdown = editorRef.current?.getMarkdown() ?? markdown
-            latestMarkdownRef.current = normalizedMarkdown
-            lastEmittedMarkdownRef.current = normalizedMarkdown
-            historyStore.replaceDocument(detail.documentId, normalizedMarkdown)
-            setActiveDocument({ documentId: detail.documentId, markdown: normalizedMarkdown })
-            setDirty(false)
-        }
-        dataSource.addEventListener('activeDocumentChanged', handleActiveDocumentChanged)
-        dataSource.addEventListener('markdownReplaced', handleMarkdownReplaced)
-        applyPendingDocumentChangeRef.current = () => {
-            const pendingDetail = pendingDocumentChangeRef.current
-            if (!pendingDetail) return
-
-            handleActiveDocumentChanged(new CustomEvent('activeDocumentChanged', { detail: pendingDetail }))
-        }
-        const currentDocumentId = dataSource.getActiveDocumentId(binding)
-        if (currentDocumentId !== activeDocumentIdRef.current) {
-            const detail: ActiveMarkdownDocumentChangedDetail = { binding, documentId: currentDocumentId }
-            handleActiveDocumentChanged(new CustomEvent('activeDocumentChanged', { detail }))
-        }
-
-        return () => {
-            applyPendingDocumentChangeRef.current = () => undefined
-            dataSource.removeEventListener('activeDocumentChanged', handleActiveDocumentChanged)
-            dataSource.removeEventListener('markdownReplaced', handleMarkdownReplaced)
-        }
-    }, [binding, dataSource, flush, handleBeforeDocumentSwitch, handleDocumentSwitch, historyStore, setDirty])
 
     useEffect(() => {
         const unregister = registerMarkdownEditorFlush(flush)
@@ -248,14 +217,12 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         flush,
         getMarkdown: () => latestMarkdownRef.current,
         setMarkdown: (markdown: string) => {
-            replacingMarkdownRef.current = true
-            editorRef.current?.setMarkdown(markdown)
-            replacingMarkdownRef.current = false
+            replaceMarkdown(markdown)
             latestMarkdownRef.current = markdown
             lastEmittedMarkdownRef.current = markdown
             setDirty(false)
         },
-    }), [flush, setDirty])
+    }), [flush, replaceMarkdown, setDirty])
 
     const handleEditorChange = useCallback((markdown: string) => {
         if (replacingMarkdownRef.current || latestMarkdownRef.current === markdown) return
@@ -282,6 +249,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         ? { '& .mdxeditor-toolbar': { position: 'sticky', top: 0, zIndex: 1 } }
         : undefined
     const editorSx = { ...markdownContentSx, ...stickySx }
+    const historyPlugin = historyPluginConfig ? markdownDocumentHistoryPlugin(historyPluginConfig) : null
     const plugins = [
         headingsPlugin(),
         listsPlugin(),
@@ -297,13 +265,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         ...(viewMode ? [diffSourcePlugin({ diffMarkdown: diffMarkdown ?? '', viewMode })] : []),
         ...(hideToolbar ? [] : [toolbarPlugin({ toolbarContents })]),
         markdownPlaceholderPlugin({ overlayContainer, placeholders }),
-        ...(historyStore ? [markdownDocumentHistoryPlugin({
-            documentId: activeDocument.documentId,
-            historyStore,
-            markdown: activeDocument.markdown,
-            onBeforeSwitch: handleBeforeDocumentSwitch,
-            onDidSwitch: handleDocumentSwitch,
-        })] : []),
+        ...(historyPlugin ? [historyPlugin] : []),
     ]
 
     return (
@@ -311,11 +273,11 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
             <MDXEditor
                 className={mode === 'dark' ? 'dark-theme' : 'light-theme'}
                 contentEditableClassName="mdxeditor-content"
-                markdown={activeDocument.markdown}
+                markdown={initialDocumentSnapshot.markdown}
                 onChange={handleEditorChange}
                 overlayContainer={overlayContainer}
                 plugins={plugins}
-                readOnly={readOnly || (!activeDocument.documentId && !!dataSource)}
+                readOnly={readOnly}
                 ref={editorRef}
                 suppressSharedHistory={!!historyStore}
             />

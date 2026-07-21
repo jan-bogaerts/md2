@@ -25,7 +25,7 @@ This does not meet the structured-filter contract and makes valid existing filte
   - `state`: configured card states;
   - `file`: repository file selector;
   - `folder`: repository folder selector;
-  - `worktree`: registered worktree selector.
+  - `worktree`: Git linked-worktree selector.
 - Support every intentionally filterable context field. If arbitrary extension keys remain part of `ActionContext`, provide a controlled custom-key/value row rather than raw JSON.
 - Keep all configured filters conjunctive and preserve insertion/order presentation consistently.
 - Show field- and value-specific validation; an empty newly added value cannot save.

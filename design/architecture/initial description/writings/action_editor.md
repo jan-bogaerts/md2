@@ -48,7 +48,7 @@
 | `on` | Optional ordered list of regular-expression conditions paired with an action `id`. A matching action runs against this action's output. |
 | `onAfter` | Optional ordered list of action `id` values to run after this action. |
 | `onState` | Optional card state that starts this action when a card receives that state. |
-| `needsWorkTree` | Optional boolean. When set, execution requires card context with a valid worktree assignment from the configured worktree list. |
+| `needsWorkTree` | Optional boolean. When set, execution requires card context with a valid assignment from Git's linked-worktree list. |
 | `agent` | Optional agent override. When omitted, the application default agent is used. Required when `model` or `thinkingLevel` is set. |
 | `model` | Optional model override for the explicitly selected `agent`. |
 | `thinkingLevel` | Optional thinking-level override for the explicitly selected `agent` and `model`. |

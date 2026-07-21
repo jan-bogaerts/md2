@@ -2,6 +2,7 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import { useCellValue } from '@mdxeditor/editor'
 import { useEffect } from 'react'
 import { markdownDocumentHistoryStore$ } from './markdown_document_history_cell'
+import { MarkdownDocumentHistoryMonitor } from './markdown_document_history_monitor'
 
 /** Registers the card-scoped history store with MDXEditor's root Lexical editor. */
 export function MarkdownDocumentHistoryPlugin() {
@@ -19,5 +20,5 @@ export function MarkdownDocumentHistoryPlugin() {
         }
     }, [editor, historyStore])
 
-    return null
+    return <MarkdownDocumentHistoryMonitor />
 }

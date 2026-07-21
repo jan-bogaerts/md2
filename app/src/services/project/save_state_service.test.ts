@@ -32,4 +32,19 @@ describe('SaveStateService', () => {
         await expect(storage.commit({ branch: 'main', files: [], message: 'Retry action' })).rejects.toThrow('disk unavailable')
         expect(service.getState().isSaving).toBe(false)
     })
+
+    it('tracks linked worktree mutations', async () => {
+        const pendingAddition = createDeferred<never[]>()
+        const addWorktree = vi.fn(() => pendingAddition.promise)
+        const service = new SaveStateService()
+        const storage = withSaveStateTracking(createStorage({ addWorktree }), service)
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
+
+        const result = storage.addWorktree?.(project)
+        expect(service.getState().isSaving).toBe(true)
+
+        pendingAddition.resolve([])
+        await result
+        expect(service.getState().isSaving).toBe(false)
+    })
 })

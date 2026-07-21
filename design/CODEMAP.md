@@ -89,7 +89,7 @@ No Redux/Zustand/Context-store. Pattern is **plain singleton service classes** +
 
 - Desktop execution engine: [desktop/src/actions/](../desktop/src/actions/) — `action_runner_service.js` (orchestrator), `action_agent_executor.js`, `action_command_executor.js`, `action_scheduler_service.js` (timers), `agent_runner_service.js`, `agent_provider_protocol.js` (normalizes codex vs claude JSON stream: usage tokens, file-change tracking, session resume). Agent profiles/commands: [desktop/src/actions/agent_profiles.mjs](../desktop/src/actions/agent_profiles.mjs).
 - Renderer side: [app/src/services/actions/](../app/src/services/actions/) + [app/src/services/agents/](../app/src/services/agents/). Action UI: [app/src/components/actions/](../app/src/components/actions/) (~60 files; `action_editor.tsx`, `action_popup.tsx` are the hubs).
-- Worktree isolation for actions: [desktop/src/git/worktree_service.js](../desktop/src/git/worktree_service.js) + `action_worktree_execution_service.js`. Worktree registry file: `.md2-worktrees.json` in repo.
+- Worktree isolation for actions: [desktop/src/git/worktree_service.js](../desktop/src/git/worktree_service.js) + `action_worktree_execution_service.js`. Git owns linked-worktree discovery and lifecycle.
 
 ## UI structure
 
