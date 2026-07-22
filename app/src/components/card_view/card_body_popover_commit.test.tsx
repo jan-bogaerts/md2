@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ProjectCard } from '../../data/data_types'
+import { openFilesService } from '../../services/open_files_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import { CardBodyPopover } from './card_body_popover'
 
@@ -55,6 +56,37 @@ afterEach(() => {
 })
 
 describe('CardBodyPopover commit diff', () => {
+    it('keeps the board document bound when refreshed card data retains its identity', () => {
+        const anchorElement = document.createElement('button')
+        document.body.append(anchorElement)
+        const openBoardDocument = vi.spyOn(openFilesService, 'openBoardDocument')
+        const closeBoardDocument = vi.spyOn(openFilesService, 'closeBoardDocument')
+        const props = {
+            anchorElement,
+            card,
+            isMobile: false,
+            onClose: vi.fn(),
+            onDeleteCard: vi.fn(async () => undefined),
+            onOpenAffects: vi.fn(),
+            onOpenInFileMode: vi.fn(),
+            visible: true,
+        }
+        const view = render(
+            <AppThemeProvider>
+                <CardBodyPopover {...props} />
+            </AppThemeProvider>,
+        )
+
+        view.rerender(
+            <AppThemeProvider>
+                <CardBodyPopover {...props} card={{ ...card, content: '# Card\n\nUpdated body' }} />
+            </AppThemeProvider>,
+        )
+
+        expect(openBoardDocument).toHaveBeenCalledOnce()
+        expect(closeBoardDocument).not.toHaveBeenCalled()
+    })
+
     it('uses the first Escape to exit diff and the second to close the popover', () => {
         const anchorElement = document.createElement('button')
         document.body.append(anchorElement)

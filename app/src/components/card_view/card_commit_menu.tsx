@@ -1,4 +1,4 @@
-import { Badge, Box, IconButton, Popover, Stack, Tooltip, Typography } from '@mui/material'
+import { Badge, Box, Divider, IconButton, Popover, Stack, Tooltip, Typography } from '@mui/material'
 import SourceCommit from 'mdi-material-ui/SourceCommit'
 import type { MouseEvent } from 'react'
 import { useState } from 'react'
@@ -36,12 +36,13 @@ export function CardCommitMenu(props: CardCommitMenuProps) {
     return (
         <>
             <Tooltip title="Card commit history">
-                <IconButton aria-label="Card commit history" onClick={handleOpen} size="small" sx={{ height: 30, width: 30 }}>
+                <IconButton aria-label="Card commit history" onClick={handleOpen} size="small" sx={{ height: 30, width: 12, p: 0 }}>
                     <Badge badgeContent={commits.length > 1 ? commits.length : 0} color="primary">
                         <SourceCommit sx={{ fontSize: 17 }} />
                     </Badge>
                 </IconButton>
             </Tooltip>
+            <Divider orientation="vertical" sx={{ borderColor: 'divider', height: 20 }} />
             <Popover anchorEl={anchorElement} onClose={handleClose} open={!!anchorElement}>
                 <Stack sx={{ maxHeight: 360, minWidth: 340, overflowY: 'auto', p: 1 }}>
                     {commits.map((commit, commitIndex) => (

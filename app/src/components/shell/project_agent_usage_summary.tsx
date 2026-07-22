@@ -1,17 +1,19 @@
 import DataUsageOutlined from '@mui/icons-material/DataUsageOutlined'
 import { Box, Button, Divider, Popover, Stack, Typography } from '@mui/material'
-import { useState, type MouseEvent } from 'react'
-import type { ProjectAgentUsage } from '../../services/agents/agent_usage'
+import { useMemo, useState, type MouseEvent } from 'react'
+import { DEFAULT_PROJECT_FOLDER } from '../../data/data_types'
+import { projectAgentTokenUsage } from '../../services/agents/agent_usage'
 import { AgentUsageDisplay } from '../agents/agent_usage_display'
-
-interface ProjectAgentUsageSummaryProps {
-    totals: ProjectAgentUsage
-}
+import { useProjectConfig } from '../hooks/use_project_config'
+import { useProjectState } from '../hooks/use_project_state'
 
 /** Status-bar project total with read-only current-version and release detail. */
-export function ProjectAgentUsageSummary(props: ProjectAgentUsageSummaryProps) {
-    const { totals } = props
+export function ProjectAgentUsageSummary() {
+    const { snapshot } = useProjectState()
+    const projectConfig = useProjectConfig()
     const [anchorElement, setAnchorElement] = useState<HTMLElement | null>(null)
+    const projectFolder = projectConfig?.projectFolder ?? DEFAULT_PROJECT_FOLDER
+    const totals = useMemo(() => projectAgentTokenUsage(snapshot, projectFolder), [projectFolder, snapshot])
 
     const openSummary = (event: MouseEvent<HTMLElement>) => {
         setAnchorElement(event.currentTarget)

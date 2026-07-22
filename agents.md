@@ -102,12 +102,15 @@ npm run lint-fix
   - the name captures non-obvious domain semantics that the inline code would hide poorly.
 - Verify actual field types before normalizing. Do not add coercion defensively. Only normalize when the inspected code path shows mixed types are real, and prefer doing it at the input boundary rather than at arbitrary comparison sites.
 - avoid magic numbers, use named constants instead
+- use ; at end of statements
+- avoid multiple inheritance
 
 ## react component style guide
 - dialogs have buttons in the bottom right corner
 - use the `dialogService` to show errors, warnings,...
 - for styling, read and use this guide: `design\STYLE_GUIDE.md`
 - application states belong in services, not in components.
+- Root components own layout; leaf components bind to changing application data. Place subscriptions in the smallest component that renders their value.
 
 
 ## Testing

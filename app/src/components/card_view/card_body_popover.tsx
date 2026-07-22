@@ -1,6 +1,6 @@
-import { alpha, Box, Button, IconButton, InputBase, Tooltip, Typography } from '@mui/material'
+import { alpha, Box, Button, Divider, IconButton, InputBase, Tooltip, Typography } from '@mui/material'
 import type { ChangeEvent, KeyboardEvent } from 'react'
-import { useCallback, useEffect, useState, useSyncExternalStore } from 'react'
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import Close from 'mdi-material-ui/Close'
 import DeleteOutline from 'mdi-material-ui/DeleteOutline'
 import FileDocumentOutline from 'mdi-material-ui/FileDocumentOutline'
@@ -77,6 +77,8 @@ export function CardBodyPopover(props: CardBodyPopoverProps) {
     } = props
     const [deleteCardPath, setDeleteCardPath] = useState<string | null>(null)
     const [historyStore] = useState(() => new MarkdownDocumentHistoryStore())
+    const cardRef = useRef(card)
+    const cardIdentity = card?.header.internalId
     const boardDocument = useBoardDocument(card, visible)
     const [isFullscreen, setIsFullscreen] = useState(false)
     const [popupContentElement, setPopupContentElement] = useState<HTMLDivElement | null>(null)
@@ -89,12 +91,19 @@ export function CardBodyPopover(props: CardBodyPopoverProps) {
         : null
 
     useEffect(() => {
-        if (!visible || !card) {
+        cardRef.current = card
+    }, [card])
+
+    useEffect(() => {
+        const currentCard = cardRef.current
+        if (!visible || !currentCard) {
             cardMarkdownDataSource.setBoardDocument(null)
             historyStore.clear()
             return
         }
-        const document = openFilesService.openBoardDocument(card)
+        if (!cardIdentity) throw new Error(`Card identity was not added before opening: ${currentCard.path}`)
+
+        const document = openFilesService.openBoardDocument(currentCard)
         cardMarkdownDataSource.setBoardDocument(document)
 
         return () => {
@@ -102,7 +111,7 @@ export function CardBodyPopover(props: CardBodyPopoverProps) {
             historyStore.discardDocument(document)
             openFilesService.closeBoardDocument(document)
         }
-    }, [card, historyStore, visible])
+    }, [cardIdentity, historyStore, visible])
 
     useEffect(() => () => {
         cardMarkdownDataSource.setBoardDocument(null)
@@ -219,7 +228,7 @@ export function CardBodyPopover(props: CardBodyPopoverProps) {
                     >
                         <Box
                             sx={{
-                                alignItems: 'baseline',
+                                alignItems: 'center',
                                 borderBottom: '1px solid',
                                 borderColor: 'divider',
                                 display: 'flex',
@@ -285,6 +294,7 @@ export function CardBodyPopover(props: CardBodyPopoverProps) {
                                 })}
                                 value={titleDraft}
                             />
+                            <CardCommitMenu commits={cardCommits.commits} error={cardCommits.error} onSelect={selectCommit} />
                             <Box sx={{
                                 alignItems: 'center',
                                 color: 'text.disabled',
@@ -296,9 +306,9 @@ export function CardBodyPopover(props: CardBodyPopoverProps) {
                                 <Box sx={{ backgroundColor: runningExecution ? 'success.main' : 'text.disabled', borderRadius: '50%', height: 7, width: 7 }} />
                                 {statusLabel}
                             </Box>
-                            <Box sx={{ backgroundColor: 'divider', flexShrink: 0, height: 20, width: '1px' }} />
+                            <Divider orientation="vertical" sx={{ borderColor: 'divider', height: 20 }} />
                             {boardDocument ? <CardBodySaveStatus document={boardDocument} /> : null}
-                            <CardCommitMenu commits={cardCommits.commits} error={cardCommits.error} onSelect={selectCommit} />
+                            
                             <Tooltip title="Close">
                                 <IconButton aria-label="Close card details" onClick={closePopover} size="small" sx={{ height: 30, ml: '4px', width: 30 }}>
                                     <Close sx={{ fontSize: 17 }} />

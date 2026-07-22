@@ -1,16 +1,26 @@
 import { Button, List, ListItem, ListItemText, Popover, Typography } from '@mui/material'
 import { alpha } from '@mui/material/styles'
 import Robot from 'mdi-material-ui/Robot'
-import { useState } from 'react'
-import type { RunningAgent } from '../../data/data_types'
+import { useState, useSyncExternalStore } from 'react'
+import { agentConversationService } from '../../services/agents/agent_conversation_service'
+import { useRunningActionExecutions } from '../hooks/use_action_executions'
 
-interface RunningAgentsIndicatorProps {
-    agents: RunningAgent[]
+function subscribeToRunningAgents(onStoreChange: () => void) {
+    return agentConversationService.subscribe(onStoreChange)
+}
+
+function getRunningAgentsSnapshot() {
+    return agentConversationService.getRunningAgents()
 }
 
 /** Shows the number of running agents and lists them in a popover when opened. */
-export function RunningAgentsIndicator(props: RunningAgentsIndicatorProps) {
-    const { agents } = props
+export function RunningAgentsIndicator() {
+    const directRunningAgents = useSyncExternalStore(subscribeToRunningAgents, getRunningAgentsSnapshot, getRunningAgentsSnapshot)
+    const runningActionExecutions = useRunningActionExecutions()
+    const agents = [
+        ...directRunningAgents,
+        ...runningActionExecutions.map(({ executionId, rootActionId }) => ({ id: executionId, label: `Action ${rootActionId}` })),
+    ]
     const [anchorElement, setAnchorElement] = useState<HTMLElement | null>(null)
 
     const handleOpen = (event: React.MouseEvent<HTMLElement>) => {

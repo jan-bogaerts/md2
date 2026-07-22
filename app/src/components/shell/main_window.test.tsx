@@ -31,7 +31,6 @@ function mainWindowElement(overrides?: Partial<Parameters<typeof MainWindow>[0]>
         <AppThemeProvider>
             <DialogDisplay />
             <MainWindow
-                agents={[]}
                 auth={auth}
                 session={null}
                 toolbarAction={<button type="button">Action</button>}
@@ -90,7 +89,10 @@ async function openProjectWithCards() {
     openFilesService.init({ actionService, dataService })
     projectPersistenceService.init({ actionService, dataService, openFilesService })
     dataService.init({ storage: createStorage(files) })
-    await dataService.projectLoading.openProject({ branch: 'main', id: 'project' })
+    const project = { branch: 'main', id: 'project' }
+    const snapshot = await dataService.projectLoading.openProject(project)
+
+    return { project, snapshot, storageType: 'local' as const }
 }
 
 function typeQuery(value: string) {
@@ -143,8 +145,8 @@ describe('MainWindow', () => {
 
     it('shows card columns without a left navigation panel in card view', async () => {
         mockMatchMedia(false)
-        await openProjectWithCards()
-        renderWindow()
+        const session = await openProjectWithCards()
+        renderWindow({ session })
 
         expect(screen.getByLabelText('Card columns')).toHaveTextContent('active')
         expect(screen.getByText('Root')).toBeInTheDocument()
@@ -156,8 +158,8 @@ describe('MainWindow', () => {
 
     it('switches from card view to text view on desktop without resetting back to cards', async () => {
         mockMatchMedia(false)
-        await openProjectWithCards()
-        renderWindow()
+        const session = await openProjectWithCards()
+        renderWindow({ session })
 
         fireEvent.click(screen.getByRole('button', { name: 'Text view' }))
 

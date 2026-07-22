@@ -34,6 +34,20 @@ function useRunningActionExecutionSnapshot() {
     )
 }
 
+function subscribeToRunningActionChanges(listener: () => void) {
+    actionExecutionService.addEventListener('runningChanged', listener)
+
+    return () => actionExecutionService.removeEventListener('runningChanged', listener)
+}
+
+function useRunningActionExecutionId(getExecutionId: () => string | null) {
+    useEffect(() => {
+        actionExecutionService.start()
+    }, [])
+
+    return useSyncExternalStore(subscribeToRunningActionChanges, getExecutionId, getExecutionId)
+}
+
 export function useActionExecution(actionId: string, context: ActionContext) {
     useActionExecutionSnapshot()
 
@@ -41,13 +55,17 @@ export function useActionExecution(actionId: string, context: ActionContext) {
 }
 
 export function useRunningActionForContext(context: ActionContext) {
-    useRunningActionExecutionSnapshot()
+    const getExecutionId = () => actionExecutionService.getRunningExecutionForContext(context)?.executionId ?? null
+    const executionId = useRunningActionExecutionId(getExecutionId)
+    if (!executionId) return null
 
     return actionExecutionService.getRunningExecutionForContext(context)
 }
 
 export function useRunningActionForFile(filePath: string | null) {
-    useRunningActionExecutionSnapshot()
+    const getExecutionId = () => actionExecutionService.getRunningExecutionForFile(filePath)?.executionId ?? null
+    const executionId = useRunningActionExecutionId(getExecutionId)
+    if (!executionId) return null
 
     return actionExecutionService.getRunningExecutionForFile(filePath)
 }
