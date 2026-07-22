@@ -3,6 +3,7 @@ import type { ActionDefinition } from '../data/action_types'
 import type { ProjectCard, ProjectSnapshot } from '../data/data_types'
 import { getService } from './service_injector'
 import { OpenFilesService, type OpenDocumentEventDetail } from './open_files_service'
+import { editableActionDefinition, type ActionDraftState, type ActionService } from './actions/action_service'
 
 function card(internalId: string, path = `design/${internalId}.md`, content = `# ${internalId}`): ProjectCard {
     return {
@@ -30,7 +31,17 @@ function owners(initialCards: ProjectCard[] = [], initialActions: ActionDefiniti
     const actionOwner = Object.assign(new EventTarget(), {
         getActions: () => actions,
         getDeletedDraftActions: () => [],
-    })
+        getDraft: (path: string): ActionDraftState => {
+            const actionDefinition = actions.find((candidate) => candidate.sourcePath === path)
+            if (!actionDefinition) throw new Error(`Missing action: ${path}`)
+            return {
+                conflict: null, definition: editableActionDefinition(actionDefinition), deleted: false, error: null,
+                revision: 0, savedRevision: 0,
+                saving: false,
+                validation: { code: null, error: null, field: null, fieldPath: null, index: null, valid: true },
+            }
+        },
+    }) as unknown as EventTarget & Pick<ActionService, 'getActions' | 'getDeletedDraftActions' | 'getDraft'>
 
     return {
         actionOwner,
@@ -64,6 +75,25 @@ describe('OpenFilesService', () => {
         expect(changed).toHaveBeenCalledOnce()
     })
 
+    it('does not publish a Markdown replacement when only a dirty document object renews', () => {
+        const firstCard = card('card-1')
+        const ownerState = owners([firstCard])
+        const service = new OpenFilesService()
+        service.init({ actionService: ownerState.actionOwner, dataService: ownerState.dataOwner })
+        const document = service.openDocument(firstCard)
+        if (document.kind !== 'card') throw new Error('Expected card document')
+        document.updateDraft({ ...firstCard, content: '# local' }, 'list-card')
+        const eventTypes: string[] = []
+        document.addEventListener('changed', (event) => {
+            eventTypes.push((event as CustomEvent<{ type: string }>).detail.type)
+        })
+
+        ownerState.renewCards([{ ...firstCard, header: { ...firstCard.header, title: 'Published title' } }])
+
+        expect(eventTypes).toEqual(['renewed'])
+        expect(document.getDraft().content).toBe('# local')
+    })
+
     it('retains an action document across path rename', () => {
         const firstAction = action('review')
         const ownerState = owners([], [firstAction])
@@ -94,6 +124,72 @@ describe('OpenFilesService', () => {
 
         expect(service.getSnapshot()).toEqual({ activeDocument: secondDocument, documents: [secondDocument] })
         expect((removed.mock.calls[0][0] as CustomEvent<OpenDocumentEventDetail>).detail.document).toBe(firstDocument)
+    })
+
+    it('shares one card document between board and list memberships', () => {
+        const projectCard = card('shared')
+        const ownerState = owners([projectCard])
+        const service = new OpenFilesService()
+        service.init({ actionService: ownerState.actionOwner, dataService: ownerState.dataOwner })
+
+        const listDocument = service.openDocument(projectCard)
+        const boardDocument = service.openBoardDocument(projectCard)
+        if (listDocument.kind !== 'card') throw new Error('Expected card document')
+        boardDocument.updateDraft({ ...projectCard, content: '# shared edit' }, null)
+
+        expect(boardDocument).toBe(listDocument)
+        expect(listDocument.getDraft().content).toBe('# shared edit')
+        service.closeBoardDocument(boardDocument)
+        expect(service.getRegisteredDocuments()).toContain(listDocument)
+    })
+
+    it('retains a dirty document after its last view closes and releases it after save', () => {
+        const projectCard = card('recoverable')
+        const ownerState = owners([projectCard])
+        const service = new OpenFilesService()
+        service.init({ actionService: ownerState.actionOwner, dataService: ownerState.dataOwner })
+        const document = service.openDocument(projectCard)
+        if (document.kind !== 'card') throw new Error('Expected card document')
+        document.updateDraft({ ...projectCard, content: '# unsaved' })
+        const saveReference = document.createSaveReference()
+
+        service.closeDocument(document)
+        expect(service.getRegisteredDocuments()).toEqual([document])
+
+        saveReference.acknowledge()
+        expect(service.getRegisteredDocuments()).toEqual([])
+    })
+
+    it('creates a fresh wrapper after a saved document is fully released and reopened', () => {
+        const projectCard = card('reopen')
+        const ownerState = owners([projectCard])
+        const service = new OpenFilesService()
+        service.init({ actionService: ownerState.actionOwner, dataService: ownerState.dataOwner })
+        const firstDocument = service.openDocument(projectCard)
+
+        service.closeDocument(firstDocument)
+        const reopenedDocument = service.openDocument(projectCard)
+
+        expect(reopenedDocument).not.toBe(firstDocument)
+        expect(reopenedDocument.dirty).toBe(false)
+    })
+
+    it('does not clear an edit newer than an acknowledged save revision', () => {
+        const projectCard = card('revision')
+        const ownerState = owners([projectCard])
+        const service = new OpenFilesService()
+        service.init({ actionService: ownerState.actionOwner, dataService: ownerState.dataOwner })
+        const document = service.openDocument(projectCard)
+        if (document.kind !== 'card') throw new Error('Expected card document')
+        document.updateDraft({ ...projectCard, content: '# first' })
+        const firstSave = document.createSaveReference()
+        document.updateDraft({ ...projectCard, content: '# second' })
+
+        firstSave.acknowledge()
+        expect(document.dirty).toBe(true)
+
+        document.createSaveReference().acknowledge()
+        expect(document.dirty).toBe(false)
     })
 
     it('resolves and opens current documents by path', () => {

@@ -1,6 +1,8 @@
 import { createCardFile } from '../../data/card_naming'
 import { computeMove, orderByAfter, UNASSIGNED_STATUS } from '../../data/card_ordering'
 import type { CardDraft, MarkdownFile, ProjectReference, ProjectSnapshot, StorageService } from '../../data/data_types'
+import type { OpenDocumentSaveReference } from '../open_files_service'
+import { openFilesService } from '../open_files_service'
 import { newFolderPath, newMarkdownFilePath } from '../../data/project_tree_paths'
 import { markdownParsingService } from './markdown_parsing_service'
 import { telemetryService } from '../telemetry/telemetry_service'
@@ -13,6 +15,11 @@ import {
 
 type CommitRequest = Parameters<StorageService['commit']>[0]
 const FOLDER_PLACEHOLDER_NAME = '.gitkeep'
+
+function findCard(snapshot: ProjectSnapshot | null, path: string) {
+    return [...(snapshot?.activeCards ?? []), ...(snapshot?.backgroundCards ?? [])]
+        .find((card) => card.path === path) ?? null
+}
 
 export interface CardOperationsDeps {
     commitPathsInFlight(): Set<string>
@@ -142,26 +149,33 @@ export class CardOperations {
         return file
     }
 
-    updateCardBody(path: string, body: string) {
+    updateCardBody(path: string, body: string, saveReference?: OpenDocumentSaveReference) {
         const existingFile = this.dependencies.requireFile(path)
 
-        return this.saveFile({ content: markdownParsingService.replaceBody(existingFile.content, body), path, sha: existingFile.sha })
+        return this.saveFile(
+            { content: markdownParsingService.replaceBody(existingFile.content, body), path, sha: existingFile.sha },
+            saveReference,
+        )
     }
 
     updateCardAffects(path: string, affects: string[]) {
         const existingFile = this.dependencies.requireFile(path)
 
-        return this.saveFile({ content: markdownParsingService.setAffects(existingFile.content, affects), path, sha: existingFile.sha })
-    }
-
-    updateCardHeaderFields(path: string, updates: Record<string, string>) {
-        const existingFile = this.dependencies.requireFile(path)
-
-        return this.saveFile({
-            content: markdownParsingService.rewriteHeader(existingFile.content, updates),
+        return this.saveCardMetadataFile({
+            content: markdownParsingService.setAffects(existingFile.content, affects),
             path,
             sha: existingFile.sha,
         })
+    }
+
+    updateCardHeaderFields(path: string, updates: Record<string, string>, saveReference?: OpenDocumentSaveReference) {
+        const existingFile = this.dependencies.requireFile(path)
+
+        return this.saveCardMetadataFile({
+            content: markdownParsingService.rewriteHeader(existingFile.content, updates),
+            path,
+            sha: existingFile.sha,
+        }, saveReference)
     }
 
     /** Adds persisted identities to legacy cards loaded without an internal ID. */
@@ -207,29 +221,36 @@ export class CardOperations {
         return filesToPersist.length
     }
 
-    updateCardTitle(path: string, title: string) {
+    updateCardTitle(path: string, title: string, saveReference?: OpenDocumentSaveReference) {
         const existingFile = this.dependencies.requireFile(path)
 
-        return this.saveFile({ content: markdownParsingService.setCardTitle(existingFile.content, title), path, sha: existingFile.sha })
+        return this.saveCardMetadataFile(
+            { content: markdownParsingService.setCardTitle(existingFile.content, title), path, sha: existingFile.sha },
+            saveReference,
+        )
     }
 
     updateCardWorktree(path: string, worktree: number | null) {
         const existingFile = this.dependencies.requireFile(path)
 
-        return this.saveFile({ content: markdownParsingService.setWorktree(existingFile.content, worktree), path, sha: existingFile.sha })
+        return this.saveCardMetadataFile({
+            content: markdownParsingService.setWorktree(existingFile.content, worktree),
+            path,
+            sha: existingFile.sha,
+        })
     }
 
-    toggleCardPolicy(path: string, policyKey: string) {
+    toggleCardPolicy(path: string, policyKey: string, saveReference?: OpenDocumentSaveReference) {
         const { config } = this.dependencies.requireDependencies()
         const existingFile = this.dependencies.requireFile(path)
         const card = markdownParsingService.parseCard(existingFile, config.workingFolder)
         const enabled = card.header.policy[policyKey] ?? false
 
-        return this.saveFile({
+        return this.saveCardMetadataFile({
             content: markdownParsingService.setPolicyFlag(existingFile.content, policyKey, !enabled),
             path,
             sha: existingFile.sha,
-        })
+        }, saveReference)
     }
 
     moveCard(cardPath: string, targetStatus: string, targetIndex: number) {
@@ -283,20 +304,43 @@ export class CardOperations {
         return this.dependencies.snapshot()
     }
 
-    saveFile(file: MarkdownFile) {
+    saveFile(file: MarkdownFile, saveReference?: OpenDocumentSaveReference) {
         const { commitBatcher, config } = this.dependencies.requireDependencies()
         const currentProject = this.dependencies.project()
         if (!currentProject) throw new Error('Cannot save a file before a project is open')
         const existingFile = this.dependencies.requireFile(file.path)
         if (existingFile.content === file.content) return existingFile
 
+        const currentCard = findCard(this.dependencies.snapshot(), file.path)
+        const openDocument = currentCard ? openFilesService.findDocument(currentCard) : null
+
         const currentFiles = this.dependencies.files().map((currentFile) => (currentFile.path === file.path ? file : currentFile))
         // replaceFiles already rebuilds the snapshot; only the change event is still needed.
         this.dependencies.replaceFiles(currentFiles, config.workingFolder)
-        commitBatcher.schedule(currentProject.branch, [file], `Update ${file.path}`)
+        if (openDocument?.kind === 'card' && !saveReference) {
+            const nextCard = findCard(this.dependencies.snapshot(), file.path)
+            if (!nextCard) throw new Error(`Saved card was not rebuilt: ${file.path}`)
+            openDocument.updateDraft(nextCard, this)
+        }
+        const documentSaveReference = saveReference ?? openDocument?.createSaveReference()
+        commitBatcher.schedule(
+            currentProject.branch,
+            [{ ...file, saveReference: documentSaveReference }],
+            `Update ${file.path}`,
+        )
         this.dependencies.dispatchChanged()
 
         return file
+    }
+
+    private saveCardMetadataFile(file: MarkdownFile, saveReference?: OpenDocumentSaveReference) {
+        const currentCard = findCard(this.dependencies.snapshot(), file.path)
+        const openDocument = currentCard ? openFilesService.findDocument(currentCard) : null
+        const content = openDocument?.kind === 'card'
+            ? markdownParsingService.replaceBody(file.content, openDocument.getDraft().content)
+            : file.content
+
+        return this.saveFile({ ...file, content }, saveReference)
     }
 
     async saveProjectFile(file: MarkdownFile, message: string) {

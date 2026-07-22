@@ -27,10 +27,16 @@ function createLocalBridgeDispatch(dependencies) {
     } = dependencies;
     let currentLocalProject = null;
 
+    async function activateProject(project) {
+        currentLocalProject = project;
+        if (actionSchedulerService) await actionSchedulerService.startProject(project);
+        await worktreeService.startProject(project);
+    }
+
     const dataBridge = {
         checkoutBranch: async (project, branch) => {
-            currentLocalProject = await localGitService.checkoutBranch(project, branch);
-            if (actionSchedulerService) await actionSchedulerService.startProject(currentLocalProject);
+            const checkedOutProject = await localGitService.checkoutBranch(project, branch);
+            await activateProject(checkedOutProject);
 
             return currentLocalProject;
         },
@@ -39,11 +45,17 @@ function createLocalBridgeDispatch(dependencies) {
 
             return localGitService.cancelActionSchedule(project, actionsFolder, scheduleId);
         },
-        commit: (request) => localGitService.commit(request, currentLocalProject),
-        createProject: (project, workingFolder) => localGitService.createProject(project, workingFolder),
-        createWorkingFolderFromTemplate: (project, workingFolder) => (
-            localGitService.createWorkingFolderFromTemplate(project, workingFolder)
-        ),
+        commit: async (request) => {
+            await localGitService.commit(request, currentLocalProject);
+
+            return [];
+        },
+        createProject: async (project, workingFolder) => {
+            const createdProject = await localGitService.createProject(project, workingFolder);
+            await activateProject(createdProject);
+
+            return currentLocalProject;
+        },
         deleteFile: (request) => localGitService.deleteFile(request, currentLocalProject),
         deleteFolder: (request) => localGitService.deleteFolder(request, currentLocalProject),
         getActiveProject: () => currentLocalProject,
@@ -54,7 +66,6 @@ function createLocalBridgeDispatch(dependencies) {
         ),
         listRepositoryFiles: (project) => localGitService.listRepositoryFiles(project),
         listTopLevelFolders: (project) => localGitService.listTopLevelFolders(project),
-        loadWorktrees: (project) => worktreeService.load(project),
         loadActionFiles: (project, actionsFolder) => localGitService.loadActionFiles(project, actionsFolder),
         loadActionSchedules: (project, actionsFolder) => localGitService.loadActionSchedules(project, actionsFolder),
         loadAgentConversation: async (reference) => {
@@ -68,15 +79,13 @@ function createLocalBridgeDispatch(dependencies) {
         loadFile: (project, path) => localGitService.loadFile(project, path),
         loadProjectAsset: (project, path) => localGitService.loadProjectAsset(project, path),
         loadProject: async (project, workingFolder) => {
-            currentLocalProject = project;
-            if (actionSchedulerService) await actionSchedulerService.startProject(project);
+            await activateProject(project);
 
             return localGitService.loadProject(project, workingFolder);
         },
         loadProjectConfig: (project) => localGitService.loadProjectConfig(project),
         loadProjectRoot: async (project, workingFolder) => {
-            currentLocalProject = project;
-            if (actionSchedulerService) await actionSchedulerService.startProject(project);
+            await activateProject(project);
 
             return localGitService.loadProjectRoot(project, workingFolder);
         },
@@ -88,8 +97,7 @@ function createLocalBridgeDispatch(dependencies) {
             if (!rootPath) return null;
 
             const project = await localGitService.resolveLocalProject(rootPath);
-            currentLocalProject = project;
-            if (actionSchedulerService) await actionSchedulerService.startProject(project);
+            await activateProject(project);
 
             return project;
         },
@@ -97,9 +105,11 @@ function createLocalBridgeDispatch(dependencies) {
             if (!openWorktreeFolder) throw new Error('Worktree folder picker is not available');
 
             const folderPath = await openWorktreeFolder();
-            if (!folderPath) return null;
+            if (!folderPath) return false;
 
-            return worktreeService.add(project, folderPath);
+            await worktreeService.add(project, folderPath);
+
+            return true;
         },
         prepareWorktree: (request) => {
             if (!request || typeof request !== 'object') throw new Error('Missing worktree preparation request');
@@ -132,10 +142,11 @@ function createLocalBridgeDispatch(dependencies) {
 
             return worktreeService.push(request.project, request.worktree);
         },
+        onWorktreesChanged: (callback) => worktreeService.subscribe(callback),
+        refreshWorktrees: (project) => worktreeService.refreshRemote(project),
         resolveProject: async (project) => {
             const resolvedProject = await localGitService.resolveLocalProject(project.rootPath);
-            currentLocalProject = resolvedProject;
-            if (actionSchedulerService) await actionSchedulerService.startProject(resolvedProject);
+            await activateProject(resolvedProject);
 
             return resolvedProject;
         },
@@ -169,7 +180,7 @@ function createLocalBridgeDispatch(dependencies) {
                 throw new Error('Missing card activity cardInternalId');
             }
             const projectFolder = actionRunnerService.requireProjectFolder();
-            const worktrees = await worktreeService.load(currentLocalProject);
+            const worktrees = worktreeService.getRecords(currentLocalProject);
 
             return localGitService.loadCardActivity(currentLocalProject, projectFolder, request.cardInternalId, worktrees);
         },

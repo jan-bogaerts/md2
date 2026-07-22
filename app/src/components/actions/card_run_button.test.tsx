@@ -3,11 +3,30 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cardContext } from '../../data/action_context'
 import type { ActionExecutionEvent } from '../../data/action_run_types'
 import type { ActionFile } from '../../data/action_types'
-import { DEFAULT_CARD_TYPES, type ProjectCard } from '../../data/data_types'
+import { DEFAULT_CARD_TYPES, type AgentConversation, type ProjectCard } from '../../data/data_types'
 import { actionExecutionService } from '../../services/actions/action_execution_service'
 import { actionService } from '../../services/actions/action_service'
+import { agentAcknowledgementService } from '../../services/agents/agent_acknowledgement_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import { CardRunButton } from './card_run_button'
+
+const PROJECT_KEY = 'project:main'
+
+function conversation(status: AgentConversation['status'], events: AgentConversation['events'] = []): AgentConversation {
+    return {
+        cardPath: 'design/F-010.md',
+        completedAt: status === 'running' ? null : '2026-01-01T00:01:00.000Z',
+        events,
+        hasExplicitTitle: true,
+        id: 'agent-1',
+        messages: [],
+        path: '.md2-agent-logs/agent-1.json',
+        providerSessions: [],
+        startedAt: '2026-01-01T00:00:00.000Z',
+        status,
+        title: 'Agent',
+    }
+}
 
 function file(definition: { id: string }): ActionFile {
     return { content: JSON.stringify(definition), path: `actions/${definition.id}.json` }
@@ -34,9 +53,18 @@ const card: ProjectCard = {
     path: 'design/F-010.md',
 }
 
-function renderCardRunButton(onConversationViewed: () => void) {
+function cardWith(conversations: AgentConversation[]): ProjectCard {
+    return { ...card, agentConversations: conversations }
+}
+
+function renderCardRunButton(onConversationViewed: () => void, projectCard: ProjectCard = card) {
     render(
-        <CardRunButton context={cardContext(card, DEFAULT_CARD_TYPES)} onConversationViewed={onConversationViewed} />,
+        <CardRunButton
+            card={projectCard}
+            context={cardContext(projectCard, DEFAULT_CARD_TYPES)}
+            onConversationViewed={onConversationViewed}
+            projectKey={PROJECT_KEY}
+        />,
         { wrapper: AppThemeProvider },
     )
 }
@@ -61,6 +89,7 @@ describe('CardRunButton', () => {
         delete window.md2Actions
         cleanup()
         actionService.clear()
+        window.localStorage.clear()
         vi.restoreAllMocks()
     })
 
@@ -97,7 +126,10 @@ describe('CardRunButton', () => {
             actionId: 'implement', context, executionId: 'execution-1', phase: 'main', rootActionId: 'implement',
             status: 'running', type: 'execution',
         }))
-        render(<CardRunButton context={context} onConversationViewed={onConversationViewed} />, { wrapper: AppThemeProvider })
+        render(
+            <CardRunButton card={card} context={context} onConversationViewed={onConversationViewed} projectKey={PROJECT_KEY} />,
+            { wrapper: AppThemeProvider },
+        )
 
         const runButton = screen.getByRole('button', { name: 'Run' })
         expect(runButton).toBeEnabled()
@@ -128,5 +160,56 @@ describe('CardRunButton', () => {
         expect(await dialog.findByLabelText('Prompt')).toBeInTheDocument()
         expect(dialog.getByLabelText('Preset name')).toHaveFocus()
         expect(dialog.getByRole('button', { name: 'Run' })).toBeDisabled()
+    })
+
+    it('shows the plain Run button when the agent is idle', () => {
+        renderCardRunButton(onConversationViewed)
+
+        expect(screen.getByRole('button', { name: 'Run' })).toBeInTheDocument()
+    })
+
+    it('distinguishes waiting, running, unseen and acknowledged agent states', () => {
+        window.localStorage.clear()
+        const waiting = conversation('running', [{ content: '', id: 'wait', timestamp: '2026-01-01T00:00:30.000Z', type: 'waiting' }])
+        const { rerender } = render(
+            <AppThemeProvider>
+                <CardRunButton
+                    card={cardWith([waiting])}
+                    context={cardContext(card, DEFAULT_CARD_TYPES)}
+                    onConversationViewed={onConversationViewed}
+                    projectKey={PROJECT_KEY}
+                />
+            </AppThemeProvider>,
+        )
+        expect(screen.getByRole('button', { name: 'Run — Agent is waiting for input' })).toBeInTheDocument()
+
+        rerender(<AppThemeProvider><CardRunButton card={cardWith([conversation('running')])} context={cardContext(card, DEFAULT_CARD_TYPES)} onConversationViewed={onConversationViewed} projectKey={PROJECT_KEY} /></AppThemeProvider>)
+        expect(screen.getByRole('button', { name: 'Run — Agent is running' })).toBeInTheDocument()
+
+        const completed = conversation('completed')
+        rerender(
+            <AppThemeProvider>
+                <CardRunButton
+                    card={cardWith([completed])}
+                    context={cardContext(card, DEFAULT_CARD_TYPES)}
+                    onConversationViewed={onConversationViewed}
+                    projectKey={PROJECT_KEY}
+                />
+            </AppThemeProvider>,
+        )
+        expect(screen.getByRole('button', { name: 'Run — New agent result available' })).toBeInTheDocument()
+
+        agentAcknowledgementService.acknowledge(PROJECT_KEY, card.path, [completed])
+        rerender(
+            <AppThemeProvider>
+                <CardRunButton
+                    card={cardWith([completed])}
+                    context={cardContext(card, DEFAULT_CARD_TYPES)}
+                    onConversationViewed={onConversationViewed}
+                    projectKey={PROJECT_KEY}
+                />
+            </AppThemeProvider>,
+        )
+        expect(screen.getByRole('button', { name: 'Run' })).toBeInTheDocument()
     })
 })

@@ -15,6 +15,7 @@ import { ActionAgentPrompt } from './action_agent_prompt'
 import { ActionAgentSelectors } from './action_agent_selectors'
 import { ActionConversationChat } from './action_conversation_chat'
 import { ActionConversationPicker } from './action_conversation_picker'
+import { ActionLogErrorDisplay } from './action_log_error_display'
 import { ActionPhraseButtons } from './action_phrase_buttons'
 import { statusColor } from './action_popup_defaults'
 import { ActionRunHistory } from './action_run_history'
@@ -49,9 +50,11 @@ interface ActionPopupContentProps {
 }
 
 function worktreeValidationMessage(action: ActionDefinition, context: ActionContext, worktrees: WorktreeRecord[]) {
-    if (!action.needsWorkTree) return null
+    const hasWorktreeAssignment = context.worktree !== undefined || !!context.worktreeError
+    if (!hasWorktreeAssignment && !action.needsWorkTree) return null
     if (context.kind !== 'card' && context.kind !== 'project') {
-        return `Action "${action.label}" requires card or project context when needsWorkTree is set`
+        const reason = action.needsWorkTree ? 'when needsWorkTree is set' : 'for worktree execution'
+        return `Action "${action.label}" requires card or project context ${reason}`
     }
     if (context.worktreeError) return context.worktreeError
     if (context.worktree === undefined) return `Action "${action.label}" requires a worktree assignment`
@@ -154,6 +157,15 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
                             worktrees={worktrees}
                         />
                     ) : null}
+                    {action.type === 'agent' ? (
+                        <ActionConversationPicker
+                            conversations={controller.conversations}
+                            disabled={controller.runStatus === 'running'}
+                            loading={controller.conversationHistoryLoading}
+                            onChange={controller.handleConversationChange}
+                            selectedPath={controller.displayedConversation?.path ?? ''}
+                        />
+                    ) : null}
                     <Box sx={{ flex: 1 }} />
                     <Tooltip title={fullHeight ? 'Collapse downward' : 'Expand upward'}>
                         <IconButton
@@ -200,19 +212,11 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
                                 selectedAgentModels={controller.selectedAgentModels}
                                 thinkingLevel={controller.thinkingLevel}
                             />
-                            <Box sx={{ flex: 1 }} />
-                            <ActionConversationPicker
-                                conversations={controller.conversations}
-                                disabled={controller.runStatus === 'running'}
-                                loading={controller.conversationHistoryLoading}
-                                onChange={controller.handleConversationChange}
-                                selectedPath={controller.displayedConversation?.path ?? ''}
-                            />
+                            <ActionLogErrorDisplay logs={controller.runLogs} />
                         </Box>
                         <Box sx={{ flex: 1, minHeight: MIN_CHAT_HEIGHT, overflowY: 'auto' }}>
                             <ActionConversationChat
                                 conversation={controller.displayedConversation}
-                                logs={controller.runLogs}
                                 onConversationViewed={props.onConversationViewed}
                                 status={controller.runStatus}
                             />

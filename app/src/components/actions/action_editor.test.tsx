@@ -69,7 +69,6 @@ function ActionEditorHarness(props: { action: ActionDefinition, states: string[]
         <Box sx={{ display: 'flex', flexDirection: 'column' }}>
             <ListActionEditor
                 cardTypes={['feature']}
-                markdownDocumentNamespace="test-project"
                 repositoryFiles={[]}
                 specialContextTypes={['actions']}
                 states={states}
@@ -100,12 +99,13 @@ describe('ActionEditor', () => {
     beforeEach(() => {
         configService.init()
         openFilesService.clear()
+        openFilesService.init({ actionService, dataService })
         actionMarkdownDataSource.init(actionService)
     })
 
     afterEach(() => {
         cleanup()
-        openFilesService.clear()
+        for (const document of openFilesService.getRegisteredDocuments()) openFilesService.discardDocument(document)
         actionService.clear()
         configService.clear()
         vi.restoreAllMocks()
@@ -337,6 +337,8 @@ describe('ActionEditor', () => {
             'actions/review.json',
             expect.objectContaining({ label: 'Review repaired' }),
             'actions/review-repaired.json',
+            expect.any(Object),
+            expect.any(Function),
         )
     })
 
@@ -362,6 +364,8 @@ describe('ActionEditor', () => {
             'actions/review.json',
             expect.objectContaining({ prompt: 'Updated prompt' }),
             'actions/review.json',
+            expect.any(Object),
+            expect.any(Function),
         )
         actionService.removeEventListener('changed', changed)
     })
@@ -446,6 +450,8 @@ describe('ActionEditor', () => {
             'actions/review.json',
             expect.objectContaining({ phrases: [{ text: '**Run all tests**', title: 'Run tests' }] }),
             'actions/review.json',
+            expect.any(Object),
+            expect.any(Function),
         )
 
         fireEvent.click(screen.getByRole('button', { name: 'Delete this predefined phrase' }))
@@ -456,7 +462,22 @@ describe('ActionEditor', () => {
             'actions/review.json',
             expect.objectContaining({ phrases: [] }),
             'actions/review.json',
+            expect.any(Object),
+            expect.any(Function),
         )
+    })
+
+    it('discards an unflushed phrase buffer when deleting that phrase', () => {
+        const action = loadAction({ phrases: [{ text: 'Original text', title: 'Temporary' }] })
+        renderEditor(action)
+        fireEvent.click(screen.getByRole('tab', { name: 'Temporary' }))
+        const phraseEditor = within(screen.getByTestId('mdx-editor')).getAllByRole('textbox')[1]
+        fireEvent.change(phraseEditor, { target: { value: 'Unflushed text' } })
+
+        fireEvent.click(screen.getByRole('button', { name: 'Delete this predefined phrase' }))
+
+        expect(screen.getByRole('tab', { name: 'Prompt' })).toHaveAttribute('aria-selected', 'true')
+        expect(actionService.getDraft('actions/review.json').definition.phrases).toEqual([])
     })
 
     it('uses phrase titles or truncated first Markdown lines as tab labels', () => {
@@ -606,6 +627,8 @@ describe('ActionEditor', () => {
             'actions/review.json',
             expect.objectContaining({ id: 'review-action', label: 'Review code' }),
             'actions/review-code.json',
+            expect.any(Object),
+            expect.any(Function),
         )
     })
 
@@ -643,6 +666,8 @@ describe('ActionEditor', () => {
             'actions/review.json',
             expect.any(Function),
             true,
+            expect.any(Object),
+            expect.any(Function),
         )
         expect(actionService.getActionByPath('actions/review.json')?.label).toBe('Published label')
         expect(changed).toHaveBeenCalled()
@@ -671,6 +696,8 @@ describe('ActionEditor', () => {
             'actions/review.json',
             expect.objectContaining({ label: 'Retry this value' }),
             'actions/retry-this-value.json',
+            expect.any(Object),
+            expect.any(Function),
         )
         expect(screen.queryByText('disk unavailable')).not.toBeInTheDocument()
     })
@@ -704,6 +731,8 @@ describe('ActionEditor', () => {
             'actions/review.json',
             expect.objectContaining({ label: 'Review code 2' }),
             'actions/review-code-2.json',
+            expect.any(Object),
+            expect.any(Function),
         )
     })
 
@@ -750,6 +779,8 @@ describe('ActionEditor', () => {
             'actions/review.json',
             expect.objectContaining({ label: 'Review code' }),
             'actions/review-code.json',
+            expect.any(Object),
+            expect.any(Function),
         )
     })
 

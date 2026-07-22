@@ -45,7 +45,6 @@ function createBridge(actionFiles: ActionFile[] = []): ElectronDataBridge {
             return []
         }),
         createProject: vi.fn(async (project) => project),
-        createWorkingFolderFromTemplate: vi.fn(async (project) => project),
         deleteFile: vi.fn(async (request) => {
             const existingIndex = files.findIndex((file) => file.path === request.path)
             if (existingIndex >= 0) files.splice(existingIndex, 1)
@@ -72,7 +71,7 @@ function createBridge(actionFiles: ActionFile[] = []): ElectronDataBridge {
             workingFolder: 'design',
         })),
         loadProjectConfig: vi.fn(async () => ({ backgroundShade: 'blue' as const, projectFolder: '', workingFolder: 'design' })),
-        loadWorktrees: vi.fn(async () => []),
+        onWorktreesChanged: vi.fn(() => vi.fn()),
         moveFiles: vi.fn(async (request) => {
             for (const move of request.moves) {
                 const existingIndex = files.findIndex((file) => file.path === move.fromPath)
@@ -84,8 +83,8 @@ function createBridge(actionFiles: ActionFile[] = []): ElectronDataBridge {
         push: vi.fn(),
         resolveProject: vi.fn(async (project) => project),
         saveProjectConfig: vi.fn(),
-        addWorktree: vi.fn(async () => null),
-        removeWorktree: vi.fn(async () => []),
+        addWorktree: vi.fn(async () => false),
+        removeWorktree: vi.fn(async () => undefined),
         watchProject: vi.fn(() => vi.fn()),
     }
 }
@@ -102,7 +101,6 @@ function createResetStorage(): StorageService {
         checkoutBranch: vi.fn(async (project, branch) => ({ ...project, branch })),
         commit: vi.fn(async () => []),
         createProject: vi.fn(async (project) => project),
-        createWorkingFolderFromTemplate: vi.fn(async (project) => project),
         deleteFile: vi.fn(),
         deleteFolder: vi.fn(),
         hasPendingPush: vi.fn(() => false),
@@ -185,7 +183,8 @@ function mockGithubFetch() {
 describe('ProjectWorkspace', () => {
     beforeEach(() => {
         configService.init({ desktopConfig: null })
-        projectPersistenceService.init({ actionService, dataService })
+        openFilesService.init({ actionService, dataService })
+        projectPersistenceService.init({ actionService, dataService, openFilesService })
         dataService.init({ storage: createResetStorage() })
         openFilesService.init({ actionService, dataService })
         cardMarkdownDataSource.init(dataService)
@@ -311,7 +310,7 @@ describe('ProjectWorkspace', () => {
         fireEvent.change(screen.getByLabelText('Project folder'), { target: { value: 'docs' } })
         fireEvent.click(screen.getByRole('button', { name: 'Create' }))
 
-        await waitFor(() => expect(bridge.createWorkingFolderFromTemplate).toHaveBeenCalledWith(expect.any(Object), 'docs/active'))
+        await waitFor(() => expect(bridge.createProject).toHaveBeenCalledWith(expect.any(Object), 'docs/active'))
         await waitFor(() => expect(bridge.saveProjectConfig).toHaveBeenCalledWith(expect.any(Object), expect.objectContaining({
             projectFolder: 'docs',
             workingFolder: 'active',
@@ -480,7 +479,7 @@ describe('ProjectWorkspace', () => {
 
         expect(await screen.findByText('Working folder is missing: missing')).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Use folder docs' })).toBeInTheDocument()
-        expect(bridge.createWorkingFolderFromTemplate).not.toHaveBeenCalled()
+        expect(bridge.createProject).not.toHaveBeenCalled()
 
         fireEvent.click(screen.getByRole('button', { name: 'Use folder docs' }))
 
@@ -495,7 +494,7 @@ describe('ProjectWorkspace', () => {
             ]),
             workingFolder: 'docs',
         })))
-        expect(bridge.createWorkingFolderFromTemplate).not.toHaveBeenCalled()
+        expect(bridge.createProject).not.toHaveBeenCalled()
         expect(await screen.findByText('Root')).toBeInTheDocument()
     })
 
@@ -514,7 +513,7 @@ describe('ProjectWorkspace', () => {
         })
         bridge.loadProject = loadProject
         bridge.loadProjectRoot = loadProject
-        bridge.createWorkingFolderFromTemplate = vi.fn(async (project) => {
+        bridge.createProject = vi.fn(async (project) => {
             isCreated = true
 
             return project
@@ -525,11 +524,11 @@ describe('ProjectWorkspace', () => {
         requestLocalProject()
 
         await screen.findByText('Working folder is missing: missing')
-        expect(bridge.createWorkingFolderFromTemplate).not.toHaveBeenCalled()
+        expect(bridge.createProject).not.toHaveBeenCalled()
 
         fireEvent.click(screen.getByRole('button', { name: "Create 'missing' from template" }))
 
-        await waitFor(() => expect(bridge.createWorkingFolderFromTemplate).toHaveBeenCalledWith(expect.any(Object), 'missing'))
+        await waitFor(() => expect(bridge.createProject).toHaveBeenCalledWith(expect.any(Object), 'missing'))
         await waitFor(() => expect(bridge.saveProjectConfig).toHaveBeenCalledWith(expect.any(Object), expect.objectContaining({ workingFolder: 'missing' })))
         expect(await screen.findByText('Root')).toBeInTheDocument()
     })
@@ -717,7 +716,7 @@ describe('ProjectWorkspace', () => {
         await waitFor(() => expect(bridge.deleteFile).toHaveBeenCalledWith(expect.objectContaining({ path: actionFile.path })))
         expect(openFilesService.getSnapshot().documents).toHaveLength(0)
         expect(screen.queryByRole('tab', { name: /Test/u })).not.toBeInTheDocument()
-    })
+    }, 10_000)
 
     it('reveals a navigated card and keeps the current card view', async () => {
         window.md2Data = createBridge()

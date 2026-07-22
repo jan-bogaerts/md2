@@ -96,12 +96,12 @@ describe('DataService', () => {
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
         await service.persistActionFile({ content: '{"label":"Draft"}', path: 'actions/review.json' })
 
-        expect(service.hasPendingActionFile('actions/review.json')).toBe(true)
-        service.discardPendingActionFile('actions/review.json')
+        expect(service.hasPendingFile('actions/review.json')).toBe(true)
+        service.discardPendingFile('actions/review.json')
         await projectPersistenceService.flushPendingChanges()
         await vi.advanceTimersByTimeAsync(30000)
 
-        expect(service.hasPendingActionFile('actions/review.json')).toBe(false)
+        expect(service.hasPendingFile('actions/review.json')).toBe(false)
         expect(storage.commit).not.toHaveBeenCalled()
     })
 

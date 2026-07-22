@@ -311,7 +311,7 @@ describe('GithubStorageService', () => {
         const service = new GithubStorageService()
         service.init({ accessToken: 'token', fetchImplementation })
 
-        await service.createWorkingFolderFromTemplate(project, 'design')
+        await service.createProject(project, 'design')
 
         const blobCall = fetchImplementation.mock.calls.find(([url]) => url.includes('/repos/owner/repo/git/blobs'))
         const commitCalls = fetchImplementation.mock.calls.filter(([url]) => url.includes('/repos/owner/repo/git/commits'))

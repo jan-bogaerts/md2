@@ -11,6 +11,7 @@ import { AppThemeProvider } from '../../theme/theme_provider'
 import { dataService } from '../../services/data/data_service'
 import { worktreeService } from '../../services/project/worktree_service'
 import { cardMarkdownDataSource } from '../editor/card_markdown_data_source'
+import { openFilesService } from '../../services/open_files_service'
 
 function card(id: string, title: string, status: string, policy: Record<string, boolean> = {}): ProjectCard {
     return {
@@ -80,16 +81,17 @@ function renderCardView(overrides: Partial<Parameters<typeof CardView>[0]> = {})
 
 describe('CardView', () => {
     beforeEach(() => {
-        vi.spyOn(dataService, 'hasPendingActionFile').mockReturnValue(false)
-        vi.spyOn(cardMarkdownDataSource, 'getMarkdown').mockImplementation((documentId) => (
-            cards.find((projectCard) => projectCard.header.internalId === documentId)?.content ?? ''
-        ))
-        vi.spyOn(cardMarkdownDataSource, 'edit').mockImplementation(() => undefined)
+        vi.spyOn(dataService, 'hasPendingFile').mockReturnValue(false)
+        vi.spyOn(cardMarkdownDataSource, 'getMarkdown').mockImplementation((target) => target.document.kind === 'card'
+            ? target.document.getDraft().content
+            : '')
         vi.spyOn(cardMarkdownDataSource, 'commit').mockReturnValue(true)
+        vi.spyOn(cardMarkdownDataSource, 'updateActiveCardTitle').mockImplementation(() => undefined)
     })
 
     afterEach(() => {
         cleanup()
+        for (const document of openFilesService.getRegisteredDocuments()) openFilesService.discardDocument(document)
         actionService.clear()
         vi.restoreAllMocks()
     })
@@ -253,14 +255,15 @@ describe('CardView', () => {
     })
 
     it('edits the title from the card popup and commits on Enter', () => {
-        const handlers = renderCardView()
+        renderCardView()
 
         fireEvent.click(screen.getByRole('button', { name: 'Drag F-1' }))
         const titleInput = within(screen.getByRole('dialog')).getByRole('textbox', { name: 'Card title' })
         fireEvent.change(titleInput, { target: { value: 'Renamed in popup' } })
         fireEvent.keyDown(titleInput, { key: 'Enter' })
 
-        expect(handlers.onTitleChange).toHaveBeenCalledWith('design/F-1.md', 'Renamed in popup')
+        expect(cardMarkdownDataSource.updateActiveCardTitle)
+            .toHaveBeenCalledWith('board-card', 'Renamed in popup')
     })
 
     it('expands and restores the card popup from the formatting toolbar', () => {
@@ -284,17 +287,16 @@ describe('CardView', () => {
         expect(within(screen.getByRole('dialog')).getByText('Dirty')).toBeInTheDocument()
     })
 
-    it('tracks pending commits for the open card', () => {
-        const hasPendingFile = vi.mocked(dataService.hasPendingActionFile)
+    it('shows saved only after the canonical document revision is acknowledged', () => {
         renderCardView()
         fireEvent.click(screen.getByRole('button', { name: 'Drag F-1' }))
+        const document = openFilesService.findDocument(cards[0])
+        if (!document || document.kind !== 'card') throw new Error('Missing open card document')
 
-        hasPendingFile.mockReturnValue(true)
-        act(() => dataService.dispatchEvent(new Event('changed')))
+        act(() => document.updateDraft({ ...document.getDraft(), content: 'Edited' }))
         expect(within(screen.getByRole('dialog')).getByText('Dirty')).toBeInTheDocument()
 
-        hasPendingFile.mockReturnValue(false)
-        act(() => dataService.dispatchEvent(new Event('changed')))
+        act(() => document.createSaveReference().acknowledge())
         expect(within(screen.getByRole('dialog')).getByText('Saved')).toBeInTheDocument()
     })
 
@@ -420,7 +422,7 @@ describe('CardView', () => {
         renderCardView()
 
         expect(screen.queryByRole('button', { name: /Agent conversations/u })).not.toBeInTheDocument()
-        fireEvent.click(screen.getByRole('button', { name: /F-1: C:.*project; agent idle/u }))
+        fireEvent.click(screen.getByRole('button', { name: /F-1: C:.*project/u }))
         fireEvent.click(screen.getByRole('menuitem', { name: /Primary — C:.*project/u }))
 
         expect(setCardWorktree).toHaveBeenCalledWith('design/F-1.md', null)

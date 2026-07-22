@@ -7,8 +7,14 @@ import { AppThemeProvider } from '../../theme/theme_provider'
 import { WorktreeConfigList } from './worktree_config_list'
 
 const project: ProjectReference = { branch: 'main', id: 'project', rootPath: 'C:\\primary' }
-const first: WorktreeRecord = { branch: 'one', error: null, path: 'C:\\one', valid: true }
-const second: WorktreeRecord = { branch: 'two', error: null, path: 'C:\\two', valid: true }
+const first: WorktreeRecord = {
+    branch: 'one', error: null, parkingBranch: 'md2/parking/one', path: 'C:\\one',
+    status: { ahead: 0, behind: 0, dirty: false, hasUpstream: false }, valid: true,
+}
+const second: WorktreeRecord = {
+    branch: 'two', error: null, parkingBranch: 'md2/parking/two', path: 'C:\\two',
+    status: { ahead: 0, behind: 0, dirty: false, hasUpstream: false }, valid: true,
+}
 
 function initWorktreeService(storage: StorageService) {
     worktreeService.init({
@@ -27,13 +33,20 @@ describe('WorktreeConfigList', () => {
     })
 
     it('adds and removes Git worktrees immediately', async () => {
+        let callback: ((state: { error: null, project: ProjectReference, records: WorktreeRecord[] }) => void) | null = null
         const storage = {
-            addWorktree: vi.fn(async () => [first, second]),
-            loadWorktrees: vi.fn(async () => [first]),
-            removeWorktree: vi.fn(async () => [second]),
+            addWorktree: vi.fn(async () => {
+                callback?.({ error: null, project, records: [first, second] })
+                return true
+            }),
+            onWorktreesChanged: vi.fn((listener) => {
+                callback = listener
+                listener({ error: null, project, records: [first] })
+                return vi.fn()
+            }),
+            removeWorktree: vi.fn(async () => callback?.({ error: null, project, records: [second] })),
         } as unknown as StorageService
         initWorktreeService(storage)
-        await worktreeService.load(project)
 
         render(<AppThemeProvider><WorktreeConfigList /></AppThemeProvider>)
         expect(screen.getByText('C:\\one')).toBeInTheDocument()
@@ -49,13 +62,15 @@ describe('WorktreeConfigList', () => {
     })
 
     it('shows progress while creating a Git worktree', async () => {
-        const pendingAddition = createDeferred<WorktreeRecord[]>()
+        const pendingAddition = createDeferred<boolean>()
         const storage = {
             addWorktree: vi.fn(() => pendingAddition.promise),
-            loadWorktrees: vi.fn(async () => [first]),
+            onWorktreesChanged: vi.fn((listener) => {
+                listener({ error: null, project, records: [first] })
+                return vi.fn()
+            }),
         } as unknown as StorageService
         initWorktreeService(storage)
-        await worktreeService.load(project)
 
         render(<AppThemeProvider><WorktreeConfigList /></AppThemeProvider>)
         fireEvent.click(screen.getByRole('button', { name: 'Add linked worktree' }))
@@ -63,7 +78,7 @@ describe('WorktreeConfigList', () => {
         expect(await screen.findByRole('progressbar', { name: 'Creating linked worktree' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Add linked worktree' })).toBeDisabled()
 
-        pendingAddition.resolve([first, second])
+        pendingAddition.resolve(true)
         await waitFor(() => expect(screen.queryByRole('progressbar', { name: 'Creating linked worktree' })).not.toBeInTheDocument())
     })
 })

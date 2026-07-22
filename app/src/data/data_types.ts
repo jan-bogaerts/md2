@@ -116,6 +116,12 @@ export interface WorktreeRecord {
     valid: boolean
 }
 
+export interface WorktreeState {
+    error: string | null
+    project: ProjectReference | null
+    records: WorktreeRecord[]
+}
+
 export interface WorktreeStatus {
     ahead: number
     behind: number
@@ -299,15 +305,14 @@ export interface StorageProjectFiles {
 }
 
 export interface StorageService {
-    addWorktree?(project: ProjectReference): Promise<WorktreeRecord[] | null>
+    addWorktree?(project: ProjectReference): Promise<boolean>
     checkoutBranch(project: ProjectReference, branch: string): Promise<ProjectReference>
     commit(request: CommitRequest): Promise<CommitResult>
-    commitWorktree?(request: CommitWorktreeRequest): Promise<WorktreeRecord[]>
+    commitWorktree?(request: CommitWorktreeRequest): Promise<void>
     createProject(project: ProjectReference, workingFolder: string): Promise<ProjectReference>
-    createWorkingFolderFromTemplate(project: ProjectReference, workingFolder: string): Promise<ProjectReference>
     deleteFile(request: DeleteFileRequest): Promise<void>
     deleteFolder(request: DeleteFolderRequest): Promise<void>
-    discardWorktreeChanges?(request: WorktreeOperationRequest): Promise<WorktreeRecord[]>
+    discardWorktreeChanges?(request: WorktreeOperationRequest): Promise<void>
     discardPendingCommits?(project: ProjectReference): void
     hasPendingPush?(project: ProjectReference): boolean
     listBranches(project: ProjectReference): Promise<BranchReference[]>
@@ -322,21 +327,22 @@ export interface StorageService {
     loadFile?(project: ProjectReference, path: string): Promise<MarkdownFile>
     loadProjectRoot(project: ProjectReference, workingFolder: string): Promise<StorageProjectFiles>
     loadProjectConfig(project: ProjectReference): Promise<Partial<ProjectConfig> | null>
-    loadWorktrees?(project: ProjectReference): Promise<WorktreeRecord[]>
+    onWorktreesChanged?(callback: (state: WorktreeState) => void): () => void
     restorePendingCommits?(project: ProjectReference): Promise<void>
     resolveProject?(project: ProjectReference): Promise<ProjectReference>
     listRepositoryFiles(project: ProjectReference): Promise<string[]>
     listTopLevelFolders(project: ProjectReference): Promise<TopLevelFolderReference[]>
     loadPendingPush?(project: ProjectReference): Promise<void>
     moveFiles(request: MoveFilesRequest): Promise<void>
-    parkWorktree?(request: WorktreeOperationRequest): Promise<WorktreeRecord[]>
-    prepareWorktree?(request: PrepareWorktreeRequest): Promise<WorktreeRecord[]>
-    pullWorktree?(request: WorktreeOperationRequest): Promise<WorktreeRecord[]>
+    parkWorktree?(request: WorktreeOperationRequest): Promise<void>
+    prepareWorktree?(request: PrepareWorktreeRequest): Promise<void>
+    pullWorktree?(request: WorktreeOperationRequest): Promise<void>
     push(project: ProjectReference): Promise<void>
-    pushWorktree?(request: WorktreeOperationRequest): Promise<WorktreeRecord[]>
+    pushWorktree?(request: WorktreeOperationRequest): Promise<void>
+    refreshWorktrees?(project: ProjectReference): Promise<void>
     saveActionSchedules?(project: ProjectReference, actionsFolder: string, schedules: ActionSchedule[]): Promise<ActionSchedule[]>
     saveProjectConfig(project: ProjectReference, config: ProjectConfig): Promise<void>
-    removeWorktree?(project: ProjectReference, folderPath: string): Promise<WorktreeRecord[]>
+    removeWorktree?(project: ProjectReference, folderPath: string): Promise<void>
     stopAgent?(project: ProjectReference, runId: string): Promise<void>
     watchProject?(project: ProjectReference, onChange: (event: ProjectWatchEvent) => void): () => void
 }

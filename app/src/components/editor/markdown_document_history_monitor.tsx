@@ -1,7 +1,11 @@
 import { useCellValue } from '@mdxeditor/editor'
 import { useEffect } from 'react'
 import { markdownDocumentHistoryConfig$ } from './markdown_document_history_cell'
-import type { ActiveMarkdownDocumentChangedDetail, MarkdownReplacedDetail } from './markdown_data_source'
+import {
+    sameMarkdownTarget,
+    type ActiveMarkdownDocumentChangedDetail,
+    type MarkdownReplacedDetail,
+} from './markdown_data_source'
 
 /** Keeps one editor's content and document history synchronized with its data-source binding. */
 export function MarkdownDocumentHistoryMonitor() {
@@ -14,7 +18,7 @@ export function MarkdownDocumentHistoryMonitor() {
             binding,
             completeDocumentSwitch,
             dataSource,
-            getDocumentId,
+            getTarget,
             getMarkdown,
             historyStore,
             prepareDocumentSwitch,
@@ -27,12 +31,12 @@ export function MarkdownDocumentHistoryMonitor() {
             const detail = pendingDocumentChange
             if (!detail) return
 
-            const markdown = detail.documentId ? dataSource.getMarkdown(detail.documentId) : ''
+            const markdown = detail.target ? dataSource.getMarkdown(detail.target) : ''
             const currentMarkdown = prepareDocumentSwitch(detail, markdown)
             if (currentMarkdown === null) return
 
             pendingDocumentChange = null
-            historyStore.switchDocument(detail.documentId, markdown, currentMarkdown, replaceMarkdown)
+            historyStore.switchDocument(detail.target, markdown, currentMarkdown, replaceMarkdown)
             completeDocumentSwitch(getMarkdown())
         }
         const handleActiveDocumentChanged = (event: Event) => {
@@ -44,11 +48,11 @@ export function MarkdownDocumentHistoryMonitor() {
         }
         const handleMarkdownReplaced = (event: Event) => {
             const detail = (event as CustomEvent<MarkdownReplacedDetail>).detail
-            if (detail.documentId !== getDocumentId() || detail.originBinding === binding) return
+            if (!sameMarkdownTarget(detail.target, getTarget()) || detail.originBinding === binding) return
 
-            replaceMarkdown(dataSource.getMarkdown(detail.documentId))
+            replaceMarkdown(dataSource.getMarkdown(detail.target))
             const markdown = getMarkdown()
-            historyStore.replaceDocument(detail.documentId, markdown)
+            historyStore.replaceDocument(detail.target, markdown)
             completeDocumentSwitch(markdown)
         }
         dataSource.addEventListener('activeDocumentChanged', handleActiveDocumentChanged)

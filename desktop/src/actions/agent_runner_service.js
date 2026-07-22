@@ -96,17 +96,25 @@ function assistantMessageId(runId) {
     return `${runId}-assistant`;
 }
 
+function joinChunk(existing, chunk) {
+    const trimmed = chunk.replace(/^\n+|\n+$/g, '');
+    if (existing.length === 0) return trimmed;
+    if (trimmed.length === 0) return existing;
+
+    return `${existing}\n\n${trimmed}`;
+}
+
 function appendAssistantOutput(run, content, timestamp) {
-    run.stdout += content;
+    run.stdout = joinChunk(run.stdout, content);
     const messageId = assistantMessageId(run.id);
     const currentIndex = run.conversation.messages.findIndex(({ id }) => id === messageId);
     if (currentIndex < 0) {
-        run.conversation.messages.push(createMessage(messageId, 'assistant', content, timestamp, run.agent));
+        run.conversation.messages.push(createMessage(messageId, 'assistant', content.replace(/^\n+|\n+$/g, ''), timestamp, run.agent));
         return;
     }
 
     const current = run.conversation.messages[currentIndex];
-    run.conversation.messages[currentIndex] = { ...current, content: `${current.content}${content}`, timestamp };
+    run.conversation.messages[currentIndex] = { ...current, content: joinChunk(current.content, content), timestamp };
 }
 
 function completeAssistantOutput(run, completedAt) {

@@ -1,3 +1,4 @@
+import { actionContextIdentity } from '../../data/action_context'
 import type { ActionContext } from '../../data/action_context'
 import type { ActionDefinition } from '../../data/action_types'
 import type { AgentConversationMessage } from '../../data/data_types'
@@ -110,11 +111,7 @@ function updateOutputLogs(
 }
 
 function contextKey(context: ActionContext) {
-    return Object.entries(context)
-        .filter(([, value]) => value !== undefined)
-        .sort(([first], [second]) => first.localeCompare(second))
-        .map(([key, value]) => `${key}=${value}`)
-        .join('\u0000')
+    return actionContextIdentity(context)
 }
 
 export async function cancelActionExecution(executionId: string) {

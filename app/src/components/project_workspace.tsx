@@ -295,7 +295,6 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
                             onDeleteFile={handleDeleteFile}
                             onDeleteFolder={handleDeleteFolder}
                             projectFolder={projectFolder}
-                            projectKey={`${project.id}:${project.branch}`}
                             repositoryFiles={repositoryFiles}
                             states={states}
                             workingFolder={workingFolder}

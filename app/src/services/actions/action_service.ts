@@ -17,18 +17,21 @@ import {
     validateActionDefinitionGraph,
 } from './action_definition_loader'
 import { actionFilePath } from './action_definition_writer'
+import { openFilesService, type ActionOpenDocument, type OpenDocumentSaveReference } from '../open_files_service'
 
 const ACTION_FILE_EXTENSION = '.json'
 const NEW_ACTION_NAME = 'new-action'
 
 interface ActionPersistenceGateway {
-    discardPendingActionFile?: (path: string) => void
-    hasPendingActionFile?: (path: string) => boolean
+    discardPendingFile?: (path: string) => void
+    hasPendingFile?: (path: string) => boolean
     persistActionFile(
         file: ActionFile,
         sourcePath?: string,
         onPathCommitted?: (fromPath: string, toPath: string) => void,
         sourceExists?: boolean,
+        saveReference?: OpenDocumentSaveReference,
+        onPersisted?: () => void,
     ): Promise<void>
 }
 
@@ -285,7 +288,13 @@ export class ActionService extends EventTarget {
         return actionValidationResult(() => validateActionDefinitionGraph(this.definitionsWithDefinition(path, definition)))
     }
 
-    async saveDefinition(path: string, definition: RawActionDefinition, targetPath = path) {
+    async saveDefinition(
+        path: string,
+        definition: RawActionDefinition,
+        targetPath = path,
+        saveReference?: OpenDocumentSaveReference,
+        onPersisted?: () => void,
+    ) {
         const definitions = this.definitionsWithDefinition(path, definition)
         const actions = preserveActionEditorStates(this.actions, validateActionDefinitionGraph(definitions))
         const content = serializeActionDefinition(definition)
@@ -294,7 +303,13 @@ export class ActionService extends EventTarget {
 
         const sourceExists = this.files.some((file) => file.path === path) && !this.uncommittedCreationPaths.has(path)
         if (sourceExists && targetPath === path) {
-            await this.persistenceGateway().persistActionFile(persistedFile)
+            if (saveReference || onPersisted) {
+                await this.persistenceGateway().persistActionFile(
+                    persistedFile, persistedFile.path, undefined, true, saveReference, onPersisted,
+                )
+            } else {
+                await this.persistenceGateway().persistActionFile(persistedFile)
+            }
         } else {
             if (!sourceExists) this.uncommittedCreationPaths.add(path)
             try {
@@ -303,6 +318,8 @@ export class ActionService extends EventTarget {
                     path,
                     (fromPath, toPath) => this.reconcileCommittedPath(fromPath, toPath),
                     sourceExists,
+                    saveReference,
+                    onPersisted,
                 )
             } catch (error) {
                 if (!sourceExists) this.uncommittedCreationPaths.delete(path)
@@ -376,6 +393,7 @@ export class ActionService extends EventTarget {
             validation,
         }
         this.drafts.set(path, draft)
+        this.updateOpenDocument(path, definition)
         this.dispatchChanged()
         if (draft.validation.valid && !draft.deleted) this.queueDraftSave(path, definition, revision, targetPath)
 
@@ -393,6 +411,7 @@ export class ActionService extends EventTarget {
             revision: current.revision + 1,
         }
         this.drafts.set(path, draft)
+        this.updateOpenDocument(path, definition)
 
         return draft
     }
@@ -446,6 +465,7 @@ export class ActionService extends EventTarget {
             targetPath: path,
             validation: validateDraftDefinition(path, draft.conflict),
         })
+        this.findOpenDocument(path)?.replaceDraft(draft.conflict)
         this.dispatchChanged()
     }
 
@@ -461,8 +481,10 @@ export class ActionService extends EventTarget {
         const draft = this.requireDraft(path)
         if (!draft.deleted) throw new Error(`Cannot discard an action that is not deleted: ${path}`)
 
-        this.persistenceGateway().discardPendingActionFile?.(path)
+        const document = this.findOpenDocument(path)
+        this.persistenceGateway().discardPendingFile?.(path)
         this.drafts.delete(path)
+        if (document) openFilesService.discardDocument(document)
         this.dispatchChanged()
     }
 
@@ -648,8 +670,8 @@ export class ActionService extends EventTarget {
                 if (!previousDefinition && !draft.recreating) continue
 
                 const gateway = this.persistenceGateway()
-                const pendingPersistence = gateway.hasPendingActionFile?.(path) ?? false
-                gateway.discardPendingActionFile?.(path)
+                const pendingPersistence = gateway.hasPendingFile?.(path) ?? false
+                gateway.discardPendingFile?.(path)
                 const recoverable = draft.revision !== draft.savedRevision
                     || draft.saving
                     || draft.recreating
@@ -707,6 +729,7 @@ export class ActionService extends EventTarget {
     ) {
         const current = this.requireDraft(path)
         const deletionRevision = current.deletionRevision
+        const saveReference = this.findOpenDocument(path)?.createSaveReference()
         const chain = current.chain.then(async () => {
             const startedDraft = this.drafts.get(path)
             if (!startedDraft) return
@@ -714,7 +737,13 @@ export class ActionService extends EventTarget {
             this.drafts.set(path, { ...startedDraft, error: null, recreating: recreate, saving: true })
             this.dispatchChanged()
             try {
-                await this.saveDefinition(path, definition, targetPath)
+                await this.saveDefinition(
+                    path,
+                    definition,
+                    targetPath,
+                    saveReference,
+                    () => this.acknowledgeDraftPersistence(path, revision, deletionRevision),
+                )
                 const savedDraft = this.drafts.get(path)
                 if (!savedDraft) return
                 if (savedDraft.deletionRevision !== deletionRevision) return
@@ -723,7 +752,6 @@ export class ActionService extends EventTarget {
                     deleted: recreate ? false : savedDraft.deleted,
                     error: null,
                     recreating: false,
-                    savedRevision: Math.max(savedDraft.savedRevision, revision),
                     saving: false,
                 })
             } catch (error) {
@@ -736,6 +764,26 @@ export class ActionService extends EventTarget {
             this.dispatchChanged()
         })
         this.drafts.set(path, { ...current, chain })
+    }
+
+    private acknowledgeDraftPersistence(path: string, revision: number, deletionRevision: number) {
+        const draft = this.drafts.get(path)
+        if (!draft || draft.deletionRevision !== deletionRevision) return
+
+        this.drafts.set(path, { ...draft, savedRevision: Math.max(draft.savedRevision, revision) })
+        this.dispatchChanged()
+    }
+
+    private findOpenDocument(path: string): ActionOpenDocument | null {
+        const action = this.drafts.get(path)?.action ?? this.getActionByPath(path)
+        if (!action) return null
+
+        const document = openFilesService.findDocument(action)
+        return document?.kind === 'action' ? document : null
+    }
+
+    private updateOpenDocument(path: string, definition: RawActionDefinition) {
+        this.findOpenDocument(path)?.updateDraft(definition, this)
     }
 
     private filesWithFile(file: ActionFile): ActionFile[] {

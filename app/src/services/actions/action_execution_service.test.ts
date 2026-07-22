@@ -101,6 +101,20 @@ describe('ActionExecutionService', () => {
         service.stop()
     })
 
+    it('keeps matching an execution after the card header changes during the run', () => {
+        const { bridge, emit } = bridgeWithEvents()
+        setActionBridgeOverride(bridge)
+        const service = new ActionExecutionService()
+        const runContext = { cardInternalId: 'card-1', file: 'design/F-1.md', kind: 'card' as const, state: 'design', title: 'Old title' }
+        service.start()
+
+        emit({ actionId: 'build', context: runContext, executionId: 'execution-1', phase: 'main', rootActionId: 'build', status: 'running', type: 'execution' })
+        const reloadedContext = { ...runContext, state: 'ready', title: 'New title', worktree: '1' }
+
+        expect(service.getExecution('build', reloadedContext)).toMatchObject({ executionId: 'execution-1' })
+        service.stop()
+    })
+
     it('does not notify running-only subscribers for output deltas', () => {
         const { bridge, emit } = bridgeWithEvents()
         setActionBridgeOverride(bridge)

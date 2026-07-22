@@ -28,6 +28,7 @@ function createDispatch(options = {}) {
         assertGitRoot: vi.fn(),
         checkoutBranch: vi.fn(async (project, branch) => ({ ...project, branch })),
         commit: vi.fn(async () => []),
+        createProject: vi.fn(async (project) => project),
         hasPendingPush: vi.fn(async () => false),
         listAgentConversationReferences: vi.fn(async () => ['design/activity/project.json#conversation=conversation-1']),
         loadFile: vi.fn(async () => ({ content: '# Root', path: 'design/F-1.md' })),
@@ -61,11 +62,19 @@ function createDispatch(options = {}) {
         resolve: vi.fn(async (primaryProject) => ({ executionProject: primaryProject, transferRecord: null })),
     };
     const worktreeService = {
-        add: vi.fn(async () => [{ branch: 'feature', error: null, path: 'C:/feature', valid: true }]),
-        load: vi.fn(async () => []),
-        prepare: vi.fn(async () => [{ branch: 'card-title', error: null, path: 'C:/feature', valid: true }]),
-        remove: vi.fn(async () => []),
+        add: vi.fn(async () => undefined),
+        commit: vi.fn(async () => undefined),
+        discard: vi.fn(async () => undefined),
+        getRecords: vi.fn(() => []),
+        park: vi.fn(async () => undefined),
+        prepare: vi.fn(async () => undefined),
+        pull: vi.fn(async () => undefined),
+        push: vi.fn(async () => undefined),
+        refreshRemote: vi.fn(async () => undefined),
+        remove: vi.fn(async () => undefined),
         resolvePath: vi.fn(),
+        startProject: vi.fn(async () => undefined),
+        subscribe: vi.fn(() => vi.fn()),
     };
     const desktopConfig = options.desktopConfig ?? {agent: 'codex', agentProfiles: [{ command: ['codex'], models: ['gpt-5'], name: 'codex' }], model: 'gpt-5'};
     const dispatch = createLocalBridgeDispatch({
@@ -110,6 +119,19 @@ describe('createLocalBridgeDispatch', () => {
         expect(localGitService.hasPendingPush).toHaveBeenCalledWith(project);
     });
 
+    it('establishes a created project for following commits', async () => {
+        const { dispatch, localGitService } = createDispatch();
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
+
+        await dispatch.dataBridge.createProject(project, 'design/active');
+        localGitService.commit.mockResolvedValueOnce(undefined);
+        const result = await dispatch.dataBridge.commit({ branch: 'main', files: [], message: 'Add defaults' });
+
+        expect(localGitService.createProject).toHaveBeenCalledWith(project, 'design/active');
+        expect(localGitService.commit).toHaveBeenCalledWith(expect.any(Object), project);
+        expect(result).toEqual([]);
+    });
+
     it('opens a selected folder as a normalized project and establishes it for project operations', async () => {
         const openProjectFolder = vi.fn(async () => 'C:/repo/nested');
         const { actionSchedulerService, dispatch, localGitService } = createDispatch({ openProjectFolder });
@@ -135,14 +157,12 @@ describe('createLocalBridgeDispatch', () => {
         expect(localGitService.commit).toHaveBeenCalledWith(expect.any(Object), currentProject);
     });
 
-    it('adds a worktree at the selected folder and returns refreshed Git worktrees', async () => {
+    it('adds a worktree at the selected folder and returns the picker status', async () => {
         const openWorktreeFolder = vi.fn(async () => 'C:/feature');
         const { dispatch, worktreeService } = createDispatch({ openWorktreeFolder });
         const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
 
-        await expect(dispatch.dataBridge.addWorktree(project)).resolves.toEqual([
-            { branch: 'feature', error: null, path: 'C:/feature', valid: true },
-        ]);
+        await expect(dispatch.dataBridge.addWorktree(project)).resolves.toBe(true);
         expect(worktreeService.add).toHaveBeenCalledWith(project, 'C:/feature');
     });
 
@@ -150,7 +170,7 @@ describe('createLocalBridgeDispatch', () => {
         const { dispatch, worktreeService } = createDispatch();
         const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
 
-        await expect(dispatch.dataBridge.removeWorktree(project, 'C:/feature')).resolves.toEqual([]);
+        await expect(dispatch.dataBridge.removeWorktree(project, 'C:/feature')).resolves.toBeUndefined();
         expect(worktreeService.remove).toHaveBeenCalledWith(project, 'C:/feature');
     });
 
@@ -159,10 +179,28 @@ describe('createLocalBridgeDispatch', () => {
         const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
         const request = { branchName: 'card-title', project, worktree: 1 };
 
-        await expect(dispatch.dataBridge.prepareWorktree(request)).resolves.toEqual([
-            { branch: 'card-title', error: null, path: 'C:/feature', valid: true },
-        ]);
+        await expect(dispatch.dataBridge.prepareWorktree(request)).resolves.toBeUndefined();
         expect(worktreeService.prepare).toHaveBeenCalledWith(project, 1, 'card-title');
+    });
+
+    it('delegates card worktree lifecycle operations', async () => {
+        const { dispatch, worktreeService } = createDispatch();
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
+        const request = { project, worktree: 1 };
+
+        await dispatch.dataBridge.commitWorktree({ ...request, message: 'F-1: Card' });
+        await dispatch.dataBridge.discardWorktreeChanges(request);
+        await dispatch.dataBridge.parkWorktree(request);
+        await dispatch.dataBridge.pullWorktree(request);
+        await dispatch.dataBridge.pushWorktree(request);
+        await dispatch.dataBridge.refreshWorktrees(project);
+
+        expect(worktreeService.commit).toHaveBeenCalledWith(project, 1, 'F-1: Card');
+        expect(worktreeService.discard).toHaveBeenCalledWith(project, 1);
+        expect(worktreeService.park).toHaveBeenCalledWith(project, 1);
+        expect(worktreeService.pull).toHaveBeenCalledWith(project, 1);
+        expect(worktreeService.push).toHaveBeenCalledWith(project, 1);
+        expect(worktreeService.refreshRemote).toHaveBeenCalledWith(project);
     });
 
     it('revalidates and normalizes a stored local project', async () => {
@@ -257,6 +295,15 @@ describe('createLocalBridgeDispatch', () => {
         dispatch.actionBridge.onActionExecution(callback);
 
         expect(actionRunnerService.subscribe).toHaveBeenCalledWith(callback);
+    });
+
+    it('exposes worktree state subscriptions through the data bridge', () => {
+        const { dispatch, worktreeService } = createDispatch();
+        const callback = vi.fn();
+
+        dispatch.dataBridge.onWorktreesChanged(callback);
+
+        expect(worktreeService.subscribe).toHaveBeenCalledWith(callback);
     });
 
     it('loads history with the runner-owned actions folder and shared definition resolver', async () => {

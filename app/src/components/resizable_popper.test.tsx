@@ -167,6 +167,71 @@ describe('ResizablePopper', () => {
         expect(dialog).toHaveStyle({ height: '350px', left: '450px', top: '250px', width: '450px' })
     })
 
+    it('opens an anchored draggable popper in place and detaches it from its drag handle', () => {
+        Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800, writable: true })
+        Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1200, writable: true })
+        render(
+            <ResizablePopper
+                anchorElement={document.body}
+                draggable
+                initialSize={{ height: 300, width: 400 }}
+                labelId="popper-title"
+                onClose={vi.fn()}
+                open
+                resizeFromAllSides
+                resizeLabel="Resize anchored popper"
+            >
+                <div data-drag-handle="true"><h2 id="popper-title">Anchored popper</h2></div>
+            </ResizablePopper>,
+        )
+        const dialog = screen.getByRole('dialog', { name: 'Anchored popper' })
+        const dragHandle = screen.getByRole('heading', { name: 'Anchored popper' })
+
+        expect(dialog).not.toHaveStyle({ position: 'fixed' })
+        expect(dialog.style.left).toBe('')
+
+        dialog.getBoundingClientRect = vi.fn(() => new DOMRect(120, 80, 400, 300))
+        fireEvent.pointerDown(dragHandle, { clientX: 150, clientY: 100, pointerId: 1 })
+        fireEvent.pointerMove(window, { clientX: 200, clientY: 140, pointerId: 1 })
+        fireEvent.pointerUp(window, { pointerId: 1 })
+
+        expect(dialog).toHaveStyle({ left: '170px', position: 'fixed', top: '120px' })
+    })
+
+    it('leaves clicks on controls inside the drag handle to the control', () => {
+        Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800, writable: true })
+        Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1200, writable: true })
+        render(
+            <ResizablePopper
+                anchorElement={document.body}
+                draggable
+                initialSize={{ height: 300, width: 400 }}
+                labelId="popper-title"
+                onClose={vi.fn()}
+                open
+                resizeFromAllSides
+                resizeLabel="Resize control popper"
+            >
+                <div data-drag-handle="true">
+                    <h2 id="popper-title">Control popper</h2>
+                    <div aria-label="Conversation history" role="combobox" tabIndex={0} />
+                </div>
+            </ResizablePopper>,
+        )
+        const dialog = screen.getByRole('dialog', { name: 'Control popper' })
+        dialog.getBoundingClientRect = vi.fn(() => new DOMRect(120, 80, 400, 300))
+
+        const pointerDown = fireEvent.pointerDown(
+            screen.getByRole('combobox', { name: 'Conversation history' }),
+            { clientX: 150, clientY: 100, pointerId: 1 },
+        )
+        fireEvent.pointerMove(window, { clientX: 200, clientY: 140, pointerId: 1 })
+        fireEvent.pointerUp(window, { pointerId: 1 })
+
+        expect(pointerDown).toBe(true)
+        expect(dialog.style.left).toBe('')
+    })
+
     it('restores a saved size when reopened', () => {
         const storageKey = 'test.resizablePopperSize'
         window.localStorage.removeItem(storageKey)

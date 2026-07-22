@@ -6,7 +6,6 @@ const STORAGE_SAVE_METHODS = new Set<PropertyKey>([
     'cancelActionSchedule',
     'commit',
     'createProject',
-    'createWorkingFolderFromTemplate',
     'deleteFile',
     'deleteFolder',
     'moveFiles',

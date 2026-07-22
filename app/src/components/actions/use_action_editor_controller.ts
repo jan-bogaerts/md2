@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState, type SyntheticEvent } from '
 import type { ActionDefinition } from '../../data/action_types'
 import { actionService } from '../../services/actions/action_service'
 import { openFilesService } from '../../services/open_files_service'
-import { actionMarkdownDocumentId } from '../editor/action_markdown_data_source'
+import type { MarkdownDocumentTarget } from '../editor/markdown_data_source'
 import {
     ACTION_DEFINITION_TAB,
     ACTION_PROMPT_TAB,
@@ -12,13 +12,12 @@ import {
 export interface ActionEditorControllerOptions {
     action: ActionDefinition
     actions: ActionDefinition[]
-    discardMarkdownDocument: (documentId: string) => void
-    markdownDocumentNamespace: string
+    discardMarkdownTarget: (target: MarkdownDocumentTarget) => void
 }
 
 /** Bridge ActionService-owned draft state into ActionEditor presentation. */
 export function useActionEditorController(options: ActionEditorControllerOptions) {
-    const { action, actions, discardMarkdownDocument, markdownDocumentNamespace } = options
+    const { action, actions, discardMarkdownTarget } = options
     const sourcePath = action.sourcePath
     if (!sourcePath) throw new Error(`Action editor requires a persisted action: ${action.id}`)
 
@@ -66,8 +65,18 @@ export function useActionEditorController(options: ActionEditorControllerOptions
     const selectedPhraseIndex = phraseEditorStates.findIndex(({ identity }) => identity === selectedTab)
     const selectedPhrase = selectedPhraseIndex < 0 ? null : phrases[selectedPhraseIndex]
     const activeTab = selectedTab.startsWith('phrase-') && !selectedPhrase ? ACTION_PROMPT_TAB : selectedTab
-    const editorDocumentId = selectedPhrase ? selectedTab : ACTION_PROMPT_TAB
-    const markdownDocumentId = actionMarkdownDocumentId(markdownDocumentNamespace, action.id, editorDocumentId)
+    const sectionIdentity = selectedPhrase ? selectedTab : ACTION_PROMPT_TAB
+    const openDocument = openFilesService.findDocument(action)
+    if (!openDocument || openDocument.kind !== 'action') throw new Error(`Missing open action document: ${action.id}`)
+    const markdownTarget = useMemo<MarkdownDocumentTarget>(
+        () => ({
+            document: openDocument,
+            section: selectedPhrase
+                ? { kind: 'phrase', identity: sectionIdentity }
+                : { kind: 'prompt' },
+        }),
+        [openDocument, sectionIdentity, selectedPhrase],
+    )
     const storeEditorState = useCallback((nextEditorState: typeof editorState) => {
         actionService.setActionEditorState(sourcePath, nextEditorState)
     }, [sourcePath])
@@ -124,7 +133,7 @@ export function useActionEditorController(options: ActionEditorControllerOptions
 
     const handleDeletePhrase = useCallback(() => {
         if (selectedPhraseIndex < 0) return
-        discardMarkdownDocument(markdownDocumentId)
+        discardMarkdownTarget(markdownTarget)
         const currentDefinition = actionService.getDraft(sourcePath).definition
         const currentPhrases = currentDefinition.phrases ?? []
         const nextPhrases = currentPhrases.filter((_phrase, index) => index !== selectedPhraseIndex)
@@ -135,8 +144,8 @@ export function useActionEditorController(options: ActionEditorControllerOptions
             selectedTab: ACTION_PROMPT_TAB,
         })
     }, [
-        discardMarkdownDocument,
-        markdownDocumentId,
+        discardMarkdownTarget,
+        markdownTarget,
         phraseEditorStates,
         selectedPhraseIndex,
         sourcePath,
@@ -150,7 +159,7 @@ export function useActionEditorController(options: ActionEditorControllerOptions
         ))
         if (document) openFilesService.closeDocument(document)
     }
-    const dirty = draft.revision !== draft.savedRevision
+    const dirty = openDocument.dirty
     const canRetry = !!saveError && validation.valid && dirty && !conflict && !saving
 
     return {
@@ -160,7 +169,6 @@ export function useActionEditorController(options: ActionEditorControllerOptions
         definition,
         deleted,
         draft,
-        editorDocumentId,
         editorState,
         errors,
         handleDeletePhrase,
@@ -174,7 +182,7 @@ export function useActionEditorController(options: ActionEditorControllerOptions
             if (canRetry) actionService.retryDraft(sourcePath)
         },
         handleTabChange,
-        markdownDocumentId,
+        markdownTarget,
         phraseEditorStates,
         phrases,
         saveError,

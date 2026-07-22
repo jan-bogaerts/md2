@@ -23,9 +23,9 @@ export const markdownDocumentHistoryPlugin = realmPlugin<MarkdownDocumentHistory
         const editor = realm.getValue(rootEditor$)
         if (!editor) throw new Error('Cannot initialize Markdown document history without an editor')
 
-        const documentId = params.dataSource.getActiveDocumentId(params.binding)
-        const markdown = documentId ? params.dataSource.getMarkdown(documentId) : ''
-        params.historyStore.attachEditor(editor, documentId, markdown)
+        const target = params.dataSource.getActiveTarget(params.binding)
+        const markdown = target ? params.dataSource.getMarkdown(target) : ''
+        params.historyStore.attachEditor(editor, target, markdown)
     },
     update(realm, params) {
         if (!params) throw new Error('Markdown document history plugin requires parameters')

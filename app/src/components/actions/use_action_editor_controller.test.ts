@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ActionDefinition } from '../../data/action_types'
 import { actionService } from '../../services/actions/action_service'
 import { dataService } from '../../services/data/data_service'
-import { actionMarkdownDocumentId } from '../editor/action_markdown_data_source'
+import { openFilesService } from '../../services/open_files_service'
 import { useActionEditorController } from './use_action_editor_controller'
 
 function loadAction(): ActionDefinition {
@@ -35,39 +35,40 @@ describe('useActionEditorController', () => {
         vi.restoreAllMocks()
     })
 
-    it('owns namespaced prompt and phrase document lifecycle outside ActionEditor rendering', () => {
+    it('owns prompt and phrase sections on one canonical action document', () => {
         vi.spyOn(dataService, 'persistActionFile').mockResolvedValue(undefined)
         const action = loadAction()
-        const discardMarkdownDocument = vi.fn()
+        openFilesService.init({ actionService, dataService })
+        const document = openFilesService.openDocument(action)
+        const discardMarkdownTarget = vi.fn()
         const { result } = renderHook(() => useActionEditorController({
             action,
             actions: actionService.getActions(),
-            discardMarkdownDocument,
-            markdownDocumentNamespace: 'test-project',
+            discardMarkdownTarget,
         }))
 
-        expect(result.current.markdownDocumentId).toBe(actionMarkdownDocumentId('test-project', 'review-action', 'prompt'))
-        expect(actionMarkdownDocumentId('other-project', 'review-action', 'prompt')).not.toBe(result.current.markdownDocumentId)
+        expect(result.current.markdownTarget).toEqual({ document, section: { kind: 'prompt' } })
 
         const phraseIdentity = action.editorState?.phrases[0].identity
         if (!phraseIdentity) throw new Error('Missing phrase editor identity')
         act(() => result.current.handleTabChange({} as SyntheticEvent, phraseIdentity))
-        const phraseDocumentId = result.current.markdownDocumentId
+        const phraseTarget = result.current.markdownTarget
         act(() => result.current.handleDeletePhrase())
-        expect(discardMarkdownDocument).toHaveBeenCalledWith(phraseDocumentId)
+        expect(discardMarkdownTarget).toHaveBeenCalledWith(phraseTarget)
         expect(actionService.getDraft('actions/review.json').definition.phrases).toEqual([])
     })
 
     it('does not rerender for an unrelated action editor-state event', () => {
         const action = loadAction()
+        openFilesService.init({ actionService, dataService })
+        openFilesService.openDocument(action)
         let renderCount = 0
         renderHook(() => {
             renderCount += 1
             return useActionEditorController({
                 action,
                 actions: actionService.getActions(),
-                discardMarkdownDocument: vi.fn(),
-                markdownDocumentNamespace: 'test-project',
+                discardMarkdownTarget: vi.fn(),
             })
         })
         const initialRenderCount = renderCount

@@ -21,10 +21,6 @@ export class GithubStorageWriter {
     }
 
     async createProject(project: ProjectReference, workingFolder: string) {
-        return this.createWorkingFolderFromTemplate(project, workingFolder)
-    }
-
-    async createWorkingFolderFromTemplate(project: ProjectReference, workingFolder: string) {
         this.context.requireGithubProject(project)
         await this.commit({
             branch: project.branch,

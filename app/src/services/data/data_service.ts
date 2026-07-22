@@ -18,6 +18,7 @@ import { telemetryService } from '../telemetry/telemetry_service'
 import { worktreeService } from '../project/worktree_service'
 import { dialogService } from '.././dialog_service'
 import type { CardParseError } from './markdown_parsing_service'
+import type { OpenDocumentSaveReference } from '../open_files_service'
 
 export type { RemarkableImportInput }
 export interface DataServiceState {
@@ -27,7 +28,7 @@ export interface DataServiceState {
 }
 
 export interface DataPersistenceSnapshot {
-    hasPendingCardCommit: boolean
+    hasPendingFileCommit: boolean
     hasPendingPush: boolean
     isSaving: boolean
 }
@@ -54,7 +55,7 @@ export class DataService extends EventTarget {
     private storage: StorageService | null = null
     private readonly projectState: ProjectState
     private readonly saveStateService: SaveStateService
-    private persistenceSnapshot: DataPersistenceSnapshot = { hasPendingCardCommit: false, hasPendingPush: false, isSaving: false }
+    private persistenceSnapshot: DataPersistenceSnapshot = { hasPendingFileCommit: false, hasPendingPush: false, isSaving: false }
 
     constructor() {
         super()
@@ -114,7 +115,7 @@ export class DataService extends EventTarget {
         const currentProject = this.projectState.project
 
         return {
-            hasPendingCardCommit: this.commitBatcher?.hasPending() ?? false,
+            hasPendingFileCommit: this.commitBatcher?.hasPending() ?? false,
             hasPendingPush: currentProject ? this.storage?.hasPendingPush?.(currentProject) ?? false : false,
             isSaving: this.saveStateService.getState().isSaving,
         }
@@ -159,19 +160,21 @@ export class DataService extends EventTarget {
         sourcePath = file.path,
         onPathCommitted?: (fromPath: string, toPath: string) => void,
         sourceExists = true,
+        saveReference?: OpenDocumentSaveReference,
+        onPersisted?: () => void,
     ) {
         const { commitBatcher } = this.requireDependencies()
         const currentProject = this.projectState.project
         if (!currentProject) throw new Error('Cannot save an action before a project is open')
 
         if (sourceExists && sourcePath === file.path) {
-            commitBatcher.schedule(currentProject.branch, [file], `Update ${file.path}`)
+            commitBatcher.schedule(currentProject.branch, [{ ...file, onPersisted, saveReference }], `Update ${file.path}`)
         } else {
             if (!onPathCommitted) throw new Error(`Missing action path callback for rename from ${sourcePath} to ${file.path}`)
             commitBatcher.schedulePathChange(
                 currentProject.branch,
                 sourcePath,
-                file,
+                { ...file, onPersisted, saveReference },
                 `Rename ${sourcePath} to ${file.path}`,
                 onPathCommitted,
                 sourceExists,
@@ -179,12 +182,12 @@ export class DataService extends EventTarget {
         }
     }
 
-    discardPendingActionFile(path: string) {
+    discardPendingFile(path: string) {
         const { commitBatcher } = this.requireDependencies()
         commitBatcher.discardPendingFile(path)
     }
 
-    hasPendingActionFile(path: string) {
+    hasPendingFile(path: string) {
         const { commitBatcher } = this.requireDependencies()
 
         return commitBatcher.hasPendingFile(path)
@@ -306,7 +309,7 @@ export class DataService extends EventTarget {
         this.dispatchEvent(new CustomEvent<DataPersistenceSnapshot>('persistenceChanged', { detail: nextSnapshot }))
     }
     private static isSamePersistenceSnapshot(first: DataPersistenceSnapshot, second: DataPersistenceSnapshot) {
-        return first.hasPendingCardCommit === second.hasPendingCardCommit
+        return first.hasPendingFileCommit === second.hasPendingFileCommit
             && first.hasPendingPush === second.hasPendingPush
             && first.isSaving === second.isSaving
     }

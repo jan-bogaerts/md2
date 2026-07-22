@@ -1,21 +1,16 @@
 import { Box } from '@mui/material'
 import { memo, useCallback, useEffect, useRef, useState } from 'react'
 import { openFilesService, type ActionOpenDocument, type OpenDocumentEventDetail } from '../../services/open_files_service'
-import {
-    actionMarkdownDataSource,
-    actionMarkdownDocumentId,
-    parseActionMarkdownDocumentId,
-} from '../editor/action_markdown_data_source'
+import { actionMarkdownDataSource } from '../editor/action_markdown_data_source'
+import { sameMarkdownTarget, type MarkdownDocumentTarget } from '../editor/markdown_data_source'
 import { MarkdownDocumentHistoryStore } from '../editor/markdown_document_history_store'
 import { MarkdownEditor } from '../editor/markdown_editor'
-import { MarkdownEditorStateStore } from '../editor/markdown_editor_state_store'
-import { ACTION_PROMPT_TAB } from './action_phrase_editor_state'
 import { ActionEditor, type ActionMarkdownPresentation } from './action_editor'
 import { useOpenFiles } from '../hooks/use_open_files'
+import { actionService } from '../../services/actions/action_service'
 
 interface ListActionEditorProps {
     cardTypes: string[]
-    markdownDocumentNamespace: string
     repositoryFiles: string[]
     specialContextTypes: string[]
     states: string[]
@@ -23,19 +18,25 @@ interface ListActionEditorProps {
 
 /** Lifetime-stable list action editor surface and binding-owned undo store. */
 export const ListActionEditor = memo(function ListActionEditor(props: ListActionEditorProps) {
-    const { cardTypes, markdownDocumentNamespace, repositoryFiles, specialContextTypes, states } = props
+    const { cardTypes, repositoryFiles, specialContextTypes, states } = props
     const { activeDocument } = useOpenFiles()
     const activeActionDocument = activeDocument?.kind === 'action' ? activeDocument : null
     const retainedActionDocument = useRef<ActionOpenDocument | null>(null)
     if (activeActionDocument) retainedActionDocument.current = activeActionDocument
-    const action = retainedActionDocument.current?.getObject() ?? null
+    const retainedAction = retainedActionDocument.current?.getObject() ?? null
+    const retainedPath = retainedAction?.sourcePath
+    const actionExists = !!retainedPath && (
+        !!actionService.getActionByPath(retainedPath)
+        || actionService.getDeletedDraftActions().some((candidate) => candidate.sourcePath === retainedPath)
+    )
+    const action = actionExists ? retainedAction : null
     const [historyStore] = useState(() => new MarkdownDocumentHistoryStore())
-    const [stateStore] = useState(() => new MarkdownEditorStateStore())
     const [presentation, setPresentation] = useState<ActionMarkdownPresentation | null>(null)
 
-    const discardMarkdownDocument = useCallback((documentId: string) => {
-        actionMarkdownDataSource.forgetDocument(documentId)
-        historyStore.discardDocument(documentId)
+    const discardMarkdownTarget = useCallback((target: MarkdownDocumentTarget) => {
+        historyStore.discardTarget(target)
+        const activeTarget = actionMarkdownDataSource.getActiveTarget('list-action')
+        if (sameMarkdownTarget(activeTarget, target)) actionMarkdownDataSource.setActiveActionTarget(null, true)
     }, [historyStore])
 
     useEffect(() => {
@@ -43,24 +44,20 @@ export const ListActionEditor = memo(function ListActionEditor(props: ListAction
             const { document } = (event as CustomEvent<OpenDocumentEventDetail>).detail
             if (document.kind !== 'action') return
 
-            const removedAction = document.getObject()
             if (retainedActionDocument.current === document) retainedActionDocument.current = null
-            for (const { identity } of removedAction.editorState?.phrases ?? []) {
-                discardMarkdownDocument(actionMarkdownDocumentId(markdownDocumentNamespace, removedAction.id, identity))
-            }
-            discardMarkdownDocument(actionMarkdownDocumentId(markdownDocumentNamespace, removedAction.id, ACTION_PROMPT_TAB))
-            const activeDocumentId = actionMarkdownDataSource.getActiveDocumentId('list-action')
-            if (activeDocumentId && parseActionMarkdownDocumentId(activeDocumentId).actionId === removedAction.id) {
-                actionMarkdownDataSource.setActiveActionDocument(markdownDocumentNamespace, null)
+            historyStore.discardDocument(document)
+            const activeTarget = actionMarkdownDataSource.getActiveTarget('list-action')
+            if (activeTarget?.document === document) {
+                actionMarkdownDataSource.setActiveActionTarget(null)
                 setPresentation(null)
             }
         }
         openFilesService.addEventListener('removed', handleRemoved)
 
         return () => openFilesService.removeEventListener('removed', handleRemoved)
-    }, [discardMarkdownDocument, markdownDocumentNamespace])
+    }, [historyStore])
 
-    useEffect(() => () => actionMarkdownDataSource.setActiveActionDocument(markdownDocumentNamespace, null), [markdownDocumentNamespace])
+    useEffect(() => () => actionMarkdownDataSource.setActiveActionTarget(null), [])
 
     return (
         <Box
@@ -71,8 +68,7 @@ export const ListActionEditor = memo(function ListActionEditor(props: ListAction
             {action ? (
                 <ActionEditor
                     cardTypes={cardTypes}
-                    discardMarkdownDocument={discardMarkdownDocument}
-                    markdownDocumentNamespace={markdownDocumentNamespace}
+                    discardMarkdownTarget={discardMarkdownTarget}
                     onMarkdownPresentationChange={setPresentation}
                     repositoryFiles={repositoryFiles}
                     specialContextTypes={specialContextTypes}
@@ -86,7 +82,6 @@ export const ListActionEditor = memo(function ListActionEditor(props: ListAction
                     flushOnBlur
                     historyStore={historyStore}
                     placeholders={presentation?.placeholders}
-                    stateStore={stateStore}
                     toolbarContents={presentation?.toolbarContents}
                 />
             </Box>

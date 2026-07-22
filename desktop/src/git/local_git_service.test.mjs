@@ -13,7 +13,7 @@ const require = createRequire(import.meta.url);
 const {
     cancelActionSchedule,
     commit,
-    createWorkingFolderFromTemplate,
+    createProject,
     deleteFile,
     deleteFolder,
     hasPendingPush,
@@ -172,7 +172,7 @@ describe('local-git-service', () => {
         try {
             await initializeGitRepository(rootPath);
 
-            await createWorkingFolderFromTemplate({ branch: 'main', id: 'local', rootPath }, 'design');
+            await createProject({ branch: 'main', id: 'local', rootPath }, 'design');
 
             await expect(readFile(join(rootPath, 'design', 'README.md'), 'utf8')).resolves.toContain('Project design folder');
             const log = await execFileAsync('git', ['log', '-1', '--pretty=%s'], { cwd: rootPath });
@@ -192,7 +192,7 @@ describe('local-git-service', () => {
             await execFileAsync('git', ['add', 'design/README.md'], { cwd: rootPath });
             await execFileAsync('git', ['commit', '-m', 'Seed workspace'], { cwd: rootPath });
 
-            await createWorkingFolderFromTemplate({ branch: 'main', id: 'local', rootPath }, 'design');
+            await createProject({ branch: 'main', id: 'local', rootPath }, 'design');
 
             expect(await commitCount(rootPath)).toBe(1);
         } finally {

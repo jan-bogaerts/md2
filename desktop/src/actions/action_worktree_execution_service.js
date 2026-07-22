@@ -41,10 +41,16 @@ class ActionWorktreeExecutionService {
     }
 
     async resolve(primaryProject, action, context) {
-        if (!action.needsWorkTree) return { executionProject: primaryProject, executionWorktree: null };
+        const hasWorktreeAssignment = context.worktree !== undefined || !!context.worktreeError;
+        if (!hasWorktreeAssignment && !action.needsWorkTree) {
+            return { executionProject: primaryProject, executionWorktree: null };
+        }
         if (context.worktreeError) throw new Error(context.worktreeError);
         if (context.kind !== 'card' && context.kind !== 'project') {
-            throw new Error(`Action "${action.label}" requires card or project context when needsWorkTree is set`);
+            const reason = action.needsWorkTree
+                ? 'when needsWorkTree is set'
+                : 'for worktree execution';
+            throw new Error(`Action "${action.label}" requires card or project context ${reason}`);
         }
 
         const index = worktreeIndex(context);

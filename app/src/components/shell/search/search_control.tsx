@@ -283,6 +283,7 @@ export function SearchControl(props: SearchControlProps) {
                 <ActionPopup
                     anchorElement={controlElement}
                     context={SEARCH_ACTION_CONTEXT}
+                    draggable
                     onClose={closeActionPopup}
                 />
             ) : null}

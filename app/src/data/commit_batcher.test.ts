@@ -3,6 +3,37 @@ import { CommitBatcher } from './commit_batcher'
 import { createDeferred, type CommitCallback } from '../services/test_support/data_service_test_support'
 
 describe('CommitBatcher', () => {
+    it('acknowledges a captured document revision only after physical persistence succeeds', async () => {
+        const acknowledge = vi.fn()
+        const commit = vi.fn(async () => undefined)
+        const batcher = new CommitBatcher({
+            clearDelay: vi.fn(), commit, onPendingChange: vi.fn(),
+            setDelay: vi.fn(() => 1),
+        })
+        const saveReference = { acknowledge, document: {} } as never
+        batcher.schedule('main', [{ content: 'saved', path: 'card.md', saveReference }], 'Update card')
+
+        await batcher.flush()
+
+        expect(acknowledge).toHaveBeenCalledOnce()
+    })
+
+    it('does not acknowledge a document revision when physical persistence fails', async () => {
+        const acknowledge = vi.fn()
+        const failure = new Error('commit failed')
+        const batcher = new CommitBatcher({
+            clearDelay: vi.fn(), commit: vi.fn(async () => { throw failure }), onPendingChange: vi.fn(),
+            setDelay: vi.fn(() => 1),
+        })
+        const saveReference = { acknowledge, document: {} } as never
+        batcher.schedule('main', [{ content: 'unsaved', path: 'card.md', saveReference }], 'Update card')
+
+        await expect(batcher.flush()).rejects.toBe(failure)
+
+        expect(acknowledge).not.toHaveBeenCalled()
+        expect(batcher.hasPendingFile('card.md')).toBe(true)
+    })
+
     it('batches typing commits until the delay expires', async () => {
         vi.useFakeTimers()
         const commit = vi.fn<CommitCallback>(async () => undefined)

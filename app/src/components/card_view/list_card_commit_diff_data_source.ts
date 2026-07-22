@@ -1,10 +1,11 @@
 import type { CardCommit } from '../../services/actions/card_commit_history'
 import { cardMarkdownDataSource } from '../editor/card_markdown_data_source'
 import type { ActiveMarkdownDocumentChangedDetail } from '../editor/markdown_data_source'
+import type { CardOpenDocument } from '../../services/open_files_service'
 
 export interface ListCardCommitDiffSelection {
     commit: CardCommit
-    documentId: string
+    document: CardOpenDocument
 }
 
 /** Owns the commit diff selected for the active list-card document. */
@@ -25,10 +26,10 @@ export class ListCardCommitDiffDataSource extends EventTarget {
     }
 
     readonly select = (commit: CardCommit) => {
-        const documentId = cardMarkdownDataSource.getActiveDocumentId('list-card')
-        if (!documentId) throw new Error('Cannot select a card commit without an active list-card document')
+        const document = cardMarkdownDataSource.getActiveDocument('list-card')
+        if (!document) throw new Error('Cannot select a card commit without an active list-card document')
 
-        this.update({ commit, documentId })
+        this.update({ commit, document })
     }
 
     readonly clear = () => {
@@ -36,8 +37,8 @@ export class ListCardCommitDiffDataSource extends EventTarget {
     }
 
     private readonly handleActiveDocumentChanged = (event: Event) => {
-        const { binding, documentId } = (event as CustomEvent<ActiveMarkdownDocumentChangedDetail>).detail
-        if (binding !== 'list-card' || this.selection?.documentId === documentId) return
+        const { binding, target } = (event as CustomEvent<ActiveMarkdownDocumentChangedDetail>).detail
+        if (binding !== 'list-card' || this.selection?.document === target?.document) return
 
         this.clear()
     }

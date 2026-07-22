@@ -47,8 +47,8 @@ async function resolveRestoredProject(lastProject: LastProject, storage: Storage
 /** Start services and open the last project. Returns null when there is nothing to restore. */
 async function loadLastProjectSession(accessToken: string | null): Promise<ProjectSession | null> {
     ensureConfigServiceInitialized()
-    projectPersistenceService.init({ actionService, dataService })
     openFilesService.init({ actionService, dataService })
+    projectPersistenceService.init({ actionService, dataService, openFilesService })
     cardMarkdownDataSource.init(dataService)
     actionMarkdownDataSource.init(actionService)
     actionExecutionService.start()

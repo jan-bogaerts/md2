@@ -80,11 +80,34 @@ describe('preload desktop agent bridge', () => {
         expect(exposed.md2Data.openProjectFolder).toEqual(expect.any(Function));
         expect(exposed.md2Data.loadAgentAvailability).toEqual(expect.any(Function));
         expect(exposed.md2Data.prepareWorktree).toEqual(expect.any(Function));
+        expect(exposed.md2Data.commitWorktree).toEqual(expect.any(Function));
+        expect(exposed.md2Data.discardWorktreeChanges).toEqual(expect.any(Function));
+        expect(exposed.md2Data.parkWorktree).toEqual(expect.any(Function));
+        expect(exposed.md2Data.pullWorktree).toEqual(expect.any(Function));
+        expect(exposed.md2Data.pushWorktree).toEqual(expect.any(Function));
+        expect(exposed.md2Data.refreshWorktrees).toEqual(expect.any(Function));
+        expect(exposed.md2Data.onWorktreesChanged).toEqual(expect.any(Function));
         expect(exposed.md2Actions.prepareActionPrompt).toEqual(expect.any(Function));
         expect(exposed.md2Actions.startAction).toEqual(expect.any(Function));
         expect(exposed.md2Actions.runCommand).toBeUndefined();
         expect(exposed.md2Lifecycle.onFlushRequested).toEqual(expect.any(Function));
         expect(exposed.md2RemoteControl.onStatusChange).toEqual(expect.any(Function));
+    });
+
+    it('subscribes and unsubscribes worktree state through validated IPC channels', () => {
+        const { electron, exposed } = createPreloadHarness();
+        const callback = vi.fn();
+        const unsubscribe = exposed.md2Data.onWorktreesChanged(callback);
+        const listenerCall = electron.ipcRenderer.on.mock.calls.find(([channel]) => channel === 'md2-local-bridge:event');
+        const listener = listenerCall[1];
+        const subscriptionRequest = electron.ipcRenderer.send.mock.calls.find(([channel]) => channel === 'md2-local-bridge:subscribe')[1];
+
+        listener({}, { eventId: subscriptionRequest.subscriptionId, payload: { error: null, project: null, records: [] } });
+        unsubscribe();
+
+        expect(subscriptionRequest).toEqual(expect.objectContaining({ method: 'onWorktreesChanged', params: [] }));
+        expect(callback).toHaveBeenCalledWith({ error: null, project: null, records: [] });
+        expect(electron.ipcRenderer.send).toHaveBeenCalledWith('md2-local-bridge:unsubscribe', subscriptionRequest.subscriptionId);
     });
 
     it('wraps remote-control callbacks without exposing ipcRenderer', () => {

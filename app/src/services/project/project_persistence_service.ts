@@ -1,6 +1,7 @@
 import type { ActionService } from '../actions/action_service'
 import type { DataService } from '../data/data_service'
 import { register } from '../service_injector'
+import type { OpenFilesService } from '../open_files_service'
 
 export type LocalSaveState = 'dirty' | 'saved' | 'saving'
 
@@ -13,6 +14,7 @@ export interface ProjectPersistenceSnapshot {
 export interface ProjectPersistenceServiceDependencies {
     actionService: ActionService
     dataService: DataService
+    openFilesService: OpenFilesService
 }
 
 const INITIAL_SNAPSHOT: ProjectPersistenceSnapshot = {
@@ -34,12 +36,15 @@ export class ProjectPersistenceService extends EventTarget {
         if (
             this.dependencies?.actionService === dependencies.actionService
             && this.dependencies.dataService === dependencies.dataService
+            && this.dependencies.openFilesService === dependencies.openFilesService
         ) return
 
         this.removeDependencyListeners()
         this.dependencies = dependencies
         dependencies.actionService.addEventListener('changed', this.handleDependencyChanged)
         dependencies.dataService.addEventListener('persistenceChanged', this.handleDependencyChanged)
+        dependencies.openFilesService.addEventListener('documentChanged', this.handleDependencyChanged)
+        dependencies.openFilesService.addEventListener('removed', this.handleDependencyChanged)
         this.reconcileSnapshot()
     }
 
@@ -48,9 +53,14 @@ export class ProjectPersistenceService extends EventTarget {
     }
 
     async flushPendingChanges() {
-        const { actionService, dataService } = this.requireDependencies()
+        const { actionService, dataService, openFilesService } = this.requireDependencies()
         if (actionService.hasPendingDrafts()) await actionService.flushDrafts()
-        if (dataService.getPersistenceSnapshot().hasPendingCardCommit) await dataService.cards.flushPendingCommits()
+        for (const document of openFilesService.getRegisteredDocuments()) {
+            if (document.kind === 'card' && document.dirty) {
+                dataService.cards.updateCardBody(document.path, document.getDraft().content, document.createSaveReference())
+            }
+        }
+        if (dataService.getPersistenceSnapshot().hasPendingFileCommit) await dataService.cards.flushPendingCommits()
     }
 
     private readonly handleDependencyChanged = () => {
@@ -58,9 +68,10 @@ export class ProjectPersistenceService extends EventTarget {
     }
 
     private reconcileSnapshot() {
-        const { actionService, dataService } = this.requireDependencies()
-        const { hasPendingCardCommit, hasPendingPush, isSaving } = dataService.getPersistenceSnapshot()
-        const hasPendingSave = isSaving || hasPendingCardCommit || actionService.hasPendingDrafts()
+        const { actionService, dataService, openFilesService } = this.requireDependencies()
+        const { hasPendingFileCommit, hasPendingPush, isSaving } = dataService.getPersistenceSnapshot()
+        const hasDirtyDocument = openFilesService.getRegisteredDocuments().some(({ dirty }) => dirty)
+        const hasPendingSave = isSaving || hasPendingFileCommit || hasDirtyDocument || actionService.hasPendingDrafts()
         const nextSnapshot: ProjectPersistenceSnapshot = {
             hasPendingPush,
             hasPendingSave,
@@ -77,6 +88,8 @@ export class ProjectPersistenceService extends EventTarget {
 
         this.dependencies.actionService.removeEventListener('changed', this.handleDependencyChanged)
         this.dependencies.dataService.removeEventListener('persistenceChanged', this.handleDependencyChanged)
+        this.dependencies.openFilesService.removeEventListener('documentChanged', this.handleDependencyChanged)
+        this.dependencies.openFilesService.removeEventListener('removed', this.handleDependencyChanged)
     }
 
     private requireDependencies() {

@@ -8,7 +8,6 @@ function createBridge(overrides: Partial<ElectronDataBridge> = {}): ElectronData
         checkoutBranch: vi.fn(),
         commit: vi.fn().mockResolvedValue([]),
         createProject: vi.fn(),
-        createWorkingFolderFromTemplate: vi.fn(),
         deleteFile: vi.fn().mockResolvedValue(undefined),
         deleteFolder: vi.fn().mockResolvedValue(undefined),
         hasPendingPush: vi.fn().mockResolvedValue(false),
@@ -32,21 +31,60 @@ function createBridge(overrides: Partial<ElectronDataBridge> = {}): ElectronData
 }
 
 describe('LocalGitStorageService binary write path', () => {
+    it('forwards worktree state subscription and cleanup to the bridge', () => {
+        const cleanup = vi.fn()
+        const onWorktreesChanged = vi.fn(() => cleanup)
+        const service = new LocalGitStorageService()
+        service.init({ bridge: createBridge({ onWorktreesChanged }) })
+        const callback = vi.fn()
+
+        const unsubscribe = service.onWorktreesChanged(callback)
+        unsubscribe()
+
+        expect(onWorktreesChanged).toHaveBeenCalledWith(callback)
+        expect(cleanup).toHaveBeenCalledOnce()
+    })
+
     it('forwards linked worktree mutations to the bridge', async () => {
         const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
         const worktree = { branch: 'feature', error: null, path: 'C:/feature', valid: true }
-        const addWorktree = vi.fn().mockResolvedValue([worktree])
-        const prepareWorktree = vi.fn().mockResolvedValue([{ ...worktree, branch: 'card-title' }])
-        const removeWorktree = vi.fn().mockResolvedValue([])
+        const addWorktree = vi.fn().mockResolvedValue(true)
+        const commitWorktree = vi.fn().mockResolvedValue(undefined)
+        const discardWorktreeChanges = vi.fn().mockResolvedValue(undefined)
+        const parkWorktree = vi.fn().mockResolvedValue(undefined)
+        const prepareWorktree = vi.fn().mockResolvedValue(undefined)
+        const pullWorktree = vi.fn().mockResolvedValue(undefined)
+        const pushWorktree = vi.fn().mockResolvedValue(undefined)
+        const refreshWorktrees = vi.fn().mockResolvedValue(undefined)
+        const removeWorktree = vi.fn().mockResolvedValue(undefined)
         const service = new LocalGitStorageService()
-        service.init({ bridge: createBridge({ addWorktree, prepareWorktree, removeWorktree }) })
+        service.init({
+            bridge: createBridge({
+                addWorktree, commitWorktree, discardWorktreeChanges, parkWorktree, prepareWorktree,
+                pullWorktree, pushWorktree, refreshWorktrees, removeWorktree,
+            }),
+        })
         const preparationRequest = { branchName: 'card-title', project, worktree: 1 }
+        const operationRequest = { project, worktree: 1 }
+        const commitRequest = { ...operationRequest, message: 'F-1: Card' }
 
-        await expect(service.addWorktree(project)).resolves.toEqual([worktree])
-        await expect(service.prepareWorktree(preparationRequest)).resolves.toEqual([{ ...worktree, branch: 'card-title' }])
-        await expect(service.removeWorktree(project, worktree.path)).resolves.toEqual([])
+        await expect(service.addWorktree(project)).resolves.toBe(true)
+        await expect(service.commitWorktree(commitRequest)).resolves.toBeUndefined()
+        await expect(service.discardWorktreeChanges(operationRequest)).resolves.toBeUndefined()
+        await expect(service.parkWorktree(operationRequest)).resolves.toBeUndefined()
+        await expect(service.prepareWorktree(preparationRequest)).resolves.toBeUndefined()
+        await expect(service.pullWorktree(operationRequest)).resolves.toBeUndefined()
+        await expect(service.pushWorktree(operationRequest)).resolves.toBeUndefined()
+        await expect(service.refreshWorktrees(project)).resolves.toBeUndefined()
+        await expect(service.removeWorktree(project, worktree.path)).resolves.toBeUndefined()
         expect(addWorktree).toHaveBeenCalledWith(project)
+        expect(commitWorktree).toHaveBeenCalledWith(commitRequest)
+        expect(discardWorktreeChanges).toHaveBeenCalledWith(operationRequest)
+        expect(parkWorktree).toHaveBeenCalledWith(operationRequest)
         expect(prepareWorktree).toHaveBeenCalledWith(preparationRequest)
+        expect(pullWorktree).toHaveBeenCalledWith(operationRequest)
+        expect(pushWorktree).toHaveBeenCalledWith(operationRequest)
+        expect(refreshWorktrees).toHaveBeenCalledWith(project)
         expect(removeWorktree).toHaveBeenCalledWith(project, worktree.path)
     })
 

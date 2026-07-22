@@ -1,35 +1,33 @@
 import type { ProjectCard, WorktreeRecord } from '../../data/data_types'
-import { hasUnseenAgentResult } from '../../services/agents/agent_acknowledgement_service'
+import { useEffect, useRef } from 'react'
+import { hasRunningConversation } from '../../services/agents/card_agent_state'
+import { dialogService } from '../../services/dialog_service'
+import { worktreeService } from '../../services/project/worktree_service'
 import { WorktreeSelector } from '../worktree_selector'
 
 interface CardWorktreeIndicatorProps {
     card: ProjectCard
     primaryPath: string
-    projectKey: string
     worktrees: WorktreeRecord[]
 }
 
-function isConversationWaiting(card: ProjectCard) {
-    return card.agentConversations.some((conversation) => {
-        if (conversation.status !== 'running') return false
-
-        const stateEvent = [...conversation.events].reverse().find((event) => event.type === 'waiting' || event.type === 'resumed')
-
-        return stateEvent?.type === 'waiting'
-    })
-}
-
 export function CardWorktreeIndicator(props: CardWorktreeIndicatorProps) {
-    const { card, primaryPath, projectKey, worktrees } = props
-    const isWaiting = isConversationWaiting(card)
-    const isRunning = !isWaiting && card.agentConversations.some((conversation) => conversation.status === 'running')
-    const isUnseen = !isWaiting && !isRunning
-        && hasUnseenAgentResult(projectKey, card.path, card.agentConversations)
-    const agentState = isWaiting ? 'waiting for input' : isRunning ? 'running' : isUnseen ? 'unseen result' : 'idle'
+    const { card, primaryPath, worktrees } = props
+    const isRunning = hasRunningConversation(card)
+    const wasRunning = useRef(isRunning)
+
+    useEffect(() => {
+        const completed = wasRunning.current && !isRunning
+        wasRunning.current = isRunning
+        if (!completed || card.header.worktree === null || card.header.worktree === undefined) return
+
+        void worktreeService.refresh().catch((error: unknown) => {
+            dialogService.error(error, { fallbackMessage: 'Could not refresh worktree status' })
+        })
+    }, [card.header.worktree, isRunning])
 
     return (
         <WorktreeSelector
-            agentState={agentState}
             assignment={card.header}
             assignmentTarget={{ kind: 'card', path: card.path }}
             labelPrefix={card.header.id}

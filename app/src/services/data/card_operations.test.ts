@@ -5,6 +5,8 @@ import { projectPersistenceService } from '../project/project_persistence_servic
 import { DIALOG_SERVICE_EVENT, dialogService, type DialogServiceMessage, type DialogSeverity } from '.././dialog_service'
 import { telemetryService } from '../telemetry/telemetry_service'
 import { activeCardFile, createDataService, createStorage } from '.././test_support/data_service_test_support'
+import { openFilesService } from '../open_files_service'
+import { actionService } from '../actions/action_service'
 
 function recordDialogMessages(severity: DialogSeverity) {
     const messages: string[] = []
@@ -22,6 +24,7 @@ function recordDialogMessages(severity: DialogSeverity) {
 
 describe('CardOperations', () => {
     afterEach(() => {
+        for (const document of openFilesService.getRegisteredDocuments()) openFilesService.discardDocument(document)
         vi.useRealTimers()
         delete window.md2Actions
         configService.clear()
@@ -40,7 +43,7 @@ describe('CardOperations', () => {
         const snapshot = await service.projectLoading.openProject({ branch: 'main', id: 'project' })
 
         expect(snapshot.activeCards[0].header.internalId).toEqual(expect.any(String))
-        expect(service.getPersistenceSnapshot().hasPendingCardCommit).toBe(false)
+        expect(service.getPersistenceSnapshot().hasPendingFileCommit).toBe(false)
         expect(service.getState().snapshot?.activeCards[0].header.internalId).toBe(snapshot.activeCards[0].header.internalId)
         expect(storage.commit).toHaveBeenCalledWith({
             branch: 'main',
@@ -558,6 +561,28 @@ describe('CardOperations', () => {
         const committed = (storage.commit as ReturnType<typeof vi.fn>).mock.calls.at(-1)?.[0] as CommitRequest
         expect(committed.files[0].content.startsWith('---\nid: F-1')).toBe(true)
         expect(committed.files[0].content).toContain('Edited body')
+    })
+
+    it('preserves a canonical dirty body when card metadata is saved', async () => {
+        configService.init()
+        const storage = createStorage()
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        openFilesService.init({ actionService, dataService: service })
+        const projectCard = service.getState().snapshot?.activeCards[0]
+        if (!projectCard) throw new Error('Expected loaded card')
+        const document = openFilesService.openDocument(projectCard)
+        if (document.kind !== 'card') throw new Error('Expected card document')
+        document.updateDraft({ ...projectCard, content: '# Root\n\nUnflushed body' }, 'list-card')
+
+        service.cards.updateCardTitle(projectCard.path, 'Renamed')
+        await service.cards.flushPendingCommits()
+
+        const committed = vi.mocked(storage.commit).mock.calls.at(-1)?.[0] as CommitRequest
+        expect(committed.files[0].content).toContain('title: Renamed')
+        expect(committed.files[0].content).toContain('Unflushed body')
+        expect(document.dirty).toBe(false)
     })
 
     it('does not rebuild, dispatch, or commit when saved content is unchanged', async () => {

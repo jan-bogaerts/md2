@@ -17,7 +17,7 @@ import type {
     ProjectWatchEvent,
     StorageProjectFiles,
     TopLevelFolderReference,
-    WorktreeRecord,
+    WorktreeState,
     WorktreeOperationRequest,
 } from './data_types'
 
@@ -27,15 +27,14 @@ export interface AgentAvailability {
 }
 
 export interface ElectronDataBridge {
-    addWorktree?(project: ProjectReference): Promise<WorktreeRecord[] | null>
+    addWorktree?(project: ProjectReference): Promise<boolean>
     checkoutBranch(project: ProjectReference, branch: string): Promise<ProjectReference>
     commit(request: CommitRequest): Promise<CommitResult>
-    commitWorktree?(request: CommitWorktreeRequest): Promise<WorktreeRecord[]>
+    commitWorktree?(request: CommitWorktreeRequest): Promise<void>
     createProject(project: ProjectReference, workingFolder: string): Promise<ProjectReference>
-    createWorkingFolderFromTemplate(project: ProjectReference, workingFolder: string): Promise<ProjectReference>
     deleteFile(request: DeleteFileRequest): Promise<void>
     deleteFolder(request: DeleteFolderRequest): Promise<void>
-    discardWorktreeChanges?(request: WorktreeOperationRequest): Promise<WorktreeRecord[]>
+    discardWorktreeChanges?(request: WorktreeOperationRequest): Promise<void>
     hasPendingPush(project: ProjectReference): Promise<boolean>
     loadAgentAvailability?(): Promise<Record<string, AgentAvailability>>
     loadAgentConversation?(path: string): Promise<AgentConversation>
@@ -46,22 +45,23 @@ export interface ElectronDataBridge {
     loadProject(project: ProjectReference, workingFolder: string): Promise<StorageProjectFiles>
     loadProjectRoot(project: ProjectReference, workingFolder: string): Promise<StorageProjectFiles>
     loadProjectConfig(project: ProjectReference): Promise<Partial<ProjectConfig> | null>
-    loadWorktrees?(project: ProjectReference): Promise<WorktreeRecord[]>
+    onWorktreesChanged?(callback: (state: WorktreeState) => void): () => void
     listRepositoryFiles(project: ProjectReference): Promise<string[]>
     listAgentConversationReferences?(project: ProjectReference, projectFolder: string): Promise<string[]>
     listBranches(project: ProjectReference): Promise<BranchReference[]>
     listTopLevelFolders(project: ProjectReference): Promise<TopLevelFolderReference[]>
     moveFiles(request: MoveFilesRequest): Promise<void>
     openProjectFolder(): Promise<ProjectReference | null>
-    parkWorktree?(request: WorktreeOperationRequest): Promise<WorktreeRecord[]>
-    prepareWorktree?(request: PrepareWorktreeRequest): Promise<WorktreeRecord[]>
-    pullWorktree?(request: WorktreeOperationRequest): Promise<WorktreeRecord[]>
+    parkWorktree?(request: WorktreeOperationRequest): Promise<void>
+    prepareWorktree?(request: PrepareWorktreeRequest): Promise<void>
+    pullWorktree?(request: WorktreeOperationRequest): Promise<void>
     push(project: ProjectReference): Promise<void>
-    pushWorktree?(request: WorktreeOperationRequest): Promise<WorktreeRecord[]>
+    pushWorktree?(request: WorktreeOperationRequest): Promise<void>
+    refreshWorktrees?(project: ProjectReference): Promise<void>
     resolveProject(project: ProjectReference): Promise<ProjectReference>
     saveActionSchedules?(project: ProjectReference, actionsFolder: string, schedules: ActionSchedule[]): Promise<ActionSchedule[]>
     saveProjectConfig(project: ProjectReference, config: ProjectConfig): Promise<void>
-    removeWorktree?(project: ProjectReference, folderPath: string): Promise<WorktreeRecord[]>
+    removeWorktree?(project: ProjectReference, folderPath: string): Promise<void>
     stopAgent?(runId: string): Promise<void>
     watchProject(project: ProjectReference, callback: (event: ProjectWatchEvent) => void): () => void
     loadFile(project: ProjectReference, path: string): Promise<MarkdownFile>

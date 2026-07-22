@@ -3,14 +3,12 @@ import { memo, useCallback } from 'react'
 import { MarkdownEditor } from '../editor/markdown_editor'
 import { cardMarkdownDataSource } from '../editor/card_markdown_data_source'
 import type { MarkdownDocumentHistoryStore } from '../editor/markdown_document_history_store'
-import type { MarkdownEditorStateStore } from '../editor/markdown_editor_state_store'
 import { CardPopupToolbarControls } from './card_popup_toolbar_controls'
 
 interface CardBodyEditorProps {
     historyStore: MarkdownDocumentHistoryStore
     isMobile?: boolean
     isFullscreen: boolean
-    stateStore: MarkdownEditorStateStore
     onToggleFullscreen: () => void
     overlayContainer?: HTMLElement | null
 }
@@ -19,7 +17,7 @@ interface CardBodyEditorProps {
  * Body editing surface for a card, bound directly to the card Markdown data source.
  */
 export const CardBodyEditor = memo(function CardBodyEditor(props: CardBodyEditorProps) {
-    const { historyStore, isFullscreen, isMobile = false, onToggleFullscreen, overlayContainer, stateStore } = props
+    const { historyStore, isFullscreen, isMobile = false, onToggleFullscreen, overlayContainer } = props
     const ToolbarContents = useCallback(
         () => <CardPopupToolbarControls isFullscreen={isFullscreen} onToggleFullscreen={onToggleFullscreen} />,
         [isFullscreen, onToggleFullscreen],
@@ -72,7 +70,6 @@ export const CardBodyEditor = memo(function CardBodyEditor(props: CardBodyEditor
                 dataSource={cardMarkdownDataSource}
                 historyStore={historyStore}
                 overlayContainer={overlayContainer}
-                stateStore={stateStore}
                 stickyToolbar={isMobile}
                 toolbarContents={ToolbarContents}
             />

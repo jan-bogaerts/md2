@@ -6,6 +6,7 @@ import {
     type ActionFile,
     type RawActionDefinition,
 } from '../../data/action_types'
+import { openFilesService } from '../open_files_service'
 
 function file(definition: unknown): ActionFile {
     return fileAt('actions/action.json', definition)
@@ -19,8 +20,8 @@ const VALID: RawActionDefinition = { command: 'run', description: 'Do it', id: '
 
 function deletionGateway() {
     return {
-        discardPendingActionFile: vi.fn(),
-        hasPendingActionFile: vi.fn(() => false),
+        discardPendingFile: vi.fn(),
+        hasPendingFile: vi.fn(() => false),
         persistActionFile: vi.fn(async () => undefined),
     }
 }
@@ -306,12 +307,12 @@ describe('ActionService', () => {
         service.updateDraft('actions/new-action.json', { ...draft, label: 'Review Code!' })
         await service.flushDrafts()
 
-        expect(persistActionFile).toHaveBeenLastCalledWith(
+        expect(persistActionFile.mock.calls.at(-1)?.slice(0, 4)).toEqual([
             expect.objectContaining({ path: 'actions/review-code.json' }),
             'actions/new-action.json',
             expect.any(Function),
             true,
-        )
+        ])
         expect(service.getActionByPath('actions/new-action.json')?.label).toBe('Review Code!')
         completeMove?.('actions/new-action.json', 'actions/review-code.json')
         expect(service.getActionByPath('actions/new-action.json')).toBeNull()
@@ -330,7 +331,7 @@ describe('ActionService', () => {
             completeMove = onPathCommitted
         })
         const service = new ActionService(() => ({
-            hasPendingActionFile: () => pending,
+            hasPendingFile: () => pending,
             persistActionFile,
         }))
         service.loadFromFiles([fileAt('actions/test-1.json', { ...VALID, label: 'Test 1' })])
@@ -364,7 +365,7 @@ describe('ActionService', () => {
             completeMove = onPathCommitted
         })
         const service = new ActionService(() => ({
-            hasPendingActionFile: () => true,
+            hasPendingFile: () => true,
             persistActionFile,
         }))
         service.loadFromFiles([fileAt('actions/test-1.json', { ...VALID, label: 'Test 1' })])
@@ -413,7 +414,7 @@ describe('ActionService', () => {
         service.updateDraft(path, { ...draft, label: 'Review code' })
         await service.flushDrafts()
 
-        expect(persistenceCalls.at(-1)).toEqual([
+        expect(persistenceCalls.at(-1)?.slice(0, 4)).toEqual([
             expect.objectContaining({ path: 'actions/review-code.json' }),
             'actions/new-action.json',
             expect.any(Function),
@@ -508,13 +509,17 @@ describe('ActionService', () => {
         service.updateDraft('actions/action.json', { ...VALID, label: 'Repaired' })
         await service.flushDrafts()
 
-        expect(service.hasPendingDrafts()).toBe(false)
-        expect(persistActionFile).toHaveBeenCalledWith(
+        expect(service.hasPendingDrafts()).toBe(true)
+        expect(persistActionFile.mock.calls.at(-1)?.slice(0, 4)).toEqual([
             expect.objectContaining({ content: expect.stringContaining('"label": "Repaired"') }),
             'actions/action.json',
             expect.any(Function),
             true,
-        )
+        ])
+        const persistenceCall = persistActionFile.mock.calls.at(-1) as unknown as unknown[]
+        const acknowledge = persistenceCall[5] as (() => void)
+        acknowledge()
+        expect(service.hasPendingDrafts()).toBe(false)
     })
 
     it('stages editor changes without validation, events, or persistence', () => {
@@ -545,12 +550,12 @@ describe('ActionService', () => {
         service.commitDraft('actions/action.json')
         await service.flushDrafts()
 
-        expect(persistActionFile).toHaveBeenCalledWith(
+        expect(persistActionFile.mock.calls.at(-1)?.slice(0, 4)).toEqual([
             expect.objectContaining({ content: expect.stringContaining('"label": "Committed edit"') }),
             'actions/action.json',
             expect.any(Function),
             true,
-        )
+        ])
     })
 
     it('commits staged editor changes before flushing pending work', async () => {
@@ -561,12 +566,12 @@ describe('ActionService', () => {
 
         await service.flushDrafts()
 
-        expect(persistActionFile).toHaveBeenCalledWith(
+        expect(persistActionFile.mock.calls.at(-1)?.slice(0, 4)).toEqual([
             expect.objectContaining({ content: expect.stringContaining('"label": "Flush edit"') }),
             'actions/action.json',
             expect.any(Function),
             true,
-        )
+        ])
     })
 
     it('keeps failed drafts retryable through the shared coordinator', async () => {
@@ -585,7 +590,37 @@ describe('ActionService', () => {
         await service.flushDrafts()
 
         expect(persistActionFile).toHaveBeenCalledTimes(2)
+        const persistenceCall = persistActionFile.mock.calls.at(-1) as unknown as unknown[]
+        const acknowledge = persistenceCall[5] as (() => void)
+        acknowledge()
         expect(service.hasPendingDrafts()).toBe(false)
+    })
+
+    it('captures the open-document revision when a draft save is queued', async () => {
+        const persistActionFile = vi.fn(async () => undefined)
+        const service = new ActionService(() => ({ persistActionFile }))
+        service.loadFromFiles([file(VALID)])
+        const getState = () => ({ project: { branch: 'main', id: 'project' }, runningAgents: [], snapshot: null })
+        const dataOwner = Object.assign(new EventTarget(), { getState })
+        openFilesService.init({ actionService: service, dataService: dataOwner })
+        const action = service.getActionByPath('actions/action.json')
+        if (!action) throw new Error('Expected loaded action')
+        const document = openFilesService.openDocument(action)
+        if (document.kind !== 'action') throw new Error('Expected action document')
+
+        try {
+            service.updateDraft('actions/action.json', { ...VALID, description: 'Queued valid edit' })
+            service.updateDraft('actions/action.json', { ...VALID, description: 'Newer invalid edit', label: '' })
+            await vi.waitFor(() => expect(persistActionFile).toHaveBeenCalledOnce())
+            const persistenceCall = persistActionFile.mock.calls[0] as unknown as unknown[]
+            const saveReference = persistenceCall[4] as { acknowledge(): void }
+
+            saveReference.acknowledge()
+
+            expect(document.dirty).toBe(true)
+        } finally {
+            openFilesService.discardDocument(document)
+        }
     })
 
     it('keeps graph validation at the persistence boundary', async () => {
@@ -702,10 +737,10 @@ describe('ActionService', () => {
 
     it('cancels queued persistence and preserves its draft after external deletion', async () => {
         let pending = false
-        const discardPendingActionFile = vi.fn(() => { pending = false })
+        const discardPendingFile = vi.fn(() => { pending = false })
         const service = new ActionService(() => ({
-            discardPendingActionFile,
-            hasPendingActionFile: () => pending,
+            discardPendingFile,
+            hasPendingFile: () => pending,
             persistActionFile: vi.fn(async () => { pending = true }),
         }))
         service.loadFromFiles([file(VALID)])
@@ -714,7 +749,7 @@ describe('ActionService', () => {
 
         service.reloadFromFiles([], [{ origin: 'external', path: 'actions/action.json' }])
 
-        expect(discardPendingActionFile).toHaveBeenCalledWith('actions/action.json')
+        expect(discardPendingFile).toHaveBeenCalledWith('actions/action.json')
         expect(pending).toBe(false)
         expect(service.getDraft('actions/action.json')).toMatchObject({ deleted: true, definition: { label: 'Queued edit' } })
         expect(service.hasPendingDrafts()).toBe(true)

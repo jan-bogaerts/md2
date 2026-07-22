@@ -261,7 +261,12 @@ export function ProjectCardView(props: ProjectCardViewProps) {
                 )}
                 <Stack direction="row" spacing={0.75} sx={{ alignItems: 'center', minHeight: 26, position: 'relative', zIndex: 2 }}>
                     <Box sx={{ pointerEvents: 'auto' }}>
-                        <CardRunButton context={cardContext(card, cardTypes)} onConversationViewed={handleConversationViewed} />
+                        <CardRunButton
+                            card={card}
+                            context={cardContext(card, cardTypes)}
+                            onConversationViewed={handleConversationViewed}
+                            projectKey={projectKey}
+                        />
                     </Box>
                     <Tooltip title="Open in file mode">
                         <IconButton
@@ -277,7 +282,6 @@ export function ProjectCardView(props: ProjectCardViewProps) {
                     <CardWorktreeIndicator
                         card={card}
                         primaryPath={primaryPath}
-                        projectKey={projectKey}
                         worktrees={worktrees}
                     />
                 </Stack>

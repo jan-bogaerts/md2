@@ -99,10 +99,6 @@ function createMissingWorkingFolderError(workingFolder) {
 }
 
 async function createProject(project, workingFolder) {
-    return createWorkingFolderFromTemplate(project, workingFolder);
-}
-
-async function createWorkingFolderFromTemplate(project, workingFolder) {
     const rootPath = requireRootPath(project);
     await assertGitRoot(rootPath);
     const workingFolderPath = ensureInsideRoot(rootPath, path.join(rootPath, workingFolder));
@@ -317,7 +313,6 @@ function watchProject(project, onChange) {
 module.exports = {
     commit,
     createProject,
-    createWorkingFolderFromTemplate,
     deleteFile,
     deleteFolder,
     listRepositoryFiles,

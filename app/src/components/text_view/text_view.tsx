@@ -23,7 +23,6 @@ interface TextViewProps {
     onDeleteFile: (path: string) => Promise<void>
     onDeleteFolder: (path: string) => Promise<void>
     projectFolder: string
-    projectKey: string
     repositoryFiles: string[]
     states: StateConfig[]
     workingFolder: string
@@ -54,7 +53,6 @@ export function TextView(props: TextViewProps) {
         onDeleteFile,
         onDeleteFolder,
         projectFolder,
-        projectKey,
         repositoryFiles,
         states,
         workingFolder,
@@ -146,7 +144,6 @@ export function TextView(props: TextViewProps) {
                 <TextEditorPane
                     actionsFolder={actionsFolder}
                     cardTypes={cardTypes}
-                    markdownDocumentNamespace={projectKey}
                     repositoryFiles={repositoryFiles}
                     specialContextTypes={specialContextTypes}
                     states={actionStates}

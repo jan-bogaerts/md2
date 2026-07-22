@@ -10,7 +10,7 @@ const require = createRequire(import.meta.url);
 const execFileAsync = promisify(execFile);
 const {
     commit,
-    createWorkingFolderFromTemplate,
+    createProject,
     listRepositoryFiles,
     loadProject,
     PROJECT_README_TEMPLATE,
@@ -30,7 +30,7 @@ describe('project-files', () => {
             await initializeRepository(rootPath);
             const project = { branch: 'main', id: rootPath, rootPath };
 
-            await createWorkingFolderFromTemplate(project, 'design/active');
+            await createProject(project, 'design/active');
 
             await expect(readFile(join(rootPath, 'design', 'active', 'README.md'), 'utf8')).resolves.toBe(PROJECT_README_TEMPLATE);
         } finally {

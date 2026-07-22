@@ -92,6 +92,7 @@ export function ActionEntryPoints(props: ActionEntryPointsProps) {
         <ActionPopup
             anchorElement={popupState.anchorElement}
             context={context}
+            draggable
             initialActionId={popupState.actionId}
             key={popupState.actionId}
             onClose={closePopup}

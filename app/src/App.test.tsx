@@ -25,7 +25,6 @@ function createFailingBridge(): ElectronDataBridge {
         checkoutBranch: vi.fn(async (project, branch) => ({ ...project, branch })),
         commit: vi.fn(async () => []),
         createProject: vi.fn(async (project) => project),
-        createWorkingFolderFromTemplate: vi.fn(async (project) => project),
         deleteFile: vi.fn(),
         deleteFolder: vi.fn(),
         hasPendingPush: vi.fn(async () => false),
@@ -41,14 +40,14 @@ function createFailingBridge(): ElectronDataBridge {
             throw new Error('repository folder moved')
         }),
         loadProjectConfig: vi.fn(async () => null),
-        loadWorktrees: vi.fn(async () => []),
+        onWorktreesChanged: vi.fn(() => vi.fn()),
         moveFiles: vi.fn(),
         openProjectFolder: vi.fn(async () => null),
         push: vi.fn(),
         resolveProject: vi.fn(async (project) => project),
         saveProjectConfig: vi.fn(),
-        addWorktree: vi.fn(async () => null),
-        removeWorktree: vi.fn(async () => []),
+        addWorktree: vi.fn(async () => false),
+        removeWorktree: vi.fn(async () => undefined),
         watchProject: vi.fn(() => vi.fn()),
     }
 }
@@ -58,7 +57,6 @@ function createResetStorage(): StorageService {
         checkoutBranch: vi.fn(async (project, branch) => ({ ...project, branch })),
         commit: vi.fn(async () => []),
         createProject: vi.fn(async (project) => project),
-        createWorkingFolderFromTemplate: vi.fn(async (project) => project),
         deleteFile: vi.fn(),
         deleteFolder: vi.fn(),
         hasPendingPush: vi.fn(() => false),

@@ -3,6 +3,7 @@ import { useCallback, useEffect } from 'react'
 import { ACTION_PROMPT_PLACEHOLDERS } from '../../data/action_placeholders'
 import { actionService } from '../../services/actions/action_service'
 import { actionMarkdownDataSource } from '../editor/action_markdown_data_source'
+import type { MarkdownDocumentTarget } from '../editor/markdown_data_source'
 import type { ActionMarkdownPresentation } from './action_editor'
 import { ActionEditorTab } from './action_editor_tab'
 import { ActionPhraseToolbarControls } from './action_phrase_toolbar_controls'
@@ -11,20 +12,19 @@ import { ACTION_DEFINITION_TAB, useActionEditorController } from './use_action_e
 import { useRetainedAction } from './use_retained_action'
 
 interface ActionEditorNavigationProps {
-    discardMarkdownDocument: (documentId: string) => void
-    markdownDocumentNamespace: string
+    discardMarkdownTarget: (target: MarkdownDocumentTarget) => void
     onMarkdownPresentationChange: (presentation: ActionMarkdownPresentation | null) => void
 }
 
 /** Tabs and Markdown binding backed directly by ActionService controller. */
 export function ActionEditorNavigation(props: ActionEditorNavigationProps) {
-    const { discardMarkdownDocument, markdownDocumentNamespace, onMarkdownPresentationChange } = props
+    const { discardMarkdownTarget, onMarkdownPresentationChange } = props
     const action = useRetainedAction()
     const actions = actionService.getActions()
-    const controller = useActionEditorController({ action, actions, discardMarkdownDocument, markdownDocumentNamespace })
+    const controller = useActionEditorController({ action, actions, discardMarkdownTarget })
     const {
         activeTab, definition, errors, handleDeletePhrase, handlePhraseTitleCommit, handlePhraseTitleEdit,
-        handleTabChange, markdownDocumentId, phraseEditorStates, phrases, selectedPhrase, validation,
+        handleTabChange, markdownTarget, phraseEditorStates, phrases, selectedPhrase, validation,
     } = controller
 
     const phraseToolbarContents = useCallback(() => {
@@ -41,19 +41,19 @@ export function ActionEditorNavigation(props: ActionEditorNavigationProps) {
     }, [handleDeletePhrase, handlePhraseTitleCommit, handlePhraseTitleEdit, selectedPhrase])
 
     useEffect(() => {
-        const documentId = definition.type === 'agent' && activeTab !== ACTION_DEFINITION_TAB ? markdownDocumentId : null
-        actionMarkdownDataSource.setActiveActionDocument(markdownDocumentNamespace, documentId)
-        onMarkdownPresentationChange(documentId ? {
+        const target = definition.type === 'agent' && activeTab !== ACTION_DEFINITION_TAB ? markdownTarget : null
+        actionMarkdownDataSource.setActiveActionTarget(target)
+        onMarkdownPresentationChange(target ? {
             placeholders: selectedPhrase ? undefined : ACTION_PROMPT_PLACEHOLDERS,
             toolbarContents: selectedPhrase ? phraseToolbarContents : undefined,
         } : null)
-    }, [activeTab, definition.type, markdownDocumentId, markdownDocumentNamespace,
+    }, [activeTab, definition.type, markdownTarget,
         onMarkdownPresentationChange, phraseToolbarContents, selectedPhrase])
 
     useEffect(() => () => {
-        actionMarkdownDataSource.setActiveActionDocument(markdownDocumentNamespace, null)
+        actionMarkdownDataSource.setActiveActionTarget(null)
         onMarkdownPresentationChange(null)
-    }, [markdownDocumentNamespace, onMarkdownPresentationChange])
+    }, [onMarkdownPresentationChange])
 
     if (definition.type !== 'agent') return null
     const definitionError = validation.error && validation.field !== 'prompt' && validation.field !== 'phrases'

@@ -1,20 +1,24 @@
 import type { ActionDefinition } from '../data/action_types'
 import type { ProjectCard, ProjectReference, ProjectSnapshot } from '../data/data_types'
 import { register } from './service_injector'
+import { ManagedOpenDocument } from './managed_open_document'
+import type {
+    CardOpenDocument,
+    OpenDocument,
+    OpenDocumentDraft,
+    OpenDocumentObject,
+} from './open_document'
 
-export type OpenDocumentObject = ProjectCard | ActionDefinition
-
-export interface ActionOpenDocument extends EventTarget {
-    readonly kind: 'action'
-    getObject(): ActionDefinition
-}
-
-export interface CardOpenDocument extends EventTarget {
-    readonly kind: 'card'
-    getObject(): ProjectCard
-}
-
-export type OpenDocument = ActionOpenDocument | CardOpenDocument
+export type {
+    ActionOpenDocument,
+    CardOpenDocument,
+    OpenDocument,
+    OpenDocumentChangedDetail,
+    OpenDocumentDraft,
+    OpenDocumentObject,
+    OpenDocumentOrigin,
+    OpenDocumentSaveReference,
+} from './open_document'
 
 export interface OpenDocumentEventDetail {
     document: OpenDocument
@@ -26,7 +30,9 @@ export interface OpenFilesSnapshot {
 }
 
 interface OpenFilesDependencies {
-    actionService: EventTarget & Pick<import('./actions/action_service').ActionService, 'getActions' | 'getDeletedDraftActions'>
+    actionService: EventTarget & Pick<import('./actions/action_service').ActionService,
+        'getActions' | 'getDeletedDraftActions' | 'getDraft'
+    >
     dataService: EventTarget & Pick<import('./data/data_service').DataService, 'getState'>
 }
 
@@ -34,6 +40,10 @@ const EMPTY_SNAPSHOT: OpenFilesSnapshot = { activeDocument: null, documents: [] 
 
 function isProjectCard(object: OpenDocumentObject): object is ProjectCard {
     return 'header' in object
+}
+
+function isCardDraft(draft: OpenDocumentDraft): draft is ProjectCard {
+    return 'header' in draft
 }
 
 function documentIdentity(object: OpenDocumentObject) {
@@ -54,69 +64,34 @@ function snapshotObjects(snapshot: ProjectSnapshot | null, actions: ActionDefini
 }
 
 function objectPath(object: OpenDocumentObject) {
-    return isProjectCard(object) ? object.path : object.sourcePath
+    if (isProjectCard(object)) return object.path
+    if (!object.sourcePath) throw new Error(`Action document requires a source path: ${object.id}`)
+    return object.sourcePath
 }
 
-abstract class ManagedOpenDocumentBase<T extends OpenDocumentObject> extends EventTarget {
-    abstract readonly kind: 'action' | 'card'
-    readonly identity: string
-    private object: T
+type ManagedDocument = ManagedOpenDocument & OpenDocument
 
-    constructor(object: T) {
-        super()
-        this.identity = documentIdentity(object)
-        this.object = object
-    }
-
-    getObject() {
-        return this.object
-    }
-
-    renew(object: T) {
-        if (this.identity !== documentIdentity(object)) {
-            throw new Error(`Cannot renew open ${this.kind} document with a different object`)
-        }
-        if (this.object === object) return
-
-        const previousObject = this.object
-        this.object = object
-        this.dispatchEvent(new CustomEvent('changed', { detail: { object, previousObject } }))
-    }
-}
-
-class ManagedActionOpenDocument extends ManagedOpenDocumentBase<ActionDefinition> implements ActionOpenDocument {
-    readonly kind = 'action' as const
-}
-
-class ManagedCardOpenDocument extends ManagedOpenDocumentBase<ProjectCard> implements CardOpenDocument {
-    readonly kind = 'card' as const
-}
-
-type ManagedOpenDocument = ManagedActionOpenDocument | ManagedCardOpenDocument
-
-function createManagedOpenDocument(object: OpenDocumentObject): ManagedOpenDocument {
-    return isProjectCard(object) ? new ManagedCardOpenDocument(object) : new ManagedActionOpenDocument(object)
-}
-
-function renewManagedDocument(document: ManagedOpenDocument, object: OpenDocumentObject) {
-    if (document.kind === 'card' && isProjectCard(object)) {
-        document.renew(object)
+function renewManagedDocument(document: ManagedDocument, object: OpenDocumentObject, draft: OpenDocumentDraft) {
+    if (document.kind === 'card' && isProjectCard(object) && isCardDraft(draft)) {
+        document.renew(documentIdentity(object), object, draft)
         return
     }
-    if (document.kind === 'action' && !isProjectCard(object)) {
-        document.renew(object)
+    if (document.kind === 'action' && !isProjectCard(object) && !isCardDraft(draft)) {
+        document.renew(documentIdentity(object), object, draft)
         return
     }
 
     throw new Error(`Cannot renew open ${document.kind} document with a different object kind`)
 }
 
-/** Tracks stable domain-document wrappers for list tabs. */
+/** Owns canonical open documents and their list/board memberships. */
 export class OpenFilesService extends EventTarget {
     private actionService: OpenFilesDependencies['actionService'] | null = null
+    private readonly boardDocuments = new Set<ManagedDocument>()
     private dataService: OpenFilesDependencies['dataService'] | null = null
-    private initialized = false
+    private readonly registeredDocuments = new Map<string, ManagedDocument>()
     private loadedProjectKey: string | null = null
+    private registryScopeRevision = 0
     private snapshot = EMPTY_SNAPSHOT
 
     constructor() {
@@ -125,13 +100,17 @@ export class OpenFilesService extends EventTarget {
     }
 
     init(dependencies: OpenFilesDependencies) {
-        if (this.initialized) return
+        if (this.actionService === dependencies.actionService && this.dataService === dependencies.dataService) return
 
+        this.actionService?.removeEventListener('changed', this.handleActionChanged)
+        this.dataService?.removeEventListener('changed', this.handleDataChanged)
+        this.clear()
+        this.registryScopeRevision += 1
         this.actionService = dependencies.actionService
         this.dataService = dependencies.dataService
+        this.loadedProjectKey = projectKey(this.dataService.getState().project)
         this.actionService.addEventListener('changed', this.handleActionChanged)
         this.dataService.addEventListener('changed', this.handleDataChanged)
-        this.initialized = true
         this.reconcile()
     }
 
@@ -139,18 +118,30 @@ export class OpenFilesService extends EventTarget {
         return this.snapshot
     }
 
-    openDocument(object: OpenDocumentObject): OpenDocument {
-        const existing = this.findOpenDocument(object)
-        if (existing) {
-            renewManagedDocument(existing, object)
-            this.activateDocument(existing)
+    getRegisteredDocuments(): readonly OpenDocument[] {
+        return [...this.registeredDocuments.values()]
+    }
 
-            return existing
+    findDocument(object: OpenDocumentObject): OpenDocument | null {
+        return this.registeredDocuments.get(this.scopedObjectKey(object)) ?? null
+    }
+
+    openDocument(object: OpenDocumentObject): OpenDocument {
+        const document = this.getOrCreateDocument(object)
+        if (!this.snapshot.documents.includes(document)) {
+            this.update({ activeDocument: document, documents: [...this.snapshot.documents, document] })
+        } else {
+            this.activateDocument(document)
         }
 
-        const document = createManagedOpenDocument(object)
-        this.update({ activeDocument: document, documents: [...this.snapshot.documents, document] })
-        this.dispatchDocumentEvent('added', document)
+        return document
+    }
+
+    openBoardDocument(object: ProjectCard): CardOpenDocument {
+        const document = this.getOrCreateDocument(object)
+        if (document.kind !== 'card') throw new Error('Board view can only open card documents')
+
+        this.boardDocuments.add(document)
 
         return document
     }
@@ -177,15 +168,28 @@ export class OpenFilesService extends EventTarget {
             ? documents[index] ?? documents[index - 1] ?? null
             : this.snapshot.activeDocument
         this.update({ activeDocument, documents })
-        this.dispatchDocumentEvent('removed', document)
+        this.releaseDocument(document as ManagedDocument)
+    }
+
+    closeBoardDocument(document: CardOpenDocument) {
+        this.boardDocuments.delete(document as ManagedDocument)
+        this.releaseDocument(document as ManagedDocument)
+    }
+
+    discardDocument(document: OpenDocument) {
+        const managedDocument = document as ManagedDocument
+        this.boardDocuments.delete(managedDocument)
+        const documents = this.snapshot.documents.filter((candidate) => candidate !== document)
+        const activeDocument = this.snapshot.activeDocument === document ? documents[0] ?? null : this.snapshot.activeDocument
+        if (documents.length !== this.snapshot.documents.length) this.update({ activeDocument, documents })
+        this.removeDocument(managedDocument)
     }
 
     clear() {
-        if (this.snapshot.documents.length === 0) return
-
-        const removedDocuments = this.snapshot.documents
-        this.update(EMPTY_SNAPSHOT)
-        for (const document of removedDocuments) this.dispatchDocumentEvent('removed', document)
+        const cleanDocuments = [...this.registeredDocuments.values()].filter((document) => !document.dirty)
+        this.boardDocuments.clear()
+        if (this.snapshot.documents.length > 0) this.update(EMPTY_SNAPSHOT)
+        for (const document of cleanDocuments) this.removeDocument(document)
     }
 
     private readonly handleActionChanged = () => this.reconcile()
@@ -197,27 +201,19 @@ export class OpenFilesService extends EventTarget {
         const nextProjectKey = projectKey(project)
         if (nextProjectKey !== this.loadedProjectKey) {
             this.loadedProjectKey = nextProjectKey
+            this.registryScopeRevision += 1
             this.clear()
         }
         const objects = this.currentObjects()
-        const objectsByKey = new Map(objects.map((object) => [OpenFilesService.objectKey(object), object]))
-        const removedDocuments: OpenDocument[] = []
-        const documents = this.snapshot.documents.filter((document) => {
-            const object = objectsByKey.get(OpenFilesService.documentKey(document))
+        const objectsByKey = new Map(objects.map((object) => [this.scopedObjectKey(object), object]))
+        for (const [key, document] of this.registeredDocuments) {
+            const object = objectsByKey.get(key)
             if (!object) {
-                removedDocuments.push(document)
-                return false
+                if (!document.dirty) this.removeDocument(document)
+                continue
             }
-            renewManagedDocument(document as ManagedOpenDocument, object)
-            return true
-        })
-        if (removedDocuments.length === 0) return
-
-        const activeDocument = this.snapshot.activeDocument && documents.includes(this.snapshot.activeDocument)
-            ? this.snapshot.activeDocument
-            : documents[0] ?? null
-        this.update({ activeDocument, documents })
-        for (const document of removedDocuments) this.dispatchDocumentEvent('removed', document)
+            renewManagedDocument(document, object, this.draftForObject(object))
+        }
     }
 
     private currentObjects() {
@@ -228,10 +224,57 @@ export class OpenFilesService extends EventTarget {
         return snapshotObjects(snapshot, actions)
     }
 
-    private findOpenDocument(object: OpenDocumentObject) {
-        const key = OpenFilesService.objectKey(object)
+    private draftForObject(object: OpenDocumentObject): OpenDocumentDraft {
+        if (isProjectCard(object)) return object
+        if (!object.sourcePath) throw new Error(`Action document requires a source path: ${object.id}`)
+        if (!this.actionService) throw new Error('Open files service is not initialized')
 
-        return this.snapshot.documents.find((document) => OpenFilesService.documentKey(document) === key) as ManagedOpenDocument | undefined
+        return this.actionService.getDraft(object.sourcePath).definition
+    }
+
+    private getOrCreateDocument(object: OpenDocumentObject): ManagedDocument {
+        const key = this.scopedObjectKey(object)
+        const existing = this.registeredDocuments.get(key)
+        if (existing) {
+            renewManagedDocument(existing, object, this.draftForObject(object))
+            return existing
+        }
+
+        const draft = this.draftForObject(object)
+        const kind = isProjectCard(object) ? 'card' : 'action'
+        const document = new ManagedOpenDocument(kind, documentIdentity(object), object, draft) as ManagedDocument
+        this.registeredDocuments.set(key, document)
+        document.addEventListener('changed', this.handleDocumentChanged)
+        this.dispatchDocumentEvent('added', document)
+
+        return document
+    }
+
+    private readonly handleDocumentChanged = (event: Event) => {
+        const detail = (event as CustomEvent<{ document: OpenDocument }>).detail
+        this.releaseDocument(detail.document as ManagedDocument)
+        this.dispatchEvent(new CustomEvent('documentChanged', { detail }))
+    }
+
+    private releaseDocument(document: ManagedDocument) {
+        if (document.dirty || this.boardDocuments.has(document) || this.snapshot.documents.includes(document)) return
+
+        this.removeDocument(document)
+    }
+
+    private removeDocument(document: ManagedDocument) {
+        const entry = [...this.registeredDocuments.entries()].find(([, candidate]) => candidate === document)
+        if (!entry) return
+
+        document.removeEventListener('changed', this.handleDocumentChanged)
+        this.registeredDocuments.delete(entry[0])
+        this.boardDocuments.delete(document)
+        if (this.snapshot.documents.includes(document)) {
+            const documents = this.snapshot.documents.filter((candidate) => candidate !== document)
+            const activeDocument = this.snapshot.activeDocument === document ? documents[0] ?? null : this.snapshot.activeDocument
+            this.update({ activeDocument, documents })
+        }
+        this.dispatchDocumentEvent('removed', document)
     }
 
     private static objectKey(object: OpenDocumentObject) {
@@ -240,8 +283,8 @@ export class OpenFilesService extends EventTarget {
         return `${kind}:${documentIdentity(object)}`
     }
 
-    private static documentKey(document: OpenDocument) {
-        return `${document.kind}:${(document as ManagedOpenDocument).identity}`
+    private scopedObjectKey(object: OpenDocumentObject) {
+        return `${this.registryScopeRevision}:${OpenFilesService.objectKey(object)}`
     }
 
     private dispatchDocumentEvent(name: 'added' | 'removed', document: OpenDocument) {

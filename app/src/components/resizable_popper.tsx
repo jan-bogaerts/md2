@@ -31,6 +31,13 @@ interface ResizablePopperProps {
     storageKey?: string
 }
 
+// Controls that must keep their own click even when they sit inside a drag handle.
+// MUI selects render a div[role="combobox"], so native tag names alone are not enough.
+const INTERACTIVE_SELECTOR = [
+    'button', 'input', 'select', 'textarea', 'a', 'label',
+    '[role="button"]', '[role="combobox"]', '[role="option"]', '[role="listbox"]', '[role="tab"]', '[role="switch"]',
+    '[contenteditable="true"]',
+].join(', ')
 const MIN_WIDTH = 280
 const MIN_HEIGHT = 200
 const HANDLE_SIZE = 16
@@ -128,7 +135,7 @@ export function ResizablePopper(props: ResizablePopperProps) {
         storageKey,
     } = props
     const [size, setSize] = useState(() => loadSize(initialSize, storageKey))
-    const [position, setPosition] = useState<PopperPosition | null>(() => draggable ? centeredPosition(size) : null)
+    const [position, setPosition] = useState<PopperPosition | null>(() => draggable && !anchorElement ? centeredPosition(size) : null)
     const [detachedLeft, setDetachedLeft] = useState<number | null>(null)
     const anchoredLeftRef = useRef<number | null>(null)
     const paperRef = useRef<HTMLDivElement | null>(null)
@@ -165,7 +172,7 @@ export function ResizablePopper(props: ResizablePopperProps) {
             setPosition((current) => current ? {
                 left: clampDetachedLeft(current.left, size.width ?? MIN_WIDTH),
                 top: clampDetachedTop(current.top, size.height ?? MIN_HEIGHT),
-            } : centeredPosition(size))
+            } : current)
         }
         window.addEventListener('resize', handleViewportResize)
 
@@ -190,7 +197,7 @@ export function ResizablePopper(props: ResizablePopperProps) {
 
         const target = event.target
         if (!(target instanceof Element) || !target.closest('[data-drag-handle="true"]')) return
-        if (target.closest('button, input, select, textarea, a, [role="button"]')) return
+        if (target.closest(INTERACTIVE_SELECTOR)) return
 
         event.preventDefault()
         resizeRef.current?.abort()
@@ -254,10 +261,10 @@ export function ResizablePopper(props: ResizablePopperProps) {
 
     const paperStyle: CSSProperties = fullHeight
         ? { height: '100vh', left: detachedLeft ?? 0, position: 'fixed', top: 0, width: size.width }
-        : draggable
-            ? { ...size, left: position?.left ?? 0, position: 'fixed', top: position?.top ?? 0 }
+        : position
+            ? { ...size, left: position.left, position: 'fixed', top: position.top }
             : size
-    const detached = draggable || fullHeight
+    const detached = position !== null || fullHeight
 
     return (
         <Popper

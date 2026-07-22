@@ -41,10 +41,6 @@ export class GithubStorageService implements StorageService {
         return this.writer.createProject(project, workingFolder)
     }
 
-    async createWorkingFolderFromTemplate(project: ProjectReference, workingFolder: string) {
-        return this.writer.createWorkingFolderFromTemplate(project, workingFolder)
-    }
-
     async loadProject(project: ProjectReference, workingFolder: string) {
         return this.loader.loadProject(project, workingFolder)
     }

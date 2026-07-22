@@ -22,6 +22,7 @@ import { register } from '.././service_injector'
 import { createRandomProjectBackgroundShade } from '../../theme/project_background_shade'
 import { isProjectLoadErrorReported } from './project_loading'
 import { projectPersistenceService } from './project_persistence_service'
+import { createDefaultActionFiles } from '../../project_template/project_template'
 
 export interface MissingWorkingFolderResolution {
     kind: 'missing-working-folder'
@@ -208,7 +209,7 @@ export class ProjectSessionService extends EventTarget {
     async createWorkingFolder(resolution: MissingWorkingFolderResolution, accessToken: string | null) {
         await this.withLoading('Working folder creation failed', async () => {
             const storage = createStorageService(resolution.storageType, accessToken)
-            const project = await storage.createWorkingFolderFromTemplate(resolution.project, resolution.resolvedWorkingFolder)
+            const project = await storage.createProject(resolution.project, resolution.resolvedWorkingFolder)
             await persistWorkingFolder(storage, project, resolution.configuredWorkingFolder)
             await projectPersistenceService.flushPendingChanges()
             dataService.init({ storage })
@@ -228,7 +229,12 @@ export class ProjectSessionService extends EventTarget {
                 projectFolder: normalizedProjectFolder,
             }
             const resolvedConfig = resolveProjectConfigPaths(projectConfig)
-            const project = await storage.createWorkingFolderFromTemplate(resolution.project, resolvedConfig.workingFolder)
+            const project = await storage.createProject(resolution.project, resolvedConfig.workingFolder)
+            await storage.commit({
+                branch: project.branch,
+                files: createDefaultActionFiles(resolvedConfig.actionsFolder),
+                message: 'Add default MD² actions',
+            })
             await storage.saveProjectConfig(project, projectConfig)
             configService.loadProjectConfig(projectConfig)
             await projectPersistenceService.flushPendingChanges()

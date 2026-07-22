@@ -31,7 +31,9 @@ export function ActionEditorContent(props: ActionEditorContentProps) {
     const draft = actionService.getDraft(sourcePath)
     const { conflict, definition, deleted, error: saveError, saving, validation } = draft
     const activeTab = (actionService.getActionByPath(sourcePath) ?? action).editorState?.selectedTab ?? ACTION_DEFINITION_TAB
-    const canRetry = !!saveError && validation.valid && draft.revision !== draft.savedRevision && !conflict && !saving
+    const openDocument = openFilesService.findDocument(action)
+    if (!openDocument || openDocument.kind !== 'action') throw new Error(`Missing open action document: ${action.id}`)
+    const canRetry = !!saveError && validation.valid && openDocument.dirty && !conflict && !saving
     const status = saveError ? 'Save failed. Retry to save changes.' : validation.valid ? null : 'Fix validation errors to save.'
     const showActionContent = definition.type !== 'agent' || activeTab === ACTION_DEFINITION_TAB || !!saveError || deleted || !!conflict
     const worktrees = useWorktrees()

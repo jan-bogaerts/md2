@@ -11,7 +11,6 @@ import type { ActionPlaceholder } from '../../data/action_placeholders'
 import { useAppTheme } from '../../theme/use_app_theme'
 import { markdownDocumentHistoryPlugin } from './markdown_document_history_realm_plugin'
 import type { MarkdownDocumentHistoryStore } from './markdown_document_history_store'
-import type { MarkdownEditorStateStore } from './markdown_editor_state_store'
 import { MarkdownFormatToolbarControls } from './markdown_format_toolbar_controls'
 import { markdownPlaceholderPlugin } from './markdown_placeholder_realm_plugin'
 import { registerMarkdownEditorFlush } from './markdown_editor_flush'
@@ -19,6 +18,7 @@ import type {
     ActiveMarkdownDocumentChangedDetail,
     MarkdownBindingKind,
     MarkdownDataSource,
+    MarkdownDocumentTarget,
 } from './markdown_data_source'
 import { buildMarkdownContentSx } from './markdown_style_sx'
 
@@ -53,7 +53,6 @@ interface MarkdownEditorDataSourceProps extends MarkdownEditorPresentationProps 
     onChange?: never
     onDirtyChange?: never
     onLiveChange?: never
-    stateStore: MarkdownEditorStateStore
 }
 
 interface MarkdownEditorLocalProps extends MarkdownEditorPresentationProps {
@@ -64,21 +63,20 @@ interface MarkdownEditorLocalProps extends MarkdownEditorPresentationProps {
     onChange: (markdown: string) => void
     onDirtyChange?: (dirty: boolean) => void
     onLiveChange?: (markdown: string) => void
-    stateStore?: never
 }
 
 type MarkdownEditorProps = MarkdownEditorDataSourceProps | MarkdownEditorLocalProps
 
 interface MarkdownDocumentSnapshot {
-    documentId: string | null
+    target: MarkdownDocumentTarget | null
     markdown: string
 }
 
 function initialDocument(props: MarkdownEditorProps): MarkdownDocumentSnapshot {
-    if (!props.dataSource) return { documentId: null, markdown: props.markdown }
+    if (!props.dataSource) return { target: null, markdown: props.markdown }
 
-    const documentId = props.dataSource.getActiveDocumentId(props.binding)
-    return { documentId, markdown: documentId ? props.dataSource.getMarkdown(documentId) : '' }
+    const target = props.dataSource.getActiveTarget(props.binding)
+    return { target, markdown: target ? props.dataSource.getMarkdown(target) : '' }
 }
 
 /** Reusable MDXEditor surface with local-buffer and persisted data-source modes. */
@@ -97,13 +95,12 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
     const dataSource = props.dataSource
     const binding = props.binding
     const historyStore = props.historyStore
-    const stateStore = props.stateStore
     const initialDocumentRef = useRef<MarkdownDocumentSnapshot | null>(null)
     if (!initialDocumentRef.current) initialDocumentRef.current = initialDocument(props)
     const initialDocumentSnapshot = initialDocumentRef.current
     const { markdownStyleConfig, mode } = useAppTheme()
     const editorRef = useRef<MDXEditorMethods>(null)
-    const activeDocumentIdRef = useRef(initialDocumentSnapshot.documentId)
+    const activeTargetRef = useRef(initialDocumentSnapshot.target)
     const latestMarkdownRef = useRef(initialDocumentSnapshot.markdown)
     const lastEmittedMarkdownRef = useRef(initialDocumentSnapshot.markdown)
     const dirtyBaselineEstablishedRef = useRef(false)
@@ -117,17 +114,16 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
     onLiveChangeRef.current = props.onLiveChange
 
     const setDirty = useCallback((dirty: boolean) => {
-        stateStore?.setDirty(dirty)
         onDirtyChangeRef.current?.(dirty)
-    }, [stateStore])
+    }, [])
 
     const flush = useCallback(() => {
         if (latestMarkdownRef.current === lastEmittedMarkdownRef.current) return true
 
-        const activeDocumentId = activeDocumentIdRef.current
+        const activeTarget = activeTargetRef.current
         if (dataSource && binding) {
-            if (!activeDocumentId) return true
-            const committed = dataSource.commit(binding, activeDocumentId, latestMarkdownRef.current)
+            if (!activeTarget) return true
+            const committed = dataSource.commit(binding, activeTarget, latestMarkdownRef.current)
             if (!committed) return false
         } else {
             onChangeRef.current?.(latestMarkdownRef.current)
@@ -144,7 +140,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         if (!flush()) return null
 
         const currentMarkdown = latestMarkdownRef.current
-        activeDocumentIdRef.current = detail.documentId
+        activeTargetRef.current = detail.target
         latestMarkdownRef.current = nextMarkdown
         lastEmittedMarkdownRef.current = nextMarkdown
         setDirty(false)
@@ -159,7 +155,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
     }, [setDirty])
 
     const getMarkdown = useCallback(() => editorRef.current?.getMarkdown() ?? latestMarkdownRef.current, [])
-    const getDocumentId = useCallback(() => activeDocumentIdRef.current, [])
+    const getTarget = useCallback(() => activeTargetRef.current, [])
 
     const replaceMarkdown = useCallback((markdown: string) => {
         replacingMarkdownRef.current = true
@@ -176,7 +172,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
             binding,
             completeDocumentSwitch,
             dataSource,
-            getDocumentId,
+            getTarget,
             getMarkdown,
             historyStore,
             prepareDocumentSwitch,
@@ -187,7 +183,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         binding,
         completeDocumentSwitch,
         dataSource,
-        getDocumentId,
+        getTarget,
         getMarkdown,
         historyStore,
         prepareDocumentSwitch,
@@ -228,10 +224,11 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         if (replacingMarkdownRef.current || latestMarkdownRef.current === markdown) return
 
         latestMarkdownRef.current = markdown
-        if (dirtyBaselineEstablishedRef.current) setDirty(markdown !== lastEmittedMarkdownRef.current)
+        if (!dirtyBaselineEstablishedRef.current) return
+        setDirty(markdown !== lastEmittedMarkdownRef.current)
         onLiveChangeRef.current?.(markdown)
-        const activeDocumentId = activeDocumentIdRef.current
-        if (dataSource && binding && activeDocumentId) dataSource.edit(binding, activeDocumentId, markdown)
+        const activeTarget = activeTargetRef.current
+        if (dataSource && binding && activeTarget) dataSource.edit(binding, activeTarget, markdown)
     }, [binding, dataSource, setDirty])
 
     const handleBlur = (event: FocusEvent<HTMLDivElement>) => {

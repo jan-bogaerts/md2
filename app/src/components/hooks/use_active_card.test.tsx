@@ -2,6 +2,7 @@ import { act, cleanup, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ProjectCard, ProjectSnapshot } from '../../data/data_types'
 import { CardMarkdownDataSource } from '../editor/card_markdown_data_source'
+import type { CardOpenDocument } from '../../services/open_files_service'
 import { useActiveCard } from './use_active_card'
 
 function card(title: string): ProjectCard {
@@ -17,17 +18,21 @@ function card(title: string): ProjectCard {
 
 function sourceWithCard(initialCard: ProjectCard) {
     let snapshot: ProjectSnapshot = {activeCards: [initialCard], backgroundCards: [], repositoryFiles: [], workingFolder: 'design'}
+    let documentCard = initialCard
+    const dataSource = new CardMarkdownDataSource()
     const owner = Object.assign(new EventTarget(), {
         cards: {toggleCardPolicy: vi.fn(), updateCardBody: vi.fn(), updateCardHeaderFields: vi.fn(), updateCardTitle: vi.fn()},
         getState: () => ({ branch: 'main', project: { branch: 'main', id: 'project' }, runningAgents: [], snapshot }),
         renew: (nextCard: ProjectCard) => {
             snapshot = { ...snapshot, activeCards: [nextCard] }
+            documentCard = nextCard
             owner.dispatchEvent(new Event('changed'))
+            dataSource.dispatchEvent(new Event('cardsChanged'))
         },
     })
-    const dataSource = new CardMarkdownDataSource()
     dataSource.init(owner)
-    dataSource.setActiveDocument('list-card', 'card-1')
+    const document = Object.assign(new EventTarget(), {getDraft: () => documentCard, kind: 'card' as const}) as CardOpenDocument
+    dataSource.setActiveTarget('list-card', { document })
 
     return { dataSource, owner }
 }
@@ -54,7 +59,7 @@ describe('useActiveCard', () => {
         const { dataSource } = sourceWithCard(card('Alpha'))
         render(<ActiveCardTitle dataSource={dataSource} />)
 
-        act(() => dataSource.setActiveDocument('list-card', null))
+        act(() => dataSource.setActiveTarget('list-card', null))
 
         expect(screen.getByText('None')).toBeInTheDocument()
     })

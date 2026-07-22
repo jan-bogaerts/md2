@@ -1,6 +1,6 @@
 import { alpha, Box, Button, IconButton, InputBase, Tooltip, Typography } from '@mui/material'
 import type { ChangeEvent, KeyboardEvent } from 'react'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, useSyncExternalStore } from 'react'
 import Close from 'mdi-material-ui/Close'
 import DeleteOutline from 'mdi-material-ui/DeleteOutline'
 import FileDocumentOutline from 'mdi-material-ui/FileDocumentOutline'
@@ -14,15 +14,33 @@ import { AgentUsageDisplay } from '../agents/agent_usage_display'
 import { cardAgentTokenUsage } from '../../services/agents/agent_usage'
 import { cardMarkdownDataSource } from '../editor/card_markdown_data_source'
 import { MarkdownDocumentHistoryStore } from '../editor/markdown_document_history_store'
-import { MarkdownEditorStateStore } from '../editor/markdown_editor_state_store'
 import { CardBodySaveStatus } from './card_body_save_status'
 import { CardCommitMenu } from './card_commit_menu'
 import { CardCommitDiffPanel } from './card_commit_diff_panel'
 import { useCardCommits } from '../hooks/use_card_commits'
 import type { CardCommit } from '../../services/actions/card_commit_history'
+import { openFilesService, type CardOpenDocument } from '../../services/open_files_service'
 
 const CARD_BODY_POPOVER_WIDTH = 760
 const FULLSCREEN_INSET = 16
+
+function subscribeOpenDocuments(onStoreChange: () => void) {
+    openFilesService.addEventListener('added', onStoreChange)
+    openFilesService.addEventListener('removed', onStoreChange)
+
+    return () => {
+        openFilesService.removeEventListener('added', onStoreChange)
+        openFilesService.removeEventListener('removed', onStoreChange)
+    }
+}
+
+function useBoardDocument(card: ProjectCard | null, visible: boolean) {
+    const getSnapshot = useCallback(() => visible && card
+        ? openFilesService.findDocument(card) as CardOpenDocument | null
+        : null, [card, visible])
+
+    return useSyncExternalStore(subscribeOpenDocuments, getSnapshot, getSnapshot)
+}
 
 interface TitleEdit {
     path: string | null
@@ -42,7 +60,6 @@ interface CardBodyPopoverProps {
     onDeleteCard: (path: string) => Promise<void>
     onOpenAffects: (path: string) => void
     onOpenInFileMode: (path: string) => void
-    onTitleChange: (path: string, title: string) => void
     visible: boolean
 }
 
@@ -56,12 +73,11 @@ export function CardBodyPopover(props: CardBodyPopoverProps) {
         onDeleteCard,
         onOpenAffects,
         onOpenInFileMode,
-        onTitleChange,
         visible,
     } = props
     const [deleteCardPath, setDeleteCardPath] = useState<string | null>(null)
     const [historyStore] = useState(() => new MarkdownDocumentHistoryStore())
-    const [stateStore] = useState(() => new MarkdownEditorStateStore())
+    const boardDocument = useBoardDocument(card, visible)
     const [isFullscreen, setIsFullscreen] = useState(false)
     const [popupContentElement, setPopupContentElement] = useState<HTMLDivElement | null>(null)
     const [selectedCardCommit, setSelectedCardCommit] = useState<SelectedCardCommit | null>(null)
@@ -73,19 +89,28 @@ export function CardBodyPopover(props: CardBodyPopoverProps) {
         : null
 
     useEffect(() => {
-        const documentId = visible ? card?.header.internalId ?? null : null
-        if (card && !documentId) throw new Error(`Cannot edit card without an internal ID: ${card.path}`)
-        if (!documentId) historyStore.clear()
-        cardMarkdownDataSource.setActiveDocument('board-card', documentId)
+        if (!visible || !card) {
+            cardMarkdownDataSource.setBoardDocument(null)
+            historyStore.clear()
+            return
+        }
+        const document = openFilesService.openBoardDocument(card)
+        cardMarkdownDataSource.setBoardDocument(document)
+
+        return () => {
+            cardMarkdownDataSource.setBoardDocument(null)
+            historyStore.discardDocument(document)
+            openFilesService.closeBoardDocument(document)
+        }
     }, [card, historyStore, visible])
 
     useEffect(() => () => {
-        cardMarkdownDataSource.setActiveDocument('board-card', null)
+        cardMarkdownDataSource.setBoardDocument(null)
         historyStore.clear()
     }, [historyStore])
 
     const closePopover = () => {
-        cardMarkdownDataSource.setActiveDocument('board-card', null)
+        cardMarkdownDataSource.setBoardDocument(null)
         historyStore.clear()
         setIsFullscreen(false)
         setSelectedCardCommit(null)
@@ -138,7 +163,7 @@ export function CardBodyPopover(props: CardBodyPopoverProps) {
             setTitleEdit({ path: card.path, title: card.header.title })
             return
         }
-        if (nextTitle !== card.header.title) onTitleChange(card.path, nextTitle)
+        if (nextTitle !== card.header.title) cardMarkdownDataSource.updateActiveCardTitle('board-card', nextTitle)
     }
 
     const handleTitleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
@@ -272,7 +297,7 @@ export function CardBodyPopover(props: CardBodyPopoverProps) {
                                 {statusLabel}
                             </Box>
                             <Box sx={{ backgroundColor: 'divider', flexShrink: 0, height: 20, width: '1px' }} />
-                            <CardBodySaveStatus path={card.path} stateStore={stateStore} />
+                            {boardDocument ? <CardBodySaveStatus document={boardDocument} /> : null}
                             <CardCommitMenu commits={cardCommits.commits} error={cardCommits.error} onSelect={selectCommit} />
                             <Tooltip title="Close">
                                 <IconButton aria-label="Close card details" onClick={closePopover} size="small" sx={{ height: 30, ml: '4px', width: 30 }}>
@@ -297,7 +322,6 @@ export function CardBodyPopover(props: CardBodyPopoverProps) {
                                 historyStore={historyStore}
                                 isFullscreen={isFullscreen}
                                 isMobile={isMobile}
-                                stateStore={stateStore}
                                 onToggleFullscreen={toggleFullscreen}
                                 overlayContainer={popupContentElement}
                             />

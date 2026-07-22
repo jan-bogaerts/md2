@@ -9,6 +9,7 @@ import { telemetryService } from '../telemetry/telemetry_service'
 import { GLOBAL_PROGRESS_EVENT, globalProgressService, type GlobalProgress } from '.././global_progress_service'
 import { createDataService, createDeferred, createStorage, files, storageFiles, waitForWorkerTurn } from '.././test_support/data_service_test_support'
 import { markdownParsingService } from '../data/markdown_parsing_service'
+import { openFilesService } from '../open_files_service'
 
 function actionDefinition(id: string, overrides: Record<string, unknown> = {}): RawActionDefinition {
     return { command: 'run', description: id, id: `action-${id}`, label: id, type: 'command', ...overrides } as RawActionDefinition
@@ -30,6 +31,7 @@ function recordDialogMessages(severity: DialogSeverity) {
 
 describe('ProjectLoading', () => {
     afterEach(() => {
+        for (const document of openFilesService.getRegisteredDocuments()) openFilesService.discardDocument(document)
         vi.useRealTimers()
         delete window.md2Actions
         actionService.clear()
@@ -793,6 +795,46 @@ describe('ProjectLoading', () => {
             expect(conflicts.messages[0]).toContain('External change ignored for design/F-1-root.md')
             const card = service.getState().snapshot?.activeCards.find((candidate) => candidate.path === 'design/F-1-root.md')
             expect(card?.content).toContain('Local draft')
+        } finally {
+            conflicts.stop()
+        }
+    })
+
+    it('ignores an external card change while its canonical draft is dirty but not queued', async () => {
+        vi.useFakeTimers()
+        configService.init()
+        let watchChange: (event: { changeKind: 'changed'; path: string }) => void = () => {
+            throw new Error('Watcher not registered')
+        }
+        const storage = createStorage({
+            loadFile: vi.fn(async () => ({
+                content: '---\nid: F-1\ntitle: Root\nstatus: active\n---\n\n# Root\n\nExternal',
+                path: 'design/F-1-root.md',
+            })),
+            watchProject: vi.fn((_project, onChange) => {
+                watchChange = onChange
+
+                return vi.fn()
+            }),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        const conflicts = recordDialogMessages('error')
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        openFilesService.init({ actionService, dataService: service })
+        const projectCard = service.getState().snapshot?.activeCards[0]
+        if (!projectCard) throw new Error('Expected loaded card')
+        const document = openFilesService.openDocument(projectCard)
+        if (document.kind !== 'card') throw new Error('Expected card document')
+        document.updateDraft({ ...projectCard, content: '# Root\n\nLocal draft' }, 'list-card')
+
+        try {
+            watchChange({ changeKind: 'changed', path: projectCard.path })
+            await vi.advanceTimersByTimeAsync(150)
+
+            expect(conflicts.messages[0]).toContain(`External change ignored for ${projectCard.path}`)
+            expect(document.getDraft().content).toContain('Local draft')
+            expect(storage.loadFile).not.toHaveBeenCalled()
         } finally {
             conflicts.stop()
         }

@@ -51,13 +51,13 @@ const {
 const QUIT_FLUSH_TIMEOUT_MS = 5000;
 const QUIT_WATCHDOG_TIMEOUT_MS = 10000;
 const EVENT_METHODS = new Set(['runSearchRegexpAgent', 'startAgentConversation']);
-const SUBSCRIPTION_METHODS = new Set(['onActionExecution', 'watchProject']);
+const SUBSCRIPTION_METHODS = new Set(['onActionExecution', 'onWorktreesChanged', 'watchProject']);
 
 const store = new Store();
 Store.initRenderer();
 const agentExecutableResolver = new AgentExecutableResolver();
 const agentRunnerService = new AgentRunnerService({ executableResolver: agentExecutableResolver });
-const worktreeService = new WorktreeService({ runGit: localGitService.runGit });
+const worktreeService = new WorktreeService({ errorReporter: captureError, runGit: localGitService.runGit });
 const actionWorktreeExecutionService = new ActionWorktreeExecutionService({
     runGit: localGitService.runGit,
     worktreeService,

@@ -93,25 +93,100 @@ describe('RemoteControlStorageService', () => {
         const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
         const addition = service.addWorktree(project)
         const preparationRequest = { branchName: 'card-title', project, worktree: 1 }
+        const operationRequest = { project, worktree: 1 }
+        const commitRequest = { ...operationRequest, message: 'F-1: Card' }
+        const commit = service.commitWorktree(commitRequest)
+        const discard = service.discardWorktreeChanges(operationRequest)
+        const parking = service.parkWorktree(operationRequest)
         const preparation = service.prepareWorktree(preparationRequest)
+        const pull = service.pullWorktree(operationRequest)
+        const push = service.pushWorktree(operationRequest)
+        const refresh = service.refreshWorktrees(project)
         const removal = service.removeWorktree(project, 'C:/feature')
         const socket = lastSocket()
 
         socket.open()
         await flushPromises()
         const addRequest = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
-        const prepareRequest = JSON.parse(socket.sent[1]) as { id: string, method: string, params: unknown[] }
-        const removeRequest = JSON.parse(socket.sent[2]) as { id: string, method: string, params: unknown[] }
+        const commitSentRequest = JSON.parse(socket.sent[1]) as { id: string, method: string, params: unknown[] }
+        const discardRequest = JSON.parse(socket.sent[2]) as { id: string, method: string, params: unknown[] }
+        const parkRequest = JSON.parse(socket.sent[3]) as { id: string, method: string, params: unknown[] }
+        const prepareRequest = JSON.parse(socket.sent[4]) as { id: string, method: string, params: unknown[] }
+        const pullRequest = JSON.parse(socket.sent[5]) as { id: string, method: string, params: unknown[] }
+        const pushRequest = JSON.parse(socket.sent[6]) as { id: string, method: string, params: unknown[] }
+        const refreshRequest = JSON.parse(socket.sent[7]) as { id: string, method: string, params: unknown[] }
+        const removeRequest = JSON.parse(socket.sent[8]) as { id: string, method: string, params: unknown[] }
         expect(addRequest).toMatchObject({ method: 'addWorktree', params: [project] })
+        expect(commitSentRequest).toMatchObject({ method: 'commitWorktree', params: [commitRequest] })
+        expect(discardRequest).toMatchObject({ method: 'discardWorktreeChanges', params: [operationRequest] })
+        expect(parkRequest).toMatchObject({ method: 'parkWorktree', params: [operationRequest] })
         expect(prepareRequest).toMatchObject({ method: 'prepareWorktree', params: [preparationRequest] })
+        expect(pullRequest).toMatchObject({ method: 'pullWorktree', params: [operationRequest] })
+        expect(pushRequest).toMatchObject({ method: 'pushWorktree', params: [operationRequest] })
+        expect(refreshRequest).toMatchObject({ method: 'refreshWorktrees', params: [project] })
         expect(removeRequest).toMatchObject({ method: 'removeWorktree', params: [project, 'C:/feature'] })
-        socket.receive({ id: addRequest.id, result: [] })
-        socket.receive({ id: prepareRequest.id, result: [] })
-        socket.receive({ id: removeRequest.id, result: [] })
+        for (const request of [
+            addRequest, commitSentRequest, discardRequest, parkRequest, prepareRequest,
+            pullRequest, pushRequest, refreshRequest, removeRequest,
+        ]) socket.receive({ id: request.id, result: request === addRequest })
 
-        await expect(addition).resolves.toEqual([])
-        await expect(preparation).resolves.toEqual([])
-        await expect(removal).resolves.toEqual([])
+        await expect(addition).resolves.toBe(true)
+        await expect(commit).resolves.toBeUndefined()
+        await expect(discard).resolves.toBeUndefined()
+        await expect(parking).resolves.toBeUndefined()
+        await expect(preparation).resolves.toBeUndefined()
+        await expect(pull).resolves.toBeUndefined()
+        await expect(push).resolves.toBeUndefined()
+        await expect(refresh).resolves.toBeUndefined()
+        await expect(removal).resolves.toBeUndefined()
+    })
+
+    it('delivers initial and later pushed worktree state and unsubscribes', async () => {
+        installWebSocket()
+        const service = createService()
+        const callback = vi.fn()
+        const unsubscribe = service.onWorktreesChanged(callback)
+        const socket = lastSocket()
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
+        const state = { error: null, project, records: [] }
+
+        socket.open()
+        await flushPromises()
+        const request = JSON.parse(socket.sent[0]) as { id: string, method: string }
+        expect(request.method).toBe('onWorktreesChanged')
+        socket.receive({ event: 'worktreesChanged', payload: { requestId: request.id, state, subscriptionId: 'worktrees-1' } })
+        socket.receive({ id: request.id, result: { subscriptionId: 'worktrees-1' } })
+        await flushPromises()
+        socket.receive({ event: 'worktreesChanged', payload: { requestId: request.id, state, subscriptionId: 'worktrees-1' } })
+
+        expect(callback).toHaveBeenCalledTimes(2)
+        unsubscribe()
+        await vi.waitFor(() => expect(socket.sent).toHaveLength(2))
+        const unsubscribeRequest = JSON.parse(socket.sent[1]) as { method: string, params: unknown[] }
+        expect(unsubscribeRequest).toEqual(expect.objectContaining({ method: 'unsubscribe', params: ['worktrees-1'] }))
+    })
+
+    it('unsubscribes when cleanup runs before subscription setup completes', async () => {
+        installWebSocket()
+        const service = createService()
+        const callback = vi.fn()
+        const unsubscribe = service.onWorktreesChanged(callback)
+        const socket = lastSocket()
+
+        socket.open()
+        await flushPromises()
+        const request = JSON.parse(socket.sent[0]) as { id: string }
+        unsubscribe()
+        socket.receive({ id: request.id, result: { subscriptionId: 'worktrees-1' } })
+        await vi.waitFor(() => expect(socket.sent).toHaveLength(2))
+        const unsubscribeRequest = JSON.parse(socket.sent[1]) as { method: string, params: unknown[] }
+
+        expect(unsubscribeRequest).toEqual(expect.objectContaining({ method: 'unsubscribe', params: ['worktrees-1'] }))
+        socket.receive({
+            event: 'worktreesChanged',
+            payload: { requestId: request.id, state: { error: null, project: null, records: [] }, subscriptionId: 'worktrees-1' },
+        })
+        expect(callback).not.toHaveBeenCalled()
     })
 
 

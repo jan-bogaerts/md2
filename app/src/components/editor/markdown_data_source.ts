@@ -1,108 +1,98 @@
+import type { ActionOpenDocument, CardOpenDocument, OpenDocument } from '../../services/open_files_service'
+
 export type MarkdownBindingKind = 'board-card' | 'list-action' | 'list-card'
+
+export type ActionMarkdownSection =
+    | { kind: 'prompt' }
+    | { kind: 'phrase', identity: string }
+
+export type MarkdownDocumentTarget =
+    | { document: ActionOpenDocument, section: ActionMarkdownSection }
+    | { document: CardOpenDocument, section?: never }
 
 export interface ActiveMarkdownDocumentChangedDetail {
     binding: MarkdownBindingKind
-    /** Drop the outgoing buffer instead of flushing it; the owning domain data is gone. */
+    /** Drop outgoing buffer because owning domain data was explicitly discarded. */
     discard?: boolean
-    documentId: string | null
+    target: MarkdownDocumentTarget | null
 }
 
 export interface MarkdownReplacedDetail {
-    documentId: string
     originBinding: MarkdownBindingKind | null
+    target: MarkdownDocumentTarget
 }
 
 export interface MarkdownBindingsSnapshot {
-    activeBoardCardDocumentId: string | null
-    activeListActionDocumentId: string | null
-    activeListCardDocumentId: string | null
+    activeBoardCardTarget: MarkdownDocumentTarget | null
+    activeListActionTarget: MarkdownDocumentTarget | null
+    activeListCardTarget: MarkdownDocumentTarget | null
 }
 
 export interface MarkdownDataSource extends EventTarget {
-    commit(binding: MarkdownBindingKind, documentId: string, markdown: string): boolean
-    edit(binding: MarkdownBindingKind, documentId: string, markdown: string): void
-    getActiveDocumentId(binding: MarkdownBindingKind): string | null
-    getMarkdown(documentId: string): string
-}
-
-export interface LastWrittenMarkdown {
-    markdown: string
-    originBinding: MarkdownBindingKind
+    commit(binding: MarkdownBindingKind, target: MarkdownDocumentTarget, markdown: string): boolean
+    edit(binding: MarkdownBindingKind, target: MarkdownDocumentTarget, markdown: string): void
+    getActiveTarget(binding: MarkdownBindingKind): MarkdownDocumentTarget | null
+    getMarkdown(target: MarkdownDocumentTarget): string
 }
 
 const INITIAL_BINDINGS: MarkdownBindingsSnapshot = {
-    activeBoardCardDocumentId: null,
-    activeListActionDocumentId: null,
-    activeListCardDocumentId: null,
+    activeBoardCardTarget: null,
+    activeListActionTarget: null,
+    activeListCardTarget: null,
 }
 
 function bindingSnapshotKey(binding: MarkdownBindingKind): keyof MarkdownBindingsSnapshot {
-    if (binding === 'board-card') return 'activeBoardCardDocumentId'
-    if (binding === 'list-card') return 'activeListCardDocumentId'
+    if (binding === 'board-card') return 'activeBoardCardTarget'
+    if (binding === 'list-card') return 'activeListCardTarget'
 
-    return 'activeListActionDocumentId'
+    return 'activeListActionTarget'
 }
 
-/** Shared active-selection and event behavior for Markdown collection sources. */
+export function sameMarkdownTarget(first: MarkdownDocumentTarget | null, second: MarkdownDocumentTarget | null) {
+    if (first?.document !== second?.document) return false
+    if (!first || !second) return true
+    if (!first.section && !second.section) return true
+    if (!first.section || !second.section) return false
+    if (first.section.kind !== second.section.kind) return false
+
+    return first.section.kind === 'prompt'
+        || (second.section.kind === 'phrase' && first.section.identity === second.section.identity)
+}
+
+export function markdownTargetDocument(target: MarkdownDocumentTarget): OpenDocument {
+    return target.document
+}
+
+/** Shared active-target and event behavior for Markdown sources. */
 export abstract class MarkdownDataSourceBase extends EventTarget implements MarkdownDataSource {
     private bindings = INITIAL_BINDINGS
-    private readonly lastWrittenMarkdownByDocumentId = new Map<string, LastWrittenMarkdown>()
 
-    abstract commit(binding: MarkdownBindingKind, documentId: string, markdown: string): boolean
-    abstract edit(binding: MarkdownBindingKind, documentId: string, markdown: string): void
-    abstract getMarkdown(documentId: string): string
+    abstract commit(binding: MarkdownBindingKind, target: MarkdownDocumentTarget, markdown: string): boolean
+    abstract edit(binding: MarkdownBindingKind, target: MarkdownDocumentTarget, markdown: string): void
+    abstract getMarkdown(target: MarkdownDocumentTarget): string
 
     getBindingsSnapshot() {
         return this.bindings
     }
 
-    getActiveDocumentId(binding: MarkdownBindingKind) {
+    getActiveTarget(binding: MarkdownBindingKind) {
         return this.bindings[bindingSnapshotKey(binding)]
     }
 
-    setActiveDocument(binding: MarkdownBindingKind, documentId: string | null, discard = false) {
+    setActiveTarget(binding: MarkdownBindingKind, target: MarkdownDocumentTarget | null, discard = false) {
         const key = bindingSnapshotKey(binding)
-        if (this.bindings[key] === documentId) return
+        if (sameMarkdownTarget(this.bindings[key], target)) return
 
-        this.bindings = { ...this.bindings, [key]: documentId }
-        const detail: ActiveMarkdownDocumentChangedDetail = { binding, discard, documentId }
+        this.bindings = { ...this.bindings, [key]: target }
+        const detail: ActiveMarkdownDocumentChangedDetail = { binding, discard, target }
         this.dispatchEvent(new CustomEvent('activeDocumentChanged', { detail }))
     }
 
     clearBindings(discard = false) {
-        for (const binding of ['board-card', 'list-card', 'list-action'] as const) this.setActiveDocument(binding, null, discard)
+        for (const binding of ['board-card', 'list-card', 'list-action'] as const) this.setActiveTarget(binding, null, discard)
     }
 
     protected dispatchMarkdownReplaced(detail: MarkdownReplacedDetail) {
         this.dispatchEvent(new CustomEvent('markdownReplaced', { detail }))
-    }
-
-    protected recordWrittenMarkdown(binding: MarkdownBindingKind, documentId: string, markdown: string) {
-        const previous = this.lastWrittenMarkdownByDocumentId.get(documentId)
-        this.lastWrittenMarkdownByDocumentId.set(documentId, { markdown, originBinding: binding })
-
-        return previous
-    }
-
-    protected restoreWrittenMarkdown(documentId: string, previous: LastWrittenMarkdown | undefined) {
-        if (previous) this.lastWrittenMarkdownByDocumentId.set(documentId, previous)
-        else this.lastWrittenMarkdownByDocumentId.delete(documentId)
-    }
-
-    /** Consume the written-echo entry when renewed content matches it; null for external changes. */
-    protected takeEchoOriginBinding(documentId: string, markdown: string) {
-        const lastWritten = this.lastWrittenMarkdownByDocumentId.get(documentId)
-        if (lastWritten?.markdown !== markdown) return null
-
-        this.lastWrittenMarkdownByDocumentId.delete(documentId)
-        return lastWritten.originBinding
-    }
-
-    protected forgetWrittenMarkdown(documentId: string) {
-        this.lastWrittenMarkdownByDocumentId.delete(documentId)
-    }
-
-    protected clearWrittenMarkdown() {
-        this.lastWrittenMarkdownByDocumentId.clear()
     }
 }

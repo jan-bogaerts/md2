@@ -23,7 +23,6 @@ const DATA_METHODS = [
     'commit',
     'commitWorktree',
     'createProject',
-    'createWorkingFolderFromTemplate',
     'deleteFile',
     'deleteFolder',
     'discardWorktreeChanges',
@@ -41,7 +40,6 @@ const DATA_METHODS = [
     'loadProjectAsset',
     'loadProjectConfig',
     'loadProjectRoot',
-    'loadWorktrees',
     'moveFiles',
     'openProjectFolder',
     'parkWorktree',
@@ -49,6 +47,7 @@ const DATA_METHODS = [
     'pullWorktree',
     'push',
     'pushWorktree',
+    'refreshWorktrees',
     'removeWorktree',
     'resolveProject',
     'saveActionSchedules',
@@ -209,6 +208,7 @@ if (!isAllowedOrigin()) {
     };
     const dataBridge = {
         ...createBridge(DATA_METHODS),
+        onWorktreesChanged: (callback) => subscribeBridge('onWorktreesChanged', [], callback),
         watchProject: (project, callback) => subscribeBridge('watchProject', [project], callback),
     };
     const actionBridge = {

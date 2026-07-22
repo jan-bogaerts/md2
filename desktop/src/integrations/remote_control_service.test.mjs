@@ -65,6 +65,11 @@ function createDispatcher(overrides = {}) {
 
             return 'foo.*bar';
         },
+        onWorktreesChanged: (onChange) => {
+            onChange({ error: null, project: { branch: 'main', id: 'local' }, records: [] });
+
+            return vi.fn();
+        },
         watchProject: (_project, onChange) => {
             onChange({ changeKind: 'changed', path: 'design/F-1.md' });
 
@@ -161,6 +166,26 @@ describe('RemoteControlService', () => {
             },
         });
         expect(agentResponse).toEqual({ id: 'agent-1', result: 'foo.*bar' });
+    });
+
+    it('pushes the initial worktree snapshot to a remote subscriber', async () => {
+        service = new RemoteControlService(createDispatcher());
+        const status = await service.start();
+        const socket = connect(status);
+        await waitForOpen(socket);
+
+        const messagesPromise = waitForMessages(socket, 2);
+        socket.send(JSON.stringify({ id: 'worktrees-1', method: 'onWorktreesChanged', params: [] }));
+        const [push, response] = await messagesPromise;
+
+        expect(push).toEqual(expect.objectContaining({
+            event: 'worktreesChanged',
+            payload: expect.objectContaining({
+                requestId: 'worktrees-1',
+                state: { error: null, project: { branch: 'main', id: 'local' }, records: [] },
+            }),
+        }));
+        expect(response.result.subscriptionId).toEqual(expect.any(String));
     });
 
     it('closes clients on stop', async () => {

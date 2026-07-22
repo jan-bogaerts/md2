@@ -55,12 +55,13 @@ describe('AgentChatFab', () => {
         expect(screen.getByRole('dialog', { name: 'Run actions' })).toBeInTheDocument()
     })
 
-    it('keeps the popup anchored to the FAB when resized from the top-left', () => {
+    it('detaches the draggable popup while keeping its far corner fixed when resized from the top-left', () => {
         render(<AgentChatFab />, { wrapper: AppThemeProvider })
         const button = screen.getByRole('button', { name: 'Project agent' })
         fireEvent.click(button)
         const dialog = screen.getByRole('dialog', { name: 'Run actions' })
         const handle = screen.getByRole('separator', { name: 'Resize action popup from top-left' })
+        dialog.getBoundingClientRect = vi.fn(() => new DOMRect(700, 200, 400, 450))
 
         fireEvent.pointerDown(handle, { clientX: 100, clientY: 100, pointerId: 1 })
         fireEvent.pointerMove(window, { clientX: 50, clientY: 40, pointerId: 1 })
@@ -69,7 +70,6 @@ describe('AgentChatFab', () => {
         expect(button).toHaveStyle({ left: '1128px', top: '728px' })
         expect(dialog.style.width).toBe('450px')
         expect(dialog.style.height).toBe('510px')
-        expect(dialog.style.left).toBe('')
-        expect(dialog.style.top).toBe('')
+        expect(dialog).toHaveStyle({ left: '650px', position: 'fixed', top: '140px' })
     })
 })

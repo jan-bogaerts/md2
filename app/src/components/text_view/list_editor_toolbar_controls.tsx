@@ -52,14 +52,14 @@ export function ListEditorToolbarControls(props: ListEditorToolbarControlsProps)
         agentAcknowledgementService.acknowledge(cardMarkdownDataSource.getProjectKey(), conversation.cardPath, [conversation])
     }
     const handleOpenProperties = useCallback((event: MouseEvent<HTMLElement>) => {
-        const activeDocumentId = cardMarkdownDataSource.getActiveDocumentId('list-card')
+        const activeDocumentId = cardMarkdownDataSource.getActiveDocument('list-card')?.getObject().header.internalId
         if (!activeDocumentId) throw new Error('Cannot open card properties without an active list-card document')
 
         setPropertiesAnchor({ documentId: activeDocumentId, element: event.currentTarget })
     }, [])
     const handleCloseProperties = useCallback(() => setPropertiesAnchor(null), [])
     const handleToggleAgentPopup = useCallback(() => {
-        const activeDocumentId = cardMarkdownDataSource.getActiveDocumentId('list-card')
+        const activeDocumentId = cardMarkdownDataSource.getActiveDocument('list-card')?.getObject().header.internalId
         if (!activeDocumentId) throw new Error('Cannot open card agents without an active list-card document')
 
         setAgentPopupDocumentId((current) => current === activeDocumentId ? null : activeDocumentId)
@@ -88,7 +88,7 @@ export function ListEditorToolbarControls(props: ListEditorToolbarControlsProps)
             ) : null}
         </>
     )
-    const undoRedoControls = <MarkdownDocumentUndoRedo documentId={documentId} historyStore={historyStore} />
+    const undoRedoControls = <MarkdownDocumentUndoRedo historyKey={documentId} historyStore={historyStore} />
 
     return (
         <>

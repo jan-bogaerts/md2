@@ -7,7 +7,9 @@ import { getElectronActionBridge, type ActionRunHistoryEntry } from '../../data/
 import { defaultActionHistoryLoader, loadActionHistory } from '../../services/actions/action_history'
 import { actionFilePath, createActionDefinition, type ConvertPromptToActionInput } from '../../services/actions/action_definition_writer'
 import { dataService } from '../../services/data/data_service'
+import { projectPersistenceService } from '../../services/project/project_persistence_service'
 import { cancelElectronAction, runElectronAction } from '../../services/actions/electron_action_runner'
+import { flushMarkdownEditors } from '../editor/markdown_editor_flush'
 
 export type PopupRunStatus = 'idle' | 'running' | ActionRunResult['status']
 export type CancelAction = (executionId: string) => Promise<void>
@@ -53,6 +55,8 @@ export function defaultLoadConversations(context: ActionContext) {
 export async function defaultPreparePrompt(action: ActionDefinition, context: ActionContext) {
     const bridge = getElectronActionBridge()
     if (!bridge) throw new Error('Preparing action prompts requires the Electron desktop app')
+    flushMarkdownEditors()
+    if (projectPersistenceService.getSnapshot().hasPendingSave) await projectPersistenceService.flushPendingChanges()
     const result = await bridge.prepareActionPrompt({ actionId: action.id, context })
 
     return result.prompt

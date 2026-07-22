@@ -1,5 +1,7 @@
 ﻿import { AUTO_COMMIT_DELAY_MS, type CommitRequest, type MarkdownFile } from './data_types'
 
+import type { OpenDocumentSaveReference } from '../services/open_files_service'
+
 type DelayId = number
 
 interface CommitBatcherDependencies {
@@ -16,6 +18,13 @@ interface PendingFileChange {
     fromPath: string
     moveSource: boolean
     onCommitted?: (fromPath: string, toPath: string) => void
+    onPersisted?: () => void
+    saveReference?: OpenDocumentSaveReference
+}
+
+export interface CommitFileChange extends MarkdownFile {
+    onPersisted?: () => void
+    saveReference?: OpenDocumentSaveReference
 }
 
 export class CommitBatcher {
@@ -45,10 +54,10 @@ export class CommitBatcher {
         this.setDelay = dependencies.setDelay
     }
 
-    schedule(branch: string, files: MarkdownFile[], message: string) {
+    schedule(branch: string, changes: CommitFileChange[], message: string) {
         this.pendingBranch = branch
-        files.forEach((file) => {
-            this.pendingChanges.set(file.path, { file, fromPath: file.path, moveSource: false })
+        changes.forEach(({ onPersisted, saveReference, ...file }) => {
+            this.pendingChanges.set(file.path, { file, fromPath: file.path, moveSource: false, onPersisted, saveReference })
             this.addPendingMessage(file.path, message)
         })
 
@@ -58,13 +67,14 @@ export class CommitBatcher {
     schedulePathChange(
         branch: string,
         fromPath: string,
-        file: MarkdownFile,
+        change: CommitFileChange,
         message: string,
         onCommitted: (fromPath: string, toPath: string) => void,
         sourceExists = true,
     ) {
+        const { onPersisted, saveReference, ...file } = change
         this.pendingBranch = branch
-        this.pendingChanges.set(fromPath, { file, fromPath, moveSource: sourceExists, onCommitted })
+        this.pendingChanges.set(fromPath, {file, fromPath, moveSource: sourceExists, onCommitted, onPersisted, saveReference})
         this.addPendingMessage(fromPath, message)
 
         this.scheduleFlush()
@@ -148,7 +158,7 @@ export class CommitBatcher {
     private async commitSnapshot(request: CommitRequest, changes: PendingFileChange[]) {
         await this.commit(request)
         for (const change of changes) {
-            const { file, fromPath, onCommitted } = change
+            const { file, fromPath, onCommitted, onPersisted, saveReference } = change
             const current = this.pendingChanges.get(fromPath)
             if (current === change) {
                 this.pendingChanges.delete(fromPath)
@@ -160,6 +170,8 @@ export class CommitBatcher {
                 this.pendingMessagesByPath.delete(fromPath)
                 if (messages) this.pendingMessagesByPath.set(file.path, messages)
             }
+            saveReference?.acknowledge()
+            onPersisted?.()
             onCommitted?.(fromPath, file.path)
         }
         if (this.pendingChanges.size === 0) this.pendingBranch = null

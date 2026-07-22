@@ -3,11 +3,11 @@ import { memo, type ReactNode } from 'react'
 import { ACTION_PROMPT_PLACEHOLDERS } from '../../data/action_placeholders'
 import { ActionEditorContent } from './action_editor_content'
 import { ActionEditorNavigation } from './action_editor_navigation'
+import type { MarkdownDocumentTarget } from '../editor/markdown_data_source'
 
 export interface ActionEditorProps {
     cardTypes: string[]
-    discardMarkdownDocument: (documentId: string) => void
-    markdownDocumentNamespace: string
+    discardMarkdownTarget: (target: MarkdownDocumentTarget) => void
     onMarkdownPresentationChange: (presentation: ActionMarkdownPresentation | null) => void
     repositoryFiles: string[]
     specialContextTypes: string[]
@@ -22,7 +22,7 @@ export interface ActionMarkdownPresentation {
 /** Stable layout composed from service-owned editor regions. */
 export const ActionEditor = memo(function ActionEditor(props: ActionEditorProps) {
     const {
-        cardTypes, discardMarkdownDocument, markdownDocumentNamespace,
+        cardTypes, discardMarkdownTarget,
         onMarkdownPresentationChange, repositoryFiles, specialContextTypes, states,
     } = props
 
@@ -35,8 +35,7 @@ export const ActionEditor = memo(function ActionEditor(props: ActionEditorProps)
                 states={states}
             />
             <ActionEditorNavigation
-                discardMarkdownDocument={discardMarkdownDocument}
-                markdownDocumentNamespace={markdownDocumentNamespace}
+                discardMarkdownTarget={discardMarkdownTarget}
                 onMarkdownPresentationChange={onMarkdownPresentationChange}
             />
         </Box>

@@ -23,10 +23,18 @@ function agentDefinition(id: string, overrides: Record<string, unknown> = {}) {
 
 const context: ActionContext = { file: 'design/F-010.md', kind: 'card', state: 'design', type: 'feature' }
 const project: ProjectReference = { branch: 'main', id: 'project', rootPath: 'C:\\project' }
-const validWorktree: WorktreeRecord = { branch: 'feature', error: null, path: 'C:\\feature', valid: true }
+const validWorktree: WorktreeRecord = {
+    branch: 'feature', error: null, parkingBranch: 'md2/parking/feature', path: 'C:\\feature',
+    status: { ahead: 0, behind: 0, dirty: false, hasUpstream: false }, valid: true,
+}
 
 function worktreeStorage(): StorageService {
-    return { loadWorktrees: vi.fn(async () => [validWorktree]) } as unknown as StorageService
+    return {
+        onWorktreesChanged: vi.fn((callback) => {
+            callback({ error: null, project, records: [validWorktree] })
+            return vi.fn()
+        }),
+    } as unknown as StorageService
 }
 
 function renderPopup(contextOverride: ActionContext = context, onClose = vi.fn()) {
@@ -57,7 +65,6 @@ describe('ActionPopup', () => {
             snapshotProvider: () => null,
             storageProvider: () => storage,
         })
-        await worktreeService.load(project)
     })
 
     afterEach(() => {
@@ -111,6 +118,30 @@ describe('ActionPopup', () => {
         const actionGroup = within(screen.getByRole('group', { name: 'Actions' }))
         expect(actionGroup.getByRole('button', { name: 'Card action' })).toBeInTheDocument()
         expect(actionGroup.queryByRole('button', { name: 'Project action' })).not.toBeInTheDocument()
+    })
+
+    it('keeps the selected action when a run changes the card context', () => {
+        actionService.loadFromFiles([
+            file(commandDefinition('design', { appliesTo: { state: 'design' }, label: 'Design action' })),
+        ])
+        const running: ActionContext = { ...context, state: 'design' }
+        const { rerender } = render(
+            <AppThemeProvider>
+                <ActionPopup anchorElement={document.body} context={running} onClose={vi.fn()} />
+            </AppThemeProvider>,
+        )
+        expect(within(screen.getByRole('group', { name: 'Actions' })).getByRole('button', { name: 'Design action' }))
+            .toHaveAttribute('aria-pressed', 'true')
+
+        rerender(
+            <AppThemeProvider>
+                <ActionPopup anchorElement={document.body} context={{ ...running, state: 'ready' }} onClose={vi.fn()} />
+            </AppThemeProvider>,
+        )
+
+        expect(screen.getByRole('dialog', { name: 'Run actions' })).toBeInTheDocument()
+        expect(within(screen.getByRole('group', { name: 'Actions' })).getByRole('button', { name: 'Design action' }))
+            .toHaveAttribute('aria-pressed', 'true')
     })
 
     it('does not render legacy related-action sections', () => {
@@ -180,8 +211,8 @@ describe('ActionPopup', () => {
         fireEvent.click(screen.getByRole('menuitem', { name: /1 — C:\\feature/u }))
         expect(screen.getByRole('button', { name: 'Assigned action' })).toBeInTheDocument()
 
-        await worktreeService.load({ ...project, id: 'next-project' })
-        expect(screen.queryByRole('button', { name: 'Assigned action' })).not.toBeInTheDocument()
+        worktreeService.clear()
+        await waitFor(() => expect(screen.queryByRole('button', { name: 'Assigned action' })).not.toBeInTheDocument())
     })
 
     it('prepares project action prompts with the session assignment', async () => {

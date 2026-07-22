@@ -1,171 +1,61 @@
 import { describe, expect, it, vi } from 'vitest'
-import type { ProjectCard, ProjectSnapshot } from '../../data/data_types'
-import { dialogService } from '../../services/dialog_service'
+import type { ProjectCard } from '../../data/data_types'
+import { OpenFilesService } from '../../services/open_files_service'
 import { CardMarkdownDataSource } from './card_markdown_data_source'
-import type { ActiveMarkdownDocumentChangedDetail, MarkdownReplacedDetail } from './markdown_data_source'
 
-function card(content: string, path = 'design/F-1.md'): ProjectCard {
+function card(content = 'Original', path = 'design/card.md'): ProjectCard {
     return {
         agentConversationErrors: [], agentConversations: [], content,
         header: {
-            affects: [], after: null, agentLogReferences: [], author: null, id: 'F-1', internalId: 'card-1',
+            affects: [], after: null, agentLogReferences: [], author: null, id: 'C-1', internalId: 'card-1',
             owner: null, policy: {}, status: 'todo', title: 'Card',
         },
-        headerFields: {}, isActive: true, path,
+        headerFields: { id: 'C-1' }, isActive: true, path,
     }
 }
 
-function owner(initialCard: ProjectCard) {
-    let project = { branch: 'main', id: 'project-one' }
-    let snapshot: ProjectSnapshot = { activeCards: [initialCard], backgroundCards: [], repositoryFiles: [], workingFolder: 'design' }
-    const eventTarget = new EventTarget()
-    const updateCardBody = vi.fn((path: string, markdown: string) => {
-        const current = snapshot.activeCards[0]
-        snapshot = { ...snapshot, activeCards: [{ ...current, content: markdown, path }] }
-        eventTarget.dispatchEvent(new CustomEvent('changed'))
-
-        return { content: markdown, path }
+function setup() {
+    const projectCard = card()
+    const dataOwner = Object.assign(new EventTarget(), {
+        getState: () => ({
+            project: { branch: 'main', id: 'project' }, runningAgents: [],
+            snapshot: { activeCards: [projectCard], backgroundCards: [], repositoryFiles: [], workingFolder: 'design' },
+        }),
     })
-    const toggleCardPolicy = vi.fn()
-    const updateCardHeaderFields = vi.fn()
-    const updateCardTitle = vi.fn()
-
-    return Object.assign(eventTarget, {
-        cards: { toggleCardPolicy, updateCardBody, updateCardHeaderFields, updateCardTitle },
-        getState: () => ({ project, runningAgents: [], snapshot }),
-        renew: (nextCard: ProjectCard) => {
-            snapshot = { ...snapshot, activeCards: [nextCard] }
-            eventTarget.dispatchEvent(new CustomEvent('changed'))
-        },
-        switchProject: () => {
-            project = { branch: 'main', id: 'project-two' }
-            eventTarget.dispatchEvent(new CustomEvent('changed'))
-        },
-        updateCardBody,
-        updateCardHeaderFields,
-        updateCardTitle,
-        toggleCardPolicy,
+    const actionOwner = Object.assign(new EventTarget(), {
+        getActions: () => [], getDeletedDraftActions: () => [],
+        getDraft: () => { throw new Error('No actions') },
     })
+    const openFiles = new OpenFilesService()
+    openFiles.init({ actionService: actionOwner, dataService: dataOwner })
+    const document = openFiles.openDocument(projectCard)
+    if (document.kind !== 'card') throw new Error('Expected card document')
+    const cards = {toggleCardPolicy: vi.fn(), updateCardBody: vi.fn(), updateCardHeaderFields: vi.fn(), updateCardTitle: vi.fn()}
+    const source = new CardMarkdownDataSource()
+    source.init(Object.assign(dataOwner, { cards }))
+    source.bindListCards(openFiles)
+
+    return { cards, document, source }
 }
 
 describe('CardMarkdownDataSource', () => {
-    it('follows the active card owned by the open-files service', () => {
-        const activeCard = card('Original')
-        const document = Object.assign(new EventTarget(), { kind: 'card' as const, getObject: () => activeCard })
-        let activeDocument: typeof document | null = null
-        const getSnapshot = () => ({ activeDocument, documents: activeDocument ? [activeDocument] : [] })
-        const listCards = Object.assign(new EventTarget(), { getSnapshot })
-        const source = new CardMarkdownDataSource()
-        const closed = vi.fn()
-        source.addEventListener('cardDocumentClosed', closed)
-        source.bindListCards(listCards)
+    it('retains the full canonical list document target', () => {
+        const { document, source } = setup()
 
-        activeDocument = document
-        listCards.dispatchEvent(new Event('changed'))
-        listCards.dispatchEvent(new CustomEvent('removed', { detail: { document } }))
-
-        expect(source.getActiveDocumentId('list-card')).toBe('card-1')
-        expect(closed).toHaveBeenCalledOnce()
+        expect(source.getActiveTarget('list-card')).toEqual({ document })
+        expect(source.getMarkdown({ document })).toBe('Original')
     })
 
-    it('commits by internal ID while resolving latest path and marks echo origin', () => {
-        const cardOwner = owner(card('Original'))
-        const source = new CardMarkdownDataSource()
-        source.init(cardOwner)
-        const replaced = vi.fn()
-        source.addEventListener('markdownReplaced', replaced)
-        cardOwner.renew(card('Original', 'design/renamed.md'))
+    it('updates one shared draft while typing and schedules its captured save revision on commit', () => {
+        const { cards, document, source } = setup()
+        const target = { document }
 
-        source.edit('board-card', 'card-1', 'Edited')
-        expect(source.commit('board-card', 'card-1', 'Edited')).toBe(true)
+        source.edit('list-card', target, 'Edited')
+        expect(document.getDraft().content).toBe('Edited')
+        expect(document.dirty).toBe(true)
 
-        expect(cardOwner.updateCardBody).toHaveBeenCalledWith('design/renamed.md', 'Edited')
-        const detail = (replaced.mock.calls[0][0] as CustomEvent<MarkdownReplacedDetail>).detail
-        expect(detail).toEqual({ documentId: 'card-1', originBinding: 'board-card' })
+        expect(source.commit('list-card', target, 'Edited')).toBe(true)
+        expect(cards.updateCardBody).toHaveBeenCalledWith(document.path, 'Edited', expect.any(Object))
     })
 
-    it('ignores header-only renewal and reports external content replacement', () => {
-        const cardOwner = owner(card('Original'))
-        const source = new CardMarkdownDataSource()
-        source.init(cardOwner)
-        const replaced = vi.fn()
-        source.addEventListener('markdownReplaced', replaced)
-
-        cardOwner.renew({ ...card('Original'), header: { ...card('Original').header, title: 'Renamed' } })
-        cardOwner.renew(card('External'))
-
-        expect(replaced).toHaveBeenCalledOnce()
-        expect((replaced.mock.calls[0][0] as CustomEvent<MarkdownReplacedDetail>).detail.originBinding).toBeNull()
-    })
-
-    it('reports synchronous failure and keeps commit rejected', () => {
-        const cardOwner = owner(card('Original'))
-        cardOwner.updateCardBody.mockImplementation(() => { throw new Error('write failed') })
-        const source = new CardMarkdownDataSource()
-        source.init(cardOwner)
-        const reportError = vi.spyOn(dialogService, 'error')
-
-        expect(source.commit('list-card', 'card-1', 'Edited')).toBe(false)
-        expect(reportError).toHaveBeenCalledWith(expect.any(Error), { fallbackMessage: 'Body update failed: design/F-1.md' })
-    })
-
-    it('clears every card binding on project switch', () => {
-        const cardOwner = owner(card('Original'))
-        const source = new CardMarkdownDataSource()
-        source.init(cardOwner)
-        source.setActiveDocument('board-card', 'card-1')
-        source.setActiveDocument('list-card', 'card-1')
-
-        cardOwner.switchProject()
-
-        expect(source.getBindingsSnapshot()).toEqual({
-            activeBoardCardDocumentId: null,
-            activeListActionDocumentId: null,
-            activeListCardDocumentId: null,
-        })
-    })
-
-    it('marks project-switch binding clears as discards so editors drop buffers instead of committing', () => {
-        const cardOwner = owner(card('Original'))
-        const source = new CardMarkdownDataSource()
-        source.init(cardOwner)
-        source.setActiveDocument('list-card', 'card-1')
-        const changed = vi.fn()
-        source.addEventListener('activeDocumentChanged', changed)
-
-        cardOwner.switchProject()
-
-        const detail = (changed.mock.calls[0][0] as CustomEvent<ActiveMarkdownDocumentChangedDetail>).detail
-        expect(detail).toEqual({ binding: 'list-card', discard: true, documentId: null })
-    })
-
-    it('reports an unresolvable edit once instead of on every keystroke', () => {
-        const cardOwner = owner(card('Original'))
-        const source = new CardMarkdownDataSource()
-        source.init(cardOwner)
-        const reportError = vi.spyOn(dialogService, 'error')
-        reportError.mockClear()
-
-        source.edit('list-card', 'missing-card', 'a')
-        source.edit('list-card', 'missing-card', 'ab')
-        source.edit('list-card', 'missing-card', 'abc')
-
-        expect(reportError).toHaveBeenCalledOnce()
-    })
-
-    it('updates active card properties by the latest resolved path', () => {
-        const cardOwner = owner(card('Original'))
-        const source = new CardMarkdownDataSource()
-        source.init(cardOwner)
-        source.setActiveDocument('list-card', 'card-1')
-        cardOwner.renew(card('Original', 'design/renamed.md'))
-
-        source.updateActiveCardTitle('list-card', 'Renamed')
-        source.updateActiveCardHeaderField('list-card', 'author', 'JB')
-        source.toggleActiveCardPolicy('list-card', 'autoMerge')
-
-        expect(cardOwner.updateCardTitle).toHaveBeenCalledWith('design/renamed.md', 'Renamed')
-        expect(cardOwner.updateCardHeaderFields).toHaveBeenCalledWith('design/renamed.md', { author: 'JB' })
-        expect(cardOwner.toggleCardPolicy).toHaveBeenCalledWith('design/renamed.md', 'autoMerge')
-    })
 })

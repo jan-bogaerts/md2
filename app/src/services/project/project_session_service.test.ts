@@ -10,6 +10,7 @@ import { actionService } from '../actions/action_service'
 import { dataService } from '../data/data_service'
 import { ProjectSessionService } from './project_session_service'
 import { projectPersistenceService } from './project_persistence_service'
+import { openFilesService } from '../open_files_service'
 
 function createActionBridge(): ElectronActionBridge {
     return {
@@ -29,7 +30,6 @@ function createDataBridge(): ElectronDataBridge {
         checkoutBranch: vi.fn(async (project, branch) => ({ ...project, branch })),
         commit: vi.fn(async () => []),
         createProject: vi.fn(async (project) => project),
-        createWorkingFolderFromTemplate: vi.fn(async (project) => project),
         deleteFile: vi.fn(),
         deleteFolder: vi.fn(),
         hasPendingPush: vi.fn(async () => false),
@@ -62,7 +62,8 @@ function mockProjectOpen() {
 
 describe('ProjectSessionService storage activation', () => {
     beforeEach(() => {
-        projectPersistenceService.init({ actionService, dataService })
+        openFilesService.init({ actionService, dataService })
+        projectPersistenceService.init({ actionService, dataService, openFilesService })
     })
 
     afterEach(() => {
@@ -211,7 +212,17 @@ describe('ProjectSessionService storage activation', () => {
 
         await service.createProjectFolders({ folders: [], kind: 'project-folder-setup', project, storageType: 'local' }, 'design', null)
 
-        expect(bridge.createWorkingFolderFromTemplate).toHaveBeenCalledWith(project, 'design/active')
+        expect(bridge.createProject).toHaveBeenCalledWith(project, 'design/active')
+        expect(bridge.commit).toHaveBeenCalledWith({
+            branch: 'main',
+            files: expect.arrayContaining([
+                expect.objectContaining({ path: 'design/actions/complete-card.json' }),
+                expect.objectContaining({ path: 'design/actions/fix-bug.json' }),
+                expect.objectContaining({ path: 'design/actions/implement.json' }),
+                expect.objectContaining({ path: 'design/actions/prep-to-implement.json' }),
+            ]),
+            message: 'Add default MD² actions',
+        })
         expect(bridge.saveProjectConfig).toHaveBeenCalledWith(project, expect.objectContaining({
             backgroundShade: expect.stringMatching(/^(amber|blue|green|purple|red)$/u),
             projectFolder: 'design',

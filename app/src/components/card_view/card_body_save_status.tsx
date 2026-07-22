@@ -1,24 +1,25 @@
 import { Box } from '@mui/material'
-import { useSyncExternalStore } from 'react'
-import type { MarkdownEditorStateStore } from '../editor/markdown_editor_state_store'
-import { usePendingFileSave } from '../hooks/use_pending_file_save'
+import { useCallback, useSyncExternalStore } from 'react'
+import type { CardOpenDocument } from '../../services/open_files_service'
 
 interface CardBodySaveStatusProps {
-    path: string | null
-    stateStore: MarkdownEditorStateStore
+    document: CardOpenDocument
 }
 
-/** Isolated card-body dirty and pending-save presentation subscriber. */
+/** Canonical card-file dirty-state presentation. */
 export function CardBodySaveStatus(props: CardBodySaveStatusProps) {
-    const { path, stateStore } = props
-    const dirty = useSyncExternalStore(stateStore.subscribe, stateStore.getSnapshot, stateStore.getSnapshot)
-    const hasPendingFileSave = usePendingFileSave(path)
-    const isDirty = dirty || hasPendingFileSave
+    const { document } = props
+    const subscribe = useCallback((onStoreChange: () => void) => {
+        document.addEventListener('changed', onStoreChange)
+        return () => document.removeEventListener('changed', onStoreChange)
+    }, [document])
+    const getSnapshot = useCallback(() => document.dirty, [document])
+    const dirty = useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
 
     return (
         <Box sx={{ alignItems: 'center', color: 'text.disabled', display: 'flex', flexShrink: 0, fontSize: 11.5, gap: '5px' }}>
-            <Box sx={{ backgroundColor: isDirty ? 'warning.main' : 'success.main', borderRadius: '50%', height: 7, width: 7 }} />
-            {isDirty ? 'Dirty' : 'Saved'}
+            <Box sx={{ backgroundColor: dirty ? 'warning.main' : 'success.main', borderRadius: '50%', height: 7, width: 7 }} />
+            {dirty ? 'Dirty' : 'Saved'}
         </Box>
     )
 }

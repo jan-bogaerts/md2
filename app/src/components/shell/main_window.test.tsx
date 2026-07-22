@@ -8,6 +8,7 @@ import { configService } from '../../services/config/config_service'
 import { actionService } from '../../services/actions/action_service'
 import { dataService } from '../../services/data/data_service'
 import { projectPersistenceService } from '../../services/project/project_persistence_service'
+import { openFilesService } from '../../services/open_files_service'
 import * as searchRegexpAgent from '../../services/search/search_regexp_agent'
 import { workspaceViewService } from '../../services/project/workspace_view_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
@@ -65,7 +66,6 @@ function createStorage(files: MarkdownFile[] = []): StorageService {
         checkoutBranch: vi.fn(async (project, branch) => ({ ...project, branch })),
         commit: vi.fn(async () => []),
         createProject: vi.fn(async (project) => project),
-        createWorkingFolderFromTemplate: vi.fn(async (project) => project),
         deleteFile: vi.fn(),
         deleteFolder: vi.fn(),
         listBranches: vi.fn(async () => []),
@@ -87,7 +87,8 @@ async function openProjectWithCards() {
         { content: '---\nid: F-1\ntitle: Root\nstatus: active\naffects:\n---\n\n# Root', path: 'design/F-1-root.md' },
         { content: '# Old', path: 'design/history/F-2-old.md' },
     ]
-    projectPersistenceService.init({ actionService, dataService })
+    openFilesService.init({ actionService, dataService })
+    projectPersistenceService.init({ actionService, dataService, openFilesService })
     dataService.init({ storage: createStorage(files) })
     await dataService.projectLoading.openProject({ branch: 'main', id: 'project' })
 }
@@ -113,7 +114,8 @@ function mockMatchMedia(matches: boolean) {
 describe('MainWindow', () => {
     beforeEach(() => {
         configService.init({ desktopConfig: null })
-        projectPersistenceService.init({ actionService, dataService })
+        openFilesService.init({ actionService, dataService })
+        projectPersistenceService.init({ actionService, dataService, openFilesService })
         dataService.init({ storage: createStorage() })
     })
 

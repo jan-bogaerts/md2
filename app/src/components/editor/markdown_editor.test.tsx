@@ -10,28 +10,45 @@ import { MarkdownEditor, type MarkdownEditorHandle } from './markdown_editor'
 import { MarkdownDocumentHistoryStore } from './markdown_document_history_store'
 import { flushMarkdownEditors } from './markdown_editor_flush'
 import { buildMarkdownContentSx } from './markdown_style_sx'
-import { MarkdownDataSourceBase, type MarkdownBindingKind, type MarkdownDataSource } from './markdown_data_source'
-import { MarkdownEditorStateStore } from './markdown_editor_state_store'
+import {
+    MarkdownDataSourceBase,
+    type MarkdownBindingKind,
+    type MarkdownDataSource,
+    type MarkdownDocumentTarget,
+} from './markdown_data_source'
+import type { CardOpenDocument } from '../../services/open_files_service'
 
 class TestMarkdownDataSource extends MarkdownDataSourceBase {
     readonly commit = vi.fn<MarkdownDataSource['commit']>(() => true)
     readonly edit = vi.fn()
-    private readonly markdownByDocumentId = new Map<string, string>()
+    private readonly markdownByTarget = new Map<MarkdownDocumentTarget, string>()
+    private readonly targets = new Map<string, MarkdownDocumentTarget>()
 
-    getMarkdown(documentId: string) {
-        const markdown = this.markdownByDocumentId.get(documentId)
-        if (markdown === undefined) throw new Error(`Unknown test document: ${documentId}`)
+    getMarkdown(target: MarkdownDocumentTarget) {
+        const markdown = this.markdownByTarget.get(target)
+        if (markdown === undefined) throw new Error('Unknown test document')
         return markdown
     }
 
-    select(binding: MarkdownBindingKind, documentId: string, markdown: string) {
-        this.markdownByDocumentId.set(documentId, markdown)
-        this.setActiveDocument(binding, documentId)
+    select(binding: MarkdownBindingKind, identity: string, markdown: string) {
+        const target = this.target(identity)
+        this.markdownByTarget.set(target, markdown)
+        this.setActiveTarget(binding, target)
+        return target
     }
 
-    replace(documentId: string, markdown: string, originBinding: MarkdownBindingKind | null = null) {
-        this.markdownByDocumentId.set(documentId, markdown)
-        this.dispatchMarkdownReplaced({ documentId, originBinding })
+    replace(target: MarkdownDocumentTarget, markdown: string, originBinding: MarkdownBindingKind | null = null) {
+        this.markdownByTarget.set(target, markdown)
+        this.dispatchMarkdownReplaced({ originBinding, target })
+    }
+
+    target(identity: string) {
+        const existing = this.targets.get(identity)
+        if (existing) return existing
+        const document = Object.assign(new EventTarget(), { kind: 'card' as const }) as CardOpenDocument
+        const target: MarkdownDocumentTarget = { document }
+        this.targets.set(identity, target)
+        return target
     }
 }
 
@@ -102,7 +119,7 @@ describe('MarkdownEditor', () => {
 
     it('stages data-source edits and keeps commit buffered until flush', () => {
         const dataSource = new TestMarkdownDataSource()
-        dataSource.select('list-action', 'prompt', 'original')
+        const target = dataSource.select('list-action', 'prompt', 'original')
         const historyStore = new MarkdownDocumentHistoryStore()
         render(
             <AppThemeProvider>
@@ -110,27 +127,24 @@ describe('MarkdownEditor', () => {
                     binding="list-action"
                     dataSource={dataSource}
                     historyStore={historyStore}
-                    stateStore={new MarkdownEditorStateStore()}
                 />
             </AppThemeProvider>,
         )
 
         fireEvent.change(screen.getByRole('textbox'), { target: { value: 'edited' } })
 
-        expect(dataSource.edit).toHaveBeenCalledExactlyOnceWith('list-action', 'prompt', 'edited')
+        expect(dataSource.edit).toHaveBeenCalledExactlyOnceWith('list-action', target, 'edited')
         expect(dataSource.commit).not.toHaveBeenCalled()
 
         flushMarkdownEditors()
-        expect(dataSource.commit).toHaveBeenCalledExactlyOnceWith('list-action', 'prompt', 'edited')
+        expect(dataSource.commit).toHaveBeenCalledExactlyOnceWith('list-action', target, 'edited')
     })
 
     it('keeps a failed editor dirty without blocking another editor flush', () => {
         const failedDataSource = new TestMarkdownDataSource()
         const successfulDataSource = new TestMarkdownDataSource()
-        const failedStateStore = new MarkdownEditorStateStore()
-        const successfulStateStore = new MarkdownEditorStateStore()
-        failedDataSource.select('list-card', 'failed-card', 'failed original')
-        successfulDataSource.select('board-card', 'saved-card', 'saved original')
+        const failedTarget = failedDataSource.select('list-card', 'failed-card', 'failed original')
+        const savedTarget = successfulDataSource.select('board-card', 'saved-card', 'saved original')
         failedDataSource.commit.mockReturnValue(false)
         render(
             <AppThemeProvider>
@@ -138,13 +152,11 @@ describe('MarkdownEditor', () => {
                     binding="list-card"
                     dataSource={failedDataSource}
                     historyStore={new MarkdownDocumentHistoryStore()}
-                    stateStore={failedStateStore}
                 />
                 <MarkdownEditor
                     binding="board-card"
                     dataSource={successfulDataSource}
                     historyStore={new MarkdownDocumentHistoryStore()}
-                    stateStore={successfulStateStore}
                 />
             </AppThemeProvider>,
         )
@@ -154,15 +166,12 @@ describe('MarkdownEditor', () => {
 
         flushMarkdownEditors()
 
-        expect(failedDataSource.commit).toHaveBeenCalledExactlyOnceWith('list-card', 'failed-card', 'failed edit')
-        expect(successfulDataSource.commit).toHaveBeenCalledExactlyOnceWith('board-card', 'saved-card', 'saved edit')
-        expect(failedStateStore.getSnapshot()).toBe(true)
-        expect(successfulStateStore.getSnapshot()).toBe(false)
+        expect(failedDataSource.commit).toHaveBeenCalledExactlyOnceWith('list-card', failedTarget, 'failed edit')
+        expect(successfulDataSource.commit).toHaveBeenCalledExactlyOnceWith('board-card', savedTarget, 'saved edit')
     })
 
     it('drops the dirty buffer without committing when the binding clears with discard', () => {
         const dataSource = new TestMarkdownDataSource()
-        const stateStore = new MarkdownEditorStateStore()
         dataSource.select('list-card', 'card-1', 'original')
         render(
             <AppThemeProvider>
@@ -170,7 +179,6 @@ describe('MarkdownEditor', () => {
                     binding="list-card"
                     dataSource={dataSource}
                     historyStore={new MarkdownDocumentHistoryStore()}
-                    stateStore={stateStore}
                 />
             </AppThemeProvider>,
         )
@@ -179,13 +187,11 @@ describe('MarkdownEditor', () => {
         act(() => dataSource.clearBindings(true))
 
         expect(dataSource.commit).not.toHaveBeenCalled()
-        expect(stateStore.getSnapshot()).toBe(false)
         expect(screen.getByRole('textbox')).toHaveValue('')
     })
 
     it('keeps the outgoing dirty document active until a failed switch can retry', async () => {
         const dataSource = new TestMarkdownDataSource()
-        const stateStore = new MarkdownEditorStateStore()
         const editorRef = createRef<MarkdownEditorHandle>()
         dataSource.select('list-card', 'first-card', 'first original')
         dataSource.commit.mockReturnValue(false)
@@ -196,7 +202,6 @@ describe('MarkdownEditor', () => {
                     dataSource={dataSource}
                     historyStore={new MarkdownDocumentHistoryStore()}
                     ref={editorRef}
-                    stateStore={stateStore}
                 />
             </AppThemeProvider>,
         )
@@ -205,7 +210,6 @@ describe('MarkdownEditor', () => {
         act(() => dataSource.select('list-card', 'second-card', 'second original'))
 
         expect(editorRef.current?.getMarkdown()).toBe('first edited')
-        expect(stateStore.getSnapshot()).toBe(true)
 
         dataSource.commit.mockReturnValue(true)
         await act(async () => {
@@ -214,19 +218,16 @@ describe('MarkdownEditor', () => {
         })
 
         expect(screen.getByRole('textbox')).toHaveValue('second original')
-        expect(stateStore.getSnapshot()).toBe(false)
     })
 
     it('keeps the origin editor intact while synchronizing another binding for the same document', () => {
         const dataSource = new TestMarkdownDataSource()
         const boardEditorRef = createRef<MarkdownEditorHandle>()
         const listEditorRef = createRef<MarkdownEditorHandle>()
-        const boardStateStore = new MarkdownEditorStateStore()
-        const listStateStore = new MarkdownEditorStateStore()
-        dataSource.select('board-card', 'shared-card', 'original')
+        const sharedTarget = dataSource.select('board-card', 'shared-card', 'original')
         dataSource.select('list-card', 'shared-card', 'original')
-        dataSource.commit.mockImplementation((binding, documentId, markdown) => {
-            dataSource.replace(documentId, markdown, binding)
+        dataSource.commit.mockImplementation((binding, target, markdown) => {
+            dataSource.replace(target, markdown, binding)
             return true
         })
         render(
@@ -236,14 +237,12 @@ describe('MarkdownEditor', () => {
                     dataSource={dataSource}
                     historyStore={new MarkdownDocumentHistoryStore()}
                     ref={boardEditorRef}
-                    stateStore={boardStateStore}
                 />
                 <MarkdownEditor
                     binding="list-card"
                     dataSource={dataSource}
                     historyStore={new MarkdownDocumentHistoryStore()}
                     ref={listEditorRef}
-                    stateStore={listStateStore}
                 />
             </AppThemeProvider>,
         )
@@ -252,16 +251,14 @@ describe('MarkdownEditor', () => {
 
         flushMarkdownEditors()
 
-        expect(dataSource.commit).toHaveBeenCalledExactlyOnceWith('board-card', 'shared-card', 'board edit')
+        expect(dataSource.commit).toHaveBeenCalledExactlyOnceWith('board-card', sharedTarget, 'board edit')
         expect(boardEditorRef.current?.getMarkdown()).toBe('board edit')
         expect(listEditorRef.current?.getMarkdown()).toBe('board edit')
-        expect(boardStateStore.getSnapshot()).toBe(false)
-        expect(listStateStore.getSnapshot()).toBe(false)
     })
 
     it('flushes a data-source edit on blur only when requested', () => {
         const dataSource = new TestMarkdownDataSource()
-        dataSource.select('list-action', 'prompt', 'original')
+        const target = dataSource.select('list-action', 'prompt', 'original')
         const historyStore = new MarkdownDocumentHistoryStore()
         render(
             <AppThemeProvider>
@@ -270,7 +267,6 @@ describe('MarkdownEditor', () => {
                     dataSource={dataSource}
                     flushOnBlur
                     historyStore={historyStore}
-                    stateStore={new MarkdownEditorStateStore()}
                 />
             </AppThemeProvider>,
         )
@@ -280,7 +276,7 @@ describe('MarkdownEditor', () => {
 
         fireEvent.blur(editor)
 
-        expect(dataSource.commit).toHaveBeenCalledExactlyOnceWith('list-action', 'prompt', 'edited')
+        expect(dataSource.commit).toHaveBeenCalledExactlyOnceWith('list-action', target, 'edited')
     })
 
     it('keeps default data-source edits buffered on blur', () => {
@@ -293,7 +289,6 @@ describe('MarkdownEditor', () => {
                     binding="list-card"
                     dataSource={dataSource}
                     historyStore={historyStore}
-                    stateStore={new MarkdownEditorStateStore()}
                 />
             </AppThemeProvider>,
         )
@@ -316,12 +311,11 @@ describe('MarkdownEditor', () => {
                     binding="list-action"
                     dataSource={dataSource}
                     historyStore={historyStore}
-                    stateStore={new MarkdownEditorStateStore()}
                 />
             </AppThemeProvider>,
         )
 
-        act(() => dataSource.replace('prompt', 'external'))
+        act(() => dataSource.replace(dataSource.target('prompt'), 'external'))
 
         expect(screen.getByRole('textbox')).toHaveValue('external')
         expect(dataSource.commit).not.toHaveBeenCalled()
@@ -435,7 +429,6 @@ describe('MarkdownEditor', () => {
                     binding="list-card"
                     dataSource={new TestMarkdownDataSource()}
                     historyStore={new MarkdownDocumentHistoryStore()}
-                    stateStore={new MarkdownEditorStateStore()}
                 />
             </AppThemeProvider>,
         )

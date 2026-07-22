@@ -67,7 +67,6 @@ function renderTextView(overrides: Partial<Parameters<typeof TextView>[0]> = {})
                     onDeleteFolder={onDeleteFolder}
                     onLeftPanelInteraction={handleLeftPanelInteraction}
                     projectFolder="design"
-                    projectKey="project:main"
                     repositoryFiles={[]}
                     states={DEFAULT_STATES}
                     workingFolder="design/active"
@@ -150,12 +149,12 @@ function loadMarkdownActions() {
 describe('TextView', () => {
     beforeEach(() => {
         configService.init()
-        openFilesService.clear()
+        for (const document of openFilesService.getRegisteredDocuments()) openFilesService.discardDocument(document)
         openFilesService.init({ actionService, dataService })
         actionMarkdownDataSource.init(actionService)
-        vi.spyOn(cardMarkdownDataSource, 'getMarkdown').mockImplementation((documentId) => (
-            [...activeCards, ...backgroundCards].find((projectCard) => projectCard.header.internalId === documentId)?.content ?? ''
-        ))
+        vi.spyOn(cardMarkdownDataSource, 'getMarkdown').mockImplementation((target) => target.document.kind === 'card'
+            ? target.document.getDraft().content
+            : '')
         vi.spyOn(cardMarkdownDataSource, 'edit').mockImplementation(() => undefined)
         vi.spyOn(cardMarkdownDataSource, 'commit').mockReturnValue(true)
         vi.spyOn(cardMarkdownDataSource, 'getActiveCard').mockImplementation(() => {
@@ -168,6 +167,7 @@ describe('TextView', () => {
     afterEach(() => {
         delete window.md2Actions
         cleanup()
+        for (const document of openFilesService.getRegisteredDocuments()) openFilesService.discardDocument(document)
         actionService.clear()
         configService.clear()
         vi.restoreAllMocks()
@@ -443,7 +443,7 @@ describe('TextView', () => {
         fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Edited card' } })
         clickTreeFile('Review')
         expect(cardMarkdownDataSource.commit).toHaveBeenCalledExactlyOnceWith(
-            'list-card', 'design/active/F-1-a.md', 'Edited card',
+            'list-card', expect.objectContaining({ document: expect.any(Object) }), 'Edited card',
         )
 
         fireEvent.click(screen.getByRole('tab', { name: 'Prompt' }))
@@ -544,7 +544,7 @@ describe('TextView', () => {
         clickTreeFile('F-2 Beta')
 
         expect(cardMarkdownDataSource.commit).toHaveBeenCalledExactlyOnceWith(
-            'list-card', 'design/active/F-1-a.md', 'Edited body',
+            'list-card', expect.objectContaining({ document: expect.any(Object) }), 'Edited body',
         )
     })
 
@@ -566,13 +566,13 @@ describe('TextView', () => {
         fireEvent.click(screen.getByRole('tab', { name: /Beta/ }))
 
         expect(cardMarkdownDataSource.commit).toHaveBeenCalledExactlyOnceWith(
-            'list-card', 'design/active/F-1-a.md', 'Rapid edit',
+            'list-card', expect.objectContaining({ document: expect.any(Object) }), 'Rapid edit',
         )
     })
 
     it('closes a clean action tab after external deletion', async () => {
-        vi.spyOn(dataService, 'hasPendingActionFile').mockReturnValue(false)
-        vi.spyOn(dataService, 'discardPendingActionFile').mockImplementation(() => undefined)
+        vi.spyOn(dataService, 'hasPendingFile').mockReturnValue(false)
+        vi.spyOn(dataService, 'discardPendingFile').mockImplementation(() => undefined)
         loadReviewAction()
         renderTextView()
         clickTreeFile('Review')
@@ -584,8 +584,8 @@ describe('TextView', () => {
     })
 
     it('keeps a dirty deleted action recoverable and recreates it explicitly', async () => {
-        vi.spyOn(dataService, 'hasPendingActionFile').mockReturnValue(false)
-        vi.spyOn(dataService, 'discardPendingActionFile').mockImplementation(() => undefined)
+        vi.spyOn(dataService, 'hasPendingFile').mockReturnValue(false)
+        vi.spyOn(dataService, 'discardPendingFile').mockImplementation(() => undefined)
         const persistActionFile = vi.spyOn(dataService, 'persistActionFile').mockResolvedValue()
         loadReviewAction()
         renderTextView()
@@ -608,14 +608,16 @@ describe('TextView', () => {
             'design/actions/review.json',
             expect.any(Function),
             false,
+            expect.any(Object),
+            expect.any(Function),
         ))
         await waitFor(() => expect(screen.queryByText(/action file was deleted outside the editor/u)).not.toBeInTheDocument())
         expect(openFilesService.getSnapshot().activeDocument?.getObject()).toMatchObject({ label: 'Recovered' })
     })
 
     it('discards a dirty deleted action and closes its tab', async () => {
-        vi.spyOn(dataService, 'hasPendingActionFile').mockReturnValue(false)
-        vi.spyOn(dataService, 'discardPendingActionFile').mockImplementation(() => undefined)
+        vi.spyOn(dataService, 'hasPendingFile').mockReturnValue(false)
+        vi.spyOn(dataService, 'discardPendingFile').mockImplementation(() => undefined)
         const persistActionFile = vi.spyOn(dataService, 'persistActionFile').mockResolvedValue()
         loadReviewAction()
         renderTextView()

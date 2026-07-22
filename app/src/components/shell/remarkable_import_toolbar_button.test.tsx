@@ -23,7 +23,6 @@ function createStorage(): StorageService {
         checkoutBranch: vi.fn(),
         commit: vi.fn(),
         createProject: vi.fn(),
-        createWorkingFolderFromTemplate: vi.fn(),
         deleteFile: vi.fn(),
         deleteFolder: vi.fn(),
         listBranches: vi.fn(),

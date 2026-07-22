@@ -31,11 +31,18 @@ export function ActionPopup(props: ActionPopupProps) {
         [context, projectActionWorktree],
     )
     const actions = useMemo(() => displayActionsForContext(loadedActions, effectiveContext), [effectiveContext, loadedActions])
-    const [selectedActionId, setSelectedActionId] = useState<string | null>(initialActionId ?? null)
+    const [selectedActionId, setSelectedActionId] = useState<string | null>(initialActionId ?? actions[0]?.id ?? null)
     const [showSaveControls, setShowSaveControls] = useState(false)
     const [fullHeight, setFullHeight] = useState(false)
     const titleId = useId()
-    const selectedAction = actions.find(({ id }) => id === selectedActionId) ?? actions[0] ?? null
+    // A run that edits its own card changes the context (state, title, worktree), so the
+    // selected action can drop out of the filtered list mid-run. Keep it selectable instead
+    // of closing the popup or silently switching to another action.
+    const retainedAction = selectedActionId ? loadedActions.find(({ id }) => id === selectedActionId) ?? null : null
+    const selectedAction = actions.find(({ id }) => id === selectedActionId) ?? retainedAction ?? actions[0] ?? null
+    const selectableActions = selectedAction && !actions.some(({ id }) => id === selectedAction.id)
+        ? [...actions, selectedAction]
+        : actions
 
     const handleSelectAction = (actionId: string) => {
         setSelectedActionId(actionId)
@@ -58,7 +65,7 @@ export function ActionPopup(props: ActionPopupProps) {
         <ActionPopupContent
             {...props}
             action={selectedAction}
-            actions={actions}
+            actions={selectableActions}
             assignmentContext={effectiveContext}
             baseContext={context}
             fullHeight={fullHeight}

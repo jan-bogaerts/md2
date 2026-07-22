@@ -33,8 +33,8 @@ import type {
     StorageProjectFiles,
     StorageService,
     TopLevelFolderReference,
-    WorktreeRecord,
     WorktreeOperationRequest,
+    WorktreeState,
 } from '../../data/data_types'
 import { readRemoteControlConnection, type RemoteControlConnectionSettings } from '../../data/remote_control_connection'
 
@@ -77,6 +77,12 @@ interface ActionExecutionPayload {
     subscriptionId: string
 }
 
+interface WorktreesChangedPayload {
+    requestId: string
+    state: WorktreeState
+    subscriptionId: string
+}
+
 const SOCKET_OPEN_STATE = 1
 
 function isResponse(message: RemoteControlResponse | RemoteControlEvent): message is RemoteControlResponse {
@@ -84,8 +90,8 @@ function isResponse(message: RemoteControlResponse | RemoteControlEvent): messag
 }
 
 export class RemoteControlStorageService implements StorageService, ElectronActionBridge {
-    async addWorktree(project: ProjectReference): Promise<WorktreeRecord[] | null> {
-        return this.request<WorktreeRecord[] | null>('addWorktree', [project])
+    async addWorktree(project: ProjectReference): Promise<boolean> {
+        return this.request<boolean>('addWorktree', [project])
     }
 
     private actionExecutionCallbacks: Map<string, (event: ActionExecutionEvent) => void>
@@ -97,10 +103,12 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
     private requestAgentEvents: Map<string, (event: AgentRunEvent) => void>
     private requestActionExecutionEvents: Map<string, (event: ActionExecutionEvent) => void>
     private requestWatchEvents: Map<string, (event: ProjectWatchEvent) => void>
+    private requestWorktreeEvents: Map<string, (state: WorktreeState) => void>
     private runAgentEvents: Map<string, (event: AgentRunEvent) => void>
     private socket: WebSocket | null
     private token: string
     private watchCallbacks: Map<string, (event: ProjectWatchEvent) => void>
+    private worktreeCallbacks: Map<string, (state: WorktreeState) => void>
 
     constructor() {
         this.actionExecutionCallbacks = new Map()
@@ -112,10 +120,12 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         this.requestAgentEvents = new Map()
         this.requestActionExecutionEvents = new Map()
         this.requestWatchEvents = new Map()
+        this.requestWorktreeEvents = new Map()
         this.runAgentEvents = new Map()
         this.socket = null
         this.token = ''
         this.watchCallbacks = new Map()
+        this.worktreeCallbacks = new Map()
     }
 
     init(settings: Partial<RemoteControlConnectionSettings> = {}) {
@@ -147,10 +157,6 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
 
     async createProject(project: ProjectReference, workingFolder: string): Promise<ProjectReference> {
         return this.request<ProjectReference>('createProject', [project, workingFolder])
-    }
-
-    async createWorkingFolderFromTemplate(project: ProjectReference, workingFolder: string): Promise<ProjectReference> {
-        return this.request<ProjectReference>('createWorkingFolderFromTemplate', [project, workingFolder])
     }
 
     async deleteFile(request: DeleteFileRequest): Promise<void> {
@@ -222,12 +228,8 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         return this.request<TopLevelFolderReference[]>('listTopLevelFolders', [project])
     }
 
-    async loadWorktrees(project: ProjectReference): Promise<WorktreeRecord[]> {
-        return this.request<WorktreeRecord[]>('loadWorktrees', [project])
-    }
-
-    async removeWorktree(project: ProjectReference, folderPath: string): Promise<WorktreeRecord[]> {
-        return this.request<WorktreeRecord[]>('removeWorktree', [project, folderPath])
+    async removeWorktree(project: ProjectReference, folderPath: string): Promise<void> {
+        await this.request('removeWorktree', [project, folderPath])
     }
 
     async loadPendingPush(project: ProjectReference) {
@@ -246,28 +248,32 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         this.pendingPushBranches.delete(project.branch)
     }
 
-    async prepareWorktree(request: PrepareWorktreeRequest): Promise<WorktreeRecord[]> {
-        return this.request<WorktreeRecord[]>('prepareWorktree', [request])
+    async prepareWorktree(request: PrepareWorktreeRequest): Promise<void> {
+        await this.request('prepareWorktree', [request])
     }
 
-    async commitWorktree(request: CommitWorktreeRequest): Promise<WorktreeRecord[]> {
-        return this.request<WorktreeRecord[]>('commitWorktree', [request])
+    async commitWorktree(request: CommitWorktreeRequest): Promise<void> {
+        await this.request('commitWorktree', [request])
     }
 
-    async discardWorktreeChanges(request: WorktreeOperationRequest): Promise<WorktreeRecord[]> {
-        return this.request<WorktreeRecord[]>('discardWorktreeChanges', [request])
+    async discardWorktreeChanges(request: WorktreeOperationRequest): Promise<void> {
+        await this.request('discardWorktreeChanges', [request])
     }
 
-    async parkWorktree(request: WorktreeOperationRequest): Promise<WorktreeRecord[]> {
-        return this.request<WorktreeRecord[]>('parkWorktree', [request])
+    async parkWorktree(request: WorktreeOperationRequest): Promise<void> {
+        await this.request('parkWorktree', [request])
     }
 
-    async pullWorktree(request: WorktreeOperationRequest): Promise<WorktreeRecord[]> {
-        return this.request<WorktreeRecord[]>('pullWorktree', [request])
+    async pullWorktree(request: WorktreeOperationRequest): Promise<void> {
+        await this.request('pullWorktree', [request])
     }
 
-    async pushWorktree(request: WorktreeOperationRequest): Promise<WorktreeRecord[]> {
-        return this.request<WorktreeRecord[]>('pushWorktree', [request])
+    async pushWorktree(request: WorktreeOperationRequest): Promise<void> {
+        await this.request('pushWorktree', [request])
+    }
+
+    async refreshWorktrees(project: ProjectReference): Promise<void> {
+        await this.request('refreshWorktrees', [project])
     }
 
     async saveActionSchedules(project: ProjectReference, actionsFolder: string, schedules: ActionSchedule[]): Promise<ActionSchedule[]> {
@@ -302,6 +308,32 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
             if (!subscriptionId) return
 
             this.watchCallbacks.delete(subscriptionId)
+            void this.request('unsubscribe', [subscriptionId])
+        }
+    }
+
+    onWorktreesChanged(callback: (state: WorktreeState) => void): () => void {
+        const id = this.createRequestId()
+        let cancelled = false
+        let subscriptionId: string | null = null
+        this.requestWorktreeEvents.set(id, callback)
+        void this.sendRequest<{ subscriptionId: string }>({ id, method: 'onWorktreesChanged', params: [] }).then((result) => {
+            subscriptionId = result.subscriptionId
+            if (cancelled) {
+                void this.request('unsubscribe', [subscriptionId])
+                return
+            }
+
+            this.worktreeCallbacks.set(result.subscriptionId, callback)
+            this.requestWorktreeEvents.delete(id)
+        })
+
+        return () => {
+            cancelled = true
+            this.requestWorktreeEvents.delete(id)
+            if (!subscriptionId) return
+
+            this.worktreeCallbacks.delete(subscriptionId)
             void this.request('unsubscribe', [subscriptionId])
         }
     }
@@ -459,6 +491,10 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
             this.handleWatchProjectEvent(message.payload as WatchProjectPayload)
             return
         }
+        if (message.event === 'worktreesChanged') {
+            this.handleWorktreesChangedEvent(message.payload as WorktreesChangedPayload)
+            return
+        }
 
         if (message.event === 'agentRun') this.handleAgentRunEvent(message.payload as AgentRunPayload)
     }
@@ -472,6 +508,11 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
     private handleWatchProjectEvent(payload: WatchProjectPayload) {
         const callback = this.watchCallbacks.get(payload.subscriptionId) ?? this.requestWatchEvents.get(payload.requestId)
         callback?.(payload.event)
+    }
+
+    private handleWorktreesChangedEvent(payload: WorktreesChangedPayload) {
+        const callback = this.worktreeCallbacks.get(payload.subscriptionId) ?? this.requestWorktreeEvents.get(payload.requestId)
+        callback?.(payload.state)
     }
 
     private handleAgentRunEvent(payload: AgentRunPayload) {
@@ -488,8 +529,10 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         this.requestAgentEvents.clear()
         this.requestActionExecutionEvents.clear()
         this.requestWatchEvents.clear()
+        this.requestWorktreeEvents.clear()
         this.runAgentEvents.clear()
         this.watchCallbacks.clear()
+        this.worktreeCallbacks.clear()
         this.connectPromise = null
         this.socket = null
     }

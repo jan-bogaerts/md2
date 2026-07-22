@@ -20,6 +20,8 @@ import { planCardSeparatorMigration } from '../data/card_separator_migration'
 import { globalProgressService } from '.././global_progress_service'
 import { dialogService } from '.././dialog_service'
 import { GithubUnauthorizedError } from '../../auth/github_api_client'
+import { createDefaultActionFiles } from '../../project_template/project_template'
+import { openFilesService } from '../open_files_service'
 
 const ACTION_RELOAD_DEBOUNCE_MS = 150
 const JSON_EXTENSION = '.json'
@@ -86,15 +88,6 @@ function initializeMissingProjectStates(projectConfig: Partial<ProjectConfig> | 
     configService.set('project.states', mergeStatesWithDefaults(derivedStates))
 }
 
-async function loadWorktrees(project: ProjectReference) {
-    try {
-        await worktreeService.load(project)
-    } catch (error) {
-        worktreeService.clear()
-        reportOptionalProjectLoadFailure('Worktrees', error)
-    }
-}
-
 export interface ProjectLoadingDeps {
     beginProjectLoad(): number
     clearLoadedProject(): void
@@ -157,6 +150,11 @@ export class ProjectLoading {
         const currentProject = this.dependencies.project()
         if (!currentProject) throw new Error('Cannot create a project without a project reference')
 
+        await storage.commit({
+            branch: currentProject.branch,
+            files: createDefaultActionFiles(config.actionsFolder),
+            message: 'Add default MD² actions',
+        })
         await storage.saveProjectConfig(currentProject, rawConfig)
         telemetryService.trackEvent('create_project')
 
@@ -175,7 +173,6 @@ export class ProjectLoading {
 
         try {
             const projectConfig = await this.loadProjectConfig(project)
-            await loadWorktrees(project)
             if (projectConfig === null) await this.saveMissingProjectConfig(project)
 
             const config = resolveProjectConfigPaths(configService.getProjectConfig())
@@ -546,7 +543,10 @@ export class ProjectLoading {
 
         for (const event of events) {
             if (this.dependencies.commitPathsInFlight().has(event.path)) continue
-            if (commitBatcher.hasPendingFile(event.path)) {
+            const dirtyOpenDocument = openFilesService.getRegisteredDocuments().some((document) => (
+                document.kind === 'card' && document.path === event.path && document.dirty
+            ))
+            if (commitBatcher.hasPendingFile(event.path) || dirtyOpenDocument) {
                 reportMarkdownWatchConflict(event.path)
                 continue
             }

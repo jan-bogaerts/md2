@@ -9,6 +9,7 @@ import { dataService } from '../../../services/data/data_service'
 import { workspaceNavigationService } from '../../../services/project/workspace_navigation_service'
 import { workspaceViewService } from '../../../services/project/workspace_view_service'
 import { projectPersistenceService } from '../../../services/project/project_persistence_service'
+import { openFilesService } from '../../../services/open_files_service'
 import { AppThemeProvider } from '../../../theme/theme_provider'
 import { DialogDisplay } from '../../dialog_display'
 import { AppMenu } from './app_menu'
@@ -29,7 +30,6 @@ function createBridge(): ElectronDataBridge {
         checkoutBranch: vi.fn(async (project, branch) => ({ ...project, branch })),
         commit: vi.fn(async () => []),
         createProject: vi.fn(async (project) => project),
-        createWorkingFolderFromTemplate: vi.fn(async (project) => project),
         deleteFile: vi.fn(),
         deleteFolder: vi.fn(),
         hasPendingPush: vi.fn(async () => false),
@@ -41,14 +41,14 @@ function createBridge(): ElectronDataBridge {
         loadProject: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
         loadProjectRoot: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
         loadProjectConfig: vi.fn(async () => ({ backgroundShade: 'blue' as const, projectFolder: '', workingFolder: 'design' })),
-        loadWorktrees: vi.fn(async () => []),
+        onWorktreesChanged: vi.fn(() => vi.fn()),
         moveFiles: vi.fn(),
         openProjectFolder: vi.fn(async () => ({ branch: 'main', id: 'local', rootPath: 'C:/repo' })),
         push: vi.fn(),
         resolveProject: vi.fn(async (project) => project),
         saveProjectConfig: vi.fn(),
-        addWorktree: vi.fn(async () => null),
-        removeWorktree: vi.fn(async () => []),
+        addWorktree: vi.fn(async () => false),
+        removeWorktree: vi.fn(async () => undefined),
         watchProject: vi.fn(() => vi.fn()),
     }
 }
@@ -58,7 +58,6 @@ function createResetStorage(): StorageService {
         checkoutBranch: vi.fn(async (project, branch) => ({ ...project, branch })),
         commit: vi.fn(async () => []),
         createProject: vi.fn(async (project) => project),
-        createWorkingFolderFromTemplate: vi.fn(async (project) => project),
         deleteFile: vi.fn(),
         deleteFolder: vi.fn(),
         listBranches: vi.fn(async () => []),
@@ -102,7 +101,8 @@ describe('AppMenu', () => {
     beforeEach(() => {
         configService.init({ desktopConfig: null })
         actionService.clear()
-        projectPersistenceService.init({ actionService, dataService })
+        openFilesService.init({ actionService, dataService })
+        projectPersistenceService.init({ actionService, dataService, openFilesService })
         dataService.init({ storage: createResetStorage() })
         workspaceViewService.setViewMode('cards')
         const { selectedPath } = workspaceViewService.getSnapshot()

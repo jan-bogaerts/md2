@@ -18,7 +18,7 @@ function service() {
 }
 
 describe('ActionWorktreeExecutionService', () => {
-    it('runs actions in the opened project when no worktree is requested', async () => {
+    it('runs actions in an assigned card worktree without requiring needsWorkTree', async () => {
         const runner = vi.fn(async () => result());
 
         const execution = await service().execute(
@@ -27,6 +27,15 @@ describe('ActionWorktreeExecutionService', () => {
             { file: 'design/F-1.md', kind: 'card', worktree: '1' },
             runner,
         );
+
+        expect(runner).toHaveBeenCalledWith({ branch: 'card', id: 'C:/worktrees/card', rootPath: 'C:/worktrees/card' });
+        expect(execution).toMatchObject({ branch: 'card', executionWorktree: 1, repositoryRoot: 'C:/worktrees/card' });
+    });
+
+    it('runs actions in the opened project when no worktree is assigned or required', async () => {
+        const runner = vi.fn(async () => result());
+
+        const execution = await service().execute(primaryProject, action(), { kind: 'card' }, runner);
 
         expect(runner).toHaveBeenCalledWith(primaryProject);
         expect(execution).toMatchObject({ branch: 'main', executionWorktree: null, repositoryRoot: 'C:/repo' });
@@ -46,12 +55,12 @@ describe('ActionWorktreeExecutionService', () => {
         expect(execution).toMatchObject({ branch: 'card', executionWorktree: 1, repositoryRoot: 'C:/worktrees/card' });
     });
 
-    it('runs needsWorkTree actions in the assigned project worktree', async () => {
+    it('runs actions in an assigned project worktree without requiring needsWorkTree', async () => {
         const runner = vi.fn(async () => result());
 
         const execution = await service().execute(
             primaryProject,
-            action(true),
+            action(),
             { kind: 'project', worktree: '1' },
             runner,
         );
@@ -72,13 +81,18 @@ describe('ActionWorktreeExecutionService', () => {
         expect(runner).not.toHaveBeenCalled();
     });
 
-    it('ignores card worktree problems for actions that do not need a worktree', async () => {
+    it('rejects invalid card worktree assignments when needsWorkTree is not set', async () => {
         const executionService = service();
         const runner = vi.fn(async () => result());
 
-        await executionService.execute(primaryProject, action(), { kind: 'card', worktree: 'nope', worktreeError: 'broken' }, runner);
+        await expect(executionService.execute(
+            primaryProject,
+            action(),
+            { kind: 'card', worktree: 'nope', worktreeError: 'broken' },
+            runner,
+        )).rejects.toThrow('broken');
 
-        expect(runner).toHaveBeenCalledWith(primaryProject);
+        expect(runner).not.toHaveBeenCalled();
         expect(executionService.worktreeService.resolve).not.toHaveBeenCalled();
     });
 

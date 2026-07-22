@@ -34,7 +34,7 @@ describe('SaveStateService', () => {
     })
 
     it('tracks linked worktree mutations', async () => {
-        const pendingAddition = createDeferred<never[]>()
+        const pendingAddition = createDeferred<boolean>()
         const addWorktree = vi.fn(() => pendingAddition.promise)
         const service = new SaveStateService()
         const storage = withSaveStateTracking(createStorage({ addWorktree }), service)
@@ -43,7 +43,7 @@ describe('SaveStateService', () => {
         const result = storage.addWorktree?.(project)
         expect(service.getState().isSaving).toBe(true)
 
-        pendingAddition.resolve([])
+        pendingAddition.resolve(true)
         await result
         expect(service.getState().isSaving).toBe(false)
     })

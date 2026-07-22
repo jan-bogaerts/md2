@@ -1,0 +1,11 @@
+{
+  "id": "5b88355d-f964-459a-bc67-6618650866ba",
+  "label": "complete card",
+  "description": "Complete the contents of the card",
+  "type": "agent",
+  "appliesTo": {
+    "kind": "card"
+  },
+  "phrases": [],
+  "prompt": "use /caveman\n\nadd \\`Current state\\`, \\`implementation details\\`, \\`acceptance criteria\\` for \\`{{card-file}}\\`.&#x20;\n\nRead all referenced files before you begin. &#x20;\nAsk any question if something is ambiguous or not yet clear.\nKeep it short and to the point."
+}

@@ -69,7 +69,6 @@ describe('CardBodyPopover commit diff', () => {
                     onDeleteCard={vi.fn(async () => undefined)}
                     onOpenAffects={vi.fn()}
                     onOpenInFileMode={vi.fn()}
-                    onTitleChange={vi.fn()}
                     visible
                 />
             </AppThemeProvider>,

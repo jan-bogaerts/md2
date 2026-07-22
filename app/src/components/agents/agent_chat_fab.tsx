@@ -107,6 +107,7 @@ export function AgentChatFab() {
                 <ActionPopup
                     anchorElement={anchorElement}
                     context={PROJECT_CONTEXT}
+                    draggable
                     onClose={handleClose}
                 />
             ) : null}

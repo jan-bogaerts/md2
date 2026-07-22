@@ -1,21 +1,19 @@
 import { Box, Stack, Typography } from '@mui/material'
 import { useEffect } from 'react'
 import type { AgentConversation } from '../../data/data_types'
-import type { ActionRunLogEntry } from '../../data/action_run_types'
 import type { PopupRunStatus } from './action_popup_defaults'
 import { actionStatusLabel } from './action_status'
+import { ConversationTimer } from './conversation_timer'
 
 interface ActionConversationChatProps {
     conversation: AgentConversation | null
-    logs: ActionRunLogEntry[]
     onConversationViewed?: (conversation: AgentConversation) => void
     status: PopupRunStatus
 }
 
 /** Ordered user/assistant transcript shown above the popup prompt. */
-export function ActionConversationChat({ conversation, logs, onConversationViewed, status }: ActionConversationChatProps) {
+export function ActionConversationChat({ conversation, onConversationViewed, status }: ActionConversationChatProps) {
     const messages = conversation?.messages.filter(({ role }) => role === 'user' || role === 'assistant') ?? []
-    const errors = logs.filter(({ status: logStatus, stderr }) => logStatus === 'failed' || stderr.length > 0)
 
     useEffect(() => {
         if (!conversation?.completedAt || conversation.status === 'running') return
@@ -41,15 +39,15 @@ export function ActionConversationChat({ conversation, logs, onConversationViewe
                 </Box>
             ))}
             {status !== 'idle' ? (
-                <Typography color={status === 'failed' ? 'error.main' : 'text.secondary'} role="status" variant="caption">
-                    {actionStatusLabel(status)}
-                </Typography>
+                <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+                    <Typography color={status === 'failed' ? 'error.main' : 'text.secondary'} role="status" variant="caption">
+                        {actionStatusLabel(status)}
+                    </Typography>
+                    {conversation ? (
+                        <ConversationTimer completedAt={conversation.completedAt} startedAt={conversation.startedAt} />
+                    ) : null}
+                </Stack>
             ) : null}
-            {errors.map((error, index) => (
-                <Typography color="error.main" key={`${error.actionName}-${error.phase}-${index}`} variant="caption">
-                    {error.stderr || error.message}
-                </Typography>
-            ))}
         </Stack>
     )
 }

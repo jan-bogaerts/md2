@@ -8,10 +8,12 @@ import type {
 import { actionService } from '../actions/action_service'
 import { DataService } from '../data/data_service'
 import { projectPersistenceService } from '../project/project_persistence_service'
+import { openFilesService } from '../open_files_service'
 
 export function createDataService() {
     const service = new DataService()
-    projectPersistenceService.init({ actionService, dataService: service })
+    openFilesService.init({ actionService, dataService: service })
+    projectPersistenceService.init({ actionService, dataService: service, openFilesService })
 
     return service
 }
@@ -104,7 +106,6 @@ export function createStorage(overrides: Partial<StorageService> = {}): StorageS
         checkoutBranch: vi.fn(async (project, branch) => ({ ...project, branch })),
         commit: vi.fn(async () => []),
         createProject: vi.fn(async (project) => project),
-        createWorkingFolderFromTemplate: vi.fn(async (project) => project),
         deleteFile: vi.fn(),
         deleteFolder: vi.fn(),
         listBranches: vi.fn(async () => [{ name: 'main' }]),
