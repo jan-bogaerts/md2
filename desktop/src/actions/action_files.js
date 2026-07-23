@@ -74,6 +74,18 @@ async function loadActionFiles(project, actionsFolder) {
     return files;
 }
 
+async function loadActionFile(project, actionPath) {
+    const rootPath = requireRootPath(project);
+    await assertGitRoot(rootPath);
+    if (typeof actionPath !== 'string' || actionPath.length === 0) throw new Error('Missing action path');
+    if (!actionPath.toLowerCase().endsWith(JSON_EXTENSION)) throw new Error('Action file must be JSON');
+
+    const filePath = ensureInsideRoot(rootPath, path.join(rootPath, actionPath));
+    const content = await fs.promises.readFile(filePath, 'utf8');
+
+    return { content, path: normalizePath(path.relative(rootPath, filePath)) };
+}
+
 async function loadActionRunHistory(project, request) {
     const rootPath = requireRootPath(project);
     await assertGitRoot(rootPath);
@@ -132,6 +144,7 @@ async function loadAgentConversation(project, referencePath) {
 
 module.exports = {
     cancelActionSchedule,
+    loadActionFile,
     loadActionFiles,
     loadActionRunHistory,
     loadActionSchedules,

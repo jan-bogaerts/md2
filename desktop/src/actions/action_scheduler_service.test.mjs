@@ -94,6 +94,7 @@ function createLocalGitService(initialSchedules, actionFiles = [createAction()],
             return schedules;
         }),
         histories,
+        loadActionFile: vi.fn(async (_project, actionPath) => actionFiles.find(({ path }) => path === actionPath)),
         loadActionFiles: vi.fn(async () => actionFiles),
         loadActionSchedules: vi.fn(async () => schedules),
         loadProjectConfig: vi.fn(async () => projectConfig),

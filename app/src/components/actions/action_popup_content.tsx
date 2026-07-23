@@ -43,9 +43,11 @@ interface ActionPopupContentProps {
     onSelectAction: (actionId: string) => void
     onToggleFullHeight: () => void
     open: boolean
+    primaryPath: string | null
+    runningActionIds: string[]
     showSaveControls: boolean
     titleId: string
-    primaryPath: string | null
+    unseenResultActionIds?: string[]
     worktrees: WorktreeRecord[]
 }
 
@@ -80,7 +82,7 @@ function worktreeAssignmentTarget(context: ActionContext): WorktreeAssignmentTar
 export function ActionPopupContent(props: ActionPopupContentProps) {
     const {
         action, actions, anchorElement, assignmentContext, baseContext, draggable, fullHeight, onAddAction, onClose, onSelectAction,
-        onToggleFullHeight, open, primaryPath, showSaveControls, titleId, worktrees,
+        onToggleFullHeight, open, primaryPath, runningActionIds, showSaveControls, titleId, unseenResultActionIds = [], worktrees,
     } = props
     const controller = useActionPopupController({
         action,
@@ -186,7 +188,9 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
                     actions={actions}
                     onAdd={onAddAction}
                     onSelect={onSelectAction}
+                    runningActionIds={runningActionIds}
                     selectedAction={action}
+                    unseenResultActionIds={unseenResultActionIds}
                 />
             </Box>
             <Stack spacing={2} sx={{ flex: 1, minHeight: 0, overflow: 'auto', px: 1.5, py: 1 }}>

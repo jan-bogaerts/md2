@@ -1,5 +1,6 @@
 const fs = require('node:fs');
 const path = require('node:path');
+const parcelWatcher = require('@parcel/watcher');
 
 const {
     assertGitRoot,
@@ -15,6 +16,7 @@ const MARKDOWN_EXTENSION = '.md';
 const JSON_EXTENSION = '.json';
 const PROJECT_CONFIG_PATH = 'md2.config.json';
 const GIT_FOLDER = '.git';
+const WATCH_SETTLE_MS = 75;
 const PROJECT_README_TEMPLATE = '# MD²\n\nProject design folder created by MD².\n';
 const PROJECT_ASSET_CONTENT_TYPES = {
     '.gif': 'image/gif',
@@ -286,32 +288,82 @@ async function saveProjectConfig(project, config) {
     await commitStagedChanges(rootPath, 'Update MD² project config');
 }
 
-function watchChangeKind(rootPath, eventType, normalizedPath) {
-    if (eventType === 'change') return 'changed';
-    if (eventType !== 'rename') return 'unknown';
-
-    const targetPath = ensureInsideRoot(rootPath, path.join(rootPath, normalizedPath));
-
-    return fs.existsSync(targetPath) ? 'added' : 'removed';
+async function closeProjectWatcher(subscription) {
+    try {
+        await subscription.unsubscribe();
+    } catch (error) {
+        console.error('Project watcher failed to close:', error);
+    }
 }
 
+async function startProjectWatcher(rootPath, handleEvents, watcherState) {
+    try {
+        const subscription = await parcelWatcher.subscribe(rootPath, handleEvents, {ignore: [path.join(rootPath, GIT_FOLDER)]});
+        if (watcherState.isClosed) {
+            await closeProjectWatcher(subscription);
+            return;
+        }
+        watcherState.subscription = subscription;
+    } catch (error) {
+        if (!watcherState.isClosed) console.error('Project watcher failed:', error);
+    }
+}
+
+/**
+ * Reports one settled change per path. Atomic rewrites can produce several native
+ * events, so existence is checked only after the path stops changing.
+ */
 function watchProject(project, onChange) {
     const rootPath = requireRootPath(project);
-    const watchParams = {
-        recursive: true ,
-        ignore: [GIT_FOLDER, `${GIT_FOLDER}/**`],
-    };
-    const watcher = fs.watch(rootPath, watchParams, (eventType, fileName) => {
-        if (typeof fileName !== 'string') return;
+    const settleTimersByPath = new Map();
+    const watcherState = { isClosed: false, subscription: null };
 
-        const normalizedPath = normalizePath(fileName);
-        const lowerPath = normalizedPath.toLowerCase();
-        if (lowerPath.endsWith(MARKDOWN_EXTENSION) || lowerPath.endsWith(JSON_EXTENSION)) {
-            onChange({ changeKind: watchChangeKind(rootPath, eventType, normalizedPath), path: normalizedPath });
+    const reportSettledPath = async (normalizedPath) => {
+        settleTimersByPath.delete(normalizedPath);
+
+        let exists = false;
+        try {
+            exists = await pathExists(ensureInsideRoot(rootPath, path.join(rootPath, normalizedPath)));
+        } catch {
+            return;
         }
-    });
 
-    return () => watcher.close();
+        if (watcherState.isClosed) return;
+        onChange({ changeKind: exists ? 'changed' : 'removed', path: normalizedPath });
+    };
+
+    const handleEvents = (error, events) => {
+        if (error) {
+            console.error('Project watcher failed:', error);
+            return;
+        }
+        if (watcherState.isClosed) return;
+
+        for (const event of events) {
+            const fullPath = ensureInsideRoot(rootPath, event.path);
+            const normalizedPath = normalizePath(path.relative(rootPath, fullPath));
+            const lowerPath = normalizedPath.toLowerCase();
+            if (!lowerPath.endsWith(MARKDOWN_EXTENSION) && !lowerPath.endsWith(JSON_EXTENSION)) continue;
+
+            const pendingTimer = settleTimersByPath.get(normalizedPath);
+            if (pendingTimer) clearTimeout(pendingTimer);
+            settleTimersByPath.set(normalizedPath, setTimeout(() => {
+                void reportSettledPath(normalizedPath);
+            }, WATCH_SETTLE_MS));
+        }
+    };
+
+    const ready = startProjectWatcher(rootPath, handleEvents, watcherState);
+
+    const closeWatcher = () => {
+        watcherState.isClosed = true;
+        for (const timer of settleTimersByPath.values()) clearTimeout(timer);
+        settleTimersByPath.clear();
+        if (watcherState.subscription) void closeProjectWatcher(watcherState.subscription);
+    };
+    closeWatcher.ready = ready;
+
+    return closeWatcher;
 }
 
 module.exports = {

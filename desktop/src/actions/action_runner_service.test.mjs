@@ -30,6 +30,7 @@ function createRunner(actionFiles = [actionFile('main')], overrides = {}) {
             return { relativePath: 'design/activity/card__card-010.json' };
         }),
         appendActionRunHistory,
+        loadActionFile: vi.fn(async (_project, actionPath) => actionFiles.find(({ path }) => path === actionPath)),
         loadActionFiles: vi.fn(async () => actionFiles),
         loadAgentConversation: vi.fn(),
     };
@@ -81,15 +82,16 @@ describe('ActionRunnerService', () => {
         expect(() => runner.requireActionsFolder()).toThrow('Action runner has no actions folder');
     });
 
-    it('reloads and validates definitions before every start', async () => {
+    it('reads current selected definition before every start without rescanning all actions', async () => {
         const { commandRunner, localGitService, runner } = createRunner();
 
         await runToCompletion(runner);
-        localGitService.loadActionFiles.mockResolvedValueOnce([actionFile('renamed')]);
+        localGitService.loadActionFile.mockResolvedValueOnce(actionFile('renamed'));
 
         await expect(runner.start({ actionId: 'main', context, runInput: {} })).rejects.toThrow('Unknown action: main');
         expect(commandRunner).toHaveBeenCalledTimes(1);
-        expect(localGitService.loadActionFiles).toHaveBeenCalledTimes(2);
+        expect(localGitService.loadActionFiles).toHaveBeenCalledOnce();
+        expect(localGitService.loadActionFile).toHaveBeenCalledTimes(2);
     });
 
     it('prepares a canonical prompt against the resolved worktree without starting execution', async () => {

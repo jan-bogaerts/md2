@@ -26,7 +26,9 @@ import { openFilesService } from '../open_files_service'
 const ACTION_RELOAD_DEBOUNCE_MS = 150
 const JSON_EXTENSION = '.json'
 const MARKDOWN_EXTENSION = '.md'
-const MARKDOWN_RELOAD_DEBOUNCE_MS = 150
+// The watcher already settles each path before reporting, so this only has to group
+// events for different files into a single snapshot rebuild.
+const MARKDOWN_RELOAD_DEBOUNCE_MS = 50
 const PROJECT_LOAD_ERROR_REPORTED = Symbol('project-load-error-reported')
 
 type ReportedProjectLoadError = object & { [PROJECT_LOAD_ERROR_REPORTED]?: boolean }

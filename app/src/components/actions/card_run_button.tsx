@@ -6,7 +6,9 @@ import { useState } from 'react'
 import type { MouseEvent } from 'react'
 import type { ActionContext } from '../../data/action_context'
 import type { AgentConversation, ProjectCard } from '../../data/data_types'
+import { hasUnseenAgentResult } from '../../services/agents/agent_acknowledgement_service'
 import { agentStateDescription, cardAgentState } from '../../services/agents/card_agent_state'
+import { useRunningActionForContext } from '../hooks/use_action_executions'
 import { ActionPopup } from './action_popup'
 
 interface CardRunButtonProps {
@@ -20,11 +22,19 @@ interface CardRunButtonProps {
 export function CardRunButton({ card, context, onConversationViewed, projectKey }: CardRunButtonProps) {
     const [popupAnchor, setPopupAnchor] = useState<HTMLElement | null>(null)
     const agentState = cardAgentState(projectKey, card)
-    const isRunning = agentState === 'running'
+    const runningExecution = useRunningActionForContext(context)
     const isWaiting = agentState === 'waiting for input'
-    const isUnseen = agentState === 'unseen result'
-    const stateDescription = agentStateDescription(agentState)
+    const isRunning = !isWaiting && (agentState === 'running' || !!runningExecution)
+    const isUnseen = !isRunning && agentState === 'unseen result'
+    const stateDescription = isRunning && agentState !== 'running'
+        ? 'Action is running'
+        : agentStateDescription(agentState)
     const accent = isWaiting ? 'warning.main' : isUnseen ? 'info.main' : 'primary.main'
+    const unseenResultActionIds = [...new Set(card.agentConversations.flatMap((conversation) => {
+        if (!conversation.actionId || !hasUnseenAgentResult(projectKey, card.path, [conversation])) return []
+
+        return [conversation.actionId]
+    }))]
 
     const closePopup = () => {
         setPopupAnchor(null)
@@ -89,7 +99,7 @@ export function CardRunButton({ card, context, onConversationViewed, projectKey 
 
     return (
         <>
-            {stateDescription ? <Tooltip title={stateDescription}>{button}</Tooltip> : button}
+            <Tooltip title={stateDescription ?? ''}>{button}</Tooltip>
             {popupAnchor ? (
                 <ActionPopup
                     anchorElement={popupAnchor}
@@ -97,6 +107,7 @@ export function CardRunButton({ card, context, onConversationViewed, projectKey 
                     draggable
                     onClose={closePopup}
                     onConversationViewed={onConversationViewed}
+                    unseenResultActionIds={unseenResultActionIds}
                 />
             ) : null}
         </>

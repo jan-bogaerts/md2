@@ -734,7 +734,7 @@ describe('ProjectLoading', () => {
 
         watchChange({ changeKind: 'changed', path: 'design/F-1-root.md' })
         watchChange({ changeKind: 'changed', path: 'design/F-1-root.md' })
-        await vi.advanceTimersByTimeAsync(149)
+        await vi.advanceTimersByTimeAsync(49)
         expect(loadFile).not.toHaveBeenCalled()
         await vi.advanceTimersByTimeAsync(1)
 

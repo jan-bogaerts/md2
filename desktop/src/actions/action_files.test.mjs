@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 
 const require = createRequire(import.meta.url);
 const { appendActionActivity } = require('./activity_files');
-const { loadActionFiles, loadActionRunHistory, loadAgentConversation } = require('./action_files');
+const { loadActionFile, loadActionFiles, loadActionRunHistory, loadAgentConversation } = require('./action_files');
 const { conversationActivityReference } = require('../../../shared/activity_paths.mjs');
 
 const origin = { cardInternalId: 'card-1', kind: 'card' };
@@ -39,6 +39,19 @@ describe('action-files', () => {
 
             await expect(loadActionFiles({ branch: 'main', rootPath }, 'actions'))
                 .resolves.toEqual([{ content: '{"name":"implement"}', path: 'actions/implement.json' }]);
+        } finally {
+            await rm(rootPath, { force: true, recursive: true });
+        }
+    });
+
+    it('loads one current action file by repository-relative path', async () => {
+        const rootPath = await createRoot('md2-action-file-');
+        try {
+            await mkdir(join(rootPath, 'actions'));
+            await writeFile(join(rootPath, 'actions', 'implement.json'), '{"id":"implement"}');
+
+            await expect(loadActionFile({ branch: 'main', rootPath }, 'actions/implement.json'))
+                .resolves.toEqual({ content: '{"id":"implement"}', path: 'actions/implement.json' });
         } finally {
             await rm(rootPath, { force: true, recursive: true });
         }

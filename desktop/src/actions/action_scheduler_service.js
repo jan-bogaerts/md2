@@ -76,7 +76,7 @@ class ActionSchedulerService {
         const { actionsFolder, projectFolder } = await this.loadProjectPaths();
         this.actionsFolder = actionsFolder;
         this.projectFolder = projectFolder;
-        this.actionRunnerService.startProject(this.project, this.actionsFolder, this.projectFolder);
+        await this.actionRunnerService.startProject(this.project, this.actionsFolder, this.projectFolder);
         await this.reconcile();
     }
 

@@ -1,6 +1,7 @@
-﻿import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+﻿import { mkdtemp, mkdir, readFile, rename, rm, stat, utimes, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { setTimeout as setTimeoutAsync } from 'node:timers/promises';
 import { createRequire } from 'node:module';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
@@ -598,6 +599,7 @@ describe('local-git-service', () => {
             const event = new Promise((resolve) => {
                 closeWatcher = watchProject({ branch: 'main', id: 'local', rootPath }, resolve);
             });
+            await closeWatcher.ready;
 
             await writeFile(join(rootPath, 'actions', 'implement.json'), '{"name":"implement"}');
 
@@ -619,10 +621,65 @@ describe('local-git-service', () => {
             const event = new Promise((resolve) => {
                 closeWatcher = watchProject({ branch: 'main', id: 'local', rootPath }, resolve);
             });
+            await closeWatcher.ready;
 
             await rm(join(rootPath, 'design', 'F-1-root.md'));
 
             await expect(event).resolves.toEqual({ changeKind: 'removed', path: 'design/F-1-root.md' });
+        } finally {
+            if (closeWatcher) closeWatcher();
+            await rm(rootPath, { force: true, recursive: true });
+        }
+    });
+
+    it('reports an atomic rewrite as a single change instead of a removal', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-local-git-'));
+        const cardPath = join(rootPath, 'design', 'F-1-root.md');
+        let closeWatcher = null;
+
+        try {
+            await mkdir(join(rootPath, '.git'));
+            await mkdir(join(rootPath, 'design'));
+            await writeFile(cardPath, '# Root');
+            const events = [];
+            closeWatcher = watchProject({ branch: 'main', id: 'local', rootPath }, (event) => events.push(event));
+            await closeWatcher.ready;
+
+            const temporaryPath = join(rootPath, 'design', 'F-1-root.md.tmp');
+            await writeFile(temporaryPath, '# Root rewritten');
+            await rm(cardPath);
+            await rename(temporaryPath, cardPath);
+            await setTimeoutAsync(400);
+
+            expect(events.every(({ changeKind }) => changeKind === 'changed')).toBe(true);
+            expect(events.filter(({ path }) => path === 'design/F-1-root.md')).toEqual([
+                { changeKind: 'changed', path: 'design/F-1-root.md' },
+            ]);
+        } finally {
+            if (closeWatcher) closeWatcher();
+            await rm(rootPath, { force: true, recursive: true });
+        }
+    });
+
+    it('does not report reading a json file as a change', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-local-git-'));
+        const actionPath = join(rootPath, 'actions', 'implement.json');
+        let closeWatcher = null;
+
+        try {
+            await mkdir(join(rootPath, '.git'));
+            await mkdir(join(rootPath, 'actions'));
+            await writeFile(actionPath, '{"name":"implement"}');
+            const { mtime } = await stat(actionPath);
+            await utimes(actionPath, new Date(0), mtime);
+            const events = [];
+            closeWatcher = watchProject({ branch: 'main', id: 'local', rootPath }, (event) => events.push(event));
+            await closeWatcher.ready;
+
+            await readFile(actionPath, 'utf8');
+            await setTimeoutAsync(300);
+
+            expect(events).toEqual([]);
         } finally {
             if (closeWatcher) closeWatcher();
             await rm(rootPath, { force: true, recursive: true });

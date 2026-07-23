@@ -12,8 +12,13 @@ import { CardRunButton } from './card_run_button'
 
 const PROJECT_KEY = 'project:main'
 
-function conversation(status: AgentConversation['status'], events: AgentConversation['events'] = []): AgentConversation {
+function conversation(
+    status: AgentConversation['status'],
+    events: AgentConversation['events'] = [],
+    actionId?: string,
+): AgentConversation {
     return {
+        actionId,
         cardPath: 'design/F-010.md',
         completedAt: status === 'running' ? null : '2026-01-01T00:01:00.000Z',
         events,
@@ -131,12 +136,44 @@ describe('CardRunButton', () => {
             { wrapper: AppThemeProvider },
         )
 
-        const runButton = screen.getByRole('button', { name: 'Run' })
+        const runButton = screen.getByRole('button', { name: 'Run — Action is running' })
         expect(runButton).toBeEnabled()
         fireEvent.click(runButton)
 
         expect(screen.getByRole('dialog')).toBeInTheDocument()
         expect(within(screen.getByRole('dialog')).getByRole('button', { name: 'Create branch' })).toHaveAttribute('aria-pressed', 'true')
+        expect(within(screen.getByRole('dialog')).getByRole('button', { name: 'Implement — Agent is running' })).toBeInTheDocument()
+    })
+
+    it('keeps the popup anchor mounted when an action starts', () => {
+        let listener: ((event: ActionExecutionEvent) => void) | null = null
+        window.md2Actions = {
+            onActionExecution: (nextListener: (event: ActionExecutionEvent) => void) => {
+                listener = nextListener
+
+                return vi.fn()
+            },
+        } as unknown as typeof window.md2Actions
+        actionExecutionService.start()
+        if (!listener) throw new Error('Missing action execution listener')
+
+        const context = cardContext(card, DEFAULT_CARD_TYPES)
+        render(
+            <CardRunButton card={card} context={context} onConversationViewed={onConversationViewed} projectKey={PROJECT_KEY} />,
+            { wrapper: AppThemeProvider },
+        )
+        const runButton = screen.getByRole('button', { name: 'Run' })
+        fireEvent.click(runButton)
+
+        const emit = listener as (event: ActionExecutionEvent) => void
+        act(() => emit({
+            actionId: 'implement', context, executionId: 'execution-1', phase: 'main', rootActionId: 'implement',
+            status: 'running', type: 'execution',
+        }))
+
+        expect(screen.getByRole('button', { name: 'Run — Action is running' })).toBe(runButton)
+        expect(runButton).toBeInTheDocument()
+        expect(screen.getByRole('dialog')).toBeInTheDocument()
     })
 
     it('selects one action at a time inside the Run popup', () => {
@@ -148,6 +185,16 @@ describe('CardRunButton', () => {
 
         expect(actionGroup.getByRole('button', { name: 'Run lint' })).toHaveAttribute('aria-pressed', 'true')
         expect(actionGroup.getByRole('button', { name: 'Implement' })).toHaveAttribute('aria-pressed', 'false')
+    })
+
+    it('marks actions with unseen agent results inside the Run popup', () => {
+        renderCardRunButton(onConversationViewed, cardWith([conversation('completed', [], 'implement')]))
+
+        fireEvent.click(screen.getByRole('button', { name: 'Run — New agent result available' }))
+        const actionGroup = within(screen.getByRole('group', { name: 'Actions' }))
+
+        expect(actionGroup.getByRole('button', { name: 'Implement — New agent result available' })).toBeInTheDocument()
+        expect(actionGroup.getByRole('button', { name: 'Run lint' })).toBeInTheDocument()
     })
 
     it('shows custom-action save controls from the Run popup', async () => {

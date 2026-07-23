@@ -1,6 +1,7 @@
 const crypto = require('node:crypto');
 const { ActionAgentExecutor } = require('./action_agent_executor');
 const { runCommand } = require('./action_command_executor');
+const { ActionDefinitionCache } = require('./action_definition_cache');
 const { resolveActionDefinition } = require('./action_definition_resolver');
 const { ActionExecution } = require('./action_execution');
 const { prepareAgentPrompt } = require('./action_text');
@@ -32,12 +33,15 @@ class ActionRunnerService {
         this.commandRunner = dependencies?.commandRunner ?? runCommand;
         this.errorReporter = dependencies?.errorReporter ?? (() => undefined);
         this.localGitService = dependencies?.localGitService;
+        this.actionDefinitionCache = dependencies?.actionDefinitionCache
+            ?? (this.localGitService ? new ActionDefinitionCache({ localGitService: this.localGitService }) : null);
         this.agentExecutor = new ActionAgentExecutor({
             agentConfigProvider: this.agentConfigProvider,
             agentRunnerService: this.agentRunnerService,
             localGitService: this.localGitService,
         });
         this.actionsFolder = null;
+        this.actionCacheReady = null;
         this.completedResults = new Map();
         this.executions = new Map();
         this.listeners = new Set();
@@ -50,13 +54,18 @@ class ActionRunnerService {
         this.project = project;
         this.actionsFolder = actionsFolder;
         this.projectFolder = projectFolder;
+        this.actionCacheReady = this.actionDefinitionCache?.startProject(project, actionsFolder) ?? null;
+
+        return this.actionCacheReady ?? Promise.resolve();
     }
 
     stop() {
         for (const execution of this.executions.values()) execution.cancel();
         this.project = null;
         this.actionsFolder = null;
+        this.actionCacheReady = null;
         this.projectFolder = null;
+        this.actionDefinitionCache?.stop();
     }
 
     subscribe(listener) {
@@ -72,7 +81,7 @@ class ActionRunnerService {
         const origin = activityOrigin(startRequest.context);
         const project = { ...this.project };
         const actionsFolder = this.actionsFolder;
-        const rootAction = await this.loadRootAction(startRequest.actionId, project, actionsFolder);
+        const rootAction = await this.loadRootAction(startRequest.actionId);
         const executionId = createExecutionId();
         const execution = new ActionExecution({
             actionsFolder,
@@ -102,7 +111,7 @@ class ActionRunnerService {
         const promptRequest = validatePreparePromptRequest(request);
         this.requirePreparationReady();
         const project = { ...this.project };
-        const action = await this.loadRootAction(promptRequest.actionId, project, this.actionsFolder);
+        const action = await this.loadRootAction(promptRequest.actionId);
         if (action.type !== 'agent') throw new Error('Cannot prepare a prompt for a command action');
         const resolution = await this.actionWorktreeExecutionService.resolve(project, action, promptRequest.context);
 
@@ -136,10 +145,11 @@ class ActionRunnerService {
         return this.projectFolder;
     }
 
-    async loadRootAction(actionId, project, actionsFolder) {
+    async loadRootAction(actionId) {
         const config = this.agentConfigProvider();
+        await this.actionCacheReady;
 
-        return resolveActionDefinition(this.localGitService, project, actionsFolder, config.agentProfiles, actionId);
+        return resolveActionDefinition(this.actionDefinitionCache, config.agentProfiles, actionId);
     }
 
     async finalizeExecution(execution, runCompletion) {
@@ -187,6 +197,8 @@ class ActionRunnerService {
         if (!this.actionsFolder) throw new Error('Action runner has no actions folder');
         if (this.projectFolder === null) throw new Error('Action runner has no projectFolder');
         if (!this.localGitService) throw new Error('Action runner has no local Git service');
+        if (!this.actionDefinitionCache) throw new Error('Action runner has no action definition cache');
+        if (!this.actionCacheReady) throw new Error('Action runner action definition cache is not ready');
         if (!this.actionWorktreeExecutionService) throw new Error('Action runner has no worktree execution service');
         if (!this.agentConfigProvider) throw new Error('Action runner has no agent config provider');
     }
