@@ -267,6 +267,7 @@ describe('project dialog components', () => {
 
         render(
             <NewCardDialog
+                cardBodyTemplate=""
                 cardTypes={DEFAULT_CARD_TYPES}
                 isLoading={false}
                 isProjectOpen
@@ -291,12 +292,13 @@ describe('project dialog components', () => {
         fireEvent.change(within(screen.getByRole('group', { name: 'Body' })).getByRole('textbox'), { target: { value: 'Body' } })
         fireEvent.click(screen.getByRole('button', { name: 'Create card' }))
 
-        await waitFor(() => expect(createCard).toHaveBeenCalledWith({ body: 'Body', title: 'New Card', type: 'feature' }))
+        await waitFor(() => expect(createCard).toHaveBeenCalledWith({ body: 'Body', bodyIncludesTemplate: true, title: 'New Card', type: 'feature' }))
     })
 
     it('disables new card submit while loading', () => {
         render(
             <NewCardDialog
+                cardBodyTemplate=""
                 cardTypes={DEFAULT_CARD_TYPES}
                 isLoading
                 isProjectOpen
@@ -317,6 +319,7 @@ describe('project dialog components', () => {
 
         render(
             <NewCardDialog
+                cardBodyTemplate=""
                 cardTypes={DEFAULT_CARD_TYPES}
                 isLoading={false}
                 isProjectOpen
@@ -332,7 +335,7 @@ describe('project dialog components', () => {
         fireEvent.change(bodyEditor, { target: { value: 'Shortcut body' } })
         fireEvent.keyDown(bodyEditor, { ctrlKey: true, key: 'Enter' })
 
-        await waitFor(() => expect(createCard).toHaveBeenCalledWith({ body: 'Shortcut body', title: 'Keyboard card', type: 'feature' }))
+        await waitFor(() => expect(createCard).toHaveBeenCalledWith({ body: 'Shortcut body', bodyIncludesTemplate: true, title: 'Keyboard card', type: 'feature' }))
     })
 
     it('renders the complete release dialog and submits a release name without mounting the menu', async () => {

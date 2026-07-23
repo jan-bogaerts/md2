@@ -17,6 +17,13 @@ const JSON_EXTENSION = '.json';
 const PROJECT_CONFIG_PATH = 'md2.config.json';
 const GIT_FOLDER = '.git';
 const WATCH_SETTLE_MS = 75;
+const WATCHER_BACKEND_BY_PLATFORM = {
+    darwin: 'fs-events',
+    freebsd: 'kqueue',
+    linux: 'inotify',
+    win32: 'windows',
+};
+const WATCHER_BACKEND = WATCHER_BACKEND_BY_PLATFORM[process.platform];
 const PROJECT_README_TEMPLATE = '# MD²\n\nProject design folder created by MD².\n';
 const PROJECT_ASSET_CONTENT_TYPES = {
     '.gif': 'image/gif',
@@ -26,6 +33,8 @@ const PROJECT_ASSET_CONTENT_TYPES = {
     '.svg': 'image/svg+xml',
     '.webp': 'image/webp',
 };
+
+if (!WATCHER_BACKEND) throw new Error(`Unsupported watcher platform: ${process.platform}`);
 
 async function readMarkdownFiles(rootPath, folderPath) {
     const entries = await fs.promises.readdir(folderPath, { withFileTypes: true });
@@ -298,7 +307,10 @@ async function closeProjectWatcher(subscription) {
 
 async function startProjectWatcher(rootPath, handleEvents, watcherState) {
     try {
-        const subscription = await parcelWatcher.subscribe(rootPath, handleEvents, {ignore: [path.join(rootPath, GIT_FOLDER)]});
+        const subscription = await parcelWatcher.subscribe(rootPath, handleEvents, {
+            backend: WATCHER_BACKEND,
+            ignore: [path.join(rootPath, GIT_FOLDER)],
+        });
         if (watcherState.isClosed) {
             await closeProjectWatcher(subscription);
             return;

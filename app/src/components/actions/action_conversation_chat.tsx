@@ -1,6 +1,10 @@
 import { Box, Stack, Typography } from '@mui/material'
 import { useEffect } from 'react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import type { AgentConversation } from '../../data/data_types'
+import { useAppTheme } from '../../theme/use_app_theme'
+import { buildMarkdownContentSx } from '../editor/markdown_style_sx'
 import type { PopupRunStatus } from './action_popup_defaults'
 import { actionStatusLabel } from './action_status'
 import { ConversationTimer } from './conversation_timer'
@@ -13,6 +17,8 @@ interface ActionConversationChatProps {
 
 /** Ordered user/assistant transcript shown above the popup prompt. */
 export function ActionConversationChat({ conversation, onConversationViewed, status }: ActionConversationChatProps) {
+    const { markdownStyleConfig } = useAppTheme()
+    const markdownContentSx = buildMarkdownContentSx(markdownStyleConfig)
     const messages = conversation?.messages.filter(({ role }) => role === 'user' || role === 'assistant') ?? []
 
     useEffect(() => {
@@ -31,11 +37,15 @@ export function ActionConversationChat({ conversation, onConversationViewed, sta
                         bgcolor: message.role === 'user' ? 'custom.primaryBg' : 'custom.track',
                         borderRadius: 1,
                         maxWidth: '88%',
+                        overflowX: 'auto',
                         px: 1.25,
                         py: 1,
+                        ...markdownContentSx,
                     }}
                 >
-                    <Typography sx={{ whiteSpace: 'pre-wrap' }} variant="body2">{message.content}</Typography>
+                    <Box className="mdxeditor-content">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
+                    </Box>
                 </Box>
             ))}
             {status !== 'idle' ? (

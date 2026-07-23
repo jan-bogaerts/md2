@@ -91,6 +91,22 @@ export class ProjectState {
         this.replaceFiles(mergeFiles(this.currentFiles, files), workingFolder)
     }
 
+    /** Moves a loaded file and its repository entry to a committed path. */
+    renameFile(fromPath: string, toPath: string, workingFolder: string) {
+        if (fromPath === toPath) return
+
+        const sourceFile = this.currentFiles.find((file) => file.path === fromPath)
+        const targetFile = this.currentFiles.find((file) => file.path === toPath)
+        const movedFile = sourceFile ? { ...targetFile, ...sourceFile, path: toPath } : targetFile
+        const files = this.currentFiles.filter((file) => file.path !== fromPath && file.path !== toPath)
+        const repositoryFiles = this.currentSnapshot?.repositoryFiles ?? []
+        const nextRepositoryFiles = repositoryFiles.includes(fromPath) || repositoryFiles.includes(toPath)
+            ? [...repositoryFiles.filter((path) => path !== fromPath && path !== toPath), toPath]
+            : repositoryFiles
+
+        this.replaceProjectFiles(movedFile ? [...files, movedFile] : files, workingFolder, nextRepositoryFiles)
+    }
+
     beginProjectLoad() {
         this.projectLoadToken += 1
         return this.projectLoadToken

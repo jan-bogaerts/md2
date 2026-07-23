@@ -4,6 +4,7 @@ import { DEFAULT_CARD_TYPES, type ProjectCard } from '../../data/data_types'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import { CardDragOverlay } from './card_drag_overlay'
 import { dataService } from '../../services/data/data_service'
+import { cardDragDropService } from './card_drag_drop_service'
 
 const card: ProjectCard = {
     agentConversationErrors: [],
@@ -19,6 +20,7 @@ const card: ProjectCard = {
 }
 
 beforeEach(() => {
+    cardDragDropService.endDrag()
     vi.spyOn(dataService, 'getState').mockReturnValue({
         project: null,
         runningAgents: [],
@@ -27,14 +29,16 @@ beforeEach(() => {
 })
 
 afterEach(() => {
+    cardDragDropService.endDrag()
     vi.restoreAllMocks()
 })
 
 describe('CardDragOverlay', () => {
     it('renders a pointer-transparent card copy at the active card width', () => {
+        cardDragDropService.startDrag(card.path, 107, 235)
         render(
             <AppThemeProvider>
-                <CardDragOverlay cardPath={card.path} cardTypes={DEFAULT_CARD_TYPES} width={235} />
+                <CardDragOverlay cardTypes={DEFAULT_CARD_TYPES} />
             </AppThemeProvider>,
         )
 

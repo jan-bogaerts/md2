@@ -14,6 +14,7 @@ import { worktreeService } from '../../services/project/worktree_service'
 import { cardMarkdownDataSource } from '../editor/card_markdown_data_source'
 import { openFilesService } from '../../services/open_files_service'
 import { workspaceViewService } from '../../services/project/workspace_view_service'
+import { cardDragDropService } from './card_drag_drop_service'
 
 function card(id: string, title: string, status: string, policy: Record<string, boolean> = {}): ProjectCard {
     return {
@@ -82,6 +83,7 @@ function renderCardView(
 
 describe('CardView', () => {
     beforeEach(() => {
+        cardDragDropService.endDrag()
         vi.spyOn(dataService, 'getState')
         setProjectCards(cards)
         vi.spyOn(dataService.cards, 'deleteCard').mockResolvedValue(null)
@@ -100,6 +102,7 @@ describe('CardView', () => {
 
     afterEach(() => {
         cleanup()
+        cardDragDropService.endDrag()
         const { selectedPath } = workspaceViewService.getSnapshot()
         if (selectedPath) workspaceViewService.clearSelectedPath(selectedPath)
         for (const document of openFilesService.getRegisteredDocuments()) openFilesService.discardDocument(document)
@@ -152,14 +155,14 @@ describe('CardView', () => {
     it('inserts a card-sized drop position between target-column cards', () => {
         const handlers = createColumnHandlers()
         setProjectCards([card('F-1', 'First', 'done'), card('F-2', 'Second', 'done')])
+        cardDragDropService.startDrag('design/F-1.md', 123, 235)
+        cardDragDropService.setDropPreview({ targetIndex: 1, targetStatus: 'done' })
         render(
             <AppThemeProvider>
                 <DndContext>
                     <CardColumn
                         cardTypes={DEFAULT_CARD_TYPES}
                         column={{ color: '#123456', status: 'done' }}
-                        dropPreviewHeight={123}
-                        dropPreviewIndex={1}
                         isMobile={false}
                         worktrees={[]}
                         {...handlers}
@@ -259,6 +262,28 @@ describe('CardView', () => {
 
         fireEvent.click(screen.getByRole('button', { name: 'Close card details' }))
         expect(renderCardColumn).toHaveBeenCalledTimes(initialRenderCount)
+    })
+
+    it('rerenders only columns whose drop preview changes', () => {
+        const renderCardColumn = vi.spyOn(cardColumnModule, 'CardColumn')
+        renderCardView()
+        const initialRenderCount = renderCardColumn.mock.calls.length
+        cardDragDropService.startDrag('design/F-1.md', 107, 235)
+
+        act(() => cardDragDropService.setDropPreview({ targetIndex: 0, targetStatus: 'done' }))
+
+        expect(renderCardColumn).toHaveBeenCalledTimes(initialRenderCount + 1)
+        expect(renderCardColumn.mock.calls.at(-1)?.[0].column.status).toBe('done')
+
+        act(() => cardDragDropService.setDropPreview({ targetIndex: 0, targetStatus: 'done' }))
+
+        expect(renderCardColumn).toHaveBeenCalledTimes(initialRenderCount + 1)
+
+        act(() => cardDragDropService.setDropPreview({ targetIndex: 0, targetStatus: 'todo' }))
+
+        expect(renderCardColumn).toHaveBeenCalledTimes(initialRenderCount + 3)
+        expect(renderCardColumn.mock.calls.slice(-2).map(([props]) => props.column.status))
+            .toEqual(expect.arrayContaining(['done', 'todo']))
     })
 
     it('routes the file-mode action from the popup to the callback', () => {

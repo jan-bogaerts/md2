@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
+    DEFAULT_CARD_BODY_TEMPLATE,
     DEFAULT_CARD_TYPES,
     type BranchReference,
     type CardDraft,
@@ -55,6 +56,7 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
     const [switchBranch, setSwitchBranch] = useState(project?.branch ?? '')
     const activeCards = snapshot?.activeCards ?? []
     const cardTypes = projectConfig?.cardTypes ?? DEFAULT_CARD_TYPES
+    const cardBodyTemplate = projectConfig?.cardBodyTemplate ?? DEFAULT_CARD_BODY_TEMPLATE
     const pushMode = (projectConfig?.pushMode ?? 'auto') as PushMode
 
     const closeDialog = useCallback(() => {
@@ -303,6 +305,7 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
     return {
         activeCards,
         branches,
+        cardBodyTemplate,
         cardTypes,
         clearOpenDialogState,
         closeDialog,

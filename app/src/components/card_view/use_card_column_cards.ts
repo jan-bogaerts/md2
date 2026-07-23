@@ -25,7 +25,9 @@ export function useCardColumnCards(status: string, service: DataService = dataSe
     const pathsRef = useRef<string[]>([])
     const subscribe = useCallback((onStoreChange: () => void) => {
         const handleCardAddedOrRemoved = (event: Event) => {
-            if (cardStatus(event) === status) onStoreChange()
+            if (cardStatus(event) === status) {
+                onStoreChange()
+            }
         }
         const handleCardChanged = (event: Event) => {
             const { card, previousCard } = (event as CustomEvent<CardChangedEventDetail>).detail

@@ -198,6 +198,45 @@ describe('AgentIntegration', () => {
         })
     })
 
+    it('keeps conversations available while their card file is temporarily absent', async () => {
+        vi.useFakeTimers()
+        configService.init()
+        const cardFile: MarkdownFile = {
+            content: '---\nid: F-1\ninternalId: root-card\ntitle: Root\nstatus: active\nagents:\n  - design/activity/card__root-card.json#conversation=agent-1\n---\n\n# Root',
+            path: 'design/F-1-root.md',
+        }
+        let watchChange: (event: { changeKind: 'changed' | 'removed'; path: string }) => void = () => {
+            throw new Error('Watcher not registered')
+        }
+        const storage = createStorage({
+            loadFile: vi.fn(async () => cardFile),
+            loadProject: vi.fn(async () => ({ files: [cardFile], workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: [cardFile], workingFolder: 'design' })),
+            watchProject: vi.fn((_project, onChange) => {
+                watchChange = onChange
+
+                return vi.fn()
+            }),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        await vi.waitFor(() => {
+            expect(service.getState().snapshot?.activeCards[0].agentConversations).toHaveLength(1)
+        })
+
+        watchChange({ changeKind: 'removed', path: cardFile.path })
+        await vi.advanceTimersByTimeAsync(800)
+
+        const context = { cardInternalId: 'root-card', file: cardFile.path, kind: 'card' as const }
+        await expect(service.listAgentConversations(context)).resolves.toHaveLength(1)
+
+        watchChange({ changeKind: 'changed', path: cardFile.path })
+        await vi.advanceTimersByTimeAsync(50)
+
+        expect(service.getState().snapshot?.activeCards[0].agentConversations).toHaveLength(1)
+    })
+
     it('bounds parallel referenced agent conversation loads', async () => {
         configService.init()
         let activeLoads = 0

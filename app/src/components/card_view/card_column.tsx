@@ -1,11 +1,12 @@
 import { Box, Chip, IconButton, Paper, Tooltip, Typography } from '@mui/material'
-import { useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import Plus from 'mdi-material-ui/Plus'
+import { useCallback, useSyncExternalStore } from 'react'
 import type { ReactNode } from 'react'
 import type { CardTypeConfig, WorktreeRecord } from '../../data/data_types'
 import { requestOpenNewCardDialog } from '../project_command_events'
-import { columnDropId } from './card_drag'
+import { CardColumnDropTarget } from './card_column_drop_target'
+import { cardDragDropService } from './card_drag_drop_service'
 import { ProjectCardView, type CardHandlers } from './project_card_view'
 import type { VisibleCardColumn } from './use_card_view_columns'
 import { useCardColumnCards } from './use_card_column_cards'
@@ -16,8 +17,6 @@ const MAX_COLUMN_WIDTH = 320
 interface CardColumnProps extends CardHandlers {
     cardTypes: CardTypeConfig[]
     column: VisibleCardColumn
-    dropPreviewHeight: number | null
-    dropPreviewIndex: number | null
     isMobile: boolean
     worktrees: WorktreeRecord[]
 }
@@ -25,11 +24,21 @@ interface CardColumnProps extends CardHandlers {
 /** One status column: a polished droppable stack with header metadata and an empty target. */
 export function CardColumn(props: CardColumnProps) {
     const {
-        cardTypes, column, dropPreviewHeight, dropPreviewIndex, isMobile,
+        cardTypes, column, isMobile,
         worktrees, ...handlers
     } = props
     const cardPaths = useCardColumnCards(column.status)
-    const { setNodeRef } = useDroppable({ id: columnDropId(column.status) })
+    const subscribe = useCallback(
+        (listener: () => void) => cardDragDropService.subscribeColumn(column.status, listener),
+        [column.status],
+    )
+    const getSnapshot = useCallback(
+        () => cardDragDropService.getColumnPreview(column.status),
+        [column.status],
+    )
+    const dropPreview = useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
+    const dropPreviewHeight = dropPreview?.dropPreviewHeight ?? null
+    const dropPreviewIndex = dropPreview?.dropPreviewIndex ?? null
     const columnLabel = column.status || 'Unassigned'
     const dropPlaceholder = (
         <Box
@@ -97,7 +106,7 @@ export function CardColumn(props: CardColumnProps) {
                 </Tooltip>
             </Box>
             <SortableContext items={cardPaths} strategy={verticalListSortingStrategy}>
-                <Box ref={setNodeRef} sx={{ display: 'flex', flexDirection: 'column', gap: 1, minHeight: 52 }}>
+                <CardColumnDropTarget status={column.status}>
                     {cardElements}
                     {cardPaths.length === 0 && dropPreviewIndex === null ? (
                         <Box
@@ -114,7 +123,7 @@ export function CardColumn(props: CardColumnProps) {
                             Drop a card here
                         </Box>
                     ) : null}
-                </Box>
+                </CardColumnDropTarget>
             </SortableContext>
         </Paper>
     )

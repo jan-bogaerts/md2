@@ -1,13 +1,11 @@
 import { Box, IconButton, Menu, MenuItem, Stack, TextField, Tooltip, Typography, useTheme } from '@mui/material'
 import { alpha } from '@mui/material/styles'
-import { useSortable } from '@dnd-kit/sortable'
 import DotsVertical from 'mdi-material-ui/DotsVertical'
 import FileDocumentOutline from 'mdi-material-ui/FileDocumentOutline'
 import { useState, useSyncExternalStore } from 'react'
 import type { ChangeEvent, KeyboardEvent, MouseEvent, TouchEvent } from 'react'
-import type { AgentConversation, CardTypeConfig, ProjectCard, WorktreeRecord } from '../../data/data_types'
+import type { CardTypeConfig, ProjectCard, WorktreeRecord } from '../../data/data_types'
 import { cardContext } from '../../data/action_context'
-import { agentAcknowledgementService } from '../../services/agents/agent_acknowledgement_service'
 import { telemetryService } from '../../services/telemetry/telemetry_service'
 import { ActionEntryPoints } from '../actions/action_entry_points'
 import { CardRunButton } from '../actions/card_run_button'
@@ -20,6 +18,7 @@ import { useProjectCard } from './use_project_card'
 import { useProjectReference } from '../hooks/use_project_reference'
 import { useIsWorkspacePathSelected } from '../hooks/use_is_workspace_path_selected'
 import { cardBodyPopoverService, subscribeCardBodyPopover } from './card_body_popover_service'
+import { ProjectCardDragContainer } from './project_card_drag_container'
 
 const CARD_LONG_PRESS_MS = 500
 
@@ -77,8 +76,7 @@ function ProjectCardViewContent(props: ProjectCardViewContentProps) {
     const { onOpenInFileMode } = props
     const { onDeleteCard, onTogglePolicy, onTitleChange } = props
     const theme = useTheme()
-    const sortable = useSortable({ id: card.path })
-    const { attributes, isDragging, listeners, node, setActivatorNodeRef, setNodeRef, transform, transition } = sortable
+    const [cardElement, setCardElement] = useState<HTMLDivElement | null>(null)
     const [actionsAnchorElement, setActionsAnchorElement] = useState<HTMLElement | null>(null)
     const [actionsMenuPosition, setActionsMenuPosition] = useState<MenuPosition | null>(null)
     const [isEditingTitle, setIsEditingTitle] = useState(false)
@@ -94,16 +92,6 @@ function ProjectCardViewContent(props: ProjectCardViewContentProps) {
     const accentBackground = alpha(accentColor, 0.16)
     const runningExecution = useRunningActionForFile(card.path)
     const statusLabel = runningExecution ? 'Running' : 'Idle'
-    const dragTranslation = transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : ''
-    const style = {
-        opacity: isDragging ? 0 : 1,
-        transform: `${dragTranslation}${isDragging ? ' rotate(2deg)' : ''}`.trim() || undefined,
-        transition,
-    }
-
-    const handleConversationViewed = (conversation: AgentConversation) => {
-        agentAcknowledgementService.acknowledge(projectKey, card.path, [conversation])
-    }
 
     const commitTitle = () => {
         setIsEditingTitle(false)
@@ -156,8 +144,8 @@ function ProjectCardViewContent(props: ProjectCardViewContentProps) {
 
     const openBodyFromMenu = () => {
         closeCardActions()
-        if (!node.current) throw new Error(`Missing card element: ${card.path}`)
-        cardBodyPopoverService.toggle(card.path, node.current)
+        if (!cardElement) throw new Error(`Missing card element: ${card.path}`)
+        cardBodyPopoverService.toggle(card.path, cardElement)
         telemetryService.trackEvent('navigation')
     }
 
@@ -202,50 +190,22 @@ function ProjectCardViewContent(props: ProjectCardViewContentProps) {
     }
 
     const policyKeys = Object.keys(card.header.policy)
+    const dragInteractions = {
+        onClick: handleCardClick,
+        onContextMenu: openCardContextMenu,
+        onTouchEnd: handleCardTouchEnd,
+        onTouchStart: handleCardTouchStart,
+    }
 
     return (
-        <Box
-            data-card-path={card.path}
-            data-selected={isSelected ? 'true' : undefined}
-            onContextMenu={openCardContextMenu}
-            onTouchCancel={handleCardTouchEnd}
-            onTouchEnd={handleCardTouchEnd}
-            onTouchMove={handleCardTouchEnd}
-            onTouchStart={handleCardTouchStart}
-            ref={setNodeRef}
-            sx={{
-                bgcolor: 'background.paper',
-                border: 1,
-                borderColor: isSelected ? 'primary.main' : 'divider',
-                borderRadius: 1.25,
-                boxShadow: isDragging ? 'var(--md2-card-drag-shadow)' : 'var(--md2-card-shadow)',
-                overflow: 'hidden',
-                position: 'relative',
-                '&:hover': { borderColor: 'text.disabled', boxShadow: 'var(--md2-card-hover-shadow)' },
-                ...style,
-            }}
+        <ProjectCardDragContainer
+            cardId={card.header.id}
+            cardPath={card.path}
+            interactions={dragInteractions}
+            isBodyOpen={isBodyOpen}
+            isSelected={isSelected}
+            onCardElementChange={setCardElement}
         >
-            <Box
-                {...attributes}
-                {...listeners}
-                aria-expanded={isBodyOpen}
-                aria-haspopup="dialog"
-                aria-label={`Drag ${card.header.id}`}
-                component="button"
-                onClick={handleCardClick}
-                ref={setActivatorNodeRef}
-                sx={{
-                    bgcolor: 'transparent',
-                    border: 0,
-                    cursor: isDragging ? 'grabbing' : 'pointer',
-                    inset: 0,
-                    position: 'absolute',
-                    touchAction: 'none',
-                    zIndex: 1,
-                    '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: -2 },
-                }}
-                type="button"
-            />
             <Box sx={{ bgcolor: accentColor, bottom: 0, left: 0, position: 'absolute', top: 0, width: 4 }} />
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0, p: '10px 12px 10px 14px', pointerEvents: 'none' }}>
                 <Stack direction="row" spacing={1} sx={{ alignItems: 'center', minHeight: 24, position: 'relative', zIndex: 2 }}>
@@ -303,7 +263,6 @@ function ProjectCardViewContent(props: ProjectCardViewContentProps) {
                         <CardRunButton
                             card={card}
                             context={cardContext(card, cardTypes)}
-                            onConversationViewed={handleConversationViewed}
                             projectKey={projectKey}
                         />
                     </Box>
@@ -336,7 +295,7 @@ function ProjectCardViewContent(props: ProjectCardViewContentProps) {
                 <ActionEntryPoints
                     context={cardContext(card, cardTypes)}
                     onMenuItemSelected={closeCardActions}
-                    popupAnchorElement={node.current}
+                    popupAnchorElement={cardElement}
                     variant="menuItems"
                 />
                 {policyKeys.map((policyKey) => (
@@ -355,6 +314,6 @@ function ProjectCardViewContent(props: ProjectCardViewContentProps) {
                 <MenuItem onClick={openDeleteCardDialog}>Delete</MenuItem>
             </Menu>
             <CardDeleteDialog cardPath={deleteCardPath} onClose={closeDeleteCardDialog} onDeleteCard={onDeleteCard} />
-        </Box>
+        </ProjectCardDragContainer>
     )
 }

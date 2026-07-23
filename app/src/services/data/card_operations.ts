@@ -1,4 +1,4 @@
-import { createCardFile } from '../../data/card_naming'
+import { createCardFile, desiredCardPath } from '../../data/card_naming'
 import { computeMove, orderByAfter, UNASSIGNED_STATUS } from '../../data/card_ordering'
 import type { CardDraft, MarkdownFile, ProjectReference, ProjectSnapshot, StorageService } from '../../data/data_types'
 import type { OpenDocumentSaveReference } from '../open_files_service'
@@ -22,6 +22,7 @@ function findCard(snapshot: ProjectSnapshot | null, path: string) {
 }
 
 export interface CardOperationsDeps {
+    cardPathChanged(fromPath: string, toPath: string): void
     commitPathsInFlight(): Set<string>
     dispatchChanged(): void
     dispatchPersistenceChanged(): void
@@ -30,6 +31,7 @@ export interface CardOperationsDeps {
     project(): ProjectReference | null
     refreshSnapshot(workingFolder: string): void
     reloadCurrentProjectSnapshot(): Promise<ProjectSnapshot | null>
+    renameFile(fromPath: string, toPath: string, workingFolder: string): void
     requireDependencies(): RequiredDataServiceDependencies
     requireFile(path: string): MarkdownFile
     replaceFiles(files: MarkdownFile[], workingFolder: string): void
@@ -65,6 +67,9 @@ async function pushCreatedItem(
 export class CardOperations {
     private generatedInternalIdProjectKey: string | null = null
     private readonly generatedInternalIdsByPath = new Map<string, string>()
+    /** Tracks where renamed cards landed so queued title updates keep targeting the same card. */
+    private readonly committedPathsByPath = new Map<string, string>()
+    private readonly titleChainByPath = new Map<string, Promise<void>>()
     private readonly dependencies: CardOperationsDeps
     private readonly triggerStateActions: (cardPath: string, state: string) => void
 
@@ -189,6 +194,7 @@ export class CardOperations {
         if (projectKey !== this.generatedInternalIdProjectKey) {
             this.generatedInternalIdProjectKey = projectKey
             this.generatedInternalIdsByPath.clear()
+            this.committedPathsByPath.clear()
         }
         for (const card of cards) {
             if (card.header.internalId) this.generatedInternalIdsByPath.delete(card.path)
@@ -221,13 +227,97 @@ export class CardOperations {
         return filesToPersist.length
     }
 
-    updateCardTitle(path: string, title: string, saveReference?: OpenDocumentSaveReference) {
-        const existingFile = this.dependencies.requireFile(path)
+    /**
+     * Saves the new title and, when it changes the card file name, renames the file.
+     * Renames flush the pending batch before and after so the move never shares a batch with other edits.
+     */
+    async updateCardTitle(path: string, title: string, saveReference?: OpenDocumentSaveReference) {
+        const pending = this.titleChainByPath.get(path) ?? Promise.resolve()
+        const applyTitle = async () => this.applyCardTitle(this.committedPath(path), title, saveReference)
+        const titleUpdate = pending.then(applyTitle, applyTitle)
+        const chained = titleUpdate.then(() => undefined, () => undefined)
+        this.titleChainByPath.set(path, chained)
+        void chained.then(() => {
+            if (this.titleChainByPath.get(path) === chained) this.titleChainByPath.delete(path)
+        })
 
-        return this.saveCardMetadataFile(
-            { content: markdownParsingService.setCardTitle(existingFile.content, title), path, sha: existingFile.sha },
-            saveReference,
+        return titleUpdate
+    }
+
+    private async applyCardTitle(path: string, title: string, saveReference?: OpenDocumentSaveReference) {
+        const existingFile = this.dependencies.requireFile(path)
+        const file = {
+            content: markdownParsingService.setCardTitle(existingFile.content, title),
+            path,
+            ...(existingFile.sha ? { sha: existingFile.sha } : {}),
+        }
+        const snapshot = this.dependencies.snapshot()
+        const occupiedPaths = [
+            ...this.dependencies.files().map((currentFile) => currentFile.path),
+            ...(snapshot?.repositoryFiles ?? []),
+        ]
+        const targetPath = desiredCardPath(path, title, occupiedPaths)
+        if (targetPath === path) return this.saveCardMetadataFile(file, saveReference)
+
+        return this.renameCardFile(file, targetPath, saveReference)
+    }
+
+    /** Commits pending work, then commits the rename on its own so no other change shares its batch entry. */
+    private async renameCardFile(file: MarkdownFile, targetPath: string, saveReference?: OpenDocumentSaveReference) {
+        const { commitBatcher, config } = this.dependencies.requireDependencies()
+        const currentProject = this.dependencies.project()
+        if (!currentProject) throw new Error('Cannot rename a card before a project is open')
+
+        await this.flushPendingCommitBatch()
+
+        const existingFile = this.dependencies.requireFile(file.path)
+        const currentCard = findCard(this.dependencies.snapshot(), file.path)
+        const openDocument = currentCard ? openFilesService.findDocument(currentCard) : null
+        const content = openDocument?.kind === 'card'
+            ? markdownParsingService.replaceBody(file.content, openDocument.getDraft().content)
+            : file.content
+        const renamedFile = { content, path: targetPath, ...(existingFile.sha ? { sha: existingFile.sha } : {}) }
+
+        const files = this.dependencies.files().map((currentFile) => (
+            currentFile.path === file.path ? { ...currentFile, content } : currentFile
+        ))
+        // replaceFiles already rebuilds the snapshot; the file keeps its old path until the move is committed.
+        this.dependencies.replaceFiles(files, config.workingFolder)
+        if (openDocument?.kind === 'card' && !saveReference) {
+            const nextCard = findCard(this.dependencies.snapshot(), file.path)
+            if (!nextCard) throw new Error(`Renamed card was not rebuilt: ${file.path}`)
+            openDocument.updateDraft(nextCard, this)
+        }
+        const documentSaveReference = saveReference ?? openDocument?.createSaveReference()
+        commitBatcher.schedulePathChange(
+            currentProject.branch,
+            file.path,
+            { ...renamedFile, saveReference: documentSaveReference },
+            `Rename ${file.path} to ${targetPath}`,
+            (fromPath, toPath) => this.reconcileCardPath(fromPath, toPath),
         )
+        this.dependencies.dispatchChanged()
+        await this.flushPendingCommitBatch()
+
+        return renamedFile
+    }
+
+    /** Moves local state onto the committed path and lets path-keyed callers follow the card. */
+    private reconcileCardPath(fromPath: string, toPath: string) {
+        if (fromPath === toPath) return
+
+        const { config } = this.dependencies.requireDependencies()
+        this.dependencies.renameFile(fromPath, toPath, config.workingFolder)
+        for (const [sourcePath, currentPath] of this.committedPathsByPath) {
+            if (currentPath === fromPath) this.committedPathsByPath.set(sourcePath, toPath)
+        }
+        this.committedPathsByPath.set(fromPath, toPath)
+        this.dependencies.cardPathChanged(fromPath, toPath)
+        this.dependencies.dispatchChanged()
+    }
+
+    private committedPath(path: string) {
+        return this.committedPathsByPath.get(path) ?? path
     }
 
     updateCardWorktree(path: string, worktree: number | null) {

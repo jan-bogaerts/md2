@@ -7,7 +7,9 @@ import { DEFAULT_CARD_TYPES, type AgentConversation, type ProjectCard } from '..
 import { actionExecutionService } from '../../services/actions/action_execution_service'
 import { actionService } from '../../services/actions/action_service'
 import { agentAcknowledgementService } from '../../services/agents/agent_acknowledgement_service'
+import { cardActionPopupService } from '../../services/actions/card_action_popup_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
+import { CardActionPopupHost } from './card_action_popup_host'
 import { CardRunButton } from './card_run_button'
 
 const PROJECT_KEY = 'project:main'
@@ -62,21 +64,21 @@ function cardWith(conversations: AgentConversation[]): ProjectCard {
     return { ...card, agentConversations: conversations }
 }
 
-function renderCardRunButton(onConversationViewed: () => void, projectCard: ProjectCard = card) {
+function renderCardRunButton(projectCard: ProjectCard = card) {
     render(
-        <CardRunButton
-            card={projectCard}
-            context={cardContext(projectCard, DEFAULT_CARD_TYPES)}
-            onConversationViewed={onConversationViewed}
-            projectKey={PROJECT_KEY}
-        />,
+        <>
+            <CardRunButton
+                card={projectCard}
+                context={cardContext(projectCard, DEFAULT_CARD_TYPES)}
+                projectKey={PROJECT_KEY}
+            />
+            <CardActionPopupHost />
+        </>,
         { wrapper: AppThemeProvider },
     )
 }
 
 describe('CardRunButton', () => {
-    const onConversationViewed = vi.fn()
-
     beforeEach(() => {
         window.md2Actions = {
             onActionExecution: vi.fn(() => vi.fn()),
@@ -91,6 +93,7 @@ describe('CardRunButton', () => {
 
     afterEach(() => {
         actionExecutionService.stop()
+        cardActionPopupService.clear()
         delete window.md2Actions
         cleanup()
         actionService.clear()
@@ -99,7 +102,7 @@ describe('CardRunButton', () => {
     })
 
     it('shows one Run button and toggles the card action popup', () => {
-        renderCardRunButton(onConversationViewed)
+        renderCardRunButton()
 
         const runButton = screen.getByRole('button', { name: 'Run' })
         fireEvent.click(runButton)
@@ -132,7 +135,10 @@ describe('CardRunButton', () => {
             status: 'running', type: 'execution',
         }))
         render(
-            <CardRunButton card={card} context={context} onConversationViewed={onConversationViewed} projectKey={PROJECT_KEY} />,
+            <>
+                <CardRunButton card={card} context={context} projectKey={PROJECT_KEY} />
+                <CardActionPopupHost />
+            </>,
             { wrapper: AppThemeProvider },
         )
 
@@ -159,7 +165,10 @@ describe('CardRunButton', () => {
 
         const context = cardContext(card, DEFAULT_CARD_TYPES)
         render(
-            <CardRunButton card={card} context={context} onConversationViewed={onConversationViewed} projectKey={PROJECT_KEY} />,
+            <>
+                <CardRunButton card={card} context={context} projectKey={PROJECT_KEY} />
+                <CardActionPopupHost />
+            </>,
             { wrapper: AppThemeProvider },
         )
         const runButton = screen.getByRole('button', { name: 'Run' })
@@ -176,8 +185,46 @@ describe('CardRunButton', () => {
         expect(screen.getByRole('dialog')).toBeInTheDocument()
     })
 
+    it('keeps a popup open after its card button unmounts', () => {
+        const { rerender } = render(
+            <AppThemeProvider>
+                <CardRunButton card={card} context={cardContext(card, DEFAULT_CARD_TYPES)} projectKey={PROJECT_KEY} />
+                <CardActionPopupHost />
+            </AppThemeProvider>,
+        )
+        fireEvent.click(screen.getByRole('button', { name: 'Run' }))
+
+        rerender(
+            <AppThemeProvider>
+                <CardActionPopupHost />
+            </AppThemeProvider>,
+        )
+
+        expect(screen.getByRole('dialog')).toBeInTheDocument()
+    })
+
+    it('keeps independent popups open for different cards', () => {
+        const secondCard = {
+            ...card,
+            header: { ...card.header, id: 'F-011', internalId: 'f-011', title: 'Second feature' },
+            path: 'design/F-011.md',
+        }
+        render(
+            <>
+                <CardRunButton card={card} context={cardContext(card, DEFAULT_CARD_TYPES)} projectKey={PROJECT_KEY} />
+                <CardRunButton card={secondCard} context={cardContext(secondCard, DEFAULT_CARD_TYPES)} projectKey={PROJECT_KEY} />
+                <CardActionPopupHost />
+            </>,
+            { wrapper: AppThemeProvider },
+        )
+
+        screen.getAllByRole('button', { name: 'Run' }).forEach((button) => fireEvent.click(button))
+
+        expect(screen.getAllByRole('dialog')).toHaveLength(2)
+    })
+
     it('selects one action at a time inside the Run popup', () => {
-        renderCardRunButton(onConversationViewed)
+        renderCardRunButton()
 
         fireEvent.click(screen.getByRole('button', { name: 'Run' }))
         const actionGroup = within(screen.getByRole('group', { name: 'Actions' }))
@@ -188,7 +235,7 @@ describe('CardRunButton', () => {
     })
 
     it('marks actions with unseen agent results inside the Run popup', () => {
-        renderCardRunButton(onConversationViewed, cardWith([conversation('completed', [], 'implement')]))
+        renderCardRunButton(cardWith([conversation('completed', [], 'implement')]))
 
         fireEvent.click(screen.getByRole('button', { name: 'Run — New agent result available' }))
         const actionGroup = within(screen.getByRole('group', { name: 'Actions' }))
@@ -198,7 +245,7 @@ describe('CardRunButton', () => {
     })
 
     it('shows custom-action save controls from the Run popup', async () => {
-        renderCardRunButton(onConversationViewed)
+        renderCardRunButton()
 
         fireEvent.click(screen.getByRole('button', { name: 'Run' }))
         const dialog = within(screen.getByRole('dialog'))
@@ -210,7 +257,7 @@ describe('CardRunButton', () => {
     })
 
     it('shows the plain Run button when the agent is idle', () => {
-        renderCardRunButton(onConversationViewed)
+        renderCardRunButton()
 
         expect(screen.getByRole('button', { name: 'Run' })).toBeInTheDocument()
     })
@@ -223,14 +270,19 @@ describe('CardRunButton', () => {
                 <CardRunButton
                     card={cardWith([waiting])}
                     context={cardContext(card, DEFAULT_CARD_TYPES)}
-                    onConversationViewed={onConversationViewed}
                     projectKey={PROJECT_KEY}
                 />
+                <CardActionPopupHost />
             </AppThemeProvider>,
         )
         expect(screen.getByRole('button', { name: 'Run — Agent is waiting for input' })).toBeInTheDocument()
 
-        rerender(<AppThemeProvider><CardRunButton card={cardWith([conversation('running')])} context={cardContext(card, DEFAULT_CARD_TYPES)} onConversationViewed={onConversationViewed} projectKey={PROJECT_KEY} /></AppThemeProvider>)
+        rerender(
+            <AppThemeProvider>
+                <CardRunButton card={cardWith([conversation('running')])} context={cardContext(card, DEFAULT_CARD_TYPES)} projectKey={PROJECT_KEY} />
+                <CardActionPopupHost />
+            </AppThemeProvider>,
+        )
         expect(screen.getByRole('button', { name: 'Run — Agent is running' })).toBeInTheDocument()
 
         const completed = conversation('completed')
@@ -239,9 +291,9 @@ describe('CardRunButton', () => {
                 <CardRunButton
                     card={cardWith([completed])}
                     context={cardContext(card, DEFAULT_CARD_TYPES)}
-                    onConversationViewed={onConversationViewed}
                     projectKey={PROJECT_KEY}
                 />
+                <CardActionPopupHost />
             </AppThemeProvider>,
         )
         expect(screen.getByRole('button', { name: 'Run — New agent result available' })).toBeInTheDocument()
@@ -252,9 +304,9 @@ describe('CardRunButton', () => {
                 <CardRunButton
                     card={cardWith([completed])}
                     context={cardContext(card, DEFAULT_CARD_TYPES)}
-                    onConversationViewed={onConversationViewed}
                     projectKey={PROJECT_KEY}
                 />
+                <CardActionPopupHost />
             </AppThemeProvider>,
         )
         expect(screen.getByRole('button', { name: 'Run' })).toBeInTheDocument()

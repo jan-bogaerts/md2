@@ -29,6 +29,7 @@ const MARKDOWN_EXTENSION = '.md'
 // The watcher already settles each path before reporting, so this only has to group
 // events for different files into a single snapshot rebuild.
 const MARKDOWN_RELOAD_DEBOUNCE_MS = 50
+const MARKDOWN_REMOVAL_GRACE_MS = 750
 const PROJECT_LOAD_ERROR_REPORTED = Symbol('project-load-error-reported')
 
 type ReportedProjectLoadError = object & { [PROJECT_LOAD_ERROR_REPORTED]?: boolean }
@@ -121,6 +122,7 @@ export class ProjectLoading {
     private actionReloadChangesByPath: Map<string, ActionReloadChange> = new Map()
     private actionReloadTimeout: number | null = null
     private markdownReloadEventsByPath: Map<string, ProjectWatchEvent> = new Map()
+    private markdownRemovalTimeoutsByPath: Map<string, number> = new Map()
     private markdownReloadTimeout: number | null = null
     private watchCleanup: (() => void) | null = null
 
@@ -140,6 +142,7 @@ export class ProjectLoading {
         this.stopProjectWatch()
         this.clearActionReloadTimeout()
         this.clearMarkdownReloadTimeout()
+        this.clearMarkdownRemovalTimeouts()
         this.actionReloadChangesByPath.clear()
         this.markdownReloadEventsByPath = new Map()
         this.dependencies.beginProjectLoad()
@@ -167,6 +170,7 @@ export class ProjectLoading {
         const { storage } = this.dependencies.requireDependencies()
         await this.dependencies.flushPendingChanges()
         this.clearMarkdownReloadTimeout()
+        this.clearMarkdownRemovalTimeouts()
         const projectLoadToken = this.dependencies.beginProjectLoad()
         this.dependencies.resetAgentConversations()
         this.actionReloadChangesByPath.clear()
@@ -317,6 +321,7 @@ export class ProjectLoading {
         this.stopProjectWatch()
         this.clearActionReloadTimeout()
         this.clearMarkdownReloadTimeout()
+        this.clearMarkdownRemovalTimeouts()
         this.dependencies.beginProjectLoad()
         this.dependencies.resetAgentConversations()
         this.dependencies.clearLoadedProject()
@@ -518,7 +523,27 @@ export class ProjectLoading {
     }
 
     private scheduleMarkdownReload(event: ProjectWatchEvent) {
+        const pendingRemovalTimeout = this.markdownRemovalTimeoutsByPath.get(event.path)
+        if (pendingRemovalTimeout !== undefined) {
+            window.clearTimeout(pendingRemovalTimeout)
+            this.markdownRemovalTimeoutsByPath.delete(event.path)
+        }
+
+        if (event.changeKind === 'removed') {
+            const timeout = window.setTimeout(() => {
+                this.markdownRemovalTimeoutsByPath.delete(event.path)
+                this.markdownReloadEventsByPath.set(event.path, event)
+                this.scheduleMarkdownReloadBatch()
+            }, MARKDOWN_REMOVAL_GRACE_MS)
+            this.markdownRemovalTimeoutsByPath.set(event.path, timeout)
+            return
+        }
+
         this.markdownReloadEventsByPath.set(event.path, event)
+        this.scheduleMarkdownReloadBatch()
+    }
+
+    private scheduleMarkdownReloadBatch() {
         this.clearMarkdownReloadTimeout()
         this.markdownReloadTimeout = window.setTimeout(() => {
             void this.reloadMarkdownFilesFromWatchEvents()
@@ -530,6 +555,11 @@ export class ProjectLoading {
 
         window.clearTimeout(this.markdownReloadTimeout)
         this.markdownReloadTimeout = null
+    }
+
+    private clearMarkdownRemovalTimeouts() {
+        this.markdownRemovalTimeoutsByPath.forEach((timeout) => window.clearTimeout(timeout))
+        this.markdownRemovalTimeoutsByPath.clear()
     }
 
     private async reloadMarkdownFilesFromWatchEvents() {

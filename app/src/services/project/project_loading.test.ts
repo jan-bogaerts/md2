@@ -704,10 +704,43 @@ describe('ProjectLoading', () => {
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
 
         watchChange({ changeKind: 'removed', path: 'design/F-1-root.md' })
-        await vi.advanceTimersByTimeAsync(150)
+        await vi.advanceTimersByTimeAsync(749)
+        expect(service.getState().snapshot?.activeCards.some((card) => card.path === 'design/F-1-root.md')).toBe(true)
+        await vi.advanceTimersByTimeAsync(51)
 
         expect(service.getState().snapshot?.activeCards.some((card) => card.path === 'design/F-1-root.md')).toBe(false)
         expect(storage.loadFile).not.toHaveBeenCalled()
+    })
+
+    it('keeps a markdown card when a removal is followed by recreation during the grace period', async () => {
+        vi.useFakeTimers()
+        configService.init()
+        let watchChange: (event: { changeKind: 'added' | 'changed' | 'removed' | 'unknown'; path: string }) => void = () => {
+            throw new Error('Watcher not registered')
+        }
+        const recreatedFile = {
+            content: '---\nid: F-1\ninternalId: root-card\ntitle: Root\nstatus: active\n---\n\n# Root\n\nRecreated',
+            path: 'design/F-1-root.md',
+        }
+        const storage = createStorage({
+            loadFile: vi.fn(async () => recreatedFile),
+            watchProject: vi.fn((_project, onChange) => {
+                watchChange = onChange
+
+                return vi.fn()
+            }),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+
+        watchChange({ changeKind: 'removed', path: recreatedFile.path })
+        await vi.advanceTimersByTimeAsync(500)
+        watchChange({ changeKind: 'changed', path: recreatedFile.path })
+        await vi.advanceTimersByTimeAsync(300)
+
+        const card = service.getState().snapshot?.activeCards.find(({ path }) => path === recreatedFile.path)
+        expect(card?.content).toContain('Recreated')
     })
 
     it('debounces repeated markdown watcher events for the same file', async () => {

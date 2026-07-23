@@ -95,6 +95,7 @@ export interface ProjectSnapshot {
 
 export interface CardDraft {
     body: string
+    bodyIncludesTemplate?: boolean
     title: string
     type: CardType
 }

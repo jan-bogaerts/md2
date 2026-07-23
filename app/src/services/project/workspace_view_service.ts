@@ -1,4 +1,4 @@
-import { dataService, type DataService } from '../data/data_service'
+import { CARD_PATH_CHANGED_EVENT, dataService, type CardPathChangedEventDetail, type DataService } from '../data/data_service'
 import { register } from '.././service_injector'
 
 export type WorkspaceViewMode = 'cards' | 'text'
@@ -21,6 +21,7 @@ export class WorkspaceViewService extends EventTarget {
         this.dataService = dataServiceInstance
         this.projectKey = this.currentProjectKey()
         this.dataService.addEventListener('changed', this.handleDataServiceChanged)
+        this.dataService.addEventListener(CARD_PATH_CHANGED_EVENT, this.handleCardPathChanged)
     }
 
     getSnapshot(): WorkspaceViewSnapshot {
@@ -37,6 +38,13 @@ export class WorkspaceViewService extends EventTarget {
         if (this.snapshot.selectedPath !== path) return
 
         this.update({ ...this.snapshot, selectedPath: null })
+    }
+
+    private readonly handleCardPathChanged = (event: Event) => {
+        const { fromPath, toPath } = (event as CustomEvent<CardPathChangedEventDetail>).detail
+        if (this.snapshot.selectedPath !== fromPath) return
+
+        this.update({ ...this.snapshot, selectedPath: toPath })
     }
 
     private readonly handleDataServiceChanged = () => {

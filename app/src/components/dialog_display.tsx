@@ -5,7 +5,7 @@ import { DIALOG_SERVICE_EVENT, dialogService, type DialogServiceMessage } from '
 import { SelectableAlertMessage } from './selectable_alert_message'
 import { GlobalProgressBackdrop } from './global_progress_backdrop'
 
-const SNACKBAR_AUTO_HIDE_MS = 6000
+// const SNACKBAR_AUTO_HIDE_MS = 6000
 const IMMEDIATE_TRANSITION_MS = 0
 const SNACKBAR_TRANSITION_DURATION_MS = { exit: IMMEDIATE_TRANSITION_MS }
 
@@ -15,7 +15,7 @@ export function DialogDisplay() {
     const [snackbarMessages, setSnackbarMessages] = useState<DialogServiceMessage[]>([])
     const snackbarMessage = snackbarMessages[0] ?? null
     const snackbarSeverity = snackbarMessage?.severity ?? 'info'
-    const snackbarAutoHideDuration = snackbarSeverity === 'error' ? null : SNACKBAR_AUTO_HIDE_MS
+    const snackbarAutoHideDuration = null; // temp test snackbarSeverity === 'error' ? null : SNACKBAR_AUTO_HIDE_MS
     const dialogSeverity = dialogMessage?.severity ?? 'info'
 
     useEffect(() => {

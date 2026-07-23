@@ -2,25 +2,22 @@ import { Box, Button, Tooltip } from '@mui/material'
 import Circle from 'mdi-material-ui/Circle'
 import HelpCircleOutline from 'mdi-material-ui/HelpCircleOutline'
 import Play from 'mdi-material-ui/Play'
-import { useState } from 'react'
 import type { MouseEvent } from 'react'
 import type { ActionContext } from '../../data/action_context'
-import type { AgentConversation, ProjectCard } from '../../data/data_types'
+import type { ProjectCard } from '../../data/data_types'
+import { cardActionPopupService } from '../../services/actions/card_action_popup_service'
 import { hasUnseenAgentResult } from '../../services/agents/agent_acknowledgement_service'
 import { agentStateDescription, cardAgentState } from '../../services/agents/card_agent_state'
 import { useRunningActionForContext } from '../hooks/use_action_executions'
-import { ActionPopup } from './action_popup'
 
 interface CardRunButtonProps {
     card: ProjectCard
     context: ActionContext
-    onConversationViewed: (conversation: AgentConversation) => void
     projectKey: string
 }
 
 /** Opens the card action selector and execution popup, and surfaces the card's agent state. */
-export function CardRunButton({ card, context, onConversationViewed, projectKey }: CardRunButtonProps) {
-    const [popupAnchor, setPopupAnchor] = useState<HTMLElement | null>(null)
+export function CardRunButton({ card, context, projectKey }: CardRunButtonProps) {
     const agentState = cardAgentState(projectKey, card)
     const runningExecution = useRunningActionForContext(context)
     const isWaiting = agentState === 'waiting for input'
@@ -36,17 +33,8 @@ export function CardRunButton({ card, context, onConversationViewed, projectKey 
         return [conversation.actionId]
     }))]
 
-    const closePopup = () => {
-        setPopupAnchor(null)
-    }
-
     const handleRun = (event: MouseEvent<HTMLButtonElement>) => {
-        if (popupAnchor) {
-            closePopup()
-            return
-        }
-
-        setPopupAnchor(event.currentTarget)
+        cardActionPopupService.toggle(context, event.currentTarget, projectKey, unseenResultActionIds)
     }
 
     const button = (
@@ -98,18 +86,6 @@ export function CardRunButton({ card, context, onConversationViewed, projectKey 
     )
 
     return (
-        <>
-            <Tooltip title={stateDescription ?? ''}>{button}</Tooltip>
-            {popupAnchor ? (
-                <ActionPopup
-                    anchorElement={popupAnchor}
-                    context={context}
-                    draggable
-                    onClose={closePopup}
-                    onConversationViewed={onConversationViewed}
-                    unseenResultActionIds={unseenResultActionIds}
-                />
-            ) : null}
-        </>
+        <Tooltip title={stateDescription ?? ''}>{button}</Tooltip>
     )
 }

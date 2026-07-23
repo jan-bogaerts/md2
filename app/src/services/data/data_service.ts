@@ -45,8 +45,14 @@ export interface CardRemovedEventDetail {
     card: ProjectSnapshot['activeCards'][number]
 }
 
+export interface CardPathChangedEventDetail {
+    fromPath: string
+    toPath: string
+}
+
 export const CARD_ADDED_EVENT = 'cardAdded'
 export const CARD_CHANGED_EVENT = 'cardChanged'
+export const CARD_PATH_CHANGED_EVENT = 'cardPathChanged'
 export const CARD_REMOVED_EVENT = 'cardRemoved'
 
 function reportCardParseErrors(errors: CardParseError[]) {
@@ -150,17 +156,9 @@ export class DataService extends EventTarget {
         if (!currentProject) throw new Error('Cannot list agent conversations before a project is open')
 
         if (context.kind !== 'project') {
-            if (!context.file) throw new Error(`Missing file for ${context.kind} agent conversation context`)
-            const cards = [
-                ...(this.projectState.snapshot?.activeCards ?? []),
-                ...(this.projectState.snapshot?.backgroundCards ?? []),
-            ]
-            const card = cards.find(({ path }) => path === context.file)
-            if (!card) throw new Error(`Cannot list agent conversations for unknown card: ${context.file}`)
-
             if (!context.cardInternalId) throw new Error(`Missing cardInternalId for ${context.kind} agent conversation context`)
 
-            return card.agentConversations.filter(({ cardInternalId }) => cardInternalId === context.cardInternalId)
+            return this.agents.getAgentConversations(context.cardInternalId)
         }
 
         const references = await listAgentConversationReferences(storage, currentProject, config.projectFolder)
@@ -237,6 +235,7 @@ export class DataService extends EventTarget {
     }
     private createCardOperationsDependencies(): CardOperationsDeps {
         return {
+            cardPathChanged: (fromPath, toPath) => this.dispatchCardPathChanged(fromPath, toPath),
             dispatchChanged: () => this.dispatchChanged(),
             dispatchPersistenceChanged: () => this.dispatchPersistenceChanged(),
             commitPathsInFlight: () => this.projectState.commitPathsInFlight,
@@ -245,6 +244,7 @@ export class DataService extends EventTarget {
             project: () => this.projectState.project,
             refreshSnapshot: (workingFolder) => this.refreshSnapshot(workingFolder),
             reloadCurrentProjectSnapshot: () => this.projectLoading.reloadCurrentProjectSnapshot(),
+            renameFile: (fromPath, toPath, workingFolder) => this.projectState.renameFile(fromPath, toPath, workingFolder),
             requireDependencies: () => this.requireDependencies(),
             requireFile: (path) => this.projectState.requireFile(path),
             replaceFiles: (files, workingFolder) => this.projectState.replaceFiles(files, workingFolder),
@@ -320,6 +320,10 @@ export class DataService extends EventTarget {
     private dispatchChanged() {
         this.dispatchPersistenceChanged()
         this.dispatchEvent(new CustomEvent<DataServiceState>('changed', { detail: this.getState() }))
+    }
+    private dispatchCardPathChanged(fromPath: string, toPath: string) {
+        const detail: CardPathChangedEventDetail = { fromPath, toPath }
+        this.dispatchEvent(new CustomEvent<CardPathChangedEventDetail>(CARD_PATH_CHANGED_EVENT, { detail }))
     }
     private dispatchCardChanges(
         previousCards: ProjectSnapshot['activeCards'],

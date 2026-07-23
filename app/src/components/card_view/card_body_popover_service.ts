@@ -1,3 +1,4 @@
+import { CARD_PATH_CHANGED_EVENT, dataService, type CardPathChangedEventDetail } from '../../services/data/data_service'
 import { register } from '../../services/service_injector'
 
 const CARD_BODY_POPOVER_CHANGED_EVENT = 'changed'
@@ -16,6 +17,14 @@ class CardBodyPopoverService extends EventTarget {
     constructor() {
         super()
         register('cardBodyPopoverService', this)
+        dataService.addEventListener(CARD_PATH_CHANGED_EVENT, this.handleCardPathChanged)
+    }
+
+    private readonly handleCardPathChanged = (event: Event) => {
+        const { fromPath, toPath } = (event as CustomEvent<CardPathChangedEventDetail>).detail
+        if (this.snapshot.cardPath !== fromPath) return
+
+        this.setSnapshot({ ...this.snapshot, cardPath: toPath })
     }
 
     getSnapshot(): CardBodyPopoverSnapshot {

@@ -124,6 +124,7 @@ export function ProjectToolbarMenu(props: ProjectToolbarMenuProps) {
                 open={dialogMode === 'release'}
             />
             <NewCardDialog
+                cardBodyTemplate={actions.cardBodyTemplate}
                 cardTypes={actions.cardTypes}
                 isLoading={actions.isLoading}
                 isProjectOpen={actions.isProjectOpen}

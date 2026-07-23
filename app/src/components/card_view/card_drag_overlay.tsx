@@ -1,14 +1,14 @@
 import { Avatar, Box, Stack, Typography, useTheme } from '@mui/material'
 import { alpha } from '@mui/material/styles'
+import { useSyncExternalStore } from 'react'
 import type { CardTypeConfig, ProjectCard } from '../../data/data_types'
 import { getCardTypeColor } from './card_drag'
 import { useRunningActionForFile } from '../hooks/use_action_executions'
 import { useProjectCard } from './use_project_card'
+import { cardDragDropService } from './card_drag_drop_service'
 
 interface CardDragOverlayProps {
-    cardPath: string
     cardTypes: CardTypeConfig[]
-    width: number | null
 }
 
 interface CardDragOverlayContentProps {
@@ -26,11 +26,16 @@ function initialsFor(value: string) {
 
 /** Stable visual copy of a card that follows the pointer between sortable columns. */
 export function CardDragOverlay(props: CardDragOverlayProps) {
-    const { cardPath, ...contentProps } = props
+    const { cardTypes } = props
+    const { cardPath, width } = useSyncExternalStore(
+        cardDragDropService.subscribeOverlay,
+        cardDragDropService.getOverlaySnapshot,
+        cardDragDropService.getOverlaySnapshot,
+    )
     const card = useProjectCard(cardPath)
     if (!card) return null
 
-    return <CardDragOverlayContent card={card} {...contentProps} />
+    return <CardDragOverlayContent card={card} cardTypes={cardTypes} width={width} />
 }
 
 function CardDragOverlayContent(props: CardDragOverlayContentProps) {
