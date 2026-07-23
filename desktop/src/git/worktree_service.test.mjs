@@ -241,11 +241,69 @@ describe('WorktreeService operations', () => {
         await writeFile(join(linkedPath, 'committed.txt'), 'committed\n');
 
         await service.commit(project, 1, 'Card changes');
-        expect(service.getRecords(project)[0].status).toMatchObject({ ahead: 1, dirty: false });
+        expect(service.getRecords(project)[0].status).toMatchObject({ baseAhead: 1, baseBehind: 0, dirty: false });
         await writeFile(join(linkedPath, 'README.md'), 'modified\n');
         await service.discard(project, 1);
 
         expect(service.getRecords(project)[0].status.dirty).toBe(false);
+    }, 30000);
+
+    it('reports how far an upstreamless worktree trails the project branch', async () => {
+        const { primaryPath, project } = await createRepository();
+        const service = createService();
+        await writeFile(join(primaryPath, 'later.txt'), 'later\n');
+        await git(primaryPath, 'add', 'later.txt');
+        await git(primaryPath, 'commit', '-m', 'Later work');
+
+        await service.startProject(project);
+
+        expect(service.getRecords(project)[0].status).toMatchObject({ baseAhead: 0, baseBehind: 1, hasUpstream: false });
+    }, 30000);
+
+    it('rebases a trailing worktree onto the project branch', async () => {
+        const { linkedPath, primaryPath, project } = await createRepository();
+        const service = createService();
+        await writeFile(join(primaryPath, 'later.txt'), 'later\n');
+        await git(primaryPath, 'add', 'later.txt');
+        await git(primaryPath, 'commit', '-m', 'Later work');
+        await service.startProject(project);
+        await writeFile(join(linkedPath, 'card.txt'), 'card\n');
+        await service.commit(project, 1, 'Card changes');
+
+        await service.rebase(project, 1);
+
+        expect(service.getRecords(project)[0].status).toMatchObject({ baseAhead: 1, baseBehind: 0, dirty: false });
+        expect(await git(linkedPath, 'branch', '--show-current')).toBe('feature');
+    }, 30000);
+
+    it('refuses to rebase a dirty worktree', async () => {
+        const { linkedPath, primaryPath, project } = await createRepository();
+        const service = createService();
+        await writeFile(join(primaryPath, 'later.txt'), 'later\n');
+        await git(primaryPath, 'add', 'later.txt');
+        await git(primaryPath, 'commit', '-m', 'Later work');
+        await service.startProject(project);
+        await writeFile(join(linkedPath, 'dirty.txt'), 'dirty\n');
+
+        await expect(service.rebase(project, 1)).rejects.toThrow('uncommitted changes');
+
+        expect(service.getRecords(project)[0].status.baseBehind).toBe(1);
+    }, 30000);
+
+    it('unwinds a conflicting rebase so later status reads stay usable', async () => {
+        const { linkedPath, primaryPath, project } = await createRepository();
+        const service = createService();
+        await writeFile(join(primaryPath, 'shared.txt'), 'primary\n');
+        await git(primaryPath, 'add', 'shared.txt');
+        await git(primaryPath, 'commit', '-m', 'Primary edit');
+        await service.startProject(project);
+        await writeFile(join(linkedPath, 'shared.txt'), 'linked\n');
+        await service.commit(project, 1, 'Conflicting edit');
+
+        await expect(service.rebase(project, 1)).rejects.toThrow();
+
+        expect(await git(linkedPath, 'branch', '--show-current')).toBe('feature');
+        expect(service.getRecords(project)[0].status).toMatchObject({ baseAhead: 1, baseBehind: 1, dirty: false });
     }, 30000);
 
     it('serializes concurrent mutations', async () => {

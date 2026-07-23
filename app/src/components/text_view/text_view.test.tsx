@@ -44,11 +44,30 @@ const activeCards = [
 ]
 const backgroundCards = [card('design/history/rel1/F-9-old.md', { id: 'F-9', title: 'Old' }, '# Old')]
 
-function renderTextView(overrides: Partial<Parameters<typeof TextView>[0]> = {}) {
-    const onCreateFolder = vi.fn(async () => undefined)
-    const onCreateMarkdownFile = vi.fn(async () => undefined)
-    const onDeleteFile = vi.fn(async () => undefined)
-    const onDeleteFolder = vi.fn(async () => undefined)
+function setProjectCards(
+    nextActiveCards: ProjectCard[],
+    nextBackgroundCards = backgroundCards,
+    repositoryFiles: string[] = [],
+) {
+    vi.mocked(dataService.getState).mockReturnValue({
+        project: null,
+        runningAgents: [],
+        snapshot: {
+            activeCards: nextActiveCards,
+            backgroundCards: nextBackgroundCards,
+            repositoryFiles,
+            workingFolder: 'design/active',
+        },
+    })
+}
+
+function renderTextView(
+    overrides: Partial<Parameters<typeof TextView>[0]> = {},
+    nextActiveCards = activeCards,
+    nextBackgroundCards = backgroundCards,
+    repositoryFiles: string[] = [],
+) {
+    setProjectCards(nextActiveCards, nextBackgroundCards, repositoryFiles)
 
     function TextViewHarness() {
         const handleLeftPanelInteraction = useCallback(() => undefined, [])
@@ -58,18 +77,10 @@ function renderTextView(overrides: Partial<Parameters<typeof TextView>[0]> = {})
                 <LeftPanelTarget fallback="No project navigation available." />
                 <TextView
                     actionsFolder="design/actions"
-                    activeCards={activeCards}
-                    backgroundCards={backgroundCards}
                     cardTypes={DEFAULT_CARD_TYPES}
-                    onCreateFolder={onCreateFolder}
-                    onCreateMarkdownFile={onCreateMarkdownFile}
-                    onDeleteFile={onDeleteFile}
-                    onDeleteFolder={onDeleteFolder}
                     onLeftPanelInteraction={handleLeftPanelInteraction}
                     projectFolder="design"
-                    repositoryFiles={[]}
                     states={DEFAULT_STATES}
-                    workingFolder="design/active"
                     visible
                     {...overrides}
                 />
@@ -82,11 +93,6 @@ function renderTextView(overrides: Partial<Parameters<typeof TextView>[0]> = {})
             <TextViewHarness />
         </AppThemeProvider>,
     )
-
-    return {
-        onCreateFolder, onCreateMarkdownFile, onDeleteFile,
-        onDeleteFolder,
-    }
 }
 
 /** Click a file leaf inside the tree region (avoids matching the same label in an open tab). */
@@ -148,9 +154,15 @@ function loadMarkdownActions() {
 
 describe('TextView', () => {
     beforeEach(() => {
+        vi.spyOn(dataService, 'getState')
+        setProjectCards(activeCards)
         configService.init()
         for (const document of openFilesService.getRegisteredDocuments()) openFilesService.discardDocument(document)
         openFilesService.init({ actionService, dataService })
+        vi.spyOn(dataService.cards, 'createFolder').mockResolvedValue('design/notes')
+        vi.spyOn(dataService.cards, 'createMarkdownFile').mockResolvedValue({ content: '', path: 'design/notes.md' })
+        vi.spyOn(dataService.cards, 'deleteFile').mockResolvedValue(null)
+        vi.spyOn(dataService.cards, 'deleteFolder').mockResolvedValue(null)
         actionMarkdownDataSource.init(actionService)
         vi.spyOn(cardMarkdownDataSource, 'getMarkdown').mockImplementation((target) => target.document.kind === 'card'
             ? target.document.getDraft().content
@@ -208,7 +220,7 @@ describe('TextView', () => {
     })
 
     it('creates a root folder from the tree toolbar when no item is selected', async () => {
-        const { onCreateFolder } = renderTextView()
+        renderTextView()
         const tree = within(screen.getByLabelText('File tree'))
 
         fireEvent.click(tree.getByRole('button', { name: 'New folder' }))
@@ -216,11 +228,11 @@ describe('TextView', () => {
         fireEvent.change(screen.getByLabelText('Folder name'), { target: { value: 'notes' } })
         fireEvent.click(screen.getByRole('button', { name: 'Create' }))
 
-        await waitFor(() => expect(onCreateFolder).toHaveBeenCalledWith('design', 'notes'))
+        await waitFor(() => expect(dataService.cards.createFolder).toHaveBeenCalledWith('design', 'notes'))
     })
 
     it('creates a Markdown file inside the selected folder from the tree toolbar', async () => {
-        const { onCreateMarkdownFile } = renderTextView()
+        renderTextView()
         const tree = within(screen.getByLabelText('File tree'))
 
         fireEvent.click(tree.getByRole('button', { name: 'history 1' }))
@@ -229,11 +241,11 @@ describe('TextView', () => {
         fireEvent.change(screen.getByLabelText('File name'), { target: { value: 'overview' } })
         fireEvent.click(screen.getByRole('button', { name: 'Create' }))
 
-        await waitFor(() => expect(onCreateMarkdownFile).toHaveBeenCalledWith('design/history', 'overview'))
+        await waitFor(() => expect(dataService.cards.createMarkdownFile).toHaveBeenCalledWith('design/history', 'overview'))
     })
 
     it('creates beside a selected root file from the tree toolbar', async () => {
-        const { onCreateFolder } = renderTextView()
+        renderTextView()
         const tree = within(screen.getByLabelText('File tree'))
 
         fireEvent.click(tree.getByRole('button', { name: 'F-1 Alpha' }))
@@ -242,11 +254,11 @@ describe('TextView', () => {
         fireEvent.change(screen.getByLabelText('Folder name'), { target: { value: 'root-notes' } })
         fireEvent.click(screen.getByRole('button', { name: 'Create' }))
 
-        await waitFor(() => expect(onCreateFolder).toHaveBeenCalledWith('design', 'root-notes'))
+        await waitFor(() => expect(dataService.cards.createFolder).toHaveBeenCalledWith('design', 'root-notes'))
     })
 
     it('creates in the project folder when a state group is selected', async () => {
-        const { onCreateMarkdownFile } = renderTextView()
+        renderTextView()
         const tree = within(screen.getByLabelText('File tree'))
 
         fireEvent.click(tree.getByRole('button', { name: 'todo 1' }))
@@ -255,11 +267,11 @@ describe('TextView', () => {
         fireEvent.change(screen.getByLabelText('File name'), { target: { value: 'state-notes' } })
         fireEvent.click(screen.getByRole('button', { name: 'Create' }))
 
-        await waitFor(() => expect(onCreateMarkdownFile).toHaveBeenCalledWith('design', 'state-notes'))
+        await waitFor(() => expect(dataService.cards.createMarkdownFile).toHaveBeenCalledWith('design', 'state-notes'))
     })
 
     it('offers both creation actions in a file context menu and targets the file parent folder', async () => {
-        const { onCreateFolder } = renderTextView()
+        renderTextView()
         const tree = within(screen.getByLabelText('File tree'))
         const file = tree.getByRole('button', { name: 'F-9 Old' })
 
@@ -271,7 +283,7 @@ describe('TextView', () => {
         fireEvent.change(screen.getByLabelText('Folder name'), { target: { value: 'drafts' } })
         fireEvent.click(screen.getByRole('button', { name: 'Create' }))
 
-        await waitFor(() => expect(onCreateFolder).toHaveBeenCalledWith('design/history/rel1', 'drafts'))
+        await waitFor(() => expect(dataService.cards.createFolder).toHaveBeenCalledWith('design/history/rel1', 'drafts'))
     })
 
     it('opens a file in a tab when its tree node is clicked', () => {
@@ -292,7 +304,7 @@ describe('TextView', () => {
     it('shows the file type icon in action, card, and Markdown tabs', () => {
         const actionFile = card('design/actions/implement.md', { title: 'Implement' }, '# Implement')
         const markdownFile = card('design/notes.md', { title: 'Notes' }, '# Notes')
-        renderTextView({ backgroundCards: [...backgroundCards, actionFile, markdownFile] })
+        renderTextView({}, activeCards, [...backgroundCards, actionFile, markdownFile])
 
         clickTreeFile('Implement')
         clickTreeFile('F-1 Alpha')
@@ -492,13 +504,13 @@ describe('TextView', () => {
 
     it('confirms tree deletion and closes the matching open tab after success', async () => {
         const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
-        const { onDeleteFile } = renderTextView()
+        renderTextView()
 
         clickTreeFile('F-1 Alpha')
         fireEvent.click(screen.getByRole('button', { name: 'Delete design/active/F-1-a.md' }))
 
         expect(confirm).toHaveBeenCalledWith(expect.stringContaining('design/active/F-1-a.md'))
-        expect(onDeleteFile).toHaveBeenCalledWith('design/active/F-1-a.md')
+        expect(dataService.cards.deleteFile).toHaveBeenCalledWith('design/active/F-1-a.md')
 
         confirm.mockRestore()
     })
@@ -506,16 +518,13 @@ describe('TextView', () => {
     it('deletes a user folder recursively from its trash icon after confirmation', async () => {
         const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
         const nestedCard = card('design/notes/nested.md', { title: 'Nested' }, '# Nested')
-        const { onDeleteFolder } = renderTextView({
-            backgroundCards: [...backgroundCards, nestedCard],
-            repositoryFiles: ['design/notes/.gitkeep', nestedCard.path],
-        })
+        renderTextView({}, activeCards, [...backgroundCards, nestedCard], ['design/notes/.gitkeep', nestedCard.path])
 
         clickTreeFile('Nested')
         fireEvent.click(screen.getByRole('button', { name: 'Delete design/notes' }))
 
         expect(confirm).toHaveBeenCalledWith('Delete design/notes and all files inside it?')
-        expect(onDeleteFolder).toHaveBeenCalledWith('design/notes')
+        expect(dataService.cards.deleteFolder).toHaveBeenCalledWith('design/notes')
         expect(screen.queryByRole('button', { name: 'Delete design/history' })).not.toBeInTheDocument()
 
         confirm.mockRestore()
@@ -523,13 +532,13 @@ describe('TextView', () => {
 
     it('offers recursive user-folder deletion in the context menu', async () => {
         const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
-        const { onDeleteFolder } = renderTextView({ repositoryFiles: ['design/notes/.gitkeep'] })
+        renderTextView({}, activeCards, backgroundCards, ['design/notes/.gitkeep'])
         const tree = within(screen.getByLabelText('File tree'))
 
         fireEvent.contextMenu(tree.getByRole('button', { name: 'notes 0' }))
         fireEvent.click(within(screen.getByRole('menu')).getByRole('menuitem', { name: 'Delete folder' }))
 
-        await waitFor(() => expect(onDeleteFolder).toHaveBeenCalledWith('design/notes'))
+        await waitFor(() => expect(dataService.cards.deleteFolder).toHaveBeenCalledWith('design/notes'))
         expect(confirm).toHaveBeenCalledWith('Delete design/notes and all files inside it?')
 
         confirm.mockRestore()
@@ -633,27 +642,22 @@ describe('TextView', () => {
     })
 
     it('updates the left-panel tree when cards change without a view-mode switch', () => {
+        setProjectCards([activeCards[0]], [])
         const shared = {
             actionsFolder: 'design/actions',
-            backgroundCards: [],
             cardTypes: DEFAULT_CARD_TYPES,
-            onCreateFolder: vi.fn(async () => undefined),
-            onCreateMarkdownFile: vi.fn(async () => undefined),
-            onDeleteFile: vi.fn(async () => undefined),
-            onDeleteFolder: vi.fn(async () => undefined),
             onLeftPanelInteraction: vi.fn(),
             projectFolder: 'design',
             projectKey: 'project:main',
-            repositoryFiles: [],
             states: DEFAULT_STATES,
             workingFolder: 'design/active',
             visible: true,
         }
-        const { rerender } = render(
+        render(
             <AppThemeProvider>
                 <LeftPanelSlotProvider>
                     <LeftPanelTarget fallback="No project navigation available." />
-                    <TextView {...shared} activeCards={[activeCards[0]]} />
+                    <TextView {...shared} />
                 </LeftPanelSlotProvider>
             </AppThemeProvider>,
         )
@@ -661,14 +665,10 @@ describe('TextView', () => {
         expect(within(screen.getByLabelText('File tree')).getByRole('button', { name: 'F-1 Alpha' })).toBeInTheDocument()
         expect(within(screen.getByLabelText('File tree')).queryByRole('button', { name: 'F-2 Beta' })).toBeNull()
 
-        rerender(
-            <AppThemeProvider>
-                <LeftPanelSlotProvider>
-                    <LeftPanelTarget fallback="No project navigation available." />
-                    <TextView {...shared} activeCards={activeCards} />
-                </LeftPanelSlotProvider>
-            </AppThemeProvider>,
-        )
+        act(() => {
+            setProjectCards(activeCards, [])
+            dataService.dispatchEvent(new Event('changed'))
+        })
 
         expect(within(screen.getByLabelText('File tree')).getByRole('button', { name: 'F-2 Beta' })).toBeInTheDocument()
     })
@@ -722,7 +722,7 @@ describe('TextView', () => {
 
     it('opens Properties from the toolbar for a card with frontmatter', () => {
         const cardWithHeader = { ...activeCards[0], headerFields: { id: 'F-1', status: 'todo', title: 'Alpha' } }
-        renderTextView({ activeCards: [cardWithHeader, activeCards[1]] })
+        renderTextView({}, [cardWithHeader, activeCards[1]])
 
         clickTreeFile('F-1 Alpha')
 
@@ -744,7 +744,7 @@ describe('TextView', () => {
         const updateAuthor = vi.spyOn(cardMarkdownDataSource, 'updateActiveCardHeaderField').mockImplementation(() => undefined)
         const updateTitle = vi.spyOn(cardMarkdownDataSource, 'updateActiveCardTitle').mockImplementation(() => undefined)
         const togglePolicy = vi.spyOn(cardMarkdownDataSource, 'toggleActiveCardPolicy').mockImplementation(() => undefined)
-        renderTextView({ activeCards: [cardWithHeader, activeCards[1]] })
+        renderTextView({}, [cardWithHeader, activeCards[1]])
         clickTreeFile('F-1 Alpha')
         fireEvent.click(within(screen.getAllByTestId('mdx-editor-toolbar')[1]).getByRole('button', { name: 'Properties' }))
 

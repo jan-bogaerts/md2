@@ -9,7 +9,7 @@ import { ActionFilterEditor } from './action_filter_editor'
 const worktrees: WorktreeRecord[] = [
     {
         branch: 'feature/one', error: null, parkingBranch: 'md2/parking/one', path: 'C:\\work trees\\one',
-        status: { ahead: 0, behind: 0, dirty: false, hasUpstream: false }, valid: true,
+        status: { ahead: 0, baseAhead: 0, baseBehind: 0, behind: 0, dirty: false, hasUpstream: false }, valid: true,
     },
 ]
 

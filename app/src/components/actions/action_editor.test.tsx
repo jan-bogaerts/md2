@@ -69,7 +69,6 @@ function ActionEditorHarness(props: { action: ActionDefinition, states: string[]
         <Box sx={{ display: 'flex', flexDirection: 'column' }}>
             <ListActionEditor
                 cardTypes={['feature']}
-                repositoryFiles={[]}
                 specialContextTypes={['actions']}
                 states={states}
             />

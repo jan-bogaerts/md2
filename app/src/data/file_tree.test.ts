@@ -71,6 +71,7 @@ describe('buildFileTree', () => {
         const done = findChild(workingFolder?.children ?? [], 'done')
         expect(workingFolder?.kind).toBe('special')
         expect(todo?.kind).toBe('status')
+        expect(todo?.status).toBe('todo')
         expect(todo?.directoryPath).toBe('design')
         expect(todo?.children.map((child) => child.label)).toEqual(['F-1 Alpha', 'F-3 Gamma'])
         expect(done?.children.map((child) => child.path)).toEqual(['design/active/F-2-b.md'])
@@ -86,7 +87,7 @@ describe('buildFileTree', () => {
         )
         const workingFolder = findChild(tree, 'active')
 
-        expect(findChild(workingFolder?.children ?? [], 'Unassigned')?.kind).toBe('status')
+        expect(findChild(workingFolder?.children ?? [], 'Unassigned')).toMatchObject({ kind: 'status', status: '' })
     })
 
     it('nests background files into regular folders under the project folder', () => {

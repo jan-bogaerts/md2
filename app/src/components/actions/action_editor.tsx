@@ -9,7 +9,6 @@ export interface ActionEditorProps {
     cardTypes: string[]
     discardMarkdownTarget: (target: MarkdownDocumentTarget) => void
     onMarkdownPresentationChange: (presentation: ActionMarkdownPresentation | null) => void
-    repositoryFiles: string[]
     specialContextTypes: string[]
     states: string[]
 }
@@ -23,14 +22,13 @@ export interface ActionMarkdownPresentation {
 export const ActionEditor = memo(function ActionEditor(props: ActionEditorProps) {
     const {
         cardTypes, discardMarkdownTarget,
-        onMarkdownPresentationChange, repositoryFiles, specialContextTypes, states,
+        onMarkdownPresentationChange, specialContextTypes, states,
     } = props
 
     return (
         <Box data-testid="action-editor" sx={{ display: 'contents' }}>
             <ActionEditorContent
                 cardTypes={cardTypes}
-                repositoryFiles={repositoryFiles}
                 specialContextTypes={specialContextTypes}
                 states={states}
             />

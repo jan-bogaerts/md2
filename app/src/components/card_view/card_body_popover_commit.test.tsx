@@ -1,9 +1,11 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ProjectCard } from '../../data/data_types'
 import { openFilesService } from '../../services/open_files_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import { CardBodyPopover } from './card_body_popover'
+import { dataService } from '../../services/data/data_service'
+import { cardBodyPopoverService } from './card_body_popover_service'
 
 vi.mock('../hooks/use_card_commits', () => ({
     useCardCommits: () => ({
@@ -52,7 +54,16 @@ const card: ProjectCard = {
 
 afterEach(() => {
     cleanup()
+    cardBodyPopoverService.close()
     vi.restoreAllMocks()
+})
+
+beforeEach(() => {
+    vi.spyOn(dataService, 'getState').mockReturnValue({
+        project: null,
+        runningAgents: [],
+        snapshot: { activeCards: [card], backgroundCards: [], repositoryFiles: [], workingFolder: 'design' },
+    })
 })
 
 describe('CardBodyPopover commit diff', () => {
@@ -62,15 +73,13 @@ describe('CardBodyPopover commit diff', () => {
         const openBoardDocument = vi.spyOn(openFilesService, 'openBoardDocument')
         const closeBoardDocument = vi.spyOn(openFilesService, 'closeBoardDocument')
         const props = {
-            anchorElement,
-            card,
             isMobile: false,
-            onClose: vi.fn(),
             onDeleteCard: vi.fn(async () => undefined),
             onOpenAffects: vi.fn(),
             onOpenInFileMode: vi.fn(),
             visible: true,
         }
+        cardBodyPopoverService.toggle(card.path, anchorElement)
         const view = render(
             <AppThemeProvider>
                 <CardBodyPopover {...props} />
@@ -79,7 +88,7 @@ describe('CardBodyPopover commit diff', () => {
 
         view.rerender(
             <AppThemeProvider>
-                <CardBodyPopover {...props} card={{ ...card, content: '# Card\n\nUpdated body' }} />
+                <CardBodyPopover {...props} />
             </AppThemeProvider>,
         )
 
@@ -90,14 +99,11 @@ describe('CardBodyPopover commit diff', () => {
     it('uses the first Escape to exit diff and the second to close the popover', () => {
         const anchorElement = document.createElement('button')
         document.body.append(anchorElement)
-        const onClose = vi.fn()
+        cardBodyPopoverService.toggle(card.path, anchorElement)
         render(
             <AppThemeProvider>
                 <CardBodyPopover
-                    anchorElement={anchorElement}
-                    card={card}
                     isMobile={false}
-                    onClose={onClose}
                     onDeleteCard={vi.fn(async () => undefined)}
                     onOpenAffects={vi.fn()}
                     onOpenInFileMode={vi.fn()}
@@ -116,9 +122,9 @@ describe('CardBodyPopover commit diff', () => {
         fireEvent.keyDown(dialog, { key: 'Escape' })
         expect(screen.queryByLabelText('Card commit diff')).not.toBeInTheDocument()
         expect(screen.getByLabelText('Live card editor')).toBeVisible()
-        expect(onClose).not.toHaveBeenCalled()
+        expect(cardBodyPopoverService.getSnapshot().cardPath).toBe(card.path)
 
         fireEvent.keyDown(dialog, { key: 'Escape' })
-        expect(onClose).toHaveBeenCalledOnce()
+        expect(cardBodyPopoverService.getSnapshot().cardPath).toBeNull()
     })
 })

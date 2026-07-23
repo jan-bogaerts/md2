@@ -8,7 +8,6 @@ import { TabBar } from './tab_bar'
 interface TextEditorPaneProps {
     actionsFolder: string
     cardTypes: CardTypeConfig[]
-    repositoryFiles: string[]
     specialContextTypes: string[]
     states: string[]
     statusColors: Map<string, string>
@@ -18,7 +17,7 @@ interface TextEditorPaneProps {
 /** Layout for the service-owned active document and its lifetime-stable editors. */
 export function TextEditorPane(props: TextEditorPaneProps) {
     const {
-        actionsFolder, cardTypes, repositoryFiles,
+        actionsFolder, cardTypes,
         specialContextTypes, states, statusColors, visible,
     } = props
     const { activeDocument } = useOpenFiles()
@@ -45,7 +44,6 @@ export function TextEditorPane(props: TextEditorPaneProps) {
                 >
                     <ListActionEditor
                         cardTypes={cardTypes.map(({ type }) => type)}
-                        repositoryFiles={repositoryFiles}
                         specialContextTypes={specialContextTypes}
                         states={states}
                     />

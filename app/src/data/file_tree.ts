@@ -13,6 +13,7 @@ export interface TreeNode {
     kind: TreeNodeKind
     label: string
     path: string | null
+    status: string | null
 }
 
 export interface FileTreeOptions {
@@ -54,6 +55,7 @@ function ensureFolder(parent: TreeNode, segment: string, specialFolderPaths: Set
         kind: specialFolderPaths.has(directoryPath) ? 'special' : 'folder',
         label: segment,
         path: null,
+        status: null,
     }
     parent.children.push(folder)
 
@@ -70,12 +72,14 @@ function buildStatusGroups(activeCards: ProjectCard[], projectFolder: string): T
             kind: 'file' as const,
             label: fileLabel(card),
             path: card.path,
+            status: null,
         })),
         directoryPath: projectFolder,
         id: `status:${column.status}`,
         kind: 'status' as const,
         label: column.status === UNASSIGNED_STATUS ? UNASSIGNED_STATUS_LABEL : column.status,
         path: null,
+        status: column.status,
     }))
 }
 
@@ -120,7 +124,7 @@ function buildFolderRoots(
     hiddenFolderPaths: Set<string>,
     specialFolderPaths: Set<string>,
 ): TreeNode {
-    const root: TreeNode = { children: [], directoryPath: projectFolder, id: 'root', kind: 'folder', label: '', path: null }
+    const root: TreeNode = { children: [], directoryPath: projectFolder, id: 'root', kind: 'folder', label: '', path: null, status: null }
 
     for (const repositoryFile of repositoryFiles) {
         if (isHiddenPath(repositoryFile, hiddenFolderPaths)) continue
@@ -142,6 +146,7 @@ function buildFolderRoots(
             kind: 'file',
             label: fileLabel(card),
             path: card.path,
+            status: null,
         })
     }
 
@@ -153,7 +158,7 @@ function buildFolderRoots(
         const parent = ensureFolderSegments(root, segments.slice(0, -1), specialFolderPaths)
         parent.children.push({
             children: [], directoryPath: parent.directoryPath, id: action.sourcePath,
-            kind: 'file', label: action.label, path: action.sourcePath,
+            kind: 'file', label: action.label, path: action.sourcePath, status: null,
         })
     }
 

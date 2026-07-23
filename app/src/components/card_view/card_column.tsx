@@ -3,41 +3,32 @@ import { useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import Plus from 'mdi-material-ui/Plus'
 import type { ReactNode } from 'react'
-import type { BoardColumn } from '../../data/card_ordering'
-import { getCardIdPrefix } from '../../data/card_identifiers'
 import type { CardTypeConfig, WorktreeRecord } from '../../data/data_types'
 import { requestOpenNewCardDialog } from '../project_command_events'
 import { columnDropId } from './card_drag'
 import { ProjectCardView, type CardHandlers } from './project_card_view'
+import type { VisibleCardColumn } from './use_card_view_columns'
+import { useCardColumnCards } from './use_card_column_cards'
 
 const MIN_COLUMN_WIDTH = 200
 const MAX_COLUMN_WIDTH = 320
 
-function getCardTypeConfig(cardTypes: CardTypeConfig[], id: string): CardTypeConfig | undefined {
-    const prefix = getCardIdPrefix(id)
-
-    return cardTypes.find((cardType) => cardType.idPrefix === prefix)
-}
-
 interface CardColumnProps extends CardHandlers {
     cardTypes: CardTypeConfig[]
-    column: BoardColumn
+    column: VisibleCardColumn
     dropPreviewHeight: number | null
     dropPreviewIndex: number | null
     isMobile: boolean
-    openBodyPath: string | null
-    primaryPath: string
-    projectKey: string
-    selectedPath: string | null
     worktrees: WorktreeRecord[]
 }
 
 /** One status column: a polished droppable stack with header metadata and an empty target. */
 export function CardColumn(props: CardColumnProps) {
     const {
-        cardTypes, column, dropPreviewHeight, dropPreviewIndex, isMobile, openBodyPath,
-        primaryPath, projectKey, selectedPath, worktrees, ...handlers
+        cardTypes, column, dropPreviewHeight, dropPreviewIndex, isMobile,
+        worktrees, ...handlers
     } = props
+    const cardPaths = useCardColumnCards(column.status)
     const { setNodeRef } = useDroppable({ id: columnDropId(column.status) })
     const columnLabel = column.status || 'Unassigned'
     const dropPlaceholder = (
@@ -54,22 +45,16 @@ export function CardColumn(props: CardColumnProps) {
         />
     )
     const cardElements: ReactNode[] = []
-    for (let index = 0; index <= column.cards.length; index += 1) {
+    for (let index = 0; index <= cardPaths.length; index += 1) {
         if (dropPreviewIndex === index) cardElements.push(dropPlaceholder)
-        const card = column.cards[index]
-        if (!card) continue
+        const cardPath = cardPaths[index]
+        if (!cardPath) continue
 
-        const cardTypeConfig = getCardTypeConfig(cardTypes, card.header.id)
         cardElements.push(
             <ProjectCardView
-                key={card.path}
-                card={card}
+                key={cardPath}
+                cardPath={cardPath}
                 cardTypes={cardTypes}
-                color={cardTypeConfig?.color}
-                isBodyOpen={openBodyPath === card.path}
-                isSelected={selectedPath === card.path}
-                primaryPath={primaryPath}
-                projectKey={projectKey}
                 worktrees={worktrees}
                 {...handlers}
             />,
@@ -100,7 +85,7 @@ export function CardColumn(props: CardColumnProps) {
                     {columnLabel}
                 </Typography>
                 <Chip
-                    label={column.cards.length}
+                    label={cardPaths.length}
                     size="small"
                     sx={{ bgcolor: 'background.paper', border: 1, borderColor: 'divider', fontSize: 11, height: 20 }}
                 />
@@ -111,10 +96,10 @@ export function CardColumn(props: CardColumnProps) {
                     </IconButton>
                 </Tooltip>
             </Box>
-            <SortableContext items={column.cards.map((card) => card.path)} strategy={verticalListSortingStrategy}>
+            <SortableContext items={cardPaths} strategy={verticalListSortingStrategy}>
                 <Box ref={setNodeRef} sx={{ display: 'flex', flexDirection: 'column', gap: 1, minHeight: 52 }}>
                     {cardElements}
-                    {column.cards.length === 0 && dropPreviewIndex === null ? (
+                    {cardPaths.length === 0 && dropPreviewIndex === null ? (
                         <Box
                             sx={{
                                 border: '1.5px dashed',

@@ -56,6 +56,47 @@
                 "panel": "dedicated",
                 "group": "app"
             }
+        },
+        {
+            "label": "Test: App",
+            "type": "shell",
+            "command": "npm run test",
+            "options": {
+                "cwd": "${workspaceFolder}/app"
+            },
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "group": "test"
+            }
+        },
+        {
+            "label": "Test: Desktop",
+            "type": "shell",
+            "command": "npm run test",
+            "options": {
+                "cwd": "${workspaceFolder}/desktop"
+            },
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "group": "test"
+            }
+        },
+        {
+            "label": "Test: All",
+            "dependsOn": [
+                "Test: App",
+                "Test: Desktop"
+            ],
+            "dependsOrder": "sequence",
+            "problemMatcher": [],
+            "group": {
+                "kind": "test",
+                "isDefault": true
+            }
         }
     ]
 }

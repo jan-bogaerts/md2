@@ -1,6 +1,7 @@
 import type { CardColumn } from '../../data/card_ordering'
 import type { CardTypeConfig } from '../../data/data_types'
 import { getCardIdPrefix } from '../../data/card_identifiers'
+import type { DragEndEvent, DragMoveEvent } from '@dnd-kit/core'
 
 /** Droppable ids for empty/append targets are the status prefixed with this. */
 export const COLUMN_DROP_PREFIX = 'column:'
@@ -17,11 +18,46 @@ export interface DropTarget {
 
 export type CardDropPlacement = 'after' | 'before'
 
+export interface CardVerticalBounds {
+    height: number
+    top: number
+}
+
+type CardDragPositionEvent = DragEndEvent | DragMoveEvent
+
+function getPointerY(event: CardDragPositionEvent): number {
+    const { activatorEvent, delta } = event
+    if (!('clientY' in activatorEvent) || typeof activatorEvent.clientY !== 'number') {
+        throw new Error('Card dragging requires a pointer event with a vertical position')
+    }
+
+    return activatorEvent.clientY + delta.y
+}
+
 /** Resolve whether the pointer targets the half before or after a hovered card. */
 export function getCardDropPlacement(pointerY: number, cardTop: number, cardHeight: number): CardDropPlacement {
     const cardMiddleY = cardTop + cardHeight / 2
 
     return pointerY < cardMiddleY ? 'before' : 'after'
+}
+
+/** Resolve a DnD event using stable drag-start bounds when available and current collision bounds otherwise. */
+export function resolveCardDragEvent(
+    columns: CardColumn[],
+    event: CardDragPositionEvent,
+    initialCardBounds: Map<string, CardVerticalBounds>,
+): DropTarget | null {
+    const { active, over } = event
+    if (!over) return null
+
+    const overId = String(over.id)
+    const cardBounds = initialCardBounds.get(overId)
+    const cardTop = cardBounds?.top ?? over.rect.top
+    const cardHeight = cardBounds?.height ?? over.rect.height
+    const pointerY = getPointerY(event)
+    const cardDropPlacement = getCardDropPlacement(pointerY, cardTop, cardHeight)
+
+    return resolveDrop(columns, String(active.id), overId, cardDropPlacement)
 }
 
 /**

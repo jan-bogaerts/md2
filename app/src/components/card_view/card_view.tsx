@@ -1,43 +1,38 @@
 import { Box } from '@mui/material'
 import { DndContext, DragOverlay, PointerSensor, closestCorners, useSensor, useSensors } from '@dnd-kit/core'
 import type { DragEndEvent, DragMoveEvent, DragStartEvent } from '@dnd-kit/core'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { buildCardColumns } from '../../data/card_ordering'
-import type { CardTypeConfig, ProjectCard, StateConfig } from '../../data/data_types'
+import type { CardTypeConfig, StateConfig } from '../../data/data_types'
 import { useWorktrees } from '../hooks/use_worktrees'
 import { useAgentAcknowledgements } from '../hooks/use_agent_acknowledgements'
+import { dataService } from '../../services/data/data_service'
+import { dialogService } from '../../services/dialog_service'
+import { openFilesService } from '../../services/open_files_service'
+import { workspaceViewService } from '../../services/project/workspace_view_service'
 import { telemetryService } from '../../services/telemetry/telemetry_service'
 import { AffectsEditorDialog } from './affects_editor_dialog'
 import { CardBodyPopover } from './card_body_popover'
+import { cardBodyPopoverService } from './card_body_popover_service'
 import { CardColumn } from './card_column'
 import { CardDragOverlay } from './card_drag_overlay'
-import { COLUMN_DROP_PREFIX, getCardDropPlacement, resolveDrop, type DropTarget } from './card_drag'
+import { resolveCardDragEvent, type CardVerticalBounds, type DropTarget } from './card_drag'
+import { useCardViewColumns } from './use_card_view_columns'
 
 const DRAG_ACTIVATION_DISTANCE = 2
-
 interface CardViewProps {
     cardTypes: CardTypeConfig[]
-    cards: ProjectCard[]
     isMobile: boolean
-    onAffectsChange: (path: string, affects: string[]) => void
-    onDeleteCard: (path: string) => Promise<void>
-    onMoveCard: (path: string, targetStatus: string, targetIndex: number) => void
-    onOpenInFileMode: (path: string) => void
-    onTogglePolicy: (path: string, policyKey: string) => void
-    onTitleChange: (path: string, title: string) => void
-    primaryPath: string
-    projectKey: string
-    repositoryFiles: string[]
-    selectedPath: string | null
     states: StateConfig[]
     visible: boolean
 }
 
-type CardDragPositionEvent = DragEndEvent | DragMoveEvent
-
-interface CardVerticalBounds {
-    height: number
-    top: number
+function runCardEdit(action: () => void, fallbackMessage: string) {
+    try {
+        action()
+    } catch (error) {
+        dialogService.error(error, { fallbackMessage })
+    }
 }
 
 function measureCardVerticalBounds(): Map<string, CardVerticalBounds> {
@@ -54,59 +49,23 @@ function measureCardVerticalBounds(): Map<string, CardVerticalBounds> {
     return boundsByPath
 }
 
-function getPointerY(event: CardDragPositionEvent): number {
-    const { activatorEvent, delta } = event
-    if (!('clientY' in activatorEvent) || typeof activatorEvent.clientY !== 'number') {
-        throw new Error('Card dragging requires a pointer event with a vertical position')
-    }
+function currentCardColumns(states: StateConfig[]) {
+    const cards = dataService.getState().snapshot?.activeCards ?? []
 
-    return activatorEvent.clientY + delta.y
-}
-
-function resolveEventDrop(
-    columns: ReturnType<typeof buildCardColumns>,
-    event: CardDragPositionEvent,
-    initialCardBounds: Map<string, CardVerticalBounds>,
-): DropTarget | null {
-    const { active, over } = event
-    if (!over) return null
-
-    const overId = String(over.id)
-    const cardBounds = initialCardBounds.get(overId)
-    if (!cardBounds && !overId.startsWith(COLUMN_DROP_PREFIX)) throw new Error(`Missing initial bounds for card: ${overId}`)
-
-    const cardTop = cardBounds?.top ?? over.rect.top
-    const cardHeight = cardBounds?.height ?? over.rect.height
-    const pointerY = getPointerY(event)
-    const cardDropPlacement = getCardDropPlacement(pointerY, cardTop, cardHeight)
-
-    return resolveDrop(columns, String(active.id), overId, cardDropPlacement)
+    return buildCardColumns(cards, states)
 }
 
 /** Card view: status columns of draggable cards with card-anchored body popup access. */
 export function CardView(props: CardViewProps) {
     const {
         cardTypes,
-        cards,
         isMobile,
-        onAffectsChange,
-        onDeleteCard,
-        onMoveCard,
-        onOpenInFileMode,
-        onTogglePolicy,
-        onTitleChange,
-        primaryPath,
-        projectKey,
-        repositoryFiles,
-        selectedPath,
         states,
         visible,
     } = props
     const worktrees = useWorktrees()
     useAgentAcknowledgements()
-    const columns = useMemo(() => buildCardColumns(cards, states), [cards, states])
-    const [openBodyPath, setOpenBodyPath] = useState<string | null>(null)
-    const [bodyAnchorElement, setBodyAnchorElement] = useState<HTMLElement | null>(null)
+    const columns = useCardViewColumns(states)
     const [openAffectsPath, setOpenAffectsPath] = useState<string | null>(null)
     const [activeCardPath, setActiveCardPath] = useState<string | null>(null)
     const [activeCardHeight, setActiveCardHeight] = useState<number | null>(null)
@@ -114,18 +73,6 @@ export function CardView(props: CardViewProps) {
     const [dropPreview, setDropPreview] = useState<DropTarget | null>(null)
     const initialCardBoundsRef = useRef(new Map<string, CardVerticalBounds>())
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: DRAG_ACTIVATION_DISTANCE } }))
-
-    const handleOpenBody = (path: string, anchorElement: HTMLElement) => {
-        const isClosing = openBodyPath === path
-        setOpenBodyPath(isClosing ? null : path)
-        setBodyAnchorElement(isClosing ? null : anchorElement)
-        telemetryService.trackEvent('navigation')
-    }
-
-    const handleCloseBody = () => {
-        setOpenBodyPath(null)
-        setBodyAnchorElement(null)
-    }
 
     const handleOpenAffects = (path: string) => {
         setOpenAffectsPath(path)
@@ -147,8 +94,7 @@ export function CardView(props: CardViewProps) {
         if (visible) return
 
         queueMicrotask(() => {
-            setOpenBodyPath(null)
-            setBodyAnchorElement(null)
+            cardBodyPopoverService.close()
             setOpenAffectsPath(null)
             setActiveCardPath(null)
             setActiveCardHeight(null)
@@ -157,6 +103,8 @@ export function CardView(props: CardViewProps) {
             initialCardBoundsRef.current.clear()
         })
     }, [visible])
+
+    useEffect(() => () => cardBodyPopoverService.close(), [])
 
     const handleDragStart = (event: DragStartEvent) => {
         initialCardBoundsRef.current = measureCardVerticalBounds()
@@ -172,33 +120,51 @@ export function CardView(props: CardViewProps) {
             return
         }
 
-        const drop = resolveEventDrop(columns, event, initialCardBoundsRef.current)
-        const sourceColumn = columns.find((column) => column.cards.some((card) => card.path === String(active.id)))
+        const dragColumns = currentCardColumns(states)
+        const drop = resolveCardDragEvent(dragColumns, event, initialCardBoundsRef.current)
+        const sourceColumn = dragColumns.find((column) => column.cards.some((card) => card.path === String(active.id)))
         setDropPreview(drop && sourceColumn?.status !== drop.targetStatus ? drop : null)
     }
 
     const handleDragEnd = (event: DragEndEvent) => {
         const { active, over } = event
-        const drop = over ? resolveEventDrop(columns, event, initialCardBoundsRef.current) : null
+        const drop = over ? resolveCardDragEvent(currentCardColumns(states), event, initialCardBoundsRef.current) : null
         clearActiveCard()
-        if (drop) onMoveCard(String(active.id), drop.targetStatus, drop.targetIndex)
+        const path = String(active.id)
+        if (drop) runCardEdit(() => dataService.cards.moveCard(path, drop.targetStatus, drop.targetIndex), `Card move failed: ${path}`)
     }
 
-    const activeCard = cards.find((card) => card.path === activeCardPath) ?? null
-
     const handleOpenInFileMode = (path: string) => {
-        handleCloseBody()
-        onOpenInFileMode(path)
+        cardBodyPopoverService.close()
+        workspaceViewService.selectPath(path)
+        runCardEdit(() => openFilesService.openPath(path), `File open failed: ${path}`)
+        workspaceViewService.setViewMode('text')
+        telemetryService.trackEvent('navigation')
     }
 
     const handleDeleteCard = async (path: string) => {
-        await onDeleteCard(path)
-        if (openBodyPath === path) handleCloseBody()
-        if (openAffectsPath === path) handleCloseAffects()
+        try {
+            await dataService.cards.deleteCard(path)
+            workspaceViewService.clearSelectedPath(path)
+            cardBodyPopoverService.closePath(path)
+            if (openAffectsPath === path) handleCloseAffects()
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: `Card delete failed: ${path}` })
+            throw error
+        }
     }
 
-    const openCard = cards.find((card) => card.path === openBodyPath) ?? null
-    const affectsCard = cards.find((card) => card.path === openAffectsPath) ?? null
+    const handleTitleChange = (path: string, title: string) => {
+        runCardEdit(() => dataService.cards.updateCardTitle(path, title), `Title update failed: ${path}`)
+    }
+
+    const handleTogglePolicy = (path: string, policyKey: string) => {
+        runCardEdit(() => dataService.cards.toggleCardPolicy(path, policyKey), `Policy toggle failed: ${path}`)
+    }
+
+    const handleAffectsChange = (path: string, affects: string[]) => {
+        runCardEdit(() => dataService.cards.updateCardAffects(path, affects), `Affects update failed: ${path}`)
+    }
 
     return (
         <DndContext
@@ -231,36 +197,29 @@ export function CardView(props: CardViewProps) {
                         dropPreviewIndex={dropPreview?.targetStatus === column.status ? dropPreview.targetIndex : null}
                         isMobile={isMobile}
                         onDeleteCard={handleDeleteCard}
-                        onOpenBody={handleOpenBody}
                         onOpenInFileMode={handleOpenInFileMode}
-                        onTitleChange={onTitleChange}
-                        onTogglePolicy={onTogglePolicy}
-                        openBodyPath={openBodyPath}
-                        primaryPath={primaryPath}
-                        projectKey={projectKey}
-                        selectedPath={selectedPath}
+                        onTitleChange={handleTitleChange}
+                        onTogglePolicy={handleTogglePolicy}
                         worktrees={worktrees}
                     />
                 ))}
             </Box>
             <DragOverlay>
-                {visible && activeCard ? <CardDragOverlay card={activeCard} cardTypes={cardTypes} width={activeCardWidth} /> : null}
+                {visible && activeCardPath ? (
+                    <CardDragOverlay cardPath={activeCardPath} cardTypes={cardTypes} width={activeCardWidth} />
+                ) : null}
             </DragOverlay>
             <CardBodyPopover
-                anchorElement={bodyAnchorElement}
-                card={openCard}
                 isMobile={isMobile}
-                onClose={handleCloseBody}
                 onDeleteCard={handleDeleteCard}
                 onOpenAffects={handleOpenAffects}
                 onOpenInFileMode={handleOpenInFileMode}
                 visible={visible}
             />
             <AffectsEditorDialog
-                card={visible ? affectsCard : null}
+                cardPath={visible ? openAffectsPath : null}
                 onClose={handleCloseAffects}
-                onSave={onAffectsChange}
-                repositoryFiles={repositoryFiles}
+                onSave={handleAffectsChange}
             />
         </DndContext>
     )

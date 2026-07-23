@@ -55,6 +55,7 @@ export interface ElectronDataBridge {
     parkWorktree?(request: WorktreeOperationRequest): Promise<void>
     prepareWorktree?(request: PrepareWorktreeRequest): Promise<void>
     pullWorktree?(request: WorktreeOperationRequest): Promise<void>
+    rebaseWorktree?(request: WorktreeOperationRequest): Promise<void>
     push(project: ProjectReference): Promise<void>
     pushWorktree?(request: WorktreeOperationRequest): Promise<void>
     refreshWorktrees?(project: ProjectReference): Promise<void>

@@ -142,6 +142,11 @@ function createLocalBridgeDispatch(dependencies) {
 
             return worktreeService.push(request.project, request.worktree);
         },
+        rebaseWorktree: (request) => {
+            if (!request || typeof request !== 'object') throw new Error('Missing worktree rebase request');
+
+            return worktreeService.rebase(request.project, request.worktree);
+        },
         onWorktreesChanged: (callback) => worktreeService.subscribe(callback),
         refreshWorktrees: (project) => worktreeService.refreshRemote(project),
         resolveProject: async (project) => {

@@ -6,13 +6,11 @@ import { FileTreeView } from '../text_view/file_tree_view'
 import { actionService } from '../../services/actions/action_service'
 import { dataService } from '../../services/data/data_service'
 import type { ActionFile } from '../../data/action_types'
-import { buildFileTree } from '../../data/file_tree'
 import { cardContext, folderContext } from '../../data/action_context'
 import { DEFAULT_CARD_TYPES, type ProjectCard } from '../../data/data_types'
 import type { ActionExecutionEvent } from '../../data/action_run_types'
 import { actionExecutionService } from '../../services/actions/action_execution_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
-import type { OpenDocumentObject } from '../../services/open_files_service'
 
 function file(definition: { id: string }): ActionFile {
     return { content: JSON.stringify(definition), path: `actions/${definition.id}.json` }
@@ -219,23 +217,23 @@ describe('entry-point placement in the file tree', () => {
         const active = [{ ...card('F-1', 'todo', 'Alpha'), path: 'design/active/F-1.md' }]
         const background = [card('F-9', null, 'Old')]
         background[0] = { ...background[0], path: 'design/history/F-9.md' }
-        const tree = buildFileTree(active, background, 'design/active', {
-            actions: [],
-            hiddenFolderPaths: ['design/logs'],
-            projectFolder: 'design',
-            repositoryFiles: [],
-            specialFolderPaths: ['design/actions', 'design/active', 'design/history'],
+        vi.spyOn(dataService, 'getState').mockReturnValue({
+            project: null,
+            runningAgents: [],
+            snapshot: {
+                activeCards: active,
+                backgroundCards: background,
+                repositoryFiles: [],
+                workingFolder: 'design/active',
+            },
         })
-        const cardsByPath = new Map(active.concat(background).map((entry) => [entry.path, entry]))
         const createFolder = vi.fn(async () => undefined)
         const createMarkdownFile = vi.fn(async () => undefined)
 
         render(
             <FileTreeView
+                actionsFolder="design/actions"
                 cardTypes={DEFAULT_CARD_TYPES}
-                cardsByPath={cardsByPath}
-                nodes={tree}
-                objectsByPath={new Map<string, OpenDocumentObject>(cardsByPath)}
                 onCreateFolder={createFolder}
                 onCreateMarkdownFile={createMarkdownFile}
                 onDeleteFile={async () => undefined}
@@ -243,6 +241,7 @@ describe('entry-point placement in the file tree', () => {
                 onLeftPanelInteraction={() => {}}
                 projectFolder="design"
                 statusColors={new Map([['todo', '#9c4dcc']])}
+                workingFolder="design/active"
             />,
         )
 

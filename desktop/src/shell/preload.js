@@ -47,6 +47,7 @@ const DATA_METHODS = [
     'pullWorktree',
     'push',
     'pushWorktree',
+    'rebaseWorktree',
     'refreshWorktrees',
     'removeWorktree',
     'resolveProject',

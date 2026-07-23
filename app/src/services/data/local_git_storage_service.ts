@@ -228,6 +228,13 @@ export class LocalGitStorageService implements StorageService {
         await bridge.pullWorktree(request)
     }
 
+    async rebaseWorktree(request: WorktreeOperationRequest): Promise<void> {
+        const bridge = this.requireBridge()
+        if (!bridge.rebaseWorktree) throw new Error('Electron local Git bridge cannot rebase worktrees')
+
+        await bridge.rebaseWorktree(request)
+    }
+
     async pushWorktree(request: WorktreeOperationRequest): Promise<void> {
         const bridge = this.requireBridge()
         if (!bridge.pushWorktree) throw new Error('Electron local Git bridge cannot push worktrees')

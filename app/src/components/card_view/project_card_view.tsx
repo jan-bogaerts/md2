@@ -3,33 +3,42 @@ import { alpha } from '@mui/material/styles'
 import { useSortable } from '@dnd-kit/sortable'
 import DotsVertical from 'mdi-material-ui/DotsVertical'
 import FileDocumentOutline from 'mdi-material-ui/FileDocumentOutline'
-import { useState } from 'react'
+import { useState, useSyncExternalStore } from 'react'
 import type { ChangeEvent, KeyboardEvent, MouseEvent, TouchEvent } from 'react'
 import type { AgentConversation, CardTypeConfig, ProjectCard, WorktreeRecord } from '../../data/data_types'
 import { cardContext } from '../../data/action_context'
 import { agentAcknowledgementService } from '../../services/agents/agent_acknowledgement_service'
+import { telemetryService } from '../../services/telemetry/telemetry_service'
 import { ActionEntryPoints } from '../actions/action_entry_points'
 import { CardRunButton } from '../actions/card_run_button'
 import { useRunningActionForFile } from '../hooks/use_action_executions'
 import { CardDeleteDialog } from './card_delete_dialog'
 import { CardPolicyMenuItem } from './card_policy_menu_item'
 import { CardWorktreeIndicator } from './card_worktree_indicator'
+import { getCardTypeColor } from './card_drag'
+import { useProjectCard } from './use_project_card'
+import { useProjectReference } from '../hooks/use_project_reference'
+import { useIsWorkspacePathSelected } from '../hooks/use_is_workspace_path_selected'
+import { cardBodyPopoverService, subscribeCardBodyPopover } from './card_body_popover_service'
 
 const CARD_LONG_PRESS_MS = 500
 
 export interface CardHandlers {
     onDeleteCard: (path: string) => Promise<void>
-    onOpenBody: (path: string, anchorElement: HTMLElement) => void
     onOpenInFileMode: (path: string) => void
     onTogglePolicy: (path: string, policyKey: string) => void
     onTitleChange: (path: string, title: string) => void
 }
 
 interface ProjectCardViewProps extends CardHandlers {
+    cardPath: string
+    cardTypes: CardTypeConfig[]
+    worktrees: WorktreeRecord[]
+}
+
+interface ProjectCardViewContentProps extends CardHandlers {
     card: ProjectCard
     cardTypes: CardTypeConfig[]
-    color?: string
-    isBodyOpen: boolean
     isSelected: boolean
     primaryPath: string
     projectKey: string
@@ -43,8 +52,29 @@ interface MenuPosition {
 
 /** A three-row draggable card with compact metadata and consolidated actions. */
 export function ProjectCardView(props: ProjectCardViewProps) {
-    const { card, cardTypes, color, isBodyOpen, isSelected, primaryPath, projectKey, worktrees } = props
-    const { onOpenBody, onOpenInFileMode } = props
+    const { cardPath, ...contentProps } = props
+    const card = useProjectCard(cardPath)
+    const project = useProjectReference()
+    const isSelected = useIsWorkspacePathSelected(cardPath)
+    if (!card || !project) return null
+
+    const primaryPath = project.rootPath ?? project.id
+    const projectKey = `${project.id}:${project.branch}`
+
+    return (
+        <ProjectCardViewContent
+            card={card}
+            isSelected={isSelected}
+            primaryPath={primaryPath}
+            projectKey={projectKey}
+            {...contentProps}
+        />
+    )
+}
+
+function ProjectCardViewContent(props: ProjectCardViewContentProps) {
+    const { card, cardTypes, isSelected, primaryPath, projectKey, worktrees } = props
+    const { onOpenInFileMode } = props
     const { onDeleteCard, onTogglePolicy, onTitleChange } = props
     const theme = useTheme()
     const sortable = useSortable({ id: card.path })
@@ -55,7 +85,12 @@ export function ProjectCardView(props: ProjectCardViewProps) {
     const [deleteCardPath, setDeleteCardPath] = useState<string | null>(null)
     const [longPressTimer, setLongPressTimer] = useState<number | null>(null)
     const [titleDraft, setTitleDraft] = useState(card.header.title)
-    const accentColor = color ?? theme.palette.primary.main
+    const isBodyOpen = useSyncExternalStore(
+        subscribeCardBodyPopover,
+        () => cardBodyPopoverService.getSnapshot().cardPath === card.path,
+        () => false,
+    )
+    const accentColor = getCardTypeColor(cardTypes, card.header.id) ?? theme.palette.primary.main
     const accentBackground = alpha(accentColor, 0.16)
     const runningExecution = useRunningActionForFile(card.path)
     const statusLabel = runningExecution ? 'Running' : 'Idle'
@@ -86,7 +121,10 @@ export function ProjectCardView(props: ProjectCardViewProps) {
     }
 
     const handleCardClick = (event: MouseEvent<HTMLElement>) => {
-        if (!isEditingTitle) onOpenBody(card.path, event.currentTarget)
+        if (isEditingTitle) return
+
+        cardBodyPopoverService.toggle(card.path, event.currentTarget)
+        telemetryService.trackEvent('navigation')
     }
 
     const stopClick = (event: MouseEvent) => {
@@ -119,7 +157,8 @@ export function ProjectCardView(props: ProjectCardViewProps) {
     const openBodyFromMenu = () => {
         closeCardActions()
         if (!node.current) throw new Error(`Missing card element: ${card.path}`)
-        onOpenBody(card.path, node.current)
+        cardBodyPopoverService.toggle(card.path, node.current)
+        telemetryService.trackEvent('navigation')
     }
 
     const openInFileModeFromMenu = () => {

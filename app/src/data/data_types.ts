@@ -123,7 +123,13 @@ export interface WorktreeState {
 }
 
 export interface WorktreeStatus {
+    /** Commits on the worktree branch that the configured upstream lacks; 0 when there is no upstream. */
     ahead: number
+    /** Commits on the worktree branch that the project branch lacks. */
+    baseAhead: number
+    /** Commits on the project branch that the worktree branch lacks; cleared by rebasing. */
+    baseBehind: number
+    /** Commits on the configured upstream that the worktree branch lacks; 0 when there is no upstream. */
     behind: number
     dirty: boolean
     hasUpstream: boolean
@@ -337,6 +343,7 @@ export interface StorageService {
     parkWorktree?(request: WorktreeOperationRequest): Promise<void>
     prepareWorktree?(request: PrepareWorktreeRequest): Promise<void>
     pullWorktree?(request: WorktreeOperationRequest): Promise<void>
+    rebaseWorktree?(request: WorktreeOperationRequest): Promise<void>
     push(project: ProjectReference): Promise<void>
     pushWorktree?(request: WorktreeOperationRequest): Promise<void>
     refreshWorktrees?(project: ProjectReference): Promise<void>

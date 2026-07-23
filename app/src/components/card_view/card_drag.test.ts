@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { columnDropId, getCardDropPlacement, getCardTypeColor, resolveDrop } from './card_drag'
+import type { DragMoveEvent } from '@dnd-kit/core'
+import { columnDropId, getCardDropPlacement, getCardTypeColor, resolveCardDragEvent, resolveDrop } from './card_drag'
 import type { CardColumn } from '../../data/card_ordering'
 import type { CardTypeConfig, ProjectCard } from '../../data/data_types'
 
@@ -53,6 +54,19 @@ describe('getCardDropPlacement', () => {
 
     it('places the drop after a card when the pointer is in its bottom half', () => {
         expect(getCardDropPlacement(126, 100, 50)).toBe('after')
+    })
+})
+
+describe('resolveCardDragEvent', () => {
+    it('uses current collision bounds when target card has no drag-start measurement', () => {
+        const event = {
+            active: { id: 'a' },
+            activatorEvent: { clientY: 100 },
+            delta: { x: 0, y: 31 },
+            over: { id: 'p', rect: { height: 60, top: 100 } },
+        } as unknown as DragMoveEvent
+
+        expect(resolveCardDragEvent(columns, event, new Map())).toEqual({ targetIndex: 1, targetStatus: 'done' })
     })
 })
 

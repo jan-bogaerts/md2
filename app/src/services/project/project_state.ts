@@ -6,6 +6,7 @@ type CardCollections = Pick<ProjectSnapshot, 'activeCards' | 'backgroundCards'>
 
 type AttachAgentConversations = (cards: CardCollections) => CardCollections
 type ReportCardParseErrors = (errors: CardParseError[]) => void
+type ActiveCardsChanged = (previousCards: ProjectCard[], nextCards: ProjectCard[]) => void
 
 const ignoreCardParseErrors: ReportCardParseErrors = () => undefined
 
@@ -37,10 +38,16 @@ export class ProjectState {
     private cardCacheByPath = new Map<string, CardCacheEntry>()
     private parseErrorPaths: Set<string> = new Set()
     private readonly attachAgentConversations: AttachAgentConversations
+    private readonly activeCardsChanged: ActiveCardsChanged
     private readonly reportCardParseErrors: ReportCardParseErrors
 
-    constructor(attachAgentConversations: AttachAgentConversations, reportCardParseErrors = ignoreCardParseErrors) {
+    constructor(
+        attachAgentConversations: AttachAgentConversations,
+        activeCardsChanged: ActiveCardsChanged,
+        reportCardParseErrors = ignoreCardParseErrors,
+    ) {
         this.attachAgentConversations = attachAgentConversations
+        this.activeCardsChanged = activeCardsChanged
         this.reportCardParseErrors = reportCardParseErrors
     }
 
@@ -52,12 +59,14 @@ export class ProjectState {
     get projectToken() { return this.projectLoadToken }
 
     resetLoadedProject() {
+        const previousActiveCards = this.currentSnapshot?.activeCards ?? []
         this.currentFiles = []
         this.currentProject = null
         this.currentSnapshot = null
         this.inFlightCommitPaths.clear()
         this.cardCacheByPath.clear()
         this.parseErrorPaths.clear()
+        if (previousActiveCards.length > 0) this.activeCardsChanged(previousActiveCards, [])
     }
 
     replaceProject(project: ProjectReference | null) {
@@ -65,8 +74,12 @@ export class ProjectState {
     }
 
     replaceProjectFiles(files: MarkdownFile[], workingFolder: string, repositoryFiles: string[]) {
+        const previousActiveCards = this.currentSnapshot?.activeCards ?? []
         this.currentFiles = files
         this.currentSnapshot = this.createSnapshot(files, workingFolder, repositoryFiles)
+        if (previousActiveCards !== this.currentSnapshot.activeCards) {
+            this.activeCardsChanged(previousActiveCards, this.currentSnapshot.activeCards)
+        }
     }
 
     replaceFiles(files: MarkdownFile[], workingFolder: string) {
@@ -104,8 +117,12 @@ export class ProjectState {
     }
 
     refreshSnapshot(workingFolder: string) {
+        const previousActiveCards = this.currentSnapshot?.activeCards ?? []
         const repositoryFiles = this.currentSnapshot?.repositoryFiles ?? []
         this.currentSnapshot = this.createSnapshot(this.currentFiles, workingFolder, repositoryFiles)
+        if (previousActiveCards !== this.currentSnapshot.activeCards) {
+            this.activeCardsChanged(previousActiveCards, this.currentSnapshot.activeCards)
+        }
     }
 
     private createSnapshot(files: MarkdownFile[], workingFolder: string, repositoryFiles: string[]): ProjectSnapshot {

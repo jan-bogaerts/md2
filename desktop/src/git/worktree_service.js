@@ -227,6 +227,28 @@ class WorktreeService {
         });
     }
 
+    rebase(project, index) {
+        return this.enqueueMutation(async () => {
+            const activeProject = this.requireActiveProject(project);
+            const cachedRecord = this.resolve(activeProject, index);
+            const record = await this.requireClean(cachedRecord, activeProject.branch);
+            if (record.branch === activeProject.branch) throw new Error(`Linked worktree is already on the project branch: ${activeProject.branch}`);
+            try {
+                await this.runGit(record.path, ['rebase', activeProject.branch]);
+            } catch (error) {
+                // Leaving a half-finished rebase behind would break every later status read, so unwind it first.
+                try {
+                    await this.runGit(record.path, ['rebase', '--abort']);
+                } catch {
+                    // The rebase never started; the original failure is the one worth reporting.
+                }
+                await this.refreshAfterMutation();
+                throw error;
+            }
+            await this.refreshAfterMutation();
+        });
+    }
+
     discard(project, index) {
         return this.enqueueMutation(async () => {
             const record = this.resolve(project, index);
@@ -381,7 +403,7 @@ class WorktreeService {
             const parkingBranch = await this.parkingBranch(resolvedPath);
             const status = error === null
                 ? await this.status(resolvedPath, worktree.branch, requireProjectBranch(project))
-                : { ahead: 0, behind: 0, dirty: false, hasUpstream: false };
+                : { ahead: 0, baseAhead: 0, baseBehind: 0, behind: 0, dirty: false, hasUpstream: false };
 
             return { branch: worktree.branch, error, parkingBranch, path: resolvedPath, status, valid: error === null };
         }));
@@ -413,19 +435,21 @@ class WorktreeService {
         await this.runGit(folderPath, ['switch', '-C', parkingBranch, projectBranch]);
     }
 
+    /**
+     * Distances are tracked twice: `baseAhead`/`baseBehind` against the project branch (fixed by rebasing) and
+     * `ahead`/`behind` against the configured upstream (fixed by pushing or pulling). A worktree branch that was
+     * never pushed still has to report how far it trails the project branch.
+     */
     async status(folderPath, branch, projectBranch) {
         const dirty = (await this.runGit(folderPath, ['status', '--porcelain'])).length > 0;
+        const base = parseRevisionCounts(await this.runGit(folderPath, ['rev-list', '--left-right', '--count', `HEAD...${projectBranch}`]));
         const upstream = await this.upstream(folderPath, branch);
         if (upstream.length === 0) {
-            const aheadOutput = await this.runGit(folderPath, ['rev-list', '--count', `${projectBranch}..HEAD`]);
-            const ahead = Number.parseInt(aheadOutput, 10);
-            if (!Number.isInteger(ahead)) throw new Error(`Invalid Git ahead count: ${aheadOutput}`);
-
-            return { ahead, behind: 0, dirty, hasUpstream: false };
+            return { ahead: 0, baseAhead: base.ahead, baseBehind: base.behind, behind: 0, dirty, hasUpstream: false };
         }
         const counts = parseRevisionCounts(await this.runGit(folderPath, ['rev-list', '--left-right', '--count', `HEAD...${upstream}`]));
 
-        return { ...counts, dirty, hasUpstream: true };
+        return { ...counts, baseAhead: base.ahead, baseBehind: base.behind, dirty, hasUpstream: true };
     }
 
     upstream(folderPath, branch) {

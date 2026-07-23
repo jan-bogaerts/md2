@@ -38,7 +38,6 @@ function renderFields(definition: RawActionDefinition) {
                     { id: 'after', label: 'After' },
                 ] as ActionDefinition[]}
                 cardTypes={['feature']}
-                repositoryFiles={[]}
                 sourcePath={SOURCE_PATH}
                 specialContextTypes={['actions']}
                 states={['ready']}

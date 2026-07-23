@@ -3,8 +3,15 @@ import { alpha } from '@mui/material/styles'
 import type { CardTypeConfig, ProjectCard } from '../../data/data_types'
 import { getCardTypeColor } from './card_drag'
 import { useRunningActionForFile } from '../hooks/use_action_executions'
+import { useProjectCard } from './use_project_card'
 
 interface CardDragOverlayProps {
+    cardPath: string
+    cardTypes: CardTypeConfig[]
+    width: number | null
+}
+
+interface CardDragOverlayContentProps {
     card: ProjectCard
     cardTypes: CardTypeConfig[]
     width: number | null
@@ -19,6 +26,14 @@ function initialsFor(value: string) {
 
 /** Stable visual copy of a card that follows the pointer between sortable columns. */
 export function CardDragOverlay(props: CardDragOverlayProps) {
+    const { cardPath, ...contentProps } = props
+    const card = useProjectCard(cardPath)
+    if (!card) return null
+
+    return <CardDragOverlayContent card={card} {...contentProps} />
+}
+
+function CardDragOverlayContent(props: CardDragOverlayContentProps) {
     const { card, cardTypes, width } = props
     const theme = useTheme()
     const accentColor = getCardTypeColor(cardTypes, card.header.id) ?? theme.palette.primary.main

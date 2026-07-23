@@ -10,6 +10,7 @@ const { AgentRunnerService } = require('./agent_runner_service');
 const { upsertActivityConversation } = require('./activity_files');
 const { findActivityConversation } = require('../../../shared/card_activity.mjs');
 const { conversationActivityReference, parseConversationActivityReference } = require('../../../shared/activity_paths.mjs');
+const WINDOWS_PROCESS_TEST_TIMEOUT_MS = 15_000;
 
 function createService(dependencies = {}) {
     return new AgentRunnerService({
@@ -375,7 +376,7 @@ describe('AgentRunnerService', () => {
         } finally {
             await rm(rootPath, { force: true, recursive: true });
         }
-    });
+    }, WINDOWS_PROCESS_TEST_TIMEOUT_MS);
 
     it('rejects concurrent turns for one conversation while allowing separate conversations', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-runner-'));

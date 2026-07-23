@@ -1,13 +1,16 @@
 import { Autocomplete, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, Stack, TextField, Typography } from '@mui/material'
 import { useMemo, useState } from 'react'
 import type { ProjectCard } from '../../data/data_types'
+import { useProjectState } from '../hooks/use_project_state'
 import { filterAffectsSuggestions } from './affects_suggestions'
+import { useProjectCard } from './use_project_card'
+
+const EMPTY_REPOSITORY_FILES: string[] = []
 
 interface AffectsEditorDialogProps {
-    card: ProjectCard | null
+    cardPath: string | null
     onClose: () => void
     onSave: (path: string, affects: string[]) => void
-    repositoryFiles: string[]
 }
 
 interface AffectedFileChipProps {
@@ -19,7 +22,6 @@ interface AffectsEditorContentProps {
     card: ProjectCard
     onClose: () => void
     onSave: (path: string, affects: string[]) => void
-    repositoryFiles: string[]
 }
 
 function AffectedFileChip(props: AffectedFileChipProps) {
@@ -33,7 +35,9 @@ function AffectedFileChip(props: AffectedFileChipProps) {
 }
 
 function AffectsEditorContent(props: AffectsEditorContentProps) {
-    const { card, onClose, onSave, repositoryFiles } = props
+    const { card, onClose, onSave } = props
+    const { snapshot } = useProjectState()
+    const repositoryFiles = snapshot?.repositoryFiles ?? EMPTY_REPOSITORY_FILES
     const [draftAffects, setDraftAffects] = useState<string[]>(card.header.affects)
     const [input, setInput] = useState('')
 
@@ -116,7 +120,8 @@ function AffectsEditorContent(props: AffectsEditorContentProps) {
 
 /** Dialog for editing the repo-relative file paths in a card's affects header. */
 export function AffectsEditorDialog(props: AffectsEditorDialogProps) {
-    const { card, onClose, onSave, repositoryFiles } = props
+    const { cardPath, onClose, onSave } = props
+    const card = useProjectCard(cardPath)
 
     return (
         <Dialog fullWidth maxWidth="sm" onClose={onClose} open={!!card}>
@@ -126,7 +131,6 @@ export function AffectsEditorDialog(props: AffectsEditorDialogProps) {
                     card={card}
                     onClose={onClose}
                     onSave={onSave}
-                    repositoryFiles={repositoryFiles}
                 />
             ) : null}
         </Dialog>

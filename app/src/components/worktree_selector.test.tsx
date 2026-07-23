@@ -8,11 +8,11 @@ import { WorktreeSelector } from './worktree_selector'
 const worktrees: WorktreeRecord[] = [
     {
         branch: 'feature', error: null, parkingBranch: 'md2/parking/feature', path: 'C:\\feature',
-        status: { ahead: 0, behind: 0, dirty: false, hasUpstream: false }, valid: true,
+        status: { ahead: 0, baseAhead: 0, baseBehind: 0, behind: 0, dirty: false, hasUpstream: false }, valid: true,
     },
     {
         branch: null, error: 'Folder missing', parkingBranch: 'md2/parking/missing', path: 'C:\\missing',
-        status: { ahead: 0, behind: 0, dirty: false, hasUpstream: false }, valid: false,
+        status: { ahead: 0, baseAhead: 0, baseBehind: 0, behind: 0, dirty: false, hasUpstream: false }, valid: false,
     },
 ]
 
@@ -109,7 +109,7 @@ describe('WorktreeSelector', () => {
     it('asks how to resolve dirty changes before returning to Primary', async () => {
         const dirtyWorktrees = [{
             ...worktrees[0],
-            status: { ahead: 0, behind: 0, dirty: true, hasUpstream: false },
+            status: { ahead: 0, baseAhead: 0, baseBehind: 0, behind: 0, dirty: true, hasUpstream: false },
         }]
         vi.spyOn(worktreeService, 'getCardCommitMessage').mockReturnValue('F-1: Card')
         render(
@@ -153,10 +153,56 @@ describe('WorktreeSelector', () => {
         expect(await screen.findByRole('dialog', { name: 'Worktree has uncommitted changes' })).toBeInTheDocument()
     })
 
+    it('offers a rebase for a worktree trailing the project branch without an upstream', async () => {
+        const trailingWorktrees = [{
+            ...worktrees[0],
+            status: { ahead: 0, baseAhead: 0, baseBehind: 2, behind: 0, dirty: false, hasUpstream: false },
+        }]
+        vi.spyOn(worktreeService, 'getProjectBranch').mockReturnValue('main')
+        const rebaseCardWorktree = vi.spyOn(worktreeService, 'rebaseCardWorktree').mockResolvedValue(undefined)
+        render(
+            <AppThemeProvider>
+                <WorktreeSelector
+                    assignment={{ worktree: 1 }}
+                    assignmentTarget={{ kind: 'card', path: 'design/F-1.md' }}
+                    primaryPath="C:\\primary"
+                    worktrees={trailingWorktrees}
+                />
+            </AppThemeProvider>,
+        )
+
+        const button = screen.getByRole('button', { name: /Worktree 1/u })
+        expect(button).toHaveAccessibleName(/behind main 2/u)
+        expect(button).toHaveStyle({ color: 'rgb(249, 168, 37)' })
+
+        fireEvent.click(button)
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Rebase on main' }))
+
+        await vi.waitFor(() => expect(rebaseCardWorktree).toHaveBeenCalledWith('design/F-1.md'))
+    })
+
+    it('disables the rebase entry when the worktree is already up to date with the project branch', () => {
+        vi.spyOn(worktreeService, 'getProjectBranch').mockReturnValue('main')
+        render(
+            <AppThemeProvider>
+                <WorktreeSelector
+                    assignment={{ worktree: 1 }}
+                    assignmentTarget={{ kind: 'card', path: 'design/F-1.md' }}
+                    primaryPath="C:\\primary"
+                    worktrees={[worktrees[0]]}
+                />
+            </AppThemeProvider>,
+        )
+
+        fireEvent.click(screen.getByRole('button', { name: /Worktree 1/u }))
+
+        expect(screen.getByRole('menuitem', { name: 'Rebase on main' })).toHaveAttribute('aria-disabled', 'true')
+    })
+
     it('opens the commit dialog with the default card message', () => {
         const dirtyWorktrees = [{
             ...worktrees[0],
-            status: { ahead: 0, behind: 0, dirty: true, hasUpstream: false },
+            status: { ahead: 0, baseAhead: 0, baseBehind: 0, behind: 0, dirty: true, hasUpstream: false },
         }]
         vi.spyOn(worktreeService, 'getCardCommitMessage').mockReturnValue('F-1: Card')
         const commitCardWorktree = vi.spyOn(worktreeService, 'commitCardWorktree').mockResolvedValue(undefined)

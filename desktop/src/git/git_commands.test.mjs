@@ -8,6 +8,8 @@ import { describe, expect, it, vi } from 'vitest';
 
 const require = createRequire(import.meta.url);
 const execFileAsync = promisify(execFile);
+const REMOVE_RETRY_COUNT = 5;
+const REMOVE_RETRY_DELAY_MS = 100;
 const {
     commitTrackedPaths,
     ensureInsideRoot,
@@ -308,7 +310,12 @@ describe('git-commands', () => {
             const { stdout: remainingFiles } = await execFileAsync('git', ['diff', '--name-only'], { cwd: rootPath });
             expect(remainingFiles.trim()).toBe('second.md');
         } finally {
-            await rm(rootPath, { force: true, recursive: true });
+            await rm(rootPath, {
+                force: true,
+                maxRetries: REMOVE_RETRY_COUNT,
+                recursive: true,
+                retryDelay: REMOVE_RETRY_DELAY_MS,
+            });
         }
     });
 });

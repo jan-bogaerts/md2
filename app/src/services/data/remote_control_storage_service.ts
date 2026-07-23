@@ -268,6 +268,10 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         await this.request('pullWorktree', [request])
     }
 
+    async rebaseWorktree(request: WorktreeOperationRequest): Promise<void> {
+        await this.request('rebaseWorktree', [request])
+    }
+
     async pushWorktree(request: WorktreeOperationRequest): Promise<void> {
         await this.request('pushWorktree', [request])
     }

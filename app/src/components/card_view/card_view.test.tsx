@@ -3,6 +3,7 @@ import { DndContext } from '@dnd-kit/core'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { CardView } from './card_view'
 import { CardColumn } from './card_column'
+import * as cardColumnModule from './card_column'
 import { actionService } from '../../services/actions/action_service'
 import type { ActionFile } from '../../data/action_types'
 import { DEFAULT_CARD_TYPES, type CardTypeConfig, type ProjectCard } from '../../data/data_types'
@@ -12,6 +13,7 @@ import { dataService } from '../../services/data/data_service'
 import { worktreeService } from '../../services/project/worktree_service'
 import { cardMarkdownDataSource } from '../editor/card_markdown_data_source'
 import { openFilesService } from '../../services/open_files_service'
+import { workspaceViewService } from '../../services/project/workspace_view_service'
 
 function card(id: string, title: string, status: string, policy: Record<string, boolean> = {}): ProjectCard {
     return {
@@ -34,6 +36,14 @@ const cards = [
     card('F-2', 'Second', 'done'),
 ]
 
+function setProjectCards(activeCards: ProjectCard[], repositoryFiles = ['app/src/app.tsx', 'design/F-1.md']) {
+    vi.mocked(dataService.getState).mockReturnValue({
+        project: { branch: 'main', id: 'project', rootPath: 'C:\\project' },
+        runningAgents: [],
+        snapshot: { activeCards, backgroundCards: [], repositoryFiles, workingFolder: 'design' },
+    })
+}
+
 function actionFile(definition: unknown): ActionFile {
     return { content: JSON.stringify(definition), path: 'actions/action.json' }
 }
@@ -41,46 +51,45 @@ function actionFile(definition: unknown): ActionFile {
 function createColumnHandlers() {
     return {
         onDeleteCard: vi.fn(async () => undefined),
-        onOpenBody: vi.fn(),
         onOpenInFileMode: vi.fn(),
         onTitleChange: vi.fn(),
         onTogglePolicy: vi.fn(),
     }
 }
 
-function createCardHandlers() {
-    return { ...createColumnHandlers(), onAffectsChange: vi.fn(), onMoveCard: vi.fn() }
-}
-
-function renderCardView(overrides: Partial<Parameters<typeof CardView>[0]> = {}) {
-    const handlers = createCardHandlers()
+function renderCardView(
+    overrides: Partial<Parameters<typeof CardView>[0]> = {},
+    activeCards = cards,
+    repositoryFiles = ['app/src/app.tsx', 'design/F-1.md'],
+) {
+    setProjectCards(activeCards, repositoryFiles)
 
     render(
         <AppThemeProvider>
             <CardView
                 cardTypes={DEFAULT_CARD_TYPES}
-                cards={cards}
                 isMobile={false}
-                primaryPath="C:\\project"
-                projectKey="project:main"
-                repositoryFiles={['app/src/app.tsx', 'design/F-1.md']}
-                selectedPath={null}
                 states={[
                     { alwaysVisible: false, state: 'todo' },
                     { alwaysVisible: false, state: 'done' },
                 ]}
                 visible
-                {...handlers}
                 {...overrides}
             />
         </AppThemeProvider>,
     )
-
-    return handlers
 }
 
 describe('CardView', () => {
     beforeEach(() => {
+        vi.spyOn(dataService, 'getState')
+        setProjectCards(cards)
+        vi.spyOn(dataService.cards, 'deleteCard').mockResolvedValue(null)
+        vi.spyOn(dataService.cards, 'moveCard').mockReturnValue([])
+        vi.spyOn(dataService.cards, 'toggleCardPolicy').mockReturnValue(cards[0])
+        vi.spyOn(dataService.cards, 'updateCardAffects').mockReturnValue(cards[0])
+        vi.spyOn(dataService.cards, 'updateCardTitle').mockReturnValue(cards[0])
+        vi.spyOn(openFilesService, 'openPath')
         vi.spyOn(dataService, 'hasPendingFile').mockReturnValue(false)
         vi.spyOn(cardMarkdownDataSource, 'getMarkdown').mockImplementation((target) => target.document.kind === 'card'
             ? target.document.getDraft().content
@@ -91,6 +100,8 @@ describe('CardView', () => {
 
     afterEach(() => {
         cleanup()
+        const { selectedPath } = workspaceViewService.getSnapshot()
+        if (selectedPath) workspaceViewService.clearSelectedPath(selectedPath)
         for (const document of openFilesService.getRegisteredDocuments()) openFilesService.discardDocument(document)
         actionService.clear()
         vi.restoreAllMocks()
@@ -126,13 +137,12 @@ describe('CardView', () => {
 
     it('shows always-visible columns without cards and hides other empty columns in config order', () => {
         renderCardView({
-            cards: [],
             states: [
                 { alwaysVisible: true, state: 'new' },
                 { alwaysVisible: false, state: 'design' },
                 { alwaysVisible: true, state: 'done' },
             ],
-        })
+        }, [])
 
         expect(screen.getByLabelText('new column')).toHaveTextContent('Drop a card here')
         expect(screen.getByLabelText('done column')).toHaveTextContent('Drop a card here')
@@ -141,19 +151,16 @@ describe('CardView', () => {
 
     it('inserts a card-sized drop position between target-column cards', () => {
         const handlers = createColumnHandlers()
+        setProjectCards([card('F-1', 'First', 'done'), card('F-2', 'Second', 'done')])
         render(
             <AppThemeProvider>
                 <DndContext>
                     <CardColumn
                         cardTypes={DEFAULT_CARD_TYPES}
-                        column={{ cards: [card('F-1', 'First', 'done'), card('F-2', 'Second', 'done')], color: '#123456', status: 'done' }}
+                        column={{ color: '#123456', status: 'done' }}
                         dropPreviewHeight={123}
                         dropPreviewIndex={1}
                         isMobile={false}
-                        openBodyPath={null}
-                        primaryPath="C:\\project"
-                        projectKey="project:main"
-                        selectedPath={null}
                         worktrees={[]}
                         {...handlers}
                     />
@@ -174,15 +181,12 @@ describe('CardView', () => {
             ...DEFAULT_CARD_TYPES,
             { color: '#123456', idPrefix: 'R', label: 'Research', type: 'research' },
         ]
-        renderCardView({
-            cards: [
-                card('F-012', 'Feature card', 'todo'),
-                card('B-003', 'Bug card', 'todo'),
-                card('X-001', 'Unknown card', 'todo'),
-                card('R-007', 'Research card', 'todo'),
-            ],
-            cardTypes: customCardTypes,
-        })
+        renderCardView({ cardTypes: customCardTypes }, [
+            card('F-012', 'Feature card', 'todo'),
+            card('B-003', 'Bug card', 'todo'),
+            card('X-001', 'Unknown card', 'todo'),
+            card('R-007', 'Research card', 'todo'),
+        ])
 
         const id = screen.getByText('F-012')
         const title = screen.getByText('Feature card')
@@ -204,18 +208,18 @@ describe('CardView', () => {
     })
 
     it('renders one policy led per policy flag and toggles on click', () => {
-        const handlers = renderCardView()
+        renderCardView()
         fireEvent.click(screen.getByRole('button', { name: 'Card actions for F-1' }))
         const checkLintingButton = screen.getByRole('menuitem', { name: 'Toggle checkLinting' })
 
         expect(checkLintingButton).toHaveAttribute('aria-pressed', 'true')
         fireEvent.click(checkLintingButton)
 
-        expect(handlers.onTogglePolicy).toHaveBeenCalledWith('design/F-1.md', 'checkLinting')
+        expect(dataService.cards.toggleCardPolicy).toHaveBeenCalledWith('design/F-1.md', 'checkLinting')
     })
 
     it('edits the title from the card actions and commits on Enter', () => {
-        const handlers = renderCardView()
+        renderCardView()
 
         fireEvent.click(screen.getByRole('button', { name: 'Card actions for F-1' }))
         fireEvent.click(screen.getByRole('menuitem', { name: 'Edit title' }))
@@ -223,7 +227,7 @@ describe('CardView', () => {
         fireEvent.change(input, { target: { value: 'Renamed' } })
         fireEvent.keyDown(input, { key: 'Enter' })
 
-        expect(handlers.onTitleChange).toHaveBeenCalledWith('design/F-1.md', 'Renamed')
+        expect(dataService.cards.updateCardTitle).toHaveBeenCalledWith('design/F-1.md', 'Renamed')
     })
 
     it('opens the body in a card-relative popup on desktop when the card surface is clicked', () => {
@@ -245,13 +249,25 @@ describe('CardView', () => {
         trackEvent.mockRestore()
     })
 
+    it('does not rerender card columns when the body popup opens or closes', () => {
+        const renderCardColumn = vi.spyOn(cardColumnModule, 'CardColumn')
+        renderCardView()
+        const initialRenderCount = renderCardColumn.mock.calls.length
+
+        fireEvent.click(screen.getByRole('button', { name: 'Drag F-1' }))
+        expect(renderCardColumn).toHaveBeenCalledTimes(initialRenderCount)
+
+        fireEvent.click(screen.getByRole('button', { name: 'Close card details' }))
+        expect(renderCardColumn).toHaveBeenCalledTimes(initialRenderCount)
+    })
+
     it('routes the file-mode action from the popup to the callback', () => {
-        const handlers = renderCardView()
+        renderCardView()
 
         fireEvent.click(screen.getByRole('button', { name: 'Drag F-1' }))
         fireEvent.click(screen.getByRole('button', { name: 'Open in file mode' }))
 
-        expect(handlers.onOpenInFileMode).toHaveBeenCalledWith('design/F-1.md')
+        expect(openFilesService.openPath).toHaveBeenCalledWith('design/F-1.md')
     })
 
     it('edits the title from the card popup and commits on Enter', () => {
@@ -277,7 +293,7 @@ describe('CardView', () => {
 
     it('shows dirty immediately when the card body is edited', () => {
         const cardWithTrailingNewline = { ...cards[0], content: `${cards[0].content}\n` }
-        renderCardView({ cards: [cardWithTrailingNewline] })
+        renderCardView({}, [cardWithTrailingNewline])
 
         fireEvent.click(screen.getByRole('button', { name: 'Drag F-1' }))
         expect(within(screen.getByRole('dialog')).getByText('Saved')).toBeInTheDocument()
@@ -301,34 +317,34 @@ describe('CardView', () => {
     })
 
     it('routes the file-mode action from the card header without opening the popup', () => {
-        const handlers = renderCardView()
+        renderCardView()
 
         fireEvent.click(screen.getByRole('button', { name: 'Open F-1 in file mode' }))
 
-        expect(handlers.onOpenInFileMode).toHaveBeenCalledWith('design/F-1.md')
+        expect(openFilesService.openPath).toHaveBeenCalledWith('design/F-1.md')
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     })
 
     it('confirms before deleting from the card actions menu', async () => {
-        const handlers = renderCardView()
+        renderCardView()
 
         fireEvent.click(screen.getByRole('button', { name: 'Card actions for F-1' }))
         fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }))
         const dialog = screen.getByRole('dialog', { name: 'Delete card' })
         fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }))
 
-        await waitFor(() => expect(handlers.onDeleteCard).toHaveBeenCalledWith('design/F-1.md'))
+        await waitFor(() => expect(dataService.cards.deleteCard).toHaveBeenCalledWith('design/F-1.md'))
     })
 
     it('does not delete from the card actions menu when confirmation is cancelled', () => {
-        const handlers = renderCardView()
+        renderCardView()
 
         fireEvent.click(screen.getByRole('button', { name: 'Card actions for F-1' }))
         fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }))
         const dialog = screen.getByRole('dialog', { name: 'Delete card' })
         fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }))
 
-        expect(handlers.onDeleteCard).not.toHaveBeenCalled()
+        expect(dataService.cards.deleteCard).not.toHaveBeenCalled()
     })
 
     it('shows only Run inline and opens matching actions from the card context menu', () => {
@@ -356,23 +372,23 @@ describe('CardView', () => {
     })
 
     it('opens existing card commands from the icon button menu', () => {
-        const handlers = renderCardView()
+        renderCardView()
 
         fireEvent.click(screen.getByRole('button', { name: 'Card actions for F-1' }))
         fireEvent.click(screen.getByRole('menuitem', { name: 'Open in file mode' }))
 
-        expect(handlers.onOpenInFileMode).toHaveBeenCalledWith('design/F-1.md')
+        expect(openFilesService.openPath).toHaveBeenCalledWith('design/F-1.md')
     })
 
     it('confirms before deleting from the body popup', async () => {
-        const handlers = renderCardView()
+        renderCardView()
 
         fireEvent.click(screen.getByRole('button', { name: 'Drag F-1' }))
         fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete' }))
         const confirmDialog = screen.getByRole('dialog', { name: 'Delete card' })
         fireEvent.click(within(confirmDialog).getByRole('button', { name: 'Delete' }))
 
-        await waitFor(() => expect(handlers.onDeleteCard).toHaveBeenCalledWith('design/F-1.md'))
+        await waitFor(() => expect(dataService.cards.deleteCard).toHaveBeenCalledWith('design/F-1.md'))
     })
 
     it('opens the card-relative popup on mobile', () => {
@@ -387,22 +403,12 @@ describe('CardView', () => {
     })
 
     it('highlights the card matching the selected path', () => {
+        workspaceViewService.selectPath('design/F-2.md')
         const { container } = render(
             <AppThemeProvider>
                 <CardView
                     cardTypes={DEFAULT_CARD_TYPES}
-                    cards={cards}
                     isMobile={false}
-                    onAffectsChange={vi.fn()}
-                    onDeleteCard={vi.fn(async () => undefined)}
-                    onMoveCard={vi.fn()}
-                    onOpenInFileMode={vi.fn()}
-                    onTitleChange={vi.fn()}
-                    onTogglePolicy={vi.fn()}
-                    primaryPath="C:\\project"
-                    projectKey="project:main"
-                    repositoryFiles={[]}
-                    selectedPath="design/F-2.md"
                     states={[
                         { alwaysVisible: false, state: 'todo' },
                         { alwaysVisible: false, state: 'done' },
@@ -429,7 +435,7 @@ describe('CardView', () => {
     })
 
     it('shows the affects control in the card popup and saves changes', () => {
-        const handlers = renderCardView({ repositoryFiles: ['app/src/app.tsx', 'design/F-1.md'] })
+        renderCardView()
 
         expect(screen.queryByRole('button', { name: 'Affects' })).not.toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: 'Drag F-1' }))
@@ -438,6 +444,6 @@ describe('CardView', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Add' }))
         fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
-        expect(handlers.onAffectsChange).toHaveBeenCalledWith('design/F-1.md', ['app/src/app.tsx'])
+        expect(dataService.cards.updateCardAffects).toHaveBeenCalledWith('design/F-1.md', ['app/src/app.tsx'])
     })
 })

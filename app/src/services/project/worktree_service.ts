@@ -38,6 +38,11 @@ export class WorktreeService extends EventTarget {
         return this.projectActionWorktree
     }
 
+    /** The branch linked worktrees are rebased onto; null before a project is open. */
+    getProjectBranch() {
+        return this.projectProvider?.()?.branch ?? null
+    }
+
     getError() {
         return this.error
     }
@@ -185,6 +190,18 @@ export class WorktreeService extends EventTarget {
         this.startCardOperation(path)
         try {
             await storage.pullWorktree({ project, worktree })
+        } finally {
+            this.finishCardOperation(path)
+        }
+    }
+
+    async rebaseCardWorktree(path: string) {
+        const { project, storage, worktree } = this.requireCardOperation(path)
+        if (!storage.rebaseWorktree) throw new Error('Worktree rebases require Electron local mode')
+
+        this.startCardOperation(path)
+        try {
+            await storage.rebaseWorktree({ project, worktree })
         } finally {
             this.finishCardOperation(path)
         }

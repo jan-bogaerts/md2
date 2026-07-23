@@ -1,4 +1,4 @@
-import { IconButton, Menu, MenuItem, Tooltip, Typography } from '@mui/material'
+import { Box, IconButton, Menu, MenuItem, Tooltip, Typography } from '@mui/material'
 import ArrowDown from 'mdi-material-ui/ArrowDown'
 import ArrowUp from 'mdi-material-ui/ArrowUp'
 import SourceBranch from 'mdi-material-ui/SourceBranch'
@@ -58,23 +58,32 @@ export function WorktreeSelector(props: WorktreeSelectorProps) {
     const assignedRecord = assignedWorktree === null ? null : worktrees[assignedWorktree - 1] ?? null
     const hasActiveCardWorktree = assignmentTarget.kind === 'card' && assignedWorktree !== null
         && !state.error && !!assignedRecord?.valid
-    const hasOutgoingChanges = !!assignedRecord && (assignedRecord.status.dirty || assignedRecord.status.ahead > 0)
-    const hasIncomingChanges = !!assignedRecord && assignedRecord.status.behind > 0
+    const hasOutgoingChanges = !!assignedRecord
+        && (assignedRecord.status.dirty || assignedRecord.status.ahead > 0 || assignedRecord.status.baseAhead > 0)
+    const hasIncomingChanges = !!assignedRecord && (assignedRecord.status.behind > 0 || assignedRecord.status.baseBehind > 0)
     const hasWorktreeChanges = hasOutgoingChanges || hasIncomingChanges
+    const projectBranch = worktreeService.getProjectBranch()
     const folder = state.folder ?? primaryPath ?? 'Primary'
     const assignmentDescription = state.error
         ? `Worktree assignment error: ${state.error}`
         : state.value === 'P'
             ? `Primary worktree${primaryPath ? `: ${primaryPath}` : ''}`
             : `Worktree ${state.value}: ${folder}`
-    const worktreeStatusDescription = assignedRecord
-        ? `Dirty: ${assignedRecord.status.dirty ? 'yes' : 'no'}; ahead: ${assignedRecord.status.ahead}; behind: ${assignedRecord.status.behind}`
-        : null
+    const baseName = projectBranch ?? 'the project branch'
+    const statusParts = assignedRecord
+        ? [
+            `dirty ${assignedRecord.status.dirty ? 'yes' : 'no'}`,
+            `ahead of ${baseName} ${assignedRecord.status.baseAhead}`,
+            `behind ${baseName} ${assignedRecord.status.baseBehind}`,
+            ...assignedRecord.status.hasUpstream
+                ? [`ahead of upstream ${assignedRecord.status.ahead}`, `behind upstream ${assignedRecord.status.behind}`]
+                : ['no upstream'],
+        ]
+        : []
+    const worktreeStatusDescription = statusParts.length > 0 ? statusParts.join('; ') : null
     const descriptions = [assignmentDescription, worktreeStatusDescription].filter((value) => value !== null)
     const tooltip = descriptions.join('. ')
-    const statusLabel = assignedRecord
-        ? `; dirty ${assignedRecord.status.dirty ? 'yes' : 'no'}; ahead ${assignedRecord.status.ahead}; behind ${assignedRecord.status.behind}`
-        : ''
+    const statusLabel = worktreeStatusDescription ? `; ${worktreeStatusDescription}` : ''
     const label = labelPrefix
         ? `${labelPrefix}: ${folder}${statusLabel}`
         : `${assignmentDescription}${statusLabel}`
@@ -156,6 +165,16 @@ export function WorktreeSelector(props: WorktreeSelectorProps) {
             dialogService.error(error, { fallbackMessage: 'Could not pull worktree' })
         }
     }
+    const handleRebaseMenu = async () => {
+        if (assignmentTarget.kind !== 'card') return
+
+        handleClose()
+        try {
+            await worktreeService.rebaseCardWorktree(assignmentTarget.path)
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: `Could not rebase worktree onto ${baseName}` })
+        }
+    }
     const handleCommitDialogClose = () => setCommitDialogOpen(false)
     const handleCommit = async (message: string) => {
         if (assignmentTarget.kind !== 'card') return
@@ -200,16 +219,47 @@ export function WorktreeSelector(props: WorktreeSelectorProps) {
                 borderColor: state.error ? 'error.main' : hasWorktreeChanges ? 'warning.main' : 'divider',
                 color: state.error ? 'error.main' : hasWorktreeChanges ? 'warning.main' : 'text.secondary',
                 height: 26,
+                p: 0,
                 pointerEvents: 'auto',
                 position: 'relative',
                 width: 26,
             }}
         >
-            {hasOutgoingChanges ? <ArrowUp sx={{ bottom: -1, fontSize: 10, left: -1, position: 'absolute' }} /> : null}
-            {hasIncomingChanges ? <ArrowDown sx={{ bottom: -1, fontSize: 10, position: 'absolute', right: -1 }} /> : null}
-            {state.value === 'P' ? <SourceBranch sx={{ fontSize: 14 }} /> : (
-                <Typography component="span" sx={{ fontSize: 11, fontWeight: 700 }}>{state.value}</Typography>
-            )}
+            <Box
+                sx={{
+                    alignItems: 'center',
+                    display: 'flex',
+                    height: '100%',
+                    justifyContent: 'center',
+                    // leave room on the right for the arrow gutter so the glyph stays optically centred
+                    pr: hasWorktreeChanges ? '8px' : 0,
+                    width: '100%',
+                }}
+            >
+                {state.value === 'P' ? <SourceBranch sx={{ fontSize: 14 }} /> : (
+                    <Typography component="span" sx={{ fontSize: 11, fontWeight: 700, lineHeight: 1 }}>
+                        {state.value}
+                    </Typography>
+                )}
+            </Box>
+            {hasWorktreeChanges ? (
+                <Box
+                    sx={{
+                        alignItems: 'center',
+                        bottom: 0,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'center',
+                        position: 'absolute',
+                        right: 1,
+                        top: 0,
+                        width: 8,
+                    }}
+                >
+                    {hasOutgoingChanges ? <ArrowUp sx={{ display: 'block', fontSize: 9 }} /> : null}
+                    {hasIncomingChanges ? <ArrowDown sx={{ display: 'block', fontSize: 9 }} /> : null}
+                </Box>
+            ) : null}
         </IconButton>
     )
 
@@ -229,6 +279,12 @@ export function WorktreeSelector(props: WorktreeSelectorProps) {
                             onClick={handlePullMenu}
                         >
                             Pull
+                        </MenuItem>
+                        <MenuItem
+                            disabled={!!assignedRecord?.status.dirty || !assignedRecord || assignedRecord.status.baseBehind === 0}
+                            onClick={handleRebaseMenu}
+                        >
+                            Rebase on {baseName}
                         </MenuItem>
                     </>
                 ) : worktrees.map((record, index) => (record.valid ? (

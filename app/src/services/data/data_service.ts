@@ -33,6 +33,22 @@ export interface DataPersistenceSnapshot {
     isSaving: boolean
 }
 
+export interface CardAddedEventDetail {
+    card: ProjectSnapshot['activeCards'][number]
+}
+
+export interface CardChangedEventDetail extends CardAddedEventDetail {
+    previousCard: ProjectSnapshot['activeCards'][number]
+}
+
+export interface CardRemovedEventDetail {
+    card: ProjectSnapshot['activeCards'][number]
+}
+
+export const CARD_ADDED_EVENT = 'cardAdded'
+export const CARD_CHANGED_EVENT = 'cardChanged'
+export const CARD_REMOVED_EVENT = 'cardRemoved'
+
 function reportCardParseErrors(errors: CardParseError[]) {
     const paths = errors.map(({ path }) => path).join(', ')
     dialogService.warning(`Some project files could not be loaded and were skipped: ${paths}`, { title: 'Some cards were not loaded' })
@@ -61,7 +77,11 @@ export class DataService extends EventTarget {
         super()
         this.saveStateService = new SaveStateService()
         this.saveStateService.addEventListener('changed', () => this.dispatchPersistenceChanged())
-        this.projectState = new ProjectState((cards) => this.agents.attachAgentConversations(cards), reportCardParseErrors)
+        this.projectState = new ProjectState(
+            (cards) => this.agents.attachAgentConversations(cards),
+            (previousCards, nextCards) => this.dispatchCardChanges(previousCards, nextCards),
+            reportCardParseErrors,
+        )
         this.cards = new CardOperations(
             this.createCardOperationsDependencies(),
             (cardPath, state) => this.agents.triggerStateActions(cardPath, state),
@@ -300,6 +320,27 @@ export class DataService extends EventTarget {
     private dispatchChanged() {
         this.dispatchPersistenceChanged()
         this.dispatchEvent(new CustomEvent<DataServiceState>('changed', { detail: this.getState() }))
+    }
+    private dispatchCardChanges(
+        previousCards: ProjectSnapshot['activeCards'],
+        nextCards: ProjectSnapshot['activeCards'],
+    ) {
+        const previousByPath = new Map(previousCards.map((card) => [card.path, card]))
+        const nextByPath = new Map(nextCards.map((card) => [card.path, card]))
+        for (const card of previousCards) {
+            if (!nextByPath.has(card.path)) {
+                this.dispatchEvent(new CustomEvent<CardRemovedEventDetail>(CARD_REMOVED_EVENT, { detail: { card } }))
+            }
+        }
+        for (const card of nextCards) {
+            const previousCard = previousByPath.get(card.path)
+            if (!previousCard) {
+                this.dispatchEvent(new CustomEvent<CardAddedEventDetail>(CARD_ADDED_EVENT, { detail: { card } }))
+            } else if (previousCard !== card) {
+                const detail = { card, previousCard }
+                this.dispatchEvent(new CustomEvent<CardChangedEventDetail>(CARD_CHANGED_EVENT, { detail }))
+            }
+        }
     }
     private dispatchPersistenceChanged() {
         const nextSnapshot = this.getPersistenceSnapshot()

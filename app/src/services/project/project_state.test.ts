@@ -1,12 +1,12 @@
-import { describe, expect, it } from 'vitest'
-import type { MarkdownFile, ProjectReference } from '../../data/data_types'
+import { describe, expect, it, vi } from 'vitest'
+import type { MarkdownFile, ProjectCard, ProjectReference } from '../../data/data_types'
 import { ProjectState } from './project_state'
 
 const WORKING_FOLDER = 'design'
 const project: ProjectReference = { branch: 'main', id: 'project' }
 
 function createState() {
-    return new ProjectState((cards) => cards)
+    return new ProjectState((cards) => cards, () => undefined)
 }
 
 function createFile(path: string, title: string): MarkdownFile {
@@ -39,6 +39,28 @@ describe('ProjectState', () => {
         expect(state.files.map((file) => file.path)).toEqual(['design/F-1-first.md', 'design/F-2-second.md'])
         expect(state.files[0]).toEqual(updatedFile)
         expect(state.snapshot?.activeCards.map((card) => card.path)).toEqual(['design/F-1-first.md', 'design/F-2-second.md'])
+    })
+
+    it('reports active card transitions after snapshot changes', () => {
+        const activeCardsChanged = vi.fn()
+        const state = new ProjectState((cards) => cards, activeCardsChanged)
+        const originalFile = createFile('design/F-1-first.md', 'First')
+        const updatedFile = { ...originalFile, content: originalFile.content.replace('First', 'Renamed') }
+        const newFile = createFile('design/F-2-second.md', 'Second')
+
+        state.replaceProjectFiles([originalFile], WORKING_FOLDER, [])
+        state.replaceProjectFiles([updatedFile, newFile], WORKING_FOLDER, [])
+        state.resetLoadedProject()
+
+        expect(activeCardsChanged).toHaveBeenCalledTimes(3)
+        expect(activeCardsChanged.mock.calls[0][0]).toEqual([])
+        expect(activeCardsChanged.mock.calls[0][1].map((card: ProjectCard) => card.path)).toEqual(['design/F-1-first.md'])
+        expect(activeCardsChanged.mock.calls[1][0][0].header.title).toBe('First')
+        expect(activeCardsChanged.mock.calls[1][1].map((card: ProjectCard) => card.path)).toEqual([
+            'design/F-1-first.md',
+            'design/F-2-second.md',
+        ])
+        expect(activeCardsChanged.mock.calls[2][1]).toEqual([])
     })
 
     it('detects stale project and agent-conversation loads', () => {

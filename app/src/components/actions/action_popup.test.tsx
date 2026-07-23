@@ -25,7 +25,7 @@ const context: ActionContext = { file: 'design/F-010.md', kind: 'card', state: '
 const project: ProjectReference = { branch: 'main', id: 'project', rootPath: 'C:\\project' }
 const validWorktree: WorktreeRecord = {
     branch: 'feature', error: null, parkingBranch: 'md2/parking/feature', path: 'C:\\feature',
-    status: { ahead: 0, behind: 0, dirty: false, hasUpstream: false }, valid: true,
+    status: { ahead: 0, baseAhead: 0, baseBehind: 0, behind: 0, dirty: false, hasUpstream: false }, valid: true,
 }
 
 function worktreeStorage(): StorageService {

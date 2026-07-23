@@ -7,6 +7,14 @@ import { telemetryService } from '../telemetry/telemetry_service'
 import { activeCardFile, createDataService, createStorage } from '.././test_support/data_service_test_support'
 import { openFilesService } from '../open_files_service'
 import { actionService } from '../actions/action_service'
+import {
+    CARD_ADDED_EVENT,
+    CARD_CHANGED_EVENT,
+    CARD_REMOVED_EVENT,
+    type CardAddedEventDetail,
+    type CardChangedEventDetail,
+    type CardRemovedEventDetail,
+} from './data_service'
 
 function recordDialogMessages(severity: DialogSeverity) {
     const messages: string[] = []
@@ -63,6 +71,30 @@ describe('CardOperations', () => {
 
         expect(storage.commit).toHaveBeenCalledWith(expect.objectContaining({ message: 'Create design/F-4-new-card.md' }) as CommitRequest)
         expect(storage.push).toHaveBeenCalledWith({ branch: 'main', id: 'project' })
+    })
+
+    it('emits card lifecycle events for create, update, and delete actions', async () => {
+        configService.init()
+        const service = createDataService()
+        service.init({ storage: createStorage() })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        const added = vi.fn()
+        const changed = vi.fn()
+        const removed = vi.fn()
+        service.addEventListener(CARD_ADDED_EVENT, added)
+        service.addEventListener(CARD_CHANGED_EVENT, changed)
+        service.addEventListener(CARD_REMOVED_EVENT, removed)
+
+        const file = await service.cards.createCard({ body: 'Body', title: 'New Card', type: 'feature' })
+        service.cards.updateCardTitle(file.path, 'Renamed Card')
+        await service.cards.deleteCard(file.path)
+
+        const addedDetails = added.mock.calls.map(([event]) => (event as CustomEvent<CardAddedEventDetail>).detail)
+        const changedDetails = changed.mock.calls.map(([event]) => (event as CustomEvent<CardChangedEventDetail>).detail)
+        const removedDetails = removed.mock.calls.map(([event]) => (event as CustomEvent<CardRemovedEventDetail>).detail)
+        expect(addedDetails.some(({ card }) => card.path === file.path)).toBe(true)
+        expect(changedDetails.some(({ card }) => card.path === file.path && card.header.title === 'Renamed Card')).toBe(true)
+        expect(removedDetails.some(({ card }) => card.path === file.path)).toBe(true)
     })
 
     it('creates a Markdown file in the requested project-tree folder', async () => {

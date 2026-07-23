@@ -1,10 +1,14 @@
 import { Box } from '@mui/material'
 import { type NodeApi, Tree } from 'react-arborist'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type { ActionDefinition } from '../../data/action_types'
 import type { CardTypeConfig, ProjectCard } from '../../data/data_types'
-import type { TreeNode } from '../../data/file_tree'
+import { buildFileTree, type TreeNode } from '../../data/file_tree'
+import { actionService } from '../../services/actions/action_service'
 import { openFilesService, type OpenDocumentObject } from '../../services/open_files_service'
 import { telemetryService } from '../../services/telemetry/telemetry_service'
+import { useActions } from '../hooks/use_actions'
+import { useProjectState } from '../hooks/use_project_state'
 import { CreateTreeItemDialog, type CreateTreeItemKind } from './create_tree_item_dialog'
 import { FileTreeContext, type FileTreeContextValue } from './file_tree_context'
 import { FileTreeNodeRow } from './file_tree_node_row'
@@ -16,12 +20,14 @@ const TREE_INDENT = 16
 const FILE_ROW_HEIGHT = 34
 const GROUP_ROW_HEIGHT = 30
 const TREE_VERTICAL_PADDING = 12
+const HISTORY_FOLDER_NAME = 'history'
+const LOGS_FOLDER_NAME = 'logs'
+const EMPTY_CARDS: ProjectCard[] = []
+const EMPTY_REPOSITORY_FILES: string[] = []
 
 interface FileTreeViewProps {
+    actionsFolder: string
     cardTypes: CardTypeConfig[]
-    cardsByPath: Map<string, ProjectCard>
-    nodes: TreeNode[]
-    objectsByPath: Map<string, OpenDocumentObject>
     onCreateFolder: (parentDirectory: string, name: string) => Promise<void>
     onCreateMarkdownFile: (parentDirectory: string, name: string) => Promise<void>
     onDeleteFile: (path: string) => Promise<void>
@@ -29,6 +35,7 @@ interface FileTreeViewProps {
     onLeftPanelInteraction: () => void
     projectFolder: string
     statusColors: Map<string, string>
+    workingFolder: string
 }
 
 interface CreationRequest {
@@ -42,6 +49,10 @@ function treeNodeChildren(node: TreeNode): readonly TreeNode[] | null {
 
 function treeRowHeight(node: NodeApi<TreeNode>): number {
     return node.data.kind === 'file' ? FILE_ROW_HEIGHT : GROUP_ROW_HEIGHT
+}
+
+function folderPath(parentFolder: string, childFolder: string) {
+    return parentFolder.length > 0 ? `${parentFolder}/${childFolder}` : childFolder
 }
 
 function useElementHeight(): [React.RefObject<HTMLDivElement | null>, number] {
@@ -72,9 +83,38 @@ function useElementHeight(): [React.RefObject<HTMLDivElement | null>, number] {
 /** Virtualized status/folder tree with compact card rows and hover-only actions. */
 export function FileTreeView(props: FileTreeViewProps) {
     const {
-        cardTypes, cardsByPath, nodes, objectsByPath, onCreateFolder, onCreateMarkdownFile, onDeleteFile, onDeleteFolder,
-        onLeftPanelInteraction, projectFolder, statusColors,
+        actionsFolder, cardTypes, onCreateFolder, onCreateMarkdownFile, onDeleteFile, onDeleteFolder,
+        onLeftPanelInteraction, projectFolder, statusColors, workingFolder,
     } = props
+    const { snapshot } = useProjectState()
+    const activeCards = snapshot?.activeCards ?? EMPTY_CARDS
+    const backgroundCards = snapshot?.backgroundCards ?? EMPTY_CARDS
+    const repositoryFiles = snapshot?.repositoryFiles ?? EMPTY_REPOSITORY_FILES
+    const { actions } = useActions()
+    const specialFolderPaths = useMemo(
+        () => [actionsFolder, workingFolder, folderPath(projectFolder, HISTORY_FOLDER_NAME)],
+        [actionsFolder, projectFolder, workingFolder],
+    )
+    const hiddenFolderPaths = useMemo(() => [folderPath(projectFolder, LOGS_FOLDER_NAME)], [projectFolder])
+    const nodes = useMemo(() => buildFileTree(activeCards, backgroundCards, workingFolder, {
+        actions,
+        hiddenFolderPaths,
+        projectFolder,
+        repositoryFiles,
+        specialFolderPaths,
+    }), [actions, activeCards, backgroundCards, hiddenFolderPaths, projectFolder, repositoryFiles, specialFolderPaths, workingFolder])
+    const cardsByPath = useMemo(() => new Map(
+        [...activeCards, ...backgroundCards].map((card) => [card.path, card]),
+    ), [activeCards, backgroundCards])
+    const objectsByPath = useMemo(() => new Map<string, OpenDocumentObject>([
+        ...cardsByPath,
+        ...actions
+            .filter((action): action is ActionDefinition & { sourcePath: string } => action.sourcePath !== null)
+            .map((action) => [action.sourcePath, action] as const),
+        ...actionService.getDeletedDraftActions()
+            .filter((action): action is ActionDefinition & { sourcePath: string } => action.sourcePath !== null)
+            .map((action) => [action.sourcePath, action] as const),
+    ]), [actions, cardsByPath])
     const [creationRequest, setCreationRequest] = useState<CreationRequest | null>(null)
     const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
     const [treeContainerRef, treeHeight] = useElementHeight()

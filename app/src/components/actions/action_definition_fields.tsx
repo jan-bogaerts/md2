@@ -6,6 +6,7 @@ import { memo, useEffect, useState } from 'react'
 import type { ActionDefinition, RawActionDefinition } from '../../data/action_types'
 import type { WorktreeRecord } from '../../data/data_types'
 import { actionService } from '../../services/actions/action_service'
+import { useProjectState } from '../hooks/use_project_state'
 import { ActionAgentCapabilityFields } from './action_agent_capability_fields'
 import { ActionEditorField } from './action_editor_field'
 import { ActionFilterEditor } from './action_filter_editor'
@@ -15,11 +16,11 @@ import { ActionSectionLabel } from './action_section_label'
 import { ActionEditorTextField } from './action_editor_text_field'
 
 const ICON_FILE_PATTERN = /\.(svg|png|jpe?g|gif|webp)$/iu
+const EMPTY_REPOSITORY_FILES: string[] = []
 
 interface ActionDefinitionFieldsProps {
     actions: ActionDefinition[]
     cardTypes: string[]
-    repositoryFiles: string[]
     sourcePath: string
     specialContextTypes: string[]
     states: string[]
@@ -28,9 +29,11 @@ interface ActionDefinitionFieldsProps {
 
 export const ActionDefinitionFields = memo(function ActionDefinitionFields(props: ActionDefinitionFieldsProps) {
     const {
-        actions, cardTypes, repositoryFiles, sourcePath,
+        actions, cardTypes, sourcePath,
         specialContextTypes, states, worktrees,
     } = props
+    const { snapshot } = useProjectState()
+    const repositoryFiles = snapshot?.repositoryFiles ?? EMPTY_REPOSITORY_FILES
     const [, setDraftRevision] = useState(0)
     useEffect(() => {
         let previousDraft = actionService.getDraft(sourcePath)

@@ -11,14 +11,13 @@ import { actionService } from '../../services/actions/action_service'
 
 interface ListActionEditorProps {
     cardTypes: string[]
-    repositoryFiles: string[]
     specialContextTypes: string[]
     states: string[]
 }
 
 /** Lifetime-stable list action editor surface and binding-owned undo store. */
 export const ListActionEditor = memo(function ListActionEditor(props: ListActionEditorProps) {
-    const { cardTypes, repositoryFiles, specialContextTypes, states } = props
+    const { cardTypes, specialContextTypes, states } = props
     const { activeDocument } = useOpenFiles()
     const activeActionDocument = activeDocument?.kind === 'action' ? activeDocument : null
     const retainedActionDocument = useRef<ActionOpenDocument | null>(null)
@@ -70,7 +69,6 @@ export const ListActionEditor = memo(function ListActionEditor(props: ListAction
                     cardTypes={cardTypes}
                     discardMarkdownTarget={discardMarkdownTarget}
                     onMarkdownPresentationChange={setPresentation}
-                    repositoryFiles={repositoryFiles}
                     specialContextTypes={specialContextTypes}
                     states={states}
                 />

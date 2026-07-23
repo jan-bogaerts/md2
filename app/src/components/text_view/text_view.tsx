@@ -1,32 +1,27 @@
 import { Box } from '@mui/material'
 import { useCallback, useEffect, useMemo, useRef } from 'react'
-import { buildFileTree } from '../../data/file_tree'
-import type { ActionDefinition } from '../../data/action_types'
-import { defaultColumnAccent, type CardTypeConfig, type ProjectCard, type StateConfig } from '../../data/data_types'
-import { actionService } from '../../services/actions/action_service'
+import { defaultColumnAccent, type CardTypeConfig, type StateConfig } from '../../data/data_types'
 import { LeftPanelSlot } from '../shell/left_panel_slot'
 import { FileTreeView } from './file_tree_view'
-import { useActions } from '../hooks/use_actions'
-import type { OpenDocumentObject } from '../../services/open_files_service'
+import { dataService } from '../../services/data/data_service'
+import { dialogService } from '../../services/dialog_service'
+import { openFilesService, type OpenDocument } from '../../services/open_files_service'
+import { workspaceViewService } from '../../services/project/workspace_view_service'
 import { TextEditorPane } from './text_editor_pane'
+import { useWorkingFolder } from '../hooks/use_working_folder'
 
 const HISTORY_FOLDER_NAME = 'history'
-const LOGS_FOLDER_NAME = 'logs'
 interface TextViewProps {
     actionsFolder: string
-    activeCards: ProjectCard[]
-    backgroundCards: ProjectCard[]
     cardTypes: CardTypeConfig[]
     onLeftPanelInteraction: () => void
-    onCreateFolder: (parentDirectory: string, name: string) => Promise<void>
-    onCreateMarkdownFile: (parentDirectory: string, name: string) => Promise<void>
-    onDeleteFile: (path: string) => Promise<void>
-    onDeleteFolder: (path: string) => Promise<void>
     projectFolder: string
-    repositoryFiles: string[]
     states: StateConfig[]
-    workingFolder: string
     visible: boolean
+}
+
+function openDocumentPath(document: OpenDocument) {
+    return document.kind === 'card' ? document.getObject().path : document.getObject().sourcePath
 }
 
 function folderPath(parentFolder: string, childFolder: string) {
@@ -44,23 +39,13 @@ function folderName(path: string): string {
 export function TextView(props: TextViewProps) {
     const {
         actionsFolder,
-        activeCards,
-        backgroundCards,
         cardTypes,
         onLeftPanelInteraction,
-        onCreateFolder,
-        onCreateMarkdownFile,
-        onDeleteFile,
-        onDeleteFolder,
         projectFolder,
-        repositoryFiles,
         states,
-        workingFolder,
         visible,
     } = props
-    const { actions } = useActions()
-    const onDeleteFileRef = useRef(onDeleteFile)
-    const onDeleteFolderRef = useRef(onDeleteFolder)
+    const workingFolder = useWorkingFolder()
     const onLeftPanelInteractionRef = useRef(onLeftPanelInteraction)
 
     const specialFolderPaths = useMemo(
@@ -69,53 +54,61 @@ export function TextView(props: TextViewProps) {
     )
     const specialContextTypes = useMemo(() => specialFolderPaths.map(folderName), [specialFolderPaths])
     const actionStates = useMemo(() => states.map(({ state }) => state), [states])
-    const hiddenFolderPaths = useMemo(() => [folderPath(projectFolder, LOGS_FOLDER_NAME)], [projectFolder])
-    const tree = useMemo(() => buildFileTree(activeCards, backgroundCards, workingFolder, {
-        actions,
-        hiddenFolderPaths,
-        projectFolder,
-        repositoryFiles,
-        specialFolderPaths,
-    }), [actions, activeCards, backgroundCards, hiddenFolderPaths, projectFolder, repositoryFiles, specialFolderPaths, workingFolder])
-    const cardsByPath = useMemo(() => {
-        const map = new Map<string, ProjectCard>()
-        for (const card of [...activeCards, ...backgroundCards]) map.set(card.path, card)
-
-        return map
-    }, [activeCards, backgroundCards])
-    const objectsByPath = useMemo(() => new Map<string, OpenDocumentObject>([
-        ...cardsByPath,
-        ...actions
-            .filter((action): action is ActionDefinition & { sourcePath: string } => action.sourcePath !== null)
-            .map((action) => [action.sourcePath, action] as const),
-        ...actionService.getDeletedDraftActions()
-            .filter((action): action is ActionDefinition & { sourcePath: string } => action.sourcePath !== null)
-            .map((action) => [action.sourcePath, action] as const),
-    ]), [actions, cardsByPath])
     const statusColors = useMemo(() => new Map(
-        tree
-            .filter((node) => node.kind === 'status')
-            .map((node, index) => {
-                const configuredState = states.find(({ state }) => state === node.label)
-
-                return [node.label, configuredState?.color ?? defaultColumnAccent(index)]
-            }),
-    ), [states, tree])
+        states.map(({ color, state }, index) => [state, color ?? defaultColumnAccent(index)]),
+    ), [states])
 
     useEffect(() => {
-        onDeleteFileRef.current = onDeleteFile
-        onDeleteFolderRef.current = onDeleteFolder
         onLeftPanelInteractionRef.current = onLeftPanelInteraction
     })
 
+    const handleCreateFolder = useCallback(async (parentDirectory: string, name: string) => {
+        try {
+            await dataService.cards.createFolder(parentDirectory, name)
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: `Folder creation failed: ${name}` })
+            throw error
+        }
+    }, [])
+
+    const handleCreateMarkdownFile = useCallback(async (parentDirectory: string, name: string) => {
+        try {
+            await dataService.cards.createMarkdownFile(parentDirectory, name)
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: `Markdown file creation failed: ${name}` })
+            throw error
+        }
+    }, [])
+
     const handleDeleteFile = useCallback(async (path: string) => {
-        await onDeleteFileRef.current(path)
-        onLeftPanelInteractionRef.current()
+        try {
+            await dataService.cards.deleteFile(path)
+            const document = openFilesService.getSnapshot().documents.find((candidate) => openDocumentPath(candidate) === path)
+            if (document) openFilesService.closeDocument(document)
+            workspaceViewService.clearSelectedPath(path)
+            onLeftPanelInteractionRef.current()
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: `File delete failed: ${path}` })
+            throw error
+        }
     }, [])
 
     const handleDeleteFolder = useCallback(async (path: string) => {
-        await onDeleteFolderRef.current(path)
-        onLeftPanelInteractionRef.current()
+        try {
+            await dataService.cards.deleteFolder(path)
+            const folderPrefix = `${path.replace(/\/+$/u, '')}/`
+            const documents = openFilesService.getSnapshot().documents
+            for (const document of documents) {
+                const openPath = openDocumentPath(document)
+                if (openPath?.startsWith(folderPrefix)) openFilesService.closeDocument(document)
+            }
+            const selectedPath = workspaceViewService.getSnapshot().selectedPath
+            if (selectedPath?.startsWith(folderPrefix)) workspaceViewService.clearSelectedPath(selectedPath)
+            onLeftPanelInteractionRef.current()
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: `Folder delete failed: ${path}` })
+            throw error
+        }
     }, [])
 
     return (
@@ -126,17 +119,16 @@ export function TextView(props: TextViewProps) {
                     sx={{ bgcolor: 'action.hover', display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}
                 >
                     <FileTreeView
+                        actionsFolder={actionsFolder}
                         cardTypes={cardTypes}
-                        cardsByPath={cardsByPath}
-                        nodes={tree}
-                        objectsByPath={objectsByPath}
-                        onCreateFolder={onCreateFolder}
-                        onCreateMarkdownFile={onCreateMarkdownFile}
+                        onCreateFolder={handleCreateFolder}
+                        onCreateMarkdownFile={handleCreateMarkdownFile}
                         onDeleteFile={handleDeleteFile}
                         onDeleteFolder={handleDeleteFolder}
                         onLeftPanelInteraction={onLeftPanelInteraction}
                         projectFolder={projectFolder}
                         statusColors={statusColors}
+                        workingFolder={workingFolder}
                     />
                 </Box>
             </LeftPanelSlot> : null}
@@ -144,7 +136,6 @@ export function TextView(props: TextViewProps) {
                 <TextEditorPane
                     actionsFolder={actionsFolder}
                     cardTypes={cardTypes}
-                    repositoryFiles={repositoryFiles}
                     specialContextTypes={specialContextTypes}
                     states={actionStates}
                     statusColors={statusColors}

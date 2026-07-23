@@ -297,7 +297,11 @@ function watchChangeKind(rootPath, eventType, normalizedPath) {
 
 function watchProject(project, onChange) {
     const rootPath = requireRootPath(project);
-    const watcher = fs.watch(rootPath, { recursive: true }, (eventType, fileName) => {
+    const watchParams = {
+        recursive: true ,
+        ignore: [GIT_FOLDER, `${GIT_FOLDER}/**`],
+    };
+    const watcher = fs.watch(rootPath, watchParams, (eventType, fileName) => {
         if (typeof fileName !== 'string') return;
 
         const normalizedPath = normalizePath(fileName);

@@ -6,7 +6,7 @@ import DeleteOutline from 'mdi-material-ui/DeleteOutline'
 import FileDocumentOutline from 'mdi-material-ui/FileDocumentOutline'
 import FolderSearchOutline from 'mdi-material-ui/FolderSearchOutline'
 import type { ProjectCard } from '../../data/data_types'
-import { ResizablePopover } from '../resizable_popover'
+import { POPOVER_SIDE_MARGIN, POPOVER_TOP_MARGIN, ResizablePopover } from '../resizable_popover'
 import { useRunningActionForFile } from '../hooks/use_action_executions'
 import { CardBodyEditor } from './card_body_editor'
 import { CardDeleteDialog } from './card_delete_dialog'
@@ -20,9 +20,12 @@ import { CardCommitDiffPanel } from './card_commit_diff_panel'
 import { useCardCommits } from '../hooks/use_card_commits'
 import type { CardCommit } from '../../services/actions/card_commit_history'
 import { openFilesService, type CardOpenDocument } from '../../services/open_files_service'
+import { useProjectCard } from './use_project_card'
+import { cardBodyPopoverService, subscribeCardBodyPopover } from './card_body_popover_service'
 
 const CARD_BODY_POPOVER_WIDTH = 760
-const FULLSCREEN_INSET = 16
+const CARD_BODY_POPOVER_HEIGHT = 620
+const CARD_BODY_POPOVER_SIZE_KEY = 'md2.cardBodyPopover.size'
 
 function subscribeOpenDocuments(onStoreChange: () => void) {
     openFilesService.addEventListener('added', onStoreChange)
@@ -53,10 +56,7 @@ interface SelectedCardCommit {
 }
 
 interface CardBodyPopoverProps {
-    anchorElement: HTMLElement | null
-    card: ProjectCard | null
     isMobile: boolean
-    onClose: () => void
     onDeleteCard: (path: string) => Promise<void>
     onOpenAffects: (path: string) => void
     onOpenInFileMode: (path: string) => void
@@ -66,15 +66,18 @@ interface CardBodyPopoverProps {
 /** Card details editor anchored to the card that opened it. */
 export function CardBodyPopover(props: CardBodyPopoverProps) {
     const {
-        anchorElement,
-        card,
         isMobile,
-        onClose,
         onDeleteCard,
         onOpenAffects,
         onOpenInFileMode,
         visible,
     } = props
+    const { anchorElement, cardPath } = useSyncExternalStore(
+        subscribeCardBodyPopover,
+        () => cardBodyPopoverService.getSnapshot(),
+        () => cardBodyPopoverService.getSnapshot(),
+    )
+    const card = useProjectCard(cardPath)
     const [deleteCardPath, setDeleteCardPath] = useState<string | null>(null)
     const [historyStore] = useState(() => new MarkdownDocumentHistoryStore())
     const cardRef = useRef(card)
@@ -124,7 +127,7 @@ export function CardBodyPopover(props: CardBodyPopoverProps) {
         setIsFullscreen(false)
         setSelectedCardCommit(null)
         setTitleEdit({ path: null, title: '' })
-        onClose()
+        cardBodyPopoverService.close()
     }
 
     const handlePopoverClose = (reason?: 'backdropClick' | 'escapeKeyDown') => {
@@ -192,14 +195,15 @@ export function CardBodyPopover(props: CardBodyPopoverProps) {
     const titleId = card ? `card-body-popover-${card.header.internalId}` : 'card-body-popover'
     const runningExecution = useRunningActionForFile(card?.path ?? null)
     const statusLabel = runningExecution ? 'Running' : 'Idle'
-    const fullscreenSize = `calc(100vw - ${FULLSCREEN_INSET * 2}px)`
-    const fullscreenHeight = `calc(100vh - ${FULLSCREEN_INSET * 2}px)`
+    const fullscreenSize = `calc(100vw - ${POPOVER_SIDE_MARGIN * 2}px)`
+    const fullscreenHeight = `calc(100vh - ${POPOVER_TOP_MARGIN + POPOVER_SIDE_MARGIN}px)`
 
     return (
         <>
             <ResizablePopover
                 anchorElement={anchorElement}
-                initialSize={{ width: CARD_BODY_POPOVER_WIDTH }}
+                initialSize={{ height: CARD_BODY_POPOVER_HEIGHT, width: CARD_BODY_POPOVER_WIDTH }}
+                sizeStorageKey={CARD_BODY_POPOVER_SIZE_KEY}
                 resizeFromAllSides
                 labelId={titleId}
                 onClose={handlePopoverClose}
@@ -212,10 +216,10 @@ export function CardBodyPopover(props: CardBodyPopoverProps) {
                     boxShadow: '0 24px 60px rgba(16, 24, 40, 0.28)',
                     flexDirection: 'column',
                     height: isFullscreen ? `${fullscreenHeight} !important` : undefined,
-                    left: isFullscreen ? `${FULLSCREEN_INSET}px !important` : undefined,
+                    left: isFullscreen ? `${POPOVER_SIDE_MARGIN}px !important` : undefined,
                     maxHeight: isFullscreen ? 'none' : undefined,
                     maxWidth: isFullscreen ? 'none' : undefined,
-                    top: isFullscreen ? `${FULLSCREEN_INSET}px !important` : undefined,
+                    top: isFullscreen ? `${POPOVER_TOP_MARGIN}px !important` : undefined,
                     transform: isFullscreen ? 'none !important' : undefined,
                     width: isFullscreen ? `${fullscreenSize} !important` : undefined,
                 }}

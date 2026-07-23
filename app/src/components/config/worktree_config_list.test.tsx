@@ -9,11 +9,11 @@ import { WorktreeConfigList } from './worktree_config_list'
 const project: ProjectReference = { branch: 'main', id: 'project', rootPath: 'C:\\primary' }
 const first: WorktreeRecord = {
     branch: 'one', error: null, parkingBranch: 'md2/parking/one', path: 'C:\\one',
-    status: { ahead: 0, behind: 0, dirty: false, hasUpstream: false }, valid: true,
+    status: { ahead: 0, baseAhead: 0, baseBehind: 0, behind: 0, dirty: false, hasUpstream: false }, valid: true,
 }
 const second: WorktreeRecord = {
     branch: 'two', error: null, parkingBranch: 'md2/parking/two', path: 'C:\\two',
-    status: { ahead: 0, behind: 0, dirty: false, hasUpstream: false }, valid: true,
+    status: { ahead: 0, baseAhead: 0, baseBehind: 0, behind: 0, dirty: false, hasUpstream: false }, valid: true,
 }
 
 function initWorktreeService(storage: StorageService) {

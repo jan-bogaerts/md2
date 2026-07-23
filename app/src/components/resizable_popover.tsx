@@ -22,15 +22,42 @@ interface ResizablePopoverProps {
     resizeCorner?: ResizeCorner
     resizeFromAllSides?: boolean
     resizeLabel: string
+    /** When set, the last dragged size is remembered in localStorage under this key. */
+    sizeStorageKey?: string
     transformOrigin?: PopoverOrigin
 }
 
 const MIN_WIDTH = 280
 const MIN_HEIGHT = 200
+/** Keeps the popover below the window's toolbar drag region so it stays grabbable and closable. */
+export const POPOVER_TOP_MARGIN = 60
+export const POPOVER_SIDE_MARGIN = 16
 const HANDLE_SIZE = 16
 const EDGE_HANDLE_SIZE = 6
 const ALL_RESIZE_DIRECTIONS = ['top', 'right', 'bottom', 'left', 'top-right', 'bottom-right', 'bottom-left', 'top-left'] as const
 type ResizeDirection = typeof ALL_RESIZE_DIRECTIONS[number]
+
+function readStoredSize(storageKey: string | undefined): PopoverSize | null {
+    if (!storageKey) return null
+
+    const stored = window.localStorage.getItem(storageKey)
+    if (!stored) return null
+
+    const parsed = JSON.parse(stored) as PopoverSize
+    const height = typeof parsed.height === 'number' ? Math.max(MIN_HEIGHT, parsed.height) : undefined
+    const width = typeof parsed.width === 'number' ? Math.max(MIN_WIDTH, parsed.width) : undefined
+    if (height === undefined && width === undefined) return null
+
+    return { height, width }
+}
+
+function maxPopoverHeight() {
+    return Math.max(MIN_HEIGHT, window.innerHeight - POPOVER_TOP_MARGIN - POPOVER_SIDE_MARGIN)
+}
+
+function maxPopoverWidth() {
+    return Math.max(MIN_WIDTH, window.innerWidth - POPOVER_SIDE_MARGIN * 2)
+}
 
 function directionCursor(direction: ResizeDirection) {
     if (direction === 'top' || direction === 'bottom') return 'ns-resize'
@@ -71,9 +98,10 @@ export function ResizablePopover(props: ResizablePopoverProps) {
         resizeCorner = 'lower-right',
         resizeFromAllSides = false,
         resizeLabel,
+        sizeStorageKey,
         transformOrigin = { horizontal: 'left', vertical: 'top' },
     } = props
-    const [size, setSize] = useState(initialSize)
+    const [size, setSize] = useState<PopoverSize>(() => readStoredSize(sizeStorageKey) ?? initialSize)
     const paperRef = useRef<HTMLDivElement | null>(null)
     const resizeRef = useRef<AbortController | null>(null)
 
@@ -112,15 +140,22 @@ export function ResizablePopover(props: ResizablePopoverProps) {
             const width = Math.max(MIN_WIDTH, start.width + (resizesLeft ? -horizontalDelta : resizesRight ? horizontalDelta : 0))
             const height = Math.max(MIN_HEIGHT, start.height + (resizesTop ? -verticalDelta : resizesBottom ? verticalDelta : 0))
 
-            setSize({ height, width })
+            setSize({ height: Math.min(height, maxPopoverHeight()), width: Math.min(width, maxPopoverWidth()) })
         }, { signal: controller.signal })
-        window.addEventListener('pointerup', () => controller.abort(), { signal: controller.signal })
+        window.addEventListener('pointerup', () => {
+            controller.abort()
+            if (sizeStorageKey && paperRef.current) {
+                const paperBounds = paperRef.current.getBoundingClientRect()
+                window.localStorage.setItem(sizeStorageKey, JSON.stringify({ height: paperBounds.height, width: paperBounds.width }))
+            }
+        }, { signal: controller.signal })
     }
 
     return (
         <Popover
             anchorEl={anchorElement}
             anchorOrigin={anchorOrigin}
+            marginThreshold={POPOVER_TOP_MARGIN}
             onClose={handleClose}
             open={open}
             slotProps={{
@@ -131,8 +166,8 @@ export function ResizablePopover(props: ResizablePopoverProps) {
                     style: size,
                     sx: [{
                         display: 'flex',
-                        maxHeight: 'calc(100vh - 32px)',
-                        maxWidth: 'calc(100vw - 32px)',
+                        maxHeight: `calc(100vh - ${POPOVER_TOP_MARGIN + POPOVER_SIDE_MARGIN}px)`,
+                        maxWidth: `calc(100vw - ${POPOVER_SIDE_MARGIN * 2}px)`,
                         overflow: 'hidden',
                         position: 'relative',
                     }, paperSx] as SxProps<Theme>,

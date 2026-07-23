@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ProjectCard } from '../../data/data_types'
+import { dataService } from '../../services/data/data_service'
 import { AffectsEditorDialog } from './affects_editor_dialog'
 import { filterAffectsSuggestions } from './affects_suggestions'
 
@@ -41,16 +42,32 @@ describe('filterAffectsSuggestions', () => {
 })
 
 describe('AffectsEditorDialog', () => {
-    afterEach(cleanup)
+    beforeEach(() => {
+        const activeCard = card()
+        vi.spyOn(dataService, 'getState').mockReturnValue({
+            project: null,
+            runningAgents: [],
+            snapshot: {
+                activeCards: [activeCard],
+                backgroundCards: [],
+                repositoryFiles: ['app/src/old.ts', 'app/src/new.ts', 'design/F-1-root.md'],
+                workingFolder: 'design',
+            },
+        })
+    })
+
+    afterEach(() => {
+        cleanup()
+        vi.restoreAllMocks()
+    })
 
     it('shows current affects and saves added exact repo paths', () => {
         const onSave = vi.fn()
         render(
             <AffectsEditorDialog
-                card={card()}
+                cardPath="design/F-1-root.md"
                 onClose={vi.fn()}
                 onSave={onSave}
-                repositoryFiles={['app/src/old.ts', 'app/src/new.ts', 'design/F-1-root.md']}
             />,
         )
 
@@ -66,10 +83,9 @@ describe('AffectsEditorDialog', () => {
         const onSave = vi.fn()
         render(
             <AffectsEditorDialog
-                card={card()}
+                cardPath="design/F-1-root.md"
                 onClose={vi.fn()}
                 onSave={onSave}
-                repositoryFiles={['app/src/old.ts']}
             />,
         )
 
@@ -84,10 +100,9 @@ describe('AffectsEditorDialog', () => {
     it('does not allow unknown typed paths', () => {
         render(
             <AffectsEditorDialog
-                card={card()}
+                cardPath="design/F-1-root.md"
                 onClose={vi.fn()}
                 onSave={vi.fn()}
-                repositoryFiles={['app/src/old.ts']}
             />,
         )
 

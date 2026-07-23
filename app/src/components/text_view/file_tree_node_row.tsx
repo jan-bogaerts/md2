@@ -15,7 +15,7 @@ import { type MouseEvent, useState } from 'react'
 import type { NodeRendererProps } from 'react-arborist'
 import { fileContext, folderContext, type ActionContext } from '../../data/action_context'
 import { getCardIdPrefix } from '../../data/card_identifiers'
-import type { CardTypeConfig, ProjectCard } from '../../data/data_types'
+import { defaultColumnAccent, type CardTypeConfig, type ProjectCard } from '../../data/data_types'
 import type { TreeNode, TreeNodeKind } from '../../data/file_tree'
 import { ActionEntryPoints } from '../actions/action_entry_points'
 import { useIsActiveDocument } from '../hooks/use_active_document'
@@ -60,7 +60,7 @@ export function FileTreeNodeRow(props: NodeRendererProps<TreeNode>) {
     const accentColor = cardTypeColor(card, cardTypes, theme.palette.primary.main)
     const visibleId = card && treeNode.label.startsWith(`${card.header.id} `) ? card.header.id : null
     const visibleTitle = visibleId ? treeNode.label.slice(visibleId.length + 1) : treeNode.label
-    const statusColor = statusColors.get(treeNode.label)
+    const statusColor = treeNode.status === null ? undefined : statusColors.get(treeNode.status) ?? defaultColumnAccent(0)
     const isDeletableFolder = treeNode.kind === 'folder'
 
     const handleRowClick = (event: MouseEvent<HTMLElement>) => {

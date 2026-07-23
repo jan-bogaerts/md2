@@ -1,3 +1,4 @@
+import { dataService, type DataService } from '../data/data_service'
 import { register } from '.././service_injector'
 
 export type WorkspaceViewMode = 'cards' | 'text'
@@ -13,10 +14,13 @@ const INITIAL_SNAPSHOT: WorkspaceViewSnapshot = { selectedPath: null, viewMode: 
 export class WorkspaceViewService extends EventTarget {
     private projectKey: string | null = null
     private snapshot = INITIAL_SNAPSHOT
+    private readonly dataService: DataService
 
-    constructor() {
+    constructor(dataServiceInstance: DataService) {
         super()
-        register('workspaceViewService', this)
+        this.dataService = dataServiceInstance
+        this.projectKey = this.currentProjectKey()
+        this.dataService.addEventListener('changed', this.handleDataServiceChanged)
     }
 
     getSnapshot(): WorkspaceViewSnapshot {
@@ -35,11 +39,22 @@ export class WorkspaceViewService extends EventTarget {
         this.update({ ...this.snapshot, selectedPath: null })
     }
 
-    syncProject(projectKey: string | null) {
+    private readonly handleDataServiceChanged = () => {
+        this.syncProject(this.currentProjectKey())
+    }
+
+    private syncProject(projectKey: string | null) {
         if (this.projectKey === projectKey) return
 
         this.projectKey = projectKey
         this.update(INITIAL_SNAPSHOT)
+    }
+
+    private currentProjectKey(): string | null {
+        const { project } = this.dataService.getState()
+        if (!project) return null
+
+        return `${project.id}:${project.branch}`
     }
 
     setViewMode(viewMode: WorkspaceViewMode) {
@@ -54,4 +69,4 @@ export class WorkspaceViewService extends EventTarget {
     }
 }
 
-export const workspaceViewService = new WorkspaceViewService()
+export const workspaceViewService = register('workspaceViewService', new WorkspaceViewService(dataService))

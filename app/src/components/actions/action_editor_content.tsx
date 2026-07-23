@@ -10,14 +10,13 @@ import { useRetainedAction } from './use_retained_action'
 
 interface ActionEditorContentProps {
     cardTypes: string[]
-    repositoryFiles: string[]
     specialContextTypes: string[]
     states: string[]
 }
 
 /** Definition and recovery region backed directly by ActionService. */
 export function ActionEditorContent(props: ActionEditorContentProps) {
-    const { cardTypes, repositoryFiles, specialContextTypes, states } = props
+    const { cardTypes, specialContextTypes, states } = props
     const action = useRetainedAction()
     const sourcePath = action.sourcePath
     if (!sourcePath) throw new Error(`Action editor requires a persisted action: ${action.id}`)
@@ -96,7 +95,6 @@ export function ActionEditorContent(props: ActionEditorContentProps) {
                 <ActionDefinitionFields
                     actions={actionService.getActions()}
                     cardTypes={cardTypes}
-                    repositoryFiles={repositoryFiles}
                     sourcePath={sourcePath}
                     specialContextTypes={specialContextTypes}
                     states={states}

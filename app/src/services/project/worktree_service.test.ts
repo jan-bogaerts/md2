@@ -6,11 +6,11 @@ import { WorktreeService } from './worktree_service'
 const project: ProjectReference = { branch: 'main', id: 'project', rootPath: 'C:\\project' }
 const first: WorktreeRecord = {
     branch: 'feature', error: null, parkingBranch: 'md2/parking/feature', path: 'C:\\feature',
-    status: { ahead: 0, behind: 0, dirty: false, hasUpstream: false }, valid: true,
+    status: { ahead: 0, baseAhead: 0, baseBehind: 0, behind: 0, dirty: false, hasUpstream: false }, valid: true,
 }
 const second: WorktreeRecord = {
     branch: 'second', error: null, parkingBranch: 'md2/parking/second', path: 'C:\\second',
-    status: { ahead: 0, behind: 0, dirty: false, hasUpstream: false }, valid: true,
+    status: { ahead: 0, baseAhead: 0, baseBehind: 0, behind: 0, dirty: false, hasUpstream: false }, valid: true,
 }
 
 function card(path: string, title: string, worktree: number | null): ProjectCard {
