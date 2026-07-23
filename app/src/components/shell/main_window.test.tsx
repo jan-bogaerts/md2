@@ -32,7 +32,6 @@ function mainWindowElement(overrides?: Partial<Parameters<typeof MainWindow>[0]>
             <DialogDisplay />
             <MainWindow
                 auth={auth}
-                session={null}
                 toolbarAction={<button type="button">Action</button>}
                 {...overrides}
             />
@@ -145,8 +144,8 @@ describe('MainWindow', () => {
 
     it('shows card columns without a left navigation panel in card view', async () => {
         mockMatchMedia(false)
-        const session = await openProjectWithCards()
-        renderWindow({ session })
+        await openProjectWithCards()
+        renderWindow()
 
         expect(screen.getByLabelText('Card columns')).toHaveTextContent('active')
         expect(screen.getByText('Root')).toBeInTheDocument()
@@ -156,10 +155,24 @@ describe('MainWindow', () => {
         expect(screen.queryByRole('separator', { name: 'Resize panels' })).toBeNull()
     })
 
+    it('removes the left navigation panel when the first project opens after startup', async () => {
+        mockMatchMedia(false)
+        renderWindow()
+
+        expect(screen.getByRole('separator', { name: 'Resize panels' })).toBeInTheDocument()
+
+        await openProjectWithCards()
+
+        await waitFor(() => {
+            expect(screen.getByLabelText('Card columns')).toHaveTextContent('active')
+            expect(screen.queryByRole('separator', { name: 'Resize panels' })).toBeNull()
+        })
+    })
+
     it('switches from card view to text view on desktop without resetting back to cards', async () => {
         mockMatchMedia(false)
-        const session = await openProjectWithCards()
-        renderWindow({ session })
+        await openProjectWithCards()
+        renderWindow()
 
         fireEvent.click(screen.getByRole('button', { name: 'Text view' }))
 

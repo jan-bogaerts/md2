@@ -18,7 +18,7 @@ const {
 
 describe('electron-builder configuration', () => {
     it('defines signed Windows x64 NSIS metadata and bundled runtime inputs', () => {
-        const config = createBuilderConfig({});
+        const config = createBuilderConfig({ certificateSubjectName: 'Example Certificate' });
 
         expect(config).toMatchObject({
             appId: APP_ID,
@@ -56,6 +56,11 @@ describe('electron-builder configuration', () => {
         expect(createSigntoolOptions({})).toMatchObject({ rfc3161TimeStampServer: DEFAULT_RFC3161_TIMESTAMP_SERVER });
         expect(createSigntoolOptions({ rfc3161TimeStampServer: 'http://time.certum.pl' }))
             .toMatchObject({ rfc3161TimeStampServer: 'http://time.certum.pl' });
+    });
+
+    it('refuses to build without a signing identity instead of producing an unsigned app', () => {
+        expect(() => createBuilderConfig({ publisherName: 'Example Publisher' })).toThrow('Missing signing identity');
+        expect(() => createBuilderConfig({ certificateSha1: 'ABC123' })).not.toThrow();
     });
 
     it('reads signing secrets from an uncommitted json file and tolerates its absence', () => {

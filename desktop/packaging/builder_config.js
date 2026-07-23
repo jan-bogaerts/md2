@@ -27,7 +27,18 @@ function createSigntoolOptions(secrets = loadSigningSecrets()) {
     return options;
 }
 
+function assertSigningIdentityIsConfigured(secrets) {
+    if (secrets.certificateSubjectName || secrets.certificateSha1) return;
+
+    throw new Error(
+        `Missing signing identity: copy signing_secrets.example.json to ${SIGNING_SECRETS_PATH} and set `
+        + 'certificateSubjectName (or certificateSha1) plus publisherName.',
+    );
+}
+
 function createBuilderConfig(secrets = loadSigningSecrets()) {
+    assertSigningIdentityIsConfigured(secrets);
+
     return {
         appId: APP_ID,
         asar: true,

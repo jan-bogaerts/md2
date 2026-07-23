@@ -1,9 +1,9 @@
 import { Box, useMediaQuery, useTheme } from '@mui/material'
 import { useCallback, useMemo, useState, type ReactNode } from 'react'
 import { navigateTo, useAppLocation } from '../../app/app_navigation'
-import type { ProjectSession } from '../../app/use_app_bootstrap'
 import type { UseGithubAuthResult } from '../../auth/use_github_auth'
 import { ConfigPage } from '../config/config_page'
+import { useProjectState } from '../hooks/use_project_state'
 import { ProjectWorkspace } from '../project_workspace'
 import { useWorkspaceView } from '../hooks/use_workspace_view'
 import { createSearchRegexpAgent, isSearchRegexpAgentAvailable } from '../../services/search/search_regexp_agent'
@@ -19,20 +19,20 @@ const PANEL_PADDING = 2
 
 interface MainWindowProps {
     auth: UseGithubAuthResult
-    session: ProjectSession | null
     toolbarAction: ReactNode
 }
 
 /** Main window: owns the global layout and switches between desktop and mobile presentations. */
 export function MainWindow(props: MainWindowProps) {
-    const { auth, session, toolbarAction } = props
+    const { auth, toolbarAction } = props
     const location = useAppLocation()
     const theme = useTheme()
     const isMobile = useMediaQuery(theme.breakpoints.down('md'))
     const [isMenuOpen, setIsMenuOpen] = useState(false)
+    const { project } = useProjectState()
     const { viewMode } = useWorkspaceView()
     const isConfigPage = location.pathname === '/config'
-    const shouldShowNavigationPanel = !session?.project || viewMode === 'text'
+    const shouldShowNavigationPanel = !project || viewMode === 'text'
     const regexpAgent = useMemo(
         () => isSearchRegexpAgentAvailable() ? createSearchRegexpAgent() : undefined,
         [],
@@ -65,7 +65,7 @@ export function MainWindow(props: MainWindowProps) {
             }}
         >
             <ProjectWorkspace
-                key={session ? `${session.project.id}:${session.project.branch}` : 'no-project'}
+                key={project ? `${project.id}:${project.branch}` : 'no-project'}
                 onLeftPanelInteraction={handleCloseMenu}
             />
         </Box>

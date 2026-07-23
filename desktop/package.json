@@ -1,6 +1,6 @@
 {
   "name": "desktop",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "private": true,
   "description": "MD² Electron host shell",
   "main": "main.js",
@@ -13,8 +13,8 @@
     "test": "vitest run"
   },
   "keywords": [],
-  "author": "MD²",
-  "license": "ISC",
+  "author": "Elastetic",
+  "license": "AGPL-3.0-only",
   "devDependencies": {
     "@electron/asar": "^4.2.0",
     "@eslint/js": "^9.39.4",

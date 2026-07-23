@@ -20,6 +20,14 @@ Every piece of work — a feature, a bug, a job — is a single markdown file wi
 
 md² is still an evolving concept — see [design/architecture/initial description](design/architecture/initial%20description) for the original design notes this project is built from.
 
+## Screenshots
+
+UI early days, more to come.
+
+- [Screenshot](screenshots/Screenshot%202026-07-23%20180206.jpg)
+- [Screenshot](screenshots/Screenshot%202026-07-23%20190011.jpg)
+- [Screenshot](screenshots/Screenshot%202026-07-23%20190055.jpg)
+
 ## Development
 
 Each subproject is standalone and has its own npm scripts.

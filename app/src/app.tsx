@@ -36,7 +36,6 @@ export function App() {
             ) : (
                 <MainWindow
                     auth={auth}
-                    session={bootstrap.session}
                     toolbarAction={(
                         <RemoteControlButton />
                     )}
