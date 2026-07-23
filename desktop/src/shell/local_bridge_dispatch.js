@@ -126,6 +126,11 @@ function createLocalBridgeDispatch(dependencies) {
 
             return worktreeService.discard(request.project, request.worktree);
         },
+        integrateWorktree: (request) => {
+            if (!request || typeof request !== 'object') throw new Error('Missing worktree integration request');
+
+            return worktreeService.integrate(request.project, request.worktree);
+        },
         parkWorktree: (request) => {
             if (!request || typeof request !== 'object') throw new Error('Missing worktree parking request');
 
@@ -136,7 +141,11 @@ function createLocalBridgeDispatch(dependencies) {
 
             return worktreeService.pull(request.project, request.worktree);
         },
-        push: (project) => localGitService.push(project),
+        pull: (project) => worktreeService.pullPrimary(project),
+        push: async (project) => {
+            await localGitService.push(project);
+            await worktreeService.refreshLocal();
+        },
         pushWorktree: (request) => {
             if (!request || typeof request !== 'object') throw new Error('Missing worktree push request');
 

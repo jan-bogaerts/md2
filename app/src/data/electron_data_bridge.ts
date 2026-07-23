@@ -36,6 +36,7 @@ export interface ElectronDataBridge {
     deleteFolder(request: DeleteFolderRequest): Promise<void>
     discardWorktreeChanges?(request: WorktreeOperationRequest): Promise<void>
     hasPendingPush(project: ProjectReference): Promise<boolean>
+    integrateWorktree?(request: WorktreeOperationRequest): Promise<void>
     loadAgentAvailability?(): Promise<Record<string, AgentAvailability>>
     loadAgentConversation?(path: string): Promise<AgentConversation>
     loadActionFiles(project: ProjectReference, actionsFolder: string): Promise<ActionFile[]>
@@ -54,6 +55,7 @@ export interface ElectronDataBridge {
     openProjectFolder(): Promise<ProjectReference | null>
     parkWorktree?(request: WorktreeOperationRequest): Promise<void>
     prepareWorktree?(request: PrepareWorktreeRequest): Promise<void>
+    pull?(project: ProjectReference): Promise<void>
     pullWorktree?(request: WorktreeOperationRequest): Promise<void>
     rebaseWorktree?(request: WorktreeOperationRequest): Promise<void>
     push(project: ProjectReference): Promise<void>

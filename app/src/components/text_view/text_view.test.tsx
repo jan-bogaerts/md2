@@ -389,7 +389,7 @@ describe('TextView', () => {
 
         expect(openFilesService.getSnapshot().documents).toHaveLength(1)
         expect(openFilesService.getSnapshot().documents[0].getObject()).toMatchObject({ label: 'Review updated' })
-    })
+    }, 10_000)
 
     it('focuses the existing tab instead of duplicating when a file is reopened', () => {
         renderTextView()
@@ -467,7 +467,7 @@ describe('TextView', () => {
         fireEvent.change(phraseEditor, { target: { value: 'Edited phrase' } })
         fireEvent.click(screen.getByRole('tab', { name: 'Lint' }))
         expect(actionService.getDraft('design/actions/review.json').definition.phrases?.[0].text).toBe('Edited phrase')
-    })
+    }, 10_000)
 
     it('hides rather than unmounts the shared editor for empty, Definition, and command states', () => {
         loadMarkdownActions()

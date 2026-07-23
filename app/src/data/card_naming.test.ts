@@ -1,6 +1,6 @@
 ﻿import { describe, expect, it } from 'vitest'
 import { DEFAULT_CARD_BODY_TEMPLATE, DEFAULT_CARD_TYPES } from './data_types'
-import { createCardFile, getNextCardNumber, slugifyTitle } from './card_naming'
+import { createCardFile, desiredCardPath, getNextCardNumber, slugifyTitle } from './card_naming'
 import { markdownParsingService } from '../services/data/markdown_parsing_service'
 import { files } from '../services/test_support/data_service_test_support'
 
@@ -76,6 +76,29 @@ describe('cardNaming', () => {
         expect(file.path).toBe('design/T_1_custom_card.md')
         expect(file.content).toContain('id: T_1')
         expect(file.content).toContain('status: backlog')
+    })
+
+    it('renames a card file to the new title while keeping its folder, id and separator', () => {
+        expect(desiredCardPath('design/F_4_new_card.md', 'Other Title', [])).toBe('design/F_4_other_title.md')
+        expect(desiredCardPath('design/history/F-3-old.md', 'Much Older', [])).toBe('design/history/F-3-much-older.md')
+    })
+
+    it('keeps the current path when the title slug is unchanged', () => {
+        expect(desiredCardPath('design/F_4_new_card.md', ' new  card! ', [])).toBe('design/F_4_new_card.md')
+    })
+
+    it('keeps the current path for files that are not named as cards', () => {
+        expect(desiredCardPath('design/free note.md', 'Other Title', [])).toBe('design/free note.md')
+        expect(desiredCardPath('design/notes.md', 'Other Title', [])).toBe('design/notes.md')
+    })
+
+    it('keeps the current path when the target file name is taken', () => {
+        expect(desiredCardPath('design/F_4_new_card.md', 'Other Title', ['design/F_4_other_title.md']))
+            .toBe('design/F_4_new_card.md')
+        expect(desiredCardPath('design/F_4_new_card.md', 'Other Title', ['design/F_4_OTHER_TITLE.md']))
+            .toBe('design/F_4_new_card.md')
+        expect(desiredCardPath('design/F_4_new_card.md', 'Other Title', ['design/F_5_other_title.md']))
+            .toBe('design/F_4_other_title.md')
     })
 
     it('creates cards with a generated internal id that is separate from filename id', () => {

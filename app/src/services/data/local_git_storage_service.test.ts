@@ -22,6 +22,7 @@ function createBridge(overrides: Partial<ElectronDataBridge> = {}): ElectronData
         loadProjectConfig: vi.fn(),
         moveFiles: vi.fn().mockResolvedValue(undefined),
         openProjectFolder: vi.fn(),
+        pull: vi.fn().mockResolvedValue(undefined),
         push: vi.fn().mockResolvedValue(undefined),
         resolveProject: vi.fn(),
         saveProjectConfig: vi.fn(),
@@ -51,6 +52,7 @@ describe('LocalGitStorageService binary write path', () => {
         const addWorktree = vi.fn().mockResolvedValue(true)
         const commitWorktree = vi.fn().mockResolvedValue(undefined)
         const discardWorktreeChanges = vi.fn().mockResolvedValue(undefined)
+        const integrateWorktree = vi.fn().mockResolvedValue(undefined)
         const parkWorktree = vi.fn().mockResolvedValue(undefined)
         const prepareWorktree = vi.fn().mockResolvedValue(undefined)
         const pullWorktree = vi.fn().mockResolvedValue(undefined)
@@ -60,7 +62,7 @@ describe('LocalGitStorageService binary write path', () => {
         const service = new LocalGitStorageService()
         service.init({
             bridge: createBridge({
-                addWorktree, commitWorktree, discardWorktreeChanges, parkWorktree, prepareWorktree,
+                addWorktree, commitWorktree, discardWorktreeChanges, integrateWorktree, parkWorktree, prepareWorktree,
                 pullWorktree, pushWorktree, refreshWorktrees, removeWorktree,
             }),
         })
@@ -71,6 +73,7 @@ describe('LocalGitStorageService binary write path', () => {
         await expect(service.addWorktree(project)).resolves.toBe(true)
         await expect(service.commitWorktree(commitRequest)).resolves.toBeUndefined()
         await expect(service.discardWorktreeChanges(operationRequest)).resolves.toBeUndefined()
+        await expect(service.integrateWorktree(operationRequest)).resolves.toBeUndefined()
         await expect(service.parkWorktree(operationRequest)).resolves.toBeUndefined()
         await expect(service.prepareWorktree(preparationRequest)).resolves.toBeUndefined()
         await expect(service.pullWorktree(operationRequest)).resolves.toBeUndefined()
@@ -80,6 +83,8 @@ describe('LocalGitStorageService binary write path', () => {
         expect(addWorktree).toHaveBeenCalledWith(project)
         expect(commitWorktree).toHaveBeenCalledWith(commitRequest)
         expect(discardWorktreeChanges).toHaveBeenCalledWith(operationRequest)
+        expect(integrateWorktree).toHaveBeenCalledWith(operationRequest)
+        expect(service.hasPendingPush(project)).toBe(true)
         expect(parkWorktree).toHaveBeenCalledWith(operationRequest)
         expect(prepareWorktree).toHaveBeenCalledWith(preparationRequest)
         expect(pullWorktree).toHaveBeenCalledWith(operationRequest)
@@ -97,6 +102,17 @@ describe('LocalGitStorageService binary write path', () => {
 
         await expect(service.resolveProject(project)).resolves.toEqual(resolvedProject)
         expect(resolveProject).toHaveBeenCalledWith(project)
+    })
+
+    it('forwards primary pull to the bridge', async () => {
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
+        const pull = vi.fn().mockResolvedValue(undefined)
+        const service = new LocalGitStorageService()
+        service.init({ bridge: createBridge({ pull }) })
+
+        await expect(service.pull(project)).resolves.toBeUndefined()
+
+        expect(pull).toHaveBeenCalledWith(project)
     })
 
     it('forwards base64 asset files to the bridge unchanged', async () => {

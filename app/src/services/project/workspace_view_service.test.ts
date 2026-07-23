@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { ProjectReference } from '../../data/data_types'
-import type { DataService, DataServiceState } from '../data/data_service'
+import { CARD_PATH_CHANGED_EVENT, type CardPathChangedEventDetail, type DataService, type DataServiceState } from '../data/data_service'
 import { WorkspaceViewService } from './workspace_view_service'
 
 class TestDataService extends EventTarget {
@@ -18,6 +18,11 @@ class TestDataService extends EventTarget {
     publishSnapshotChange() {
         this.dispatchEvent(new Event('changed'))
     }
+
+    publishCardPathChange(fromPath: string, toPath: string) {
+        const detail: CardPathChangedEventDetail = { fromPath, toPath }
+        this.dispatchEvent(new CustomEvent<CardPathChangedEventDetail>(CARD_PATH_CHANGED_EVENT, { detail }))
+    }
 }
 
 describe('WorkspaceViewService', () => {
@@ -33,5 +38,18 @@ describe('WorkspaceViewService', () => {
 
         dataService.setProject({ branch: 'feature', id: 'project' })
         expect(service.getSnapshot()).toEqual({ selectedPath: null, viewMode: 'cards' })
+    })
+
+    it('follows the selected card when its file is renamed', () => {
+        const dataService = new TestDataService()
+        dataService.setProject({ branch: 'main', id: 'project' })
+        const service = new WorkspaceViewService(dataService as unknown as DataService)
+        service.selectPath('design/F-1-root.md')
+
+        dataService.publishCardPathChange('design/F-2-other.md', 'design/F-2-renamed.md')
+        expect(service.getSnapshot().selectedPath).toBe('design/F-1-root.md')
+
+        dataService.publishCardPathChange('design/F-1-root.md', 'design/F-1-renamed.md')
+        expect(service.getSnapshot().selectedPath).toBe('design/F-1-renamed.md')
     })
 })

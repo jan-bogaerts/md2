@@ -1,6 +1,8 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { WorktreeRecord } from '../data/data_types'
+import { dialogService } from '../services/dialog_service'
+import { projectPersistenceService } from '../services/project/project_persistence_service'
 import { worktreeService } from '../services/project/worktree_service'
 import { AppThemeProvider } from '../theme/theme_provider'
 import { WorktreeSelector } from './worktree_selector'
@@ -15,6 +17,19 @@ const worktrees: WorktreeRecord[] = [
         status: { ahead: 0, baseAhead: 0, baseBehind: 0, behind: 0, dirty: false, hasUpstream: false }, valid: false,
     },
 ]
+
+function renderAssignedWorktree(record: WorktreeRecord) {
+    render(
+        <AppThemeProvider>
+            <WorktreeSelector
+                assignment={{ worktree: 1 }}
+                assignmentTarget={{ kind: 'card', path: 'design/F-1.md' }}
+                primaryPath="C:\\primary"
+                worktrees={[record]}
+            />
+        </AppThemeProvider>,
+    )
+}
 
 describe('WorktreeSelector', () => {
     afterEach(() => {
@@ -101,9 +116,71 @@ describe('WorktreeSelector', () => {
 
         expect(screen.getByRole('menuitem', { name: /Primary — C:.*primary/u })).toBeInTheDocument()
         expect(screen.getByRole('menuitem', { name: 'Commit' })).toHaveAttribute('aria-disabled', 'true')
-        expect(screen.getByRole('menuitem', { name: 'Commit & push' })).toBeInTheDocument()
-        expect(screen.getByRole('menuitem', { name: 'Pull' })).toHaveAttribute('aria-disabled', 'true')
+        expect(screen.getByRole('menuitem', { name: 'Update worktree' })).toHaveAttribute('aria-disabled', 'true')
+        expect(screen.getByRole('menuitem', { name: 'Integrate into project' })).toHaveAttribute('aria-disabled', 'true')
         expect(screen.queryByRole('menuitem', { name: /1 — C:\\feature/u })).not.toBeInTheDocument()
+    })
+
+    it('ignores upstream state when deciding project-worktree actions', () => {
+        const synchronizedWorktree = {
+            ...worktrees[0],
+            status: { ...worktrees[0].status, hasUpstream: true },
+        }
+        renderAssignedWorktree(synchronizedWorktree)
+
+        fireEvent.click(screen.getByRole('button', { name: /Worktree 1/u }))
+
+        expect(screen.getByRole('menuitem', { name: 'Commit' })).toHaveAttribute('aria-disabled', 'true')
+        expect(screen.getByRole('menuitem', { name: 'Update worktree' })).toHaveAttribute('aria-disabled', 'true')
+        expect(screen.getByRole('menuitem', { name: 'Integrate into project' })).toHaveAttribute('aria-disabled', 'true')
+    })
+
+    it('integrates a clean worktree when it is ahead of the project branch', async () => {
+        const aheadWorktree = {
+            ...worktrees[0],
+            status: { ...worktrees[0].status, ahead: 1, baseAhead: 1, hasUpstream: true },
+        }
+        const integrateCardWorktree = vi.spyOn(worktreeService, 'integrateCardWorktree').mockResolvedValue(undefined)
+        renderAssignedWorktree(aheadWorktree)
+
+        fireEvent.click(screen.getByRole('button', { name: /Worktree 1/u }))
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Integrate into project' }))
+
+        await vi.waitFor(() => expect(integrateCardWorktree).toHaveBeenCalledWith('design/F-1.md'))
+    })
+
+    it('updates a clean worktree when it is behind the project branch', async () => {
+        const behindWorktree = {
+            ...worktrees[0],
+            status: { ...worktrees[0].status, baseBehind: 1 },
+        }
+        const updateCardWorktree = vi.spyOn(worktreeService, 'updateCardWorktree').mockResolvedValue(undefined)
+        renderAssignedWorktree(behindWorktree)
+
+        fireEvent.click(screen.getByRole('button', { name: /Worktree 1/u }))
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Update worktree' }))
+
+        await vi.waitFor(() => expect(updateCardWorktree).toHaveBeenCalledWith('design/F-1.md'))
+    })
+
+    it('uses pending project saves for both incoming indicator and update availability', () => {
+        vi.spyOn(projectPersistenceService, 'getSnapshot').mockReturnValue({hasPendingPush: false, hasPendingSave: true, localSaveState: 'dirty'})
+        renderAssignedWorktree(worktrees[0])
+
+        const button = screen.getByRole('button', { name: /project changes pending yes/u })
+        fireEvent.click(button)
+
+        expect(screen.getByRole('menuitem', { name: 'Update worktree' })).not.toHaveAttribute('aria-disabled')
+    })
+
+    it('uses uncommitted primary files for both incoming indicator and update availability', () => {
+        vi.spyOn(worktreeService, 'getPrimaryStatus').mockReturnValue({ahead: 0, baseAhead: 0, baseBehind: 0, behind: 0, dirty: true, hasUpstream: true})
+        renderAssignedWorktree(worktrees[0])
+
+        const button = screen.getByRole('button', { name: /project changes pending yes/u })
+        fireEvent.click(button)
+
+        expect(screen.getByRole('menuitem', { name: 'Update worktree' })).not.toHaveAttribute('aria-disabled')
     })
 
     it('asks how to resolve dirty changes before returning to Primary', async () => {
@@ -128,7 +205,24 @@ describe('WorktreeSelector', () => {
 
         expect(await screen.findByRole('dialog', { name: 'Worktree has uncommitted changes' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Drop changes' })).toBeInTheDocument()
-        expect(screen.getByRole('button', { name: 'Commit & push' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Commit & integrate' })).toBeInTheDocument()
+    })
+
+    it('commits, integrates, and unassigns dirty worktree changes in order', async () => {
+        const dirtyWorktree = { ...worktrees[0], status: { ...worktrees[0].status, dirty: true } }
+        vi.spyOn(worktreeService, 'getCardCommitMessage').mockReturnValue('F-1: Card')
+        const commitCardWorktree = vi.spyOn(worktreeService, 'commitCardWorktree').mockResolvedValue(undefined)
+        const integrateCardWorktree = vi.spyOn(worktreeService, 'integrateCardWorktree').mockResolvedValue(undefined)
+        const setCardWorktree = vi.spyOn(worktreeService, 'setCardWorktree').mockResolvedValue(undefined)
+        renderAssignedWorktree(dirtyWorktree)
+
+        fireEvent.click(screen.getByRole('button', { name: /Worktree 1/u }))
+        fireEvent.click(screen.getByRole('menuitem', { name: /Primary/u }))
+        fireEvent.click(await screen.findByRole('button', { name: 'Commit & integrate' }))
+
+        await vi.waitFor(() => expect(setCardWorktree).toHaveBeenCalledWith('design/F-1.md', null))
+        expect(commitCardWorktree.mock.invocationCallOrder[0]).toBeLessThan(integrateCardWorktree.mock.invocationCallOrder[0])
+        expect(integrateCardWorktree.mock.invocationCallOrder[0]).toBeLessThan(setCardWorktree.mock.invocationCallOrder[0])
     })
 
     it('opens the dirty dialog when backend revalidation rejects parking', async () => {
@@ -153,13 +247,13 @@ describe('WorktreeSelector', () => {
         expect(await screen.findByRole('dialog', { name: 'Worktree has uncommitted changes' })).toBeInTheDocument()
     })
 
-    it('offers a rebase for a worktree trailing the project branch without an upstream', async () => {
+    it('offers an update for a worktree trailing the project branch without an upstream', async () => {
         const trailingWorktrees = [{
             ...worktrees[0],
             status: { ahead: 0, baseAhead: 0, baseBehind: 2, behind: 0, dirty: false, hasUpstream: false },
         }]
         vi.spyOn(worktreeService, 'getProjectBranch').mockReturnValue('main')
-        const rebaseCardWorktree = vi.spyOn(worktreeService, 'rebaseCardWorktree').mockResolvedValue(undefined)
+        const updateCardWorktree = vi.spyOn(worktreeService, 'updateCardWorktree').mockResolvedValue(undefined)
         render(
             <AppThemeProvider>
                 <WorktreeSelector
@@ -176,12 +270,12 @@ describe('WorktreeSelector', () => {
         expect(button).toHaveStyle({ color: 'rgb(249, 168, 37)' })
 
         fireEvent.click(button)
-        fireEvent.click(screen.getByRole('menuitem', { name: 'Rebase on main' }))
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Update worktree' }))
 
-        await vi.waitFor(() => expect(rebaseCardWorktree).toHaveBeenCalledWith('design/F-1.md'))
+        await vi.waitFor(() => expect(updateCardWorktree).toHaveBeenCalledWith('design/F-1.md'))
     })
 
-    it('disables the rebase entry when the worktree is already up to date with the project branch', () => {
+    it('disables update when the worktree is already up to date with the project branch', () => {
         vi.spyOn(worktreeService, 'getProjectBranch').mockReturnValue('main')
         render(
             <AppThemeProvider>
@@ -196,7 +290,7 @@ describe('WorktreeSelector', () => {
 
         fireEvent.click(screen.getByRole('button', { name: /Worktree 1/u }))
 
-        expect(screen.getByRole('menuitem', { name: 'Rebase on main' })).toHaveAttribute('aria-disabled', 'true')
+        expect(screen.getByRole('menuitem', { name: 'Update worktree' })).toHaveAttribute('aria-disabled', 'true')
     })
 
     it('opens the commit dialog with the default card message', () => {
@@ -223,6 +317,75 @@ describe('WorktreeSelector', () => {
         expect(screen.getByRole('textbox')).toHaveValue('F-1: Card')
 
         fireEvent.click(screen.getByRole('button', { name: 'Commit' }))
-        expect(commitCardWorktree).toHaveBeenCalledWith('design/F-1.md', 'F-1: Card', false)
+        expect(commitCardWorktree).toHaveBeenCalledWith('design/F-1.md', 'F-1: Card')
+    })
+
+    it('reports commit errors through dialogService and leaves the commit dialog open', async () => {
+        const dirtyWorktree = { ...worktrees[0], status: { ...worktrees[0].status, dirty: true } }
+        const error = new Error('commit failed')
+        vi.spyOn(worktreeService, 'getCardCommitMessage').mockReturnValue('F-1: Card')
+        vi.spyOn(worktreeService, 'commitCardWorktree').mockRejectedValue(error)
+        const reportError = vi.spyOn(dialogService, 'error')
+        renderAssignedWorktree(dirtyWorktree)
+
+        fireEvent.click(screen.getByRole('button', { name: /Worktree 1/u }))
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Commit' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Commit' }))
+
+        await vi.waitFor(() => expect(reportError).toHaveBeenCalledWith(error, {fallbackMessage: 'Could not commit worktree changes'}))
+        expect(screen.getByRole('dialog', { name: 'Commit worktree' })).toBeInTheDocument()
+    })
+
+    it('closes the commit dialog and reports an integration error after the commit succeeds', async () => {
+        const dirtyWorktree = { ...worktrees[0], status: { ...worktrees[0].status, dirty: true } }
+        const error = new Error('integration failed')
+        vi.spyOn(worktreeService, 'getCardCommitMessage').mockReturnValue('F-1: Card')
+        const commitCardWorktree = vi.spyOn(worktreeService, 'commitCardWorktree').mockResolvedValue(undefined)
+        vi.spyOn(worktreeService, 'integrateCardWorktree').mockRejectedValue(error)
+        const reportError = vi.spyOn(dialogService, 'error')
+        renderAssignedWorktree(dirtyWorktree)
+
+        fireEvent.click(screen.getByRole('button', { name: /Worktree 1/u }))
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Integrate into project' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Commit & integrate' }))
+
+        await vi.waitFor(() => expect(reportError).toHaveBeenCalledWith(error, {fallbackMessage: 'Changes were committed, but the worktree could not be integrated into the project'}))
+        expect(commitCardWorktree).toHaveBeenCalledWith('design/F-1.md', 'F-1: Card')
+        await vi.waitFor(() => {
+            expect(screen.queryByRole('dialog', { name: 'Commit and integrate worktree' })).not.toBeInTheDocument()
+        })
+    })
+
+    it('reports update errors through dialogService', async () => {
+        const behindWorktree = {
+            ...worktrees[0],
+            status: { ...worktrees[0].status, baseBehind: 1 },
+        }
+        const error = new Error('update failed')
+        vi.spyOn(worktreeService, 'updateCardWorktree').mockRejectedValue(error)
+        const reportError = vi.spyOn(dialogService, 'error')
+        renderAssignedWorktree(behindWorktree)
+
+        fireEvent.click(screen.getByRole('button', { name: /Worktree 1/u }))
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Update worktree' }))
+
+        await vi.waitFor(() => expect(reportError).toHaveBeenCalledWith(error, {fallbackMessage: 'Could not update worktree from the project branch'}))
+    })
+
+    it('reports integration errors through dialogService', async () => {
+        const trailingWorktree = {
+            ...worktrees[0],
+            status: { ...worktrees[0].status, baseAhead: 1 },
+        }
+        const error = new Error('integration failed')
+        vi.spyOn(worktreeService, 'getProjectBranch').mockReturnValue('main')
+        vi.spyOn(worktreeService, 'integrateCardWorktree').mockRejectedValue(error)
+        const reportError = vi.spyOn(dialogService, 'error')
+        renderAssignedWorktree(trailingWorktree)
+
+        fireEvent.click(screen.getByRole('button', { name: /Worktree 1/u }))
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Integrate into project' }))
+
+        await vi.waitFor(() => expect(reportError).toHaveBeenCalledWith(error, {fallbackMessage: 'Could not integrate worktree into project'}))
     })
 })

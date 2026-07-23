@@ -59,10 +59,10 @@ Allow Electron to manage linked Git worktrees, assign cards to them, run `needsW
 - Derive the card branch by slugifying the card id and title with the configured card separator.
 - Reuse the current card branch even when dirty. A dirty worktree on another branch blocks assignment.
 - For a clean worktree, switch to an existing card branch or create it from the opened project branch, then persist the assignment.
-- An assigned card selector shows Primary, Commit, Commit & push, and Pull instead of other linked-worktree choices.
-- Commit stages all worktree changes. Push uses the configured upstream or creates one on `origin`; Pull requires an upstream and uses fast-forward only.
-- Returning to Primary parks a clean worktree before clearing the assignment. Dirty worktrees require Commit & push or explicit destructive discard.
-- Card indicators show orange up/down arrows for dirty or ahead work and incoming upstream commits.
+- An assigned card selector shows Primary, Commit, Update worktree, and Integrate into project instead of other linked-worktree choices.
+- Commit stages all worktree changes. Update flushes pending project saves, checkpoints remaining primary-worktree changes, and rebases the worktree onto the opened project branch. Integrate performs the same project checkpoint, rebases when needed, and fast-forwards the opened project branch to the worktree branch.
+- Returning to Primary parks a synchronized worktree before clearing the assignment. Dirty worktrees require Commit & integrate or explicit destructive discard.
+- Card indicators and menu availability use the same project-to-worktree comparison. Up means dirty or ahead of the project branch; down means pending project saves or behind the project branch. Upstream state is handled by project-level synchronization.
 - Background cards do not reserve their stored worktree. Project-agent assignment does not use card reservations and does not prepare a branch.
 - Invalid/out-of-range assignments remain visible in red with the exact validation error.
 - Preserve the aggregate card-agent states: running, waiting for input, completed/failed unseen, and idle/acknowledged.
@@ -87,12 +87,12 @@ Allow Electron to manage linked Git worktrees, assign cards to them, run `needsW
 - Adding or removing a worktree can shift list indices; cards retain their stored values.
 - A dirty worktree on another branch blocks preparation and shows the Git error.
 - A card branch checked out by another linked worktree remains a Git error.
-- Pull rejects dirty worktrees, missing upstreams, and non-fast-forward integration.
-- Failed commit, push, discard, or parking leaves the card assigned.
+- Update and integration reject unresolved dirty linked-worktree state. Remaining primary-worktree changes receive a local checkpoint commit before synchronization.
+- Failed commit, update, integration, discard, or parking leaves the card assigned.
 - Concurrent assignment attempts cannot reserve the same worktree for two active cards.
 - An unassigned card or non-card context cannot run an action that requires a worktree.
 - Card rename or move retains its worktree assignment.
-- An explicit commit, push, merge, or cherry-pick action reports its own process result; MD² adds no special integration behavior.
+- Worktree update and integration report their own process result. Action completion adds no implicit cross-worktree transfer.
 
 ## Testing implications
 
@@ -111,7 +111,7 @@ Allow Electron to manage linked Git worktrees, assign cards to them, run `needsW
 - Successful card assignment reuses its id/title branch or creates it from the opened project branch before persisting the worktree index.
 - Dirty worktrees on another branch fail without changing the card assignment; dirty worktrees already on the card branch are reused.
 - Returning to Primary resolves dirty changes and restores the linked worktree parking branch before clearing the assignment.
-- Assigned-card menus expose commit, commit-and-push, and fast-forward pull operations.
+- Assigned-card menus expose commit, update-from-project, and integrate-into-project operations.
 - Card indicators expose dirty/ahead/behind state.
 - Git is the sole worktree source; card assignments use one-based indices from Git's current linked-worktree order.
 - Invalid assignments remain visible, explain the problem, and cannot be used for execution.
@@ -119,7 +119,7 @@ Allow Electron to manage linked Git worktrees, assign cards to them, run `needsW
 - Actions with `needsWorkTree` use the card's valid assigned worktree and reject missing assignments or non-card contexts.
 - Action execution does not create, remove, or assign worktrees.
 - Git preparation errors are visible before process start.
-- Action completion never performs automatic commit, push, merge, cherry-pick, or cross-worktree transfer.
+- Action completion never performs automatic commit, update, integration, or cross-worktree transfer.
 
 ## Open decisions
 

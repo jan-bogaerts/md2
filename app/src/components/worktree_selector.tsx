@@ -7,7 +7,8 @@ import type { MouseEvent } from 'react'
 import type { WorktreeRecord } from '../data/data_types'
 import { dialogService } from '../services/dialog_service'
 import { worktreeService } from '../services/project/worktree_service'
-import { useWorktreePreparing } from './hooks/use_worktrees'
+import { usePrimaryWorktreeStatus, useWorktreePreparing } from './hooks/use_worktrees'
+import { useProjectPersistence } from './hooks/use_project_persistence'
 import { WorktreeCommitDialog } from './worktree_commit_dialog'
 import { WorktreeUnassignDialog } from './worktree_unassign_dialog'
 
@@ -18,6 +19,7 @@ export interface WorktreeAssignment {
 }
 
 export type WorktreeAssignmentTarget = { kind: 'card', path: string } | { kind: 'project' }
+type CommitAction = 'commit' | 'integrate' | 'update'
 
 interface WorktreeSelectorProps {
     assignment: WorktreeAssignment
@@ -47,20 +49,24 @@ export function WorktreeSelector(props: WorktreeSelectorProps) {
     const { assignment, assignmentTarget, disabled = false, labelPrefix, primaryPath, worktrees } = props
     const [anchorElement, setAnchorElement] = useState<HTMLElement | null>(null)
     const [commitMessage, setCommitMessage] = useState('')
-    const [commitPush, setCommitPush] = useState(false)
+    const [commitAction, setCommitAction] = useState<CommitAction>('commit')
     const [commitDialogOpen, setCommitDialogOpen] = useState(false)
     const [unassignDialogOpen, setUnassignDialogOpen] = useState(false)
     const cardPath = assignmentTarget.kind === 'card' ? assignmentTarget.path : null
     const preparing = useWorktreePreparing(cardPath)
+    const primaryStatus = usePrimaryWorktreeStatus()
+    const { hasPendingSave } = useProjectPersistence()
     const selectorDisabled = disabled || preparing
     const state = assignmentState(assignment, worktrees)
     const assignedWorktree = assignment.worktree ?? null
     const assignedRecord = assignedWorktree === null ? null : worktrees[assignedWorktree - 1] ?? null
     const hasActiveCardWorktree = assignmentTarget.kind === 'card' && assignedWorktree !== null
         && !state.error && !!assignedRecord?.valid
+    const canCommit = !!assignedRecord?.status.dirty
     const hasOutgoingChanges = !!assignedRecord
-        && (assignedRecord.status.dirty || assignedRecord.status.ahead > 0 || assignedRecord.status.baseAhead > 0)
-    const hasIncomingChanges = !!assignedRecord && (assignedRecord.status.behind > 0 || assignedRecord.status.baseBehind > 0)
+        && (assignedRecord.status.dirty || assignedRecord.status.baseAhead > 0)
+    const hasPendingProjectChanges = hasPendingSave || !!primaryStatus?.dirty
+    const hasIncomingChanges = !!assignedRecord && (hasPendingProjectChanges || assignedRecord.status.baseBehind > 0)
     const hasWorktreeChanges = hasOutgoingChanges || hasIncomingChanges
     const projectBranch = worktreeService.getProjectBranch()
     const folder = state.folder ?? primaryPath ?? 'Primary'
@@ -73,11 +79,9 @@ export function WorktreeSelector(props: WorktreeSelectorProps) {
     const statusParts = assignedRecord
         ? [
             `dirty ${assignedRecord.status.dirty ? 'yes' : 'no'}`,
+            `project changes pending ${hasPendingProjectChanges ? 'yes' : 'no'}`,
             `ahead of ${baseName} ${assignedRecord.status.baseAhead}`,
             `behind ${baseName} ${assignedRecord.status.baseBehind}`,
-            ...assignedRecord.status.hasUpstream
-                ? [`ahead of upstream ${assignedRecord.status.ahead}`, `behind upstream ${assignedRecord.status.behind}`]
-                : ['no upstream'],
         ]
         : []
     const worktreeStatusDescription = statusParts.length > 0 ? statusParts.join('; ') : null
@@ -105,7 +109,12 @@ export function WorktreeSelector(props: WorktreeSelectorProps) {
         handleClose()
         if (hasActiveCardWorktree) {
             try {
-                if (worktrees[assignedWorktree - 1]?.status.dirty) {
+                if (hasOutgoingChanges) {
+                    if (!assignedRecord?.status.dirty) {
+                        await worktreeService.integrateCardWorktree(assignmentTarget.path)
+                        await worktreeService.setCardWorktree(assignmentTarget.path, null)
+                        return
+                    }
                     setCommitMessage(worktreeService.getCardCommitMessage(assignmentTarget.path))
                     setUnassignDialogOpen(true)
                     return
@@ -135,44 +144,44 @@ export function WorktreeSelector(props: WorktreeSelectorProps) {
         if (assignmentTarget.kind !== 'card') return
 
         handleClose()
-        setCommitMessage(worktreeService.getCardCommitMessage(assignmentTarget.path))
-        setCommitPush(false)
-        setCommitDialogOpen(true)
-    }
-    const handleCommitPushMenu = async () => {
-        if (assignmentTarget.kind !== 'card') return
-
-        handleClose()
-        if (assignedRecord?.status.dirty) {
+        try {
             setCommitMessage(worktreeService.getCardCommitMessage(assignmentTarget.path))
-            setCommitPush(true)
+            setCommitAction('commit')
             setCommitDialogOpen(true)
-            return
-        }
-        try {
-            await worktreeService.pushCardWorktree(assignmentTarget.path)
         } catch (error) {
-            dialogService.error(error, { fallbackMessage: 'Could not push worktree' })
+            dialogService.error(error, { fallbackMessage: 'Could not prepare worktree commit' })
         }
     }
-    const handlePullMenu = async () => {
+    const handleIntegrateMenu = async () => {
         if (assignmentTarget.kind !== 'card') return
 
         handleClose()
         try {
-            await worktreeService.pullCardWorktree(assignmentTarget.path)
+            if (assignedRecord?.status.dirty) {
+                setCommitMessage(worktreeService.getCardCommitMessage(assignmentTarget.path))
+                setCommitAction('integrate')
+                setCommitDialogOpen(true)
+                return
+            }
+            await worktreeService.integrateCardWorktree(assignmentTarget.path)
         } catch (error) {
-            dialogService.error(error, { fallbackMessage: 'Could not pull worktree' })
+            dialogService.error(error, { fallbackMessage: 'Could not integrate worktree into project' })
         }
     }
-    const handleRebaseMenu = async () => {
+    const handleUpdateMenu = async () => {
         if (assignmentTarget.kind !== 'card') return
 
         handleClose()
         try {
-            await worktreeService.rebaseCardWorktree(assignmentTarget.path)
+            if (assignedRecord?.status.dirty) {
+                setCommitMessage(worktreeService.getCardCommitMessage(assignmentTarget.path))
+                setCommitAction('update')
+                setCommitDialogOpen(true)
+                return
+            }
+            await worktreeService.updateCardWorktree(assignmentTarget.path)
         } catch (error) {
-            dialogService.error(error, { fallbackMessage: `Could not rebase worktree onto ${baseName}` })
+            dialogService.error(error, { fallbackMessage: `Could not update worktree from ${baseName}` })
         }
     }
     const handleCommitDialogClose = () => setCommitDialogOpen(false)
@@ -180,10 +189,20 @@ export function WorktreeSelector(props: WorktreeSelectorProps) {
         if (assignmentTarget.kind !== 'card') return
 
         try {
-            await worktreeService.commitCardWorktree(assignmentTarget.path, message, commitPush)
+            await worktreeService.commitCardWorktree(assignmentTarget.path, message)
             setCommitDialogOpen(false)
         } catch (error) {
             dialogService.error(error, { fallbackMessage: 'Could not commit worktree changes' })
+            return
+        }
+        try {
+            if (commitAction === 'integrate') await worktreeService.integrateCardWorktree(assignmentTarget.path)
+            if (commitAction === 'update') await worktreeService.updateCardWorktree(assignmentTarget.path)
+        } catch (error) {
+            const fallbackMessage = commitAction === 'integrate'
+                ? 'Changes were committed, but the worktree could not be integrated into the project'
+                : `Changes were committed, but the worktree could not be updated from ${baseName}`
+            dialogService.error(error, { fallbackMessage })
         }
     }
     const handleUnassignClose = () => setUnassignDialogOpen(false)
@@ -197,14 +216,30 @@ export function WorktreeSelector(props: WorktreeSelectorProps) {
             dialogService.error(error, { fallbackMessage: 'Could not drop worktree changes' })
         }
     }
-    const handleCommitPushAndUnassign = async (message: string) => {
+    const handleCommitIntegrateAndUnassign = async (message: string) => {
         if (assignmentTarget.kind !== 'card') return
 
         try {
-            await worktreeService.commitPushAndUnassignCardWorktree(assignmentTarget.path, message)
+            await worktreeService.commitCardWorktree(assignmentTarget.path, message)
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: 'Could not commit worktree changes' })
+            return
+        }
+
+        try {
+            await worktreeService.integrateCardWorktree(assignmentTarget.path)
+        } catch (error) {
+            setUnassignDialogOpen(false)
+            dialogService.error(error, { fallbackMessage: 'Changes were committed, but the worktree could not be integrated into the project' })
+            return
+        }
+
+        try {
+            await worktreeService.setCardWorktree(assignmentTarget.path, null)
             setUnassignDialogOpen(false)
         } catch (error) {
-            dialogService.error(error, { fallbackMessage: 'Could not commit and push worktree changes' })
+            setUnassignDialogOpen(false)
+            dialogService.error(error, { fallbackMessage: 'Changes were integrated, but the worktree could not be unassigned' })
         }
     }
 
@@ -272,20 +307,9 @@ export function WorktreeSelector(props: WorktreeSelectorProps) {
                 </MenuItem>
                 {hasActiveCardWorktree ? (
                     <>
-                        <MenuItem disabled={!assignedRecord?.status.dirty} onClick={handleCommitMenu}>Commit</MenuItem>
-                        <MenuItem onClick={handleCommitPushMenu}>Commit &amp; push</MenuItem>
-                        <MenuItem
-                            disabled={!!assignedRecord?.status.dirty || !assignedRecord?.status.hasUpstream}
-                            onClick={handlePullMenu}
-                        >
-                            Pull
-                        </MenuItem>
-                        <MenuItem
-                            disabled={!!assignedRecord?.status.dirty || !assignedRecord || assignedRecord.status.baseBehind === 0}
-                            onClick={handleRebaseMenu}
-                        >
-                            Rebase on {baseName}
-                        </MenuItem>
+                        <MenuItem disabled={!canCommit} onClick={handleCommitMenu}>Commit</MenuItem>
+                        <MenuItem disabled={!hasIncomingChanges} onClick={handleUpdateMenu}>Update worktree</MenuItem>
+                        <MenuItem disabled={!hasOutgoingChanges} onClick={handleIntegrateMenu}>Integrate into project</MenuItem>
                     </>
                 ) : worktrees.map((record, index) => (record.valid ? (
                     <MenuItem
@@ -302,20 +326,20 @@ export function WorktreeSelector(props: WorktreeSelectorProps) {
                 {state.error ? <MenuItem disabled selected>{state.value} — {state.error}</MenuItem> : null}
             </Menu>
             <WorktreeCommitDialog
+                action={commitAction}
                 busy={preparing}
                 message={commitMessage}
                 onClose={handleCommitDialogClose}
                 onCommit={handleCommit}
                 onMessageChange={setCommitMessage}
                 open={commitDialogOpen}
-                push={commitPush}
             />
             <WorktreeUnassignDialog
                 busy={preparing}
                 commitMessage={commitMessage}
                 onClose={handleUnassignClose}
                 onCommitMessageChange={setCommitMessage}
-                onCommitPush={handleCommitPushAndUnassign}
+                onCommitIntegrate={handleCommitIntegrateAndUnassign}
                 onDrop={handleDropAndUnassign}
                 open={unassignDialogOpen}
             />

@@ -11,6 +11,7 @@ import { dataService } from '../data/data_service'
 import { ProjectSessionService } from './project_session_service'
 import { projectPersistenceService } from './project_persistence_service'
 import { openFilesService } from '../open_files_service'
+import { createDeferred } from '../test_support/data_service_test_support'
 
 function createActionBridge(): ElectronActionBridge {
     return {
@@ -159,6 +160,29 @@ describe('ProjectSessionService storage activation', () => {
         resolvePush()
         await push
         expect(service.getSnapshot()).toMatchObject({ isLoading: false, isPushing: false })
+    })
+
+    it('flushes pending changes for a manual commit', async () => {
+        const flushPendingChanges = vi.spyOn(projectPersistenceService, 'flushPendingChanges').mockResolvedValue()
+        const service = new ProjectSessionService()
+
+        await service.commit()
+
+        expect(flushPendingChanges).toHaveBeenCalledOnce()
+        expect(service.getSnapshot()).toMatchObject({ isCommitting: false, isLoading: false })
+    })
+
+    it('reports pull progress while the primary worktree pull runs', async () => {
+        const pendingPull = createDeferred<void>()
+        vi.spyOn(dataService.projectLoading, 'pull').mockReturnValue(pendingPull.promise)
+        const service = new ProjectSessionService()
+
+        const pull = service.pull()
+
+        expect(service.getSnapshot()).toMatchObject({ isLoading: true, isPulling: true })
+        pendingPull.resolve()
+        await pull
+        expect(service.getSnapshot()).toMatchObject({ isLoading: false, isPulling: false })
     })
 
     it('returns shared project-folder setup when a local repository has no config', async () => {

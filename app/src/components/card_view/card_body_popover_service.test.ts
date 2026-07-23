@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { CARD_PATH_CHANGED_EVENT, dataService, type CardPathChangedEventDetail } from '../../services/data/data_service'
 import { cardBodyPopoverService } from './card_body_popover_service'
+
+function publishCardPathChange(fromPath: string, toPath: string) {
+    const detail: CardPathChangedEventDetail = { fromPath, toPath }
+    dataService.dispatchEvent(new CustomEvent<CardPathChangedEventDetail>(CARD_PATH_CHANGED_EVENT, { detail }))
+}
 
 describe('CardBodyPopoverService', () => {
     afterEach(() => {
@@ -45,5 +51,16 @@ describe('CardBodyPopoverService', () => {
 
         cardBodyPopoverService.closePath('design/F-1.md')
         expect(cardBodyPopoverService.getSnapshot()).toEqual({ anchorElement: null, cardPath: null })
+    })
+
+    it('stays open on the renamed card file', () => {
+        const anchorElement = document.createElement('button')
+        cardBodyPopoverService.toggle('design/F-1.md', anchorElement)
+
+        publishCardPathChange('design/F-2.md', 'design/F-2-renamed.md')
+        expect(cardBodyPopoverService.getSnapshot().cardPath).toBe('design/F-1.md')
+
+        publishCardPathChange('design/F-1.md', 'design/F-1-renamed.md')
+        expect(cardBodyPopoverService.getSnapshot()).toEqual({ anchorElement, cardPath: 'design/F-1-renamed.md' })
     })
 })

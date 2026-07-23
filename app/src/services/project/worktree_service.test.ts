@@ -33,6 +33,7 @@ function createStorage() {
         addWorktree: vi.fn(async () => true),
         commitWorktree: vi.fn(async () => undefined),
         discardWorktreeChanges: vi.fn(async () => undefined),
+        integrateWorktree: vi.fn(async () => undefined),
         onWorktreesChanged: vi.fn((callback: (state: WorktreeState) => void) => {
             listener = callback
             return cleanup
@@ -41,22 +42,29 @@ function createStorage() {
         prepareWorktree: vi.fn(async () => undefined),
         pullWorktree: vi.fn(async () => undefined),
         pushWorktree: vi.fn(async () => undefined),
+        rebaseWorktree: vi.fn(async () => undefined),
         refreshWorktrees: vi.fn(async () => undefined),
         removeWorktree: vi.fn(async () => undefined),
     } as unknown as StorageService
     const emit = (stateProject: ProjectReference | null, records: WorktreeRecord[], error: string | null = null) => {
         if (!listener) throw new Error('Missing worktree subscription')
-        listener({ error, project: stateProject, records })
+        listener({ error, primaryStatus: null, project: stateProject, records })
     }
 
     return { cleanup, emit, storage }
 }
 
-function initService(service: WorktreeService, storage: StorageService, projectSnapshot = snapshot()) {
+function initService(
+    service: WorktreeService,
+    storage: StorageService,
+    projectSnapshot = snapshot(),
+    flushPendingChanges = vi.fn(async () => undefined),
+) {
     const assignCardWorktree = vi.fn()
     service.init({
         assignCardWorktree,
         cardSeparatorProvider: () => '-',
+        flushPendingChanges,
         projectProvider: () => project,
         snapshotProvider: () => projectSnapshot,
         storageProvider: () => storage,
@@ -178,18 +186,48 @@ describe('WorktreeService', () => {
         expect(service.getRecords()[0].status.dirty).toBe(true)
     })
 
-    it('commits, pushes and parks before clearing an assignment', async () => {
+    it('commits worktree changes without combining later lifecycle operations', async () => {
         const { emit, storage } = createStorage()
         const service = new WorktreeService()
         const assignedCard = card('design/F-1.md', 'Assigned', 1)
         const assignCardWorktree = initService(service, storage, snapshot([assignedCard]))
         emit(project, [first])
 
-        await service.commitPushAndUnassignCardWorktree(assignedCard.path, 'F-1: Assigned')
+        await service.commitCardWorktree(assignedCard.path, 'F-1: Assigned')
 
         expect(storage.commitWorktree).toHaveBeenCalledWith({ message: 'F-1: Assigned', project, worktree: 1 })
-        expect(storage.pushWorktree).toHaveBeenCalledWith({ project, worktree: 1 })
-        expect(storage.parkWorktree).toHaveBeenCalledWith({ project, worktree: 1 })
-        expect(assignCardWorktree).toHaveBeenCalledWith(assignedCard.path, null)
+        expect(storage.pushWorktree).not.toHaveBeenCalled()
+        expect(storage.parkWorktree).not.toHaveBeenCalled()
+        expect(assignCardWorktree).not.toHaveBeenCalled()
+    })
+
+    it('flushes project changes before updating a card worktree', async () => {
+        const { emit, storage } = createStorage()
+        const service = new WorktreeService()
+        const assignedCard = card('design/F-1.md', 'Assigned', 1)
+        const flushPendingChanges = vi.fn(async () => undefined)
+        initService(service, storage, snapshot([assignedCard]), flushPendingChanges)
+        emit(project, [first])
+
+        await service.updateCardWorktree(assignedCard.path)
+
+        expect(flushPendingChanges.mock.invocationCallOrder[0]).toBeLessThan(
+            vi.mocked(storage.rebaseWorktree!).mock.invocationCallOrder[0],
+        )
+    })
+
+    it('flushes project changes before integrating a card worktree', async () => {
+        const { emit, storage } = createStorage()
+        const service = new WorktreeService()
+        const assignedCard = card('design/F-1.md', 'Assigned', 1)
+        const flushPendingChanges = vi.fn(async () => undefined)
+        initService(service, storage, snapshot([assignedCard]), flushPendingChanges)
+        emit(project, [first])
+
+        await service.integrateCardWorktree(assignedCard.path)
+
+        expect(flushPendingChanges.mock.invocationCallOrder[0]).toBeLessThan(
+            vi.mocked(storage.integrateWorktree!).mock.invocationCallOrder[0],
+        )
     })
 })

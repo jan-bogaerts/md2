@@ -2,15 +2,18 @@ import { extractFile, listPackage } from '@electron/asar';
 import { execFile } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { rename } from 'node:fs/promises';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import packageJson from '../package.json' with { type: 'json' };
 
+const { loadSigningSecrets } = createRequire(import.meta.url)('./builder_config');
 const execFileAsync = promisify(execFile);
 const currentDirectory = path.dirname(fileURLToPath(import.meta.url));
 const releaseRoot = path.resolve(currentDirectory, '..', '..', 'release');
 const REQUIRED_ASAR_ENTRIES = [
+    'package.json',
     'desktop/main.js',
     'desktop/src/shell/preload.js',
     'desktop/renderer/index.html',
@@ -22,8 +25,8 @@ const REQUIRED_ASAR_ENTRIES = [
     'node_modules/ssh2/package.json',
     'node_modules/ws/package.json',
 ];
-const FORBIDDEN_ENTRY_PATTERN = /(?:^|\/).+\.(?:key|map|p12|pem|pfx)$/iu;
-const FORBIDDEN_APP_CONTENT = ['http://localhost:5173', 'WIN_CSC_KEY_PASSWORD'];
+const FORBIDDEN_ENTRY_PATTERN = /(?:(?:^|\/).+\.(?:key|map|p12|pem|pfx)|(?:^|\/)signing_secrets\.json)$/iu;
+const FORBIDDEN_APP_CONTENT = ['http://localhost:5173', 'certificateSha1'];
 const APP_OWNED_ENTRY_PATTERN = /^(?:desktop|shared)\/.+\.(?:css|html|js|json|mjs|svg|txt)$/u;
 
 function normalizeAsarEntry(entry) {
@@ -82,7 +85,7 @@ async function finalizeUnpackedDirectory(paths) {
 }
 
 async function verifySignatures(paths, expectedPublisher) {
-    if (!expectedPublisher) throw new Error('WIN_CSC_PUBLISHER_NAME is required to verify signed artifacts');
+    if (!expectedPublisher) throw new Error('publisherName in signing_secrets.json is required to verify signed artifacts');
 
     const scriptPath = path.join(currentDirectory, 'verify_authenticode.ps1');
     const args = [
@@ -100,7 +103,7 @@ async function verifySignatures(paths, expectedPublisher) {
     await execFileAsync('powershell.exe', args);
 }
 
-export async function verifyWindowsPackage(env = process.env) {
+export async function verifyWindowsPackage(secrets = loadSigningSecrets()) {
     const paths = resolveArtifactPaths(packageJson.version);
     await finalizeUnpackedDirectory(paths);
 
@@ -110,7 +113,7 @@ export async function verifyWindowsPackage(env = process.env) {
 
     const entries = assertPackageEntries(listPackage(paths.asarPath));
     assertAppContentIsReleaseSafe(paths.asarPath, entries);
-    await verifySignatures(paths, env.WIN_CSC_PUBLISHER_NAME);
+    await verifySignatures(paths, secrets.publisherName);
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

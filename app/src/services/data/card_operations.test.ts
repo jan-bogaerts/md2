@@ -86,8 +86,8 @@ describe('CardOperations', () => {
         service.addEventListener(CARD_REMOVED_EVENT, removed)
 
         const file = await service.cards.createCard({ body: 'Body', title: 'New Card', type: 'feature' })
-        service.cards.updateCardTitle(file.path, 'Renamed Card')
-        await service.cards.deleteCard(file.path)
+        const renamedFile = await service.cards.updateCardTitle(file.path, 'Renamed Card')
+        await service.cards.deleteCard(renamedFile.path)
 
         const addedDetails = added.mock.calls.map(([event]) => (event as CustomEvent<CardAddedEventDetail>).detail)
         const changedDetails = changed.mock.calls.map(([event]) => (event as CustomEvent<CardChangedEventDetail>).detail)
@@ -551,12 +551,119 @@ describe('CardOperations', () => {
         service.init({ storage })
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
-        service.cards.updateCardTitle('design/F-1-root.md', 'Renamed Root')
-        await service.cards.flushPendingCommits()
+        await service.cards.updateCardTitle('design/F-1-root.md', 'Renamed Root')
 
         const committed = (storage.commit as ReturnType<typeof vi.fn>).mock.calls.at(-1)?.[0] as CommitRequest
-        expect(committed.files[0].content).toContain('title: Renamed Root')
-        expect(committed.files[0].content).toContain('# Renamed Root')
+        const move = committed.moves?.[0]
+        expect(move?.content).toContain('title: Renamed Root')
+        expect(move?.content).toContain('# Renamed Root')
+    })
+
+    it('renames the card file when the title changes and follows the card afterwards', async () => {
+        configService.init()
+        const storage = createStorage()
+        const service = createDataService()
+        service.init({ storage })
+
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        const renamedFile = await service.cards.updateCardTitle('design/F-1-root.md', 'Renamed Root')
+
+        expect(renamedFile.path).toBe('design/F-1-renamed-root.md')
+        const committed = vi.mocked(storage.commit).mock.calls.at(-1)?.[0] as CommitRequest
+        expect(committed.message).toBe('Rename design/F-1-root.md to design/F-1-renamed-root.md')
+        expect(committed.files).toEqual([])
+        expect(committed.moves).toEqual([expect.objectContaining({
+            fromPath: 'design/F-1-root.md',
+            toPath: 'design/F-1-renamed-root.md',
+        })])
+        const cards = service.getState().snapshot?.activeCards ?? []
+        expect(cards.filter((card) => card.header.internalId === 'root-card').map(({ path }) => path))
+            .toEqual(['design/F-1-renamed-root.md'])
+        expect(service.getState().snapshot?.repositoryFiles).toContain('design/F-1-renamed-root.md')
+        expect(service.getState().snapshot?.repositoryFiles).not.toContain('design/F-1-root.md')
+    })
+
+    it('does not rename the card file when the title keeps the same file name', async () => {
+        configService.init()
+        const storage = createStorage()
+        const service = createDataService()
+        service.init({ storage })
+
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        await service.cards.updateCardTitle('design/F-1-root.md', 'root!')
+        await service.cards.flushPendingCommits()
+
+        const committed = vi.mocked(storage.commit).mock.calls.at(-1)?.[0] as CommitRequest
+        expect(committed.moves).toBeUndefined()
+        expect(committed.files[0].path).toBe('design/F-1-root.md')
+        expect(committed.files[0].content).toContain('title: root!')
+    })
+
+    it('commits queued card edits before renaming so the move never shares a batch', async () => {
+        configService.init()
+        const storage = createStorage()
+        const service = createDataService()
+        service.init({ storage })
+
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        service.cards.updateCardBody('design/F-1-root.md', '# Root\n\nEdited body')
+        await service.cards.updateCardTitle('design/F-1-root.md', 'Renamed Root')
+
+        const requests = vi.mocked(storage.commit).mock.calls.map(([request]) => request)
+        const bodyCommit = requests.find((request) => request.files.some((file) => file.content.includes('Edited body')))
+        const renameCommit = requests.find((request) => (request.moves ?? []).length > 0)
+        expect(bodyCommit?.moves ?? []).toEqual([])
+        expect(renameCommit?.files).toEqual([])
+        expect(renameCommit?.moves?.[0].content).toContain('Edited body')
+        expect(requests.indexOf(bodyCommit as CommitRequest)).toBeLessThan(requests.indexOf(renameCommit as CommitRequest))
+    })
+
+    it('keeps the card at its current path when the rename commit fails', async () => {
+        configService.init()
+        const storage = createStorage({
+            commit: vi.fn(async (request: CommitRequest) => {
+                if ((request.moves ?? []).length > 0) throw new Error('Commit rejected')
+
+                return []
+            }),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        const errors = recordDialogMessages('error')
+
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        await expect(service.cards.updateCardTitle('design/F-1-root.md', 'Renamed Root')).rejects.toThrow('Commit rejected')
+        errors.stop()
+
+        const cards = service.getState().snapshot?.activeCards ?? []
+        const card = cards.find((candidate) => candidate.header.internalId === 'root-card')
+        expect(card?.path).toBe('design/F-1-root.md')
+        expect(card?.header.title).toBe('Renamed Root')
+        expect(service.getState().snapshot?.repositoryFiles).toContain('design/F-1-root.md')
+        expect(errors.messages.join('\n')).toContain('Commit rejected')
+    })
+
+    it('serializes consecutive title changes onto the latest card path', async () => {
+        configService.init()
+        const storage = createStorage()
+        const service = createDataService()
+        service.init({ storage })
+
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        const [, second] = await Promise.all([
+            service.cards.updateCardTitle('design/F-1-root.md', 'First Rename'),
+            service.cards.updateCardTitle('design/F-1-root.md', 'Second Rename'),
+        ])
+
+        expect(second.path).toBe('design/F-1-second-rename.md')
+        const moves = vi.mocked(storage.commit).mock.calls.flatMap(([request]) => request.moves ?? [])
+        expect(moves.map(({ fromPath, toPath }) => `${fromPath}->${toPath}`)).toEqual([
+            'design/F-1-root.md->design/F-1-first-rename.md',
+            'design/F-1-first-rename.md->design/F-1-second-rename.md',
+        ])
+        const cards = service.getState().snapshot?.activeCards ?? []
+        expect(cards.filter((card) => card.header.internalId === 'root-card').map(({ path }) => path))
+            .toEqual(['design/F-1-second-rename.md'])
     })
 
     it('edits a header field while preserving unknown header fields unchanged', async () => {
@@ -608,12 +715,12 @@ describe('CardOperations', () => {
         if (document.kind !== 'card') throw new Error('Expected card document')
         document.updateDraft({ ...projectCard, content: '# Root\n\nUnflushed body' }, 'list-card')
 
-        service.cards.updateCardTitle(projectCard.path, 'Renamed')
-        await service.cards.flushPendingCommits()
+        await service.cards.updateCardTitle(projectCard.path, 'Renamed')
 
         const committed = vi.mocked(storage.commit).mock.calls.at(-1)?.[0] as CommitRequest
-        expect(committed.files[0].content).toContain('title: Renamed')
-        expect(committed.files[0].content).toContain('Unflushed body')
+        const move = committed.moves?.[0]
+        expect(move?.content).toContain('title: Renamed')
+        expect(move?.content).toContain('Unflushed body')
         expect(document.dirty).toBe(false)
     })
 

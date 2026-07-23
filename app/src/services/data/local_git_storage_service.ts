@@ -162,6 +162,14 @@ export class LocalGitStorageService implements StorageService {
         else this.pendingPushBranches.delete(project.branch)
     }
 
+    async integrateWorktree(request: WorktreeOperationRequest): Promise<void> {
+        const bridge = this.requireBridge()
+        if (!bridge.integrateWorktree) throw new Error('Electron local Git bridge cannot integrate worktrees')
+
+        await bridge.integrateWorktree(request)
+        this.pendingPushBranches.add(request.project.branch)
+    }
+
     async checkoutBranch(project: ProjectReference, branch: string): Promise<ProjectReference> {
         return this.requireBridge().checkoutBranch(project, branch)
     }
@@ -205,6 +213,13 @@ export class LocalGitStorageService implements StorageService {
     async push(project: ProjectReference): Promise<void> {
         await this.requireBridge().push(project)
         this.pendingPushBranches.delete(project.branch)
+    }
+
+    async pull(project: ProjectReference): Promise<void> {
+        const bridge = this.requireBridge()
+        if (!bridge.pull) throw new Error('Electron local Git bridge cannot pull the primary worktree')
+
+        await bridge.pull(project)
     }
 
     async prepareWorktree(request: PrepareWorktreeRequest): Promise<void> {

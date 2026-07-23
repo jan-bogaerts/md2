@@ -26,6 +26,7 @@ import { openFilesService } from '../open_files_service'
 const ACTION_RELOAD_DEBOUNCE_MS = 150
 const JSON_EXTENSION = '.json'
 const MARKDOWN_EXTENSION = '.md'
+const PROJECT_CONFIG_PATH = 'md2.config.json'
 // The watcher already settles each path before reporting, so this only has to group
 // events for different files into a single snapshot rebuild.
 const MARKDOWN_RELOAD_DEBOUNCE_MS = 50
@@ -292,6 +293,15 @@ export class ProjectLoading {
         this.dependencies.dispatchPersistenceChanged()
     }
 
+    async pull() {
+        const { storage } = this.dependencies.requireDependencies()
+        const currentProject = this.dependencies.project()
+        if (!currentProject) throw new Error('Cannot pull before a project is open')
+        if (!storage.pull) throw new Error('Pulling the primary worktree is not available')
+
+        await storage.pull(currentProject)
+    }
+
     async reloadCurrentProjectSnapshot() {
         const { config, storage } = this.dependencies.requireDependencies()
         const currentProject = this.dependencies.project()
@@ -495,6 +505,10 @@ export class ProjectLoading {
 
     private handleProjectWatchEvent(event: ProjectWatchEvent) {
         this.dependencies.dispatchRepositoryChanged(event)
+        if (event.path === PROJECT_CONFIG_PATH) {
+            void this.reloadProjectConfigFromWatch()
+            return
+        }
         const { config } = this.dependencies.requireDependencies()
         if (isActionDefinitionPath(event.path, config.actionsFolder)) {
             const change: ActionReloadChange = this.dependencies.commitPathsInFlight().has(event.path)
@@ -505,6 +519,18 @@ export class ProjectLoading {
         }
 
         if (isProjectMarkdownPath(event.path, config.projectFolder)) this.scheduleMarkdownReload(event)
+    }
+
+    private async reloadProjectConfigFromWatch() {
+        const { storage } = this.dependencies.requireDependencies()
+        const currentProject = this.dependencies.project()
+        if (!currentProject) return
+
+        try {
+            configService.loadProjectConfig(await storage.loadProjectConfig(currentProject))
+        } catch (error) {
+            reportOptionalProjectLoadFailure('Project configuration reload', error)
+        }
     }
 
     private scheduleActionReload(change: ActionReloadChange) {

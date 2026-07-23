@@ -2,6 +2,7 @@ import { CommitBatcher } from '../../data/commit_batcher'
 import type { ActionContext } from '../../data/action_context'
 import { resolveProjectConfigPaths, type MarkdownFile, type ProjectConfig, type ProjectReference, type ProjectSnapshot, type RunningAgent, type StorageService } from '../../data/data_types'
 import type { RemarkableBridge } from '../../data/remarkable_bridge'
+import { agentAcknowledgementService } from '../agents/agent_acknowledgement_service'
 import { agentConversationService, listAgentConversationReferences, loadAgentConversation } from '../agents/agent_conversation_service'
 import { CardOperations, type CardOperationsDeps } from './card_operations'
 import { configService } from '../config/config_service'
@@ -111,6 +112,7 @@ export class DataService extends EventTarget {
         worktreeService.init({
             assignCardWorktree: (path, worktree) => this.cards.updateCardWorktree(path, worktree),
             cardSeparatorProvider: () => this.requireDependencies().config.cardSeparator,
+            flushPendingChanges: flushAggregatePendingChanges,
             projectProvider: () => this.projectState.project,
             snapshotProvider: () => this.projectState.snapshot,
             storageProvider: () => this.storage,
@@ -322,6 +324,8 @@ export class DataService extends EventTarget {
         this.dispatchEvent(new CustomEvent<DataServiceState>('changed', { detail: this.getState() }))
     }
     private dispatchCardPathChanged(fromPath: string, toPath: string) {
+        const currentProject = this.projectState.project
+        if (currentProject) agentAcknowledgementService.renameCardPath(currentProject.id, fromPath, toPath)
         const detail: CardPathChangedEventDetail = { fromPath, toPath }
         this.dispatchEvent(new CustomEvent<CardPathChangedEventDetail>(CARD_PATH_CHANGED_EVENT, { detail }))
     }

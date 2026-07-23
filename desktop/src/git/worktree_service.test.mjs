@@ -73,7 +73,8 @@ describe('WorktreeService lifecycle', () => {
         await service.refreshLocal();
 
         expect(listener).toHaveBeenCalledTimes(3);
-        expect(listener.mock.calls[0][0]).toEqual({ error: null, project: null, records: [] });
+        expect(listener.mock.calls[0][0]).toEqual({ error: null, primaryStatus: null, project: null, records: [] });
+        expect(listener.mock.calls[2][0].primaryStatus).toMatchObject({ dirty: false });
         expect(listener.mock.calls[2][0].records).toHaveLength(1);
     }, 30000);
 
@@ -103,6 +104,14 @@ describe('WorktreeService lifecycle', () => {
             throw new Error(`Unexpected Git call: ${arguments_.join(' ')}`);
         });
         const service = createService({ runGit });
+        service.primaryRepositoryStatus = vi.fn(async () => ({
+            ahead: 0,
+            baseAhead: 0,
+            baseBehind: 0,
+            behind: 0,
+            dirty: false,
+            hasUpstream: false,
+        }));
 
         const firstStart = service.startProject(firstRepository.project);
         await vi.waitFor(() => expect(runGit).toHaveBeenCalled());
@@ -114,7 +123,7 @@ describe('WorktreeService lifecycle', () => {
         expect(() => service.getRecords(firstRepository.project)).toThrow('not the active worktree project');
     }, 30000);
 
-    it('starts the recursive timer only when linked worktrees exist and stops it on close', async () => {
+    it('starts the recursive timer for primary status and stops it on close', async () => {
         const { project } = await createRepository();
         const setTimeout = vi.fn(() => 7);
         const clearTimeout = vi.fn();
@@ -152,7 +161,7 @@ describe('WorktreeService lifecycle', () => {
         timerCallback();
         const concurrentRefresh = service.refreshLocal();
 
-        expect(service.readWorktreeRecords).toHaveBeenCalledOnce();
+        await vi.waitFor(() => expect(service.readWorktreeRecords).toHaveBeenCalledOnce());
         pendingScan.resolve(records);
         await concurrentRefresh;
     }, 30000);
@@ -260,6 +269,32 @@ describe('WorktreeService operations', () => {
         expect(service.getRecords(project)[0].status).toMatchObject({ baseAhead: 0, baseBehind: 1, hasUpstream: false });
     }, 30000);
 
+    it('pulls incoming primary commits with fast-forward-only Git', async () => {
+        const { parentPath, primaryPath, project } = await createRepository();
+        const remotePath = join(parentPath, 'remote.git');
+        const contributorPath = join(parentPath, 'contributor');
+        await mkdir(remotePath);
+        await git(remotePath, 'init', '--bare');
+        await git(primaryPath, 'remote', 'add', 'origin', remotePath);
+        await git(primaryPath, 'push', '-u', 'origin', 'main');
+        await git(parentPath, 'clone', '--branch', 'main', remotePath, contributorPath);
+        await git(contributorPath, 'config', 'user.email', 'contributor@example.test');
+        await git(contributorPath, 'config', 'user.name', 'Contributor');
+        await writeFile(join(contributorPath, 'incoming.md'), 'incoming\n');
+        await git(contributorPath, 'add', 'incoming.md');
+        await git(contributorPath, 'commit', '-m', 'Incoming');
+        await git(contributorPath, 'push');
+        await git(primaryPath, 'fetch');
+        const service = createService();
+        await service.startProject(project);
+
+        expect(service.state.primaryStatus).toMatchObject({ ahead: 0, behind: 1, dirty: false, hasUpstream: true });
+        await service.pullPrimary(project);
+
+        expect(service.state.primaryStatus).toMatchObject({ ahead: 0, behind: 0, dirty: false, hasUpstream: true });
+        expect(await git(primaryPath, 'show', 'HEAD:incoming.md')).toBe('incoming');
+    }, 30000);
+
     it('rebases a trailing worktree onto the project branch', async () => {
         const { linkedPath, primaryPath, project } = await createRepository();
         const service = createService();
@@ -274,6 +309,52 @@ describe('WorktreeService operations', () => {
 
         expect(service.getRecords(project)[0].status).toMatchObject({ baseAhead: 1, baseBehind: 0, dirty: false });
         expect(await git(linkedPath, 'branch', '--show-current')).toBe('feature');
+    }, 30000);
+
+    it('rebases and fast-forwards worktree changes into the project branch', async () => {
+        const { linkedPath, primaryPath, project } = await createRepository();
+        const service = createService();
+        await writeFile(join(primaryPath, 'project.txt'), 'project\n');
+        await git(primaryPath, 'add', 'project.txt');
+        await git(primaryPath, 'commit', '-m', 'Project changes');
+        await service.startProject(project);
+        await writeFile(join(linkedPath, 'card.txt'), 'card\n');
+        await service.commit(project, 1, 'Card changes');
+
+        await service.integrate(project, 1);
+
+        expect(await git(primaryPath, 'show', 'HEAD:card.txt')).toBe('card');
+        expect(service.getRecords(project)[0].status).toMatchObject({ baseAhead: 0, baseBehind: 0, dirty: false });
+        expect(await git(primaryPath, 'rev-parse', 'HEAD')).toBe(await git(linkedPath, 'rev-parse', 'HEAD'));
+    }, 30000);
+
+    it('checkpoints dirty primary changes before integrating the worktree', async () => {
+        const { linkedPath, primaryPath, project } = await createRepository();
+        const service = createService();
+        await service.startProject(project);
+        await writeFile(join(linkedPath, 'card.txt'), 'card\n');
+        await service.commit(project, 1, 'Card changes');
+        await writeFile(join(primaryPath, 'dirty.txt'), 'dirty\n');
+
+        await service.integrate(project, 1);
+
+        expect(await git(primaryPath, 'show', 'HEAD:dirty.txt')).toBe('dirty');
+        expect(await git(primaryPath, 'show', 'HEAD:card.txt')).toBe('card');
+        expect(await git(primaryPath, 'log', '--format=%s', '-2')).toContain('Save project changes before worktree synchronization');
+        expect(await git(primaryPath, 'status', '--porcelain')).toBe('');
+    }, 30000);
+
+    it('checkpoints dirty primary changes before updating the worktree', async () => {
+        const { linkedPath, primaryPath, project } = await createRepository();
+        const service = createService();
+        await service.startProject(project);
+        await writeFile(join(primaryPath, 'dirty.txt'), 'dirty\n');
+
+        await service.rebase(project, 1);
+
+        expect(await git(linkedPath, 'show', 'HEAD:dirty.txt')).toBe('dirty');
+        expect(await git(primaryPath, 'status', '--porcelain')).toBe('');
+        expect(service.getRecords(project)[0].status).toMatchObject({ baseAhead: 0, baseBehind: 0 });
     }, 30000);
 
     it('refuses to rebase a dirty worktree', async () => {

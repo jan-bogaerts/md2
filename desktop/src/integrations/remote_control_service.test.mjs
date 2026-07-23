@@ -66,7 +66,7 @@ function createDispatcher(overrides = {}) {
             return 'foo.*bar';
         },
         onWorktreesChanged: (onChange) => {
-            onChange({ error: null, project: { branch: 'main', id: 'local' }, records: [] });
+            onChange({ error: null, primaryStatus: null, project: { branch: 'main', id: 'local' }, records: [] });
 
             return vi.fn();
         },
@@ -182,7 +182,7 @@ describe('RemoteControlService', () => {
             event: 'worktreesChanged',
             payload: expect.objectContaining({
                 requestId: 'worktrees-1',
-                state: { error: null, project: { branch: 'main', id: 'local' }, records: [] },
+                state: { error: null, primaryStatus: null, project: { branch: 'main', id: 'local' }, records: [] },
             }),
         }));
         expect(response.result.subscriptionId).toEqual(expect.any(String));

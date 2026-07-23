@@ -31,7 +31,7 @@ const validWorktree: WorktreeRecord = {
 function worktreeStorage(): StorageService {
     return {
         onWorktreesChanged: vi.fn((callback) => {
-            callback({ error: null, project, records: [validWorktree] })
+            callback({ error: null, primaryStatus: null, project, records: [validWorktree] })
             return vi.fn()
         }),
     } as unknown as StorageService
@@ -61,6 +61,7 @@ describe('ActionPopup', () => {
         worktreeService.init({
             assignCardWorktree: vi.fn(),
             cardSeparatorProvider: () => '-',
+            flushPendingChanges: vi.fn(async () => undefined),
             projectProvider: () => project,
             snapshotProvider: () => null,
             storageProvider: () => storage,

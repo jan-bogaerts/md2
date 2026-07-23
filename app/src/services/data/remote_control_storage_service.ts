@@ -243,9 +243,18 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         this.pendingPushBranches.add(request.branch)
     }
 
+    async integrateWorktree(request: WorktreeOperationRequest): Promise<void> {
+        await this.request('integrateWorktree', [request])
+        this.pendingPushBranches.add(request.project.branch)
+    }
+
     async push(project: ProjectReference): Promise<void> {
         await this.request('push', [project])
         this.pendingPushBranches.delete(project.branch)
+    }
+
+    async pull(project: ProjectReference): Promise<void> {
+        await this.request('pull', [project])
     }
 
     async prepareWorktree(request: PrepareWorktreeRequest): Promise<void> {

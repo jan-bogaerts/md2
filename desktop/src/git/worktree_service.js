@@ -3,6 +3,7 @@ const path = require('node:path');
 
 const PARKING_BRANCH_PREFIX = 'md2/parking/';
 const REFRESH_INTERVAL_MS = 5000;
+const PRIMARY_CHECKPOINT_MESSAGE = 'Save project changes before worktree synchronization';
 
 function pathKey(folderPath) {
     const normalized = path.normalize(folderPath);
@@ -66,13 +67,14 @@ class WorktreeService {
         this.mutationQueue = Promise.resolve();
         this.project = null;
         this.projectGeneration = 0;
+        this.primaryStatus = null;
         this.records = [];
         this.refreshIntervalMs = dependencies.refreshIntervalMs ?? REFRESH_INTERVAL_MS;
         this.refreshPromise = null;
         this.refreshTimer = null;
         this.runGit = dependencies.runGit;
         this.setTimeout = dependencies.setTimeout ?? setTimeout;
-        this.state = { error: null, project: null, records: [] };
+        this.state = { error: null, primaryStatus: null, project: null, records: [] };
     }
 
     async startProject(project) {
@@ -84,6 +86,7 @@ class WorktreeService {
         this.projectGeneration += 1;
         this.refreshPromise = null;
         this.project = nextProject;
+        this.primaryStatus = null;
         this.records = [];
         this.publish(null);
         await this.refreshLocal();
@@ -93,6 +96,7 @@ class WorktreeService {
         this.stopTimer();
         this.projectGeneration += 1;
         this.project = null;
+        this.primaryStatus = null;
         this.records = [];
         this.refreshPromise = null;
         this.publish(null);
@@ -163,12 +167,27 @@ class WorktreeService {
 
     refreshRemote(project) {
         return this.enqueueMutation(async () => {
-            this.requireActiveProject(project);
+            const activeProject = this.requireActiveProject(project);
             await this.refreshAfterMutation();
             this.stopTimer();
+            if (this.primaryStatus?.hasUpstream) await this.runGit(activeProject.rootPath, ['fetch']);
             for (const { path: folderPath, status } of this.records) {
                 if (status.hasUpstream) await this.runGit(folderPath, ['fetch']);
             }
+            await this.refreshAfterMutation();
+        });
+    }
+
+    pullPrimary(project) {
+        return this.enqueueMutation(async () => {
+            const activeProject = this.requireActiveProject(project);
+            const status = await this.primaryRepositoryStatus(activeProject);
+            if (status.dirty) throw new Error(`Primary worktree has uncommitted changes: ${activeProject.rootPath}`);
+            if (!status.hasUpstream) throw new Error(`Primary branch has no upstream: ${activeProject.branch}`);
+            if (status.ahead > 0) throw new Error(`Primary branch has outgoing commits: ${activeProject.branch}`);
+            if (status.behind <= 0) throw new Error(`Primary branch has no incoming commits: ${activeProject.branch}`);
+
+            await this.runGit(activeProject.rootPath, ['pull', '--ff-only']);
             await this.refreshAfterMutation();
         });
     }
@@ -230,6 +249,7 @@ class WorktreeService {
     rebase(project, index) {
         return this.enqueueMutation(async () => {
             const activeProject = this.requireActiveProject(project);
+            await this.commitPrimaryChanges(activeProject);
             const cachedRecord = this.resolve(activeProject, index);
             const record = await this.requireClean(cachedRecord, activeProject.branch);
             if (record.branch === activeProject.branch) throw new Error(`Linked worktree is already on the project branch: ${activeProject.branch}`);
@@ -245,6 +265,34 @@ class WorktreeService {
                 await this.refreshAfterMutation();
                 throw error;
             }
+            await this.refreshAfterMutation();
+        });
+    }
+
+    integrate(project, index) {
+        return this.enqueueMutation(async () => {
+            const activeProject = this.requireActiveProject(project);
+            await this.commitPrimaryChanges(activeProject);
+            const cachedRecord = this.resolve(activeProject, index);
+            let record = await this.requireClean(cachedRecord, activeProject.branch);
+            if (record.branch === activeProject.branch) throw new Error(`Linked worktree is already on the project branch: ${activeProject.branch}`);
+            if (record.status.baseBehind > 0) {
+                try {
+                    await this.runGit(record.path, ['rebase', activeProject.branch]);
+                } catch (error) {
+                    try {
+                        await this.runGit(record.path, ['rebase', '--abort']);
+                    } catch {
+                        // The rebase never started; preserve the original failure.
+                    }
+                    await this.refreshAfterMutation();
+                    throw error;
+                }
+                record = await this.revalidateRecord(record, activeProject.branch);
+            }
+            if (record.status.baseAhead <= 0) throw new Error('Linked worktree has no changes to integrate');
+
+            await this.runGit(activeProject.rootPath, ['merge', '--ff-only', record.branch]);
             await this.refreshAfterMutation();
         });
     }
@@ -288,6 +336,16 @@ class WorktreeService {
         throw new Error(`Linked worktree has uncommitted changes: ${record.path}`);
     }
 
+    async commitPrimaryChanges(project) {
+        const branch = (await this.runGit(project.rootPath, ['branch', '--show-current'])).trim();
+        if (branch !== project.branch) throw new Error(`Primary worktree is on ${branch || 'a detached HEAD'}, expected ${project.branch}`);
+        const status = await this.primaryRepositoryStatus(project);
+        if (!status.dirty) return;
+
+        await this.runGit(project.rootPath, ['add', '-A']);
+        await this.runGit(project.rootPath, ['commit', '-m', PRIMARY_CHECKPOINT_MESSAGE]);
+    }
+
     async revalidateRecord(record, projectBranch) {
         const branch = (await this.runGit(record.path, ['branch', '--show-current'])).trim();
         if (branch.length === 0) throw new Error(`Linked worktree has detached HEAD: ${record.path}`);
@@ -312,16 +370,17 @@ class WorktreeService {
             await refreshPromise;
         } finally {
             if (this.refreshPromise === refreshPromise) this.refreshPromise = null;
-            const shouldSchedule = this.project && this.projectGeneration === generation
-                && (this.records.length > 0 || this.state.error !== null);
+            const shouldSchedule = this.project && this.projectGeneration === generation;
             if (shouldSchedule) this.scheduleRefresh();
         }
     }
 
     async performRefresh(project, generation) {
         try {
+            const primaryStatus = await this.primaryRepositoryStatus(project);
             const records = await this.readWorktreeRecords(project);
             if (!this.project || this.projectGeneration !== generation) return;
+            this.primaryStatus = primaryStatus;
             this.records = records;
             this.publish(null);
         } catch (error) {
@@ -337,8 +396,10 @@ class WorktreeService {
         if (!project) throw new Error('No active worktree project');
         const generation = this.projectGeneration;
         this.stopTimer();
+        let primaryStatus;
         let records;
         try {
+            primaryStatus = await this.primaryRepositoryStatus(project);
             records = await this.readWorktreeRecords(project);
         } catch (error) {
             if (!this.project || this.projectGeneration !== generation) return;
@@ -349,13 +410,14 @@ class WorktreeService {
             throw error;
         }
         if (!this.project || this.projectGeneration !== generation) return;
+        this.primaryStatus = primaryStatus;
         this.records = records;
         this.publish(null);
-        if (records.length > 0) this.scheduleRefresh();
+        this.scheduleRefresh();
     }
 
     scheduleRefresh() {
-        if (this.refreshTimer || !this.project || (this.records.length === 0 && this.state.error === null)) return;
+        if (this.refreshTimer || !this.project) return;
         this.refreshTimer = this.setTimeout(() => {
             this.refreshTimer = null;
             void this.refreshLocal();
@@ -369,7 +431,7 @@ class WorktreeService {
     }
 
     publish(error) {
-        const state = { error, project: this.project, records: this.records };
+        const state = { error, primaryStatus: this.primaryStatus, project: this.project, records: this.records };
         if (statesEqual(this.state, state)) return;
         this.state = state;
         for (const listener of this.listeners) this.notifyListener(listener, state);
@@ -407,6 +469,12 @@ class WorktreeService {
 
             return { branch: worktree.branch, error, parkingBranch, path: resolvedPath, status, valid: error === null };
         }));
+    }
+
+    primaryRepositoryStatus(project) {
+        const projectBranch = requireProjectBranch(project);
+
+        return this.status(project.rootPath, projectBranch, projectBranch);
     }
 
     async branchExists(rootPath, branchName) {

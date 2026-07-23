@@ -86,9 +86,11 @@ describe('CardWorktreeIndicator', () => {
         const button = screen.getByRole('button', { name: /F-1: C:\\feature/u })
 
         expect(button).toHaveStyle({ color: 'rgb(249, 168, 37)' })
-        expect(button).toHaveAccessibleName(/dirty yes; ahead of .* 2; behind .* 3; ahead of upstream 2; behind upstream 3/u)
+        expect(button).toHaveAccessibleName(/dirty yes; project changes pending no; ahead of .* 2; behind .* 3/u)
         fireEvent.mouseOver(button)
-        expect(await screen.findByRole('tooltip')).toHaveTextContent('dirty yes; ahead of the project branch 2; behind the project branch 3')
+        expect(await screen.findByRole('tooltip')).toHaveTextContent(
+            'dirty yes; project changes pending no; ahead of the project branch 2; behind the project branch 3',
+        )
     })
 
     it('does not request worktree state while an assigned card agent is running', () => {

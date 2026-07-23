@@ -97,6 +97,7 @@ describe('RemoteControlStorageService', () => {
         const commitRequest = { ...operationRequest, message: 'F-1: Card' }
         const commit = service.commitWorktree(commitRequest)
         const discard = service.discardWorktreeChanges(operationRequest)
+        const integration = service.integrateWorktree(operationRequest)
         const parking = service.parkWorktree(operationRequest)
         const preparation = service.prepareWorktree(preparationRequest)
         const pull = service.pullWorktree(operationRequest)
@@ -110,15 +111,17 @@ describe('RemoteControlStorageService', () => {
         const addRequest = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
         const commitSentRequest = JSON.parse(socket.sent[1]) as { id: string, method: string, params: unknown[] }
         const discardRequest = JSON.parse(socket.sent[2]) as { id: string, method: string, params: unknown[] }
-        const parkRequest = JSON.parse(socket.sent[3]) as { id: string, method: string, params: unknown[] }
-        const prepareRequest = JSON.parse(socket.sent[4]) as { id: string, method: string, params: unknown[] }
-        const pullRequest = JSON.parse(socket.sent[5]) as { id: string, method: string, params: unknown[] }
-        const pushRequest = JSON.parse(socket.sent[6]) as { id: string, method: string, params: unknown[] }
-        const refreshRequest = JSON.parse(socket.sent[7]) as { id: string, method: string, params: unknown[] }
-        const removeRequest = JSON.parse(socket.sent[8]) as { id: string, method: string, params: unknown[] }
+        const integrateRequest = JSON.parse(socket.sent[3]) as { id: string, method: string, params: unknown[] }
+        const parkRequest = JSON.parse(socket.sent[4]) as { id: string, method: string, params: unknown[] }
+        const prepareRequest = JSON.parse(socket.sent[5]) as { id: string, method: string, params: unknown[] }
+        const pullRequest = JSON.parse(socket.sent[6]) as { id: string, method: string, params: unknown[] }
+        const pushRequest = JSON.parse(socket.sent[7]) as { id: string, method: string, params: unknown[] }
+        const refreshRequest = JSON.parse(socket.sent[8]) as { id: string, method: string, params: unknown[] }
+        const removeRequest = JSON.parse(socket.sent[9]) as { id: string, method: string, params: unknown[] }
         expect(addRequest).toMatchObject({ method: 'addWorktree', params: [project] })
         expect(commitSentRequest).toMatchObject({ method: 'commitWorktree', params: [commitRequest] })
         expect(discardRequest).toMatchObject({ method: 'discardWorktreeChanges', params: [operationRequest] })
+        expect(integrateRequest).toMatchObject({ method: 'integrateWorktree', params: [operationRequest] })
         expect(parkRequest).toMatchObject({ method: 'parkWorktree', params: [operationRequest] })
         expect(prepareRequest).toMatchObject({ method: 'prepareWorktree', params: [preparationRequest] })
         expect(pullRequest).toMatchObject({ method: 'pullWorktree', params: [operationRequest] })
@@ -126,19 +129,36 @@ describe('RemoteControlStorageService', () => {
         expect(refreshRequest).toMatchObject({ method: 'refreshWorktrees', params: [project] })
         expect(removeRequest).toMatchObject({ method: 'removeWorktree', params: [project, 'C:/feature'] })
         for (const request of [
-            addRequest, commitSentRequest, discardRequest, parkRequest, prepareRequest,
+            addRequest, commitSentRequest, discardRequest, integrateRequest, parkRequest, prepareRequest,
             pullRequest, pushRequest, refreshRequest, removeRequest,
         ]) socket.receive({ id: request.id, result: request === addRequest })
 
         await expect(addition).resolves.toBe(true)
         await expect(commit).resolves.toBeUndefined()
         await expect(discard).resolves.toBeUndefined()
+        await expect(integration).resolves.toBeUndefined()
         await expect(parking).resolves.toBeUndefined()
         await expect(preparation).resolves.toBeUndefined()
         await expect(pull).resolves.toBeUndefined()
         await expect(push).resolves.toBeUndefined()
         await expect(refresh).resolves.toBeUndefined()
         await expect(removal).resolves.toBeUndefined()
+    })
+
+    it('proxies primary pull', async () => {
+        installWebSocket()
+        const service = createService()
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
+        const pull = service.pull(project)
+        const socket = lastSocket()
+
+        socket.open()
+        await flushPromises()
+        const request = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
+        expect(request).toMatchObject({ method: 'pull', params: [project] })
+        socket.receive({ id: request.id, result: null })
+
+        await expect(pull).resolves.toBeUndefined()
     })
 
     it('delivers initial and later pushed worktree state and unsubscribes', async () => {
@@ -148,7 +168,7 @@ describe('RemoteControlStorageService', () => {
         const unsubscribe = service.onWorktreesChanged(callback)
         const socket = lastSocket()
         const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
-        const state = { error: null, project, records: [] }
+        const state = { error: null, primaryStatus: null, project, records: [] }
 
         socket.open()
         await flushPromises()
@@ -184,7 +204,11 @@ describe('RemoteControlStorageService', () => {
         expect(unsubscribeRequest).toEqual(expect.objectContaining({ method: 'unsubscribe', params: ['worktrees-1'] }))
         socket.receive({
             event: 'worktreesChanged',
-            payload: { requestId: request.id, state: { error: null, project: null, records: [] }, subscriptionId: 'worktrees-1' },
+            payload: {
+                requestId: request.id,
+                state: { error: null, primaryStatus: null, project: null, records: [] },
+                subscriptionId: 'worktrees-1',
+            },
         })
         expect(callback).not.toHaveBeenCalled()
     })

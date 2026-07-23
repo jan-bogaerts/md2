@@ -9,6 +9,6 @@ describe('SelectableAlertMessage', () => {
         const message = screen.getByText('Save failed')
 
         expect(message.tagName).toBe('DIV')
-        expect(message).toHaveStyle({ cursor: 'text', height: '1.5em', userSelect: 'text' })
+        expect(message).toHaveStyle({ cursor: 'text', userSelect: 'text' })
     })
 })

@@ -2,7 +2,7 @@
   "name": "md2",
   "private": true,
   "scripts": {
-    "build:windows": "node desktop/build_windows.js",
+    "build:windows": "node desktop/packaging/build_windows.js",
     "dev": "concurrently -k -n APP,DESKTOP -c blue,green \"npm:dev:app\" \"npm:dev:desktop\"",
     "dev:app": "npm run dev --prefix app",
     "dev:desktop": "wait-on http://localhost:5173 && npm start --prefix desktop",

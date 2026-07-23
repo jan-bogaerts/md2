@@ -4,6 +4,8 @@ import type { ChangeEvent, MouseEvent as ReactMouseEvent, ReactNode, SyntheticEv
 import { useCallback, useState } from 'react'
 import CardsOutline from 'mdi-material-ui/CardsOutline'
 import CheckCircleOutline from 'mdi-material-ui/CheckCircleOutline'
+import CloudArrowDownOutline from 'mdi-material-ui/CloudArrowDownOutline'
+import CloudArrowUpOutline from 'mdi-material-ui/CloudArrowUpOutline'
 import Cog from 'mdi-material-ui/Cog'
 import ContentSaveOutline from 'mdi-material-ui/ContentSaveOutline'
 import FileDocumentPlusOutline from 'mdi-material-ui/FileDocumentPlusOutline'
@@ -23,6 +25,7 @@ import { useConfigValue, useHasDesktopConfig } from '../../hooks/use_config_valu
 import { useProjectState } from '../../hooks/use_project_state'
 import { useProjectPersistence } from '../../hooks/use_project_persistence'
 import { useProjectConfig } from '../../hooks/use_project_config'
+import { usePrimaryWorktreeStatus } from '../../hooks/use_worktrees'
 import { useWorkspaceView } from '../../hooks/use_workspace_view'
 import { ActionEntryPoints } from '../../actions/action_entry_points'
 import { MainToolbar } from './main_toolbar'
@@ -72,6 +75,7 @@ export function AppMenu(props: AppMenuProps) {
     const { accessToken, auth, extraActions, isGithubAuthenticated, isMobile, onOpenConfig, onOpenMobileMenu, search } = props
     const { project } = useProjectState()
     const { hasPendingPush, hasPendingSave } = useProjectPersistence()
+    const primaryWorktreeStatus = usePrimaryWorktreeStatus()
     const projectConfig = useProjectConfig()
     const { viewMode } = useWorkspaceView()
     const [currentTab, setCurrentTab] = useState<AppMenuTab>('home')
@@ -131,9 +135,25 @@ export function AppMenu(props: AppMenuProps) {
         openDialog('card')
     }
 
-    const handleSave = async () => {
+    const handleCommit = async () => {
+        try {
+            await actions.commit()
+        } catch {
+            // ProjectSessionService emits the user-visible error.
+        }
+    }
+
+    const handlePush = async () => {
         try {
             await actions.push()
+        } catch {
+            // ProjectSessionService emits the user-visible error.
+        }
+    }
+
+    const handlePull = async () => {
+        try {
+            await actions.pull()
         } catch {
             // ProjectSessionService emits the user-visible error.
         }
@@ -267,15 +287,40 @@ export function AppMenu(props: AppMenuProps) {
                             onOpen={handleLoadBranches}
                             value={selectedBranch}
                         />
-                        {actions.pushMode === 'manual' ? (
-                            <MenuIconButton
-                                disabled={!actions.isProjectOpen || actions.isLoading || (!hasPendingPush && !hasPendingSave)}
-                                label="Push"
-                                onClick={handleSave}
-                            >
-                                <ContentSaveOutline fontSize="small" />
-                            </MenuIconButton>
-                        ) : null}
+                        <MenuIconButton
+                            disabled={!actions.isProjectOpen || actions.isLoading || !hasPendingSave}
+                            label="Commit"
+                            onClick={handleCommit}
+                        >
+                            <ContentSaveOutline fontSize="small" />
+                        </MenuIconButton>
+                        <MenuIconButton
+                            disabled={
+                                !actions.isProjectOpen
+                                || actions.isLoading
+                                || (!hasPendingPush && (primaryWorktreeStatus?.ahead ?? 0) <= 0)
+                            }
+                            label="Push"
+                            onClick={handlePush}
+                        >
+                            <CloudArrowUpOutline fontSize="small" />
+                        </MenuIconButton>
+                        <MenuIconButton
+                            disabled={
+                                !actions.isProjectOpen
+                                || actions.isLoading
+                                || hasPendingSave
+                                || hasPendingPush
+                                || !primaryWorktreeStatus?.hasUpstream
+                                || primaryWorktreeStatus.dirty
+                                || primaryWorktreeStatus.ahead > 0
+                                || primaryWorktreeStatus.behind <= 0
+                            }
+                            label="Pull"
+                            onClick={handlePull}
+                        >
+                            <CloudArrowDownOutline fontSize="small" />
+                        </MenuIconButton>
                     </Section>
                     <Divider flexItem orientation="vertical" sx={{ my: 1.5 }} />
                     <Section label="Settings">

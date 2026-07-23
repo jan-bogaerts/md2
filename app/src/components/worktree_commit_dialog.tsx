@@ -2,24 +2,28 @@ import { Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField, T
 import type { ChangeEvent } from 'react'
 
 interface WorktreeCommitDialogProps {
+    action: 'commit' | 'integrate' | 'update'
     busy: boolean
     message: string
     onClose: () => void
     onCommit: (message: string) => Promise<void>
     onMessageChange: (message: string) => void
     open: boolean
-    push: boolean
 }
 
 /** Collects a commit message for one card worktree operation. */
 export function WorktreeCommitDialog(props: WorktreeCommitDialogProps) {
-    const { busy, message, onClose, onCommit, onMessageChange, open, push } = props
+    const { action, busy, message, onClose, onCommit, onMessageChange, open } = props
     const handleMessageChange = (event: ChangeEvent<HTMLInputElement>) => onMessageChange(event.target.value)
     const handleCommit = async () => onCommit(message)
+    const actionLabel = action === 'integrate' ? 'Commit & integrate' : action === 'update' ? 'Commit & update' : 'Commit'
+    const title = action === 'integrate'
+        ? 'Commit and integrate worktree'
+        : action === 'update' ? 'Commit and update worktree' : 'Commit worktree'
 
     return (
         <Dialog fullWidth maxWidth="xs" onClose={onClose} open={open}>
-            <DialogTitle>{push ? 'Commit and push worktree' : 'Commit worktree'}</DialogTitle>
+            <DialogTitle>{title}</DialogTitle>
             <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 1, pt: 1 }}>
                 <Typography color="text.secondary">Commit message</Typography>
                 <TextField autoFocus disabled={busy} onChange={handleMessageChange} size="small" value={message} />
@@ -27,7 +31,7 @@ export function WorktreeCommitDialog(props: WorktreeCommitDialogProps) {
             <DialogActions>
                 <Button onClick={onClose}>Cancel</Button>
                 <Button disabled={busy || message.trim().length === 0} onClick={handleCommit} variant="contained">
-                    {push ? 'Commit & push' : 'Commit'}
+                    {actionLabel}
                 </Button>
             </DialogActions>
         </Dialog>

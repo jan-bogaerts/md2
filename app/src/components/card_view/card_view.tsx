@@ -149,7 +149,9 @@ export function CardView(props: CardViewProps) {
     }
 
     const handleTitleChange = (path: string, title: string) => {
-        runCardEdit(() => dataService.cards.updateCardTitle(path, title), `Title update failed: ${path}`)
+        dataService.cards.updateCardTitle(path, title).catch((error: unknown) => {
+            dialogService.error(error, { fallbackMessage: `Title update failed: ${path}` })
+        })
     }
 
     const handleTogglePolicy = (path: string, policyKey: string) => {

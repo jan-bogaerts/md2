@@ -44,6 +44,7 @@ function createBridge(): ElectronDataBridge {
         onWorktreesChanged: vi.fn(() => vi.fn()),
         moveFiles: vi.fn(),
         openProjectFolder: vi.fn(async () => ({ branch: 'main', id: 'local', rootPath: 'C:/repo' })),
+        pull: vi.fn(),
         push: vi.fn(),
         resolveProject: vi.fn(async (project) => project),
         saveProjectConfig: vi.fn(),
@@ -126,6 +127,9 @@ describe('AppMenu', () => {
         expect(screen.queryByRole('tab', { name: 'Format' })).not.toBeInTheDocument()
         expect(screen.getByRole('tab', { name: 'Run' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Open project' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Commit' })).toBeDisabled()
+        expect(screen.getByRole('button', { name: 'Push' })).toBeDisabled()
+        expect(screen.getByRole('button', { name: 'Pull' })).toBeDisabled()
         expect(screen.getByRole('button', { name: 'Config' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Cards view' })).toHaveTextContent('Board')
         expect(screen.getByRole('button', { name: 'Text view' })).toHaveTextContent('List')
@@ -324,7 +328,7 @@ describe('AppMenu', () => {
         expect(screen.getByRole('combobox', { name: 'Default reasoning level' })).toHaveTextContent('low')
     })
 
-    it('flushes pending changes before pushing in manual push mode', async () => {
+    it('commits pending changes before enabling manual push', async () => {
         const bridge = createBridge()
         const files = [{ content: '---\nid: F-1\ninternalId: f-1\ntitle: Root\nstatus: active\n---\n\n# Root', path: 'design/F-1-root.md' }]
         bridge.loadProjectConfig = vi.fn(async () => ({
@@ -339,21 +343,64 @@ describe('AppMenu', () => {
 
         renderMenu()
         await openLocalProject()
+        const commitButton = screen.getByRole('button', { name: 'Commit' })
         const pushButton = screen.getByRole('button', { name: 'Push' })
+        expect(commitButton).toBeDisabled()
         expect(pushButton).toBeDisabled()
 
         act(() => {
             dataService.cards.updateCardBody('design/F-1-root.md', 'Changed before push')
         })
 
+        await waitFor(() => expect(commitButton).toBeEnabled())
+        expect(pushButton).toBeDisabled()
+        fireEvent.click(commitButton)
+
+        await waitFor(() => expect(bridge.commit).toHaveBeenCalled())
         await waitFor(() => expect(pushButton).toBeEnabled())
         fireEvent.click(pushButton)
 
-        await waitFor(() => expect(bridge.commit).toHaveBeenCalled())
         await waitFor(() => expect(bridge.push).toHaveBeenCalledWith(expect.objectContaining({ id: 'local' })))
-        const commit = vi.mocked(bridge.commit)
-        const push = vi.mocked(bridge.push)
-        expect(commit.mock.invocationCallOrder[0]).toBeLessThan(push.mock.invocationCallOrder[0])
         expect(pushButton).toBeDisabled()
+    })
+
+    it('pulls only when the primary worktree monitor reports clean incoming commits', async () => {
+        let onWorktreesChanged: ((state: {
+            error: string | null
+            primaryStatus: {
+                ahead: number
+                baseAhead: number
+                baseBehind: number
+                behind: number
+                dirty: boolean
+                hasUpstream: boolean
+            }
+            project: { branch: string, id: string, rootPath: string }
+            records: []
+        }) => void) | null = null
+        const bridge = createBridge()
+        bridge.onWorktreesChanged = vi.fn((callback) => {
+            onWorktreesChanged = callback
+
+            return vi.fn()
+        })
+        window.md2Data = bridge
+        renderMenu()
+        await openLocalProject()
+        const pullButton = screen.getByRole('button', { name: 'Pull' })
+        expect(pullButton).toBeDisabled()
+
+        act(() => {
+            onWorktreesChanged?.({
+                error: null,
+                primaryStatus: { ahead: 0, baseAhead: 0, baseBehind: 0, behind: 1, dirty: false, hasUpstream: true },
+                project: { branch: 'main', id: 'local', rootPath: 'C:/repo' },
+                records: [],
+            })
+        })
+
+        await waitFor(() => expect(pullButton).toBeEnabled())
+        fireEvent.click(pullButton)
+        await waitFor(() => expect(bridge.pull).toHaveBeenCalledWith(expect.objectContaining({ id: 'local' })))
     })
 })

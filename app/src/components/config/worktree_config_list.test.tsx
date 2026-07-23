@@ -20,6 +20,7 @@ function initWorktreeService(storage: StorageService) {
     worktreeService.init({
         assignCardWorktree: vi.fn(),
         cardSeparatorProvider: () => '-',
+        flushPendingChanges: vi.fn(async () => undefined),
         projectProvider: () => project,
         snapshotProvider: () => null,
         storageProvider: () => storage,
@@ -33,18 +34,23 @@ describe('WorktreeConfigList', () => {
     })
 
     it('adds and removes Git worktrees immediately', async () => {
-        let callback: ((state: { error: null, project: ProjectReference, records: WorktreeRecord[] }) => void) | null = null
+        let callback: ((state: {
+            error: null
+            primaryStatus: null
+            project: ProjectReference
+            records: WorktreeRecord[]
+        }) => void) | null = null
         const storage = {
             addWorktree: vi.fn(async () => {
-                callback?.({ error: null, project, records: [first, second] })
+                callback?.({ error: null, primaryStatus: null, project, records: [first, second] })
                 return true
             }),
             onWorktreesChanged: vi.fn((listener) => {
                 callback = listener
-                listener({ error: null, project, records: [first] })
+                listener({ error: null, primaryStatus: null, project, records: [first] })
                 return vi.fn()
             }),
-            removeWorktree: vi.fn(async () => callback?.({ error: null, project, records: [second] })),
+            removeWorktree: vi.fn(async () => callback?.({ error: null, primaryStatus: null, project, records: [second] })),
         } as unknown as StorageService
         initWorktreeService(storage)
 
@@ -66,7 +72,7 @@ describe('WorktreeConfigList', () => {
         const storage = {
             addWorktree: vi.fn(() => pendingAddition.promise),
             onWorktreesChanged: vi.fn((listener) => {
-                listener({ error: null, project, records: [first] })
+                listener({ error: null, primaryStatus: null, project, records: [first] })
                 return vi.fn()
             }),
         } as unknown as StorageService

@@ -82,6 +82,9 @@ export class CardMarkdownDataSource extends MarkdownDataSourceBase {
         const card = document.getDraft()
         document.updateDraft({ ...card, header: { ...card.header, title } }, this)
         this.requireService().cards.updateCardTitle(document.path, title, document.createSaveReference())
+            .catch((error: unknown) => {
+                dialogService.error(error, { fallbackMessage: `Title update failed: ${document.path}` })
+            })
     }
 
     updateActiveCardHeaderField(binding: CardBinding, key: string, value: string) {

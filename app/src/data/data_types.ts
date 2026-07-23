@@ -119,6 +119,7 @@ export interface WorktreeRecord {
 
 export interface WorktreeState {
     error: string | null
+    primaryStatus: WorktreeStatus | null
     project: ProjectReference | null
     records: WorktreeRecord[]
 }
@@ -340,9 +341,11 @@ export interface StorageService {
     listRepositoryFiles(project: ProjectReference): Promise<string[]>
     listTopLevelFolders(project: ProjectReference): Promise<TopLevelFolderReference[]>
     loadPendingPush?(project: ProjectReference): Promise<void>
+    integrateWorktree?(request: WorktreeOperationRequest): Promise<void>
     moveFiles(request: MoveFilesRequest): Promise<void>
     parkWorktree?(request: WorktreeOperationRequest): Promise<void>
     prepareWorktree?(request: PrepareWorktreeRequest): Promise<void>
+    pull?(project: ProjectReference): Promise<void>
     pullWorktree?(request: WorktreeOperationRequest): Promise<void>
     rebaseWorktree?(request: WorktreeOperationRequest): Promise<void>
     push(project: ProjectReference): Promise<void>

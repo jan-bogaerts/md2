@@ -1,11 +1,20 @@
 import { slugifyTitle } from '../../data/card_naming'
 import type { CardSeparator } from '../../data/card_identifiers'
-import type { ProjectCard, ProjectReference, ProjectSnapshot, StorageService, WorktreeRecord, WorktreeState } from '../../data/data_types'
+import type {
+    ProjectCard,
+    ProjectReference,
+    ProjectSnapshot,
+    StorageService,
+    WorktreeRecord,
+    WorktreeState,
+    WorktreeStatus,
+} from '../../data/data_types'
 import { register } from '.././service_injector'
 
 interface WorktreeServiceDependencies {
     assignCardWorktree: (path: string, worktree: number | null) => void
     cardSeparatorProvider: () => CardSeparator
+    flushPendingChanges: () => Promise<void>
     projectProvider: () => ProjectReference | null
     snapshotProvider: () => ProjectSnapshot | null
     storageProvider: () => StorageService | null
@@ -16,9 +25,11 @@ export class WorktreeService extends EventTarget {
     private assignCardWorktreeValue: ((path: string, worktree: number | null) => void) | null = null
     private cardSeparatorProvider: (() => CardSeparator) | null = null
     private error: string | null = null
+    private flushPendingChanges: (() => Promise<void>) | null = null
     private pendingAssignments = new Map<number, string>()
     private preparingCardPaths = new Set<string>()
     private projectActionWorktree: number | null = null
+    private primaryStatus: WorktreeStatus | null = null
     private projectProvider: (() => ProjectReference | null) | null = null
     private records: WorktreeRecord[] = []
     private snapshotProvider: (() => ProjectSnapshot | null) | null = null
@@ -36,6 +47,10 @@ export class WorktreeService extends EventTarget {
 
     getProjectActionWorktree() {
         return this.projectActionWorktree
+    }
+
+    getPrimaryStatus() {
+        return this.primaryStatus
     }
 
     /** The branch linked worktrees are rebased onto; null before a project is open. */
@@ -71,6 +86,7 @@ export class WorktreeService extends EventTarget {
         this.subscriptionCleanup?.()
         this.assignCardWorktreeValue = dependencies.assignCardWorktree
         this.cardSeparatorProvider = dependencies.cardSeparatorProvider
+        this.flushPendingChanges = dependencies.flushPendingChanges
         this.projectProvider = dependencies.projectProvider
         this.snapshotProvider = dependencies.snapshotProvider
         this.storageProvider = dependencies.storageProvider
@@ -80,6 +96,7 @@ export class WorktreeService extends EventTarget {
 
     clear() {
         this.projectActionWorktree = null
+        this.primaryStatus = null
         this.error = null
         this.records = []
         this.dispatchChanged()
@@ -157,50 +174,38 @@ export class WorktreeService extends EventTarget {
         return `${card.header.id}: ${card.header.title}`
     }
 
-    async commitCardWorktree(path: string, message: string, push: boolean) {
+    async commitCardWorktree(path: string, message: string) {
         const { project, storage, worktree } = this.requireCardOperation(path)
         if (!storage.commitWorktree) throw new Error('Worktree commits require Electron local mode')
-        if (push && !storage.pushWorktree) throw new Error('Worktree pushes require Electron local mode')
 
         this.startCardOperation(path)
         try {
             await storage.commitWorktree({ message, project, worktree })
-            if (push && storage.pushWorktree) await storage.pushWorktree({ project, worktree })
         } finally {
             this.finishCardOperation(path)
         }
     }
 
-    async pushCardWorktree(path: string) {
+    async integrateCardWorktree(path: string) {
         const { project, storage, worktree } = this.requireCardOperation(path)
-        if (!storage.pushWorktree) throw new Error('Worktree pushes require Electron local mode')
+        if (!storage.integrateWorktree) throw new Error('Worktree integration requires Electron local mode')
 
         this.startCardOperation(path)
         try {
-            await storage.pushWorktree({ project, worktree })
+            await this.requirePendingChangesFlusher()()
+            await storage.integrateWorktree({ project, worktree })
         } finally {
             this.finishCardOperation(path)
         }
     }
 
-    async pullCardWorktree(path: string) {
+    async updateCardWorktree(path: string) {
         const { project, storage, worktree } = this.requireCardOperation(path)
-        if (!storage.pullWorktree) throw new Error('Worktree pulls require Electron local mode')
+        if (!storage.rebaseWorktree) throw new Error('Worktree updates require Electron local mode')
 
         this.startCardOperation(path)
         try {
-            await storage.pullWorktree({ project, worktree })
-        } finally {
-            this.finishCardOperation(path)
-        }
-    }
-
-    async rebaseCardWorktree(path: string) {
-        const { project, storage, worktree } = this.requireCardOperation(path)
-        if (!storage.rebaseWorktree) throw new Error('Worktree rebases require Electron local mode')
-
-        this.startCardOperation(path)
-        try {
+            await this.requirePendingChangesFlusher()()
             await storage.rebaseWorktree({ project, worktree })
         } finally {
             this.finishCardOperation(path)
@@ -215,23 +220,6 @@ export class WorktreeService extends EventTarget {
         this.startCardOperation(path)
         try {
             await storage.discardWorktreeChanges({ project, worktree })
-            await storage.parkWorktree({ project, worktree })
-            this.requireAssignmentWriter()(path, null)
-        } finally {
-            this.finishCardOperation(path)
-        }
-    }
-
-    async commitPushAndUnassignCardWorktree(path: string, message: string) {
-        const { project, storage, worktree } = this.requireCardOperation(path)
-        if (!storage.commitWorktree) throw new Error('Worktree commits require Electron local mode')
-        if (!storage.pushWorktree) throw new Error('Worktree pushes require Electron local mode')
-        if (!storage.parkWorktree) throw new Error('Worktree parking requires Electron local mode')
-
-        this.startCardOperation(path)
-        try {
-            await storage.commitWorktree({ message, project, worktree })
-            await storage.pushWorktree({ project, worktree })
             await storage.parkWorktree({ project, worktree })
             this.requireAssignmentWriter()(path, null)
         } finally {
@@ -277,9 +265,11 @@ export class WorktreeService extends EventTarget {
         const project = this.projectProvider?.()
         if (!project || !state.project || project.id !== state.project.id || project.branch !== state.project.branch) return
         const recordsChanged = JSON.stringify(this.records) !== JSON.stringify(state.records)
-        if (!recordsChanged && this.error === state.error) return
+        const primaryStatusChanged = JSON.stringify(this.primaryStatus) !== JSON.stringify(state.primaryStatus)
+        if (!recordsChanged && !primaryStatusChanged && this.error === state.error) return
 
         if (recordsChanged) this.records = state.records
+        if (primaryStatusChanged) this.primaryStatus = state.primaryStatus
         this.error = state.error
         this.dispatchChanged()
     }
@@ -346,6 +336,12 @@ export class WorktreeService extends EventTarget {
         if (!storage) throw new Error('Worktree service storage is not initialized')
 
         return storage
+    }
+
+    private requirePendingChangesFlusher() {
+        if (!this.flushPendingChanges) throw new Error('Worktree pending-change flusher is not initialized')
+
+        return this.flushPendingChanges
     }
 
     private dispatchChanged() {

@@ -1,0 +1,11 @@
+{
+  "id": "955fb93e-df25-41fe-8c14-54e7a4c1471d",
+  "label": "seed cards",
+  "description": "Create initial set of cards from the architectural design docs",
+  "type": "agent",
+  "phrases": [],
+  "prompt": "Describe what the agent should do.",
+  "appliesTo": {
+    "kind": "project"
+  }
+}

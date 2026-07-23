@@ -8,6 +8,7 @@ const STORAGE_SAVE_METHODS = new Set<PropertyKey>([
     'createProject',
     'deleteFile',
     'deleteFolder',
+    'integrateWorktree',
     'moveFiles',
     'removeWorktree',
     'saveActionSchedules',

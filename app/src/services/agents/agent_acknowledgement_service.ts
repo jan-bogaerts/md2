@@ -42,6 +42,19 @@ export class AgentAcknowledgementService extends EventTarget {
         register('agentAcknowledgementService', this)
     }
 
+    /** Keeps acknowledgements attached to a card after its file was renamed. */
+    renameCardPath(projectId: string, fromPath: string, toPath: string) {
+        const values = readAcknowledgements()
+        const fromKey = cardKey(projectId, fromPath)
+        const acknowledgedAt = values[fromKey]
+        if (!acknowledgedAt) return
+
+        delete values[fromKey]
+        values[cardKey(projectId, toPath)] = acknowledgedAt
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(values))
+        this.dispatchEvent(new CustomEvent('changed'))
+    }
+
     acknowledge(projectId: string, cardPath: string, conversations: AgentConversation[]) {
         const timestamp = latestCompletedTimestamp(conversations)
         if (!timestamp) return

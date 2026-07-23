@@ -44,7 +44,9 @@ export type ProjectOpenResolution = MissingWorkingFolderResolution | ProjectFold
 
 export interface ProjectSessionState {
     errorMessage: string | null
+    isCommitting: boolean
     isLoading: boolean
+    isPulling: boolean
     isPushing: boolean
     pendingGithubConflictProject: ProjectReference | null
 }
@@ -135,7 +137,14 @@ async function loadProjectSession(storage: StorageService, storageType: StorageT
 }
 
 export class ProjectSessionService extends EventTarget {
-    private state: ProjectSessionState = { errorMessage: null, isLoading: false, isPushing: false, pendingGithubConflictProject: null }
+    private state: ProjectSessionState = {
+        errorMessage: null,
+        isCommitting: false,
+        isLoading: false,
+        isPulling: false,
+        isPushing: false,
+        pendingGithubConflictProject: null,
+    }
 
     constructor() {
         super()
@@ -265,6 +274,30 @@ export class ProjectSessionService extends EventTarget {
             })
         } finally {
             this.state = { ...this.state, isPushing: false }
+            this.dispatchChanged()
+        }
+    }
+
+    async commit() {
+        this.state = { ...this.state, isCommitting: true }
+        this.dispatchChanged()
+
+        try {
+            await this.withLoading('Commit failed', () => projectPersistenceService.flushPendingChanges())
+        } finally {
+            this.state = { ...this.state, isCommitting: false }
+            this.dispatchChanged()
+        }
+    }
+
+    async pull() {
+        this.state = { ...this.state, isPulling: true }
+        this.dispatchChanged()
+
+        try {
+            await this.withLoading('Pull failed', () => dataService.projectLoading.pull())
+        } finally {
+            this.state = { ...this.state, isPulling: false }
             this.dispatchChanged()
         }
     }

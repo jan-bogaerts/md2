@@ -220,6 +220,50 @@ describe('DataService', () => {
         })
     })
 
+    it('reloads project configuration when the watched config file changes', async () => {
+        configService.init()
+        let watchChange: (event: { changeKind: 'changed'; path: string }) => void = () => {
+            throw new Error('Watcher not registered')
+        }
+        const loadProjectConfig = vi.fn()
+            .mockResolvedValueOnce({ backgroundShade: 'blue' as const, projectFolder: '', pushMode: 'manual' as const, workingFolder: 'design' })
+            .mockResolvedValueOnce({ backgroundShade: 'green' as const, projectFolder: '', pushMode: 'auto' as const, workingFolder: 'design' })
+        const storage = createStorage({
+            loadProjectConfig,
+            watchProject: vi.fn((_project, onChange) => {
+                watchChange = onChange
+
+                return vi.fn()
+            }),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+
+        watchChange({ changeKind: 'changed', path: 'md2.config.json' })
+
+        await vi.waitFor(() => {
+            expect(configService.getProjectConfig()).toMatchObject({ backgroundShade: 'green', pushMode: 'auto' })
+        })
+        expect(loadProjectConfig).toHaveBeenCalledTimes(2)
+    })
+
+    it('pulls through storage without reloading the project snapshot', async () => {
+        configService.init()
+        const pull = vi.fn()
+        const loadProjectRoot = vi.fn(async () => ({ files: [], workingFolder: 'design' }))
+        const storage = createStorage({ loadProjectRoot, pull })
+        const service = createDataService()
+        service.init({ storage })
+        const project = { branch: 'main', id: 'project' }
+        await service.projectLoading.openProject(project)
+
+        await service.projectLoading.pull()
+
+        expect(pull).toHaveBeenCalledWith(project)
+        expect(loadProjectRoot).toHaveBeenCalledOnce()
+    })
+
     it('handles GitHub unauthorized once when a batched commit gets a 401', async () => {
         configService.init()
         const handleUnauthorized = vi.fn()

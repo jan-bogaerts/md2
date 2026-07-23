@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { assertAppContentIsReleaseSafe, assertPackageEntries, resolveArtifactPaths } from './verify_windows_package.mjs';
 
 const validEntries = [
+    'package.json',
     'desktop/main.js',
     'desktop/src/shell/preload.js',
     'desktop/renderer/index.html',
@@ -37,6 +38,8 @@ describe('Windows package verification', () => {
             .toThrow('Packaged application missing renderer assets');
         expect(() => assertPackageEntries([...validEntries, 'build/signing.pfx']))
             .toThrow('Forbidden packaged files: build/signing.pfx');
+        expect(() => assertPackageEntries([...validEntries, 'desktop/packaging/signing_secrets.json']))
+            .toThrow('Forbidden packaged files: desktop/packaging/signing_secrets.json');
     });
 
     it('rejects development URLs and signing-password names in app content', () => {

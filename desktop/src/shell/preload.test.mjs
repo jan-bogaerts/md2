@@ -82,8 +82,10 @@ describe('preload desktop agent bridge', () => {
         expect(exposed.md2Data.prepareWorktree).toEqual(expect.any(Function));
         expect(exposed.md2Data.commitWorktree).toEqual(expect.any(Function));
         expect(exposed.md2Data.discardWorktreeChanges).toEqual(expect.any(Function));
+        expect(exposed.md2Data.integrateWorktree).toEqual(expect.any(Function));
         expect(exposed.md2Data.parkWorktree).toEqual(expect.any(Function));
         expect(exposed.md2Data.pullWorktree).toEqual(expect.any(Function));
+        expect(exposed.md2Data.pull).toEqual(expect.any(Function));
         expect(exposed.md2Data.pushWorktree).toEqual(expect.any(Function));
         expect(exposed.md2Data.refreshWorktrees).toEqual(expect.any(Function));
         expect(exposed.md2Data.onWorktreesChanged).toEqual(expect.any(Function));
@@ -102,11 +104,14 @@ describe('preload desktop agent bridge', () => {
         const listener = listenerCall[1];
         const subscriptionRequest = electron.ipcRenderer.send.mock.calls.find(([channel]) => channel === 'md2-local-bridge:subscribe')[1];
 
-        listener({}, { eventId: subscriptionRequest.subscriptionId, payload: { error: null, project: null, records: [] } });
+        listener({}, {
+            eventId: subscriptionRequest.subscriptionId,
+            payload: { error: null, primaryStatus: null, project: null, records: [] },
+        });
         unsubscribe();
 
         expect(subscriptionRequest).toEqual(expect.objectContaining({ method: 'onWorktreesChanged', params: [] }));
-        expect(callback).toHaveBeenCalledWith({ error: null, project: null, records: [] });
+        expect(callback).toHaveBeenCalledWith({ error: null, primaryStatus: null, project: null, records: [] });
         expect(electron.ipcRenderer.send).toHaveBeenCalledWith('md2-local-bridge:unsubscribe', subscriptionRequest.subscriptionId);
     });
 

@@ -19,7 +19,7 @@ describe('ProjectCardCountSummary', () => {
             backgroundCards: [{}, {}, {}],
             repositoryFiles: [],
             workingFolder: 'design',
-        } as ProjectSnapshot
+        } as unknown as ProjectSnapshot
 
         render(<ProjectCardCountSummary />)
 
