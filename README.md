@@ -28,6 +28,12 @@ UI early days, more to come.
 - [Screenshot](screenshots/Screenshot%202026-07-23%20190011.jpg)
 - [Screenshot](screenshots/Screenshot%202026-07-23%20190055.jpg)
 
+## Getting started
+
+1. Install the app.
+2. Click the GitHub icon, upper left corner, follow link to get a GitHub access token, copy-paste token in.
+3. Open project, select a folder that contains a git repository.
+
 ## Development
 
 Each subproject is standalone and has its own npm scripts.
@@ -45,5 +51,3 @@ npm run lint
 npm run lint-fix
 npm run test
 ```
-
-Signed Windows release instructions: [`desktop/BUILDING_WINDOWS.md`](desktop/BUILDING_WINDOWS.md).
