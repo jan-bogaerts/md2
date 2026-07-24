@@ -9,4 +9,6 @@ affects:
 agents:
 policy:
 ---
+On mobile, the ´edit card´ popup should take up the window size.
 
+Buttons at bottom are not mobile friendly. Too much text.
