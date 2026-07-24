@@ -1,7 +1,8 @@
 {
   "actionsFolder": "actions",
-  "backgroundShade": "blue",
+  "backgroundShade": "neutral",
   "cardBodyTemplate": "# Goal\n\n# Current status\n\n# Details\n\n# Tasks",
+  "cardSeparator": "_",
   "cardTypes": [
     {
       "color": "#1976d2",
@@ -24,6 +25,33 @@
   ],
   "diffCommand": "git show {{commit}}",
   "projectFolder": "design",
-  "pushMode": "auto",
+  "pushMode": "manual",
+  "states": [
+    {
+      "alwaysVisible": true,
+      "color": "#9c4dcc",
+      "state": "new"
+    },
+    {
+      "alwaysVisible": true,
+      "color": "#29a8e0",
+      "state": "design"
+    },
+    {
+      "alwaysVisible": true,
+      "color": "#ed6c02",
+      "state": "ready for implementation"
+    },
+    {
+      "alwaysVisible": true,
+      "color": "#f9a825",
+      "state": "in progress"
+    },
+    {
+      "alwaysVisible": true,
+      "color": "#43a047",
+      "state": "ready"
+    }
+  ],
   "workingFolder": "feature_descriptions"
 }
