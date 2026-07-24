@@ -9,5 +9,4 @@ affects:
 agents:
 policy:
 ---
-
-# Tasks
+On mobile, user sgould also have ptoject status info.
