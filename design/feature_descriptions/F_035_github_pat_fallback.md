@@ -7,6 +7,7 @@ affects:
 policy:
   checkLinting: true
   requireTests: true
+internalId: b2ad1747-e4f5-4714-b0c6-f081c84d7c1b
 ---
 
 > **UPDATE 2026-07-11 — PAT is now the *only* GitHub auth method.** The device-flow / OAuth path this card was a fallback *alongside* was removed entirely (see [[F_034_github_oauth_cors_proxy]], [[F_001_github_authentication]]). The `authMethod: 'device' | 'pat'` marker and the "Sign in with GitHub" device-flow UI described below are gone; `GithubAuthPanel` offers only the token field.

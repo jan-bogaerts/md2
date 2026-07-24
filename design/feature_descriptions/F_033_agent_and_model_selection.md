@@ -7,6 +7,7 @@ affects:
 policy:
   checkLinting: true
   requireTests: true
+internalId: e440c4d8-b360-43e2-9fcb-4ec7f9842e54
 ---
 
 > **Future extension.** Extensible/user-defined agent profiles are outside the current F-010 action-runner migration. The current execution design supports the built-in Codex/Claude capability flow; this feature extends it later without changing ID-based Electron execution.

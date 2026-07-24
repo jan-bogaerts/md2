@@ -7,6 +7,7 @@ affects:
 policy:
   checkLinting: true
   requireTests: true
+internalId: 450ce502-39ec-4d70-9c0f-8c2e34c31410
 ---
 
 > **UPDATE 2026-07-11 — `connection.*` config removed.** The `connection` config source/section and its only entry `connection.githubScopes` were dropped along with GitHub OAuth (see [[F_034_github_oauth_cors_proxy]]). localStorage-persisted config is now `react.*` only; references to `connection.*` below are historical.

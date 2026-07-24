@@ -7,6 +7,7 @@ affects:
 policy:
   checkLinting: true
   requireTests: true
+internalId: ea2940f3-d279-460b-a817-a85029f6ad39
 ---
 
 > **Deferred.** The chosen path is F-045: the Electron app serves the bundled web app over plain LAN http, so the page is not a secure context and plain `ws://` is allowed — no TLS needed. This spec stays as reference should an encrypted mode ever be wanted.

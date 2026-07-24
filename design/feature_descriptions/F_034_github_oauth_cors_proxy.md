@@ -7,6 +7,7 @@ affects:
 policy:
   checkLinting: true
   requireTests: true
+internalId: ba9441d1-7866-4714-a924-9242b78eb070
 ---
 
 > **REMOVED 2026-07-11 — historical record only.** GitHub OAuth / device-flow support was removed entirely; GitHub auth is now personal-access-token only (see [[F_035_github_pat_fallback]]). The CORS proxy this card describes (`desktop/github_oauth_cors_server.js`, `desktop/github_oauth_proxy.js`, `oauthProxyUrl`/`GITHUB_OAUTH_PROXY_URL`) no longer exists. Nothing below is implemented or planned.
