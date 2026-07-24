@@ -32,6 +32,7 @@ function maxWidth(containerWidth: number): number {
 /** Desktop body layout: a left and right panel separated by a draggable splitter. */
 export function SplitLayout(props: SplitLayoutProps) {
     const { left, right } = props
+    const hasLeftPanel = left !== null
     const containerRef = useRef<HTMLDivElement>(null)
     const [leftWidth, setLeftWidth] = useState(readStoredWidth)
     const [isDragging, setIsDragging] = useState(false)
@@ -85,7 +86,7 @@ export function SplitLayout(props: SplitLayoutProps) {
 
     return (
         <Box ref={containerRef} sx={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
-            <Box sx={{ flexShrink: 0, minWidth: 0, overflow: 'auto', width: leftWidth }}>
+            <Box hidden={!hasLeftPanel} sx={{ flexShrink: 0, minWidth: 0, overflow: 'auto', width: leftWidth }}>
                 {left}
             </Box>
             <Box
@@ -99,6 +100,7 @@ export function SplitLayout(props: SplitLayoutProps) {
                 onPointerMove={handlePointerMove}
                 onPointerUp={handlePointerUp}
                 role="separator"
+                hidden={!hasLeftPanel}
                 sx={{
                     bgcolor: isDragging ? 'primary.main' : 'divider',
                     cursor: 'col-resize',
@@ -106,7 +108,7 @@ export function SplitLayout(props: SplitLayoutProps) {
                     width: SEPARATOR_WIDTH,
                     '&:hover': { bgcolor: 'primary.main' },
                 }}
-                tabIndex={0}
+                tabIndex={hasLeftPanel ? 0 : -1}
             />
             <Box sx={{ flex: 1, minWidth: 0, overflow: 'auto' }}>
                 {right}

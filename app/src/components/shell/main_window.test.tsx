@@ -181,6 +181,22 @@ describe('MainWindow', () => {
         expect(screen.getByRole('separator', { name: 'Resize panels' })).toBeInTheDocument()
     })
 
+    it('keeps the project workspace mounted while switching desktop views', async () => {
+        mockMatchMedia(false)
+        await openProjectWithCards()
+        renderWindow()
+        const workspace = screen.getByLabelText('Project workspace')
+
+        fireEvent.click(screen.getByRole('button', { name: 'Text view' }))
+        await screen.findByLabelText('File tree')
+
+        expect(screen.getByLabelText('Project workspace')).toBe(workspace)
+
+        fireEvent.click(screen.getByRole('button', { name: 'Cards view' }))
+
+        expect(screen.getByLabelText('Project workspace')).toBe(workspace)
+    })
+
     it('moves the left panel content into a hamburger drawer on mobile', () => {
         mockMatchMedia(true)
         renderWindow()

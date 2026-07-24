@@ -22,6 +22,17 @@ describe('SplitLayout', () => {
         expect(screen.getByText('Right panel')).toBeInTheDocument()
     })
 
+    it('hides the left panel without remounting the right panel', () => {
+        const { rerender } = render(<SplitLayout left={<div>Left panel</div>} right={<div>Right panel</div>} />)
+        const rightPanel = screen.getByText('Right panel')
+
+        rerender(<SplitLayout left={null} right={<div>Right panel</div>} />)
+
+        expect(screen.queryByText('Left panel')).toBeNull()
+        expect(screen.queryByRole('separator')).toBeNull()
+        expect(screen.getByText('Right panel')).toBe(rightPanel)
+    })
+
     it('persists the width after dragging the separator', () => {
         render(<SplitLayout left={<div>Left</div>} right={<div>Right</div>} />)
         const separator = screen.getByRole('separator')

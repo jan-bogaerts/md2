@@ -97,11 +97,7 @@ export function MainWindow(props: MainWindowProps) {
                     />
                 ) : (
                     <>
-                        {shouldShowNavigationPanel ? (
-                            <SplitLayout left={leftPanel} right={rightPanel} />
-                        ) : (
-                            <Box sx={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>{rightPanel}</Box>
-                        )}
+                        <SplitLayout left={shouldShowNavigationPanel ? leftPanel : null} right={rightPanel} />
                         <StatusBar />
                     </>
                 )}
