@@ -9,4 +9,12 @@ affects:
 agents:
 policy:
 ---
+´add card layout needs improving. Especialy on mobile.
 
+Things to change:
+
+* Remove toolbar
+* Card type and title on 1 row?
+* Cardtype with icon only and select dropdown.
+* Fix scrolling
+* Buttons add bottom have too much text, specifically on mobile
