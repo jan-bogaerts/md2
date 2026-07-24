@@ -184,7 +184,7 @@ export function ConfigPage(props: ConfigPageProps) {
             variant="scrollable"
         >
             {visibleSections.map((section) => (
-                <Tab component="a" href={`#${section.id}`} key={section.id} label={section.label} value={section.id} />
+                <Tab component="a" href={`#/config/${section.id}`} key={section.id} label={section.label} value={section.id} />
             ))}
         </Tabs>
     )

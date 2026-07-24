@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import type { ActionDefinition } from '../data/action_types'
+import { BUILTIN_CUSTOM_PROMPT, type ActionDefinition } from '../data/action_types'
 import type { ProjectCard, ProjectSnapshot } from '../data/data_types'
 import { getService } from './service_injector'
 import { OpenFilesService, type OpenDocumentEventDetail } from './open_files_service'
@@ -192,10 +192,10 @@ describe('OpenFilesService', () => {
         expect(document.dirty).toBe(false)
     })
 
-    it('resolves and opens current documents by path', () => {
+    it('resolves and opens current documents by path while skipping source-less built-in actions', () => {
         const projectCard = card('one')
         const reviewAction = action('review')
-        const ownerState = owners([projectCard], [reviewAction])
+        const ownerState = owners([projectCard], [BUILTIN_CUSTOM_PROMPT, reviewAction])
         const service = new OpenFilesService()
         service.init({ actionService: ownerState.actionOwner, dataService: ownerState.dataOwner })
 

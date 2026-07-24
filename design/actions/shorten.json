@@ -1,0 +1,12 @@
+{
+  "id": "558aca4d-9760-4cf0-a2a0-4319d1e20538",
+  "label": "shorten",
+  "description": "Describe this action.",
+  "type": "agent",
+  "appliesTo": {
+    "kind": "card"
+  },
+  "phrases": [],
+  "prompt": "\\`{{card-file}}\\` is too verbose. make it more digestible, shorten it without loosing any detail.",
+  "trackFileChanges": true
+}

@@ -41,6 +41,7 @@ function initConfigFromElectronBridge() {
 
 describe('ConfigPage', () => {
     beforeEach(() => {
+        window.location.hash = '#/config'
         useAppThemeMock.mockReturnValue({
             markdownStyle: 'modern',
             markdownStyleConfig: MARKDOWN_STYLE_PRESETS.modern,
@@ -59,7 +60,7 @@ describe('ConfigPage', () => {
         vi.useRealTimers()
         configService.clear()
         worktreeService.clear()
-        window.history.pushState(null, '', '/config')
+        window.location.hash = '#/config'
         mockMatchMedia(false)
         window.localStorage.clear()
         delete window.md2Config
@@ -87,7 +88,7 @@ describe('ConfigPage', () => {
 
         expect(screen.getByLabelText('Default agent')).toBeInTheDocument()
         expect(screen.queryByRole('switch', { name: 'Startup splash' })).toBeNull()
-        expect(screen.getByRole('tab', { name: 'React app' })).toHaveAttribute('href', '#react')
+        expect(screen.getByRole('tab', { name: 'React app' })).toHaveAttribute('href', '#/config/react')
     })
 
     it('renders global markdown settings in a dedicated tab', () => {
@@ -96,7 +97,7 @@ describe('ConfigPage', () => {
 
         renderConfigPage('#markdown')
 
-        expect(screen.getByRole('tab', { name: 'Markdown' })).toHaveAttribute('href', '#markdown')
+        expect(screen.getByRole('tab', { name: 'Markdown' })).toHaveAttribute('href', '#/config/markdown')
         expect(screen.getByRole('region', { name: 'Markdown' })).toBeInTheDocument()
         expect(screen.getByLabelText('Markdown style preview')).toBeInTheDocument()
         fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Style' }))
@@ -203,7 +204,7 @@ describe('ConfigPage', () => {
 
         await waitFor(() => {
             expect(reportSuccess).toHaveBeenCalledWith('Config saved')
-            expect(window.location.pathname).toBe('/')
+            expect(window.location.hash).toBe('')
         })
 
         reportSuccess.mockRestore()
@@ -353,7 +354,7 @@ describe('ConfigPage', () => {
         await waitFor(() => {
             expect(reportError).toHaveBeenCalledWith(expect.any(Error), { fallbackMessage: 'Config save failed' })
         })
-        expect(window.location.pathname).toBe('/config')
+        expect(window.location.hash).toBe('#/config')
 
         reportError.mockRestore()
         saveProjectConfig.mockRestore()
@@ -370,7 +371,7 @@ describe('ConfigPage', () => {
 
         expect(configService.get('react.showStartupSplash')).toBe(true)
         expect(configService.get('react.autoCommitDelayMs')).toBe(30000)
-        expect(window.location.pathname).toBe('/')
+        expect(window.location.hash).toBe('')
     })
 
     it('scrolls desktop section tabs separately from the active section content', () => {
@@ -390,7 +391,7 @@ describe('ConfigPage', () => {
         expect(screen.getByRole('navigation', { name: 'Config section navigation' })).toHaveStyle({ overflow: 'auto' })
         expect(screen.getByRole('region', { name: 'Config section content' })).toHaveStyle({ overflow: 'auto' })
         expect(screen.getByRole('tablist', { name: 'Config sections' })).toHaveAttribute('aria-orientation', 'vertical')
-        expect(screen.getByRole('tab', { name: 'Project' })).toHaveAttribute('href', '#project')
+        expect(screen.getByRole('tab', { name: 'Project' })).toHaveAttribute('href', '#/config/project')
         expect(screen.getByRole('tab', { name: 'Desktop' })).toBeInTheDocument()
     })
 

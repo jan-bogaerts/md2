@@ -1,17 +1,28 @@
 import { useEffect, useState } from 'react'
 
+const CONFIG_ROUTE = '/config'
+const CONFIG_ROUTE_HASH = `#${CONFIG_ROUTE}`
+
 export interface AppLocation {
     hash: string
     pathname: string
 }
 
 function readLocation(): AppLocation {
-    return { hash: window.location.hash, pathname: window.location.pathname }
+    const routeHash = window.location.hash
+    if (routeHash === CONFIG_ROUTE_HASH) return { hash: '', pathname: CONFIG_ROUTE }
+    if (routeHash.startsWith(`${CONFIG_ROUTE_HASH}/`)) {
+        return { hash: `#${routeHash.slice(CONFIG_ROUTE_HASH.length + 1)}`, pathname: CONFIG_ROUTE }
+    }
+
+    return { hash: routeHash, pathname: '/' }
 }
 
 export function navigateTo(path: string) {
-    window.history.pushState(null, '', path)
-    window.dispatchEvent(new Event('popstate'))
+    if (path !== '/' && path !== CONFIG_ROUTE) throw new Error(`Unsupported app route: ${path}`)
+
+    window.location.hash = path === '/' ? '' : path
+    window.dispatchEvent(new Event('hashchange'))
 }
 
 export function useAppLocation() {

@@ -65,7 +65,6 @@ function snapshotObjects(snapshot: ProjectSnapshot | null, actions: ActionDefini
 
 function objectPath(object: OpenDocumentObject) {
     if (isProjectCard(object)) return object.path
-    if (!object.sourcePath) throw new Error(`Action document requires a source path: ${object.id}`)
     return object.sourcePath
 }
 

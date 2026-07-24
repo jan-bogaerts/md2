@@ -1,0 +1,11 @@
+{
+  "id": "5c6ec911-a3e8-46d3-8500-46875d67b78d",
+  "label": "fix bug",
+  "description": "fix a bug report",
+  "type": "agent",
+  "appliesTo": {
+    "kind": "card"
+  },
+  "phrases": [],
+  "prompt": "use /caveman skill\n\nRead and fix the bug described in: \\`{{card-file}}\\`\n\nYou do not need to look at the git status. This is not your concern.  The worktree is what it is, you only need to touch what is required for the above mentioned job/feature description.\n\nUse the Block Workflow:\n\n1. Propose a Change Plan with blocks (no edits yet).&#x20;\n2. create a task for each block\n3. Wait for approval.\n4. include tests\n5. After implementation is done, update the field \\`status\\` in the markdown feature description file to \\`ready\\`\n6. Finally, print a 1 or 2 sentence commit statement for git. No need to do anything else for git, no need to commit.\n\nYou may read any files referenced by relative paths in the spec and any file you think is related to the spec.\nRespect the Test Plan and Acceptance Criteria. Keep everything short and to the point."
+}

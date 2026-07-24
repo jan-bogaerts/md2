@@ -125,7 +125,7 @@ describe('MainWindow', () => {
         dataService.init({ storage: createStorage() })
         configService.clear()
         delete window.md2Actions
-        window.history.pushState(null, '', '/')
+        window.location.hash = ''
         workspaceViewService.setViewMode('cards')
         mockMatchMedia(false)
     })
@@ -223,7 +223,7 @@ describe('MainWindow', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Config' }))
 
         expect(screen.getByRole('heading', { name: 'Config' })).toBeInTheDocument()
-        expect(window.location.pathname).toBe('/config')
+        expect(window.location.hash).toBe('#/config')
     })
 
     it('closes the config page and confirms a successful save', async () => {
@@ -238,12 +238,12 @@ describe('MainWindow', () => {
             expect(screen.queryByRole('heading', { name: 'Config' })).toBeNull()
             expect(screen.getByRole('alert')).toHaveTextContent('Config saved')
         })
-        expect(window.location.pathname).toBe('/')
+        expect(window.location.hash).toBe('')
         expect(configService.get('react.showStartupSplash')).toBe(false)
     })
 
     it('opens the config page directly from the URL', () => {
-        window.history.pushState(null, '', '/config#desktop')
+        window.location.hash = '#/config/desktop'
         mockMatchMedia(false)
         renderWindow()
 
