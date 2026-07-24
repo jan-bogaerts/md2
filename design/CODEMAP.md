@@ -1,3 +1,7 @@
+---
+internalId: 03921a57-595a-49ec-92d2-07a09e3ac66f
+---
+
 # CODEMAP
 
 Navigation map for an AI coding agent. Assumes you know Electron/React/TS. Only documents what is specific to this repo. All paths repo-relative.

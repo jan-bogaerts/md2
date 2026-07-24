@@ -1,3 +1,7 @@
+---
+internalId: f2ec9e28-8064-4707-bce9-b62f24d57524
+---
+
 # App Style Guide — Kanban / MD² (React + MUI)
 
 How to build **any new component** so it matches the app. This is written for **Material UI v5+** components.

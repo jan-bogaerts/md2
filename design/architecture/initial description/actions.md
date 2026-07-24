@@ -1,3 +1,7 @@
+---
+internalId: 19fdda48-ceaf-4176-8ad3-fb78ff6e34c6
+---
+
 # Actions
 
 - The action list is loaded when a project is loaded from the `actions` folder.

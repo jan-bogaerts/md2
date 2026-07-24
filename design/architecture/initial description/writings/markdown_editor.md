@@ -1,3 +1,7 @@
+---
+internalId: bd69c438-5ecd-446d-85a0-6f68cf96c03d
+---
+
 # MDX Editor optimization
 
 - Action Editor & card Editor

@@ -1,3 +1,7 @@
+---
+internalId: 583d9c88-b71c-4560-92ad-3e23d33bf1d0
+---
+
 # Architectural decisions
 
 Project-wide decisions for MD². The app is a Vite React web app in `app/`; `desktop/` is a separate Electron host that can load the website and expose local capabilities through preload bridges.

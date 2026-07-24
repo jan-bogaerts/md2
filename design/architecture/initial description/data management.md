@@ -1,3 +1,7 @@
+---
+internalId: ec9e6840-93f7-4100-b0d2-839e68bb1abf
+---
+
 # Data management
 
 - Works on GitHub repositories and when connected to the local electron app, also local file system and local git commands

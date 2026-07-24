@@ -1,3 +1,7 @@
+---
+internalId: a073f9b2-b7e9-42c1-9449-a8fb10c6a04e
+---
+
 The renderer widely uses paths as runtime identifiers. Electron itself does not have a `ProjectCard` model; it primarily exposes repository files and filesystem/Git operations. Cards are parsed and assembled in React.
 
 ## React components using paths as identity

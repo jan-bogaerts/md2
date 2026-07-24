@@ -1,3 +1,7 @@
+---
+internalId: 2d872649-3c84-4e94-8054-8f5c0fdc945c
+---
+
 # Search
 
 - The app should have an easy to access search. Perhaps at the top of the window.

@@ -1,3 +1,7 @@
+---
+internalId: 69c98fa5-e2a8-488e-b695-2c4d56fd9c32
+---
+
 # Telemetry
 
 - Sentry for errors

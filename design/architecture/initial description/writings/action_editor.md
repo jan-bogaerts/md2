@@ -1,3 +1,7 @@
+---
+internalId: 4951a58d-ec6a-42f2-b849-cd185fdc4311
+---
+
 # Action editor
 
 ## Responsibility

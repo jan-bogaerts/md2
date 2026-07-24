@@ -1,3 +1,7 @@
+---
+internalId: 289dbda4-3e77-4c2f-b60b-7d39f8f6c0cd
+---
+
 # Styling
 
 - Provide a global mechanism so all components have quick access to the theme service and that all components refresh when the theme changes.

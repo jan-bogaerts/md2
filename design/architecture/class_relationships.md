@@ -1,3 +1,7 @@
+---
+internalId: ab46bc7d-f504-46dd-8dba-1d972b74c7e7
+---
+
 # Class relationships
 
 The diagrams cover every production class declared in `app/src`, `desktop/src`, and `shared`, plus every production React component in `app/src`. The inventory contains 38 app classes, 132 React components, and 12 desktop/shared classes. Test-only declarations, declaration-file duplicates, hooks, and third-party components are excluded. Interfaces, browser/library base classes, and module-level gateways are included only where they clarify a relationship.

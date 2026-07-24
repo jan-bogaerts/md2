@@ -1,3 +1,7 @@
+---
+internalId: bb104396-7624-4d53-9a74-28e8ff697a36
+---
+
 # Agents
 
 - Agent processes only run through Electron, one structured subprocess per user turn.

@@ -1,3 +1,7 @@
+---
+internalId: 294fcb4d-cab3-43b7-94d8-c5625aad98a3
+---
+
 # App layout
 
 - **app → entry point**

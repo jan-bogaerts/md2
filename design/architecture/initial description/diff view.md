@@ -1,3 +1,7 @@
+---
+internalId: ffcfc39c-86e0-46e1-bd96-7c5a7b0c549e
+---
+
 # Diff View
 
 * Action logs should store commit numbers (perhaps generic text output of the "commit-type action")

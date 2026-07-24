@@ -1,3 +1,7 @@
+---
+internalId: 965163dc-aad3-4925-981a-71b89a85a633
+---
+
 # Data saving and commits
 
 Editors update application state immediately. `CommitBatcher` later coalesces repeatable edits into durable repository writes.

@@ -1,3 +1,7 @@
+---
+internalId: e77a03fc-ca83-4d16-8405-5028648ad2f6
+---
+
 ## React application data model
 
 The React app owns the parsed domain model and runtime UI state. Its central aggregate is `DataServiceState`:

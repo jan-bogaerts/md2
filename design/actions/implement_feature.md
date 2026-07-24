@@ -1,3 +1,7 @@
+---
+internalId: 4898f94e-e4b3-4daa-a407-a0f6919c0e43
+---
+
 use /caveman skill
 Read and implement the feature/job described in: 
 `design\feature_descriptions\J_019_unify_open_document_drafts_and_save_state.md`

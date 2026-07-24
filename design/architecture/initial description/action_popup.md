@@ -1,3 +1,7 @@
+---
+internalId: 40c49037-0b1c-4048-ae1e-a7b381aed41f
+---
+
 # Action Popup
 
 - Activating an action entry point opens the popup for the action `id` and selected context.

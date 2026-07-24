@@ -1,3 +1,7 @@
+---
+internalId: 428a45fe-0925-4978-9638-9ea36719776f
+---
+
 # Config page style guide
 
 ## Purpose
