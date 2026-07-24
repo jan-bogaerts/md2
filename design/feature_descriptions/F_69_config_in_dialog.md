@@ -9,7 +9,6 @@ affects:
 agents:
 policy:
 ---
-
 # Goal
 
-Show config in dialog instead
+Show config in dialog instead of page. Keep ability to navigate with url when in browser
