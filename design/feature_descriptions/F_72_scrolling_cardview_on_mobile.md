@@ -9,4 +9,6 @@ affects:
 agents:
 policy:
 ---
+Scrolling cardview on mobile is tricky. Only small space to drag along edges. Otherwise card drag starts.&#x20;
 
+Solution: add overlay at right and lzft edge that is a bit over the cards. When drag on these overlays: scroll
