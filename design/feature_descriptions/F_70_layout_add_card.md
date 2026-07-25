@@ -8,7 +8,7 @@ owner:
 affects:
 agents:
 policy:
-after: 38407576-1927-488d-a77d-998614f18899
+after: e08c4b32-0bff-42a8-9df2-b0df009606ab
 ---
 ´add card layout needs improving. Especialy on mobile.
 
