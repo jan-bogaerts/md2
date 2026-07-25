@@ -8,7 +8,6 @@ owner:
 affects:
 agents:
 policy:
-worktree: 1
 ---
 
 # Goal
