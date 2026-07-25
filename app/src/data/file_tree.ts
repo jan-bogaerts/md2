@@ -1,5 +1,4 @@
 import { groupByStatus, UNASSIGNED_STATUS } from './card_ordering'
-import type { ActionDefinition } from './action_types'
 import type { ProjectCard } from './data_types'
 
 /** The kinds of node the text-view tree can contain. */
@@ -16,8 +15,14 @@ export interface TreeNode {
     status: string | null
 }
 
+export interface FileTreeAction {
+    builtin: boolean
+    label: string
+    sourcePath: string | null
+}
+
 export interface FileTreeOptions {
-    actions: ActionDefinition[]
+    actions: FileTreeAction[]
     hiddenFolderPaths: string[]
     projectFolder: string
     repositoryFiles: string[]
@@ -117,7 +122,7 @@ function isHiddenPath(path: string, hiddenFolderPaths: Set<string>) {
 }
 
 function buildFolderRoots(
-    actions: ActionDefinition[],
+    actions: FileTreeAction[],
     backgroundCards: ProjectCard[],
     projectFolder: string,
     repositoryFiles: string[],

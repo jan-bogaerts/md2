@@ -7,6 +7,7 @@ import {
     type RawActionDefinition,
 } from '../../data/action_types'
 import { openFilesService } from '../open_files_service'
+import { ACTIONS_CHANGED_EVENT, ACTION_DRAFT_CHANGED_EVENT } from './action_service_events'
 
 function file(definition: unknown): ActionFile {
     return fileAt('actions/action.json', definition)
@@ -36,7 +37,7 @@ describe('ActionService', () => {
     it('loads project action files alongside the built-in and notifies listeners', () => {
         const service = new ActionService()
         let notified = 0
-        service.addEventListener('changed', () => { notified += 1 })
+        service.addEventListener(ACTIONS_CHANGED_EVENT, () => { notified += 1 })
 
         service.loadFromFiles([file(VALID)])
 
@@ -50,8 +51,10 @@ describe('ActionService', () => {
         const persistActionFile = vi.fn(async (persistedFile: ActionFile) => { persistedFiles.push(persistedFile) })
         const service = new ActionService(() => ({ persistActionFile }))
         service.loadFromFiles([file(VALID)])
-        const changed = vi.fn()
-        service.addEventListener('changed', changed)
+        const actionsChanged = vi.fn()
+        const draftChanged = vi.fn()
+        service.addEventListener(ACTIONS_CHANGED_EVENT, actionsChanged)
+        service.addEventListener(ACTION_DRAFT_CHANGED_EVENT, draftChanged)
 
         const editorState = {
             phrases: [{
@@ -62,18 +65,21 @@ describe('ActionService', () => {
         }
         service.setActionEditorState('actions/action.json', editorState)
         expect(service.getActionByPath('actions/action.json')?.editorState).toEqual(editorState)
-        expect(changed).toHaveBeenCalledTimes(1)
+        expect(actionsChanged).not.toHaveBeenCalled()
+        expect(draftChanged).toHaveBeenCalledTimes(1)
 
         service.reloadFromFiles(
             [file({ ...VALID, label: 'Reloaded' })],
             [{ origin: 'external', path: 'actions/action.json' }],
         )
         expect(service.getActionByPath('actions/action.json')?.editorState).toEqual(editorState)
-        expect(changed).toHaveBeenCalledTimes(2)
+        expect(actionsChanged).toHaveBeenCalledTimes(1)
+        expect(draftChanged).toHaveBeenCalledTimes(1)
 
         await service.saveDefinition('actions/action.json', { ...VALID, label: 'Saved' })
         expect(service.getActionByPath('actions/action.json')?.editorState).toEqual(editorState)
-        expect(changed).toHaveBeenCalledTimes(3)
+        expect(actionsChanged).toHaveBeenCalledTimes(2)
+        expect(draftChanged).toHaveBeenCalledTimes(1)
         expect(persistedFiles[0].content).not.toContain('editorState')
         expect(persistedFiles[0].content).not.toContain(editorState.phrases[0].identity)
     })
@@ -209,9 +215,9 @@ describe('ActionService', () => {
         const parse = vi.spyOn(JSON, 'parse')
         const stringify = vi.spyOn(JSON, 'stringify')
 
-        service.updateDraft('actions/action.json', { ...VALID, icon: undefined, label: '' })
+        service.draftStore.updateDraft('actions/action.json', { ...VALID, icon: undefined, label: '' })
 
-        expect(service.getDraft('actions/action.json').validation).toMatchObject({ field: 'label', valid: false })
+        expect(service.draftStore.getDraft('actions/action.json').validation).toMatchObject({ field: 'label', valid: false })
         expect(parse).not.toHaveBeenCalled()
         expect(stringify).not.toHaveBeenCalled()
         parse.mockRestore()
@@ -302,10 +308,10 @@ describe('ActionService', () => {
         })
         const service = new ActionService(() => ({ persistActionFile }))
         service.loadFromFiles([fileAt('actions/new-action.json', { ...VALID, label: 'New action' })])
-        const draft = service.getDraft('actions/new-action.json').definition
+        const draft = service.draftStore.getDraft('actions/new-action.json').definition
 
-        service.updateDraft('actions/new-action.json', { ...draft, label: 'Review Code!' })
-        await service.flushDrafts()
+        service.draftStore.updateDraft('actions/new-action.json', { ...draft, label: 'Review Code!' })
+        await service.draftStore.flushDrafts()
 
         expect(persistActionFile.mock.calls.at(-1)?.slice(0, 4)).toEqual([
             expect.objectContaining({ path: 'actions/review-code.json' }),
@@ -317,7 +323,7 @@ describe('ActionService', () => {
         completeMove?.('actions/new-action.json', 'actions/review-code.json')
         expect(service.getActionByPath('actions/new-action.json')).toBeNull()
         expect(service.getActionByPath('actions/review-code.json')?.label).toBe('Review Code!')
-        expect(service.getDraft('actions/review-code.json').definition.label).toBe('Review Code!')
+        expect(service.draftStore.getDraft('actions/review-code.json').definition.label).toBe('Review Code!')
     })
 
     it('reconciles a committed rename after the watcher has already loaded the target path', async () => {
@@ -335,10 +341,10 @@ describe('ActionService', () => {
             persistActionFile,
         }))
         service.loadFromFiles([fileAt('actions/test-1.json', { ...VALID, label: 'Test 1' })])
-        const renamedDefinition = { ...service.getDraft('actions/test-1.json').definition, label: 'Test 1b' }
+        const renamedDefinition = { ...service.draftStore.getDraft('actions/test-1.json').definition, label: 'Test 1b' }
 
-        service.updateDraft('actions/test-1.json', renamedDefinition)
-        await service.flushDrafts()
+        service.draftStore.updateDraft('actions/test-1.json', renamedDefinition)
+        await service.draftStore.flushDrafts()
         service.reloadFromFiles(
             [fileAt('actions/test-1b.json', renamedDefinition)],
             [
@@ -352,7 +358,7 @@ describe('ActionService', () => {
         expect(() => completeMove?.('actions/test-1.json', 'actions/test-1b.json')).not.toThrow()
         expect(service.getActionByPath('actions/test-1.json')).toBeNull()
         expect(service.getActionByPath('actions/test-1b.json')?.label).toBe('Test 1b')
-        expect(service.getDraft('actions/test-1b.json')).toMatchObject({ deleted: false, definition: renamedDefinition })
+        expect(service.draftStore.getDraft('actions/test-1b.json')).toMatchObject({ deleted: false, definition: renamedDefinition })
     })
 
     it('keeps a newer staged value separate while reconciling an earlier committed rename', async () => {
@@ -369,11 +375,11 @@ describe('ActionService', () => {
             persistActionFile,
         }))
         service.loadFromFiles([fileAt('actions/test-1.json', { ...VALID, label: 'Test 1' })])
-        const renamedDefinition = { ...service.getDraft('actions/test-1.json').definition, label: 'Test 1b' }
+        const renamedDefinition = { ...service.draftStore.getDraft('actions/test-1.json').definition, label: 'Test 1b' }
 
-        service.updateDraft('actions/test-1.json', renamedDefinition)
-        await service.flushDrafts()
-        service.stageDraft('actions/test-1.json', { ...renamedDefinition, label: '' })
+        service.draftStore.updateDraft('actions/test-1.json', renamedDefinition)
+        await service.draftStore.flushDrafts()
+        service.draftStore.stageDraft('actions/test-1.json', { ...renamedDefinition, label: '' })
         service.reloadFromFiles(
             [fileAt('actions/test-1b.json', renamedDefinition)],
             [
@@ -384,7 +390,7 @@ describe('ActionService', () => {
 
         expect(() => completeMove?.('actions/test-1.json', 'actions/test-1b.json')).not.toThrow()
         expect(service.getActionByPath('actions/test-1b.json')?.label).toBe('Test 1b')
-        expect(service.getDraft('actions/test-1b.json').definition.label).toBe('')
+        expect(service.draftStore.getDraft('actions/test-1b.json').definition.label).toBe('')
     })
 
     it('adds a suffix when a label-derived action path is already occupied', async () => {
@@ -395,10 +401,10 @@ describe('ActionService', () => {
             fileAt('actions/new-action.json', { ...VALID, label: 'New action' }),
             fileAt('actions/review.json', { ...VALID, id: 'action-review', label: 'Review' }),
         ])
-        const draft = service.getDraft('actions/new-action.json').definition
+        const draft = service.draftStore.getDraft('actions/new-action.json').definition
 
-        service.updateDraft('actions/new-action.json', { ...draft, label: 'Review' })
-        await service.flushDrafts()
+        service.draftStore.updateDraft('actions/new-action.json', { ...draft, label: 'Review' })
+        await service.draftStore.flushDrafts()
 
         expect(persistedFiles.at(-1)?.path).toBe('actions/review-2.json')
     })
@@ -410,9 +416,9 @@ describe('ActionService', () => {
         const { definition, path } = service.createDefinition('actions')
 
         await service.saveDefinition(path, definition)
-        const draft = service.getDraft(path).definition
-        service.updateDraft(path, { ...draft, label: 'Review code' })
-        await service.flushDrafts()
+        const draft = service.draftStore.getDraft(path).definition
+        service.draftStore.updateDraft(path, { ...draft, label: 'Review code' })
+        await service.draftStore.flushDrafts()
 
         expect(persistenceCalls.at(-1)?.slice(0, 4)).toEqual([
             expect.objectContaining({ path: 'actions/review-code.json' }),
@@ -499,17 +505,17 @@ describe('ActionService', () => {
         const service = new ActionService(() => ({ persistActionFile }))
         service.loadFromFiles([file(VALID)])
 
-        service.updateDraft('actions/action.json', { ...VALID, label: '' })
+        service.draftStore.updateDraft('actions/action.json', { ...VALID, label: '' })
 
-        expect(service.hasPendingDrafts()).toBe(true)
-        expect(service.getDraft('actions/action.json').validation.valid).toBe(false)
-        await expect(service.flushDrafts()).rejects.toThrow(/invalid unsaved changes/u)
+        expect(service.draftStore.hasPendingDrafts()).toBe(true)
+        expect(service.draftStore.getDraft('actions/action.json').validation.valid).toBe(false)
+        await expect(service.draftStore.flushDrafts()).rejects.toThrow(/invalid unsaved changes/u)
         expect(persistActionFile).not.toHaveBeenCalled()
 
-        service.updateDraft('actions/action.json', { ...VALID, label: 'Repaired' })
-        await service.flushDrafts()
+        service.draftStore.updateDraft('actions/action.json', { ...VALID, label: 'Repaired' })
+        await service.draftStore.flushDrafts()
 
-        expect(service.hasPendingDrafts()).toBe(true)
+        expect(service.draftStore.hasPendingDrafts()).toBe(true)
         expect(persistActionFile.mock.calls.at(-1)?.slice(0, 4)).toEqual([
             expect.objectContaining({ content: expect.stringContaining('"label": "Repaired"') }),
             'actions/action.json',
@@ -519,7 +525,7 @@ describe('ActionService', () => {
         const persistenceCall = persistActionFile.mock.calls.at(-1) as unknown as unknown[]
         const acknowledge = persistenceCall[5] as (() => void)
         acknowledge()
-        expect(service.hasPendingDrafts()).toBe(false)
+        expect(service.draftStore.hasPendingDrafts()).toBe(false)
     })
 
     it('stages editor changes without validation, events, or persistence', () => {
@@ -529,14 +535,14 @@ describe('ActionService', () => {
         const changed = vi.fn()
         service.addEventListener('changed', changed)
 
-        service.stageDraft('actions/action.json', { ...VALID, label: '' })
+        service.draftStore.stageDraft('actions/action.json', { ...VALID, label: '' })
 
-        expect(service.getDraft('actions/action.json')).toMatchObject({
+        expect(service.draftStore.getDraft('actions/action.json')).toMatchObject({
             definition: expect.objectContaining({ label: '' }),
             revision: 1,
             validation: { valid: true },
         })
-        expect(service.hasPendingDrafts()).toBe(true)
+        expect(service.draftStore.hasPendingDrafts()).toBe(true)
         expect(changed).not.toHaveBeenCalled()
         expect(persistActionFile).not.toHaveBeenCalled()
     })
@@ -545,10 +551,10 @@ describe('ActionService', () => {
         const persistActionFile = vi.fn(async () => undefined)
         const service = new ActionService(() => ({ persistActionFile }))
         service.loadFromFiles([file(VALID)])
-        service.stageDraft('actions/action.json', { ...VALID, label: 'Committed edit' })
+        service.draftStore.stageDraft('actions/action.json', { ...VALID, label: 'Committed edit' })
 
-        service.commitDraft('actions/action.json')
-        await service.flushDrafts()
+        service.draftStore.commitDraft('actions/action.json')
+        await service.draftStore.flushDrafts()
 
         expect(persistActionFile.mock.calls.at(-1)?.slice(0, 4)).toEqual([
             expect.objectContaining({ content: expect.stringContaining('"label": "Committed edit"') }),
@@ -562,9 +568,9 @@ describe('ActionService', () => {
         const persistActionFile = vi.fn(async () => undefined)
         const service = new ActionService(() => ({ persistActionFile }))
         service.loadFromFiles([file(VALID)])
-        service.stageDraft('actions/action.json', { ...VALID, label: 'Flush edit' })
+        service.draftStore.stageDraft('actions/action.json', { ...VALID, label: 'Flush edit' })
 
-        await service.flushDrafts()
+        await service.draftStore.flushDrafts()
 
         expect(persistActionFile.mock.calls.at(-1)?.slice(0, 4)).toEqual([
             expect.objectContaining({ content: expect.stringContaining('"label": "Flush edit"') }),
@@ -581,19 +587,19 @@ describe('ActionService', () => {
         const service = new ActionService(() => ({ persistActionFile }))
         service.loadFromFiles([file(VALID)])
 
-        service.updateDraft('actions/action.json', { ...VALID, label: 'Retry me' })
-        await expect(service.flushDrafts()).rejects.toThrow('disk unavailable')
-        expect(service.getDraft('actions/action.json').error).toBe('disk unavailable')
-        expect(service.hasPendingDrafts()).toBe(true)
+        service.draftStore.updateDraft('actions/action.json', { ...VALID, label: 'Retry me' })
+        await expect(service.draftStore.flushDrafts()).rejects.toThrow('disk unavailable')
+        expect(service.draftStore.getDraft('actions/action.json').error).toBe('disk unavailable')
+        expect(service.draftStore.hasPendingDrafts()).toBe(true)
 
-        service.retryDraft('actions/action.json')
-        await service.flushDrafts()
+        service.draftStore.retryDraft('actions/action.json')
+        await service.draftStore.flushDrafts()
 
         expect(persistActionFile).toHaveBeenCalledTimes(2)
         const persistenceCall = persistActionFile.mock.calls.at(-1) as unknown as unknown[]
         const acknowledge = persistenceCall[5] as (() => void)
         acknowledge()
-        expect(service.hasPendingDrafts()).toBe(false)
+        expect(service.draftStore.hasPendingDrafts()).toBe(false)
     })
 
     it('captures the open-document revision when a draft save is queued', async () => {
@@ -609,8 +615,8 @@ describe('ActionService', () => {
         if (document.kind !== 'action') throw new Error('Expected action document')
 
         try {
-            service.updateDraft('actions/action.json', { ...VALID, description: 'Queued valid edit' })
-            service.updateDraft('actions/action.json', { ...VALID, description: 'Newer invalid edit', label: '' })
+            service.draftStore.updateDraft('actions/action.json', { ...VALID, description: 'Queued valid edit' })
+            service.draftStore.updateDraft('actions/action.json', { ...VALID, description: 'Newer invalid edit', label: '' })
             await vi.waitFor(() => expect(persistActionFile).toHaveBeenCalledOnce())
             const persistenceCall = persistActionFile.mock.calls[0] as unknown as unknown[]
             const saveReference = persistenceCall[4] as { acknowledge(): void }
@@ -629,10 +635,10 @@ describe('ActionService', () => {
         service.loadFromFiles([file(VALID)])
         const stringify = vi.spyOn(JSON, 'stringify')
 
-        service.updateDraft('actions/action.json', { ...VALID, onBefore: ['missing'] })
+        service.draftStore.updateDraft('actions/action.json', { ...VALID, onBefore: ['missing'] })
 
-        expect(service.getDraft('actions/action.json').validation.valid).toBe(true)
-        await expect(service.flushDrafts()).rejects.toThrow(/Unknown action id missing/u)
+        expect(service.draftStore.getDraft('actions/action.json').validation.valid).toBe(true)
+        await expect(service.draftStore.flushDrafts()).rejects.toThrow(/Unknown action id missing/u)
         expect(stringify).not.toHaveBeenCalled()
         expect(persistActionFile).not.toHaveBeenCalled()
         stringify.mockRestore()
@@ -647,9 +653,9 @@ describe('ActionService', () => {
         service.loadFromFiles(actionFiles)
         const graphValidation = vi.spyOn(service, 'validateDefinition')
 
-        service.updateDraft('actions/action-0.json', { ...VALID, id: 'action-0', label: '' })
+        service.draftStore.updateDraft('actions/action-0.json', { ...VALID, id: 'action-0', label: '' })
 
-        expect(service.getDraft('actions/action-0.json').validation).toMatchObject({ field: 'label', valid: false })
+        expect(service.draftStore.getDraft('actions/action-0.json').validation).toMatchObject({ field: 'label', valid: false })
         expect(graphValidation).not.toHaveBeenCalled()
     })
 
@@ -659,13 +665,13 @@ describe('ActionService', () => {
         const service = new ActionService(() => ({ persistActionFile }))
         service.loadFromFiles([fileAt('actions/do.json', VALID)])
 
-        service.updateDraft('actions/do.json', { ...VALID, label: 'Do!' })
-        await service.flushDrafts()
+        service.draftStore.updateDraft('actions/do.json', { ...VALID, label: 'Do!' })
+        await service.draftStore.flushDrafts()
         const firstPublicationRevision = service.getPublicationRevision('actions/do.json')
         const firstFile = persistedFiles[0]
         if (!firstFile) throw new Error('Missing first persisted action')
-        service.updateDraft('actions/do.json', { ...VALID, label: 'Do?' })
-        await service.flushDrafts()
+        service.draftStore.updateDraft('actions/do.json', { ...VALID, label: 'Do?' })
+        await service.draftStore.flushDrafts()
 
         service.reloadFromFiles(
             [firstFile],
@@ -673,66 +679,66 @@ describe('ActionService', () => {
         )
 
         expect(service.getDefinitionByPath(firstFile.path)?.label).toBe('Do?')
-        expect(service.getDraft(firstFile.path).conflict).toBeNull()
+        expect(service.draftStore.getDraft(firstFile.path).conflict).toBeNull()
     })
 
     it('treats a genuine external change matching an older snapshot as a conflict', async () => {
         const service = new ActionService(() => ({ persistActionFile: vi.fn(async () => undefined) }))
         const initialFile = file(VALID)
         service.loadFromFiles([initialFile])
-        service.updateDraft('actions/action.json', { ...VALID, label: 'Saved local edit' })
-        await service.flushDrafts()
-        service.updateDraft('actions/action.json', { ...VALID, label: '' })
+        service.draftStore.updateDraft('actions/action.json', { ...VALID, label: 'Saved local edit' })
+        await service.draftStore.flushDrafts()
+        service.draftStore.updateDraft('actions/action.json', { ...VALID, label: '' })
 
         service.reloadFromFiles(
             [initialFile],
             [{ origin: 'external', path: initialFile.path }],
         )
 
-        expect(service.getDraft(initialFile.path).conflict?.label).toBe(VALID.label)
-        expect(service.getDraft(initialFile.path).definition.label).toBe('')
+        expect(service.draftStore.getDraft(initialFile.path).conflict?.label).toBe(VALID.label)
+        expect(service.draftStore.getDraft(initialFile.path).definition.label).toBe('')
     })
 
     it('treats reordered arrays as meaningful external changes', () => {
         const phrases = [{ text: 'First', title: 'First' }, { text: 'Second', title: 'Second' }]
         const service = new ActionService()
         service.loadFromFiles([file({ ...VALID, phrases })])
-        service.updateDraft('actions/action.json', { ...VALID, label: '', phrases })
+        service.draftStore.updateDraft('actions/action.json', { ...VALID, label: '', phrases })
 
         service.reloadFromFiles(
             [file({ ...VALID, phrases: [...phrases].reverse() })],
             [{ origin: 'external', path: 'actions/action.json' }],
         )
 
-        expect(service.getDraft('actions/action.json').conflict?.phrases).toEqual([...phrases].reverse())
+        expect(service.draftStore.getDraft('actions/action.json').conflict?.phrases).toEqual([...phrases].reverse())
     })
 
     it('drops a clean draft when its action is deleted externally', () => {
         const service = new ActionService(() => deletionGateway())
         service.loadFromFiles([file(VALID)])
-        service.getDraft('actions/action.json')
+        service.draftStore.getDraft('actions/action.json')
 
         service.reloadFromFiles([], [{ origin: 'external', path: 'actions/action.json' }])
 
         expect(service.getActionByPath('actions/action.json')).toBeNull()
-        expect(service.getDeletedDraftActions()).toEqual([])
-        expect(() => service.getDraft('actions/action.json')).toThrow(/unknown action/u)
+        expect(service.draftStore.getDeletedDraftActions()).toEqual([])
+        expect(() => service.draftStore.getDraft('actions/action.json')).toThrow(/unknown action/u)
     })
 
     it('preserves a dirty deleted draft until explicit discard', async () => {
         const gateway = deletionGateway()
         const service = new ActionService(() => gateway)
         service.loadFromFiles([file(VALID)])
-        service.updateDraft('actions/action.json', { ...VALID, label: '' })
+        service.draftStore.updateDraft('actions/action.json', { ...VALID, label: '' })
 
         service.reloadFromFiles([], [{ origin: 'external', path: 'actions/action.json' }])
 
-        expect(service.getDraft('actions/action.json')).toMatchObject({ deleted: true, definition: { label: '' } })
-        expect(service.getDeletedDraftActions()).toHaveLength(1)
-        await expect(service.flushDrafts()).rejects.toThrow(/requires explicit recovery or discard/u)
+        expect(service.draftStore.getDraft('actions/action.json')).toMatchObject({ deleted: true, definition: { label: '' } })
+        expect(service.draftStore.getDeletedDraftActions()).toHaveLength(1)
+        await expect(service.draftStore.flushDrafts()).rejects.toThrow(/requires explicit recovery or discard/u)
 
-        service.discardDeletedDraft('actions/action.json')
-        expect(service.getDeletedDraftActions()).toEqual([])
+        service.draftStore.discardDeletedDraft('actions/action.json')
+        expect(service.draftStore.getDeletedDraftActions()).toEqual([])
     })
 
     it('cancels queued persistence and preserves its draft after external deletion', async () => {
@@ -744,15 +750,15 @@ describe('ActionService', () => {
             persistActionFile: vi.fn(async () => { pending = true }),
         }))
         service.loadFromFiles([file(VALID)])
-        service.updateDraft('actions/action.json', { ...VALID, label: 'Queued edit' })
-        await service.flushDrafts()
+        service.draftStore.updateDraft('actions/action.json', { ...VALID, label: 'Queued edit' })
+        await service.draftStore.flushDrafts()
 
         service.reloadFromFiles([], [{ origin: 'external', path: 'actions/action.json' }])
 
         expect(discardPendingFile).toHaveBeenCalledWith('actions/action.json')
         expect(pending).toBe(false)
-        expect(service.getDraft('actions/action.json')).toMatchObject({ deleted: true, definition: { label: 'Queued edit' } })
-        expect(service.hasPendingDrafts()).toBe(true)
+        expect(service.draftStore.getDraft('actions/action.json')).toMatchObject({ deleted: true, definition: { label: 'Queued edit' } })
+        expect(service.draftStore.hasPendingDrafts()).toBe(true)
     })
 
     it('ignores an in-flight save completion after external deletion', async () => {
@@ -760,7 +766,7 @@ describe('ActionService', () => {
         const persistence = new Promise<void>((resolve) => { finishPersistence = resolve })
         const service = new ActionService(() => ({ persistActionFile: vi.fn(() => persistence) }))
         service.loadFromFiles([file(VALID)])
-        service.updateDraft('actions/action.json', { ...VALID, label: 'In-flight edit' })
+        service.draftStore.updateDraft('actions/action.json', { ...VALID, label: 'In-flight edit' })
         await Promise.resolve()
 
         service.reloadFromFiles([], [{ origin: 'external', path: 'actions/action.json' }])
@@ -770,7 +776,7 @@ describe('ActionService', () => {
 
         expect(service.getActionByPath('actions/action.json')).toBeNull()
         expect(service.getDefinitionByPath('actions/action.json')).toBeNull()
-        expect(service.getDraft('actions/action.json')).toMatchObject({ deleted: true, definition: { label: 'In-flight edit' } })
+        expect(service.draftStore.getDraft('actions/action.json')).toMatchObject({ deleted: true, definition: { label: 'In-flight edit' } })
     })
 
     it('recreates a deleted dirty action only after explicit recovery', async () => {
@@ -778,24 +784,24 @@ describe('ActionService', () => {
         const gateway = { ...deletionGateway(), persistActionFile }
         const service = new ActionService(() => gateway)
         service.loadFromFiles([file(VALID)])
-        service.updateDraft('actions/action.json', { ...VALID, label: '' })
+        service.draftStore.updateDraft('actions/action.json', { ...VALID, label: '' })
         service.reloadFromFiles([], [{ origin: 'external', path: 'actions/action.json' }])
-        service.updateDraft('actions/action.json', { ...VALID, label: 'Recovered' })
+        service.draftStore.updateDraft('actions/action.json', { ...VALID, label: 'Recovered' })
 
         expect(persistActionFile).not.toHaveBeenCalled()
-        service.recreateDeletedDraft('actions/action.json')
+        service.draftStore.recreateDeletedDraft('actions/action.json')
 
         await vi.waitFor(() => {
             expect(persistActionFile).toHaveBeenCalledOnce()
             expect(service.getActionByPath('actions/action.json')?.label).toBe('Recovered')
-            expect(service.getDraft('actions/action.json').deleted).toBe(false)
+            expect(service.draftStore.getDraft('actions/action.json').deleted).toBe(false)
         })
     })
 
     it('keeps a dirty moved action at its old path while loading the new path', () => {
         const service = new ActionService(() => deletionGateway())
         service.loadFromFiles([file(VALID)])
-        service.updateDraft('actions/action.json', { ...VALID, label: '' })
+        service.draftStore.updateDraft('actions/action.json', { ...VALID, label: '' })
         const movedFile = { content: JSON.stringify({ ...VALID, id: 'action-moved', label: 'Moved' }), path: 'actions/moved.json' }
 
         service.reloadFromFiles([movedFile], [
@@ -803,14 +809,14 @@ describe('ActionService', () => {
             { origin: 'external', path: 'actions/moved.json' },
         ])
 
-        expect(service.getDraft('actions/action.json').deleted).toBe(true)
+        expect(service.draftStore.getDraft('actions/action.json').deleted).toBe(true)
         expect(service.getActionByPath('actions/moved.json')?.label).toBe('Moved')
     })
 
     it('turns same-path recreation into an explicit external conflict', () => {
         const service = new ActionService(() => deletionGateway())
         service.loadFromFiles([file(VALID)])
-        service.updateDraft('actions/action.json', { ...VALID, label: '' })
+        service.draftStore.updateDraft('actions/action.json', { ...VALID, label: '' })
         service.reloadFromFiles([], [{ origin: 'external', path: 'actions/action.json' }])
 
         service.reloadFromFiles(
@@ -818,7 +824,7 @@ describe('ActionService', () => {
             [{ origin: 'external', path: 'actions/action.json' }],
         )
 
-        expect(service.getDraft('actions/action.json')).toMatchObject({
+        expect(service.draftStore.getDraft('actions/action.json')).toMatchObject({
             conflict: { label: 'Recreated externally' },
             definition: { label: '' },
             deleted: false,

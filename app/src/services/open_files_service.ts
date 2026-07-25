@@ -1,5 +1,6 @@
 import type { ActionDefinition } from '../data/action_types'
 import type { ProjectCard, ProjectReference, ProjectSnapshot } from '../data/data_types'
+import { ACTIONS_CHANGED_EVENT, ACTION_DRAFT_CHANGED_EVENT } from './actions/action_service_events'
 import { register } from './service_injector'
 import { ManagedOpenDocument } from './managed_open_document'
 import type {
@@ -30,9 +31,7 @@ export interface OpenFilesSnapshot {
 }
 
 interface OpenFilesDependencies {
-    actionService: EventTarget & Pick<import('./actions/action_service').ActionService,
-        'getActions' | 'getDeletedDraftActions' | 'getDraft'
-    >
+    actionService: EventTarget & Pick<import('./actions/action_service').ActionService, 'getActions' | 'draftStore'>
     dataService: EventTarget & Pick<import('./data/data_service').DataService, 'getState'>
 }
 
@@ -101,14 +100,16 @@ export class OpenFilesService extends EventTarget {
     init(dependencies: OpenFilesDependencies) {
         if (this.actionService === dependencies.actionService && this.dataService === dependencies.dataService) return
 
-        this.actionService?.removeEventListener('changed', this.handleActionChanged)
+        this.actionService?.removeEventListener(ACTIONS_CHANGED_EVENT, this.handleActionChanged)
+        this.actionService?.removeEventListener(ACTION_DRAFT_CHANGED_EVENT, this.handleActionChanged)
         this.dataService?.removeEventListener('changed', this.handleDataChanged)
         this.clear()
         this.registryScopeRevision += 1
         this.actionService = dependencies.actionService
         this.dataService = dependencies.dataService
         this.loadedProjectKey = projectKey(this.dataService.getState().project)
-        this.actionService.addEventListener('changed', this.handleActionChanged)
+        this.actionService.addEventListener(ACTIONS_CHANGED_EVENT, this.handleActionChanged)
+        this.actionService.addEventListener(ACTION_DRAFT_CHANGED_EVENT, this.handleActionChanged)
         this.dataService.addEventListener('changed', this.handleDataChanged)
         this.reconcile()
     }
@@ -218,7 +219,7 @@ export class OpenFilesService extends EventTarget {
     private currentObjects() {
         if (!this.actionService || !this.dataService) throw new Error('Open files service is not initialized')
         const { snapshot } = this.dataService.getState()
-        const actions = [...this.actionService.getActions(), ...this.actionService.getDeletedDraftActions()]
+        const actions = [...this.actionService.getActions(), ...this.actionService.draftStore.getDeletedDraftActions()]
 
         return snapshotObjects(snapshot, actions)
     }
@@ -228,7 +229,7 @@ export class OpenFilesService extends EventTarget {
         if (!object.sourcePath) throw new Error(`Action document requires a source path: ${object.id}`)
         if (!this.actionService) throw new Error('Open files service is not initialized')
 
-        return this.actionService.getDraft(object.sourcePath).definition
+        return this.actionService.draftStore.getDraft(object.sourcePath).definition
     }
 
     private getOrCreateDocument(object: OpenDocumentObject): ManagedDocument {

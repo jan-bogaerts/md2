@@ -5,7 +5,11 @@ import type { ChangeEvent, MouseEvent } from 'react'
 import { memo, useEffect, useState } from 'react'
 import type { ActionDefinition, RawActionDefinition } from '../../data/action_types'
 import type { WorktreeRecord } from '../../data/data_types'
-import { actionService } from '../../services/actions/action_service'
+import {
+    ACTION_DRAFT_CHANGED_EVENT,
+    actionService,
+    type ActionDraftChangedDetail,
+} from '../../services/actions/action_service'
 import { useProjectState } from '../hooks/use_project_state'
 import { ActionAgentCapabilityFields } from './action_agent_capability_fields'
 import { ActionEditorField } from './action_editor_field'
@@ -36,26 +40,29 @@ export const ActionDefinitionFields = memo(function ActionDefinitionFields(props
     const repositoryFiles = snapshot?.repositoryFiles ?? EMPTY_REPOSITORY_FILES
     const [, setDraftRevision] = useState(0)
     useEffect(() => {
-        let previousDraft = actionService.getDraft(sourcePath)
-        const handleChanged = () => {
-            const nextDraft = actionService.getDraft(sourcePath)
+        let previousDraft = actionService.draftStore.getDraft(sourcePath)
+        const handleChanged = (event: Event) => {
+            const { path } = (event as CustomEvent<ActionDraftChangedDetail>).detail
+            if (path !== sourcePath) return
+
+            const nextDraft = actionService.draftStore.getDraft(sourcePath)
             if (nextDraft === previousDraft) return
 
             previousDraft = nextDraft
             setDraftRevision((current) => current + 1)
         }
-        actionService.addEventListener('changed', handleChanged)
+        actionService.addEventListener(ACTION_DRAFT_CHANGED_EVENT, handleChanged)
 
-        return () => actionService.removeEventListener('changed', handleChanged)
+        return () => actionService.removeEventListener(ACTION_DRAFT_CHANGED_EVENT, handleChanged)
     }, [sourcePath])
-    const { definition, validation } = actionService.getDraft(sourcePath)
+    const { definition, validation } = actionService.draftStore.getDraft(sourcePath)
     const errors = validation.error && validation.field ? { [validation.field]: validation.error } : {}
     const errorIndex = validation.index
     const selectableActions = actions.filter(({ id }) => id !== definition.id)
     const handleDefinitionChange = (nextDefinition: RawActionDefinition) => {
-        actionService.stageDraft(sourcePath, nextDefinition)
+        actionService.draftStore.stageDraft(sourcePath, nextDefinition)
     }
-    const handleDefinitionCommit = () => actionService.commitDraft(sourcePath)
+    const handleDefinitionCommit = () => actionService.draftStore.commitDraft(sourcePath)
     const iconPaths = repositoryFiles.filter((path) => ICON_FILE_PATTERN.test(path))
     if (definition.icon && !iconPaths.includes(definition.icon)) iconPaths.unshift(definition.icon)
     const missingState = definition.onState && !states.includes(definition.onState) ? definition.onState : null

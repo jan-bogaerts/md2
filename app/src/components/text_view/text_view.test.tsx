@@ -494,12 +494,12 @@ describe('TextView', () => {
         fireEvent.click(screen.getByRole('tab', { name: 'Prompt' }))
         fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Edited prompt' } })
         fireEvent.click(screen.getByRole('tab', { name: 'Tests' }))
-        expect(actionService.getDraft('design/actions/review.json').definition.prompt).toBe('Edited prompt')
+        expect(actionService.draftStore.getDraft('design/actions/review.json').definition.prompt).toBe('Edited prompt')
 
         const phraseEditor = within(screen.getAllByTestId('mdx-editor')[0]).getAllByRole('textbox')[1]
         fireEvent.change(phraseEditor, { target: { value: 'Edited phrase' } })
         fireEvent.click(screen.getByRole('tab', { name: 'Lint' }))
-        expect(actionService.getDraft('design/actions/review.json').definition.phrases?.[0].text).toBe('Edited phrase')
+        expect(actionService.draftStore.getDraft('design/actions/review.json').definition.phrases?.[0].text).toBe('Edited phrase')
     }, 10_000)
 
     it('hides rather than unmounts the shared editor for empty, Definition, and command states', () => {

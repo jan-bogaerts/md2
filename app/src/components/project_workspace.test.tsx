@@ -389,13 +389,13 @@ describe('ProjectWorkspace', () => {
             content: JSON.stringify({ command: 'run', description: 'Run', id: 'run', label: 'Run', type: 'command' }),
             path: 'actions/run.json',
         }])
-        actionService.updateDraft('actions/run.json', { command: 'run', description: 'Run', id: 'run', label: '', type: 'command' })
+        actionService.draftStore.updateDraft('actions/run.json', { command: 'run', description: 'Run', id: 'run', label: '', type: 'command' })
 
         const pendingClose = new Event('beforeunload', { cancelable: true })
         window.dispatchEvent(pendingClose)
 
         expect(pendingClose.defaultPrevented).toBe(true)
-        expect(actionService.getDraft('actions/run.json').definition.label).toBe('')
+        expect(actionService.draftStore.getDraft('actions/run.json').definition.label).toBe('')
         expect(projectPersistenceService.getSnapshot().hasPendingSave).toBe(true)
     })
 
@@ -453,7 +453,7 @@ describe('ProjectWorkspace', () => {
             content: JSON.stringify({ command: 'run', description: 'Run', id: 'run', label: 'Run', type: 'command' }),
             path: 'actions/run.json',
         }])
-        actionService.updateDraft('actions/run.json', { command: 'run', description: 'Run', id: 'run', label: '', type: 'command' })
+        actionService.draftStore.updateDraft('actions/run.json', { command: 'run', description: 'Run', id: 'run', label: '', type: 'command' })
 
         act(() => flushRequested?.('quit-invalid'))
 

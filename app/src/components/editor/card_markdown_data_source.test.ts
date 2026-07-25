@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { ProjectCard } from '../../data/data_types'
 import { OpenFilesService } from '../../services/open_files_service'
+import type { ActionService } from '../../services/actions/action_service'
 import { CardMarkdownDataSource } from './card_markdown_data_source'
 
 function card(content = 'Original', path = 'design/card.md'): ProjectCard {
@@ -23,9 +24,9 @@ function setup() {
         }),
     })
     const actionOwner = Object.assign(new EventTarget(), {
-        getActions: () => [], getDeletedDraftActions: () => [],
-        getDraft: () => { throw new Error('No actions') },
-    })
+        getActions: () => [],
+        draftStore: { getDeletedDraftActions: () => [], getDraft: () => { throw new Error('No actions') } },
+    }) as unknown as EventTarget & Pick<ActionService, 'draftStore' | 'getActions'>
     const openFiles = new OpenFilesService()
     openFiles.init({ actionService: actionOwner, dataService: dataOwner })
     const document = openFiles.openDocument(projectCard)

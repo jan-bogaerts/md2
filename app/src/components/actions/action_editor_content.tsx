@@ -1,6 +1,10 @@
 import { Alert, Box, Button, Stack, Typography } from '@mui/material'
 import { useEffect, useState } from 'react'
-import { actionService } from '../../services/actions/action_service'
+import {
+    ACTION_DRAFT_CHANGED_EVENT,
+    actionService,
+    type ActionDraftChangedDetail,
+} from '../../services/actions/action_service'
 import { dialogService } from '../../services/dialog_service'
 import { openFilesService } from '../../services/open_files_service'
 import { useWorktrees } from '../hooks/use_worktrees'
@@ -22,12 +26,15 @@ export function ActionEditorContent(props: ActionEditorContentProps) {
     if (!sourcePath) throw new Error(`Action editor requires a persisted action: ${action.id}`)
     const [, setRevision] = useState(0)
     useEffect(() => {
-        const handleChanged = () => setRevision((current) => current + 1)
-        actionService.addEventListener('changed', handleChanged)
+        const handleChanged = (event: Event) => {
+            const { path } = (event as CustomEvent<ActionDraftChangedDetail>).detail
+            if (path === sourcePath) setRevision((current) => current + 1)
+        }
+        actionService.addEventListener(ACTION_DRAFT_CHANGED_EVENT, handleChanged)
 
-        return () => actionService.removeEventListener('changed', handleChanged)
-    }, [])
-    const draft = actionService.getDraft(sourcePath)
+        return () => actionService.removeEventListener(ACTION_DRAFT_CHANGED_EVENT, handleChanged)
+    }, [sourcePath])
+    const draft = actionService.draftStore.getDraft(sourcePath)
     const { conflict, definition, deleted, error: saveError, saving, validation } = draft
     const activeTab = (actionService.getActionByPath(sourcePath) ?? action).editorState?.selectedTab ?? ACTION_DEFINITION_TAB
     const openDocument = openFilesService.findDocument(action)
@@ -40,17 +47,17 @@ export function ActionEditorContent(props: ActionEditorContentProps) {
     useEffect(() => {
         if (validation.error) dialogService.error(validation.error, { title: 'Invalid action' })
     }, [validation.error])
-    const handleRetry = () => actionService.retryDraft(sourcePath)
-    const handleRecreateDeleted = () => actionService.recreateDeletedDraft(sourcePath)
+    const handleRetry = () => actionService.draftStore.retryDraft(sourcePath)
+    const handleRecreateDeleted = () => actionService.draftStore.recreateDeletedDraft(sourcePath)
     const handleDiscardDeleted = () => {
-        actionService.discardDeletedDraft(sourcePath)
+        actionService.draftStore.discardDeletedDraft(sourcePath)
         const document = openFilesService.getSnapshot().documents.find((candidate) => (
             candidate.kind === 'action' && candidate.getObject().id === action.id
         ))
         if (document) openFilesService.closeDocument(document)
     }
-    const handleKeepMine = () => actionService.keepDraft(sourcePath)
-    const handleReloadExternal = () => actionService.reloadDraft(sourcePath)
+    const handleKeepMine = () => actionService.draftStore.keepDraft(sourcePath)
+    const handleReloadExternal = () => actionService.draftStore.reloadDraft(sourcePath)
 
     return (
         <Box

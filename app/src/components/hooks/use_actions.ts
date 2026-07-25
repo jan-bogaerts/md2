@@ -1,25 +1,36 @@
-import { useEffect, useState } from 'react'
-import { actionService, type ActionService, type ActionServiceState } from '../../services/actions/action_service'
+import { useSyncExternalStore } from 'react'
+import {
+    ACTIONS_CHANGED_EVENT,
+    actionService,
+    type ActionService,
+    type ActionServiceState,
+} from '../../services/actions/action_service'
 
-function getChangedState(event: Event): ActionServiceState {
-    return (event as CustomEvent<ActionServiceState>).detail
+const snapshots = new WeakMap<ActionService, ActionServiceState>()
+
+function isSameActionServiceState(first: ActionServiceState, second: ActionServiceState) {
+    return first.actions === second.actions && first.error === second.error
+}
+
+function getActionServiceSnapshot(service: ActionService): ActionServiceState {
+    const nextSnapshot = service.getState()
+    const currentSnapshot = snapshots.get(service)
+    if (currentSnapshot && isSameActionServiceState(currentSnapshot, nextSnapshot)) return currentSnapshot
+
+    snapshots.set(service, nextSnapshot)
+
+    return nextSnapshot
 }
 
 /** Subscribe to the loaded action definitions exposed by the action service. */
 export function useActions(service: ActionService = actionService): ActionServiceState {
-    const [state, setState] = useState(service.getState())
+    return useSyncExternalStore(
+        (onStoreChange) => {
+            service.addEventListener(ACTIONS_CHANGED_EVENT, onStoreChange)
 
-    useEffect(() => {
-        const handleChanged = (event: Event) => {
-            setState(getChangedState(event))
-        }
-
-        service.addEventListener('changed', handleChanged)
-
-        return () => {
-            service.removeEventListener('changed', handleChanged)
-        }
-    }, [service])
-
-    return state
+            return () => service.removeEventListener(ACTIONS_CHANGED_EVENT, onStoreChange)
+        },
+        () => getActionServiceSnapshot(service),
+        () => getActionServiceSnapshot(service),
+    )
 }

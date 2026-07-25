@@ -49,13 +49,13 @@ describe('ProjectLoading', () => {
             content: JSON.stringify(actionDefinition('run')),
             path: 'actions/run.json',
         }])
-        actionService.updateDraft('actions/run.json', { ...actionDefinition('run'), label: '' })
+        actionService.draftStore.updateDraft('actions/run.json', { ...actionDefinition('run'), label: '' })
 
         await expect(service.projectLoading.openProject({ branch: 'main', id: 'second' }))
             .rejects.toThrow(/invalid unsaved changes/u)
 
         expect(service.getState().project?.id).toBe('first')
-        expect(actionService.getDraft('actions/run.json').definition.label).toBe('')
+        expect(actionService.draftStore.getDraft('actions/run.json').definition.label).toBe('')
     })
 
     it('blocks project switching until a deleted dirty action is recovered or discarded', async () => {
@@ -68,14 +68,14 @@ describe('ProjectLoading', () => {
             content: JSON.stringify(actionDefinition('run')),
             path: 'actions/run.json',
         }])
-        actionService.updateDraft('actions/run.json', { ...actionDefinition('run'), label: '' })
+        actionService.draftStore.updateDraft('actions/run.json', { ...actionDefinition('run'), label: '' })
         actionService.reloadFromFiles([], [{ origin: 'external', path: 'actions/run.json' }])
 
         await expect(service.projectLoading.openProject({ branch: 'main', id: 'second' }))
             .rejects.toThrow(/requires explicit recovery or discard/u)
         expect(service.getState().project?.id).toBe('first')
 
-        actionService.discardDeletedDraft('actions/run.json')
+        actionService.draftStore.discardDeletedDraft('actions/run.json')
         await service.projectLoading.openProject({ branch: 'main', id: 'second' })
         expect(service.getState().project?.id).toBe('second')
     })
@@ -542,7 +542,7 @@ describe('ProjectLoading', () => {
         service.init({ storage })
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
 
-        actionService.updateDraft(initialFile.path, { ...actionDefinition('do'), label: 'Local edit' })
+        actionService.draftStore.updateDraft(initialFile.path, { ...actionDefinition('do'), label: 'Local edit' })
         await vi.advanceTimersByTimeAsync(1000)
         expect(storage.commit).toHaveBeenCalledOnce()
 
@@ -550,7 +550,7 @@ describe('ProjectLoading', () => {
         await vi.advanceTimersByTimeAsync(150)
 
         expect(actionService.getDefinitionByPath(initialFile.path)?.label).toBe('Local edit')
-        expect(actionService.getDraft(initialFile.path).conflict).toBeNull()
+        expect(actionService.draftStore.getDraft(initialFile.path).conflict).toBeNull()
         commit.resolve([])
         await vi.advanceTimersByTimeAsync(0)
     })

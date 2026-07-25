@@ -4,6 +4,7 @@ import type { ProjectCard, ProjectSnapshot } from '../data/data_types'
 import { getService } from './service_injector'
 import { OpenFilesService, type OpenDocumentEventDetail } from './open_files_service'
 import { editableActionDefinition, type ActionDraftState, type ActionService } from './actions/action_service'
+import { ACTIONS_CHANGED_EVENT } from './actions/action_service_events'
 
 function card(internalId: string, path = `design/${internalId}.md`, content = `# ${internalId}`): ProjectCard {
     return {
@@ -30,25 +31,27 @@ function owners(initialCards: ProjectCard[] = [], initialActions: ActionDefiniti
     const dataOwner = Object.assign(new EventTarget(), {getState: () => ({ project: { branch: 'main', id: 'project' }, runningAgents: [], snapshot })})
     const actionOwner = Object.assign(new EventTarget(), {
         getActions: () => actions,
-        getDeletedDraftActions: () => [],
-        getDraft: (path: string): ActionDraftState => {
-            const actionDefinition = actions.find((candidate) => candidate.sourcePath === path)
-            if (!actionDefinition) throw new Error(`Missing action: ${path}`)
-            return {
-                conflict: null, definition: editableActionDefinition(actionDefinition), deleted: false, error: null,
-                revision: 0, savedRevision: 0,
-                saving: false,
-                validation: { code: null, error: null, field: null, fieldPath: null, index: null, valid: true },
-            }
+        draftStore: {
+            getDeletedDraftActions: () => [],
+            getDraft: (path: string): ActionDraftState => {
+                const actionDefinition = actions.find((candidate) => candidate.sourcePath === path)
+                if (!actionDefinition) throw new Error(`Missing action: ${path}`)
+                return {
+                    conflict: null, definition: editableActionDefinition(actionDefinition), deleted: false, error: null,
+                    revision: 0, savedRevision: 0,
+                    saving: false,
+                    validation: { code: null, error: null, field: null, fieldPath: null, index: null, valid: true },
+                }
+            },
         },
-    }) as unknown as EventTarget & Pick<ActionService, 'getActions' | 'getDeletedDraftActions' | 'getDraft'>
+    }) as unknown as EventTarget & Pick<ActionService, 'getActions' | 'draftStore'>
 
     return {
         actionOwner,
         dataOwner,
         renewActions: (nextActions: ActionDefinition[]) => {
             actions = nextActions
-            actionOwner.dispatchEvent(new CustomEvent('changed'))
+            actionOwner.dispatchEvent(new CustomEvent(ACTIONS_CHANGED_EVENT))
         },
         renewCards: (nextCards: ProjectCard[]) => {
             snapshot = { ...snapshot, activeCards: nextCards }

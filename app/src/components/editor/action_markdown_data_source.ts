@@ -11,7 +11,7 @@ import {
 
 type ActionMarkdownTarget = Extract<MarkdownDocumentTarget, { section: ActionMarkdownSection }>
 
-type ActionMarkdownOwner = EventTarget & Pick<ActionService, 'commitDraft' | 'getDraft' | 'setActionEditorState' | 'stageDraft'>
+type ActionMarkdownOwner = EventTarget & Pick<ActionService, 'draftStore' | 'setActionEditorState'>
 
 function actionTarget(target: MarkdownDocumentTarget): asserts target is ActionMarkdownTarget {
     if (target.document.kind !== 'action') throw new Error('Action Markdown source requires an action document')
@@ -80,7 +80,7 @@ export class ActionMarkdownDataSource extends MarkdownDataSourceBase {
         try {
             const definition = updatedDefinition(target, markdown)
             target.document.updateDraft(definition, binding)
-            this.requireService().stageDraft(target.document.path, definition)
+            this.requireService().draftStore.stageDraft(target.document.path, definition)
         } catch (error) {
             dialogService.error(error, { fallbackMessage: `Action update failed: ${target.document.path}` })
         }
@@ -92,9 +92,9 @@ export class ActionMarkdownDataSource extends MarkdownDataSourceBase {
         try {
             const definition = updatedDefinition(target, markdown)
             target.document.updateDraft(definition, binding)
-            this.requireService().stageDraft(target.document.path, definition)
+            this.requireService().draftStore.stageDraft(target.document.path, definition)
             if (target.section.kind === 'phrase') this.updatePhraseEditorState(target, definition)
-            this.requireService().commitDraft(target.document.path)
+            this.requireService().draftStore.commitDraft(target.document.path)
             return true
         } catch (error) {
             dialogService.error(error, { fallbackMessage: `Action update failed: ${target.document.path}` })

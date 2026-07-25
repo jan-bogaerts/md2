@@ -2,9 +2,11 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { CardHeader, ProjectCard, ProjectSnapshot } from '../../../data/data_types'
 import { actionService } from '../../../services/actions/action_service'
+import { ACTIONS_CHANGED_EVENT } from '../../../services/actions/action_service_events'
 import { workspaceNavigationService } from '../../../services/project/workspace_navigation_service'
 import { workspaceViewService } from '../../../services/project/workspace_view_service'
 import { DialogDisplay } from '../../dialog_display'
+import { AppThemeProvider } from '../../../theme/theme_provider'
 import { SearchControl } from './search_control'
 
 function makeHeader(overrides: Partial<CardHeader> = {}): CardHeader {
@@ -55,6 +57,17 @@ describe('SearchControl', () => {
     afterEach(() => {
         actionService.clear()
         workspaceViewService.setViewMode('cards')
+    })
+
+    it('subscribes to project data only while search is open', () => {
+        const addEventListener = vi.spyOn(actionService, 'addEventListener')
+        render(<SearchControl />)
+
+        expect(addEventListener).not.toHaveBeenCalledWith(ACTIONS_CHANGED_EVENT, expect.any(Function))
+
+        focusSearch()
+
+        expect(addEventListener).toHaveBeenCalledWith(ACTIONS_CHANGED_EVENT, expect.any(Function))
     })
 
     it('shows the search controls in a dropdown only while search is focused', () => {
@@ -120,7 +133,7 @@ describe('SearchControl', () => {
             }),
             path: 'actions/search-job.json',
         }])
-        render(<SearchControl />)
+        render(<AppThemeProvider><SearchControl /></AppThemeProvider>)
 
         typeQuery('Searchable action')
         expect(screen.queryByText('Actions')).not.toBeInTheDocument()

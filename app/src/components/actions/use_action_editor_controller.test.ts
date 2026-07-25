@@ -55,7 +55,7 @@ describe('useActionEditorController', () => {
         const phraseTarget = result.current.markdownTarget
         act(() => result.current.handleDeletePhrase())
         expect(discardMarkdownTarget).toHaveBeenCalledWith(phraseTarget)
-        expect(actionService.getDraft('actions/review.json').definition.phrases).toEqual([])
+        expect(actionService.draftStore.getDraft('actions/review.json').definition.phrases).toEqual([])
     })
 
     it('does not rerender for an unrelated action editor-state event', () => {

@@ -23,4 +23,17 @@ describe('useActions', () => {
 
         expect(result.current.actions.map((action) => action.id)).toContain('do')
     })
+
+    it('keeps the public snapshot stable for draft-only changes', () => {
+        const service = new ActionService()
+        service.loadFromFiles([file({ command: 'run', description: 'Do', id: 'do', label: 'Do', type: 'command' })])
+        const { result } = renderHook(() => useActions(service))
+        const initialSnapshot = result.current
+
+        act(() => {
+            service.setActionEditorState('actions/action.json', { phrases: [], selectedTab: 'settings' })
+        })
+
+        expect(result.current).toBe(initialSnapshot)
+    })
 })

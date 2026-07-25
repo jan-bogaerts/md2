@@ -6,6 +6,7 @@ import type { ActionDefinition, ActionFile, RawActionDefinition } from '../../da
 import { configService } from '../../services/config/config_service'
 import { dataService } from '../../services/data/data_service'
 import { actionService } from '../../services/actions/action_service'
+import { ACTIONS_CHANGED_EVENT, ACTION_DRAFT_CHANGED_EVENT } from '../../services/actions/action_service_events'
 import * as actionServiceModule from '../../services/actions/action_service'
 import { dialogService } from '../../services/dialog_service'
 import { openFilesService } from '../../services/open_files_service'
@@ -134,7 +135,7 @@ describe('ActionEditor', () => {
         fireEvent.change(labelInput(), { target: { value: 'Review updated' } })
 
         expect(labelInput()).toHaveValue('Review updated')
-        expect(actionService.getDraft('actions/review.json').definition.label).toBe('Review updated')
+        expect(actionService.draftStore.getDraft('actions/review.json').definition.label).toBe('Review updated')
         expect(useController).toHaveBeenCalledTimes(renderCount)
 
         fireEvent.blur(labelInput())
@@ -297,7 +298,7 @@ describe('ActionEditor', () => {
         const parse = vi.spyOn(JSON, 'parse')
         const serialize = vi.spyOn(actionServiceModule, 'serializeActionDefinition')
         const changed = vi.fn()
-        actionService.addEventListener('changed', changed)
+        actionService.addEventListener(ACTION_DRAFT_CHANGED_EVENT, changed)
 
         fireEvent.change(labelInput(), { target: { value: ' \t\u2003' } })
         expect(screen.queryByText(/Missing action field label/u)).not.toBeInTheDocument()
@@ -309,7 +310,7 @@ describe('ActionEditor', () => {
         fireEvent.blur(labelInput())
         expect(screen.getByText(/Missing action field label/u)).toBeInTheDocument()
         expect(changed).toHaveBeenCalledOnce()
-        actionService.removeEventListener('changed', changed)
+        actionService.removeEventListener(ACTION_DRAFT_CHANGED_EVENT, changed)
 
         await act(async () => vi.advanceTimersByTime(600))
         expect(saveDefinition).not.toHaveBeenCalled()
@@ -349,7 +350,7 @@ describe('ActionEditor', () => {
 
         fireEvent.click(screen.getByRole('tab', { name: 'Prompt' }))
         const changed = vi.fn()
-        actionService.addEventListener('changed', changed)
+        actionService.addEventListener(ACTION_DRAFT_CHANGED_EVENT, changed)
         const promptEditor = within(screen.getByTestId('mdx-editor')).getByRole('textbox')
         fireEvent.focus(promptEditor)
         fireEvent.change(promptEditor, {target: { value: 'Updated prompt' }})
@@ -366,7 +367,7 @@ describe('ActionEditor', () => {
             expect.any(Object),
             expect.any(Function),
         )
-        actionService.removeEventListener('changed', changed)
+        actionService.removeEventListener(ACTION_DRAFT_CHANGED_EVENT, changed)
     })
 
     it('shows prompt validation on the tab and through the dialog service', async () => {
@@ -476,7 +477,7 @@ describe('ActionEditor', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Delete this predefined phrase' }))
 
         expect(screen.getByRole('tab', { name: 'Prompt' })).toHaveAttribute('aria-selected', 'true')
-        expect(actionService.getDraft('actions/review.json').definition.phrases).toEqual([])
+        expect(actionService.draftStore.getDraft('actions/review.json').definition.phrases).toEqual([])
     })
 
     it('uses phrase titles or truncated first Markdown lines as tab labels', () => {
@@ -584,8 +585,8 @@ describe('ActionEditor', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Add filter' }))
 
         await act(async () => vi.advanceTimersByTime(600))
-        expect(actionService.getDraft('actions/review.json').validation.valid).toBe(true)
-        expect(actionService.getDraft('actions/review.json').definition.appliesTo).toBeUndefined()
+        expect(actionService.draftStore.getDraft('actions/review.json').validation.valid).toBe(true)
+        expect(actionService.draftStore.getDraft('actions/review.json').definition.appliesTo).toBeUndefined()
         expect(reportError).not.toHaveBeenCalled()
         expect(saveDefinition).not.toHaveBeenCalled()
     })
@@ -597,7 +598,7 @@ describe('ActionEditor', () => {
         fireEvent.mouseDown(screen.getByLabelText('Target kind'))
         fireEvent.click(within(screen.getByRole('listbox')).getByRole('option', { name: 'card' }))
 
-        expect(actionService.getDraft('actions/review.json').definition.appliesTo).toEqual({ kind: 'card' })
+        expect(actionService.draftStore.getDraft('actions/review.json').definition.appliesTo).toEqual({ kind: 'card' })
         expect(screen.getByRole('combobox', { name: 'Target kind' })).toHaveTextContent('card')
     })
 
@@ -605,7 +606,7 @@ describe('ActionEditor', () => {
         const reportError = vi.spyOn(dialogService, 'error')
         const action = loadAction()
         const invalidDefinition = { ...definition, unexpected: undefined } as RawActionDefinition
-        actionService.updateDraft('actions/review.json', invalidDefinition)
+        actionService.draftStore.updateDraft('actions/review.json', invalidDefinition)
         renderEditor(action)
 
         expect(screen.queryByRole('alert')).not.toBeInTheDocument()
@@ -650,7 +651,7 @@ describe('ActionEditor', () => {
         const action = loadAction()
         const persistActionFile = vi.spyOn(dataService, 'persistActionFile').mockResolvedValue(undefined)
         const changed = vi.fn()
-        actionService.addEventListener('changed', changed)
+        actionService.addEventListener(ACTIONS_CHANGED_EVENT, changed)
         renderEditor(action)
 
         fireEvent.change(labelInput(), { target: { value: 'Published label' } })
@@ -670,7 +671,7 @@ describe('ActionEditor', () => {
         )
         expect(actionService.getActionByPath('actions/review.json')?.label).toBe('Published label')
         expect(changed).toHaveBeenCalled()
-        actionService.removeEventListener('changed', changed)
+        actionService.removeEventListener(ACTIONS_CHANGED_EVENT, changed)
     })
 
     it('shows save failure status and retries the newest draft', async () => {

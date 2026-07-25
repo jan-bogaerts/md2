@@ -62,6 +62,7 @@ export function FileTreeNodeRow(props: NodeRendererProps<TreeNode>) {
     const visibleTitle = visibleId ? treeNode.label.slice(visibleId.length + 1) : treeNode.label
     const statusColor = treeNode.status === null ? undefined : statusColors.get(treeNode.status) ?? defaultColumnAccent(0)
     const isDeletableFolder = treeNode.kind === 'folder'
+    const isMenuOpen = !!menuAnchor || !!menuPosition
 
     const handleRowClick = (event: MouseEvent<HTMLElement>) => {
         event.stopPropagation()
@@ -145,7 +146,7 @@ export function FileTreeNodeRow(props: NodeRendererProps<TreeNode>) {
                 anchorReference={menuPosition ? 'anchorPosition' : 'anchorEl'}
                 keepMounted
                 onClose={closeMenu}
-                open={!!menuAnchor || !!menuPosition}
+                open={isMenuOpen}
             >
                 <MenuItem onClick={requestFolder}>
                     <ListItemIcon><FolderPlusOutline fontSize="small" /></ListItemIcon>
@@ -161,7 +162,7 @@ export function FileTreeNodeRow(props: NodeRendererProps<TreeNode>) {
                         Delete folder
                     </MenuItem>
                 ) : null}
-                {context ? (
+                {context && isMenuOpen ? (
                     <ActionEntryPoints
                         context={context}
                         onMenuItemSelected={closeMenu}

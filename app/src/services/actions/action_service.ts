@@ -1,4 +1,4 @@
-﻿import { actionMatchesContext, type ActionContext } from '../../data/action_context'
+import { actionMatchesContext, type ActionContext } from '../../data/action_context'
 import {
     BUILTIN_CUSTOM_PROMPT,
     BUILTIN_REMARKABLE_CONVERT,
@@ -9,20 +9,30 @@ import {
     type RawActionDefinitionEntry,
 } from '../../data/action_types'
 import { generateUuid } from '../../data/uuid'
-import { ActionValidationError } from '../../../../shared/action_definitions.mjs'
 import { getService, register } from '.././service_injector'
 import {
     loadTolerantActionDefinitionGraph,
-    validateActionDefinition,
     validateActionDefinitionGraph,
 } from './action_definition_loader'
-import { actionFilePath } from './action_definition_writer'
-import { openFilesService, type ActionOpenDocument, type OpenDocumentSaveReference } from '../open_files_service'
+import { ActionDraftStore } from './action_draft_store'
+import { actionPath, actionValidationResult, nextActionName, preserveActionEditorStates } from './action_service_helpers'
+import type { OpenDocumentSaveReference } from '../open_files_service'
+import {
+    ACTIONS_CHANGED_EVENT,
+    ACTION_DRAFT_CHANGED_EVENT,
+    ACTION_PERSISTENCE_CHANGED_EVENT,
+    type ActionDraftChangedDetail,
+} from './action_service_events'
 
-const ACTION_FILE_EXTENSION = '.json'
-const NEW_ACTION_NAME = 'new-action'
+export {
+    ACTIONS_CHANGED_EVENT,
+    ACTION_DRAFT_CHANGED_EVENT,
+    ACTION_PERSISTENCE_CHANGED_EVENT,
+    type ActionDraftChangedDetail,
+} from './action_service_events'
+export { editableActionDefinition } from './action_service_helpers'
 
-interface ActionPersistenceGateway {
+export interface ActionPersistenceGateway {
     discardPendingFile?: (path: string) => void
     hasPendingFile?: (path: string) => boolean
     persistActionFile(
@@ -55,15 +65,6 @@ export interface ActionDraftState {
     validation: ActionValidationResult
 }
 
-interface ManagedActionDraft extends ActionDraftState {
-    action: ActionDefinition
-    chain: Promise<void>
-    committedRevision: number
-    deletionRevision: number
-    recreating: boolean
-    targetPath: string
-}
-
 export interface ActionValidationResult {
     code: string | null
     error: string | null
@@ -77,118 +78,6 @@ function defaultPersistenceGateway(): ActionPersistenceGateway {
     return getService<ActionPersistenceGateway>('dataService')
 }
 
-function normalizedFolder(folder: string) {
-    return folder.replace(/\\/gu, '/').replace(/\/+$/u, '')
-}
-
-function actionPath(folder: string, name: string) {
-    return `${normalizedFolder(folder)}/${name}${ACTION_FILE_EXTENSION}`
-}
-
-function nextActionName(files: ActionFile[]) {
-    const existingPaths = new Set(files.map(({ path }) => path.replace(/\\/gu, '/').toLowerCase()))
-    if (![...existingPaths].some((path) => path.endsWith(`/${NEW_ACTION_NAME}${ACTION_FILE_EXTENSION}`))) return NEW_ACTION_NAME
-
-    let suffix = 2
-    while ([...existingPaths].some((path) => path.endsWith(`/${NEW_ACTION_NAME}-${suffix}${ACTION_FILE_EXTENSION}`))) suffix += 1
-
-    return `${NEW_ACTION_NAME}-${suffix}`
-}
-
-function suffixedActionPath(path: string, suffix: number) {
-    return `${path.slice(0, -ACTION_FILE_EXTENSION.length)}-${suffix}${ACTION_FILE_EXTENSION}`
-}
-
-function preserveActionEditorStates(currentActions: ActionDefinition[], nextActions: ActionDefinition[]) {
-    const editorStatesByPath = new Map<string, NonNullable<ActionDefinition['editorState']>>()
-    for (const { editorState, sourcePath } of currentActions) {
-        if (!editorState || !sourcePath) continue
-        editorStatesByPath.set(sourcePath, editorState)
-    }
-    for (const action of nextActions) {
-        if (!action.sourcePath) continue
-        const editorState = editorStatesByPath.get(action.sourcePath)
-        if (editorState) action.editorState = editorState
-    }
-
-    return nextActions
-}
-
-function structuredValuesEqual(left: unknown, right: unknown): boolean {
-    if (left === right) return true
-    if (Array.isArray(left) || Array.isArray(right)) {
-        if (!Array.isArray(left) || !Array.isArray(right) || left.length !== right.length) return false
-
-        return left.every((value, index) => structuredValuesEqual(value, right[index]))
-    }
-    if (left === null || right === null || typeof left !== 'object' || typeof right !== 'object') return false
-
-    const leftRecord = left as Record<string, unknown>
-    const rightRecord = right as Record<string, unknown>
-    const leftKeys = Object.keys(leftRecord).filter((key) => leftRecord[key] !== undefined)
-    const rightKeys = Object.keys(rightRecord).filter((key) => rightRecord[key] !== undefined)
-    if (leftKeys.length !== rightKeys.length) return false
-
-    return leftKeys.every((key) => Object.hasOwn(rightRecord, key)
-        && rightRecord[key] !== undefined
-        && structuredValuesEqual(leftRecord[key], rightRecord[key]))
-}
-
-function actionDefinitionsEqual(left: RawActionDefinition, right: RawActionDefinition) {
-    return structuredValuesEqual(left, right)
-}
-
-function actionValidationResult(validate: () => unknown): ActionValidationResult {
-    try {
-        validate()
-
-        return { code: null, error: null, field: null, fieldPath: null, index: null, valid: true }
-    } catch (error) {
-        if (error instanceof ActionValidationError) {
-            return {
-                code: error.code,
-                error: error.message,
-                field: error.field as keyof RawActionDefinition | null,
-                fieldPath: error.fieldPath,
-                index: error.index,
-                valid: false,
-            }
-        }
-        const message = error instanceof Error ? error.message : 'Invalid action definition'
-
-        return { code: null, error: message, field: null, fieldPath: null, index: null, valid: false }
-    }
-}
-
-function validateDraftDefinition(path: string, definition: RawActionDefinition) {
-    return actionValidationResult(() => validateActionDefinition(definition, path))
-}
-
-/** Convert a loaded action back to its canonical editable JSON shape. */
-export function editableActionDefinition(action: ActionDefinition): RawActionDefinition {
-    if (action.builtin) throw new Error(`Built-in action cannot be edited: ${action.id}`)
-
-    return {
-        id: action.id,
-        label: action.label,
-        description: action.description,
-        type: action.type,
-        ...(action.icon !== null ? { icon: action.icon } : {}),
-        ...(action.appliesTo !== null ? { appliesTo: action.appliesTo } : {}),
-        ...(action.onBefore.length > 0 ? { onBefore: action.onBefore.map(({ id }) => id) } : {}),
-        ...(action.on.length > 0 ? { on: action.on.map(({ actionId, condition }) => ({ actionId, condition })) } : {}),
-        ...(action.onAfter.length > 0 ? { onAfter: action.onAfter.map(({ id }) => id) } : {}),
-        ...(action.onState !== null ? { onState: action.onState } : {}),
-        ...(action.needsWorkTree ? { needsWorkTree: true } : {}),
-        ...(action.agent !== null ? { agent: action.agent } : {}),
-        ...(action.model !== null ? { model: action.model } : {}),
-        ...(action.thinkingLevel !== null ? { thinkingLevel: action.thinkingLevel } : {}),
-        ...(action.trackFileChanges ? { trackFileChanges: true } : {}),
-        phrases: action.phrases,
-        ...(action.type === 'agent' ? { prompt: action.prompt as string } : { command: action.command as string }),
-    }
-}
-
 export function serializeActionDefinition(definition: RawActionDefinition) {
     return `${JSON.stringify(definition, null, 2)}\n`
 }
@@ -199,10 +88,10 @@ export class ActionService extends EventTarget {
     private definitions: RawActionDefinitionEntry[] = []
     private error: string | null = null
     private files: ActionFile[] = []
-    private readonly drafts = new Map<string, ManagedActionDraft>()
+    readonly draftStore: ActionDraftStore = new ActionDraftStore(this)
     private readonly publicationRevisionsByPath = new Map<string, number>()
     private readonly uncommittedCreationPaths = new Set<string>()
-    private readonly persistenceGateway: () => ActionPersistenceGateway
+    readonly persistenceGateway: () => ActionPersistenceGateway
 
     constructor(persistenceGateway: () => ActionPersistenceGateway = defaultPersistenceGateway) {
         super()
@@ -212,13 +101,7 @@ export class ActionService extends EventTarget {
 
     init() {
         this.actions = validateActionDefinitionGraph([])
-        this.definitions = []
-        this.error = null
-        this.files = []
-        this.drafts.clear()
-        this.publicationRevisionsByPath.clear()
-        this.uncommittedCreationPaths.clear()
-        this.dispatchChanged()
+        this.resetState()
     }
 
     loadFromFiles(files: ActionFile[]) {
@@ -246,7 +129,7 @@ export class ActionService extends EventTarget {
         } catch (error) {
             const message = error instanceof Error ? error.message : 'Action reload failed'
             this.error = `Action reload failed for ${changes.map(({ path }) => path).join(', ')}: ${message}`
-            this.dispatchChanged()
+            this.dispatchActionsChanged()
 
             return this.actions
         }
@@ -254,9 +137,10 @@ export class ActionService extends EventTarget {
 
     private loadFiles(files: ActionFile[], preserveEditorState: boolean) {
         const previousDefinitions = new Map(this.definitions.map(({ definition, path }) => [path, definition]))
+        const previousDraftPaths = this.draftStore.paths()
         const { actions, definitions, issues } = loadTolerantActionDefinitionGraph(files, { validateAgentCapabilities: false })
         if (!preserveEditorState) {
-            this.drafts.clear()
+            this.draftStore.clear()
             this.publicationRevisionsByPath.clear()
             this.uncommittedCreationPaths.clear()
         }
@@ -264,8 +148,11 @@ export class ActionService extends EventTarget {
         this.definitions = definitions
         this.error = issues.length > 0 ? issues.map(({ message }) => message).join('\n') : null
         this.files = files
-        if (preserveEditorState) this.reconcileDrafts(previousDefinitions)
-        this.dispatchChanged()
+        if (preserveEditorState) this.draftStore.reconcileDrafts(previousDefinitions)
+        this.dispatchActionsChanged()
+        const draftPaths = new Set([...previousDraftPaths, ...this.draftStore.paths()])
+        for (const path of draftPaths) this.dispatchDraftChanged(path)
+        this.dispatchPersistenceChanged()
 
         return this.actions
     }
@@ -285,7 +172,7 @@ export class ActionService extends EventTarget {
     }
 
     validateDefinition(path: string, definition: RawActionDefinition): ActionValidationResult {
-        return actionValidationResult(() => validateActionDefinitionGraph(this.definitionsWithDefinition(path, definition)))
+        return this.validateDefinitionInternal(path, definition)
     }
 
     async saveDefinition(
@@ -294,7 +181,7 @@ export class ActionService extends EventTarget {
         targetPath = path,
         saveReference?: OpenDocumentSaveReference,
         onPersisted?: () => void,
-    ) {
+    ): Promise<ActionDefinition> {
         const definitions = this.definitionsWithDefinition(path, definition)
         const actions = preserveActionEditorStates(this.actions, validateActionDefinitionGraph(definitions))
         const content = serializeActionDefinition(definition)
@@ -326,8 +213,7 @@ export class ActionService extends EventTarget {
                 throw error
             }
         }
-        const draft = this.drafts.get(path)
-        if (draft?.deleted && !draft.recreating) {
+        if (this.draftStore.isDeletedAndNotRecreating(path)) {
             throw new Error(`Action save cancelled after external deletion: ${path}`)
         }
         this.files = this.filesWithFile(sourceStateFile)
@@ -341,7 +227,7 @@ export class ActionService extends EventTarget {
             )
         }
         this.error = null
-        this.dispatchChanged()
+        this.dispatchActionsChanged()
 
         const savedAction = actions.find((action) => action.sourcePath === path)
         if (!savedAction) throw new Error(`Missing saved action after persistence: ${path}`)
@@ -349,180 +235,9 @@ export class ActionService extends EventTarget {
         return savedAction
     }
 
-    getDraft(path: string): ActionDraftState {
-        const existingDraft = this.drafts.get(path)
-        if (existingDraft) return existingDraft
-
-        const action = this.getActionByPath(path)
-        if (!action) throw new Error(`Cannot create draft for unknown action: ${path}`)
-        const definition = editableActionDefinition(action)
-        const draft: ManagedActionDraft = {
-            action,
-            chain: Promise.resolve(),
-            committedRevision: 0,
-            conflict: null,
-            definition,
-            deleted: false,
-            deletionRevision: 0,
-            error: null,
-            recreating: false,
-            revision: 0,
-            savedRevision: 0,
-            saving: false,
-            targetPath: path,
-            validation: validateDraftDefinition(path, definition),
-        }
-        this.drafts.set(path, draft)
-
-        return draft
-    }
-
-    updateDraft(path: string, definition: RawActionDefinition) {
-        const current = this.requireDraft(path)
-        const revision = current.revision + 1
-        const validation = validateDraftDefinition(path, definition)
-        const targetPath = validation.valid ? this.desiredActionPath(path, definition.label) : current.targetPath
-        const draft = {
-            ...current,
-            conflict: null,
-            committedRevision: revision,
-            definition,
-            error: null,
-            revision,
-            targetPath,
-            validation,
-        }
-        this.drafts.set(path, draft)
-        this.updateOpenDocument(path, definition)
-        this.dispatchChanged()
-        if (draft.validation.valid && !draft.deleted) this.queueDraftSave(path, definition, revision, targetPath)
-
-        return draft
-    }
-
-    /** Store an editor value and mark the draft dirty without validation, events, or persistence. */
-    stageDraft(path: string, definition: RawActionDefinition) {
-        const current = this.requireDraft(path)
-        const draft = {
-            ...current,
-            conflict: null,
-            definition,
-            error: null,
-            revision: current.revision + 1,
-        }
-        this.drafts.set(path, draft)
-        this.updateOpenDocument(path, definition)
-
-        return draft
-    }
-
-    /** Validate and queue the latest staged value at an editor commit boundary. */
-    commitDraft(path: string) {
-        const current = this.requireDraft(path)
-        if (current.committedRevision === current.revision) return current
-
-        const validation = validateDraftDefinition(path, current.definition)
-        const targetPath = validation.valid ? this.desiredActionPath(path, current.definition.label) : current.targetPath
-        const draft = { ...current, committedRevision: current.revision, targetPath, validation }
-        this.drafts.set(path, draft)
-        this.dispatchChanged()
-        if (draft.validation.valid && !draft.conflict && !draft.deleted) {
-            this.queueDraftSave(path, draft.definition, draft.revision, targetPath)
-        }
-
-        return draft
-    }
-
-    retryDraft(path: string) {
-        const draft = this.requireDraft(path)
-        if (draft.deleted) throw new Error(`Cannot retry a deleted action draft: ${path}`)
-        if (!draft.validation.valid) throw new Error(`Cannot retry invalid action draft: ${path}`)
-        this.queueDraftSave(path, draft.definition, draft.revision, draft.targetPath)
-    }
-
-    keepDraft(path: string) {
-        this.commitDraft(path)
-        const draft = this.requireDraft(path)
-        this.drafts.set(path, { ...draft, conflict: null })
-        this.dispatchChanged()
-        if (draft.validation.valid && draft.revision !== draft.savedRevision) {
-            this.queueDraftSave(path, draft.definition, draft.revision, draft.targetPath)
-        }
-    }
-
-    reloadDraft(path: string) {
-        const draft = this.requireDraft(path)
-        if (!draft.conflict) return
-        const revision = draft.revision + 1
-        this.drafts.set(path, {
-            ...draft,
-            committedRevision: revision,
-            conflict: null,
-            definition: draft.conflict,
-            error: null,
-            revision,
-            savedRevision: revision,
-            targetPath: path,
-            validation: validateDraftDefinition(path, draft.conflict),
-        })
-        this.findOpenDocument(path)?.replaceDraft(draft.conflict)
-        this.dispatchChanged()
-    }
-
-    recreateDeletedDraft(path: string) {
-        const draft = this.requireDraft(path)
-        if (!draft.deleted) throw new Error(`Cannot recreate an action that is not deleted: ${path}`)
-        if (!draft.validation.valid) throw new Error(`Cannot recreate invalid action draft: ${path}`)
-
-        this.queueDraftSave(path, draft.definition, draft.revision, draft.targetPath, true)
-    }
-
-    discardDeletedDraft(path: string) {
-        const draft = this.requireDraft(path)
-        if (!draft.deleted) throw new Error(`Cannot discard an action that is not deleted: ${path}`)
-
-        const document = this.findOpenDocument(path)
-        this.persistenceGateway().discardPendingFile?.(path)
-        this.drafts.delete(path)
-        if (document) openFilesService.discardDocument(document)
-        this.dispatchChanged()
-    }
-
-    getDeletedDraftActions() {
-        return [...this.drafts.values()]
-            .filter(({ deleted }) => deleted)
-            .map(({ action }) => action)
-    }
-
-    hasPendingDrafts() {
-        return [...this.drafts.values()].some((draft) => (
-            draft.deleted || draft.revision !== draft.savedRevision || draft.saving || !!draft.error || !!draft.conflict
-        ))
-    }
-
-    async flushDrafts() {
-        for (const path of this.drafts.keys()) this.commitDraft(path)
-        const deletedDraft = [...this.drafts.entries()].find(([, draft]) => draft.deleted)
-        if (deletedDraft) throw new Error(`Action ${deletedDraft[0]} was deleted and requires explicit recovery or discard`)
-        const invalidDraft = [...this.drafts.entries()].find(([, draft]) => (
-            draft.revision !== draft.savedRevision && !draft.validation.valid
-        ))
-        if (invalidDraft) throw new Error(`Action ${invalidDraft[0]} has invalid unsaved changes`)
-
-        await Promise.all([...this.drafts.values()].map(({ chain }) => chain))
-        const failedDraft = [...this.drafts.entries()].find(([, draft]) => !!draft.error)
-        if (failedDraft) throw new Error(failedDraft[1].error as string)
-    }
-
     clear() {
         this.actions = [BUILTIN_CUSTOM_PROMPT, BUILTIN_REMARKABLE_CONVERT]
-        this.definitions = []
-        this.error = null
-        this.files = []
-        this.drafts.clear()
-        this.publicationRevisionsByPath.clear()
-        this.uncommittedCreationPaths.clear()
-        this.dispatchChanged()
+        this.resetState()
     }
 
     getState(): ActionServiceState {
@@ -535,6 +250,10 @@ export class ActionService extends EventTarget {
 
     getActionByPath(path: string): ActionDefinition | null {
         return this.actions.find(({ sourcePath }) => sourcePath === path) ?? null
+    }
+
+    getFiles(): ActionFile[] {
+        return this.files
     }
 
     getDefinitionByPath(path: string): RawActionDefinition | null {
@@ -552,53 +271,37 @@ export class ActionService extends EventTarget {
         const action = this.getActionByPath(path)
         if (!action) throw new Error(`Cannot save editor state for unknown action: ${path}`)
         action.editorState = editorState
-        this.dispatchChanged()
+        this.dispatchDraftChanged(path)
     }
 
     getActionsForStateTrigger(state: string, context: ActionContext): ActionDefinition[] {
         return this.actions.filter((action) => action.onState === state && actionMatchesContext(action, context))
     }
 
-    private desiredActionPath(sourcePath: string, label: string) {
-        const normalizedSourcePath = sourcePath.replace(/\\/gu, '/')
-        const separatorIndex = normalizedSourcePath.lastIndexOf('/')
-        if (separatorIndex < 0) throw new Error(`Action path must include its actions folder: ${sourcePath}`)
-
-        const actionsFolder = normalizedSourcePath.slice(0, separatorIndex)
-        const desiredPath = actionFilePath(actionsFolder, label)
-        const sourcePathKey = normalizedSourcePath.toLowerCase()
-        const occupiedPaths = new Set(
-            this.files
-                .map(({ path }) => path.replace(/\\/gu, '/').toLowerCase())
-                .filter((path) => path !== sourcePathKey),
-        )
-        for (const [draftPath, draft] of this.drafts) {
-            if (draftPath === sourcePath) continue
-            occupiedPaths.add(draft.targetPath.replace(/\\/gu, '/').toLowerCase())
-        }
-        if (!occupiedPaths.has(desiredPath.toLowerCase())) return desiredPath
-
-        let suffix = 2
-        while (occupiedPaths.has(suffixedActionPath(desiredPath, suffix).toLowerCase())) suffix += 1
-
-        return suffixedActionPath(desiredPath, suffix)
+    private resetState() {
+        this.definitions = []
+        this.error = null
+        this.files = []
+        this.draftStore.clear()
+        this.publicationRevisionsByPath.clear()
+        this.uncommittedCreationPaths.clear()
+        this.dispatchActionsChanged()
+        this.dispatchPersistenceChanged()
     }
 
+    private validateDefinitionInternal(path: string, definition: RawActionDefinition): ActionValidationResult {
+        return actionValidationResult(() => validateActionDefinitionGraph(this.definitionsWithDefinition(path, definition)))
+    }
+
+    /** Reconciles core state (files/definitions/actions) once a path rename has been persisted. */
     private reconcileCommittedPath(fromPath: string, toPath: string) {
         this.uncommittedCreationPaths.delete(fromPath)
         this.uncommittedCreationPaths.delete(toPath)
         if (fromPath === toPath) return
 
-        const sourceDraft = this.drafts.get(fromPath)
-        const targetDraft = this.drafts.get(toPath)
-        const draft = sourceDraft && targetDraft
-            ? sourceDraft.revision >= targetDraft.revision ? sourceDraft : targetDraft
-            : sourceDraft ?? targetDraft
+        const { committedDraftDefinition, editorState, hasDraft } = this.draftStore.peekRenameInfo(fromPath, toPath)
         const sourceDefinition = this.definitions.find((entry) => entry.path === fromPath)?.definition
         const targetDefinition = this.definitions.find((entry) => entry.path === toPath)?.definition
-        const committedDraftDefinition = draft && draft.committedRevision === draft.revision && draft.validation.valid
-            ? draft.definition
-            : undefined
         const definition = sourceDefinition ?? committedDraftDefinition ?? targetDefinition
         if (!definition) throw new Error(`Missing action definition after committed rename from ${fromPath} to ${toPath}`)
         if (targetDefinition && targetDefinition.id !== definition.id) {
@@ -607,7 +310,7 @@ export class ActionService extends EventTarget {
 
         const sourceFile = this.files.find((file) => file.path === fromPath)
         const targetFile = this.files.find((file) => file.path === toPath)
-        const content = draft ? serializeActionDefinition(definition) : sourceFile?.content ?? targetFile?.content
+        const content = hasDraft ? serializeActionDefinition(definition) : sourceFile?.content ?? targetFile?.content
         if (!content) throw new Error(`Missing action file after committed rename from ${fromPath} to ${toPath}`)
         const committedFile = { ...targetFile, ...sourceFile, content, path: toPath }
         this.files = [...this.files.filter(({ path }) => path !== fromPath && path !== toPath), committedFile]
@@ -616,25 +319,12 @@ export class ActionService extends EventTarget {
             { definition, path: toPath },
         ]
 
-        const editorState = this.actions.find((action) => action.sourcePath === fromPath)?.editorState
-            ?? this.actions.find((action) => action.sourcePath === toPath)?.editorState
-            ?? draft?.action.editorState
         this.actions = preserveActionEditorStates(this.actions, validateActionDefinitionGraph(this.definitions))
         const committedAction = this.getActionByPath(toPath)
         if (!committedAction) throw new Error(`Missing action after committed rename from ${fromPath} to ${toPath}`)
         if (editorState) committedAction.editorState = editorState
 
-        this.drafts.delete(fromPath)
-        this.drafts.delete(toPath)
-        if (draft) {
-            this.drafts.set(toPath, {
-                ...draft,
-                action: committedAction,
-                conflict: null,
-                deleted: false,
-                targetPath: draft.targetPath === fromPath ? toPath : draft.targetPath,
-            })
-        }
+        this.draftStore.finalizeRenamedDraft(fromPath, toPath, committedAction)
 
         const revision = Math.max(
             this.publicationRevisionsByPath.get(fromPath) ?? 0,
@@ -642,7 +332,8 @@ export class ActionService extends EventTarget {
         )
         this.publicationRevisionsByPath.delete(fromPath)
         this.publicationRevisionsByPath.set(toPath, revision)
-        this.dispatchChanged()
+        this.dispatchActionsChanged()
+        this.dispatchPersistenceChanged()
     }
 
     private definitionsWithDefinition(path: string, definition: RawActionDefinition): RawActionDefinitionEntry[] {
@@ -654,138 +345,6 @@ export class ActionService extends EventTarget {
             : [...this.definitions, entry]
     }
 
-    private requireDraft(path: string) {
-        this.getDraft(path)
-        const draft = this.drafts.get(path)
-        if (!draft) throw new Error(`Missing action draft: ${path}`)
-
-        return draft
-    }
-
-    private reconcileDrafts(previousDefinitions: Map<string, RawActionDefinition>) {
-        for (const [path, draft] of this.drafts) {
-            const previousDefinition = previousDefinitions.get(path)
-            const externalDefinition = this.getDefinitionByPath(path)
-            if (!externalDefinition) {
-                if (!previousDefinition && !draft.recreating) continue
-
-                const gateway = this.persistenceGateway()
-                const pendingPersistence = gateway.hasPendingFile?.(path) ?? false
-                gateway.discardPendingFile?.(path)
-                const recoverable = draft.revision !== draft.savedRevision
-                    || draft.saving
-                    || draft.recreating
-                    || pendingPersistence
-                    || !!draft.error
-                    || !!draft.conflict
-                if (!recoverable) {
-                    this.drafts.delete(path)
-                    continue
-                }
-                this.drafts.set(path, {
-                    ...draft,
-                    conflict: null,
-                    deleted: true,
-                    deletionRevision: draft.deletionRevision + 1,
-                    recreating: false,
-                    saving: false,
-                })
-                continue
-            }
-            const externalAction = this.getActionByPath(path)
-            if (!externalAction) throw new Error(`Missing external action after reload: ${path}`)
-            if (draft.deleted) {
-                this.drafts.set(path, { ...draft, action: externalAction, conflict: externalDefinition, deleted: false })
-                continue
-            }
-            if (!previousDefinition || actionDefinitionsEqual(previousDefinition, externalDefinition)) continue
-
-            if (draft.revision !== draft.savedRevision) {
-                this.drafts.set(path, { ...draft, action: externalAction, conflict: externalDefinition })
-                continue
-            }
-            const revision = draft.revision + 1
-            this.drafts.set(path, {
-                ...draft,
-                action: externalAction,
-                committedRevision: revision,
-                conflict: null,
-                definition: externalDefinition,
-                error: null,
-                revision,
-                savedRevision: revision,
-                targetPath: path,
-                validation: validateDraftDefinition(path, externalDefinition),
-            })
-        }
-    }
-
-    private queueDraftSave(
-        path: string,
-        definition: RawActionDefinition,
-        revision: number,
-        targetPath: string,
-        recreate = false,
-    ) {
-        const current = this.requireDraft(path)
-        const deletionRevision = current.deletionRevision
-        const saveReference = this.findOpenDocument(path)?.createSaveReference()
-        const chain = current.chain.then(async () => {
-            const startedDraft = this.drafts.get(path)
-            if (!startedDraft) return
-            if (startedDraft.deletionRevision !== deletionRevision || (startedDraft.deleted && !recreate)) return
-            this.drafts.set(path, { ...startedDraft, error: null, recreating: recreate, saving: true })
-            this.dispatchChanged()
-            try {
-                await this.saveDefinition(
-                    path,
-                    definition,
-                    targetPath,
-                    saveReference,
-                    () => this.acknowledgeDraftPersistence(path, revision, deletionRevision),
-                )
-                const savedDraft = this.drafts.get(path)
-                if (!savedDraft) return
-                if (savedDraft.deletionRevision !== deletionRevision) return
-                this.drafts.set(path, {
-                    ...savedDraft,
-                    deleted: recreate ? false : savedDraft.deleted,
-                    error: null,
-                    recreating: false,
-                    saving: false,
-                })
-            } catch (error) {
-                const failedDraft = this.drafts.get(path)
-                if (!failedDraft) return
-                if (failedDraft.deletionRevision !== deletionRevision) return
-                const message = error instanceof Error ? error.message : 'Action save failed'
-                this.drafts.set(path, { ...failedDraft, error: message, recreating: false, saving: false })
-            }
-            this.dispatchChanged()
-        })
-        this.drafts.set(path, { ...current, chain })
-    }
-
-    private acknowledgeDraftPersistence(path: string, revision: number, deletionRevision: number) {
-        const draft = this.drafts.get(path)
-        if (!draft || draft.deletionRevision !== deletionRevision) return
-
-        this.drafts.set(path, { ...draft, savedRevision: Math.max(draft.savedRevision, revision) })
-        this.dispatchChanged()
-    }
-
-    private findOpenDocument(path: string): ActionOpenDocument | null {
-        const action = this.drafts.get(path)?.action ?? this.getActionByPath(path)
-        if (!action) return null
-
-        const document = openFilesService.findDocument(action)
-        return document?.kind === 'action' ? document : null
-    }
-
-    private updateOpenDocument(path: string, definition: RawActionDefinition) {
-        this.findOpenDocument(path)?.updateDraft(definition, this)
-    }
-
     private filesWithFile(file: ActionFile): ActionFile[] {
         const found = this.files.some((candidate) => candidate.path === file.path)
 
@@ -794,8 +353,17 @@ export class ActionService extends EventTarget {
             : [...this.files, file]
     }
 
-    private dispatchChanged() {
-        this.dispatchEvent(new CustomEvent<ActionServiceState>('changed', { detail: this.getState() }))
+    private dispatchActionsChanged() {
+        this.dispatchEvent(new CustomEvent<ActionServiceState>(ACTIONS_CHANGED_EVENT, { detail: this.getState() }))
+    }
+
+    dispatchDraftChanged(path: string) {
+        const detail: ActionDraftChangedDetail = { path }
+        this.dispatchEvent(new CustomEvent<ActionDraftChangedDetail>(ACTION_DRAFT_CHANGED_EVENT, { detail }))
+    }
+
+    dispatchPersistenceChanged() {
+        this.dispatchEvent(new Event(ACTION_PERSISTENCE_CHANGED_EVENT))
     }
 }
 

@@ -1,4 +1,5 @@
 import type { ActionService } from '../actions/action_service'
+import { ACTION_PERSISTENCE_CHANGED_EVENT } from '../actions/action_service_events'
 import type { DataService } from '../data/data_service'
 import { register } from '../service_injector'
 import type { OpenFilesService } from '../open_files_service'
@@ -41,7 +42,7 @@ export class ProjectPersistenceService extends EventTarget {
 
         this.removeDependencyListeners()
         this.dependencies = dependencies
-        dependencies.actionService.addEventListener('changed', this.handleDependencyChanged)
+        dependencies.actionService.addEventListener(ACTION_PERSISTENCE_CHANGED_EVENT, this.handleDependencyChanged)
         dependencies.dataService.addEventListener('persistenceChanged', this.handleDependencyChanged)
         dependencies.openFilesService.addEventListener('documentChanged', this.handleDependencyChanged)
         dependencies.openFilesService.addEventListener('removed', this.handleDependencyChanged)
@@ -54,7 +55,7 @@ export class ProjectPersistenceService extends EventTarget {
 
     async flushPendingChanges() {
         const { actionService, dataService, openFilesService } = this.requireDependencies()
-        if (actionService.hasPendingDrafts()) await actionService.flushDrafts()
+        if (actionService.draftStore.hasPendingDrafts()) await actionService.draftStore.flushDrafts()
         for (const document of openFilesService.getRegisteredDocuments()) {
             if (document.kind === 'card' && document.dirty) {
                 dataService.cards.updateCardBody(document.path, document.getDraft().content, document.createSaveReference())
@@ -71,7 +72,7 @@ export class ProjectPersistenceService extends EventTarget {
         const { actionService, dataService, openFilesService } = this.requireDependencies()
         const { hasPendingFileCommit, hasPendingPush, isSaving } = dataService.getPersistenceSnapshot()
         const hasDirtyDocument = openFilesService.getRegisteredDocuments().some(({ dirty }) => dirty)
-        const hasPendingSave = isSaving || hasPendingFileCommit || hasDirtyDocument || actionService.hasPendingDrafts()
+        const hasPendingSave = isSaving || hasPendingFileCommit || hasDirtyDocument || actionService.draftStore.hasPendingDrafts()
         const nextSnapshot: ProjectPersistenceSnapshot = {
             hasPendingPush,
             hasPendingSave,
@@ -86,7 +87,7 @@ export class ProjectPersistenceService extends EventTarget {
     private removeDependencyListeners() {
         if (!this.dependencies) return
 
-        this.dependencies.actionService.removeEventListener('changed', this.handleDependencyChanged)
+        this.dependencies.actionService.removeEventListener(ACTION_PERSISTENCE_CHANGED_EVENT, this.handleDependencyChanged)
         this.dependencies.dataService.removeEventListener('persistenceChanged', this.handleDependencyChanged)
         this.dependencies.openFilesService.removeEventListener('documentChanged', this.handleDependencyChanged)
         this.dependencies.openFilesService.removeEventListener('removed', this.handleDependencyChanged)

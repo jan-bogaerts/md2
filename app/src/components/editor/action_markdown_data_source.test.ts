@@ -34,14 +34,16 @@ function setup() {
         path: { get: () => 'actions/review.json' },
     })
     const service = Object.assign(new EventTarget(), {
-        commitDraft: vi.fn(),
-        getDraft: vi.fn(() => ({
-            conflict: null, definition: draft, deleted: false, error: null, revision: 1, savedRevision: 0,
-            saving: false,
-            validation: { code: null, error: null, field: null, fieldPath: null, index: null, valid: true },
-        })),
+        draftStore: {
+            commitDraft: vi.fn(),
+            getDraft: vi.fn(() => ({
+                conflict: null, definition: draft, deleted: false, error: null, revision: 1, savedRevision: 0,
+                saving: false,
+                validation: { code: null, error: null, field: null, fieldPath: null, index: null, valid: true },
+            })),
+            stageDraft: vi.fn((_path: string, definition: RawActionDefinition) => { draft = definition }),
+        },
         setActionEditorState: vi.fn(),
-        stageDraft: vi.fn((_path: string, definition: RawActionDefinition) => { draft = definition }),
     })
     const source = new ActionMarkdownDataSource()
     source.init(service as unknown as Parameters<ActionMarkdownDataSource['init']>[0])
@@ -60,7 +62,7 @@ describe('ActionMarkdownDataSource', () => {
 
         expect(document.getDraft().prompt).toBe('New prompt')
         expect(document.getDraft().phrases?.[0].text).toBe('New phrase')
-        expect(service.commitDraft).toHaveBeenCalledWith(document.path)
+        expect(service.draftStore.commitDraft).toHaveBeenCalledWith(document.path)
     })
 
     it('keeps section identity in active target without public compound IDs', () => {

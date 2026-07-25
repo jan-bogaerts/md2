@@ -3,12 +3,15 @@ import type { CardOpenDocument, OpenDocument, OpenFilesService } from '../open_f
 import type { ActionService } from '../actions/action_service'
 import type { DataPersistenceSnapshot, DataService } from '../data/data_service'
 import { ProjectPersistenceService } from './project_persistence_service'
+import { ACTION_PERSISTENCE_CHANGED_EVENT } from '../actions/action_service_events'
 
 class TestActionService extends EventTarget {
     pendingDrafts = false
-    readonly flushDrafts = vi.fn(async () => undefined)
-    hasPendingDrafts() { return this.pendingDrafts }
-    publishChange() { this.dispatchEvent(new Event('changed')) }
+    readonly draftStore = {
+        flushDrafts: vi.fn(async () => undefined),
+        hasPendingDrafts: () => this.pendingDrafts,
+    }
+    publishChange() { this.dispatchEvent(new Event(ACTION_PERSISTENCE_CHANGED_EVENT)) }
 }
 
 class TestDataService extends EventTarget {
@@ -84,7 +87,7 @@ describe('ProjectPersistenceService', () => {
         actionService.pendingDrafts = true
         openFilesService.documents = [dirtyCardDocument()]
         dataService.snapshot = { ...dataService.snapshot, hasPendingFileCommit: true }
-        actionService.flushDrafts.mockImplementation(async () => { calls.push('actions') })
+        actionService.draftStore.flushDrafts.mockImplementation(async () => { calls.push('actions') })
         dataService.cards.updateCardBody.mockImplementation(() => { calls.push('card-draft') })
         dataService.cards.flushPendingCommits.mockImplementation(async () => { calls.push('batch') })
 
@@ -97,7 +100,7 @@ describe('ProjectPersistenceService', () => {
         const failure = new Error('invalid draft')
         const { actionService, dataService, service } = initService()
         actionService.pendingDrafts = true
-        actionService.flushDrafts.mockRejectedValue(failure)
+        actionService.draftStore.flushDrafts.mockRejectedValue(failure)
         actionService.publishChange()
 
         await expect(service.flushPendingChanges()).rejects.toBe(failure)

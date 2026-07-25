@@ -131,11 +131,11 @@ describe('DataService', () => {
             },
         ])
 
-        const review = actionService.getDraft('actions/review.json').definition
-        actionService.updateDraft('actions/review.json', { ...review, label: 'Review code' })
-        actionService.updateDraft('actions/review.json', { ...review, description: 'Review changed files', label: 'Review code' })
-        actionService.updateDraft('actions/review.json', { ...review, description: 'Review changed files', label: 'Review code', prompt: 'Review carefully' })
-        actionService.updateDraft('actions/review.json', {
+        const review = actionService.draftStore.getDraft('actions/review.json').definition
+        actionService.draftStore.updateDraft('actions/review.json', { ...review, label: 'Review code' })
+        actionService.draftStore.updateDraft('actions/review.json', { ...review, description: 'Review changed files', label: 'Review code' })
+        actionService.draftStore.updateDraft('actions/review.json', { ...review, description: 'Review changed files', label: 'Review code', prompt: 'Review carefully' })
+        actionService.draftStore.updateDraft('actions/review.json', {
             ...review,
             appliesTo: { worktreeError: 'missing' },
             description: 'Review changed files',
@@ -144,9 +144,9 @@ describe('DataService', () => {
             phrases: [{ text: 'Run all tests', title: 'Tests' }],
             prompt: 'Review carefully',
         })
-        const command = actionService.getDraft('actions/test.json').definition
-        actionService.updateDraft('actions/test.json', { ...command, command: 'npm run test' })
-        await actionService.flushDrafts()
+        const command = actionService.draftStore.getDraft('actions/test.json').definition
+        actionService.draftStore.updateDraft('actions/test.json', { ...command, command: 'npm run test' })
+        await actionService.draftStore.flushDrafts()
 
         expect(storage.commit).not.toHaveBeenCalled()
         expect(storage.push).not.toHaveBeenCalled()
@@ -164,9 +164,9 @@ describe('DataService', () => {
         expect(firstRequest.moves?.[0].content).toContain('"text": "Run all tests"')
         expect(firstRequest.files.find(({ path }) => path === 'actions/test.json')?.content).toContain('"command": "npm run test"')
 
-        const latestReview = actionService.getDraft('actions/review-code.json').definition
-        actionService.updateDraft('actions/review-code.json', { ...latestReview, prompt: 'Review after pause' })
-        await actionService.flushDrafts()
+        const latestReview = actionService.draftStore.getDraft('actions/review-code.json').definition
+        actionService.draftStore.updateDraft('actions/review-code.json', { ...latestReview, prompt: 'Review after pause' })
+        await actionService.draftStore.flushDrafts()
         await vi.advanceTimersByTimeAsync(2000)
 
         expect(storage.commit).toHaveBeenCalledTimes(2)
@@ -206,8 +206,8 @@ describe('DataService', () => {
         service.init({ storage })
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
 
-        actionService.updateDraft('actions/test-1.json', renamedDefinition)
-        await actionService.flushDrafts()
+        actionService.draftStore.updateDraft('actions/test-1.json', renamedDefinition)
+        await actionService.draftStore.flushDrafts()
         await vi.advanceTimersByTimeAsync(2000)
         watchChange({ changeKind: 'removed', path: 'actions/test-1.json' })
         watchChange({ changeKind: 'added', path: 'actions/test-1b.json' })
@@ -216,7 +216,7 @@ describe('DataService', () => {
 
         await vi.waitFor(() => {
             expect(actionService.getActionByPath('actions/test-1b.json')?.label).toBe('Test 1b')
-            expect(actionService.getDraft('actions/test-1b.json')).toMatchObject({ deleted: false })
+            expect(actionService.draftStore.getDraft('actions/test-1b.json')).toMatchObject({ deleted: false })
         })
     })
 

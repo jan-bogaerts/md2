@@ -250,4 +250,41 @@ describe('entry-point placement in the file tree', () => {
         const todoRow = screen.getByRole('button', { name: 'todo 1' }).parentElement
         expect(todoRow && within(todoRow).getByRole('button', { name: 'Actions' })).toBeInTheDocument()
     })
+
+    it('mounts row action entry points only while their menu is open', () => {
+        actionService.loadFromFiles([
+            file(commandDefinition('review', { label: 'Review' })),
+        ])
+        vi.spyOn(dataService, 'getState').mockReturnValue({
+            project: null,
+            runningAgents: [],
+            snapshot: {
+                activeCards: [card('F-1', 'todo', 'Alpha')],
+                backgroundCards: [],
+                repositoryFiles: [],
+                workingFolder: 'design',
+            },
+        })
+
+        render(
+            <FileTreeView
+                actionsFolder="design/actions"
+                cardTypes={DEFAULT_CARD_TYPES}
+                onCreateFolder={async () => undefined}
+                onCreateMarkdownFile={async () => undefined}
+                onDeleteFile={async () => undefined}
+                onDeleteFolder={async () => undefined}
+                onLeftPanelInteraction={() => {}}
+                projectFolder="design"
+                statusColors={new Map([['todo', '#9c4dcc']])}
+                workingFolder="design"
+            />,
+        )
+
+        expect(screen.queryByRole('menuitem', { name: 'Review' })).not.toBeInTheDocument()
+
+        fireEvent.click(screen.getAllByRole('button', { name: 'Actions' }).at(-1) as HTMLElement)
+
+        expect(screen.getByRole('menuitem', { name: 'Review' })).toBeInTheDocument()
+    })
 })

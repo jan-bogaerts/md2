@@ -26,7 +26,7 @@ export const ListActionEditor = memo(function ListActionEditor(props: ListAction
     const retainedPath = retainedAction?.sourcePath
     const actionExists = !!retainedPath && (
         !!actionService.getActionByPath(retainedPath)
-        || actionService.getDeletedDraftActions().some((candidate) => candidate.sourcePath === retainedPath)
+        || actionService.draftStore.getDeletedDraftActions().some((candidate) => candidate.sourcePath === retainedPath)
     )
     const action = actionExists ? retainedAction : null
     const [historyStore] = useState(() => new MarkdownDocumentHistoryStore())

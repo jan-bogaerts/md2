@@ -1,13 +1,12 @@
 import { Box } from '@mui/material'
 import { type NodeApi, Tree } from 'react-arborist'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { ActionDefinition } from '../../data/action_types'
 import type { CardTypeConfig, ProjectCard } from '../../data/data_types'
 import { buildFileTree, type TreeNode } from '../../data/file_tree'
 import { actionService } from '../../services/actions/action_service'
-import { openFilesService, type OpenDocumentObject } from '../../services/open_files_service'
+import { openFilesService } from '../../services/open_files_service'
 import { telemetryService } from '../../services/telemetry/telemetry_service'
-import { useActions } from '../hooks/use_actions'
+import { useActionFileTreeActions } from '../hooks/use_action_file_tree_actions'
 import { useProjectState } from '../hooks/use_project_state'
 import { CreateTreeItemDialog, type CreateTreeItemKind } from './create_tree_item_dialog'
 import { FileTreeContext, type FileTreeContextValue } from './file_tree_context'
@@ -90,7 +89,7 @@ export function FileTreeView(props: FileTreeViewProps) {
     const activeCards = snapshot?.activeCards ?? EMPTY_CARDS
     const backgroundCards = snapshot?.backgroundCards ?? EMPTY_CARDS
     const repositoryFiles = snapshot?.repositoryFiles ?? EMPTY_REPOSITORY_FILES
-    const { actions } = useActions()
+    const actions = useActionFileTreeActions()
     const specialFolderPaths = useMemo(
         () => [actionsFolder, workingFolder, folderPath(projectFolder, HISTORY_FOLDER_NAME)],
         [actionsFolder, projectFolder, workingFolder],
@@ -106,15 +105,6 @@ export function FileTreeView(props: FileTreeViewProps) {
     const cardsByPath = useMemo(() => new Map(
         [...activeCards, ...backgroundCards].map((card) => [card.path, card]),
     ), [activeCards, backgroundCards])
-    const objectsByPath = useMemo(() => new Map<string, OpenDocumentObject>([
-        ...cardsByPath,
-        ...actions
-            .filter((action): action is ActionDefinition & { sourcePath: string } => action.sourcePath !== null)
-            .map((action) => [action.sourcePath, action] as const),
-        ...actionService.getDeletedDraftActions()
-            .filter((action): action is ActionDefinition & { sourcePath: string } => action.sourcePath !== null)
-            .map((action) => [action.sourcePath, action] as const),
-    ]), [actions, cardsByPath])
     const [creationRequest, setCreationRequest] = useState<CreationRequest | null>(null)
     const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
     const [treeContainerRef, treeHeight] = useElementHeight()
@@ -129,7 +119,7 @@ export function FileTreeView(props: FileTreeViewProps) {
 
     const handleActivateNode = useCallback((node: NodeApi<TreeNode>) => {
         if (node.data.path) {
-            const object = objectsByPath.get(node.data.path)
+            const object = cardsByPath.get(node.data.path) ?? actionService.getActionByPath(node.data.path)
             if (!object) throw new Error(`Cannot open unknown document: ${node.data.path}`)
             setSelectedNodeId(null)
             openFilesService.openDocument(object)
@@ -139,7 +129,7 @@ export function FileTreeView(props: FileTreeViewProps) {
         }
 
         node.toggle()
-    }, [objectsByPath, onLeftPanelInteraction])
+    }, [cardsByPath, onLeftPanelInteraction])
 
     const closeCreationDialog = () => {
         setCreationRequest(null)
