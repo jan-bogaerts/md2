@@ -65,7 +65,6 @@ const card: ProjectCard = {
 const editorProps = {
     cardTypes: [],
     statusColors: new Map<string, string>(),
-    visible: true,
 }
 
 const secondCard: ProjectCard = {

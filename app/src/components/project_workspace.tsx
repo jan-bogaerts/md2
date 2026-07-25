@@ -1,26 +1,38 @@
-import { Box, Paper, useMediaQuery, useTheme } from '@mui/material'
-import { useEffect } from 'react'
+import { Box, Paper, Typography, useMediaQuery, useTheme } from '@mui/material'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
+import type { UseGithubAuthResult } from '../auth/use_github_auth'
 import {
     DEFAULT_CARD_TYPES,
     DEFAULT_ACTIONS_FOLDER,
     DEFAULT_PROJECT_FOLDER,
     DEFAULT_STATES,
+    defaultColumnAccent,
 } from '../data/data_types'
+import { dataService } from '../services/data/data_service'
 import { dialogService } from '../services/dialog_service'
 import { getElectronLifecycleBridge, type ElectronLifecycleBridge } from '../services/electron_lifecycle_bridge'
 import { openFilesService } from '../services/open_files_service'
+import type { OpenDocument } from '../services/open_files_service'
 import { telemetryService } from '../services/telemetry/telemetry_service'
 import { workspaceViewService } from '../services/project/workspace_view_service'
 import { workspaceNavigationService, type WorkspaceOpenRequest } from '../services/project/workspace_navigation_service'
 import { projectPersistenceService } from '../services/project/project_persistence_service'
 import { CardView } from './card_view/card_view'
 import { flushMarkdownEditors } from './editor/markdown_editor_flush'
+import { useProjectReference } from './hooks/use_project_reference'
 import { TextView } from './text_view/text_view'
+import { FileTreeView } from './text_view/file_tree_view'
 import { useProjectConfig } from './hooks/use_project_config'
-import { useWorkspaceView } from './hooks/use_workspace_view'
+import { useWorkingFolder } from './hooks/use_working_folder'
 import { ProjectWorkspaceAvailability } from './project_workspace_availability'
+import { MobileMainWindow } from './shell/mobile_main_window'
+import { SplitLayout } from './shell/split_layout'
 
 const WORKSPACE_PANEL_PADDING = 3
+
+function openDocumentPath(document: OpenDocument) {
+    return document.kind === 'card' ? document.getObject().path : document.getObject().sourcePath
+}
 
 function flushPendingCommits() {
     flushMarkdownEditors()
@@ -48,19 +60,79 @@ function runWorkspaceEdit(action: () => void, fallbackMessage: string) {
 }
 
 interface ProjectWorkspaceProps {
+    auth: UseGithubAuthResult
+    isMenuOpen: boolean
     onLeftPanelInteraction: () => void
 }
 
 export function ProjectWorkspace(props: ProjectWorkspaceProps) {
-    const { onLeftPanelInteraction } = props
+    const { auth, isMenuOpen, onLeftPanelInteraction } = props
     const theme = useTheme()
     const isMobile = useMediaQuery(theme.breakpoints.down('md'))
-    const { viewMode } = useWorkspaceView()
+    const project = useProjectReference()
     const projectConfig = useProjectConfig()
+    const workingFolder = useWorkingFolder()
     const cardTypes = projectConfig?.cardTypes ?? DEFAULT_CARD_TYPES
     const states = projectConfig?.states ?? DEFAULT_STATES
     const projectFolder = projectConfig?.projectFolder ?? DEFAULT_PROJECT_FOLDER
     const actionsFolder = projectConfig?.actionsFolder ?? `${DEFAULT_PROJECT_FOLDER}/${DEFAULT_ACTIONS_FOLDER}`
+    const onLeftPanelInteractionRef = useRef(onLeftPanelInteraction)
+    const statusColors = useMemo(() => new Map(
+        states.map(({ color, state }, index) => [state, color ?? defaultColumnAccent(index)]),
+    ), [states])
+
+    useEffect(() => {
+        onLeftPanelInteractionRef.current = onLeftPanelInteraction
+    })
+
+    const handleCreateFolder = useCallback(async (parentDirectory: string, name: string) => {
+        try {
+            await dataService.cards.createFolder(parentDirectory, name)
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: `Folder creation failed: ${name}` })
+            throw error
+        }
+    }, [])
+
+    const handleCreateMarkdownFile = useCallback(async (parentDirectory: string, name: string) => {
+        try {
+            await dataService.cards.createMarkdownFile(parentDirectory, name)
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: `Markdown file creation failed: ${name}` })
+            throw error
+        }
+    }, [])
+
+    const handleDeleteFile = useCallback(async (path: string) => {
+        try {
+            await dataService.cards.deleteFile(path)
+            const document = openFilesService.getSnapshot().documents.find((candidate) => openDocumentPath(candidate) === path)
+            if (document) openFilesService.closeDocument(document)
+            workspaceViewService.clearSelectedPath(path)
+            onLeftPanelInteractionRef.current()
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: `File delete failed: ${path}` })
+            throw error
+        }
+    }, [])
+
+    const handleDeleteFolder = useCallback(async (path: string) => {
+        try {
+            await dataService.cards.deleteFolder(path)
+            const folderPrefix = `${path.replace(/\/+$/u, '')}/`
+            const documents = openFilesService.getSnapshot().documents
+            for (const document of documents) {
+                const openPath = openDocumentPath(document)
+                if (openPath?.startsWith(folderPrefix)) openFilesService.closeDocument(document)
+            }
+            const selectedPath = workspaceViewService.getSnapshot().selectedPath
+            if (selectedPath?.startsWith(folderPrefix)) workspaceViewService.clearSelectedPath(selectedPath)
+            onLeftPanelInteractionRef.current()
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: `Folder deletion failed: ${path}` })
+            throw error
+        }
+    }, [])
 
     useEffect(() => {
         const handleBeforeUnload = (event: BeforeUnloadEvent) => {
@@ -121,48 +193,83 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
         return () => workspaceNavigationService.removeEventListener('open', handleNavigationOpen)
     }, [])
 
-    return (
+    const fileTree = (
+        <Box
+            aria-label="File tree"
+            sx={{ bgcolor: 'action.hover', display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}
+        >
+            <FileTreeView
+                actionsFolder={actionsFolder}
+                cardTypes={cardTypes}
+                onCreateFolder={handleCreateFolder}
+                onCreateMarkdownFile={handleCreateMarkdownFile}
+                onDeleteFile={handleDeleteFile}
+                onDeleteFolder={handleDeleteFolder}
+                onLeftPanelInteraction={onLeftPanelInteraction}
+                projectFolder={projectFolder}
+                statusColors={statusColors}
+                workingFolder={workingFolder}
+            />
+        </Box>
+    )
+    const textView = (
         <Paper
-            aria-label="Project workspace"
-            component="section"
             elevation={0}
             sx={{
-                bgcolor: viewMode === 'cards' ? 'background.default' : 'background.paper',
-                border: viewMode === 'cards' ? 0 : 1,
+                border: 1,
                 borderColor: 'divider',
-                borderRadius: viewMode === 'cards' ? 0 : 2,
+                borderRadius: 2,
+                boxSizing: 'border-box',
                 display: 'flex',
-                flex: 1,
+                height: '100%',
                 minHeight: 0,
                 overflow: 'hidden',
-                p: viewMode === 'cards' ? 0 : WORKSPACE_PANEL_PADDING,
+                p: WORKSPACE_PANEL_PADDING,
             }}
         >
-            <Box
-                aria-label="Project workspace content"
-                role="region"
-                sx={{ display: 'flex', flex: 1, flexDirection: 'column', minHeight: 0, overflow: 'auto' }}
-                tabIndex={0}
-            >
-                <ProjectWorkspaceAvailability>
-                    <>
-                        <CardView
-                            cardTypes={cardTypes}
-                            isMobile={isMobile}
-                            states={states}
-                            visible={viewMode === 'cards'}
-                        />
-                        <TextView
-                            actionsFolder={actionsFolder}
-                            cardTypes={cardTypes}
-                            onLeftPanelInteraction={onLeftPanelInteraction}
-                            projectFolder={projectFolder}
-                            states={states}
-                            visible={viewMode === 'text'}
-                        />
-                    </>
-                </ProjectWorkspaceAvailability>
-            </Box>
+            <TextView
+                actionsFolder={actionsFolder}
+                cardTypes={cardTypes}
+                projectFolder={projectFolder}
+                states={states}
+            />
         </Paper>
+    )
+    const views = (
+        <>
+            {isMobile ? textView : <SplitLayout left={fileTree} right={textView} />}
+            <CardView cardTypes={cardTypes} isMobile={isMobile} states={states} />
+        </>
+    )
+    const workspace = (
+        <ProjectWorkspaceAvailability>
+            {views}
+        </ProjectWorkspaceAvailability>
+    )
+    const navigation = project ? fileTree : (
+        <Box sx={{ p: 2 }}>
+            <Typography color="text.secondary" variant="body2">
+                No project navigation available.
+            </Typography>
+        </Box>
+    )
+
+    return (
+        <Box
+            aria-label="Project workspace"
+            component="section"
+            sx={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}
+        >
+            {isMobile ? (
+                <MobileMainWindow
+                    auth={auth}
+                    isMenuOpen={isMenuOpen}
+                    leftPanel={navigation}
+                    onCloseMenu={onLeftPanelInteraction}
+                    rightPanel={workspace}
+                    showNavigationInCards={!project}
+                />
+            ) : workspace}
+        </Box>
     )
 }

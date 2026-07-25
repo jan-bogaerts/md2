@@ -2,17 +2,17 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useCallback } from 'react'
 import { TextView } from './text_view'
-import { DEFAULT_CARD_TYPES, DEFAULT_STATES, type ProjectCard } from '../../data/data_types'
+import { DEFAULT_CARD_TYPES, DEFAULT_STATES, defaultColumnAccent, type ProjectCard } from '../../data/data_types'
 import { telemetryService } from '../../services/telemetry/telemetry_service'
 import { openFilesService } from '../../services/open_files_service'
 import { actionService } from '../../services/actions/action_service'
 import { configService } from '../../services/config/config_service'
 import { dataService } from '../../services/data/data_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
-import { LeftPanelSlotProvider } from '../shell/left_panel_slot_provider'
-import { LeftPanelTarget } from '../shell/left_panel_target'
+import { workspaceViewService } from '../../services/project/workspace_view_service'
 import { actionMarkdownDataSource } from '../editor/action_markdown_data_source'
 import { cardMarkdownDataSource } from '../editor/card_markdown_data_source'
+import { FileTreeView } from './file_tree_view'
 
 function card(path: string, overrides: Partial<ProjectCard['header']> = {}, content = ''): ProjectCard {
     return {
@@ -71,20 +71,50 @@ function renderTextView(
 
     function TextViewHarness() {
         const handleLeftPanelInteraction = useCallback(() => undefined, [])
+        const handleCreateFolder = useCallback(async (parentDirectory: string, name: string) => {
+            await dataService.cards.createFolder(parentDirectory, name)
+        }, [])
+        const handleCreateMarkdownFile = useCallback(async (parentDirectory: string, name: string) => {
+            await dataService.cards.createMarkdownFile(parentDirectory, name)
+        }, [])
+        const handleDeleteFile = useCallback(async (path: string) => {
+            await dataService.cards.deleteFile(path)
+            const document = openFilesService.getSnapshot().documents.find((candidate) => (
+                candidate.kind === 'card' ? candidate.getObject().path : candidate.getObject().sourcePath
+            ) === path)
+            if (document) openFilesService.closeDocument(document)
+        }, [])
+        const handleDeleteFolder = useCallback(async (path: string) => {
+            await dataService.cards.deleteFolder(path)
+        }, [])
+        const statusColors = new Map(
+            DEFAULT_STATES.map(({ color, state }, index) => [state, color ?? defaultColumnAccent(index)]),
+        )
 
         return (
-            <LeftPanelSlotProvider>
-                <LeftPanelTarget fallback="No project navigation available." />
+            <>
+                <div aria-label="File tree">
+                    <FileTreeView
+                        actionsFolder="design/actions"
+                        cardTypes={DEFAULT_CARD_TYPES}
+                        onCreateFolder={handleCreateFolder}
+                        onCreateMarkdownFile={handleCreateMarkdownFile}
+                        onDeleteFile={handleDeleteFile}
+                        onDeleteFolder={handleDeleteFolder}
+                        onLeftPanelInteraction={handleLeftPanelInteraction}
+                        projectFolder="design"
+                        statusColors={statusColors}
+                        workingFolder="design/active"
+                    />
+                </div>
                 <TextView
                     actionsFolder="design/actions"
                     cardTypes={DEFAULT_CARD_TYPES}
-                    onLeftPanelInteraction={handleLeftPanelInteraction}
                     projectFolder="design"
                     states={DEFAULT_STATES}
-                    visible
                     {...overrides}
                 />
-            </LeftPanelSlotProvider>
+            </>
         )
     }
 
@@ -154,6 +184,7 @@ function loadMarkdownActions() {
 
 describe('TextView', () => {
     beforeEach(() => {
+        workspaceViewService.setViewMode('text')
         vi.spyOn(dataService, 'getState')
         setProjectCards(activeCards)
         configService.init()
@@ -179,6 +210,7 @@ describe('TextView', () => {
     afterEach(() => {
         delete window.md2Actions
         cleanup()
+        workspaceViewService.setViewMode('cards')
         for (const document of openFilesService.getRegisteredDocuments()) openFilesService.discardDocument(document)
         actionService.clear()
         configService.clear()
@@ -186,12 +218,13 @@ describe('TextView', () => {
     })
 
     it('keeps hidden text view mounted without occupying layout', () => {
-        renderTextView({ visible: false })
+        workspaceViewService.setViewMode('cards')
+        renderTextView()
 
         const emptyState = screen.getByText('Select a file from the tree to open it.')
 
         expect(emptyState).not.toBeVisible()
-        expect(emptyState.closest('[hidden]')).toHaveStyle({ display: 'none' })
+        expect(emptyState.closest('[style*="display: none"]')).toHaveStyle({ display: 'none' })
     })
 
     it('centers the empty state without file controls or separators', () => {
@@ -643,22 +676,25 @@ describe('TextView', () => {
 
     it('updates the left-panel tree when cards change without a view-mode switch', () => {
         setProjectCards([activeCards[0]], [])
-        const shared = {
-            actionsFolder: 'design/actions',
-            cardTypes: DEFAULT_CARD_TYPES,
-            onLeftPanelInteraction: vi.fn(),
-            projectFolder: 'design',
-            projectKey: 'project:main',
-            states: DEFAULT_STATES,
-            workingFolder: 'design/active',
-            visible: true,
-        }
+        const statusColors = new Map(
+            DEFAULT_STATES.map(({ color, state }, index) => [state, color ?? defaultColumnAccent(index)]),
+        )
         render(
             <AppThemeProvider>
-                <LeftPanelSlotProvider>
-                    <LeftPanelTarget fallback="No project navigation available." />
-                    <TextView {...shared} />
-                </LeftPanelSlotProvider>
+                <div aria-label="File tree">
+                    <FileTreeView
+                        actionsFolder="design/actions"
+                        cardTypes={DEFAULT_CARD_TYPES}
+                        onCreateFolder={vi.fn()}
+                        onCreateMarkdownFile={vi.fn()}
+                        onDeleteFile={vi.fn()}
+                        onDeleteFolder={vi.fn()}
+                        onLeftPanelInteraction={vi.fn()}
+                        projectFolder="design"
+                        statusColors={statusColors}
+                        workingFolder="design/active"
+                    />
+                </div>
             </AppThemeProvider>,
         )
 

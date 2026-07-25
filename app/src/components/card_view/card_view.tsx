@@ -26,7 +26,6 @@ interface CardViewProps {
     cardTypes: CardTypeConfig[]
     isMobile: boolean
     states: StateConfig[]
-    visible: boolean
 }
 
 function runCardEdit(action: () => void, fallbackMessage: string) {
@@ -63,13 +62,14 @@ export function CardView(props: CardViewProps) {
         cardTypes,
         isMobile,
         states,
-        visible,
     } = props
     const worktrees = useWorktrees()
     useAgentAcknowledgements()
     const columns = useCardViewColumns(states)
     const [openAffectsPath, setOpenAffectsPath] = useState<string | null>(null)
     const initialCardBoundsRef = useRef(new Map<string, CardVerticalBounds>())
+    const rootElementRef = useRef<HTMLDivElement>(null)
+    const wasVisibleRef = useRef<boolean | null>(null)
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: DRAG_ACTIVATION_DISTANCE } }))
 
     const handleOpenAffects = (path: string) => {
@@ -86,14 +86,29 @@ export function CardView(props: CardViewProps) {
     }, [])
 
     useEffect(() => {
-        if (visible) return
+        const updateVisibility = () => {
+            const rootElement = rootElementRef.current
+            if (!rootElement) throw new Error('Missing card view root element')
 
-        queueMicrotask(() => {
-            cardBodyPopoverService.close()
-            setOpenAffectsPath(null)
-            clearActiveCard()
-        })
-    }, [clearActiveCard, visible])
+            const isVisible = workspaceViewService.getSnapshot().viewMode === 'cards'
+            rootElement.style.display = isVisible ? 'flex' : 'none'
+            if (wasVisibleRef.current === isVisible) return
+
+            wasVisibleRef.current = isVisible
+            if (isVisible) return
+
+            queueMicrotask(() => {
+                cardBodyPopoverService.close()
+                setOpenAffectsPath((currentPath) => currentPath === null ? currentPath : null)
+                clearActiveCard()
+            })
+        }
+
+        updateVisibility()
+        workspaceViewService.addEventListener('changed', updateVisibility)
+
+        return () => workspaceViewService.removeEventListener('changed', updateVisibility)
+    }, [clearActiveCard])
 
     useEffect(() => () => cardBodyPopoverService.close(), [])
 
@@ -163,57 +178,62 @@ export function CardView(props: CardViewProps) {
     }
 
     return (
-        <DndContext
-            collisionDetection={closestCorners}
-            onDragCancel={clearActiveCard}
-            onDragEnd={handleDragEnd}
-            onDragMove={handleDragMove}
-            onDragStart={handleDragStart}
-            sensors={sensors}
+        <Box
+            ref={rootElementRef}
+            sx={{ bgcolor: 'background.default', display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}
         >
-            <Box
-                aria-label="Card columns"
-                hidden={!visible}
-                sx={{
-                    alignItems: 'flex-start',
-                    display: visible ? 'flex' : 'none',
-                    flexDirection: isMobile ? 'column' : 'row',
-                    gap: 2,
-                    height: '100%',
-                    overflowX: isMobile ? 'visible' : 'auto',
-                    p: 2.5,
-                }}
+            <DndContext
+                collisionDetection={closestCorners}
+                onDragCancel={clearActiveCard}
+                onDragEnd={handleDragEnd}
+                onDragMove={handleDragMove}
+                onDragStart={handleDragStart}
+                sensors={sensors}
             >
-                {columns.map((column) => (
-                    <CardColumn
-                        key={column.status}
-                        cardTypes={cardTypes}
-                        column={column}
-                        isMobile={isMobile}
-                        onDeleteCard={handleDeleteCard}
-                        onOpenInFileMode={handleOpenInFileMode}
-                        onTitleChange={handleTitleChange}
-                        onTogglePolicy={handleTogglePolicy}
-                        worktrees={worktrees}
-                    />
-                ))}
-            </Box>
-            <DragOverlay>
-                {visible ? <CardDragOverlay cardTypes={cardTypes} /> : null}
-            </DragOverlay>
-            <CardBodyPopover
-                isMobile={isMobile}
-                onDeleteCard={handleDeleteCard}
-                onOpenAffects={handleOpenAffects}
-                onOpenInFileMode={handleOpenInFileMode}
-                visible={visible}
-            />
-            <AffectsEditorDialog
-                cardPath={visible ? openAffectsPath : null}
-                onClose={handleCloseAffects}
-                onSave={handleAffectsChange}
-            />
-            <CardActionPopupHost />
-        </DndContext>
+                <Box
+                    aria-label="Card columns"
+                    sx={{
+                        alignItems: 'flex-start',
+                        display: 'flex',
+                        flex: 1,
+                        flexDirection: isMobile ? 'column' : 'row',
+                        gap: 2,
+                        height: '100%',
+                        overflowX: isMobile ? 'visible' : 'auto',
+                        p: 2.5,
+                    }}
+                >
+                    {columns.map((column) => (
+                        <CardColumn
+                            key={column.status}
+                            cardTypes={cardTypes}
+                            column={column}
+                            isMobile={isMobile}
+                            onDeleteCard={handleDeleteCard}
+                            onOpenInFileMode={handleOpenInFileMode}
+                            onTitleChange={handleTitleChange}
+                            onTogglePolicy={handleTogglePolicy}
+                            worktrees={worktrees}
+                        />
+                    ))}
+                </Box>
+                <DragOverlay>
+                    <CardDragOverlay cardTypes={cardTypes} />
+                </DragOverlay>
+                <CardBodyPopover
+                    isMobile={isMobile}
+                    onDeleteCard={handleDeleteCard}
+                    onOpenAffects={handleOpenAffects}
+                    onOpenInFileMode={handleOpenInFileMode}
+                    visible
+                />
+                <AffectsEditorDialog
+                    cardPath={openAffectsPath}
+                    onClose={handleCloseAffects}
+                    onSave={handleAffectsChange}
+                />
+                <CardActionPopupHost />
+            </DndContext>
+        </Box>
     )
 }

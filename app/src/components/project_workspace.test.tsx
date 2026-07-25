@@ -1,6 +1,6 @@
 ﻿import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { useCallback } from 'react'
+import type { UseGithubAuthResult } from '../auth/use_github_auth'
 import type { ActionFile } from '../data/action_types'
 import { MissingWorkingFolderError, type ProjectConfig, type StorageService } from '../data/data_types'
 import { setActionBridgeOverride, type ElectronActionBridge } from '../data/electron_action_bridge'
@@ -18,12 +18,20 @@ import { AppThemeProvider } from '../theme/theme_provider'
 import { DialogDisplay } from './dialog_display'
 import { ProjectWorkspace } from './project_workspace'
 import { ProjectToolbarMenu } from './shell/project_toolbar_menu'
-import { LeftPanelSlotProvider } from './shell/left_panel_slot_provider'
-import { LeftPanelTarget } from './shell/left_panel_target'
 
 const GITHUB_REPOSITORIES_URL = 'https://api.github.com/user/repos?per_page=100&page=1'
 const OWNER_REPOSITORY_URL = 'https://api.github.com/repos/octo/demo'
 const BRANCHES_URL = 'https://api.github.com/repos/octo/demo/branches'
+const auth: UseGithubAuthResult = {
+    accessToken: null,
+    errorMessage: null,
+    isAuthenticated: false,
+    isLoadingUser: false,
+    logout: vi.fn(),
+    savePersonalAccessToken: vi.fn(),
+    status: 'idle',
+    user: null,
+}
 
 function createBridge(actionFiles: ActionFile[] = []): ElectronDataBridge {
     const files = [
@@ -120,17 +128,16 @@ function createResetStorage(): StorageService {
 
 function renderProjectSurface(isGithubAuthenticated = false) {
     function ProjectSurface() {
-        const handleLeftPanelInteraction = useCallback(() => undefined, [])
-
         return (
-            <LeftPanelSlotProvider>
+            <>
                 <DialogDisplay />
                 <ProjectToolbarMenu accessToken="token" isGithubAuthenticated={isGithubAuthenticated} />
-                <LeftPanelTarget fallback="No project navigation available." />
                 <ProjectWorkspace
-                    onLeftPanelInteraction={handleLeftPanelInteraction}
+                    auth={auth}
+                    isMenuOpen={false}
+                    onLeftPanelInteraction={vi.fn()}
                 />
-            </LeftPanelSlotProvider>
+            </>
         )
     }
 
@@ -160,6 +167,10 @@ function requestLocalProject() {
 async function openLocalProject() {
     requestLocalProject()
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Open project' })).toBeNull())
+}
+
+async function findRootCard() {
+    return within(await screen.findByLabelText('Card columns')).findByText('Root')
 }
 
 function mockGithubFetch() {
@@ -233,8 +244,8 @@ describe('ProjectWorkspace', () => {
         expect(bridge.openProjectFolder).toHaveBeenCalledOnce()
         expect(bridge.listBranches).not.toHaveBeenCalled()
         expect(screen.queryByRole('combobox', { name: 'Source' })).toBeNull()
-        expect(await screen.findByText('Root')).toBeInTheDocument()
-        expect(screen.getByText('F-1')).toBeInTheDocument()
+        expect(await within(screen.getByLabelText('Card columns')).findByText('Root')).toBeInTheDocument()
+        expect(within(screen.getByLabelText('Card columns')).getByText('F-1')).toBeInTheDocument()
         expect(screen.getAllByText('active').length).toBeGreaterThan(0)
         expect(screen.getByLabelText('Card columns')).toHaveTextContent('active')
         expect(screen.getByRole('button', { name: 'Project agent' })).toBeInTheDocument()
@@ -318,15 +329,15 @@ describe('ProjectWorkspace', () => {
         await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Create project' })).toBeNull())
     })
 
-    it('keeps the workspace paper fixed while its content scrolls without a header', async () => {
+    it('keeps the workspace fixed while the card surface scrolls without a header', async () => {
         window.md2Data = createBridge()
 
         renderProjectSurface()
         await openLocalProject()
-        await screen.findByText('Root')
+        await findRootCard()
 
         expect(screen.getByRole('region', { name: 'Project workspace' })).toHaveStyle({ overflow: 'hidden' })
-        expect(screen.getByRole('region', { name: 'Project workspace content' })).toHaveStyle({ overflow: 'auto' })
+        expect(screen.getByLabelText('Card columns')).toHaveStyle({ overflowX: 'auto' })
         expect(screen.queryByRole('heading', { name: 'Active cards' })).toBeNull()
     })
 
@@ -337,7 +348,7 @@ describe('ProjectWorkspace', () => {
 
         renderProjectSurface()
         await openLocalProject()
-        await screen.findByText('Root')
+        await findRootCard()
 
         dataService.cards.updateCardBody('design/F-1-root.md', 'Changed while open')
         await waitFor(() => expect(projectPersistenceService.getSnapshot().hasPendingSave).toBe(true))
@@ -354,7 +365,7 @@ describe('ProjectWorkspace', () => {
 
         renderProjectSurface()
         await openLocalProject()
-        await screen.findByText('Root')
+        await findRootCard()
 
         const cleanClose = new Event('beforeunload', { cancelable: true })
         window.dispatchEvent(cleanClose)
@@ -417,7 +428,7 @@ describe('ProjectWorkspace', () => {
 
         renderProjectSurface()
         await openLocalProject()
-        await screen.findByText('Root')
+        await findRootCard()
 
         dataService.cards.updateCardBody('design/F-1-root.md', 'Changed before quit')
         await waitFor(() => expect(projectPersistenceService.getSnapshot().hasPendingSave).toBe(true))
@@ -495,7 +506,7 @@ describe('ProjectWorkspace', () => {
             workingFolder: 'docs',
         })))
         expect(bridge.createProject).not.toHaveBeenCalled()
-        expect(await screen.findByText('Root')).toBeInTheDocument()
+        expect(await findRootCard()).toBeInTheDocument()
     })
 
     it('creates the configured folder only after the explicit create action', async () => {
@@ -530,7 +541,7 @@ describe('ProjectWorkspace', () => {
 
         await waitFor(() => expect(bridge.createProject).toHaveBeenCalledWith(expect.any(Object), 'missing'))
         await waitFor(() => expect(bridge.saveProjectConfig).toHaveBeenCalledWith(expect.any(Object), expect.objectContaining({ workingFolder: 'missing' })))
-        expect(await screen.findByText('Root')).toBeInTheDocument()
+        expect(await findRootCard()).toBeInTheDocument()
     })
 
     it('creates a new feature card through the project menu', async () => {
@@ -539,7 +550,7 @@ describe('ProjectWorkspace', () => {
 
         renderProjectSurface()
         await openLocalProject()
-        await screen.findByText('Root')
+        await findRootCard()
 
         fireEvent.click(screen.getByRole('button', { name: 'Project' }))
         fireEvent.click(screen.getByRole('menuitem', { name: 'New card...' }))
@@ -548,7 +559,7 @@ describe('ProjectWorkspace', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Create card' }))
 
         await waitFor(() => expect(bridge.commit).toHaveBeenCalledWith(expect.objectContaining({files: [expect.objectContaining({ path: 'design/F-3-new-card.md' })]})))
-        expect(await screen.findByText('New Card')).toBeInTheDocument()
+        expect(await within(screen.getByLabelText('Card columns')).findByText('New Card')).toBeInTheDocument()
     })
 
     it('shows card creation failures in the new card dialog', async () => {
@@ -560,7 +571,7 @@ describe('ProjectWorkspace', () => {
 
         renderProjectSurface()
         await openLocalProject()
-        await screen.findByText('Root')
+        await findRootCard()
 
         fireEvent.click(screen.getByRole('button', { name: 'Project' }))
         fireEvent.click(screen.getByRole('menuitem', { name: 'New card...' }))
@@ -584,7 +595,7 @@ describe('ProjectWorkspace', () => {
 
         renderProjectSurface()
         await openLocalProject()
-        await screen.findByText('Root')
+        await findRootCard()
 
         fireEvent.click(screen.getByRole('button', { name: 'Project' }))
         fireEvent.click(screen.getByRole('menuitem', { name: 'New card...' }))
@@ -605,7 +616,7 @@ describe('ProjectWorkspace', () => {
 
         renderProjectSurface()
         await openLocalProject()
-        await screen.findByText('Root')
+        await findRootCard()
 
         fireEvent.click(screen.getByRole('button', { name: 'Project' }))
         fireEvent.click(screen.getByRole('menuitem', { name: 'Complete release...' }))
@@ -644,7 +655,7 @@ describe('ProjectWorkspace', () => {
 
         renderProjectSurface()
         await openLocalProject()
-        await screen.findByText('Root')
+        await findRootCard()
 
         act(() => workspaceViewService.setViewMode('text'))
 
@@ -724,7 +735,7 @@ describe('ProjectWorkspace', () => {
 
         renderProjectSurface()
         await openLocalProject()
-        await screen.findByText('Root')
+        await findRootCard()
 
         act(() => workspaceNavigationService.open('design/F-1-root.md'))
 
@@ -744,7 +755,7 @@ describe('ProjectWorkspace', () => {
 
         renderProjectSurface()
         await openLocalProject()
-        await screen.findByText('Root')
+        await findRootCard()
 
         act(() => workspaceNavigationService.open('design/F-1-root.md'))
         expect(document.querySelector('[data-selected="true"]')).not.toBeNull()
@@ -768,7 +779,7 @@ describe('ProjectWorkspace', () => {
 
         renderProjectSurface()
         await openLocalProject()
-        await screen.findByText('Root')
+        await findRootCard()
 
         fireEvent.click(screen.getByRole('button', { name: 'Card actions for F-1' }))
         fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }))
@@ -776,7 +787,7 @@ describe('ProjectWorkspace', () => {
         fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }))
 
         expect(await screen.findByText('delete failed')).toBeInTheDocument()
-        expect(screen.getByText('Root')).toBeInTheDocument()
+        expect(within(screen.getByLabelText('Card columns')).getByText('Root')).toBeInTheDocument()
     })
 
     it('filters authenticated GitHub repositories', async () => {
@@ -883,7 +894,7 @@ describe('ProjectWorkspace', () => {
 
         renderProjectSurface()
         await openLocalProject()
-        await screen.findByText('Root')
+        await findRootCard()
 
         fireEvent.click(screen.getByRole('button', { name: 'Project' }))
         fireEvent.click(screen.getByRole('menuitem', { name: 'Switch branch...' }))
@@ -903,7 +914,7 @@ describe('ProjectWorkspace', () => {
 
         renderProjectSurface()
         await openLocalProject()
-        await screen.findByText('Root')
+        await findRootCard()
 
         fireEvent.click(screen.getByRole('button', { name: 'Project' }))
         fireEvent.click(screen.getByRole('menuitem', { name: 'Switch branch...' }))

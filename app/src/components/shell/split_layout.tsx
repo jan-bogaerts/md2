@@ -1,6 +1,7 @@
 import { Box } from '@mui/material'
 import type { KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent, ReactNode } from 'react'
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { workspaceViewService } from '../../services/project/workspace_view_service'
 
 export const SPLIT_WIDTH_STORAGE_KEY = 'md2.splitWidth'
 const MIN_LEFT_WIDTH = 160
@@ -37,6 +38,20 @@ export function SplitLayout(props: SplitLayoutProps) {
     const [leftWidth, setLeftWidth] = useState(readStoredWidth)
     const [isDragging, setIsDragging] = useState(false)
     const [separatorMaxWidth, setSeparatorMaxWidth] = useState<number | undefined>(undefined)
+
+    useEffect(() => {
+        const updateVisibility = () => {
+            const container = containerRef.current
+            if (!container) throw new Error('Missing split layout container')
+
+            container.style.display = workspaceViewService.getSnapshot().viewMode === 'text' ? 'flex' : 'none'
+        }
+
+        updateVisibility()
+        workspaceViewService.addEventListener('changed', updateVisibility)
+
+        return () => workspaceViewService.removeEventListener('changed', updateVisibility)
+    }, [])
 
     const handlePointerDown = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
         event.preventDefault()

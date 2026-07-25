@@ -11,14 +11,13 @@ interface TextEditorPaneProps {
     specialContextTypes: string[]
     states: string[]
     statusColors: Map<string, string>
-    visible: boolean
 }
 
 /** Layout for the service-owned active document and its lifetime-stable editors. */
 export function TextEditorPane(props: TextEditorPaneProps) {
     const {
         actionsFolder, cardTypes,
-        specialContextTypes, states, statusColors, visible,
+        specialContextTypes, states, statusColors,
     } = props
     const { activeDocument } = useOpenFiles()
     const hasActiveAction = activeDocument?.kind === 'action'
@@ -56,7 +55,7 @@ export function TextEditorPane(props: TextEditorPaneProps) {
                         hidden={!hasActiveCard}
                         sx={{ display: hasActiveCard ? 'flex' : 'none', flex: 1, flexDirection: 'column', minHeight: 0 }}
                     >
-                        <CardEditor cardTypes={cardTypes} statusColors={statusColors} visible={visible} />
+                        <CardEditor cardTypes={cardTypes} statusColors={statusColors} />
                     </Box>
                 </Box>
             </Box>

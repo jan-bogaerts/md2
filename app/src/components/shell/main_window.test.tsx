@@ -130,14 +130,13 @@ describe('MainWindow', () => {
         mockMatchMedia(false)
     })
 
-    it('shows both panels and the status bar on desktop', () => {
+    it('shows the workspace and status bar on desktop', () => {
         mockMatchMedia(false)
         renderWindow()
 
         expect(screen.getByRole('button', { name: 'GitHub account' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Open project' })).toBeInTheDocument()
         expect(screen.getByRole('heading', { name: 'No project open' })).toBeInTheDocument()
-        expect(screen.getByText('No project navigation available.')).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Running agents: 0' })).toBeInTheDocument()
         expect(screen.queryByRole('button', { name: 'Open menu' })).toBeNull()
     })
@@ -148,24 +147,26 @@ describe('MainWindow', () => {
         renderWindow()
 
         expect(screen.getByLabelText('Card columns')).toHaveTextContent('active')
-        expect(screen.getByText('Root')).toBeInTheDocument()
+        expect(within(screen.getByLabelText('Card columns')).getByText('Root')).toBeInTheDocument()
         expect(screen.getByRole('contentinfo')).toHaveTextContent('2cards')
         expect(screen.getByRole('contentinfo')).toHaveTextContent('1active')
         expect(screen.queryByText('No project navigation available.')).toBeNull()
         expect(screen.queryByRole('separator', { name: 'Resize panels' })).toBeNull()
+        expect(screen.getByLabelText('File tree')).not.toBeVisible()
     })
 
-    it('removes the left navigation panel when the first project opens after startup', async () => {
+    it('keeps text navigation hidden when the first project opens in card view', async () => {
         mockMatchMedia(false)
         renderWindow()
 
-        expect(screen.getByRole('separator', { name: 'Resize panels' })).toBeInTheDocument()
+        expect(screen.queryByRole('separator', { name: 'Resize panels' })).toBeNull()
 
         await openProjectWithCards()
 
         await waitFor(() => {
             expect(screen.getByLabelText('Card columns')).toHaveTextContent('active')
             expect(screen.queryByRole('separator', { name: 'Resize panels' })).toBeNull()
+            expect(screen.getByLabelText('File tree')).not.toBeVisible()
         })
     })
 

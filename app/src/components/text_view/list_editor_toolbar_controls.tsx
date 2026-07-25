@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState, type MouseEvent } from 'react'
 import { fileContext } from '../../data/action_context'
 import type { AgentConversation, CardTypeConfig } from '../../data/data_types'
 import { agentAcknowledgementService } from '../../services/agents/agent_acknowledgement_service'
+import { workspaceViewService } from '../../services/project/workspace_view_service'
 import { ActionPopup } from '../actions/action_popup'
 import { CardCommitMenu } from '../card_view/card_commit_menu'
 import { listCardCommitDiffDataSource } from '../card_view/list_card_commit_diff_data_source'
@@ -20,7 +21,6 @@ interface ListEditorToolbarControlsProps {
     cardTypes: CardTypeConfig[]
     historyStore: MarkdownDocumentHistoryStore
     statusColors: Map<string, string>
-    visible: boolean
 }
 
 interface PropertiesAnchor {
@@ -30,21 +30,36 @@ interface PropertiesAnchor {
 
 /** Formatting controls and card-specific controls for the active list-card document. */
 export function ListEditorToolbarControls(props: ListEditorToolbarControlsProps) {
-    const { cardTypes, historyStore, statusColors, visible } = props
+    const { cardTypes, historyStore, statusColors } = props
     const card = useActiveCard('list-card')
     const documentId = card?.header.internalId ?? null
     const cardCommits = useCardCommits(documentId)
     const [agentPopupDocumentId, setAgentPopupDocumentId] = useState<string | null>(null)
     const [propertiesAnchor, setPropertiesAnchor] = useState<PropertiesAnchor | null>(null)
-    const isAgentPopupOpen = visible && !!documentId && agentPopupDocumentId === documentId
-    const isPropertiesOpen = visible && !!documentId && propertiesAnchor?.documentId === documentId
+    const isAgentPopupOpen = !!documentId && agentPopupDocumentId === documentId
+    const isPropertiesOpen = !!documentId && propertiesAnchor?.documentId === documentId
 
     useEffect(() => {
-        queueMicrotask(() => {
+        const closeTransientOverlays = () => {
             setAgentPopupDocumentId(null)
             setPropertiesAnchor(null)
-        })
-    }, [documentId, visible])
+        }
+
+        queueMicrotask(closeTransientOverlays)
+    }, [documentId])
+
+    useEffect(() => {
+        const handleWorkspaceViewChanged = () => {
+            if (workspaceViewService.getSnapshot().viewMode === 'text') return
+
+            setAgentPopupDocumentId(null)
+            setPropertiesAnchor(null)
+        }
+
+        workspaceViewService.addEventListener('changed', handleWorkspaceViewChanged)
+
+        return () => workspaceViewService.removeEventListener('changed', handleWorkspaceViewChanged)
+    }, [])
 
     const handleConversationViewed = (conversation: AgentConversation) => {
         if (!conversation.cardPath) throw new Error('Cannot acknowledge a project conversation as a card result')

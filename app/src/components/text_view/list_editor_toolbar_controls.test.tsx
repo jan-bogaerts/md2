@@ -66,7 +66,6 @@ describe('ListEditorToolbarControls', () => {
                     cardTypes={[]}
                     historyStore={new MarkdownDocumentHistoryStore()}
                     statusColors={new Map()}
-                    visible
                 />
             </AppThemeProvider>,
         )

@@ -74,7 +74,6 @@ function renderCardView(
                     { alwaysVisible: false, state: 'todo' },
                     { alwaysVisible: false, state: 'done' },
                 ]}
-                visible
                 {...overrides}
             />
         </AppThemeProvider>,
@@ -83,6 +82,7 @@ function renderCardView(
 
 describe('CardView', () => {
     beforeEach(() => {
+        workspaceViewService.setViewMode('cards')
         cardDragDropService.endDrag()
         vi.spyOn(dataService, 'getState')
         setProjectCards(cards)
@@ -111,12 +111,26 @@ describe('CardView', () => {
     })
 
     it('keeps hidden card columns mounted without occupying layout', () => {
-        renderCardView({ visible: false })
+        workspaceViewService.setViewMode('text')
+        renderCardView()
 
-        const cardColumns = screen.getByLabelText('Card columns', { selector: '[hidden]' })
+        const cardColumns = screen.getByLabelText('Card columns')
 
         expect(cardColumns).not.toBeVisible()
-        expect(cardColumns).toHaveStyle({ display: 'none' })
+        expect(cardColumns.parentElement).toHaveStyle({ display: 'none' })
+    })
+
+    it('switches visibility without rerendering card columns', () => {
+        const renderCardColumn = vi.spyOn(cardColumnModule, 'CardColumn')
+        renderCardView()
+        const cardColumns = screen.getByLabelText('Card columns')
+        renderCardColumn.mockClear()
+
+        act(() => workspaceViewService.setViewMode('text'))
+        act(() => workspaceViewService.setViewMode('cards'))
+
+        expect(screen.getByLabelText('Card columns')).toBe(cardColumns)
+        expect(renderCardColumn).not.toHaveBeenCalled()
     })
 
     it('groups cards into a column per status with id and title', () => {
@@ -438,7 +452,6 @@ describe('CardView', () => {
                         { alwaysVisible: false, state: 'todo' },
                         { alwaysVisible: false, state: 'done' },
                     ]}
-                    visible
                 />
             </AppThemeProvider>,
         )

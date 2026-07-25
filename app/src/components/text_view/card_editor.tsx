@@ -10,12 +10,11 @@ import { ListEditorToolbarControls } from './list_editor_toolbar_controls'
 interface CardEditorProps {
     cardTypes: CardTypeConfig[]
     statusColors: Map<string, string>
-    visible: boolean
 }
 
 /** Lifetime-stable list-card editor with private history. */
 export const CardEditor = memo(function CardEditor(props: CardEditorProps) {
-    const { cardTypes, statusColors, visible } = props
+    const { cardTypes, statusColors } = props
     const [historyStore] = useState(() => new MarkdownDocumentHistoryStore())
 
     useEffect(() => {
@@ -37,9 +36,8 @@ export const CardEditor = memo(function CardEditor(props: CardEditorProps) {
             cardTypes={cardTypes}
             historyStore={historyStore}
             statusColors={statusColors}
-            visible={visible}
         />
-    ), [cardTypes, historyStore, statusColors, visible])
+    ), [cardTypes, historyStore, statusColors])
 
     return (
         <Box sx={{ display: 'flex', flex: 1, flexDirection: 'column', minHeight: 0 }}>
