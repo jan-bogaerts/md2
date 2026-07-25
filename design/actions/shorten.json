@@ -6,7 +6,7 @@
   "appliesTo": {
     "kind": "card"
   },
+  "trackFileChanges": true,
   "phrases": [],
-  "prompt": "\\`{{card-file}}\\` is too verbose. make it more digestible, shorten it without loosing any detail.",
-  "trackFileChanges": true
+  "prompt": "\\`{{card-file}}\\` is too verbose. make it more digestible, shorten it without loosing any detail.\n\nKeep it short and to the point. use $caveman skill"
 }
