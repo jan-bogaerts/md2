@@ -59,7 +59,14 @@ export const ActionDefinitionFields = memo(function ActionDefinitionFields(props
     const errors = validation.error && validation.field ? { [validation.field]: validation.error } : {}
     const errorIndex = validation.index
     const selectableActions = actions.filter(({ id }) => id !== definition.id)
+    // `stageDraft` deliberately fires no events, so controls that render straight from the
+    // draft (selects, switches, list editors) need a local revision bump to show the new value.
     const handleDefinitionChange = (nextDefinition: RawActionDefinition) => {
+        actionService.draftStore.stageDraft(sourcePath, nextDefinition)
+        setDraftRevision((current) => current + 1)
+    }
+    /** Staging without a re-render, for fields that keep their own keystroke state. */
+    const stageDefinition = (nextDefinition: RawActionDefinition) => {
         actionService.draftStore.stageDraft(sourcePath, nextDefinition)
     }
     const handleDefinitionCommit = () => actionService.draftStore.commitDraft(sourcePath)
@@ -70,8 +77,9 @@ export const ActionDefinitionFields = memo(function ActionDefinitionFields(props
         ? `State "${missingState}" no longer exists. This trigger cannot run until cleared or replaced.`
         : undefined)
 
+    // label/description/command are ActionEditorTextField: keystrokes already render locally.
     const handleRequiredTextChange = (event: ChangeEvent<HTMLInputElement>) => {
-        handleDefinitionChange({ ...definition, [event.target.name]: event.target.value })
+        stageDefinition({ ...definition, [event.target.name]: event.target.value })
     }
 
     const handleOptionalTextChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -106,7 +114,6 @@ export const ActionDefinitionFields = memo(function ActionDefinitionFields(props
 
     const handleFiltersChange = (appliesTo: RawActionDefinition['appliesTo']) => {
         handleDefinitionChange({ ...definition, appliesTo })
-        setDraftRevision((current) => current + 1)
     }
 
     const handleOnBeforeChange = (onBefore: string[] | undefined) => {

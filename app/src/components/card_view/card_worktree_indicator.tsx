@@ -1,4 +1,4 @@
-import type { ProjectCard, WorktreeRecord } from '../../data/data_types'
+import type { ProjectCard } from '../../data/data_types'
 import { useEffect, useRef } from 'react'
 import { hasRunningConversation } from '../../services/agents/card_agent_state'
 import { dialogService } from '../../services/dialog_service'
@@ -8,11 +8,10 @@ import { WorktreeSelector } from '../worktree_selector'
 interface CardWorktreeIndicatorProps {
     card: ProjectCard
     primaryPath: string
-    worktrees: WorktreeRecord[]
 }
 
 export function CardWorktreeIndicator(props: CardWorktreeIndicatorProps) {
-    const { card, primaryPath, worktrees } = props
+    const { card, primaryPath } = props
     const isRunning = hasRunningConversation(card)
     const wasRunning = useRef(isRunning)
 
@@ -32,7 +31,6 @@ export function CardWorktreeIndicator(props: CardWorktreeIndicatorProps) {
             assignmentTarget={{ kind: 'card', path: card.path }}
             labelPrefix={card.header.id}
             primaryPath={primaryPath}
-            worktrees={worktrees}
         />
     )
 }

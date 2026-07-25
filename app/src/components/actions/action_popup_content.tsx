@@ -7,7 +7,7 @@ import Play from 'mdi-material-ui/Play'
 import type { ActionContext } from '../../data/action_context'
 import { CUSTOM_PROMPT_ACTION_ID, type ActionDefinition } from '../../data/action_types'
 import type { AgentConversation } from '../../data/data_types'
-import type { WorktreeRecord } from '../../data/data_types'
+import { worktreeService } from '../../services/project/worktree_service'
 import { ResizablePopper } from '../resizable_popper'
 import { WorktreeSelector, type WorktreeAssignment, type WorktreeAssignmentTarget } from '../worktree_selector'
 import { ActionAgentPresetName } from './action_agent_preset_name'
@@ -48,10 +48,13 @@ interface ActionPopupContentProps {
     showSaveControls: boolean
     titleId: string
     unseenResultActionIds?: string[]
-    worktrees: WorktreeRecord[]
 }
 
-function worktreeValidationMessage(action: ActionDefinition, context: ActionContext, worktrees: WorktreeRecord[]) {
+/**
+ * The message is rebuilt on every render but only reads the worktree list on the failing
+ * path, so the popup never subscribes to worktree changes to keep a message it rarely shows.
+ */
+function worktreeValidationMessage(action: ActionDefinition, context: ActionContext) {
     const hasWorktreeAssignment = context.worktree !== undefined || !!context.worktreeError
     if (!hasWorktreeAssignment && !action.needsWorkTree) return null
     if (context.kind !== 'card' && context.kind !== 'project') {
@@ -64,7 +67,7 @@ function worktreeValidationMessage(action: ActionDefinition, context: ActionCont
 
     const worktree = Number.parseInt(context.worktree, 10)
     if (!Number.isSafeInteger(worktree)) return `Invalid worktree index: ${context.worktree}`
-    const record = worktrees[worktree - 1]
+    const record = worktreeService.getRecords()[worktree - 1]
     if (!record) return `Configured worktree ${worktree} does not exist`
     if (!record.valid) return `Configured worktree ${worktree} is invalid: ${record.error}`
 
@@ -82,14 +85,14 @@ function worktreeAssignmentTarget(context: ActionContext): WorktreeAssignmentTar
 export function ActionPopupContent(props: ActionPopupContentProps) {
     const {
         action, actions, anchorElement, assignmentContext, baseContext, draggable, fullHeight, onAddAction, onClose, onSelectAction,
-        onToggleFullHeight, open, primaryPath, runningActionIds, showSaveControls, titleId, unseenResultActionIds = [], worktrees,
+        onToggleFullHeight, open, primaryPath, runningActionIds, showSaveControls, titleId, unseenResultActionIds = [],
     } = props
     const controller = useActionPopupController({
         action,
         context: assignmentContext,
         scheduleContext: baseContext,
         enableConversations: action.type === 'agent',
-        executionValidationError: worktreeValidationMessage(action, assignmentContext, worktrees),
+        executionValidationError: worktreeValidationMessage(action, assignmentContext),
     })
     const promptRequired = action.id === CUSTOM_PROMPT_ACTION_ID
     const sizeStorageKey = baseContext.kind === 'project'
@@ -156,7 +159,6 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
                             assignmentTarget={assignmentTarget}
                             disabled={controller.runStatus === 'running'}
                             primaryPath={primaryPath}
-                            worktrees={worktrees}
                         />
                     ) : null}
                     {action.type === 'agent' ? (

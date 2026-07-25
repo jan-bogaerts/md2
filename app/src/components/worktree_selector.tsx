@@ -7,8 +7,7 @@ import type { MouseEvent } from 'react'
 import type { WorktreeRecord } from '../data/data_types'
 import { dialogService } from '../services/dialog_service'
 import { worktreeService } from '../services/project/worktree_service'
-import { usePrimaryWorktreeStatus, useProjectWorktreePreparing, useWorktreePreparing } from './hooks/use_worktrees'
-import { useProjectPersistence } from './hooks/use_project_persistence'
+import { useWorktreeSelectorState } from './hooks/use_worktree_selector_state'
 import { WorktreeCommitDialog } from './worktree_commit_dialog'
 import { WorktreeUnassignDialog } from './worktree_unassign_dialog'
 
@@ -27,7 +26,6 @@ interface WorktreeSelectorProps {
     disabled?: boolean
     labelPrefix?: string
     primaryPath: string | null
-    worktrees: WorktreeRecord[]
 }
 
 function assignmentState(assignment: WorktreeAssignment, worktrees: WorktreeRecord[]) {
@@ -46,22 +44,22 @@ function assignmentState(assignment: WorktreeAssignment, worktrees: WorktreeReco
 
 /** Shared worktree assignment button and menu used by cards and action popups. */
 export function WorktreeSelector(props: WorktreeSelectorProps) {
-    const { assignment, assignmentTarget, disabled = false, labelPrefix, primaryPath, worktrees } = props
+    const { assignment, assignmentTarget, disabled = false, labelPrefix, primaryPath } = props
     const [anchorElement, setAnchorElement] = useState<HTMLElement | null>(null)
     const [commitMessage, setCommitMessage] = useState('')
     const [commitAction, setCommitAction] = useState<CommitAction>('commit')
     const [commitDialogOpen, setCommitDialogOpen] = useState(false)
     const [unassignDialogOpen, setUnassignDialogOpen] = useState(false)
     const cardPath = assignmentTarget.kind === 'card' ? assignmentTarget.path : null
-    const cardPreparing = useWorktreePreparing(cardPath)
-    const projectPreparing = useProjectWorktreePreparing()
-    const preparing = assignmentTarget.kind === 'project' ? projectPreparing : cardPreparing
-    const primaryStatus = usePrimaryWorktreeStatus()
-    const { hasPendingSave } = useProjectPersistence()
+    const assignedWorktree = assignment.worktree ?? null
+    const {
+        preparing,
+        projectDirty: hasPendingProjectChanges,
+        record: assignedRecord,
+        records: worktrees,
+    } = useWorktreeSelectorState({ assignedWorktree, cardPath })
     const selectorDisabled = disabled || preparing
     const state = assignmentState(assignment, worktrees)
-    const assignedWorktree = assignment.worktree ?? null
-    const assignedRecord = assignedWorktree === null ? null : worktrees[assignedWorktree - 1] ?? null
     const hasActiveCardWorktree = assignmentTarget.kind === 'card' && assignedWorktree !== null
         && !state.error && !!assignedRecord?.valid
     const hasActiveProjectWorktree = assignmentTarget.kind === 'project' && assignedWorktree !== null
@@ -69,7 +67,6 @@ export function WorktreeSelector(props: WorktreeSelectorProps) {
     const canCommit = !!assignedRecord?.status.dirty
     const hasOutgoingChanges = !!assignedRecord
         && (assignedRecord.status.dirty || assignedRecord.status.baseAhead > 0)
-    const hasPendingProjectChanges = hasPendingSave || !!primaryStatus?.dirty
     const hasIncomingChanges = !!assignedRecord && (hasPendingProjectChanges || assignedRecord.status.baseBehind > 0)
     const hasWorktreeChanges = hasOutgoingChanges || hasIncomingChanges
     const projectBranch = worktreeService.getProjectBranch()

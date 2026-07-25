@@ -43,9 +43,10 @@ const validWorktree: WorktreeRecord = {
 }
 
 function renderIndicator(projectCard: ProjectCard, worktrees: WorktreeRecord[] = [validWorktree]) {
+    vi.spyOn(worktreeService, 'getRecords').mockReturnValue(worktrees)
     render(
         <AppThemeProvider>
-            <CardWorktreeIndicator card={projectCard} primaryPath="C:\\primary" worktrees={worktrees} />
+            <CardWorktreeIndicator card={projectCard} primaryPath="C:\\primary" />
         </AppThemeProvider>,
     )
 }
@@ -95,12 +96,12 @@ describe('CardWorktreeIndicator', () => {
 
     it('does not request worktree state while an assigned card agent is running', () => {
         const refresh = vi.spyOn(worktreeService, 'refresh').mockResolvedValue(undefined)
+        vi.spyOn(worktreeService, 'getRecords').mockReturnValue([validWorktree])
         render(
             <AppThemeProvider>
                 <CardWorktreeIndicator
                     card={card(1, [conversation('running')])}
                     primaryPath="project"
-                    worktrees={[validWorktree]}
                 />
             </AppThemeProvider>,
         )

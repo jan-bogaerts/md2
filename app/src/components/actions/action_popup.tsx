@@ -7,7 +7,7 @@ import type { AgentConversation } from '../../data/data_types'
 import { useActions } from '../hooks/use_actions'
 import { useRunningActionExecutions } from '../hooks/use_action_executions'
 import { useProjectState } from '../hooks/use_project_state'
-import { useProjectActionWorktree, useWorktrees } from '../hooks/use_worktrees'
+import { useProjectActionWorktree } from '../hooks/use_worktrees'
 import { ActionPopupContent } from './action_popup_content'
 
 export { CARD_RUN_POPUP_SIZE_STORAGE_KEY, PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY } from './action_popup_content'
@@ -30,7 +30,6 @@ export function ActionPopup(props: ActionPopupProps) {
     const runningExecutions = useRunningActionExecutions()
     const { project } = useProjectState()
     const projectActionWorktree = useProjectActionWorktree()
-    const worktrees = useWorktrees()
     const effectiveContext = useMemo(
         () => projectContextWithWorktree(context, projectActionWorktree),
         [context, projectActionWorktree],
@@ -86,7 +85,6 @@ export function ActionPopup(props: ActionPopupProps) {
             runningActionIds={runningActionIds}
             showSaveControls={showSaveControls}
             titleId={titleId}
-            worktrees={worktrees}
         />
     )
 }

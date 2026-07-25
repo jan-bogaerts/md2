@@ -3,7 +3,7 @@ import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import Plus from 'mdi-material-ui/Plus'
 import { useCallback, useSyncExternalStore } from 'react'
 import type { ReactNode } from 'react'
-import type { CardTypeConfig, WorktreeRecord } from '../../data/data_types'
+import type { CardTypeConfig } from '../../data/data_types'
 import { requestOpenNewCardDialog } from '../project_command_events'
 import { CardColumnDropTarget } from './card_column_drop_target'
 import { cardDragDropService } from './card_drag_drop_service'
@@ -18,14 +18,13 @@ interface CardColumnProps extends CardHandlers {
     cardTypes: CardTypeConfig[]
     column: VisibleCardColumn
     isMobile: boolean
-    worktrees: WorktreeRecord[]
 }
 
 /** One status column: a polished droppable stack with header metadata and an empty target. */
 export function CardColumn(props: CardColumnProps) {
     const {
         cardTypes, column, isMobile,
-        worktrees, ...handlers
+        ...handlers
     } = props
     const cardPaths = useCardColumnCards(column.status)
     const subscribe = useCallback(
@@ -64,7 +63,6 @@ export function CardColumn(props: CardColumnProps) {
                 key={cardPath}
                 cardPath={cardPath}
                 cardTypes={cardTypes}
-                worktrees={worktrees}
                 {...handlers}
             />,
         )

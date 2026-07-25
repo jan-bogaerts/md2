@@ -4,7 +4,7 @@ import DotsVertical from 'mdi-material-ui/DotsVertical'
 import FileDocumentOutline from 'mdi-material-ui/FileDocumentOutline'
 import { useState, useSyncExternalStore } from 'react'
 import type { ChangeEvent, KeyboardEvent, MouseEvent, TouchEvent } from 'react'
-import type { CardTypeConfig, ProjectCard, WorktreeRecord } from '../../data/data_types'
+import type { CardTypeConfig, ProjectCard } from '../../data/data_types'
 import { cardContext } from '../../data/action_context'
 import { telemetryService } from '../../services/telemetry/telemetry_service'
 import { ActionEntryPoints } from '../actions/action_entry_points'
@@ -32,7 +32,6 @@ export interface CardHandlers {
 interface ProjectCardViewProps extends CardHandlers {
     cardPath: string
     cardTypes: CardTypeConfig[]
-    worktrees: WorktreeRecord[]
 }
 
 interface ProjectCardViewContentProps extends CardHandlers {
@@ -41,7 +40,6 @@ interface ProjectCardViewContentProps extends CardHandlers {
     isSelected: boolean
     primaryPath: string
     projectKey: string
-    worktrees: WorktreeRecord[]
 }
 
 interface MenuPosition {
@@ -72,7 +70,7 @@ export function ProjectCardView(props: ProjectCardViewProps) {
 }
 
 function ProjectCardViewContent(props: ProjectCardViewContentProps) {
-    const { card, cardTypes, isSelected, primaryPath, projectKey, worktrees } = props
+    const { card, cardTypes, isSelected, primaryPath, projectKey } = props
     const { onOpenInFileMode } = props
     const { onDeleteCard, onTogglePolicy, onTitleChange } = props
     const theme = useTheme()
@@ -280,39 +278,39 @@ function ProjectCardViewContent(props: ProjectCardViewContentProps) {
                     <CardWorktreeIndicator
                         card={card}
                         primaryPath={primaryPath}
-                        worktrees={worktrees}
                     />
                 </Stack>
             </Box>
-            <Menu
-                anchorEl={actionsAnchorElement}
-                anchorPosition={actionsMenuPosition ?? undefined}
-                anchorReference={actionsMenuPosition ? 'anchorPosition' : 'anchorEl'}
-                keepMounted
-                onClose={closeCardActions}
-                open={!!actionsAnchorElement || !!actionsMenuPosition}
-            >
-                <ActionEntryPoints
-                    context={cardContext(card, cardTypes)}
-                    onMenuItemSelected={closeCardActions}
-                    popupAnchorElement={cardElement}
-                    variant="menuItems"
-                />
-                {policyKeys.map((policyKey) => (
-                    <CardPolicyMenuItem
-                        key={policyKey}
-                        cardPath={card.path}
-                        enabled={card.header.policy[policyKey] ?? false}
-                        onSelected={closeCardActions}
-                        onToggle={onTogglePolicy}
-                        policyKey={policyKey}
+            { (!!actionsAnchorElement || !!actionsMenuPosition) && (
+                <Menu
+                    anchorEl={actionsAnchorElement}
+                    anchorPosition={actionsMenuPosition ?? undefined}
+                    anchorReference={actionsMenuPosition ? 'anchorPosition' : 'anchorEl'}
+                    onClose={closeCardActions}
+                    open={!!actionsAnchorElement || !!actionsMenuPosition}
+                >
+                    <ActionEntryPoints
+                        context={cardContext(card, cardTypes)}
+                        onMenuItemSelected={closeCardActions}
+                        popupAnchorElement={cardElement}
+                        variant="menuItems"
                     />
-                ))}
-                <MenuItem onClick={openBodyFromMenu}>Open body</MenuItem>
-                <MenuItem onClick={openInFileModeFromMenu}>Open in file mode</MenuItem>
-                <MenuItem onClick={editTitleFromMenu}>Edit title</MenuItem>
-                <MenuItem onClick={openDeleteCardDialog}>Delete</MenuItem>
-            </Menu>
+                    {policyKeys.map((policyKey) => (
+                        <CardPolicyMenuItem
+                            key={policyKey}
+                            cardPath={card.path}
+                            enabled={card.header.policy[policyKey] ?? false}
+                            onSelected={closeCardActions}
+                            onToggle={onTogglePolicy}
+                            policyKey={policyKey}
+                        />
+                    ))}
+                    <MenuItem onClick={openBodyFromMenu}>Open body</MenuItem>
+                    <MenuItem onClick={openInFileModeFromMenu}>Open in file mode</MenuItem>
+                    <MenuItem onClick={editTitleFromMenu}>Edit title</MenuItem>
+                    <MenuItem onClick={openDeleteCardDialog}>Delete</MenuItem>
+                </Menu>
+            )}
             <CardDeleteDialog cardPath={deleteCardPath} onClose={closeDeleteCardDialog} onDeleteCard={onDeleteCard} />
         </ProjectCardDragContainer>
     )

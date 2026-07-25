@@ -178,7 +178,6 @@ describe('CardView', () => {
                         cardTypes={DEFAULT_CARD_TYPES}
                         column={{ color: '#123456', status: 'done' }}
                         isMobile={false}
-                        worktrees={[]}
                         {...handlers}
                     />
                 </DndContext>

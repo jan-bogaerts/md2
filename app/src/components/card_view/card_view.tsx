@@ -4,7 +4,6 @@ import type { DragEndEvent, DragMoveEvent, DragStartEvent } from '@dnd-kit/core'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { buildCardColumns } from '../../data/card_ordering'
 import type { CardTypeConfig, StateConfig } from '../../data/data_types'
-import { useWorktrees } from '../hooks/use_worktrees'
 import { useAgentAcknowledgements } from '../hooks/use_agent_acknowledgements'
 import { dataService } from '../../services/data/data_service'
 import { dialogService } from '../../services/dialog_service'
@@ -63,7 +62,6 @@ export function CardView(props: CardViewProps) {
         isMobile,
         states,
     } = props
-    const worktrees = useWorktrees()
     useAgentAcknowledgements()
     const columns = useCardViewColumns(states)
     const [openAffectsPath, setOpenAffectsPath] = useState<string | null>(null)
@@ -213,7 +211,6 @@ export function CardView(props: CardViewProps) {
                             onOpenInFileMode={handleOpenInFileMode}
                             onTitleChange={handleTitleChange}
                             onTogglePolicy={handleTogglePolicy}
-                            worktrees={worktrees}
                         />
                     ))}
                 </Box>

@@ -18,14 +18,19 @@ const worktrees: WorktreeRecord[] = [
     },
 ]
 
+/** The selector reads the worktree list from the service, so tests seed it there. */
+function withRecords(records: WorktreeRecord[]) {
+    vi.spyOn(worktreeService, 'getRecords').mockReturnValue(records)
+}
+
 function renderAssignedWorktree(record: WorktreeRecord) {
+    withRecords([record])
     render(
         <AppThemeProvider>
             <WorktreeSelector
                 assignment={{ worktree: 1 }}
                 assignmentTarget={{ kind: 'card', path: 'design/F-1.md' }}
                 primaryPath="C:\\primary"
-                worktrees={[record]}
             />
         </AppThemeProvider>,
     )
@@ -38,13 +43,13 @@ describe('WorktreeSelector', () => {
     })
 
     it('lists Primary and valid linked worktrees while retaining the current invalid assignment', () => {
+        withRecords(worktrees)
         render(
             <AppThemeProvider>
                 <WorktreeSelector
                     assignment={{ worktree: 2, worktreeError: null, worktreeValue: '2' }}
                     assignmentTarget={{ kind: 'card', path: 'design/F-1.md' }}
                     primaryPath={'C:\\primary'}
-                    worktrees={worktrees}
                 />
             </AppThemeProvider>,
         )
@@ -58,6 +63,7 @@ describe('WorktreeSelector', () => {
     })
 
     it('cannot open while execution is running', () => {
+        withRecords(worktrees)
         render(
             <AppThemeProvider>
                 <WorktreeSelector
@@ -65,7 +71,6 @@ describe('WorktreeSelector', () => {
                     assignmentTarget={{ kind: 'card', path: 'design/F-1.md' }}
                     disabled
                     primaryPath={null}
-                    worktrees={worktrees}
                 />
             </AppThemeProvider>,
         )
@@ -77,6 +82,7 @@ describe('WorktreeSelector', () => {
     })
 
     it('disables a worktree reserved by another active card', () => {
+        withRecords(worktrees)
         vi.spyOn(worktreeService, 'isWorktreeAvailableForCard').mockReturnValue(false)
         const setCardWorktree = vi.spyOn(worktreeService, 'setCardWorktree')
         render(
@@ -85,7 +91,6 @@ describe('WorktreeSelector', () => {
                     assignment={{ worktree: null }}
                     assignmentTarget={{ kind: 'card', path: 'design/F-1.md' }}
                     primaryPath={null}
-                    worktrees={worktrees}
                 />
             </AppThemeProvider>,
         )
@@ -98,6 +103,7 @@ describe('WorktreeSelector', () => {
     })
 
     it('shows lifecycle actions instead of worktree choices for an assigned card', () => {
+        withRecords(worktrees)
         const refresh = vi.spyOn(worktreeService, 'refresh').mockResolvedValue(undefined)
         render(
             <AppThemeProvider>
@@ -105,7 +111,6 @@ describe('WorktreeSelector', () => {
                     assignment={{ worktree: 1 }}
                     assignmentTarget={{ kind: 'card', path: 'design/F-1.md' }}
                     primaryPath="C:\\primary"
-                    worktrees={worktrees}
                 />
             </AppThemeProvider>,
         )
@@ -188,6 +193,7 @@ describe('WorktreeSelector', () => {
             ...worktrees[0],
             status: { ahead: 0, baseAhead: 0, baseBehind: 0, behind: 0, dirty: true, hasUpstream: false },
         }]
+        withRecords(dirtyWorktrees)
         vi.spyOn(worktreeService, 'getCardCommitMessage').mockReturnValue('F-1: Card')
         render(
             <AppThemeProvider>
@@ -195,7 +201,6 @@ describe('WorktreeSelector', () => {
                     assignment={{ worktree: 1 }}
                     assignmentTarget={{ kind: 'card', path: 'design/F-1.md' }}
                     primaryPath="C:\\primary"
-                    worktrees={dirtyWorktrees}
                 />
             </AppThemeProvider>,
         )
@@ -228,7 +233,7 @@ describe('WorktreeSelector', () => {
     it('opens the dirty dialog when backend revalidation rejects parking', async () => {
         const dirtyWorktree = { ...worktrees[0], status: { ...worktrees[0].status, dirty: true } }
         vi.spyOn(worktreeService, 'setCardWorktree').mockRejectedValue(new Error('Linked worktree has uncommitted changes'))
-        vi.spyOn(worktreeService, 'getRecords').mockReturnValue([dirtyWorktree])
+        withRecords([dirtyWorktree])
         vi.spyOn(worktreeService, 'getCardCommitMessage').mockReturnValue('F-1: Card')
         render(
             <AppThemeProvider>
@@ -236,7 +241,6 @@ describe('WorktreeSelector', () => {
                     assignment={{ worktree: 1 }}
                     assignmentTarget={{ kind: 'card', path: 'design/F-1.md' }}
                     primaryPath="C:\\primary"
-                    worktrees={[worktrees[0]]}
                 />
             </AppThemeProvider>,
         )
@@ -252,6 +256,7 @@ describe('WorktreeSelector', () => {
             ...worktrees[0],
             status: { ahead: 0, baseAhead: 0, baseBehind: 2, behind: 0, dirty: false, hasUpstream: false },
         }]
+        withRecords(trailingWorktrees)
         vi.spyOn(worktreeService, 'getProjectBranch').mockReturnValue('main')
         const updateCardWorktree = vi.spyOn(worktreeService, 'updateCardWorktree').mockResolvedValue(undefined)
         render(
@@ -260,7 +265,6 @@ describe('WorktreeSelector', () => {
                     assignment={{ worktree: 1 }}
                     assignmentTarget={{ kind: 'card', path: 'design/F-1.md' }}
                     primaryPath="C:\\primary"
-                    worktrees={trailingWorktrees}
                 />
             </AppThemeProvider>,
         )
@@ -276,6 +280,7 @@ describe('WorktreeSelector', () => {
     })
 
     it('disables update when the worktree is already up to date with the project branch', () => {
+        withRecords([worktrees[0]])
         vi.spyOn(worktreeService, 'getProjectBranch').mockReturnValue('main')
         render(
             <AppThemeProvider>
@@ -283,7 +288,6 @@ describe('WorktreeSelector', () => {
                     assignment={{ worktree: 1 }}
                     assignmentTarget={{ kind: 'card', path: 'design/F-1.md' }}
                     primaryPath="C:\\primary"
-                    worktrees={[worktrees[0]]}
                 />
             </AppThemeProvider>,
         )
@@ -298,6 +302,7 @@ describe('WorktreeSelector', () => {
             ...worktrees[0],
             status: { ahead: 0, baseAhead: 0, baseBehind: 0, behind: 0, dirty: true, hasUpstream: false },
         }]
+        withRecords(dirtyWorktrees)
         vi.spyOn(worktreeService, 'getCardCommitMessage').mockReturnValue('F-1: Card')
         const commitCardWorktree = vi.spyOn(worktreeService, 'commitCardWorktree').mockResolvedValue(undefined)
         render(
@@ -306,7 +311,6 @@ describe('WorktreeSelector', () => {
                     assignment={{ worktree: 1 }}
                     assignmentTarget={{ kind: 'card', path: 'design/F-1.md' }}
                     primaryPath="C:\\primary"
-                    worktrees={dirtyWorktrees}
                 />
             </AppThemeProvider>,
         )
