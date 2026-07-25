@@ -1,0 +1,8 @@
+{
+  "id": "21471796-1562-448a-b7cb-623599dabcea",
+  "label": "prep worktree",
+  "description": "Describe this action.",
+  "type": "agent",
+  "phrases": [],
+  "prompt": "Describe what the agent should do."
+}
