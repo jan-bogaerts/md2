@@ -28,6 +28,7 @@ export class WorktreeService extends EventTarget {
     private flushPendingChanges: (() => Promise<void>) | null = null
     private pendingAssignments = new Map<number, string>()
     private preparingCardPaths = new Set<string>()
+    private preparingProjectWorktree = false
     private projectActionWorktree: number | null = null
     private primaryStatus: WorktreeStatus | null = null
     private projectProvider: (() => ProjectReference | null) | null = null
@@ -68,6 +69,10 @@ export class WorktreeService extends EventTarget {
 
     isPreparingCard(path: string) {
         return this.preparingCardPaths.has(path)
+    }
+
+    isPreparingProjectWorktree() {
+        return this.preparingProjectWorktree
     }
 
     isWorktreeAvailableForCard(worktree: number, cardPath: string) {
@@ -209,6 +214,27 @@ export class WorktreeService extends EventTarget {
             await storage.rebaseWorktree({ project, worktree })
         } finally {
             this.finishCardOperation(path)
+        }
+    }
+
+    async updateProjectWorktree() {
+        const worktree = this.projectActionWorktree
+        if (!Number.isInteger(worktree) || !worktree || worktree <= 0) throw new Error('No worktree is assigned to the project')
+
+        this.requireValidRecord(worktree)
+        const storage = this.requireStorage()
+        if (!storage.rebaseWorktree) throw new Error('Worktree updates require Electron local mode')
+        const project = this.requireProject()
+        if (this.preparingProjectWorktree) throw new Error('Worktree update is already in progress')
+
+        this.preparingProjectWorktree = true
+        this.dispatchChanged()
+        try {
+            await this.requirePendingChangesFlusher()()
+            await storage.rebaseWorktree({ project, worktree })
+        } finally {
+            this.preparingProjectWorktree = false
+            this.dispatchChanged()
         }
     }
 

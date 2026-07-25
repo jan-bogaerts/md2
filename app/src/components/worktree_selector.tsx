@@ -7,7 +7,7 @@ import type { MouseEvent } from 'react'
 import type { WorktreeRecord } from '../data/data_types'
 import { dialogService } from '../services/dialog_service'
 import { worktreeService } from '../services/project/worktree_service'
-import { usePrimaryWorktreeStatus, useWorktreePreparing } from './hooks/use_worktrees'
+import { usePrimaryWorktreeStatus, useProjectWorktreePreparing, useWorktreePreparing } from './hooks/use_worktrees'
 import { useProjectPersistence } from './hooks/use_project_persistence'
 import { WorktreeCommitDialog } from './worktree_commit_dialog'
 import { WorktreeUnassignDialog } from './worktree_unassign_dialog'
@@ -53,7 +53,9 @@ export function WorktreeSelector(props: WorktreeSelectorProps) {
     const [commitDialogOpen, setCommitDialogOpen] = useState(false)
     const [unassignDialogOpen, setUnassignDialogOpen] = useState(false)
     const cardPath = assignmentTarget.kind === 'card' ? assignmentTarget.path : null
-    const preparing = useWorktreePreparing(cardPath)
+    const cardPreparing = useWorktreePreparing(cardPath)
+    const projectPreparing = useProjectWorktreePreparing()
+    const preparing = assignmentTarget.kind === 'project' ? projectPreparing : cardPreparing
     const primaryStatus = usePrimaryWorktreeStatus()
     const { hasPendingSave } = useProjectPersistence()
     const selectorDisabled = disabled || preparing
@@ -61,6 +63,8 @@ export function WorktreeSelector(props: WorktreeSelectorProps) {
     const assignedWorktree = assignment.worktree ?? null
     const assignedRecord = assignedWorktree === null ? null : worktrees[assignedWorktree - 1] ?? null
     const hasActiveCardWorktree = assignmentTarget.kind === 'card' && assignedWorktree !== null
+        && !state.error && !!assignedRecord?.valid
+    const hasActiveProjectWorktree = assignmentTarget.kind === 'project' && assignedWorktree !== null
         && !state.error && !!assignedRecord?.valid
     const canCommit = !!assignedRecord?.status.dirty
     const hasOutgoingChanges = !!assignedRecord
@@ -169,6 +173,15 @@ export function WorktreeSelector(props: WorktreeSelectorProps) {
         }
     }
     const handleUpdateMenu = async () => {
+        if (assignmentTarget.kind === 'project') {
+            handleClose()
+            try {
+                await worktreeService.updateProjectWorktree()
+            } catch (error) {
+                dialogService.error(error, { fallbackMessage: `Could not update worktree from ${baseName}` })
+            }
+            return
+        }
         if (assignmentTarget.kind !== 'card') return
 
         handleClose()
@@ -311,6 +324,8 @@ export function WorktreeSelector(props: WorktreeSelectorProps) {
                         <MenuItem disabled={!hasIncomingChanges} onClick={handleUpdateMenu}>Update worktree</MenuItem>
                         <MenuItem disabled={!hasOutgoingChanges} onClick={handleIntegrateMenu}>Integrate into project</MenuItem>
                     </>
+                ) : hasActiveProjectWorktree ? (
+                    <MenuItem disabled={!hasIncomingChanges} onClick={handleUpdateMenu}>Update worktree</MenuItem>
                 ) : worktrees.map((record, index) => (record.valid ? (
                     <MenuItem
                         data-worktree={index + 1}
