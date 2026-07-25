@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
   - design/activity/card__fb3a7428-2f7d-48dd-beda-ce7279c516e7.json#conversation=agent-7ae7a26f-7f90-4736-823d-f4ec3eb25f02
+  - design/activity/card__fb3a7428-2f7d-48dd-beda-ce7279c516e7.json#conversation=agent-8eefc040-daca-47ba-8e74-f7973efe58c2
 policy:
 after: b8c1f8ef-aeef-4576-be42-f6c6d0757728
 ---
