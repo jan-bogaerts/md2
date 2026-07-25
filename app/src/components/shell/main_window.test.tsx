@@ -88,7 +88,7 @@ async function openProjectWithCards() {
     openFilesService.init({ actionService, dataService })
     projectPersistenceService.init({ actionService, dataService, openFilesService })
     dataService.init({ storage: createStorage(files) })
-    const project = { branch: 'main', id: 'project' }
+    const project = { branch: 'main', id: 'project', rootPath: 'C:/project' }
     const snapshot = await dataService.projectLoading.openProject(project)
 
     return { project, snapshot, storageType: 'local' as const }

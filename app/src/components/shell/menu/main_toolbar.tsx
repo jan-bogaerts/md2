@@ -4,9 +4,11 @@ import Menu from 'mdi-material-ui/Menu'
 import { DRAG_REGION, NO_DRAG_REGION } from '../drag_region'
 import { ThemeToggleButton } from '../theme_toggle_button'
 import { isElectron } from '../../../services/electron_lifecycle_bridge'
+import { ProjectNameLabel } from './project_name_label'
 
 const MENU_ROW_HEIGHT = 44
 const SEARCH_WIDTH = 286
+const PROJECT_NAME_MAX_WIDTH = 240
 const APPLICATION_ICON_SOURCE = `${import.meta.env.BASE_URL}favicon.svg`
 
 interface MainToolbarProps {
@@ -43,7 +45,7 @@ export function MainToolbar(props: MainToolbarProps) {
                         <Menu />
                     </IconButton>
                 ) : null}
-                <Box sx={{ alignItems: 'center', display: 'flex', flexShrink: 0, gap: 1 }}>
+                <Box sx={{ alignItems: 'center', display: 'flex', flexShrink: 1, gap: 1, maxWidth: PROJECT_NAME_MAX_WIDTH, minWidth: 0 }}>
                     <Box
                         alt="MD² application icon"
                         component="img"
@@ -53,6 +55,7 @@ export function MainToolbar(props: MainToolbarProps) {
                             width: 24,
                         }}
                     />
+                    <ProjectNameLabel />
                 </Box>
                 <Box style={NO_DRAG_REGION} sx={{ alignSelf: 'stretch', display: 'flex', flexShrink: 0 }}>
                     {tabs}

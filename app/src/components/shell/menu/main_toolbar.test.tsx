@@ -75,9 +75,11 @@ describe('MainToolbar', () => {
         const { container } = renderToolbar()
 
         const bar = container.querySelector('.MuiToolbar-root') as HTMLElement
+        const applicationIcon = screen.getByRole('img', { name: /application icon/u })
         const searchRegion = screen.getByRole('textbox', { name: 'Search project' }).parentElement as HTMLElement
 
         expect(appRegion(bar)).toBe(DRAG)
+        expect(appRegion(applicationIcon.parentElement as HTMLElement)).not.toBe(NO_DRAG)
         expect(appRegion(searchRegion)).toBe(NO_DRAG)
     })
 })
