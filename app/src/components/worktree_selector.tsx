@@ -144,12 +144,13 @@ export function WorktreeSelector(props: WorktreeSelectorProps) {
         handleClose()
         await assignWorktree(worktree)
     }
+    const getCommitMessage = () => (assignmentTarget.kind === 'card'
+        ? worktreeService.getCardCommitMessage(assignmentTarget.path)
+        : worktreeService.getProjectCommitMessage())
     const handleCommitMenu = () => {
-        if (assignmentTarget.kind !== 'card') return
-
         handleClose()
         try {
-            setCommitMessage(worktreeService.getCardCommitMessage(assignmentTarget.path))
+            setCommitMessage(getCommitMessage())
             setCommitAction('commit')
             setCommitDialogOpen(true)
         } catch (error) {
@@ -157,60 +158,54 @@ export function WorktreeSelector(props: WorktreeSelectorProps) {
         }
     }
     const handleIntegrateMenu = async () => {
-        if (assignmentTarget.kind !== 'card') return
-
         handleClose()
         try {
             if (assignedRecord?.status.dirty) {
-                setCommitMessage(worktreeService.getCardCommitMessage(assignmentTarget.path))
+                setCommitMessage(getCommitMessage())
                 setCommitAction('integrate')
                 setCommitDialogOpen(true)
                 return
             }
-            await worktreeService.integrateCardWorktree(assignmentTarget.path)
+            if (assignmentTarget.kind === 'card') await worktreeService.integrateCardWorktree(assignmentTarget.path)
+            else await worktreeService.integrateProjectWorktree()
         } catch (error) {
             dialogService.error(error, { fallbackMessage: 'Could not integrate worktree into project' })
         }
     }
     const handleUpdateMenu = async () => {
-        if (assignmentTarget.kind === 'project') {
-            handleClose()
-            try {
-                await worktreeService.updateProjectWorktree()
-            } catch (error) {
-                dialogService.error(error, { fallbackMessage: `Could not update worktree from ${baseName}` })
-            }
-            return
-        }
-        if (assignmentTarget.kind !== 'card') return
-
         handleClose()
         try {
             if (assignedRecord?.status.dirty) {
-                setCommitMessage(worktreeService.getCardCommitMessage(assignmentTarget.path))
+                setCommitMessage(getCommitMessage())
                 setCommitAction('update')
                 setCommitDialogOpen(true)
                 return
             }
-            await worktreeService.updateCardWorktree(assignmentTarget.path)
+            if (assignmentTarget.kind === 'card') await worktreeService.updateCardWorktree(assignmentTarget.path)
+            else await worktreeService.updateProjectWorktree()
         } catch (error) {
             dialogService.error(error, { fallbackMessage: `Could not update worktree from ${baseName}` })
         }
     }
     const handleCommitDialogClose = () => setCommitDialogOpen(false)
     const handleCommit = async (message: string) => {
-        if (assignmentTarget.kind !== 'card') return
-
         try {
-            await worktreeService.commitCardWorktree(assignmentTarget.path, message)
+            if (assignmentTarget.kind === 'card') await worktreeService.commitCardWorktree(assignmentTarget.path, message)
+            else await worktreeService.commitProjectWorktree(message)
             setCommitDialogOpen(false)
         } catch (error) {
             dialogService.error(error, { fallbackMessage: 'Could not commit worktree changes' })
             return
         }
         try {
-            if (commitAction === 'integrate') await worktreeService.integrateCardWorktree(assignmentTarget.path)
-            if (commitAction === 'update') await worktreeService.updateCardWorktree(assignmentTarget.path)
+            if (commitAction === 'integrate') {
+                if (assignmentTarget.kind === 'card') await worktreeService.integrateCardWorktree(assignmentTarget.path)
+                else await worktreeService.integrateProjectWorktree()
+            }
+            if (commitAction === 'update') {
+                if (assignmentTarget.kind === 'card') await worktreeService.updateCardWorktree(assignmentTarget.path)
+                else await worktreeService.updateProjectWorktree()
+            }
         } catch (error) {
             const fallbackMessage = commitAction === 'integrate'
                 ? 'Changes were committed, but the worktree could not be integrated into the project'
@@ -318,14 +313,12 @@ export function WorktreeSelector(props: WorktreeSelectorProps) {
                 <MenuItem onClick={handlePrimary} selected={assignment.worktree === null && !assignment.worktreeError}>
                     Primary{primaryPath ? ` — ${primaryPath}` : ''}
                 </MenuItem>
-                {hasActiveCardWorktree ? (
+                {(hasActiveCardWorktree || hasActiveProjectWorktree) ? (
                     <>
                         <MenuItem disabled={!canCommit} onClick={handleCommitMenu}>Commit</MenuItem>
                         <MenuItem disabled={!hasIncomingChanges} onClick={handleUpdateMenu}>Update worktree</MenuItem>
                         <MenuItem disabled={!hasOutgoingChanges} onClick={handleIntegrateMenu}>Integrate into project</MenuItem>
                     </>
-                ) : hasActiveProjectWorktree ? (
-                    <MenuItem disabled={!hasIncomingChanges} onClick={handleUpdateMenu}>Update worktree</MenuItem>
                 ) : worktrees.map((record, index) => (record.valid ? (
                     <MenuItem
                         data-worktree={index + 1}

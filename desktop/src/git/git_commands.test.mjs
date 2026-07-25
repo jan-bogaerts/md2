@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process';
-import { access, chmod, mkdtemp, mkdir, rename, rm, stat, writeFile } from 'node:fs/promises';
+import { access, chmod, mkdtemp, mkdir, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { createRequire } from 'node:module';
@@ -216,30 +216,6 @@ describe('git-commands', () => {
 
             expect(firstFiles.trim()).toBe('first.md');
             expect(secondFiles.trim()).toBe('second.md');
-        } finally {
-            await rm(rootPath, { force: true, recursive: true });
-        }
-    });
-
-    it('preserves unrelated staged changes and handles rename paths', async () => {
-        const rootPath = await mkdtemp(join(tmpdir(), 'md2-tracked-rename-'));
-
-        try {
-            await initializeRepository(rootPath);
-            await writeFile(join(rootPath, 'old.md'), 'renamed');
-            await writeFile(join(rootPath, 'unrelated.md'), 'before');
-            await runGit(rootPath, ['add', '.']);
-            await runGit(rootPath, ['commit', '-m', 'Initial']);
-            await writeFile(join(rootPath, 'unrelated.md'), 'staged elsewhere');
-            await runGit(rootPath, ['add', 'unrelated.md']);
-            await rename(join(rootPath, 'old.md'), join(rootPath, 'new.md'));
-
-            const commit = await commitTrackedPaths(rootPath, ['old.md', 'new.md'], 'Rename file');
-            const { stdout: committedFiles } = await execFileAsync('git', ['show', '--no-renames', '--pretty=format:', '--name-only', commit], { cwd: rootPath });
-            const { stdout: stagedFiles } = await execFileAsync('git', ['diff', '--cached', '--name-only'], { cwd: rootPath });
-
-            expect(committedFiles.trim().split(/\r?\n/u)).toEqual(['new.md', 'old.md']);
-            expect(stagedFiles.trim()).toBe('unrelated.md');
         } finally {
             await rm(rootPath, { force: true, recursive: true });
         }

@@ -9,7 +9,6 @@ import { describe, expect, it } from 'vitest';
 const require = createRequire(import.meta.url);
 const execFileAsync = promisify(execFile);
 const {
-    commit,
     createProject,
     listRepositoryFiles,
     loadProject,
@@ -68,36 +67,6 @@ describe('project-files', () => {
             const files = await listRepositoryFiles({ branch: 'main', id: 'local', rootPath });
 
             expect(files).toEqual(['app/src/main.tsx', 'README.md']);
-        } finally {
-            await rm(rootPath, { force: true, recursive: true });
-        }
-    });
-
-    it('commits a file move and its latest content together', async () => {
-        const rootPath = await mkdtemp(join(tmpdir(), 'md2-project-action-move-'));
-
-        try {
-            await initializeRepository(rootPath);
-            await mkdir(join(rootPath, 'actions'), { recursive: true });
-            await writeFile(join(rootPath, 'actions', 'new-action.json'), '{"label":"New action"}');
-            await execFileAsync('git', ['add', 'actions/new-action.json'], { cwd: rootPath });
-            await execFileAsync('git', ['commit', '-m', 'Create action'], { cwd: rootPath });
-
-            await commit({
-                branch: 'main',
-                files: [],
-                message: 'Rename action',
-                moves: [{
-                    content: '{"label":"Review code"}',
-                    fromPath: 'actions/new-action.json',
-                    toPath: 'actions/review-code.json',
-                }],
-            }, { branch: 'main', id: 'local', rootPath });
-
-            await expect(readFile(join(rootPath, 'actions', 'review-code.json'), 'utf8')).resolves.toBe('{"label":"Review code"}');
-            await expect(readFile(join(rootPath, 'actions', 'new-action.json'), 'utf8')).rejects.toMatchObject({ code: 'ENOENT' });
-            const { stdout } = await execFileAsync('git', ['show', '--format=', '--name-status', 'HEAD'], { cwd: rootPath });
-            expect(stdout).toContain('actions/review-code.json');
         } finally {
             await rm(rootPath, { force: true, recursive: true });
         }

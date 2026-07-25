@@ -217,24 +217,45 @@ export class WorktreeService extends EventTarget {
         }
     }
 
+    getProjectCommitMessage() {
+        return `Update ${this.getProjectBranch() ?? 'worktree'}`
+    }
+
+    async commitProjectWorktree(message: string) {
+        const { project, storage, worktree } = this.requireProjectOperation()
+        if (!storage.commitWorktree) throw new Error('Worktree commits require Electron local mode')
+
+        this.startProjectOperation()
+        try {
+            await storage.commitWorktree({ message, project, worktree })
+        } finally {
+            this.finishProjectOperation()
+        }
+    }
+
+    async integrateProjectWorktree() {
+        const { project, storage, worktree } = this.requireProjectOperation()
+        if (!storage.integrateWorktree) throw new Error('Worktree integration requires Electron local mode')
+
+        this.startProjectOperation()
+        try {
+            await this.requirePendingChangesFlusher()()
+            await storage.integrateWorktree({ project, worktree })
+        } finally {
+            this.finishProjectOperation()
+        }
+    }
+
     async updateProjectWorktree() {
-        const worktree = this.projectActionWorktree
-        if (!Number.isInteger(worktree) || !worktree || worktree <= 0) throw new Error('No worktree is assigned to the project')
-
-        this.requireValidRecord(worktree)
-        const storage = this.requireStorage()
+        const { project, storage, worktree } = this.requireProjectOperation()
         if (!storage.rebaseWorktree) throw new Error('Worktree updates require Electron local mode')
-        const project = this.requireProject()
-        if (this.preparingProjectWorktree) throw new Error('Worktree update is already in progress')
 
-        this.preparingProjectWorktree = true
-        this.dispatchChanged()
+        this.startProjectOperation()
         try {
             await this.requirePendingChangesFlusher()()
             await storage.rebaseWorktree({ project, worktree })
         } finally {
-            this.preparingProjectWorktree = false
-            this.dispatchChanged()
+            this.finishProjectOperation()
         }
     }
 
@@ -320,6 +341,27 @@ export class WorktreeService extends EventTarget {
         const card = this.requireCard(path)
         const worktree = card.header.worktree
         if (!Number.isInteger(worktree) || !worktree || worktree <= 0) throw new Error(`Card has no valid worktree assignment: ${path}`)
+
+        this.requireValidRecord(worktree)
+
+        return { project: this.requireProject(), storage: this.requireStorage(), worktree }
+    }
+
+    private startProjectOperation() {
+        if (this.preparingProjectWorktree) throw new Error('Worktree operation is already in progress for the project')
+
+        this.preparingProjectWorktree = true
+        this.dispatchChanged()
+    }
+
+    private finishProjectOperation() {
+        this.preparingProjectWorktree = false
+        this.dispatchChanged()
+    }
+
+    private requireProjectOperation() {
+        const worktree = this.projectActionWorktree
+        if (!Number.isInteger(worktree) || !worktree || worktree <= 0) throw new Error('No worktree is assigned to the project')
 
         this.requireValidRecord(worktree)
 
