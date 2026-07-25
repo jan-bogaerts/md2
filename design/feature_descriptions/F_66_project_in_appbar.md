@@ -3,11 +3,12 @@ author:
 id: F_66
 internalId: fb3a7428-2f7d-48dd-beda-ce7279c516e7
 title: Project in appbar
-status: new
+status: design
 owner: 
 affects:
 agents:
 policy:
+after: a34535dd-fd80-42d1-8c75-414ffe3c158b
 ---
 
 # Goal
