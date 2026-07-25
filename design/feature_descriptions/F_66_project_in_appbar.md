@@ -3,16 +3,15 @@ author:
 id: F_66
 internalId: fb3a7428-2f7d-48dd-beda-ce7279c516e7
 title: Project in appbar
-status: design
+status: ready for implementation
 owner: 
 affects:
 agents:
   - design/activity/card__fb3a7428-2f7d-48dd-beda-ce7279c516e7.json#conversation=agent-7ae7a26f-7f90-4736-823d-f4ec3eb25f02
   - design/activity/card__fb3a7428-2f7d-48dd-beda-ce7279c516e7.json#conversation=agent-8eefc040-daca-47ba-8e74-f7973efe58c2
   - design/activity/card__fb3a7428-2f7d-48dd-beda-ce7279c516e7.json#conversation=agent-1079b9fe-9286-4f0d-9a40-26e3f302e70e
-  - design/activity/card__fb3a7428-2f7d-48dd-beda-ce7279c516e7.json#conversation=agent-605b61b9-4548-4254-b93a-88dff3ddb520
 policy:
-after: b8c1f8ef-aeef-4576-be42-f6c6d0757728
+after: 
 ---
 
 # Goal
