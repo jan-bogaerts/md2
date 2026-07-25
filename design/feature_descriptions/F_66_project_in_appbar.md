@@ -3,7 +3,7 @@ author:
 id: F_66
 internalId: fb3a7428-2f7d-48dd-beda-ce7279c516e7
 title: Project in appbar
-status: ready for implementation
+status: in progress
 owner: 
 affects:
 agents:
