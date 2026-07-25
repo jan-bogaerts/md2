@@ -1,5 +1,4 @@
 const crypto = require('node:crypto');
-const { spawn } = require('node:child_process');
 const path = require('node:path');
 const crossSpawn = require('cross-spawn');
 
@@ -16,6 +15,7 @@ const {
 } = require('./agent_conversation_persistence');
 const { createAgentProviderProtocolParser } = require('./agent_provider_protocol');
 const { AgentExecutableResolver } = require('./agent_executable_availability');
+const { terminateDescendantProcesses, terminateProcessTree } = require('./process_tree');
 const { assertGitRoot, ensureInsideRoot, requireRootPath } = require('../git/git_commands');
 
 const HIDDEN_STDERR_LINES = [
@@ -68,22 +68,6 @@ function readOptionalString(value, fieldName) {
     if (typeof value !== 'string' || value.length === 0) throw new Error(`Missing agent ${fieldName}`);
 
     return value;
-}
-
-function terminateProcess(child) {
-    if (process.platform !== 'win32' || !child.pid) {
-        child.kill();
-        return Promise.resolve();
-    }
-
-    return new Promise((resolve) => {
-        const terminator = spawn('taskkill.exe', ['/pid', String(child.pid), '/t', '/f'], { stdio: 'ignore', windowsHide: true });
-        terminator.on('error', () => {
-            child.kill();
-            resolve();
-        });
-        terminator.on('close', resolve);
-    });
 }
 
 function emitRunEvent(run, event) {
@@ -145,6 +129,8 @@ class AgentRunnerService {
     constructor(dependencies = {}) {
         this.persistTerminalConversation = dependencies.persistTerminalConversation ?? persistTerminalConversation;
         this.executableResolver = dependencies.executableResolver ?? new AgentExecutableResolver();
+        this.terminateDescendantProcesses = dependencies.terminateDescendantProcesses ?? terminateDescendantProcesses;
+        this.terminateProcessTree = dependencies.terminateProcessTree ?? terminateProcessTree;
         this.processes = new Map();
         this.runningConversationIds = new Set();
     }
@@ -202,6 +188,15 @@ class AgentRunnerService {
             stdio: ['pipe', 'pipe', 'pipe'],
             // windowsHide: true,
         });
+        console.log('[agent:start]', {
+            arguments: configuredArguments,
+            cwd: rootPath,
+            executionId: request.executionId ?? null,
+            executable,
+            pid: child.pid,
+            runId: id,
+            startedAt,
+        });
         const run = {
             agent,
             cancelled: false,
@@ -220,6 +215,7 @@ class AgentRunnerService {
             stderr: '',
             stderrBuffer: '',
             stdout: '',
+            startedAt,
             turnStarted: false,
             termination: null,
             turnUsage: null,
@@ -258,14 +254,24 @@ class AgentRunnerService {
     stop(runId) {
         const run = this.requireRun(runId);
         run.cancelled = true;
-        run.termination = terminateProcess(run.child);
+
+        return this.ensureTermination(run);
     }
 
     stopAll() {
+        const terminations = [];
         for (const run of this.processes.values()) {
             run.cancelled = true;
-            run.termination = terminateProcess(run.child);
+            terminations.push(this.ensureTermination(run));
         }
+
+        return Promise.all(terminations);
+    }
+
+    ensureTermination(run) {
+        run.termination ??= this.terminateProcessTree(run.child);
+
+        return run.termination;
     }
 
     handleOutput(runId, channel, chunk) {
@@ -366,6 +372,7 @@ class AgentRunnerService {
 
         try {
             if (run.termination) await run.termination;
+            else await this.terminateDescendantProcesses(run.child.pid);
             run.parser?.finish();
             this.flushStderr(runId);
             const completedAt = new Date().toISOString();
@@ -381,6 +388,14 @@ class AgentRunnerService {
             run.conversation.completedAt = completedAt;
             run.conversation.status = run.cancelled ? 'cancelled' : succeeded ? 'completed' : 'failed';
             run.conversation.events.push(createEvent(`${runId}-closed`, 'closed', String(exitCode), completedAt));
+            console.log('[agent:complete]', {
+                completedAt,
+                durationMs: Date.parse(completedAt) - Date.parse(run.startedAt),
+                executionId: run.request.executionId ?? null,
+                exitCode,
+                pid: run.child.pid,
+                runId,
+            });
             await this.persistTerminalConversation(run);
             this.processes.delete(runId);
             this.runningConversationIds.delete(run.conversation.id);

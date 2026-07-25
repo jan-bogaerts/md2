@@ -1,6 +1,7 @@
 const { ActionCancellationError } = require('./action_cancellation_error');
 const { executeCommandAction } = require('./action_command_executor');
 const { ActionPhaseError } = require('./action_phase_error');
+const { runWithGitOperationContext } = require('../git/git_operation_context');
 const {
     captureCommitReferences,
     combineOutput,
@@ -49,6 +50,10 @@ class ActionExecution {
     }
 
     async run() {
+        return runWithGitOperationContext({ executionId: this.executionId }, () => this.runWithContext());
+    }
+
+    async runWithContext() {
         this.publish(this.rootAction, 'main', 'running', { type: 'execution' });
         let status = 'completed';
         let failure = null;
@@ -277,6 +282,7 @@ class ActionExecution {
             action,
             activityOrigin: this.activityOrigin,
             context: this.context,
+            executionId: this.executionId,
             onActiveRunChange,
             onEvent,
             project,

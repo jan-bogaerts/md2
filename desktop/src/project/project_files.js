@@ -10,6 +10,7 @@ const {
     requireRootPath,
     runGit,
 } = require('../git/git_commands');
+const { withGitIndexMutation } = require('../git/git_index_coordinator');
 const { normalizePath } = require('../../../shared/path_utils.mjs');
 
 const MARKDOWN_EXTENSION = '.md';
@@ -109,7 +110,7 @@ function createMissingWorkingFolderError(workingFolder) {
     return error;
 }
 
-async function createProject(project, workingFolder) {
+async function createProjectNow(project, workingFolder) {
     const rootPath = requireRootPath(project);
     await assertGitRoot(rootPath);
     const workingFolderPath = ensureInsideRoot(rootPath, path.join(rootPath, workingFolder));
@@ -122,6 +123,12 @@ async function createProject(project, workingFolder) {
     }
 
     return project;
+}
+
+function createProject(project, workingFolder) {
+    const rootPath = requireRootPath(project);
+
+    return withGitIndexMutation(rootPath, () => createProjectNow(project, workingFolder));
 }
 
 async function loadProject(project, workingFolder) {
@@ -212,7 +219,7 @@ async function listTopLevelFolders(project) {
     return readTopLevelFolders(rootPath);
 }
 
-async function commit(request, project) {
+async function commitNow(request, project) {
     const rootPath = requireRootPath(project);
 
     for (const move of request.moves ?? []) {
@@ -240,7 +247,13 @@ async function commit(request, project) {
     await commitStagedChanges(rootPath, request.message);
 }
 
-async function deleteFile(request, project) {
+function commit(request, project) {
+    const rootPath = requireRootPath(project);
+
+    return withGitIndexMutation(rootPath, () => commitNow(request, project));
+}
+
+async function deleteFileNow(request, project) {
     const rootPath = requireRootPath(project);
     await assertGitRoot(rootPath);
     if (!request || typeof request.message !== 'string' || request.message.length === 0) throw new Error('Missing delete commit message');
@@ -252,7 +265,13 @@ async function deleteFile(request, project) {
     await runGit(rootPath, ['commit', '-m', request.message]);
 }
 
-async function deleteFolder(request, project) {
+function deleteFile(request, project) {
+    const rootPath = requireRootPath(project);
+
+    return withGitIndexMutation(rootPath, () => deleteFileNow(request, project));
+}
+
+async function deleteFolderNow(request, project) {
     const rootPath = requireRootPath(project);
     await assertGitRoot(rootPath);
     if (!request || typeof request.message !== 'string' || request.message.length === 0) throw new Error('Missing delete commit message');
@@ -264,7 +283,13 @@ async function deleteFolder(request, project) {
     await runGit(rootPath, ['commit', '-m', request.message]);
 }
 
-async function moveFiles(request, project) {
+function deleteFolder(request, project) {
+    const rootPath = requireRootPath(project);
+
+    return withGitIndexMutation(rootPath, () => deleteFolderNow(request, project));
+}
+
+async function moveFilesNow(request, project) {
     const rootPath = requireRootPath(project);
     await assertGitRoot(rootPath);
     if (!request || typeof request.message !== 'string' || request.message.length === 0) throw new Error('Missing move commit message');
@@ -288,13 +313,25 @@ async function moveFiles(request, project) {
     await runGit(rootPath, ['commit', '-m', request.message]);
 }
 
-async function saveProjectConfig(project, config) {
+function moveFiles(request, project) {
+    const rootPath = requireRootPath(project);
+
+    return withGitIndexMutation(rootPath, () => moveFilesNow(request, project));
+}
+
+async function saveProjectConfigNow(project, config) {
     const rootPath = requireRootPath(project);
     await assertGitRoot(rootPath);
     const configPath = ensureInsideRoot(rootPath, path.join(rootPath, PROJECT_CONFIG_PATH));
     await fs.promises.writeFile(configPath, `${JSON.stringify(config, null, 2)}\n`);
     await runGit(rootPath, ['add', PROJECT_CONFIG_PATH]);
     await commitStagedChanges(rootPath, 'Update MD² project config');
+}
+
+function saveProjectConfig(project, config) {
+    const rootPath = requireRootPath(project);
+
+    return withGitIndexMutation(rootPath, () => saveProjectConfigNow(project, config));
 }
 
 async function closeProjectWatcher(subscription) {

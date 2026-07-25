@@ -70,6 +70,7 @@ class ActionAgentExecutor {
             command,
             ...(sourceConversation ? { conversation: sourceConversation, reference } : {}),
             ...(contextInput ? { contextInput } : {}),
+            executionId: input.executionId,
             prompt,
             projectFolder: input.projectFolder,
             ...(providerSession ? { providerConversationId: providerSession.conversationId } : {}),

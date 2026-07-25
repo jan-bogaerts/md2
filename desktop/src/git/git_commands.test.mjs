@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process';
-import { access, chmod, mkdtemp, mkdir, rm, stat, writeFile } from 'node:fs/promises';
+import { access, chmod, mkdtemp, mkdir, rm, stat, unlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { createRequire } from 'node:module';
@@ -19,6 +19,7 @@ const {
     resolveCommitMetadata,
     resolveLocalProject,
     runCommand,
+    runGit: runGitCommand,
 } = require('./git_commands');
 
 async function runGit(rootPath, args) {
@@ -216,6 +217,39 @@ describe('git-commands', () => {
 
             expect(firstFiles.trim()).toBe('first.md');
             expect(secondFiles.trim()).toBe('second.md');
+        } finally {
+            await rm(rootPath, { force: true, recursive: true });
+        }
+    });
+
+    it('retries temporary Git index lock contention', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-git-lock-retry-'));
+        const lockPath = join(rootPath, '.git', 'index.lock');
+
+        try {
+            await initializeRepository(rootPath);
+            await writeFile(lockPath, 'held');
+            setTimeout(() => {
+                void unlink(lockPath);
+            }, 75);
+
+            await expect(runGitCommand(rootPath, ['add', '--all'])).resolves.toBe('');
+            await expect(access(lockPath)).rejects.toThrow();
+        } finally {
+            await rm(rootPath, { force: true, recursive: true });
+        }
+    });
+
+    it('keeps a persistent Git index lock and reports recovery diagnostics', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-git-lock-persistent-'));
+        const lockPath = join(rootPath, '.git', 'index.lock');
+
+        try {
+            await initializeRepository(rootPath);
+            await writeFile(lockPath, 'held');
+
+            await expect(runGitCommand(rootPath, ['add', '--all'])).rejects.toThrow(/md2 did not remove the lock/u);
+            await expect(access(lockPath)).resolves.toBeUndefined();
         } finally {
             await rm(rootPath, { force: true, recursive: true });
         }

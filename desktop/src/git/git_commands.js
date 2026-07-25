@@ -5,10 +5,14 @@ const { promisify } = require('node:util');
 
 const execFileAsync = promisify(execFile);
 const execAsync = promisify(exec);
+const { currentGitOperationContext } = require('./git_operation_context');
+const { describeGitIndexLock } = require('./git_lock_diagnostics');
+const { withGitIndexMutation } = require('./git_index_coordinator');
 const DETACHED_HEAD_BRANCH = 'HEAD (detached)';
 const LITERAL_PATHSPEC_ARGUMENT = '--literal-pathspecs';
 const FULL_COMMIT_PATTERN = /^[0-9a-f]{40}$/iu;
-const trackedCommitQueues = new Map();
+const GIT_INDEX_LOCK_PATTERN = /(?:unable to create|index\.lock).*index\.lock|another git process seems to be running/iu;
+const GIT_INDEX_LOCK_RETRY_DELAYS_MS = [50, 100, 200, 400];
 const SHORT_STAT_PATTERNS = {
     deletions: /(\d+) deletions?\(-\)/u,
     filesChanged: /(\d+) files? changed/u,
@@ -43,11 +47,76 @@ async function pathExists(targetPath) {
     }
 }
 
-async function runGit(rootPath, args) {
-    console.log('[git]', { args, cwd: rootPath });
-    const { stdout } = await execFileAsync('git', args, { cwd: rootPath });
+function executeGit(rootPath, args) {
+    const startedAt = new Date().toISOString();
+    const startedTime = Date.now();
+    const { executionId = null } = currentGitOperationContext();
 
-    return stdout.trim();
+    return new Promise((resolve, reject) => {
+        const child = execFile('git', args, { cwd: rootPath }, (error, stdout, stderr) => {
+            const completedAt = new Date().toISOString();
+            const log = {
+                args,
+                completedAt,
+                cwd: rootPath,
+                durationMs: Date.now() - startedTime,
+                executionId,
+                exitCode: error?.code ?? 0,
+                pid: child.pid,
+                startedAt,
+            };
+            console.log('[git:complete]', log);
+            if (error) {
+                reject(error);
+                return;
+            }
+
+            resolve({ stderr, stdout });
+        });
+        console.log('[git:start]', { args, cwd: rootPath, executionId, pid: child.pid, startedAt });
+    });
+}
+
+function isGitIndexLockError(error) {
+    if (!error || typeof error !== 'object') return false;
+    const output = `${typeof error.stderr === 'string' ? error.stderr : ''}\n${error.message ?? ''}`;
+
+    return GIT_INDEX_LOCK_PATTERN.test(output);
+}
+
+function delay(milliseconds) {
+    return new Promise((resolve) => {
+        setTimeout(resolve, milliseconds);
+    });
+}
+
+async function runGit(rootPath, args) {
+    for (const [retryIndex, retryDelay] of GIT_INDEX_LOCK_RETRY_DELAYS_MS.entries()) {
+        try {
+            const { stdout } = await executeGit(rootPath, args);
+
+            return stdout.trim();
+        } catch (error) {
+            if (!isGitIndexLockError(error)) throw error;
+            console.warn('[git:index-lock-retry]', {
+                args,
+                cwd: rootPath,
+                delayMs: retryDelay,
+                retry: retryIndex + 1,
+            });
+            await delay(retryDelay);
+        }
+    }
+
+    try {
+        const { stdout } = await executeGit(rootPath, args);
+
+        return stdout.trim();
+    } catch (error) {
+        if (!isGitIndexLockError(error)) throw error;
+        const diagnostics = await describeGitIndexLock(rootPath);
+        throw new Error(`${gitErrorMessage(error)}\n${diagnostics}`, { cause: error });
+    }
 }
 
 /** Parse Git short-stat output, where omitted categories mean zero. */
@@ -156,17 +225,9 @@ function commitTrackedPaths(rootPath, filePaths, message, signal) {
     const resolvedRoot = path.resolve(rootPath);
     const trackedPaths = normalizeTrackedPaths(resolvedRoot, filePaths);
     if (trackedPaths.length === 0) return Promise.resolve(null);
-    const previousCommit = trackedCommitQueues.get(resolvedRoot) ?? Promise.resolve();
-    const commit = previousCommit.then(() => (
+    return withGitIndexMutation(resolvedRoot, () => (
         signal?.aborted ? null : commitTrackedPathsNow(resolvedRoot, trackedPaths, message)
     ));
-    const queueTail = commit.catch(() => undefined);
-    trackedCommitQueues.set(resolvedRoot, queueTail);
-    void queueTail.finally(() => {
-        if (trackedCommitQueues.get(resolvedRoot) === queueTail) trackedCommitQueues.delete(resolvedRoot);
-    });
-
-    return commit;
 }
 
 /** Resolve stable metadata required to retain and display one commit reference. */
@@ -285,7 +346,7 @@ async function listBranches(project) {
 
 async function checkoutBranch(project, branch) {
     const rootPath = requireRootPath(project);
-    await runGit(rootPath, ['checkout', branch]);
+    await withGitIndexMutation(rootPath, () => runGit(rootPath, ['checkout', branch]));
 
     return { ...project, branch };
 }
@@ -316,6 +377,7 @@ module.exports = {
     hasStagedChanges,
     hasPendingPush,
     isCommitAncestor,
+    isGitIndexLockError,
     listBranches,
     pathExists,
     parseShortStat,

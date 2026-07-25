@@ -1,6 +1,8 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
+const { withGitIndexMutations } = require('./git_index_coordinator');
+
 const PARKING_BRANCH_PREFIX = 'md2/parking/';
 const REFRESH_INTERVAL_MS = 5000;
 const PRIMARY_CHECKPOINT_MESSAGE = 'Save project changes before worktree synchronization';
@@ -320,8 +322,13 @@ class WorktreeService {
         const execute = async () => {
             if (this.refreshPromise) await this.refreshPromise;
             this.stopTimer();
+            if (!this.project) throw new Error('Worktree service has no active project');
+            const mutationRoots = [
+                this.project.rootPath,
+                ...this.records.filter(({ valid }) => valid).map(({ path: recordPath }) => recordPath),
+            ];
 
-            return operation();
+            return withGitIndexMutations(mutationRoots, operation);
         };
         const result = this.mutationQueue.then(execute, execute);
         this.mutationQueue = result.catch(() => {});

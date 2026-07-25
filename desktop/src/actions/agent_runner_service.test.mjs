@@ -378,6 +378,45 @@ describe('AgentRunnerService', () => {
         }
     }, WINDOWS_PROCESS_TEST_TIMEOUT_MS);
 
+    it('waits for every process-tree termination during stopAll', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-stop-all-'));
+        const events = [];
+        let releaseTermination;
+        const termination = new Promise((resolve) => {
+            releaseTermination = resolve;
+        });
+        const terminateProcessTree = vi.fn((child) => {
+            child.kill();
+
+            return termination;
+        });
+        const service = createService({ terminateProcessTree });
+
+        try {
+            await prepareProject(rootPath);
+            await service.start(
+                createProject(rootPath),
+                agentRequest({ command: ['node', '-e', 'setTimeout(()=>{},10000)'], prompt: 'wait', scopePath: 'project' }),
+                (event) => events.push(event),
+            );
+            const stopping = service.stopAll();
+            const earlyResult = await Promise.race([
+                stopping.then(() => 'stopped'),
+                new Promise((resolve) => {
+                    setTimeout(() => resolve('waiting'), 50);
+                }),
+            ]);
+
+            expect(earlyResult).toBe('waiting');
+            releaseTermination();
+            await stopping;
+            await waitForEvent(events, 'closed');
+            expect(terminateProcessTree).toHaveBeenCalledOnce();
+        } finally {
+            await rm(rootPath, { force: true, recursive: true });
+        }
+    }, WINDOWS_PROCESS_TEST_TIMEOUT_MS);
+
     it('rejects concurrent turns for one conversation while allowing separate conversations', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-runner-'));
         const service = createService();
