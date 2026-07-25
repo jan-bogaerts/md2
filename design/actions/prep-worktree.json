@@ -5,5 +5,8 @@
   "type": "agent",
   "phrases": [],
   "prompt": "Describe what the agent should do.",
-  "needsWorkTree": true
+  "needsWorkTree": true,
+  "appliesTo": {
+    "kind": "project"
+  }
 }
