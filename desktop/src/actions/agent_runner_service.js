@@ -80,25 +80,34 @@ function assistantMessageId(runId) {
     return `${runId}-assistant`;
 }
 
-function joinChunk(existing, chunk) {
+/** Exact text appended to `existing` for `chunk`, including the paragraph separator. */
+function chunkSegment(existing, chunk) {
     const trimmed = chunk.replace(/^\n+|\n+$/g, '');
+    if (trimmed.length === 0) return '';
     if (existing.length === 0) return trimmed;
-    if (trimmed.length === 0) return existing;
 
-    return `${existing}\n\n${trimmed}`;
+    return `\n\n${trimmed}`;
 }
 
+function joinChunk(existing, chunk) {
+    return `${existing}${chunkSegment(existing, chunk)}`;
+}
+
+/** Appends a chunk and returns the appended segment, so streamed events carry the same separators. */
 function appendAssistantOutput(run, content, timestamp) {
-    run.stdout = joinChunk(run.stdout, content);
+    const segment = chunkSegment(run.stdout, content);
+    run.stdout += segment;
     const messageId = assistantMessageId(run.id);
     const currentIndex = run.conversation.messages.findIndex(({ id }) => id === messageId);
     if (currentIndex < 0) {
         run.conversation.messages.push(createMessage(messageId, 'assistant', content.replace(/^\n+|\n+$/g, ''), timestamp, run.agent));
-        return;
+        return segment;
     }
 
     const current = run.conversation.messages[currentIndex];
     run.conversation.messages[currentIndex] = { ...current, content: joinChunk(current.content, content), timestamp };
+
+    return segment;
 }
 
 function completeAssistantOutput(run, completedAt) {
@@ -299,12 +308,15 @@ class AgentRunnerService {
         if (!run) return;
 
         const timestamp = new Date().toISOString();
-        if (channel === 'stdout') appendAssistantOutput(run, content, timestamp);
-        else {
-            run.stderr += content;
-            run.conversation.events.push(createEvent(`${runId}-error-${run.conversation.events.length}`, 'error', content, timestamp));
+        if (channel === 'stdout') {
+            const segment = appendAssistantOutput(run, content, timestamp);
+            if (segment.length === 0) return;
+            emitRunEvent(run, { content: segment, type: 'output' });
+            return;
         }
-        emitRunEvent(run, { content, type: channel === 'stdout' ? 'output' : 'error' });
+        run.stderr += content;
+        run.conversation.events.push(createEvent(`${runId}-error-${run.conversation.events.length}`, 'error', content, timestamp));
+        emitRunEvent(run, { content, type: 'error' });
     }
 
     flushStderr(runId) {
@@ -335,8 +347,8 @@ class AgentRunnerService {
             ));
         }
         if (providerEvent.assistantText.length > 0) {
-            appendAssistantOutput(run, providerEvent.assistantText, timestamp);
-            emitRunEvent(run, { content: providerEvent.assistantText, type: 'output' });
+            const segment = appendAssistantOutput(run, providerEvent.assistantText, timestamp);
+            if (segment.length > 0) emitRunEvent(run, { content: segment, type: 'output' });
         } else if (providerEvent.errorText.length > 0 && !run.reportedProviderErrors.has(providerEvent.errorText)) {
             const separator = run.stderr.length > 0 && !run.stderr.endsWith('\n') ? '\n' : '';
             run.reportedProviderErrors.add(providerEvent.errorText);

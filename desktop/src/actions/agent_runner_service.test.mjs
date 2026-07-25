@@ -178,6 +178,29 @@ describe('AgentRunnerService', () => {
         }
     });
 
+    it('streams output deltas carrying the paragraph separator between chunks', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-runner-'));
+        const service = createService();
+        const events = [];
+        const scriptPath = join(rootPath, 'multi-chunk-output.cjs');
+
+        try {
+            await prepareProject(rootPath);
+            await writeFile(scriptPath, "console.log(JSON.stringify({type:'thread.started',thread_id:'thread-1'}));console.log(JSON.stringify({type:'turn.started'}));console.log(JSON.stringify({type:'item.completed',item:{type:'agent_message',text:'first'}}));console.log(JSON.stringify({type:'item.completed',item:{type:'agent_message',text:'second'}}))\n");
+            const result = await service.run(createProject(rootPath), agentRequest({
+                agent: 'codex',
+                command: ['node', scriptPath],
+                prompt: 'question',
+            }), (event) => events.push(event));
+            const streamed = events.filter(({ type }) => type === 'output').map(({ content }) => content).join('');
+
+            expect(streamed).toBe('first\n\nsecond');
+            expect(result.stdout).toBe(streamed);
+        } finally {
+            await rm(rootPath, { force: true, recursive: true });
+        }
+    });
+
     it('persists and accumulates normalized usage across resumed turns', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-runner-'));
         const service = createService();
