@@ -1,7 +1,7 @@
 {
   "id": "21471796-1562-448a-b7cb-623599dabcea",
-  "label": "prep worktree",
-  "description": "Makes certain that all projects in the the worktree are properly installed. ready for testing",
+  "label": "prep project",
+  "description": "Makes certain that all projects are properly installed. ready for testing",
   "type": "agent",
   "appliesTo": {
     "kind": "project"
