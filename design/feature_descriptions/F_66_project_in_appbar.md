@@ -10,6 +10,7 @@ agents:
   - design/activity/card__fb3a7428-2f7d-48dd-beda-ce7279c516e7.json#conversation=agent-7ae7a26f-7f90-4736-823d-f4ec3eb25f02
   - design/activity/card__fb3a7428-2f7d-48dd-beda-ce7279c516e7.json#conversation=agent-8eefc040-daca-47ba-8e74-f7973efe58c2
   - design/activity/card__fb3a7428-2f7d-48dd-beda-ce7279c516e7.json#conversation=agent-1079b9fe-9286-4f0d-9a40-26e3f302e70e
+  - design/activity/card__fb3a7428-2f7d-48dd-beda-ce7279c516e7.json#conversation=agent-98b60bf1-8055-4df2-987d-0a9b26326714
 policy:
 after: 
 worktree: 1
