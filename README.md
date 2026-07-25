@@ -34,7 +34,36 @@ UI early days, more to come.
 2. Click the GitHub icon, upper left corner, follow link to get a GitHub access token, copy-paste token in.
 3. Open project, select a folder that contains a git repository.
 
-## Development
+## Development setup
+
+The repo has three parts: [app/](app/) (the React/Vite web UI), [desktop/](desktop/) (the Electron host shell), and [shared/](shared/) (types and logic used by both). Each subproject has its own `package.json` and npm scripts, but a root `package.json` wires up the common workflows.
+
+### Prerequisites
+
+- [Node.js](https://nodejs.org/) (LTS) and npm
+- Git
+
+### Install
+
+```powershell
+npm run install:all
+```
+
+This installs dependencies for both `app` and `desktop`.
+
+### Run
+
+```powershell
+npm run dev
+```
+
+This starts the Vite dev server for `app` and, once it's up, launches the Electron shell (`desktop`) pointed at it. To run either half on its own: `npm run dev:app` or `npm run dev:desktop`.
+
+### Optional environment variables
+
+`app/.env.example` and `desktop/.env.example` list optional Sentry/Aptabase keys for error reporting and analytics. Copy to `.env` and fill in if you want telemetry locally — neither is required to build or run the app.
+
+### Lint & test
 
 Each subproject is standalone and has its own npm scripts.
 

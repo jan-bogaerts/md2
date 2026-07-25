@@ -38,21 +38,6 @@ Keep analysis and documentation **short, precise, and to the point**. Avoid verb
 - Do not add compatibility flags, fallback branches, or mode parameters unless at least two verified call sites need different behavior.
 - Prefer direct, single-purpose changes when the inspected call graph shows only one behavior is required.
 
-## Linting
-As an agent working on this codebase, you must:
-1. **Follow all linting rules** defined in each subproject's `eslint.config.js`.
-2. **Do not override or ignore** linting rules unless explicitly instructed.
-3. **Run the linter** locally before submitting or committing code:
-```powershell
-npm run lint
-```
-4. Fix all linting errors and warnings before submitting a pull request.
-5.  Use auto-fix   
-```powershell
-npm run lint-fix
-```
-
-
 ## Architecture decision docs
 - follow the architectural decisions described in `design\architecture\architectural_decisions.md`
 - Do not edit `design/architecture/architectural_decisions.md` unless the user explicitly asks to update architectural decisions.
@@ -112,6 +97,20 @@ npm run lint-fix
 - application states belong in services, not in components.
 - Root components own layout; leaf components bind to changing application data. Place subscriptions in the smallest component that renders their value.
 
+## Linting
+As an agent working on this codebase, you must:
+1. **Follow all linting rules** defined in each subproject's `eslint.config.js`.
+2. **Do not override or ignore** linting rules unless explicitly instructed.
+3. **Run the linter** locally before submitting or committing code:
+```powershell
+npm run lint
+```
+4. Fix all linting errors and warnings before submitting a pull request.
+5.  Use auto-fix   
+```powershell
+npm run lint-fix
+```
+
 
 ## Testing
 
@@ -120,11 +119,9 @@ npm run lint-fix
 you must:
 
 1. **Do not break existing tests.** If a test fails after your change, either:
-
    - Fix the code if the test remains correct, or
    - Update the test and explain why if behavior intentionally changed.
 2. **Add tests** for:
-
    - New public functions or utilities.
    - New React components or significant UI states.
    - Bug fixes (a regression test that would fail before the fix).
