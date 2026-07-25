@@ -71,6 +71,18 @@ describe('MainToolbar', () => {
         expect(container.textContent?.indexOf('Home')).toBeLessThan(container.textContent?.indexOf('Project section') ?? 0)
     })
 
+    it('centers the project name region between the tabs and theme control', () => {
+        renderToolbar()
+
+        const tabsRegion = screen.getByRole('button', { name: 'Home' }).parentElement as HTMLElement
+        const projectNameRegion = screen.getByTestId('project-name-region')
+        const themeRegion = screen.getByRole('button', { name: /Switch to (dark|light) theme/u }).parentElement as HTMLElement
+
+        expect(tabsRegion.nextElementSibling).toBe(projectNameRegion)
+        expect(projectNameRegion.nextElementSibling).toBe(themeRegion)
+        expect(projectNameRegion).toHaveStyle({ justifyContent: 'center' })
+    })
+
     it('makes the bar draggable while keeping the search controls non-draggable', () => {
         const { container } = renderToolbar()
 

@@ -45,7 +45,7 @@ export function MainToolbar(props: MainToolbarProps) {
                         <Menu />
                     </IconButton>
                 ) : null}
-                <Box sx={{ alignItems: 'center', display: 'flex', flexShrink: 1, gap: 1, maxWidth: PROJECT_NAME_MAX_WIDTH, minWidth: 0 }}>
+                <Box sx={{ alignItems: 'center', display: 'flex', flexShrink: 0 }}>
                     <Box
                         alt="MD² application icon"
                         component="img"
@@ -55,12 +55,18 @@ export function MainToolbar(props: MainToolbarProps) {
                             width: 24,
                         }}
                     />
-                    <ProjectNameLabel />
                 </Box>
                 <Box style={NO_DRAG_REGION} sx={{ alignSelf: 'stretch', display: 'flex', flexShrink: 0 }}>
                     {tabs}
                 </Box>
-                <Box sx={{ flex: 1, minWidth: 16 }} />
+                <Box
+                    data-testid="project-name-region"
+                    sx={{ alignItems: 'center', display: 'flex', flex: 1, justifyContent: 'center', minWidth: 16, overflow: 'hidden' }}
+                >
+                    <Box sx={{ maxWidth: PROJECT_NAME_MAX_WIDTH, minWidth: 0 }}>
+                        <ProjectNameLabel />
+                    </Box>
+                </Box>
                 {isMobile ? (
                     <Box style={NO_DRAG_REGION}>
                         {mobileAction}
