@@ -5,16 +5,17 @@ import { MarkdownFormatToolbarControls } from '../editor/markdown_format_toolbar
 
 interface CardPopupToolbarControlsProps {
     isFullscreen: boolean
+    isMobile: boolean
     onToggleFullscreen: () => void
 }
 
 /** Formatting controls arranged for the card details popup. */
 export function CardPopupToolbarControls(props: CardPopupToolbarControlsProps) {
-    const { isFullscreen, onToggleFullscreen } = props
+    const { isFullscreen, isMobile, onToggleFullscreen } = props
     const label = isFullscreen ? 'Exit fullscreen' : 'Fullscreen'
 
     return (
-        <MarkdownFormatToolbarControls endControls={(
+        <MarkdownFormatToolbarControls endControls={!isMobile ? (
             <>
                 <Box sx={{ flex: 1 }} />
                 <Tooltip title={label}>
@@ -23,6 +24,6 @@ export function CardPopupToolbarControls(props: CardPopupToolbarControlsProps) {
                     </IconButton>
                 </Tooltip>
             </>
-        )} />
+        ) : null} />
     )
 }

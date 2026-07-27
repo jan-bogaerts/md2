@@ -429,14 +429,42 @@ describe('CardView', () => {
         await waitFor(() => expect(dataService.cards.deleteCard).toHaveBeenCalledWith('design/F-1.md'))
     })
 
-    it('opens the card-relative popup on mobile', () => {
+    it('opens a viewport-sized card popup with mobile actions', () => {
         renderCardView({ isMobile: true })
 
         fireEvent.click(screen.getByRole('button', { name: 'Drag F-1' }))
 
         const dialog = screen.getByRole('dialog')
+        const affectsButton = within(dialog).getByRole('button', { name: 'Affects' })
         expect(within(dialog).getByDisplayValue(/Body of F-1/)).toBeInTheDocument()
-        expect(within(dialog).getByRole('button', { name: 'Affects' })).toBeInTheDocument()
+        expect(dialog).toHaveStyle({
+            borderRadius: 0,
+            height: '100vh',
+            left: 0,
+            margin: 0,
+            top: 0,
+            width: '100vw',
+        })
+        expect(affectsButton).toHaveTextContent('')
+        expect(within(dialog).getByRole('button', { name: 'Delete' })).toHaveTextContent('')
+        expect(within(dialog).getByRole('button', { name: 'Open in file mode' })).toHaveTextContent('')
+        expect(within(dialog).queryByRole('button', { name: 'Close' })).not.toBeInTheDocument()
+        expect(within(dialog).queryByRole('button', { name: 'Fullscreen' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('separator', { name: /Resize card details popup/u })).not.toBeInTheDocument()
+    })
+
+    it('keeps desktop popup sizing, actions, resizing, and fullscreen control', () => {
+        renderCardView()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Drag F-1' }))
+
+        const dialog = screen.getByRole('dialog')
+        expect(dialog).toHaveStyle({ height: '620px', width: '760px' })
+        expect(within(dialog).getByRole('button', { name: 'Delete' })).toHaveTextContent('Delete')
+        expect(within(dialog).getByRole('button', { name: 'Affects' })).toHaveTextContent('Affects')
+        expect(within(dialog).getByRole('button', { name: 'Open in file mode' })).toHaveTextContent('Open in file mode')
+        expect(within(dialog).getByRole('button', { name: 'Close' })).toBeInTheDocument()
+        expect(within(dialog).getByRole('button', { name: 'Fullscreen' })).toBeInTheDocument()
         expect(screen.getByRole('separator', { name: 'Resize card details popup from right' })).toBeInTheDocument()
     })
 

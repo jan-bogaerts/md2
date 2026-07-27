@@ -20,6 +20,7 @@ interface ResizablePopoverProps {
     onClose: (reason?: 'backdropClick' | 'escapeKeyDown') => void
     open: boolean
     paperSx?: SxProps<Theme>
+    resizable?: boolean
     resizeCorner?: ResizeCorner
     resizeFromAllSides?: boolean
     resizeLabel: string
@@ -96,6 +97,7 @@ export function ResizablePopover(props: ResizablePopoverProps) {
         onClose,
         open,
         paperSx,
+        resizable = true,
         resizeCorner = 'lower-right',
         resizeFromAllSides = false,
         resizeLabel,
@@ -182,7 +184,7 @@ export function ResizablePopover(props: ResizablePopoverProps) {
             transformOrigin={transformOrigin}
         >
             {children}
-            {resizeFromAllSides ? ALL_RESIZE_DIRECTIONS.map((direction) => (
+            {resizable && resizeFromAllSides ? ALL_RESIZE_DIRECTIONS.map((direction) => (
                 <Box
                     aria-label={`${resizeLabel} from ${direction}`}
                     data-direction={direction}
@@ -191,7 +193,7 @@ export function ResizablePopover(props: ResizablePopoverProps) {
                     role="separator"
                     sx={{ ...directionPosition(direction), position: 'absolute', touchAction: 'none' }}
                 />
-            )) : (
+            )) : resizable ? (
                 <Box
                     aria-label={resizeLabel}
                     data-corner={resizeCorner}
@@ -208,7 +210,7 @@ export function ResizablePopover(props: ResizablePopoverProps) {
                         width: HANDLE_SIZE,
                     }}
                 />
-            )}
+            ) : null}
         </Popover>
     )
 }

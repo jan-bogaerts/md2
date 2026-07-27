@@ -19,8 +19,14 @@ interface CardBodyEditorProps {
 export const CardBodyEditor = memo(function CardBodyEditor(props: CardBodyEditorProps) {
     const { historyStore, isFullscreen, isMobile = false, onToggleFullscreen, overlayContainer } = props
     const ToolbarContents = useCallback(
-        () => <CardPopupToolbarControls isFullscreen={isFullscreen} onToggleFullscreen={onToggleFullscreen} />,
-        [isFullscreen, onToggleFullscreen],
+        () => (
+            <CardPopupToolbarControls
+                isFullscreen={isFullscreen}
+                isMobile={isMobile}
+                onToggleFullscreen={onToggleFullscreen}
+            />
+        ),
+        [isFullscreen, isMobile, onToggleFullscreen],
     )
     return (
         <Box

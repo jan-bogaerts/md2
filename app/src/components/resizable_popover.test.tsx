@@ -50,4 +50,23 @@ describe('ResizablePopover', () => {
         expect(paper.style.width).toBe('450px')
         expect(paper.style.height).toBe('350px')
     })
+
+    it('hides resize handles when resizing is disabled', () => {
+        render(
+            <ResizablePopover
+                anchorElement={document.body}
+                initialSize={{ height: 300, width: 400 }}
+                labelId="popup-title"
+                onClose={vi.fn()}
+                open
+                resizable={false}
+                resizeFromAllSides
+                resizeLabel="Resize test popup"
+            >
+                <h2 id="popup-title">Test popup</h2>
+            </ResizablePopover>,
+        )
+
+        expect(screen.queryByRole('separator', { name: /Resize test popup/u })).not.toBeInTheDocument()
+    })
 })

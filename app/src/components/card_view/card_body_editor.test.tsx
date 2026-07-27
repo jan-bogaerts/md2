@@ -60,4 +60,16 @@ describe('CardBodyEditor', () => {
 
         expect(container.querySelector('[data-sticky-toolbar="true"]')).not.toBeNull()
     })
+
+    it('hides fullscreen control on mobile', () => {
+        renderCardBodyEditor(editorProps({ isMobile: true }))
+
+        expect(screen.queryByRole('button', { name: 'Fullscreen' })).not.toBeInTheDocument()
+    })
+
+    it('keeps fullscreen control on desktop', () => {
+        renderCardBodyEditor(editorProps())
+
+        expect(screen.getByRole('button', { name: 'Fullscreen' })).toBeInTheDocument()
+    })
 })

@@ -213,7 +213,8 @@ export function CardBodyPopover(props: CardBodyPopoverProps) {
             <ResizablePopover
                 anchorElement={anchorElement}
                 initialSize={{ height: CARD_BODY_POPOVER_HEIGHT, width: CARD_BODY_POPOVER_WIDTH }}
-                sizeStorageKey={CARD_BODY_POPOVER_SIZE_KEY}
+                sizeStorageKey={isMobile ? undefined : CARD_BODY_POPOVER_SIZE_KEY}
+                resizable={!isMobile}
                 resizeFromAllSides
                 labelId={titleId}
                 onClose={handlePopoverClose}
@@ -222,16 +223,18 @@ export function CardBodyPopover(props: CardBodyPopoverProps) {
                     backgroundColor: 'background.paper',
                     border: '1px solid',
                     borderColor: 'divider',
-                    borderRadius: '14px',
+                    borderRadius: isMobile ? 0 : '14px',
+                    boxSizing: 'border-box',
                     boxShadow: '0 24px 60px rgba(16, 24, 40, 0.28)',
                     flexDirection: 'column',
-                    height: isFullscreen ? `${fullscreenHeight} !important` : undefined,
-                    left: isFullscreen ? `${POPOVER_SIDE_MARGIN}px !important` : undefined,
-                    maxHeight: isFullscreen ? 'none' : undefined,
-                    maxWidth: isFullscreen ? 'none' : undefined,
-                    top: isFullscreen ? `${POPOVER_TOP_MARGIN}px !important` : undefined,
-                    transform: isFullscreen ? 'none !important' : undefined,
-                    width: isFullscreen ? `${fullscreenSize} !important` : undefined,
+                    height: isMobile ? '100vh !important' : isFullscreen ? `${fullscreenHeight} !important` : undefined,
+                    left: isMobile ? '0 !important' : isFullscreen ? `${POPOVER_SIDE_MARGIN}px !important` : undefined,
+                    margin: isMobile ? '0 !important' : undefined,
+                    maxHeight: isMobile || isFullscreen ? 'none' : undefined,
+                    maxWidth: isMobile || isFullscreen ? 'none' : undefined,
+                    top: isMobile ? '0 !important' : isFullscreen ? `${POPOVER_TOP_MARGIN}px !important` : undefined,
+                    transform: isMobile || isFullscreen ? 'none !important' : undefined,
+                    width: isMobile ? '100vw !important' : isFullscreen ? `${fullscreenSize} !important` : undefined,
                 }}
                 resizeLabel="Resize card details popup"
             >
@@ -359,16 +362,39 @@ export function CardBodyPopover(props: CardBodyPopoverProps) {
                                 borderColor: 'divider',
                                 display: 'flex',
                                 flexShrink: 0,
-                                gap: '8px',
-                                padding: '12px 16px',
+                                gap: isMobile ? '4px' : '8px',
+                                minWidth: 0,
+                                padding: isMobile ? '8px' : '12px 16px',
                             }}
                         >
-                            <Button color="error" onClick={openDeleteCardDialog} startIcon={<DeleteOutline />} variant="outlined">Delete</Button>
-                            <Button onClick={openAffects} startIcon={<FolderSearchOutline />} variant="outlined">Affects</Button>
-                            <Button onClick={openInFileMode} startIcon={<FileDocumentOutline />} variant="outlined">Open in file mode</Button>
+                            {isMobile ? (
+                                <>
+                                    <Tooltip title="Delete">
+                                        <IconButton aria-label="Delete" color="error" onClick={openDeleteCardDialog}>
+                                            <DeleteOutline />
+                                        </IconButton>
+                                    </Tooltip>
+                                    <Tooltip title="Affects">
+                                        <IconButton aria-label="Affects" onClick={openAffects}>
+                                            <FolderSearchOutline />
+                                        </IconButton>
+                                    </Tooltip>
+                                    <Tooltip title="Open in file mode">
+                                        <IconButton aria-label="Open in file mode" onClick={openInFileMode}>
+                                            <FileDocumentOutline />
+                                        </IconButton>
+                                    </Tooltip>
+                                </>
+                            ) : (
+                                <>
+                                    <Button color="error" onClick={openDeleteCardDialog} startIcon={<DeleteOutline />} variant="outlined">Delete</Button>
+                                    <Button onClick={openAffects} startIcon={<FolderSearchOutline />} variant="outlined">Affects</Button>
+                                    <Button onClick={openInFileMode} startIcon={<FileDocumentOutline />} variant="outlined">Open in file mode</Button>
+                                </>
+                            )}
                             <AgentUsageDisplay usage={cardAgentTokenUsage(card)} />
                             <Box sx={{ flex: 1 }} />
-                            <Button onClick={closePopover} variant="contained">Close</Button>
+                            {!isMobile ? <Button onClick={closePopover} variant="contained">Close</Button> : null}
                         </Box>
                     </Box>
                 ) : null}
