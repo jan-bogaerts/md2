@@ -101,6 +101,42 @@
           "id": "agent-turn-95efbbeb-ab56-44fb-aad2-e837397b2787-turn-1-completed",
           "timestamp": "2026-07-27T18:10:41.889Z",
           "type": "turnCompleted"
+        },
+        {
+          "content": "[{\"path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\design\\\\feature_descriptions\\\\F_70_layout_add_card.md\",\"kind\":{\"type\":\"update\",\"move_path\":null},\"diff\":\"@@ -20,2 +20,28 @@\\n * Fix scrolling\\n-* Buttons add bottom have too much text, specifically on mobile\\n\\\\ No newline at end of file\\n+* Buttons add bottom have too much text, specifically on mobile\\n+\\n+## Current state\\n+\\n+- `NewCardDialog` uses a fixed 480px dialog with card type, title, and body stacked vertically.\\n+- Card type always shows a color dot and label. The body editor includes its full formatting toolbar.\\n+- Dialog paper hides overflow, while its form/content lack a constrained flex layout. On short mobile viewports, body and footer can become inaccessible.\\n+- Footer shows `Adds to New`, `Cancel`, and `Create card`, consuming too much mobile width.\\n+- Same dialog is opened from desktop project controls, mobile create menu, and board-column add buttons.\\n+\\n+## implementation details\\n+\\n+- Keep `NewCardDialog` and existing card creation flow; change only its responsive layout.\\n+- Remove Markdown formatting toolbar with `MarkdownEditor`'s existing `hideToolbar` prop.\\n+- Put card type and title on one row. On mobile, render only selected type's color icon in closed select; keep labels in dropdown options and accessible naming. Desktop may show icon and label.\\n+- Make dialog form a height-constrained flex column. Keep header/footer fixed and make `DialogContent` scroll with `minHeight: 0`.\\n+- On mobile, hide `Adds to New` and render cancel/create as icon-only buttons with tooltips and matching `aria-label`s. Desktop may keep current text.\\n+- Add responsive tests in `project_dialogs.test.tsx`; keep configured custom card types and existing submit behavior unchanged.\\n+\\n+## acceptance criteria\\n+\\n+- Card type and title share one row without horizontal overflow on mobile.\\n+- Mobile closed type select shows only its icon; dropdown options remain readable and selectable. Desktop may show icon and label.\\n+- Body editor has no formatting toolbar; Markdown typing and Ctrl/Cmd+Enter submission still work.\\n+- On short mobile viewports, dialog body scrolls while header and footer remain reachable.\\n+- Mobile footer contains icon-only cancel/create actions with tooltips and accessible names; `Adds to New` is hidden.\\n+- Desktop layout remains usable, and card creation still supports every configured card type.\\n\"}]",
+          "id": "agent-turn-95efbbeb-ab56-44fb-aad2-e837397b2787-provider-16",
+          "timestamp": "2026-07-27T18:27:52.072Z",
+          "type": "tool.fileChange"
+        },
+        {
+          "content": "\u001b[2m2026-07-27T18:27:52.109244Z\u001b[0m \u001b[31mERROR\u001b[0m \u001b[2mcodex_models_manager::manager\u001b[0m\u001b[2m:\u001b[0m failed to renew cache TTL: missing field `supports_reasoning_summaries` at line 86 column 5\n",
+          "id": "agent-turn-95efbbeb-ab56-44fb-aad2-e837397b2787-error-17",
+          "timestamp": "2026-07-27T18:27:52.109Z",
+          "type": "error"
+        },
+        {
+          "content": "diff --git a/design/feature_descriptions/F_70_layout_add_card.md b/design/feature_descriptions/F_70_layout_add_card.md\nindex d0314e5..f1fd389 100644\n--- a/design/feature_descriptions/F_70_layout_add_card.md\n+++ b/design/feature_descriptions/F_70_layout_add_card.md\n@@ -18,4 +18,30 @@ Things to change:\n * Card type and title on 1 row?\n * Cardtype with icon only and select dropdown.\n * Fix scrolling\n-* Buttons add bottom have too much text, specifically on mobile\n\\ No newline at end of file\n+* Buttons add bottom have too much text, specifically on mobile\n+\n+## Current state\n+\n+- `NewCardDialog` uses a fixed 480px dialog with card type, title, and body stacked vertically.\n+- Card type always shows a color dot and label. The body editor includes its full formatting toolbar.\n+- Dialog paper hides overflow, while its form/content lack a constrained flex layout. On short mobile viewports, body and footer can become inaccessible.\n+- Footer shows `Adds to New`, `Cancel`, and `Create card`, consuming too much mobile width.\n+- Same dialog is opened from desktop project controls, mobile create menu, and board-column add buttons.\n+\n+## implementation details\n+\n+- Keep `NewCardDialog` and existing card creation flow; change only its responsive layout.\n+- Remove Markdown formatting toolbar with `MarkdownEditor`'s existing `hideToolbar` prop.\n+- Put card type and title on one row. On mobile, render only selected type's color icon in closed select; keep labels in dropdown options and accessible naming. Desktop may show icon and label.\n+- Make dialog form a height-constrained flex column. Keep header/footer fixed and make `DialogContent` scroll with `minHeight: 0`.\n+- On mobile, hide `Adds to New` and render cancel/create as icon-only buttons with tooltips and matching `aria-label`s. Desktop may keep current text.\n+- Add responsive tests in `project_dialogs.test.tsx`; keep configured custom card types and existing submit behavior unchanged.\n+\n+## acceptance criteria\n+\n+- Card type and title share one row without horizontal overflow on mobile.\n+- Mobile closed type select shows only its icon; dropdown options remain readable and selectable. Desktop may show icon and label.\n+- Body editor has no formatting toolbar; Markdown typing and Ctrl/Cmd+Enter submission still work.\n+- On short mobile viewports, dialog body scrolls while header and footer remain reachable.\n+- Mobile footer contains icon-only cancel/create actions with tooltips and accessible names; `Adds to New` is hidden.\n+- Desktop layout remains usable, and card creation still supports every configured card type.\n23:## Current state\n31:## implementation details\n40:## acceptance criteria\n",
+          "id": "agent-turn-95efbbeb-ab56-44fb-aad2-e837397b2787-provider-18",
+          "timestamp": "2026-07-27T18:28:04.768Z",
+          "type": "tool.commandExecution"
+        },
+        {
+          "content": "\u001b[2m2026-07-27T18:28:04.813357Z\u001b[0m \u001b[31mERROR\u001b[0m \u001b[2mcodex_models_manager::manager\u001b[0m\u001b[2m:\u001b[0m failed to renew cache TTL: missing field `supports_reasoning_summaries` at line 86 column 5\n",
+          "id": "agent-turn-95efbbeb-ab56-44fb-aad2-e837397b2787-error-19",
+          "timestamp": "2026-07-27T18:28:04.813Z",
+          "type": "error"
+        },
+        {
+          "content": "\u001b[2m2026-07-27T18:28:08.954351Z\u001b[0m \u001b[31mERROR\u001b[0m \u001b[2mcodex_models_manager::manager\u001b[0m\u001b[2m:\u001b[0m failed to renew cache TTL: missing field `supports_reasoning_summaries` at line 86 column 5\n",
+          "id": "agent-turn-95efbbeb-ab56-44fb-aad2-e837397b2787-error-20",
+          "timestamp": "2026-07-27T18:28:08.954Z",
+          "type": "error"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-95efbbeb-ab56-44fb-aad2-e837397b2787-turn-2-completed",
+          "timestamp": "2026-07-27T18:28:11.614Z",
+          "type": "turnCompleted"
         }
       ],
       "hasExplicitTitle": true,
@@ -124,6 +160,13 @@
           "id": "agent-turn-95efbbeb-ab56-44fb-aad2-e837397b2787-user-2",
           "role": "user",
           "timestamp": "2026-07-27T18:26:44.556Z"
+        },
+        {
+          "agent": "codex",
+          "content": "Clarified. Mobile closed type control uses icon only; dropdown keeps readable labels. Mobile footer actions icon-only with tooltips and accessible names. Desktop may keep icon + text.Updated [F_70_layout_add_card.md](C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_70_layout_add_card.md).\n\nAdded concise:\n\n- Current state\n- Implementation details\n- Acceptance criteria\n\nNo code changed; no tests needed.",
+          "id": "agent-turn-95efbbeb-ab56-44fb-aad2-e837397b2787-turn-2-assistant",
+          "role": "assistant",
+          "timestamp": "2026-07-27T18:28:11.614Z"
         }
       ],
       "providerSessions": [
@@ -131,19 +174,19 @@
           "agent": "codex",
           "conversationId": "019fa4c3-ae20-7143-bf48-ecb389234213",
           "createdAt": "2026-07-27T18:10:41.889Z",
-          "lastUsedAt": "2026-07-27T18:10:41.889Z",
-          "synchronizedThroughMessageId": "agent-turn-95efbbeb-ab56-44fb-aad2-e837397b2787-turn-1-assistant"
+          "lastUsedAt": "2026-07-27T18:28:11.614Z",
+          "synchronizedThroughMessageId": "agent-turn-95efbbeb-ab56-44fb-aad2-e837397b2787-turn-2-assistant"
         }
       ],
       "startedAt": "2026-07-27T18:08:34.445Z",
-      "status": "running",
+      "status": "waitingForInput",
       "title": "complete card",
       "usage": {
-        "cachedInputTokens": 59136,
-        "inputTokens": 60173,
-        "outputTokens": 159,
+        "cachedInputTokens": 120320,
+        "inputTokens": 122550,
+        "outputTokens": 224,
         "reasoningTokens": 102,
-        "totalTokens": 60332
+        "totalTokens": 122774
       }
     }
   ],
