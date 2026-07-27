@@ -144,7 +144,7 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "3e151ae1-ffa3-42ba-819c-a6973683af03",
       "cardPath": "design/feature_descriptions/B_75_position_edit_card_popup_mobile.md",
-      "completedAt": null,
+      "completedAt": "2026-07-27T14:25:14.694Z",
       "events": [
         {
           "content": "codex --model gpt-5.6-sol -c model_reasoning_effort=medium app-server --stdio",
@@ -469,6 +469,12 @@
           "id": "agent-turn-b2f703c0-8e98-4c36-9fe0-f6262ef17d8e-turn-2-completed",
           "timestamp": "2026-07-27T14:21:01.553Z",
           "type": "turnCompleted"
+        },
+        {
+          "content": "0",
+          "id": "agent-turn-b2f703c0-8e98-4c36-9fe0-f6262ef17d8e-closed",
+          "timestamp": "2026-07-27T14:25:14.694Z",
+          "type": "closed"
         }
       ],
       "hasExplicitTitle": true,
@@ -498,7 +504,7 @@
           "content": "Decision applied: mobile action buttons icon-only with tooltip/`aria-label`; mobile footer `Close` removed. Desktop stays unchanged.Updated [B_75_position_edit_card_popup_mobile.md](C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_75_position_edit_card_popup_mobile.md) with:\n\n- Current state\n- Implementation details\n- Acceptance criteria\n- Clarified mobile icon-only actions and removed footer close\n- Preserved desktop behavior",
           "id": "agent-turn-b2f703c0-8e98-4c36-9fe0-f6262ef17d8e-turn-2-assistant",
           "role": "assistant",
-          "timestamp": "2026-07-27T14:21:01.553Z"
+          "timestamp": "2026-07-27T14:25:14.694Z"
         }
       ],
       "providerSessions": [
@@ -506,12 +512,12 @@
           "agent": "codex",
           "conversationId": "019fa3ec-38ed-7e61-a5c8-e29fe8e0fb71",
           "createdAt": "2026-07-27T14:18:00.461Z",
-          "lastUsedAt": "2026-07-27T14:21:01.553Z",
+          "lastUsedAt": "2026-07-27T14:25:14.694Z",
           "synchronizedThroughMessageId": "agent-turn-b2f703c0-8e98-4c36-9fe0-f6262ef17d8e-turn-2-assistant"
         }
       ],
       "startedAt": "2026-07-27T14:13:13.878Z",
-      "status": "waitingForInput",
+      "status": "completed",
       "title": "complete card",
       "usage": {
         "cachedInputTokens": 110080,
