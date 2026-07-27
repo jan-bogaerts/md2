@@ -3,7 +3,7 @@ author:
 id: F_82
 internalId: bd965ac0-8031-4f9e-a80d-0cdc1bcfa0c6
 title: WaitForInput state display
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
