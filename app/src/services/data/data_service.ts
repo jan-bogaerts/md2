@@ -7,6 +7,7 @@ import { agentConversationService, listAgentConversationReferences, loadAgentCon
 import { CardOperations, type CardOperationsDeps } from './card_operations'
 import { configService } from '../config/config_service'
 import { type DataServiceDependencies, getProjectConfigOrNull, reportCommitFlushFailure } from './data_service_context'
+import { notifyActionCardStateChange } from '../actions/action_execution_service'
 import { AgentIntegration, type AgentIntegrationDeps } from '../agents/agent_integration'
 import { ProjectLoading, type ProjectLoadingDeps } from '../project/project_loading'
 import { ProjectState } from '../project/project_state'
@@ -91,7 +92,15 @@ export class DataService extends EventTarget {
         )
         this.cards = new CardOperations(
             this.createCardOperationsDependencies(),
-            (cardPath, state) => this.agents.triggerStateActions(cardPath, state),
+            (cardPath, state) => {
+                this.agents.triggerStateActions(cardPath, state)
+                const snapshot = this.projectState.snapshot
+                const card = [...(snapshot?.activeCards ?? []), ...(snapshot?.backgroundCards ?? [])]
+                    .find(({ path }) => path === cardPath)
+                void notifyActionCardStateChange(card?.header.internalId ?? null, state).catch((error: unknown) => {
+                    dialogService.error(error, { fallbackMessage: 'Could not update automatic agent finish' })
+                })
+            },
         )
         this.agents = new AgentIntegration(this.createAgentIntegrationDependencies(), (file) => this.cards.saveFile(file))
         this.projectLoading = new ProjectLoading(
@@ -347,6 +356,12 @@ export class DataService extends EventTarget {
             } else if (previousCard !== card) {
                 const detail = { card, previousCard }
                 this.dispatchEvent(new CustomEvent<CardChangedEventDetail>(CARD_CHANGED_EVENT, { detail }))
+                if (previousCard.header.status !== card.header.status && card.header.status) {
+                    const finishNotification = notifyActionCardStateChange(card.header.internalId, card.header.status)
+                    void finishNotification.catch((error: unknown) => {
+                        dialogService.error(error, { fallbackMessage: 'Could not update automatic agent finish' })
+                    })
+                }
             }
         }
     }

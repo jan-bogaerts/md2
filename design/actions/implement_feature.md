@@ -2,9 +2,8 @@
 internalId: 4898f94e-e4b3-4daa-a407-a0f6919c0e43
 ---
 
-use /caveman skill
 Read and implement the feature/job described in: 
-`design\feature_descriptions\J_019_unify_open_document_drafts_and_save_state.md`
+`design\feature_descriptions\F_79_streaming_restart_loses_conversation_context.md`
 
 You do not need to look at the git status. This is not your concern.  The worktree is what it is, you only need to touch what is required for the above mentioned job/feature description.
 
@@ -19,4 +18,4 @@ Use the Block Workflow:
 
 You may read any files referenced by relative paths in the spec and any file you think is related to the spec.
 Respect the Test Plan and Acceptance Criteria. Keep everything short and to the point.
-
+be short and to the point, use /caveman skill

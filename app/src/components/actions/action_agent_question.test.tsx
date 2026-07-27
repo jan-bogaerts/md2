@@ -18,11 +18,30 @@ describe('ActionAgentQuestion', () => {
         fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Proceed?' }))
         fireEvent.click(screen.getByRole('option', { name: 'Yes' }))
         fireEvent.change(screen.getByRole('textbox', { name: 'Why?' }), { target: { value: 'Plan approved' } })
-        fireEvent.click(screen.getByRole('button', { name: 'Answer' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Submit' }))
 
         await waitFor(() => expect(onAnswer).toHaveBeenCalledWith({
             confirm: ['Yes'],
             reason: ['Plan approved'],
         }))
+    })
+
+    it('submits one option immediately from answer buttons', async () => {
+        const onAnswer = vi.fn(async () => undefined)
+        render(
+            <ActionAgentQuestion
+                onAnswer={onAnswer}
+                questions={[{
+                    header: 'Confirm',
+                    id: 'confirm',
+                    options: [{ label: 'Yes' }, { label: 'No' }],
+                    question: 'Proceed?',
+                }]}
+            />,
+        )
+
+        fireEvent.click(screen.getByRole('button', { name: 'Yes' }))
+
+        await waitFor(() => expect(onAnswer).toHaveBeenCalledWith({ confirm: ['Yes'] }))
     })
 })

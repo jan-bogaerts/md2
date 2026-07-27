@@ -1,8 +1,12 @@
 const path = require('node:path');
 const { normalizePath } = require('../../../shared/path_utils.mjs');
+const { isMissingSession } = require('./agent_provider_protocol');
 
 const CODEX_CLIENT_NAME = 'md2';
 const CODEX_CLIENT_VERSION = '1';
+const CODEX_MISSING_THREAD_ERROR_CODE = -32600;
+const CLAUDE_FILE_TOOLS = new Set(['Edit', 'MultiEdit', 'NotebookEdit', 'Write']);
+const CLAUDE_QUESTION_TOOL = 'AskUserQuestion';
 
 function requireMessage(content) {
     if (typeof content !== 'string' || content.trim().length === 0) throw new Error('Streaming agent message is required');
@@ -34,14 +38,57 @@ function claudeAssistantText(event) {
         .join('');
 }
 
-function claudeQuestions(event) {
+function claudeChangedPaths(event, rootPath) {
     if (event.type !== 'assistant' || !Array.isArray(event.message?.content)) return [];
-    const questionTool = event.message.content.find((block) => (
-        block?.type === 'tool_use'
-        && (block.name === 'AskUserQuestion' || block.name === 'RequestUserInput')
-    ));
 
-    return Array.isArray(questionTool?.input?.questions) ? questionTool.input.questions : [];
+    return [...new Set(event.message.content
+        .filter((block) => block?.type === 'tool_use' && CLAUDE_FILE_TOOLS.has(block.name))
+        .map(({ input, name }) => name === 'NotebookEdit' ? input?.notebook_path : input?.file_path)
+        .map((filePath) => normalizeChangedPath(rootPath, filePath))
+        .filter((filePath) => filePath !== null))];
+}
+
+function claudeTranscriptEvents(event) {
+    if (!Array.isArray(event.message?.content)) return [];
+    if (event.type === 'assistant') {
+        return event.message.content
+            .filter((block) => block?.type === 'tool_use')
+            .map((block) => ({ content: JSON.stringify(block.input ?? {}), eventType: `tool.${block.name}` }));
+    }
+    if (event.type === 'user') {
+        return event.message.content
+            .filter((block) => block?.type === 'tool_result')
+            .map((block) => ({
+                content: typeof block.content === 'string' ? block.content : JSON.stringify(block.content ?? ''),
+                eventType: 'tool.result',
+            }));
+    }
+
+    return [];
+}
+
+function claudeQuestionRequest(event) {
+    if (event.type !== 'control_request' || event.request?.subtype !== 'can_use_tool') return null;
+    if (event.request.tool_name !== CLAUDE_QUESTION_TOOL || !Array.isArray(event.request.input?.questions)) return null;
+
+    const questions = event.request.input.questions.map((question, index) => ({
+        ...question,
+        id: question.id ?? `claude-question-${index}`,
+    }));
+
+    return {
+        input: event.request.input,
+        questions,
+        requestId: event.request_id,
+        toolUseId: event.request.tool_use_id,
+    };
+}
+
+function claudeControlResponse(requestId, response) {
+    return {
+        response: { request_id: requestId, response, subtype: 'success' },
+        type: 'control_response',
+    };
 }
 
 function claudeUsage(event) {
@@ -59,10 +106,21 @@ function claudeUsage(event) {
     return usage;
 }
 
+function isClaudeMissingSessionResult(event, providerConversationId) {
+    if (!providerConversationId || event.type !== 'result' || event.is_error !== true) return false;
+    if (event.session_id !== providerConversationId || !Array.isArray(event.errors)) return false;
+
+    return event.errors.includes(`No conversation found with session ID: ${providerConversationId}`);
+}
+
 class ClaudeStreamingAdapter {
-    constructor(writeLine, onEvent) {
+    constructor(writeLine, onEvent, rootPath, providerConversationId) {
         this.writeLine = writeLine;
         this.onEvent = onEvent;
+        this.pendingQuestions = new Map();
+        this.providerConversationId = providerConversationId;
+        this.rootPath = rootPath;
+        this.turnStarted = false;
     }
 
     start(prompt) {
@@ -73,26 +131,62 @@ class ClaudeStreamingAdapter {
         this.writeLine(claudeUserMessage(requireMessage(content)));
     }
 
-    answerQuestion(_requestId, answers) {
-        const answerText = Object.entries(answers)
-            .map(([questionId, answer]) => `${questionId}: ${Array.isArray(answer) ? answer.join(', ') : answer}`)
-            .join('\n');
-        this.sendMessage(answerText);
+    answerQuestion(requestId, answers) {
+        const pendingQuestion = this.pendingQuestions.get(requestId);
+        if (!pendingQuestion) throw new Error(`Unknown Claude question request id: ${requestId}`);
+        const mappedAnswers = Object.fromEntries(pendingQuestion.questions.map(({ id, question }) => {
+            if (!Object.hasOwn(answers, id)) throw new Error(`Missing answer for Claude question: ${id}`);
+
+            return [question, answers[id]];
+        }));
+        const updatedInput = { ...pendingQuestion.input, answers: mappedAnswers };
+        const response = { behavior: 'allow', toolUseID: pendingQuestion.toolUseId, updatedInput };
+        this.pendingQuestions.delete(requestId);
+        this.writeLine(claudeControlResponse(requestId, response));
     }
 
     handleMessage(event) {
+        const questionRequest = claudeQuestionRequest(event);
+        if (questionRequest) {
+            this.pendingQuestions.set(questionRequest.requestId, questionRequest);
+            this.onEvent({
+                questions: questionRequest.questions,
+                requestId: questionRequest.requestId,
+                type: 'question',
+            });
+            return;
+        }
+        if (event.type === 'control_request' && event.request?.subtype === 'can_use_tool') {
+            const response = {
+                behavior: 'deny',
+                message: 'Interactive tool approval is not supported',
+                toolUseID: event.request.tool_use_id,
+            };
+            this.writeLine(claudeControlResponse(event.request_id, response));
+            return;
+        }
         if (event.type === 'system' && typeof event.session_id === 'string') {
             this.onEvent({ conversationId: event.session_id, type: 'sessionStarted' });
         }
+        const startsTurn = event.type === 'assistant' || event.type === 'user';
+        if (!this.turnStarted && startsTurn) this.onEvent({ type: 'turnStarted' });
+        this.turnStarted = this.turnStarted || startsTurn;
         const assistantText = claudeAssistantText(event);
         if (assistantText.length > 0) this.onEvent({ content: assistantText, type: 'assistant' });
-        const questions = claudeQuestions(event);
-        if (questions.length > 0) this.onEvent({ questions, requestId: event.message.id ?? null, type: 'question' });
+        const changedPaths = claudeChangedPaths(event, this.rootPath);
+        if (changedPaths.length > 0) this.onEvent({ paths: changedPaths, type: 'changedPaths' });
+        for (const transcriptEvent of claudeTranscriptEvents(event)) {
+            this.onEvent({ ...transcriptEvent, type: 'transcript' });
+        }
         if (event.type === 'result') {
             const error = event.is_error === true
-                ? String(event.error ?? event.result ?? event.message ?? 'Claude turn failed')
+                ? String(event.error ?? event.result ?? event.message ?? event.errors?.join('\n') ?? 'Claude turn failed')
                 : null;
-            this.onEvent({ error, type: 'turnCompleted', usage: claudeUsage(event) });
+            const missingSession = !this.turnStarted && (
+                isClaudeMissingSessionResult(event, this.providerConversationId)
+                || isMissingSession('claude', event, this.turnStarted)
+            );
+            this.onEvent({ error, missingSession, type: 'turnCompleted', usage: claudeUsage(event) });
         }
     }
 }
@@ -131,10 +225,17 @@ function codexTranscriptContent(item) {
     return typeof content === 'string' ? content : JSON.stringify(content);
 }
 
+function isCodexMissingThreadError(error, providerConversationId) {
+    if (!providerConversationId || error?.code !== CODEX_MISSING_THREAD_ERROR_CODE) return false;
+
+    return error.message === `no rollout found for thread id ${providerConversationId}`;
+}
+
 class CodexStreamingAdapter {
-    constructor(writeLine, onEvent, rootPath) {
+    constructor(writeLine, onEvent, rootPath, providerConversationId) {
         this.writeLine = writeLine;
         this.onEvent = onEvent;
+        this.providerConversationId = providerConversationId;
         this.rootPath = rootPath;
         this.activeTurnId = null;
         this.initialPrompt = null;
@@ -202,16 +303,30 @@ class CodexStreamingAdapter {
         }
         this.pendingRequests.delete(message.id);
         if (message.error) {
-            this.onEvent({ content: message.error.message ?? `Codex ${purpose} failed`, type: 'error' });
+            const content = message.error.message ?? `Codex ${purpose} failed`;
+            if (purpose === 'threadResume') {
+                const missingSession = isCodexMissingThreadError(message.error, this.providerConversationId)
+                    || isMissingSession('codex', { error: message.error, type: 'error' }, false);
+                this.onEvent({ content, missingSession, type: 'sessionFailed' });
+                return;
+            }
+            this.onEvent({ content, type: 'error' });
             return;
         }
         if (purpose === 'initialize') {
             this.writeLine({ method: 'initialized', params: {} });
+            if (this.providerConversationId) {
+                this.sendRequest('thread/resume', {
+                    cwd: this.rootPath,
+                    threadId: this.providerConversationId,
+                }, 'threadResume');
+                return;
+            }
             this.sendRequest('thread/start', { cwd: this.rootPath }, 'threadStart');
             return;
         }
-        if (purpose === 'threadStart') {
-            this.threadId = message.result?.thread?.id ?? message.result?.threadId;
+        if (purpose === 'threadStart' || purpose === 'threadResume') {
+            this.threadId = message.result?.thread?.id ?? message.result?.threadId ?? this.providerConversationId;
             if (!this.threadId) throw new Error('Codex app-server did not return a thread id');
             this.onEvent({ conversationId: this.threadId, type: 'sessionStarted' });
             this.sendMessage(this.initialPrompt);
@@ -254,9 +369,9 @@ class CodexStreamingAdapter {
     }
 }
 
-function createAgentStreamingAdapter(agent, writeLine, onEvent, rootPath) {
-    if (agent === 'claude') return new ClaudeStreamingAdapter(writeLine, onEvent);
-    if (agent === 'codex') return new CodexStreamingAdapter(writeLine, onEvent, rootPath);
+function createAgentStreamingAdapter(agent, writeLine, onEvent, rootPath, providerConversationId = null) {
+    if (agent === 'claude') return new ClaudeStreamingAdapter(writeLine, onEvent, rootPath, providerConversationId);
+    if (agent === 'codex') return new CodexStreamingAdapter(writeLine, onEvent, rootPath, providerConversationId);
 
     throw new Error(`Agent profile does not support streaming: ${agent}`);
 }

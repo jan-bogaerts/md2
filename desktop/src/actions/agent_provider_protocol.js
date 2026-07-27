@@ -254,4 +254,4 @@ function createAgentProviderProtocolParser(agent, onEvent, onMalformed, rootPath
     return new AgentProviderProtocolParser(agent, onEvent, onMalformed, rootPath);
 }
 
-module.exports = { createAgentProviderProtocolParser };
+module.exports = { createAgentProviderProtocolParser, isMissingSession };

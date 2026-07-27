@@ -5,6 +5,7 @@ export type ActionAppliesToField = 'kind' | 'type' | 'state' | 'file' | 'folder'
 export type ActionAppliesTo = Partial<Record<ActionAppliesToField, string>>
 
 export const ACTION_DEFINITION_FIELDS: readonly (keyof RawActionDefinition)[]
+export const ACTION_AUTO_FINISH_FIELDS: readonly (keyof ActionAutoFinish)[]
 export const ACTION_ON_RULE_FIELDS: readonly (keyof RawOnRule)[]
 export const ACTION_PHRASE_FIELDS: readonly (keyof ActionPhrase)[]
 export const ACTION_APPLIES_TO_FIELDS: readonly ActionAppliesToField[]
@@ -36,6 +37,7 @@ export interface ActionPhrase {
 export interface RawActionDefinition {
     agent?: string
     appliesTo?: ActionAppliesTo
+    autoFinish?: ActionAutoFinish
     command?: string
     description: string
     icon?: string
@@ -55,6 +57,10 @@ export interface RawActionDefinition {
     type: ActionType
 }
 
+export interface ActionAutoFinish {
+    state: string
+}
+
 export interface OnRule extends RawOnRule {
     action: ActionDefinition
 }
@@ -62,6 +68,7 @@ export interface OnRule extends RawOnRule {
 export interface ActionDefinition {
     agent: string | null
     appliesTo: ActionAppliesTo | null
+    autoFinish?: ActionAutoFinish | null
     builtin: boolean
     command: string | null
     description: string
@@ -85,6 +92,7 @@ export interface ActionDefinition {
 
 export interface ActionDefinitionLoaderDependencies {
     profiles?: AgentProfile[]
+    states?: string[]
     validateAgentCapabilities?: boolean
 }
 

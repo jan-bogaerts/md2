@@ -30,7 +30,10 @@ class ActionExecution {
         this.commandRunner = dependencies.commandRunner;
         this.localGitService = dependencies.localGitService;
         this.publisher = dependencies.publisher;
+        this.activeAction = null;
         this.activeAgentRunId = null;
+        this.activeAgentQuestion = false;
+        this.autoFinishPending = false;
         this.commitReferenceKeys = new Set();
         this.commitReferences = [];
         this.conversationIds = [];
@@ -51,17 +54,45 @@ class ActionExecution {
 
     sendAgentMessage(content) {
         if (!this.activeAgentRunId) throw new Error(`Action execution has no active streaming agent: ${this.executionId}`);
+        if (this.activeAgentQuestion) throw new Error('Answer pending structured question before sending queued prompt');
         this.agentRunnerService.sendMessage(this.activeAgentRunId, content);
+    }
+
+    setAgentQueuedMessage(content, revision) {
+        if (!this.activeAgentRunId) throw new Error(`Action execution has no active agent: ${this.executionId}`);
+        this.agentRunnerService.setQueuedMessage(this.activeAgentRunId, content, revision);
+    }
+
+    sendQueuedAgentMessage(revision) {
+        if (!this.activeAgentRunId) throw new Error(`Action execution has no active agent: ${this.executionId}`);
+        if (this.activeAgentQuestion) throw new Error('Answer pending structured question before sending queued prompt');
+        this.agentRunnerService.sendQueuedMessage(this.activeAgentRunId, revision);
     }
 
     answerAgentQuestion(requestId, answers) {
         if (!this.activeAgentRunId) throw new Error(`Action execution has no active streaming agent: ${this.executionId}`);
         this.agentRunnerService.answerQuestion(this.activeAgentRunId, requestId, answers);
+        this.activeAgentQuestion = false;
     }
 
     finishAgent() {
         if (!this.activeAgentRunId) throw new Error(`Action execution has no active streaming agent: ${this.executionId}`);
         this.agentRunnerService.finish(this.activeAgentRunId);
+    }
+
+    handleCardStateChange(cardInternalId, state) {
+        if (this.context.cardInternalId !== cardInternalId) return;
+        if (
+            this.activeAction?.type !== 'agent'
+            || !this.activeAction.streaming
+            || this.activeAction.autoFinish?.state !== state
+        ) return;
+        if (this.activeAgentRunId) {
+            this.agentRunnerService.finish(this.activeAgentRunId);
+            return;
+        }
+
+        this.autoFinishPending = true;
     }
 
     async run() {
@@ -118,6 +149,8 @@ class ActionExecution {
 
     async runMain(action, phase, isRoot, rootPhase) {
         this.throwIfCancelled();
+        this.activeAction = action;
+        this.autoFinishPending = false;
         this.publish(action, phase, 'running', { type: 'action' });
 
         try {
@@ -148,10 +181,12 @@ class ActionExecution {
                 thinkingLevel: result.thinkingLevel,
                 type: 'action',
             });
+            this.clearActiveAction(action);
             if (result.exitCode !== 0) throw new ActionPhaseError(`${action.label} failed with exit code ${result.exitCode}`, phase, rootPhase);
 
             return output;
         } catch (error) {
+            this.clearActiveAction(action);
             if (error instanceof ActionCancellationError || this.controller.signal.aborted) {
                 if (!error?.terminalEventEmitted) this.publish(action, phase, 'cancelled', { message: 'Action cancelled', type: 'action' });
                 throw new ActionCancellationError('Action cancelled');
@@ -164,9 +199,22 @@ class ActionExecution {
         }
     }
 
+    clearActiveAction(action) {
+        if (this.activeAction !== action) return;
+        this.activeAction = null;
+        this.autoFinishPending = false;
+    }
+
     async executeAction(action, phase, isRoot) {
         if (action.type === 'command' && isRoot && this.runInput.continueFrom) {
             throw new Error('Conversation continuation requires an agent action');
+        }
+        if (action.autoFinish && (
+            this.context.kind !== 'card'
+            || typeof this.context.cardInternalId !== 'string'
+            || this.context.cardInternalId.length === 0
+        )) {
+            throw new Error(`Action "${action.label}" requires card context for autoFinish`);
         }
 
         return this.actionWorktreeExecutionService.execute(this.project, action, this.context, async (project) => {
@@ -275,23 +323,35 @@ class ActionExecution {
         });
     }
 
-    executeAgentAction(action, phase, isRoot, project) {
+    async executeAgentAction(action, phase, isRoot, project) {
         const onActiveRunChange = (runId) => {
             this.activeAgentRunId = runId;
+            if (runId) {
+                this.publish(action, phase, 'running', { interactionReady: true, type: 'agentState' });
+                if (this.autoFinishPending) {
+                    this.autoFinishPending = false;
+                    this.agentRunnerService.finish(runId);
+                }
+            }
+            else {
+                this.activeAgentQuestion = false;
+                this.publish(action, phase, 'running', { interactionReady: false, type: 'agentState' });
+            }
         };
         const onEvent = (agentEvent) => {
             if (agentEvent.type === 'started') {
-                const { conversationId, reference, startedAt, title, userMessage } = agentEvent;
-                const update = { conversationId, kind: 'agentStarted', reference, startedAt, title, userMessage };
+                const { continued, conversationId, reference, startedAt, title, userMessage } = agentEvent;
+                const update = { continued, conversationId, kind: 'agentStarted', reference, startedAt, title, userMessage };
                 this.publish(action, phase, 'running', { type: 'update', update });
                 return;
             }
             if (agentEvent.type === 'closed') return;
             if (agentEvent.type === 'state') {
-                this.publish(action, phase, agentEvent.state, { type: 'agentState' });
+                this.publish(action, phase, agentEvent.state, { interactionReady: true, type: 'agentState' });
                 return;
             }
             if (agentEvent.type === 'question') {
+                this.activeAgentQuestion = true;
                 const update = {
                     kind: 'agentQuestion',
                     questions: agentEvent.questions,
@@ -301,7 +361,14 @@ class ActionExecution {
                 return;
             }
             if (agentEvent.type === 'userMessage') {
+                this.activeAgentQuestion = false;
                 const update = { kind: 'agentUserMessage', userMessage: agentEvent.userMessage };
+                this.publish(action, phase, 'running', { type: 'update', update });
+                return;
+            }
+            if (agentEvent.type === 'questionAnswered') {
+                this.activeAgentQuestion = false;
+                const update = { kind: 'agentQuestionAnswer', userMessage: agentEvent.userMessage };
                 this.publish(action, phase, 'running', { type: 'update', update });
                 return;
             }
@@ -311,7 +378,7 @@ class ActionExecution {
         };
         const runInput = isRoot ? this.runInput : { extraPrompt: '' };
 
-        return this.agentExecutor.execute({
+        const input = {
             action,
             activityOrigin: this.activityOrigin,
             context: this.context,
@@ -323,17 +390,41 @@ class ActionExecution {
             primaryProject: this.project,
             runInput,
             signal: this.controller.signal,
-        });
+        };
+        let result = await this.agentExecutor.execute(input);
+        const changedPaths = new Set(result.changedPaths ?? []);
+        let stderr = result.stderr ?? '';
+        let stdout = result.stdout ?? '';
+        while (result.exitCode === 0 && result.queuedMessage) {
+            const queuedMessage = result.queuedMessage;
+            result = await this.agentExecutor.execute({
+                ...input,
+                runInput: {
+                    ...runInput,
+                    continueFrom: result.reference,
+                    prompt: queuedMessage,
+                },
+            });
+            for (const changedPath of result.changedPaths ?? []) changedPaths.add(changedPath);
+            stderr += result.stderr ?? '';
+            stdout += result.stdout ?? '';
+        }
+
+        return { ...result, changedPaths: [...changedPaths], stderr, stdout };
     }
 
     publish(action, phase, status, details) {
         this.publisher({
             actionId: action.id,
+            actionType: action.type,
+            autoFinish: action.autoFinish ?? null,
             context: this.context,
             executionId: this.executionId,
+            interactionReady: details.interactionReady ?? false,
             phase,
             rootActionId: this.rootAction.id,
             status,
+            streaming: action.type === 'agent' && action.streaming,
             ...details,
         });
     }

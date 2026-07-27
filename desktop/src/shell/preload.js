@@ -63,6 +63,7 @@ const ACTION_METHODS = [
     'finishActionExecution',
     'generateDiff',
     'loadActionRunHistory',
+    'notifyActionCardStateChange',
     'loadCardActivity',
     'loadAgentAvailability',
     'openInEditor',
@@ -71,6 +72,8 @@ const ACTION_METHODS = [
     'registerActionSchedule',
     'runSearchRegexpAgent',
     'sendActionMessage',
+    'sendActionQueuedMessage',
+    'setActionQueuedMessage',
     'startAction',
     'startUnattendedAction',
 ];

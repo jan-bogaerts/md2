@@ -1,6 +1,7 @@
 import type { ActionContext } from './action_context'
 import type { AgentConversationMessage } from './data_types'
 import type { ThinkingLevel } from './agent_profiles'
+import type { ActionAutoFinish, ActionType } from './action_types'
 
 export type ActionRunStatus = 'cancelled' | 'completed' | 'failed' | 'okButNotAfter'
 export type ActionExecutionStatus = ActionRunStatus | 'running' | 'waitingForInput'
@@ -46,14 +47,19 @@ export interface AgentQuestion {
 
 interface ActionExecutionEventBase {
     actionId: string
+    actionType?: ActionType
+    autoFinish?: ActionAutoFinish | null
     context: ActionContext
     executionId: string
+    interactionReady?: boolean
     phase: ActionRunPhase
     rootActionId: string
+    streaming?: boolean
 }
 
 export type ActionExecutionUpdate =
     | {
+        continued?: boolean
         conversationId: string
         kind: 'agentStarted'
         reference: string
@@ -67,7 +73,7 @@ export type ActionExecutionUpdate =
         requestId: number | string | null
     }
     | {
-        kind: 'agentUserMessage'
+        kind: 'agentQuestionAnswer' | 'agentUserMessage'
         userMessage: AgentConversationMessage
     }
     | {

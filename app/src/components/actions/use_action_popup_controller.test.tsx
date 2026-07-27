@@ -137,15 +137,19 @@ describe('useActionPopupController', () => {
             actionId: action.id, context, executionId: 'execution-1', phase: 'main', rootActionId: action.id, status: 'running', type: 'update',
             update: { conversationId: 'conversation-1', kind: 'agentStarted', reference: 'log.json', startedAt: 'now', title: 'Build', userMessage },
         })
+        emit({
+            actionId: action.id, actionType: 'agent', autoFinish: null, context, executionId: 'execution-1',
+            interactionReady: true, phase: 'main', rootActionId: action.id, status: 'waitingForInput',
+            streaming: true, type: 'agentState',
+        })
+
+        act(() => result.current.handlePromptChange('Approved'))
+        await act(async () => result.current.handleRun())
         const questions = [{ header: 'Confirm', id: 'confirm', question: 'Proceed?' }]
         emit({
             actionId: action.id, context, executionId: 'execution-1', phase: 'main', rootActionId: action.id, status: 'waitingForInput', type: 'update',
             update: { kind: 'agentQuestion', questions, requestId: 7 },
         })
-        emit({ actionId: action.id, context, executionId: 'execution-1', phase: 'main', rootActionId: action.id, status: 'waitingForInput', type: 'agentState' })
-
-        act(() => result.current.handlePromptChange('Approved'))
-        await act(async () => result.current.handleRun())
         await act(async () => result.current.handleAnswerQuestion({ confirm: ['Yes'] }))
 
         expect(sendMessage).toHaveBeenCalledWith('execution-1', 'Approved')
@@ -171,5 +175,30 @@ describe('useActionPopupController', () => {
         expect(reportError).toHaveBeenCalledWith(expect.objectContaining({ message: validationError.message }), {fallbackMessage: 'Action run failed'})
         expect(runAction).not.toHaveBeenCalled()
         expect(result.current.runStatus).toBe('failed')
+    })
+
+    it('restores prompt draft after popup controller remount', async () => {
+        installBridge()
+        const agentAction: ActionDefinition = {
+            ...action,
+            command: null,
+            prompt: 'Plan',
+            type: 'agent',
+        }
+        const dependencies = {
+            action: agentAction,
+            context,
+            loadConversations: vi.fn(async () => []),
+            loadHistory: vi.fn(async () => []),
+            preparePrompt: vi.fn(async () => 'Prepared'),
+        }
+        const first = renderHook(() => useActionPopupController(dependencies))
+        await waitFor(() => expect(first.result.current.prompt).toBe('Prepared'))
+
+        act(() => first.result.current.handlePromptChange('Keep this draft'))
+        first.unmount()
+        const second = renderHook(() => useActionPopupController(dependencies))
+
+        expect(second.result.current.prompt).toBe('Keep this draft')
     })
 })

@@ -175,7 +175,7 @@ describe('ActionEntryPoints popup', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Implement' }))
 
         const dialog = screen.getByRole('dialog')
-        expect(within(dialog).getByRole('button', { name: 'Run' })).toBeInTheDocument()
+        expect(within(dialog).getByRole('button', { name: 'Send' })).toBeInTheDocument()
         expect(within(dialog).getByRole('button', { name: 'Implement' })).toHaveAttribute('aria-pressed', 'true')
     })
 

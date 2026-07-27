@@ -33,6 +33,7 @@ function createRunner(actionFiles = [actionFile('main')], overrides = {}) {
         loadActionFile: vi.fn(async (_project, actionPath) => actionFiles.find(({ path }) => path === actionPath)),
         loadActionFiles: vi.fn(async () => actionFiles),
         loadAgentConversation: vi.fn(),
+        loadProjectConfig: vi.fn(async () => ({ states: [{ state: 'design' }, { state: 'ready' }] })),
     };
     const commandRunner = vi.fn(async (_project, command) => ({ command, exitCode: 0, stderr: '', stdout: command }));
     const agentRunnerService = { start: vi.fn(), stop: vi.fn() };
@@ -65,6 +66,19 @@ async function runToCompletion(runner, request = { actionId: 'main', context, ru
 }
 
 describe('ActionRunnerService', () => {
+    it('forwards card-state changes to every live execution', () => {
+        const { runner } = createRunner();
+        const firstExecution = { handleCardStateChange: vi.fn() };
+        const secondExecution = { handleCardStateChange: vi.fn() };
+        runner.executions.set('first', firstExecution);
+        runner.executions.set('second', secondExecution);
+
+        runner.handleCardStateChange('card-1', 'ready');
+
+        expect(firstExecution.handleCardStateChange).toHaveBeenCalledWith('card-1', 'ready');
+        expect(secondExecution.handleCardStateChange).toHaveBeenCalledWith('card-1', 'ready');
+    });
+
     it('requires project and collaborators before start', async () => {
         const runner = new ActionRunnerService({});
 

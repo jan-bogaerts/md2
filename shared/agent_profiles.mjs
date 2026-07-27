@@ -14,7 +14,13 @@ function buildClaudeOutputCommand(command) {
 }
 
 function buildClaudeStreamingCommand(command) {
-    return [...buildClaudeOutputCommand(command), '--input-format', 'stream-json']
+    return [
+        ...buildClaudeOutputCommand(command),
+        '--input-format',
+        'stream-json',
+        '--permission-prompt-tool',
+        'stdio',
+    ]
 }
 
 function buildCodexStreamingCommand(command) {

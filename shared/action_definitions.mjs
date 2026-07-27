@@ -12,14 +12,16 @@ const ACTION_TYPES = ['agent', 'command']
 const LEGACY_FIELDS = ['after', 'before', 'runIn', 'text']
 export const ACTION_DEFINITION_FIELDS = Object.freeze([
     'id', 'label', 'description', 'type', 'icon', 'appliesTo', 'onBefore', 'on', 'onAfter',
-    'onState', 'needsWorkTree', 'trackFileChanges', 'streaming', 'agent', 'model', 'thinkingLevel', 'prompt', 'command', 'phrases',
+    'onState', 'needsWorkTree', 'trackFileChanges', 'streaming', 'autoFinish', 'agent', 'model', 'thinkingLevel', 'prompt', 'command', 'phrases',
 ])
+export const ACTION_AUTO_FINISH_FIELDS = Object.freeze(['state'])
 export const ACTION_ON_RULE_FIELDS = Object.freeze(['actionId', 'condition'])
 export const ACTION_PHRASE_FIELDS = Object.freeze(['title', 'text'])
 export const ACTION_APPLIES_TO_FIELDS = Object.freeze([
     'kind', 'type', 'state', 'file', 'folder', 'worktree', 'worktreeError',
 ])
 const ACTION_DEFINITION_FIELD_SET = new Set(ACTION_DEFINITION_FIELDS)
+const ACTION_AUTO_FINISH_FIELD_SET = new Set(ACTION_AUTO_FINISH_FIELDS)
 const ACTION_ON_RULE_FIELD_SET = new Set(ACTION_ON_RULE_FIELDS)
 const ACTION_PHRASE_FIELD_SET = new Set(ACTION_PHRASE_FIELDS)
 const ACTION_APPLIES_TO_FIELD_SET = new Set(ACTION_APPLIES_TO_FIELDS)
@@ -29,7 +31,7 @@ export const REMARKABLE_CONVERT_ACTION_ID = 'md2.convert-remarkable-images-to-te
 // Fields the editor can route an error to. Anything else routes to the general summary.
 const ROUTABLE_FIELDS = new Set([
     'id', 'label', 'description', 'type', 'icon', 'appliesTo', 'onBefore', 'on', 'onAfter',
-    'onState', 'needsWorkTree', 'trackFileChanges', 'streaming', 'agent', 'model', 'thinkingLevel', 'prompt', 'command', 'phrases',
+    'onState', 'needsWorkTree', 'trackFileChanges', 'streaming', 'autoFinish', 'agent', 'model', 'thinkingLevel', 'prompt', 'command', 'phrases',
 ])
 
 /**
@@ -68,6 +70,7 @@ function fail(message, code, source, fieldName = null) {
 export const BUILTIN_CUSTOM_PROMPT = {
     agent: null,
     appliesTo: null,
+    autoFinish: null,
     builtin: true,
     command: null,
     description: 'Send a custom prompt to the agent.',
@@ -92,6 +95,7 @@ export const BUILTIN_CUSTOM_PROMPT = {
 export const BUILTIN_REMARKABLE_CONVERT = {
     agent: null,
     appliesTo: null,
+    autoFinish: null,
     builtin: true,
     command: null,
     description: 'Transcribe imported Remarkable images and append the text to the card.',
@@ -253,6 +257,22 @@ function validateTypeSpecificFields(value, type, source) {
     if (value.prompt !== undefined) throw fail(`Prompt action field is not valid for command action in ${source}`, 'field-not-allowed', source, 'prompt')
     if (value.trackFileChanges !== undefined) throw fail(`Agent action field trackFileChanges is not valid for command action in ${source}`, 'field-not-allowed', source, 'trackFileChanges')
     if (value.streaming !== undefined) throw fail(`Agent action field streaming is not valid for command action in ${source}`, 'field-not-allowed', source, 'streaming')
+    if (value.autoFinish !== undefined) throw fail(`Agent action field autoFinish is not valid for command action in ${source}`, 'field-not-allowed', source, 'autoFinish')
+}
+
+function readAutoFinish(value, streaming, dependencies, source) {
+    if (value === undefined) return undefined
+    if (!streaming) throw fail(`Action autoFinish requires streaming in ${source}`, 'streaming-required', source, 'autoFinish')
+    if (!isPlainObject(value)) throw fail(`Invalid autoFinish in ${source}`, 'invalid-field', source, 'autoFinish')
+    rejectUnknownFields(value, ACTION_AUTO_FINISH_FIELD_SET, source, 'autoFinish')
+    if (typeof value.state !== 'string' || value.state.trim().length === 0) {
+        throw fail(`Invalid autoFinish state in ${source}`, 'invalid-field', source, 'autoFinish.state')
+    }
+    if (dependencies.states && !dependencies.states.includes(value.state)) {
+        throw fail(`Unknown autoFinish state ${value.state} in ${source}`, 'unknown-state', source, 'autoFinish.state')
+    }
+
+    return { state: value.state }
 }
 
 function validateAgentFields(raw, dependencies, source) {
@@ -296,9 +316,11 @@ function validateRawDefinition(value, source, dependencies) {
     if (value.trackFileChanges !== undefined && typeof value.trackFileChanges !== 'boolean') throw fail(`Invalid trackFileChanges in ${source}`, 'invalid-field', source, 'trackFileChanges')
     if (value.streaming !== undefined && typeof value.streaming !== 'boolean') throw fail(`Invalid streaming in ${source}`, 'invalid-field', source, 'streaming')
 
+    const streaming = value.streaming ?? false
     const raw = {
         agent: readOptionalString(value.agent, 'agent', source),
         appliesTo: readAppliesTo(value.appliesTo, source),
+        autoFinish: readAutoFinish(value.autoFinish, streaming, dependencies, source),
         command: type === 'command' ? value.command : undefined,
         description: value.description,
         icon: value.icon,
@@ -315,7 +337,7 @@ function validateRawDefinition(value, source, dependencies) {
         sourcePath: source,
         thinkingLevel: readOptionalString(value.thinkingLevel, 'thinkingLevel', source),
         trackFileChanges: value.trackFileChanges ?? false,
-        streaming: value.streaming ?? false,
+        streaming,
         type,
     }
     validateAgentFields(raw, dependencies, source)
@@ -395,6 +417,7 @@ export function validateActionDefinitionGraph(entries, dependencies = {}) {
         registry.set(raw.id, {
             agent: raw.agent ?? null,
             appliesTo: raw.appliesTo ?? null,
+            autoFinish: raw.autoFinish ?? null,
             builtin: false,
             command: raw.command ?? null,
             description: raw.description,

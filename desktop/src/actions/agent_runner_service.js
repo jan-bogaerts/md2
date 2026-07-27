@@ -221,10 +221,14 @@ class AgentRunnerService {
             onComplete,
             onCompletionError,
             onEvent,
+            pendingQuestions: [],
             providerConversationId: null,
             protocolBuffer: '',
             reference,
             reportedProviderErrors: new Set(),
+            queuedMessage: null,
+            queuedMessageRevision: -1,
+            sentQueuedMessageRevision: -1,
             request,
             stderr: '',
             stderrBuffer: '',
@@ -243,7 +247,13 @@ class AgentRunnerService {
         };
         const writeLine = (message) => child.stdin.write(`${JSON.stringify(message)}\n`);
         run.streamingAdapter = streaming
-            ? createAgentStreamingAdapter(agent, writeLine, (event) => this.handleStreamingEvent(id, event), rootPath)
+            ? createAgentStreamingAdapter(
+                agent,
+                writeLine,
+                (event) => this.handleStreamingEvent(id, event),
+                rootPath,
+                request.providerConversationId,
+            )
             : null;
         run.parser = streaming
             ? null
@@ -275,6 +285,7 @@ class AgentRunnerService {
         const userMessage = conversation.messages.at(-1);
         if (!userMessage || userMessage.role !== 'user') throw new Error('Missing current agent user message');
         emitRunEvent(run, {
+            continued: !!request.conversation,
             conversationId: conversation.id,
             reference,
             startedAt,
@@ -289,12 +300,32 @@ class AgentRunnerService {
     stop(runId) {
         const run = this.requireRun(runId);
         run.cancelled = true;
+        run.queuedMessage = null;
 
         return this.ensureTermination(run);
     }
 
     sendMessage(runId, content) {
         const run = this.requireStreamingRun(runId);
+        if (typeof content !== 'string' || content.trim().length === 0) throw new Error('Agent message is required');
+        run.queuedMessage = null;
+        this.sendStreamingMessage(run, content);
+    }
+
+    sendQueuedMessage(runId, revision) {
+        const run = this.requireRun(runId);
+        if (!Number.isSafeInteger(revision) || revision < 0) throw new Error('Invalid queued agent message revision');
+        if (revision <= run.sentQueuedMessageRevision) return;
+        if (!run.queuedMessage || run.queuedMessage.revision > revision) return;
+        if (!run.streaming) return;
+
+        const { content, revision: queuedRevision } = run.queuedMessage;
+        run.queuedMessage = null;
+        run.sentQueuedMessageRevision = queuedRevision;
+        this.sendStreamingMessage(run, content);
+    }
+
+    sendStreamingMessage(run, content) {
         const timestamp = new Date().toISOString();
         if (run.conversation.status === 'waitingForInput') run.turnIndex += 1;
         const messageId = `${run.id}-user-${run.conversation.messages.length}`;
@@ -308,26 +339,40 @@ class AgentRunnerService {
         emitRunEvent(run, { state: 'running', type: 'state' });
     }
 
+    setQueuedMessage(runId, content, revision) {
+        const run = this.requireRun(runId);
+        if (!Number.isSafeInteger(revision) || revision < 0) throw new Error('Invalid queued agent message revision');
+        if (revision < run.queuedMessageRevision) return;
+        if (typeof content !== 'string') throw new Error('Invalid queued agent message');
+        run.queuedMessageRevision = revision;
+        run.queuedMessage = content.trim().length > 0 ? { content, revision } : null;
+    }
+
     answerQuestion(runId, requestId, answers) {
         const run = this.requireStreamingRun(runId);
         if (!answers || typeof answers !== 'object' || Array.isArray(answers)) throw new Error('Missing streaming question answers');
         const timestamp = new Date().toISOString();
+        const secretQuestionIds = new Set(run.pendingQuestions.filter(({ isSecret }) => isSecret).map(({ id }) => id));
         const content = Object.entries(answers)
-            .map(([questionId, answer]) => `${questionId}: ${Array.isArray(answer) ? answer.join(', ') : answer}`)
+            .map(([questionId, answer]) => (
+                `${questionId}: ${secretQuestionIds.has(questionId) ? '[secret]' : Array.isArray(answer) ? answer.join(', ') : answer}`
+            ))
             .join('\n');
         run.conversation.messages.push(createMessage(`${run.id}-answer-${run.conversation.messages.length}`, 'user', content, timestamp));
         const userMessage = run.conversation.messages.at(-1);
         run.conversation.status = 'running';
         run.waitingForQuestion = false;
+        run.pendingQuestions = [];
         run.streamingAdapter.answerQuestion(requestId, answers);
         this.queuePersistence(run);
-        emitRunEvent(run, { type: 'userMessage', userMessage });
+        emitRunEvent(run, { type: 'questionAnswered', userMessage });
         emitRunEvent(run, { state: 'running', type: 'state' });
     }
 
     finish(runId) {
         const run = this.requireStreamingRun(runId);
         run.finishing = true;
+        run.queuedMessage = null;
         if (!run.turnActive || run.waitingForQuestion) run.child.stdin.end();
     }
 
@@ -486,9 +531,17 @@ class AgentRunnerService {
             this.recordOutput(runId, 'stderr', event.content);
             return;
         }
+        if (event.type === 'sessionFailed') {
+            run.missingSession = event.missingSession;
+            this.recordOutput(runId, 'stderr', event.content);
+            run.finishing = true;
+            run.child.stdin.end();
+            return;
+        }
         if (event.type === 'question') {
             run.conversation.status = 'waitingForInput';
             run.waitingForQuestion = true;
+            run.pendingQuestions = event.questions;
             emitRunEvent(run, { questions: event.questions, requestId: event.requestId, state: 'waitingForInput', type: 'question' });
             this.queuePersistence(run);
             return;
@@ -498,6 +551,8 @@ class AgentRunnerService {
         completeAssistantOutput(run, timestamp);
         run.turnActive = false;
         run.waitingForQuestion = false;
+        run.missingSession = run.missingSession || event.missingSession;
+        if (event.missingSession) run.finishing = true;
         if (event.usage) run.conversation.usage = accumulateUsage(run.conversation.usage, event.usage);
         if (event.error) {
             run.streamingFailure = new Error(event.error);
@@ -507,6 +562,14 @@ class AgentRunnerService {
         }
         if (run.finishing) {
             run.child.stdin.end();
+            return;
+        }
+        if (run.queuedMessage) {
+            const { content, revision } = run.queuedMessage;
+            run.queuedMessage = null;
+            run.sentQueuedMessageRevision = revision;
+            run.conversation.status = 'waitingForInput';
+            this.sendStreamingMessage(run, content);
             return;
         }
         const synchronizedMessage = run.conversation.messages.at(-1);

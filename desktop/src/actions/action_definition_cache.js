@@ -81,11 +81,11 @@ class ActionDefinitionCache {
     }
 
     /** Resolve one current definition, reading only it and its linked definitions from disk. */
-    async resolve(actionId, profiles) {
+    async resolve(actionId, profiles, states) {
         if (!this.project || this.actionsFolder === null) throw new Error('Action definition cache has no project');
 
         const files = await this.loadDefinitionFiles(actionId);
-        const { actions, issues } = loadTolerantActionDefinitionGraph(files, { profiles });
+        const { actions, issues } = loadTolerantActionDefinitionGraph(files, { profiles, states });
         const action = actions.find((candidate) => candidate.id === actionId);
         if (!action) {
             const issueDetails = issues.length > 0 ? `. ${issues.map(({ message }) => message).join(' ')}` : '';

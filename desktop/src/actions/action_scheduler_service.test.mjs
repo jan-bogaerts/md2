@@ -72,7 +72,11 @@ function createSchedule(id, actionId, trigger) {
     };
 }
 
-function createLocalGitService(initialSchedules, actionFiles = [createAction()], projectConfig = { actionsFolder: 'actions' }) {
+function createLocalGitService(
+    initialSchedules,
+    actionFiles = [createAction()],
+    projectConfig = { actionsFolder: 'actions', states: [{ state: 'ready' }] },
+) {
     let schedules = initialSchedules;
     const histories = [];
 
@@ -97,7 +101,7 @@ function createLocalGitService(initialSchedules, actionFiles = [createAction()],
         loadActionFile: vi.fn(async (_project, actionPath) => actionFiles.find(({ path }) => path === actionPath)),
         loadActionFiles: vi.fn(async () => actionFiles),
         loadActionSchedules: vi.fn(async () => schedules),
-        loadProjectConfig: vi.fn(async () => projectConfig),
+        loadProjectConfig: vi.fn(async () => ({ states: [{ state: 'ready' }], ...projectConfig })),
         runCommand: vi.fn(async (_project, command) => ({ command, exitCode: 0, stderr: '', stdout: 'done' })),
         saveActionSchedules: vi.fn(async (_project, _actionsFolder, nextSchedules) => {
             schedules = nextSchedules;

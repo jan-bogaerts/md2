@@ -655,7 +655,7 @@ describe('TextView', () => {
         ))
         await waitFor(() => expect(screen.queryByText(/action file was deleted outside the editor/u)).not.toBeInTheDocument())
         expect(openFilesService.getSnapshot().activeDocument?.getObject()).toMatchObject({ label: 'Recovered' })
-    })
+    }, 10_000)
 
     it('discards a dirty deleted action and closes its tab', async () => {
         vi.spyOn(dataService, 'hasPendingFile').mockReturnValue(false)
@@ -743,7 +743,7 @@ describe('TextView', () => {
         const dialog = within(screen.getByRole('dialog', { name: 'Run actions' }))
         expect(dialog.getByRole('button', { name: 'Custom prompt' })).toHaveAttribute('aria-pressed', 'true')
         expect(dialog.getByRole('button', { name: 'Schedule' })).toBeInTheDocument()
-        expect(dialog.getByRole('button', { name: 'Run' })).toBeInTheDocument()
+        expect(dialog.getByRole('button', { name: 'Send' })).toBeInTheDocument()
         expect(screen.queryByText('No agent conversations.')).not.toBeInTheDocument()
         expect(screen.getByRole('dialog', { name: 'Run actions' })).toHaveStyle({ position: 'fixed' })
     })

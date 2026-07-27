@@ -19,6 +19,7 @@ import { configService } from '../config/config_service'
 
 interface ActionDefinitionLoaderDependencies {
     profiles?: AgentProfile[]
+    states?: string[]
     validateAgentCapabilities?: boolean
 }
 
@@ -27,7 +28,14 @@ export type { ActionDefinitionLoadIssue }
 function defaultLoaderDependencies(): ActionDefinitionLoaderDependencies {
     if (!configService.isInitialized()) return {}
 
-    return {profiles: configService.get('desktop.agentProfiles')}
+    return {
+        profiles: configService.get('desktop.agentProfiles'),
+        states: configService.getProjectConfig().states.map(({ state }) => state),
+    }
+}
+
+function resolvedLoaderDependencies(dependencies?: ActionDefinitionLoaderDependencies) {
+    return { ...defaultLoaderDependencies(), ...dependencies }
 }
 
 /**
@@ -36,17 +44,17 @@ function defaultLoaderDependencies(): ActionDefinitionLoaderDependencies {
  */
 export function loadActionDefinitions(
     files: ActionFile[],
-    dependencies: ActionDefinitionLoaderDependencies = defaultLoaderDependencies(),
+    dependencies?: ActionDefinitionLoaderDependencies,
 ): ActionDefinition[] {
     return loadActionDefinitionGraph(files, dependencies).actions
 }
 
 export function loadActionDefinitionGraph(
     files: ActionFile[],
-    dependencies: ActionDefinitionLoaderDependencies = defaultLoaderDependencies(),
+    dependencies?: ActionDefinitionLoaderDependencies,
 ): { actions: ActionDefinition[], definitions: RawActionDefinitionEntry[] } {
     const definitions = parseActionDefinitionFiles(files)
-    const actions = validateSharedActionDefinitionGraph(definitions, dependencies)
+    const actions = validateSharedActionDefinitionGraph(definitions, resolvedLoaderDependencies(dependencies))
 
     return { actions, definitions: definitions as RawActionDefinitionEntry[] }
 }
@@ -54,23 +62,23 @@ export function loadActionDefinitionGraph(
 /** Load every usable action while collecting file-level problems for deferred reporting. */
 export function loadTolerantActionDefinitionGraph(
     files: ActionFile[],
-    dependencies: ActionDefinitionLoaderDependencies = defaultLoaderDependencies(),
+    dependencies?: ActionDefinitionLoaderDependencies,
 ): { actions: ActionDefinition[], definitions: RawActionDefinitionEntry[], issues: ActionDefinitionLoadIssue[] } {
-    return loadSharedTolerantActionDefinitionGraph(files, dependencies)
+    return loadSharedTolerantActionDefinitionGraph(files, resolvedLoaderDependencies(dependencies))
 }
 
 export function validateActionDefinitionGraph(
     definitions: ActionDefinitionEntry[],
-    dependencies: ActionDefinitionLoaderDependencies = defaultLoaderDependencies(),
+    dependencies?: ActionDefinitionLoaderDependencies,
 ): ActionDefinition[] {
-    return validateSharedActionDefinitionGraph(definitions, dependencies)
+    return validateSharedActionDefinitionGraph(definitions, resolvedLoaderDependencies(dependencies))
 }
 
 /** Validate one structured definition without resolving the complete action graph. */
 export function validateActionDefinition(
     definition: RawActionDefinition,
     path: string,
-    dependencies: ActionDefinitionLoaderDependencies = defaultLoaderDependencies(),
+    dependencies?: ActionDefinitionLoaderDependencies,
 ) {
-    return validateSharedActionDefinition(definition, path, dependencies)
+    return validateSharedActionDefinition(definition, path, resolvedLoaderDependencies(dependencies))
 }

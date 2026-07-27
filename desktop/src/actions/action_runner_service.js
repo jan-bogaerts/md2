@@ -52,6 +52,7 @@ class ActionRunnerService {
         this.actionsFolder = null;
         this.actionCacheReady = null;
         this.completedResults = new Map();
+        this.configuredStates = [];
         this.executions = new Map();
         this.listeners = new Set();
         this.project = null;
@@ -64,9 +65,25 @@ class ActionRunnerService {
         this.project = project;
         this.actionsFolder = actionsFolder;
         this.projectFolder = projectFolder;
-        this.actionCacheReady = this.actionDefinitionCache?.startProject(project, actionsFolder) ?? null;
+        this.actionCacheReady = this.actionDefinitionCache && this.localGitService
+            ? this.initializeProject(project, actionsFolder)
+            : null;
 
         return this.actionCacheReady ?? Promise.resolve();
+    }
+
+    async initializeProject(project, actionsFolder) {
+        const [, config] = await Promise.all([
+            this.actionDefinitionCache.startProject(project, actionsFolder),
+            this.localGitService.loadProjectConfig(project),
+        ]);
+        const states = config?.states;
+        if (!Array.isArray(states)) throw new Error('Invalid project states');
+        this.configuredStates = states.map(({ state }) => {
+            if (typeof state !== 'string' || state.length === 0) throw new Error('Invalid project state');
+
+            return state;
+        });
     }
 
     stop() {
@@ -75,6 +92,7 @@ class ActionRunnerService {
         this.actionsFolder = null;
         this.actionCacheReady = null;
         this.projectFolder = null;
+        this.configuredStates = [];
         this.actionDefinitionCache?.stop();
     }
 
@@ -150,12 +168,24 @@ class ActionRunnerService {
         this.requireExecution(executionId).sendAgentMessage(content);
     }
 
+    setAgentQueuedMessage(executionId, content, revision) {
+        this.requireExecution(executionId).setAgentQueuedMessage(content, revision);
+    }
+
+    sendQueuedAgentMessage(executionId, revision) {
+        this.requireExecution(executionId).sendQueuedAgentMessage(revision);
+    }
+
     answerAgentQuestion(executionId, requestId, answers) {
         this.requireExecution(executionId).answerAgentQuestion(requestId, answers);
     }
 
     finishAgentExecution(executionId) {
         this.requireExecution(executionId).finishAgent();
+    }
+
+    handleCardStateChange(cardInternalId, state) {
+        for (const execution of this.executions.values()) execution.handleCardStateChange(cardInternalId, state);
     }
 
     requireActionsFolder() {
@@ -174,7 +204,7 @@ class ActionRunnerService {
         const config = this.agentConfigProvider();
         await this.actionCacheReady;
 
-        return resolveActionDefinition(this.actionDefinitionCache, config.agentProfiles, actionId);
+        return resolveActionDefinition(this.actionDefinitionCache, config.agentProfiles, actionId, this.configuredStates);
     }
 
     async finalizeExecution(execution, runCompletion) {

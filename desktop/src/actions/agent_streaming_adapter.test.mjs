@@ -4,10 +4,16 @@ import { describe, expect, it } from 'vitest';
 const require = createRequire(import.meta.url);
 const { createAgentStreamingAdapter } = require('./agent_streaming_adapter');
 
-function harness(agent) {
+function harness(agent, providerConversationId = null) {
     const events = [];
     const writes = [];
-    const adapter = createAgentStreamingAdapter(agent, (message) => writes.push(message), (event) => events.push(event), 'C:\\repo');
+    const adapter = createAgentStreamingAdapter(
+        agent,
+        (message) => writes.push(message),
+        (event) => events.push(event),
+        'C:\\repo',
+        providerConversationId,
+    );
 
     return { adapter, events, writes };
 }
@@ -31,18 +37,89 @@ describe('ClaudeStreamingAdapter', () => {
         expect(events.at(-1)).toMatchObject({ error: null, type: 'turnCompleted' });
     });
 
-    it('maps structured questions and sends answers as a user turn', () => {
+    it('correlates structured question answers through the Claude control protocol', () => {
         const { adapter, events, writes } = harness('claude');
-        const questions = [{ header: 'Confirm', id: 'confirm', options: [{ label: 'Yes' }], question: 'Proceed?' }];
+        const questions = [{ header: 'Confirm', options: [{ label: 'Yes' }], question: 'Proceed?' }];
 
         adapter.handleMessage({
-            message: { content: [{ id: 'tool-1', input: { questions }, name: 'AskUserQuestion', type: 'tool_use' }], id: 'message-1' },
+            request: {
+                input: { questions },
+                subtype: 'can_use_tool',
+                tool_name: 'AskUserQuestion',
+                tool_use_id: 'tool-1',
+            },
+            request_id: 'request-1',
+            type: 'control_request',
+        });
+        adapter.answerQuestion('request-1', { 'claude-question-0': ['Yes'] });
+
+        expect(events).toContainEqual({
+            questions: [{ ...questions[0], id: 'claude-question-0' }],
+            requestId: 'request-1',
+            type: 'question',
+        });
+        expect(writes.at(-1)).toEqual({
+            response: {
+                request_id: 'request-1',
+                response: {
+                    behavior: 'allow',
+                    toolUseID: 'tool-1',
+                    updatedInput: { answers: { 'Proceed?': ['Yes'] }, questions },
+                },
+                subtype: 'success',
+            },
+            type: 'control_response',
+        });
+    });
+
+    it('maps root-confined file changes and tool transcript events', () => {
+        const { adapter, events } = harness('claude');
+
+        adapter.handleMessage({
+            message: {
+                content: [
+                    { input: { file_path: 'design\\feature.md' }, name: 'Write', type: 'tool_use' },
+                    { input: { file_path: 'C:\\outside\\secret.md' }, name: 'Edit', type: 'tool_use' },
+                ],
+            },
             type: 'assistant',
         });
-        adapter.answerQuestion('message-1', { confirm: ['Yes'] });
+        adapter.handleMessage({
+            message: { content: [{ content: 'written', tool_use_id: 'tool-1', type: 'tool_result' }] },
+            type: 'user',
+        });
 
-        expect(events).toContainEqual({ questions, requestId: 'message-1', type: 'question' });
-        expect(writes.at(-1)).toEqual({ message: { content: 'confirm: Yes', role: 'user' }, type: 'user' });
+        expect(events).toContainEqual({ paths: ['design/feature.md'], type: 'changedPaths' });
+        expect(events).toContainEqual({
+            content: '{"file_path":"design\\\\feature.md"}',
+            eventType: 'tool.Write',
+            type: 'transcript',
+        });
+        expect(events).toContainEqual({ content: 'written', eventType: 'tool.result', type: 'transcript' });
+    });
+
+    it('reports only structured pre-turn missing-session results as resumable', () => {
+        const missing = harness('claude', 'session-missing');
+        missing.adapter.handleMessage({
+            errors: ['No conversation found with session ID: session-missing'],
+            is_error: true,
+            session_id: 'session-missing',
+            subtype: 'error_during_execution',
+            type: 'result',
+        });
+        const started = harness('claude', 'session-missing');
+        started.adapter.handleMessage({ message: { content: [{ text: 'started', type: 'text' }] }, type: 'assistant' });
+        started.adapter.handleMessage({
+            errors: ['No conversation found with session ID: session-missing'],
+            is_error: true,
+            session_id: 'session-missing',
+            subtype: 'error_during_execution',
+            type: 'result',
+        });
+
+        expect(missing.events.at(-1)).toMatchObject({ missingSession: true, type: 'turnCompleted' });
+        expect(started.events.at(-1)).toMatchObject({ missingSession: false, type: 'turnCompleted' });
+        expect(started.events).toContainEqual({ type: 'turnStarted' });
     });
 });
 
@@ -103,6 +180,45 @@ describe('CodexStreamingAdapter', () => {
             usage: { cachedInputTokens: 2, inputTokens: 4, outputTokens: 3, reasoningTokens: 1, totalTokens: 10 },
         });
         expect(writes.at(-1)).toEqual({ id: 99, result: { answers: { confirm: { answers: ['Yes'] } } } });
+    });
+
+    it('resumes a saved thread before sending the first turn', () => {
+        const { adapter, events, writes } = harness('codex', 'thread-saved');
+
+        adapter.start('new context');
+        adapter.handleMessage({ id: 1, result: {} });
+        expect(writes[2]).toMatchObject({
+            id: 2,
+            method: 'thread/resume',
+            params: { cwd: 'C:\\repo', threadId: 'thread-saved' },
+        });
+        adapter.handleMessage({ id: 2, result: { thread: { id: 'thread-saved' } } });
+
+        expect(events).toContainEqual({ conversationId: 'thread-saved', type: 'sessionStarted' });
+        expect(writes[3]).toMatchObject({
+            method: 'turn/start',
+            params: { input: [{ text: 'new context', type: 'text' }], threadId: 'thread-saved' },
+        });
+    });
+
+    it('reports a structured missing saved thread before any turn starts', () => {
+        const { adapter, events } = harness('codex', 'thread-missing');
+
+        adapter.start('new context');
+        adapter.handleMessage({ id: 1, result: {} });
+        adapter.handleMessage({
+            error: {
+                code: -32600,
+                message: 'no rollout found for thread id thread-missing',
+            },
+            id: 2,
+        });
+
+        expect(events.at(-1)).toEqual({
+            content: 'no rollout found for thread id thread-missing',
+            missingSession: true,
+            type: 'sessionFailed',
+        });
     });
 
     it('reports request errors and rejects use before thread setup', () => {

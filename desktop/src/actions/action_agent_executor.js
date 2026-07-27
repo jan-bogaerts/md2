@@ -15,6 +15,15 @@ function withoutConversation(result) {
     return Object.fromEntries(Object.entries(result).filter(([fieldName]) => fieldName !== 'conversation'));
 }
 
+function executionCommand(resolvedAgent, providerSession, streaming) {
+    if (!providerSession) return resolvedAgent.command;
+    if (!streaming || resolvedAgent.agent === 'claude') {
+        return buildResumeAgentCommand(resolvedAgent.profile, providerSession.conversationId, resolvedAgent.command);
+    }
+
+    return resolvedAgent.command;
+}
+
 class ActionAgentExecutor {
     constructor(dependencies) {
         this.agentConfigProvider = dependencies.agentConfigProvider;
@@ -53,9 +62,7 @@ class ActionAgentExecutor {
                     input.action.trackFileChanges,
                 )
                 : prepareAgentPrompt(input.action, input.context, input.project, input.runInput.extraPrompt);
-        const command = providerSession && !streaming
-            ? buildResumeAgentCommand(resolvedAgent.profile, providerSession.conversationId, resolvedAgent.command)
-            : resolvedAgent.command;
+        const command = executionCommand(resolvedAgent, providerSession, streaming);
         const contextInput = sourceConversation
             ? normalizeConversationContext(sourceConversation, providerSession?.synchronizedThroughMessageId ?? null)
             : '';
@@ -117,6 +124,7 @@ class ActionAgentExecutor {
             reference: run.reference,
             stderr: run.stderr,
             stdout: run.stdout,
+            queuedMessage: run.queuedMessage?.content ?? null,
             turnStarted: run.turnStarted,
         });
         const onEvent = (agentEvent) => input.onEvent(agentEvent);

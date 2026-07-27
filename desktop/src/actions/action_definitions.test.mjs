@@ -77,6 +77,30 @@ describe('loadActionDefinitions', () => {
             .toMatchObject({ code: 'field-not-allowed', field: 'streaming' });
     });
 
+    it('normalizes strict autoFinish state triggers', () => {
+        const autoFinish = { state: 'ready' };
+        const action = loadActionDefinitions(
+            [file('implement', { ...IMPLEMENT, autoFinish, streaming: true })],
+            { states: ['design', 'ready'] },
+        ).find(({ id }) => id === IMPLEMENT.id);
+
+        expect(action.autoFinish).toEqual(autoFinish);
+        expect(loadActionDefinitions([file('implement', { ...IMPLEMENT, streaming: true })])
+            .find(({ id }) => id === IMPLEMENT.id).autoFinish).toBeNull();
+        expect(validationError([file('implement', { ...IMPLEMENT, autoFinish })]))
+            .toMatchObject({ code: 'streaming-required', field: 'autoFinish' });
+        expect(validationError([file('lint', { ...LINT, autoFinish })]))
+            .toMatchObject({ code: 'field-not-allowed', field: 'autoFinish' });
+        expect(validationError([file('implement', { ...IMPLEMENT, autoFinish: { state: '' }, streaming: true })]))
+            .toMatchObject({ code: 'invalid-field', field: 'autoFinish', fieldPath: 'autoFinish.state' });
+        expect(validationError([file('implement', { ...IMPLEMENT, autoFinish: { state: 'ready', type: 'card' }, streaming: true })]))
+            .toMatchObject({ code: 'unknownField', field: 'autoFinish', fieldPath: 'autoFinish.type' });
+        expect(() => loadActionDefinitions(
+            [file('implement', { ...IMPLEMENT, autoFinish, streaming: true })],
+            { states: ['design'] },
+        )).toThrow(/Unknown autoFinish state ready/u);
+    });
+
     it.each([
         ['non-list phrases', { ...IMPLEMENT, phrases: 'nope' }],
         ['non-object phrase', { ...IMPLEMENT, phrases: ['nope'] }],

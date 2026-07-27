@@ -511,4 +511,102 @@ describe('AgentRunnerService', () => {
             await rm(rootPath, { force: true, recursive: true });
         }
     });
+
+    it('consumes one queued revision exactly once', () => {
+        const sendMessage = vi.fn();
+        const service = new AgentRunnerService({ persistConversation: vi.fn(async () => undefined) });
+        service.processes.set('run-1', {
+            conversation: { messages: [], status: 'running' },
+            id: 'run-1',
+            onEvent: vi.fn(),
+            persistence: Promise.resolve(),
+            queuedMessage: null,
+            queuedMessageRevision: -1,
+            sentQueuedMessageRevision: -1,
+            streaming: true,
+            streamingAdapter: { sendMessage },
+            turnActive: true,
+            turnIndex: 1,
+        });
+
+        service.setQueuedMessage('run-1', 'approved', 0);
+        service.sendQueuedMessage('run-1', 0);
+        service.sendQueuedMessage('run-1', 0);
+
+        expect(sendMessage).toHaveBeenCalledOnce();
+        expect(sendMessage).toHaveBeenCalledWith('approved');
+    });
+
+    it('sends a queued next turn at completion and wins the Send race exactly once', () => {
+        const sendMessage = vi.fn();
+        const onEvent = vi.fn();
+        const service = new AgentRunnerService({ persistConversation: vi.fn(async () => undefined) });
+        service.processes.set('run-1', {
+            agent: 'codex',
+            child: { stdin: { end: vi.fn() } },
+            conversation: {
+                completedAt: null,
+                events: [],
+                messages: [{ content: 'start', id: 'user-1', role: 'user', timestamp: '2026-07-27T10:00:00.000Z' }],
+                providerSessions: [],
+                status: 'running',
+            },
+            finishing: false,
+            id: 'run-1',
+            onEvent,
+            persistence: Promise.resolve(),
+            queuedMessage: null,
+            queuedMessageRevision: -1,
+            request: {},
+            sentQueuedMessageRevision: -1,
+            stdout: '',
+            streaming: true,
+            streamingAdapter: { sendMessage },
+            turnActive: true,
+            turnIndex: 1,
+            waitingForQuestion: false,
+        });
+
+        service.setQueuedMessage('run-1', 'next turn', 0);
+        service.handleStreamingEvent('run-1', { type: 'turnCompleted' });
+        service.sendQueuedMessage('run-1', 0);
+
+        expect(sendMessage).toHaveBeenCalledOnce();
+        expect(sendMessage).toHaveBeenCalledWith('next turn');
+        expect(onEvent).toHaveBeenCalledWith(expect.objectContaining({
+            type: 'userMessage',
+            userMessage: expect.objectContaining({ content: 'next turn' }),
+        }));
+    });
+
+    it('redacts secret structured answers before transcript persistence', async () => {
+        const answerQuestion = vi.fn();
+        const persistConversation = vi.fn(async () => undefined);
+        const service = new AgentRunnerService({ persistConversation });
+        const run = {
+            conversation: { messages: [], status: 'waitingForInput' },
+            id: 'run-1',
+            onEvent: vi.fn(),
+            pendingQuestions: [
+                { id: 'token', isSecret: true },
+                { id: 'choice' },
+            ],
+            persistence: Promise.resolve(),
+            streaming: true,
+            streamingAdapter: { answerQuestion },
+            waitingForQuestion: true,
+        };
+        service.processes.set('run-1', run);
+        const answers = { choice: ['Yes'], token: ['top-secret'] };
+
+        service.answerQuestion('run-1', 7, answers);
+        await run.persistence;
+
+        expect(answerQuestion).toHaveBeenCalledWith(7, answers);
+        expect(run.conversation.messages[0].content).toContain('token: [secret]');
+        expect(run.conversation.messages[0].content).not.toContain('top-secret');
+        expect(persistConversation).toHaveBeenCalled();
+        expect(JSON.stringify(persistConversation.mock.calls)).not.toContain('top-secret');
+        expect(JSON.stringify(run.onEvent.mock.calls)).not.toContain('top-secret');
+    });
 });

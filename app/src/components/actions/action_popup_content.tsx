@@ -4,6 +4,9 @@ import ArrowCollapseVertical from 'mdi-material-ui/ArrowCollapseVertical'
 import ArrowExpandVertical from 'mdi-material-ui/ArrowExpandVertical'
 import Close from 'mdi-material-ui/Close'
 import Play from 'mdi-material-ui/Play'
+import ArrowUpwardOutlined from '@mui/icons-material/ArrowUpwardOutlined'
+import CheckOutlined from '@mui/icons-material/CheckOutlined'
+import StopOutlined from '@mui/icons-material/StopOutlined'
 import type { ActionContext } from '../../data/action_context'
 import { CUSTOM_PROMPT_ACTION_ID, type ActionDefinition } from '../../data/action_types'
 import type { AgentConversation } from '../../data/data_types'
@@ -97,17 +100,24 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
     })
     const promptRequired = action.id === CUSTOM_PROMPT_ACTION_ID
     const sessionActive = controller.runStatus === 'running' || controller.runStatus === 'waitingForInput'
+    const showAgentInteraction = action.type === 'agent' || controller.agentActive
+    const showAgentSend = sessionActive ? controller.agentActive : action.type === 'agent'
+    const showCommandRun = !sessionActive && action.type === 'command'
     const sizeStorageKey = baseContext.kind === 'project'
         ? PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY
         : CARD_RUN_POPUP_SIZE_STORAGE_KEY
     const handlePrimaryRun = showSaveControls ? controller.handleSaveAndRun : controller.handleRun
     const showUsageSummary = baseContext.kind === 'card' && !!baseContext.file
-    const runDisabled = (sessionActive && !controller.streamingActive)
-        || !!controller.executionDisabledMessage
+    const runDisabled = !!controller.executionDisabledMessage
         || controller.promptPreparationPending
         || controller.promptPreparationFailed
         || (promptRequired && controller.prompt.trim().length === 0)
-        || (controller.streamingActive && controller.prompt.trim().length === 0)
+        || (controller.agentActive && (
+            !controller.interactionReady
+            || controller.prompt.trim().length === 0
+            || !!controller.structuredQuestion
+        ))
+        || (sessionActive && !controller.agentActive)
         || (showSaveControls && controller.saveDisabled)
     const parsedWorktree = assignmentContext.worktree && /^[1-9]\d*$/u.test(assignmentContext.worktree)
         ? Number.parseInt(assignmentContext.worktree, 10)
@@ -199,7 +209,7 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
                 />
             </Box>
             <Stack spacing={2} sx={{ flex: 1, minHeight: 0, overflow: 'auto', px: 1.5, py: 1 }}>
-                {action.type === 'agent' ? (
+                {showAgentInteraction ? (
                     <Stack spacing={1} sx={{ flex: 1, minHeight: 0 }}>
                         {showSaveControls ? (
                             <ActionAgentPresetName
@@ -209,18 +219,20 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
                             />
                         ) : null}
                         <Box sx={{ alignItems: 'center', color: 'text.secondary', display: 'flex', flexWrap: 'wrap', fontSize: 12, gap: 0.75 }}>
-                            <ActionAgentSelectors
-                                agent={controller.agent}
-                                agentAvailability={controller.agentAvailability}
-                                agentProfiles={controller.agentProfiles}
-                                disabled={sessionActive}
-                                model={controller.model}
-                                onAgentChange={controller.handleAgentChange}
-                                onModelChange={controller.handleModelChange}
-                                onThinkingLevelChange={controller.handleThinkingLevelChange}
-                                selectedAgentModels={controller.selectedAgentModels}
-                                thinkingLevel={controller.thinkingLevel}
-                            />
+                            {action.type === 'agent' ? (
+                                <ActionAgentSelectors
+                                    agent={controller.agent}
+                                    agentAvailability={controller.agentAvailability}
+                                    agentProfiles={controller.agentProfiles}
+                                    disabled={sessionActive}
+                                    model={controller.model}
+                                    onAgentChange={controller.handleAgentChange}
+                                    onModelChange={controller.handleModelChange}
+                                    onThinkingLevelChange={controller.handleThinkingLevelChange}
+                                    selectedAgentModels={controller.selectedAgentModels}
+                                    thinkingLevel={controller.thinkingLevel}
+                                />
+                            ) : null}
                             <ActionLogErrorDisplay logs={controller.runLogs} />
                         </Box>
                         <Box sx={{ flex: 1, minHeight: MIN_CHAT_HEIGHT, overflowY: 'auto' }}>
@@ -232,7 +244,7 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
                         </Box>
                         <ActionAgentPrompt
                             convertMessage={controller.convertMessage}
-                            disabled={sessionActive && !controller.streamingActive}
+                            disabled={false}
                             onPromptChange={controller.handlePromptChange}
                             onRunShortcut={runDisabled ? undefined : handlePrimaryRun}
                             prompt={controller.prompt}
@@ -295,10 +307,32 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
                 ) : null}
                 <Box sx={{ flex: 1 }} />
                 {sessionActive ? (
-                    <Button disabled={!controller.backendAvailable} onClick={controller.handleCancel} size="small" variant="outlined">Cancel</Button>
+                    <Tooltip title="Stop">
+                        <span>
+                            <IconButton
+                                aria-label="Stop"
+                                disabled={!controller.backendAvailable || (controller.agentActive && !controller.interactionReady)}
+                                onClick={controller.handleCancel}
+                                size="small"
+                            >
+                                <StopOutlined sx={{ fontSize: 18 }} />
+                            </IconButton>
+                        </span>
+                    </Tooltip>
                 ) : null}
-                {controller.streamingActive ? (
-                    <Button disabled={!controller.backendAvailable} onClick={controller.handleFinish} size="small" variant="outlined">Finish</Button>
+                {controller.manualFinishAvailable ? (
+                    <Tooltip title="Finish">
+                        <span>
+                            <IconButton
+                                aria-label="Finish"
+                                disabled={!controller.backendAvailable || !controller.interactionReady}
+                                onClick={controller.handleFinish}
+                                size="small"
+                            >
+                                <CheckOutlined sx={{ fontSize: 18 }} />
+                            </IconButton>
+                        </span>
+                    </Tooltip>
                 ) : null}
                 {showSaveControls ? (
                     <Button disabled={controller.saveDisabled} onClick={controller.handleConvertToAction} size="small" variant="outlined">
@@ -321,16 +355,32 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
                 >
                     Schedule
                 </Button>
-                <Button
-                    disabled={runDisabled}
-                    onClick={handlePrimaryRun}
-                    size="small"
-                    startIcon={<Play sx={{ fontSize: '13px !important' }} />}
-                    sx={{ height: 34, px: 2 }}
-                    variant="contained"
-                >
-                    {controller.streamingActive ? 'Send' : controller.isFollowUp ? 'Continue' : 'Run'}
-                </Button>
+                {showAgentSend ? (
+                    <Tooltip title="Send">
+                        <span>
+                            <IconButton
+                                aria-label="Send"
+                                color="primary"
+                                disabled={runDisabled}
+                                onClick={handlePrimaryRun}
+                                size="small"
+                            >
+                                <ArrowUpwardOutlined sx={{ fontSize: 18 }} />
+                            </IconButton>
+                        </span>
+                    </Tooltip>
+                ) : showCommandRun ? (
+                    <Button
+                        disabled={runDisabled}
+                        onClick={handlePrimaryRun}
+                        size="small"
+                        startIcon={<Play sx={{ fontSize: '13px !important' }} />}
+                        sx={{ height: 34, px: 2 }}
+                        variant="contained"
+                    >
+                        Run
+                    </Button>
+                ) : null}
             </Box>
         </ResizablePopper>
     )

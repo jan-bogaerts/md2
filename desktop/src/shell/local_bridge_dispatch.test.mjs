@@ -10,12 +10,15 @@ function createDispatch(options = {}) {
         answerAgentQuestion: vi.fn(),
         cancel: vi.fn(),
         finishAgentExecution: vi.fn(),
+        handleCardStateChange: vi.fn(),
         prepareActionPrompt: vi.fn(async () => ({ prompt: 'Prepared prompt' })),
         requireActionsFolder: vi.fn(() => 'actions'),
         requireProjectFolder: vi.fn(() => 'design'),
         start: vi.fn(async () => 'action-1'),
         subscribe: vi.fn(() => vi.fn()),
         sendAgentMessage: vi.fn(),
+        sendQueuedAgentMessage: vi.fn(),
+        setAgentQueuedMessage: vi.fn(),
     };
     const actionSchedulerService = {
         registerActionSchedule: vi.fn(async () => ({ id: 'schedule-1' })),
@@ -259,13 +262,25 @@ describe('createLocalBridgeDispatch', () => {
 
         await dispatch.actionBridge.cancelActionExecution('action-1');
         await dispatch.actionBridge.sendActionMessage('action-1', 'approved');
+        await dispatch.actionBridge.setActionQueuedMessage('action-1', 'next', 3);
+        await dispatch.actionBridge.sendActionQueuedMessage('action-1', 3);
         await dispatch.actionBridge.answerActionQuestion('action-1', 7, { confirm: ['Yes'] });
         await dispatch.actionBridge.finishActionExecution('action-1');
 
         expect(actionRunnerService.cancel).toHaveBeenCalledWith('action-1');
         expect(actionRunnerService.sendAgentMessage).toHaveBeenCalledWith('action-1', 'approved');
+        expect(actionRunnerService.setAgentQueuedMessage).toHaveBeenCalledWith('action-1', 'next', 3);
+        expect(actionRunnerService.sendQueuedAgentMessage).toHaveBeenCalledWith('action-1', 3);
         expect(actionRunnerService.answerAgentQuestion).toHaveBeenCalledWith('action-1', 7, { confirm: ['Yes'] });
         expect(actionRunnerService.finishAgentExecution).toHaveBeenCalledWith('action-1');
+    });
+
+    it('delegates card-state auto-finish events to every local execution', async () => {
+        const { actionRunnerService, dispatch } = createDispatch();
+
+        await dispatch.actionBridge.notifyActionCardStateChange('card-1', 'ready');
+
+        expect(actionRunnerService.handleCardStateChange).toHaveBeenCalledWith('card-1', 'ready');
     });
 
     it('marks unattended starts before delegating to the runner', async () => {

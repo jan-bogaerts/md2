@@ -95,6 +95,7 @@ export const ActionDefinitionFields = memo(function ActionDefinitionFields(props
         handleDefinitionChange({
             ...definition,
             agent: undefined,
+            autoFinish: undefined,
             command: definition.command ?? '',
             model: undefined,
             prompt: undefined,
@@ -114,7 +115,22 @@ export const ActionDefinitionFields = memo(function ActionDefinitionFields(props
     }
 
     const handleStreamingChange = (event: ChangeEvent<HTMLInputElement>) => {
-        handleDefinitionChange({ ...definition, streaming: event.target.checked || undefined })
+        handleDefinitionChange({
+            ...definition,
+            autoFinish: event.target.checked ? definition.autoFinish : undefined,
+            streaming: event.target.checked || undefined,
+        })
+    }
+
+    const handleAutoFinishChange = (event: ChangeEvent<HTMLInputElement>) => {
+        handleDefinitionChange({
+            ...definition,
+            autoFinish: event.target.checked ? { state: states[0] } : undefined,
+        })
+    }
+
+    const handleAutoFinishStateChange = (event: ChangeEvent<HTMLInputElement>) => {
+        handleDefinitionChange({ ...definition, autoFinish: { state: event.target.value } })
     }
 
     const handleFiltersChange = (appliesTo: RawActionDefinition['appliesTo']) => {
@@ -220,9 +236,43 @@ export const ActionDefinitionFields = memo(function ActionDefinitionFields(props
                                     {errors.streaming ?? 'keep agent session open for more turns'}
                                 </FormHelperText>
                             </Stack>
+                            {definition.streaming ? (
+                                <Stack>
+                                    <FormControlLabel
+                                        control={(
+                                            <Switch
+                                                checked={!!definition.autoFinish}
+                                                disabled={states.length === 0}
+                                                onChange={handleAutoFinishChange}
+                                                size="small"
+                                            />
+                                        )}
+                                        label="Auto finish"
+                                        sx={{ whiteSpace: 'nowrap' }}
+                                    />
+                                    <FormHelperText error={!!errors.autoFinish}>
+                                        {errors.autoFinish ?? 'finish when card enters selected state'}
+                                    </FormHelperText>
+                                </Stack>
+                            ) : null}
                         </>
                     ) : null}
                 </Grid>
+                {definition.type === 'agent' && definition.streaming && definition.autoFinish ? (
+                    <ActionEditorField
+                        error={!!errors.autoFinish}
+                        fieldId="action-auto-finish-state"
+                        fullWidth
+                        helperText={errors.autoFinish}
+                        label="Auto finish card state"
+                        onChange={handleAutoFinishStateChange}
+                        select
+                        size="small"
+                        value={definition.autoFinish.state}
+                    >
+                        {states.map((state) => <MenuItem key={state} value={state}>{state}</MenuItem>)}
+                    </ActionEditorField>
+                ) : null}
                 {definition.type === 'agent' ? (
                     <ActionAgentCapabilityFields definition={definition} errors={errors} onChange={handleDefinitionChange} />
                 ) : (

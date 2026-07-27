@@ -406,7 +406,7 @@ describe('CardView', () => {
 
         const dialog = within(screen.getByRole('dialog', { name: 'Run actions' }))
         expect(dialog.getByRole('button', { name: 'Implement' })).toHaveAttribute('aria-pressed', 'true')
-        expect(dialog.getByRole('button', { name: 'Run' })).toBeInTheDocument()
+        expect(dialog.getByRole('button', { name: 'Send' })).toBeInTheDocument()
     })
 
     it('opens existing card commands from the icon button menu', () => {

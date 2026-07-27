@@ -144,6 +144,79 @@ describe('ActionAgentExecutor', () => {
         });
     });
 
+    it('resumes restarted Codex streaming after its cursor', async () => {
+        const { agentRunnerService, executor, localGitService } = createExecutor();
+        localGitService.loadAgentConversation.mockResolvedValueOnce(conversation({
+            messages: [
+                { content: 'old', id: 'm1', role: 'assistant', timestamp: '2026-01-01T00:00:00.000Z' },
+                { agent: 'claude', content: 'new', id: 'm2', role: 'assistant', timestamp: '2026-01-01T00:00:01.000Z' },
+            ],
+            providerSessions: [{ agent: 'codex', conversationId: 'thread-1', synchronizedThroughMessageId: 'm1' }],
+        }));
+
+        await executor.execute(executionInput({
+            action: { ...action, streaming: true },
+            runInput: { continueFrom: 'source.json', extraPrompt: 'next' },
+        }));
+
+        const request = agentRunnerService.start.mock.calls[0][1];
+        expect(request).toMatchObject({
+            command: ['codex', '--model', 'gpt-5.5', 'app-server', '--stdio'],
+            contextInput: expect.stringContaining('new'),
+            providerConversationId: 'thread-1',
+        });
+        expect(request.contextInput).not.toContain('old');
+    });
+
+    it('resumes restarted Claude streaming with its saved session', async () => {
+        const { agentRunnerService, executor, localGitService } = createExecutor();
+        localGitService.loadAgentConversation.mockResolvedValueOnce(conversation({
+            messages: [
+                { content: 'old', id: 'm1', role: 'assistant', timestamp: '2026-01-01T00:00:00.000Z' },
+                { agent: 'codex', content: 'new', id: 'm2', role: 'assistant', timestamp: '2026-01-01T00:00:01.000Z' },
+            ],
+            providerSessions: [{ agent: 'claude', conversationId: 'session-1', synchronizedThroughMessageId: 'm1' }],
+        }));
+        const claudeAction = { ...action, agent: 'claude', model: 'default', streaming: true };
+
+        await executor.execute(executionInput({
+            action: claudeAction,
+            runInput: { continueFrom: 'source.json', extraPrompt: 'next' },
+        }));
+
+        const request = agentRunnerService.start.mock.calls[0][1];
+        expect(request).toMatchObject({
+            command: [
+                'claude', '--model', 'default', '--print', '--verbose', '--output-format', 'stream-json',
+                '--input-format', 'stream-json', '--permission-prompt-tool', 'stdio', '--resume', 'session-1',
+            ],
+            contextInput: expect.stringContaining('new'),
+            providerConversationId: 'session-1',
+        });
+        expect(request.contextInput).not.toContain('old');
+    });
+
+    it('starts streaming with full context when selected agent has no session', async () => {
+        const { agentRunnerService, executor, localGitService } = createExecutor();
+        localGitService.loadAgentConversation.mockResolvedValueOnce(conversation({
+            messages: [
+                { content: 'first', id: 'm1', role: 'user', timestamp: '2026-01-01T00:00:00.000Z' },
+                { agent: 'claude', content: 'answer', id: 'm2', role: 'assistant', timestamp: '2026-01-01T00:00:01.000Z' },
+            ],
+            providerSessions: [{ agent: 'claude', conversationId: 'session-1', synchronizedThroughMessageId: 'm2' }],
+        }));
+
+        await executor.execute(executionInput({
+            action: { ...action, streaming: true },
+            runInput: { continueFrom: 'source.json', extraPrompt: 'next' },
+        }));
+
+        const request = agentRunnerService.start.mock.calls[0][1];
+        expect(request.contextInput).toContain('first');
+        expect(request.contextInput).toContain('answer');
+        expect(request).not.toHaveProperty('providerConversationId');
+    });
+
     it('switches provider with full normalized context and default continue prompt', async () => {
         const { agentRunnerService, executor, localGitService } = createExecutor();
         localGitService.loadAgentConversation.mockResolvedValueOnce(conversation({
@@ -196,6 +269,55 @@ describe('ActionAgentExecutor', () => {
             reference: 'producing.json', reuseLastUserMessage: true,
         });
         expect(agentRunnerService.start.mock.calls[1][1]).not.toHaveProperty('providerConversationId');
+    });
+
+    it('retries a missing streaming session once with full context and one user message', async () => {
+        const { agentRunnerService, executor, localGitService } = createExecutor();
+        const sourceConversation = conversation({providerSessions: [{ agent: 'codex', conversationId: 'missing', synchronizedThroughMessageId: 'm1' }]});
+        localGitService.loadAgentConversation.mockResolvedValueOnce(sourceConversation);
+        agentRunnerService.start
+            .mockImplementationOnce(async (_project, _request, _onEvent, onComplete) => {
+                const failedConversation = {
+                    ...sourceConversation,
+                    messages: [
+                        ...sourceConversation.messages,
+                        { content: 'next', id: 'current', role: 'user', timestamp: 'now' },
+                    ],
+                };
+                onComplete(1, {
+                    conversation: failedConversation,
+                    missingSession: true,
+                    reference: 'producing.json',
+                    stderr: 'missing',
+                    stdout: '',
+                    turnStarted: false,
+                });
+
+                return { runId: 'first' };
+            })
+            .mockImplementationOnce(async (_project, request, _onEvent, onComplete) => {
+                onComplete(0, {
+                    conversation: request.conversation,
+                    missingSession: false,
+                    reference: 'producing.json',
+                    stderr: '',
+                    stdout: 'done',
+                    turnStarted: true,
+                });
+
+                return { runId: 'second' };
+            });
+
+        await executor.execute(executionInput({
+            action: { ...action, streaming: true },
+            runInput: { continueFrom: 'source.json', extraPrompt: 'next' },
+        }));
+
+        const fallbackRequest = agentRunnerService.start.mock.calls[1][1];
+        expect(fallbackRequest.contextInput).toContain('old answer');
+        expect(fallbackRequest.reuseLastUserMessage).toBe(true);
+        expect(fallbackRequest.conversation.messages.filter(({ content, role }) => role === 'user' && content === 'next')).toHaveLength(1);
+        expect(fallbackRequest).not.toHaveProperty('providerConversationId');
     });
 
     it.each([

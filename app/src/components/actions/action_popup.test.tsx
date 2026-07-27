@@ -230,7 +230,7 @@ describe('ActionPopup', () => {
         }))
     })
 
-    it('shows separate streaming Send, Finish, and Cancel controls while waiting', async () => {
+    it('shows uniform icon-only Send, Finish, and Stop controls while waiting', async () => {
         actionExecutionService.stop()
         let executionListener: ((event: ActionExecutionEvent) => void) | null = null
         const finishActionExecution = vi.fn(async () => undefined)
@@ -249,10 +249,14 @@ describe('ActionPopup', () => {
         await waitFor(() => expect(executionListener).not.toBeNull())
         const eventBase = {
             actionId: 'stream',
+            actionType: 'agent' as const,
+            autoFinish: null,
             context,
             executionId: 'execution-1',
+            interactionReady: true,
             phase: 'main' as const,
             rootActionId: 'stream',
+            streaming: true,
         }
 
         act(() => {
@@ -262,9 +266,121 @@ describe('ActionPopup', () => {
 
         expect(screen.getByRole('button', { name: 'Send' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Finish' })).toBeInTheDocument()
-        expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Stop' })).toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: 'Finish' }))
         await waitFor(() => expect(finishActionExecution).toHaveBeenCalledWith('execution-1'))
+    })
+
+    it('uses active one-shot child controls and omits Finish', async () => {
+        actionExecutionService.stop()
+        let executionListener: ((event: ActionExecutionEvent) => void) | null = null
+        window.md2Actions = {
+            loadActionRunHistory: vi.fn(async () => []),
+            onActionExecution: vi.fn((listener) => {
+                executionListener = listener
+                return vi.fn()
+            }),
+            prepareActionPrompt: vi.fn(async () => ({ prompt: 'Plan' })),
+        } as unknown as typeof window.md2Actions
+        actionExecutionService.start()
+        actionService.loadFromFiles([file(agentDefinition('one-shot', { label: 'One shot' }))])
+        renderPopup()
+        await waitFor(() => expect(executionListener).not.toBeNull())
+
+        act(() => {
+            executionListener?.({
+                actionId: 'one-shot',
+                actionType: 'agent',
+                autoFinish: null,
+                context,
+                executionId: 'execution-1',
+                interactionReady: true,
+                phase: 'main',
+                rootActionId: 'one-shot',
+                status: 'running',
+                streaming: false,
+                type: 'agentState',
+            })
+        })
+
+        expect(screen.getByRole('button', { name: 'Send' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Stop' })).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Finish' })).not.toBeInTheDocument()
+    })
+
+    it('hides agent Send controls while an agent root runs a command child', async () => {
+        actionExecutionService.stop()
+        let executionListener: ((event: ActionExecutionEvent) => void) | null = null
+        const cancelActionExecution = vi.fn(async () => undefined)
+        window.md2Actions = {
+            cancelActionExecution,
+            loadActionRunHistory: vi.fn(async () => []),
+            onActionExecution: vi.fn((listener) => {
+                executionListener = listener
+                return vi.fn()
+            }),
+            prepareActionPrompt: vi.fn(async () => ({ prompt: 'Plan' })),
+        } as unknown as typeof window.md2Actions
+        actionExecutionService.start()
+        actionService.loadFromFiles([file(agentDefinition('root-agent', { label: 'Root agent' }))])
+        renderPopup()
+        await waitFor(() => expect(executionListener).not.toBeNull())
+
+        act(() => {
+            executionListener?.({
+                actionId: 'root-agent', context, executionId: 'execution-1', phase: 'main', rootActionId: 'root-agent',
+                status: 'running', type: 'execution',
+            })
+            executionListener?.({
+                actionId: 'command-child', actionType: 'command', context, executionId: 'execution-1', phase: 'after',
+                rootActionId: 'root-agent', status: 'running', streaming: false, type: 'action',
+            })
+        })
+
+        expect(screen.queryByRole('button', { name: 'Send' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Run' })).not.toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: 'Stop' }))
+        await waitFor(() => expect(cancelActionExecution).toHaveBeenCalledWith('execution-1'))
+    })
+
+    it('shows agent controls for a streaming child of a command root', async () => {
+        actionExecutionService.stop()
+        let executionListener: ((event: ActionExecutionEvent) => void) | null = null
+        window.md2Actions = {
+            loadActionRunHistory: vi.fn(async () => []),
+            onActionExecution: vi.fn((listener) => {
+                executionListener = listener
+                return vi.fn()
+            }),
+        } as unknown as typeof window.md2Actions
+        actionExecutionService.start()
+        actionService.loadFromFiles([file(commandDefinition('root-command', { label: 'Root command' }))])
+        renderPopup()
+        await waitFor(() => expect(executionListener).not.toBeNull())
+
+        act(() => {
+            executionListener?.({
+                actionId: 'root-command', context, executionId: 'execution-1', phase: 'main', rootActionId: 'root-command',
+                status: 'running', type: 'execution',
+            })
+            executionListener?.({
+                actionId: 'stream-child',
+                actionType: 'agent',
+                autoFinish: null,
+                context,
+                executionId: 'execution-1',
+                interactionReady: true,
+                phase: 'after',
+                rootActionId: 'root-command',
+                status: 'waitingForInput',
+                streaming: true,
+                type: 'agentState',
+            })
+        })
+
+        expect(screen.getByRole('button', { name: 'Send' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Finish' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Stop' })).toBeInTheDocument()
     })
 
     it('blocks a needsWorkTree action without assignment and reports the reason', async () => {

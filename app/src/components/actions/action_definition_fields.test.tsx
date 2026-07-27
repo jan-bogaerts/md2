@@ -133,6 +133,24 @@ describe('ActionDefinitionFields', () => {
         expect(getDefinition()).toEqual({ ...definition, streaming: true })
     })
 
+    it('configures auto finish only for streaming agents', () => {
+        const definition = {
+            ...sharedFields,
+            prompt: 'Plan first',
+            streaming: true,
+            type: 'agent',
+        } satisfies RawActionDefinition
+        const getDefinition = renderFields(definition)
+        const autoFinishSwitch = screen.getByRole('switch', { name: 'Auto finish' })
+
+        fireEvent.click(autoFinishSwitch)
+
+        expect(getDefinition()).toEqual({ ...definition, autoFinish: { state: 'ready' } })
+        expect(screen.getByLabelText('Auto finish card state')).toHaveTextContent('ready')
+        fireEvent.click(screen.getByRole('switch', { name: 'Streaming' }))
+        expect(getDefinition()).toEqual({ ...definition, autoFinish: undefined, streaming: undefined })
+    })
+
     it('shows and persists agent file-change tracking with its limitations', () => {
         const definition = {
             ...sharedFields,

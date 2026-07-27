@@ -97,6 +97,7 @@ export interface ElectronActionBridge {
     finishActionExecution?(executionId: string): Promise<void>
     generateDiff(request: DiffRequest): Promise<DiffResult>
     loadActionRunHistory(request: ActionRunHistoryRequest): Promise<ActionRunHistoryEntry[]>
+    notifyActionCardStateChange?(cardInternalId: string, state: string): Promise<void>
     loadCardActivity?(request: CardActivityRequest): Promise<CardActivityFile>
     loadAgentAvailability?(): Promise<Record<string, AgentAvailability>>
     onActionExecution(callback: (event: ActionExecutionEvent) => void): () => void
@@ -106,6 +107,8 @@ export interface ElectronActionBridge {
     registerActionSchedule?(request: ActionScheduleRegistrationRequest): Promise<void>
     runSearchRegexpAgent(input: string, callback?: (event: AgentRunEvent) => void): Promise<string>
     sendActionMessage?(executionId: string, content: string): Promise<void>
+    sendActionQueuedMessage?(executionId: string, revision: number): Promise<void>
+    setActionQueuedMessage?(executionId: string, content: string, revision: number): Promise<void>
     startAction(request: ActionStartRequest): Promise<string>
     startUnattendedAction?(request: ActionStartRequest): Promise<string>
 }

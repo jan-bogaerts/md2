@@ -3,6 +3,7 @@ import { useState } from 'react'
 import type { ChangeEvent } from 'react'
 import type { SelectChangeEvent } from '@mui/material'
 import type { AgentQuestion } from '../../data/action_run_types'
+import { ActionAgentSingleResponseQuestion } from './action_agent_single_response_question'
 
 interface ActionAgentQuestionProps {
     onAnswer: (answers: Record<string, string[]>) => Promise<void>
@@ -30,6 +31,10 @@ export function ActionAgentQuestion({ onAnswer, questions }: ActionAgentQuestion
         } finally {
             setSubmitting(false)
         }
+    }
+    const singleQuestion = questions.length === 1 ? questions[0] : null
+    if (singleQuestion?.options?.length) {
+        return <ActionAgentSingleResponseQuestion onAnswer={onAnswer} question={singleQuestion} />
     }
 
     return (
@@ -67,7 +72,7 @@ export function ActionAgentQuestion({ onAnswer, questions }: ActionAgentQuestion
             ))}
             <Stack direction="row" sx={{ justifyContent: 'flex-end' }}>
                 <Button disabled={!complete || submitting} onClick={handleSubmit} size="small" variant="contained">
-                    Answer
+                    Submit
                 </Button>
             </Stack>
         </Stack>

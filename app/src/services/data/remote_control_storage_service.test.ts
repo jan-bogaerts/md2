@@ -293,15 +293,21 @@ describe('RemoteControlStorageService', () => {
         await flushPromises()
         const operations = [
             firstOperation,
+            service.setActionQueuedMessage('action-1', 'next', 3),
+            service.sendActionQueuedMessage('action-1', 3),
             service.answerActionQuestion('action-1', 7, { confirm: ['Yes'] }),
             service.finishActionExecution('action-1'),
+            service.notifyActionCardStateChange('card-1', 'ready'),
         ]
         await flushPromises()
         const requests = socket.sent.map((entry) => JSON.parse(entry) as { id: string, method: string, params: unknown[] })
         expect(requests.map(({ method, params }) => ({ method, params }))).toEqual([
             { method: 'sendActionMessage', params: ['action-1', 'approved'] },
+            { method: 'setActionQueuedMessage', params: ['action-1', 'next', 3] },
+            { method: 'sendActionQueuedMessage', params: ['action-1', 3] },
             { method: 'answerActionQuestion', params: ['action-1', 7, { confirm: ['Yes'] }] },
             { method: 'finishActionExecution', params: ['action-1'] },
+            { method: 'notifyActionCardStateChange', params: ['card-1', 'ready'] },
         ])
         requests.forEach(({ id }) => socket.receive({ id, result: null }))
 

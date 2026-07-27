@@ -359,6 +359,14 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         await this.request('sendActionMessage', [executionId, content])
     }
 
+    async sendActionQueuedMessage(executionId: string, revision: number): Promise<void> {
+        await this.request('sendActionQueuedMessage', [executionId, revision])
+    }
+
+    async setActionQueuedMessage(executionId: string, content: string, revision: number): Promise<void> {
+        await this.request('setActionQueuedMessage', [executionId, content, revision])
+    }
+
     async answerActionQuestion(
         executionId: string,
         requestId: number | string | null,
@@ -377,6 +385,10 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
 
     async loadActionRunHistory(request: ActionRunHistoryRequest): Promise<ActionRunHistoryEntry[]> {
         return this.request<ActionRunHistoryEntry[]>('loadActionRunHistory', [request])
+    }
+
+    async notifyActionCardStateChange(cardInternalId: string, state: string): Promise<void> {
+        await this.request('notifyActionCardStateChange', [cardInternalId, state])
     }
 
     async loadCardActivity(request: CardActivityRequest): Promise<CardActivityFile> {

@@ -112,6 +112,7 @@ export function editableActionDefinition(action: ActionDefinition): RawActionDef
         type: action.type,
         ...(action.icon !== null ? { icon: action.icon } : {}),
         ...(action.appliesTo !== null ? { appliesTo: action.appliesTo } : {}),
+        ...(action.autoFinish != null ? { autoFinish: action.autoFinish } : {}),
         ...(action.onBefore.length > 0 ? { onBefore: action.onBefore.map(({ id }) => id) } : {}),
         ...(action.on.length > 0 ? { on: action.on.map(({ actionId, condition }) => ({ actionId, condition })) } : {}),
         ...(action.onAfter.length > 0 ? { onAfter: action.onAfter.map(({ id }) => id) } : {}),

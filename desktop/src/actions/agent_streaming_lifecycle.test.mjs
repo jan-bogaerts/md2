@@ -119,4 +119,66 @@ describe('AgentRunnerService streaming lifecycle', () => {
             await rm(rootPath, { force: true, recursive: true });
         }
     }, TEST_TIMEOUT_MS);
+
+    it('reports a missing resumed Codex thread without advancing its cursor', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-streaming-'));
+        const scriptPath = join(rootPath, 'missing-codex-thread.cjs');
+        const service = new AgentRunnerService({ persistConversation: vi.fn(async () => undefined) });
+        const completion = Promise.withResolvers();
+        const conversation = {
+            actionId: 'main',
+            completedAt: 'earlier',
+            events: [],
+            id: 'conversation-1',
+            messages: [{ content: 'old', id: 'message-1', role: 'assistant', timestamp: 'earlier' }],
+            providerSessions: [{
+                agent: 'codex',
+                conversationId: 'thread-missing',
+                createdAt: 'earlier',
+                lastUsedAt: 'earlier',
+                synchronizedThroughMessageId: 'message-1',
+            }],
+            startedAt: 'earlier',
+            status: 'completed',
+            title: 'Main',
+        };
+
+        try {
+            await prepareProject(rootPath);
+            await writeFile(scriptPath, [
+                "const readline=require('node:readline');",
+                "const input=readline.createInterface({input:process.stdin});",
+                "input.on('line',(line)=>{",
+                "const message=JSON.parse(line);",
+                "if(message.method==='initialize')console.log(JSON.stringify({id:message.id,result:{}}));",
+                "if(message.method==='thread/resume')console.log(JSON.stringify({id:message.id,error:{code:-32600,message:'no rollout found for thread id thread-missing'}}));",
+                "});",
+            ].join(''));
+            await service.start(
+                { branch: 'main', rootPath },
+                {
+                    agent: 'codex',
+                    command: ['node', scriptPath],
+                    conversation,
+                    projectFolder: 'design',
+                    prompt: 'next',
+                    providerConversationId: 'thread-missing',
+                    streaming: true,
+                },
+                () => undefined,
+                (exitCode, run) => completion.resolve({ exitCode, run }),
+                completion.reject,
+            );
+            const result = await completion.promise;
+
+            expect(result.exitCode).not.toBe(0);
+            expect(result.run.missingSession).toBe(true);
+            expect(result.run.turnStarted).toBe(false);
+            expect(result.run.conversation.messages.filter(({ content, role }) => content === 'next' && role === 'user')).toHaveLength(1);
+            expect(result.run.conversation.providerSessions[0].synchronizedThroughMessageId).toBe('message-1');
+        } finally {
+            await service.stopAll();
+            await rm(rootPath, { force: true, recursive: true });
+        }
+    }, TEST_TIMEOUT_MS);
 });

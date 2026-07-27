@@ -11,6 +11,6 @@ describe('resolveActionDefinition', () => {
         const profiles = [{ name: 'codex' }];
 
         await expect(resolveActionDefinition(actionDefinitionCache, profiles, 'test')).resolves.toBe(action);
-        expect(actionDefinitionCache.resolve).toHaveBeenCalledWith('test', profiles);
+        expect(actionDefinitionCache.resolve).toHaveBeenCalledWith('test', profiles, undefined);
     });
 });

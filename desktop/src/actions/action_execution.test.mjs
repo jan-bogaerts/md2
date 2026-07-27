@@ -61,8 +61,10 @@ function createExecution(rootAction, overrides = {}) {
     const agentExecutor = overrides.agentExecutor ?? { execute: vi.fn() };
     const execution = new ActionExecution({
         actionsFolder: 'actions',
-        activityOrigin: { cardInternalId: 'card-1', kind: 'card' },
-        context,
+        activityOrigin: overrides.context?.kind === 'project'
+            ? { kind: 'project' }
+            : { cardInternalId: 'card-1', kind: 'card' },
+        context: overrides.context ?? context,
         executionId: 'execution-1',
         project,
         projectFolder: 'design',
@@ -277,6 +279,159 @@ describe('ActionExecution', () => {
         await execution.completion;
 
         expect(agentRunnerService.stop).toHaveBeenCalledWith('agent-run');
+    });
+
+    it('runs a queued one-shot follow-up before action completion', async () => {
+        const firstResult = {
+            agent: 'codex', changedPaths: ['first.ts'], conversationId: 'conversation', exitCode: 0,
+            model: 'gpt', prompt: 'run', queuedMessage: 'follow up', reference: 'run.json',
+            stderr: 'first error', stdout: 'first output', thinkingLevel: 'none',
+        };
+        const secondResult = {
+            ...firstResult,
+            changedPaths: ['second.ts'],
+            prompt: 'follow up',
+            queuedMessage: null,
+            stderr: 'second error',
+            stdout: 'second output',
+        };
+        const agentExecutor = { execute: vi.fn().mockResolvedValueOnce(firstResult).mockResolvedValueOnce(secondResult) };
+        const rootAction = action('main', { agent: 'codex', model: 'gpt', prompt: 'run', type: 'agent' });
+        const { events, execution } = createExecution(rootAction, { agentExecutor });
+
+        await execution.completion;
+
+        expect(agentExecutor.execute).toHaveBeenCalledTimes(2);
+        expect(agentExecutor.execute.mock.calls[1][0].runInput).toMatchObject({
+            continueFrom: 'run.json',
+            prompt: 'follow up',
+        });
+        expect(events.findLast(({ type }) => type === 'action')).toMatchObject({ status: 'completed' });
+    });
+
+    it('rejects autoFinish without card context before provider start', async () => {
+        const agentExecutor = { execute: vi.fn() };
+        const rootAction = action('main', {
+            agent: 'codex',
+            autoFinish: { state: 'ready' },
+            model: 'gpt',
+            prompt: 'run',
+            streaming: true,
+            type: 'agent',
+        });
+        const { execution } = createExecution(rootAction, {
+            agentExecutor,
+            context: { kind: 'project' },
+        });
+        await expect(execution.completion).resolves.toMatchObject({
+            failure: expect.stringContaining('requires card context for autoFinish'),
+            status: 'failed',
+        });
+        expect(agentExecutor.execute).not.toHaveBeenCalled();
+    });
+
+    it('ignores auto-finish state changes while the configured child is inactive', async () => {
+        const commandCompletion = deferred();
+        const agentCompletion = deferred();
+        const agentStarted = deferred();
+        const autoFinishAction = action('stream', {agent: 'codex', autoFinish: { state: 'ready' }, model: 'gpt', prompt: 'run', streaming: true, type: 'agent'});
+        const rootAction = action('main', { onAfter: [autoFinishAction] });
+        const commandRunner = vi.fn(async (_project, command) => {
+            await commandCompletion.promise;
+
+            return { command, exitCode: 0, stderr: '', stdout: command };
+        });
+        const agentRunnerService = { finish: vi.fn(), stop: vi.fn() };
+        const agentExecutor = {
+            execute: vi.fn(async (input) => {
+                input.onActiveRunChange('agent-run');
+                agentStarted.resolve();
+                await agentCompletion.promise;
+                input.onActiveRunChange(null);
+
+                return {
+                    agent: 'codex', conversationId: 'conversation', exitCode: 0, model: 'gpt', prompt: 'run',
+                    reference: 'run.json', stderr: '', stdout: '', thinkingLevel: 'none',
+                };
+            }),
+        };
+        const { execution } = createExecution(rootAction, { agentExecutor, agentRunnerService, commandRunner });
+        execution.handleCardStateChange('card-1', 'ready');
+        commandCompletion.resolve();
+        await agentStarted.promise;
+
+        expect(agentRunnerService.finish).not.toHaveBeenCalled();
+        execution.handleCardStateChange('other-card', 'ready');
+        execution.handleCardStateChange('card-1', 'design');
+        execution.handleCardStateChange('card-1', 'ready');
+        expect(agentRunnerService.finish).toHaveBeenCalledOnce();
+        expect(agentRunnerService.finish).toHaveBeenCalledWith('agent-run');
+
+        agentCompletion.resolve();
+        await execution.completion;
+    });
+
+    it('finishes every matching streaming child in one chain', async () => {
+        const firstCompletion = deferred();
+        const secondCompletion = deferred();
+        const firstAction = action('first', {agent: 'codex', autoFinish: { state: 'ready' }, model: 'gpt', prompt: 'run', streaming: true, type: 'agent'});
+        const secondAction = action('second', {agent: 'codex', autoFinish: { state: 'ready' }, model: 'gpt', prompt: 'run', streaming: true, type: 'agent'});
+        const rootAction = action('main', { onAfter: [secondAction], onBefore: [firstAction] });
+        const agentRunnerService = { finish: vi.fn(), stop: vi.fn() };
+        const completions = [firstCompletion, secondCompletion];
+        const agentExecutor = {
+            execute: vi.fn(async (input) => {
+                const runIndex = agentExecutor.execute.mock.calls.length;
+                input.onActiveRunChange(`agent-run-${runIndex}`);
+                await completions[runIndex - 1].promise;
+                input.onActiveRunChange(null);
+
+                return {
+                    agent: 'codex', conversationId: `conversation-${runIndex}`, exitCode: 0, model: 'gpt', prompt: 'run',
+                    reference: `run-${runIndex}.json`, stderr: '', stdout: '', thinkingLevel: 'none',
+                };
+            }),
+        };
+        const { execution } = createExecution(rootAction, { agentExecutor, agentRunnerService });
+        await vi.waitFor(() => expect(agentExecutor.execute).toHaveBeenCalledTimes(1));
+        execution.handleCardStateChange('card-1', 'ready');
+        firstCompletion.resolve();
+        await vi.waitFor(() => expect(agentExecutor.execute).toHaveBeenCalledTimes(2));
+        execution.handleCardStateChange('card-1', 'ready');
+        secondCompletion.resolve();
+        await execution.completion;
+
+        expect(agentRunnerService.finish.mock.calls).toEqual([['agent-run-1'], ['agent-run-2']]);
+    });
+
+    it('remembers an auto-finish transition occurring before the active process is ready', async () => {
+        const processReady = deferred();
+        const agentCompletion = deferred();
+        const executorStarted = deferred();
+        const agentRunnerService = { finish: vi.fn(), stop: vi.fn() };
+        const agentExecutor = {
+            execute: vi.fn(async (input) => {
+                executorStarted.resolve();
+                await processReady.promise;
+                input.onActiveRunChange('agent-run');
+                await agentCompletion.promise;
+                input.onActiveRunChange(null);
+
+                return {
+                    agent: 'codex', conversationId: 'conversation', exitCode: 0, model: 'gpt', prompt: 'run',
+                    reference: 'run.json', stderr: '', stdout: '', thinkingLevel: 'none',
+                };
+            }),
+        };
+        const rootAction = action('stream', {agent: 'codex', autoFinish: { state: 'ready' }, model: 'gpt', prompt: 'run', streaming: true, type: 'agent'});
+        const { execution } = createExecution(rootAction, { agentExecutor, agentRunnerService });
+        await executorStarted.promise;
+        execution.handleCardStateChange('card-1', 'ready');
+        processReady.resolve();
+        await vi.waitFor(() => expect(agentRunnerService.finish).toHaveBeenCalledWith('agent-run'));
+        agentCompletion.resolve();
+
+        await execution.completion;
     });
 
     it('publishes nested agent events and terminal metadata', async () => {

@@ -193,6 +193,11 @@ function createLocalBridgeDispatch(dependencies) {
 
             return localGitService.loadActionRunHistory(currentLocalProject, historyRequest);
         },
+        notifyActionCardStateChange: (cardInternalId, state) => {
+            if (!actionRunnerService) throw new Error('Action runner is not available');
+
+            return actionRunnerService.handleCardStateChange(cardInternalId, state);
+        },
         loadCardActivity: async (request) => {
             if (!actionRunnerService) throw new Error('Action runner is not available');
             if (!request || typeof request.cardInternalId !== 'string' || request.cardInternalId.length === 0) {
@@ -258,6 +263,16 @@ function createLocalBridgeDispatch(dependencies) {
             if (!actionRunnerService) throw new Error('Action runner is not available');
 
             return actionRunnerService.sendAgentMessage(executionId, content);
+        },
+        sendActionQueuedMessage: (executionId, revision) => {
+            if (!actionRunnerService) throw new Error('Action runner is not available');
+
+            return actionRunnerService.sendQueuedAgentMessage(executionId, revision);
+        },
+        setActionQueuedMessage: (executionId, content, revision) => {
+            if (!actionRunnerService) throw new Error('Action runner is not available');
+
+            return actionRunnerService.setAgentQueuedMessage(executionId, content, revision);
         },
         startAction: (request) => {
             if (!actionRunnerService) throw new Error('Action runner is not available');

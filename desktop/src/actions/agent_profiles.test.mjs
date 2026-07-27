@@ -53,7 +53,7 @@ describe('agent profile resolution', () => {
         ]);
         expect(buildAgentStreamingCommand(claude, 'sonnet', 'none')).toEqual([
             'claude', '--model', 'sonnet', '--print', '--verbose', '--output-format', 'stream-json',
-            '--input-format', 'stream-json',
+            '--input-format', 'stream-json', '--permission-prompt-tool', 'stdio',
         ]);
         expect(supportsAgentStreaming(custom)).toBe(false);
         expect(() => buildAgentStreamingCommand(custom, 'fast', 'none'))

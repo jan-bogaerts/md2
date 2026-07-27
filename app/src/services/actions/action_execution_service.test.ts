@@ -1,11 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ActionExecutionEvent } from '../../data/action_run_types'
 import { setActionBridgeOverride, type ElectronActionBridge } from '../../data/electron_action_bridge'
-import { ActionExecutionService } from './action_execution_service'
+import { ActionExecutionService, notifyActionCardStateChange } from './action_execution_service'
 
 const context = { file: 'design/F-1.md', kind: 'card' as const }
 
-function bridgeWithEvents() {
+function bridgeWithEvents(overrides: Partial<ElectronActionBridge> = {}) {
     let listener: ((event: ActionExecutionEvent) => void) | null = null
     const bridge = {
         onActionExecution: vi.fn((nextListener) => {
@@ -13,6 +13,7 @@ function bridgeWithEvents() {
 
             return vi.fn()
         }),
+        ...overrides,
     } as unknown as ElectronActionBridge
     const emit = (event: ActionExecutionEvent) => {
         if (!listener) throw new Error('Missing execution listener')
@@ -170,6 +171,103 @@ describe('ActionExecutionService', () => {
         emit(executionEvent('completed'))
 
         expect(runningChanged).toHaveBeenCalledTimes(2)
+        service.stop()
+    })
+
+    it('preserves and synchronizes active-action prompt drafts', async () => {
+        const setActionQueuedMessage = vi.fn(async () => undefined)
+        const activeContext = { ...context, cardInternalId: 'card-1' }
+        const { bridge, emit } = bridgeWithEvents({ setActionQueuedMessage })
+        setActionBridgeOverride(bridge)
+        const service = new ActionExecutionService()
+        service.start()
+        emit({
+            actionId: 'review',
+            actionType: 'agent',
+            autoFinish: null,
+            context: activeContext,
+            executionId: 'execution-1',
+            interactionReady: true,
+            phase: 'main',
+            rootActionId: 'review',
+            status: 'running',
+            streaming: false,
+            type: 'agentState',
+        })
+
+        await service.setPromptDraft('review', activeContext, 'Follow up')
+
+        expect(service.getPromptDraft('review', activeContext)).toBe('Follow up')
+        expect(setActionQueuedMessage).toHaveBeenCalledWith('execution-1', 'Follow up', 0)
+        service.stop()
+    })
+
+    it('routes card-state changes to desktop without replaying renderer execution state', async () => {
+        const notifyBridge = vi.fn(async () => undefined)
+        const { bridge } = bridgeWithEvents({ notifyActionCardStateChange: notifyBridge })
+        setActionBridgeOverride(bridge)
+
+        await notifyActionCardStateChange(null, 'ready')
+        await notifyActionCardStateChange('card-1', 'ready')
+
+        expect(notifyBridge).toHaveBeenCalledOnce()
+        expect(notifyBridge).toHaveBeenCalledWith('card-1', 'ready')
+    })
+
+    it('clears a queued draft when streaming sends it automatically', async () => {
+        const setActionQueuedMessage = vi.fn(async () => undefined)
+        const activeContext = { ...context, cardInternalId: 'card-1' }
+        const { bridge, emit } = bridgeWithEvents({ setActionQueuedMessage })
+        setActionBridgeOverride(bridge)
+        const service = new ActionExecutionService()
+        service.start()
+        emit({
+            actionId: 'review',
+            actionType: 'agent',
+            autoFinish: null,
+            context: activeContext,
+            executionId: 'execution-1',
+            interactionReady: true,
+            phase: 'main',
+            rootActionId: 'review',
+            status: 'running',
+            streaming: true,
+            type: 'agentState',
+        })
+        emit({
+            actionId: 'review',
+            context: activeContext,
+            executionId: 'execution-1',
+            phase: 'main',
+            rootActionId: 'review',
+            status: 'running',
+            type: 'update',
+            update: {
+                conversationId: 'conversation-1',
+                kind: 'agentStarted',
+                reference: 'activity.json#conversation=conversation-1',
+                startedAt: '2026-07-27T10:00:00.000Z',
+                title: 'Review',
+                userMessage: { content: 'Start', id: 'user-1', role: 'user', timestamp: '2026-07-27T10:00:00.000Z' },
+            },
+        })
+        await service.setPromptDraft('review', activeContext, 'Follow up')
+
+        emit({
+            actionId: 'review',
+            context: activeContext,
+            executionId: 'execution-1',
+            phase: 'main',
+            rootActionId: 'review',
+            status: 'running',
+            type: 'update',
+            update: {
+                kind: 'agentUserMessage',
+                userMessage: { content: 'Follow up', id: 'user-2', role: 'user', timestamp: '2026-07-27T10:01:00.000Z' },
+            },
+        })
+
+        expect(service.getPromptDraft('review', activeContext)).toBe('')
         service.stop()
     })
 })

@@ -52,6 +52,10 @@ describe('action activity integration', () => {
                 }),
                 localGitService: {
                     ...localGitService,
+                    loadProjectConfig: async (activityProject) => ({
+                        ...await localGitService.loadProjectConfig(activityProject),
+                        states: [{ state: 'ready' }],
+                    }),
                     appendAndCommitActionActivity: (activityProject, activityProjectFolder, origin, record) => (
                         localGitService.appendActionActivity(activityProject, activityProjectFolder, origin, record)
                     ),

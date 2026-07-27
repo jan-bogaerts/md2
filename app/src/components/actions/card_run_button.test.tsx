@@ -253,7 +253,7 @@ describe('CardRunButton', () => {
 
         expect(await dialog.findByLabelText('Prompt')).toBeInTheDocument()
         expect(dialog.getByLabelText('Preset name')).toHaveFocus()
-        expect(dialog.getByRole('button', { name: 'Run' })).toBeDisabled()
+        expect(dialog.getByRole('button', { name: 'Send' })).toBeDisabled()
     })
 
     it('shows the plain Run button when the agent is idle', () => {
