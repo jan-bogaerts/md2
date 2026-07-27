@@ -12,7 +12,7 @@ agents:
   - design/activity/card__fb3a7428-2f7d-48dd-beda-ce7279c516e7.json#conversation=agent-1079b9fe-9286-4f0d-9a40-26e3f302e70e
   - design/activity/card__fb3a7428-2f7d-48dd-beda-ce7279c516e7.json#conversation=agent-98b60bf1-8055-4df2-987d-0a9b26326714
 policy:
-after: 8c0fa571-e805-47db-a32e-29d3081edcf4
+after: 964fdcac-159c-49dc-af83-79f532e9651d
 ---
 
 # Goal

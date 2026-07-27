@@ -3,12 +3,12 @@ author:
 id: F_67
 internalId: 38407576-1927-488d-a77d-998614f18899
 title: show spinner on load project
-status: new
+status: ready
 owner: 
 affects:
 agents:
 policy:
-after: 
+after: 3e151ae1-ffa3-42ba-819c-a6973683af03
 ---
 
 # Goal

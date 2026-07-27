@@ -1,14 +1,14 @@
 ---
 id: F-8
 title: Signed Windows Electron package with bundled React app
-status: design
+status: ready
 owner: JB
 affects:
 policy:
   checkLinting: true
   requireTests: true
 internalId: 964fdcac-159c-49dc-af83-79f532e9651d
-after: 0f92d6ef-ec13-478c-b3f9-d1b0bfcf391d
+after: 8c0fa571-e805-47db-a32e-29d3081edcf4
 ---
 
 ## Goal
