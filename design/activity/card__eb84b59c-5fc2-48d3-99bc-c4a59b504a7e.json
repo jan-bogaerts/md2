@@ -1,0 +1,38 @@
+{
+  "conversations": [
+    {
+      "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "cardInternalId": "eb84b59c-5fc2-48d3-99bc-c4a59b504a7e",
+      "cardPath": "design/feature_descriptions/F_70_layout_add_card.md",
+      "completedAt": null,
+      "events": [
+        {
+          "content": "codex --model gpt-5.6-sol -c model_reasoning_effort=medium app-server --stdio",
+          "id": "agent-turn-95efbbeb-ab56-44fb-aad2-e837397b2787-started",
+          "timestamp": "2026-07-27T18:08:34.445Z",
+          "type": "started"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-f5b898bd-6973-40cc-804a-1f18ac2775f3",
+      "messages": [
+        {
+          "content": "Add \\`Current state\\`, \\`implementation details\\`, \\`acceptance criteria\\` for \\`design/feature_descriptions/F_70_layout_add_card.md\\`.&#x20;\n\nRead all referenced files before you begin. &#x20;\nAsk any question if something is ambiguous or not yet clear.\nKeep it short and to the point. use $caveman skill",
+          "id": "agent-turn-95efbbeb-ab56-44fb-aad2-e837397b2787-user",
+          "role": "user",
+          "timestamp": "2026-07-27T18:08:34.445Z"
+        }
+      ],
+      "providerSessions": [],
+      "startedAt": "2026-07-27T18:08:34.445Z",
+      "status": "running",
+      "title": "complete card"
+    }
+  ],
+  "origin": {
+    "cardInternalId": "eb84b59c-5fc2-48d3-99bc-c4a59b504a7e",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 1
+}
