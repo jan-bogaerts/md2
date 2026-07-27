@@ -398,6 +398,7 @@
     {
       "actionId": "md2.custom-prompt",
       "cardInternalId": null,
+      "cardPath": null,
       "completedAt": "2026-07-27T12:24:29.015Z",
       "events": [
         {
@@ -568,6 +569,30 @@
       "rootActionLabel": "prep worktree",
       "startedAt": "2026-07-25T08:51:56.001Z",
       "status": "failed"
+    },
+    {
+      "commits": [],
+      "completedAt": "2026-07-27T12:24:29.307Z",
+      "conversationIds": [
+        "agent-d010c35f-86a7-4cc5-80b2-e6773caa2e13"
+      ],
+      "executionId": "action-8e4a466b-1368-4c1e-8b33-4fe2536afc4e",
+      "history": {
+        "agent": "codex",
+        "completedAt": "2026-07-27T12:24:29.307Z",
+        "model": "gpt-5.6-sol",
+        "output": "I’ll trace the release configuration and packaging paths in both the frontend and desktop host, then report whether the folder is configurable and where.\n\nThe repository-wide scan is still running; I’m narrowing the result to actual configuration and release-writing code once it completes.\n\nNo—not as a separate release-folder setting.\n\nReleases are always archived to:\n\n```text\n<workingFolder>/history/<releaseName>\n```\n\nThe `history` segment is hard-coded in [release_archiving.ts](C:/Users/janbo/Documents/dev/md2/app/src/data/release_archiving.ts:5), and `ProjectConfig` has no `releaseFolder` or `historyFolder` property ([data_types.ts](C:/Users/janbo/Documents/dev/md2/app/src/data/data_types.ts:30)).\n\nYou can customize `projectFolder` and `workingFolder`, which indirectly changes the location. With the current configuration, releases go to:\n\n```text\ndesign/feature_descriptions/history/<releaseName>\n```\n\nSupporting a genuinely custom release folder would require a new project configuration field and updates to archiving, loading/search grouping, and agent-usage grouping.2026-07-27T12:22:54.835707Z ERROR codex_models_manager::cache: failed to load models cache: missing field `supports_reasoning_summaries` at line 86 column 5\n2026-07-27T12:23:15.107208Z ERROR codex_models_manager::manager: failed to renew cache TTL: missing field `supports_reasoning_summaries` at line 86 column 5\n2026-07-27T12:23:20.238507Z ERROR codex_models_manager::manager: failed to renew cache TTL: missing field `supports_reasoning_summaries` at line 86 column 5\n2026-07-27T12:23:35.815273Z ERROR codex_models_manager::manager: failed to renew cache TTL: missing field `supports_reasoning_summaries` at line 86 column 5\n2026-07-27T12:23:54.351144Z ERROR codex_models_manager::manager: failed to renew cache TTL: missing field `supports_reasoning_summaries` at line 86 column 5\n2026-07-27T12:23:58.401360Z ERROR codex_models_manager::manager: failed to renew cache TTL: missing field `supports_reasoning_summaries` at line 86 column 5\n2026-07-27T12:24:03.615168Z ERROR codex_models_manager::manager: failed to renew cache TTL: missing field `supports_reasoning_summaries` at line 86 column 5\n2026-07-27T12:24:21.546076Z ERROR codex_models_manager::manager: failed to renew cache TTL: missing field `supports_reasoning_summaries` at line 86 column 5\n2026-07-27T12:24:23.457011Z ERROR codex_models_manager::manager: failed to renew cache TTL: missing field `supports_reasoning_summaries` at line 86 column 5\n",
+        "prompt": "does the system already support a custom folder for the releases?",
+        "status": "completed",
+        "thinkingLevel": "medium"
+      },
+      "origin": {
+        "kind": "project"
+      },
+      "rootActionId": "md2.custom-prompt",
+      "rootActionLabel": "Custom prompt",
+      "startedAt": "2026-07-27T12:22:54.053Z",
+      "status": "completed"
     }
   ],
   "version": 1
