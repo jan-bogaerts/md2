@@ -246,6 +246,12 @@
           "id": "agent-turn-a5529d72-8ae3-4a24-b2b5-04188fcced81-turn-1-assistant",
           "role": "assistant",
           "timestamp": "2026-07-27T17:49:00.985Z"
+        },
+        {
+          "content": "go",
+          "id": "agent-turn-a5529d72-8ae3-4a24-b2b5-04188fcced81-user-2",
+          "role": "user",
+          "timestamp": "2026-07-27T17:49:35.239Z"
         }
       ],
       "providerSessions": [
@@ -258,7 +264,7 @@
         }
       ],
       "startedAt": "2026-07-27T17:47:36.442Z",
-      "status": "waitingForInput",
+      "status": "running",
       "title": "implement",
       "usage": {
         "cachedInputTokens": 39680,
