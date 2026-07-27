@@ -3,11 +3,12 @@ author:
 id: F_83
 internalId: 31eb5a7b-6d2b-407c-a83f-8e6c9c0201f3
 title: chatlog sticky at end
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
   - design/activity/card__31eb5a7b-6d2b-407c-a83f-8e6c9c0201f3.json#conversation=agent-43afb182-62e7-4aba-9fa5-3aa60b6b4c1a
+  - design/activity/card__31eb5a7b-6d2b-407c-a83f-8e6c9c0201f3.json#conversation=agent-888fbbab-f855-444e-ae9c-eee9f616617f
 policy:
 after: e08c4b32-0bff-42a8-9df2-b0df009606ab
 ---
