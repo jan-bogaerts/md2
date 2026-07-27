@@ -4,7 +4,7 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "bd965ac0-8031-4f9e-a80d-0cdc1bcfa0c6",
       "cardPath": "design/feature_descriptions/F_82_waitforinput_state_display.md",
-      "completedAt": null,
+      "completedAt": "2026-07-27T14:41:45.978Z",
       "events": [
         {
           "content": "codex --model gpt-5.6-sol -c model_reasoning_effort=medium app-server --stdio",
@@ -323,6 +323,12 @@
           "id": "agent-turn-d0aaf9db-4961-4910-b7f6-ea3a93d566a4-turn-1-completed",
           "timestamp": "2026-07-27T14:32:48.976Z",
           "type": "turnCompleted"
+        },
+        {
+          "content": "0",
+          "id": "agent-turn-d0aaf9db-4961-4910-b7f6-ea3a93d566a4-closed",
+          "timestamp": "2026-07-27T14:41:45.978Z",
+          "type": "closed"
         }
       ],
       "hasExplicitTitle": true,
@@ -339,7 +345,7 @@
           "content": "Using `caveman` skill: terse updates and final. First read skill, feature doc, every referenced file. Then inspect relevant code before edit.Feature doc has no explicit references. Reading required project architecture/style docs; mapping `WaitForInput` state through services, cards, popup, tests.Current code already carries `waitingForInput` end-to-end. Gap appears presentation: popup action buttons still receive only “running IDs,” use primary spinner, and expose “Agent is running.” Verifying card refresh path and tests before wording.Updated [F_82_waitforinput_state_display.md](C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_82_waitforinput_state_display.md).\n\nAdded:\n\n- Current state\n- Implementation details\n- Acceptance criteria\n\n`git diff --check` passes. Tests skipped; documentation-only change.",
           "id": "agent-turn-d0aaf9db-4961-4910-b7f6-ea3a93d566a4-turn-1-assistant",
           "role": "assistant",
-          "timestamp": "2026-07-27T14:32:48.976Z"
+          "timestamp": "2026-07-27T14:41:45.978Z"
         }
       ],
       "providerSessions": [
@@ -347,12 +353,12 @@
           "agent": "codex",
           "conversationId": "019fa3f8-0ff6-78d0-8faa-5e78de581941",
           "createdAt": "2026-07-27T14:32:48.976Z",
-          "lastUsedAt": "2026-07-27T14:32:48.976Z",
+          "lastUsedAt": "2026-07-27T14:41:45.978Z",
           "synchronizedThroughMessageId": "agent-turn-d0aaf9db-4961-4910-b7f6-ea3a93d566a4-turn-1-assistant"
         }
       ],
       "startedAt": "2026-07-27T14:26:10.152Z",
-      "status": "waitingForInput",
+      "status": "completed",
       "title": "complete card",
       "usage": {
         "cachedInputTokens": 92928,
