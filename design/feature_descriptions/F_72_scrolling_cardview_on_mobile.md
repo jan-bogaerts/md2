@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
 policy:
+after: e08c4b32-0bff-42a8-9df2-b0df009606ab
 ---
 Scrolling cardview on mobile is tricky. Only small space to drag along edges. Otherwise card drag starts.&#x20;
 
