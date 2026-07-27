@@ -3,13 +3,13 @@ author:
 id: F_69
 internalId: e08c4b32-0bff-42a8-9df2-b0df009606ab
 title: Config in dialog
-status: new
+status: ready for implementation
 owner: 
 affects:
 agents:
   - design/activity/card__e08c4b32-0bff-42a8-9df2-b0df009606ab.json#conversation=agent-57cd0e98-676d-4a2a-b564-5cf3a2d6f88a
 policy:
-after: 31eb5a7b-6d2b-407c-a83f-8e6c9c0201f3
+after: 
 ---
 # Goal
 
