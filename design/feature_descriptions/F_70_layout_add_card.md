@@ -3,13 +3,13 @@ author:
 id: F_70
 internalId: eb84b59c-5fc2-48d3-99bc-c4a59b504a7e
 title: Layout add card
-status: new
+status: ready for implementation
 owner: 
 affects:
 agents:
   - design/activity/card__eb84b59c-5fc2-48d3-99bc-c4a59b504a7e.json#conversation=agent-f5b898bd-6973-40cc-804a-1f18ac2775f3
 policy:
-after: e08c4b32-0bff-42a8-9df2-b0df009606ab
+after: 
 ---
 ´add card layout needs improving. Especialy on mobile.
 
