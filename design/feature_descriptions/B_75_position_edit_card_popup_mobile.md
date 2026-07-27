@@ -9,6 +9,7 @@ affects:
 agents:
 policy:
 after: 
+worktree: 1
 ---
 On mobile, the ´edit card´ popup should take up the window size.
 
