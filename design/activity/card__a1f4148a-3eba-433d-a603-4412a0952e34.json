@@ -4,7 +4,7 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "a1f4148a-3eba-433d-a603-4412a0952e34",
       "cardPath": "design/feature_descriptions/F_72_scrolling_cardview_on_mobile.md",
-      "completedAt": null,
+      "completedAt": "2026-07-27T17:46:04.536Z",
       "events": [
         {
           "content": "codex --model gpt-5.5 app-server --stdio",
@@ -113,6 +113,12 @@
           "id": "agent-turn-c10764d1-c02c-452d-a3f6-80a802d3be6b-turn-1-completed",
           "timestamp": "2026-07-27T17:32:33.085Z",
           "type": "turnCompleted"
+        },
+        {
+          "content": "0",
+          "id": "agent-turn-c10764d1-c02c-452d-a3f6-80a802d3be6b-closed",
+          "timestamp": "2026-07-27T17:46:04.536Z",
+          "type": "closed"
         }
       ],
       "hasExplicitTitle": true,
@@ -129,7 +135,7 @@
           "content": "Using requested `$caveman`. First inspect feature doc, every linked file, relevant code paths. Then edit only requested sections.`after` points to `F_69_config_in_dialog.md`. Reading it before analysis. Card view code and tests next; no ambiguity yet.Current cause confirmed: mobile board scrolls vertically, while each card has full-surface `touchAction: 'none'` drag activator. Existing tests cover mobile popup, not mobile board scrolling. Checking adjacent mobile feature docs for intent terms.Updated [F_72_scrolling_cardview_on_mobile.md](C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_72_scrolling_cardview_on_mobile.md).\n\nAdded concise:\n\n- Current state\n- Implementation details\n- Acceptance criteria\n\n`git diff --check` passes. No code/tests run; documentation-only change.",
           "id": "agent-turn-c10764d1-c02c-452d-a3f6-80a802d3be6b-turn-1-assistant",
           "role": "assistant",
-          "timestamp": "2026-07-27T17:32:33.085Z"
+          "timestamp": "2026-07-27T17:46:04.536Z"
         }
       ],
       "providerSessions": [
@@ -137,12 +143,12 @@
           "agent": "codex",
           "conversationId": "019fa49f-1d17-7180-a7fb-c56fd55e3fe9",
           "createdAt": "2026-07-27T17:32:33.085Z",
-          "lastUsedAt": "2026-07-27T17:32:33.085Z",
+          "lastUsedAt": "2026-07-27T17:46:04.536Z",
           "synchronizedThroughMessageId": "agent-turn-c10764d1-c02c-452d-a3f6-80a802d3be6b-turn-1-assistant"
         }
       ],
       "startedAt": "2026-07-27T17:28:37.428Z",
-      "status": "waitingForInput",
+      "status": "completed",
       "title": "complete card",
       "usage": {
         "cachedInputTokens": 59136,
