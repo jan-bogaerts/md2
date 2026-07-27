@@ -118,6 +118,12 @@
           "id": "agent-turn-95efbbeb-ab56-44fb-aad2-e837397b2787-turn-1-assistant",
           "role": "assistant",
           "timestamp": "2026-07-27T18:10:41.889Z"
+        },
+        {
+          "content": "1: mobile has no room for icon + label, so only icon on mobile. on desktop, both allowed\n2: icon only",
+          "id": "agent-turn-95efbbeb-ab56-44fb-aad2-e837397b2787-user-2",
+          "role": "user",
+          "timestamp": "2026-07-27T18:26:44.556Z"
         }
       ],
       "providerSessions": [
@@ -130,7 +136,7 @@
         }
       ],
       "startedAt": "2026-07-27T18:08:34.445Z",
-      "status": "waitingForInput",
+      "status": "running",
       "title": "complete card",
       "usage": {
         "cachedInputTokens": 59136,
