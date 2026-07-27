@@ -6,10 +6,12 @@ const {
     BUILTIN_AGENT_PROFILES,
     buildAgentCommand,
     buildAgentExecutionCommand,
+    buildAgentStreamingCommand,
     buildResumeAgentCommand,
     defaultModelForProfile,
     normalizeAgentProfiles,
     resolveAgentCommand,
+    supportsAgentStreaming,
     validateAgentProfiles,
     validateThinkingLevel,
 } = require('./agent_profiles.mjs');
@@ -39,6 +41,23 @@ describe('agent profile resolution', () => {
         expect(buildAgentExecutionCommand(claude, 'sonnet', 'max')).toEqual(['claude', '--model', 'sonnet', '--effort', 'max', '--print', '--verbose', '--output-format', 'stream-json']);
         expect(buildAgentExecutionCommand(codex, 'gpt-5', 'none')).toEqual(['codex', '--model', 'gpt-5', '--search', 'exec', '--json']);
         expect(buildAgentExecutionCommand(codex, 'gpt-5', 'none', false)).toEqual(['codex', '--model', 'gpt-5', 'exec', '--json']);
+    });
+
+    it('builds streaming commands only for supported provider profiles', () => {
+        const codex = { command: ['codex'], modelArgument: '--model', models: ['gpt-5'], name: 'codex' };
+        const claude = { command: ['claude'], modelArgument: '--model', models: ['sonnet'], name: 'claude' };
+        const custom = { command: ['custom'], models: ['fast'], name: 'custom' };
+
+        expect(buildAgentStreamingCommand(codex, 'gpt-5', 'high')).toEqual([
+            'codex', '--model', 'gpt-5', '-c', 'model_reasoning_effort=high', 'app-server', '--stdio',
+        ]);
+        expect(buildAgentStreamingCommand(claude, 'sonnet', 'none')).toEqual([
+            'claude', '--model', 'sonnet', '--print', '--verbose', '--output-format', 'stream-json',
+            '--input-format', 'stream-json',
+        ]);
+        expect(supportsAgentStreaming(custom)).toBe(false);
+        expect(() => buildAgentStreamingCommand(custom, 'fast', 'none'))
+            .toThrow('Agent profile does not support streaming: custom');
     });
 
     it('rejects invalid levels and profiles without a thinking-level adapter', () => {

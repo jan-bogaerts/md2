@@ -28,4 +28,6 @@ export function validateThinkingLevel(value: unknown, source: string): ThinkingL
 export function defaultModelForProfile(profile: AgentProfile): string
 export function buildAgentCommand(profile: AgentProfile, model: string): string[]
 export function buildAgentExecutionCommand(profile: AgentProfile, model: string, thinkingLevel: ThinkingLevel, searchEnabled?: boolean): string[]
+export function buildAgentStreamingCommand(profile: AgentProfile, model: string, thinkingLevel: ThinkingLevel): string[]
+export function supportsAgentStreaming(profile: AgentProfile): boolean
 export function buildResumeAgentCommand(profile: AgentProfile, sessionId: string, executionCommand?: string[]): string[]

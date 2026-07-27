@@ -314,7 +314,7 @@ export class AgentIntegration {
 
     private async runStateAction(action: ActionDefinition, context: ActionContext, cardPath: string) {
         try {
-            const result = await runElectronAction(action, context)
+            const result = await runElectronAction(action, context, {}, undefined, false)
             if (result.status === 'completed') return
 
             const failedLog = result.logs.find((log) => log.status === 'failed')

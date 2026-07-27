@@ -115,6 +115,22 @@ describe('ActionDefinitionFields', () => {
         expect(screen.getByRole('switch', { name: 'Needs worktree' })).toBeChecked()
         expect(screen.getByLabelText('Run when card enters state')).toHaveTextContent('ready')
         expect(screen.queryByRole('switch', { name: 'Auto commit' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('switch', { name: 'Streaming' })).not.toBeInTheDocument()
+    })
+
+    it('shows and persists agent streaming', () => {
+        const definition = {
+            ...sharedFields,
+            prompt: 'Plan first',
+            type: 'agent',
+        } satisfies RawActionDefinition
+        const getDefinition = renderFields(definition)
+        const streamingSwitch = screen.getByRole('switch', { name: 'Streaming' })
+
+        expect(streamingSwitch).not.toBeChecked()
+        fireEvent.click(streamingSwitch)
+
+        expect(getDefinition()).toEqual({ ...definition, streaming: true })
     })
 
     it('shows and persists agent file-change tracking with its limitations', () => {

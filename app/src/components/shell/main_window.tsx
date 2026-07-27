@@ -3,7 +3,7 @@ import { useCallback, useMemo, useState, type ReactNode } from 'react'
 import { navigateTo, useAppLocation } from '../../app/app_navigation'
 import type { UseGithubAuthResult } from '../../auth/use_github_auth'
 import { ConfigPage } from '../config/config_page'
-import { useProjectState } from '../hooks/use_project_state'
+import { useProjectReference } from '../hooks/use_project_reference'
 import { ProjectWorkspace } from '../project_workspace'
 import { createSearchRegexpAgent, isSearchRegexpAgentAvailable } from '../../services/search/search_regexp_agent'
 import { AppMenu } from './menu/app_menu'
@@ -22,7 +22,7 @@ export function MainWindow(props: MainWindowProps) {
     const theme = useTheme()
     const isMobile = useMediaQuery(theme.breakpoints.down('md'))
     const [isMenuOpen, setIsMenuOpen] = useState(false)
-    const { project } = useProjectState()
+    const project = useProjectReference()
     const isConfigPage = location.pathname === '/config'
     const regexpAgent = useMemo(
         () => isSearchRegexpAgentAvailable() ? createSearchRegexpAgent() : undefined,

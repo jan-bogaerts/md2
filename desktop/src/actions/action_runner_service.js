@@ -25,6 +25,15 @@ function activityOrigin(context) {
     return { kind: 'project' };
 }
 
+function hasStreamingAction(action, visited = new Set()) {
+    if (visited.has(action.id)) return false;
+    visited.add(action.id);
+    if (action.type === 'agent' && action.streaming) return true;
+
+    return [...action.onBefore, ...action.onAfter, ...action.on.map(({ action: linkedAction }) => linkedAction)]
+        .some((linkedAction) => hasStreamingAction(linkedAction, visited));
+}
+
 class ActionRunnerService {
     constructor(dependencies) {
         this.actionWorktreeExecutionService = dependencies?.actionWorktreeExecutionService;
@@ -51,6 +60,7 @@ class ActionRunnerService {
 
     startProject(project, actionsFolder, projectFolder) {
         if (typeof projectFolder !== 'string') throw new Error('Missing action runner projectFolder');
+        if (this.project) this.stop();
         this.project = project;
         this.actionsFolder = actionsFolder;
         this.projectFolder = projectFolder;
@@ -75,13 +85,16 @@ class ActionRunnerService {
         return () => this.listeners.delete(listener);
     }
 
-    async start(request) {
+    async start(request, options = {}) {
         const startRequest = validateStartRequest(request);
         this.requireReady();
         const origin = activityOrigin(startRequest.context);
         const project = { ...this.project };
         const actionsFolder = this.actionsFolder;
         const rootAction = await this.loadRootAction(startRequest.actionId);
+        if (options.interactive === false && hasStreamingAction(rootAction)) {
+            throw new Error(`Streaming action requires an interactive manual run: ${rootAction.label}`);
+        }
         const executionId = createExecutionId();
         const execution = new ActionExecution({
             actionsFolder,
@@ -131,6 +144,18 @@ class ActionRunnerService {
 
     cancel(executionId) {
         this.requireExecution(executionId).cancel();
+    }
+
+    sendAgentMessage(executionId, content) {
+        this.requireExecution(executionId).sendAgentMessage(content);
+    }
+
+    answerAgentQuestion(executionId, requestId, answers) {
+        this.requireExecution(executionId).answerAgentQuestion(requestId, answers);
+    }
+
+    finishAgentExecution(executionId) {
+        this.requireExecution(executionId).finishAgent();
     }
 
     requireActionsFolder() {

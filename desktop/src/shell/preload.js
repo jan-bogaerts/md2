@@ -58,7 +58,9 @@ const DATA_METHODS = [
     'stopAgent',
 ];
 const ACTION_METHODS = [
+    'answerActionQuestion',
     'cancelActionExecution',
+    'finishActionExecution',
     'generateDiff',
     'loadActionRunHistory',
     'loadCardActivity',
@@ -68,7 +70,9 @@ const ACTION_METHODS = [
     'readFileAtCommit',
     'registerActionSchedule',
     'runSearchRegexpAgent',
+    'sendActionMessage',
     'startAction',
+    'startUnattendedAction',
 ];
 const EVENT_METHODS = new Set(['runSearchRegexpAgent']);
 

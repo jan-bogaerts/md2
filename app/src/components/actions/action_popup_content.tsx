@@ -12,6 +12,7 @@ import { ResizablePopper } from '../resizable_popper'
 import { WorktreeSelector, type WorktreeAssignment, type WorktreeAssignmentTarget } from '../worktree_selector'
 import { ActionAgentPresetName } from './action_agent_preset_name'
 import { ActionAgentPrompt } from './action_agent_prompt'
+import { ActionAgentQuestion } from './action_agent_question'
 import { ActionAgentSelectors } from './action_agent_selectors'
 import { ActionConversationChat } from './action_conversation_chat'
 import { ActionConversationPicker } from './action_conversation_picker'
@@ -95,16 +96,18 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
         executionValidationError: worktreeValidationMessage(action, assignmentContext),
     })
     const promptRequired = action.id === CUSTOM_PROMPT_ACTION_ID
+    const sessionActive = controller.runStatus === 'running' || controller.runStatus === 'waitingForInput'
     const sizeStorageKey = baseContext.kind === 'project'
         ? PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY
         : CARD_RUN_POPUP_SIZE_STORAGE_KEY
     const handlePrimaryRun = showSaveControls ? controller.handleSaveAndRun : controller.handleRun
     const showUsageSummary = baseContext.kind === 'card' && !!baseContext.file
-    const runDisabled = controller.runStatus === 'running'
+    const runDisabled = (sessionActive && !controller.streamingActive)
         || !!controller.executionDisabledMessage
         || controller.promptPreparationPending
         || controller.promptPreparationFailed
         || (promptRequired && controller.prompt.trim().length === 0)
+        || (controller.streamingActive && controller.prompt.trim().length === 0)
         || (showSaveControls && controller.saveDisabled)
     const parsedWorktree = assignmentContext.worktree && /^[1-9]\d*$/u.test(assignmentContext.worktree)
         ? Number.parseInt(assignmentContext.worktree, 10)
@@ -157,14 +160,14 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
                         <WorktreeSelector
                             assignment={worktreeAssignment}
                             assignmentTarget={assignmentTarget}
-                            disabled={controller.runStatus === 'running'}
+                            disabled={sessionActive}
                             primaryPath={primaryPath}
                         />
                     ) : null}
                     {action.type === 'agent' ? (
                         <ActionConversationPicker
                             conversations={controller.conversations}
-                            disabled={controller.runStatus === 'running'}
+                            disabled={sessionActive}
                             loading={controller.conversationHistoryLoading}
                             onChange={controller.handleConversationChange}
                             selectedPath={controller.displayedConversation?.path ?? ''}
@@ -210,7 +213,7 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
                                 agent={controller.agent}
                                 agentAvailability={controller.agentAvailability}
                                 agentProfiles={controller.agentProfiles}
-                                disabled={controller.runStatus === 'running'}
+                                disabled={sessionActive}
                                 model={controller.model}
                                 onAgentChange={controller.handleAgentChange}
                                 onModelChange={controller.handleModelChange}
@@ -229,7 +232,7 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
                         </Box>
                         <ActionAgentPrompt
                             convertMessage={controller.convertMessage}
-                            disabled={controller.runStatus === 'running'}
+                            disabled={sessionActive && !controller.streamingActive}
                             onPromptChange={controller.handlePromptChange}
                             onRunShortcut={runDisabled ? undefined : handlePrimaryRun}
                             prompt={controller.prompt}
@@ -237,6 +240,12 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
                             promptLoading={controller.promptPreparationPending}
                             promptResetToken={controller.promptResetToken}
                         />
+                        {controller.structuredQuestion ? (
+                            <ActionAgentQuestion
+                                onAnswer={controller.handleAnswerQuestion}
+                                questions={controller.structuredQuestion.questions}
+                            />
+                        ) : null}
                     </Stack>
                 ) : null}
                 {controller.isFollowUp && action.phrases.length > 0 ? (
@@ -285,8 +294,11 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
                     />
                 ) : null}
                 <Box sx={{ flex: 1 }} />
-                {controller.runStatus === 'running' ? (
+                {sessionActive ? (
                     <Button disabled={!controller.backendAvailable} onClick={controller.handleCancel} size="small" variant="outlined">Cancel</Button>
+                ) : null}
+                {controller.streamingActive ? (
+                    <Button disabled={!controller.backendAvailable} onClick={controller.handleFinish} size="small" variant="outlined">Finish</Button>
                 ) : null}
                 {showSaveControls ? (
                     <Button disabled={controller.saveDisabled} onClick={controller.handleConvertToAction} size="small" variant="outlined">
@@ -294,7 +306,7 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
                     </Button>
                 ) : null}
                 <Button
-                    disabled={controller.runStatus === 'running' || !controller.backendAvailable}
+                    disabled={sessionActive || !controller.backendAvailable}
                     onClick={controller.handleToggleSchedule}
                     size="small"
                     startIcon={<CalendarOutline sx={{ fontSize: '14px !important' }} />}
@@ -317,7 +329,7 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
                     sx={{ height: 34, px: 2 }}
                     variant="contained"
                 >
-                    {controller.isFollowUp ? 'Continue' : 'Run'}
+                    {controller.streamingActive ? 'Send' : controller.isFollowUp ? 'Continue' : 'Run'}
                 </Button>
             </Box>
         </ResizablePopper>

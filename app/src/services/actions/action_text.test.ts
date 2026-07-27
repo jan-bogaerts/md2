@@ -27,6 +27,7 @@ function action(overrides: Partial<ActionDefinition> = {}): ActionDefinition {
         type: 'agent',
         ...overrides,
         phrases: overrides.phrases ?? [],
+        streaming: overrides.streaming ?? false,
     }
 }
 

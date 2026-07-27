@@ -214,7 +214,7 @@ class ActionSchedulerService {
 
     async runScheduledAction(schedule) {
         const request = { actionId: schedule.actionId, context: schedule.context, runInput: {} };
-        const executionId = await this.actionRunnerService.start(request);
+        const executionId = await this.actionRunnerService.start(request, { interactive: false });
         this.executionIdsByScheduleId.set(schedule.id, executionId);
 
         return this.actionRunnerService.wait(executionId);

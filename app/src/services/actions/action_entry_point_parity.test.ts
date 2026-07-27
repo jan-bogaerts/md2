@@ -42,6 +42,9 @@ describe('action entry-point parity', () => {
                 return executionId
             },
         } as unknown as typeof window.md2Actions
+        const bridge = window.md2Actions
+        if (!bridge) throw new Error('Missing action bridge')
+        bridge.startUnattendedAction = bridge.startAction
         vi.spyOn(dataService.projectLoading, 'reloadCurrentProjectSnapshot').mockResolvedValue(null)
         const cardFile = { content: '---\nid: F-1\ninternalId: a\ntitle: A\nstatus: todo\n---\n\n# A', path: 'design/F-1-a.md' }
         const actionFile = {

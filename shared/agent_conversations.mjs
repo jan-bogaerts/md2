@@ -1,5 +1,5 @@
 const AGENT_MESSAGE_ROLES = new Set(['assistant', 'user'])
-const AGENT_STATUSES = new Set(['cancelled', 'completed', 'failed', 'running'])
+const AGENT_STATUSES = new Set(['cancelled', 'completed', 'failed', 'running', 'waitingForInput'])
 
 function requiredString(value, fieldName) {
     if (typeof value !== 'string' || value.length === 0) throw new Error(`Malformed agent conversation: missing ${fieldName}`)

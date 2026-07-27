@@ -60,6 +60,17 @@ function executionInput(overrides = {}) {
 }
 
 describe('ActionAgentExecutor', () => {
+    it('rejects unsupported streaming profiles before process start', async () => {
+        const profile = { command: ['custom-agent'], models: ['default'], name: 'custom' };
+        const agentConfigProvider = () => ({ agent: 'custom', agentProfiles: [profile], model: 'default' });
+        const { agentRunnerService, executor } = createExecutor({ agentConfigProvider });
+        const streamingAction = { ...action, agent: 'custom', model: 'default', streaming: true };
+
+        await expect(executor.execute(executionInput({ action: streamingAction })))
+            .rejects.toThrow('Agent profile does not support streaming: custom');
+        expect(agentRunnerService.start).not.toHaveBeenCalled();
+    });
+
     it('runs initial card action with runtime overrides and active-run hooks', async () => {
         const { agentRunnerService, executor } = createExecutor();
         const input = executionInput({ runInput: { agent: 'codex', extraPrompt: 'focus', model: 'gpt-5.5', thinkingLevel: 'high' } });

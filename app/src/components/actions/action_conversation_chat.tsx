@@ -22,7 +22,7 @@ export function ActionConversationChat({ conversation, onConversationViewed, sta
     const messages = conversation?.messages.filter(({ role }) => role === 'user' || role === 'assistant') ?? []
 
     useEffect(() => {
-        if (!conversation?.completedAt || conversation.status === 'running') return
+        if (!conversation?.completedAt || conversation.status === 'running' || conversation.status === 'waitingForInput') return
 
         onConversationViewed?.(conversation)
     }, [conversation, onConversationViewed])

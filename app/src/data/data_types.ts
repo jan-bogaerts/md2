@@ -228,7 +228,7 @@ export interface RunningAgent {
     label: string
 }
 
-export type AgentConversationStatus = 'cancelled' | 'completed' | 'failed' | 'running'
+export type AgentConversationStatus = 'cancelled' | 'completed' | 'failed' | 'running' | 'waitingForInput'
 export type AgentMessageRole = 'assistant' | 'user'
 
 export interface AgentConversationMessage {

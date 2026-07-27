@@ -11,9 +11,10 @@ const {
 } = require('./agent_conversation');
 const {
     conversationReference,
-    persistTerminalConversation,
+    persistConversation,
 } = require('./agent_conversation_persistence');
 const { createAgentProviderProtocolParser } = require('./agent_provider_protocol');
+const { createAgentStreamingAdapter } = require('./agent_streaming_adapter');
 const { AgentExecutableResolver } = require('./agent_executable_availability');
 const { terminateDescendantProcesses, terminateProcessTree } = require('./process_tree');
 const { assertGitRoot, ensureInsideRoot, requireRootPath } = require('../git/git_commands');
@@ -76,8 +77,8 @@ function emitRunEvent(run, event) {
     run.onEvent({ ...event, runId: run.id });
 }
 
-function assistantMessageId(runId) {
-    return `${runId}-assistant`;
+function assistantMessageId(run) {
+    return run.streaming ? `${run.id}-turn-${run.turnIndex}-assistant` : `${run.id}-assistant`;
 }
 
 /** Exact text appended to `existing` for `chunk`, including the paragraph separator. */
@@ -97,7 +98,7 @@ function joinChunk(existing, chunk) {
 function appendAssistantOutput(run, content, timestamp) {
     const segment = chunkSegment(run.stdout, content);
     run.stdout += segment;
-    const messageId = assistantMessageId(run.id);
+    const messageId = assistantMessageId(run);
     const currentIndex = run.conversation.messages.findIndex(({ id }) => id === messageId);
     if (currentIndex < 0) {
         run.conversation.messages.push(createMessage(messageId, 'assistant', content.replace(/^\n+|\n+$/g, ''), timestamp, run.agent));
@@ -111,7 +112,7 @@ function appendAssistantOutput(run, content, timestamp) {
 }
 
 function completeAssistantOutput(run, completedAt) {
-    const messageId = assistantMessageId(run.id);
+    const messageId = assistantMessageId(run);
     const currentIndex = run.conversation.messages.findIndex(({ id }) => id === messageId);
     if (currentIndex < 0) return;
 
@@ -136,7 +137,9 @@ function createRunResult(request, exitCode, run) {
 
 class AgentRunnerService {
     constructor(dependencies = {}) {
-        this.persistTerminalConversation = dependencies.persistTerminalConversation ?? persistTerminalConversation;
+        this.persistConversation = dependencies.persistConversation
+            ?? dependencies.persistTerminalConversation
+            ?? persistConversation;
         this.executableResolver = dependencies.executableResolver ?? new AgentExecutableResolver();
         this.terminateDescendantProcesses = dependencies.terminateDescendantProcesses ?? terminateDescendantProcesses;
         this.terminateProcessTree = dependencies.terminateProcessTree ?? terminateProcessTree;
@@ -172,6 +175,7 @@ class AgentRunnerService {
         const cardPath = readOptionalString(request?.cardPath, 'cardPath');
         const prompt = requireString(request?.prompt, 'prompt');
         const agent = requireString(request?.agent ?? 'generic', 'agent');
+        const streaming = request.streaming === true;
         requireProjectFolder(request?.projectFolder);
         if (cardPath) ensureInsideRoot(rootPath, path.join(rootPath, cardPath));
 
@@ -190,7 +194,7 @@ class AgentRunnerService {
         const [configuredExecutable, ...configuredArguments] = command;
         const resolvedExecutable = await this.executableResolver.find(configuredExecutable, { cwd: rootPath, env: process.env });
         const executable = resolvedExecutable ?? configuredExecutable;
-        const argumentsList = [...configuredArguments, prompt];
+        const argumentsList = streaming ? configuredArguments : [...configuredArguments, prompt];
         const child = crossSpawn(executable, argumentsList, {
             cwd: rootPath,
             env: process.env,
@@ -218,23 +222,37 @@ class AgentRunnerService {
             onCompletionError,
             onEvent,
             providerConversationId: null,
+            protocolBuffer: '',
             reference,
             reportedProviderErrors: new Set(),
             request,
             stderr: '',
             stderrBuffer: '',
+            finishing: false,
             stdout: '',
             startedAt,
+            streaming,
+            streamingFailure: null,
             turnStarted: false,
+            turnIndex: 1,
+            turnActive: streaming,
             termination: null,
             turnUsage: null,
+            waitingForQuestion: false,
+            persistence: Promise.resolve(),
         };
-        run.parser = createAgentProviderProtocolParser(
-            agent,
-            (event) => this.handleProviderEvent(id, event),
-            (line) => this.handleMalformedOutput(id, line),
-            rootPath,
-        );
+        const writeLine = (message) => child.stdin.write(`${JSON.stringify(message)}\n`);
+        run.streamingAdapter = streaming
+            ? createAgentStreamingAdapter(agent, writeLine, (event) => this.handleStreamingEvent(id, event), rootPath)
+            : null;
+        run.parser = streaming
+            ? null
+            : createAgentProviderProtocolParser(
+                agent,
+                (event) => this.handleProviderEvent(id, event),
+                (line) => this.handleMalformedOutput(id, line),
+                rootPath,
+            );
         this.processes.set(id, run);
         this.runningConversationIds.add(conversation.id);
 
@@ -244,8 +262,16 @@ class AgentRunnerService {
         child.on('close', (exitCode) => {
             void this.handleClose(id, exitCode ?? 1);
         });
-        if (typeof request.contextInput === 'string' && request.contextInput.length > 0) child.stdin.write(request.contextInput);
-        child.stdin.end();
+        if (streaming) {
+            const initialPrompt = typeof request.contextInput === 'string' && request.contextInput.length > 0
+                ? `${request.contextInput}\n\n[User]\n\n${prompt}`
+                : prompt;
+            run.streamingAdapter.start(initialPrompt);
+            this.queuePersistence(run);
+        } else {
+            if (typeof request.contextInput === 'string' && request.contextInput.length > 0) child.stdin.write(request.contextInput);
+            child.stdin.end();
+        }
         const userMessage = conversation.messages.at(-1);
         if (!userMessage || userMessage.role !== 'user') throw new Error('Missing current agent user message');
         emitRunEvent(run, {
@@ -267,6 +293,44 @@ class AgentRunnerService {
         return this.ensureTermination(run);
     }
 
+    sendMessage(runId, content) {
+        const run = this.requireStreamingRun(runId);
+        const timestamp = new Date().toISOString();
+        if (run.conversation.status === 'waitingForInput') run.turnIndex += 1;
+        const messageId = `${run.id}-user-${run.conversation.messages.length}`;
+        run.conversation.messages.push(createMessage(messageId, 'user', requireString(content, 'message'), timestamp));
+        const userMessage = run.conversation.messages.at(-1);
+        run.conversation.status = 'running';
+        run.turnActive = true;
+        run.streamingAdapter.sendMessage(content);
+        this.queuePersistence(run);
+        emitRunEvent(run, { type: 'userMessage', userMessage });
+        emitRunEvent(run, { state: 'running', type: 'state' });
+    }
+
+    answerQuestion(runId, requestId, answers) {
+        const run = this.requireStreamingRun(runId);
+        if (!answers || typeof answers !== 'object' || Array.isArray(answers)) throw new Error('Missing streaming question answers');
+        const timestamp = new Date().toISOString();
+        const content = Object.entries(answers)
+            .map(([questionId, answer]) => `${questionId}: ${Array.isArray(answer) ? answer.join(', ') : answer}`)
+            .join('\n');
+        run.conversation.messages.push(createMessage(`${run.id}-answer-${run.conversation.messages.length}`, 'user', content, timestamp));
+        const userMessage = run.conversation.messages.at(-1);
+        run.conversation.status = 'running';
+        run.waitingForQuestion = false;
+        run.streamingAdapter.answerQuestion(requestId, answers);
+        this.queuePersistence(run);
+        emitRunEvent(run, { type: 'userMessage', userMessage });
+        emitRunEvent(run, { state: 'running', type: 'state' });
+    }
+
+    finish(runId) {
+        const run = this.requireStreamingRun(runId);
+        run.finishing = true;
+        if (!run.turnActive || run.waitingForQuestion) run.child.stdin.end();
+    }
+
     stopAll() {
         const terminations = [];
         for (const run of this.processes.values()) {
@@ -283,11 +347,29 @@ class AgentRunnerService {
         return run.termination;
     }
 
+    queuePersistence(run) {
+        run.persistence = run.persistence
+            .then(() => this.persistConversation(run))
+            .catch((error) => {
+                run.streamingFailure = error instanceof Error ? error : new Error('Agent conversation persistence failed');
+                this.ensureTermination(run);
+            });
+
+        return run.persistence;
+    }
+
     handleOutput(runId, channel, chunk) {
         const run = this.processes.get(runId);
         if (!run) return;
 
         const content = chunk.toString();
+        if (channel === 'stdout' && run.streamingAdapter) {
+            run.protocolBuffer += content;
+            const lines = run.protocolBuffer.split(/\r?\n/u);
+            run.protocolBuffer = lines.pop() ?? '';
+            for (const line of lines) this.handleStreamingLine(runId, line);
+            return;
+        }
         if (channel === 'stdout' && run.parser) {
             run.parser.push(chunk);
             return;
@@ -301,6 +383,17 @@ class AgentRunnerService {
             return;
         }
         this.recordOutput(runId, channel, content);
+    }
+
+    handleStreamingLine(runId, line) {
+        const run = this.processes.get(runId);
+        if (!run || line.trim().length === 0) return;
+
+        try {
+            run.streamingAdapter.handleMessage(JSON.parse(line));
+        } catch {
+            this.handleMalformedOutput(runId, line);
+        }
     }
 
     recordOutput(runId, channel, content) {
@@ -358,6 +451,73 @@ class AgentRunnerService {
         }
     }
 
+    handleStreamingEvent(runId, event) {
+        const run = this.processes.get(runId);
+        if (!run) return;
+        const timestamp = new Date().toISOString();
+
+        if (event.type === 'sessionStarted') {
+            run.providerConversationId = event.conversationId;
+            return;
+        }
+        if (event.type === 'turnStarted') {
+            run.turnStarted = true;
+            return;
+        }
+        if (event.type === 'assistant') {
+            const segment = appendAssistantOutput(run, event.content, timestamp);
+            if (segment.length > 0) emitRunEvent(run, { content: segment, type: 'output' });
+            return;
+        }
+        if (event.type === 'changedPaths') {
+            event.paths.forEach((filePath) => run.changedPaths.add(filePath));
+            return;
+        }
+        if (event.type === 'transcript') {
+            run.conversation.events.push(createEvent(
+                `${runId}-provider-${run.conversation.events.length}`,
+                event.eventType,
+                event.content,
+                timestamp,
+            ));
+            return;
+        }
+        if (event.type === 'error') {
+            this.recordOutput(runId, 'stderr', event.content);
+            return;
+        }
+        if (event.type === 'question') {
+            run.conversation.status = 'waitingForInput';
+            run.waitingForQuestion = true;
+            emitRunEvent(run, { questions: event.questions, requestId: event.requestId, state: 'waitingForInput', type: 'question' });
+            this.queuePersistence(run);
+            return;
+        }
+        if (event.type !== 'turnCompleted') return;
+
+        completeAssistantOutput(run, timestamp);
+        run.turnActive = false;
+        run.waitingForQuestion = false;
+        if (event.usage) run.conversation.usage = accumulateUsage(run.conversation.usage, event.usage);
+        if (event.error) {
+            run.streamingFailure = new Error(event.error);
+            this.recordOutput(runId, 'stderr', event.error);
+            run.child.stdin.end();
+            return;
+        }
+        if (run.finishing) {
+            run.child.stdin.end();
+            return;
+        }
+        const synchronizedMessage = run.conversation.messages.at(-1);
+        if (synchronizedMessage) updateProviderSession(run, synchronizedMessage.id, timestamp);
+        run.conversation.status = 'waitingForInput';
+        run.conversation.completedAt = null;
+        run.conversation.events.push(createEvent(`${runId}-turn-${run.turnIndex}-completed`, 'turnCompleted', '', timestamp));
+        emitRunEvent(run, { state: 'waitingForInput', type: 'state' });
+        this.queuePersistence(run);
+    }
+
     handleMalformedOutput(runId, line) {
         const run = this.processes.get(runId);
         if (!run) return;
@@ -386,11 +546,23 @@ class AgentRunnerService {
             if (run.termination) await run.termination;
             else await this.terminateDescendantProcesses(run.child.pid);
             run.parser?.finish();
+            if (run.streamingAdapter && run.protocolBuffer.length > 0) {
+                this.handleStreamingLine(runId, run.protocolBuffer);
+                run.protocolBuffer = '';
+            }
             this.flushStderr(runId);
+            await run.persistence;
             const completedAt = new Date().toISOString();
             const succeeded = exitCode === 0
                 && !run.missingSession
-                && !run.cancelled;
+                && !run.cancelled
+                && !run.streamingFailure
+                && (!run.streaming || run.finishing);
+            if (run.streaming && !run.finishing && !run.cancelled && !run.streamingFailure) {
+                run.streamingFailure = new Error('Streaming agent process exited before Finish');
+                const separator = run.stderr.length > 0 && !run.stderr.endsWith('\n') ? '\n' : '';
+                run.stderr += `${separator}${run.streamingFailure.message}`;
+            }
             completeAssistantOutput(run, completedAt);
             if (succeeded) {
                 const synchronizedMessage = run.conversation.messages.at(-1);
@@ -408,7 +580,7 @@ class AgentRunnerService {
                 pid: run.child.pid,
                 runId,
             });
-            await this.persistTerminalConversation(run);
+            await this.persistConversation(run);
             this.processes.delete(runId);
             this.runningConversationIds.delete(run.conversation.id);
             emitRunEvent(run, { reference: run.reference, status: run.conversation.status, type: 'closed' });
@@ -424,6 +596,13 @@ class AgentRunnerService {
     requireRun(runId) {
         const run = this.processes.get(runId);
         if (!run) throw new Error(`Agent run is not active: ${runId}`);
+
+        return run;
+    }
+
+    requireStreamingRun(runId) {
+        const run = this.requireRun(runId);
+        if (!run.streaming) throw new Error(`Agent run is not streaming: ${runId}`);
 
         return run;
     }

@@ -135,6 +135,7 @@ describe('ActionEntryPoints filtering', () => {
                     return vi.fn()
                 },
             } as unknown as typeof window.md2Actions
+            actionExecutionService.start()
             const context = cardContext(featureCard, DEFAULT_CARD_TYPES)
             render(<ActionEntryPoints context={context} variant="icons" />)
             if (!listener) throw new Error('Missing execution listener')

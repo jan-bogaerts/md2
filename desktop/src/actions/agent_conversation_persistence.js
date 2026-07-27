@@ -28,4 +28,4 @@ async function persistTerminalConversation(run) {
     );
 }
 
-module.exports = { conversationReference, persistTerminalConversation };
+module.exports = { conversationReference, persistConversation: persistTerminalConversation, persistTerminalConversation };

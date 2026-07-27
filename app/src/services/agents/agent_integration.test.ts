@@ -49,6 +49,9 @@ describe('AgentIntegration', () => {
         expect(runElectronAction).toHaveBeenCalledWith(
             expect.objectContaining({ id: 'action-ready' }),
             expect.objectContaining({ file: 'design/F-2-b.md', kind: 'card', state: 'ready', type: 'feature' }),
+            {},
+            undefined,
+            false,
         )
     })
 
@@ -86,6 +89,9 @@ describe('AgentIntegration', () => {
         expect(runElectronAction).toHaveBeenCalledWith(
             expect.objectContaining({ id: 'action-implement', thinkingLevel: 'high' }),
             expect.objectContaining({ file: 'design/F-1-a.md', kind: 'card', state: 'ready', type: 'feature' }),
+            {},
+            undefined,
+            false,
         )
     })
 

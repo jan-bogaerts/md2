@@ -1,57 +1,11 @@
-﻿import { renderHook, waitFor } from '@testing-library/react'
+import { act, renderHook } from '@testing-library/react'
 import { createElement, StrictMode, type ReactNode } from 'react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+import {
+    ApplicationStartupService,
+    type ApplicationStartupDependencies,
+} from '../services/application_startup_service'
 import { useAppBootstrap } from './use_app_bootstrap'
-import { LAST_PROJECT_STORAGE_KEY } from '../data/project_session'
-import type { ElectronDataBridge } from '../data/electron_data_bridge'
-import { getElectronActionBridge, setActionBridgeOverride, type ElectronActionBridge } from '../data/electron_action_bridge'
-import { configService } from '../services/config/config_service'
-import { agentCapabilitiesService } from '../services/agents/agent_capabilities_service'
-
-function createActionBridge(): ElectronActionBridge {
-    return {
-        cancelActionExecution: vi.fn(async () => {}),
-        generateDiff: vi.fn(async () => ({ commit: 'commit-1', files: [] })),
-        loadActionRunHistory: vi.fn(async () => []),
-        onActionExecution: vi.fn(() => () => {}),
-        openInEditor: vi.fn(),
-        prepareActionPrompt: vi.fn(async () => ({ prompt: '' })),
-        runSearchRegexpAgent: vi.fn(async () => ''),
-        startAction: vi.fn(async () => 'action-1'),
-    }
-}
-
-function createBridge(): ElectronDataBridge {
-    const files = [
-        { content: '---\nid: F-1\ntitle: Root\nstatus: active\naffects:\n---\n\n# Root', path: 'design/F-1-root.md' },
-    ]
-
-    return {
-        checkoutBranch: vi.fn(async (project, branch) => ({ ...project, branch })),
-        commit: vi.fn(async () => []),
-        createProject: vi.fn(async (project) => project),
-        deleteFile: vi.fn(),
-        deleteFolder: vi.fn(),
-        hasPendingPush: vi.fn(async () => false),
-        listBranches: vi.fn(async () => [{ name: 'main' }]),
-        listRepositoryFiles: vi.fn(async () => ['design/F-1-root.md']),
-        listTopLevelFolders: vi.fn(async () => [{ name: 'design', path: 'design' }]),
-        loadActionFiles: vi.fn(async () => []),
-        loadFile: vi.fn(async () => files[0]),
-        loadProject: vi.fn(async () => ({ files, workingFolder: 'design' })),
-        loadProjectRoot: vi.fn(async () => ({ files, workingFolder: 'design' })),
-        loadProjectConfig: vi.fn(async () => ({ backgroundShade: 'blue' as const, projectFolder: '', workingFolder: 'design' })),
-        onWorktreesChanged: vi.fn(() => vi.fn()),
-        moveFiles: vi.fn(),
-        openProjectFolder: vi.fn(async () => ({ branch: 'main', id: 'local', rootPath: 'C:/repo' })),
-        push: vi.fn(),
-        resolveProject: vi.fn(async (project) => project),
-        saveProjectConfig: vi.fn(),
-        addWorktree: vi.fn(async () => false),
-        removeWorktree: vi.fn(async () => undefined),
-        watchProject: vi.fn(() => vi.fn()),
-    }
-}
 
 function StrictModeWrapper(props: { children: ReactNode }) {
     const { children } = props
@@ -59,92 +13,53 @@ function StrictModeWrapper(props: { children: ReactNode }) {
     return createElement(StrictMode, null, children)
 }
 
+function createDependencies(overrides: Partial<ApplicationStartupDependencies> = {}): ApplicationStartupDependencies {
+    return {
+        getGithubAccessToken: vi.fn(() => null),
+        initializeAgentCapabilities: vi.fn(async () => {}),
+        initializeServices: vi.fn(),
+        restoreGithubSession: vi.fn(async () => {}),
+        restoreLastProject: vi.fn(async () => {}),
+        ...overrides,
+    }
+}
+
 describe('useAppBootstrap', () => {
-    afterEach(() => {
-        configService.clear()
-        setActionBridgeOverride(null)
-        window.localStorage.clear()
-        delete window.md2Actions
-        delete window.md2Data
+    it('observes one service-owned startup under StrictMode', async () => {
+        const dependencies = createDependencies()
+        const service = new ApplicationStartupService(dependencies)
+        const { result } = renderHook(() => useAppBootstrap(service), { wrapper: StrictModeWrapper })
+
+        await act(async () => {
+            await Promise.all([service.start(), service.start()])
+        })
+
+        expect(result.current).toEqual({ error: null, phase: 'ready' })
+        expect(dependencies.initializeServices).toHaveBeenCalledOnce()
+        expect(dependencies.restoreGithubSession).toHaveBeenCalledOnce()
+        expect(dependencies.initializeAgentCapabilities).toHaveBeenCalledOnce()
+        expect(dependencies.restoreLastProject).toHaveBeenCalledOnce()
     })
 
-    it('reaches the ready phase with no session when nothing is stored', async () => {
-        const initializeCapabilities = vi.spyOn(agentCapabilitiesService, 'initialize')
-        const { result } = renderHook(() => useAppBootstrap(null))
+    it('passes restored GitHub token into last-project restoration', async () => {
+        const dependencies = createDependencies({getGithubAccessToken: vi.fn(() => 'token-1')})
+        const service = new ApplicationStartupService(dependencies)
 
-        await waitFor(() => expect(result.current.phase).toBe('ready'))
-        expect(initializeCapabilities).toHaveBeenCalledOnce()
-        expect(result.current.session).toBeNull()
+        await service.start()
+
+        expect(dependencies.restoreLastProject).toHaveBeenCalledWith('token-1')
     })
 
-    it('initializes config once during StrictMode bootstrap without a stored project', async () => {
-        const init = vi.spyOn(configService, 'init')
-        const { result } = renderHook(() => useAppBootstrap(null), { wrapper: StrictModeWrapper })
+    it('publishes startup failures and still settles startup', async () => {
+        const dependencies = createDependencies({
+            restoreLastProject: vi.fn(async () => {
+                throw new Error('Stored project is unavailable')
+            }),
+        })
+        const service = new ApplicationStartupService(dependencies)
 
-        await waitFor(() => expect(result.current.phase).toBe('ready'))
-        expect(init).toHaveBeenCalledTimes(1)
-        expect(result.current.session).toBeNull()
-    })
+        await service.start()
 
-    it('skips a GitHub project when no access token is available', async () => {
-        window.localStorage.setItem(LAST_PROJECT_STORAGE_KEY, JSON.stringify({
-            project: { branch: 'main', id: 'owner/repo', owner: 'owner', repository: 'repo' },
-            storageType: 'github',
-        }))
-
-        const { result } = renderHook(() => useAppBootstrap(null))
-
-        await waitFor(() => expect(result.current.phase).toBe('ready'))
-        expect(result.current.session).toBeNull()
-    })
-
-    it('loads the last local project before becoming ready', async () => {
-        const bridge = createBridge()
-        vi.mocked(bridge.resolveProject).mockResolvedValue({ branch: 'topic', id: 'C:/repo', rootPath: 'C:/repo' })
-        window.md2Data = bridge
-        window.localStorage.setItem(LAST_PROJECT_STORAGE_KEY, JSON.stringify({
-            project: { branch: 'main', id: 'local', rootPath: 'C:/repo' },
-            storageType: 'local',
-        }))
-
-        const { result } = renderHook(() => useAppBootstrap(null))
-
-        await waitFor(() => expect(result.current.session).not.toBeNull())
-        expect(bridge.resolveProject).toHaveBeenCalledWith({ branch: 'main', id: 'local', rootPath: 'C:/repo' })
-        expect(result.current.session?.project.branch).toBe('topic')
-        expect(result.current.session?.snapshot.activeCards).toHaveLength(1)
-    })
-
-    it('finishes startup without a project when local repository revalidation fails', async () => {
-        const bridge = createBridge()
-        vi.mocked(bridge.resolveProject).mockRejectedValue(new Error('Stored project folder is no longer a Git work tree'))
-        window.md2Data = bridge
-        window.localStorage.setItem(LAST_PROJECT_STORAGE_KEY, JSON.stringify({
-            project: { branch: 'main', id: 'local', rootPath: 'C:/missing' },
-            storageType: 'local',
-        }))
-
-        const { result } = renderHook(() => useAppBootstrap(null))
-
-        await waitFor(() => expect(result.current.phase).toBe('ready'))
-        expect(result.current.session).toBeNull()
-        expect(result.current.error).toBe('Stored project folder is no longer a Git work tree')
-    })
-
-    it('restores the preload action bridge when loading the last local project', async () => {
-        const staleRemoteBridge = createActionBridge()
-        const preloadBridge = createActionBridge()
-        setActionBridgeOverride(staleRemoteBridge)
-        window.md2Actions = preloadBridge
-        window.md2Data = createBridge()
-        window.localStorage.setItem(LAST_PROJECT_STORAGE_KEY, JSON.stringify({
-            project: { branch: 'main', id: 'local', rootPath: 'C:/repo' },
-            storageType: 'local',
-        }))
-
-        const { result } = renderHook(() => useAppBootstrap(null))
-
-        await waitFor(() => expect(result.current.session).not.toBeNull())
-        expect(getElectronActionBridge()).toBe(preloadBridge)
+        expect(service.getSnapshot()).toEqual({ error: 'Stored project is unavailable', phase: 'ready' })
     })
 })

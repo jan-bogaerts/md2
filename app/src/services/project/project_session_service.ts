@@ -10,7 +10,7 @@ import {
     type TopLevelFolderReference,
 } from '../../data/data_types'
 import { deriveStatesFromCards, mergeStatesWithDefaults } from '../../data/card_ordering'
-import { createStorageService, writeLastProject, type StorageType } from '../../data/project_session'
+import { createStorageService, readLastProject, writeLastProject, type StorageType } from '../../data/project_session'
 import { activateStorageService } from '../../data/project_storage_activation'
 import { configureRemoteControlConnection } from '../../data/remote_control_connection'
 import { configService } from '../config/config_service'
@@ -122,11 +122,7 @@ async function createMissingWorkingFolderResolution(
 
 async function loadProjectSession(storage: StorageService, storageType: StorageType, project: ProjectReference) {
     try {
-        await projectPersistenceService.flushPendingChanges()
-        dataService.init({ storage })
-        activateStorageService(storageType, storage)
-        await dataService.projectLoading.openProject(project)
-        writeLastProject(storageType, project)
+        await activateProjectSession(storage, storageType, project)
 
         return null
     } catch (error) {
@@ -134,6 +130,21 @@ async function loadProjectSession(storage: StorageService, storageType: StorageT
 
         return createMissingWorkingFolderResolution(storage, storageType, project)
     }
+}
+
+async function activateProjectSession(storage: StorageService, storageType: StorageType, project: ProjectReference) {
+    await projectPersistenceService.flushPendingChanges()
+    activateStorageService(storageType, storage)
+    dataService.init({ storage })
+    await dataService.projectLoading.openProject(project)
+    writeLastProject(storageType, project)
+}
+
+async function resolveRestoredProject(storageType: StorageType, storage: StorageService, project: ProjectReference) {
+    if (storageType !== 'local') return project
+    if (!storage.resolveProject) throw new Error('Local project validation is not available')
+
+    return storage.resolveProject(project)
 }
 
 export class ProjectSessionService extends EventTarget {
@@ -158,6 +169,18 @@ export class ProjectSessionService extends EventTarget {
     setError(message: string | null) {
         this.state = { ...this.state, errorMessage: message, pendingGithubConflictProject: null }
         this.dispatchChanged()
+    }
+
+    /** Restore last project through same service-owned loading path used by explicit project opens. */
+    async restoreLastProject(accessToken: string | null) {
+        this.setError(null)
+        const lastProject = readLastProject()
+        if (!lastProject) return
+        if (lastProject.storageType === 'github' && !accessToken) return
+
+        const storage = createStorageService(lastProject.storageType, accessToken)
+        const project = await resolveRestoredProject(lastProject.storageType, storage, lastProject.project)
+        await activateProjectSession(storage, lastProject.storageType, project)
     }
 
     async listRepositories(accessToken: string | null): Promise<RepositoryReference[]> {
@@ -207,11 +230,7 @@ export class ProjectSessionService extends EventTarget {
         await this.withLoading('Working folder selection failed', async () => {
             const storage = createStorageService(resolution.storageType, accessToken)
             await persistWorkingFolder(storage, resolution.project, folder.path)
-            await projectPersistenceService.flushPendingChanges()
-            dataService.init({ storage })
-            activateStorageService(resolution.storageType, storage)
-            await dataService.projectLoading.openProject(resolution.project)
-            writeLastProject(resolution.storageType, resolution.project)
+            await activateProjectSession(storage, resolution.storageType, resolution.project)
         })
     }
 
@@ -220,11 +239,7 @@ export class ProjectSessionService extends EventTarget {
             const storage = createStorageService(resolution.storageType, accessToken)
             const project = await storage.createProject(resolution.project, resolution.resolvedWorkingFolder)
             await persistWorkingFolder(storage, project, resolution.configuredWorkingFolder)
-            await projectPersistenceService.flushPendingChanges()
-            dataService.init({ storage })
-            activateStorageService(resolution.storageType, storage)
-            await dataService.projectLoading.openProject(project)
-            writeLastProject(resolution.storageType, project)
+            await activateProjectSession(storage, resolution.storageType, project)
         })
     }
 
@@ -246,11 +261,7 @@ export class ProjectSessionService extends EventTarget {
             })
             await storage.saveProjectConfig(project, projectConfig)
             configService.loadProjectConfig(projectConfig)
-            await projectPersistenceService.flushPendingChanges()
-            dataService.init({ storage })
-            activateStorageService(resolution.storageType, storage)
-            await dataService.projectLoading.openProject(project)
-            writeLastProject(resolution.storageType, project)
+            await activateProjectSession(storage, resolution.storageType, project)
         })
     }
 

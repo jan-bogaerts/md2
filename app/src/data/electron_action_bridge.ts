@@ -92,7 +92,9 @@ export interface OpenInEditorRequest {
 }
 
 export interface ElectronActionBridge {
+    answerActionQuestion?(executionId: string, requestId: number | string | null, answers: Record<string, string[]>): Promise<void>
     cancelActionExecution(executionId: string): Promise<void>
+    finishActionExecution?(executionId: string): Promise<void>
     generateDiff(request: DiffRequest): Promise<DiffResult>
     loadActionRunHistory(request: ActionRunHistoryRequest): Promise<ActionRunHistoryEntry[]>
     loadCardActivity?(request: CardActivityRequest): Promise<CardActivityFile>
@@ -103,7 +105,9 @@ export interface ElectronActionBridge {
     readFileAtCommit?(request: ReadFileAtCommitRequest): Promise<HistoricalFileContent>
     registerActionSchedule?(request: ActionScheduleRegistrationRequest): Promise<void>
     runSearchRegexpAgent(input: string, callback?: (event: AgentRunEvent) => void): Promise<string>
+    sendActionMessage?(executionId: string, content: string): Promise<void>
     startAction(request: ActionStartRequest): Promise<string>
+    startUnattendedAction?(request: ActionStartRequest): Promise<string>
 }
 
 declare global {

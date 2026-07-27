@@ -3,7 +3,7 @@ import type { AgentConversationMessage } from './data_types'
 import type { ThinkingLevel } from './agent_profiles'
 
 export type ActionRunStatus = 'cancelled' | 'completed' | 'failed' | 'okButNotAfter'
-export type ActionExecutionStatus = ActionRunStatus | 'running'
+export type ActionExecutionStatus = ActionRunStatus | 'running' | 'waitingForInput'
 export type ActionRunPhase = 'after' | 'before' | 'main' | 'on'
 
 export interface ActionRunInput {
@@ -30,6 +30,20 @@ export interface ActionStartRequest {
     runInput: ActionRunInput
 }
 
+export interface AgentQuestionOption {
+    description?: string
+    label: string
+}
+
+export interface AgentQuestion {
+    header: string
+    id: string
+    isOther?: boolean
+    isSecret?: boolean
+    options?: AgentQuestionOption[] | null
+    question: string
+}
+
 interface ActionExecutionEventBase {
     actionId: string
     context: ActionContext
@@ -45,6 +59,15 @@ export type ActionExecutionUpdate =
         reference: string
         startedAt: string
         title: string
+        userMessage: AgentConversationMessage
+    }
+    | {
+        kind: 'agentQuestion'
+        questions: AgentQuestion[]
+        requestId: number | string | null
+    }
+    | {
+        kind: 'agentUserMessage'
         userMessage: AgentConversationMessage
     }
     | {
@@ -69,7 +92,11 @@ export type ActionExecutionEvent =
         type: 'action'
     }
     | ActionExecutionEventBase & {
-        status: 'running'
+        status: 'running' | 'waitingForInput'
+        type: 'agentState'
+    }
+    | ActionExecutionEventBase & {
+        status: 'running' | 'waitingForInput'
         type: 'update'
         update: ActionExecutionUpdate
     }

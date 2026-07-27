@@ -29,6 +29,7 @@ describe('running action hooks', () => {
             }),
         } as unknown as ElectronActionBridge
         setActionBridgeOverride(bridge)
+        actionExecutionService.start()
         let renderCount = 0
         const { result } = renderHook(() => {
             renderCount += 1

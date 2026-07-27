@@ -13,6 +13,14 @@ function buildClaudeOutputCommand(command) {
     return [...command, '--print', '--verbose', '--output-format', 'stream-json']
 }
 
+function buildClaudeStreamingCommand(command) {
+    return [...buildClaudeOutputCommand(command), '--input-format', 'stream-json']
+}
+
+function buildCodexStreamingCommand(command) {
+    return [...command, 'app-server', '--stdio']
+}
+
 export const BUILTIN_AGENT_PROFILES = [
     {
         command: ['codex'],
@@ -194,6 +202,11 @@ const OUTPUT_COMMAND_ADAPTERS = new Map([
     ['codex', buildCodexOutputCommand],
 ])
 
+const STREAMING_COMMAND_ADAPTERS = new Map([
+    ['claude', buildClaudeStreamingCommand],
+    ['codex', buildCodexStreamingCommand],
+])
+
 function buildCodexResumeCommand(command, sessionId) {
     const outputArguments = command.slice(-2)
     if (outputArguments[0] !== 'exec' || outputArguments[1] !== '--json') {
@@ -225,6 +238,24 @@ export function buildAgentExecutionCommand(profile, model, thinkingLevel, search
     const outputAdapter = OUTPUT_COMMAND_ADAPTERS.get(profile.name)
 
     return outputAdapter ? outputAdapter(command, searchEnabled) : command
+}
+
+export function supportsAgentStreaming(profile) {
+    return STREAMING_COMMAND_ADAPTERS.has(profile.name)
+}
+
+export function buildAgentStreamingCommand(profile, model, thinkingLevel) {
+    if (!supportsAgentStreaming(profile)) throw new Error(`Agent profile does not support streaming: ${profile.name}`)
+    const validatedThinkingLevel = validateThinkingLevel(thinkingLevel, `agent profile ${profile.name}`)
+    let command = buildAgentCommand(profile, model)
+
+    if (validatedThinkingLevel !== 'none') {
+        const thinkingAdapter = THINKING_LEVEL_ADAPTERS.get(profile.name)
+        if (!thinkingAdapter) throw new Error(`Agent profile does not support thinking levels: ${profile.name}`)
+        command = thinkingAdapter(command, validatedThinkingLevel)
+    }
+
+    return STREAMING_COMMAND_ADAPTERS.get(profile.name)(command)
 }
 
 export function buildResumeAgentCommand(profile, sessionId, executionCommand) {

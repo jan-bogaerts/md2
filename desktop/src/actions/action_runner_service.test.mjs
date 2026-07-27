@@ -73,6 +73,26 @@ describe('ActionRunnerService', () => {
         await expect(runner.start({ actionId: 'main', context, runInput: {} })).rejects.toThrow('Action runner has no local Git service');
     });
 
+    it('rejects unattended streaming chains before starting a process', async () => {
+        const files = [
+            actionFile('main', { command: 'main', onAfter: ['stream'] }),
+            actionFile('stream', {
+                command: undefined,
+                prompt: 'wait for confirmation',
+                streaming: true,
+                type: 'agent',
+            }),
+        ];
+        const { agentRunnerService, commandRunner, runner } = createRunner(files);
+
+        await expect(runner.start(
+            { actionId: 'main', context, runInput: {} },
+            { interactive: false },
+        )).rejects.toThrow('Streaming action requires an interactive manual run');
+        expect(commandRunner).not.toHaveBeenCalled();
+        expect(agentRunnerService.start).not.toHaveBeenCalled();
+    });
+
     it('returns current actions folder and clears readiness on stop', () => {
         const { runner } = createRunner();
 
@@ -186,7 +206,7 @@ describe('ActionRunnerService', () => {
         await expect(runner.wait(executionIds[1])).resolves.toMatchObject({ status: 'completed' });
     });
 
-    it('keeps project and actions-folder snapshot across project switch', async () => {
+    it('cancels an active execution when the project switches', async () => {
         const { promise, resolve } = Promise.withResolvers();
         const commandRunner = vi.fn(async (executionProject, command) => {
             if (command === 'main') await promise;
@@ -200,9 +220,10 @@ describe('ActionRunnerService', () => {
 
         runner.startProject({ branch: 'other', id: 'other', rootPath: 'C:/other' }, 'other-actions', 'other-design');
         resolve();
-        await runner.wait(executionId);
+        const result = await runner.wait(executionId);
 
-        expect(commandRunner.mock.calls.map((call) => call[0])).toEqual([project, project]);
+        expect(result.status).toBe('cancelled');
+        expect(commandRunner.mock.calls.map((call) => call[0])).toEqual([project]);
         expect(localGitService.appendAndCommitActionActivity.mock.calls[0][1]).toBe('design');
     });
 

@@ -75,7 +75,7 @@ export function CardColumn(props: CardColumnProps) {
                 bgcolor: 'action.hover',
                 borderRadius: 1.5,
                 display: 'flex',
-                flex: isMobile ? '0 0 100%' : 1,
+                flex: isMobile ? '0 0 auto' : 1,
                 flexDirection: 'column',
                 gap: 1,
                 maxWidth: isMobile ? '100%' : MAX_COLUMN_WIDTH,

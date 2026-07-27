@@ -114,6 +114,43 @@ describe('ProjectSessionService storage activation', () => {
         expect(getElectronActionBridge()).toBe(preloadBridge)
     })
 
+    it('restores the last local project once after resolving its current reference', async () => {
+        mockProjectOpen()
+        const bridge = createDataBridge()
+        vi.mocked(bridge.resolveProject).mockResolvedValue({ branch: 'topic', id: 'C:/repo', rootPath: 'C:/repo' })
+        window.md2Data = bridge
+        window.localStorage.setItem(LAST_PROJECT_STORAGE_KEY, JSON.stringify({
+            project: { branch: 'main', id: 'local', rootPath: 'C:/repo' },
+            storageType: 'local',
+        }))
+        const service = new ProjectSessionService()
+
+        await service.restoreLastProject(null)
+
+        expect(bridge.resolveProject).toHaveBeenCalledOnce()
+        expect(dataService.init).toHaveBeenCalledOnce()
+        expect(dataService.projectLoading.openProject).toHaveBeenCalledOnce()
+        expect(dataService.projectLoading.openProject).toHaveBeenCalledWith({
+            branch: 'topic',
+            id: 'C:/repo',
+            rootPath: 'C:/repo',
+        })
+    })
+
+    it('skips the last GitHub project when no restored token exists', async () => {
+        mockProjectOpen()
+        window.localStorage.setItem(LAST_PROJECT_STORAGE_KEY, JSON.stringify({
+            project: { branch: 'main', id: 'owner/repo', owner: 'owner', repository: 'repo' },
+            storageType: 'github',
+        }))
+        const service = new ProjectSessionService()
+
+        await service.restoreLastProject(null)
+
+        expect(dataService.init).not.toHaveBeenCalled()
+        expect(dataService.projectLoading.openProject).not.toHaveBeenCalled()
+    })
+
     it('restores the preload action bridge when opening a GitHub project after remote storage', async () => {
         mockProjectOpen()
         const preloadBridge = createActionBridge()

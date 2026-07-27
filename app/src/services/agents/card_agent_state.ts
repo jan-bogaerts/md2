@@ -5,6 +5,7 @@ export type CardAgentState = 'idle' | 'running' | 'unseen result' | 'waiting for
 
 function isConversationWaiting(card: ProjectCard) {
     return card.agentConversations.some((conversation) => {
+        if (conversation.status === 'waitingForInput') return true
         if (conversation.status !== 'running') return false
 
         const stateEvent = [...conversation.events].reverse().find((event) => event.type === 'waiting' || event.type === 'resumed')
@@ -15,7 +16,9 @@ function isConversationWaiting(card: ProjectCard) {
 
 /** True when the card has at least one agent conversation still running. */
 export function hasRunningConversation(card: ProjectCard) {
-    return card.agentConversations.some((conversation) => conversation.status === 'running')
+    return card.agentConversations.some((conversation) => (
+        conversation.status === 'running' || conversation.status === 'waitingForInput'
+    ))
 }
 
 /** Resolve the single agent state shown for a card, mirroring the priority waiting > running > unseen > idle. */

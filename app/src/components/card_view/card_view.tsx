@@ -197,7 +197,8 @@ export function CardView(props: CardViewProps) {
                         flexDirection: isMobile ? 'column' : 'row',
                         gap: 2,
                         height: '100%',
-                        overflowX: isMobile ? 'visible' : 'auto',
+                        overflowX: isMobile ? 'hidden' : 'auto',
+                        overflowY: 'auto',
                         p: 2.5,
                     }}
                 >

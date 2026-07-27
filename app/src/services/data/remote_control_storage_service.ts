@@ -355,6 +355,22 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         await this.request('cancelActionExecution', [executionId])
     }
 
+    async sendActionMessage(executionId: string, content: string): Promise<void> {
+        await this.request('sendActionMessage', [executionId, content])
+    }
+
+    async answerActionQuestion(
+        executionId: string,
+        requestId: number | string | null,
+        answers: Record<string, string[]>,
+    ): Promise<void> {
+        await this.request('answerActionQuestion', [executionId, requestId, answers])
+    }
+
+    async finishActionExecution(executionId: string): Promise<void> {
+        await this.request('finishActionExecution', [executionId])
+    }
+
     async generateDiff(request: DiffRequest): Promise<DiffResult> {
         return this.request<DiffResult>('generateDiff', [request])
     }
@@ -408,6 +424,10 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
 
     async startAction(request: ActionStartRequest): Promise<string> {
         return this.request<string>('startAction', [request])
+    }
+
+    async startUnattendedAction(request: ActionStartRequest): Promise<string> {
+        return this.request<string>('startUnattendedAction', [request])
     }
 
     private async requestWithAgentEvents<T>(method: string, params: unknown[], onEvent?: (event: AgentRunEvent) => void): Promise<T> {

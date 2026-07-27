@@ -100,6 +100,7 @@ export const ActionDefinitionFields = memo(function ActionDefinitionFields(props
             prompt: undefined,
             thinkingLevel: undefined,
             trackFileChanges: undefined,
+            streaming: undefined,
             type: 'command',
         })
     }
@@ -110,6 +111,10 @@ export const ActionDefinitionFields = memo(function ActionDefinitionFields(props
 
     const handleTrackFileChangesChange = (event: ChangeEvent<HTMLInputElement>) => {
         handleDefinitionChange({ ...definition, trackFileChanges: event.target.checked || undefined })
+    }
+
+    const handleStreamingChange = (event: ChangeEvent<HTMLInputElement>) => {
+        handleDefinitionChange({ ...definition, streaming: event.target.checked || undefined })
     }
 
     const handleFiltersChange = (appliesTo: RawActionDefinition['appliesTo']) => {
@@ -194,16 +199,28 @@ export const ActionDefinitionFields = memo(function ActionDefinitionFields(props
                         <FormHelperText>card needs to be assigned to a worktree</FormHelperText>
                     </Stack>
                     {definition.type === 'agent' ? (
-                        <Stack>
-                            <FormControlLabel
-                                control={<Switch checked={!!definition.trackFileChanges} onChange={handleTrackFileChangesChange} size="small" />}
-                                label="Auto commit"
-                                sx={{ whiteSpace: 'nowrap' }}
-                            />
-                            <FormHelperText error={!!errors.trackFileChanges}>
-                                {errors.trackFileChanges ?? 'auto commit files agent reported as modified'}
-                            </FormHelperText>
-                        </Stack>
+                        <>
+                            <Stack>
+                                <FormControlLabel
+                                    control={<Switch checked={!!definition.trackFileChanges} onChange={handleTrackFileChangesChange} size="small" />}
+                                    label="Auto commit"
+                                    sx={{ whiteSpace: 'nowrap' }}
+                                />
+                                <FormHelperText error={!!errors.trackFileChanges}>
+                                    {errors.trackFileChanges ?? 'auto commit files agent reported as modified'}
+                                </FormHelperText>
+                            </Stack>
+                            <Stack>
+                                <FormControlLabel
+                                    control={<Switch checked={!!definition.streaming} onChange={handleStreamingChange} size="small" />}
+                                    label="Streaming"
+                                    sx={{ whiteSpace: 'nowrap' }}
+                                />
+                                <FormHelperText error={!!errors.streaming}>
+                                    {errors.streaming ?? 'keep agent session open for more turns'}
+                                </FormHelperText>
+                            </Stack>
+                        </>
                     ) : null}
                 </Grid>
                 {definition.type === 'agent' ? (

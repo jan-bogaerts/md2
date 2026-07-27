@@ -3,6 +3,7 @@ import type { ActionContext } from '../../data/action_context'
 import type { ActionDefinition } from '../../data/action_types'
 import type { AgentConversationMessage } from '../../data/data_types'
 import type {
+    AgentQuestion,
     ActionExecutionEvent,
     ActionExecutionStatus,
     ActionExecutionUpdate,
@@ -26,6 +27,7 @@ export interface LiveActionExecution {
     context: ActionContext
     executionId: string
     logs: ActionRunLogEntry[]
+    question: LiveAgentQuestion | null
     reference: string | null
     rootActionId: string
     status: ActionExecutionStatus
@@ -37,7 +39,12 @@ export interface LiveAgentTurn {
     reference: string
     startedAt: string
     title: string
-    userMessage: AgentConversationMessage
+    messages: AgentConversationMessage[]
+}
+
+export interface LiveAgentQuestion {
+    questions: AgentQuestion[]
+    requestId: number | string | null
 }
 
 export interface ActionExecutionSnapshot {
@@ -121,6 +128,31 @@ export async function cancelActionExecution(executionId: string) {
     await bridge.cancelActionExecution(executionId)
 }
 
+export async function sendActionMessage(executionId: string, content: string) {
+    const bridge = getElectronActionBridge()
+    if (!bridge?.sendActionMessage) throw new Error('Streaming agent messaging requires Electron')
+
+    await bridge.sendActionMessage(executionId, content)
+}
+
+export async function answerActionQuestion(
+    executionId: string,
+    requestId: number | string | null,
+    answers: Record<string, string[]>,
+) {
+    const bridge = getElectronActionBridge()
+    if (!bridge?.answerActionQuestion) throw new Error('Streaming agent questions require Electron')
+
+    await bridge.answerActionQuestion(executionId, requestId, answers)
+}
+
+export async function finishActionExecution(executionId: string) {
+    const bridge = getElectronActionBridge()
+    if (!bridge?.finishActionExecution) throw new Error('Finishing a streaming agent requires Electron')
+
+    await bridge.finishActionExecution(executionId)
+}
+
 /** Owns one renderer-wide subscription and all live/recent action execution state. */
 export class ActionExecutionService extends EventTarget {
     private eventListeners = new Set<EventListener>()
@@ -198,11 +230,14 @@ export class ActionExecutionService extends EventTarget {
         context: ActionContext,
         runInput: ActionRunInput = {},
         onStarted?: (executionId: string) => void,
+        interactive = true,
     ) {
         const bridge = getElectronActionBridge()
         if (!bridge) throw new Error('Action execution requires Electron')
         this.start()
-        const executionId = await bridge.startAction({ actionId: action.id, context, runInput })
+        const start = interactive ? bridge.startAction.bind(bridge) : bridge.startUnattendedAction?.bind(bridge)
+        if (!start) throw new Error('Unattended action execution requires Electron')
+        const executionId = await start({ actionId: action.id, context, runInput })
         onStarted?.(executionId)
 
         return this.waitForExecution(executionId)
@@ -234,12 +269,14 @@ export class ActionExecutionService extends EventTarget {
             context: event.context,
             executionId: event.executionId,
             logs: [],
+            question: null,
             reference: null,
             rootActionId: event.rootActionId,
             status: 'running' as const,
         }
         let next = { ...current, context: event.context, rootActionId: event.rootActionId }
         if (event.type === 'execution') next = { ...next, status: event.status }
+        if (event.type === 'agentState') next = { ...next, status: event.status }
         if (event.type === 'action') {
             next = {
                 ...next,
@@ -251,9 +288,34 @@ export class ActionExecutionService extends EventTarget {
         }
         if (event.type === 'update' && event.update.kind === 'agentStarted') {
             const { conversationId, reference, startedAt, title, userMessage } = event.update
-            next = { ...next, agentTurn: { assistantText: '', conversationId, reference, startedAt, title, userMessage } }
+            next = {
+                ...next,
+                agentTurn: { assistantText: '', conversationId, messages: [userMessage], reference, startedAt, title },
+            }
         }
-        if (event.type === 'update' && event.update.kind !== 'agentStarted') {
+        if (event.type === 'update' && event.update.kind === 'agentQuestion') {
+            next = { ...next, question: { questions: event.update.questions, requestId: event.update.requestId } }
+        }
+        if (event.type === 'update' && event.update.kind === 'agentUserMessage' && next.agentTurn) {
+            const assistantMessage = next.agentTurn.assistantText.length > 0
+                ? [{
+                    content: next.agentTurn.assistantText,
+                    id: `${event.update.userMessage.id}-previous-assistant`,
+                    role: 'assistant' as const,
+                    timestamp: event.update.userMessage.timestamp,
+                }]
+                : []
+            next = {
+                ...next,
+                agentTurn: {
+                    ...next.agentTurn,
+                    assistantText: '',
+                    messages: [...next.agentTurn.messages, ...assistantMessage, event.update.userMessage],
+                },
+                question: null,
+            }
+        }
+        if (event.type === 'update' && (event.update.kind === 'output' || event.update.kind === 'error')) {
             const agentTurn = event.update.kind === 'output' && next.agentTurn
                 ? { ...next.agentTurn, assistantText: `${next.agentTurn.assistantText}${event.update.content}` }
                 : next.agentTurn
@@ -267,10 +329,12 @@ export class ActionExecutionService extends EventTarget {
 
     private publish() {
         this.snapshot = { executions: [...this.executions.values()] }
-        const nextRunningSnapshot = this.snapshot.executions.filter(({ status }) => status === 'running')
+        const nextRunningSnapshot = this.snapshot.executions.filter(({ status }) => (
+            status === 'running' || status === 'waitingForInput'
+        ))
         const runningChanged = nextRunningSnapshot.length !== this.runningSnapshot.length
             || nextRunningSnapshot.some(({ executionId }, index) => this.runningSnapshot[index]?.executionId !== executionId)
-        if (runningChanged) this.runningSnapshot = nextRunningSnapshot
+        this.runningSnapshot = nextRunningSnapshot
         this.dispatchEvent(new CustomEvent('changed'))
         if (runningChanged) this.dispatchEvent(new CustomEvent('runningChanged'))
     }

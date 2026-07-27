@@ -95,8 +95,47 @@ describe('ActionExecutionService', () => {
         })
 
         expect(service.getSnapshot().executions[0]).toMatchObject({
-            agentTurn: { assistantText: 'live answer', conversationId: 'conversation-1', reference: 'log.json', userMessage },
+            agentTurn: { assistantText: 'live answer', conversationId: 'conversation-1', messages: [userMessage], reference: 'log.json' },
             logs: [{ stdout: 'live answer' }],
+        })
+        service.stop()
+    })
+
+    it('keeps waiting streaming executions active and tracks questions and later turns', () => {
+        const { bridge, emit } = bridgeWithEvents()
+        setActionBridgeOverride(bridge)
+        const service = new ActionExecutionService()
+        service.start()
+        const firstMessage = { content: 'Plan', id: 'message-1', role: 'user' as const, timestamp: 'now' }
+        const nextMessage = { content: 'Approved', id: 'message-2', role: 'user' as const, timestamp: 'later' }
+        const questions = [{ header: 'Confirm', id: 'confirm', question: 'Proceed?' }]
+
+        emit({ actionId: 'review', context, executionId: 'execution-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'execution' })
+        emit({
+            actionId: 'review', context, executionId: 'execution-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
+            update: { conversationId: 'conversation-1', kind: 'agentStarted', reference: 'log.json', startedAt: 'now', title: 'Review', userMessage: firstMessage },
+        })
+        emit({
+            actionId: 'review', context, executionId: 'execution-1', phase: 'main', rootActionId: 'review', status: 'waitingForInput', type: 'update',
+            update: { kind: 'agentQuestion', questions, requestId: 7 },
+        })
+        emit({ actionId: 'review', context, executionId: 'execution-1', phase: 'main', rootActionId: 'review', status: 'waitingForInput', type: 'agentState' })
+
+        expect(service.getRunningExecutionForContext(context)).toMatchObject({
+            question: { questions, requestId: 7 },
+            status: 'waitingForInput',
+        })
+
+        emit({
+            actionId: 'review', context, executionId: 'execution-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
+            update: { kind: 'agentUserMessage', userMessage: nextMessage },
+        })
+        emit({ actionId: 'review', context, executionId: 'execution-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'agentState' })
+
+        expect(service.getSnapshot().executions[0]).toMatchObject({
+            agentTurn: { messages: [firstMessage, nextMessage] },
+            question: null,
+            status: 'running',
         })
         service.stop()
     })

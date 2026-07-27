@@ -7,12 +7,15 @@ const { createLocalBridgeDispatch } = require('./local_bridge_dispatch');
 function createDispatch(options = {}) {
     const agentExecutableAvailability = vi.fn(async () => ({ codex: { available: true, error: null } }));
     const actionRunnerService = {
+        answerAgentQuestion: vi.fn(),
         cancel: vi.fn(),
+        finishAgentExecution: vi.fn(),
         prepareActionPrompt: vi.fn(async () => ({ prompt: 'Prepared prompt' })),
         requireActionsFolder: vi.fn(() => 'actions'),
         requireProjectFolder: vi.fn(() => 'design'),
         start: vi.fn(async () => 'action-1'),
         subscribe: vi.fn(() => vi.fn()),
+        sendAgentMessage: vi.fn(),
     };
     const actionSchedulerService = {
         registerActionSchedule: vi.fn(async () => ({ id: 'schedule-1' })),
@@ -251,12 +254,27 @@ describe('createLocalBridgeDispatch', () => {
         expect(actionRunnerService.prepareActionPrompt).toHaveBeenCalledWith(request);
     });
 
-    it('delegates cancellation and live input by execution id', async () => {
+    it('delegates cancellation and streaming interaction by execution id', async () => {
         const { actionRunnerService, dispatch } = createDispatch();
 
         await dispatch.actionBridge.cancelActionExecution('action-1');
+        await dispatch.actionBridge.sendActionMessage('action-1', 'approved');
+        await dispatch.actionBridge.answerActionQuestion('action-1', 7, { confirm: ['Yes'] });
+        await dispatch.actionBridge.finishActionExecution('action-1');
 
         expect(actionRunnerService.cancel).toHaveBeenCalledWith('action-1');
+        expect(actionRunnerService.sendAgentMessage).toHaveBeenCalledWith('action-1', 'approved');
+        expect(actionRunnerService.answerAgentQuestion).toHaveBeenCalledWith('action-1', 7, { confirm: ['Yes'] });
+        expect(actionRunnerService.finishAgentExecution).toHaveBeenCalledWith('action-1');
+    });
+
+    it('marks unattended starts before delegating to the runner', async () => {
+        const { actionRunnerService, dispatch } = createDispatch();
+        const request = { actionId: 'test', context: { kind: 'project' }, runInput: {} };
+
+        await dispatch.actionBridge.startUnattendedAction(request);
+
+        expect(actionRunnerService.start).toHaveBeenCalledWith(request, { interactive: false });
     });
 
     it('owns search-agent command and prompt construction in Electron', async () => {

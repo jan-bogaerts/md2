@@ -25,6 +25,7 @@ import { FileTreeView } from './text_view/file_tree_view'
 import { useProjectConfig } from './hooks/use_project_config'
 import { useWorkingFolder } from './hooks/use_working_folder'
 import { ProjectWorkspaceAvailability } from './project_workspace_availability'
+import { MobileLayout } from './shell/mobile_layout'
 import { MobileMainWindow } from './shell/mobile_main_window'
 import { SplitLayout } from './shell/split_layout'
 
@@ -237,7 +238,7 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
     )
     const views = (
         <>
-            {isMobile ? textView : <SplitLayout left={fileTree} right={textView} />}
+            {isMobile ? <MobileLayout content={textView} /> : <SplitLayout left={fileTree} right={textView} />}
             <CardView cardTypes={cardTypes} isMobile={isMobile} states={states} />
         </>
     )

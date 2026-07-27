@@ -51,6 +51,7 @@ export interface RawActionDefinition {
     prompt?: string
     thinkingLevel?: string
     trackFileChanges?: boolean
+    streaming?: boolean
     type: ActionType
 }
 
@@ -78,6 +79,7 @@ export interface ActionDefinition {
     sourcePath: string | null
     thinkingLevel: string | null
     trackFileChanges: boolean
+    streaming: boolean
     type: ActionType
 }
 

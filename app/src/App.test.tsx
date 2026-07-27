@@ -1,11 +1,14 @@
-﻿import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from './app'
-import { LAST_PROJECT_STORAGE_KEY } from './data/project_session'
-import type { ElectronDataBridge } from './data/electron_data_bridge'
 import type { StorageService } from './data/data_types'
+import {
+    ApplicationStartupService,
+    type ApplicationStartupDependencies,
+} from './services/application_startup_service'
 import { configService, REACT_CONFIG_STORAGE_KEY } from './services/config/config_service'
 import { dataService } from './services/data/data_service'
+import { createDeferred } from './services/test_support/data_service_test_support'
 
 vi.mock('./auth/use_github_auth', () => ({
     useGithubAuth: () => ({
@@ -20,36 +23,31 @@ vi.mock('./auth/use_github_auth', () => ({
     }),
 }))
 
-function createFailingBridge(): ElectronDataBridge {
-    return {
-        checkoutBranch: vi.fn(async (project, branch) => ({ ...project, branch })),
-        commit: vi.fn(async () => []),
-        createProject: vi.fn(async (project) => project),
-        deleteFile: vi.fn(),
-        deleteFolder: vi.fn(),
-        hasPendingPush: vi.fn(async () => false),
-        listBranches: vi.fn(async () => [{ name: 'main' }]),
-        listRepositoryFiles: vi.fn(async () => []),
-        listTopLevelFolders: vi.fn(async () => []),
-        loadActionFiles: vi.fn(async () => []),
-        loadFile: vi.fn(async () => ({ content: '', path: 'design/empty.md' })),
-        loadProject: vi.fn(async () => {
-            throw new Error('repository folder moved')
-        }),
-        loadProjectRoot: vi.fn(async () => {
-            throw new Error('repository folder moved')
-        }),
-        loadProjectConfig: vi.fn(async () => null),
-        onWorktreesChanged: vi.fn(() => vi.fn()),
-        moveFiles: vi.fn(),
-        openProjectFolder: vi.fn(async () => null),
-        push: vi.fn(),
-        resolveProject: vi.fn(async (project) => project),
-        saveProjectConfig: vi.fn(),
-        addWorktree: vi.fn(async () => false),
-        removeWorktree: vi.fn(async () => undefined),
-        watchProject: vi.fn(() => vi.fn()),
+function createStartupService(overrides: Partial<ApplicationStartupDependencies> = {}) {
+    const dependencies: ApplicationStartupDependencies = {
+        getGithubAccessToken: vi.fn(() => null),
+        initializeAgentCapabilities: vi.fn(async () => {}),
+        initializeServices: vi.fn(),
+        restoreGithubSession: vi.fn(async () => {}),
+        restoreLastProject: vi.fn(async () => {}),
+        ...overrides,
     }
+
+    return new ApplicationStartupService(dependencies)
+}
+
+function createPendingStartupService() {
+    const pendingRestore = createDeferred<void>()
+
+    return createStartupService({ restoreLastProject: vi.fn(() => pendingRestore.promise) })
+}
+
+function createFailingStartupService() {
+    return createStartupService({
+        restoreLastProject: vi.fn(async () => {
+            throw new Error('repository folder moved')
+        }),
+    })
 }
 
 function createResetStorage(): StorageService {
@@ -85,11 +83,12 @@ describe('App', () => {
         cleanup()
         configService.clear()
         window.localStorage.clear()
-        delete window.md2Data
     })
 
     it('shows the shell with GitHub authentication reachable once startup finishes', async () => {
-        render(<App />)
+        const startupService = createStartupService()
+        void startupService.start()
+        render(<App startupService={startupService} />)
 
         fireEvent.click(await screen.findByRole('button', { name: 'GitHub account' }))
 
@@ -97,45 +96,49 @@ describe('App', () => {
     })
 
     it('renders the toolbar theme toggle', async () => {
-        render(<App />)
+        const startupService = createStartupService()
+        void startupService.start()
+        render(<App startupService={startupService} />)
 
         await screen.findByRole('button', { name: 'GitHub account' })
         expect(screen.getByRole('button', { name: 'Switch to dark theme' })).toBeInTheDocument()
     })
 
     it('shows the startup splash while bootstrapping by default', () => {
-        render(<App />)
+        const startupService = createPendingStartupService()
+        void startupService.start()
+        render(<App startupService={startupService} />)
 
         expect(screen.getByText('Starting MD²...')).toBeInTheDocument()
     })
 
     it('skips the startup splash when the preference is disabled', () => {
         window.localStorage.setItem(REACT_CONFIG_STORAGE_KEY, JSON.stringify({ 'react.showStartupSplash': false }))
+        const startupService = createPendingStartupService()
+        void startupService.start()
 
-        render(<App />)
+        render(<App startupService={startupService} />)
 
         expect(screen.queryByText('Starting MD²...')).not.toBeInTheDocument()
     })
 
     it('shows a dismissible restore error when the last project fails to open', async () => {
-        window.md2Data = createFailingBridge()
-        window.localStorage.setItem(LAST_PROJECT_STORAGE_KEY, JSON.stringify({
-            project: { branch: 'main', id: 'local', rootPath: 'C:/repo' },
-            storageType: 'local',
-        }))
+        const startupService = createFailingStartupService()
+        void startupService.start()
+        render(<App startupService={startupService} />)
 
-        render(<App />)
-
-        expect(await screen.findByText('repository folder moved')).toBeInTheDocument()
+        expect(await screen.findByText(/repository folder moved/u)).toBeInTheDocument()
         expect(screen.getByRole('heading', { name: 'No project open' })).toBeInTheDocument()
 
         fireEvent.click(screen.getByRole('button', { name: 'Close' }))
 
-        expect(screen.queryByText('repository folder moved')).toBeNull()
+        expect(screen.queryByText(/repository folder moved/u)).toBeNull()
     })
 
     it('does not show a restore error when no previous project exists', async () => {
-        render(<App />)
+        const startupService = createStartupService()
+        void startupService.start()
+        render(<App startupService={startupService} />)
 
         expect(await screen.findByRole('heading', { name: 'No project open' })).toBeInTheDocument()
         expect(screen.queryByText(/Could not restore last project/)).toBeNull()

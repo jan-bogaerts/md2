@@ -175,6 +175,11 @@ function createLocalBridgeDispatch(dependencies) {
     };
 
     const actionBridge = {
+        answerActionQuestion: (executionId, requestId, answers) => {
+            if (!actionRunnerService) throw new Error('Action runner is not available');
+
+            return actionRunnerService.answerAgentQuestion(executionId, requestId, answers);
+        },
         generateDiff: async (request) => {
             const result = await diffService.generateDiff(currentLocalProject, request);
 
@@ -207,6 +212,11 @@ function createLocalBridgeDispatch(dependencies) {
             if (!actionRunnerService) throw new Error('Action runner is not available');
 
             return actionRunnerService.cancel(executionId);
+        },
+        finishActionExecution: (executionId) => {
+            if (!actionRunnerService) throw new Error('Action runner is not available');
+
+            return actionRunnerService.finishAgentExecution(executionId);
         },
         onActionExecution: (callback) => {
             if (!actionRunnerService) throw new Error('Action runner is not available');
@@ -244,10 +254,20 @@ function createLocalBridgeDispatch(dependencies) {
 
             return result.stdout;
         },
+        sendActionMessage: (executionId, content) => {
+            if (!actionRunnerService) throw new Error('Action runner is not available');
+
+            return actionRunnerService.sendAgentMessage(executionId, content);
+        },
         startAction: (request) => {
             if (!actionRunnerService) throw new Error('Action runner is not available');
 
             return actionRunnerService.start(request);
+        },
+        startUnattendedAction: (request) => {
+            if (!actionRunnerService) throw new Error('Action runner is not available');
+
+            return actionRunnerService.start(request, { interactive: false });
         },
     };
 

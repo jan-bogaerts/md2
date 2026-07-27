@@ -30,6 +30,7 @@ const action: ActionDefinition = {
     sourcePath: 'actions/build.json',
     thinkingLevel: null,
     trackFileChanges: false,
+    streaming: false,
     type: 'command',
 }
 const context: ActionContext = { file: 'design/F-1.md', kind: 'card' }
@@ -44,6 +45,7 @@ function installBridge() {
         }),
     } as unknown as ElectronActionBridge
     setActionBridgeOverride(bridge)
+    actionExecutionService.start()
 
     return (event: ActionExecutionEvent) => {
         if (!listener) throw new Error('Missing action execution listener')
@@ -103,6 +105,52 @@ describe('useActionPopupController', () => {
 
         expect(runAction).toHaveBeenCalledWith(action, effectiveContext, { extraPrompt: '' }, expect.any(Function))
         expect(scheduleAction).toHaveBeenCalledWith(action, scheduleContext, expect.objectContaining({ type: 'at' }))
+    })
+
+    it('sends later streaming turns and structured answers through active execution', async () => {
+        const emit = installBridge()
+        const streamingAction: ActionDefinition = {
+            ...action,
+            command: null,
+            prompt: 'Plan',
+            streaming: true,
+            type: 'agent',
+        }
+        const sendMessage = vi.fn(async () => undefined)
+        const answerQuestion = vi.fn(async () => undefined)
+        const loadConversations = vi.fn(async () => [])
+        const loadHistory = vi.fn(async () => [])
+        const preparePrompt = vi.fn(async () => 'Plan')
+        const userMessage = { content: 'Plan', id: 'message-1', role: 'user' as const, timestamp: 'now' }
+        const { result } = renderHook(() => useActionPopupController({
+            action: streamingAction,
+            answerQuestion,
+            context,
+            loadConversations,
+            loadHistory,
+            preparePrompt,
+            sendMessage,
+        }))
+
+        emit({ actionId: action.id, context, executionId: 'execution-1', phase: 'main', rootActionId: action.id, status: 'running', type: 'execution' })
+        emit({
+            actionId: action.id, context, executionId: 'execution-1', phase: 'main', rootActionId: action.id, status: 'running', type: 'update',
+            update: { conversationId: 'conversation-1', kind: 'agentStarted', reference: 'log.json', startedAt: 'now', title: 'Build', userMessage },
+        })
+        const questions = [{ header: 'Confirm', id: 'confirm', question: 'Proceed?' }]
+        emit({
+            actionId: action.id, context, executionId: 'execution-1', phase: 'main', rootActionId: action.id, status: 'waitingForInput', type: 'update',
+            update: { kind: 'agentQuestion', questions, requestId: 7 },
+        })
+        emit({ actionId: action.id, context, executionId: 'execution-1', phase: 'main', rootActionId: action.id, status: 'waitingForInput', type: 'agentState' })
+
+        act(() => result.current.handlePromptChange('Approved'))
+        await act(async () => result.current.handleRun())
+        await act(async () => result.current.handleAnswerQuestion({ confirm: ['Yes'] }))
+
+        expect(sendMessage).toHaveBeenCalledWith('execution-1', 'Approved')
+        expect(answerQuestion).toHaveBeenCalledWith('execution-1', 7, { confirm: ['Yes'] })
+        expect(result.current.streamingActive).toBe(true)
     })
 
     it('reports action validation failures through dialogService', async () => {

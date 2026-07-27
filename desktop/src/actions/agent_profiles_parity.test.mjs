@@ -4,6 +4,7 @@ import {
     THINKING_LEVELS,
     buildAgentCommand,
     buildAgentExecutionCommand,
+    buildAgentStreamingCommand,
     defaultModelForProfile,
     validateAgentProfiles,
 } from './agent_profiles.mjs';
@@ -26,6 +27,9 @@ describe('agent_profiles shared adapter', () => {
         expect(buildAgentCommand(codex, 'gpt-5')).toEqual(['codex', '--model', 'gpt-5']);
         expect(buildAgentExecutionCommand(codex, 'gpt-5', 'low')).toEqual([
             'codex', '--model', 'gpt-5', '-c', 'model_reasoning_effort=low', '--search', 'exec', '--json',
+        ]);
+        expect(buildAgentStreamingCommand(codex, 'gpt-5', 'none')).toEqual([
+            'codex', '--model', 'gpt-5', 'app-server', '--stdio',
         ]);
     });
 });

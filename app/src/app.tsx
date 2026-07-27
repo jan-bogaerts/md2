@@ -8,10 +8,15 @@ import { RemoteControlButton } from './components/shell/remote_control_button'
 import { AppThemeProvider } from './theme/theme_provider'
 import { readStartupSplashPreference } from './services/config/config_service'
 import { dialogService } from './services/dialog_service'
+import type { ApplicationStartupService } from './services/application_startup_service'
 
-export function App() {
+interface AppProps {
+    startupService?: ApplicationStartupService
+}
+
+export function App({ startupService }: AppProps = {}) {
     const auth = useGithubAuth()
-    const bootstrap = useAppBootstrap(auth.accessToken)
+    const bootstrap = useAppBootstrap(startupService)
     const showStartupSplash = readStartupSplashPreference()
     const reportedBootstrapErrorRef = useRef<string | null>(null)
 

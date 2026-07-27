@@ -1,5 +1,5 @@
 ﻿import { useEffect, useState } from 'react'
-import { githubAuthService, initDefaultGithubAuthService, type GithubAuthService } from '../services/github/github_auth_service'
+import { githubAuthService, type GithubAuthService } from '../services/github/github_auth_service'
 import type { AuthSnapshot } from './github_auth_types'
 
 export interface UseGithubAuthResult extends AuthSnapshot {
@@ -21,9 +21,6 @@ export function useGithubAuth(service: GithubAuthService = githubAuthService): U
         }
 
         service.addEventListener('changed', handleChanged)
-        if (!service.isInitialized()) initDefaultGithubAuthService(service)
-
-        void service.restoreSession()
 
         return () => {
             service.removeEventListener('changed', handleChanged)

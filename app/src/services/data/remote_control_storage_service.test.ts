@@ -282,6 +282,32 @@ describe('RemoteControlStorageService', () => {
         await expect(request).rejects.toThrow('command failed')
     })
 
+    it('routes streaming interaction methods through remote control', async () => {
+        installWebSocket()
+        const service = createService()
+        const firstOperation = service.sendActionMessage('action-1', 'approved')
+        await flushPromises()
+        const socket = lastSocket()
+
+        socket.open()
+        await flushPromises()
+        const operations = [
+            firstOperation,
+            service.answerActionQuestion('action-1', 7, { confirm: ['Yes'] }),
+            service.finishActionExecution('action-1'),
+        ]
+        await flushPromises()
+        const requests = socket.sent.map((entry) => JSON.parse(entry) as { id: string, method: string, params: unknown[] })
+        expect(requests.map(({ method, params }) => ({ method, params }))).toEqual([
+            { method: 'sendActionMessage', params: ['action-1', 'approved'] },
+            { method: 'answerActionQuestion', params: ['action-1', 7, { confirm: ['Yes'] }] },
+            { method: 'finishActionExecution', params: ['action-1'] },
+        ])
+        requests.forEach(({ id }) => socket.receive({ id, result: null }))
+
+        await Promise.all(operations)
+    })
+
     it('sends recursive folder deletion requests', async () => {
         installWebSocket()
         const service = createService()

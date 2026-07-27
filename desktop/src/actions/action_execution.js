@@ -49,6 +49,21 @@ class ActionExecution {
         if (this.activeAgentRunId) this.agentRunnerService.stop(this.activeAgentRunId);
     }
 
+    sendAgentMessage(content) {
+        if (!this.activeAgentRunId) throw new Error(`Action execution has no active streaming agent: ${this.executionId}`);
+        this.agentRunnerService.sendMessage(this.activeAgentRunId, content);
+    }
+
+    answerAgentQuestion(requestId, answers) {
+        if (!this.activeAgentRunId) throw new Error(`Action execution has no active streaming agent: ${this.executionId}`);
+        this.agentRunnerService.answerQuestion(this.activeAgentRunId, requestId, answers);
+    }
+
+    finishAgent() {
+        if (!this.activeAgentRunId) throw new Error(`Action execution has no active streaming agent: ${this.executionId}`);
+        this.agentRunnerService.finish(this.activeAgentRunId);
+    }
+
     async run() {
         return runWithGitOperationContext({ executionId: this.executionId }, () => this.runWithContext());
     }
@@ -272,6 +287,24 @@ class ActionExecution {
                 return;
             }
             if (agentEvent.type === 'closed') return;
+            if (agentEvent.type === 'state') {
+                this.publish(action, phase, agentEvent.state, { type: 'agentState' });
+                return;
+            }
+            if (agentEvent.type === 'question') {
+                const update = {
+                    kind: 'agentQuestion',
+                    questions: agentEvent.questions,
+                    requestId: agentEvent.requestId,
+                };
+                this.publish(action, phase, 'waitingForInput', { type: 'update', update });
+                return;
+            }
+            if (agentEvent.type === 'userMessage') {
+                const update = { kind: 'agentUserMessage', userMessage: agentEvent.userMessage };
+                this.publish(action, phase, 'running', { type: 'update', update });
+                return;
+            }
 
             const update = { content: agentEvent.content, kind: agentEvent.type };
             this.publish(action, phase, 'running', { type: 'update', update });

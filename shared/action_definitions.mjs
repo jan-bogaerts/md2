@@ -12,7 +12,7 @@ const ACTION_TYPES = ['agent', 'command']
 const LEGACY_FIELDS = ['after', 'before', 'runIn', 'text']
 export const ACTION_DEFINITION_FIELDS = Object.freeze([
     'id', 'label', 'description', 'type', 'icon', 'appliesTo', 'onBefore', 'on', 'onAfter',
-    'onState', 'needsWorkTree', 'trackFileChanges', 'agent', 'model', 'thinkingLevel', 'prompt', 'command', 'phrases',
+    'onState', 'needsWorkTree', 'trackFileChanges', 'streaming', 'agent', 'model', 'thinkingLevel', 'prompt', 'command', 'phrases',
 ])
 export const ACTION_ON_RULE_FIELDS = Object.freeze(['actionId', 'condition'])
 export const ACTION_PHRASE_FIELDS = Object.freeze(['title', 'text'])
@@ -29,7 +29,7 @@ export const REMARKABLE_CONVERT_ACTION_ID = 'md2.convert-remarkable-images-to-te
 // Fields the editor can route an error to. Anything else routes to the general summary.
 const ROUTABLE_FIELDS = new Set([
     'id', 'label', 'description', 'type', 'icon', 'appliesTo', 'onBefore', 'on', 'onAfter',
-    'onState', 'needsWorkTree', 'trackFileChanges', 'agent', 'model', 'thinkingLevel', 'prompt', 'command', 'phrases',
+    'onState', 'needsWorkTree', 'trackFileChanges', 'streaming', 'agent', 'model', 'thinkingLevel', 'prompt', 'command', 'phrases',
 ])
 
 /**
@@ -85,6 +85,7 @@ export const BUILTIN_CUSTOM_PROMPT = {
     sourcePath: null,
     thinkingLevel: null,
     trackFileChanges: false,
+    streaming: false,
     type: 'agent',
 }
 
@@ -108,6 +109,7 @@ export const BUILTIN_REMARKABLE_CONVERT = {
     sourcePath: null,
     thinkingLevel: null,
     trackFileChanges: false,
+    streaming: false,
     type: 'agent',
 }
 
@@ -250,6 +252,7 @@ function validateTypeSpecificFields(value, type, source) {
     requireExecutableText(value.command, 'command', source)
     if (value.prompt !== undefined) throw fail(`Prompt action field is not valid for command action in ${source}`, 'field-not-allowed', source, 'prompt')
     if (value.trackFileChanges !== undefined) throw fail(`Agent action field trackFileChanges is not valid for command action in ${source}`, 'field-not-allowed', source, 'trackFileChanges')
+    if (value.streaming !== undefined) throw fail(`Agent action field streaming is not valid for command action in ${source}`, 'field-not-allowed', source, 'streaming')
 }
 
 function validateAgentFields(raw, dependencies, source) {
@@ -291,6 +294,7 @@ function validateRawDefinition(value, source, dependencies) {
     if (value.onState !== undefined && typeof value.onState !== 'string') throw fail(`Invalid onState in ${source}`, 'invalid-field', source, 'onState')
     if (value.needsWorkTree !== undefined && typeof value.needsWorkTree !== 'boolean') throw fail(`Invalid needsWorkTree in ${source}`, 'invalid-field', source, 'needsWorkTree')
     if (value.trackFileChanges !== undefined && typeof value.trackFileChanges !== 'boolean') throw fail(`Invalid trackFileChanges in ${source}`, 'invalid-field', source, 'trackFileChanges')
+    if (value.streaming !== undefined && typeof value.streaming !== 'boolean') throw fail(`Invalid streaming in ${source}`, 'invalid-field', source, 'streaming')
 
     const raw = {
         agent: readOptionalString(value.agent, 'agent', source),
@@ -311,6 +315,7 @@ function validateRawDefinition(value, source, dependencies) {
         sourcePath: source,
         thinkingLevel: readOptionalString(value.thinkingLevel, 'thinkingLevel', source),
         trackFileChanges: value.trackFileChanges ?? false,
+        streaming: value.streaming ?? false,
         type,
     }
     validateAgentFields(raw, dependencies, source)
@@ -407,6 +412,7 @@ export function validateActionDefinitionGraph(entries, dependencies = {}) {
             sourcePath: raw.sourcePath,
             thinkingLevel: raw.thinkingLevel ?? null,
             trackFileChanges: raw.trackFileChanges,
+            streaming: raw.streaming,
             type: raw.type,
         })
     }

@@ -2,7 +2,6 @@ import { parseAgentConversation } from './agent_conversations.mjs'
 
 const ACTIVITY_VERSION = 1
 const ACTION_ACTIVITY_STATUSES = new Set(['cancelled', 'completed', 'failed', 'okButNotAfter'])
-const TERMINAL_CONVERSATION_STATUSES = new Set(['cancelled', 'completed', 'failed'])
 
 function requiredString(value, fieldName, allowEmpty = false) {
     if (typeof value !== 'string' || (!allowEmpty && value.length === 0)) throw new Error(`Malformed activity file: missing ${fieldName}`)
@@ -111,7 +110,6 @@ function parseRecord(value, index, activityOrigin) {
 function parseConversation(value, index, activityOrigin) {
     try {
         const parsed = parseAgentConversation(JSON.stringify(value), '')
-        if (!TERMINAL_CONVERSATION_STATUSES.has(parsed.status)) throw new Error(`conversation status is not terminal: ${parsed.status}`)
         const expectedCardInternalId = activityOrigin.kind === 'card' ? activityOrigin.cardInternalId : null
         if (parsed.cardInternalId !== expectedCardInternalId) throw new Error('conversation cardInternalId does not match activity origin')
 
@@ -154,9 +152,5 @@ export function parseActivityFile(content, expectedOrigin = null) {
 export function findActivityConversation(activity, conversationId) {
     const conversation = activity.conversations.find(({ id }) => id === conversationId)
     if (!conversation) throw new Error(`Activity conversation not found: ${conversationId}`)
-    if (!TERMINAL_CONVERSATION_STATUSES.has(conversation.status)) {
-        throw new Error(`Activity conversation is not terminal: ${conversationId}`)
-    }
-
     return conversation
 }

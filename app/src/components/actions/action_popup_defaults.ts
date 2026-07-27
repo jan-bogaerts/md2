@@ -9,10 +9,22 @@ import { actionFilePath, createActionDefinition, type ConvertPromptToActionInput
 import { dataService } from '../../services/data/data_service'
 import { projectPersistenceService } from '../../services/project/project_persistence_service'
 import { cancelElectronAction, runElectronAction } from '../../services/actions/electron_action_runner'
+import {
+    answerActionQuestion,
+    finishActionExecution,
+    sendActionMessage,
+} from '../../services/actions/action_execution_service'
 import { flushMarkdownEditors } from '../editor/markdown_editor_flush'
 
-export type PopupRunStatus = 'idle' | 'running' | ActionRunResult['status']
+export type PopupRunStatus = 'idle' | 'running' | 'waitingForInput' | ActionRunResult['status']
 export type CancelAction = (executionId: string) => Promise<void>
+export type SendMessage = (executionId: string, content: string) => Promise<void>
+export type FinishAction = (executionId: string) => Promise<void>
+export type AnswerQuestion = (
+    executionId: string,
+    requestId: number | string | null,
+    answers: Record<string, string[]>,
+) => Promise<void>
 export type ConvertPromptToAction = (input: ConvertPromptToActionInput) => Promise<{ path: string }>
 export type LoadHistory = (action: ActionDefinition, context: ActionContext) => Promise<ActionRunHistoryEntry[]>
 export type LoadConversation = (path: string) => Promise<AgentConversation>
@@ -77,6 +89,22 @@ export function defaultCancelAction(executionId: string) {
     return cancelElectronAction(executionId)
 }
 
+export function defaultSendMessage(executionId: string, content: string) {
+    return sendActionMessage(executionId, content)
+}
+
+export function defaultFinishAction(executionId: string) {
+    return finishActionExecution(executionId)
+}
+
+export function defaultAnswerQuestion(
+    executionId: string,
+    requestId: number | string | null,
+    answers: Record<string, string[]>,
+) {
+    return answerActionQuestion(executionId, requestId, answers)
+}
+
 export async function defaultScheduleAction(action: ActionDefinition, context: ActionContext, trigger: ActionScheduleTrigger) {
     const bridge = getElectronActionBridge()
     if (!bridge?.registerActionSchedule) throw new Error('Scheduling actions requires Electron local mode')
@@ -87,7 +115,7 @@ export async function defaultScheduleAction(action: ActionDefinition, context: A
 export function statusColor(status: PopupRunStatus) {
     if (status === 'completed') return 'success.main'
     if (status === 'failed') return 'error.main'
-    if (status === 'running') return 'info.main'
+    if (status === 'running' || status === 'waitingForInput') return 'info.main'
     if (status === 'okButNotAfter' || status === 'cancelled') return 'warning.main'
 
     return 'text.secondary'

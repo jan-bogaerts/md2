@@ -1,9 +1,11 @@
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ActionContext } from '../../data/action_context'
+import type { ActionExecutionEvent } from '../../data/action_run_types'
 import type { ActionFile } from '../../data/action_types'
 import type { ProjectReference, StorageService, WorktreeRecord } from '../../data/data_types'
 import { actionService } from '../../services/actions/action_service'
+import { actionExecutionService } from '../../services/actions/action_execution_service'
 import { dialogService } from '../../services/dialog_service'
 import { worktreeService } from '../../services/project/worktree_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
@@ -226,6 +228,43 @@ describe('ActionPopup', () => {
             actionId: 'review',
             context: { kind: 'project', worktree: '1' },
         }))
+    })
+
+    it('shows separate streaming Send, Finish, and Cancel controls while waiting', async () => {
+        actionExecutionService.stop()
+        let executionListener: ((event: ActionExecutionEvent) => void) | null = null
+        const finishActionExecution = vi.fn(async () => undefined)
+        window.md2Actions = {
+            finishActionExecution,
+            loadActionRunHistory: vi.fn(async () => []),
+            onActionExecution: vi.fn((listener) => {
+                executionListener = listener
+                return vi.fn()
+            }),
+            prepareActionPrompt: vi.fn(async () => ({ prompt: 'Plan' })),
+        } as unknown as typeof window.md2Actions
+        actionExecutionService.start()
+        actionService.loadFromFiles([file(agentDefinition('stream', { label: 'Stream', streaming: true }))])
+        renderPopup()
+        await waitFor(() => expect(executionListener).not.toBeNull())
+        const eventBase = {
+            actionId: 'stream',
+            context,
+            executionId: 'execution-1',
+            phase: 'main' as const,
+            rootActionId: 'stream',
+        }
+
+        act(() => {
+            executionListener?.({ ...eventBase, status: 'running', type: 'execution' })
+            executionListener?.({ ...eventBase, status: 'waitingForInput', type: 'agentState' })
+        })
+
+        expect(screen.getByRole('button', { name: 'Send' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Finish' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: 'Finish' }))
+        await waitFor(() => expect(finishActionExecution).toHaveBeenCalledWith('execution-1'))
     })
 
     it('blocks a needsWorkTree action without assignment and reports the reason', async () => {

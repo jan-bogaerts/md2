@@ -11,12 +11,13 @@ export async function runElectronAction(
     context: ActionContext,
     input: ActionRunInput = {},
     onStarted?: (executionId: string) => void,
+    interactive = true,
 ): Promise<ActionRunResult> {
     const handleStarted = (startedExecutionId: string) => {
         onStarted?.(startedExecutionId)
     }
     if (projectPersistenceService.getSnapshot().hasPendingSave) await projectPersistenceService.flushPendingChanges()
-    const result = await actionExecutionService.startExecution(action, context, input, handleStarted)
+    const result = await actionExecutionService.startExecution(action, context, input, handleStarted, interactive)
     await dataService.projectLoading.reloadCurrentProjectSnapshot()
 
     return result

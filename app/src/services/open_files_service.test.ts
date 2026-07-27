@@ -21,7 +21,7 @@ function action(id: string, sourcePath = `actions/${id}.json`, label = id): Acti
     return {
         agent: null, appliesTo: null, builtin: false, command: null, description: id, icon: null, id, label,
         model: null, needsWorkTree: false, on: [], onAfter: [], onBefore: [], onState: null, phrases: [],
-        prompt: id, sourcePath, thinkingLevel: null, trackFileChanges: false, type: 'agent',
+        prompt: id, sourcePath, thinkingLevel: null, trackFileChanges: false, streaming: false, type: 'agent',
     }
 }
 

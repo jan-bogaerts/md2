@@ -28,6 +28,7 @@ const action: ActionDefinition = {
     sourcePath: 'actions/test.json',
     thinkingLevel: null,
     trackFileChanges: false,
+    streaming: false,
     type: 'command',
 }
 const context = { file: 'design/F-1.md', kind: 'card' as const }

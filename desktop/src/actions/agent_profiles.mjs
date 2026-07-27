@@ -8,17 +8,19 @@ export const {
     THINKING_LEVELS,
     buildAgentCommand,
     buildAgentExecutionCommand,
+    buildAgentStreamingCommand,
     buildResumeAgentCommand,
     defaultModelForProfile,
     findAgentProfile,
     mergeAgentProfiles,
     normalizeAgentProfiles,
+    supportsAgentStreaming,
     validateAgentProfiles,
     validateAgentSelection,
     validateThinkingLevel,
 } = agentProfiles;
 
-export function resolveAgentCommand(config, selection = {}) {
+export function resolveAgentCommand(config, selection = {}, streaming = false) {
     const profiles = config.agentProfiles ?? [];
     const configuredProfile = findAgentProfile(profiles, config.agent);
     const defaultAgent = configuredProfile ? config.agent : DEFAULT_AGENT_PROFILE_NAME;
@@ -32,5 +34,9 @@ export function resolveAgentCommand(config, selection = {}) {
 
     const searchEnabled = config.codexSearchEnabled ?? true;
 
-    return { agent, command: buildAgentExecutionCommand(profile, model, thinkingLevel, searchEnabled), model, profile, thinkingLevel };
+    const command = streaming
+        ? buildAgentStreamingCommand(profile, model, thinkingLevel)
+        : buildAgentExecutionCommand(profile, model, thinkingLevel, searchEnabled);
+
+    return { agent, command, model, profile, thinkingLevel };
 }

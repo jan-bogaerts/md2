@@ -63,6 +63,20 @@ describe('loadActionDefinitions', () => {
             .toMatchObject({ code: 'field-not-allowed', field: 'trackFileChanges' });
     });
 
+    it('normalizes streaming and rejects invalid or command-action uses', () => {
+        const streaming = loadActionDefinitions([file('implement', { ...IMPLEMENT, streaming: true })])
+            .find(({ id }) => id === IMPLEMENT.id);
+        const oneShot = loadActionDefinitions([file('implement', IMPLEMENT)])
+            .find(({ id }) => id === IMPLEMENT.id);
+
+        expect(streaming.streaming).toBe(true);
+        expect(oneShot.streaming).toBe(false);
+        expect(validationError([file('implement', { ...IMPLEMENT, streaming: 'yes' })]))
+            .toMatchObject({ code: 'invalid-field', field: 'streaming' });
+        expect(validationError([file('lint', { ...LINT, streaming: true })]))
+            .toMatchObject({ code: 'field-not-allowed', field: 'streaming' });
+    });
+
     it.each([
         ['non-list phrases', { ...IMPLEMENT, phrases: 'nope' }],
         ['non-object phrase', { ...IMPLEMENT, phrases: ['nope'] }],

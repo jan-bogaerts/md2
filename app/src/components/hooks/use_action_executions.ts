@@ -1,12 +1,8 @@
-import { useEffect, useSyncExternalStore } from 'react'
+import { useSyncExternalStore } from 'react'
 import type { ActionContext } from '../../data/action_context'
 import { actionExecutionService } from '../../services/actions/action_execution_service'
 
 function useActionExecutionSnapshot() {
-    useEffect(() => {
-        actionExecutionService.start()
-    }, [])
-
     return useSyncExternalStore(
         (listener) => {
             actionExecutionService.addEventListener('changed', listener)
@@ -19,10 +15,6 @@ function useActionExecutionSnapshot() {
 }
 
 function useRunningActionExecutionSnapshot() {
-    useEffect(() => {
-        actionExecutionService.start()
-    }, [])
-
     return useSyncExternalStore(
         (listener) => {
             actionExecutionService.addEventListener('runningChanged', listener)
@@ -41,10 +33,6 @@ function subscribeToRunningActionChanges(listener: () => void) {
 }
 
 function useRunningActionExecutionId(getExecutionId: () => string | null) {
-    useEffect(() => {
-        actionExecutionService.start()
-    }, [])
-
     return useSyncExternalStore(subscribeToRunningActionChanges, getExecutionId, getExecutionId)
 }
 
