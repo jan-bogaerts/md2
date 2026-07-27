@@ -1,5 +1,6 @@
 import { createContext, useContext } from 'react'
 import type { CardTypeConfig, ProjectCard } from '../../data/data_types'
+import { useDialogError } from '../hooks/use_dialog_error'
 import type { CreateTreeItemKind } from './create_tree_item_dialog'
 
 export interface FileTreeContextValue {
@@ -13,10 +14,22 @@ export interface FileTreeContextValue {
 
 export const FileTreeContext = createContext<FileTreeContextValue | null>(null)
 
-/** Access dependencies shared by virtualized file-tree rows. */
+const ignoreDelete = async () => undefined
+const ignoreCreateRequest = () => undefined
+const FALLBACK_FILE_TREE_CONTEXT: FileTreeContextValue = {
+    cardTypes: [],
+    cardsByPath: new Map(),
+    onDeleteFile: ignoreDelete,
+    onDeleteFolder: ignoreDelete,
+    onRequestCreate: ignoreCreateRequest,
+    statusColors: new Map(),
+}
+
+/** Access dependencies shared by virtualized file-tree rows with a safe fallback. */
 export function useFileTreeContext(): FileTreeContextValue {
     const context = useContext(FileTreeContext)
-    if (!context) throw new Error('File tree row must be rendered inside FileTreeContext')
+    const error = context ? null : new Error('File tree row must be rendered inside FileTreeContext')
+    useDialogError(error, 'File tree is unavailable')
 
-    return context
+    return context ?? FALLBACK_FILE_TREE_CONTEXT
 }

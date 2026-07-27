@@ -314,6 +314,45 @@ describe('RemoteControlStorageService', () => {
         await Promise.all(operations)
     })
 
+    it('reattaches action execution events and reloads active state after reconnect', async () => {
+        installWebSocket()
+        const service = createService()
+        const callback = vi.fn()
+        service.onActionExecution(callback)
+        const firstSocket = lastSocket()
+        firstSocket.open()
+        await flushPromises()
+        const firstSubscription = JSON.parse(firstSocket.sent[0]) as { id: string }
+        firstSocket.receive({ id: firstSubscription.id, result: { subscriptionId: 'action-events-1' } })
+        await flushPromises()
+        firstSocket.close()
+
+        const reconnection = service.connect()
+        const secondSocket = lastSocket()
+        secondSocket.open()
+        await reconnection
+        await vi.waitFor(() => expect(secondSocket.sent).toHaveLength(1))
+        const secondSubscription = JSON.parse(secondSocket.sent[0]) as { id: string, method: string }
+        expect(secondSubscription.method).toBe('onActionExecution')
+        secondSocket.receive({ id: secondSubscription.id, result: { subscriptionId: 'action-events-2' } })
+        await vi.waitFor(() => expect(secondSocket.sent).toHaveLength(2))
+        const snapshotRequest = JSON.parse(secondSocket.sent[1]) as { id: string, method: string }
+        expect(snapshotRequest.method).toBe('loadActiveActionExecutionEvents')
+        const event = {
+            actionId: 'review',
+            context: { file: 'design/F-1.md', kind: 'card' },
+            executionId: 'execution-1',
+            phase: 'main',
+            rootActionId: 'review',
+            sequence: 1,
+            status: 'running',
+            type: 'execution',
+        }
+        secondSocket.receive({ id: snapshotRequest.id, result: [event] })
+
+        await vi.waitFor(() => expect(callback).toHaveBeenCalledWith(event))
+    })
+
     it('sends recursive folder deletion requests', async () => {
         installWebSocket()
         const service = createService()

@@ -140,6 +140,34 @@ describe('searchProject', () => {
         expect(results.backgroundGroups[0].matches[0].source).toBe('header')
     })
 
+    it('groups nested configured release and archived folders by their configured names', () => {
+        const configuredSnapshot = {
+            ...snapshot,
+            backgroundCards: [
+                makeCard(
+                    'design/records/releases/v1/F-3.md',
+                    '',
+                    { id: 'F-3', status: 'archived', title: 'Released' },
+                    false,
+                ),
+                makeCard(
+                    'design/records/archived/F-4.md',
+                    '',
+                    { id: 'F-4', status: 'archived', title: 'Archived' },
+                    false,
+                ),
+            ],
+        }
+        const results = searchProject(
+            configuredSnapshot,
+            'archived',
+            searchOptions,
+            ['design/records/releases', 'design/records/archived'],
+        )
+
+        expect(results.backgroundGroups.map(({ folder }) => folder)).toEqual(['releases', 'archived'])
+    })
+
     it('supports valid RegExp queries', () => {
         const results = searchProject(snapshot, 'F-\\d', { ...searchOptions, mode: 'regexp' })
 

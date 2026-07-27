@@ -6,7 +6,9 @@ import { DEFAULT_CARD_SEPARATOR, type CardSeparator } from './card_identifiers'
 
 export const DEFAULT_WORKING_FOLDER = 'active'
 export const DEFAULT_ACTIONS_FOLDER = 'actions'
+export const DEFAULT_ARCHIVED_FOLDER = 'archived'
 export const DEFAULT_PROJECT_FOLDER = 'design'
+export const DEFAULT_RELEASES_FOLDER = 'history'
 export const DEFAULT_DIFF_COMMAND = 'git show {{commit}}'
 export const AUTO_COMMIT_DELAY_MS = 30000
 
@@ -29,6 +31,7 @@ export interface StateConfig {
 
 export interface ProjectConfig {
     actionsFolder: string
+    archivedFolder: string
     backgroundShade: ProjectBackgroundShade
     cardBodyTemplate: string
     cardSeparator: CardSeparator
@@ -36,6 +39,7 @@ export interface ProjectConfig {
     diffCommand: string
     projectFolder: string
     pushMode: PushMode
+    releasesFolder: string
     states: StateConfig[]
     workingFolder: string
 }
@@ -400,12 +404,15 @@ export function resolveProjectConfigPaths(config: ProjectConfig): ProjectConfig 
     return {
         ...config,
         actionsFolder: joinProjectFolderPath(config.projectFolder, config.actionsFolder),
+        archivedFolder: joinProjectFolderPath(config.projectFolder, config.archivedFolder),
+        releasesFolder: joinProjectFolderPath(config.projectFolder, config.releasesFolder),
         workingFolder: joinProjectFolderPath(config.projectFolder, config.workingFolder),
     }
 }
 
 export const DEFAULT_PROJECT_CONFIG: ProjectConfig = {
     actionsFolder: DEFAULT_ACTIONS_FOLDER,
+    archivedFolder: DEFAULT_ARCHIVED_FOLDER,
     backgroundShade: 'neutral',
     cardBodyTemplate: DEFAULT_CARD_BODY_TEMPLATE,
     cardSeparator: DEFAULT_CARD_SEPARATOR,
@@ -413,6 +420,7 @@ export const DEFAULT_PROJECT_CONFIG: ProjectConfig = {
     diffCommand: DEFAULT_DIFF_COMMAND,
     projectFolder: DEFAULT_PROJECT_FOLDER,
     pushMode: 'auto',
+    releasesFolder: DEFAULT_RELEASES_FOLDER,
     states: DEFAULT_STATES,
     workingFolder: DEFAULT_WORKING_FOLDER,
 }

@@ -3,6 +3,7 @@ import { useState } from 'react'
 import type { ChangeEvent } from 'react'
 import type { SelectChangeEvent } from '@mui/material'
 import type { AgentQuestion } from '../../data/action_run_types'
+import { dialogService } from '../../services/dialog_service'
 import { ActionAgentSingleResponseQuestion } from './action_agent_single_response_question'
 
 interface ActionAgentQuestionProps {
@@ -16,18 +17,36 @@ export function ActionAgentQuestion({ onAnswer, questions }: ActionAgentQuestion
     const [submitting, setSubmitting] = useState(false)
     const complete = questions.every(({ id }) => (answers[id] ?? '').trim().length > 0)
     const handleTextChange = (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        if (!event.target.name) throw new Error('Missing structured question id')
-        setAnswers((current) => ({ ...current, [event.target.name]: event.target.value }))
+        try {
+            if (!event.target.name) throw new Error('Missing structured question id')
+            setAnswers((current) => ({ ...current, [event.target.name]: event.target.value }))
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: 'Question answer could not be updated' })
+        }
     }
     const handleSelectChange = (event: SelectChangeEvent) => {
-        if (!event.target.name) throw new Error('Missing structured question id')
-        setAnswers((current) => ({ ...current, [event.target.name]: event.target.value }))
+        try {
+            if (!event.target.name) throw new Error('Missing structured question id')
+            setAnswers((current) => ({ ...current, [event.target.name]: event.target.value }))
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: 'Question answer could not be updated' })
+        }
+    }
+    const handleOtherChange = (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        try {
+            if (!event.target.name) throw new Error('Missing structured question id')
+            setAnswers((current) => ({ ...current, [event.target.name]: event.target.value }))
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: 'Other question answer could not be updated' })
+        }
     }
     const handleSubmit = async () => {
         setSubmitting(true)
         try {
             const submittedAnswers = Object.fromEntries(Object.entries(answers).map(([id, answer]) => [id, [answer]]))
             await onAnswer(submittedAnswers)
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: 'Question answers could not be submitted' })
         } finally {
             setSubmitting(false)
         }
@@ -49,7 +68,7 @@ export function ActionAgentQuestion({ onAnswer, questions }: ActionAgentQuestion
                             name={question.id}
                             onChange={handleSelectChange}
                             size="small"
-                            value={answers[question.id] ?? ''}
+                            value={question.options.some(({ label }) => label === answers[question.id]) ? answers[question.id] : ''}
                         >
                             {question.options.map((option) => (
                                 <MenuItem key={option.label} value={option.label}>
@@ -68,6 +87,18 @@ export function ActionAgentQuestion({ onAnswer, questions }: ActionAgentQuestion
                             value={answers[question.id] ?? ''}
                         />
                     )}
+                    {question.options?.length && question.isOther ? (
+                        <TextField
+                            autoComplete="off"
+                            name={question.id}
+                            onChange={handleOtherChange}
+                            placeholder="Other"
+                            size="small"
+                            slotProps={{ htmlInput: { 'aria-label': `Other answer for ${question.question}` } }}
+                            type={question.isSecret ? 'password' : 'text'}
+                            value={question.options.some(({ label }) => label === answers[question.id]) ? '' : answers[question.id] ?? ''}
+                        />
+                    ) : null}
                 </Stack>
             ))}
             <Stack direction="row" sx={{ justifyContent: 'flex-end' }}>

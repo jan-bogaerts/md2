@@ -121,17 +121,19 @@ class ClaudeStreamingAdapter {
         this.providerConversationId = providerConversationId;
         this.rootPath = rootPath;
         this.turnStarted = false;
+        /** Claude emits whole assistant messages, so the adapter adds the blank line between them. */
+        this.turnHasAssistantText = false;
     }
 
-    start(prompt) {
-        this.sendMessage(prompt);
+    async start(prompt) {
+        await this.sendMessage(prompt);
     }
 
-    sendMessage(content) {
-        this.writeLine(claudeUserMessage(requireMessage(content)));
+    async sendMessage(content) {
+        await this.writeLine(claudeUserMessage(requireMessage(content)));
     }
 
-    answerQuestion(requestId, answers) {
+    async answerQuestion(requestId, answers) {
         const pendingQuestion = this.pendingQuestions.get(requestId);
         if (!pendingQuestion) throw new Error(`Unknown Claude question request id: ${requestId}`);
         const mappedAnswers = Object.fromEntries(pendingQuestion.questions.map(({ id, question }) => {
@@ -141,15 +143,15 @@ class ClaudeStreamingAdapter {
         }));
         const updatedInput = { ...pendingQuestion.input, answers: mappedAnswers };
         const response = { behavior: 'allow', toolUseID: pendingQuestion.toolUseId, updatedInput };
+        await this.writeLine(claudeControlResponse(requestId, response));
         this.pendingQuestions.delete(requestId);
-        this.writeLine(claudeControlResponse(requestId, response));
     }
 
-    handleMessage(event) {
+    async handleMessage(event) {
         const questionRequest = claudeQuestionRequest(event);
         if (questionRequest) {
             this.pendingQuestions.set(questionRequest.requestId, questionRequest);
-            this.onEvent({
+            await this.onEvent({
                 questions: questionRequest.questions,
                 requestId: questionRequest.requestId,
                 type: 'question',
@@ -162,21 +164,25 @@ class ClaudeStreamingAdapter {
                 message: 'Interactive tool approval is not supported',
                 toolUseID: event.request.tool_use_id,
             };
-            this.writeLine(claudeControlResponse(event.request_id, response));
+            await this.writeLine(claudeControlResponse(event.request_id, response));
             return;
         }
         if (event.type === 'system' && typeof event.session_id === 'string') {
-            this.onEvent({ conversationId: event.session_id, type: 'sessionStarted' });
+            await this.onEvent({ conversationId: event.session_id, type: 'sessionStarted' });
         }
         const startsTurn = event.type === 'assistant' || event.type === 'user';
-        if (!this.turnStarted && startsTurn) this.onEvent({ type: 'turnStarted' });
+        if (!this.turnStarted && startsTurn) await this.onEvent({ type: 'turnStarted' });
         this.turnStarted = this.turnStarted || startsTurn;
         const assistantText = claudeAssistantText(event);
-        if (assistantText.length > 0) this.onEvent({ content: assistantText, type: 'assistant' });
+        if (assistantText.length > 0) {
+            const separator = this.turnHasAssistantText ? '\n\n' : '';
+            this.turnHasAssistantText = true;
+            await this.onEvent({ content: `${separator}${assistantText}`, type: 'assistant' });
+        }
         const changedPaths = claudeChangedPaths(event, this.rootPath);
-        if (changedPaths.length > 0) this.onEvent({ paths: changedPaths, type: 'changedPaths' });
+        if (changedPaths.length > 0) await this.onEvent({ paths: changedPaths, type: 'changedPaths' });
         for (const transcriptEvent of claudeTranscriptEvents(event)) {
-            this.onEvent({ ...transcriptEvent, type: 'transcript' });
+            await this.onEvent({ ...transcriptEvent, type: 'transcript' });
         }
         if (event.type === 'result') {
             const error = event.is_error === true
@@ -186,7 +192,8 @@ class ClaudeStreamingAdapter {
                 isClaudeMissingSessionResult(event, this.providerConversationId)
                 || isMissingSession('claude', event, this.turnStarted)
             );
-            this.onEvent({ error, missingSession, type: 'turnCompleted', usage: claudeUsage(event) });
+            this.turnHasAssistantText = false;
+            await this.onEvent({ error, missingSession, type: 'turnCompleted', usage: claudeUsage(event) });
         }
     }
 }
@@ -245,60 +252,65 @@ class CodexStreamingAdapter {
         this.turnUsage = null;
     }
 
-    start(prompt) {
+    async start(prompt) {
         this.initialPrompt = requireMessage(prompt);
-        this.sendRequest('initialize', {
+        await this.sendRequest('initialize', {
             capabilities: { experimentalApi: true },
             clientInfo: { name: CODEX_CLIENT_NAME, version: CODEX_CLIENT_VERSION },
         }, 'initialize');
     }
 
-    sendMessage(content) {
+    async sendMessage(content) {
         const input = codexInput(content);
         if (!this.threadId) throw new Error('Codex streaming thread is not ready');
         if (this.activeTurnId) {
-            this.sendRequest('turn/steer', {
+            await this.sendRequest('turn/steer', {
                 expectedTurnId: this.activeTurnId,
                 input,
                 threadId: this.threadId,
             });
             return;
         }
-        this.sendRequest('turn/start', { input, threadId: this.threadId });
+        await this.sendRequest('turn/start', { input, threadId: this.threadId });
     }
 
-    answerQuestion(requestId, answers) {
+    async answerQuestion(requestId, answers) {
         if (requestId === null || requestId === undefined) throw new Error('Missing Codex question request id');
         const normalizedAnswers = Object.fromEntries(Object.entries(answers).map(([questionId, answer]) => [
             questionId,
             { answers: Array.isArray(answer) ? answer : [answer] },
         ]));
-        this.writeLine({ id: requestId, result: { answers: normalizedAnswers } });
+        await this.writeLine({ id: requestId, result: { answers: normalizedAnswers } });
     }
 
-    sendRequest(method, params, purpose = null) {
+    async sendRequest(method, params, purpose = null) {
         const id = this.nextRequestId;
         this.nextRequestId += 1;
         if (purpose) this.pendingRequests.set(id, purpose);
-        this.writeLine({ id, method, params });
+        try {
+            await this.writeLine({ id, method, params });
+        } catch (error) {
+            this.pendingRequests.delete(id);
+            throw error;
+        }
     }
 
-    handleMessage(message) {
+    async handleMessage(message) {
         if (Object.hasOwn(message, 'id') && !message.method) {
-            this.handleResponse(message);
+            await this.handleResponse(message);
             return;
         }
         if (message.method === 'item/tool/requestUserInput') {
-            this.onEvent({ questions: message.params.questions, requestId: message.id, type: 'question' });
+            await this.onEvent({ questions: message.params.questions, requestId: message.id, type: 'question' });
             return;
         }
-        this.handleNotification(message.method, message.params ?? {});
+        await this.handleNotification(message.method, message.params ?? {});
     }
 
-    handleResponse(message) {
+    async handleResponse(message) {
         const purpose = this.pendingRequests.get(message.id);
         if (!purpose) {
-            if (message.error) this.onEvent({ content: message.error.message ?? 'Codex request failed', type: 'error' });
+            if (message.error) await this.onEvent({ content: message.error.message ?? 'Codex request failed', type: 'fatal' });
             return;
         }
         this.pendingRequests.delete(message.id);
@@ -307,40 +319,40 @@ class CodexStreamingAdapter {
             if (purpose === 'threadResume') {
                 const missingSession = isCodexMissingThreadError(message.error, this.providerConversationId)
                     || isMissingSession('codex', { error: message.error, type: 'error' }, false);
-                this.onEvent({ content, missingSession, type: 'sessionFailed' });
+                await this.onEvent({ content, missingSession, type: 'sessionFailed' });
                 return;
             }
-            this.onEvent({ content, type: 'error' });
+            await this.onEvent({ content, type: 'fatal' });
             return;
         }
         if (purpose === 'initialize') {
-            this.writeLine({ method: 'initialized', params: {} });
+            await this.writeLine({ method: 'initialized', params: {} });
             if (this.providerConversationId) {
-                this.sendRequest('thread/resume', {
+                await this.sendRequest('thread/resume', {
                     cwd: this.rootPath,
                     threadId: this.providerConversationId,
                 }, 'threadResume');
                 return;
             }
-            this.sendRequest('thread/start', { cwd: this.rootPath }, 'threadStart');
+            await this.sendRequest('thread/start', { cwd: this.rootPath }, 'threadStart');
             return;
         }
         if (purpose === 'threadStart' || purpose === 'threadResume') {
             this.threadId = message.result?.thread?.id ?? message.result?.threadId ?? this.providerConversationId;
             if (!this.threadId) throw new Error('Codex app-server did not return a thread id');
-            this.onEvent({ conversationId: this.threadId, type: 'sessionStarted' });
-            this.sendMessage(this.initialPrompt);
+            await this.onEvent({ conversationId: this.threadId, type: 'sessionStarted' });
+            await this.sendMessage(this.initialPrompt);
         }
     }
 
-    handleNotification(method, params) {
+    async handleNotification(method, params) {
         if (method === 'turn/started') {
             this.activeTurnId = params.turn?.id ?? params.turnId;
-            this.onEvent({ turnId: this.activeTurnId, type: 'turnStarted' });
+            await this.onEvent({ turnId: this.activeTurnId, type: 'turnStarted' });
             return;
         }
         if (method === 'item/agentMessage/delta') {
-            this.onEvent({ content: params.delta ?? '', type: 'assistant' });
+            await this.onEvent({ content: params.delta ?? '', type: 'assistant' });
             return;
         }
         if (method === 'thread/tokenUsage/updated') {
@@ -349,13 +361,13 @@ class CodexStreamingAdapter {
         }
         if (method === 'item/completed') {
             const changedPaths = codexChangedPaths(params.item, this.rootPath);
-            if (changedPaths.length > 0) this.onEvent({ paths: changedPaths, type: 'changedPaths' });
+            if (changedPaths.length > 0) await this.onEvent({ paths: changedPaths, type: 'changedPaths' });
             const content = codexTranscriptContent(params.item);
-            if (content) this.onEvent({ content, eventType: `tool.${params.item.type}`, type: 'transcript' });
+            if (content) await this.onEvent({ content, eventType: `tool.${params.item.type}`, type: 'transcript' });
             return;
         }
         if (method === 'error') {
-            this.onEvent({ content: params.error?.message ?? 'Codex turn failed', type: 'error' });
+            await this.onEvent({ content: params.error?.message ?? 'Codex turn failed', type: 'fatal' });
             return;
         }
         if (method === 'turn/completed') {
@@ -363,7 +375,7 @@ class CodexStreamingAdapter {
                 ? params.turn.error?.message ?? 'Codex turn failed'
                 : null;
             this.activeTurnId = null;
-            this.onEvent({ error, type: 'turnCompleted', usage: this.turnUsage });
+            await this.onEvent({ error, type: 'turnCompleted', usage: this.turnUsage });
             this.turnUsage = null;
         }
     }

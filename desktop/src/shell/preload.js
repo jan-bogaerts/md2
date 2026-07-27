@@ -63,6 +63,7 @@ const ACTION_METHODS = [
     'finishActionExecution',
     'generateDiff',
     'loadActionRunHistory',
+    'loadActiveActionExecutionEvents',
     'notifyActionCardStateChange',
     'loadCardActivity',
     'loadAgentAvailability',

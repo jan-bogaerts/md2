@@ -40,6 +40,7 @@ class ActionExecution {
         this.completion = null;
         this.controller = new AbortController();
         this.rootHistoryEntry = null;
+        this.nextEventSequence = 1;
     }
 
     start(finalize) {
@@ -55,7 +56,7 @@ class ActionExecution {
     sendAgentMessage(content) {
         if (!this.activeAgentRunId) throw new Error(`Action execution has no active streaming agent: ${this.executionId}`);
         if (this.activeAgentQuestion) throw new Error('Answer pending structured question before sending queued prompt');
-        this.agentRunnerService.sendMessage(this.activeAgentRunId, content);
+        return this.agentRunnerService.sendMessage(this.activeAgentRunId, content);
     }
 
     setAgentQueuedMessage(content, revision) {
@@ -66,12 +67,12 @@ class ActionExecution {
     sendQueuedAgentMessage(revision) {
         if (!this.activeAgentRunId) throw new Error(`Action execution has no active agent: ${this.executionId}`);
         if (this.activeAgentQuestion) throw new Error('Answer pending structured question before sending queued prompt');
-        this.agentRunnerService.sendQueuedMessage(this.activeAgentRunId, revision);
+        return this.agentRunnerService.sendQueuedMessage(this.activeAgentRunId, revision);
     }
 
-    answerAgentQuestion(requestId, answers) {
+    async answerAgentQuestion(requestId, answers) {
         if (!this.activeAgentRunId) throw new Error(`Action execution has no active streaming agent: ${this.executionId}`);
-        this.agentRunnerService.answerQuestion(this.activeAgentRunId, requestId, answers);
+        await this.agentRunnerService.answerQuestion(this.activeAgentRunId, requestId, answers);
         this.activeAgentQuestion = false;
     }
 
@@ -414,7 +415,7 @@ class ActionExecution {
     }
 
     publish(action, phase, status, details) {
-        this.publisher({
+        const event = {
             actionId: action.id,
             actionType: action.type,
             autoFinish: action.autoFinish ?? null,
@@ -426,7 +427,10 @@ class ActionExecution {
             status,
             streaming: action.type === 'agent' && action.streaming,
             ...details,
-        });
+            sequence: this.nextEventSequence,
+        };
+        this.nextEventSequence += 1;
+        this.publisher(event);
     }
 
     throwIfCancelled() {

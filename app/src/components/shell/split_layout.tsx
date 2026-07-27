@@ -1,6 +1,7 @@
 import { Box } from '@mui/material'
 import type { KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent, ReactNode } from 'react'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { dialogService } from '../../services/dialog_service'
 import { workspaceViewService } from '../../services/project/workspace_view_service'
 
 export const SPLIT_WIDTH_STORAGE_KEY = 'md2.splitWidth'
@@ -35,6 +36,7 @@ export function SplitLayout(props: SplitLayoutProps) {
     const { left, right } = props
     const hasLeftPanel = left !== null
     const containerRef = useRef<HTMLDivElement>(null)
+    const missingContainerReportedRef = useRef(false)
     const [leftWidth, setLeftWidth] = useState(readStoredWidth)
     const [isDragging, setIsDragging] = useState(false)
     const [separatorMaxWidth, setSeparatorMaxWidth] = useState<number | undefined>(undefined)
@@ -42,7 +44,13 @@ export function SplitLayout(props: SplitLayoutProps) {
     useEffect(() => {
         const updateVisibility = () => {
             const container = containerRef.current
-            if (!container) throw new Error('Missing split layout container')
+            if (!container) {
+                if (!missingContainerReportedRef.current) {
+                    missingContainerReportedRef.current = true
+                    dialogService.error(new Error('Missing split layout container'), {fallbackMessage: 'Split layout could not be displayed'})
+                }
+                return
+            }
 
             container.style.display = workspaceViewService.getSnapshot().viewMode === 'text' ? 'flex' : 'none'
         }

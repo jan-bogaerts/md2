@@ -4,7 +4,9 @@ import type { UseGithubAuthResult } from '../auth/use_github_auth'
 import {
     DEFAULT_CARD_TYPES,
     DEFAULT_ACTIONS_FOLDER,
+    DEFAULT_ARCHIVED_FOLDER,
     DEFAULT_PROJECT_FOLDER,
+    DEFAULT_RELEASES_FOLDER,
     DEFAULT_STATES,
     defaultColumnAccent,
 } from '../data/data_types'
@@ -77,6 +79,8 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
     const states = projectConfig?.states ?? DEFAULT_STATES
     const projectFolder = projectConfig?.projectFolder ?? DEFAULT_PROJECT_FOLDER
     const actionsFolder = projectConfig?.actionsFolder ?? `${DEFAULT_PROJECT_FOLDER}/${DEFAULT_ACTIONS_FOLDER}`
+    const archivedFolder = projectConfig?.archivedFolder ?? `${DEFAULT_PROJECT_FOLDER}/${DEFAULT_ARCHIVED_FOLDER}`
+    const releasesFolder = projectConfig?.releasesFolder ?? `${DEFAULT_PROJECT_FOLDER}/${DEFAULT_RELEASES_FOLDER}`
     const onLeftPanelInteractionRef = useRef(onLeftPanelInteraction)
     const statusColors = useMemo(() => new Map(
         states.map(({ color, state }, index) => [state, color ?? defaultColumnAccent(index)]),
@@ -87,21 +91,11 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
     })
 
     const handleCreateFolder = useCallback(async (parentDirectory: string, name: string) => {
-        try {
-            await dataService.cards.createFolder(parentDirectory, name)
-        } catch (error) {
-            dialogService.error(error, { fallbackMessage: `Folder creation failed: ${name}` })
-            throw error
-        }
+        await dataService.cards.createFolder(parentDirectory, name)
     }, [])
 
     const handleCreateMarkdownFile = useCallback(async (parentDirectory: string, name: string) => {
-        try {
-            await dataService.cards.createMarkdownFile(parentDirectory, name)
-        } catch (error) {
-            dialogService.error(error, { fallbackMessage: `Markdown file creation failed: ${name}` })
-            throw error
-        }
+        await dataService.cards.createMarkdownFile(parentDirectory, name)
     }, [])
 
     const handleDeleteFile = useCallback(async (path: string) => {
@@ -201,6 +195,7 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
         >
             <FileTreeView
                 actionsFolder={actionsFolder}
+                archivedFolder={archivedFolder}
                 cardTypes={cardTypes}
                 onCreateFolder={handleCreateFolder}
                 onCreateMarkdownFile={handleCreateMarkdownFile}
@@ -208,6 +203,7 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
                 onDeleteFolder={handleDeleteFolder}
                 onLeftPanelInteraction={onLeftPanelInteraction}
                 projectFolder={projectFolder}
+                releasesFolder={releasesFolder}
                 statusColors={statusColors}
                 workingFolder={workingFolder}
             />
@@ -230,8 +226,10 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
         >
             <TextView
                 actionsFolder={actionsFolder}
+                archivedFolder={archivedFolder}
                 cardTypes={cardTypes}
                 projectFolder={projectFolder}
+                releasesFolder={releasesFolder}
                 states={states}
             />
         </Paper>

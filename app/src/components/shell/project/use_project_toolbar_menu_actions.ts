@@ -195,18 +195,21 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
         }
     }
 
-    const createRemoteProject = (rootPath: string, branch: string): ProjectReference => {
-        if (rootPath.length === 0) throw new Error('Missing remote project root path')
+    const createRemoteProject = (rootPath: string, branch: string): ProjectReference | null => {
+        try {
+            if (rootPath.length === 0) throw new Error('Missing remote project root path')
 
-        return { branch: branch || 'main', id: rootPath, rootPath }
+            return { branch: branch || 'main', id: rootPath, rootPath }
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: 'Remote project could not be created' })
+
+            return null
+        }
     }
 
     const loadRemoteBranches = async (endpoint: string, token: string, rootPath: string, branch: string) => {
-        let remoteProject: ProjectReference
-        try {
-            remoteProject = createRemoteProject(rootPath, branch)
-        } catch (error) {
-            dialogService.error(error, { fallbackMessage: 'Remote branch list failed' })
+        const remoteProject = createRemoteProject(rootPath, branch)
+        if (!remoteProject) {
             setBranches(EMPTY_BRANCHES)
 
             return EMPTY_BRANCHES

@@ -337,7 +337,7 @@ describe('CardOperations', () => {
         service.init({ storage })
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
-        const updates = service.cards.moveCard('design/B-1-b.md', 'done', 1)
+        const updates = await service.cards.moveCard('design/B-1-b.md', 'done', 1)
         await service.cards.flushPendingCommits()
 
         expect(updates).toContainEqual({ after: 'p', path: 'design/B-1-b.md', status: 'done' })
@@ -373,12 +373,107 @@ describe('CardOperations', () => {
             service.init({ storage })
             await service.projectLoading.openProject({ branch: 'main', id: 'project' })
 
-            expect(() => service.cards.moveCard('design/B-1-b.md', 'todo', 0)).not.toThrow()
+            await expect(service.cards.moveCard('design/B-1-b.md', 'todo', 0)).resolves.toBeDefined()
             await service.cards.flushPendingCommits()
         } finally {
             setTimeoutSpy.mockRestore()
             clearTimeoutSpy.mockRestore()
         }
+    })
+
+    it('archives a card, its asset, and ordering repair in one commit', async () => {
+        configService.init()
+        const activeFiles: MarkdownFile[] = [
+            { content: '---\nid: A\ninternalId: a\ntitle: A\nstatus: todo\n---\n\n# A', path: 'design/active/A-1-a.md' },
+            {
+                content: '---\nid: B\ninternalId: b\ntitle: B\nstatus: todo\nafter: a\n---\n\n# B\n\n![note](note.png)',
+                path: 'design/active/B-1-b.md',
+                sha: 'sha-b',
+            },
+            { content: '---\nid: C\ninternalId: c\ntitle: C\nstatus: todo\nafter: b\n---\n\n# C', path: 'design/active/C-1-c.md' },
+        ]
+        const refreshedFiles: MarkdownFile[] = [
+            activeFiles[0],
+            { ...activeFiles[2], content: activeFiles[2].content.replace('after: b', 'after: a') },
+            {
+                ...activeFiles[1],
+                content: activeFiles[1].content.replace('status: todo', 'status: archived').replace('after: a\n', ''),
+                path: 'design/vault/archived/B-1-b.md',
+            },
+        ]
+        const storage = createStorage({
+            listRepositoryFiles: vi.fn()
+                .mockResolvedValueOnce([...activeFiles.map(({ path }) => path), 'design/active/note.png'])
+                .mockResolvedValueOnce(refreshedFiles.map(({ path }) => path)),
+            loadProject: vi.fn()
+                .mockResolvedValueOnce({ files: activeFiles, workingFolder: 'design' })
+                .mockResolvedValueOnce({ files: refreshedFiles, workingFolder: 'design' }),
+            loadProjectAsset: vi.fn(async () => ({
+                content: 'aW1hZ2U=',
+                contentType: 'image/png',
+                encoding: 'base64' as const,
+                path: 'design/active/note.png',
+            })),
+            loadProjectConfig: vi.fn(async () => ({
+                archivedFolder: 'vault/archived',
+                backgroundShade: 'blue' as const,
+                projectFolder: 'design',
+                releasesFolder: 'releases',
+                workingFolder: 'active',
+            })),
+            loadProjectRoot: vi.fn(async () => ({ files: activeFiles, workingFolder: 'design/active' })),
+        })
+        const service = createDataService()
+        service.init({ storage })
+
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        await service.cards.moveCard('design/active/B-1-b.md', 'archived', 0)
+
+        expect(storage.commit).toHaveBeenCalledWith({
+            branch: 'main',
+            files: [expect.objectContaining({
+                content: expect.stringContaining('after: a'),
+                path: 'design/active/C-1-c.md',
+            })],
+            message: 'Archive design/active/B-1-b.md',
+            moves: [
+                expect.objectContaining({
+                    content: expect.stringContaining('status: archived'),
+                    fromPath: 'design/active/B-1-b.md',
+                    toPath: 'design/vault/archived/B-1-b.md',
+                }),
+                {
+                    content: 'aW1hZ2U=',
+                    encoding: 'base64',
+                    fromPath: 'design/active/note.png',
+                    sha: undefined,
+                    toPath: 'design/vault/archived/note.png',
+                },
+            ],
+        })
+        expect(storage.push).toHaveBeenCalledWith({ branch: 'main', id: 'project' })
+        expect(service.getState().snapshot?.activeCards.map(({ path }) => path)).toEqual([
+            'design/active/A-1-a.md',
+            'design/active/C-1-c.md',
+        ])
+        expect(service.getState().snapshot?.backgroundCards.map(({ path }) => path)).toContain('design/vault/archived/B-1-b.md')
+    })
+
+    it('rejects an existing archived-card target before committing', async () => {
+        configService.init()
+        const activeFile = activeCardFile('a')
+        const storage = createStorage({
+            listRepositoryFiles: vi.fn(async () => [activeFile.path, 'archived/A-1-a.md']),
+            loadProject: vi.fn(async () => ({ files: [activeFile], workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: [activeFile], workingFolder: 'design' })),
+        })
+        const service = createDataService()
+        service.init({ storage })
+
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+
+        await expect(service.cards.moveCard(activeFile.path, 'archived', 0)).rejects.toThrow('Archive target already exists')
+        expect(storage.commit).not.toHaveBeenCalled()
     })
 
     it('repairs ordering after deleting a middle card', async () => {

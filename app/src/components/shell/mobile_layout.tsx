@@ -1,6 +1,7 @@
 import { Box } from '@mui/material'
 import type { ReactNode } from 'react'
 import { useEffect, useRef } from 'react'
+import { dialogService } from '../../services/dialog_service'
 import { workspaceViewService } from '../../services/project/workspace_view_service'
 
 interface MobileLayoutProps {
@@ -11,11 +12,18 @@ interface MobileLayoutProps {
 export function MobileLayout(props: MobileLayoutProps) {
     const { content } = props
     const containerRef = useRef<HTMLDivElement>(null)
+    const missingContainerReportedRef = useRef(false)
 
     useEffect(() => {
         const updateVisibility = () => {
             const container = containerRef.current
-            if (!container) throw new Error('Missing mobile layout container')
+            if (!container) {
+                if (!missingContainerReportedRef.current) {
+                    missingContainerReportedRef.current = true
+                    dialogService.error(new Error('Missing mobile layout container'), {fallbackMessage: 'Mobile layout could not be displayed'})
+                }
+                return
+            }
 
             container.style.display = workspaceViewService.getSnapshot().viewMode === 'text' ? 'flex' : 'none'
         }

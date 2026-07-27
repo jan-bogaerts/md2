@@ -512,7 +512,7 @@ describe('AgentRunnerService', () => {
         }
     });
 
-    it('consumes one queued revision exactly once', () => {
+    it('consumes one queued revision exactly once', async () => {
         const sendMessage = vi.fn();
         const service = new AgentRunnerService({ persistConversation: vi.fn(async () => undefined) });
         service.processes.set('run-1', {
@@ -530,14 +530,14 @@ describe('AgentRunnerService', () => {
         });
 
         service.setQueuedMessage('run-1', 'approved', 0);
-        service.sendQueuedMessage('run-1', 0);
-        service.sendQueuedMessage('run-1', 0);
+        await service.sendQueuedMessage('run-1', 0);
+        await service.sendQueuedMessage('run-1', 0);
 
         expect(sendMessage).toHaveBeenCalledOnce();
         expect(sendMessage).toHaveBeenCalledWith('approved');
     });
 
-    it('sends a queued next turn at completion and wins the Send race exactly once', () => {
+    it('sends a queued next turn at completion and wins the Send race exactly once', async () => {
         const sendMessage = vi.fn();
         const onEvent = vi.fn();
         const service = new AgentRunnerService({ persistConversation: vi.fn(async () => undefined) });
@@ -568,8 +568,8 @@ describe('AgentRunnerService', () => {
         });
 
         service.setQueuedMessage('run-1', 'next turn', 0);
-        service.handleStreamingEvent('run-1', { type: 'turnCompleted' });
-        service.sendQueuedMessage('run-1', 0);
+        await service.handleStreamingEvent('run-1', { type: 'turnCompleted' });
+        await service.sendQueuedMessage('run-1', 0);
 
         expect(sendMessage).toHaveBeenCalledOnce();
         expect(sendMessage).toHaveBeenCalledWith('next turn');
@@ -584,7 +584,7 @@ describe('AgentRunnerService', () => {
         const persistConversation = vi.fn(async () => undefined);
         const service = new AgentRunnerService({ persistConversation });
         const run = {
-            conversation: { messages: [], status: 'waitingForInput' },
+            conversation: { events: [], messages: [], status: 'waitingForInput' },
             id: 'run-1',
             onEvent: vi.fn(),
             pendingQuestions: [
@@ -594,19 +594,91 @@ describe('AgentRunnerService', () => {
             persistence: Promise.resolve(),
             streaming: true,
             streamingAdapter: { answerQuestion },
+            stdout: '',
+            turnIndex: 1,
             waitingForQuestion: true,
         };
         service.processes.set('run-1', run);
         const answers = { choice: ['Yes'], token: ['top-secret'] };
 
-        service.answerQuestion('run-1', 7, answers);
+        await service.answerQuestion('run-1', 7, answers);
+        service.handleStreamingEvent('run-1', { content: 'echo top-secret', type: 'assistant' });
+        service.handleStreamingEvent('run-1', { content: 'tool returned top-secret', eventType: 'tool.result', type: 'transcript' });
         await run.persistence;
 
         expect(answerQuestion).toHaveBeenCalledWith(7, answers);
         expect(run.conversation.messages[0].content).toContain('token: [secret]');
         expect(run.conversation.messages[0].content).not.toContain('top-secret');
+        expect(run.stdout).toContain('echo [secret]');
+        expect(run.conversation.events[0].content).toBe('tool returned [secret]');
         expect(persistConversation).toHaveBeenCalled();
         expect(JSON.stringify(persistConversation.mock.calls)).not.toContain('top-secret');
         expect(JSON.stringify(run.onEvent.mock.calls)).not.toContain('top-secret');
+    });
+
+    it('does not append a user message when the provider write fails', async () => {
+        const writeError = new Error('stdin write failed');
+        const service = new AgentRunnerService({
+            persistConversation: vi.fn(async () => undefined),
+            terminateProcessTree: vi.fn(async () => undefined),
+        });
+        const run = {
+            child: { stdin: { end: vi.fn() } },
+            conversation: {
+                events: [],
+                messages: [{ content: 'initial', id: 'user-1', role: 'user', timestamp: '2026-07-27T10:00:00.000Z' }],
+                status: 'waitingForInput',
+            },
+            id: 'run-1',
+            onEvent: vi.fn(),
+            pendingQuestions: [],
+            persistence: Promise.resolve(),
+            queuedMessage: null,
+            secretValues: new Set(),
+            stderr: '',
+            streaming: true,
+            streamingAdapter: { sendMessage: vi.fn(async () => { throw writeError; }) },
+            turnIndex: 1,
+            waitingForQuestion: false,
+        };
+        service.processes.set('run-1', run);
+
+        await expect(service.sendMessage('run-1', 'ghost')).rejects.toThrow(writeError);
+        await run.persistence;
+
+        expect(run.conversation.messages).toHaveLength(1);
+        expect(run.conversation.status).toBe('failed');
+        expect(run.onEvent).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'userMessage' }));
+    });
+
+    it('does not append an answer when the provider write fails', async () => {
+        const writeError = new Error('answer write failed');
+        const service = new AgentRunnerService({
+            persistConversation: vi.fn(async () => undefined),
+            terminateProcessTree: vi.fn(async () => undefined),
+        });
+        const run = {
+            child: { stdin: { end: vi.fn() } },
+            conversation: { events: [], messages: [], status: 'waitingForInput' },
+            id: 'run-1',
+            onEvent: vi.fn(),
+            pendingQuestions: [{ header: 'Confirm', id: 'confirm', question: 'Proceed?' }],
+            persistence: Promise.resolve(),
+            queuedMessage: null,
+            secretValues: new Set(),
+            stderr: '',
+            streaming: true,
+            streamingAdapter: { answerQuestion: vi.fn(async () => { throw writeError; }) },
+            turnIndex: 1,
+            waitingForQuestion: true,
+        };
+        service.processes.set('run-1', run);
+
+        await expect(service.answerQuestion('run-1', 7, { confirm: ['Yes'] })).rejects.toThrow(writeError);
+        await run.persistence;
+
+        expect(run.conversation.messages).toHaveLength(0);
+        expect(run.conversation.status).toBe('failed');
+        expect(run.onEvent).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'questionAnswered' }));
     });
 });

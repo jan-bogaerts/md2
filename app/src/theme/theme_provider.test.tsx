@@ -1,5 +1,7 @@
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, render, renderHook, screen, waitFor } from '@testing-library/react'
+import { StrictMode, type ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { dialogService } from '../services/dialog_service'
 import { useAppTheme } from './use_app_theme'
 import { AppThemeProvider } from './theme_provider'
 import { MARKDOWN_STYLE_PRESETS } from './theme_config'
@@ -20,6 +22,20 @@ describe('AppThemeProvider', () => {
         cleanup()
         window.localStorage.clear()
         delete window.md2Theme
+        vi.restoreAllMocks()
+    })
+
+    it('reports a missing provider once and returns a safe theme', async () => {
+        const error = vi.spyOn(dialogService, 'error')
+        const wrapper = ({ children }: { children: ReactNode }) => <StrictMode>{children}</StrictMode>
+        const { result } = renderHook(() => useAppTheme(), { wrapper })
+
+        expect(result.current.mode).toBe('light')
+        await waitFor(() => expect(error).toHaveBeenCalledTimes(1))
+        expect(error).toHaveBeenCalledWith(
+            expect.objectContaining({ message: 'useAppTheme must be used within an AppThemeProvider' }),
+            { fallbackMessage: 'Application theme is unavailable' },
+        )
     })
 
     it('exposes the resolved theme settings to consumers', () => {

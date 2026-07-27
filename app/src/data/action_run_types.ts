@@ -54,6 +54,7 @@ interface ActionExecutionEventBase {
     interactionReady?: boolean
     phase: ActionRunPhase
     rootActionId: string
+    sequence?: number
     streaming?: boolean
 }
 

@@ -5,6 +5,7 @@ import { CONTROLLED_TEXT_INSERTION_COMMAND } from 'lexical'
 import { useState, type MouseEvent } from 'react'
 import type { ActionPlaceholder } from '../../data/action_placeholders'
 import { formatActionPlaceholder } from '../../data/action_placeholders'
+import { dialogService } from '../../services/dialog_service'
 
 interface MarkdownPlaceholderToolbarControlProps {
     overlayContainer?: HTMLElement | null
@@ -26,14 +27,18 @@ export function MarkdownPlaceholderToolbarControl(props: MarkdownPlaceholderTool
     }
 
     const handlePlaceholderClick = (event: MouseEvent<HTMLElement>) => {
-        const placeholderName = event.currentTarget.dataset.placeholderName
-        const placeholder = placeholders.find(({ name }) => name === placeholderName)
-        if (!placeholder) throw new Error(`Unknown Markdown placeholder: ${placeholderName}`)
-        if (!activeEditor) throw new Error('Cannot insert a placeholder without an active Markdown editor')
+        try {
+            const placeholderName = event.currentTarget.dataset.placeholderName
+            const placeholder = placeholders.find(({ name }) => name === placeholderName)
+            if (!placeholder) throw new Error(`Unknown Markdown placeholder: ${placeholderName}`)
+            if (!activeEditor) throw new Error('Cannot insert a placeholder without an active Markdown editor')
 
-        activeEditor.dispatchCommand(CONTROLLED_TEXT_INSERTION_COMMAND, formatActionPlaceholder(placeholder.name))
-        activeEditor.focus()
-        handleClose()
+            activeEditor.dispatchCommand(CONTROLLED_TEXT_INSERTION_COMMAND, formatActionPlaceholder(placeholder.name))
+            activeEditor.focus()
+            handleClose()
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: 'Markdown placeholder could not be inserted' })
+        }
     }
 
     return (

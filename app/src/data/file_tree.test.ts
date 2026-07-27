@@ -119,13 +119,19 @@ describe('buildFileTree', () => {
         expect(findChild(tree, 'notes')?.kind).toBe('folder')
     })
 
-    it('honors a custom special-folder list', () => {
-        const background = [card('design/history/x.md'), card('design/vault/y.md')]
+    it('marks nested configured release and archived folders as special', () => {
+        const background = [
+            card('design/history/x.md'),
+            card('design/records/releases/v1/y.md'),
+            card('design/records/archived/z.md'),
+        ]
 
-        const tree = buildFileTree([], background, 'design/active', treeOptions({ specialFolderPaths: ['design/vault'] }))
+        const tree = buildFileTree([], background, 'design/active', treeOptions({specialFolderPaths: ['design/records/releases', 'design/records/archived']}))
+        const records = findChild(tree, 'records')
 
         expect(findChild(tree, 'history')?.kind).toBe('folder')
-        expect(findChild(tree, 'vault')?.kind).toBe('special')
+        expect(findChild(records?.children ?? [], 'releases')?.kind).toBe('special')
+        expect(findChild(records?.children ?? [], 'archived')?.kind).toBe('special')
     })
 
     it('places status groups before real subfolders inside the working folder', () => {

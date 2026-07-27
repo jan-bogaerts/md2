@@ -11,6 +11,7 @@ function createDispatch(options = {}) {
         cancel: vi.fn(),
         finishAgentExecution: vi.fn(),
         handleCardStateChange: vi.fn(),
+        loadActiveExecutionEvents: vi.fn(() => [{ executionId: 'execution-1', sequence: 1 }]),
         prepareActionPrompt: vi.fn(async () => ({ prompt: 'Prepared prompt' })),
         requireActionsFolder: vi.fn(() => 'actions'),
         requireProjectFolder: vi.fn(() => 'design'),
@@ -346,6 +347,15 @@ describe('createLocalBridgeDispatch', () => {
         dispatch.actionBridge.onActionExecution(callback);
 
         expect(actionRunnerService.subscribe).toHaveBeenCalledWith(callback);
+    });
+
+    it('loads active action execution events through the action bridge', () => {
+        const { actionRunnerService, dispatch } = createDispatch();
+
+        const events = dispatch.actionBridge.loadActiveActionExecutionEvents();
+
+        expect(events).toEqual([{ executionId: 'execution-1', sequence: 1 }]);
+        expect(actionRunnerService.loadActiveExecutionEvents).toHaveBeenCalledOnce();
     });
 
     it('exposes worktree state subscriptions through the data bridge', () => {

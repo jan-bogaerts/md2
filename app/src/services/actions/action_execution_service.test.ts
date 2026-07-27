@@ -141,6 +141,53 @@ describe('ActionExecutionService', () => {
         service.stop()
     })
 
+    it('recovers an active waiting session and deduplicates events received during snapshot loading', async () => {
+        let resolveSnapshot: ((events: ActionExecutionEvent[]) => void) | null = null
+        const snapshot = new Promise<ActionExecutionEvent[]>((resolve) => {
+            resolveSnapshot = resolve
+        })
+        const { bridge, emit } = bridgeWithEvents({ loadActiveActionExecutionEvents: vi.fn(() => snapshot) })
+        setActionBridgeOverride(bridge)
+        const service = new ActionExecutionService()
+        const userMessage = { content: 'Plan', id: 'message-1', role: 'user' as const, timestamp: 'now' }
+        const questions = [{ header: 'Confirm', id: 'confirm', question: 'Proceed?' }]
+        const events: ActionExecutionEvent[] = [
+            { ...executionEvent('running'), sequence: 1 },
+            {
+                actionId: 'build', actionType: 'agent', context, executionId: 'execution-1', interactionReady: true,
+                phase: 'main', rootActionId: 'build', sequence: 2, status: 'running', streaming: true, type: 'action',
+            },
+            {
+                actionId: 'build', context, executionId: 'execution-1', phase: 'main', rootActionId: 'build', sequence: 3,
+                status: 'running', type: 'update',
+                update: { conversationId: 'conversation-1', kind: 'agentStarted', reference: 'log.json', startedAt: 'now', title: 'Build', userMessage },
+            },
+            {
+                actionId: 'build', context, executionId: 'execution-1', phase: 'main', rootActionId: 'build', sequence: 4,
+                status: 'running', type: 'update', update: { content: 'proposal', kind: 'output' },
+            },
+            {
+                actionId: 'build', context, executionId: 'execution-1', phase: 'main', rootActionId: 'build', sequence: 5,
+                status: 'waitingForInput', type: 'update', update: { kind: 'agentQuestion', questions, requestId: 7 },
+            },
+            {
+                actionId: 'build', actionType: 'agent', context, executionId: 'execution-1', interactionReady: true,
+                phase: 'main', rootActionId: 'build', sequence: 6, status: 'waitingForInput', streaming: true, type: 'agentState',
+            },
+        ]
+        service.start()
+        emit(events[5])
+        resolveSnapshot?.(events)
+
+        await vi.waitFor(() => expect(service.getRunningExecutionForContext(context)).toMatchObject({
+            agentTurn: { assistantText: 'proposal', conversationId: 'conversation-1' },
+            question: { questions, requestId: 7 },
+            status: 'waitingForInput',
+        }))
+        expect(service.getSnapshot().executions[0].logs[0].stdout).toBe('proposal')
+        service.stop()
+    })
+
     it('keeps matching an execution after the card header changes during the run', () => {
         const { bridge, emit } = bridgeWithEvents()
         setActionBridgeOverride(bridge)

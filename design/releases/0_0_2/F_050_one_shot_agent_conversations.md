@@ -12,19 +12,17 @@ internalId: 8397c63f-d95d-4c05-b808-e48df77676c8
 
 ## Goal
 
-Run every Codex and Claude conversation turn as a one-shot process with structured output, persist the full MD² transcript and provider conversation ids, and let the user continue a conversation with either agent without losing context.
+Run every non-streaming Codex and Claude conversation turn as a one-shot process with structured output, persist the full MD² transcript and provider conversation ids, and let the user continue a conversation with either agent without losing context. Agent actions with `streaming: true` use the live-session contract in F_75.
 
 ## Current state
 
-`AgentRunnerService` owns a long-lived PTY process and forwards follow-up input to its stdin while it is running. A completed run creates another conversation log linked through `continuedFrom`. Continuation can use `nativeSessionId`, but session ids are extracted with profile regular expressions and transcript replay is truncated. The conversation model stores one `nativeSessionId` and therefore cannot represent provider switches or how much of the MD² transcript a provider session has seen.
-
-The configured Codex and Claude commands are adapted to structured one-shot modes, but process startup still resolves Windows command shims and can replace `codex` with its internal `node.exe codex.js` invocation. This makes the runner depend on installation details that should remain owned by the configured command and platform shell.
+Implemented for non-streaming actions. Each turn uses a structured subprocess, conversation logs retain the complete transcript, and provider-session records support explicit resume and provider switching. Configured commands remain authoritative. Agent actions with `streaming: true` use one live provider process until Finish or Cancel, as defined by F_75.
 
 ## Requirements
 
-### One process per turn
+### One process per one-shot turn
 
-- Keep the conversation interactive in MD², but run each user turn as a separate process. Do not keep a Codex or Claude process alive between turns.
+- For non-streaming actions, keep the conversation interactive in MD², but run each user turn as a separate process. Do not keep a Codex or Claude process alive between turns.
 - Run Codex with `exec --json` and Claude with `--print --verbose --output-format stream-json` so output is streamed as structured events.
 - Pass the current user message as the prompt argument. The initial prompt and every follow-up must support multiline content without shell interpolation or command-line corruption.
 - Use normal subprocess stdin/stdout/stderr pipes rather than a PTY. One-shot structured modes do not require terminal emulation.
@@ -101,7 +99,7 @@ The configured Codex and Claude commands are adapted to structured one-shot mode
 ## Compatibility and documentation impact
 
 - No legacy path-derived conversation-log migration or fallback is provided; continuations read terminal conversations from activity files.
-- This feature replaces live stdin semantics in F-010d, F-012, F-023, F-047, and the running-actions architecture note. Those documents must be updated when this feature moves to implementation; do not keep both live-stdin and process-per-turn contracts.
+- This feature replaces live stdin semantics for non-streaming actions in F-010d, F-012, F-023, F-047, and the running-actions architecture note. F_75 adds a separate opt-in live-session contract; it does not change this one-shot contract.
 - B-025's truncated transcript fallback is superseded by full normalized history and structured provider ids.
 - Action chains and scheduled actions still await one agent turn and consume its final result. They do not gain follow-up UI.
 
@@ -114,11 +112,11 @@ The configured Codex and Claude commands are adapted to structured one-shot mode
 - Test missing-id fallback retries once with full history and replaces the active id only after success.
 - Test that unrelated failures never trigger automatic replay.
 - Test multiline prompts, quotes, shell characters, large stdin history, Windows `.cmd` commands, cancellation, malformed JSONL, and concurrent-conversation isolation.
-- Update React tests so conversation input starts a new turn, agent selection is available for follow-up, and input is disabled while a turn runs.
+- Update React tests so non-streaming conversation input starts a new turn, agent selection is available for follow-up, and input is disabled while a turn runs.
 
 ## Acceptance criteria
 
-- Codex and Claude run one structured process per conversation turn and exit after that turn.
+- For non-streaming actions, Codex and Claude run one structured process per conversation turn and exit after that turn.
 - MD² persists the complete ordered transcript independently of provider session storage.
 - Every successful provider session records its explicit id and transcript synchronization cursor.
 - Same-agent follow-ups use native resume without resending synchronized history.
@@ -139,3 +137,4 @@ The configured Codex and Claude commands are adapted to structured one-shot mode
 - `design\feature_descriptions\ready\B_025_agent_continue_without_context.md`
 - `design\architecture\initial description\agents.md`
 - `design\architecture\initial description\writings\running_actions.md`
+- `design\feature_descriptions\F_75_agent_confirm_gate_in_one_shot_cli.md`

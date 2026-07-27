@@ -32,11 +32,11 @@ describe('buildReleaseMoves', () => {
             { content: 'aW1hZ2U=', encoding: 'base64', path: 'design/note.png', sha: 'asset-sha' },
         ]
 
-        const moves = buildReleaseMoves(files, [card('design/F-1-card.md')], 'design', 'v1')
+        const moves = buildReleaseMoves(files, [card('design/F-1-card.md')], 'design', 'design/releases', 'v1')
 
         expect(moves).toEqual([
-            { content: '# Card\n\n![note](note.png)', fromPath: 'design/F-1-card.md', sha: 'card-sha', toPath: 'design/history/v1/F-1-card.md' },
-            { content: 'aW1hZ2U=', encoding: 'base64', fromPath: 'design/note.png', sha: 'asset-sha', toPath: 'design/history/v1/note.png' },
+            { content: '# Card\n\n![note](note.png)', fromPath: 'design/F-1-card.md', sha: 'card-sha', toPath: 'design/releases/v1/F-1-card.md' },
+            { content: 'aW1hZ2U=', encoding: 'base64', fromPath: 'design/note.png', sha: 'asset-sha', toPath: 'design/releases/v1/note.png' },
         ])
     })
 
@@ -46,10 +46,10 @@ describe('buildReleaseMoves', () => {
             { content: 'aW1hZ2U=', encoding: 'base64', path: 'design/note.png' },
         ]
 
-        const moves = buildReleaseMoves(files, [card('design/F-1-card.md')], 'design', 'v1')
+        const moves = buildReleaseMoves(files, [card('design/F-1-card.md')], 'design', 'design/releases', 'v1')
 
         expect(moves).toEqual([
-            { content: '# Card', fromPath: 'design/F-1-card.md', sha: undefined, toPath: 'design/history/v1/F-1-card.md' },
+            { content: '# Card', fromPath: 'design/F-1-card.md', sha: undefined, toPath: 'design/releases/v1/F-1-card.md' },
         ])
     })
 
@@ -60,10 +60,10 @@ describe('buildReleaseMoves', () => {
             { content: 'aW1hZ2U=', encoding: 'base64', path: 'design/note.png' },
         ]
 
-        const moves = buildReleaseMoves(files, [card('design/F-1-card.md')], 'design', 'v1')
+        const moves = buildReleaseMoves(files, [card('design/F-1-card.md')], 'design', 'design/releases', 'v1')
 
         expect(moves).toEqual([
-            { content: '# Archived\n\n![note](note.png)', fromPath: 'design/F-1-card.md', sha: undefined, toPath: 'design/history/v1/F-1-card.md' },
+            { content: '# Archived\n\n![note](note.png)', fromPath: 'design/F-1-card.md', sha: undefined, toPath: 'design/releases/v1/F-1-card.md' },
         ])
     })
 
@@ -77,8 +77,13 @@ describe('buildReleaseMoves', () => {
             files,
             [card('design/F-1-card.md')],
             'design',
+            'design/releases',
             'v1',
-            ['design/history/v1/note.png'],
+            ['design/releases/v1/note.png'],
         )).toThrow('Release already exists: v1')
+    })
+
+    it('rejects a releases folder outside the project folder', () => {
+        expect(() => buildReleaseMoves([], [], 'design', 'outside', 'v1')).toThrow('must stay inside the project folder')
     })
 })

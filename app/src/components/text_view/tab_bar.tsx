@@ -4,12 +4,13 @@ import CardsOutline from 'mdi-material-ui/CardsOutline'
 import Close from 'mdi-material-ui/Close'
 import FileDocumentOutline from 'mdi-material-ui/FileDocumentOutline'
 import LightningBolt from 'mdi-material-ui/LightningBolt'
-import type { MouseEvent, SyntheticEvent } from 'react'
+import { useEffect, type MouseEvent, type SyntheticEvent } from 'react'
 import { fileLabel } from '../../data/file_tree'
 import { getCardIdPrefix } from '../../data/card_identifiers'
 import type { CardTypeConfig, ProjectCard } from '../../data/data_types'
 import { markdownParsingService } from '../../services/data/markdown_parsing_service'
 import { openFilesService, type OpenDocument } from '../../services/open_files_service'
+import { dialogService } from '../../services/dialog_service'
 import { telemetryService } from '../../services/telemetry/telemetry_service'
 import { useOpenFiles } from '../hooks/use_open_files'
 
@@ -51,15 +52,15 @@ function tabKind(card: ProjectCard, actionsFolder: string): OpenTabKind {
     return 'markdown'
 }
 
-function tabData(cardTypes: CardTypeConfig[], actionsFolder: string, document: OpenDocument): OpenTab {
+function tabData(cardTypes: CardTypeConfig[], actionsFolder: string, document: OpenDocument): OpenTab | null {
     if (document.kind === 'action') {
         const action = document.getObject()
-        if (!action.sourcePath) throw new Error(`Open action has no source path: ${action.id}`)
+        if (!action.sourcePath) return null
 
         return { color: null, document, id: null, key: `action:${action.id}`, kind: 'action', label: action.label, title: action.label }
     }
     const card = document.getObject()
-    if (!card.header.internalId) throw new Error(`Open card has no internal ID: ${card.path}`)
+    if (!card.header.internalId) return null
     const label = fileLabel(card)
     const id = label.startsWith(`${card.header.id} `) ? card.header.id : null
 
@@ -78,8 +79,18 @@ function tabData(cardTypes: CardTypeConfig[], actionsFolder: string, document: O
 export function TabBar(props: TabBarProps) {
     const { actionsFolder, cardTypes } = props
     const { activeDocument, documents } = useOpenFiles()
-    const tabs = documents.map((document) => tabData(cardTypes, actionsFolder, document))
+    const tabs = documents
+        .map((document) => tabData(cardTypes, actionsFolder, document))
+        .filter((tab): tab is OpenTab => tab !== null)
+    const invalidDocuments = documents.filter((document) => !tabData(cardTypes, actionsFolder, document))
+    const invalidDocumentMessage = invalidDocuments.length > 0
+        ? `${invalidDocuments.length} open document${invalidDocuments.length === 1 ? '' : 's'} could not be shown`
+        : null
     const theme = useTheme()
+
+    useEffect(() => {
+        if (invalidDocumentMessage) dialogService.error(invalidDocumentMessage)
+    }, [invalidDocumentMessage])
 
     const handleChange = (_event: SyntheticEvent, value: OpenDocument) => {
         openFilesService.activateDocument(value)
@@ -87,12 +98,16 @@ export function TabBar(props: TabBarProps) {
     }
 
     const handleClose = (event: MouseEvent<HTMLButtonElement>) => {
-        event.stopPropagation()
-        const index = Number(event.currentTarget.dataset.index)
-        const document = tabs[index]?.document
-        if (!document) throw new Error('Missing document for tab close button')
+        try {
+            event.stopPropagation()
+            const index = Number(event.currentTarget.dataset.index)
+            const document = tabs[index]?.document
+            if (!document) throw new Error('Missing document for tab close button')
 
-        openFilesService.closeDocument(document)
+            openFilesService.closeDocument(document)
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: 'Document tab could not be closed' })
+        }
     }
 
     if (tabs.length === 0) return null

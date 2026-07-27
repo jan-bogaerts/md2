@@ -1,4 +1,5 @@
 import type { AgentConversation } from '../../data/data_types'
+import { dialogService } from '../../services/dialog_service'
 import { agentAcknowledgementService } from '../../services/agents/agent_acknowledgement_service'
 import {
     cardActionPopupService,
@@ -17,10 +18,14 @@ export function CardActionPopupHostEntry({ entry }: CardActionPopupHostEntryProp
     }
 
     const handleConversationViewed = (conversation: AgentConversation) => {
-        const cardPath = entry.context.file
-        if (!cardPath) throw new Error('Cannot acknowledge a card conversation without a card path')
+        try {
+            const cardPath = entry.context.file
+            if (!cardPath) throw new Error('Cannot acknowledge a card conversation without a card path')
 
-        agentAcknowledgementService.acknowledge(entry.projectKey, cardPath, [conversation])
+            agentAcknowledgementService.acknowledge(entry.projectKey, cardPath, [conversation])
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: 'Card conversation could not be acknowledged' })
+        }
     }
 
     const anchorElement = entry.anchorElement.isConnected ? entry.anchorElement : entry.fallbackAnchorElement

@@ -4,6 +4,7 @@ import {
 } from '../../data/action_context'
 import { CUSTOM_PROMPT_ACTION_ID } from '../../data/action_types'
 import type { AgentConversation } from '../../data/data_types'
+import { dialogService } from '../../services/dialog_service'
 import { useActions } from '../hooks/use_actions'
 import { useRunningActionExecutions } from '../hooks/use_action_executions'
 import { useProjectState } from '../hooks/use_project_state'
@@ -58,11 +59,15 @@ export function ActionPopup(props: ActionPopupProps) {
     }
 
     const handleAddAction = () => {
-        const customPrompt = actions.find(({ id }) => id === CUSTOM_PROMPT_ACTION_ID)
-        if (!customPrompt) throw new Error('Missing custom prompt action')
+        try {
+            const customPrompt = actions.find(({ id }) => id === CUSTOM_PROMPT_ACTION_ID)
+            if (!customPrompt) throw new Error('Missing custom prompt action')
 
-        setSelectedActionId(customPrompt.id)
-        setShowSaveControls((current) => !current)
+            setSelectedActionId(customPrompt.id)
+            setShowSaveControls((current) => !current)
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: 'Custom action editor could not be opened' })
+        }
     }
 
     const handleToggleFullHeight = () => setFullHeight((current) => !current)

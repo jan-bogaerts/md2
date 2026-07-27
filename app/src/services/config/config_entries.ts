@@ -1,9 +1,11 @@
 import {
     DEFAULT_ACTIONS_FOLDER,
+    DEFAULT_ARCHIVED_FOLDER,
     DEFAULT_CARD_BODY_TEMPLATE,
     DEFAULT_CARD_TYPES,
     DEFAULT_DIFF_COMMAND,
     DEFAULT_PROJECT_FOLDER,
+    DEFAULT_RELEASES_FOLDER,
     DEFAULT_STATES,
     DEFAULT_WORKING_FOLDER,
     type CardTypeConfig,
@@ -24,6 +26,7 @@ export interface ConfigValueTypes {
     'desktop.model': string
     'desktop.thinkingLevel': ThinkingLevel
     'project.actionsFolder': string
+    'project.archivedFolder': string
     'project.backgroundShade': ProjectBackgroundShade
     'project.cardBodyTemplate': string
     'project.cardSeparator': CardSeparator
@@ -31,6 +34,7 @@ export interface ConfigValueTypes {
     'project.diffCommand': string
     'project.projectFolder': string
     'project.pushMode': PushMode
+    'project.releasesFolder': string
     'project.states': StateConfig[]
     'project.workingFolder': string
     'react.autoCommitDelayMs': number
@@ -109,7 +113,7 @@ export const CONFIG_ENTRIES: ConfigEntry[] = [
     },
     {
         defaultValue: DEFAULT_PROJECT_FOLDER,
-        description: 'Project root folder containing actions, history, and the working folder. Leave empty to use the repository root.',
+        description: 'Project root folder containing actions, releases, archives, and the working folder. Leave empty to use the repository root.',
         editable: true,
         key: 'project.projectFolder',
         label: 'Project folder',
@@ -133,6 +137,26 @@ export const CONFIG_ENTRIES: ConfigEntry[] = [
         editable: true,
         key: 'project.actionsFolder',
         label: 'Actions folder',
+        section: 'project',
+        source: 'project',
+        type: 'string',
+    },
+    {
+        defaultValue: DEFAULT_RELEASES_FOLDER,
+        description: 'Folder inside the project folder that contains one subfolder per completed release.',
+        editable: true,
+        key: 'project.releasesFolder',
+        label: 'Releases folder',
+        section: 'project',
+        source: 'project',
+        type: 'string',
+    },
+    {
+        defaultValue: DEFAULT_ARCHIVED_FOLDER,
+        description: 'Folder inside the project folder that contains individually archived cards.',
+        editable: true,
+        key: 'project.archivedFolder',
+        label: 'Archived folder',
         section: 'project',
         source: 'project',
         type: 'string',
@@ -288,6 +312,8 @@ export const PROJECT_KEYS: ConfigKey[] = [
     'project.projectFolder',
     'project.workingFolder',
     'project.actionsFolder',
+    'project.releasesFolder',
+    'project.archivedFolder',
     'project.backgroundShade',
     'project.diffCommand',
     'project.pushMode',

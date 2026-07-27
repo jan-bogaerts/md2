@@ -2,6 +2,7 @@ import AddOutlined from '@mui/icons-material/AddOutlined'
 import { Button } from '@mui/material'
 import type { ChangeEvent } from 'react'
 import type { ActionDefinition, RawOnRule } from '../../data/action_types'
+import { dialogService } from '../../services/dialog_service'
 import { ActionOrderedCollection } from './action_ordered_collection'
 import { ActionSelectorField } from './action_selector_field'
 import { ActionEditorTextField } from './action_editor_text_field'
@@ -23,11 +24,15 @@ export function ActionOnRulesEditor(props: ActionOnRulesEditorProps) {
     }
 
     const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
-        const [field, rawIndex] = event.target.name.split(':')
-        const index = Number.parseInt(rawIndex, 10)
-        const rule = value[index]
-        if (!rule) throw new Error(`Missing on rule at index ${index}`)
-        onChange(value.map((candidate, ruleIndex) => ruleIndex === index ? { ...candidate, [field]: event.target.value } : candidate))
+        try {
+            const [field, rawIndex] = event.target.name.split(':')
+            const index = Number.parseInt(rawIndex, 10)
+            const rule = value[index]
+            if (!rule) throw new Error(`Missing on rule at index ${index}`)
+            onChange(value.map((candidate, ruleIndex) => ruleIndex === index ? { ...candidate, [field]: event.target.value } : candidate))
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: 'Output rule could not be changed' })
+        }
     }
 
     const handleCollectionChange = (next: RawOnRule[]) => onChange(next.length > 0 ? next : undefined)

@@ -1,13 +1,14 @@
 import AddOutlined from '@mui/icons-material/AddOutlined'
 import DeleteOutlineOutlined from '@mui/icons-material/DeleteOutlineOutlined'
 import { Box, Button, IconButton, MenuItem, Stack, Tooltip, Typography } from '@mui/material'
-import { useState, type ChangeEvent, type MouseEvent } from 'react'
+import { useEffect, useState, type ChangeEvent, type MouseEvent } from 'react'
 import {
     ACTION_CONTEXT_FILTER_DESCRIPTORS,
     type ActionContextFilterDescriptor,
 } from '../../data/action_context'
 import type { ActionAppliesTo, ActionAppliesToField } from '../../data/action_types'
 import type { WorktreeRecord } from '../../data/data_types'
+import { dialogService } from '../../services/dialog_service'
 import { ActionEditorField } from './action_editor_field'
 import { ActionSectionLabel } from './action_section_label'
 import { ActionEditorTextField } from './action_editor_text_field'
@@ -89,45 +90,71 @@ export function ActionFilterEditor(props: ActionFilterEditorProps) {
         : persistedEntries
     if (pendingFilter?.index === persistedEntries.length) entries.push([pendingFilter.field, ''])
     const descriptorByKey = new Map(ACTION_CONTEXT_FILTER_DESCRIPTORS.map((descriptor) => [descriptor.key, descriptor]))
+    const missingDescriptorFields = entries
+        .map(([field]) => field)
+        .filter((field) => !descriptorByKey.has(field))
+    const missingDescriptorMessage = missingDescriptorFields.length > 0
+        ? `Missing applicability filter descriptor: ${missingDescriptorFields.join(', ')}`
+        : null
     const hasIncompleteRow = entries.some(([field, fieldValue]) => !field || !fieldValue)
     const hasEveryFilter = entries.length === ACTION_CONTEXT_FILTER_DESCRIPTORS.length
 
+    useEffect(() => {
+        if (missingDescriptorMessage) dialogService.error(missingDescriptorMessage)
+    }, [missingDescriptorMessage])
+
     const handleAdd = () => {
-        const descriptor = ACTION_CONTEXT_FILTER_DESCRIPTORS.find(({ key }) => !entries.some(([field]) => field === key))
-        if (!descriptor) throw new Error('No applicability filter available')
-        setPendingFilter({ field: descriptor.key, index: entries.length })
+        try {
+            const descriptor = ACTION_CONTEXT_FILTER_DESCRIPTORS.find(({ key }) => !entries.some(([field]) => field === key))
+            if (!descriptor) throw new Error('No applicability filter available')
+            setPendingFilter({ field: descriptor.key, index: entries.length })
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: 'Applicability filter could not be added' })
+        }
     }
 
     const handleFieldChange = (event: ChangeEvent<HTMLInputElement>) => {
-        const index = Number.parseInt(event.target.name, 10)
-        const previousEntry = entries[index]
-        if (!previousEntry) throw new Error(`Missing applicability filter at index ${index}`)
+        try {
+            const index = Number.parseInt(event.target.name, 10)
+            const previousEntry = entries[index]
+            if (!previousEntry) throw new Error(`Missing applicability filter at index ${index}`)
 
-        setPendingFilter({ field: event.target.value as ActionAppliesToField, index })
+            setPendingFilter({ field: event.target.value as ActionAppliesToField, index })
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: 'Applicability filter field could not be changed' })
+        }
     }
 
     const handleValueChange = (event: ChangeEvent<HTMLInputElement>) => {
-        const index = Number.parseInt(event.target.name, 10)
-        const entry = entries[index]
-        if (!entry) throw new Error(`Missing applicability filter at index ${index}`)
+        try {
+            const index = Number.parseInt(event.target.name, 10)
+            const entry = entries[index]
+            if (!entry) throw new Error(`Missing applicability filter at index ${index}`)
 
-        const [field] = entry
-        const nextFilters = index === persistedEntries.length
-            ? { ...value, [field]: event.target.value }
-            : replaceEntry(persistedEntries, index, field, event.target.value)
-        onChange(nextFilters)
-        setPendingFilter(null)
+            const [field] = entry
+            const nextFilters = index === persistedEntries.length
+                ? { ...value, [field]: event.target.value }
+                : replaceEntry(persistedEntries, index, field, event.target.value)
+            onChange(nextFilters)
+            setPendingFilter(null)
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: 'Applicability filter value could not be changed' })
+        }
     }
 
     const handleRemove = (event: MouseEvent<HTMLButtonElement>) => {
-        const index = Number.parseInt(event.currentTarget.dataset.index ?? '', 10)
-        const entry = entries[index]
-        if (!entry) throw new Error(`Missing applicability filter at index ${index}`)
+        try {
+            const index = Number.parseInt(event.currentTarget.dataset.index ?? '', 10)
+            const entry = entries[index]
+            if (!entry) throw new Error(`Missing applicability filter at index ${index}`)
 
-        const nextEntries = persistedEntries.filter((_entry, entryIndex) => entryIndex !== index)
-        setPendingFilter(null)
-        if (pendingFilter?.index === persistedEntries.length) return
-        onChange(nextEntries.length > 0 ? Object.fromEntries(nextEntries) : undefined)
+            const nextEntries = persistedEntries.filter((_entry, entryIndex) => entryIndex !== index)
+            setPendingFilter(null)
+            if (pendingFilter?.index === persistedEntries.length) return
+            onChange(nextEntries.length > 0 ? Object.fromEntries(nextEntries) : undefined)
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: 'Applicability filter could not be removed' })
+        }
     }
 
     return (
@@ -140,7 +167,7 @@ export function ActionFilterEditor(props: ActionFilterEditorProps) {
             ) : null}
             {entries.map(([field, fieldValue], index) => {
                 const descriptor = descriptorByKey.get(field)
-                if (!descriptor) throw new Error(`Missing applicability filter descriptor: ${field}`)
+                if (!descriptor) return null
                 const valueError = pendingFilter?.index === index ? null : descriptor.validate(fieldValue)
                 const options = includeCurrentOption(optionsForDescriptor(descriptor, props), fieldValue)
 

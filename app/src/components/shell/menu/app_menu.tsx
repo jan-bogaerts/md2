@@ -193,9 +193,9 @@ export function AppMenu(props: AppMenuProps) {
     }
 
     const handleCreateAction = async () => {
-        if (!projectConfig) throw new Error('Cannot create an action before project config is loaded')
-
         try {
+            if (!projectConfig) throw new Error('Cannot create an action before project config is loaded')
+
             const { definition, path } = actionService.createDefinition(projectConfig.actionsFolder)
             await actionService.saveDefinition(path, definition)
             workspaceViewService.setViewMode('text')

@@ -1,7 +1,9 @@
 import { Tab, Tabs } from '@mui/material'
 import { useCallback, useEffect } from 'react'
 import { ACTION_PROMPT_PLACEHOLDERS } from '../../data/action_placeholders'
+import type { ActionDefinition } from '../../data/action_types'
 import { actionService } from '../../services/actions/action_service'
+import type { ActionOpenDocument } from '../../services/open_files_service'
 import { actionMarkdownDataSource } from '../editor/action_markdown_data_source'
 import type { MarkdownDocumentTarget } from '../editor/markdown_data_source'
 import type { ActionMarkdownPresentation } from './action_editor'
@@ -9,26 +11,27 @@ import { ActionEditorTab } from './action_editor_tab'
 import { ActionPhraseToolbarControls } from './action_phrase_toolbar_controls'
 import { actionPhraseLabel } from './action_phrase_label'
 import { ACTION_DEFINITION_TAB, useActionEditorController } from './use_action_editor_controller'
-import { useRetainedAction } from './use_retained_action'
 
 interface ActionEditorNavigationProps {
+    action: ActionDefinition
     discardMarkdownTarget: (target: MarkdownDocumentTarget) => void
+    openDocument: ActionOpenDocument
     onMarkdownPresentationChange: (presentation: ActionMarkdownPresentation | null) => void
+    sourcePath: string
 }
 
 /** Tabs and Markdown binding backed directly by ActionService controller. */
 export function ActionEditorNavigation(props: ActionEditorNavigationProps) {
-    const { discardMarkdownTarget, onMarkdownPresentationChange } = props
-    const action = useRetainedAction()
+    const { action, discardMarkdownTarget, openDocument, onMarkdownPresentationChange, sourcePath } = props
     const actions = actionService.getActions()
-    const controller = useActionEditorController({ action, actions, discardMarkdownTarget })
+    const controller = useActionEditorController({ action, actions, discardMarkdownTarget, openDocument, sourcePath })
     const {
         activeTab, definition, errors, handleDeletePhrase, handlePhraseTitleCommit, handlePhraseTitleEdit,
         handleTabChange, markdownTarget, phraseEditorStates, phrases, selectedPhrase, validation,
     } = controller
 
     const phraseToolbarContents = useCallback(() => {
-        if (!selectedPhrase) throw new Error('Missing selected phrase')
+        if (!selectedPhrase) return null
 
         return (
             <ActionPhraseToolbarControls

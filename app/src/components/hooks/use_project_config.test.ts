@@ -6,6 +6,7 @@ import { useProjectConfig } from './use_project_config'
 
 const firstConfig: ProjectConfig = {
     actionsFolder: 'actions',
+    archivedFolder: 'archived',
     backgroundShade: 'blue',
     cardBodyTemplate: '',
     cardSeparator: '_',
@@ -13,6 +14,7 @@ const firstConfig: ProjectConfig = {
     diffCommand: 'git show {{commit}}',
     projectFolder: '',
     pushMode: 'auto',
+    releasesFolder: 'releases',
     states: [{ alwaysVisible: true, state: 'design' }],
     workingFolder: 'design',
 }

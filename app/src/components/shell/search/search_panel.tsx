@@ -18,6 +18,7 @@ import { workspaceNavigationService } from '../../../services/project/workspace_
 import { useWorkspaceView } from '../../hooks/use_workspace_view'
 import { NO_DRAG_REGION } from '../drag_region'
 import { SearchResults } from './search_results'
+import { useProjectConfig } from '../../hooks/use_project_config'
 
 const RESULTS_MAX_HEIGHT = 420
 const RESULTS_WIDTH = 460
@@ -37,6 +38,7 @@ interface SearchPanelProps {
 export function SearchPanel(props: SearchPanelProps) {
     const { initialQuery, onClose, onQueryChange, regexpAgent = defaultSearchRegexpAgent } = props
     const { snapshot } = useProjectState()
+    const projectConfig = useProjectConfig()
     const { actions } = useActions()
     const { viewMode } = useWorkspaceView()
     const [query, setQuery] = useState(initialQuery)
@@ -67,7 +69,10 @@ export function SearchPanel(props: SearchPanelProps) {
 
         try {
             const options = { includeActions: nextIncludeActions, includeBackgroundBody: nextIncludeBackgroundBody, mode: nextMode }
-            const cardResults = searchProject(snapshot, nextQuery, options)
+            const specialFolderPaths = projectConfig
+                ? [projectConfig.releasesFolder, projectConfig.archivedFolder]
+                : []
+            const cardResults = searchProject(snapshot, nextQuery, options, specialFolderPaths)
             const actionResults = searchActions(actions, nextQuery, options)
             setResults({ ...cardResults, actions: actionResults })
         } catch (error) {
@@ -142,16 +147,20 @@ export function SearchPanel(props: SearchPanelProps) {
     }
 
     const handleSelectAction = (action: ActionDefinition) => {
-        if (viewMode === 'text') {
-            if (!action.sourcePath) throw new Error(`Action cannot be opened in text view: ${action.id}`)
-            workspaceNavigationService.open(action.sourcePath)
-            setIsDismissed(true)
-            onClose()
-            return
-        }
+        try {
+            if (viewMode === 'text') {
+                if (!action.sourcePath) throw new Error(`Action cannot be opened in text view: ${action.id}`)
+                workspaceNavigationService.open(action.sourcePath)
+                setIsDismissed(true)
+                onClose()
+                return
+            }
 
-        setActionPopupOpen(true)
-        setIsDismissed(true)
+            setActionPopupOpen(true)
+            setIsDismissed(true)
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: 'Action search result could not be opened' })
+        }
     }
 
     const closeActionPopup = () => {

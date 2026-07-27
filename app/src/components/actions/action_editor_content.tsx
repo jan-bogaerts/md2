@@ -1,5 +1,6 @@
 import { Alert, Box, Button, Stack, Typography } from '@mui/material'
 import { useEffect, useState } from 'react'
+import type { ActionDefinition } from '../../data/action_types'
 import {
     ACTION_DRAFT_CHANGED_EVENT,
     actionService,
@@ -10,20 +11,18 @@ import { openFilesService } from '../../services/open_files_service'
 import { useWorktrees } from '../hooks/use_worktrees'
 import { ActionDefinitionFields } from './action_definition_fields'
 import { ACTION_DEFINITION_TAB } from './action_phrase_editor_state'
-import { useRetainedAction } from './use_retained_action'
 
 interface ActionEditorContentProps {
+    action: ActionDefinition
     cardTypes: string[]
+    sourcePath: string
     specialContextTypes: string[]
     states: string[]
 }
 
 /** Definition and recovery region backed directly by ActionService. */
 export function ActionEditorContent(props: ActionEditorContentProps) {
-    const { cardTypes, specialContextTypes, states } = props
-    const action = useRetainedAction()
-    const sourcePath = action.sourcePath
-    if (!sourcePath) throw new Error(`Action editor requires a persisted action: ${action.id}`)
+    const { action, cardTypes, sourcePath, specialContextTypes, states } = props
     const [, setRevision] = useState(0)
     useEffect(() => {
         const handleChanged = (event: Event) => {
@@ -38,8 +37,7 @@ export function ActionEditorContent(props: ActionEditorContentProps) {
     const { conflict, definition, deleted, error: saveError, saving, validation } = draft
     const activeTab = (actionService.getActionByPath(sourcePath) ?? action).editorState?.selectedTab ?? ACTION_DEFINITION_TAB
     const openDocument = openFilesService.findDocument(action)
-    if (!openDocument || openDocument.kind !== 'action') throw new Error(`Missing open action document: ${action.id}`)
-    const canRetry = !!saveError && validation.valid && openDocument.dirty && !conflict && !saving
+    const canRetry = !!saveError && validation.valid && !!openDocument?.dirty && !conflict && !saving
     const status = saveError ? 'Save failed. Retry to save changes.' : validation.valid ? null : 'Fix validation errors to save.'
     const showActionContent = definition.type !== 'agent' || activeTab === ACTION_DEFINITION_TAB || !!saveError || deleted || !!conflict
     const worktrees = useWorktrees()

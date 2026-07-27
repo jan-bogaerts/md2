@@ -11,6 +11,7 @@ import {
     type MarkdownStyleConfig,
     type MarkdownStyleName,
 } from '../../theme/theme_config'
+import { dialogService } from '../../services/dialog_service'
 import { MarkdownSectionEditor } from './markdown_section_editor'
 import { MarkdownStylePreview } from './markdown_style_preview'
 
@@ -47,15 +48,19 @@ export function MarkdownConfigSection(props: MarkdownConfigSectionProps) {
     const { config, name, onChange } = props
 
     const handleStyleNameChange = (event: SelectChangeEvent) => {
-        const nextName = event.target.value as MarkdownStyleName
-        if (nextName === 'custom') {
-            onChange(nextName, cloneMarkdownStyleConfig(config))
-            return
-        }
-        if (!isMarkdownStylePresetName(nextName)) throw new Error(`Unknown markdown style: ${nextName}`)
-        if (name === 'custom' && !window.confirm(REPLACE_CUSTOM_STYLE_MESSAGE)) return
+        try {
+            const nextName = event.target.value as MarkdownStyleName
+            if (nextName === 'custom') {
+                onChange(nextName, cloneMarkdownStyleConfig(config))
+                return
+            }
+            if (!isMarkdownStylePresetName(nextName)) throw new Error(`Unknown markdown style: ${nextName}`)
+            if (name === 'custom' && !window.confirm(REPLACE_CUSTOM_STYLE_MESSAGE)) return
 
-        onChange(nextName, cloneMarkdownStyleConfig(MARKDOWN_STYLE_PRESETS[nextName]))
+            onChange(nextName, cloneMarkdownStyleConfig(MARKDOWN_STYLE_PRESETS[nextName]))
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: 'Markdown style could not be changed' })
+        }
     }
 
     const handleSectionChange = (section: MarkdownSection, style: MarkdownSectionStyle) => {

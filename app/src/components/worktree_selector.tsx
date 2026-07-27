@@ -135,11 +135,15 @@ export function WorktreeSelector(props: WorktreeSelectorProps) {
         await assignWorktree(null)
     }
     const handleWorktree = async (event: MouseEvent<HTMLElement>) => {
-        const worktree = Number.parseInt(event.currentTarget.dataset.worktree ?? '', 10)
-        if (!Number.isInteger(worktree)) throw new Error('Missing worktree menu index')
+        try {
+            const worktree = Number.parseInt(event.currentTarget.dataset.worktree ?? '', 10)
+            if (!Number.isInteger(worktree)) throw new Error('Missing worktree menu index')
 
-        handleClose()
-        await assignWorktree(worktree)
+            handleClose()
+            await assignWorktree(worktree)
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: 'Could not update worktree assignment' })
+        }
     }
     const getCommitMessage = () => (assignmentTarget.kind === 'card'
         ? worktreeService.getCardCommitMessage(assignmentTarget.path)

@@ -1,9 +1,30 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import type { ConfigEntry } from '../../services/config/config_service'
+import { dialogService } from '../../services/dialog_service'
 import { ConfigValueEditor } from './config_value_editor'
 
 describe('ConfigValueEditor', () => {
+    it('reports invalid slider config without crashing the config page', () => {
+        const entry: ConfigEntry = {
+            defaultValue: 30000,
+            description: 'Invalid slider.',
+            editable: true,
+            input: 'slider',
+            key: 'react.autoCommitDelayMs',
+            label: 'Auto commit delay',
+            section: 'react',
+            source: 'react',
+            type: 'number',
+        }
+        const reportError = vi.spyOn(dialogService, 'error')
+
+        render(<ConfigValueEditor entry={entry} onChange={vi.fn()} value={30000} />)
+
+        expect(reportError).toHaveBeenCalledWith('Slider config entry react.autoCommitDelayMs requires min and max')
+        expect(screen.queryByRole('slider')).not.toBeInTheDocument()
+    })
+
     it('renders unmarked number entries as number fields', () => {
         const entry: ConfigEntry = {
             defaultValue: 30000,

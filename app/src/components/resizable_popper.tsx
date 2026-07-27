@@ -2,6 +2,7 @@ import { Box, Paper, Popper } from '@mui/material'
 import type { PopperPlacementType, PopperProps, SxProps, Theme } from '@mui/material'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent, ReactNode } from 'react'
+import { dialogService } from '../services/dialog_service'
 import type { ResizeCorner } from './resizable_popover'
 
 interface PopperSize {
@@ -193,70 +194,80 @@ export function ResizablePopper(props: ResizablePopperProps) {
     }
 
     const startDrag = (event: ReactPointerEvent) => {
-        if (!draggable || fullHeight) return
+        try {
+            if (!draggable || fullHeight) return
 
-        const target = event.target
-        if (!(target instanceof Element) || !target.closest('[data-drag-handle="true"]')) return
-        if (target.closest(INTERACTIVE_SELECTOR)) return
+            const target = event.target
+            if (!(target instanceof Element) || !target.closest('[data-drag-handle="true"]')) return
+            if (target.closest(INTERACTIVE_SELECTOR)) return
 
-        event.preventDefault()
-        resizeRef.current?.abort()
-        if (!paperRef.current) throw new Error('Missing draggable popper paper element')
+            event.preventDefault()
+            resizeRef.current?.abort()
+            if (!paperRef.current) throw new Error('Missing draggable popper paper element')
 
-        const controller = new AbortController()
-        const bounds = paperRef.current.getBoundingClientRect()
-        const start = { left: bounds.left, top: bounds.top, x: event.clientX, y: event.clientY }
-        resizeRef.current = controller
+            const controller = new AbortController()
+            const bounds = paperRef.current.getBoundingClientRect()
+            const start = { left: bounds.left, top: bounds.top, x: event.clientX, y: event.clientY }
+            resizeRef.current = controller
 
-        window.addEventListener('pointermove', (move: PointerEvent) => {
-            const width = size.width ?? bounds.width
-            const height = size.height ?? bounds.height
-            setPosition({
-                left: clampDetachedLeft(start.left + move.clientX - start.x, width),
-                top: clampDetachedTop(start.top + move.clientY - start.y, height),
-            })
-        }, { signal: controller.signal })
-        window.addEventListener('pointerup', () => controller.abort(), { signal: controller.signal })
+            window.addEventListener('pointermove', (move: PointerEvent) => {
+                const width = size.width ?? bounds.width
+                const height = size.height ?? bounds.height
+                setPosition({
+                    left: clampDetachedLeft(start.left + move.clientX - start.x, width),
+                    top: clampDetachedTop(start.top + move.clientY - start.y, height),
+                })
+            }, { signal: controller.signal })
+            window.addEventListener('pointerup', () => controller.abort(), { signal: controller.signal })
+        } catch (error) {
+            resizeRef.current?.abort()
+            dialogService.error(error, { fallbackMessage: 'Popup drag could not be started' })
+        }
     }
 
     const startResize = (event: ReactPointerEvent) => {
-        event.preventDefault()
-        resizeRef.current?.abort()
+        try {
+            event.preventDefault()
+            resizeRef.current?.abort()
 
-        if (!paperRef.current) throw new Error('Missing resizable popper paper element')
+            if (!paperRef.current) throw new Error('Missing resizable popper paper element')
 
-        const direction = event.currentTarget.getAttribute('data-direction') as ResizeDirection | null
-        const controller = new AbortController()
-        const bounds = paperRef.current.getBoundingClientRect()
-        const start = {
-            height: size.height ?? bounds.height,
-            left: bounds.left,
-            top: bounds.top,
-            width: size.width ?? bounds.width,
-            x: event.clientX,
-            y: event.clientY,
-        }
-        resizeRef.current = controller
-
-        window.addEventListener('pointermove', (move: PointerEvent) => {
-            const activeDirection = direction ?? (resizeCorner === 'lower-left' ? 'bottom-left' : 'bottom-right')
-            const horizontalDelta = move.clientX - start.x
-            const verticalDelta = move.clientY - start.y
-            const resizesLeft = activeDirection.includes('left')
-            const resizesRight = activeDirection.includes('right')
-            const resizesTop = activeDirection.includes('top')
-            const resizesBottom = activeDirection.includes('bottom')
-            const width = Math.max(MIN_WIDTH, start.width + (resizesLeft ? -horizontalDelta : resizesRight ? horizontalDelta : 0))
-            const height = Math.max(MIN_HEIGHT, start.height + (resizesTop ? -verticalDelta : resizesBottom ? verticalDelta : 0))
-
-            setSize({ height, width })
-            if (draggable) {
-                const left = resizesLeft ? start.left + start.width - width : start.left
-                const top = resizesTop ? start.top + start.height - height : start.top
-                setPosition({ left: clampDetachedLeft(left, width), top: clampDetachedTop(top, height) })
+            const direction = event.currentTarget.getAttribute('data-direction') as ResizeDirection | null
+            const controller = new AbortController()
+            const bounds = paperRef.current.getBoundingClientRect()
+            const start = {
+                height: size.height ?? bounds.height,
+                left: bounds.left,
+                top: bounds.top,
+                width: size.width ?? bounds.width,
+                x: event.clientX,
+                y: event.clientY,
             }
-        }, { signal: controller.signal })
-        window.addEventListener('pointerup', () => controller.abort(), { signal: controller.signal })
+            resizeRef.current = controller
+
+            window.addEventListener('pointermove', (move: PointerEvent) => {
+                const activeDirection = direction ?? (resizeCorner === 'lower-left' ? 'bottom-left' : 'bottom-right')
+                const horizontalDelta = move.clientX - start.x
+                const verticalDelta = move.clientY - start.y
+                const resizesLeft = activeDirection.includes('left')
+                const resizesRight = activeDirection.includes('right')
+                const resizesTop = activeDirection.includes('top')
+                const resizesBottom = activeDirection.includes('bottom')
+                const width = Math.max(MIN_WIDTH, start.width + (resizesLeft ? -horizontalDelta : resizesRight ? horizontalDelta : 0))
+                const height = Math.max(MIN_HEIGHT, start.height + (resizesTop ? -verticalDelta : resizesBottom ? verticalDelta : 0))
+
+                setSize({ height, width })
+                if (draggable) {
+                    const left = resizesLeft ? start.left + start.width - width : start.left
+                    const top = resizesTop ? start.top + start.height - height : start.top
+                    setPosition({ left: clampDetachedLeft(left, width), top: clampDetachedTop(top, height) })
+                }
+            }, { signal: controller.signal })
+            window.addEventListener('pointerup', () => controller.abort(), { signal: controller.signal })
+        } catch (error) {
+            resizeRef.current?.abort()
+            dialogService.error(error, { fallbackMessage: 'Popup resize could not be started' })
+        }
     }
 
     const paperStyle: CSSProperties = fullHeight

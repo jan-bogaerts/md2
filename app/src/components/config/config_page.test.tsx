@@ -249,6 +249,17 @@ describe('ConfigPage', () => {
         saveProjectConfig.mockRestore()
     })
 
+    it('shows release and archived folder project settings', () => {
+        mockMatchMedia(false)
+        configService.init()
+        configService.loadProjectConfig(null)
+
+        renderConfigPage('#project')
+
+        expect(screen.getByLabelText('Releases folder')).toHaveValue('history')
+        expect(screen.getByLabelText('Archived folder')).toHaveValue('archived')
+    })
+
     it('offers the allowed background shades in the Project section', () => {
         mockMatchMedia(false)
         configService.init()

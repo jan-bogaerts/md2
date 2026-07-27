@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { CardTypeConfig, ProjectCard } from '../../data/data_types'
 import { buildFileTree, type TreeNode } from '../../data/file_tree'
 import { actionService } from '../../services/actions/action_service'
+import { dialogService } from '../../services/dialog_service'
 import { openFilesService } from '../../services/open_files_service'
 import { telemetryService } from '../../services/telemetry/telemetry_service'
 import { useActionFileTreeActions } from '../hooks/use_action_file_tree_actions'
@@ -13,19 +14,20 @@ import { FileTreeContext, type FileTreeContextValue } from './file_tree_context'
 import { FileTreeNodeRow } from './file_tree_node_row'
 import { FileTreeRow } from './file_tree_row'
 import { FileTreeToolbar } from './file_tree_toolbar'
+import { DEFAULT_ARCHIVED_FOLDER, DEFAULT_RELEASES_FOLDER } from '../../data/data_types'
 
 const TREE_FALLBACK_HEIGHT = 500
 const TREE_INDENT = 16
 const FILE_ROW_HEIGHT = 34
 const GROUP_ROW_HEIGHT = 30
 const TREE_VERTICAL_PADDING = 12
-const HISTORY_FOLDER_NAME = 'history'
 const LOGS_FOLDER_NAME = 'logs'
 const EMPTY_CARDS: ProjectCard[] = []
 const EMPTY_REPOSITORY_FILES: string[] = []
 
 interface FileTreeViewProps {
     actionsFolder: string
+    archivedFolder?: string
     cardTypes: CardTypeConfig[]
     onCreateFolder: (parentDirectory: string, name: string) => Promise<void>
     onCreateMarkdownFile: (parentDirectory: string, name: string) => Promise<void>
@@ -33,6 +35,7 @@ interface FileTreeViewProps {
     onDeleteFolder: (path: string) => Promise<void>
     onLeftPanelInteraction: () => void
     projectFolder: string
+    releasesFolder?: string
     statusColors: Map<string, string>
     workingFolder: string
 }
@@ -56,11 +59,18 @@ function folderPath(parentFolder: string, childFolder: string) {
 
 function useElementHeight(): [React.RefObject<HTMLDivElement | null>, number] {
     const elementRef = useRef<HTMLDivElement>(null)
+    const missingElementReportedRef = useRef(false)
     const [height, setHeight] = useState(TREE_FALLBACK_HEIGHT)
 
     useEffect(() => {
         const element = elementRef.current
-        if (!element) throw new Error('Missing file tree container')
+        if (!element) {
+            if (!missingElementReportedRef.current) {
+                missingElementReportedRef.current = true
+                dialogService.error(new Error('Missing file tree container'), {fallbackMessage: 'File tree could not be displayed'})
+            }
+            return
+        }
 
         const updateHeight = () => {
             const measuredHeight = element.getBoundingClientRect().height
@@ -82,8 +92,18 @@ function useElementHeight(): [React.RefObject<HTMLDivElement | null>, number] {
 /** Virtualized status/folder tree with compact card rows and hover-only actions. */
 export function FileTreeView(props: FileTreeViewProps) {
     const {
-        actionsFolder, cardTypes, onCreateFolder, onCreateMarkdownFile, onDeleteFile, onDeleteFolder,
-        onLeftPanelInteraction, projectFolder, statusColors, workingFolder,
+        actionsFolder,
+        archivedFolder = folderPath(props.projectFolder, DEFAULT_ARCHIVED_FOLDER),
+        cardTypes,
+        onCreateFolder,
+        onCreateMarkdownFile,
+        onDeleteFile,
+        onDeleteFolder,
+        onLeftPanelInteraction,
+        projectFolder,
+        releasesFolder = folderPath(props.projectFolder, DEFAULT_RELEASES_FOLDER),
+        statusColors,
+        workingFolder,
     } = props
     const { snapshot } = useProjectState()
     const activeCards = snapshot?.activeCards ?? EMPTY_CARDS
@@ -91,8 +111,8 @@ export function FileTreeView(props: FileTreeViewProps) {
     const repositoryFiles = snapshot?.repositoryFiles ?? EMPTY_REPOSITORY_FILES
     const actions = useActionFileTreeActions()
     const specialFolderPaths = useMemo(
-        () => [actionsFolder, workingFolder, folderPath(projectFolder, HISTORY_FOLDER_NAME)],
-        [actionsFolder, projectFolder, workingFolder],
+        () => [actionsFolder, workingFolder, releasesFolder, archivedFolder],
+        [actionsFolder, archivedFolder, releasesFolder, workingFolder],
     )
     const hiddenFolderPaths = useMemo(() => [folderPath(projectFolder, LOGS_FOLDER_NAME)], [projectFolder])
     const nodes = useMemo(() => buildFileTree(activeCards, backgroundCards, workingFolder, {
@@ -118,17 +138,21 @@ export function FileTreeView(props: FileTreeViewProps) {
     }, [])
 
     const handleActivateNode = useCallback((node: NodeApi<TreeNode>) => {
-        if (node.data.path) {
-            const object = cardsByPath.get(node.data.path) ?? actionService.getActionByPath(node.data.path)
-            if (!object) throw new Error(`Cannot open unknown document: ${node.data.path}`)
-            setSelectedNodeId(null)
-            openFilesService.openDocument(object)
-            onLeftPanelInteraction()
-            telemetryService.trackEvent('navigation')
-            return
-        }
+        try {
+            if (node.data.path) {
+                const object = cardsByPath.get(node.data.path) ?? actionService.getActionByPath(node.data.path)
+                if (!object) throw new Error(`Cannot open unknown document: ${node.data.path}`)
+                setSelectedNodeId(null)
+                openFilesService.openDocument(object)
+                onLeftPanelInteraction()
+                telemetryService.trackEvent('navigation')
+                return
+            }
 
-        node.toggle()
+            node.toggle()
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: 'Tree item could not be opened' })
+        }
     }, [cardsByPath, onLeftPanelInteraction])
 
     const closeCreationDialog = () => {
@@ -136,14 +160,21 @@ export function FileTreeView(props: FileTreeViewProps) {
     }
 
     const createItem = async (name: string) => {
-        if (!creationRequest) throw new Error('Missing tree creation request')
+        try {
+            if (!creationRequest) throw new Error('Missing tree creation request')
 
-        if (creationRequest.kind === 'folder') {
-            await onCreateFolder(creationRequest.parentDirectory, name)
-            return
+            if (creationRequest.kind === 'folder') {
+                await onCreateFolder(creationRequest.parentDirectory, name)
+                return true
+            }
+
+            await onCreateMarkdownFile(creationRequest.parentDirectory, name)
+            return true
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: 'Tree item could not be created' })
+
+            return false
         }
-
-        await onCreateMarkdownFile(creationRequest.parentDirectory, name)
     }
 
     const treeContext: FileTreeContextValue = useMemo(() => ({

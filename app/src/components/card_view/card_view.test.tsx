@@ -87,7 +87,7 @@ describe('CardView', () => {
         vi.spyOn(dataService, 'getState')
         setProjectCards(cards)
         vi.spyOn(dataService.cards, 'deleteCard').mockResolvedValue(null)
-        vi.spyOn(dataService.cards, 'moveCard').mockReturnValue([])
+        vi.spyOn(dataService.cards, 'moveCard').mockResolvedValue([])
         vi.spyOn(dataService.cards, 'toggleCardPolicy').mockReturnValue(cards[0])
         vi.spyOn(dataService.cards, 'updateCardAffects').mockReturnValue(cards[0])
         vi.spyOn(dataService.cards, 'updateCardTitle').mockResolvedValue(cards[0])

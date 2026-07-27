@@ -34,12 +34,12 @@ interface ConfigPageProps {
 }
 
 function getActiveSection(hash: string, sections: typeof CONFIG_SECTIONS) {
-    if (sections.length === 0) throw new Error('Config page requires at least one visible section')
+    if (sections.length === 0) return null
 
     const section = hash.replace('#', '')
     if (sections.some((item) => item.id === section)) return section
 
-    return sections[0].id
+    return sections[0]?.id ?? null
 }
 
 function getVisibleSections(entries: ConfigEntry[]) {
@@ -82,6 +82,10 @@ export function ConfigPage(props: ConfigPageProps) {
     const markdownStyleChanged = markdownStyleDraft.name !== markdownStyle
         || JSON.stringify(markdownStyleDraft.config) !== JSON.stringify(markdownStyleConfig)
     const markdownStyleValid = isMarkdownStyleConfig(markdownStyleDraft.config)
+
+    useEffect(() => {
+        if (visibleSections.length === 0) dialogService.error('Config page requires at least one visible section')
+    }, [visibleSections.length])
 
     useEffect(() => {
         if (draftDiscardTimeoutRef.current !== null) {
@@ -180,7 +184,7 @@ export function ConfigPage(props: ConfigPageProps) {
             aria-label="Config sections"
             orientation={isMobile ? 'horizontal' : 'vertical'}
             scrollButtons="auto"
-            value={activeSection}
+            value={activeSection ?? false}
             variant="scrollable"
         >
             {visibleSections.map((section) => (

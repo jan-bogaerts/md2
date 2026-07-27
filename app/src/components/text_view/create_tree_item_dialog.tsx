@@ -6,7 +6,7 @@ export type CreateTreeItemKind = 'folder' | 'markdownFile'
 interface CreateTreeItemDialogProps {
     kind: CreateTreeItemKind
     onClose: () => void
-    onCreate: (name: string) => Promise<void>
+    onCreate: (name: string) => Promise<boolean>
     open: boolean
     parentDirectory: string
 }
@@ -28,10 +28,10 @@ export function CreateTreeItemDialog(props: CreateTreeItemDialogProps) {
 
         setIsCreating(true)
         try {
-            await onCreate(name)
-            onClose()
+            const created = await onCreate(name)
+            if (created) onClose()
         } catch {
-            // The workspace owns the user-visible creation error.
+            // FileTreeView owns the user-visible creation error.
         } finally {
             setIsCreating(false)
         }

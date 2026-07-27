@@ -66,6 +66,21 @@ async function runToCompletion(runner, request = { actionId: 'main', context, ru
 }
 
 describe('ActionRunnerService', () => {
+    it('returns ordered events for active executions only', () => {
+        const { runner } = createRunner();
+        const firstEvent = { executionId: 'execution-1', sequence: 1, type: 'execution' };
+        const secondEvent = { executionId: 'execution-1', sequence: 2, type: 'agentState' };
+        runner.executionEvents.set('execution-1', []);
+
+        runner.publish(firstEvent);
+        runner.publish(secondEvent);
+        const events = runner.loadActiveExecutionEvents();
+        events[0].sequence = 99;
+
+        expect(events).toEqual([{ ...firstEvent, sequence: 99 }, secondEvent]);
+        expect(runner.loadActiveExecutionEvents()).toEqual([firstEvent, secondEvent]);
+    });
+
     it('forwards card-state changes to every live execution', () => {
         const { runner } = createRunner();
         const firstExecution = { handleCardStateChange: vi.fn() };

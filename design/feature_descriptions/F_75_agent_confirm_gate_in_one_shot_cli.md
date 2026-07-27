@@ -81,3 +81,9 @@ Let an agent action opt into a live session. User can steer active work, answer 
 - No post-action work runs until user finishes session.
 - Unsupported or unattended streaming runs fail clearly before spawn.
 - Conversations, usage, changed files, cancellation, action history, and running indicators remain correct.
+
+## See also
+
+- `design\architecture\initial description\agents.md`
+- `design\feature_descriptions\F_023_agent_streaming.md`
+- `design\feature_descriptions\F_050_one_shot_agent_conversations.md`

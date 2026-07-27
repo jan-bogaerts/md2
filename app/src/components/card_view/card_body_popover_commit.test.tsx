@@ -1,4 +1,5 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { StrictMode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ProjectCard } from '../../data/data_types'
 import { openFilesService } from '../../services/open_files_service'
@@ -6,6 +7,7 @@ import { AppThemeProvider } from '../../theme/theme_provider'
 import { CardBodyPopover } from './card_body_popover'
 import { dataService } from '../../services/data/data_service'
 import { cardBodyPopoverService } from './card_body_popover_service'
+import { dialogService } from '../../services/dialog_service'
 
 vi.mock('../hooks/use_card_commits', () => ({
     useCardCommits: () => ({
@@ -67,6 +69,41 @@ beforeEach(() => {
 })
 
 describe('CardBodyPopover commit diff', () => {
+    it('reports a missing card identity once and skips document binding', async () => {
+        const invalidCard = { ...card, header: { ...card.header, internalId: null } }
+        vi.spyOn(dataService, 'getState').mockReturnValue({
+            project: null,
+            runningAgents: [],
+            snapshot: { activeCards: [invalidCard], backgroundCards: [], repositoryFiles: [], workingFolder: 'design' },
+        })
+        const anchorElement = document.createElement('button')
+        document.body.append(anchorElement)
+        const openBoardDocument = vi.spyOn(openFilesService, 'openBoardDocument')
+        const error = vi.spyOn(dialogService, 'error')
+        cardBodyPopoverService.toggle(invalidCard.path, anchorElement)
+
+        render(
+            <StrictMode>
+                <AppThemeProvider>
+                    <CardBodyPopover
+                        isMobile={false}
+                        onDeleteCard={vi.fn(async () => undefined)}
+                        onOpenAffects={vi.fn()}
+                        onOpenInFileMode={vi.fn()}
+                        visible
+                    />
+                </AppThemeProvider>
+            </StrictMode>,
+        )
+
+        await waitFor(() => expect(error).toHaveBeenCalledTimes(1))
+        expect(error).toHaveBeenCalledWith(
+            expect.objectContaining({ message: `Card identity was not added before opening: ${invalidCard.path}` }),
+            { fallbackMessage: 'Card details could not be opened' },
+        )
+        expect(openBoardDocument).not.toHaveBeenCalled()
+    })
+
     it('keeps the board document bound when refreshed card data retains its identity', () => {
         const anchorElement = document.createElement('button')
         document.body.append(anchorElement)

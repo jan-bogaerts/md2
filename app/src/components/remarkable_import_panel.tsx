@@ -105,23 +105,31 @@ export function RemarkableImportPanel(props: RemarkableImportPanelProps) {
 
     const handleTest = () => {
         void runGuarded('Connection test failed', async () => {
-            const validated = validateRemarkableSettings(settings)
-            const result = await bridge.testConnection(validated)
-            if (!result.ok) {
-                setConnectionStatus(null)
-                throw new Error(result.message ?? 'Connection failed')
+            try {
+                const validated = validateRemarkableSettings(settings)
+                const result = await bridge.testConnection(validated)
+                if (!result.ok) {
+                    setConnectionStatus(null)
+                    throw new Error(result.message ?? 'Connection failed')
+                }
+                setConnectionStatus('Connected')
+            } catch (error) {
+                dialogService.error(error, { fallbackMessage: 'Connection test failed' })
             }
-            setConnectionStatus('Connected')
         })
     }
 
     const handleList = () => {
         void runGuarded('Listing files failed', async () => {
-            const validated = validateRemarkableSettings(settings)
-            const deviceFiles = await bridge.listImageFiles(validated)
-            const metadata = parseImportMetadata(metadataContent ?? null)
-            setFiles(diffDeviceFiles(deviceFiles, metadata, remarkableDeviceKey(validated)))
-            setSelected(new Set())
+            try {
+                const validated = validateRemarkableSettings(settings)
+                const deviceFiles = await bridge.listImageFiles(validated)
+                const metadata = parseImportMetadata(metadataContent ?? null)
+                setFiles(diffDeviceFiles(deviceFiles, metadata, remarkableDeviceKey(validated)))
+                setSelected(new Set())
+            } catch (error) {
+                dialogService.error(error, { fallbackMessage: 'Listing files failed' })
+            }
         })
     }
 
@@ -137,29 +145,37 @@ export function RemarkableImportPanel(props: RemarkableImportPanelProps) {
 
     const handleImport = () => {
         void runGuarded('Import failed', async () => {
-            if (selected.size === 0) throw new Error('Select at least one image to import')
+            try {
+                if (selected.size === 0) throw new Error('Select at least one image to import')
 
-            const target: RemarkableImportTarget = targetMode === 'existing'
-                ? { cardPath: existingCardPath, kind: 'existing' }
-                : { draft: { body: '', title: newCardTitle, type: 'feature' }, kind: 'new' }
+                const target: RemarkableImportTarget = targetMode === 'existing'
+                    ? { cardPath: existingCardPath, kind: 'existing' }
+                    : { draft: { body: '', title: newCardTitle, type: 'feature' }, kind: 'new' }
 
-            if (targetMode === 'existing' && existingCardPath.length === 0) throw new Error('Select a target card')
-            if (targetMode === 'new' && newCardTitle.trim().length === 0) throw new Error('Enter a title for the new card')
+                if (targetMode === 'existing' && existingCardPath.length === 0) throw new Error('Select a target card')
+                if (targetMode === 'new' && newCardTitle.trim().length === 0) throw new Error('Enter a title for the new card')
 
-            const validated = validateRemarkableSettings(settings)
-            const plan = await onImport({ paths: [...selected], settings: validated, target })
-            setSelected(new Set())
-            setConnectionStatus('Imported')
-            setLastImport({ cardPath: plan.cardPath, imagePaths: plan.importedAssetPaths })
+                const validated = validateRemarkableSettings(settings)
+                const plan = await onImport({ paths: [...selected], settings: validated, target })
+                setSelected(new Set())
+                setConnectionStatus('Imported')
+                setLastImport({ cardPath: plan.cardPath, imagePaths: plan.importedAssetPaths })
+            } catch (error) {
+                dialogService.error(error, { fallbackMessage: 'Import failed' })
+            }
         })
     }
 
     const handleConvert = () => {
         void runGuarded('Image-to-text conversion failed', async () => {
-            if (!lastImport) throw new Error('Import images before converting them to text')
+            try {
+                if (!lastImport) throw new Error('Import images before converting them to text')
 
-            await onConvert(lastImport)
-            setConnectionStatus('Conversion started')
+                await onConvert(lastImport)
+                setConnectionStatus('Conversion started')
+            } catch (error) {
+                dialogService.error(error, { fallbackMessage: 'Image-to-text conversion failed' })
+            }
         })
     }
 

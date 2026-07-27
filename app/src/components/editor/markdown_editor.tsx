@@ -8,6 +8,7 @@ import {
 import '@mdxeditor/editor/style.css'
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, type FocusEvent, type ReactNode } from 'react'
 import type { ActionPlaceholder } from '../../data/action_placeholders'
+import { dialogService } from '../../services/dialog_service'
 import { useAppTheme } from '../../theme/use_app_theme'
 import { markdownDocumentHistoryPlugin } from './markdown_document_history_realm_plugin'
 import type { MarkdownDocumentHistoryStore } from './markdown_document_history_store'
@@ -104,6 +105,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
     const latestMarkdownRef = useRef(initialDocumentSnapshot.markdown)
     const lastEmittedMarkdownRef = useRef(initialDocumentSnapshot.markdown)
     const dirtyBaselineEstablishedRef = useRef(false)
+    const missingEditorReportedRef = useRef(false)
     const replacingMarkdownRef = useRef(false)
     const onChangeRef = useRef(props.onChange)
     const onDirtyChangeRef = useRef(props.onDirtyChange)
@@ -192,7 +194,13 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
     ])
 
     useEffect(() => {
-        if (!editorRef.current) throw new Error('Cannot baseline markdown before editor is mounted')
+        if (!editorRef.current) {
+            if (!missingEditorReportedRef.current) {
+                missingEditorReportedRef.current = true
+                dialogService.error(new Error('Cannot baseline markdown before editor is mounted'), {fallbackMessage: 'Markdown editor could not be initialized'})
+            }
+            return
+        }
 
         const normalizedMarkdown = editorRef.current.getMarkdown()
         latestMarkdownRef.current = normalizedMarkdown

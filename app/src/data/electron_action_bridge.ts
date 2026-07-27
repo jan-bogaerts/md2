@@ -97,6 +97,7 @@ export interface ElectronActionBridge {
     finishActionExecution?(executionId: string): Promise<void>
     generateDiff(request: DiffRequest): Promise<DiffResult>
     loadActionRunHistory(request: ActionRunHistoryRequest): Promise<ActionRunHistoryEntry[]>
+    loadActiveActionExecutionEvents?(): Promise<ActionExecutionEvent[]>
     notifyActionCardStateChange?(cardInternalId: string, state: string): Promise<void>
     loadCardActivity?(request: CardActivityRequest): Promise<CardActivityFile>
     loadAgentAvailability?(): Promise<Record<string, AgentAvailability>>

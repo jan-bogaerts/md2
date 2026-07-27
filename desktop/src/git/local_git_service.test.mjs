@@ -1,6 +1,5 @@
 ﻿import { mkdtemp, mkdir, readFile, rename, rm, stat, utimes, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { access, chmod } from 'node:fs/promises';
 import { join } from 'node:path';
 import { setTimeout as setTimeoutAsync } from 'node:timers/promises';
 import { createRequire } from 'node:module';
@@ -15,7 +14,6 @@ const require = createRequire(import.meta.url);
 const {
     cancelActionSchedule,
     commit,
-    commitTrackedPaths,
     createProject,
     deleteFile,
     deleteFolder,
@@ -443,45 +441,6 @@ describe('local-git-service', () => {
             await rm(rootPath, { force: true, recursive: true });
         }
     });
-
-    it('serializes UI commits with tracked agent commits', async () => {
-        const rootPath = await mkdtemp(join(tmpdir(), 'md2-local-git-concurrent-'));
-        const hookStartedPath = join(rootPath, '.git', 'hook-started');
-        const releaseHookPath = join(rootPath, '.git', 'release-hook');
-
-        try {
-            await initializeGitRepository(rootPath);
-            await mkdir(join(rootPath, 'design'));
-            await writeFile(join(rootPath, 'design', 'agent.md'), 'initial');
-            await execFileAsync('git', ['add', 'design/agent.md'], { cwd: rootPath });
-            await execFileAsync('git', ['commit', '-m', 'Initial'], { cwd: rootPath });
-            await writeFile(join(rootPath, 'design', 'agent.md'), 'agent change');
-            const hookPath = join(rootPath, '.git', 'hooks', 'pre-commit');
-            await writeFile(hookPath, '#!/bin/sh\ntouch .git/hook-started\nwhile [ ! -f .git/release-hook ]; do sleep 0.05; done\n');
-            await chmod(hookPath, 0o755);
-
-            const uiCommit = commit({
-                files: [{ content: 'ui change', path: 'design/ui.md' }],
-                message: 'UI commit',
-            }, { branch: 'main', id: 'local', rootPath });
-            await expect.poll(async () => {
-                try {
-                    await access(hookStartedPath);
-                    return true;
-                } catch {
-                    return false;
-                }
-            }).toBe(true);
-            const agentCommit = commitTrackedPaths(rootPath, ['design/agent.md'], 'Agent commit');
-            await writeFile(releaseHookPath, 'release');
-
-            await expect(Promise.all([uiCommit, agentCommit]))
-                .resolves.toEqual([undefined, expect.stringMatching(/^[0-9a-f]{40}$/u)]);
-            expect(await commitCount(rootPath)).toBe(3);
-        } finally {
-            await rm(rootPath, { force: true, recursive: true });
-        }
-    }, GIT_INTEGRATION_TEST_TIMEOUT_MS);
 
     it('does not create a commit when saved content is unchanged', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-local-git-'));

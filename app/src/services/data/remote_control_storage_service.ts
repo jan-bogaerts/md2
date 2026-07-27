@@ -95,6 +95,8 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
     }
 
     private actionExecutionCallbacks: Map<string, (event: ActionExecutionEvent) => void>
+    private actionExecutionListeners: Set<(event: ActionExecutionEvent) => void>
+    private actionExecutionSubscriptions: Map<(event: ActionExecutionEvent) => void, string>
     private connectPromise: Promise<void> | null
     private endpoint: string
     private nextId: number
@@ -112,6 +114,8 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
 
     constructor() {
         this.actionExecutionCallbacks = new Map()
+        this.actionExecutionListeners = new Set()
+        this.actionExecutionSubscriptions = new Map()
         this.connectPromise = null
         this.endpoint = ''
         this.nextId = 1
@@ -387,6 +391,10 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         return this.request<ActionRunHistoryEntry[]>('loadActionRunHistory', [request])
     }
 
+    async loadActiveActionExecutionEvents(): Promise<ActionExecutionEvent[]> {
+        return this.request<ActionExecutionEvent[]>('loadActiveActionExecutionEvents', [])
+    }
+
     async notifyActionCardStateChange(cardInternalId: string, state: string): Promise<void> {
         await this.request('notifyActionCardStateChange', [cardInternalId, state])
     }
@@ -400,19 +408,18 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
     }
 
     onActionExecution(callback: (event: ActionExecutionEvent) => void): () => void {
-        const id = this.createRequestId()
-        let subscriptionId: string | null = null
-        this.requestActionExecutionEvents.set(id, callback)
-        void this.sendRequest<{ subscriptionId: string }>({ id, method: 'onActionExecution', params: [] }).then((result) => {
-            subscriptionId = result.subscriptionId
-            this.actionExecutionCallbacks.set(result.subscriptionId, callback)
-            this.requestActionExecutionEvents.delete(id)
-        })
+        this.actionExecutionListeners.add(callback)
+        void this.subscribeActionExecution(callback, false).catch(() => undefined)
 
         return () => {
-            this.requestActionExecutionEvents.delete(id)
+            this.actionExecutionListeners.delete(callback)
+            for (const [requestId, pendingCallback] of this.requestActionExecutionEvents) {
+                if (pendingCallback === callback) this.requestActionExecutionEvents.delete(requestId)
+            }
+            const subscriptionId = this.actionExecutionSubscriptions.get(callback)
             if (!subscriptionId) return
 
+            this.actionExecutionSubscriptions.delete(callback)
             this.actionExecutionCallbacks.delete(subscriptionId)
             void this.request('unsubscribe', [subscriptionId])
         }
@@ -491,6 +498,7 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
             const handleOpen = () => {
                 this.connectPromise = null
                 resolve()
+                void this.restoreActionExecutionSubscriptions()
             }
             const handleError = () => {
                 this.connectPromise = null
@@ -550,6 +558,35 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         callback?.(payload.event)
     }
 
+    private async restoreActionExecutionSubscriptions() {
+        const pendingCallbacks = new Set(this.requestActionExecutionEvents.values())
+        const callbacks = [...this.actionExecutionListeners].filter((callback) => !pendingCallbacks.has(callback))
+        await Promise.allSettled(callbacks.map((callback) => this.subscribeActionExecution(callback, true)))
+    }
+
+    private async subscribeActionExecution(callback: (event: ActionExecutionEvent) => void, recover: boolean) {
+        const id = this.createRequestId()
+        this.requestActionExecutionEvents.set(id, callback)
+        try {
+            const result = await this.sendRequest<{ subscriptionId: string }>({
+                id,
+                method: 'onActionExecution',
+                params: [],
+            })
+            if (!this.actionExecutionListeners.has(callback)) {
+                await this.request('unsubscribe', [result.subscriptionId])
+                return
+            }
+            this.actionExecutionSubscriptions.set(callback, result.subscriptionId)
+            this.actionExecutionCallbacks.set(result.subscriptionId, callback)
+            if (!recover) return
+            const events = await this.loadActiveActionExecutionEvents()
+            for (const event of events) callback(event)
+        } finally {
+            this.requestActionExecutionEvents.delete(id)
+        }
+    }
+
     private handleWatchProjectEvent(payload: WatchProjectPayload) {
         const callback = this.watchCallbacks.get(payload.subscriptionId) ?? this.requestWatchEvents.get(payload.requestId)
         callback?.(payload.event)
@@ -571,6 +608,7 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         for (const pending of this.pending.values()) pending.reject(error)
         this.pending.clear()
         this.actionExecutionCallbacks.clear()
+        this.actionExecutionSubscriptions.clear()
         this.requestAgentEvents.clear()
         this.requestActionExecutionEvents.clear()
         this.requestWatchEvents.clear()

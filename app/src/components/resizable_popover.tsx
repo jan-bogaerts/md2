@@ -2,6 +2,7 @@ import { Box, Popover } from '@mui/material'
 import type { PopoverOrigin, SxProps, Theme } from '@mui/material'
 import { useEffect, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react'
+import { dialogService } from '../services/dialog_service'
 
 export type ResizeCorner = 'lower-left' | 'lower-right'
 
@@ -113,42 +114,47 @@ export function ResizablePopover(props: ResizablePopoverProps) {
     }
 
     const startResize = (event: ReactPointerEvent) => {
-        event.preventDefault()
-        resizeRef.current?.abort()
+        try {
+            event.preventDefault()
+            resizeRef.current?.abort()
 
-        if (!paperRef.current) throw new Error('Missing resizable popover paper element')
+            if (!paperRef.current) throw new Error('Missing resizable popover paper element')
 
-        const direction = event.currentTarget.getAttribute('data-direction') as ResizeDirection | null
-        const controller = new AbortController()
-        const bounds = paperRef.current.getBoundingClientRect()
-        const start = {
-            height: size.height ?? bounds.height,
-            width: size.width ?? bounds.width,
-            x: event.clientX,
-            y: event.clientY,
-        }
-        resizeRef.current = controller
-
-        window.addEventListener('pointermove', (move: PointerEvent) => {
-            const activeDirection = direction ?? (resizeCorner === 'lower-left' ? 'bottom-left' : 'bottom-right')
-            const horizontalDelta = move.clientX - start.x
-            const verticalDelta = move.clientY - start.y
-            const resizesLeft = activeDirection.includes('left')
-            const resizesRight = activeDirection.includes('right')
-            const resizesTop = activeDirection.includes('top')
-            const resizesBottom = activeDirection.includes('bottom')
-            const width = Math.max(MIN_WIDTH, start.width + (resizesLeft ? -horizontalDelta : resizesRight ? horizontalDelta : 0))
-            const height = Math.max(MIN_HEIGHT, start.height + (resizesTop ? -verticalDelta : resizesBottom ? verticalDelta : 0))
-
-            setSize({ height: Math.min(height, maxPopoverHeight()), width: Math.min(width, maxPopoverWidth()) })
-        }, { signal: controller.signal })
-        window.addEventListener('pointerup', () => {
-            controller.abort()
-            if (sizeStorageKey && paperRef.current) {
-                const paperBounds = paperRef.current.getBoundingClientRect()
-                window.localStorage.setItem(sizeStorageKey, JSON.stringify({ height: paperBounds.height, width: paperBounds.width }))
+            const direction = event.currentTarget.getAttribute('data-direction') as ResizeDirection | null
+            const controller = new AbortController()
+            const bounds = paperRef.current.getBoundingClientRect()
+            const start = {
+                height: size.height ?? bounds.height,
+                width: size.width ?? bounds.width,
+                x: event.clientX,
+                y: event.clientY,
             }
-        }, { signal: controller.signal })
+            resizeRef.current = controller
+
+            window.addEventListener('pointermove', (move: PointerEvent) => {
+                const activeDirection = direction ?? (resizeCorner === 'lower-left' ? 'bottom-left' : 'bottom-right')
+                const horizontalDelta = move.clientX - start.x
+                const verticalDelta = move.clientY - start.y
+                const resizesLeft = activeDirection.includes('left')
+                const resizesRight = activeDirection.includes('right')
+                const resizesTop = activeDirection.includes('top')
+                const resizesBottom = activeDirection.includes('bottom')
+                const width = Math.max(MIN_WIDTH, start.width + (resizesLeft ? -horizontalDelta : resizesRight ? horizontalDelta : 0))
+                const height = Math.max(MIN_HEIGHT, start.height + (resizesTop ? -verticalDelta : resizesBottom ? verticalDelta : 0))
+
+                setSize({ height: Math.min(height, maxPopoverHeight()), width: Math.min(width, maxPopoverWidth()) })
+            }, { signal: controller.signal })
+            window.addEventListener('pointerup', () => {
+                controller.abort()
+                if (sizeStorageKey && paperRef.current) {
+                    const paperBounds = paperRef.current.getBoundingClientRect()
+                    window.localStorage.setItem(sizeStorageKey, JSON.stringify({ height: paperBounds.height, width: paperBounds.width }))
+                }
+            }, { signal: controller.signal })
+        } catch (error) {
+            resizeRef.current?.abort()
+            dialogService.error(error, { fallbackMessage: 'Popover resize could not be started' })
+        }
     }
 
     return (

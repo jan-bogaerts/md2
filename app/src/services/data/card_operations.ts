@@ -6,6 +6,7 @@ import { openFilesService } from '../open_files_service'
 import { newFolderPath, newMarkdownFilePath } from '../../data/project_tree_paths'
 import { markdownParsingService } from './markdown_parsing_service'
 import { telemetryService } from '../telemetry/telemetry_service'
+import { buildCardArchiveMoves, findArchiveAssetPaths } from '../../data/release_archiving'
 import {
     errorMessage,
     type RequiredDataServiceDependencies,
@@ -343,7 +344,9 @@ export class CardOperations {
         }, saveReference)
     }
 
-    moveCard(cardPath: string, targetStatus: string, targetIndex: number) {
+    async moveCard(cardPath: string, targetStatus: string, targetIndex: number) {
+        if (targetStatus === 'archived') return this.archiveCard(cardPath, targetIndex)
+
         const activeCards = this.dependencies.snapshot()?.activeCards ?? []
         const movedCard = activeCards.find((card) => card.path === cardPath)
         const previousStatus = movedCard?.header.status ?? null
@@ -356,6 +359,88 @@ export class CardOperations {
         if (movedCard && previousStatus !== targetStatus) this.triggerStateActions(movedCard.path, targetStatus)
 
         return updates
+    }
+
+    private async archiveCard(cardPath: string, targetIndex: number) {
+        const { config, storage } = this.dependencies.requireDependencies()
+        const currentProject = this.dependencies.project()
+        if (!currentProject) throw new Error('Cannot archive a card before a project is open')
+
+        await this.flushPendingCommitBatch()
+
+        const snapshot = this.dependencies.snapshot()
+        const activeCards = snapshot?.activeCards ?? []
+        const archivedCard = activeCards.find((card) => card.path === cardPath)
+        if (!archivedCard) throw new Error(`Cannot archive an active card that is not loaded: ${cardPath}`)
+
+        const updates = computeMove(activeCards, cardPath, 'archived', targetIndex)
+        const updatedFiles = updates.map((update) => {
+            const existingFile = this.dependencies.requireFile(update.path)
+            const content = markdownParsingService.rewriteHeader(existingFile.content, {
+                after: update.after ?? '',
+                status: update.status,
+            })
+
+            return this.mergeOpenCardBody({ ...existingFile, content })
+        })
+        const updatedFilesByPath = new Map(updatedFiles.map((file) => [file.path, file]))
+        const files = this.dependencies.files().map((file) => updatedFilesByPath.get(file.path) ?? file)
+        const assetPaths = findArchiveAssetPaths(files, [archivedCard])
+        const assetFiles = await this.loadArchiveAssets(assetPaths)
+        const moves = buildCardArchiveMoves(
+            [...files, ...assetFiles],
+            [archivedCard],
+            config.archivedFolder,
+            snapshot?.repositoryFiles ?? [],
+        )
+        const orderingFiles = updatedFiles.filter((file) => file.path !== cardPath)
+        const request = {
+            branch: currentProject.branch,
+            files: orderingFiles,
+            message: `Archive ${cardPath}`,
+            moves,
+        }
+        const commitPaths = [
+            ...orderingFiles.map((file) => file.path),
+            ...moves.flatMap(({ fromPath, toPath }) => [fromPath, toPath]),
+        ]
+        const inFlightCommitPaths = this.dependencies.commitPathsInFlight()
+        commitPaths.forEach((path) => inFlightCommitPaths.add(path))
+
+        try {
+            await storage.commit(request)
+        } finally {
+            commitPaths.forEach((path) => inFlightCommitPaths.delete(path))
+        }
+
+        this.triggerStateActions(cardPath, 'archived')
+        if (config.pushMode === 'auto') await storage.push(currentProject)
+        if (config.pushMode === 'manual') this.dependencies.dispatchPersistenceChanged()
+        await this.dependencies.reloadCurrentProjectSnapshot()
+
+        const cardMove = moves.find((move) => move.fromPath === cardPath)
+        if (!cardMove) throw new Error(`Missing archived card move: ${cardPath}`)
+
+        this.dependencies.cardPathChanged(cardPath, cardMove.toPath)
+
+        return updates
+    }
+
+    private async loadArchiveAssets(assetPaths: string[]) {
+        if (assetPaths.length === 0) return []
+
+        const { storage } = this.dependencies.requireDependencies()
+        const currentProject = this.dependencies.project()
+        if (!currentProject) throw new Error('Cannot load archived card assets before a project is open')
+        if (!storage.loadProjectAsset) throw new Error('Project asset loading is not available')
+
+        const assets: MarkdownFile[] = []
+        for (const assetPath of assetPaths) {
+            const asset = await storage.loadProjectAsset(currentProject, assetPath)
+            assets.push({ content: asset.content, encoding: asset.encoding, path: asset.path })
+        }
+
+        return assets
     }
 
     async deleteCard(path: string) {
@@ -424,13 +509,17 @@ export class CardOperations {
     }
 
     private saveCardMetadataFile(file: MarkdownFile, saveReference?: OpenDocumentSaveReference) {
+        return this.saveFile(this.mergeOpenCardBody(file), saveReference)
+    }
+
+    private mergeOpenCardBody(file: MarkdownFile) {
         const currentCard = findCard(this.dependencies.snapshot(), file.path)
         const openDocument = currentCard ? openFilesService.findDocument(currentCard) : null
         const content = openDocument?.kind === 'card'
             ? markdownParsingService.replaceBody(file.content, openDocument.getDraft().content)
             : file.content
 
-        return this.saveFile({ ...file, content }, saveReference)
+        return { ...file, content }
     }
 
     async saveProjectFile(file: MarkdownFile, message: string) {

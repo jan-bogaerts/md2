@@ -5,6 +5,7 @@ import type { RemarkableBridge, RemarkableDeviceFile } from '../data/remarkable_
 import { recordImports, remarkableDeviceKey, serializeImportMetadata, parseImportMetadata } from '../data/remarkable_import_metadata'
 import { DialogDisplay } from './dialog_display'
 import { RemarkableImportPanel } from './remarkable_import_panel'
+import { dialogService } from '../services/dialog_service'
 
 const DEVICE_FILE: RemarkableDeviceFile = { modifiedTime: '2026-07-01T10:00:00.000Z', name: 'note.png', path: '/img/note.png' }
 
@@ -50,6 +51,7 @@ function fillSettings() {
 describe('RemarkableImportPanel', () => {
     afterEach(() => {
         cleanup()
+        vi.restoreAllMocks()
     })
 
     it('warns when the bridge is unavailable', () => {
@@ -185,6 +187,7 @@ describe('RemarkableImportPanel', () => {
 
     it('surfaces a connection failure as an error', async () => {
         const bridge = createBridge({ testConnection: vi.fn(async () => ({ message: 'SSH refused', ok: false })) })
+        const error = vi.spyOn(dialogService, 'error')
         render(
             <>
                 <DialogDisplay />
@@ -196,5 +199,6 @@ describe('RemarkableImportPanel', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Test connection' }))
 
         expect(await screen.findByText('SSH refused')).toBeInTheDocument()
+        expect(error).toHaveBeenCalledTimes(1)
     })
 })

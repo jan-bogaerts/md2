@@ -1,5 +1,6 @@
 import { useCellValue } from '@mdxeditor/editor'
 import { useEffect } from 'react'
+import { useDialogError } from '../hooks/use_dialog_error'
 import { markdownDocumentHistoryConfig$ } from './markdown_document_history_cell'
 import {
     sameMarkdownTarget,
@@ -10,9 +11,11 @@ import {
 /** Keeps one editor's content and document history synchronized with its data-source binding. */
 export function MarkdownDocumentHistoryMonitor() {
     const config = useCellValue(markdownDocumentHistoryConfig$)
+    const configurationError = config ? null : new Error('Cannot monitor Markdown history without configuration')
+    useDialogError(configurationError, 'Markdown history monitoring is unavailable')
 
     useEffect(() => {
-        if (!config) throw new Error('Cannot monitor Markdown history without configuration')
+        if (!config) return
 
         const {
             binding,

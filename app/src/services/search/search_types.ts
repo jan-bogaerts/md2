@@ -26,7 +26,7 @@ export interface SearchMatch {
 }
 
 export interface BackgroundGroup {
-    /** First folder segment under the working folder, such as `history` or `architecture`. */
+    /** Configured special-folder name or first folder segment under the working folder. */
     folder: string
     matches: SearchMatch[]
 }

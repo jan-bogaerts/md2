@@ -103,6 +103,33 @@ describe('ActionEditor', () => {
         actionMarkdownDataSource.init(actionService)
     })
 
+    it('waits for an active action document instead of crashing during loading', () => {
+        const action = loadAction()
+        render(
+            <AppThemeProvider>
+                <ActionEditorHarness action={action} states={['ready']} />
+            </AppThemeProvider>,
+        )
+
+        expect(screen.queryByTestId('action-editor-content')).not.toBeInTheDocument()
+
+        act(() => openFilesService.openDocument(action))
+
+        expect(screen.getByTestId('action-editor-content')).toBeInTheDocument()
+    })
+
+    it('closes a clean action without reporting a missing open document', () => {
+        const reportError = vi.spyOn(dialogService, 'error')
+        renderEditor()
+        const { activeDocument } = openFilesService.getSnapshot()
+        if (!activeDocument) throw new Error('Missing active document')
+
+        act(() => openFilesService.closeDocument(activeDocument))
+
+        expect(screen.queryByTestId('action-editor-content')).not.toBeInTheDocument()
+        expect(reportError).not.toHaveBeenCalled()
+    })
+
     afterEach(() => {
         cleanup()
         for (const document of openFilesService.getRegisteredDocuments()) openFilesService.discardDocument(document)

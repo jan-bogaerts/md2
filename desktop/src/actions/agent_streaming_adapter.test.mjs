@@ -19,14 +19,14 @@ function harness(agent, providerConversationId = null) {
 }
 
 describe('ClaudeStreamingAdapter', () => {
-    it('writes multiple user turns and treats each result as a turn boundary', () => {
+    it('writes multiple user turns and treats each result as a turn boundary', async () => {
         const { adapter, events, writes } = harness('claude');
 
-        adapter.start('plan');
-        adapter.handleMessage({ session_id: 'session-1', subtype: 'init', type: 'system' });
-        adapter.handleMessage({ message: { content: [{ text: 'proposal', type: 'text' }] }, type: 'assistant' });
-        adapter.handleMessage({ total_cost_usd: 0.01, type: 'result', usage: { input_tokens: 4, output_tokens: 2 } });
-        adapter.sendMessage('approved');
+        await adapter.start('plan');
+        await adapter.handleMessage({ session_id: 'session-1', subtype: 'init', type: 'system' });
+        await adapter.handleMessage({ message: { content: [{ text: 'proposal', type: 'text' }] }, type: 'assistant' });
+        await adapter.handleMessage({ total_cost_usd: 0.01, type: 'result', usage: { input_tokens: 4, output_tokens: 2 } });
+        await adapter.sendMessage('approved');
 
         expect(writes).toEqual([
             { message: { content: 'plan', role: 'user' }, type: 'user' },
@@ -37,11 +37,11 @@ describe('ClaudeStreamingAdapter', () => {
         expect(events.at(-1)).toMatchObject({ error: null, type: 'turnCompleted' });
     });
 
-    it('correlates structured question answers through the Claude control protocol', () => {
+    it('correlates structured question answers through the Claude control protocol', async () => {
         const { adapter, events, writes } = harness('claude');
         const questions = [{ header: 'Confirm', options: [{ label: 'Yes' }], question: 'Proceed?' }];
 
-        adapter.handleMessage({
+        await adapter.handleMessage({
             request: {
                 input: { questions },
                 subtype: 'can_use_tool',
@@ -51,7 +51,7 @@ describe('ClaudeStreamingAdapter', () => {
             request_id: 'request-1',
             type: 'control_request',
         });
-        adapter.answerQuestion('request-1', { 'claude-question-0': ['Yes'] });
+        await adapter.answerQuestion('request-1', { 'claude-question-0': ['Yes'] });
 
         expect(events).toContainEqual({
             questions: [{ ...questions[0], id: 'claude-question-0' }],
@@ -72,10 +72,10 @@ describe('ClaudeStreamingAdapter', () => {
         });
     });
 
-    it('maps root-confined file changes and tool transcript events', () => {
+    it('maps root-confined file changes and tool transcript events', async () => {
         const { adapter, events } = harness('claude');
 
-        adapter.handleMessage({
+        await adapter.handleMessage({
             message: {
                 content: [
                     { input: { file_path: 'design\\feature.md' }, name: 'Write', type: 'tool_use' },
@@ -84,7 +84,7 @@ describe('ClaudeStreamingAdapter', () => {
             },
             type: 'assistant',
         });
-        adapter.handleMessage({
+        await adapter.handleMessage({
             message: { content: [{ content: 'written', tool_use_id: 'tool-1', type: 'tool_result' }] },
             type: 'user',
         });
@@ -98,9 +98,9 @@ describe('ClaudeStreamingAdapter', () => {
         expect(events).toContainEqual({ content: 'written', eventType: 'tool.result', type: 'transcript' });
     });
 
-    it('reports only structured pre-turn missing-session results as resumable', () => {
+    it('reports only structured pre-turn missing-session results as resumable', async () => {
         const missing = harness('claude', 'session-missing');
-        missing.adapter.handleMessage({
+        await missing.adapter.handleMessage({
             errors: ['No conversation found with session ID: session-missing'],
             is_error: true,
             session_id: 'session-missing',
@@ -108,8 +108,8 @@ describe('ClaudeStreamingAdapter', () => {
             type: 'result',
         });
         const started = harness('claude', 'session-missing');
-        started.adapter.handleMessage({ message: { content: [{ text: 'started', type: 'text' }] }, type: 'assistant' });
-        started.adapter.handleMessage({
+        await started.adapter.handleMessage({ message: { content: [{ text: 'started', type: 'text' }] }, type: 'assistant' });
+        await started.adapter.handleMessage({
             errors: ['No conversation found with session ID: session-missing'],
             is_error: true,
             session_id: 'session-missing',
@@ -121,24 +121,41 @@ describe('ClaudeStreamingAdapter', () => {
         expect(started.events.at(-1)).toMatchObject({ missingSession: false, type: 'turnCompleted' });
         expect(started.events).toContainEqual({ type: 'turnStarted' });
     });
+
+    it('separates assistant messages within a turn and restarts the separator each turn', async () => {
+        const { adapter, events } = harness('claude');
+        const assistantMessage = (text) => ({ message: { content: [{ text, type: 'text' }] }, type: 'assistant' });
+
+        await adapter.handleMessage(assistantMessage('first'));
+        await adapter.handleMessage(assistantMessage('second'));
+        await adapter.handleMessage({ type: 'result' });
+        await adapter.handleMessage(assistantMessage('next turn'));
+
+        const assistantEvents = events.filter(({ type }) => type === 'assistant');
+        expect(assistantEvents).toEqual([
+            { content: 'first', type: 'assistant' },
+            { content: '\n\nsecond', type: 'assistant' },
+            { content: 'next turn', type: 'assistant' },
+        ]);
+    });
 });
 
 describe('CodexStreamingAdapter', () => {
-    it('initializes, starts one thread, then starts and steers a turn', () => {
+    it('initializes, starts one thread, then starts and steers a turn', async () => {
         const { adapter, events, writes } = harness('codex');
 
-        adapter.start('plan');
+        await adapter.start('plan');
         expect(writes[0]).toMatchObject({ id: 1, method: 'initialize' });
-        adapter.handleMessage({ id: 1, result: { userAgent: 'codex' } });
+        await adapter.handleMessage({ id: 1, result: { userAgent: 'codex' } });
         expect(writes[1]).toEqual({ method: 'initialized', params: {} });
         expect(writes[2]).toMatchObject({ id: 2, method: 'thread/start', params: { cwd: 'C:\\repo' } });
-        adapter.handleMessage({ id: 2, result: { thread: { id: 'thread-1' } } });
+        await adapter.handleMessage({ id: 2, result: { thread: { id: 'thread-1' } } });
         expect(writes[3]).toMatchObject({
             method: 'turn/start',
             params: { input: [{ text: 'plan', type: 'text' }], threadId: 'thread-1' },
         });
-        adapter.handleMessage({ method: 'turn/started', params: { turn: { id: 'turn-1' } } });
-        adapter.sendMessage('extra detail');
+        await adapter.handleMessage({ method: 'turn/started', params: { turn: { id: 'turn-1' } } });
+        await adapter.sendMessage('extra detail');
         expect(writes[4]).toMatchObject({
             method: 'turn/steer',
             params: {
@@ -150,26 +167,26 @@ describe('CodexStreamingAdapter', () => {
         expect(events).toContainEqual({ conversationId: 'thread-1', type: 'sessionStarted' });
     });
 
-    it('maps deltas, usage, file changes, questions, and turn completion', () => {
+    it('maps deltas, usage, file changes, questions, and turn completion', async () => {
         const { adapter, events, writes } = harness('codex');
-        adapter.start('plan');
-        adapter.handleMessage({ id: 1, result: {} });
-        adapter.handleMessage({ id: 2, result: { thread: { id: 'thread-1' } } });
-        adapter.handleMessage({ method: 'turn/started', params: { turn: { id: 'turn-1' } } });
-        adapter.handleMessage({ method: 'item/agentMessage/delta', params: { delta: 'hello' } });
+        await adapter.start('plan');
+        await adapter.handleMessage({ id: 1, result: {} });
+        await adapter.handleMessage({ id: 2, result: { thread: { id: 'thread-1' } } });
+        await adapter.handleMessage({ method: 'turn/started', params: { turn: { id: 'turn-1' } } });
+        await adapter.handleMessage({ method: 'item/agentMessage/delta', params: { delta: 'hello' } });
         const last = { cachedInputTokens: 2, inputTokens: 4, outputTokens: 3, reasoningOutputTokens: 1, totalTokens: 10 };
-        adapter.handleMessage({
+        await adapter.handleMessage({
             method: 'thread/tokenUsage/updated',
             params: { tokenUsage: { last } },
         });
-        adapter.handleMessage({
+        await adapter.handleMessage({
             method: 'item/completed',
             params: { item: { changes: [{ path: 'design\\feature.md' }], type: 'fileChange' } },
         });
         const questions = [{ header: 'Confirm', id: 'confirm', question: 'Proceed?' }];
-        adapter.handleMessage({ id: 99, method: 'item/tool/requestUserInput', params: { questions } });
-        adapter.answerQuestion(99, { confirm: ['Yes'] });
-        adapter.handleMessage({ method: 'turn/completed', params: { turn: { status: 'completed' } } });
+        await adapter.handleMessage({ id: 99, method: 'item/tool/requestUserInput', params: { questions } });
+        await adapter.answerQuestion(99, { confirm: ['Yes'] });
+        await adapter.handleMessage({ method: 'turn/completed', params: { turn: { status: 'completed' } } });
 
         expect(events).toContainEqual({ content: 'hello', type: 'assistant' });
         expect(events).toContainEqual({ paths: ['design/feature.md'], type: 'changedPaths' });
@@ -182,17 +199,17 @@ describe('CodexStreamingAdapter', () => {
         expect(writes.at(-1)).toEqual({ id: 99, result: { answers: { confirm: { answers: ['Yes'] } } } });
     });
 
-    it('resumes a saved thread before sending the first turn', () => {
+    it('resumes a saved thread before sending the first turn', async () => {
         const { adapter, events, writes } = harness('codex', 'thread-saved');
 
-        adapter.start('new context');
-        adapter.handleMessage({ id: 1, result: {} });
+        await adapter.start('new context');
+        await adapter.handleMessage({ id: 1, result: {} });
         expect(writes[2]).toMatchObject({
             id: 2,
             method: 'thread/resume',
             params: { cwd: 'C:\\repo', threadId: 'thread-saved' },
         });
-        adapter.handleMessage({ id: 2, result: { thread: { id: 'thread-saved' } } });
+        await adapter.handleMessage({ id: 2, result: { thread: { id: 'thread-saved' } } });
 
         expect(events).toContainEqual({ conversationId: 'thread-saved', type: 'sessionStarted' });
         expect(writes[3]).toMatchObject({
@@ -201,12 +218,12 @@ describe('CodexStreamingAdapter', () => {
         });
     });
 
-    it('reports a structured missing saved thread before any turn starts', () => {
+    it('reports a structured missing saved thread before any turn starts', async () => {
         const { adapter, events } = harness('codex', 'thread-missing');
 
-        adapter.start('new context');
-        adapter.handleMessage({ id: 1, result: {} });
-        adapter.handleMessage({
+        await adapter.start('new context');
+        await adapter.handleMessage({ id: 1, result: {} });
+        await adapter.handleMessage({
             error: {
                 code: -32600,
                 message: 'no rollout found for thread id thread-missing',
@@ -221,13 +238,23 @@ describe('CodexStreamingAdapter', () => {
         });
     });
 
-    it('reports request errors and rejects use before thread setup', () => {
+    it('reports request errors as fatal and rejects use before thread setup', async () => {
         const { adapter, events } = harness('codex');
 
-        expect(() => adapter.sendMessage('early')).toThrow('Codex streaming thread is not ready');
-        adapter.start('plan');
-        adapter.handleMessage({ error: { message: 'initialize failed' }, id: 1 });
+        await expect(adapter.sendMessage('early')).rejects.toThrow('Codex streaming thread is not ready');
+        await adapter.start('plan');
+        await adapter.handleMessage({ error: { message: 'initialize failed' }, id: 1 });
 
-        expect(events).toContainEqual({ content: 'initialize failed', type: 'error' });
+        expect(events).toContainEqual({ content: 'initialize failed', type: 'fatal' });
+    });
+
+    it('reports server and turn request errors as fatal', async () => {
+        const serverError = harness('codex');
+        await serverError.adapter.handleMessage({ method: 'error', params: { error: { message: 'server failed' } } });
+        const requestError = harness('codex');
+        await requestError.adapter.handleMessage({ error: { message: 'turn failed' }, id: 99 });
+
+        expect(serverError.events).toContainEqual({ content: 'server failed', type: 'fatal' });
+        expect(requestError.events).toContainEqual({ content: 'turn failed', type: 'fatal' });
     });
 });

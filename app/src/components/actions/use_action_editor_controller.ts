@@ -6,6 +6,7 @@ import {
     type ActionDraftChangedDetail,
 } from '../../services/actions/action_service'
 import { openFilesService } from '../../services/open_files_service'
+import type { ActionOpenDocument } from '../../services/open_files_service'
 import type { MarkdownDocumentTarget } from '../editor/markdown_data_source'
 import {
     ACTION_DEFINITION_TAB,
@@ -17,13 +18,13 @@ export interface ActionEditorControllerOptions {
     action: ActionDefinition
     actions: ActionDefinition[]
     discardMarkdownTarget: (target: MarkdownDocumentTarget) => void
+    openDocument: ActionOpenDocument
+    sourcePath: string
 }
 
 /** Bridge ActionService-owned draft state into ActionEditor presentation. */
 export function useActionEditorController(options: ActionEditorControllerOptions) {
-    const { action, actions, discardMarkdownTarget } = options
-    const sourcePath = action.sourcePath
-    if (!sourcePath) throw new Error(`Action editor requires a persisted action: ${action.id}`)
+    const { action, actions, discardMarkdownTarget, openDocument, sourcePath } = options
 
     const [, setEditorRevision] = useState(0)
     useEffect(() => {
@@ -73,8 +74,6 @@ export function useActionEditorController(options: ActionEditorControllerOptions
     const selectedPhrase = selectedPhraseIndex < 0 ? null : phrases[selectedPhraseIndex]
     const activeTab = selectedTab.startsWith('phrase-') && !selectedPhrase ? ACTION_PROMPT_TAB : selectedTab
     const sectionIdentity = selectedPhrase ? selectedTab : ACTION_PROMPT_TAB
-    const openDocument = openFilesService.findDocument(action)
-    if (!openDocument || openDocument.kind !== 'action') throw new Error(`Missing open action document: ${action.id}`)
     const markdownTarget = useMemo<MarkdownDocumentTarget>(
         () => ({
             document: openDocument,

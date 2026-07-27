@@ -157,6 +157,61 @@ describe('useActionPopupController', () => {
         expect(result.current.streamingActive).toBe(true)
     })
 
+    it('reports streaming interaction failures and preserves the prompt', async () => {
+        const emit = installBridge()
+        const streamingAction: ActionDefinition = {
+            ...action,
+            command: null,
+            prompt: 'Plan',
+            streaming: true,
+            type: 'agent',
+        }
+        const answerError = new Error('Answer failed')
+        const finishError = new Error('Finish failed')
+        const sendError = new Error('Send failed')
+        const answerQuestion = vi.fn(async () => { throw answerError })
+        const finishAction = vi.fn(async () => { throw finishError })
+        const loadConversations = vi.fn(async () => [])
+        const loadHistory = vi.fn(async () => [])
+        const preparePrompt = vi.fn(async () => 'Plan')
+        const sendMessage = vi.fn(async () => { throw sendError })
+        const reportError = vi.spyOn(dialogService, 'error')
+        const { result } = renderHook(() => useActionPopupController({
+            action: streamingAction,
+            answerQuestion,
+            context,
+            finishAction,
+            loadConversations,
+            loadHistory,
+            preparePrompt,
+            sendMessage,
+        }))
+
+        emit({ actionId: action.id, context, executionId: 'execution-1', phase: 'main', rootActionId: action.id, status: 'running', type: 'execution' })
+        emit({
+            actionId: action.id, actionType: 'agent', autoFinish: null, context, executionId: 'execution-1',
+            interactionReady: true, phase: 'main', rootActionId: action.id, status: 'waitingForInput',
+            streaming: true, type: 'agentState',
+        })
+        act(() => result.current.handlePromptChange('Keep this prompt'))
+        await act(async () => result.current.handleRun())
+        emit({
+            actionId: action.id, context, executionId: 'execution-1', phase: 'main', rootActionId: action.id, status: 'waitingForInput', type: 'update',
+            update: {
+                kind: 'agentQuestion',
+                questions: [{ header: 'Confirm', id: 'confirm', question: 'Proceed?' }],
+                requestId: 7,
+            },
+        })
+        await act(async () => result.current.handleAnswerQuestion({ confirm: ['Yes'] }))
+        await act(async () => result.current.handleFinish())
+
+        expect(reportError).toHaveBeenCalledWith(sendError, { fallbackMessage: 'Could not send agent message' })
+        expect(reportError).toHaveBeenCalledWith(answerError, { fallbackMessage: 'Could not answer agent question' })
+        expect(reportError).toHaveBeenCalledWith(finishError, { fallbackMessage: 'Could not finish agent session' })
+        expect(result.current.prompt).toBe('Keep this prompt')
+    })
+
     it('reports action validation failures through dialogService', async () => {
         const validationError = new Error('Action "Build" requires a worktree assignment')
         const runAction = vi.fn(async () => ({ logs: [], status: 'completed' as const }))

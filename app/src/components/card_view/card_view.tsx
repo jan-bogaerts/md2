@@ -27,9 +27,9 @@ interface CardViewProps {
     states: StateConfig[]
 }
 
-function runCardEdit(action: () => void, fallbackMessage: string) {
+async function runCardEdit(action: () => unknown, fallbackMessage: string) {
     try {
-        action()
+        await action()
     } catch (error) {
         dialogService.error(error, { fallbackMessage })
     }
@@ -67,6 +67,7 @@ export function CardView(props: CardViewProps) {
     const [openAffectsPath, setOpenAffectsPath] = useState<string | null>(null)
     const initialCardBoundsRef = useRef(new Map<string, CardVerticalBounds>())
     const rootElementRef = useRef<HTMLDivElement>(null)
+    const missingRootReportedRef = useRef(false)
     const wasVisibleRef = useRef<boolean | null>(null)
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: DRAG_ACTIVATION_DISTANCE } }))
 
@@ -86,7 +87,13 @@ export function CardView(props: CardViewProps) {
     useEffect(() => {
         const updateVisibility = () => {
             const rootElement = rootElementRef.current
-            if (!rootElement) throw new Error('Missing card view root element')
+            if (!rootElement) {
+                if (!missingRootReportedRef.current) {
+                    missingRootReportedRef.current = true
+                    dialogService.error(new Error('Missing card view root element'), {fallbackMessage: 'Card view could not be displayed'})
+                }
+                return
+            }
 
             const isVisible = workspaceViewService.getSnapshot().viewMode === 'cards'
             rootElement.style.display = isVisible ? 'flex' : 'none'
@@ -138,13 +145,13 @@ export function CardView(props: CardViewProps) {
         const drop = over ? resolveCardDragEvent(currentCardColumns(states), event, initialCardBoundsRef.current) : null
         clearActiveCard()
         const path = String(active.id)
-        if (drop) runCardEdit(() => dataService.cards.moveCard(path, drop.targetStatus, drop.targetIndex), `Card move failed: ${path}`)
+        if (drop) void runCardEdit(() => dataService.cards.moveCard(path, drop.targetStatus, drop.targetIndex), `Card move failed: ${path}`)
     }, [clearActiveCard, states])
 
     const handleOpenInFileMode = (path: string) => {
         cardBodyPopoverService.close()
         workspaceViewService.selectPath(path)
-        runCardEdit(() => openFilesService.openPath(path), `File open failed: ${path}`)
+        void runCardEdit(() => openFilesService.openPath(path), `File open failed: ${path}`)
         workspaceViewService.setViewMode('text')
         telemetryService.trackEvent('navigation')
     }
@@ -168,11 +175,11 @@ export function CardView(props: CardViewProps) {
     }
 
     const handleTogglePolicy = (path: string, policyKey: string) => {
-        runCardEdit(() => dataService.cards.toggleCardPolicy(path, policyKey), `Policy toggle failed: ${path}`)
+        void runCardEdit(() => dataService.cards.toggleCardPolicy(path, policyKey), `Policy toggle failed: ${path}`)
     }
 
     const handleAffectsChange = (path: string, affects: string[]) => {
-        runCardEdit(() => dataService.cards.updateCardAffects(path, affects), `Affects update failed: ${path}`)
+        void runCardEdit(() => dataService.cards.updateCardAffects(path, affects), `Affects update failed: ${path}`)
     }
 
     return (

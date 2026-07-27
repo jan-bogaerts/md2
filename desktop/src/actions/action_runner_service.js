@@ -53,6 +53,7 @@ class ActionRunnerService {
         this.actionCacheReady = null;
         this.completedResults = new Map();
         this.configuredStates = [];
+        this.executionEvents = new Map();
         this.executions = new Map();
         this.listeners = new Set();
         this.project = null;
@@ -132,6 +133,7 @@ class ActionRunnerService {
             localGitService: this.localGitService,
             publisher: this.publish.bind(this),
         });
+        this.executionEvents.set(executionId, []);
         this.executions.set(executionId, execution);
         execution.start(this.finalizeExecution.bind(this, execution));
 
@@ -160,12 +162,16 @@ class ActionRunnerService {
         return result;
     }
 
+    loadActiveExecutionEvents() {
+        return [...this.executionEvents.values()].flatMap((events) => events.map((event) => structuredClone(event)));
+    }
+
     cancel(executionId) {
         this.requireExecution(executionId).cancel();
     }
 
     sendAgentMessage(executionId, content) {
-        this.requireExecution(executionId).sendAgentMessage(content);
+        return this.requireExecution(executionId).sendAgentMessage(content);
     }
 
     setAgentQueuedMessage(executionId, content, revision) {
@@ -173,11 +179,11 @@ class ActionRunnerService {
     }
 
     sendQueuedAgentMessage(executionId, revision) {
-        this.requireExecution(executionId).sendQueuedAgentMessage(revision);
+        return this.requireExecution(executionId).sendQueuedAgentMessage(revision);
     }
 
     answerAgentQuestion(executionId, requestId, answers) {
-        this.requireExecution(executionId).answerAgentQuestion(requestId, answers);
+        return this.requireExecution(executionId).answerAgentQuestion(requestId, answers);
     }
 
     finishAgentExecution(executionId) {
@@ -210,6 +216,7 @@ class ActionRunnerService {
     async finalizeExecution(execution, runCompletion) {
         const result = await runCompletion;
         this.executions.delete(execution.executionId);
+        this.executionEvents.delete(execution.executionId);
         this.completedResults.set(execution.executionId, result);
         if (this.completedResults.size > COMPLETED_EXECUTION_LIMIT) {
             this.completedResults.delete(this.completedResults.keys().next().value);
@@ -218,6 +225,8 @@ class ActionRunnerService {
     }
 
     publish(event) {
+        const events = this.executionEvents.get(event.executionId);
+        if (events) events.push(event);
         for (const listener of this.listeners) {
             try {
                 listener(event);

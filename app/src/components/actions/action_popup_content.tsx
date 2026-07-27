@@ -78,11 +78,11 @@ function worktreeValidationMessage(action: ActionDefinition, context: ActionCont
     return null
 }
 
-function worktreeAssignmentTarget(context: ActionContext): WorktreeAssignmentTarget {
+function worktreeAssignmentTarget(context: ActionContext): WorktreeAssignmentTarget | null {
     if (context.kind === 'project') return { kind: 'project' }
     if ((context.kind === 'card' || context.kind === 'file') && context.file) return { kind: 'card', path: context.file }
 
-    throw new Error('Worktree assignment requires card, file, or project context')
+    return null
 }
 
 /** Presentation and execution behavior for the internally selected popup action. */

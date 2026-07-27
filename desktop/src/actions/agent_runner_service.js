@@ -77,12 +77,55 @@ function emitRunEvent(run, event) {
     run.onEvent({ ...event, runId: run.id });
 }
 
+function writeJsonLine(stream, message) {
+    return new Promise((resolve, reject) => {
+        stream.write(`${JSON.stringify(message)}\n`, (error) => {
+            if (error) {
+                reject(error);
+                return;
+            }
+
+            resolve();
+        });
+    });
+}
+
+function queueInteractionWrite(run, operation) {
+    run.interactionWrites ??= Promise.resolve();
+    const write = run.interactionWrites.then(operation);
+    run.interactionWrites = write.catch(() => undefined);
+
+    return write;
+}
+
+function secretAnswerValues(questions, answers) {
+    const secretQuestionIds = new Set(questions.filter(({ isSecret }) => isSecret).map(({ id }) => id));
+
+    return Object.entries(answers)
+        .filter(([questionId]) => secretQuestionIds.has(questionId))
+        .flatMap(([, answer]) => Array.isArray(answer) ? answer : [answer])
+        .filter((answer) => typeof answer === 'string' && answer.length > 0);
+}
+
+function redactSecrets(content, secretValues) {
+    if (typeof content !== 'string' || !secretValues || secretValues.size === 0) return content;
+
+    return [...secretValues]
+        .sort((first, second) => second.length - first.length)
+        .reduce((redacted, secret) => redacted.split(secret).join('[secret]'), content);
+}
+
 function assistantMessageId(run) {
     return run.streaming ? `${run.id}-turn-${run.turnIndex}-assistant` : `${run.id}-assistant`;
 }
 
-/** Exact text appended to `existing` for `chunk`, including the paragraph separator. */
-function chunkSegment(existing, chunk) {
+/**
+ * Exact text appended to `existing` for `chunk`, including the paragraph separator.
+ * Streaming chunks are provider deltas that must concatenate verbatim; the adapter owns their separators.
+ */
+function chunkSegment(existing, chunk, streaming) {
+    if (streaming) return chunk;
+
     const trimmed = chunk.replace(/^\n+|\n+$/g, '');
     if (trimmed.length === 0) return '';
     if (existing.length === 0) return trimmed;
@@ -90,23 +133,24 @@ function chunkSegment(existing, chunk) {
     return `\n\n${trimmed}`;
 }
 
-function joinChunk(existing, chunk) {
-    return `${existing}${chunkSegment(existing, chunk)}`;
+function joinChunk(existing, chunk, streaming) {
+    return `${existing}${chunkSegment(existing, chunk, streaming)}`;
 }
 
 /** Appends a chunk and returns the appended segment, so streamed events carry the same separators. */
 function appendAssistantOutput(run, content, timestamp) {
-    const segment = chunkSegment(run.stdout, content);
+    const segment = chunkSegment(run.stdout, content, run.streaming);
     run.stdout += segment;
     const messageId = assistantMessageId(run);
     const currentIndex = run.conversation.messages.findIndex(({ id }) => id === messageId);
     if (currentIndex < 0) {
-        run.conversation.messages.push(createMessage(messageId, 'assistant', content.replace(/^\n+|\n+$/g, ''), timestamp, run.agent));
+        const initialContent = run.streaming ? content : content.replace(/^\n+|\n+$/g, '');
+        run.conversation.messages.push(createMessage(messageId, 'assistant', initialContent, timestamp, run.agent));
         return segment;
     }
 
     const current = run.conversation.messages[currentIndex];
-    run.conversation.messages[currentIndex] = { ...current, content: joinChunk(current.content, content), timestamp };
+    run.conversation.messages[currentIndex] = { ...current, content: joinChunk(current.content, content, run.streaming), timestamp };
 
     return segment;
 }
@@ -221,14 +265,17 @@ class AgentRunnerService {
             onComplete,
             onCompletionError,
             onEvent,
+            interactionWrites: Promise.resolve(),
             pendingQuestions: [],
             providerConversationId: null,
             protocolBuffer: '',
+            protocolHandling: Promise.resolve(),
             reference,
             reportedProviderErrors: new Set(),
             queuedMessage: null,
             queuedMessageRevision: -1,
             sentQueuedMessageRevision: -1,
+            secretValues: new Set(),
             request,
             stderr: '',
             stderrBuffer: '',
@@ -245,7 +292,7 @@ class AgentRunnerService {
             waitingForQuestion: false,
             persistence: Promise.resolve(),
         };
-        const writeLine = (message) => child.stdin.write(`${JSON.stringify(message)}\n`);
+        const writeLine = (message) => writeJsonLine(child.stdin, message);
         run.streamingAdapter = streaming
             ? createAgentStreamingAdapter(
                 agent,
@@ -269,6 +316,7 @@ class AgentRunnerService {
         child.stdout.on('data', (chunk) => this.handleOutput(id, 'stdout', chunk));
         child.stderr.on('data', (chunk) => this.handleOutput(id, 'stderr', chunk));
         child.on('error', (error) => this.handleError(id, error));
+        child.stdin.on('error', (error) => this.handleError(id, error));
         child.on('close', (exitCode) => {
             void this.handleClose(id, exitCode ?? 1);
         });
@@ -276,7 +324,11 @@ class AgentRunnerService {
             const initialPrompt = typeof request.contextInput === 'string' && request.contextInput.length > 0
                 ? `${request.contextInput}\n\n[User]\n\n${prompt}`
                 : prompt;
-            run.streamingAdapter.start(initialPrompt);
+            try {
+                await run.streamingAdapter.start(initialPrompt);
+            } catch (error) {
+                this.failStreamingRun(run, error);
+            }
             this.queuePersistence(run);
         } else {
             if (typeof request.contextInput === 'string' && request.contextInput.length > 0) child.stdin.write(request.contextInput);
@@ -308,32 +360,46 @@ class AgentRunnerService {
     sendMessage(runId, content) {
         const run = this.requireStreamingRun(runId);
         if (typeof content !== 'string' || content.trim().length === 0) throw new Error('Agent message is required');
-        run.queuedMessage = null;
-        this.sendStreamingMessage(run, content);
+
+        return queueInteractionWrite(run, async () => {
+            await this.sendStreamingMessage(run, content);
+            run.queuedMessage = null;
+        });
     }
 
     sendQueuedMessage(runId, revision) {
         const run = this.requireRun(runId);
         if (!Number.isSafeInteger(revision) || revision < 0) throw new Error('Invalid queued agent message revision');
-        if (revision <= run.sentQueuedMessageRevision) return;
-        if (!run.queuedMessage || run.queuedMessage.revision > revision) return;
-        if (!run.streaming) return;
 
-        const { content, revision: queuedRevision } = run.queuedMessage;
-        run.queuedMessage = null;
-        run.sentQueuedMessageRevision = queuedRevision;
-        this.sendStreamingMessage(run, content);
+        return queueInteractionWrite(run, async () => {
+            if (revision <= run.sentQueuedMessageRevision) return;
+            if (!run.queuedMessage || run.queuedMessage.revision > revision) return;
+            if (!run.streaming) return;
+
+            const { content, revision: queuedRevision } = run.queuedMessage;
+            await this.sendStreamingMessage(run, content);
+            run.queuedMessage = null;
+            run.sentQueuedMessageRevision = queuedRevision;
+        });
     }
 
-    sendStreamingMessage(run, content) {
+    async sendStreamingMessage(run, content) {
+        const message = requireString(content, 'message');
+        try {
+            await run.streamingAdapter.sendMessage(message);
+        } catch (error) {
+            this.failStreamingRun(run, error);
+            run.conversation.status = 'failed';
+            this.queuePersistence(run);
+            throw error;
+        }
         const timestamp = new Date().toISOString();
         if (run.conversation.status === 'waitingForInput') run.turnIndex += 1;
         const messageId = `${run.id}-user-${run.conversation.messages.length}`;
-        run.conversation.messages.push(createMessage(messageId, 'user', requireString(content, 'message'), timestamp));
+        run.conversation.messages.push(createMessage(messageId, 'user', message, timestamp));
         const userMessage = run.conversation.messages.at(-1);
         run.conversation.status = 'running';
         run.turnActive = true;
-        run.streamingAdapter.sendMessage(content);
         this.queuePersistence(run);
         emitRunEvent(run, { type: 'userMessage', userMessage });
         emitRunEvent(run, { state: 'running', type: 'state' });
@@ -351,22 +417,35 @@ class AgentRunnerService {
     answerQuestion(runId, requestId, answers) {
         const run = this.requireStreamingRun(runId);
         if (!answers || typeof answers !== 'object' || Array.isArray(answers)) throw new Error('Missing streaming question answers');
-        const timestamp = new Date().toISOString();
-        const secretQuestionIds = new Set(run.pendingQuestions.filter(({ isSecret }) => isSecret).map(({ id }) => id));
-        const content = Object.entries(answers)
-            .map(([questionId, answer]) => (
-                `${questionId}: ${secretQuestionIds.has(questionId) ? '[secret]' : Array.isArray(answer) ? answer.join(', ') : answer}`
-            ))
-            .join('\n');
-        run.conversation.messages.push(createMessage(`${run.id}-answer-${run.conversation.messages.length}`, 'user', content, timestamp));
-        const userMessage = run.conversation.messages.at(-1);
-        run.conversation.status = 'running';
-        run.waitingForQuestion = false;
-        run.pendingQuestions = [];
-        run.streamingAdapter.answerQuestion(requestId, answers);
-        this.queuePersistence(run);
-        emitRunEvent(run, { type: 'questionAnswered', userMessage });
-        emitRunEvent(run, { state: 'running', type: 'state' });
+
+        return queueInteractionWrite(run, async () => {
+            const pendingQuestions = run.pendingQuestions;
+            const secretQuestionIds = new Set(pendingQuestions.filter(({ isSecret }) => isSecret).map(({ id }) => id));
+            const content = Object.entries(answers)
+                .map(([questionId, answer]) => (
+                    `${questionId}: ${secretQuestionIds.has(questionId) ? '[secret]' : Array.isArray(answer) ? answer.join(', ') : answer}`
+                ))
+                .join('\n');
+            try {
+                await run.streamingAdapter.answerQuestion(requestId, answers);
+            } catch (error) {
+                this.failStreamingRun(run, error);
+                run.conversation.status = 'failed';
+                this.queuePersistence(run);
+                throw error;
+            }
+            const timestamp = new Date().toISOString();
+            run.secretValues ??= new Set();
+            secretAnswerValues(pendingQuestions, answers).forEach((answer) => run.secretValues.add(answer));
+            run.conversation.messages.push(createMessage(`${run.id}-answer-${run.conversation.messages.length}`, 'user', content, timestamp));
+            const userMessage = run.conversation.messages.at(-1);
+            run.conversation.status = 'running';
+            run.waitingForQuestion = false;
+            run.pendingQuestions = [];
+            this.queuePersistence(run);
+            emitRunEvent(run, { type: 'questionAnswered', userMessage });
+            emitRunEvent(run, { state: 'running', type: 'state' });
+        });
     }
 
     finish(runId) {
@@ -396,8 +475,7 @@ class AgentRunnerService {
         run.persistence = run.persistence
             .then(() => this.persistConversation(run))
             .catch((error) => {
-                run.streamingFailure = error instanceof Error ? error : new Error('Agent conversation persistence failed');
-                this.ensureTermination(run);
+                this.failStreamingRun(run, error instanceof Error ? error : new Error('Agent conversation persistence failed'));
             });
 
         return run.persistence;
@@ -434,11 +512,19 @@ class AgentRunnerService {
         const run = this.processes.get(runId);
         if (!run || line.trim().length === 0) return;
 
+        let message;
         try {
-            run.streamingAdapter.handleMessage(JSON.parse(line));
+            message = JSON.parse(line);
         } catch {
             this.handleMalformedOutput(runId, line);
+            return;
         }
+        run.protocolHandling = run.protocolHandling
+            .then(() => run.streamingAdapter.handleMessage(message))
+            .catch((error) => {
+                this.failStreamingRun(run, error);
+                this.queuePersistence(run);
+            });
     }
 
     recordOutput(runId, channel, content) {
@@ -446,15 +532,16 @@ class AgentRunnerService {
         if (!run) return;
 
         const timestamp = new Date().toISOString();
+        const safeContent = redactSecrets(content, run.secretValues);
         if (channel === 'stdout') {
-            const segment = appendAssistantOutput(run, content, timestamp);
+            const segment = appendAssistantOutput(run, safeContent, timestamp);
             if (segment.length === 0) return;
             emitRunEvent(run, { content: segment, type: 'output' });
             return;
         }
-        run.stderr += content;
-        run.conversation.events.push(createEvent(`${runId}-error-${run.conversation.events.length}`, 'error', content, timestamp));
-        emitRunEvent(run, { content, type: 'error' });
+        run.stderr += safeContent;
+        run.conversation.events.push(createEvent(`${runId}-error-${run.conversation.events.length}`, 'error', safeContent, timestamp));
+        emitRunEvent(run, { content: safeContent, type: 'error' });
     }
 
     flushStderr(runId) {
@@ -496,7 +583,7 @@ class AgentRunnerService {
         }
     }
 
-    handleStreamingEvent(runId, event) {
+    async handleStreamingEvent(runId, event) {
         const run = this.processes.get(runId);
         if (!run) return;
         const timestamp = new Date().toISOString();
@@ -510,7 +597,8 @@ class AgentRunnerService {
             return;
         }
         if (event.type === 'assistant') {
-            const segment = appendAssistantOutput(run, event.content, timestamp);
+            const safeContent = redactSecrets(event.content, run.secretValues);
+            const segment = appendAssistantOutput(run, safeContent, timestamp);
             if (segment.length > 0) emitRunEvent(run, { content: segment, type: 'output' });
             return;
         }
@@ -519,10 +607,11 @@ class AgentRunnerService {
             return;
         }
         if (event.type === 'transcript') {
+            const safeContent = redactSecrets(event.content, run.secretValues);
             run.conversation.events.push(createEvent(
                 `${runId}-provider-${run.conversation.events.length}`,
                 event.eventType,
-                event.content,
+                safeContent,
                 timestamp,
             ));
             return;
@@ -531,11 +620,13 @@ class AgentRunnerService {
             this.recordOutput(runId, 'stderr', event.content);
             return;
         }
+        if (event.type === 'fatal') {
+            this.failStreamingRun(run, new Error(event.content));
+            return;
+        }
         if (event.type === 'sessionFailed') {
             run.missingSession = event.missingSession;
-            this.recordOutput(runId, 'stderr', event.content);
-            run.finishing = true;
-            run.child.stdin.end();
+            this.failStreamingRun(run, new Error(event.content));
             return;
         }
         if (event.type === 'question') {
@@ -555,9 +646,7 @@ class AgentRunnerService {
         if (event.missingSession) run.finishing = true;
         if (event.usage) run.conversation.usage = accumulateUsage(run.conversation.usage, event.usage);
         if (event.error) {
-            run.streamingFailure = new Error(event.error);
-            this.recordOutput(runId, 'stderr', event.error);
-            run.child.stdin.end();
+            this.failStreamingRun(run, new Error(event.error));
             return;
         }
         if (run.finishing) {
@@ -566,10 +655,10 @@ class AgentRunnerService {
         }
         if (run.queuedMessage) {
             const { content, revision } = run.queuedMessage;
+            run.conversation.status = 'waitingForInput';
+            await this.sendStreamingMessage(run, content);
             run.queuedMessage = null;
             run.sentQueuedMessageRevision = revision;
-            run.conversation.status = 'waitingForInput';
-            this.sendStreamingMessage(run, content);
             return;
         }
         const synchronizedMessage = run.conversation.messages.at(-1);
@@ -585,20 +674,53 @@ class AgentRunnerService {
         const run = this.processes.get(runId);
         if (!run) return;
 
-        const timestamp = new Date().toISOString();
-        const message = `Malformed ${run.agent} JSONL event: ${line}`;
-        run.conversation.events.push(createEvent(`${runId}-malformed-${run.conversation.events.length}`, 'diagnostic', message, timestamp));
+        if (!run.streaming) {
+            const timestamp = new Date().toISOString();
+            const message = `Malformed ${run.agent} JSONL event: ${line}`;
+            run.conversation.events.push(createEvent(`${runId}-malformed-${run.conversation.events.length}`, 'diagnostic', message, timestamp));
+            return;
+        }
+        this.failStreamingRun(run, new Error(`Malformed ${run.agent} JSONL event`));
     }
 
     handleError(runId, error) {
         const run = this.processes.get(runId);
         if (!run) return;
 
+        if (run.streaming) {
+            this.failStreamingRun(run, error);
+            return;
+        }
         const timestamp = new Date().toISOString();
         const message = error instanceof Error ? error.message : 'Agent process failed';
         run.stderr += message;
         run.conversation.events.push(createEvent(`${runId}-error-${run.conversation.events.length}`, 'error', message, timestamp));
         emitRunEvent(run, { content: message, type: 'error' });
+    }
+
+    failStreamingRun(run, errorValue) {
+        if (run.streamingFailure) return run.termination;
+
+        const error = errorValue instanceof Error ? errorValue : new Error('Streaming agent failed');
+        const message = redactSecrets(error.message, run.secretValues);
+        const timestamp = new Date().toISOString();
+        run.streamingFailure = new Error(message);
+        run.conversation.status = 'failed';
+        run.queuedMessage = null;
+        run.waitingForQuestion = false;
+        run.pendingQuestions = [];
+        const separator = run.stderr.length > 0 && !run.stderr.endsWith('\n') ? '\n' : '';
+        run.stderr += `${separator}${message}`;
+        run.conversation.events.push(createEvent(`${run.id}-error-${run.conversation.events.length}`, 'error', message, timestamp));
+        emitRunEvent(run, { content: message, type: 'error' });
+        emitRunEvent(run, { state: 'failed', type: 'state' });
+        try {
+            run.child.stdin.end();
+        } catch {
+            // Process-tree termination below remains authoritative.
+        }
+
+        return this.ensureTermination(run);
     }
 
     async handleClose(runId, exitCode) {
@@ -613,19 +735,20 @@ class AgentRunnerService {
                 this.handleStreamingLine(runId, run.protocolBuffer);
                 run.protocolBuffer = '';
             }
+            await run.protocolHandling;
             this.flushStderr(runId);
             await run.persistence;
             const completedAt = new Date().toISOString();
-            const succeeded = exitCode === 0
-                && !run.missingSession
-                && !run.cancelled
-                && !run.streamingFailure
-                && (!run.streaming || run.finishing);
             if (run.streaming && !run.finishing && !run.cancelled && !run.streamingFailure) {
                 run.streamingFailure = new Error('Streaming agent process exited before Finish');
                 const separator = run.stderr.length > 0 && !run.stderr.endsWith('\n') ? '\n' : '';
                 run.stderr += `${separator}${run.streamingFailure.message}`;
             }
+            const succeeded = exitCode === 0
+                && !run.missingSession
+                && !run.cancelled
+                && !run.streamingFailure
+                && (!run.streaming || run.finishing);
             completeAssistantOutput(run, completedAt);
             if (succeeded) {
                 const synchronizedMessage = run.conversation.messages.at(-1);

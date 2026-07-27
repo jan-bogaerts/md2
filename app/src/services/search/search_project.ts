@@ -142,8 +142,20 @@ function matchAction(action: ActionDefinition, matcher: Matcher): ActionSearchMa
     return null
 }
 
-function backgroundGroupKey(path: string, workingFolder: string): string {
+function folderName(path: string) {
+    const name = path.split('/').filter((segment) => segment.length > 0).at(-1)
+    if (!name) throw new Error(`Cannot group background folder without a name: ${path}`)
+
+    return name
+}
+
+function backgroundGroupKey(path: string, workingFolder: string, specialFolderPaths: string[]): string {
     const normalized = path.replace(/\\/gu, '/')
+    const specialFolder = specialFolderPaths
+        .map((folder) => folder.replace(/\\/gu, '/').replace(/^\/+|\/+$/gu, ''))
+        .find((folder) => normalized === folder || normalized.startsWith(`${folder}/`))
+    if (specialFolder) return folderName(specialFolder)
+
     const prefix = `${workingFolder}/`
     const rest = normalized.startsWith(prefix) ? normalized.slice(prefix.length) : normalized
     const segments = rest.split('/')
@@ -151,12 +163,12 @@ function backgroundGroupKey(path: string, workingFolder: string): string {
     return segments.length > 1 ? segments[0] : ROOT_GROUP
 }
 
-function groupBackgroundMatches(matches: SearchMatch[], workingFolder: string): BackgroundGroup[] {
+function groupBackgroundMatches(matches: SearchMatch[], workingFolder: string, specialFolderPaths: string[]): BackgroundGroup[] {
     const groups: BackgroundGroup[] = []
     const byFolder = new Map<string, BackgroundGroup>()
 
     for (const match of matches) {
-        const folder = backgroundGroupKey(match.path, workingFolder)
+        const folder = backgroundGroupKey(match.path, workingFolder, specialFolderPaths)
         const existing = byFolder.get(folder)
 
         if (existing) {
@@ -177,7 +189,12 @@ function groupBackgroundMatches(matches: SearchMatch[], workingFolder: string): 
  * background cards are matched by header fields, and by body only when `includeBackgroundBody` is set.
  * Throws {@link InvalidSearchPatternError} for an invalid RegExp-mode query.
  */
-export function searchProject(snapshot: ProjectSnapshot, query: string, options: SearchOptions): SearchResults {
+export function searchProject(
+    snapshot: ProjectSnapshot,
+    query: string,
+    options: SearchOptions,
+    specialFolderPaths: string[] = [],
+): SearchResults {
     if (query.trim().length === 0) return { active: [], actions: [], backgroundGroups: [] }
 
     const matcher = createMatcher(query, options)
@@ -188,7 +205,11 @@ export function searchProject(snapshot: ProjectSnapshot, query: string, options:
         .map((card) => matchCard(card, matcher, options.includeBackgroundBody))
         .filter((match): match is SearchMatch => match !== null)
 
-    return { active, actions: [], backgroundGroups: groupBackgroundMatches(backgroundMatches, snapshot.workingFolder) }
+    return {
+        active,
+        actions: [],
+        backgroundGroups: groupBackgroundMatches(backgroundMatches, snapshot.workingFolder, specialFolderPaths),
+    }
 }
 
 /**

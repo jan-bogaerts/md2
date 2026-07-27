@@ -88,7 +88,7 @@ export const BUILTIN_CUSTOM_PROMPT = {
     sourcePath: null,
     thinkingLevel: null,
     trackFileChanges: false,
-    streaming: false,
+    streaming: true,
     type: 'agent',
 }
 

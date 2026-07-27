@@ -11,6 +11,7 @@ import { DEFAULT_CARD_TYPES, type ProjectCard } from '../../data/data_types'
 import type { ActionExecutionEvent } from '../../data/action_run_types'
 import { actionExecutionService } from '../../services/actions/action_execution_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
+import { dialogService } from '../../services/dialog_service'
 
 function file(definition: { id: string }): ActionFile {
     return { content: JSON.stringify(definition), path: `actions/${definition.id}.json` }
@@ -163,6 +164,20 @@ describe('ActionEntryPoints popup', () => {
             file(commandDefinition('lint', { description: 'Lint', label: 'Run lint' })),
             file(agentDefinition('implement', {appliesTo: { type: 'feature' }, description: 'Implement', label: 'Implement', onAfter: ['lint'], onBefore: ['branch']})),
         ])
+    })
+
+    it('reports malformed entry-point data without opening a popup', () => {
+        const error = vi.spyOn(dialogService, 'error')
+        render(<ActionEntryPoints context={cardContext(featureCard, DEFAULT_CARD_TYPES)} variant="icons" />)
+        const button = screen.getByRole('button', { name: 'Implement' })
+        button.removeAttribute('data-action-id')
+
+        expect(() => fireEvent.click(button)).not.toThrow()
+        expect(error).toHaveBeenCalledWith(
+            expect.objectContaining({ message: 'Missing action id on action entry point' }),
+            { fallbackMessage: 'Action popup could not be opened' },
+        )
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     })
 
     it('opens the universal popup with the clicked action selected from an icon entry point', () => {

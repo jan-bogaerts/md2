@@ -43,7 +43,7 @@ interface ProjectOpenDialogProps {
     onBranchChange: (branch: string) => void
     onClose: () => void
     onCreateProjectFolders: (projectFolder: string) => void
-    onCreateRemoteProject: (rootPath: string, branch: string) => ProjectReference
+    onCreateRemoteProject: (rootPath: string, branch: string) => ProjectReference | null
     onCreateWorkingFolder: () => void
     onDiscardGithubPendingCommits: () => void
     onLoadManualBranches: (owner: string, repository: string) => Promise<GithubBranchesResult | null>
@@ -220,6 +220,7 @@ export function ProjectOpenDialog(props: ProjectOpenDialogProps) {
         if (remoteEndpoint.length === 0 || remoteToken.length === 0 || remoteRootPath.length === 0) return
 
         const project = onCreateRemoteProject(remoteRootPath, selectedBranch || 'main')
+        if (!project) return
         void onOpenRemote(remoteEndpoint, remoteToken, project)
     }
 

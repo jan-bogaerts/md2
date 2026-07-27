@@ -1,6 +1,7 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { useCellValue } from '@mdxeditor/editor'
 import { useEffect } from 'react'
+import { useDialogError } from '../hooks/use_dialog_error'
 import { markdownDocumentHistoryStore$ } from './markdown_document_history_cell'
 import { MarkdownDocumentHistoryMonitor } from './markdown_document_history_monitor'
 
@@ -8,9 +9,11 @@ import { MarkdownDocumentHistoryMonitor } from './markdown_document_history_moni
 export function MarkdownDocumentHistoryPlugin() {
     const historyStore = useCellValue(markdownDocumentHistoryStore$)
     const [editor] = useLexicalComposerContext()
+    const historyStoreError = historyStore ? null : new Error('Cannot register Markdown history without a history store')
+    useDialogError(historyStoreError, 'Markdown history is unavailable')
 
     useEffect(() => {
-        if (!historyStore) throw new Error('Cannot register Markdown history without a history store')
+        if (!historyStore) return
 
         const unregister = historyStore.registerEditorHistory(editor)
 
@@ -20,5 +23,5 @@ export function MarkdownDocumentHistoryPlugin() {
         }
     }, [editor, historyStore])
 
-    return <MarkdownDocumentHistoryMonitor />
+    return historyStore ? <MarkdownDocumentHistoryMonitor /> : null
 }

@@ -12,9 +12,10 @@ import {
     TextField,
 } from '@mui/material'
 import type { SelectChangeEvent } from '@mui/material'
-import { Fragment, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import type { ConfigEntry, ConfigValue } from '../../services/config/config_service'
+import { dialogService } from '../../services/dialog_service'
 import { defaultModelForProfile, findAgentProfile, mergeAgentProfiles, type AgentProfile } from '../../data/agent_profiles'
 import { AgentProfilesEditor } from './agent_profiles_editor'
 
@@ -77,6 +78,15 @@ export function ConfigValueEditor(props: ConfigValueEditorProps) {
     const description = renderDescription(entry.description)
     const isMultilineString = entry.key === 'project.cardBodyTemplate'
     const usesMonospace = MONOSPACE_CONFIG_KEYS.has(entry.key)
+    const sliderConfigurationError = entry.type === 'number'
+        && entry.input === 'slider'
+        && (entry.min === undefined || entry.max === undefined)
+        ? `Slider config entry ${entry.key} requires min and max`
+        : null
+
+    useEffect(() => {
+        if (sliderConfigurationError) dialogService.error(sliderConfigurationError)
+    }, [sliderConfigurationError])
 
     const handleBooleanChange = (event: ChangeEvent<HTMLInputElement>) => {
         onChange(entry.key, event.target.checked)
@@ -114,9 +124,7 @@ export function ConfigValueEditor(props: ConfigValueEditorProps) {
         onValidityChange?.(entry.key, valid)
     }
 
-    if (entry.type === 'number' && entry.input === 'slider' && (entry.min === undefined || entry.max === undefined)) {
-        throw new Error(`Slider config entry ${entry.key} requires min and max`)
-    }
+    if (sliderConfigurationError) return null
 
     if (entry.type === 'boolean') {
         return (

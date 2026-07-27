@@ -22,10 +22,14 @@ export function WorktreeConfigList() {
     }
 
     const handleRemove = (index: number) => {
-        const record = worktrees[index]
-        if (!record) throw new Error(`Invalid worktree list index: ${index}`)
+        try {
+            const record = worktrees[index]
+            if (!record) throw new Error(`Invalid worktree list index: ${index}`)
 
-        setRemoveRecord(record)
+            setRemoveRecord(record)
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: 'Worktree removal could not be opened' })
+        }
     }
 
     const handleRemoveClose = () => {
@@ -33,11 +37,11 @@ export function WorktreeConfigList() {
     }
 
     const handleRemoveConfirm = async () => {
-        if (!removeRecord) throw new Error('Missing worktree removal target')
-        const index = worktrees.findIndex(({ path }) => path === removeRecord.path)
-        if (index === -1) throw new Error('Worktree removal target no longer exists')
-
         try {
+            if (!removeRecord) throw new Error('Missing worktree removal target')
+            const index = worktrees.findIndex(({ path }) => path === removeRecord.path)
+            if (index === -1) throw new Error('Worktree removal target no longer exists')
+
             await worktreeService.remove(index)
             setRemoveRecord(null)
         } catch (error) {

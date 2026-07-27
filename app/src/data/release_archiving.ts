@@ -2,14 +2,9 @@ import type { MarkdownFile, MoveFile, ProjectCard } from './data_types'
 import { isSafeAssetFileName, isSupportedAssetFileName, resolveCardAssetPath } from './asset_paths'
 import { normalizePath } from '../../../shared/path_utils.mjs'
 
-const HISTORY_FOLDER = 'history'
 const RELEASE_NAME_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/u
 const MARKDOWN_EXTENSION = '.md'
 const MARKDOWN_IMAGE_LINK_PATTERN = /!\[[^\]]*\]\(([^)\s]+)(?:\s+["'][^)]*["'])?\)/gu
-
-function releaseFolderPath(workingFolder: string, releaseName: string) {
-    return `${workingFolder}/${HISTORY_FOLDER}/${releaseName}`
-}
 
 function isMarkdownFile(path: string) {
     return path.toLowerCase().endsWith(MARKDOWN_EXTENSION)
@@ -68,18 +63,18 @@ export function validateReleaseName(releaseName: string) {
     return trimmedName
 }
 
-export function findReleaseAssetPaths(files: MarkdownFile[], activeCards: ProjectCard[]) {
-    const activeSourcePaths = new Set(activeCards.map((card) => normalizePath(card.path)))
+export function findArchiveAssetPaths(files: MarkdownFile[], archivedCards: ProjectCard[]) {
+    const archivedSourcePaths = new Set(archivedCards.map((card) => normalizePath(card.path)))
     const nonArchivedAssetPaths = new Set(
         files
-            .filter((file) => isMarkdownFile(file.path) && !activeSourcePaths.has(normalizePath(file.path)))
+            .filter((file) => isMarkdownFile(file.path) && !archivedSourcePaths.has(normalizePath(file.path)))
             .flatMap(referencedCardAssets)
             .map(normalizePath),
     )
     const assetPaths: string[] = []
     const plannedAssetPaths = new Set<string>()
 
-    for (const card of activeCards) {
+    for (const card of archivedCards) {
         const file = files.find((candidate) => normalizePath(candidate.path) === normalizePath(card.path))
         if (!file) continue
 
@@ -97,31 +92,54 @@ export function findReleaseAssetPaths(files: MarkdownFile[], activeCards: Projec
 export function buildReleaseMoves(
     files: MarkdownFile[],
     activeCards: ProjectCard[],
-    workingFolder: string,
-    releaseName: string,
+    projectFolder: string,
+    releasesFolder: string,
+    safeReleaseName: string,
     repositoryFiles: string[] = [],
 ): MoveFile[] {
-    const safeReleaseName = validateReleaseName(releaseName)
-    const targetFolder = releaseFolderPath(workingFolder, safeReleaseName)
+    const normalizedProjectFolder = normalizePath(projectFolder).replace(/\/+$/u, '')
+    const normalizedReleasesFolder = normalizePath(releasesFolder).replace(/\/+$/u, '')
+    const projectPrefix = normalizedProjectFolder.length > 0 ? `${normalizedProjectFolder}/` : ''
+    if (
+        normalizedReleasesFolder !== normalizedProjectFolder
+        && !normalizedReleasesFolder.startsWith(projectPrefix)
+    ) {
+        throw new Error(`Releases folder must stay inside the project folder: ${releasesFolder}`)
+    }
+
+    const targetFolder = `${normalizedReleasesFolder}/${safeReleaseName}`
     const normalizedTargetFolder = `${targetFolder}/`
     const existingPaths = new Set([
         ...files.map((file) => normalizePath(file.path)),
         ...repositoryFiles.map(normalizePath),
     ])
-    const filesByPath = new Map(files.map((file) => [normalizePath(file.path), file]))
-    const releaseAssetPaths = new Set(findReleaseAssetPaths(files, activeCards))
-    const moveTargetPaths = new Set<string>()
     const hasExistingReleaseFolder = [...existingPaths].some((path) => path.startsWith(normalizedTargetFolder))
 
     if (hasExistingReleaseFolder) throw new Error(`Release already exists: ${safeReleaseName}`)
 
+    return buildCardArchiveMoves(files, activeCards, targetFolder, repositoryFiles)
+}
+
+export function buildCardArchiveMoves(
+    files: MarkdownFile[],
+    archivedCards: ProjectCard[],
+    targetFolder: string,
+    repositoryFiles: string[] = [],
+): MoveFile[] {
+    const existingPaths = new Set([
+        ...files.map((file) => normalizePath(file.path)),
+        ...repositoryFiles.map(normalizePath),
+    ])
+    const filesByPath = new Map(files.map((file) => [normalizePath(file.path), file]))
+    const archiveAssetPaths = new Set(findArchiveAssetPaths(files, archivedCards))
+    const moveTargetPaths = new Set<string>()
     const moves: MoveFile[] = []
 
-    for (const card of activeCards) {
+    for (const card of archivedCards) {
         const sourcePath = normalizePath(card.path)
         const toPath = targetPathForSource(targetFolder, sourcePath)
 
-        if (existingPaths.has(toPath) || moveTargetPaths.has(toPath)) throw new Error(`Release archive target already exists: ${toPath}`)
+        if (existingPaths.has(toPath) || moveTargetPaths.has(toPath)) throw new Error(`Archive target already exists: ${toPath}`)
         const file = filesByPath.get(sourcePath)
         if (!file) throw new Error(`Cannot archive unloaded card file: ${card.path}`)
 
@@ -129,11 +147,11 @@ export function buildReleaseMoves(
         moves.push(createMove(file, card.path, toPath))
 
         for (const assetPath of referencedCardAssets(file).map(normalizePath)) {
-            if (!releaseAssetPaths.has(assetPath)) continue
+            if (!archiveAssetPaths.has(assetPath)) continue
 
             const assetTargetPath = targetPathForSource(targetFolder, assetPath)
             if (existingPaths.has(assetTargetPath) || moveTargetPaths.has(assetTargetPath)) {
-                throw new Error(`Release archive target already exists: ${assetTargetPath}`)
+                throw new Error(`Archive target already exists: ${assetTargetPath}`)
             }
 
             const assetFile = filesByPath.get(assetPath)
@@ -141,7 +159,7 @@ export function buildReleaseMoves(
 
             moveTargetPaths.add(assetTargetPath)
             moves.push(createMove(assetFile, assetPath, assetTargetPath, 'base64'))
-            releaseAssetPaths.delete(assetPath)
+            archiveAssetPaths.delete(assetPath)
         }
     }
 

@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { MouseEvent } from 'react'
 import { displayActionsForContext, type ActionContext } from '../../data/action_context'
 import type { ActionDefinition } from '../../data/action_types'
+import { dialogService } from '../../services/dialog_service'
 import { useActions } from '../hooks/use_actions'
 import { useRunningActionForContext } from '../hooks/use_action_executions'
 import { ActionIcon } from './action_icon'
@@ -76,10 +77,14 @@ export function ActionEntryPoints(props: ActionEntryPointsProps) {
     }
 
     const handleOpen = (event: MouseEvent<HTMLElement>) => {
-        const { actionId } = event.currentTarget.dataset
-        if (!actionId) throw new Error('Missing action id on action entry point')
+        try {
+            const { actionId } = event.currentTarget.dataset
+            if (!actionId) throw new Error('Missing action id on action entry point')
 
-        open(actionId, popupAnchorElement ?? event.currentTarget)
+            open(actionId, popupAnchorElement ?? event.currentTarget)
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: 'Action popup could not be opened' })
+        }
     }
 
     const iconSourceFor = (action: ActionDefinition) => iconSources[action.id] ?? DEFAULT_ICON_SOURCE

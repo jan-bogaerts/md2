@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState, type MouseEvent } from 'react'
 import { fileContext } from '../../data/action_context'
 import type { AgentConversation, CardTypeConfig } from '../../data/data_types'
 import { agentAcknowledgementService } from '../../services/agents/agent_acknowledgement_service'
+import { dialogService } from '../../services/dialog_service'
 import { workspaceViewService } from '../../services/project/workspace_view_service'
 import { ActionPopup } from '../actions/action_popup'
 import { CardCommitMenu } from '../card_view/card_commit_menu'
@@ -62,22 +63,34 @@ export function ListEditorToolbarControls(props: ListEditorToolbarControlsProps)
     }, [])
 
     const handleConversationViewed = (conversation: AgentConversation) => {
-        if (!conversation.cardPath) throw new Error('Cannot acknowledge a project conversation as a card result')
+        try {
+            if (!conversation.cardPath) throw new Error('Cannot acknowledge a project conversation as a card result')
 
-        agentAcknowledgementService.acknowledge(cardMarkdownDataSource.getProjectKey(), conversation.cardPath, [conversation])
+            agentAcknowledgementService.acknowledge(cardMarkdownDataSource.getProjectKey(), conversation.cardPath, [conversation])
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: 'Card conversation could not be acknowledged' })
+        }
     }
     const handleOpenProperties = useCallback((event: MouseEvent<HTMLElement>) => {
-        const activeDocumentId = cardMarkdownDataSource.getActiveDocument('list-card')?.getObject().header.internalId
-        if (!activeDocumentId) throw new Error('Cannot open card properties without an active list-card document')
+        try {
+            const activeDocumentId = cardMarkdownDataSource.getActiveDocument('list-card')?.getObject().header.internalId
+            if (!activeDocumentId) throw new Error('Cannot open card properties without an active list-card document')
 
-        setPropertiesAnchor({ documentId: activeDocumentId, element: event.currentTarget })
+            setPropertiesAnchor({ documentId: activeDocumentId, element: event.currentTarget })
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: 'Card properties could not be opened' })
+        }
     }, [])
     const handleCloseProperties = useCallback(() => setPropertiesAnchor(null), [])
     const handleToggleAgentPopup = useCallback(() => {
-        const activeDocumentId = cardMarkdownDataSource.getActiveDocument('list-card')?.getObject().header.internalId
-        if (!activeDocumentId) throw new Error('Cannot open card agents without an active list-card document')
+        try {
+            const activeDocumentId = cardMarkdownDataSource.getActiveDocument('list-card')?.getObject().header.internalId
+            if (!activeDocumentId) throw new Error('Cannot open card agents without an active list-card document')
 
-        setAgentPopupDocumentId((current) => current === activeDocumentId ? null : activeDocumentId)
+            setAgentPopupDocumentId((current) => current === activeDocumentId ? null : activeDocumentId)
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: 'Card agents could not be opened' })
+        }
     }, [])
     const handleCloseAgentPopup = useCallback(() => setAgentPopupDocumentId(null), [])
 

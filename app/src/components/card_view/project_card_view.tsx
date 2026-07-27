@@ -7,6 +7,7 @@ import type { ChangeEvent, KeyboardEvent, MouseEvent, TouchEvent } from 'react'
 import type { CardTypeConfig, ProjectCard } from '../../data/data_types'
 import { cardContext } from '../../data/action_context'
 import { telemetryService } from '../../services/telemetry/telemetry_service'
+import { dialogService } from '../../services/dialog_service'
 import { ActionEntryPoints } from '../actions/action_entry_points'
 import { CardRunButton } from '../actions/card_run_button'
 import { useRunningActionForFile } from '../hooks/use_action_executions'
@@ -141,10 +142,14 @@ function ProjectCardViewContent(props: ProjectCardViewContentProps) {
     }
 
     const openBodyFromMenu = () => {
-        closeCardActions()
-        if (!cardElement) throw new Error(`Missing card element: ${card.path}`)
-        cardBodyPopoverService.toggle(card.path, cardElement)
-        telemetryService.trackEvent('navigation')
+        try {
+            if (!cardElement) throw new Error(`Missing card element: ${card.path}`)
+            closeCardActions()
+            cardBodyPopoverService.toggle(card.path, cardElement)
+            telemetryService.trackEvent('navigation')
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: 'Card details could not be opened' })
+        }
     }
 
     const openInFileModeFromMenu = () => {

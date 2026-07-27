@@ -50,6 +50,7 @@ Keep analysis and documentation **short, precise, and to the point**. Avoid verb
 - **avoid functions nested** inside other functions when writing new functions.
 - no abbreviations for variable names (common abreviations like i or idx are ok).
 - no inline code for react event handlers, use a constant instead
+- Never throw errors while a React component is rendering. Report real errors through `dialogService` in an effect and render a safe loading or fallback state.
 - Use async/await for all asynchronous operations; avoid .then().
 - stick to the given task, don't change code that is not related to the task.
 - Prefer const; only use let when reassignment is required.

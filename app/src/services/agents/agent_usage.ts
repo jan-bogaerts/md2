@@ -9,6 +9,7 @@ export interface AgentUsageVersion {
 }
 
 export interface ProjectAgentUsage {
+    archived: AgentUsageVersion
     current: AgentUsageVersion
     project: AgentTokenUsage
     releases: AgentUsageVersion[]
@@ -27,26 +28,41 @@ export function actionCardAgentTokenUsage(conversations: AgentConversation[], ac
     return sumAgentTokenUsage(matchingUsage)
 }
 
-function releaseName(cardPath: string, projectFolder: string) {
-    const normalizedProjectFolder = projectFolder.replace(/\\/gu, '/').replace(/^\/+|\/+$/gu, '')
-    const historyPrefix = normalizedProjectFolder.length > 0 ? `${normalizedProjectFolder}/history/` : 'history/'
+function releaseName(cardPath: string, releasesFolder: string) {
+    const normalizedReleasesFolder = releasesFolder.replace(/\\/gu, '/').replace(/^\/+|\/+$/gu, '')
+    const releasesPrefix = `${normalizedReleasesFolder}/`
     const normalizedCardPath = cardPath.replace(/\\/gu, '/')
-    if (!normalizedCardPath.startsWith(historyPrefix)) return null
+    if (!normalizedCardPath.startsWith(releasesPrefix)) return null
 
-    const releaseSegments = normalizedCardPath.slice(historyPrefix.length).split('/')
+    const releaseSegments = normalizedCardPath.slice(releasesPrefix.length).split('/')
 
     return releaseSegments.length >= 2 && releaseSegments[0].length > 0 ? releaseSegments[0] : null
 }
 
 /** Aggregate loaded agent conversations by current board, archived release, and project. */
-export function projectAgentTokenUsage(snapshot: ProjectSnapshot | null, projectFolder: string): ProjectAgentUsage {
+function isInsideFolder(cardPath: string, folder: string) {
+    const normalizedFolder = folder.replace(/\\/gu, '/').replace(/^\/+|\/+$/gu, '')
+    const normalizedCardPath = cardPath.replace(/\\/gu, '/')
+
+    return normalizedCardPath.startsWith(`${normalizedFolder}/`)
+}
+
+/** Aggregate loaded agent conversations by current board, archived cards, releases, and project. */
+export function projectAgentTokenUsage(
+    snapshot: ProjectSnapshot | null,
+    releasesFolder: string,
+    archivedFolder: string,
+): ProjectAgentUsage {
     const activeCards = snapshot?.activeCards ?? []
     const backgroundCards = snapshot?.backgroundCards ?? []
     const currentUsage = sumAgentTokenUsage(activeCards.map(cardAgentTokenUsage))
+    const archivedUsage = sumAgentTokenUsage(
+        backgroundCards.filter((card) => isInsideFolder(card.path, archivedFolder)).map(cardAgentTokenUsage),
+    )
     const releaseCards = new Map<string, ProjectCard[]>()
 
     for (const card of backgroundCards) {
-        const name = releaseName(card.path, projectFolder)
+        const name = releaseName(card.path, releasesFolder)
         if (!name) continue
 
         releaseCards.set(name, [...(releaseCards.get(name) ?? []), card])
@@ -54,7 +70,12 @@ export function projectAgentTokenUsage(snapshot: ProjectSnapshot | null, project
     const releases = [...releaseCards.entries()]
         .map(([name, cards]) => ({ name, usage: sumAgentTokenUsage(cards.map(cardAgentTokenUsage)) }))
         .sort((left, right) => left.name.localeCompare(right.name))
-    const project = sumAgentTokenUsage([currentUsage, ...releases.map(({ usage }) => usage)])
+    const project = sumAgentTokenUsage([currentUsage, archivedUsage, ...releases.map(({ usage }) => usage)])
 
-    return { current: { name: 'Current', usage: currentUsage }, project, releases }
+    return {
+        archived: { name: 'Archived', usage: archivedUsage },
+        current: { name: 'Current', usage: currentUsage },
+        project,
+        releases,
+    }
 }

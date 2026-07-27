@@ -203,9 +203,11 @@ export async function notifyActionCardStateChange(cardInternalId: string | null,
 /** Owns one renderer-wide subscription and all live/recent action execution state. */
 export class ActionExecutionService extends EventTarget {
     private eventListeners = new Set<EventListener>()
+    private eventSequences = new Map<string, number>()
     private executions = new Map<string, LiveActionExecution>()
     private promptDrafts = new Map<string, PromptDraft>()
     private runningSnapshot: LiveActionExecution[] = []
+    private recoveryEvents: ActionExecutionEvent[] | null = null
     private snapshot: ActionExecutionSnapshot = { executions: [] }
     private subscribedBridge: ElectronActionBridge | null = null
     private unsubscribeBridge: (() => void) | null = null
@@ -222,7 +224,9 @@ export class ActionExecutionService extends EventTarget {
 
         this.unsubscribeBridge?.()
         this.subscribedBridge = bridge
-        this.unsubscribeBridge = bridge.onActionExecution((event) => this.handleEvent(event))
+        this.recoveryEvents = bridge.loadActiveActionExecutionEvents ? [] : null
+        this.unsubscribeBridge = bridge.onActionExecution((event) => this.handleIncomingEvent(event))
+        if (bridge.loadActiveActionExecutionEvents) void this.recoverActiveExecutions(bridge)
     }
 
     stop() {
@@ -230,8 +234,10 @@ export class ActionExecutionService extends EventTarget {
         this.subscribedBridge = null
         this.unsubscribeBridge = null
         this.eventListeners.clear()
+        this.eventSequences = new Map()
         this.executions = new Map()
         this.promptDrafts = new Map()
+        this.recoveryEvents = null
         this.publish()
     }
 
@@ -346,7 +352,38 @@ export class ActionExecutionService extends EventTarget {
         })
     }
 
+    private async recoverActiveExecutions(bridge: ElectronActionBridge) {
+        try {
+            const events = await bridge.loadActiveActionExecutionEvents?.() ?? []
+            if (this.subscribedBridge !== bridge || !this.recoveryEvents) return
+            const recoveryEvents = this.recoveryEvents
+            this.recoveryEvents = null
+            for (const event of events) this.handleEvent(event)
+            for (const event of recoveryEvents) this.handleEvent(event)
+        } catch (error) {
+            if (this.subscribedBridge !== bridge) return
+            const recoveryEvents = this.recoveryEvents ?? []
+            this.recoveryEvents = null
+            for (const event of recoveryEvents) this.handleEvent(event)
+            this.dispatchEvent(new CustomEvent('recoveryFailed', { detail: error }))
+        }
+    }
+
+    private handleIncomingEvent(event: ActionExecutionEvent) {
+        if (this.recoveryEvents) {
+            this.recoveryEvents.push(event)
+            return
+        }
+
+        this.handleEvent(event)
+    }
+
     private handleEvent(event: ActionExecutionEvent) {
+        if (event.sequence !== undefined) {
+            const currentSequence = this.eventSequences.get(event.executionId) ?? 0
+            if (event.sequence <= currentSequence) return
+            this.eventSequences.set(event.executionId, event.sequence)
+        }
         const current = this.executions.get(event.executionId) ?? {
             activeActionAutoFinish: null,
             activeActionId: null,

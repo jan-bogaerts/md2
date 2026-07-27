@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, expectTypeOf, it } from 'vitest'
-import { DEFAULT_CARD_TYPES, DEFAULT_STATES, defaultColumnAccent } from '../../data/data_types'
+import { DEFAULT_CARD_TYPES, DEFAULT_STATES, defaultColumnAccent, resolveProjectConfigPaths } from '../../data/data_types'
 import { BUILTIN_AGENT_PROFILES, type AgentProfile } from '../../data/agent_profiles'
 import { CONFIG_ENTRIES, ConfigService, REACT_CONFIG_STORAGE_KEY, readStartupSplashPreference } from './config_service'
 
@@ -18,11 +18,13 @@ describe('ConfigService', () => {
 
         expect(service.getProjectConfig()).toMatchObject({
             actionsFolder: 'ops',
+            archivedFolder: 'archived',
             backgroundShade: 'green',
             cardBodyTemplate: '# Goal\n\n# Current status\n\n# Details\n\n# Tasks',
             cardSeparator: '-',
             projectFolder: 'design',
             pushMode: 'manual',
+            releasesFolder: 'history',
             workingFolder: 'docs',
         })
         expect(service.getProjectConfig().cardTypes).toEqual(DEFAULT_CARD_TYPES)
@@ -79,6 +81,33 @@ describe('ConfigService', () => {
 
         expect(() => service.loadProjectConfig({ backgroundShade: 'blue', projectFolder: '../outside' })).toThrow('must stay inside the project folder')
         expect(() => service.loadProjectConfig({ backgroundShade: 'blue', workingFolder: '../outside' })).toThrow('must stay inside the project folder')
+        expect(() => service.loadProjectConfig({ archivedFolder: '/outside' })).toThrow('must be repository-relative')
+        expect(() => service.loadProjectConfig({ releasesFolder: '' })).toThrow('Missing config field')
+    })
+
+    it('normalizes and resolves configured project subfolders', () => {
+        service.init()
+        service.loadProjectConfig({
+            actionsFolder: 'automation',
+            archivedFolder: 'records\\archived',
+            projectFolder: 'projects/demo',
+            releasesFolder: 'records//releases',
+            workingFolder: 'active',
+        })
+
+        expect(resolveProjectConfigPaths(service.getProjectConfig())).toMatchObject({
+            actionsFolder: 'projects/demo/automation',
+            archivedFolder: 'projects/demo/records/archived',
+            releasesFolder: 'projects/demo/records/releases',
+            workingFolder: 'projects/demo/active',
+        })
+    })
+
+    it('rejects conflicting project subfolder paths', () => {
+        service.init()
+
+        expect(() => service.loadProjectConfig({ archivedFolder: 'records', releasesFolder: 'RECORDS' })).toThrow('must not overlap')
+        expect(() => service.loadProjectConfig({ archivedFolder: 'records/archived', releasesFolder: 'records' })).toThrow('must not overlap')
     })
 
     it('rejects invalid project config values', () => {

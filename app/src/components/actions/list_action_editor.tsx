@@ -1,6 +1,6 @@
 import { Box } from '@mui/material'
-import { memo, useCallback, useEffect, useRef, useState } from 'react'
-import { openFilesService, type ActionOpenDocument, type OpenDocumentEventDetail } from '../../services/open_files_service'
+import { memo, useCallback, useEffect, useState } from 'react'
+import { openFilesService, type OpenDocumentEventDetail } from '../../services/open_files_service'
 import { actionMarkdownDataSource } from '../editor/action_markdown_data_source'
 import { sameMarkdownTarget, type MarkdownDocumentTarget } from '../editor/markdown_data_source'
 import { MarkdownDocumentHistoryStore } from '../editor/markdown_document_history_store'
@@ -8,6 +8,7 @@ import { MarkdownEditor } from '../editor/markdown_editor'
 import { ActionEditor, type ActionMarkdownPresentation } from './action_editor'
 import { useOpenFiles } from '../hooks/use_open_files'
 import { actionService } from '../../services/actions/action_service'
+import { useRetainedActionDocument } from './use_retained_action_document'
 
 interface ListActionEditorProps {
     cardTypes: string[]
@@ -20,9 +21,8 @@ export const ListActionEditor = memo(function ListActionEditor(props: ListAction
     const { cardTypes, specialContextTypes, states } = props
     const { activeDocument } = useOpenFiles()
     const activeActionDocument = activeDocument?.kind === 'action' ? activeDocument : null
-    const retainedActionDocument = useRef<ActionOpenDocument | null>(null)
-    if (activeActionDocument) retainedActionDocument.current = activeActionDocument
-    const retainedAction = retainedActionDocument.current?.getObject() ?? null
+    const retainedActionDocument = useRetainedActionDocument()
+    const retainedAction = retainedActionDocument?.getObject() ?? null
     const retainedPath = retainedAction?.sourcePath
     const actionExists = !!retainedPath && (
         !!actionService.getActionByPath(retainedPath)
@@ -43,7 +43,6 @@ export const ListActionEditor = memo(function ListActionEditor(props: ListAction
             const { document } = (event as CustomEvent<OpenDocumentEventDetail>).detail
             if (document.kind !== 'action') return
 
-            if (retainedActionDocument.current === document) retainedActionDocument.current = null
             historyStore.discardDocument(document)
             const activeTarget = actionMarkdownDataSource.getActiveTarget('list-action')
             if (activeTarget?.document === document) {
@@ -64,8 +63,9 @@ export const ListActionEditor = memo(function ListActionEditor(props: ListAction
             hidden={!activeActionDocument}
             sx={{ display: activeActionDocument ? 'contents' : 'none' }}
         >
-            {action ? (
+            {action && retainedActionDocument ? (
                 <ActionEditor
+                    actionDocument={retainedActionDocument}
                     cardTypes={cardTypes}
                     discardMarkdownTarget={discardMarkdownTarget}
                     onMarkdownPresentationChange={setPresentation}

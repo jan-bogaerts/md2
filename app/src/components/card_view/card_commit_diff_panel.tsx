@@ -1,6 +1,7 @@
 import { Box, Button, Divider, Stack, Typography } from '@mui/material'
 import { useEffect, useState, type MouseEvent } from 'react'
 import { loadCardBodyDiff, type CardBodyDiff, type CardCommit } from '../../services/actions/card_commit_history'
+import { dialogService } from '../../services/dialog_service'
 import type { DiffCommitReference } from '../../services/data/diff_service'
 import { DiffView } from '../actions/diff_view'
 import { MarkdownEditor } from '../editor/markdown_editor'
@@ -36,9 +37,13 @@ export function CardCommitDiffPanel(props: CardCommitDiffPanelProps) {
     const [error, setError] = useState<Error | null>(null)
     const [selectedOtherPath, setSelectedOtherPath] = useState<string | null>(null)
     const selectOtherPath = (event: MouseEvent<HTMLButtonElement>) => {
-        const { path } = event.currentTarget.dataset
-        if (!path) throw new Error('Cannot select an empty changed-file path')
-        setSelectedOtherPath(path)
+        try {
+            const { path } = event.currentTarget.dataset
+            if (!path) throw new Error('Cannot select an empty changed-file path')
+            setSelectedOtherPath(path)
+        } catch (caught) {
+            dialogService.error(caught, { fallbackMessage: 'Changed file could not be selected' })
+        }
     }
 
     useEffect(() => {

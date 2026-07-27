@@ -10,25 +10,34 @@ describe('ReleaseOperations', () => {
         configService.clear()
     })
 
-    it('completes a release by moving active cards to history and refreshing the snapshot', async () => {
+    it('completes a release under the configured project releases folder and refreshes the snapshot', async () => {
         configService.init()
+        const activeRootFile = { ...files[0], path: 'design/active/F-1-root.md' }
         const releaseFiles: MarkdownFile[] = [
-            files[0],
-            { content: '---\nid: F-2\ninternalId: imported-card\ntitle: Imported\nstatus: active\n---\n\n# Imported', path: 'design/F-2-imported.md' },
+            activeRootFile,
+            { content: '---\nid: F-2\ninternalId: imported-card\ntitle: Imported\nstatus: active\n---\n\n# Imported', path: 'design/active/F-2-imported.md' },
             files[1],
         ]
         const archivedFiles: MarkdownFile[] = [
-            { content: files[0].content, path: 'design/history/v1/F-1-root.md' },
-            { content: releaseFiles[1].content, path: 'design/history/v1/F-2-imported.md' },
+            { content: files[0].content, path: 'design/releases/v1/F-1-root.md' },
+            { content: releaseFiles[1].content, path: 'design/releases/v1/F-2-imported.md' },
             files[1],
         ]
         const storage = createStorage({
             listRepositoryFiles: vi.fn()
-                .mockResolvedValueOnce(['design/F-1-root.md'])
-                .mockResolvedValueOnce(['design/history/v1/F-1-root.md']),
+                .mockResolvedValueOnce(['design/active/F-1-root.md'])
+                .mockResolvedValueOnce(['design/releases/v1/F-1-root.md']),
             loadProject: vi.fn()
                 .mockResolvedValueOnce({ files: releaseFiles, workingFolder: 'design' })
                 .mockResolvedValueOnce({ files: archivedFiles, workingFolder: 'design' }),
+            loadProjectConfig: vi.fn(async () => ({
+                archivedFolder: 'archived',
+                backgroundShade: 'blue' as const,
+                projectFolder: 'design',
+                releasesFolder: 'releases',
+                workingFolder: 'active',
+            })),
+            loadProjectRoot: vi.fn(async () => ({ files: releaseFiles.slice(0, 2), workingFolder: 'design/active' })),
         })
         const service = createDataService()
         service.init({ storage })
@@ -42,15 +51,15 @@ describe('ReleaseOperations', () => {
             moves: [
                 {
                     content: files[0].content,
-                    fromPath: 'design/F-1-root.md',
+                    fromPath: 'design/active/F-1-root.md',
                     sha: undefined,
-                    toPath: 'design/history/v1/F-1-root.md',
+                    toPath: 'design/releases/v1/F-1-root.md',
                 },
                 {
                     content: releaseFiles[1].content,
-                    fromPath: 'design/F-2-imported.md',
+                    fromPath: 'design/active/F-2-imported.md',
                     sha: undefined,
-                    toPath: 'design/history/v1/F-2-imported.md',
+                    toPath: 'design/releases/v1/F-2-imported.md',
                 },
             ],
         })
@@ -58,7 +67,7 @@ describe('ReleaseOperations', () => {
         if (!snapshot) throw new Error('Expected release completion to return a snapshot')
 
         expect(snapshot.activeCards).toHaveLength(0)
-        expect(snapshot.backgroundCards.map((card) => card.path)).toContain('design/history/v1/F-1-root.md')
+        expect(snapshot.backgroundCards.map((card) => card.path)).toContain('design/releases/v1/F-1-root.md')
     })
 
     it('loads referenced assets and includes them in the release move batch', async () => {
@@ -67,7 +76,7 @@ describe('ReleaseOperations', () => {
             { content: '---\nid: F-1\ninternalId: root-card\ntitle: Root\nstatus: active\n---\n\n# Root\n\n![note](note.png)', path: 'design/F-1-root.md' },
         ]
         const archivedFiles: MarkdownFile[] = [
-            { content: releaseFiles[0].content, path: 'design/history/v1/F-1-root.md' },
+            { content: releaseFiles[0].content, path: 'history/v1/F-1-root.md' },
         ]
         const storage = createStorage({
             listRepositoryFiles: vi.fn(async () => ['design/F-1-root.md', 'design/note.png']),
@@ -97,14 +106,14 @@ describe('ReleaseOperations', () => {
                     content: releaseFiles[0].content,
                     fromPath: 'design/F-1-root.md',
                     sha: undefined,
-                    toPath: 'design/history/v1/F-1-root.md',
+                    toPath: 'history/v1/F-1-root.md',
                 },
                 {
                     content: 'aW1hZ2U=',
                     encoding: 'base64',
                     fromPath: 'design/note.png',
                     sha: undefined,
-                    toPath: 'design/history/v1/note.png',
+                    toPath: 'history/v1/note.png',
                 },
             ],
         })
@@ -126,7 +135,7 @@ describe('ReleaseOperations', () => {
         configService.init()
         const storage = createStorage({
             loadProject: vi.fn(async () => ({
-                files: [...storageFiles, { content: '# Archived', path: 'design/history/v1/F-9.md' }],
+                files: [...storageFiles, { content: '# Archived', path: 'history/v1/F-9.md' }],
                 workingFolder: 'design',
             })),
         })
@@ -141,7 +150,7 @@ describe('ReleaseOperations', () => {
 
     it('leaves release completion unpushed in manual mode', async () => {
         configService.init()
-        const archivedFiles: MarkdownFile[] = [{ content: files[0].content, path: 'design/history/v1/F-1-root.md' }]
+        const archivedFiles: MarkdownFile[] = [{ content: files[0].content, path: 'history/v1/F-1-root.md' }]
         const storage = createStorage({
             loadProject: vi.fn()
                 .mockResolvedValueOnce({ files: storageFiles, workingFolder: 'design' })

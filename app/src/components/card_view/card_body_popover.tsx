@@ -22,6 +22,8 @@ import type { CardCommit } from '../../services/actions/card_commit_history'
 import { openFilesService, type CardOpenDocument } from '../../services/open_files_service'
 import { useProjectCard } from './use_project_card'
 import { cardBodyPopoverService, subscribeCardBodyPopover } from './card_body_popover_service'
+import { useDialogError } from '../hooks/use_dialog_error'
+import { dialogService } from '../../services/dialog_service'
 
 const CARD_BODY_POPOVER_WIDTH = 760
 const CARD_BODY_POPOVER_HEIGHT = 620
@@ -38,7 +40,7 @@ function subscribeOpenDocuments(onStoreChange: () => void) {
 }
 
 function useBoardDocument(card: ProjectCard | null, visible: boolean) {
-    const getSnapshot = useCallback(() => visible && card
+    const getSnapshot = useCallback(() => visible && card?.header.internalId
         ? openFilesService.findDocument(card) as CardOpenDocument | null
         : null, [card, visible])
 
@@ -92,6 +94,10 @@ export function CardBodyPopover(props: CardBodyPopoverProps) {
     const selectedCommit = visible && selectedCardCommit && selectedCardCommit.cardInternalId === card?.header.internalId
         ? selectedCardCommit.commit
         : null
+    const missingCardIdentityError = visible && card && !cardIdentity
+        ? new Error(`Card identity was not added before opening: ${card.path}`)
+        : null
+    useDialogError(missingCardIdentityError, 'Card details could not be opened')
 
     useEffect(() => {
         cardRef.current = card
@@ -104,7 +110,7 @@ export function CardBodyPopover(props: CardBodyPopoverProps) {
             historyStore.clear()
             return
         }
-        if (!cardIdentity) throw new Error(`Card identity was not added before opening: ${currentCard.path}`)
+        if (!cardIdentity) return
 
         const document = openFilesService.openBoardDocument(currentCard)
         cardMarkdownDataSource.setBoardDocument(document)
@@ -139,8 +145,12 @@ export function CardBodyPopover(props: CardBodyPopoverProps) {
     }
 
     const selectCommit = (commit: CardCommit) => {
-        if (!card?.header.internalId) throw new Error('Cannot select card commit without an internal ID')
-        setSelectedCardCommit({ cardInternalId: card.header.internalId, commit })
+        try {
+            if (!card?.header.internalId) throw new Error('Cannot select card commit without an internal ID')
+            setSelectedCardCommit({ cardInternalId: card.header.internalId, commit })
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: 'Card commit could not be selected' })
+        }
     }
     const clearSelectedCommit = () => setSelectedCardCommit(null)
 

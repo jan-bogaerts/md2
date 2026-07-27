@@ -94,33 +94,39 @@ describe('agent usage aggregation', () => {
         expect(cardAgentTokenUsage(card('design/F-2.md', [undefined])).totalTokens).toBe(0)
     })
 
-    it('aggregates current cards, releases, and project without unrelated background cards', () => {
+    it('aggregates configured archived and release folders without unrelated background cards', () => {
         const snapshot: ProjectSnapshot = {
             activeCards: [card('design/active/F-1.md', [usage(10, 2, 3, 1)])],
             backgroundCards: [
-                card('design/history/v1/F-2.md', [usage(20, 4, 6, 2, 0.02)]),
-                card('design/history/v1/nested/F-3.md', [usage(5, 1, 2, 0)]),
-                card('design/history/v2/F-4.md', [usage(30, 6, 9, 3)]),
+                card('design/records/releases/v1/F-2.md', [usage(20, 4, 6, 2, 0.02)]),
+                card('design/records/releases/v1/nested/F-3.md', [usage(5, 1, 2, 0)]),
+                card('design/records/releases/v2/F-4.md', [usage(30, 6, 9, 3)]),
+                card('design/records/archived/F-6.md', [usage(7, 1, 2, 0)]),
                 card('design/notes/F-5.md', [usage(999, 0, 0, 0)]),
             ],
             repositoryFiles: [],
             workingFolder: 'design/active',
         }
 
-        const totals = projectAgentTokenUsage(snapshot, 'design')
+        const totals = projectAgentTokenUsage(
+            snapshot,
+            'design/records/releases',
+            'design/records/archived',
+        )
 
         expect(totals.current.usage.totalTokens).toBe(16)
+        expect(totals.archived.usage.totalTokens).toBe(10)
         expect(totals.releases.map(({ name, usage: releaseUsage }) => [name, releaseUsage.totalTokens])).toEqual([
             ['v1', 40],
             ['v2', 48],
         ])
         expect(totals.project).toEqual({
-            cachedInputTokens: 13,
+            cachedInputTokens: 14,
             costUsd: 0.02,
-            inputTokens: 65,
-            outputTokens: 20,
+            inputTokens: 72,
+            outputTokens: 22,
             reasoningTokens: 6,
-            totalTokens: 104,
+            totalTokens: 114,
         })
     })
 })

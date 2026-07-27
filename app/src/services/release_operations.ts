@@ -1,4 +1,4 @@
-import { buildReleaseMoves, findReleaseAssetPaths } from '../data/release_archiving'
+import { buildReleaseMoves, findArchiveAssetPaths, validateReleaseName } from '../data/release_archiving'
 import type { MarkdownFile, ProjectAsset, ProjectReference, ProjectSnapshot } from '../data/data_types'
 import { type RequiredDataServiceDependencies } from './data/data_service_context'
 import { telemetryService } from './telemetry/telemetry_service'
@@ -28,6 +28,7 @@ export class ReleaseOperations {
         const currentProject = this.dependencies.project()
         if (!currentProject) throw new Error('Cannot complete a release before a project is open')
 
+        const safeReleaseName = validateReleaseName(releaseName)
         await this.flushPendingCommitBatch()
 
         const activeCards = this.dependencies.snapshot()?.activeCards ?? []
@@ -35,12 +36,19 @@ export class ReleaseOperations {
 
         const repositoryFiles = this.dependencies.snapshot()?.repositoryFiles ?? []
         const files = this.dependencies.files()
-        const assetPaths = findReleaseAssetPaths(files, activeCards)
+        const assetPaths = findArchiveAssetPaths(files, activeCards)
         const assetFiles = await this.loadReleaseAssets(assetPaths)
-        const moves = buildReleaseMoves([...files, ...assetFiles], activeCards, config.workingFolder, releaseName, repositoryFiles)
+        const moves = buildReleaseMoves(
+            [...files, ...assetFiles],
+            activeCards,
+            config.projectFolder,
+            config.releasesFolder,
+            safeReleaseName,
+            repositoryFiles,
+        )
         await storage.moveFiles({
             branch: currentProject.branch,
-            message: `Complete release ${releaseName.trim()}`,
+            message: `Complete release ${safeReleaseName}`,
             moves,
         })
 

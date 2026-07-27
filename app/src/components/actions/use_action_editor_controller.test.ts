@@ -45,6 +45,8 @@ describe('useActionEditorController', () => {
             action,
             actions: actionService.getActions(),
             discardMarkdownTarget,
+            openDocument: document,
+            sourcePath: 'actions/review.json',
         }))
 
         expect(result.current.markdownTarget).toEqual({ document, section: { kind: 'prompt' } })
@@ -61,7 +63,7 @@ describe('useActionEditorController', () => {
     it('does not rerender for an unrelated action editor-state event', () => {
         const action = loadAction()
         openFilesService.init({ actionService, dataService })
-        openFilesService.openDocument(action)
+        const document = openFilesService.openDocument(action)
         let renderCount = 0
         renderHook(() => {
             renderCount += 1
@@ -69,6 +71,8 @@ describe('useActionEditorController', () => {
                 action,
                 actions: actionService.getActions(),
                 discardMarkdownTarget: vi.fn(),
+                openDocument: document,
+                sourcePath: 'actions/review.json',
             })
         })
         const initialRenderCount = renderCount

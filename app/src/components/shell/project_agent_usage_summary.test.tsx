@@ -4,7 +4,11 @@ import type { AgentConversation, ProjectCard, ProjectSnapshot } from '../../data
 import { ProjectAgentUsageSummary } from './project_agent_usage_summary'
 
 const { projectConfig, projectState } = vi.hoisted(() => ({
-    projectConfig: { projectFolder: 'design' },
+    projectConfig: {
+        archivedFolder: 'design/records/archived',
+        projectFolder: 'design',
+        releasesFolder: 'design/records/releases',
+    },
     projectState: { snapshot: null as ProjectSnapshot | null },
 }))
 
@@ -51,21 +55,25 @@ describe('ProjectAgentUsageSummary', () => {
         projectState.snapshot = null
     })
 
-    it('reads project usage and opens current-version and release details', () => {
+    it('reads configured archived and release usage details', () => {
         projectState.snapshot = {
             activeCards: [card('design/F-1.md', 16)],
-            backgroundCards: [card('design/history/v1/F-2.md', 32)],
+            backgroundCards: [
+                card('design/records/releases/v1/F-2.md', 32),
+                card('design/records/archived/F-3.md', 8),
+            ],
             repositoryFiles: [],
             workingFolder: 'design',
         }
 
         render(<ProjectAgentUsageSummary />)
 
-        expect(screen.getByRole('button', { name: 'Agent token usage summary' })).toHaveTextContent('48 tokens')
+        expect(screen.getByRole('button', { name: 'Agent token usage summary' })).toHaveTextContent('56 tokens')
         fireEvent.click(screen.getByRole('button', { name: 'Agent token usage summary' }))
         expect(screen.getByRole('heading', { name: 'Project agent usage' })).toBeInTheDocument()
         expect(screen.getByText('Current')).toBeInTheDocument()
+        expect(screen.getByText('Archived')).toBeInTheDocument()
         expect(screen.getByText('v1')).toBeInTheDocument()
-        expect(screen.getByText('tokens: 48')).toBeInTheDocument()
+        expect(screen.getByText('tokens: 56')).toBeInTheDocument()
     })
 })

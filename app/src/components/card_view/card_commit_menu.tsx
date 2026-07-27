@@ -3,6 +3,7 @@ import SourceCommit from 'mdi-material-ui/SourceCommit'
 import type { MouseEvent } from 'react'
 import { useState } from 'react'
 import type { CardCommit } from '../../services/actions/card_commit_history'
+import { dialogService } from '../../services/dialog_service'
 
 interface CardCommitMenuProps {
     commits: CardCommit[]
@@ -21,11 +22,15 @@ export function CardCommitMenu(props: CardCommitMenuProps) {
     const handleOpen = (event: MouseEvent<HTMLElement>) => setAnchorElement(event.currentTarget)
     const handleClose = () => setAnchorElement(null)
     const selectCommit = (event: MouseEvent<HTMLButtonElement>) => {
-        const commitIndex = Number(event.currentTarget.dataset.commitIndex)
-        const commit = commits[commitIndex]
-        if (!Number.isInteger(commitIndex) || !commit) throw new Error(`Card commit menu selection not found: ${commitIndex}`)
-        onSelect(commit)
-        handleClose()
+        try {
+            const commitIndex = Number(event.currentTarget.dataset.commitIndex)
+            const commit = commits[commitIndex]
+            if (!Number.isInteger(commitIndex) || !commit) throw new Error(`Card commit menu selection not found: ${commitIndex}`)
+            onSelect(commit)
+            handleClose()
+        } catch (caught) {
+            dialogService.error(caught, { fallbackMessage: 'Card commit could not be selected' })
+        }
     }
 
     if (error) {

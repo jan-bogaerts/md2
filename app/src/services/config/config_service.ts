@@ -63,14 +63,39 @@ function requireBoolean(value: unknown, fieldName: string) {
 }
 
 function normalizeConfigPath(value: string, fieldName: string, allowEmpty = false) {
-    const normalized = value.replace(/\\/gu, '/').replace(/^\/+|\/+$/gu, '')
+    const normalized = value.replace(/\\/gu, '/').replace(/\/+/gu, '/').replace(/^\/+|\/+$/gu, '')
     if (!allowEmpty && normalized.length === 0) throw new Error(`Missing config field: ${fieldName}`)
     if (/^[a-zA-Z]:/u.test(value) || value.startsWith('/') || value.startsWith('\\')) {
         throw new Error(`Config path ${fieldName} must be repository-relative`)
     }
-    if (normalized.split('/').includes('..')) throw new Error(`Config path ${fieldName} must stay inside the project folder`)
+    if (normalized.split('/').some((segment) => segment === '.' || segment === '..')) {
+        throw new Error(`Config path ${fieldName} must stay inside the project folder`)
+    }
 
     return normalized
+}
+
+const PROJECT_SUBFOLDER_KEYS = [
+    'project.workingFolder',
+    'project.actionsFolder',
+    'project.releasesFolder',
+    'project.archivedFolder',
+] as const
+
+function validateProjectFolderPaths(values: ConfigValues) {
+    const configuredPaths: Array<{ key: ConfigKey; path: string }> = []
+
+    for (const key of PROJECT_SUBFOLDER_KEYS) {
+        const path = values[key].toLowerCase()
+        const conflict = configuredPaths.find(({ path: configuredPath }) => (
+            path === configuredPath
+            || path.startsWith(`${configuredPath}/`)
+            || configuredPath.startsWith(`${path}/`)
+        ))
+        if (conflict) throw new Error(`Config folders ${conflict.key} and ${key} must not overlap`)
+
+        configuredPaths.push({ key, path })
+    }
 }
 
 function validateCardTypes(value: unknown): CardTypeConfig[] {
@@ -139,7 +164,12 @@ function validateValue<K extends ConfigKey>(key: K, value: unknown): ConfigValue
 
         return normalizeConfigPath(value, entry.key, true) as ConfigValueTypes[K]
     }
-    if (key === 'project.workingFolder' || key === 'project.actionsFolder') {
+    if (
+        key === 'project.workingFolder'
+        || key === 'project.actionsFolder'
+        || key === 'project.releasesFolder'
+        || key === 'project.archivedFolder'
+    ) {
         return normalizeConfigPath(requireString(value, entry.key), entry.key) as ConfigValueTypes[K]
     }
     if (key === 'desktop.model') {
@@ -159,6 +189,7 @@ function mergeValue<K extends ConfigKey>(values: ConfigValues, key: K, value: un
 function readProjectConfig(values: ConfigValues): ProjectConfig {
     return {
         actionsFolder: values['project.actionsFolder'],
+        archivedFolder: values['project.archivedFolder'],
         backgroundShade: values['project.backgroundShade'],
         cardBodyTemplate: values['project.cardBodyTemplate'],
         cardSeparator: values['project.cardSeparator'],
@@ -166,6 +197,7 @@ function readProjectConfig(values: ConfigValues): ProjectConfig {
         diffCommand: values['project.diffCommand'],
         projectFolder: values['project.projectFolder'],
         pushMode: values['project.pushMode'],
+        releasesFolder: values['project.releasesFolder'],
         states: values['project.states'],
         workingFolder: values['project.workingFolder'],
     }
@@ -263,12 +295,18 @@ export class ConfigService extends EventTarget {
 
         if (projectConfig?.workingFolder !== undefined) nextValues = mergeValue(nextValues, 'project.workingFolder', projectConfig.workingFolder)
         if (projectConfig?.actionsFolder !== undefined) nextValues = mergeValue(nextValues, 'project.actionsFolder', projectConfig.actionsFolder)
+        if (projectConfig?.archivedFolder !== undefined) {
+            nextValues = mergeValue(nextValues, 'project.archivedFolder', projectConfig.archivedFolder)
+        }
         if (projectConfig?.backgroundShade !== undefined) {
             nextValues = mergeValue(nextValues, 'project.backgroundShade', projectConfig.backgroundShade)
         }
         if (projectConfig?.projectFolder !== undefined) nextValues = mergeValue(nextValues, 'project.projectFolder', projectConfig.projectFolder)
         if (projectConfig?.diffCommand !== undefined) nextValues = mergeValue(nextValues, 'project.diffCommand', projectConfig.diffCommand)
         if (projectConfig?.pushMode !== undefined) nextValues = mergeValue(nextValues, 'project.pushMode', projectConfig.pushMode)
+        if (projectConfig?.releasesFolder !== undefined) {
+            nextValues = mergeValue(nextValues, 'project.releasesFolder', projectConfig.releasesFolder)
+        }
         if (projectConfig?.cardBodyTemplate !== undefined) {
             nextValues = mergeValue(nextValues, 'project.cardBodyTemplate', projectConfig.cardBodyTemplate)
         }
@@ -278,6 +316,7 @@ export class ConfigService extends EventTarget {
         if (projectConfig?.cardTypes !== undefined) nextValues = mergeValue(nextValues, 'project.cardTypes', projectConfig.cardTypes)
         if (projectConfig?.states !== undefined) nextValues = mergeValue(nextValues, 'project.states', projectConfig.states)
 
+        validateProjectFolderPaths(nextValues)
         this.values = nextValues
         this.projectLoaded = true
         this.dispatchChanged()
@@ -328,6 +367,7 @@ export class ConfigService extends EventTarget {
     saveDraft() {
         const draft = this.requireDraft()
         for (const key of PROJECT_KEYS) validateValue(key, draft[key])
+        validateProjectFolderPaths(draft)
         this.values = draft
         this.draftValues = null
         writeStoredReactValues(this.values)

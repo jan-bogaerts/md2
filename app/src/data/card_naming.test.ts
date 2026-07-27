@@ -10,8 +10,14 @@ describe('cardNaming', () => {
         expect(slugifyTitle(' New / Card___Here! ', '-')).toBe('new-card-here')
     })
 
-    it('uses the next available number across folders and archived history cards', () => {
-        expect(getNextCardNumber(files, 'F')).toBe(4)
+    it('uses the next available number across configured release and archived folders', () => {
+        const configuredFolderFiles = [
+            ...files,
+            { content: '# Released', path: 'design/records/releases/v1/F-8-released.md' },
+            { content: '# Archived', path: 'design/records/archived/F-9-archived.md' },
+        ]
+
+        expect(getNextCardNumber(configuredFolderFiles, 'F')).toBe(10)
     })
 
     it('creates cards with configured id and filename convention', () => {

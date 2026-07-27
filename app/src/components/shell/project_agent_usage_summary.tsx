@@ -1,7 +1,11 @@
 import DataUsageOutlined from '@mui/icons-material/DataUsageOutlined'
 import { Box, Button, Divider, Popover, Stack, Typography } from '@mui/material'
 import { useMemo, useState, type MouseEvent } from 'react'
-import { DEFAULT_PROJECT_FOLDER } from '../../data/data_types'
+import {
+    DEFAULT_ARCHIVED_FOLDER,
+    DEFAULT_PROJECT_FOLDER,
+    DEFAULT_RELEASES_FOLDER,
+} from '../../data/data_types'
 import { projectAgentTokenUsage } from '../../services/agents/agent_usage'
 import { AgentUsageDisplay } from '../agents/agent_usage_display'
 import { useProjectConfig } from '../hooks/use_project_config'
@@ -12,8 +16,12 @@ export function ProjectAgentUsageSummary() {
     const { snapshot } = useProjectState()
     const projectConfig = useProjectConfig()
     const [anchorElement, setAnchorElement] = useState<HTMLElement | null>(null)
-    const projectFolder = projectConfig?.projectFolder ?? DEFAULT_PROJECT_FOLDER
-    const totals = useMemo(() => projectAgentTokenUsage(snapshot, projectFolder), [projectFolder, snapshot])
+    const releasesFolder = projectConfig?.releasesFolder ?? `${DEFAULT_PROJECT_FOLDER}/${DEFAULT_RELEASES_FOLDER}`
+    const archivedFolder = projectConfig?.archivedFolder ?? `${DEFAULT_PROJECT_FOLDER}/${DEFAULT_ARCHIVED_FOLDER}`
+    const totals = useMemo(
+        () => projectAgentTokenUsage(snapshot, releasesFolder, archivedFolder),
+        [archivedFolder, releasesFolder, snapshot],
+    )
 
     const openSummary = (event: MouseEvent<HTMLElement>) => {
         setAnchorElement(event.currentTarget)
@@ -23,7 +31,7 @@ export function ProjectAgentUsageSummary() {
         setAnchorElement(null)
     }
 
-    const versions = [totals.current, ...totals.releases]
+    const versions = [totals.current, totals.archived, ...totals.releases]
 
     return (
         <>

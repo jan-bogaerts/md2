@@ -450,14 +450,18 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
     const handleRun = async () => {
         if (agentActive && executionId) {
             if (sharedExecution?.question) return
-            if (streamingActive) {
-                if (input.sendMessage) await sendMessage(executionId, prompt)
-                else await actionExecutionService.sendPromptDraft(action.id, context)
+            try {
+                if (streamingActive) {
+                    if (input.sendMessage) await sendMessage(executionId, prompt)
+                    else await actionExecutionService.sendPromptDraft(action.id, context)
+                }
+                else await actionExecutionService.setPromptDraft(action.id, context, prompt)
+                setPromptState({ key: promptKey, status: 'ready', value: '' })
+                actionExecutionService.clearPromptDraft(action.id, context)
+                setPromptResetToken((token) => token + 1)
+            } catch (error) {
+                dialogService.error(error, { fallbackMessage: 'Could not send agent message' })
             }
-            else await actionExecutionService.setPromptDraft(action.id, context, prompt)
-            setPromptState({ key: promptKey, status: 'ready', value: '' })
-            actionExecutionService.clearPromptDraft(action.id, context)
-            setPromptResetToken((token) => token + 1)
             return
         }
         await runWithPrompt(prompt)
@@ -474,14 +478,18 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
     const handlePhraseDoubleClick = async (text: string) => {
         handlePhraseSelect(text)
         if (agentActive && executionId) {
-            await actionExecutionService.setPromptDraft(action.id, context, text)
-            if (streamingActive) {
-                if (input.sendMessage) await sendMessage(executionId, text)
-                else await actionExecutionService.sendPromptDraft(action.id, context)
+            try {
+                await actionExecutionService.setPromptDraft(action.id, context, text)
+                if (streamingActive) {
+                    if (input.sendMessage) await sendMessage(executionId, text)
+                    else await actionExecutionService.sendPromptDraft(action.id, context)
+                }
+                setPromptState({ key: promptKey, status: 'ready', value: '' })
+                actionExecutionService.clearPromptDraft(action.id, context)
+                setPromptResetToken((token) => token + 1)
+            } catch (error) {
+                dialogService.error(error, { fallbackMessage: 'Could not send agent message' })
             }
-            setPromptState({ key: promptKey, status: 'ready', value: '' })
-            actionExecutionService.clearPromptDraft(action.id, context)
-            setPromptResetToken((token) => token + 1)
             return
         }
         await runWithPrompt(text)
@@ -518,15 +526,23 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
     const handleFinish = async () => {
         if (!executionId) return
 
-        await finishAction(executionId)
-        setPromptState({ key: promptKey, status: 'ready', value: '' })
-        actionExecutionService.clearPromptDraft(action.id, context)
+        try {
+            await finishAction(executionId)
+            setPromptState({ key: promptKey, status: 'ready', value: '' })
+            actionExecutionService.clearPromptDraft(action.id, context)
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: 'Could not finish agent session' })
+        }
     }
 
     const handleAnswerQuestion = async (answers: Record<string, string[]>) => {
         if (!executionId || !sharedExecution?.question) return
 
-        await answerQuestion(executionId, sharedExecution.question.requestId, answers)
+        try {
+            await answerQuestion(executionId, sharedExecution.question.requestId, answers)
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: 'Could not answer agent question' })
+        }
     }
 
     const handleToggleSchedule = () => {

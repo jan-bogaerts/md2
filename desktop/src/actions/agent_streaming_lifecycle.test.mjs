@@ -95,6 +95,50 @@ describe('AgentRunnerService streaming lifecycle', () => {
         }
     }, TEST_TIMEOUT_MS);
 
+    it('concatenates streamed deltas verbatim without paragraph separators', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-streaming-'));
+        const scriptPath = join(rootPath, 'delta-codex.cjs');
+        const service = new AgentRunnerService({ persistConversation: vi.fn(async () => undefined) });
+        const events = [];
+        const completion = Promise.withResolvers();
+
+        try {
+            await prepareProject(rootPath);
+            await writeFile(scriptPath, [
+                "const readline=require('node:readline');",
+                "const send=(message)=>console.log(JSON.stringify(message));",
+                "const input=readline.createInterface({input:process.stdin});",
+                "input.on('line',(line)=>{",
+                "const message=JSON.parse(line);",
+                "if(message.method==='initialize')send({id:message.id,result:{}});",
+                "if(message.method==='thread/start')send({id:message.id,result:{thread:{id:'thread-1'}}});",
+                "if(message.method==='turn/start'){",
+                "send({method:'turn/started',params:{turn:{id:'turn-1'}}});",
+                "for(const delta of ['Hel','lo ','world','\\n- item'])send({method:'item/agentMessage/delta',params:{delta}});",
+                "send({method:'turn/completed',params:{turn:{status:'completed'}}});",
+                "}",
+                "});",
+            ].join(''));
+            const started = await service.start(
+                { branch: 'main', rootPath },
+                { ...request(['node', scriptPath]), agent: 'codex' },
+                (event) => events.push(event),
+                (exitCode, run) => completion.resolve({ exitCode, run }),
+                completion.reject,
+            );
+
+            await waitFor(events, (event) => event.type === 'state' && event.state === 'waitingForInput');
+            service.finish(started.runId);
+            const result = await completion.promise;
+
+            expect(result.run.stdout).toBe('Hello world\n- item');
+            expect(result.run.conversation.messages.at(-1).content).toBe('Hello world\n- item');
+        } finally {
+            await service.stopAll();
+            await rm(rootPath, { force: true, recursive: true });
+        }
+    }, TEST_TIMEOUT_MS);
+
     it('fails when a streaming process exits before Finish', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-streaming-'));
         const service = new AgentRunnerService({ persistConversation: vi.fn(async () => undefined) });
@@ -176,6 +220,69 @@ describe('AgentRunnerService streaming lifecycle', () => {
             expect(result.run.turnStarted).toBe(false);
             expect(result.run.conversation.messages.filter(({ content, role }) => content === 'next' && role === 'user')).toHaveLength(1);
             expect(result.run.conversation.providerSessions[0].synchronizedThroughMessageId).toBe('message-1');
+        } finally {
+            await service.stopAll();
+            await rm(rootPath, { force: true, recursive: true });
+        }
+    }, TEST_TIMEOUT_MS);
+
+    it.each([
+        {
+            agent: 'codex',
+            expectedError: 'initialize failed',
+            script: [
+                "const readline=require('node:readline');",
+                "const input=readline.createInterface({input:process.stdin});",
+                "input.on('line',(line)=>{",
+                "const message=JSON.parse(line);",
+                "if(message.method==='initialize')console.log(JSON.stringify({id:message.id,error:{message:'initialize failed'}}));",
+                "});",
+                "setInterval(()=>undefined,1000);",
+            ].join(''),
+            title: 'Codex request error',
+        },
+        {
+            agent: 'claude',
+            expectedError: 'Malformed claude JSONL event',
+            script: "process.stdin.once('data',()=>console.log('not-json'));setInterval(()=>undefined,1000);",
+            title: 'malformed provider JSON',
+        },
+        {
+            agent: 'codex',
+            expectedError: 'Codex app-server did not return a thread id',
+            script: [
+                "const readline=require('node:readline');",
+                "const input=readline.createInterface({input:process.stdin});",
+                "input.on('line',(line)=>{",
+                "const message=JSON.parse(line);",
+                "if(message.method==='initialize')console.log(JSON.stringify({id:message.id,result:{}}));",
+                "if(message.method==='thread/start')console.log(JSON.stringify({id:message.id,result:{}}));",
+                "});",
+                "setInterval(()=>undefined,1000);",
+            ].join(''),
+            title: 'streaming adapter exception',
+        },
+    ])('terminates and fails on $title', async ({ agent, expectedError, script }) => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-streaming-'));
+        const scriptPath = join(rootPath, 'failing-agent.cjs');
+        const service = new AgentRunnerService({ persistConversation: vi.fn(async () => undefined) });
+        const completion = Promise.withResolvers();
+
+        try {
+            await prepareProject(rootPath);
+            await writeFile(scriptPath, script);
+            await service.start(
+                { branch: 'main', rootPath },
+                { ...request(['node', scriptPath]), agent },
+                () => undefined,
+                (exitCode, run) => completion.resolve({ exitCode, run }),
+                completion.reject,
+            );
+            const result = await completion.promise;
+
+            expect(result.exitCode).not.toBe(0);
+            expect(result.run.conversation.status).toBe('failed');
+            expect(result.run.stderr).toContain(expectedError);
         } finally {
             await service.stopAll();
             await rm(rootPath, { force: true, recursive: true });
