@@ -1,5 +1,6 @@
 {
   "actionsFolder": "actions",
+  "archivedFolder": "archived",
   "backgroundShade": "neutral",
   "cardBodyTemplate": "# Goal\n\n# Current status\n\n# Details\n\n# Tasks",
   "cardSeparator": "_",
@@ -26,6 +27,7 @@
   "diffCommand": "git show {{commit}}",
   "projectFolder": "design",
   "pushMode": "manual",
+  "releasesFolder": "releases",
   "states": [
     {
       "alwaysVisible": true,
