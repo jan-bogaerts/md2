@@ -3,6 +3,7 @@ import {
     actionContextIdentity, displayActionsForContext, projectContextWithWorktree, type ActionContext,
 } from '../../data/action_context'
 import { CUSTOM_PROMPT_ACTION_ID } from '../../data/action_types'
+import type { ActionExecutionStatus } from '../../data/action_run_types'
 import type { AgentConversation } from '../../data/data_types'
 import { dialogService } from '../../services/dialog_service'
 import { useActions } from '../hooks/use_actions'
@@ -37,9 +38,11 @@ export function ActionPopup(props: ActionPopupProps) {
     )
     const actions = useMemo(() => displayActionsForContext(loadedActions, effectiveContext), [effectiveContext, loadedActions])
     const contextIdentity = actionContextIdentity(context)
-    const runningActionIds = [...new Set(runningExecutions
-        .filter((execution) => actionContextIdentity(execution.context) === contextIdentity)
-        .map((execution) => execution.rootActionId))]
+    const activeActionStatuses: Record<string, ActionExecutionStatus> = {}
+    const contextExecutions = runningExecutions.filter((execution) => actionContextIdentity(execution.context) === contextIdentity)
+    for (const { rootActionId, status } of contextExecutions) {
+        if (status === 'waitingForInput' || !activeActionStatuses[rootActionId]) activeActionStatuses[rootActionId] = status
+    }
     const [selectedActionId, setSelectedActionId] = useState<string | null>(initialActionId ?? actions[0]?.id ?? null)
     const [showSaveControls, setShowSaveControls] = useState(false)
     const [fullHeight, setFullHeight] = useState(false)
@@ -87,7 +90,7 @@ export function ActionPopup(props: ActionPopupProps) {
             onToggleFullHeight={handleToggleFullHeight}
             open={open ?? !!anchorElement}
             primaryPath={project?.rootPath ?? project?.id ?? null}
-            runningActionIds={runningActionIds}
+            activeActionStatuses={activeActionStatuses}
             showSaveControls={showSaveControls}
             titleId={titleId}
         />

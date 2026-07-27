@@ -71,6 +71,7 @@ describe('ActionPopup', () => {
     })
 
     afterEach(() => {
+        actionExecutionService.stop()
         delete window.md2Actions
         actionService.clear()
         worktreeService.clear()
@@ -157,6 +158,53 @@ describe('ActionPopup', () => {
 
         expect(screen.queryByText('Before')).not.toBeInTheDocument()
         expect(screen.queryByText('After')).not.toBeInTheDocument()
+    })
+
+    it('shows waiting action state through popup reopen, resume, and completion', async () => {
+        actionExecutionService.stop()
+        let executionListener: ((event: ActionExecutionEvent) => void) | null = null
+        window.md2Actions = {
+            loadActionRunHistory: vi.fn(async () => []),
+            onActionExecution: vi.fn((listener) => {
+                executionListener = listener
+                return vi.fn()
+            }),
+            prepareActionPrompt: vi.fn(async () => ({ prompt: 'Plan' })),
+        } as unknown as typeof window.md2Actions
+        actionExecutionService.start()
+        actionService.loadFromFiles([file(agentDefinition('stream', { label: 'Stream', streaming: true }))])
+        renderPopup()
+        await waitFor(() => expect(executionListener).not.toBeNull())
+        const eventBase = {
+            actionId: 'stream',
+            actionType: 'agent' as const,
+            autoFinish: null,
+            context,
+            executionId: 'execution-1',
+            interactionReady: true,
+            phase: 'main' as const,
+            rootActionId: 'stream',
+            streaming: true,
+        }
+
+        act(() => {
+            executionListener?.({ ...eventBase, status: 'running', type: 'execution' })
+            executionListener?.({ ...eventBase, status: 'waitingForInput', type: 'agentState' })
+        })
+        const waitingButton = screen.getByRole('button', { name: /Stream.*Agent is waiting for input/u })
+        expect(waitingButton).toBeInTheDocument()
+        fireEvent.mouseOver(waitingButton)
+        expect(await screen.findByRole('tooltip')).toHaveTextContent('Agent is waiting for input')
+
+        cleanup()
+        renderPopup()
+        expect(screen.getByRole('button', { name: /Stream.*Agent is waiting for input/u })).toBeInTheDocument()
+
+        act(() => executionListener?.({ ...eventBase, status: 'running', type: 'agentState' }))
+        expect(screen.getByRole('button', { name: /Stream.*Agent is running/u })).toBeInTheDocument()
+
+        act(() => executionListener?.({ ...eventBase, status: 'completed', type: 'execution' }))
+        expect(screen.getByRole('button', { name: 'Stream' })).toBeInTheDocument()
     })
 
     it('closes from the popup header', () => {

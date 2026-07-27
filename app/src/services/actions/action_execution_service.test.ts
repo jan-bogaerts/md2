@@ -221,6 +221,28 @@ describe('ActionExecutionService', () => {
         service.stop()
     })
 
+    it('notifies running-only subscribers when an execution starts waiting or resumes', () => {
+        const { bridge, emit } = bridgeWithEvents()
+        setActionBridgeOverride(bridge)
+        const service = new ActionExecutionService()
+        const runningChanged = vi.fn()
+        service.addEventListener('runningChanged', runningChanged)
+        service.start()
+
+        emit(executionEvent('running'))
+        emit({
+            actionId: 'build', context, executionId: 'execution-1', phase: 'main', rootActionId: 'build',
+            status: 'waitingForInput', type: 'agentState',
+        })
+        emit({
+            actionId: 'build', context, executionId: 'execution-1', phase: 'main', rootActionId: 'build',
+            status: 'running', type: 'agentState',
+        })
+
+        expect(runningChanged).toHaveBeenCalledTimes(3)
+        service.stop()
+    })
+
     it('preserves and synchronizes active-action prompt drafts', async () => {
         const setActionQueuedMessage = vi.fn(async () => undefined)
         const activeContext = { ...context, cardInternalId: 'card-1' }

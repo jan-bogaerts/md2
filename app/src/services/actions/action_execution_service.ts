@@ -497,7 +497,10 @@ export class ActionExecutionService extends EventTarget {
             status === 'running' || status === 'waitingForInput'
         ))
         const runningChanged = nextRunningSnapshot.length !== this.runningSnapshot.length
-            || nextRunningSnapshot.some(({ executionId }, index) => this.runningSnapshot[index]?.executionId !== executionId)
+            || nextRunningSnapshot.some(({ executionId, status }, index) => (
+                this.runningSnapshot[index]?.executionId !== executionId
+                || this.runningSnapshot[index]?.status !== status
+            ))
         this.runningSnapshot = nextRunningSnapshot
         this.dispatchEvent(new CustomEvent('changed'))
         if (runningChanged) this.dispatchEvent(new CustomEvent('runningChanged'))

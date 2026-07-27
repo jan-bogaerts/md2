@@ -8,6 +8,7 @@ import ArrowUpwardOutlined from '@mui/icons-material/ArrowUpwardOutlined'
 import CheckOutlined from '@mui/icons-material/CheckOutlined'
 import StopOutlined from '@mui/icons-material/StopOutlined'
 import type { ActionContext } from '../../data/action_context'
+import type { ActionExecutionStatus } from '../../data/action_run_types'
 import { CUSTOM_PROMPT_ACTION_ID, type ActionDefinition } from '../../data/action_types'
 import type { AgentConversation } from '../../data/data_types'
 import { worktreeService } from '../../services/project/worktree_service'
@@ -34,6 +35,7 @@ export const PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY = 'md2.projectAgentPopupSize'
 const MIN_CHAT_HEIGHT = 96
 
 interface ActionPopupContentProps {
+    activeActionStatuses: Record<string, ActionExecutionStatus>
     action: ActionDefinition
     actions: ActionDefinition[]
     anchorElement: HTMLElement | null
@@ -48,7 +50,6 @@ interface ActionPopupContentProps {
     onToggleFullHeight: () => void
     open: boolean
     primaryPath: string | null
-    runningActionIds: string[]
     showSaveControls: boolean
     titleId: string
     unseenResultActionIds?: string[]
@@ -88,8 +89,8 @@ function worktreeAssignmentTarget(context: ActionContext): WorktreeAssignmentTar
 /** Presentation and execution behavior for the internally selected popup action. */
 export function ActionPopupContent(props: ActionPopupContentProps) {
     const {
-        action, actions, anchorElement, assignmentContext, baseContext, draggable, fullHeight, onAddAction, onClose, onSelectAction,
-        onToggleFullHeight, open, primaryPath, runningActionIds, showSaveControls, titleId, unseenResultActionIds = [],
+        action, actions, activeActionStatuses, anchorElement, assignmentContext, baseContext, draggable, fullHeight, onAddAction, onClose,
+        onSelectAction, onToggleFullHeight, open, primaryPath, showSaveControls, titleId, unseenResultActionIds = [],
     } = props
     const controller = useActionPopupController({
         action,
@@ -199,11 +200,11 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
                     </IconButton>
                 </Box>
                 <ActionSelector
+                    activeActionStatuses={activeActionStatuses}
                     adding={showSaveControls}
                     actions={actions}
                     onAdd={onAddAction}
                     onSelect={onSelectAction}
-                    runningActionIds={runningActionIds}
                     selectedAction={action}
                     unseenResultActionIds={unseenResultActionIds}
                 />

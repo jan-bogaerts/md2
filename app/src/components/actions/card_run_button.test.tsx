@@ -151,6 +151,43 @@ describe('CardRunButton', () => {
         expect(within(screen.getByRole('dialog')).getByRole('button', { name: 'Implement — Agent is running' })).toBeInTheDocument()
     })
 
+    it('prefers live waiting and resumed states over persisted conversation state', () => {
+        let listener: ((event: ActionExecutionEvent) => void) | null = null
+        window.md2Actions = {
+            onActionExecution: (nextListener: (event: ActionExecutionEvent) => void) => {
+                listener = nextListener
+
+                return vi.fn()
+            },
+        } as unknown as typeof window.md2Actions
+        actionExecutionService.start()
+        if (!listener) throw new Error('Missing action execution listener')
+        const waitingCard = cardWith([conversation('waitingForInput')])
+        const context = cardContext(waitingCard, DEFAULT_CARD_TYPES)
+        renderCardRunButton(waitingCard)
+
+        expect(screen.getByRole('button', { name: /Agent is waiting for input/u })).toBeInTheDocument()
+
+        const emit = listener as (event: ActionExecutionEvent) => void
+        act(() => emit({
+            actionId: 'implement', context, executionId: 'execution-1', phase: 'main', rootActionId: 'implement',
+            status: 'running', type: 'execution',
+        }))
+        expect(screen.getByRole('button', { name: /Action is running/u })).toBeInTheDocument()
+
+        act(() => emit({
+            actionId: 'implement', context, executionId: 'execution-1', phase: 'main', rootActionId: 'implement',
+            status: 'waitingForInput', type: 'agentState',
+        }))
+        expect(screen.getByRole('button', { name: /Agent is waiting for input/u })).toBeInTheDocument()
+
+        act(() => emit({
+            actionId: 'implement', context, executionId: 'execution-1', phase: 'main', rootActionId: 'implement',
+            status: 'running', type: 'agentState',
+        }))
+        expect(screen.getByRole('button', { name: /Action is running/u })).toBeInTheDocument()
+    })
+
     it('keeps the popup anchor mounted when an action starts', () => {
         let listener: ((event: ActionExecutionEvent) => void) | null = null
         window.md2Actions = {
