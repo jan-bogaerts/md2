@@ -3,7 +3,7 @@ author:
 id: F_69
 internalId: e08c4b32-0bff-42a8-9df2-b0df009606ab
 title: Config in dialog
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
