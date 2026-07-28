@@ -78,6 +78,23 @@ describe('OpenFilesService', () => {
         expect(changed).toHaveBeenCalledOnce()
     })
 
+    it('opens a regular markdown file without an internal ID and identifies it by path', () => {
+        const plainFile = card('notes', 'design/architecture/notes.md')
+        plainFile.header.internalId = null
+        const ownerState = owners([plainFile])
+        const service = new OpenFilesService()
+        service.init({ actionService: ownerState.actionOwner, dataService: ownerState.dataOwner })
+
+        const document = service.openDocument(plainFile)
+        const renewedFile = { ...plainFile, content: '# Notes renewed' }
+        ownerState.renewCards([renewedFile])
+
+        expect(document.path).toBe('design/architecture/notes.md')
+        expect(service.getSnapshot().documents).toEqual([document])
+        expect(document.getObject()).toBe(renewedFile)
+        expect(() => service.openBoardDocument(plainFile)).toThrow('Card identity was not added before opening')
+    })
+
     it('does not publish a Markdown replacement when only a dirty document object renews', () => {
         const firstCard = card('card-1')
         const ownerState = owners([firstCard])

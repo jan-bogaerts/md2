@@ -60,7 +60,6 @@ function tabData(cardTypes: CardTypeConfig[], actionsFolder: string, document: O
         return { color: null, document, id: null, key: `action:${action.id}`, kind: 'action', label: action.label, title: action.label }
     }
     const card = document.getObject()
-    if (!card.header.internalId) return null
     const label = fileLabel(card)
     const id = label.startsWith(`${card.header.id} `) ? card.header.id : null
 
@@ -68,7 +67,7 @@ function tabData(cardTypes: CardTypeConfig[], actionsFolder: string, document: O
         color: cardTypeColor(card, cardTypes),
         document,
         id,
-        key: `card:${card.header.internalId}`,
+        key: `card:${card.header.internalId ?? card.path}`,
         kind: tabKind(card, actionsFolder),
         label,
         title: id ? label.slice(id.length + 1) : label,

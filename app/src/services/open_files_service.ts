@@ -45,11 +45,11 @@ function isCardDraft(draft: OpenDocumentDraft): draft is ProjectCard {
     return 'header' in draft
 }
 
+/** Cards are identified by their stable internal ID; regular markdown files have none and use their path. */
 function documentIdentity(object: OpenDocumentObject) {
     if (!isProjectCard(object)) return object.id
-    if (!object.header.internalId) throw new Error(`Card identity was not added before opening: ${object.path}`)
 
-    return object.header.internalId
+    return object.header.internalId ?? object.path
 }
 
 function projectKey(project: ProjectReference | null) {
@@ -138,6 +138,8 @@ export class OpenFilesService extends EventTarget {
     }
 
     openBoardDocument(object: ProjectCard): CardOpenDocument {
+        // Board cards live in the working folder root, so they always carry a stable identity.
+        if (!object.header.internalId) throw new Error(`Card identity was not added before opening: ${object.path}`)
         const document = this.getOrCreateDocument(object)
         if (document.kind !== 'card') throw new Error('Board view can only open card documents')
 

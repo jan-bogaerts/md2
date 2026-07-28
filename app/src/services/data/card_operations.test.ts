@@ -60,6 +60,22 @@ describe('CardOperations', () => {
         })
     })
 
+    it('leaves markdown files outside the working folder root untouched during project load', async () => {
+        configService.init()
+        const plainFiles = [
+            { content: '# Notes', path: 'design/architecture/notes.md' },
+            { content: '---\ntitle: Old\n---\n\n# Old', path: 'design/history/F-3-old.md' },
+        ]
+        const storage = createStorage({ loadProjectRoot: vi.fn(async () => ({ files: plainFiles, workingFolder: 'design' })) })
+        const service = createDataService()
+        service.init({ storage })
+
+        const snapshot = await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+
+        expect(snapshot.backgroundCards.map(({ header }) => header.internalId)).toEqual([null, null])
+        expect(storage.commit).not.toHaveBeenCalled()
+    })
+
     it('creates cards with commits and auto-pushes when configured', async () => {
         configService.init()
         const storage = createStorage()

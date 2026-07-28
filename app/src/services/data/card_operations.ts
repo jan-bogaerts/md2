@@ -184,10 +184,15 @@ export class CardOperations {
         }, saveReference)
     }
 
-    /** Adds persisted identities to legacy cards loaded without an internal ID. */
+    /**
+     * Adds persisted identities to legacy cards loaded without an internal ID.
+     * Only cards in the working folder root qualify; every other markdown file is a
+     * regular document that must be left untouched, see the card classification rule
+     * in design/architecture/current_data_model.md.
+     */
     ensureCardInternalIds() {
         const snapshot = this.dependencies.snapshot()
-        const cards = [...(snapshot?.activeCards ?? []), ...(snapshot?.backgroundCards ?? [])]
+        const cards = (snapshot?.activeCards ?? []).filter((card) => card.isActive)
         const { commitBatcher, config } = this.dependencies.requireDependencies()
         const currentProject = this.dependencies.project()
         if (!currentProject) throw new Error('Cannot add card identities before a project is open')

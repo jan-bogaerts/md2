@@ -67,6 +67,22 @@ Electron filesystem/Git
 
 Electron retains some transient state—current project, running executions, locks, schedules, watchers—but not the renderer’s complete card snapshot.
 
+## Cards versus regular markdown files
+
+A project folder contains both cards and ordinary markdown documents. The boundary between them is hard, and it is decided by location, not by content:
+
+- Markdown files in the **root of the working folder** are always cards. They must have an `internalId`; one is generated and persisted when missing.
+- Markdown files in the **archived or releases folder** are former cards and already carry an `internalId`. A file there *without* an `internalId` is a regular markdown file.
+- **Any other** markdown file in the project is a regular markdown file. It never receives an `internalId`, and loading a project must not rewrite it.
+
+Consequences:
+
+- `after:` chains only ever link cards, so every participant in a chain has an `internalId`.
+- Regular markdown files are identified by path alone, everywhere.
+- A regular markdown file becomes a card only through an explicit user action that moves it into the working folder root; the `internalId` is written at that moment.
+
+The classification is applied in [markdown_parsing_service.ts](C:/Users/janbo/Documents/dev/md2/app/src/services/data/markdown_parsing_service.ts:355).
+
 ## How Electron uses file paths
 
 Electron uses two distinct kinds of paths.

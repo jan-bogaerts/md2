@@ -352,6 +352,13 @@ export const markdownParsingService = {
         return { body, header: parseHeaderFields(rawHeader), rawHeader }
     },
 
+    /**
+     * Parses a markdown file into a card. `isActive` marks the working folder root files,
+     * which are the only ones that are always cards and always get an `internalId`.
+     * Archived and released files are cards when they already carry an `internalId`;
+     * all other markdown is a regular document that never receives one.
+     * See the card classification rule in design/architecture/current_data_model.md.
+     */
     parseCard(file: MarkdownFile, workingFolder: string): ProjectCard {
         const { body, rawHeader } = splitHeader(file.content)
         const fields = parseHeaderFields(rawHeader)
