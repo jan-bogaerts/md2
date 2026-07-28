@@ -9,10 +9,11 @@ affects:
 agents:
 policy:
 ---
-
 # Goal
 
 dragging a card to the first row, pushes it back to the end or the previous place it was.
+
+Most likely, the 'previous
 
 # Current status
 
