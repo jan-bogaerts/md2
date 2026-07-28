@@ -1143,6 +1143,12 @@
           "id": "agent-turn-4c628a5d-14a9-427a-a978-bac09f03cda5-turn-1-assistant",
           "role": "assistant",
           "timestamp": "2026-07-28T14:27:02.330Z"
+        },
+        {
+          "content": "so all ok now?&#x9;",
+          "id": "agent-turn-4c628a5d-14a9-427a-a978-bac09f03cda5-user-2",
+          "role": "user",
+          "timestamp": "2026-07-28T14:29:52.633Z"
         }
       ],
       "providerSessions": [
@@ -1155,7 +1161,7 @@
         }
       ],
       "startedAt": "2026-07-28T14:22:42.522Z",
-      "status": "waitingForInput",
+      "status": "running",
       "title": "Custom prompt",
       "usage": {
         "cachedInputTokens": 24320,
