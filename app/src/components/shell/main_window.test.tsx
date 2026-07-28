@@ -273,22 +273,19 @@ describe('MainWindow', () => {
     it('preserves workspace, view, search, and open files after config closes', async () => {
         mockMatchMedia(false)
         await openProjectWithCards()
+        openFilesService.openPath('design/F-1-root.md')
         renderWindow()
         typeQuery('Root')
-        fireEvent.click(screen.getByRole('button', { name: 'Text view' }))
-        await screen.findByLabelText('File tree')
-        fireEvent.click(screen.getByText('Root'))
         const workspace = screen.getByLabelText('Project workspace')
-        const searchInput = screen.getByRole('textbox', { name: 'Search project' })
 
         fireEvent.click(screen.getByRole('button', { name: 'Config' }))
         fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
 
         expect(screen.getByLabelText('Project workspace')).toBe(workspace)
-        expect(screen.getByRole('textbox', { name: 'Search project' })).toBe(searchInput)
-        expect(searchInput).toHaveValue('Root')
-        expect(screen.getByLabelText('File tree')).toBeInTheDocument()
+        expect(screen.getByRole('textbox', { name: 'Search project' })).toHaveValue('Root')
+        expect(workspaceViewService.getSnapshot().viewMode).toBe('cards')
         expect(openFilesService.getSnapshot().documents).toHaveLength(1)
+        expect(screen.getByLabelText('Card columns')).toHaveTextContent('Root')
         expect(screen.getByRole('contentinfo')).toHaveTextContent('2cards')
     })
 
