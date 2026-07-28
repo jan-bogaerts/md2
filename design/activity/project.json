@@ -714,7 +714,8 @@
     {
       "actionId": "md2.custom-prompt",
       "cardInternalId": null,
-      "completedAt": null,
+      "cardPath": null,
+      "completedAt": "2026-07-28T13:46:33.179Z",
       "events": [
         {
           "content": "codex --model gpt-5.6-sol -c model_reasoning_effort=medium app-server --stdio",
@@ -949,6 +950,12 @@
           "id": "agent-turn-876c3c1a-35a1-4eef-bef1-a058b49b8616-turn-2-completed",
           "timestamp": "2026-07-28T13:39:26.919Z",
           "type": "turnCompleted"
+        },
+        {
+          "content": "1",
+          "id": "agent-turn-876c3c1a-35a1-4eef-bef1-a058b49b8616-closed",
+          "timestamp": "2026-07-28T13:46:33.179Z",
+          "type": "closed"
         }
       ],
       "hasExplicitTitle": true,
@@ -978,7 +985,7 @@
           "content": "Checked. Cause: VS Code Node auto-attach debugger inherited by agent. Tests hang waiting for debugger.\n\nFix per terminal:\n\n```powershell\n$env:NODE_OPTIONS=$null\n$env:VSCODE_INSPECTOR_OPTIONS=$null\nnpm test\n```\n\nVerified:\n\n- App test: passed.\n- Desktop test: 10 passed.\n- Debug app untouched.\n- No files changed.",
           "id": "agent-turn-876c3c1a-35a1-4eef-bef1-a058b49b8616-turn-2-assistant",
           "role": "assistant",
-          "timestamp": "2026-07-28T13:39:26.919Z"
+          "timestamp": "2026-07-28T13:46:33.179Z"
         }
       ],
       "providerSessions": [
@@ -991,7 +998,7 @@
         }
       ],
       "startedAt": "2026-07-28T13:34:27.217Z",
-      "status": "waitingForInput",
+      "status": "cancelled",
       "title": "Custom prompt",
       "usage": {
         "cachedInputTokens": 60928,
@@ -1000,6 +1007,33 @@
         "reasoningTokens": 198,
         "totalTokens": 126077
       }
+    },
+    {
+      "actionId": "md2.custom-prompt",
+      "cardInternalId": null,
+      "completedAt": null,
+      "events": [
+        {
+          "content": "codex --model gpt-5.6-sol -c model_reasoning_effort=medium app-server --stdio",
+          "id": "agent-turn-4c628a5d-14a9-427a-a978-bac09f03cda5-started",
+          "timestamp": "2026-07-28T14:22:42.522Z",
+          "type": "started"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-b808e573-ce16-428d-9c0c-71154e7fc369",
+      "messages": [
+        {
+          "content": "can you run the tests now properly in this worktree?",
+          "id": "agent-turn-4c628a5d-14a9-427a-a978-bac09f03cda5-user",
+          "role": "user",
+          "timestamp": "2026-07-28T14:22:42.522Z"
+        }
+      ],
+      "providerSessions": [],
+      "startedAt": "2026-07-28T14:22:42.522Z",
+      "status": "running",
+      "title": "Custom prompt"
     }
   ],
   "origin": {
