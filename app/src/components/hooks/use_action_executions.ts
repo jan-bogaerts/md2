@@ -32,8 +32,14 @@ function subscribeToRunningActionChanges(listener: () => void) {
     return () => actionExecutionService.removeEventListener('runningChanged', listener)
 }
 
-function useRunningActionExecutionId(getExecutionId: () => string | null) {
-    return useSyncExternalStore(subscribeToRunningActionChanges, getExecutionId, getExecutionId)
+function useRunningActionExecutionKey(getExecution: () => { executionId: string, status: string } | null) {
+    const getExecutionKey = () => {
+        const execution = getExecution()
+
+        return execution ? `${execution.executionId}\u0000${execution.status}` : null
+    }
+
+    return useSyncExternalStore(subscribeToRunningActionChanges, getExecutionKey, getExecutionKey)
 }
 
 export function useActionExecution(actionId: string, context: ActionContext) {
@@ -43,19 +49,19 @@ export function useActionExecution(actionId: string, context: ActionContext) {
 }
 
 export function useRunningActionForContext(context: ActionContext) {
-    const getExecutionId = () => actionExecutionService.getRunningExecutionForContext(context)?.executionId ?? null
-    const executionId = useRunningActionExecutionId(getExecutionId)
-    if (!executionId) return null
+    const getExecution = () => actionExecutionService.getRunningExecutionForContext(context)
+    const executionKey = useRunningActionExecutionKey(getExecution)
+    if (!executionKey) return null
 
-    return actionExecutionService.getRunningExecutionForContext(context)
+    return getExecution()
 }
 
 export function useRunningActionForFile(filePath: string | null) {
-    const getExecutionId = () => actionExecutionService.getRunningExecutionForFile(filePath)?.executionId ?? null
-    const executionId = useRunningActionExecutionId(getExecutionId)
-    if (!executionId) return null
+    const getExecution = () => actionExecutionService.getRunningExecutionForFile(filePath)
+    const executionKey = useRunningActionExecutionKey(getExecution)
+    if (!executionKey) return null
 
-    return actionExecutionService.getRunningExecutionForFile(filePath)
+    return getExecution()
 }
 
 export function useActionExecutions() {

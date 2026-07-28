@@ -87,7 +87,11 @@ function createLog(event: ActionExecutionEvent): ActionRunLogEntry {
 }
 
 function runningLogIndex(logs: ActionRunLogEntry[], event: ActionExecutionEvent) {
-    return logs.findLastIndex((log) => log.actionId === event.actionId && log.phase === event.phase && log.status === 'running')
+    return logs.findLastIndex((log) => (
+        log.actionId === event.actionId
+        && log.phase === event.phase
+        && (log.status === 'queued' || log.status === 'running')
+    ))
 }
 
 function updateActionLogs(logs: ActionRunLogEntry[], event: Extract<ActionExecutionEvent, { type: 'action' }>) {
@@ -406,7 +410,7 @@ export class ActionExecutionService extends EventTarget {
         }
         if (event.type === 'agentState') next = { ...next, status: event.status }
         if (event.type === 'action') {
-            const active = event.status === 'running'
+            const active = event.status === 'queued' || event.status === 'running'
             const activeType = event.actionType ?? actionType(event.actionId)
             next = {
                 ...next,
@@ -418,6 +422,7 @@ export class ActionExecutionService extends EventTarget {
                 logs: updateActionLogs(next.logs, event),
                 reference: event.reference ?? next.reference,
             }
+            if (active) next.status = event.status
             if (!active) this.clearExecutionPromptDraft(event.executionId, event.actionId)
         }
         if (event.type === 'agentState') {
@@ -494,7 +499,7 @@ export class ActionExecutionService extends EventTarget {
     private publish() {
         this.snapshot = { executions: [...this.executions.values()] }
         const nextRunningSnapshot = this.snapshot.executions.filter(({ status }) => (
-            status === 'running' || status === 'waitingForInput'
+            status === 'queued' || status === 'running' || status === 'waitingForInput'
         ))
         const runningChanged = nextRunningSnapshot.length !== this.runningSnapshot.length
             || nextRunningSnapshot.some(({ executionId, status }, index) => (

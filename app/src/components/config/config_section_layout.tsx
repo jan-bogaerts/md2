@@ -1,8 +1,7 @@
-import { Paper, Stack, Typography } from '@mui/material'
+import { Box, Stack, Typography } from '@mui/material'
 import type { ConfigEntry, ConfigKey, ConfigValues } from '../../services/config/config_service'
 import { ConfigValueEditor } from './config_value_editor'
 
-const CONFIG_SECTION_PADDING = 3
 const CONFIG_SECTION_SCROLL_MARGIN_TOP = 3
 
 interface ConfigSectionLayoutProps {
@@ -20,12 +19,11 @@ export function ConfigSectionLayout(props: ConfigSectionLayoutProps) {
     const headingId = `${id}-config-heading`
 
     return (
-        <Paper
+        <Box
             aria-labelledby={headingId}
             component="section"
             id={id}
-            sx={{ p: CONFIG_SECTION_PADDING, scrollMarginTop: CONFIG_SECTION_SCROLL_MARGIN_TOP }}
-            variant="outlined"
+            sx={{ scrollMarginTop: CONFIG_SECTION_SCROLL_MARGIN_TOP }}
         >
             <Stack spacing={3}>
                 <Typography component="h3" id={headingId} variant="h6">
@@ -43,6 +41,6 @@ export function ConfigSectionLayout(props: ConfigSectionLayoutProps) {
                     />
                 ))}
             </Stack>
-        </Paper>
+        </Box>
     )
 }

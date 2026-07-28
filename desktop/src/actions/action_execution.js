@@ -105,7 +105,14 @@ class ActionExecution {
         let status = 'completed';
         let failure = null;
         try {
-            await this.runAction(this.rootAction, 'main', true);
+            const onQueued = () => this.publish(this.rootAction, 'main', 'queued', { type: 'action' });
+            const lockOptions = { onQueued, signal: this.controller.signal };
+            await this.actionWorktreeExecutionService.runWithCardLock(
+                this.project,
+                this.context,
+                () => this.runAction(this.rootAction, 'main', true),
+                lockOptions,
+            );
         } catch (error) {
             failure = error;
             if (error instanceof ActionCancellationError || this.controller.signal.aborted) status = 'cancelled';
@@ -152,7 +159,6 @@ class ActionExecution {
         this.throwIfCancelled();
         this.activeAction = action;
         this.autoFinishPending = false;
-        this.publish(action, phase, 'running', { type: 'action' });
 
         try {
             const result = await this.executeAction(action, phase, isRoot);
@@ -219,6 +225,7 @@ class ActionExecution {
         }
 
         return this.actionWorktreeExecutionService.execute(this.project, action, this.context, async (project) => {
+            this.publish(action, phase, 'running', { type: 'action' });
             const result = action.type === 'agent'
                 ? await this.executeAgentAction(action, phase, isRoot, project)
                 : await this.executeCommandAction(action, phase, isRoot, project);

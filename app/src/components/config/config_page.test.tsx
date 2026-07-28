@@ -76,7 +76,7 @@ describe('ConfigPage', () => {
         expect(screen.getByRole('switch', { name: 'Startup splash' })).toBeInTheDocument()
         expect(screen.getByRole('slider', { name: 'Auto commit delay' })).toBeInTheDocument()
         expect(screen.getByText('Delay before editor changes are committed after typing stops.')).toBeInTheDocument()
-        expect(screen.getByRole('region', { name: 'React app' })).toHaveClass('MuiPaper-outlined')
+        expect(screen.getByRole('region', { name: 'React app' })).not.toHaveClass('MuiPaper-root')
         expect(screen.queryByLabelText('GitHub scopes')).toBeNull()
     })
 
@@ -398,12 +398,15 @@ describe('ConfigPage', () => {
 
         renderConfigPage('#project')
 
-        expect(screen.getByRole('region', { name: 'Config page' })).toHaveStyle({ overflow: 'hidden' })
+        expect(screen.getByRole('dialog', { name: 'Config' })).toBeInTheDocument()
+        expect(screen.getByLabelText('Config dialog body')).toHaveStyle({ overflow: 'hidden' })
         expect(screen.getByRole('navigation', { name: 'Config section navigation' })).toHaveStyle({ overflow: 'auto' })
         expect(screen.getByRole('region', { name: 'Config section content' })).toHaveStyle({ overflow: 'auto' })
         expect(screen.getByRole('tablist', { name: 'Config sections' })).toHaveAttribute('aria-orientation', 'vertical')
         expect(screen.getByRole('tab', { name: 'Project' })).toHaveAttribute('href', '#/config/project')
         expect(screen.getByRole('tab', { name: 'Desktop' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Cancel' })).toHaveClass('MuiButton-outlined')
+        expect(screen.getByRole('button', { name: 'Save' })).toHaveClass('MuiButton-contained')
     })
 
     it('uses horizontal section tabs on mobile', () => {
@@ -413,6 +416,20 @@ describe('ConfigPage', () => {
         renderConfigPage('#connection')
 
         expect(screen.getByRole('tablist', { name: 'Config sections' })).not.toHaveAttribute('aria-orientation', 'vertical')
+        expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument()
+    })
+
+    it('discards edits and closes from Escape', async () => {
+        mockMatchMedia(false)
+        configService.init()
+
+        renderConfigPage('')
+        fireEvent.click(screen.getByRole('switch', { name: 'Startup splash' }))
+        fireEvent.keyDown(screen.getByRole('dialog', { name: 'Config' }), { key: 'Escape' })
+
+        await waitFor(() => expect(window.location.hash).toBe(''))
+        expect(configService.get('react.showStartupSplash')).toBe(true)
     })
 
     it('pushes desktop config edits through the electron bridge on save', () => {

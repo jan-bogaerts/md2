@@ -603,7 +603,7 @@ describe('AgentRunnerService', () => {
 
         await service.answerQuestion('run-1', 7, answers);
         service.handleStreamingEvent('run-1', { content: 'echo top-secret', type: 'assistant' });
-        service.handleStreamingEvent('run-1', { content: 'tool returned top-secret', eventType: 'tool.result', type: 'transcript' });
+        service.handleStreamingEvent('run-1', { content: 'tool returned top-secret', toolType: 'tool.result', type: 'transcript' });
         await run.persistence;
 
         expect(answerQuestion).toHaveBeenCalledWith(7, answers);

@@ -109,8 +109,8 @@ function liveAgentConversation(
             timestamp: turn.startedAt,
         }] : []),
     ]
-    const conversationStatus = status === 'running' || status === 'waitingForInput'
-        ? status
+    const conversationStatus = status === 'queued' || status === 'running' || status === 'waitingForInput'
+        ? status === 'queued' ? 'running' : status
         : status === 'cancelled'
             ? 'cancelled'
             : status === 'failed'
@@ -171,7 +171,10 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
     const sendMessage = input.sendMessage ?? defaultSendMessage
     const scheduleAction = input.scheduleAction ?? defaultScheduleAction
     const promptContextKey = conversationContextKey(action.id, context)
-    const interactionKey = sharedExecution?.activeActionId
+    const sharedExecutionActive = sharedExecution?.status === 'queued'
+        || sharedExecution?.status === 'running'
+        || sharedExecution?.status === 'waitingForInput'
+    const interactionKey = sharedExecutionActive && sharedExecution.activeActionId
         ? `${sharedExecution.executionId}\u0000${sharedExecution.activeActionId}`
         : promptContextKey
     const sharedPromptDraft = actionExecutionService.getPromptDraft(action.id, context)
@@ -236,7 +239,7 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
         ? promptState
         : {
             key: promptKey,
-            status: action.type === 'agent' && !input.continueFrom && !sharedExecution ? 'loading' : 'ready',
+            status: action.type === 'agent' && !input.continueFrom && !sharedExecutionActive ? 'loading' : 'ready',
             value: sharedPromptDraft || input.initialPrompt || '',
         }
     const prompt = activePromptState.value
@@ -250,14 +253,14 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
     const executionId = sharedExecution?.executionId ?? localExecutionId
     const runStatus = sharedExecution?.status ?? localRunStatus
     const runLogs = sharedExecution?.logs ?? localRunResult?.logs ?? []
-    const sessionActive = runStatus === 'running' || runStatus === 'waitingForInput'
+    const sessionActive = runStatus === 'queued' || runStatus === 'running' || runStatus === 'waitingForInput'
     const agentActive = sessionActive && sharedExecution?.activeActionType === 'agent'
     const streamingActive = agentActive && !!sharedExecution?.activeActionStreaming
     const interactionReady = agentActive && !!sharedExecution?.interactionReady
     const manualFinishAvailable = streamingActive && !sharedExecution?.activeActionAutoFinish
     const showLiveConversation = !input.enableConversations
         ? !!sharedExecution
-        : liveActionKey === conversationKey || runStatus === 'running' || runStatus === 'waitingForInput'
+        : liveActionKey === conversationKey || runStatus === 'queued' || runStatus === 'running' || runStatus === 'waitingForInput'
     const sharedAgentTurn = showLiveConversation ? sharedExecution?.agentTurn ?? null : null
     const baseLiveConversation = sharedAgentTurn
         ? selectedHistory.find(({ id }) => id === sharedAgentTurn.conversationId) ?? null
@@ -277,7 +280,7 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
         ?? input.continueFrom
         ?? null
     const isFollowUp = action.type === 'agent'
-        && (streamingActive || (runStatus !== 'running' && runStatus !== 'waitingForInput' && !!continuationReference))
+        && (streamingActive || (runStatus !== 'queued' && runStatus !== 'running' && runStatus !== 'waitingForInput' && !!continuationReference))
 
     useEffect(() => {
         actionRef.current = action
@@ -302,7 +305,7 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
         const requestId = promptRequestRef.current + 1
         promptRequestRef.current = requestId
         promptEditRevisionRef.current = 0
-        if (action.type !== 'agent' || input.continueFrom || sharedExecution) return
+        if (action.type !== 'agent' || input.continueFrom || sharedExecutionActive) return
 
         const editRevision = promptEditRevisionRef.current
 
@@ -322,7 +325,7 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
         }
 
         void loadPreparedPrompt()
-    }, [action.id, action.type, context, input.continueFrom, preparePrompt, promptKey, sharedExecution])
+    }, [action.id, action.type, context, input.continueFrom, preparePrompt, promptKey, sharedExecutionActive])
 
     const refreshConversationHistory = async () => {
         if (!input.enableConversations || action.type !== 'agent') return
@@ -629,6 +632,7 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
     }
 
     const saveDisabled = actionLabel.trim().length === 0
+        || runStatus === 'queued'
         || runStatus === 'running'
         || runStatus === 'waitingForInput'
         || !!executionDisabledMessage

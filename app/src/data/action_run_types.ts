@@ -4,7 +4,7 @@ import type { ThinkingLevel } from './agent_profiles'
 import type { ActionAutoFinish, ActionType } from './action_types'
 
 export type ActionRunStatus = 'cancelled' | 'completed' | 'failed' | 'okButNotAfter'
-export type ActionExecutionStatus = ActionRunStatus | 'running' | 'waitingForInput'
+export type ActionExecutionStatus = ActionRunStatus | 'queued' | 'running' | 'waitingForInput'
 export type ActionRunPhase = 'after' | 'before' | 'main' | 'on'
 
 export interface ActionRunInput {

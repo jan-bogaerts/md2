@@ -45,6 +45,7 @@ function createRunner(actionFiles = [actionFile('main')], overrides = {}) {
             repositoryRoot: primaryProject.rootPath,
         })),
         resolve: vi.fn(async (primaryProject) => ({ executionProject: primaryProject, executionWorktree: null })),
+        runWithCardLock: vi.fn(async (_primaryProject, _context, operation) => operation()),
     };
     const runner = new ActionRunnerService({
         actionWorktreeExecutionService,

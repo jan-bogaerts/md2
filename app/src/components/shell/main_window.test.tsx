@@ -233,13 +233,15 @@ describe('MainWindow', () => {
         expect(screen.getByLabelText('Personal access token')).toBeInTheDocument()
     })
 
-    it('opens the config page from the toolbar', () => {
+    it('opens the config dialog over the workspace from the toolbar', () => {
         mockMatchMedia(false)
         renderWindow()
+        const workspace = screen.getByLabelText('Project workspace')
 
         fireEvent.click(screen.getByRole('button', { name: 'Config' }))
 
-        expect(screen.getByRole('heading', { name: 'Config' })).toBeInTheDocument()
+        expect(screen.getByRole('dialog', { name: 'Config' })).toBeInTheDocument()
+        expect(workspace).toBeInTheDocument()
         expect(window.location.hash).toBe('#/config')
     })
 
@@ -252,7 +254,7 @@ describe('MainWindow', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
         await waitFor(() => {
-            expect(screen.queryByRole('heading', { name: 'Config' })).toBeNull()
+            expect(screen.queryByRole('dialog', { name: 'Config' })).toBeNull()
             expect(screen.getByRole('alert')).toHaveTextContent('Config saved')
         })
         expect(window.location.hash).toBe('')
@@ -264,8 +266,30 @@ describe('MainWindow', () => {
         mockMatchMedia(false)
         renderWindow()
 
-        expect(screen.getByRole('heading', { name: 'Config' })).toBeInTheDocument()
-        expect(screen.getByRole('tab', { name: 'Desktop' })).toBeInTheDocument()
+        expect(screen.getByRole('dialog', { name: 'Config' })).toBeInTheDocument()
+        expect(screen.getByRole('tab', { name: 'Desktop' })).toHaveAttribute('aria-selected', 'true')
+    })
+
+    it('preserves workspace, view, search, and open files after config closes', async () => {
+        mockMatchMedia(false)
+        await openProjectWithCards()
+        renderWindow()
+        typeQuery('Root')
+        fireEvent.click(screen.getByRole('button', { name: 'Text view' }))
+        await screen.findByLabelText('File tree')
+        fireEvent.click(screen.getByText('Root'))
+        const workspace = screen.getByLabelText('Project workspace')
+        const searchInput = screen.getByRole('textbox', { name: 'Search project' })
+
+        fireEvent.click(screen.getByRole('button', { name: 'Config' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+
+        expect(screen.getByLabelText('Project workspace')).toBe(workspace)
+        expect(screen.getByRole('textbox', { name: 'Search project' })).toBe(searchInput)
+        expect(searchInput).toHaveValue('Root')
+        expect(screen.getByLabelText('File tree')).toBeInTheDocument()
+        expect(openFilesService.getSnapshot().documents).toHaveLength(1)
+        expect(screen.getByRole('contentinfo')).toHaveTextContent('2cards')
     })
 
     it('populates the search query from a real agent run when the Electron bridge is available', async () => {

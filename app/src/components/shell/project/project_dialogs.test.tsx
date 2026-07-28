@@ -1,5 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { DEFAULT_CARD_TYPES, type BranchReference, type ProjectReference, type RepositoryReference } from '../../../data/data_types'
 import {
     configureRemoteControlConnection,
@@ -17,7 +17,24 @@ const BRANCHES: BranchReference[] = [{ name: 'main' }]
 const PROJECT: ProjectReference = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
 const REPOSITORIES: RepositoryReference[] = [{ branch: 'main', id: 'octo/demo', owner: 'octo', repository: 'demo' }]
 
+function mockMatchMedia(matches: boolean) {
+    window.matchMedia = ((query: string) => ({
+        addEventListener: () => {},
+        addListener: () => {},
+        dispatchEvent: () => false,
+        matches,
+        media: query,
+        onchange: null,
+        removeEventListener: () => {},
+        removeListener: () => {},
+    })) as unknown as typeof window.matchMedia
+}
+
 describe('project dialog components', () => {
+    beforeEach(() => {
+        mockMatchMedia(false)
+    })
+
     afterEach(() => {
         cleanup()
         vi.restoreAllMocks()
@@ -282,10 +299,11 @@ describe('project dialog components', () => {
         expect(screen.getByText('Markdown supported')).toBeInTheDocument()
         expect(screen.getByText('Adds to')).toBeInTheDocument()
         expect(screen.getByRole('combobox', { name: 'Card type' })).toHaveTextContent('Feature')
+        expect(screen.getByTestId('new-card-heading-row')).toContainElement(screen.getByLabelText('Title'))
         const bodyGroup = within(screen.getByRole('group', { name: 'Body' }))
-        expect(bodyGroup.getByTestId('mdx-editor-toolbar')).toBeInTheDocument()
-        expect(bodyGroup.getByTestId('block-type-select')).toBeInTheDocument()
-        expect(bodyGroup.getByTestId('insert-code-block')).toBeInTheDocument()
+        expect(bodyGroup.queryByTestId('mdx-editor-toolbar')).toBeNull()
+        expect(bodyGroup.queryByTestId('block-type-select')).toBeNull()
+        expect(bodyGroup.queryByTestId('insert-code-block')).toBeNull()
         expect(within(screen.getByRole('dialog', { name: 'New card' })).getByTestId('mdx-editor-overlay')).toBeInTheDocument()
 
         fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'New Card' } })
@@ -293,6 +311,80 @@ describe('project dialog components', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Create card' }))
 
         await waitFor(() => expect(createCard).toHaveBeenCalledWith({ body: 'Body', bodyIncludesTemplate: true, title: 'New Card', type: 'feature' }))
+    })
+
+    it('uses mobile card controls without hiding configured type options', async () => {
+        mockMatchMedia(true)
+        const createCard = vi.fn(async () => undefined)
+        const cardTypes = [
+            { color: '#123456', idPrefix: 'A', label: 'Architecture', type: 'architecture' },
+            { color: '#654321', idPrefix: 'R', label: 'Research', type: 'research' },
+        ]
+
+        render(
+            <NewCardDialog
+                cardBodyTemplate=""
+                cardTypes={cardTypes}
+                isLoading={false}
+                isProjectOpen
+                onClose={vi.fn()}
+                onCreateCard={createCard}
+                open
+            />,
+            { wrapper: AppThemeProvider },
+        )
+
+        const typeSelect = screen.getByRole('combobox', { name: 'Card type' })
+        expect(typeSelect).not.toHaveTextContent('Architecture')
+        expect(screen.getByTestId('selected-card-type-icon')).toBeInTheDocument()
+        fireEvent.mouseDown(typeSelect)
+        expect(await screen.findByRole('option', { name: 'Architecture' })).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('option', { name: 'Research' }))
+        expect(typeSelect).not.toHaveTextContent('Research')
+
+        expect(screen.queryByText('Adds to')).toBeNull()
+        const cancelButton = screen.getByRole('button', { name: 'Cancel' })
+        const createButton = screen.getByRole('button', { name: 'Create card' })
+        expect(cancelButton).toHaveTextContent('')
+        expect(createButton).toHaveTextContent('')
+        fireEvent.mouseOver(cancelButton)
+        expect(await screen.findByRole('tooltip', { name: 'Cancel' })).toBeInTheDocument()
+
+        fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Mobile card' } })
+        fireEvent.click(createButton)
+        await waitFor(() => expect(createCard).toHaveBeenCalledWith({
+            body: '',
+            bodyIncludesTemplate: true,
+            title: 'Mobile card',
+            type: 'research',
+        }))
+    })
+
+    it('keeps new card header and footer fixed around scrollable content', () => {
+        mockMatchMedia(true)
+
+        render(
+            <NewCardDialog
+                cardBodyTemplate=""
+                cardTypes={DEFAULT_CARD_TYPES}
+                isLoading={false}
+                isProjectOpen
+                onClose={vi.fn()}
+                onCreateCard={vi.fn(async () => undefined)}
+                open
+            />,
+            { wrapper: AppThemeProvider },
+        )
+
+        const dialog = screen.getByRole('dialog', { name: 'New card' })
+        const content = screen.getByTestId('new-card-dialog-content')
+        const title = dialog.querySelector('.MuiDialogTitle-root')
+        const actions = dialog.querySelector('.MuiDialogActions-root')
+
+        expect(content).toHaveStyle({ flex: '1', minHeight: '0', overflowY: 'auto' })
+        expect(title).toHaveStyle({ flexShrink: '0' })
+        expect(actions).toHaveStyle({ flexShrink: '0' })
+        expect(content.parentElement).toHaveStyle({ display: 'flex', flexDirection: 'column', overflow: 'hidden' })
     })
 
     it('disables new card submit while loading', () => {

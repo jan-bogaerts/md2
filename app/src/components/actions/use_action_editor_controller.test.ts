@@ -40,6 +40,7 @@ describe('useActionEditorController', () => {
         const action = loadAction()
         openFilesService.init({ actionService, dataService })
         const document = openFilesService.openDocument(action)
+        if (document.kind !== 'action') throw new Error('Expected action document')
         const discardMarkdownTarget = vi.fn()
         const { result } = renderHook(() => useActionEditorController({
             action,
@@ -64,6 +65,7 @@ describe('useActionEditorController', () => {
         const action = loadAction()
         openFilesService.init({ actionService, dataService })
         const document = openFilesService.openDocument(action)
+        if (document.kind !== 'action') throw new Error('Expected action document')
         let renderCount = 0
         renderHook(() => {
             renderCount += 1

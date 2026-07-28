@@ -194,7 +194,7 @@ describe('ActionPopup', () => {
         const waitingButton = screen.getByRole('button', { name: /Stream.*Agent is waiting for input/u })
         expect(waitingButton).toBeInTheDocument()
         fireEvent.mouseOver(waitingButton)
-        expect(await screen.findByRole('tooltip')).toHaveTextContent('Agent is waiting for input')
+        expect(await screen.findByRole('tooltip', { name: 'Agent is waiting for input' })).toBeInTheDocument()
 
         cleanup()
         renderPopup()
@@ -388,6 +388,45 @@ describe('ActionPopup', () => {
         expect(screen.queryByRole('button', { name: 'Send' })).not.toBeInTheDocument()
         expect(screen.queryByRole('button', { name: 'Run' })).not.toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: 'Stop' }))
+        await waitFor(() => expect(cancelActionExecution).toHaveBeenCalledWith('execution-1'))
+    })
+
+    it('shows queued state and allows cancelling before the agent starts', async () => {
+        actionExecutionService.stop()
+        let executionListener: ((event: ActionExecutionEvent) => void) | null = null
+        const cancelActionExecution = vi.fn(async () => undefined)
+        window.md2Actions = {
+            cancelActionExecution,
+            loadActionRunHistory: vi.fn(async () => []),
+            onActionExecution: vi.fn((listener) => {
+                executionListener = listener
+
+                return vi.fn()
+            }),
+            prepareActionPrompt: vi.fn(async () => ({ prompt: 'Plan' })),
+        } as unknown as typeof window.md2Actions
+        actionExecutionService.start()
+        actionService.loadFromFiles([file(agentDefinition('queued-agent', { label: 'Queued agent' }))])
+        renderPopup()
+        await waitFor(() => expect(executionListener).not.toBeNull())
+
+        act(() => {
+            executionListener?.({
+                actionId: 'queued-agent', context, executionId: 'execution-1', phase: 'main',
+                rootActionId: 'queued-agent', status: 'running', type: 'execution',
+            })
+            executionListener?.({
+                actionId: 'queued-agent', actionType: 'agent', context, executionId: 'execution-1',
+                interactionReady: false, phase: 'main', rootActionId: 'queued-agent', status: 'queued',
+                streaming: false, type: 'action',
+            })
+        })
+
+        expect(screen.getByRole('status')).toHaveTextContent('queued')
+        expect(screen.getByRole('button', { name: /Queued agent.*Action is queued/u })).toBeInTheDocument()
+        const stopButton = screen.getByRole('button', { name: 'Stop' })
+        expect(stopButton).toBeEnabled()
+        fireEvent.click(stopButton)
         await waitFor(() => expect(cancelActionExecution).toHaveBeenCalledWith('execution-1'))
     })
 

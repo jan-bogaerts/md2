@@ -67,6 +67,17 @@ describe('agent provider protocol', () => {
         expect(events[1].assistantText).toBe('hello');
     });
 
+    it('records Claude tool calls in the transcript, matching the streaming path', () => {
+        const { events, instance } = parser('claude');
+
+        instance.push('{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Write","input":{"file_path":"design/card.md"}}]}}\n');
+        instance.push('{"type":"user","message":{"content":[{"type":"tool_result","content":"written"}]}}\n');
+        instance.finish();
+
+        expect(events[0].transcriptEvents).toEqual([{ content: '{"file_path":"design/card.md"}', toolType: 'tool.Write' }]);
+        expect(events[1].transcriptEvents).toEqual([{ content: 'written', toolType: 'tool.result' }]);
+    });
+
     it('normalizes Codex usage from the completed turn, splitting cached out of input', () => {
         const { events, instance } = parser('codex');
 

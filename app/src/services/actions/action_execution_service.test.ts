@@ -77,6 +77,39 @@ describe('ActionExecutionService', () => {
         service.stop()
     })
 
+    it('tracks a queued action as active and replaces its queued log when it starts', () => {
+        const { bridge, emit } = bridgeWithEvents()
+        setActionBridgeOverride(bridge)
+        const service = new ActionExecutionService()
+        service.start()
+
+        emit(executionEvent('running'))
+        emit({
+            actionId: 'build', actionType: 'agent', context, executionId: 'execution-1', phase: 'main',
+            rootActionId: 'build', status: 'queued', type: 'action',
+        })
+
+        expect(service.getRunningExecutionForContext(context)).toMatchObject({
+            activeActionId: 'build',
+            activeActionType: 'agent',
+            status: 'queued',
+        })
+        expect(service.getSnapshot().executions[0].logs).toEqual([
+            expect.objectContaining({ actionId: 'build', status: 'queued' }),
+        ])
+
+        emit({
+            actionId: 'build', actionType: 'agent', context, executionId: 'execution-1', phase: 'main',
+            rootActionId: 'build', status: 'running', type: 'action',
+        })
+
+        expect(service.getRunningExecutionForContext(context)?.status).toBe('running')
+        expect(service.getSnapshot().executions[0].logs).toEqual([
+            expect.objectContaining({ actionId: 'build', status: 'running' }),
+        ])
+        service.stop()
+    })
+
     it('builds a live agent turn from start metadata and output deltas', () => {
         const { bridge, emit } = bridgeWithEvents()
         setActionBridgeOverride(bridge)
@@ -142,7 +175,7 @@ describe('ActionExecutionService', () => {
     })
 
     it('recovers an active waiting session and deduplicates events received during snapshot loading', async () => {
-        let resolveSnapshot: ((events: ActionExecutionEvent[]) => void) | null = null
+        let resolveSnapshot!: (events: ActionExecutionEvent[]) => void
         const snapshot = new Promise<ActionExecutionEvent[]>((resolve) => {
             resolveSnapshot = resolve
         })
@@ -177,7 +210,7 @@ describe('ActionExecutionService', () => {
         ]
         service.start()
         emit(events[5])
-        resolveSnapshot?.(events)
+        resolveSnapshot(events)
 
         await vi.waitFor(() => expect(service.getRunningExecutionForContext(context)).toMatchObject({
             agentTurn: { assistantText: 'proposal', conversationId: 'conversation-1' },

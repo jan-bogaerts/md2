@@ -5,7 +5,6 @@ const { promisify } = require('node:util');
 
 const execFileAsync = promisify(execFile);
 const execAsync = promisify(exec);
-const { currentGitOperationContext } = require('./git_operation_context');
 const { describeGitIndexLock } = require('./git_lock_diagnostics');
 const { withGitIndexMutation } = require('./git_index_coordinator');
 const DETACHED_HEAD_BRANCH = 'HEAD (detached)';
@@ -48,24 +47,9 @@ async function pathExists(targetPath) {
 }
 
 function executeGit(rootPath, args) {
-    const startedAt = new Date().toISOString();
-    const startedTime = Date.now();
-    const { executionId = null } = currentGitOperationContext();
-
     return new Promise((resolve, reject) => {
-        const child = execFile('git', args, { cwd: rootPath }, (error, stdout, stderr) => {
-            const completedAt = new Date().toISOString();
-            const log = {
-                args,
-                completedAt,
-                cwd: rootPath,
-                durationMs: Date.now() - startedTime,
-                executionId,
-                exitCode: error?.code ?? 0,
-                pid: child.pid,
-                startedAt,
-            };
-            console.log('[git:complete]', log);
+        execFile('git', args, { cwd: rootPath }, (error, stdout, stderr) => {
+            console.log('[git:complete]', args);
             if (error) {
                 reject(error);
                 return;
@@ -73,7 +57,6 @@ function executeGit(rootPath, args) {
 
             resolve({ stderr, stdout });
         });
-        console.log('[git:start]', { args, cwd: rootPath, executionId, pid: child.pid, startedAt });
     });
 }
 

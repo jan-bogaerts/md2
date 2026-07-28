@@ -92,10 +92,10 @@ describe('ClaudeStreamingAdapter', () => {
         expect(events).toContainEqual({ paths: ['design/feature.md'], type: 'changedPaths' });
         expect(events).toContainEqual({
             content: '{"file_path":"design\\\\feature.md"}',
-            eventType: 'tool.Write',
+            toolType: 'tool.Write',
             type: 'transcript',
         });
-        expect(events).toContainEqual({ content: 'written', eventType: 'tool.result', type: 'transcript' });
+        expect(events).toContainEqual({ content: 'written', toolType: 'tool.result', type: 'transcript' });
     });
 
     it('reports only structured pre-turn missing-session results as resumable', async () => {

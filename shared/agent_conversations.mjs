@@ -1,3 +1,5 @@
+import { normalizeAgentTokenUsage } from './agent_usage_math.mjs'
+
 const AGENT_MESSAGE_ROLES = new Set(['assistant', 'user'])
 const AGENT_STATUSES = new Set(['cancelled', 'completed', 'failed', 'running', 'waitingForInput'])
 
@@ -9,25 +11,6 @@ function requiredString(value, fieldName) {
 
 function optionalString(value) {
     return typeof value === 'string' && value.length > 0 ? value : null
-}
-
-function usageNumber(value) {
-    return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : 0
-}
-
-function normalizeUsage(value) {
-    if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined
-
-    const usage = {
-        cachedInputTokens: usageNumber(value.cachedInputTokens),
-        inputTokens: usageNumber(value.inputTokens),
-        outputTokens: usageNumber(value.outputTokens),
-        reasoningTokens: usageNumber(value.reasoningTokens),
-    }
-    usage.totalTokens = usage.inputTokens + usage.cachedInputTokens + usage.outputTokens + usage.reasoningTokens
-    if (typeof value.costUsd === 'number' && Number.isFinite(value.costUsd) && value.costUsd >= 0) usage.costUsd = value.costUsd
-
-    return usage
 }
 
 function normalizeMessage(value) {
@@ -80,7 +63,7 @@ export function parseAgentConversation(content, referencePath) {
     if (!AGENT_STATUSES.has(status)) throw new Error(`Malformed agent conversation: invalid status ${status}`)
     const startedAt = requiredString(parsed.startedAt, 'startedAt')
     const hasExplicitTitle = typeof parsed.title === 'string' && parsed.title.trim().length > 0
-    const usage = normalizeUsage(parsed.usage)
+    const usage = normalizeAgentTokenUsage(parsed.usage)
 
     return {
         actionId: optionalString(parsed.actionId),

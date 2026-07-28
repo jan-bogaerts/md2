@@ -68,6 +68,7 @@ function createDispatch(options = {}) {
             repositoryRoot: primaryProject.rootPath,
         })),
         resolve: vi.fn(async (primaryProject) => ({ executionProject: primaryProject, transferRecord: null })),
+        runWithCardLock: vi.fn(async (_primaryProject, _context, operation) => operation()),
     };
     const worktreeService = {
         add: vi.fn(async () => undefined),

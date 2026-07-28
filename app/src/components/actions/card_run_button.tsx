@@ -21,14 +21,17 @@ export function CardRunButton({ card, context, projectKey }: CardRunButtonProps)
     const agentState = cardAgentState(projectKey, card)
     const runningExecution = useRunningActionForContext(context)
     const liveStatus = runningExecution?.status
+    const isQueued = liveStatus === 'queued'
     const isWaiting = liveStatus ? liveStatus === 'waitingForInput' : agentState === 'waiting for input'
     const isRunning = liveStatus ? liveStatus === 'running' : agentState === 'running'
-    const isUnseen = !isWaiting && !isRunning && agentState === 'unseen result'
-    const stateDescription = isWaiting
-        ? agentStateDescription('waiting for input')
-        : isRunning && agentState !== 'running'
-            ? 'Action is running'
-            : agentStateDescription(agentState)
+    const isUnseen = !isQueued && !isWaiting && !isRunning && agentState === 'unseen result'
+    const stateDescription = isQueued
+        ? 'Action is queued'
+        : isWaiting
+            ? agentStateDescription('waiting for input')
+            : isRunning && agentState !== 'running'
+                ? 'Action is running'
+                : agentStateDescription(agentState)
     const accent = isWaiting ? 'warning.main' : isUnseen ? 'info.main' : 'primary.main'
     const unseenResultActionIds = [...new Set(card.agentConversations.flatMap((conversation) => {
         if (!conversation.actionId || !hasUnseenAgentResult(projectKey, card.path, [conversation])) return []

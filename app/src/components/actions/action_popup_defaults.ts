@@ -16,7 +16,7 @@ import {
 } from '../../services/actions/action_execution_service'
 import { flushMarkdownEditors } from '../editor/markdown_editor_flush'
 
-export type PopupRunStatus = 'idle' | 'running' | 'waitingForInput' | ActionRunResult['status']
+export type PopupRunStatus = 'idle' | 'queued' | 'running' | 'waitingForInput' | ActionRunResult['status']
 export type CancelAction = (executionId: string) => Promise<void>
 export type SendMessage = (executionId: string, content: string) => Promise<void>
 export type FinishAction = (executionId: string) => Promise<void>
@@ -115,7 +115,7 @@ export async function defaultScheduleAction(action: ActionDefinition, context: A
 export function statusColor(status: PopupRunStatus) {
     if (status === 'completed') return 'success.main'
     if (status === 'failed') return 'error.main'
-    if (status === 'running' || status === 'waitingForInput') return 'info.main'
+    if (status === 'queued' || status === 'running' || status === 'waitingForInput') return 'info.main'
     if (status === 'okButNotAfter' || status === 'cancelled') return 'warning.main'
 
     return 'text.secondary'

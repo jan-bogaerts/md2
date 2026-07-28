@@ -32,7 +32,6 @@ import { useActionPopupController } from './use_action_popup_controller'
 
 export const CARD_RUN_POPUP_SIZE_STORAGE_KEY = 'md2.cardRunPopupSize'
 export const PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY = 'md2.projectAgentPopupSize'
-const MIN_CHAT_HEIGHT = 96
 
 interface ActionPopupContentProps {
     activeActionStatuses: Record<string, ActionExecutionStatus>
@@ -100,7 +99,9 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
         executionValidationError: worktreeValidationMessage(action, assignmentContext),
     })
     const promptRequired = action.id === CUSTOM_PROMPT_ACTION_ID
-    const sessionActive = controller.runStatus === 'running' || controller.runStatus === 'waitingForInput'
+    const sessionActive = controller.runStatus === 'queued'
+        || controller.runStatus === 'running'
+        || controller.runStatus === 'waitingForInput'
     const showAgentInteraction = action.type === 'agent' || controller.agentActive
     const showAgentSend = sessionActive ? controller.agentActive : action.type === 'agent'
     const showCommandRun = !sessionActive && action.type === 'command'
@@ -236,13 +237,11 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
                             ) : null}
                             <ActionLogErrorDisplay logs={controller.runLogs} />
                         </Box>
-                        <Box sx={{ flex: 1, minHeight: MIN_CHAT_HEIGHT, overflowY: 'auto' }}>
-                            <ActionConversationChat
-                                conversation={controller.displayedConversation}
-                                onConversationViewed={props.onConversationViewed}
-                                status={controller.runStatus}
-                            />
-                        </Box>
+                        <ActionConversationChat
+                            conversation={controller.displayedConversation}
+                            onConversationViewed={props.onConversationViewed}
+                            status={controller.runStatus}
+                        />
                         <ActionAgentPrompt
                             convertMessage={controller.convertMessage}
                             disabled={false}
@@ -312,7 +311,7 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
                         <span>
                             <IconButton
                                 aria-label="Stop"
-                                disabled={!controller.backendAvailable || (controller.agentActive && !controller.interactionReady)}
+                                disabled={!controller.backendAvailable}
                                 onClick={controller.handleCancel}
                                 size="small"
                             >

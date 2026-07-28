@@ -152,6 +152,82 @@ describe('CardView', () => {
         expect(columnStyle.maxWidth).toBe('320px')
     })
 
+    it('renders both edge scroll zones only on mobile', () => {
+        renderCardView()
+
+        expect(screen.queryByTestId('left-card-scroll-zone')).not.toBeInTheDocument()
+        expect(screen.queryByTestId('right-card-scroll-zone')).not.toBeInTheDocument()
+
+        cleanup()
+        renderCardView({ isMobile: true })
+
+        expect(screen.getByTestId('left-card-scroll-zone')).toBeInTheDocument()
+        expect(screen.getByTestId('right-card-scroll-zone')).toBeInTheDocument()
+    })
+
+    it('scrolls card columns in both directions from either mobile edge and stops on pointer up', () => {
+        renderCardView({ isMobile: true })
+        const cardColumns = screen.getByLabelText('Card columns')
+        const leftZone = screen.getByTestId('left-card-scroll-zone')
+        const rightZone = screen.getByTestId('right-card-scroll-zone')
+        cardColumns.scrollTop = 100
+
+        fireEvent.pointerDown(leftZone, { clientY: 100, pointerId: 1 })
+        fireEvent.pointerMove(leftZone, { clientY: 70, pointerId: 1 })
+        expect(cardColumns.scrollTop).toBe(130)
+
+        fireEvent.pointerUp(leftZone, { pointerId: 1 })
+        fireEvent.pointerMove(leftZone, { clientY: 40, pointerId: 1 })
+        expect(cardColumns.scrollTop).toBe(130)
+
+        fireEvent.pointerDown(rightZone, { clientY: 50, pointerId: 2 })
+        fireEvent.pointerMove(rightZone, { clientY: 80, pointerId: 2 })
+        expect(cardColumns.scrollTop).toBe(100)
+    })
+
+    it('stops edge scrolling on pointer cancellation and uses native scroll boundaries', () => {
+        renderCardView({ isMobile: true })
+        const cardColumns = screen.getByLabelText('Card columns')
+        const leftZone = screen.getByTestId('left-card-scroll-zone')
+        const rightZone = screen.getByTestId('right-card-scroll-zone')
+        let scrollTop = 0
+        Object.defineProperty(cardColumns, 'scrollTop', {
+            configurable: true,
+            get: () => scrollTop,
+            set: (value: number) => {
+                scrollTop = Math.max(0, Math.min(200, value))
+            },
+        })
+
+        fireEvent.pointerDown(leftZone, { clientY: 100, pointerId: 1 })
+        fireEvent.pointerMove(leftZone, { clientY: 130, pointerId: 1 })
+        expect(cardColumns.scrollTop).toBe(0)
+
+        fireEvent.pointerCancel(leftZone, { pointerId: 1 })
+        fireEvent.pointerMove(leftZone, { clientY: 70, pointerId: 1 })
+        expect(cardColumns.scrollTop).toBe(0)
+
+        cardColumns.scrollTop = 200
+        fireEvent.pointerDown(rightZone, { clientY: 100, pointerId: 2 })
+        fireEvent.pointerMove(rightZone, { clientY: 70, pointerId: 2 })
+        expect(cardColumns.scrollTop).toBe(200)
+    })
+
+    it('keeps edge gestures away from cards and preserves card interaction outside the zones', () => {
+        renderCardView({ isMobile: true })
+        const leftZone = screen.getByTestId('left-card-scroll-zone')
+
+        fireEvent.pointerDown(leftZone, { clientY: 100, pointerId: 1 })
+        fireEvent.pointerMove(leftZone, { clientY: 70, pointerId: 1 })
+        fireEvent.pointerUp(leftZone, { pointerId: 1 })
+
+        expect(cardDragDropService.getOverlaySnapshot().cardPath).toBeNull()
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Drag F-1' }))
+        expect(screen.getByRole('dialog')).toBeInTheDocument()
+    })
+
     it('shows always-visible columns without cards and hides other empty columns in config order', () => {
         renderCardView({
             states: [

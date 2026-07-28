@@ -17,6 +17,10 @@ function service() {
     return new ActionWorktreeExecutionService({worktreeService: { resolve: vi.fn(async () => cardProject) }});
 }
 
+function runWithCardLock(executionService, context, operation, options = {}) {
+    return executionService.runWithCardLock(primaryProject, context, operation, options);
+}
+
 describe('ActionWorktreeExecutionService', () => {
     it('runs actions in an assigned card worktree without requiring needsWorkTree', async () => {
         const runner = vi.fn(async () => result());
@@ -113,49 +117,30 @@ describe('ActionWorktreeExecutionService', () => {
         expect(runner).not.toHaveBeenCalled();
     });
 
-    it('releases the repository lock when the runner fails', async () => {
+    it('releases the card lock when the runner fails', async () => {
         const executionService = service();
-        await expect(executionService.execute(primaryProject, action(), { kind: 'file' }, async () => {
+        const cardContext = { cardInternalId: 'card-1', file: 'design/F-1.md', kind: 'card' };
+        await expect(runWithCardLock(executionService, cardContext, async () => {
             throw new Error('runner boom');
         })).rejects.toThrow('runner boom');
 
         const runner = vi.fn(async () => result());
-        await executionService.execute(primaryProject, action(), { kind: 'file' }, runner);
+        await runWithCardLock(executionService, cardContext, runner);
         expect(runner).toHaveBeenCalledTimes(1);
     });
 
-    it('serializes executions for one repository', async () => {
-        const executionService = service();
-        const order = [];
-        const first = executionService.execute(primaryProject, action(), { kind: 'file' }, async () => {
-            order.push('first-start');
-            await new Promise((resolve) => setTimeout(resolve, 20));
-            order.push('first-end');
-            return result();
-        });
-        const second = executionService.execute(primaryProject, action(), { kind: 'file' }, async () => {
-            order.push('second-start');
-            order.push('second-end');
-            return result();
-        });
-
-        await Promise.all([first, second]);
-        expect(order).toEqual(['first-start', 'first-end', 'second-start', 'second-end']);
-    });
-
-    it('runs tracked agents concurrently for different cards', async () => {
+    it('runs actions without a card concurrently', async () => {
         const executionService = service();
         const firstCompletion = Promise.withResolvers();
         const secondCompletion = Promise.withResolvers();
         const order = [];
-        const trackedAction = action(false, { trackFileChanges: true, type: 'agent' });
-        const first = executionService.execute(primaryProject, trackedAction, { file: 'design/F-1.md', kind: 'card' }, async () => {
+        const first = runWithCardLock(executionService, { kind: 'project' }, async () => {
             order.push('first-start');
             await firstCompletion.promise;
             order.push('first-end');
             return result();
         });
-        const second = executionService.execute(primaryProject, trackedAction, { file: 'design/F-2.md', kind: 'card' }, async () => {
+        const second = runWithCardLock(executionService, { kind: 'project' }, async () => {
             order.push('second-start');
             await secondCompletion.promise;
             order.push('second-end');
@@ -169,63 +154,84 @@ describe('ActionWorktreeExecutionService', () => {
         expect(order).toEqual(['first-start', 'second-start', 'first-end', 'second-end']);
     });
 
-    it('serializes tracked agents for the same card', async () => {
+    it('runs actions concurrently for different cards', async () => {
         const executionService = service();
         const firstCompletion = Promise.withResolvers();
+        const secondCompletion = Promise.withResolvers();
         const order = [];
-        const trackedAction = action(false, { trackFileChanges: true, type: 'agent' });
-        const cardContext = { file: 'design/F-1.md', kind: 'card' };
-        const first = executionService.execute(primaryProject, trackedAction, cardContext, async () => {
+        const first = runWithCardLock(executionService, {cardInternalId: 'card-1', file: 'design/F-1.md', kind: 'card'}, async () => {
             order.push('first-start');
             await firstCompletion.promise;
             order.push('first-end');
             return result();
         });
-        const second = executionService.execute(primaryProject, trackedAction, cardContext, async () => {
+        const second = runWithCardLock(executionService, {cardInternalId: 'card-2', file: 'design/F-2.md', kind: 'card'}, async () => {
             order.push('second-start');
+            await secondCompletion.promise;
             order.push('second-end');
             return result();
         });
 
+        await vi.waitFor(() => expect(order).toEqual(['first-start', 'second-start']));
+        firstCompletion.resolve();
+        secondCompletion.resolve();
+        await Promise.all([first, second]);
+        expect(order).toEqual(['first-start', 'second-start', 'first-end', 'second-end']);
+    });
+
+    it('serializes actions for the same card across worktrees and reports the wait as queued', async () => {
+        const executionService = service();
+        const firstCompletion = Promise.withResolvers();
+        const order = [];
+        const queued = vi.fn();
+        const first = runWithCardLock(executionService, {cardInternalId: 'card-1', file: 'design/F-1.md', kind: 'card', worktree: '1'}, async () => {
+            order.push('first-start');
+            await firstCompletion.promise;
+            order.push('first-end');
+            return result();
+        });
+        const second = runWithCardLock(executionService, {cardInternalId: 'card-1', file: 'design/F-1-renamed.md', kind: 'card', worktree: '2'}, async () => {
+            order.push('second-start');
+            order.push('second-end');
+            return result();
+        }, { onQueued: queued });
+
         await vi.waitFor(() => expect(order).toEqual(['first-start']));
+        expect(queued).toHaveBeenCalledTimes(1);
         firstCompletion.resolve();
         await Promise.all([first, second]);
         expect(order).toEqual(['first-start', 'first-end', 'second-start', 'second-end']);
     });
 
-    it('keeps default actions exclusive and blocks later tracked agents behind them', async () => {
+    it('cancels an action waiting for a card lock', async () => {
         const executionService = service();
         const firstCompletion = Promise.withResolvers();
-        const exclusiveCompletion = Promise.withResolvers();
-        const order = [];
-        const trackedAction = action(false, { trackFileChanges: true, type: 'agent' });
-        const first = executionService.execute(primaryProject, trackedAction, { file: 'design/F-1.md', kind: 'card' }, async () => {
-            order.push('first-start');
+        const cardContext = { cardInternalId: 'card-1', file: 'design/F-1.md', kind: 'card' };
+        const firstRunner = vi.fn(async () => {
             await firstCompletion.promise;
-            order.push('first-end');
             return result();
         });
-        await vi.waitFor(() => expect(order).toEqual(['first-start']));
-        const exclusive = executionService.execute(primaryProject, action(), { kind: 'project' }, async () => {
-            order.push('exclusive-start');
-            await exclusiveCompletion.promise;
-            order.push('exclusive-end');
-            return result();
-        });
-        const later = executionService.execute(primaryProject, trackedAction, { file: 'design/F-2.md', kind: 'card' }, async () => {
-            order.push('later-start');
-            order.push('later-end');
-            return result();
-        });
+        const first = runWithCardLock(executionService, cardContext, firstRunner);
+        await vi.waitFor(() => expect(firstRunner).toHaveBeenCalledTimes(1));
 
-        await new Promise((resolve) => setTimeout(resolve, 10));
-        expect(order).toEqual(['first-start']);
+        const controller = new AbortController();
+        const queued = vi.fn();
+        const secondRunner = vi.fn(async () => result());
+        const second = runWithCardLock(executionService, cardContext, secondRunner, {
+            onQueued: queued,
+            signal: controller.signal,
+        });
+        const cancelled = expect(second).rejects.toThrow('Action cancelled');
+        await vi.waitFor(() => expect(queued).toHaveBeenCalledTimes(1));
+        controller.abort();
+        await cancelled;
+        expect(secondRunner).not.toHaveBeenCalled();
+
         firstCompletion.resolve();
-        await vi.waitFor(() => expect(order).toEqual(['first-start', 'first-end', 'exclusive-start']));
-        exclusiveCompletion.resolve();
-        await Promise.all([first, exclusive, later]);
-        expect(order).toEqual([
-            'first-start', 'first-end', 'exclusive-start', 'exclusive-end', 'later-start', 'later-end',
-        ]);
+        await first;
+
+        const laterRunner = vi.fn(async () => result());
+        await runWithCardLock(executionService, cardContext, laterRunner);
+        expect(laterRunner).toHaveBeenCalledTimes(1);
     });
 });

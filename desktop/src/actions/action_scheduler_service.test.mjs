@@ -119,6 +119,7 @@ function createScheduler(localGitService, timerDependencies = {}) {
             branch: primaryProject.branch,
             repositoryRoot: primaryProject.rootPath,
         })),
+        runWithCardLock: vi.fn(async (_primaryProject, _context, operation) => operation()),
     };
     const configuredAgentRunnerService = timerDependencies.agentRunnerService ?? { run: vi.fn() };
     const agentRunnerService = {

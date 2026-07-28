@@ -1,11 +1,11 @@
-const path = require('node:path');
-const { normalizePath } = require('../../../shared/path_utils.mjs');
+const { normalizeAgentTokenUsage } = require('../../../shared/agent_usage_math.mjs');
+const { claudeAssistantText, claudeChangedPaths, claudeTranscriptEvents, claudeUsage } = require('./agent_claude_events');
+const { codexChangedPaths, codexTranscriptEvents } = require('./agent_codex_events');
 const { isMissingSession } = require('./agent_provider_protocol');
 
 const CODEX_CLIENT_NAME = 'md2';
 const CODEX_CLIENT_VERSION = '1';
 const CODEX_MISSING_THREAD_ERROR_CODE = -32600;
-const CLAUDE_FILE_TOOLS = new Set(['Edit', 'MultiEdit', 'NotebookEdit', 'Write']);
 const CLAUDE_QUESTION_TOOL = 'AskUserQuestion';
 
 function requireMessage(content) {
@@ -14,57 +14,8 @@ function requireMessage(content) {
     return content;
 }
 
-function normalizeChangedPath(rootPath, filePath) {
-    if (typeof filePath !== 'string' || filePath.length === 0) return null;
-    const resolvedRoot = path.resolve(rootPath);
-    const resolvedPath = path.resolve(resolvedRoot, filePath);
-    const relativePath = path.relative(resolvedRoot, resolvedPath);
-    if (relativePath.length === 0 || relativePath === '..' || relativePath.startsWith(`..${path.sep}`) || path.isAbsolute(relativePath)) return null;
-
-    return normalizePath(relativePath);
-}
-
 function claudeUserMessage(content) {
     return { message: { content, role: 'user' }, type: 'user' };
-}
-
-function claudeAssistantText(event) {
-    if (event.type !== 'assistant' || !Array.isArray(event.message?.content)) return '';
-
-    return event.message.content
-        .filter(({ type }) => type === 'text')
-        .map(({ text }) => text)
-        .filter((text) => typeof text === 'string')
-        .join('');
-}
-
-function claudeChangedPaths(event, rootPath) {
-    if (event.type !== 'assistant' || !Array.isArray(event.message?.content)) return [];
-
-    return [...new Set(event.message.content
-        .filter((block) => block?.type === 'tool_use' && CLAUDE_FILE_TOOLS.has(block.name))
-        .map(({ input, name }) => name === 'NotebookEdit' ? input?.notebook_path : input?.file_path)
-        .map((filePath) => normalizeChangedPath(rootPath, filePath))
-        .filter((filePath) => filePath !== null))];
-}
-
-function claudeTranscriptEvents(event) {
-    if (!Array.isArray(event.message?.content)) return [];
-    if (event.type === 'assistant') {
-        return event.message.content
-            .filter((block) => block?.type === 'tool_use')
-            .map((block) => ({ content: JSON.stringify(block.input ?? {}), eventType: `tool.${block.name}` }));
-    }
-    if (event.type === 'user') {
-        return event.message.content
-            .filter((block) => block?.type === 'tool_result')
-            .map((block) => ({
-                content: typeof block.content === 'string' ? block.content : JSON.stringify(block.content ?? ''),
-                eventType: 'tool.result',
-            }));
-    }
-
-    return [];
 }
 
 function claudeQuestionRequest(event) {
@@ -89,21 +40,6 @@ function claudeControlResponse(requestId, response) {
         response: { request_id: requestId, response, subtype: 'success' },
         type: 'control_response',
     };
-}
-
-function claudeUsage(event) {
-    if (event.type !== 'result' || !event.usage) return null;
-    const cachedInputTokens = (event.usage.cache_creation_input_tokens ?? 0) + (event.usage.cache_read_input_tokens ?? 0);
-    const usage = {
-        cachedInputTokens,
-        inputTokens: event.usage.input_tokens ?? 0,
-        outputTokens: event.usage.output_tokens ?? 0,
-        reasoningTokens: 0,
-    };
-    usage.totalTokens = usage.inputTokens + usage.cachedInputTokens + usage.outputTokens;
-    if (typeof event.total_cost_usd === 'number') usage.costUsd = event.total_cost_usd;
-
-    return usage;
 }
 
 function isClaudeMissingSessionResult(event, providerConversationId) {
@@ -202,34 +138,17 @@ function codexInput(content) {
     return [{ text: requireMessage(content), type: 'text' }];
 }
 
+// The app-server already reports cache-free input tokens, unlike `codex exec`, so no subtraction here.
 function codexUsage(params) {
     const usage = params.tokenUsage?.last;
     if (!usage) return null;
 
-    return {
-        cachedInputTokens: usage.cachedInputTokens ?? 0,
-        inputTokens: usage.inputTokens ?? 0,
-        outputTokens: usage.outputTokens ?? 0,
-        reasoningTokens: usage.reasoningOutputTokens ?? 0,
-        totalTokens: usage.totalTokens ?? 0,
-    };
-}
-
-function codexChangedPaths(item, rootPath) {
-    if (item?.type !== 'fileChange' || !Array.isArray(item.changes)) return [];
-
-    return [...new Set(item.changes
-        .map(({ path: filePath }) => normalizeChangedPath(rootPath, filePath))
-        .filter((filePath) => filePath !== null))];
-}
-
-function codexTranscriptContent(item) {
-    if (!item || item.type === 'agentMessage' || item.type === 'userMessage' || item.type === 'reasoning') return null;
-
-    const content = item.aggregatedOutput ?? item.output ?? item.result ?? item.changes ?? item.command ?? item.path ?? item.name;
-    if (content === undefined || content === null) return null;
-
-    return typeof content === 'string' ? content : JSON.stringify(content);
+    return normalizeAgentTokenUsage({
+        cachedInputTokens: usage.cachedInputTokens,
+        inputTokens: usage.inputTokens,
+        outputTokens: usage.outputTokens,
+        reasoningTokens: usage.reasoningOutputTokens,
+    });
 }
 
 function isCodexMissingThreadError(error, providerConversationId) {
@@ -362,8 +281,9 @@ class CodexStreamingAdapter {
         if (method === 'item/completed') {
             const changedPaths = codexChangedPaths(params.item, this.rootPath);
             if (changedPaths.length > 0) await this.onEvent({ paths: changedPaths, type: 'changedPaths' });
-            const content = codexTranscriptContent(params.item);
-            if (content) await this.onEvent({ content, eventType: `tool.${params.item.type}`, type: 'transcript' });
+            for (const transcriptEvent of codexTranscriptEvents(params.item)) {
+                await this.onEvent({ ...transcriptEvent, type: 'transcript' });
+            }
             return;
         }
         if (method === 'error') {

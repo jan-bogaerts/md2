@@ -23,7 +23,7 @@ export function MainWindow(props: MainWindowProps) {
     const isMobile = useMediaQuery(theme.breakpoints.down('md'))
     const [isMenuOpen, setIsMenuOpen] = useState(false)
     const project = useProjectReference()
-    const isConfigPage = location.pathname === '/config'
+    const isConfigOpen = location.pathname === '/config'
     const regexpAgent = useMemo(
         () => isSearchRegexpAgentAvailable() ? createSearchRegexpAgent() : undefined,
         [],
@@ -53,17 +53,14 @@ export function MainWindow(props: MainWindowProps) {
                 onOpenMobileMenu={handleOpenMenu}
                 search={<SearchControl isMobile={isMobile} regexpAgent={regexpAgent} />}
             />
-            {isConfigPage ? (
-                <ConfigPage hash={location.hash} />
-            ) : (
-                <ProjectWorkspace
-                    auth={auth}
-                    isMenuOpen={isMenuOpen}
-                    key={project ? `${project.id}:${project.branch}` : 'no-project'}
-                    onLeftPanelInteraction={handleCloseMenu}
-                />
-            )}
-            {!isConfigPage && !isMobile ? <StatusBar /> : null}
+            <ProjectWorkspace
+                auth={auth}
+                isMenuOpen={isMenuOpen}
+                key={project ? `${project.id}:${project.branch}` : 'no-project'}
+                onLeftPanelInteraction={handleCloseMenu}
+            />
+            {!isMobile ? <StatusBar /> : null}
+            {isConfigOpen ? <ConfigPage hash={location.hash} /> : null}
         </Box>
     )
 }

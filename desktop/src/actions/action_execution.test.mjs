@@ -49,13 +49,15 @@ function createExecution(rootAction, overrides = {}) {
 
         return { command, exitCode: 0, stderr: '', stdout: command };
     });
-    const actionWorktreeExecutionService = overrides.actionWorktreeExecutionService ?? {
+    const actionWorktreeExecutionService = {
         execute: vi.fn(async (primaryProject, _action, _context, run) => ({
             ...await run(primaryProject),
             branch: primaryProject.branch,
             executionWorktree: null,
             repositoryRoot: primaryProject.rootPath,
         })),
+        runWithCardLock: vi.fn(async (_primaryProject, _context, operation) => operation()),
+        ...overrides.actionWorktreeExecutionService,
     };
     const agentRunnerService = overrides.agentRunnerService ?? { stop: vi.fn() };
     const agentExecutor = overrides.agentExecutor ?? { execute: vi.fn() };
@@ -139,6 +141,25 @@ describe('ActionExecution', () => {
         expect(actionWorktreeExecutionService.execute.mock.calls.map((call) => call[1].id)).toEqual(['before', 'main', 'after']);
     });
 
+    it('publishes queued before running when the card lock is occupied', async () => {
+        const actionWorktreeExecutionService = {
+            runWithCardLock: vi.fn(async (_primaryProject, _context, operation, options) => {
+                options.onQueued();
+
+                return operation();
+            }),
+        };
+        const { events, execution } = createExecution(action('main'), { actionWorktreeExecutionService });
+
+        await execution.completion;
+
+        expect(events
+            .filter((event) => event.type === 'action')
+            .map(({ status }) => status))
+            .toEqual(['queued', 'running', 'completed']);
+        expect(actionWorktreeExecutionService.runWithCardLock.mock.calls[0][3].signal).toBe(execution.controller.signal);
+    });
+
     it('applies root run input only to root action', async () => {
         const rootAction = action('main={{card-prompt}}', {
             id: 'main',
@@ -191,7 +212,10 @@ describe('ActionExecution', () => {
             executionId: 'execution-1', project, projectFolder: 'design', rootAction: action('main'),
             runInput: { extraPrompt: '' }, startedAt: '2026-07-20T10:00:00.000Z',
         }, {
-            actionWorktreeExecutionService: {execute: async (primaryProject, _action, _context, run) => run(primaryProject)},
+            actionWorktreeExecutionService: {
+                execute: async (primaryProject, _action, _context, run) => run(primaryProject),
+                runWithCardLock: async (_primaryProject, _context, operation) => operation(),
+            },
             agentExecutor: { execute: vi.fn() },
             agentRunnerService: { stop: vi.fn() },
             commandRunner,

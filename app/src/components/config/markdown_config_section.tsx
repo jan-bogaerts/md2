@@ -1,4 +1,4 @@
-import { FormControl, FormHelperText, InputLabel, MenuItem, Paper, Select, Stack, Typography } from '@mui/material'
+import { Box, FormControl, FormHelperText, InputLabel, MenuItem, Select, Stack, Typography } from '@mui/material'
 import type { SelectChangeEvent } from '@mui/material'
 import {
     MARKDOWN_SECTIONS,
@@ -29,7 +29,6 @@ const MARKDOWN_SECTION_LABELS: Record<MarkdownSection, string> = {
     table: 'Tables',
 }
 
-const MARKDOWN_CONFIG_SECTION_PADDING = 3
 const REPLACE_CUSTOM_STYLE_MESSAGE = 'Replace custom Markdown settings with the selected predefined style?'
 
 interface MarkdownConfigSectionProps {
@@ -69,11 +68,9 @@ export function MarkdownConfigSection(props: MarkdownConfigSectionProps) {
     }
 
     return (
-        <Paper
+        <Box
             aria-labelledby="markdown-config-heading"
             component="section"
-            sx={{ p: MARKDOWN_CONFIG_SECTION_PADDING }}
-            variant="outlined"
         >
             <Stack spacing={3}>
                 <Typography component="h3" id="markdown-config-heading" variant="h6">Markdown</Typography>
@@ -107,6 +104,6 @@ export function MarkdownConfigSection(props: MarkdownConfigSectionProps) {
                     ))}
                 </Stack>
             </Stack>
-        </Paper>
+        </Box>
     )
 }

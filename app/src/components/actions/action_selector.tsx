@@ -60,19 +60,26 @@ export function ActionSelector(props: ActionSelectorProps) {
                     value={selectedAction.id}
                 >
                     {actions.map((action) => {
+                        const isQueued = activeActionStatuses[action.id] === 'queued'
                         const isWaiting = activeActionStatuses[action.id] === 'waitingForInput'
                         const isRunning = activeActionStatuses[action.id] === 'running'
                         const hasUnseenResult = unseenResultActionIds.includes(action.id)
-                        const stateDescription = isWaiting
-                            ? 'Agent is waiting for input'
-                            : isRunning
-                                ? 'Agent is running'
-                                : hasUnseenResult
-                                    ? 'New agent result available'
-                                    : null
+                        const stateDescription = isQueued
+                            ? 'Action is queued'
+                            : isWaiting
+                                ? 'Agent is waiting for input'
+                                : isRunning
+                                    ? 'Agent is running'
+                                    : hasUnseenResult
+                                        ? 'New agent result available'
+                                        : null
 
                         return (
-                            <Tooltip describeChild key={action.id} title={isWaiting ? stateDescription : action.description}>
+                            <Tooltip
+                                describeChild
+                                key={action.id}
+                                title={isQueued ? stateDescription : isWaiting ? stateDescription : action.description}
+                            >
                                 <ToggleButton
                                     aria-label={stateDescription ? `${action.label} — ${stateDescription}` : action.label}
                                     sx={(theme) => ({
@@ -113,7 +120,7 @@ export function ActionSelector(props: ActionSelectorProps) {
                                         {isRunning ? <Play aria-hidden sx={{ fontSize: 13 }} /> : null}
                                         {action.label}
                                     </Box>
-                                    {hasUnseenResult && !isWaiting && !isRunning ? (
+                                    {hasUnseenResult && !isQueued && !isWaiting && !isRunning ? (
                                         <Circle
                                             aria-hidden
                                             sx={{ color: 'info.main', fontSize: 8, position: 'absolute', right: 2, top: 2, zIndex: 1 }}

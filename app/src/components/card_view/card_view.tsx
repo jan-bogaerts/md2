@@ -18,6 +18,7 @@ import { CardColumn } from './card_column'
 import { CardDragOverlay } from './card_drag_overlay'
 import { cardDragDropService } from './card_drag_drop_service'
 import { resolveCardDragEvent, type CardVerticalBounds } from './card_drag'
+import { CardViewScrollZones } from './card_view_scroll_zones'
 import { useCardViewColumns } from './use_card_view_columns'
 
 const DRAG_ACTIVATION_DISTANCE = 2
@@ -67,6 +68,7 @@ export function CardView(props: CardViewProps) {
     const [openAffectsPath, setOpenAffectsPath] = useState<string | null>(null)
     const initialCardBoundsRef = useRef(new Map<string, CardVerticalBounds>())
     const rootElementRef = useRef<HTMLDivElement>(null)
+    const scrollContainerRef = useRef<HTMLDivElement>(null)
     const missingRootReportedRef = useRef(false)
     const wasVisibleRef = useRef<boolean | null>(null)
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: DRAG_ACTIVATION_DISTANCE } }))
@@ -185,7 +187,7 @@ export function CardView(props: CardViewProps) {
     return (
         <Box
             ref={rootElementRef}
-            sx={{ bgcolor: 'background.default', display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}
+            sx={{ bgcolor: 'background.default', display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden', position: 'relative' }}
         >
             <DndContext
                 collisionDetection={closestCorners}
@@ -197,6 +199,7 @@ export function CardView(props: CardViewProps) {
             >
                 <Box
                     aria-label="Card columns"
+                    ref={scrollContainerRef}
                     sx={{
                         alignItems: 'flex-start',
                         display: 'flex',
@@ -222,6 +225,7 @@ export function CardView(props: CardViewProps) {
                         />
                     ))}
                 </Box>
+                {isMobile && <CardViewScrollZones scrollContainerRef={scrollContainerRef} />}
                 <DragOverlay>
                     <CardDragOverlay cardTypes={cardTypes} />
                 </DragOverlay>

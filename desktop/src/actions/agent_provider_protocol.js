@@ -1,5 +1,7 @@
-const path = require('node:path');
-const { normalizePath } = require('../../../shared/path_utils.mjs');
+const { normalizeAgentTokenUsage } = require('../../../shared/agent_usage_math.mjs');
+const { claudeAssistantText, claudeChangedPaths, claudeTranscriptEvents, claudeUsage } = require('./agent_claude_events');
+const { codexChangedPaths, codexTranscriptEvents } = require('./agent_codex_events');
+const { JsonLineBuffer } = require('./agent_event_utils');
 
 const MISSING_SESSION_CODES = new Set([
     'conversation_not_found',
@@ -8,84 +10,38 @@ const MISSING_SESSION_CODES = new Set([
     'session_not_found',
     'thread_not_found',
 ]);
-const CLAUDE_FILE_TOOLS = new Set(['Edit', 'MultiEdit', 'NotebookEdit', 'Write']);
-const CODEX_FILE_ITEM_TYPES = new Set(['file', 'file_change', 'patch']);
 
-function usageNumber(value) {
-    return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : 0;
-}
-
-function normalizedUsage(inputTokens, cachedInputTokens, outputTokens, reasoningTokens, costUsd) {
-    const usage = {
-        cachedInputTokens: usageNumber(cachedInputTokens),
-        inputTokens: usageNumber(inputTokens),
-        outputTokens: usageNumber(outputTokens),
-        reasoningTokens: usageNumber(reasoningTokens),
-    };
-    usage.totalTokens = usage.inputTokens + usage.cachedInputTokens + usage.outputTokens + usage.reasoningTokens;
-    if (typeof costUsd === 'number' && Number.isFinite(costUsd) && costUsd >= 0) usage.costUsd = costUsd;
-
-    return usage;
-}
-
-// Bucket semantics differ per provider: codex reports cached tokens as a subset of input_tokens
-// (subtracted here so inputTokens is fresh-only, like claude), and only codex reports reasoning
-// tokens separately (claude folds thinking into output_tokens, so its reasoningTokens is always 0).
-function providerUsage(agent, event) {
+// Codex exec reports cached tokens as a subset of input_tokens; subtracting here makes inputTokens
+// fresh-only, matching how claude reports them.
+function codexUsage(event) {
     const usage = event.usage;
-    if (!usage || typeof usage !== 'object' || Array.isArray(usage)) return null;
+    if (event.type !== 'turn.completed' || !usage || typeof usage !== 'object' || Array.isArray(usage)) return null;
+    const cachedInputTokens = usage.cached_input_tokens;
 
-    if (agent === 'codex' && event.type === 'turn.completed') {
-        return normalizedUsage(
-            usageNumber(usage.input_tokens) - usageNumber(usage.cached_input_tokens),
-            usage.cached_input_tokens,
-            usage.output_tokens,
-            usage.reasoning_output_tokens,
-        );
-    }
-    if (agent === 'claude' && event.type === 'result') {
-        const cachedInputTokens = usageNumber(usage.cache_creation_input_tokens) + usageNumber(usage.cache_read_input_tokens);
-
-        return normalizedUsage(usage.input_tokens, cachedInputTokens, usage.output_tokens, 0, event.total_cost_usd);
-    }
-
-    return null;
+    return normalizeAgentTokenUsage({
+        cachedInputTokens,
+        inputTokens: (usage.input_tokens ?? 0) - (cachedInputTokens ?? 0),
+        outputTokens: usage.output_tokens,
+        reasoningTokens: usage.reasoning_output_tokens,
+    });
 }
 
-function normalizeChangedPath(rootPath, filePath) {
-    if (typeof rootPath !== 'string' || rootPath.length === 0) return null;
-    if (typeof filePath !== 'string' || filePath.length === 0) return null;
-    const resolvedRoot = path.resolve(rootPath);
-    const resolvedPath = path.resolve(resolvedRoot, filePath);
-    const relativePath = path.relative(resolvedRoot, resolvedPath);
-    if (relativePath.length === 0 || relativePath === '..' || relativePath.startsWith(`..${path.sep}`) || path.isAbsolute(relativePath)) return null;
-
-    return normalizePath(relativePath);
-}
-
-function claudeChangedPaths(event) {
-    if (event.type !== 'assistant' || !Array.isArray(event.message?.content)) return [];
-
-    return event.message.content
-        .filter((block) => block?.type === 'tool_use' && CLAUDE_FILE_TOOLS.has(block.name))
-        .map(({ input, name }) => name === 'NotebookEdit' ? input?.notebook_path : input?.file_path)
-        .filter((filePath) => typeof filePath === 'string');
-}
-
-function codexChangedPaths(event) {
-    if (event.type !== 'item.completed' || !CODEX_FILE_ITEM_TYPES.has(event.item?.type)) return [];
-    const changedPaths = typeof event.item.path === 'string' ? [event.item.path] : [];
-    if (!Array.isArray(event.item.changes)) return changedPaths;
-
-    return [...changedPaths, ...event.item.changes
-        .map((change) => change?.path)
-        .filter((filePath) => typeof filePath === 'string')];
+function providerUsage(agent, event) {
+    return agent === 'codex' ? codexUsage(event) : claudeUsage(event);
 }
 
 function providerChangedPaths(agent, event, rootPath) {
-    const paths = agent === 'codex' ? codexChangedPaths(event) : claudeChangedPaths(event);
+    if (agent !== 'codex') return claudeChangedPaths(event, rootPath);
+    if (event.type !== 'item.completed') return [];
 
-    return [...new Set(paths.map((filePath) => normalizeChangedPath(rootPath, filePath)).filter((filePath) => filePath !== null))];
+    return codexChangedPaths(event.item, rootPath);
+}
+
+function providerTranscriptEvents(agent, event) {
+    if (agent !== 'codex') return claudeTranscriptEvents(event);
+    if (event.type !== 'item.completed' || !event.item) return [];
+
+    return codexTranscriptEvents(event.item);
 }
 
 function eventCodes(event) {
@@ -94,57 +50,10 @@ function eventCodes(event) {
         .map((value) => value.toLowerCase());
 }
 
-function claudeAssistantText(event) {
-    if (event.type !== 'assistant' || !Array.isArray(event.message?.content)) return '';
-
-    return event.message.content
-        .filter(({ type }) => type === 'text')
-        .map(({ text }) => text)
-        .filter((text) => typeof text === 'string')
-        .join('');
-}
-
 function codexAssistantText(event) {
     if (event.type !== 'item.completed' || event.item?.type !== 'agent_message') return '';
 
     return typeof event.item.text === 'string' ? event.item.text : '';
-}
-
-function normalizedContent(value) {
-    if (value === undefined || value === null) return null;
-    const content = typeof value === 'string' ? value : JSON.stringify(value);
-
-    return content.length > 0 ? content : null;
-}
-
-function codexTranscriptEvents(event) {
-    if (event.type !== 'item.completed' || !event.item) return [];
-    if (event.item.type === 'agent_message' || event.item.type === 'reasoning' || event.item.type === 'error') return [];
-    const content = normalizedContent(
-        event.item.aggregated_output
-        ?? event.item.output
-        ?? event.item.result
-        ?? event.item.changes
-        ?? event.item.command
-        ?? event.item.path
-        ?? event.item.name,
-    );
-
-    return content ? [{ content, type: `tool.${event.item.type}` }] : [];
-}
-
-function claudeTranscriptEvents(event) {
-    if (event.type !== 'user' || !Array.isArray(event.message?.content)) return [];
-
-    return event.message.content
-        .filter((block) => block?.type === 'tool_result')
-        .map(({ content }) => normalizedContent(content))
-        .filter((content) => content !== null)
-        .map((content) => ({ content, type: 'tool.result' }));
-}
-
-function providerTranscriptEvents(agent, event) {
-    return agent === 'codex' ? codexTranscriptEvents(event) : claudeTranscriptEvents(event);
 }
 
 function nestedErrorMessage(value) {
@@ -198,7 +107,7 @@ function isMissingSession(agent, event, turnStarted) {
 class AgentProviderProtocolParser {
     constructor(agent, onEvent, onMalformed, rootPath) {
         this.agent = agent;
-        this.buffer = '';
+        this.lines = new JsonLineBuffer(agent, (line) => this.parseLine(line));
         this.onEvent = onEvent;
         this.onMalformed = onMalformed;
         this.rootPath = rootPath;
@@ -206,20 +115,14 @@ class AgentProviderProtocolParser {
     }
 
     push(chunk) {
-        this.buffer += chunk.toString();
-        const lines = this.buffer.split(/\r?\n/u);
-        this.buffer = lines.pop() ?? '';
-        for (const line of lines) this.parseLine(line);
+        this.lines.push(chunk);
     }
 
     finish() {
-        if (this.buffer.length > 0) this.parseLine(this.buffer);
-        this.buffer = '';
+        this.lines.finish();
     }
 
     parseLine(line) {
-        if (line.trim().length === 0) return;
-
         let event;
         try {
             event = JSON.parse(line);

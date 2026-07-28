@@ -1,4 +1,16 @@
-import { Box, Button, Stack, Tab, Tabs, Typography, useMediaQuery, useTheme } from '@mui/material'
+import {
+    Box,
+    Button,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogTitle,
+    Stack,
+    Tab,
+    Tabs,
+    useMediaQuery,
+    useTheme,
+} from '@mui/material'
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { navigateTo } from '../../app/app_navigation'
 import { CONFIG_SECTIONS, configService, type ConfigEntry, type ConfigKey } from '../../services/config/config_service'
@@ -194,54 +206,61 @@ export function ConfigPage(props: ConfigPageProps) {
     )
 
     return (
-        <Box
-            aria-label="Config page"
-            component="section"
-            sx={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}
+        <Dialog
+            aria-labelledby="config-dialog-title"
+            fullScreen={isMobile}
+            fullWidth
+            maxWidth="lg"
+            onClose={handleCancelClick}
+            open
         >
-            {!isMobile ? (
+            <DialogTitle id="config-dialog-title" sx={{ borderBottom: 1, borderColor: 'divider' }}>
+                Config
+            </DialogTitle>
+            <DialogContent
+                aria-label="Config dialog body"
+                sx={{ display: 'flex', minHeight: 0, overflow: 'hidden', p: 0 }}
+            >
+                {!isMobile ? (
+                    <Box
+                        aria-label="Config section navigation"
+                        component="nav"
+                        sx={{ borderRight: 1, borderColor: 'divider', flexShrink: 0, minHeight: 0, overflow: 'auto', width: CONFIG_SIDEBAR_WIDTH }}
+                        tabIndex={0}
+                    >
+                        {sectionTabs}
+                    </Box>
+                ) : null}
                 <Box
-                    aria-label="Config section navigation"
-                    component="nav"
-                    sx={{ borderRight: 1, borderColor: 'divider', flexShrink: 0, minHeight: 0, overflow: 'auto', width: CONFIG_SIDEBAR_WIDTH }}
+                    aria-label="Config section content"
+                    role="region"
+                    sx={{ flex: 1, minHeight: 0, minWidth: 0, overflow: 'auto', p: CONFIG_PAGE_PADDING }}
                     tabIndex={0}
                 >
-                    {sectionTabs}
-                </Box>
-            ) : null}
-            <Box
-                aria-label="Config section content"
-                role="region"
-                sx={{ flex: 1, minHeight: 0, minWidth: 0, overflow: 'auto', p: CONFIG_PAGE_PADDING }}
-                tabIndex={0}
-            >
-                <Stack spacing={3} sx={{ maxWidth: CONFIG_FORM_MAX_WIDTH }}>
-                    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ alignItems: { sm: 'center' } }}>
-                        <Typography component="h2" sx={{ flexGrow: 1 }} variant="h5">
-                            Config
-                        </Typography>
-                        <Button onClick={handleCancelClick} variant="outlined">
-                            Cancel
-                        </Button>
-                        <Button disabled={invalidConfigKeys.size > 0 || !markdownStyleValid} onClick={handleSaveClick} variant="contained">
-                            Save
-                        </Button>
+                    <Stack spacing={3} sx={{ maxWidth: CONFIG_FORM_MAX_WIDTH }}>
+                        {isMobile ? sectionTabs : null}
+
+                        {activeSection === 'react' ? <ReactConfigSection {...sectionProps} /> : null}
+                        {activeSection === 'markdown' ? (
+                            <MarkdownConfigSection
+                                config={markdownStyleDraft.config}
+                                name={markdownStyleDraft.name}
+                                onChange={handleMarkdownStyleChange}
+                            />
+                        ) : null}
+                        {activeSection === 'project' ? <ProjectConfigSection {...sectionProps} /> : null}
+                        {activeSection === 'desktop' ? <DesktopConfigSection {...sectionProps} disabled={!configService.hasDesktopConfig()} /> : null}
                     </Stack>
-
-                    {isMobile ? sectionTabs : null}
-
-                    {activeSection === 'react' ? <ReactConfigSection {...sectionProps} /> : null}
-                    {activeSection === 'markdown' ? (
-                        <MarkdownConfigSection
-                            config={markdownStyleDraft.config}
-                            name={markdownStyleDraft.name}
-                            onChange={handleMarkdownStyleChange}
-                        />
-                    ) : null}
-                    {activeSection === 'project' ? <ProjectConfigSection {...sectionProps} /> : null}
-                    {activeSection === 'desktop' ? <DesktopConfigSection {...sectionProps} disabled={!configService.hasDesktopConfig()} /> : null}
-                </Stack>
-            </Box>
-        </Box>
+                </Box>
+            </DialogContent>
+            <DialogActions sx={{ bgcolor: 'background.default', borderTop: 1, borderColor: 'divider' }}>
+                <Button onClick={handleCancelClick} variant="outlined">
+                    Cancel
+                </Button>
+                <Button disabled={invalidConfigKeys.size > 0 || !markdownStyleValid} onClick={handleSaveClick} variant="contained">
+                    Save
+                </Button>
+            </DialogActions>
+        </Dialog>
     )
 }

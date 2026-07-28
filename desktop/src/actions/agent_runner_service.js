@@ -13,6 +13,7 @@ const {
     conversationReference,
     persistConversation,
 } = require('./agent_conversation_persistence');
+const { JsonLineBuffer } = require('./agent_event_utils');
 const { createAgentProviderProtocolParser } = require('./agent_provider_protocol');
 const { createAgentStreamingAdapter } = require('./agent_streaming_adapter');
 const { AgentExecutableResolver } = require('./agent_executable_availability');
@@ -268,7 +269,7 @@ class AgentRunnerService {
             interactionWrites: Promise.resolve(),
             pendingQuestions: [],
             providerConversationId: null,
-            protocolBuffer: '',
+            protocolLines: null,
             protocolHandling: Promise.resolve(),
             reference,
             reportedProviderErrors: new Set(),
@@ -302,6 +303,7 @@ class AgentRunnerService {
                 request.providerConversationId,
             )
             : null;
+        run.protocolLines = streaming ? new JsonLineBuffer(id, (line) => this.handleStreamingLine(id, line)) : null;
         run.parser = streaming
             ? null
             : createAgentProviderProtocolParser(
@@ -486,11 +488,8 @@ class AgentRunnerService {
         if (!run) return;
 
         const content = chunk.toString();
-        if (channel === 'stdout' && run.streamingAdapter) {
-            run.protocolBuffer += content;
-            const lines = run.protocolBuffer.split(/\r?\n/u);
-            run.protocolBuffer = lines.pop() ?? '';
-            for (const line of lines) this.handleStreamingLine(runId, line);
+        if (channel === 'stdout' && run.protocolLines) {
+            run.protocolLines.push(chunk);
             return;
         }
         if (channel === 'stdout' && run.parser) {
@@ -510,7 +509,7 @@ class AgentRunnerService {
 
     handleStreamingLine(runId, line) {
         const run = this.processes.get(runId);
-        if (!run || line.trim().length === 0) return;
+        if (!run) return;
 
         let message;
         try {
@@ -566,7 +565,7 @@ class AgentRunnerService {
         for (const transcriptEvent of providerEvent.transcriptEvents) {
             run.conversation.events.push(createEvent(
                 `${runId}-provider-${run.conversation.events.length}`,
-                transcriptEvent.type,
+                transcriptEvent.toolType,
                 transcriptEvent.content,
                 timestamp,
             ));
@@ -610,7 +609,7 @@ class AgentRunnerService {
             const safeContent = redactSecrets(event.content, run.secretValues);
             run.conversation.events.push(createEvent(
                 `${runId}-provider-${run.conversation.events.length}`,
-                event.eventType,
+                event.toolType,
                 safeContent,
                 timestamp,
             ));
@@ -731,10 +730,7 @@ class AgentRunnerService {
             if (run.termination) await run.termination;
             else await this.terminateDescendantProcesses(run.child.pid);
             run.parser?.finish();
-            if (run.streamingAdapter && run.protocolBuffer.length > 0) {
-                this.handleStreamingLine(runId, run.protocolBuffer);
-                run.protocolBuffer = '';
-            }
+            run.protocolLines?.finish();
             await run.protocolHandling;
             this.flushStderr(runId);
             await run.persistence;
