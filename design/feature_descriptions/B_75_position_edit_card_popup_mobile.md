@@ -3,13 +3,13 @@ author:
 id: B_75
 internalId: 3e151ae1-ffa3-42ba-819c-a6973683af03
 title: Position edit card popup mobile
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
   - design/activity/card__3e151ae1-ffa3-42ba-819c-a6973683af03.json#conversation=agent-91909559-05d3-498a-97e3-f1796a805b1e
 policy:
-after: 
+after: 455a095f-9014-4c81-b327-87b6f3a969cc
 ---
 On mobile, the ´edit card´ popup should take up the window size.
 
