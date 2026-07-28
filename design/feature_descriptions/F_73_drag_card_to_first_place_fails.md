@@ -3,13 +3,13 @@ author:
 id: F_73
 internalId: ac0b585c-0f35-4d48-be98-a229e98d92ae
 title: drag card to first place fails
-status: design
+status: ready for implementation
 owner: 
 affects:
 agents:
   - design/activity/card__ac0b585c-0f35-4d48-be98-a229e98d92ae.json#conversation=agent-66c9419d-1b97-407a-a76c-a93e977ead87
 policy:
-after: b8c1f8ef-aeef-4576-be42-f6c6d0757728
+after: 
 ---
 # Goal
 
