@@ -1011,7 +1011,7 @@
     {
       "actionId": "md2.custom-prompt",
       "cardInternalId": null,
-      "completedAt": null,
+      "completedAt": "2026-07-28T14:30:04.392Z",
       "events": [
         {
           "content": "codex --model gpt-5.6-sol -c model_reasoning_effort=medium app-server --stdio",
@@ -1138,6 +1138,12 @@
           "id": "agent-turn-4c628a5d-14a9-427a-a978-bac09f03cda5-turn-2-completed",
           "timestamp": "2026-07-28T14:29:59.274Z",
           "type": "turnCompleted"
+        },
+        {
+          "content": "0",
+          "id": "agent-turn-4c628a5d-14a9-427a-a978-bac09f03cda5-closed",
+          "timestamp": "2026-07-28T14:30:04.392Z",
+          "type": "closed"
         }
       ],
       "hasExplicitTitle": true,
@@ -1167,7 +1173,7 @@
           "content": "Yes—all 1,737 tests pass. The only failures were transient timeouts caused by running both suites concurrently.",
           "id": "agent-turn-4c628a5d-14a9-427a-a978-bac09f03cda5-turn-2-assistant",
           "role": "assistant",
-          "timestamp": "2026-07-28T14:29:59.274Z"
+          "timestamp": "2026-07-28T14:30:04.392Z"
         }
       ],
       "providerSessions": [
@@ -1175,12 +1181,12 @@
           "agent": "codex",
           "conversationId": "019fa91b-423c-7411-856e-29d10ac8dca7",
           "createdAt": "2026-07-28T14:27:02.330Z",
-          "lastUsedAt": "2026-07-28T14:29:59.274Z",
+          "lastUsedAt": "2026-07-28T14:30:04.392Z",
           "synchronizedThroughMessageId": "agent-turn-4c628a5d-14a9-427a-a978-bac09f03cda5-turn-2-assistant"
         }
       ],
       "startedAt": "2026-07-28T14:22:42.522Z",
-      "status": "waitingForInput",
+      "status": "completed",
       "title": "Custom prompt",
       "usage": {
         "cachedInputTokens": 48640,
