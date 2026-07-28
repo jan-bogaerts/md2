@@ -3,11 +3,12 @@ author:
 id: F_84
 internalId: f316134f-9019-4a02-baee-3a1e02f67151
 title: select empty conversation
-status: new
+status: design
 owner: 
 affects:
 agents:
 policy:
+after: b8c1f8ef-aeef-4576-be42-f6c6d0757728
 ---
 
 # Goal
