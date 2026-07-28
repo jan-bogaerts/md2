@@ -462,6 +462,13 @@ describe('ActionExecution', () => {
         const agentExecutor = {
             execute: vi.fn(async (input) => {
                 input.onEvent({ content: 'chunk', type: 'output' });
+                input.onEvent({
+                    activity: {
+                        content: 'running', id: 'activity-1', label: 'Command', providerItemId: 'command-1',
+                        sequence: 3, status: 'inProgress', timestamp: 'now', type: 'commandExecution',
+                    },
+                    type: 'agentActivity',
+                });
 
                 return {
                     agent: 'codex', exitCode: 0, model: 'gpt', prompt: 'run',
@@ -475,6 +482,14 @@ describe('ActionExecution', () => {
         await execution.completion;
 
         expect(events).toContainEqual(expect.objectContaining({status: 'running', type: 'update', update: { content: 'chunk', kind: 'output' }}));
+        expect(events).toContainEqual(expect.objectContaining({
+            status: 'running',
+            type: 'update',
+            update: {
+                activity: expect.objectContaining({ providerItemId: 'command-1', sequence: 3 }),
+                kind: 'agentActivity',
+            },
+        }));
         expect(events).toContainEqual(expect.objectContaining({reference: 'run.json', runId: 'conversation', status: 'completed', thinkingLevel: 'high', type: 'action'}));
     });
 

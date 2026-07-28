@@ -1,15 +1,11 @@
-import { Box, Button, IconButton, Stack, Tooltip, Typography } from '@mui/material'
-import CalendarOutline from 'mdi-material-ui/CalendarOutline'
+import { Box, IconButton, Stack, Tooltip, Typography } from '@mui/material'
 import ArrowCollapseVertical from 'mdi-material-ui/ArrowCollapseVertical'
 import ArrowExpandVertical from 'mdi-material-ui/ArrowExpandVertical'
 import Close from 'mdi-material-ui/Close'
-import Play from 'mdi-material-ui/Play'
-import ArrowUpwardOutlined from '@mui/icons-material/ArrowUpwardOutlined'
-import CheckOutlined from '@mui/icons-material/CheckOutlined'
-import StopOutlined from '@mui/icons-material/StopOutlined'
+import { useMemo } from 'react'
 import type { ActionContext } from '../../data/action_context'
 import type { ActionExecutionStatus } from '../../data/action_run_types'
-import { CUSTOM_PROMPT_ACTION_ID, type ActionDefinition } from '../../data/action_types'
+import type { ActionDefinition } from '../../data/action_types'
 import type { AgentConversation } from '../../data/data_types'
 import { worktreeService } from '../../services/project/worktree_service'
 import { ResizablePopper } from '../resizable_popper'
@@ -22,12 +18,14 @@ import { ActionConversationChat } from './action_conversation_chat'
 import { ActionConversationPicker } from './action_conversation_picker'
 import { ActionLogErrorDisplay } from './action_log_error_display'
 import { ActionPhraseButtons } from './action_phrase_buttons'
+import { ActionPopupBottomRow } from './action_popup_bottom_row'
 import { statusColor } from './action_popup_defaults'
+import { actionPopupRunDisabled } from './action_popup_run_disabled'
+import { ActionPromptDraft } from './action_prompt_draft'
 import { ActionRunHistory } from './action_run_history'
 import { ActionRunStatus } from './action_run_status'
 import { ActionScheduleForm } from './action_schedule_form'
 import { ActionSelector } from './action_selector'
-import { ActionUsageSummary } from './action_usage_summary'
 import { useActionPopupController } from './use_action_popup_controller'
 
 export const CARD_RUN_POPUP_SIZE_STORAGE_KEY = 'md2.cardRunPopupSize'
@@ -98,29 +96,17 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
         enableConversations: action.type === 'agent',
         executionValidationError: worktreeValidationMessage(action, assignmentContext),
     })
-    const promptRequired = action.id === CUSTOM_PROMPT_ACTION_ID
     const sessionActive = controller.runStatus === 'queued'
         || controller.runStatus === 'running'
         || controller.runStatus === 'waitingForInput'
     const showAgentInteraction = action.type === 'agent' || controller.agentActive
-    const showAgentSend = sessionActive ? controller.agentActive : action.type === 'agent'
-    const showCommandRun = !sessionActive && action.type === 'command'
     const sizeStorageKey = baseContext.kind === 'project'
         ? PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY
         : CARD_RUN_POPUP_SIZE_STORAGE_KEY
-    const handlePrimaryRun = showSaveControls ? controller.handleSaveAndRun : controller.handleRun
-    const showUsageSummary = baseContext.kind === 'card' && !!baseContext.file
-    const runDisabled = !!controller.executionDisabledMessage
-        || controller.promptPreparationPending
-        || controller.promptPreparationFailed
-        || (promptRequired && controller.prompt.trim().length === 0)
-        || (controller.agentActive && (
-            !controller.interactionReady
-            || controller.prompt.trim().length === 0
-            || !!controller.structuredQuestion
-        ))
-        || (sessionActive && !controller.agentActive)
-        || (showSaveControls && controller.saveDisabled)
+    const promptDraft = useMemo(
+        () => new ActionPromptDraft(controller.prompt, controller.promptResetToken),
+        [controller.prompt, controller.promptResetToken],
+    )
     const parsedWorktree = assignmentContext.worktree && /^[1-9]\d*$/u.test(assignmentContext.worktree)
         ? Number.parseInt(assignmentContext.worktree, 10)
         : null
@@ -132,6 +118,12 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
     const assignmentTarget = baseContext.kind === 'card' || baseContext.kind === 'file' || baseContext.kind === 'project'
         ? worktreeAssignmentTarget(baseContext)
         : null
+    const handleRunShortcut = () => {
+        const prompt = promptDraft.getSnapshot()
+        if (actionPopupRunDisabled(action, controller, prompt, showSaveControls)) return
+        if (showSaveControls) void controller.handleSaveAndRun(prompt)
+        else void controller.handleRun(prompt)
+    }
 
     return (
         <ResizablePopper
@@ -217,7 +209,7 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
                             <ActionAgentPresetName
                                 actionLabel={controller.actionLabel}
                                 onActionLabelChange={controller.handleActionLabelChange}
-                                onRunShortcut={runDisabled ? undefined : handlePrimaryRun}
+                                onRunShortcut={handleRunShortcut}
                             />
                         ) : null}
                         <Box sx={{ alignItems: 'center', color: 'text.secondary', display: 'flex', flexWrap: 'wrap', fontSize: 12, gap: 0.75 }}>
@@ -246,11 +238,10 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
                             convertMessage={controller.convertMessage}
                             disabled={false}
                             onPromptChange={controller.handlePromptChange}
-                            onRunShortcut={runDisabled ? undefined : handlePrimaryRun}
-                            prompt={controller.prompt}
+                            onRunShortcut={handleRunShortcut}
+                            promptDraft={promptDraft}
                             promptFailed={controller.promptPreparationFailed}
                             promptLoading={controller.promptPreparationPending}
-                            promptResetToken={controller.promptResetToken}
                         />
                         {controller.structuredQuestion ? (
                             <ActionAgentQuestion
@@ -296,92 +287,14 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
                     <ActionRunHistory compact entries={controller.history} error={controller.historyError} />
                 ) : null}
             </Stack>
-            <Box sx={{ alignItems: 'center', bgcolor: 'background.default', borderTop: 1, borderColor: 'divider', display: 'flex', gap: 1, px: 2, py: 1.5 }}>
-                {showUsageSummary && action.type === 'agent' && assignmentContext.cardInternalId ? (
-                    <ActionUsageSummary
-                        actionId={action.id}
-                        cardInternalId={assignmentContext.cardInternalId}
-                        conversations={controller.conversations}
-                        history={controller.history}
-                    />
-                ) : null}
-                <Box sx={{ flex: 1 }} />
-                {sessionActive ? (
-                    <Tooltip title="Stop">
-                        <span>
-                            <IconButton
-                                aria-label="Stop"
-                                disabled={!controller.backendAvailable}
-                                onClick={controller.handleCancel}
-                                size="small"
-                            >
-                                <StopOutlined sx={{ fontSize: 18 }} />
-                            </IconButton>
-                        </span>
-                    </Tooltip>
-                ) : null}
-                {controller.manualFinishAvailable ? (
-                    <Tooltip title="Finish">
-                        <span>
-                            <IconButton
-                                aria-label="Finish"
-                                disabled={!controller.backendAvailable || !controller.interactionReady}
-                                onClick={controller.handleFinish}
-                                size="small"
-                            >
-                                <CheckOutlined sx={{ fontSize: 18 }} />
-                            </IconButton>
-                        </span>
-                    </Tooltip>
-                ) : null}
-                {showSaveControls ? (
-                    <Button disabled={controller.saveDisabled} onClick={controller.handleConvertToAction} size="small" variant="outlined">
-                        Save
-                    </Button>
-                ) : null}
-                <Button
-                    disabled={sessionActive || !controller.backendAvailable}
-                    onClick={controller.handleToggleSchedule}
-                    size="small"
-                    startIcon={<CalendarOutline sx={{ fontSize: '14px !important' }} />}
-                    sx={{
-                        bgcolor: 'background.paper',
-                        borderColor: 'divider',
-                        color: 'text.secondary',
-                        height: 34,
-                        '&:hover': { borderColor: 'primary.main', color: 'primary.main' },
-                    }}
-                    variant="outlined"
-                >
-                    Schedule
-                </Button>
-                {showAgentSend ? (
-                    <Tooltip title="Send">
-                        <span>
-                            <IconButton
-                                aria-label="Send"
-                                color="primary"
-                                disabled={runDisabled}
-                                onClick={handlePrimaryRun}
-                                size="small"
-                            >
-                                <ArrowUpwardOutlined sx={{ fontSize: 18 }} />
-                            </IconButton>
-                        </span>
-                    </Tooltip>
-                ) : showCommandRun ? (
-                    <Button
-                        disabled={runDisabled}
-                        onClick={handlePrimaryRun}
-                        size="small"
-                        startIcon={<Play sx={{ fontSize: '13px !important' }} />}
-                        sx={{ height: 34, px: 2 }}
-                        variant="contained"
-                    >
-                        Run
-                    </Button>
-                ) : null}
-            </Box>
+            <ActionPopupBottomRow
+                action={action}
+                assignmentContext={assignmentContext}
+                baseContext={baseContext}
+                controller={controller}
+                promptDraft={promptDraft}
+                showSaveControls={showSaveControls}
+            />
         </ResizablePopper>
     )
 }

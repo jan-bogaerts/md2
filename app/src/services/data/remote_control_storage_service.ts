@@ -13,6 +13,10 @@ import type {
     ReadFileAtCommitRequest,
 } from '../../data/electron_action_bridge'
 import type { CardActivityFile } from '../../../../shared/card_activity.mjs'
+import type {
+    CodexRateLimitSnapshot,
+    ElectronCodexRuntimeBridge,
+} from '../../data/electron_codex_runtime_bridge'
 import type { AgentAvailability } from '../../data/electron_data_bridge'
 import type {
     AgentConversation,
@@ -77,6 +81,12 @@ interface ActionExecutionPayload {
     subscriptionId: string
 }
 
+interface CodexRateLimitsPayload {
+    requestId: string
+    snapshot: CodexRateLimitSnapshot
+    subscriptionId: string
+}
+
 interface WorktreesChangedPayload {
     requestId: string
     state: WorktreeState
@@ -89,7 +99,7 @@ function isResponse(message: RemoteControlResponse | RemoteControlEvent): messag
     return 'id' in message
 }
 
-export class RemoteControlStorageService implements StorageService, ElectronActionBridge {
+export class RemoteControlStorageService implements StorageService, ElectronActionBridge, ElectronCodexRuntimeBridge {
     async addWorktree(project: ProjectReference): Promise<boolean> {
         return this.request<boolean>('addWorktree', [project])
     }
@@ -98,12 +108,16 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
     private actionExecutionListeners: Set<(event: ActionExecutionEvent) => void>
     private actionExecutionSubscriptions: Map<(event: ActionExecutionEvent) => void, string>
     private connectPromise: Promise<void> | null
+    private codexRateLimitCallbacks: Map<string, (snapshot: CodexRateLimitSnapshot) => void>
+    private codexRateLimitListeners: Set<(snapshot: CodexRateLimitSnapshot) => void>
+    private codexRateLimitSubscriptions: Map<(snapshot: CodexRateLimitSnapshot) => void, string>
     private endpoint: string
     private nextId: number
     private readonly pendingPushBranches: Set<string>
     private pending: Map<string, PendingRequest>
     private requestAgentEvents: Map<string, (event: AgentRunEvent) => void>
     private requestActionExecutionEvents: Map<string, (event: ActionExecutionEvent) => void>
+    private requestCodexRateLimitEvents: Map<string, (snapshot: CodexRateLimitSnapshot) => void>
     private requestWatchEvents: Map<string, (event: ProjectWatchEvent) => void>
     private requestWorktreeEvents: Map<string, (state: WorktreeState) => void>
     private runAgentEvents: Map<string, (event: AgentRunEvent) => void>
@@ -117,12 +131,16 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         this.actionExecutionListeners = new Set()
         this.actionExecutionSubscriptions = new Map()
         this.connectPromise = null
+        this.codexRateLimitCallbacks = new Map()
+        this.codexRateLimitListeners = new Set()
+        this.codexRateLimitSubscriptions = new Map()
         this.endpoint = ''
         this.nextId = 1
         this.pendingPushBranches = new Set()
         this.pending = new Map()
         this.requestAgentEvents = new Map()
         this.requestActionExecutionEvents = new Map()
+        this.requestCodexRateLimitEvents = new Map()
         this.requestWatchEvents = new Map()
         this.requestWorktreeEvents = new Map()
         this.runAgentEvents = new Map()
@@ -395,6 +413,10 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         return this.request<ActionExecutionEvent[]>('loadActiveActionExecutionEvents', [])
     }
 
+    async getCodexRateLimits(): Promise<CodexRateLimitSnapshot | null> {
+        return this.request<CodexRateLimitSnapshot | null>('getCodexRateLimits', [])
+    }
+
     async notifyActionCardStateChange(cardInternalId: string, state: string): Promise<void> {
         await this.request('notifyActionCardStateChange', [cardInternalId, state])
     }
@@ -421,6 +443,24 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
 
             this.actionExecutionSubscriptions.delete(callback)
             this.actionExecutionCallbacks.delete(subscriptionId)
+            void this.request('unsubscribe', [subscriptionId])
+        }
+    }
+
+    onCodexRateLimits(callback: (snapshot: CodexRateLimitSnapshot) => void): () => void {
+        this.codexRateLimitListeners.add(callback)
+        void this.subscribeCodexRateLimits(callback).catch(() => undefined)
+
+        return () => {
+            this.codexRateLimitListeners.delete(callback)
+            for (const [requestId, pendingCallback] of this.requestCodexRateLimitEvents) {
+                if (pendingCallback === callback) this.requestCodexRateLimitEvents.delete(requestId)
+            }
+            const subscriptionId = this.codexRateLimitSubscriptions.get(callback)
+            if (!subscriptionId) return
+
+            this.codexRateLimitSubscriptions.delete(callback)
+            this.codexRateLimitCallbacks.delete(subscriptionId)
             void this.request('unsubscribe', [subscriptionId])
         }
     }
@@ -499,6 +539,7 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
                 this.connectPromise = null
                 resolve()
                 void this.restoreActionExecutionSubscriptions()
+                void this.restoreCodexRateLimitSubscriptions()
             }
             const handleError = () => {
                 this.connectPromise = null
@@ -540,6 +581,10 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
             this.handleActionExecutionEvent(message.payload as ActionExecutionPayload)
             return
         }
+        if (message.event === 'codexRateLimits') {
+            this.handleCodexRateLimitsEvent(message.payload as CodexRateLimitsPayload)
+            return
+        }
         if (message.event === 'watchProject') {
             this.handleWatchProjectEvent(message.payload as WatchProjectPayload)
             return
@@ -556,6 +601,12 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         const callback = this.actionExecutionCallbacks.get(payload.subscriptionId)
             ?? this.requestActionExecutionEvents.get(payload.requestId)
         callback?.(payload.event)
+    }
+
+    private handleCodexRateLimitsEvent(payload: CodexRateLimitsPayload) {
+        const callback = this.codexRateLimitCallbacks.get(payload.subscriptionId)
+            ?? this.requestCodexRateLimitEvents.get(payload.requestId)
+        callback?.(payload.snapshot)
     }
 
     private async restoreActionExecutionSubscriptions() {
@@ -587,6 +638,32 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         }
     }
 
+    private async restoreCodexRateLimitSubscriptions() {
+        const pendingCallbacks = new Set(this.requestCodexRateLimitEvents.values())
+        const callbacks = [...this.codexRateLimitListeners].filter((callback) => !pendingCallbacks.has(callback))
+        await Promise.allSettled(callbacks.map((callback) => this.subscribeCodexRateLimits(callback)))
+    }
+
+    private async subscribeCodexRateLimits(callback: (snapshot: CodexRateLimitSnapshot) => void) {
+        const id = this.createRequestId()
+        this.requestCodexRateLimitEvents.set(id, callback)
+        try {
+            const result = await this.sendRequest<{ subscriptionId: string }>({
+                id,
+                method: 'onCodexRateLimits',
+                params: [],
+            })
+            if (!this.codexRateLimitListeners.has(callback)) {
+                await this.request('unsubscribe', [result.subscriptionId])
+                return
+            }
+            this.codexRateLimitSubscriptions.set(callback, result.subscriptionId)
+            this.codexRateLimitCallbacks.set(result.subscriptionId, callback)
+        } finally {
+            this.requestCodexRateLimitEvents.delete(id)
+        }
+    }
+
     private handleWatchProjectEvent(payload: WatchProjectPayload) {
         const callback = this.watchCallbacks.get(payload.subscriptionId) ?? this.requestWatchEvents.get(payload.requestId)
         callback?.(payload.event)
@@ -609,8 +686,11 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         this.pending.clear()
         this.actionExecutionCallbacks.clear()
         this.actionExecutionSubscriptions.clear()
+        this.codexRateLimitCallbacks.clear()
+        this.codexRateLimitSubscriptions.clear()
         this.requestAgentEvents.clear()
         this.requestActionExecutionEvents.clear()
+        this.requestCodexRateLimitEvents.clear()
         this.requestWatchEvents.clear()
         this.requestWorktreeEvents.clear()
         this.runAgentEvents.clear()

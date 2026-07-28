@@ -13,6 +13,18 @@ function optionalString(value) {
     return typeof value === 'string' && value.length > 0 ? value : null
 }
 
+function optionalInteger(value) {
+    return Number.isSafeInteger(value) ? value : null
+}
+
+function optionalNumber(value) {
+    return typeof value === 'number' && Number.isFinite(value) ? value : null
+}
+
+function optionalStringArray(value) {
+    return Array.isArray(value) && value.every((entry) => typeof entry === 'string') ? [...value] : null
+}
+
 function normalizeMessage(value) {
     if (!value || typeof value !== 'object' || Array.isArray(value)) return null
     if (!AGENT_MESSAGE_ROLES.has(value.role)) return null
@@ -21,8 +33,16 @@ function normalizeMessage(value) {
     const timestamp = optionalString(value.timestamp)
     if (!id || !timestamp) return null
     const agent = optionalString(value.agent)
+    const sequence = optionalInteger(value.sequence)
 
-    return { ...(agent ? { agent } : {}), content: value.content, id, role: value.role, timestamp }
+    return {
+        ...(agent ? { agent } : {}),
+        content: value.content,
+        id,
+        role: value.role,
+        ...(sequence !== null ? { sequence } : {}),
+        timestamp,
+    }
 }
 
 function normalizeEvent(value) {
@@ -32,8 +52,35 @@ function normalizeEvent(value) {
     const timestamp = optionalString(value.timestamp)
     const type = optionalString(value.type)
     if (!id || !timestamp || !type) return null
+    const command = optionalString(value.command)
+    const details = optionalStringArray(value.details)
+    const durationMs = optionalNumber(value.durationMs)
+    const exitCode = optionalInteger(value.exitCode)
+    const label = optionalString(value.label)
+    const output = typeof value.output === 'string' ? value.output : null
+    const providerItemId = optionalString(value.providerItemId)
+    const sequence = optionalInteger(value.sequence)
+    const status = optionalString(value.status)
+    const summary = optionalStringArray(value.summary)
+    const workingDirectory = optionalString(value.workingDirectory)
 
-    return { content: value.content, id, timestamp, type }
+    return {
+        ...(command ? { command } : {}),
+        content: value.content,
+        ...(details ? { details } : {}),
+        ...(durationMs !== null ? { durationMs } : {}),
+        ...(exitCode !== null ? { exitCode } : {}),
+        id,
+        ...(label ? { label } : {}),
+        ...(output !== null ? { output } : {}),
+        ...(providerItemId ? { providerItemId } : {}),
+        ...(sequence !== null ? { sequence } : {}),
+        ...(status ? { status } : {}),
+        ...(summary ? { summary } : {}),
+        timestamp,
+        type,
+        ...(workingDirectory ? { workingDirectory } : {}),
+    }
 }
 
 function normalizeProviderSession(value) {

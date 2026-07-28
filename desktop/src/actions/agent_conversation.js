@@ -1,11 +1,46 @@
 const { sumAgentTokenUsage } = require('../../../shared/agent_usage_math.mjs');
 
-function createMessage(id, role, content, timestamp, agent) {
-    return { ...(agent ? { agent } : {}), content, id, role, timestamp };
+function createMessage(id, role, content, timestamp, agent, sequence) {
+    return {
+        ...(agent ? { agent } : {}),
+        content,
+        id,
+        role,
+        ...(Number.isSafeInteger(sequence) ? { sequence } : {}),
+        timestamp,
+    };
 }
 
-function createEvent(id, type, content, timestamp) {
-    return { content, id, timestamp, type };
+function createEvent(id, type, content, timestamp, sequence) {
+    return {
+        content,
+        id,
+        ...(Number.isSafeInteger(sequence) ? { sequence } : {}),
+        timestamp,
+        type,
+    };
+}
+
+function createActivityEvent(activity, id, timestamp, sequence) {
+    const event = {
+        content: activity.content,
+        id,
+        label: activity.label,
+        providerItemId: activity.providerItemId,
+        sequence,
+        status: activity.status,
+        timestamp,
+        type: activity.type,
+    };
+    if (typeof activity.command === 'string') event.command = activity.command;
+    if (Array.isArray(activity.details)) event.details = [...activity.details];
+    if (activity.durationMs === null || Number.isFinite(activity.durationMs)) event.durationMs = activity.durationMs;
+    if (activity.exitCode === null || Number.isSafeInteger(activity.exitCode)) event.exitCode = activity.exitCode;
+    if (typeof activity.output === 'string') event.output = activity.output;
+    if (Array.isArray(activity.summary)) event.summary = [...activity.summary];
+    if (typeof activity.workingDirectory === 'string') event.workingDirectory = activity.workingDirectory;
+
+    return event;
 }
 
 function accumulateUsage(current, turn) {
@@ -63,6 +98,7 @@ function updateProviderSession(run, synchronizedThroughMessageId, completedAt) {
 
 module.exports = {
     accumulateUsage,
+    createActivityEvent,
     createConversation,
     createEvent,
     createMessage,

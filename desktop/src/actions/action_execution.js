@@ -380,6 +380,11 @@ class ActionExecution {
                 this.publish(action, phase, 'running', { type: 'update', update });
                 return;
             }
+            if (agentEvent.type === 'agentActivity') {
+                const update = { activity: agentEvent.activity, kind: 'agentActivity' };
+                this.publish(action, phase, 'running', { type: 'update', update });
+                return;
+            }
 
             const update = { content: agentEvent.content, kind: agentEvent.type };
             this.publish(action, phase, 'running', { type: 'update', update });

@@ -87,6 +87,28 @@ describe('RemoteControlStorageService', () => {
         await expect(second).resolves.toEqual([{ name: 'main' }])
     })
 
+    it('receives account-wide Codex runtime snapshots through dedicated remote subscription', async () => {
+        installWebSocket()
+        const service = createService()
+        const callback = vi.fn()
+        service.onCodexRateLimits(callback)
+        const socket = lastSocket()
+        const snapshot = { available: true, buckets: [], observedAt: 10, rateLimitResetCredits: null }
+
+        socket.open()
+        await flushPromises()
+        const subscriptionRequest = JSON.parse(socket.sent[0]) as { id: string, method: string }
+        expect(subscriptionRequest.method).toBe('onCodexRateLimits')
+        socket.receive({
+            event: 'codexRateLimits',
+            payload: { requestId: subscriptionRequest.id, snapshot, subscriptionId: 'codex-rate-limits-1' },
+        })
+        socket.receive({ id: subscriptionRequest.id, result: { subscriptionId: 'codex-rate-limits-1' } })
+        await flushPromises()
+
+        expect(callback).toHaveBeenCalledWith(snapshot)
+    })
+
     it('proxies linked worktree mutations', async () => {
         installWebSocket()
         const service = createService()

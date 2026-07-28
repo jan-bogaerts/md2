@@ -98,7 +98,7 @@ describe('useActionPopupController', () => {
         }))
         await waitFor(() => expect(loadHistory).toHaveBeenCalled())
 
-        await act(async () => result.current.handleRun())
+        await act(async () => result.current.handleRun(''))
         const timestampEvent = { target: { value: new Date(Date.now() + 60_000).toISOString() }} as ChangeEvent<HTMLInputElement>
         act(() => result.current.handleScheduleTimestampChange(timestampEvent))
         await act(async () => result.current.handleScheduleAction())
@@ -144,7 +144,7 @@ describe('useActionPopupController', () => {
         })
 
         act(() => result.current.handlePromptChange('Approved'))
-        await act(async () => result.current.handleRun())
+        await act(async () => result.current.handleRun('Approved'))
         const questions = [{ header: 'Confirm', id: 'confirm', question: 'Proceed?' }]
         emit({
             actionId: action.id, context, executionId: 'execution-1', phase: 'main', rootActionId: action.id, status: 'waitingForInput', type: 'update',
@@ -194,7 +194,7 @@ describe('useActionPopupController', () => {
             streaming: true, type: 'agentState',
         })
         act(() => result.current.handlePromptChange('Keep this prompt'))
-        await act(async () => result.current.handleRun())
+        await act(async () => result.current.handleRun('Keep this prompt'))
         emit({
             actionId: action.id, context, executionId: 'execution-1', phase: 'main', rootActionId: action.id, status: 'waitingForInput', type: 'update',
             update: {
@@ -225,7 +225,7 @@ describe('useActionPopupController', () => {
             runAction,
         }))
 
-        await act(async () => result.current.handleRun())
+        await act(async () => result.current.handleRun(''))
 
         expect(reportError).toHaveBeenCalledWith(expect.objectContaining({ message: validationError.message }), {fallbackMessage: 'Action run failed'})
         expect(runAction).not.toHaveBeenCalled()
@@ -268,7 +268,7 @@ describe('useActionPopupController', () => {
             }))
 
             await waitFor(() => expect(result.current.prompt).toBe('Prepared'))
-            await act(async () => result.current.handleRun())
+            await act(async () => result.current.handleRun('Prepared'))
 
             expect(preparePrompt).toHaveBeenCalledWith(agentAction, context)
             expect(runAction).toHaveBeenCalledWith(

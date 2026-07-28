@@ -1,5 +1,14 @@
 const ESCAPE_CHARACTER = String.fromCharCode(27);
 const ANSI_ESCAPE_PATTERN = new RegExp(`${ESCAPE_CHARACTER}\\[[0-?]*[ -/]*[@-~]`, 'gu');
+const HANDOFF_ACTIVITY_TYPES = new Set([
+    'collabAgentToolCall',
+    'commandExecution',
+    'dynamicToolCall',
+    'fileChange',
+    'mcpToolCall',
+    'plan',
+    'webSearch',
+]);
 
 function cleanContent(value) {
     return value.replace(ANSI_ESCAPE_PATTERN, '').replace(/\r/g, '').trim();
@@ -15,21 +24,43 @@ function normalizeMessage(message) {
     const content = cleanContent(message.content);
     if (content.length === 0) return null;
 
-    return { content, label: messageLabel(message), timestamp: message.timestamp };
+    return { content, label: messageLabel(message), sequence: message.sequence, timestamp: message.timestamp };
 }
 
 function normalizeEvent(event) {
     if (event.type === 'error') {
         const content = cleanContent(event.content);
 
-        return content.length > 0 ? { content, label: 'Failure', timestamp: event.timestamp } : null;
+        return content.length > 0
+            ? { content, label: 'Failure', sequence: event.sequence, timestamp: event.timestamp }
+            : null;
     }
-    if (!event.type.startsWith('tool.')) return null;
-    const content = cleanContent(event.content);
-    if (content.length === 0) return null;
-    const toolType = event.type.slice('tool.'.length);
+    if (event.type.startsWith('tool.')) {
+        const content = cleanContent(event.content);
+        if (content.length === 0) return null;
+        const toolType = event.type.slice('tool.'.length);
 
-    return { content, label: toolType === 'result' ? 'Tool result' : `Tool (${toolType})`, timestamp: event.timestamp };
+        return {
+            content,
+            label: toolType === 'result' ? 'Tool result' : `Tool (${toolType})`,
+            sequence: event.sequence,
+            timestamp: event.timestamp,
+        };
+    }
+    if (!HANDOFF_ACTIVITY_TYPES.has(event.type)) return null;
+    const content = [event.command, event.content, event.output]
+        .filter((value, index, values) => typeof value === 'string' && value.length > 0 && values.indexOf(value) === index)
+        .map(cleanContent)
+        .filter((value) => value.length > 0)
+        .join('\n\n');
+    if (content.length === 0) return null;
+
+    return {
+        content,
+        label: event.label ?? event.type,
+        sequence: event.sequence,
+        timestamp: event.timestamp,
+    };
 }
 
 function messagesAfterCursor(conversation, afterMessageId) {
@@ -45,6 +76,20 @@ function cursorTimestamp(conversation, afterMessageId) {
     return conversation.messages.find(({ id }) => id === afterMessageId)?.timestamp ?? null;
 }
 
+function cursorSequence(conversation, afterMessageId) {
+    if (!afterMessageId) return null;
+
+    return conversation.messages.find(({ id }) => id === afterMessageId)?.sequence ?? null;
+}
+
+function compareConversationItems(first, second) {
+    if (Number.isSafeInteger(first.sequence) && Number.isSafeInteger(second.sequence)) {
+        return first.sequence - second.sequence;
+    }
+
+    return first.timestamp.localeCompare(second.timestamp);
+}
+
 function removeConsecutiveDuplicates(items) {
     return items.filter((item, index) => index === 0 || item.label !== items[index - 1].label || item.content !== items[index - 1].content);
 }
@@ -53,10 +98,16 @@ function normalizeConversationContext(conversation, afterMessageId = null) {
     const sourceMessages = messagesAfterCursor(conversation, afterMessageId);
     const messages = sourceMessages.map(normalizeMessage).filter((message) => message);
     const eventCursorTimestamp = cursorTimestamp(conversation, afterMessageId);
+    const eventCursorSequence = cursorSequence(conversation, afterMessageId);
     const events = conversation.events
         .map(normalizeEvent)
-        .filter((event) => event && (eventCursorTimestamp === null || event.timestamp >= eventCursorTimestamp));
-    const orderedItems = [...messages, ...events].sort((first, second) => first.timestamp.localeCompare(second.timestamp));
+        .filter((event) => event && (
+            eventCursorTimestamp === null
+            || (Number.isSafeInteger(event.sequence) && Number.isSafeInteger(eventCursorSequence)
+                ? event.sequence > eventCursorSequence
+                : event.timestamp >= eventCursorTimestamp)
+        ));
+    const orderedItems = [...messages, ...events].sort(compareConversationItems);
     const items = removeConsecutiveDuplicates(orderedItems);
     if (items.length === 0) return '';
 

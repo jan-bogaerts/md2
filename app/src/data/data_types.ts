@@ -240,6 +240,7 @@ export interface AgentConversationMessage {
     content: string
     id: string
     role: AgentMessageRole
+    sequence?: number
     timestamp: string
 }
 
@@ -252,10 +253,21 @@ export interface AgentProviderSession {
 }
 
 export interface AgentConversationEvent {
+    command?: string
     content: string
+    details?: string[]
+    durationMs?: number
+    exitCode?: number
     id: string
+    label?: string
+    output?: string
+    providerItemId?: string
+    sequence?: number
+    status?: string
+    summary?: string[]
     timestamp: string
     type: string
+    workingDirectory?: string
 }
 
 export interface AgentTokenUsage {
@@ -298,6 +310,11 @@ export type AgentRunEvent =
         title: string
         type: 'started'
         userMessage: AgentConversationMessage
+    }
+    | {
+        activity: AgentConversationEvent
+        runId: string
+        type: 'agentActivity'
     }
     | {
         content: string

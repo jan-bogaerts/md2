@@ -139,7 +139,13 @@ describe('AgentRunnerService', () => {
             expect(result.stderr).toBe('');
             expect(result.exitCode).toBe(0);
             expect(JSON.parse(result.stdout)).toBe(prompt);
-            expect(executableResolver.find).toHaveBeenCalledWith('test-agent', { cwd: rootPath, env: process.env });
+            expect(executableResolver.find).toHaveBeenCalledWith('test-agent', {
+                cwd: rootPath,
+                env: expect.not.objectContaining({
+                    NODE_OPTIONS: expect.anything(),
+                    VSCODE_INSPECTOR_OPTIONS: expect.anything(),
+                }),
+            });
         } finally {
             await rm(rootPath, { force: true, recursive: true });
         }
@@ -614,6 +620,77 @@ describe('AgentRunnerService', () => {
         expect(persistConversation).toHaveBeenCalled();
         expect(JSON.stringify(persistConversation.mock.calls)).not.toContain('top-secret');
         expect(JSON.stringify(run.onEvent.mock.calls)).not.toContain('top-secret');
+    });
+
+    it('upserts sequenced activity, redacts every display field, persists, and emits live updates', async () => {
+        const persistConversation = vi.fn(async () => undefined);
+        const service = new AgentRunnerService({ persistConversation });
+        const run = {
+            conversation: { events: [], messages: [], status: 'running' },
+            id: 'run-1',
+            nextSequence: 4,
+            onEvent: vi.fn(),
+            persistence: Promise.resolve(),
+            secretValues: new Set(['top-secret']),
+        };
+        service.processes.set('run-1', run);
+        const activity = {
+            command: 'echo top-secret',
+            content: 'input top-secret',
+            details: ['detail top-secret'],
+            label: 'command top-secret',
+            output: 'first top-secret',
+            providerItemId: 'command-1',
+            status: 'inProgress',
+            summary: ['summary top-secret'],
+            type: 'commandExecution',
+            workingDirectory: 'C:\\top-secret',
+        };
+
+        await service.handleStreamingEvent('run-1', { activity, type: 'activity' });
+        await service.handleStreamingEvent('run-1', {
+            activity: { ...activity, output: 'final top-secret', status: 'completed' },
+            type: 'activity',
+        });
+        await run.persistence;
+
+        expect(run.conversation.events).toHaveLength(1);
+        expect(run.conversation.events[0]).toMatchObject({
+            command: 'echo [secret]',
+            content: 'input [secret]',
+            details: ['detail [secret]'],
+            label: 'command [secret]',
+            output: 'final [secret]',
+            providerItemId: 'command-1',
+            sequence: 4,
+            status: 'completed',
+            summary: ['summary [secret]'],
+            workingDirectory: 'C:\\[secret]',
+        });
+        expect(run.onEvent).toHaveBeenCalledTimes(2);
+        expect(run.onEvent).toHaveBeenLastCalledWith(expect.objectContaining({
+            activity: expect.objectContaining({ output: 'final [secret]', sequence: 4 }),
+            type: 'agentActivity',
+        }));
+        expect(persistConversation).toHaveBeenCalled();
+        expect(JSON.stringify(persistConversation.mock.calls)).not.toContain('top-secret');
+    });
+
+    it('routes account runtime updates without conversation persistence', () => {
+        const persistConversation = vi.fn();
+        const codexRuntimeService = {
+            publishRateLimits: vi.fn(),
+            publishUnavailable: vi.fn(),
+        };
+        const service = new AgentRunnerService({ codexRuntimeService, persistConversation });
+        const payload = { rateLimits: { limitId: 'codex' } };
+
+        service.handleCodexRuntimeEvent({ kind: 'update', observedAt: 10, payload });
+        service.handleCodexRuntimeEvent({ kind: 'unavailable', observedAt: 11 });
+
+        expect(codexRuntimeService.publishRateLimits).toHaveBeenCalledWith(payload, 10, true);
+        expect(codexRuntimeService.publishUnavailable).toHaveBeenCalledWith(11);
+        expect(persistConversation).not.toHaveBeenCalled();
     });
 
     it('does not append a user message when the provider write fails', async () => {

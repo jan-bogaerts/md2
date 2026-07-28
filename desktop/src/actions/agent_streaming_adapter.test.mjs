@@ -6,6 +6,7 @@ const { createAgentStreamingAdapter } = require('./agent_streaming_adapter');
 
 function harness(agent, providerConversationId = null) {
     const events = [];
+    const runtimeEvents = [];
     const writes = [];
     const adapter = createAgentStreamingAdapter(
         agent,
@@ -13,9 +14,10 @@ function harness(agent, providerConversationId = null) {
         (event) => events.push(event),
         'C:\\repo',
         providerConversationId,
+        (event) => runtimeEvents.push(event),
     );
 
-    return { adapter, events, writes };
+    return { adapter, events, runtimeEvents, writes };
 }
 
 describe('ClaudeStreamingAdapter', () => {
@@ -148,15 +150,16 @@ describe('CodexStreamingAdapter', () => {
         expect(writes[0]).toMatchObject({ id: 1, method: 'initialize' });
         await adapter.handleMessage({ id: 1, result: { userAgent: 'codex' } });
         expect(writes[1]).toEqual({ method: 'initialized', params: {} });
-        expect(writes[2]).toMatchObject({ id: 2, method: 'thread/start', params: { cwd: 'C:\\repo' } });
-        await adapter.handleMessage({ id: 2, result: { thread: { id: 'thread-1' } } });
-        expect(writes[3]).toMatchObject({
+        expect(writes[2]).toMatchObject({ id: 2, method: 'account/rateLimits/read' });
+        expect(writes[3]).toMatchObject({ id: 3, method: 'thread/start', params: { cwd: 'C:\\repo' } });
+        await adapter.handleMessage({ id: 3, result: { thread: { id: 'thread-1' } } });
+        expect(writes[4]).toMatchObject({
             method: 'turn/start',
             params: { input: [{ text: 'plan', type: 'text' }], threadId: 'thread-1' },
         });
         await adapter.handleMessage({ method: 'turn/started', params: { turn: { id: 'turn-1' } } });
         await adapter.sendMessage('extra detail');
-        expect(writes[4]).toMatchObject({
+        expect(writes[5]).toMatchObject({
             method: 'turn/steer',
             params: {
                 expectedTurnId: 'turn-1',
@@ -167,28 +170,78 @@ describe('CodexStreamingAdapter', () => {
         expect(events).toContainEqual({ conversationId: 'thread-1', type: 'sessionStarted' });
     });
 
+    it('publishes initial, updated, and unavailable account rate-limit runtime events', async () => {
+        const { adapter, runtimeEvents } = harness('codex');
+        const rateLimits = {
+            credits: null,
+            individualLimit: null,
+            limitId: 'codex',
+            limitName: 'Codex',
+            planType: 'plus',
+            primary: { resetsAt: 100, usedPercent: 20, windowDurationMins: 300 },
+            rateLimitReachedType: null,
+            secondary: null,
+        };
+
+        await adapter.start('plan');
+        await adapter.handleMessage({ id: 1, result: {} });
+        await adapter.handleMessage({
+            id: 2,
+            result: { rateLimitResetCredits: null, rateLimits, rateLimitsByLimitId: null },
+        });
+        await adapter.handleMessage({
+            method: 'account/rateLimits/updated',
+            params: { rateLimits: { ...rateLimits, primary: { ...rateLimits.primary, usedPercent: 30 } } },
+        });
+
+        expect(runtimeEvents).toEqual([
+            expect.objectContaining({ kind: 'snapshot', payload: expect.objectContaining({ rateLimits }) }),
+            expect.objectContaining({ kind: 'update', payload: expect.objectContaining({ rateLimits: expect.any(Object) }) }),
+        ]);
+
+        const unavailable = harness('codex');
+        await unavailable.adapter.start('plan');
+        await unavailable.adapter.handleMessage({ id: 1, result: {} });
+        await unavailable.adapter.handleMessage({ error: { message: 'not logged in' }, id: 2 });
+        expect(unavailable.runtimeEvents).toEqual([expect.objectContaining({ kind: 'unavailable' })]);
+        expect(unavailable.events).toEqual([]);
+    });
+
     it('maps deltas, usage, file changes, questions, and turn completion', async () => {
         const { adapter, events, writes } = harness('codex');
         await adapter.start('plan');
         await adapter.handleMessage({ id: 1, result: {} });
-        await adapter.handleMessage({ id: 2, result: { thread: { id: 'thread-1' } } });
+        await adapter.handleMessage({ id: 3, result: { thread: { id: 'thread-1' } } });
         await adapter.handleMessage({ method: 'turn/started', params: { turn: { id: 'turn-1' } } });
-        await adapter.handleMessage({ method: 'item/agentMessage/delta', params: { delta: 'hello' } });
+        await adapter.handleMessage({
+            method: 'item/started',
+            params: { item: { id: 'message-1', phase: null, text: '', type: 'agentMessage' } },
+        });
+        await adapter.handleMessage({ method: 'item/agentMessage/delta', params: { delta: 'hello', itemId: 'message-1' } });
+        await adapter.handleMessage({
+            method: 'item/completed',
+            params: { item: { id: 'message-1', phase: null, text: 'hello', type: 'agentMessage' } },
+        });
         const last = { cachedInputTokens: 2, inputTokens: 4, outputTokens: 3, reasoningOutputTokens: 1, totalTokens: 10 };
         await adapter.handleMessage({
             method: 'thread/tokenUsage/updated',
             params: { tokenUsage: { last } },
         });
         await adapter.handleMessage({
+            method: 'item/started',
+            params: { item: { changes: [{ diff: '', kind: 'update', path: 'design\\feature.md' }], id: 'file-1', status: 'inProgress', type: 'fileChange' } },
+        });
+        await adapter.handleMessage({
             method: 'item/completed',
-            params: { item: { changes: [{ path: 'design\\feature.md' }], type: 'fileChange' } },
+            params: { item: { changes: [{ diff: '', kind: 'update', path: 'design\\feature.md' }], id: 'file-1', status: 'completed', type: 'fileChange' } },
         });
         const questions = [{ header: 'Confirm', id: 'confirm', question: 'Proceed?' }];
         await adapter.handleMessage({ id: 99, method: 'item/tool/requestUserInput', params: { questions } });
         await adapter.answerQuestion(99, { confirm: ['Yes'] });
         await adapter.handleMessage({ method: 'turn/completed', params: { turn: { status: 'completed' } } });
 
-        expect(events).toContainEqual({ content: 'hello', type: 'assistant' });
+        expect(events).toContainEqual({ content: 'hello', itemId: 'message-1', type: 'assistant' });
+        expect(events).toContainEqual({ content: '\n\n', itemId: 'message-1', type: 'assistant' });
         expect(events).toContainEqual({ paths: ['design/feature.md'], type: 'changedPaths' });
         expect(events).toContainEqual({ questions, requestId: 99, type: 'question' });
         expect(events.at(-1)).toMatchObject({
@@ -199,20 +252,151 @@ describe('CodexStreamingAdapter', () => {
         expect(writes.at(-1)).toEqual({ id: 99, result: { answers: { confirm: { answers: ['Yes'] } } } });
     });
 
+    it('closes only matching streamed agent messages once', async () => {
+        const { adapter, events } = harness('codex');
+        const agentMessage = (id) => ({ id, phase: null, text: '', type: 'agentMessage' });
+
+        await adapter.handleMessage({ method: 'item/started', params: { item: agentMessage('message-1') } });
+        await adapter.handleMessage({ method: 'item/started', params: { item: agentMessage('message-2') } });
+        await adapter.handleMessage({ method: 'item/started', params: { item: agentMessage('message-empty') } });
+        await adapter.handleMessage({ method: 'item/agentMessage/delta', params: { delta: 'first', itemId: 'message-1' } });
+        await adapter.handleMessage({ method: 'item/agentMessage/delta', params: { delta: 'second', itemId: 'message-2' } });
+        await adapter.handleMessage({ method: 'item/completed', params: { item: agentMessage('message-1') } });
+        await adapter.handleMessage({ method: 'item/completed', params: { item: agentMessage('message-1') } });
+        await adapter.handleMessage({ method: 'item/completed', params: { item: agentMessage('message-empty') } });
+        await adapter.handleMessage({ method: 'item/completed', params: { item: agentMessage('message-2') } });
+        await adapter.handleMessage({ method: 'item/agentMessage/delta', params: { delta: 'late', itemId: 'message-2' } });
+
+        expect(events.filter(({ type }) => type === 'assistant')).toEqual([
+            { content: 'first', itemId: 'message-1', type: 'assistant' },
+            { content: 'second', itemId: 'message-2', type: 'assistant' },
+            { content: '\n\n', itemId: 'message-1', type: 'assistant' },
+            { content: '\n\n', itemId: 'message-2', type: 'assistant' },
+        ]);
+        expect(events.filter(({ activity }) => activity?.type === 'diagnostic')).toHaveLength(2);
+    });
+
+    it('streams reasoning sections and replaces them with authoritative completion', async () => {
+        const { adapter, events } = harness('codex');
+        await adapter.handleMessage({
+            method: 'item/started',
+            params: { item: { content: [], id: 'reasoning-1', summary: [], type: 'reasoning' } },
+        });
+        await adapter.handleMessage({
+            method: 'item/reasoning/summaryPartAdded',
+            params: { itemId: 'reasoning-1', summaryIndex: 0 },
+        });
+        await adapter.handleMessage({
+            method: 'item/reasoning/summaryTextDelta',
+            params: { delta: 'Inspect', itemId: 'reasoning-1', summaryIndex: 0 },
+        });
+        await adapter.handleMessage({
+            method: 'item/reasoning/summaryPartAdded',
+            params: { itemId: 'reasoning-1', summaryIndex: 1 },
+        });
+        await adapter.handleMessage({
+            method: 'item/reasoning/summaryTextDelta',
+            params: { delta: 'Verify', itemId: 'reasoning-1', summaryIndex: 1 },
+        });
+        await adapter.handleMessage({
+            method: 'item/reasoning/textDelta',
+            params: { contentIndex: 0, delta: 'Raw detail', itemId: 'reasoning-1' },
+        });
+        await adapter.handleMessage({
+            method: 'item/completed',
+            params: { item: { content: ['Final detail'], id: 'reasoning-1', summary: ['Final summary'], type: 'reasoning' } },
+        });
+
+        const reasoning = events.filter(({ activity }) => activity?.providerItemId === 'reasoning-1').map(({ activity }) => activity);
+        expect(reasoning[0]).toMatchObject({ status: 'inProgress', summary: [] });
+        expect(reasoning.at(-1)).toMatchObject({
+            content: 'Final summary',
+            details: ['Final detail'],
+            status: 'completed',
+            summary: ['Final summary'],
+        });
+        expect(reasoning.some(({ details, summary }) => details[0] === 'Raw detail' && summary[1] === 'Verify')).toBe(true);
+    });
+
+    it('retains exact command and ordered output through authoritative completion', async () => {
+        const { adapter, events } = harness('codex');
+        const started = {
+            aggregatedOutput: null,
+            command: 'npm run test -- --grep "exact"',
+            commandActions: [],
+            cwd: 'C:\\repo',
+            durationMs: null,
+            exitCode: null,
+            id: 'command-1',
+            processId: 'process-1',
+            source: 'agent',
+            status: 'inProgress',
+            type: 'commandExecution',
+        };
+        await adapter.handleMessage({ method: 'item/started', params: { item: started } });
+        await adapter.handleMessage({
+            method: 'item/commandExecution/outputDelta',
+            params: { delta: 'first\n', itemId: 'command-1' },
+        });
+        await adapter.handleMessage({
+            method: 'item/commandExecution/outputDelta',
+            params: { delta: 'second', itemId: 'command-1' },
+        });
+        await adapter.handleMessage({
+            method: 'item/completed',
+            params: { item: { ...started, aggregatedOutput: 'final output', durationMs: 25, exitCode: 1, status: 'failed' } },
+        });
+
+        const command = events.filter(({ activity }) => activity?.providerItemId === 'command-1').map(({ activity }) => activity);
+        expect(command[0]).toMatchObject({ command: started.command, output: '', status: 'inProgress', workingDirectory: 'C:\\repo' });
+        expect(command[2].output).toBe('first\nsecond');
+        expect(command.at(-1)).toMatchObject({
+            command: started.command,
+            durationMs: 25,
+            exitCode: 1,
+            output: 'final output',
+            status: 'failed',
+        });
+    });
+
+    it('normalizes supported tool activity and diagnoses unknown item types without failing', async () => {
+        const { adapter, events } = harness('codex');
+        const webSearch = { action: null, id: 'search-1', query: 'Codex schema', type: 'webSearch' };
+        const unknown = { id: 'future-1', payload: { secret: 'not persisted' }, type: 'futureTool' };
+
+        await adapter.handleMessage({ method: 'item/started', params: { item: webSearch } });
+        await adapter.handleMessage({ method: 'item/completed', params: { item: { ...webSearch, action: { type: 'search', query: 'Codex schema' } } } });
+        await adapter.handleMessage({ method: 'item/started', params: { item: unknown } });
+        await adapter.handleMessage({ method: 'item/completed', params: { item: unknown } });
+
+        expect(events).toContainEqual({
+            activity: expect.objectContaining({
+                content: 'Codex schema',
+                label: 'Web search',
+                providerItemId: 'search-1',
+                status: 'completed',
+            }),
+            type: 'activity',
+        });
+        const diagnostics = events.filter(({ activity }) => activity?.type === 'diagnostic').map(({ activity }) => activity.content);
+        expect(diagnostics).toEqual(['item/started: futureTool (future-1)', 'item/completed: futureTool (future-1)']);
+        expect(diagnostics.join('')).not.toContain('not persisted');
+    });
+
     it('resumes a saved thread before sending the first turn', async () => {
         const { adapter, events, writes } = harness('codex', 'thread-saved');
 
         await adapter.start('new context');
         await adapter.handleMessage({ id: 1, result: {} });
-        expect(writes[2]).toMatchObject({
-            id: 2,
+        expect(writes[3]).toMatchObject({
+            id: 3,
             method: 'thread/resume',
             params: { cwd: 'C:\\repo', threadId: 'thread-saved' },
         });
-        await adapter.handleMessage({ id: 2, result: { thread: { id: 'thread-saved' } } });
+        await adapter.handleMessage({ id: 3, result: { thread: { id: 'thread-saved' } } });
 
         expect(events).toContainEqual({ conversationId: 'thread-saved', type: 'sessionStarted' });
-        expect(writes[3]).toMatchObject({
+        expect(writes[4]).toMatchObject({
             method: 'turn/start',
             params: { input: [{ text: 'new context', type: 'text' }], threadId: 'thread-saved' },
         });
@@ -228,7 +412,7 @@ describe('CodexStreamingAdapter', () => {
                 code: -32600,
                 message: 'no rollout found for thread id thread-missing',
             },
-            id: 2,
+            id: 3,
         });
 
         expect(events.at(-1)).toEqual({

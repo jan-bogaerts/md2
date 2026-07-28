@@ -31,6 +31,10 @@ function createDispatch(options = {}) {
         start: vi.fn(async () => ({ runId: 'run-2' })),
         stop: vi.fn(),
     };
+    const codexRuntimeService = {
+        getSnapshot: vi.fn(() => ({ available: true, buckets: [], observedAt: 10, rateLimitResetCredits: null })),
+        subscribe: vi.fn(() => vi.fn()),
+    };
     const localGitService = {
         assertGitRoot: vi.fn(),
         checkoutBranch: vi.fn(async (project, branch) => ({ ...project, branch })),
@@ -95,6 +99,7 @@ function createDispatch(options = {}) {
         actionWorktreeExecutionService,
         agentExecutableAvailability,
         agentRunnerService,
+        codexRuntimeService,
         desktopConfigStore: {},
         diffService: { generateDiff: vi.fn(), openInEditor: vi.fn() },
         localGitService,
@@ -109,6 +114,7 @@ function createDispatch(options = {}) {
         actionSchedulerService,
         agentExecutableAvailability,
         agentRunnerService,
+        codexRuntimeService,
         dispatch,
         localGitService,
         worktreeService,
@@ -116,6 +122,20 @@ function createDispatch(options = {}) {
 }
 
 describe('createLocalBridgeDispatch', () => {
+    it('exposes account-wide Codex runtime state without execution context', () => {
+        const { codexRuntimeService, dispatch } = createDispatch();
+        const callback = vi.fn();
+
+        expect(dispatch.codexRuntimeBridge.getCodexRateLimits()).toEqual({
+            available: true,
+            buckets: [],
+            observedAt: 10,
+            rateLimitResetCredits: null,
+        });
+        dispatch.codexRuntimeBridge.onCodexRateLimits(callback);
+        expect(codexRuntimeService.subscribe).toHaveBeenCalledWith(callback);
+    });
+
     it('loads executable availability from configured profiles', async () => {
         const { agentExecutableAvailability, dispatch } = createDispatch();
 

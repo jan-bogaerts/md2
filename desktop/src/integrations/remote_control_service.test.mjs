@@ -70,6 +70,11 @@ function createDispatcher(overrides = {}) {
 
             return vi.fn();
         },
+        onCodexRateLimits: (onChange) => {
+            onChange({ available: true, buckets: [], observedAt: 10, rateLimitResetCredits: null });
+
+            return vi.fn();
+        },
         watchProject: (_project, onChange) => {
             onChange({ changeKind: 'changed', path: 'design/F-1.md' });
 
@@ -186,6 +191,28 @@ describe('RemoteControlService', () => {
             }),
         }));
         expect(response.result.subscriptionId).toEqual(expect.any(String));
+    });
+
+    it('pushes account-wide Codex runtime snapshots without execution identifiers', async () => {
+        service = new RemoteControlService(createDispatcher());
+        const status = await service.start();
+        const socket = connect(status);
+        await waitForOpen(socket);
+
+        const messagesPromise = waitForMessages(socket, 2);
+        socket.send(JSON.stringify({ id: 'codex-1', method: 'onCodexRateLimits', params: [] }));
+        const [push, response] = await messagesPromise;
+
+        expect(push).toEqual({
+            event: 'codexRateLimits',
+            payload: {
+                requestId: 'codex-1',
+                snapshot: { available: true, buckets: [], observedAt: 10, rateLimitResetCredits: null },
+                subscriptionId: expect.any(String),
+            },
+        });
+        expect(push.payload.snapshot).not.toHaveProperty('executionId');
+        expect(response).toEqual({ id: 'codex-1', result: { subscriptionId: expect.any(String) } });
     });
 
     it('closes clients on stop', async () => {

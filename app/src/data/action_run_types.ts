@@ -1,5 +1,5 @@
 import type { ActionContext } from './action_context'
-import type { AgentConversationMessage } from './data_types'
+import type { AgentConversationEvent, AgentConversationMessage } from './data_types'
 import type { ThinkingLevel } from './agent_profiles'
 import type { ActionAutoFinish, ActionType } from './action_types'
 
@@ -76,6 +76,10 @@ export type ActionExecutionUpdate =
     | {
         kind: 'agentQuestionAnswer' | 'agentUserMessage'
         userMessage: AgentConversationMessage
+    }
+    | {
+        activity: AgentConversationEvent
+        kind: 'agentActivity'
     }
     | {
         command?: string

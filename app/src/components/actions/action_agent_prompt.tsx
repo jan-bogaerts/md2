@@ -1,6 +1,7 @@
 import { Box, Typography } from '@mui/material'
 import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { MarkdownEditor, type MarkdownEditorHandle } from '../editor/markdown_editor'
+import type { ActionPromptDraft } from './action_prompt_draft'
 
 const MIN_PROMPT_HEIGHT = 72
 const MIN_CHAT_HEIGHT = 96
@@ -20,17 +21,15 @@ interface ActionAgentPromptProps {
     disabled: boolean
     onPromptChange: (value: string) => void
     onRunShortcut?: () => void
-    prompt: string
+    promptDraft: ActionPromptDraft
     promptFailed: boolean
     promptLoading: boolean
-    promptResetToken: number
 }
 
 /** Resizable prompt editor shown below an agent conversation. */
 export function ActionAgentPrompt(props: ActionAgentPromptProps) {
-    const {convertMessage, disabled, onPromptChange, onRunShortcut, prompt, promptFailed, promptLoading, promptResetToken} = props
+    const {convertMessage, disabled, onPromptChange, onRunShortcut, promptDraft, promptFailed, promptLoading} = props
     const promptEditorRef = useRef<MarkdownEditorHandle>(null)
-    const promptRef = useRef(prompt)
     const promptHeightStartRef = useRef(0)
     const pointerStartYRef = useRef(0)
     const splitContainerRef = useRef<HTMLElement | null>(null)
@@ -38,11 +37,8 @@ export function ActionAgentPrompt(props: ActionAgentPromptProps) {
     const [resizingPrompt, setResizingPrompt] = useState(false)
 
     useEffect(() => {
-        promptRef.current = prompt
-    })
-    useEffect(() => {
-        promptEditorRef.current?.setMarkdown(promptRef.current)
-    }, [promptResetToken])
+        promptEditorRef.current?.setMarkdown(promptDraft.getSnapshot())
+    }, [promptDraft])
 
     const clampPromptHeight = (proposed: number) => {
         const container = splitContainerRef.current
@@ -103,6 +99,7 @@ export function ActionAgentPrompt(props: ActionAgentPromptProps) {
         if (event.key !== 'Enter' || (!event.ctrlKey && !event.metaKey) || !onRunShortcut) return
 
         event.preventDefault()
+        promptEditorRef.current?.flush()
         onRunShortcut()
     }
 
@@ -149,10 +146,11 @@ export function ActionAgentPrompt(props: ActionAgentPromptProps) {
                 }}
             >
                 <MarkdownEditor
+                    flushOnBlur
                     hideToolbar
-                    markdown={prompt}
+                    markdown={promptDraft.getSnapshot()}
                     onChange={onPromptChange}
-                    onLiveChange={onPromptChange}
+                    onLiveChange={promptDraft.set}
                     readOnly={disabled || promptLoading || promptFailed}
                     ref={promptEditorRef}
                 />

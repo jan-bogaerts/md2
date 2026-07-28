@@ -17,6 +17,7 @@ function createLocalBridgeDispatch(dependencies) {
         actionSchedulerService,
         agentExecutableAvailability,
         agentRunnerService,
+        codexRuntimeService,
         desktopConfigStore,
         diffService,
         localGitService,
@@ -291,10 +292,20 @@ function createLocalBridgeDispatch(dependencies) {
         },
     };
 
-    const methods = { ...dataBridge, ...actionBridge };
+    const codexRuntimeBridge = {
+        getCodexRateLimits: () => codexRuntimeService?.getSnapshot() ?? null,
+        onCodexRateLimits: (callback) => {
+            if (!codexRuntimeService) throw new Error('Codex runtime service is not available');
+
+            return codexRuntimeService.subscribe(callback);
+        },
+    };
+
+    const methods = { ...dataBridge, ...actionBridge, ...codexRuntimeBridge };
 
     return {
         actionBridge,
+        codexRuntimeBridge,
         dataBridge,
         invoke: (method, params = []) => {
             const handler = methods[method];

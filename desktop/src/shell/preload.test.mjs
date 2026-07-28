@@ -66,9 +66,10 @@ describe('preload desktop agent bridge', () => {
     it('exposes only the named desktop bridges through contextBridge', () => {
         const { electron, exposed, window } = createPreloadHarness();
 
-        expect(electron.contextBridge.exposeInMainWorld).toHaveBeenCalledTimes(7);
+        expect(electron.contextBridge.exposeInMainWorld).toHaveBeenCalledTimes(8);
         expect(Object.keys(exposed).sort()).toEqual([
             'md2Actions',
+            'md2CodexRuntime',
             'md2Config',
             'md2Data',
             'md2Lifecycle',
@@ -99,6 +100,8 @@ describe('preload desktop agent bridge', () => {
         expect(exposed.md2Actions.runCommand).toBeUndefined();
         expect(exposed.md2Lifecycle.onFlushRequested).toEqual(expect.any(Function));
         expect(exposed.md2RemoteControl.onStatusChange).toEqual(expect.any(Function));
+        expect(exposed.md2CodexRuntime.getCodexRateLimits).toEqual(expect.any(Function));
+        expect(exposed.md2CodexRuntime.onCodexRateLimits).toEqual(expect.any(Function));
     });
 
     it('subscribes and unsubscribes worktree state through validated IPC channels', () => {
@@ -117,6 +120,23 @@ describe('preload desktop agent bridge', () => {
 
         expect(subscriptionRequest).toEqual(expect.objectContaining({ method: 'onWorktreesChanged', params: [] }));
         expect(callback).toHaveBeenCalledWith({ error: null, primaryStatus: null, project: null, records: [] });
+        expect(electron.ipcRenderer.send).toHaveBeenCalledWith('md2-local-bridge:unsubscribe', subscriptionRequest.subscriptionId);
+    });
+
+    it('subscribes to account-wide Codex runtime updates through local IPC', () => {
+        const { electron, exposed } = createPreloadHarness();
+        const callback = vi.fn();
+        const unsubscribe = exposed.md2CodexRuntime.onCodexRateLimits(callback);
+        const listenerCall = electron.ipcRenderer.on.mock.calls.find(([channel]) => channel === 'md2-local-bridge:event');
+        const listener = listenerCall[1];
+        const subscriptionRequest = electron.ipcRenderer.send.mock.calls.find(([channel]) => channel === 'md2-local-bridge:subscribe')[1];
+        const snapshot = { available: true, buckets: [], observedAt: 10, rateLimitResetCredits: null };
+
+        listener({}, { eventId: subscriptionRequest.subscriptionId, payload: snapshot });
+        unsubscribe();
+
+        expect(subscriptionRequest).toEqual(expect.objectContaining({ method: 'onCodexRateLimits', params: [] }));
+        expect(callback).toHaveBeenCalledWith(snapshot);
         expect(electron.ipcRenderer.send).toHaveBeenCalledWith('md2-local-bridge:unsubscribe', subscriptionRequest.subscriptionId);
     });
 

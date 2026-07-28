@@ -4,6 +4,7 @@ const crossSpawn = require('cross-spawn');
 
 const {
     accumulateUsage,
+    createActivityEvent,
     createConversation,
     createEvent,
     createMessage,
@@ -17,6 +18,7 @@ const { JsonLineBuffer } = require('./agent_event_utils');
 const { createAgentProviderProtocolParser } = require('./agent_provider_protocol');
 const { createAgentStreamingAdapter } = require('./agent_streaming_adapter');
 const { AgentExecutableResolver } = require('./agent_executable_availability');
+const { createAgentEnvironment } = require('./agent_environment');
 const { terminateDescendantProcesses, terminateProcessTree } = require('./process_tree');
 const { assertGitRoot, ensureInsideRoot, requireRootPath } = require('../git/git_commands');
 
@@ -116,6 +118,39 @@ function redactSecrets(content, secretValues) {
         .reduce((redacted, secret) => redacted.split(secret).join('[secret]'), content);
 }
 
+function redactTextArray(values, secretValues) {
+    return values.map((value) => redactSecrets(value, secretValues));
+}
+
+function redactActivity(activity, secretValues) {
+    return {
+        ...activity,
+        command: redactSecrets(activity.command, secretValues),
+        content: redactSecrets(activity.content, secretValues),
+        details: Array.isArray(activity.details) ? redactTextArray(activity.details, secretValues) : activity.details,
+        label: redactSecrets(activity.label, secretValues),
+        output: redactSecrets(activity.output, secretValues),
+        summary: Array.isArray(activity.summary) ? redactTextArray(activity.summary, secretValues) : activity.summary,
+        workingDirectory: redactSecrets(activity.workingDirectory, secretValues),
+    };
+}
+
+function nextConversationSequence(conversation) {
+    const entries = [...conversation.messages, ...conversation.events];
+    const highestSequence = entries.reduce((highest, entry) => (
+        Number.isSafeInteger(entry.sequence) ? Math.max(highest, entry.sequence) : highest
+    ), 0);
+
+    return Math.max(highestSequence, entries.length) + 1;
+}
+
+function nextRunSequence(run) {
+    const sequence = run.nextSequence;
+    run.nextSequence += 1;
+
+    return sequence;
+}
+
 function assistantMessageId(run) {
     return run.streaming ? `${run.id}-turn-${run.turnIndex}-assistant` : `${run.id}-assistant`;
 }
@@ -146,7 +181,14 @@ function appendAssistantOutput(run, content, timestamp) {
     const currentIndex = run.conversation.messages.findIndex(({ id }) => id === messageId);
     if (currentIndex < 0) {
         const initialContent = run.streaming ? content : content.replace(/^\n+|\n+$/g, '');
-        run.conversation.messages.push(createMessage(messageId, 'assistant', initialContent, timestamp, run.agent));
+        run.conversation.messages.push(createMessage(
+            messageId,
+            'assistant',
+            initialContent,
+            timestamp,
+            run.agent,
+            nextRunSequence(run),
+        ));
         return segment;
     }
 
@@ -182,6 +224,7 @@ function createRunResult(request, exitCode, run) {
 
 class AgentRunnerService {
     constructor(dependencies = {}) {
+        this.codexRuntimeService = dependencies.codexRuntimeService ?? null;
         this.persistConversation = dependencies.persistConversation
             ?? dependencies.persistTerminalConversation
             ?? persistConversation;
@@ -227,22 +270,26 @@ class AgentRunnerService {
         const id = `agent-turn-${crypto.randomUUID()}`;
         const startedAt = new Date().toISOString();
         const conversation = createConversation(request, `agent-${crypto.randomUUID()}`, startedAt);
+        let nextSequence = nextConversationSequence(conversation);
         if (this.runningConversationIds.has(conversation.id)) throw new Error(`Agent conversation already has a running turn: ${conversation.id}`);
         const reference = request.reference ?? conversationReference(request, conversation.id);
         const lastMessage = conversation.messages.at(-1);
         if (request.reuseLastUserMessage) {
             if (lastMessage?.role !== 'user' || lastMessage.content !== prompt) throw new Error('Missing failed-turn user message for agent retry');
         } else {
-            conversation.messages.push(createMessage(`${id}-user`, 'user', prompt, startedAt));
+            conversation.messages.push(createMessage(`${id}-user`, 'user', prompt, startedAt, undefined, nextSequence));
+            nextSequence += 1;
         }
-        conversation.events.push(createEvent(`${id}-started`, 'started', command.join(' '), startedAt));
+        conversation.events.push(createEvent(`${id}-started`, 'started', command.join(' '), startedAt, nextSequence));
+        nextSequence += 1;
         const [configuredExecutable, ...configuredArguments] = command;
-        const resolvedExecutable = await this.executableResolver.find(configuredExecutable, { cwd: rootPath, env: process.env });
+        const environment = createAgentEnvironment(process.env);
+        const resolvedExecutable = await this.executableResolver.find(configuredExecutable, { cwd: rootPath, env: environment });
         const executable = resolvedExecutable ?? configuredExecutable;
         const argumentsList = streaming ? configuredArguments : [...configuredArguments, prompt];
         const child = crossSpawn(executable, argumentsList, {
             cwd: rootPath,
-            env: process.env,
+            env: environment,
             stdio: ['pipe', 'pipe', 'pipe'],
             // windowsHide: true,
         });
@@ -263,6 +310,7 @@ class AgentRunnerService {
             conversation,
             id,
             missingSession: false,
+            nextSequence,
             onComplete,
             onCompletionError,
             onEvent,
@@ -301,6 +349,7 @@ class AgentRunnerService {
                 (event) => this.handleStreamingEvent(id, event),
                 rootPath,
                 request.providerConversationId,
+                (event) => this.handleCodexRuntimeEvent(event),
             )
             : null;
         run.protocolLines = streaming ? new JsonLineBuffer(id, (line) => this.handleStreamingLine(id, line)) : null;
@@ -398,7 +447,7 @@ class AgentRunnerService {
         const timestamp = new Date().toISOString();
         if (run.conversation.status === 'waitingForInput') run.turnIndex += 1;
         const messageId = `${run.id}-user-${run.conversation.messages.length}`;
-        run.conversation.messages.push(createMessage(messageId, 'user', message, timestamp));
+        run.conversation.messages.push(createMessage(messageId, 'user', message, timestamp, undefined, nextRunSequence(run)));
         const userMessage = run.conversation.messages.at(-1);
         run.conversation.status = 'running';
         run.turnActive = true;
@@ -439,7 +488,14 @@ class AgentRunnerService {
             const timestamp = new Date().toISOString();
             run.secretValues ??= new Set();
             secretAnswerValues(pendingQuestions, answers).forEach((answer) => run.secretValues.add(answer));
-            run.conversation.messages.push(createMessage(`${run.id}-answer-${run.conversation.messages.length}`, 'user', content, timestamp));
+            run.conversation.messages.push(createMessage(
+                `${run.id}-answer-${run.conversation.messages.length}`,
+                'user',
+                content,
+                timestamp,
+                undefined,
+                nextRunSequence(run),
+            ));
             const userMessage = run.conversation.messages.at(-1);
             run.conversation.status = 'running';
             run.waitingForQuestion = false;
@@ -481,6 +537,15 @@ class AgentRunnerService {
             });
 
         return run.persistence;
+    }
+
+    handleCodexRuntimeEvent(event) {
+        if (!this.codexRuntimeService) return;
+        if (event.kind === 'unavailable') {
+            this.codexRuntimeService.publishUnavailable(event.observedAt);
+            return;
+        }
+        this.codexRuntimeService.publishRateLimits(event.payload, event.observedAt, event.kind === 'update');
     }
 
     handleOutput(runId, channel, chunk) {
@@ -539,7 +604,13 @@ class AgentRunnerService {
             return;
         }
         run.stderr += safeContent;
-        run.conversation.events.push(createEvent(`${runId}-error-${run.conversation.events.length}`, 'error', safeContent, timestamp));
+        run.conversation.events.push(createEvent(
+            `${runId}-error-${run.conversation.events.length}`,
+            'error',
+            safeContent,
+            timestamp,
+            nextRunSequence(run),
+        ));
         emitRunEvent(run, { content: safeContent, type: 'error' });
     }
 
@@ -568,6 +639,7 @@ class AgentRunnerService {
                 transcriptEvent.toolType,
                 transcriptEvent.content,
                 timestamp,
+                nextRunSequence(run),
             ));
         }
         if (providerEvent.assistantText.length > 0) {
@@ -577,7 +649,13 @@ class AgentRunnerService {
             const separator = run.stderr.length > 0 && !run.stderr.endsWith('\n') ? '\n' : '';
             run.reportedProviderErrors.add(providerEvent.errorText);
             run.stderr += `${separator}${providerEvent.errorText}`;
-            run.conversation.events.push(createEvent(`${runId}-error-${run.conversation.events.length}`, 'error', providerEvent.errorText, timestamp));
+            run.conversation.events.push(createEvent(
+                `${runId}-error-${run.conversation.events.length}`,
+                'error',
+                providerEvent.errorText,
+                timestamp,
+                nextRunSequence(run),
+            ));
             emitRunEvent(run, { content: providerEvent.errorText, type: 'error' });
         }
     }
@@ -605,6 +683,30 @@ class AgentRunnerService {
             event.paths.forEach((filePath) => run.changedPaths.add(filePath));
             return;
         }
+        if (event.type === 'activity') {
+            const safeActivity = redactActivity(event.activity, run.secretValues);
+            const currentIndex = run.conversation.events.findIndex(
+                ({ providerItemId }) => providerItemId === safeActivity.providerItemId,
+            );
+            let activity;
+            if (currentIndex >= 0) {
+                const current = run.conversation.events[currentIndex];
+                activity = createActivityEvent(safeActivity, current.id, timestamp, current.sequence);
+                run.conversation.events[currentIndex] = activity;
+            } else {
+                const sequence = nextRunSequence(run);
+                activity = createActivityEvent(
+                    safeActivity,
+                    `${runId}-activity-${sequence}`,
+                    timestamp,
+                    sequence,
+                );
+                run.conversation.events.push(activity);
+            }
+            this.queuePersistence(run);
+            emitRunEvent(run, { activity, type: 'agentActivity' });
+            return;
+        }
         if (event.type === 'transcript') {
             const safeContent = redactSecrets(event.content, run.secretValues);
             run.conversation.events.push(createEvent(
@@ -612,6 +714,7 @@ class AgentRunnerService {
                 event.toolType,
                 safeContent,
                 timestamp,
+                nextRunSequence(run),
             ));
             return;
         }
@@ -664,7 +767,13 @@ class AgentRunnerService {
         if (synchronizedMessage) updateProviderSession(run, synchronizedMessage.id, timestamp);
         run.conversation.status = 'waitingForInput';
         run.conversation.completedAt = null;
-        run.conversation.events.push(createEvent(`${runId}-turn-${run.turnIndex}-completed`, 'turnCompleted', '', timestamp));
+        run.conversation.events.push(createEvent(
+            `${runId}-turn-${run.turnIndex}-completed`,
+            'turnCompleted',
+            '',
+            timestamp,
+            nextRunSequence(run),
+        ));
         emitRunEvent(run, { state: 'waitingForInput', type: 'state' });
         this.queuePersistence(run);
     }
@@ -676,7 +785,13 @@ class AgentRunnerService {
         if (!run.streaming) {
             const timestamp = new Date().toISOString();
             const message = `Malformed ${run.agent} JSONL event: ${line}`;
-            run.conversation.events.push(createEvent(`${runId}-malformed-${run.conversation.events.length}`, 'diagnostic', message, timestamp));
+            run.conversation.events.push(createEvent(
+                `${runId}-malformed-${run.conversation.events.length}`,
+                'diagnostic',
+                message,
+                timestamp,
+                nextRunSequence(run),
+            ));
             return;
         }
         this.failStreamingRun(run, new Error(`Malformed ${run.agent} JSONL event`));
@@ -693,7 +808,13 @@ class AgentRunnerService {
         const timestamp = new Date().toISOString();
         const message = error instanceof Error ? error.message : 'Agent process failed';
         run.stderr += message;
-        run.conversation.events.push(createEvent(`${runId}-error-${run.conversation.events.length}`, 'error', message, timestamp));
+        run.conversation.events.push(createEvent(
+            `${runId}-error-${run.conversation.events.length}`,
+            'error',
+            message,
+            timestamp,
+            nextRunSequence(run),
+        ));
         emitRunEvent(run, { content: message, type: 'error' });
     }
 
@@ -710,7 +831,13 @@ class AgentRunnerService {
         run.pendingQuestions = [];
         const separator = run.stderr.length > 0 && !run.stderr.endsWith('\n') ? '\n' : '';
         run.stderr += `${separator}${message}`;
-        run.conversation.events.push(createEvent(`${run.id}-error-${run.conversation.events.length}`, 'error', message, timestamp));
+        run.conversation.events.push(createEvent(
+            `${run.id}-error-${run.conversation.events.length}`,
+            'error',
+            message,
+            timestamp,
+            nextRunSequence(run),
+        ));
         emitRunEvent(run, { content: message, type: 'error' });
         emitRunEvent(run, { state: 'failed', type: 'state' });
         try {
@@ -753,7 +880,13 @@ class AgentRunnerService {
             }
             run.conversation.completedAt = completedAt;
             run.conversation.status = run.cancelled ? 'cancelled' : succeeded ? 'completed' : 'failed';
-            run.conversation.events.push(createEvent(`${runId}-closed`, 'closed', String(exitCode), completedAt));
+            run.conversation.events.push(createEvent(
+                `${runId}-closed`,
+                'closed',
+                String(exitCode),
+                completedAt,
+                nextRunSequence(run),
+            ));
             console.log('[agent:complete]', {
                 completedAt,
                 durationMs: Date.parse(completedAt) - Date.parse(run.startedAt),

@@ -95,7 +95,7 @@ describe('AgentRunnerService streaming lifecycle', () => {
         }
     }, TEST_TIMEOUT_MS);
 
-    it('concatenates streamed deltas verbatim without paragraph separators', async () => {
+    it('concatenates streamed deltas verbatim and appends the completed item boundary', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-streaming-'));
         const scriptPath = join(rootPath, 'delta-codex.cjs');
         const service = new AgentRunnerService({ persistConversation: vi.fn(async () => undefined) });
@@ -114,7 +114,10 @@ describe('AgentRunnerService streaming lifecycle', () => {
                 "if(message.method==='thread/start')send({id:message.id,result:{thread:{id:'thread-1'}}});",
                 "if(message.method==='turn/start'){",
                 "send({method:'turn/started',params:{turn:{id:'turn-1'}}});",
-                "for(const delta of ['Hel','lo ','world','\\n- item'])send({method:'item/agentMessage/delta',params:{delta}});",
+                "const item={id:'message-1',phase:null,text:'Hello world\\n- item',type:'agentMessage'};",
+                "send({method:'item/started',params:{item}});",
+                "for(const delta of ['Hel','lo ','world','\\n- item'])send({method:'item/agentMessage/delta',params:{delta,itemId:item.id}});",
+                "send({method:'item/completed',params:{item}});",
                 "send({method:'turn/completed',params:{turn:{status:'completed'}}});",
                 "}",
                 "});",
@@ -131,8 +134,8 @@ describe('AgentRunnerService streaming lifecycle', () => {
             service.finish(started.runId);
             const result = await completion.promise;
 
-            expect(result.run.stdout).toBe('Hello world\n- item');
-            expect(result.run.conversation.messages.at(-1).content).toBe('Hello world\n- item');
+            expect(result.run.stdout).toBe('Hello world\n- item\n\n');
+            expect(result.run.conversation.messages.at(-1).content).toBe('Hello world\n- item\n\n');
         } finally {
             await service.stopAll();
             await rm(rootPath, { force: true, recursive: true });

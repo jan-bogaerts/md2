@@ -450,15 +450,15 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
         }
     }
 
-    const handleRun = async () => {
+    const handleRun = async (currentPrompt: string) => {
         if (agentActive && executionId) {
             if (sharedExecution?.question) return
             try {
                 if (streamingActive) {
-                    if (input.sendMessage) await sendMessage(executionId, prompt)
+                    if (input.sendMessage) await sendMessage(executionId, currentPrompt)
                     else await actionExecutionService.sendPromptDraft(action.id, context)
                 }
-                else await actionExecutionService.setPromptDraft(action.id, context, prompt)
+                else await actionExecutionService.setPromptDraft(action.id, context, currentPrompt)
                 setPromptState({ key: promptKey, status: 'ready', value: '' })
                 actionExecutionService.clearPromptDraft(action.id, context)
                 setPromptResetToken((token) => token + 1)
@@ -467,7 +467,7 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
             }
             return
         }
-        await runWithPrompt(prompt)
+        await runWithPrompt(currentPrompt)
     }
 
     const handlePhraseSelect = (text: string) => {
@@ -602,16 +602,16 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
         setConvertMessage(null)
     }
 
-    const handleConvertToAction = async () => {
+    const handleConvertToAction = async (currentPrompt: string) => {
         setConvertMessage(null)
         try {
-            const label = actionLabel.trim().length > 0 ? actionLabel : prompt.trim().slice(0, DEFAULT_CONVERT_LABEL_LENGTH)
+            const label = actionLabel.trim().length > 0 ? actionLabel : currentPrompt.trim().slice(0, DEFAULT_CONVERT_LABEL_LENGTH)
             const convertInput = {
                 ...(agent ? { agent } : {}),
                 context,
                 label,
                 ...(model ? { model } : {}),
-                prompt,
+                prompt: currentPrompt,
             }
             const result = await convertPromptToAction(convertInput)
             setConvertMessage(`Saved ${result.path}`)
@@ -624,11 +624,11 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
         }
     }
 
-    const handleSaveAndRun = async () => {
-        const saved = await handleConvertToAction()
+    const handleSaveAndRun = async (currentPrompt: string) => {
+        const saved = await handleConvertToAction(currentPrompt)
         if (!saved) return
 
-        await handleRun()
+        await handleRun(currentPrompt)
     }
 
     const saveDisabled = actionLabel.trim().length === 0
@@ -692,3 +692,5 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
         thinkingLevel,
     }
 }
+
+export type ActionPopupController = ReturnType<typeof useActionPopupController>

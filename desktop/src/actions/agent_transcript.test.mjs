@@ -43,4 +43,27 @@ describe('normalizeConversationContext', () => {
     it('uses full history when the provider cursor does not exist', () => {
         expect(normalizeConversationContext(conversation(), 'missing')).toContain('first');
     });
+
+    it('orders by ingestion sequence, includes command results, and excludes reasoning', () => {
+        const timestamp = '2026-01-01T00:00:00.000Z';
+        const result = normalizeConversationContext({
+            events: [
+                {
+                    command: 'npm test', content: '', id: 'command-1', label: 'Command', output: 'passed',
+                    providerItemId: 'command-1', sequence: 2, status: 'completed', timestamp, type: 'commandExecution',
+                },
+                {
+                    content: 'hidden chain of thought', id: 'reasoning-1', label: 'Reasoning',
+                    providerItemId: 'reasoning-1', sequence: 1, status: 'completed', timestamp, type: 'reasoning',
+                },
+            ],
+            messages: [
+                { content: 'after command', id: 'message-1', role: 'assistant', sequence: 3, timestamp },
+            ],
+        });
+
+        expect(result.indexOf('npm test')).toBeLessThan(result.indexOf('after command'));
+        expect(result).toContain('passed');
+        expect(result).not.toContain('hidden chain of thought');
+    });
 });

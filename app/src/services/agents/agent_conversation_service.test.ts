@@ -70,6 +70,53 @@ describe('parseAgentConversationLog', () => {
         })
     })
 
+    it('preserves structured sequenced conversation activity', () => {
+        const conversation = parseAgentConversationLog(JSON.stringify({
+            completedAt: null,
+            events: [{
+                command: 'npm test',
+                content: 'running',
+                details: ['detail'],
+                durationMs: 25,
+                exitCode: 1,
+                id: 'activity-1',
+                label: 'Command',
+                output: 'failed',
+                providerItemId: 'command-1',
+                sequence: 2,
+                status: 'failed',
+                summary: ['summary'],
+                timestamp: '2026-01-01T00:00:01.000Z',
+                type: 'commandExecution',
+                workingDirectory: 'C:\\repo',
+            }],
+            id: 'agent-1',
+            messages: [{
+                content: 'hello',
+                id: 'm1',
+                role: 'assistant',
+                sequence: 1,
+                timestamp: '2026-01-01T00:00:00.000Z',
+            }],
+            startedAt: '2026-01-01T00:00:00.000Z',
+            status: 'completed',
+        }), 'design/logs/one.json')
+
+        expect(conversation.messages[0].sequence).toBe(1)
+        expect(conversation.events[0]).toMatchObject({
+            command: 'npm test',
+            details: ['detail'],
+            durationMs: 25,
+            exitCode: 1,
+            output: 'failed',
+            providerItemId: 'command-1',
+            sequence: 2,
+            status: 'failed',
+            summary: ['summary'],
+            workingDirectory: 'C:\\repo',
+        })
+    })
+
     it('fails malformed logs with missing required data', () => {
         expect(() => parseAgentConversationLog(
             JSON.stringify({ cardPath: 'design/F-1.md', id: 'agent-1', messages: [], status: 'completed' }),

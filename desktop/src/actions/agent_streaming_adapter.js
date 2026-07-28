@@ -1,12 +1,14 @@
 const { normalizeAgentTokenUsage } = require('../../../shared/agent_usage_math.mjs');
 const { claudeAssistantText, claudeChangedPaths, claudeTranscriptEvents, claudeUsage } = require('./agent_claude_events');
-const { codexChangedPaths, codexTranscriptEvents } = require('./agent_codex_events');
+const { codexChangedPaths } = require('./agent_codex_events');
+const { diagnosticActivity, normalizeCodexActivity, systemActivity } = require('./agent_codex_activity');
 const { isMissingSession } = require('./agent_provider_protocol');
 
 const CODEX_CLIENT_NAME = 'md2';
 const CODEX_CLIENT_VERSION = '1';
 const CODEX_MISSING_THREAD_ERROR_CODE = -32600;
 const CLAUDE_QUESTION_TOOL = 'AskUserQuestion';
+const CODEX_NON_ACTIVITY_ITEM_TYPES = new Set(['agentMessage', 'hookPrompt', 'userMessage']);
 
 function requireMessage(content) {
     if (typeof content !== 'string' || content.trim().length === 0) throw new Error('Streaming agent message is required');
@@ -151,6 +153,11 @@ function codexUsage(params) {
     });
 }
 
+function ensureActivityTextPart(activity, field, index) {
+    if (!Number.isSafeInteger(index) || index < 0) return;
+    while (activity[field].length <= index) activity[field].push('');
+}
+
 function isCodexMissingThreadError(error, providerConversationId) {
     if (!providerConversationId || error?.code !== CODEX_MISSING_THREAD_ERROR_CODE) return false;
 
@@ -158,12 +165,16 @@ function isCodexMissingThreadError(error, providerConversationId) {
 }
 
 class CodexStreamingAdapter {
-    constructor(writeLine, onEvent, rootPath, providerConversationId) {
+    constructor(writeLine, onEvent, rootPath, providerConversationId, onRuntimeEvent) {
         this.writeLine = writeLine;
         this.onEvent = onEvent;
+        this.onRuntimeEvent = onRuntimeEvent;
         this.providerConversationId = providerConversationId;
         this.rootPath = rootPath;
         this.activeTurnId = null;
+        this.activeItems = new Map();
+        this.completedItemIds = new Set();
+        this.diagnosticSequence = 1;
         this.initialPrompt = null;
         this.nextRequestId = 1;
         this.pendingRequests = new Map();
@@ -235,6 +246,10 @@ class CodexStreamingAdapter {
         this.pendingRequests.delete(message.id);
         if (message.error) {
             const content = message.error.message ?? `Codex ${purpose} failed`;
+            if (purpose === 'rateLimitsRead') {
+                await this.onRuntimeEvent({ kind: 'unavailable', observedAt: Date.now() });
+                return;
+            }
             if (purpose === 'threadResume') {
                 const missingSession = isCodexMissingThreadError(message.error, this.providerConversationId)
                     || isMissingSession('codex', { error: message.error, type: 'error' }, false);
@@ -246,6 +261,7 @@ class CodexStreamingAdapter {
         }
         if (purpose === 'initialize') {
             await this.writeLine({ method: 'initialized', params: {} });
+            await this.sendRequest('account/rateLimits/read', undefined, 'rateLimitsRead');
             if (this.providerConversationId) {
                 await this.sendRequest('thread/resume', {
                     cwd: this.rootPath,
@@ -261,6 +277,16 @@ class CodexStreamingAdapter {
             if (!this.threadId) throw new Error('Codex app-server did not return a thread id');
             await this.onEvent({ conversationId: this.threadId, type: 'sessionStarted' });
             await this.sendMessage(this.initialPrompt);
+            return;
+        }
+        if (purpose === 'rateLimitsRead') {
+            const hasSingleBucket = !!message.result?.rateLimits && typeof message.result.rateLimits === 'object';
+            const hasBuckets = !!message.result?.rateLimitsByLimitId
+                && typeof message.result.rateLimitsByLimitId === 'object'
+                && Object.keys(message.result.rateLimitsByLimitId).length > 0;
+            await this.onRuntimeEvent(hasSingleBucket || hasBuckets
+                ? { kind: 'snapshot', observedAt: Date.now(), payload: message.result }
+                : { kind: 'unavailable', observedAt: Date.now() });
         }
     }
 
@@ -270,40 +296,195 @@ class CodexStreamingAdapter {
             await this.onEvent({ turnId: this.activeTurnId, type: 'turnStarted' });
             return;
         }
+        if (method === 'item/started') {
+            await this.handleItemStarted(method, params.item);
+            return;
+        }
         if (method === 'item/agentMessage/delta') {
-            await this.onEvent({ content: params.delta ?? '', type: 'assistant' });
+            const trackedItem = await this.requireActiveItem(method, params.itemId, 'agentMessage');
+            if (!trackedItem) return;
+            trackedItem.assistantText = trackedItem.assistantText || params.delta.length > 0;
+            await this.onEvent({ content: params.delta, itemId: params.itemId, type: 'assistant' });
+            return;
+        }
+        if (method === 'item/reasoning/summaryTextDelta') {
+            await this.handleReasoningDelta(method, params, 'summary', params.summaryIndex);
+            return;
+        }
+        if (method === 'item/reasoning/summaryPartAdded') {
+            const trackedItem = await this.requireActiveItem(method, params.itemId, 'reasoning');
+            if (!trackedItem) return;
+            ensureActivityTextPart(trackedItem.activity, 'summary', params.summaryIndex);
+            await this.emitActivity(trackedItem.activity);
+            return;
+        }
+        if (method === 'item/reasoning/textDelta') {
+            await this.handleReasoningDelta(method, params, 'details', params.contentIndex);
+            return;
+        }
+        if (method === 'item/commandExecution/outputDelta') {
+            const trackedItem = await this.requireActiveItem(method, params.itemId, 'commandExecution');
+            if (!trackedItem) return;
+            trackedItem.activity.output += params.delta;
+            trackedItem.activity.content = trackedItem.activity.output;
+            await this.emitActivity(trackedItem.activity);
+            return;
+        }
+        if (method === 'item/plan/delta') {
+            const trackedItem = await this.requireActiveItem(method, params.itemId, 'plan');
+            if (!trackedItem) return;
+            trackedItem.activity.content += params.delta;
+            await this.emitActivity(trackedItem.activity);
             return;
         }
         if (method === 'thread/tokenUsage/updated') {
             this.turnUsage = codexUsage(params);
             return;
         }
+        if (method === 'account/rateLimits/updated') {
+            await this.onRuntimeEvent({ kind: 'update', observedAt: Date.now(), payload: params });
+            return;
+        }
         if (method === 'item/completed') {
-            const changedPaths = codexChangedPaths(params.item, this.rootPath);
-            if (changedPaths.length > 0) await this.onEvent({ paths: changedPaths, type: 'changedPaths' });
-            for (const transcriptEvent of codexTranscriptEvents(params.item)) {
-                await this.onEvent({ ...transcriptEvent, type: 'transcript' });
-            }
+            await this.handleItemCompleted(method, params.item);
+            return;
+        }
+        const normalizedSystemActivity = systemActivity(method, params);
+        if (normalizedSystemActivity) {
+            await this.emitActivity(normalizedSystemActivity);
             return;
         }
         if (method === 'error') {
-            await this.onEvent({ content: params.error?.message ?? 'Codex turn failed', type: 'fatal' });
+            const content = params.error?.message ?? 'Codex turn failed';
+            await this.emitActivity({
+                content,
+                label: 'Turn failure',
+                providerItemId: `system:${this.activeTurnId ?? 'unknown-turn'}:error`,
+                status: 'failed',
+                type: 'system',
+            });
+            await this.onEvent({ content, type: 'fatal' });
             return;
         }
         if (method === 'turn/completed') {
             const error = params.turn?.status === 'failed'
                 ? params.turn.error?.message ?? 'Codex turn failed'
                 : null;
+            if (error) {
+                await this.emitActivity({
+                    content: error,
+                    label: 'Turn failure',
+                    providerItemId: `system:${params.turn?.id ?? this.activeTurnId ?? 'unknown-turn'}:turn/completed`,
+                    status: 'failed',
+                    type: 'system',
+                });
+            }
             this.activeTurnId = null;
             await this.onEvent({ error, type: 'turnCompleted', usage: this.turnUsage });
             this.turnUsage = null;
+            return;
         }
+        if (method?.startsWith('item/') && typeof params.itemId === 'string') {
+            await this.emitDiagnostic(method, null, params.itemId);
+        }
+    }
+
+    async handleItemStarted(method, item) {
+        if (!item || typeof item.id !== 'string' || typeof item.type !== 'string') {
+            await this.emitDiagnostic(method, item?.type, item?.id);
+            return;
+        }
+        if (this.activeItems.has(item.id) || this.completedItemIds.has(item.id)) {
+            await this.emitDiagnostic(method, item.type, item.id);
+            return;
+        }
+        const activity = normalizeCodexActivity(item, 'inProgress');
+        const knownNonActivity = CODEX_NON_ACTIVITY_ITEM_TYPES.has(item.type);
+        this.activeItems.set(item.id, { activity, assistantText: false, itemType: item.type });
+        if (activity) {
+            await this.emitActivity(activity);
+            return;
+        }
+        if (!knownNonActivity) await this.emitDiagnostic(method, item.type, item.id);
+    }
+
+    async handleItemCompleted(method, item) {
+        if (!item || typeof item.id !== 'string' || typeof item.type !== 'string') {
+            await this.emitDiagnostic(method, item?.type, item?.id);
+            return;
+        }
+        if (this.completedItemIds.has(item.id)) {
+            await this.emitDiagnostic(method, item.type, item.id);
+            return;
+        }
+        const trackedItem = this.activeItems.get(item.id);
+        if (!trackedItem) await this.emitDiagnostic(method, item.type, item.id);
+        if (trackedItem && trackedItem.itemType !== item.type) {
+            await this.emitDiagnostic(method, item.type, item.id);
+            return;
+        }
+        if (item.type === 'agentMessage' && trackedItem?.assistantText) {
+            await this.onEvent({ content: '\n\n', itemId: item.id, type: 'assistant' });
+        }
+        const changedPaths = codexChangedPaths(item, this.rootPath);
+        if (changedPaths.length > 0) await this.onEvent({ paths: changedPaths, type: 'changedPaths' });
+        const activity = normalizeCodexActivity(item, 'completed');
+        if (activity) await this.emitActivity(activity);
+        if (!activity && !CODEX_NON_ACTIVITY_ITEM_TYPES.has(item.type) && trackedItem) {
+            await this.emitDiagnostic(method, item.type, item.id);
+        }
+        this.activeItems.delete(item.id);
+        this.completedItemIds.add(item.id);
+    }
+
+    async requireActiveItem(method, itemId, expectedType) {
+        const trackedItem = this.activeItems.get(itemId);
+        if (!trackedItem || trackedItem.itemType !== expectedType || this.completedItemIds.has(itemId)) {
+            await this.emitDiagnostic(method, expectedType, itemId);
+
+            return null;
+        }
+
+        return trackedItem;
+    }
+
+    async handleReasoningDelta(method, params, field, index) {
+        const trackedItem = await this.requireActiveItem(method, params.itemId, 'reasoning');
+        if (!trackedItem || !Number.isSafeInteger(index) || index < 0) {
+            if (trackedItem) await this.emitDiagnostic(method, 'reasoning', params.itemId);
+            return;
+        }
+        ensureActivityTextPart(trackedItem.activity, field, index);
+        trackedItem.activity[field][index] += params.delta;
+        trackedItem.activity.content = trackedItem.activity.summary.length > 0
+            ? trackedItem.activity.summary.join('\n\n')
+            : trackedItem.activity.details.join('\n\n');
+        await this.emitActivity(trackedItem.activity);
+    }
+
+    async emitActivity(activity) {
+        await this.onEvent({ activity: structuredClone(activity), type: 'activity' });
+    }
+
+    async emitDiagnostic(method, itemType, itemId) {
+        const activity = diagnosticActivity(method, itemType, itemId, this.diagnosticSequence);
+        this.diagnosticSequence += 1;
+        await this.emitActivity(activity);
     }
 }
 
-function createAgentStreamingAdapter(agent, writeLine, onEvent, rootPath, providerConversationId = null) {
+function createAgentStreamingAdapter(
+    agent,
+    writeLine,
+    onEvent,
+    rootPath,
+    providerConversationId = null,
+    onRuntimeEvent = async () => undefined,
+) {
     if (agent === 'claude') return new ClaudeStreamingAdapter(writeLine, onEvent, rootPath, providerConversationId);
-    if (agent === 'codex') return new CodexStreamingAdapter(writeLine, onEvent, rootPath, providerConversationId);
+    if (agent === 'codex') {
+        return new CodexStreamingAdapter(writeLine, onEvent, rootPath, providerConversationId, onRuntimeEvent);
+    }
 
     throw new Error(`Agent profile does not support streaming: ${agent}`);
 }

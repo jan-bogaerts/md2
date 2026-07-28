@@ -79,6 +79,7 @@ const ACTION_METHODS = [
     'startUnattendedAction',
 ];
 const EVENT_METHODS = new Set(['runSearchRegexpAgent']);
+const CODEX_RUNTIME_METHODS = ['getCodexRateLimits'];
 
 let nextEventId = 1;
 let desktopConfig = readArgumentJson('md2-desktop-config', {});
@@ -226,6 +227,10 @@ if (!isAllowedOrigin()) {
         ...createBridge(ACTION_METHODS),
         onActionExecution: (callback) => subscribeBridge('onActionExecution', [], callback),
     };
+    const codexRuntimeBridge = {
+        ...createBridge(CODEX_RUNTIME_METHODS),
+        onCodexRateLimits: (callback) => subscribeBridge('onCodexRateLimits', [], callback),
+    };
 
     contextBridge.exposeInMainWorld('md2Theme', themeBridge);
     contextBridge.exposeInMainWorld('md2Lifecycle', lifecycleBridge);
@@ -234,4 +239,5 @@ if (!isAllowedOrigin()) {
     contextBridge.exposeInMainWorld('md2Remarkable', remarkableBridge);
     contextBridge.exposeInMainWorld('md2Data', dataBridge);
     contextBridge.exposeInMainWorld('md2Actions', actionBridge);
+    contextBridge.exposeInMainWorld('md2CodexRuntime', codexRuntimeBridge);
 }
