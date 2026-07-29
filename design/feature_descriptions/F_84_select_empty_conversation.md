@@ -9,7 +9,7 @@ affects:
 agents:
   - design/activity/card__f316134f-9019-4a02-baee-3a1e02f67151.json#conversation=agent-5e4a35dd-dc52-4fd6-b4f2-627940bf049f
 policy:
-after: b8c1f8ef-aeef-4576-be42-f6c6d0757728
+after: 96d2a0da-baf3-4686-b907-9542e58753b9
 ---
 
 # Goal
