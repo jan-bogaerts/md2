@@ -9,6 +9,7 @@ affects:
 agents:
 policy:
 after: 
+worktree: 1
 ---
 Reference mockup: `New Card Dialog.dc.html` (desktop + mobile side by side, light/dark toggle top-right).
 Style tokens and component conventions: `STYLE_GUIDE.md`.
