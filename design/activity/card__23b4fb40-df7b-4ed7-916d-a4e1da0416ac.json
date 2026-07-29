@@ -490,7 +490,7 @@
       "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "cardInternalId": "23b4fb40-df7b-4ed7-916d-a4e1da0416ac",
       "cardPath": "design/feature_descriptions/F_81_clear_action_input_after_send.md",
-      "completedAt": "2026-07-29T08:30:02.854Z",
+      "completedAt": "2026-07-29T08:31:40.869Z",
       "events": [
         {
           "content": "codex --model gpt-5.6-sol -c model_reasoning_effort=medium app-server --stdio",
@@ -1044,6 +1044,61 @@
           "sequence": 50,
           "timestamp": "2026-07-29T08:30:02.854Z",
           "type": "closed"
+        },
+        {
+          "content": "codex --model gpt-5.6-sol -c model_reasoning_effort=medium app-server --stdio",
+          "id": "agent-turn-2c16e31f-4304-44a4-88e9-826add8e5e86-started",
+          "sequence": 52,
+          "timestamp": "2026-07-29T08:30:31.055Z",
+          "type": "started"
+        },
+        {
+          "content": "\u001b[2m2026-07-29T08:30:31.238259Z\u001b[0m \u001b[31mERROR\u001b[0m \u001b[2mcodex_models_manager::cache\u001b[0m\u001b[2m:\u001b[0m failed to load models cache: missing field `supports_reasoning_summaries` at line 86 column 5\n",
+          "id": "agent-turn-2c16e31f-4304-44a4-88e9-826add8e5e86-error-44",
+          "sequence": 53,
+          "timestamp": "2026-07-29T08:30:31.238Z",
+          "type": "error"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-2c16e31f-4304-44a4-88e9-826add8e5e86-activity-54",
+          "label": "Reasoning",
+          "providerItemId": "rs_05368acf29b00229016a69ba2f229c8191ac8bc9896eff2d08",
+          "sequence": 54,
+          "status": "completed",
+          "timestamp": "2026-07-29T08:30:39.829Z",
+          "type": "reasoning",
+          "details": [],
+          "summary": []
+        },
+        {
+          "content": "",
+          "id": "agent-turn-2c16e31f-4304-44a4-88e9-826add8e5e86-activity-56",
+          "label": "File changes",
+          "providerItemId": "call_FbfnMe2uXDa8w53FjMaenPFH",
+          "sequence": 56,
+          "status": "completed",
+          "timestamp": "2026-07-29T08:31:22.035Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-2c16e31f-4304-44a4-88e9-826add8e5e86-activity-59",
+          "label": "Reasoning",
+          "providerItemId": "rs_05368acf29b00229016a69ba6a11248191a7ad870c41e47229",
+          "sequence": 59,
+          "status": "completed",
+          "timestamp": "2026-07-29T08:31:39.888Z",
+          "type": "reasoning",
+          "details": [],
+          "summary": []
+        },
+        {
+          "content": "1",
+          "id": "agent-turn-2c16e31f-4304-44a4-88e9-826add8e5e86-closed",
+          "sequence": 61,
+          "timestamp": "2026-07-29T08:31:40.869Z",
+          "type": "closed"
         }
       ],
       "hasExplicitTitle": true,
@@ -1102,6 +1157,44 @@
           "role": "assistant",
           "sequence": 48,
           "timestamp": "2026-07-29T08:30:02.854Z"
+        },
+        {
+          "content": "mark card as ready",
+          "id": "agent-turn-2c16e31f-4304-44a4-88e9-826add8e5e86-user",
+          "role": "user",
+          "sequence": 51,
+          "timestamp": "2026-07-29T08:30:31.055Z"
+        },
+        {
+          "agent": "codex",
+          "content": "Updating F_81 status only.\n\n",
+          "id": "agent-turn-2c16e31f-4304-44a4-88e9-826add8e5e86-turn-1-assistant-1",
+          "role": "assistant",
+          "sequence": 55,
+          "timestamp": "2026-07-29T08:30:40.021Z"
+        },
+        {
+          "agent": "codex",
+          "content": "F_81 status set to `ready`.\n\n",
+          "id": "agent-turn-2c16e31f-4304-44a4-88e9-826add8e5e86-turn-1-assistant-2",
+          "role": "assistant",
+          "sequence": 57,
+          "timestamp": "2026-07-29T08:31:29.281Z"
+        },
+        {
+          "content": "Add \\`Current state\\`, \\`implementation details\\`, \\`acceptance criteria\\` for \\`design/feature_descriptions/F_81_clear_action_input_after_send.md\\`.&#x20;\n\nRead all referenced files before you begin. &#x20;\nAsk any question if something is ambiguous or not yet clear.\nKeep it short and to the point. use $caveman skill",
+          "id": "agent-turn-2c16e31f-4304-44a4-88e9-826add8e5e86-user-10",
+          "role": "user",
+          "sequence": 58,
+          "timestamp": "2026-07-29T08:31:29.282Z"
+        },
+        {
+          "agent": "codex",
+          "content": "Using `caveman` and `technical-writer`. Verify current sections against referenced controller/editor files; edit only",
+          "id": "agent-turn-2c16e31f-4304-44a4-88e9-826add8e5e86-turn-2-assistant-1",
+          "role": "assistant",
+          "sequence": 60,
+          "timestamp": "2026-07-29T08:31:40.869Z"
         }
       ],
       "providerSessions": [
@@ -1117,11 +1210,11 @@
       "status": "cancelled",
       "title": "implement",
       "usage": {
-        "cachedInputTokens": 116224,
-        "inputTokens": 120999,
-        "outputTokens": 233,
+        "cachedInputTokens": 179456,
+        "inputTokens": 184651,
+        "outputTokens": 246,
         "reasoningTokens": 147,
-        "totalTokens": 237603
+        "totalTokens": 364500
       }
     }
   ],
@@ -1188,12 +1281,12 @@
       ],
       "executionId": "action-a0ea8429-e80d-4d8b-ad9d-4ddb05081a9f",
       "history": {
-        "agent": "codex",
         "completedAt": "2026-07-29T08:30:03.223Z",
-        "model": "gpt-5.6-sol",
         "output": "Using `caveman` skill: terse updates. First inspect spec, architecture, related code/tests. Then propose blocks as tasks. No edits before approval.\n\nScope found: controller owns prompt state; execution service owns shared draft; editor resets through token. Reading exact start/send success boundaries and existing tests now.\n\nChange Plan tasks created:\n\n1. Controller clear on accepted agent start; commands unchanged; failures preserve text.\n2. Tests cover initial/follow-up success and failure, shared draft, editor reset.\n3. Run lint/tests; then set feature status to `ready`.\n\nNo edits made. Approve plan?\n\nUsing `caveman` for terse output and `technical-writer` for scoped doc check. Sections may already exist; verify current file and related implementation before any edit.\n\nSections already exist with accurate content. No edit needed; no tests run.\n\n\u001b[2m2026-07-29T08:24:29.558157Z\u001b[0m \u001b[31mERROR\u001b[0m \u001b[2mcodex_models_manager::cache\u001b[0m\u001b[2m:\u001b[0m failed to load models cache: missing field `supports_reasoning_summaries` at line 86 column 5\n\u001b[2m2026-07-29T08:26:40.565748Z\u001b[0m \u001b[31mERROR\u001b[0m \u001b[2mcodex_models_manager::manager\u001b[0m\u001b[2m:\u001b[0m failed to renew cache TTL: missing field `supports_reasoning_summaries` at line 86 column 5\n\u001b[2m2026-07-29T08:26:46.899999Z\u001b[0m \u001b[31mERROR\u001b[0m \u001b[2mcodex_models_manager::manager\u001b[0m\u001b[2m:\u001b[0m failed to renew cache TTL: missing field `supports_reasoning_summaries` at line 86 column 5\n\u001b[2m2026-07-29T08:27:03.534845Z\u001b[0m \u001b[31mERROR\u001b[0m \u001b[2mcodex_models_manager::manager\u001b[0m\u001b[2m:\u001b[0m failed to renew cache TTL: missing field `supports_reasoning_summaries` at line 86 column 5\n",
         "prompt": "Read and implement the feature/job described in:  \\`C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\\\design/feature_descriptions/F_81_clear_action_input_after_send.md\\`\n\nYou do not need to look at the git status. This is not your concern.  The worktree is what it is, you only need to touch what is required for the above mentioned job/feature description.\n\nUse the Block Workflow:\n\n1. Propose a Change Plan with blocks (no edits yet).\n2. create a task for each block\n3. Wait for approval.\n4. include tests\n5. After implementation is done, update the field \\`status\\` in the markdown feature description file to \\`ready\\`\n6. Finally, print a 1 or 2 sentence commit statement for git. No need to do anything else for git, no need to commit.\n\nYou may read any files referenced by relative paths in the spec and any file you think is related to the spec.\nRespect the Test Plan and Acceptance Criteria. Keep everything short and to the point.\n\nKeep it short and to the point. use $caveman skill",
         "status": "failed",
+        "agent": "codex",
+        "model": "gpt-5.6-sol",
         "thinkingLevel": "medium"
       },
       "origin": {
