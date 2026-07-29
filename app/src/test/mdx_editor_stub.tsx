@@ -8,10 +8,12 @@ import {
     useRef,
     useState,
     type ChangeEvent,
+    type ClipboardEvent,
     type ComponentType,
     type ReactNode,
 } from 'react'
 import { createPortal } from 'react-dom'
+import { PASTE_COMMAND } from 'lexical'
 import { testLexicalEditor } from './lexical_composer_context_stub'
 
 /**
@@ -26,9 +28,17 @@ interface StubEditorProps {
     contentEditableClassName?: string
     markdown: string
     onChange?: (markdown: string) => void
+    onError?: (payload: { error: string; source: string }) => void
     overlayContainer?: HTMLElement | null
     plugins?: StubPlugin[]
     readOnly?: boolean
+    suppressHtmlProcessing?: boolean
+}
+
+interface StubEditorHandle {
+    getMarkdown: () => string
+    insertMarkdown: (markdown: string) => void
+    setMarkdown: (markdown: string) => void
 }
 
 interface StubPlugin {
@@ -50,6 +60,7 @@ interface StubCell<T> {
 export const Cell = <T,>(initialValue: T): StubCell<T> => ({ initialValue })
 export const activeEditor$ = Cell(null)
 export const addComposerChild$ = Cell<ComponentType | null>(null)
+export const addImportVisitor$ = Cell(null)
 export const markdown$ = Cell('')
 export const rootEditor$ = Cell(null)
 export const setMarkdown$ = Cell(null)
@@ -69,7 +80,8 @@ class StubRealm {
     pub<T>(cell: StubCell<T>, value: T) {
         if (cell === addComposerChild$) {
             const ComposerChild = value as ComponentType
-            if (ComposerChild.name === 'MarkdownDocumentHistoryPlugin') this.composerChildren.push(ComposerChild)
+            const supportedComposerChildren = ['MarkdownDocumentHistoryPlugin', 'MarkdownPastePlugin']
+            if (supportedComposerChildren.includes(ComposerChild.name)) this.composerChildren.push(ComposerChild)
             return
         }
         this.values.set(cell, value)
@@ -97,9 +109,18 @@ function normalizeMarkdown(markdown: string) {
     return markdown.trimEnd()
 }
 
-export const MDXEditor = forwardRef<{ getMarkdown: () => string; setMarkdown: (markdown: string) => void }, StubEditorProps>(
+export const MDXEditor = forwardRef<StubEditorHandle, StubEditorProps>(
     function MDXEditorStub(props, ref) {
-        const { className, markdown, onChange, overlayContainer, plugins = [], readOnly } = props
+        const {
+            className,
+            markdown,
+            onChange,
+            onError,
+            overlayContainer,
+            plugins = [],
+            readOnly,
+            suppressHtmlProcessing,
+        } = props
         const toolbar = plugins.find(({ toolbarContents }) => !!toolbarContents)
         const initialMarkdown = normalizeMarkdown(markdown)
         const latestMarkdownRef = useRef(initialMarkdown)
@@ -114,11 +135,17 @@ export const MDXEditor = forwardRef<{ getMarkdown: () => string; setMarkdown: (m
 
         useImperativeHandle(ref, () => ({
             getMarkdown: () => latestMarkdownRef.current,
+            insertMarkdown: (markdownToInsert: string) => {
+                const nextMarkdown = `${latestMarkdownRef.current}${markdownToInsert}`
+                latestMarkdownRef.current = nextMarkdown
+                setRenderedMarkdown(nextMarkdown)
+                onChange?.(nextMarkdown)
+            },
             setMarkdown: (nextMarkdown: string) => {
                 latestMarkdownRef.current = nextMarkdown
                 setRenderedMarkdown(nextMarkdown)
             },
-        }), [])
+        }), [onChange])
 
         useEffect(() => {
             for (const plugin of plugins) plugin.definition?.update?.(realm, plugin.params)
@@ -134,12 +161,27 @@ export const MDXEditor = forwardRef<{ getMarkdown: () => string; setMarkdown: (m
             onChange?.(event.target.value)
         }
 
+        const handlePaste = (event: ClipboardEvent<HTMLTextAreaElement>) => {
+            testLexicalEditor.dispatchCommand(PASTE_COMMAND, event.nativeEvent)
+        }
+
+        const handleEmitError = () => {
+            onError?.({ error: 'Invalid Markdown', source: renderedMarkdown })
+        }
+
         return (
             <StubRealmContext.Provider value={realm}>
                 <div className={className} data-testid="mdx-editor">
                     {toolbar?.toolbarContents ? <div data-testid="mdx-editor-toolbar">{toolbar.toolbarContents()}</div> : null}
                     {overlayContainer ? createPortal(<div data-testid="mdx-editor-overlay" />, overlayContainer) : null}
-                    <textarea onChange={handleChange} readOnly={readOnly} role="textbox" value={renderedMarkdown} />
+                    <textarea onChange={handleChange} onPaste={handlePaste} readOnly={readOnly} role="textbox" value={renderedMarkdown} />
+                    <button
+                        data-testid="emit-markdown-error"
+                        hidden
+                        onClick={handleEmitError}
+                        type="button"
+                    />
+                    <span data-html-processing-suppressed={suppressHtmlProcessing} hidden />
                     {realm.composerChildren.map((ComposerChild) => <ComposerChild key={ComposerChild.name} />)}
                 </div>
             </StubRealmContext.Provider>

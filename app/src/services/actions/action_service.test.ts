@@ -312,6 +312,12 @@ describe('ActionService', () => {
 
         service.draftStore.updateDraft('actions/new-action.json', { ...draft, label: 'Review Code!' })
         await service.draftStore.flushDrafts()
+        const changedPaths: string[] = []
+        service.addEventListener(ACTION_DRAFT_CHANGED_EVENT, (event) => {
+            const { path } = (event as CustomEvent<{ path: string }>).detail
+            changedPaths.push(path)
+            service.draftStore.getDraft(path)
+        })
 
         expect(persistActionFile.mock.calls.at(-1)?.slice(0, 4)).toEqual([
             expect.objectContaining({ path: 'actions/review-code.json' }),
@@ -324,6 +330,7 @@ describe('ActionService', () => {
         expect(service.getActionByPath('actions/new-action.json')).toBeNull()
         expect(service.getActionByPath('actions/review-code.json')?.label).toBe('Review Code!')
         expect(service.draftStore.getDraft('actions/review-code.json').definition.label).toBe('Review Code!')
+        expect(changedPaths).toEqual(['actions/review-code.json'])
     })
 
     it('reconciles a committed rename after the watcher has already loaded the target path', async () => {

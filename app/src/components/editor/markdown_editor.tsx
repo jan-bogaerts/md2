@@ -6,15 +6,20 @@ import {
     type MDXEditorMethods, type ViewMode,
 } from '@mdxeditor/editor'
 import '@mdxeditor/editor/style.css'
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, type FocusEvent, type ReactNode } from 'react'
+import {
+    forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef,
+    type FocusEvent, type ReactNode,
+} from 'react'
 import type { ActionPlaceholder } from '../../data/action_placeholders'
 import { dialogService } from '../../services/dialog_service'
 import { useAppTheme } from '../../theme/use_app_theme'
 import { markdownDocumentHistoryPlugin } from './markdown_document_history_realm_plugin'
 import type { MarkdownDocumentHistoryStore } from './markdown_document_history_store'
 import { MarkdownFormatToolbarControls } from './markdown_format_toolbar_controls'
+import { plainMarkdownPlugin } from './plain_markdown_realm_plugin'
 import { markdownPlaceholderPlugin } from './markdown_placeholder_realm_plugin'
 import { registerMarkdownEditorFlush } from './markdown_editor_flush'
+import { markdownPastePlugin } from './markdown_paste_realm_plugin'
 import type {
     ActiveMarkdownDocumentChangedDetail,
     MarkdownBindingKind,
@@ -71,6 +76,10 @@ type MarkdownEditorProps = MarkdownEditorDataSourceProps | MarkdownEditorLocalPr
 interface MarkdownDocumentSnapshot {
     target: MarkdownDocumentTarget | null
     markdown: string
+}
+
+interface MarkdownProcessingError {
+    error: string
 }
 
 function initialDocument(props: MarkdownEditorProps): MarkdownDocumentSnapshot {
@@ -239,10 +248,18 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         if (dataSource && binding && activeTarget) dataSource.edit(binding, activeTarget, markdown)
     }, [binding, dataSource, setDirty])
 
+    const handleEditorError = useCallback(({ error }: MarkdownProcessingError) => {
+        dialogService.error(new Error(error), { fallbackMessage: 'Markdown could not be parsed' })
+    }, [])
+
     const handleBlur = (event: FocusEvent<HTMLDivElement>) => {
         if (!flushOnBlur || event.currentTarget.contains(event.relatedTarget)) return
         flush()
     }
+
+    const insertMarkdown = useCallback((markdown: string) => {
+        editorRef.current?.insertMarkdown(markdown)
+    }, [])
 
     const defaultToolbarContents = useCallback(
         () => <MarkdownFormatToolbarControls overlayContainer={overlayContainer} placeholders={placeholders} />,
@@ -267,9 +284,11 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         codeBlockPlugin({ defaultCodeBlockLanguage: DEFAULT_CODE_LANGUAGE }),
         codeMirrorPlugin({ codeBlockLanguages: CODE_BLOCK_LANGUAGES }),
         markdownShortcutPlugin(),
+        plainMarkdownPlugin(),
         ...(viewMode ? [diffSourcePlugin({ diffMarkdown: diffMarkdown ?? '', viewMode })] : []),
         ...(hideToolbar ? [] : [toolbarPlugin({ toolbarContents })]),
         markdownPlaceholderPlugin({ overlayContainer, placeholders }),
+        markdownPastePlugin({ insertMarkdown }),
         ...(historyPlugin ? [historyPlugin] : []),
     ]
 
@@ -280,10 +299,12 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
                 contentEditableClassName="mdxeditor-content"
                 markdown={initialDocumentSnapshot.markdown}
                 onChange={handleEditorChange}
+                onError={handleEditorError}
                 overlayContainer={overlayContainer}
                 plugins={plugins}
                 readOnly={readOnly}
                 ref={editorRef}
+                suppressHtmlProcessing
                 suppressSharedHistory={!!historyStore}
             />
         </Box>

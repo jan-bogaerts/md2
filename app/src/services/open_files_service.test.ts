@@ -69,6 +69,7 @@ describe('OpenFilesService', () => {
         const changed = vi.fn()
         service.addEventListener('changed', changed)
         const document = service.openDocument(firstCard)
+        changed.mockClear()
 
         const renamedCard = card('card-1', 'design/renamed.md')
         ownerState.renewCards([renamedCard])
@@ -120,12 +121,15 @@ describe('OpenFilesService', () => {
         const service = new OpenFilesService()
         service.init({ actionService: ownerState.actionOwner, dataService: ownerState.dataOwner })
         const document = service.openDocument(firstAction)
+        const changed = vi.fn()
+        service.addEventListener('changed', changed)
 
         const renamedAction = action('review', 'actions/review-code.json', 'Review code')
         ownerState.renewActions([renamedAction])
 
         expect(service.getSnapshot().activeDocument).toBe(document)
         expect(document.getObject()).toBe(renamedAction)
+        expect(changed).toHaveBeenCalledOnce()
     })
 
     it('activates and closes by wrapper identity', () => {

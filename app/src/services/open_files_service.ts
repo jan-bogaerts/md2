@@ -6,6 +6,7 @@ import { ManagedOpenDocument } from './managed_open_document'
 import type {
     CardOpenDocument,
     OpenDocument,
+    OpenDocumentChangedDetail,
     OpenDocumentDraft,
     OpenDocumentObject,
 } from './open_document'
@@ -253,8 +254,11 @@ export class OpenFilesService extends EventTarget {
     }
 
     private readonly handleDocumentChanged = (event: Event) => {
-        const detail = (event as CustomEvent<{ document: OpenDocument }>).detail
+        const detail = (event as CustomEvent<OpenDocumentChangedDetail>).detail
         this.releaseDocument(detail.document as ManagedDocument)
+        if (detail.type === 'renewed' && this.snapshot.documents.includes(detail.document)) {
+            this.update({ ...this.snapshot, documents: [...this.snapshot.documents] })
+        }
         this.dispatchEvent(new CustomEvent('documentChanged', { detail }))
     }
 

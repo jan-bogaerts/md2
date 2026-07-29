@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createRef } from 'react'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import { ACTION_PROMPT_PLACEHOLDERS } from '../../data/action_placeholders'
+import { dialogService } from '../../services/dialog_service'
 import { THEME_MODE_STORAGE_KEY } from '../../theme/use_theme_settings'
 import { MARKDOWN_STYLE_PRESETS } from '../../theme/theme_config'
 import { useAppTheme } from '../../theme/use_app_theme'
@@ -84,6 +85,52 @@ describe('MarkdownEditor', () => {
         renderEditor('# Title\n\nBody')
 
         expect(screen.getByRole('textbox')).toHaveValue('# Title\n\nBody')
+    })
+
+    it('disables MDX and HTML processing', () => {
+        renderEditor()
+
+        expect(document.querySelector('[data-html-processing-suppressed="true"]')).not.toBeNull()
+    })
+
+    it('reports Markdown parser errors through the dialog service', () => {
+        const reportError = vi.spyOn(dialogService, 'error')
+        renderEditor()
+
+        fireEvent.click(screen.getByTestId('emit-markdown-error'))
+
+        expect(reportError).toHaveBeenCalledExactlyOnceWith(
+            new Error('Invalid Markdown'),
+            { fallbackMessage: 'Markdown could not be parsed' },
+        )
+        reportError.mockRestore()
+    })
+
+    it('imports plain clipboard text as markdown', () => {
+        const markdown = '# Title\n\n- Item\n\n[Link](https://example.com)\n\n```js\nconst value = 1;\n```'
+        renderEditor()
+
+        const pasteHandled = fireEvent.paste(screen.getByRole('textbox'), {clipboardData: {getData: (type: string) => type === 'text/plain' ? markdown : ''}})
+
+        expect(pasteHandled).toBe(false)
+        expect(screen.getByRole('textbox')).toHaveValue(markdown)
+    })
+
+    it('prefers explicit markdown clipboard content over plain text', () => {
+        renderEditor()
+
+        fireEvent.paste(screen.getByRole('textbox'), {clipboardData: {getData: (type: string) => type === 'text/markdown' ? '**Markdown**' : 'Plain text'}})
+
+        expect(screen.getByRole('textbox')).toHaveValue('**Markdown**')
+    })
+
+    it('leaves non-text clipboard data to the editor', () => {
+        renderEditor()
+
+        const pasteHandled = fireEvent.paste(screen.getByRole('textbox'), {clipboardData: { getData: () => '' }})
+
+        expect(pasteHandled).toBe(true)
+        expect(screen.getByRole('textbox')).toHaveValue('')
     })
 
     it('does not propagate edits while typing', () => {

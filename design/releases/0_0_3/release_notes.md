@@ -1,0 +1,32 @@
+# MD² 0.0.3
+
+- speed improvements
+- Open local Git projects directly and restore the last opened project.
+- See the open project in the app bar and a spinner while it loads.
+- Manage linked worktrees from the project configuration.
+- Assign worktrees to cards and choose a worktree from the action popup.
+- Commit, update, and integrate assigned worktrees from a card.
+- Find relevant actions in a redesigned, resizable action popup.
+- Create reusable actions from custom prompts.
+- Chain, cancel, and automatically trigger actions when card states change.
+- Reload changed action definitions without restarting MD².
+- Rename actions without breaking linked actions or conversation history.
+- Choose between one-shot and live agent conversations.
+- Review agent plans, answer questions, and send follow-up instructions during live runs.
+- Use simpler agent controls with queued input and automatic finishing.
+- Continue streaming conversations without losing earlier context.
+- See Codex reasoning, commands, tool activity, and account limits.
+- See clearly when an agent is waiting for your input.
+- Return to a new conversation after viewing conversation history.
+- Open conversations at the latest message and keep new activity in view.
+- Clear sent agent prompts automatically while preserving failed prompts for retry.
+- Open configuration in a dialog without losing your workspace state.
+- Enjoy faster board and card menus.
+- Create cards more easily on mobile.
+- Edit cards in a full-screen, mobile-friendly dialog.
+- View and scroll the board more reliably on mobile.
+- Move cards into first position reliably.
+- Choose custom folders for completed releases and archived cards.
+- Keep referenced images with cards when completing a release.
+- See useful error dialogs instead of broken screens.
+- Benefit from fixes for Git lock errors and card policy values.

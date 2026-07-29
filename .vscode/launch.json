@@ -30,7 +30,8 @@
                 "--remote-debugging-port=9222"
             ],
             "env": {
-                "ELECTRON_RUN_AS_NODE": null
+                "ELECTRON_RUN_AS_NODE": null,
+                "MD2_APP_URL": "http://localhost:5173"
             },
             "outputCapture": "std",
             "preLaunchTask": "Wait for Vite Dev Server"

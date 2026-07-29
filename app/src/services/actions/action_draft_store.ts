@@ -302,7 +302,6 @@ export class ActionDraftStore {
             deleted: false,
             targetPath: draft.targetPath === fromPath ? toPath : draft.targetPath,
         })
-        this.host.dispatchDraftChanged(fromPath)
         this.host.dispatchDraftChanged(toPath)
     }
 
