@@ -10,7 +10,6 @@ agents:
   - design/activity/card__eb3a4820-0edb-4161-8fe5-926a981d2c8f.json#conversation=agent-22b90d49-d43e-4680-8541-04917e30d37f
 policy:
 after: 
-worktree: 1
 ---
 Reference mockup: `New Card Dialog.dc.html` (desktop + mobile side by side, light/dark toggle top-right).
 Style tokens and component conventions: `STYLE_GUIDE.md`.
