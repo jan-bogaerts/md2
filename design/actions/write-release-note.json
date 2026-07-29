@@ -1,6 +1,6 @@
 {
   "id": "65ad68d5-4ad3-4afe-b861-0bbb00d2505e",
-  "label": "write release note 1",
+  "label": "write release note",
   "description": "write release notes",
   "type": "agent",
   "appliesTo": {
