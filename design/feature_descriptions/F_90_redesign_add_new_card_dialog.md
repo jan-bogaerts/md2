@@ -3,11 +3,12 @@ author:
 id: F_90
 internalId: eb3a4820-0edb-4161-8fe5-926a981d2c8f
 title: redesign add new card dialog
-status: new
+status: ready for implementation
 owner: 
 affects:
 agents:
 policy:
+after: 
 ---
 Reference mockup: `New Card Dialog.dc.html` (desktop + mobile side by side, light/dark toggle top-right).
 Style tokens and component conventions: `STYLE_GUIDE.md`.
