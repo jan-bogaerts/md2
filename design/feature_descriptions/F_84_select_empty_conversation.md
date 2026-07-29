@@ -3,7 +3,7 @@ author:
 id: F_84
 internalId: f316134f-9019-4a02-baee-3a1e02f67151
 title: select empty conversation
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
