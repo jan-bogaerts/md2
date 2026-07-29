@@ -3,13 +3,13 @@ author:
 id: F_84
 internalId: f316134f-9019-4a02-baee-3a1e02f67151
 title: select empty conversation
-status: design
+status: ready for implementation
 owner: 
 affects:
 agents:
   - design/activity/card__f316134f-9019-4a02-baee-3a1e02f67151.json#conversation=agent-5e4a35dd-dc52-4fd6-b4f2-627940bf049f
 policy:
-after: 96d2a0da-baf3-4686-b907-9542e58753b9
+after: 
 ---
 
 # Goal
