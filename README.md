@@ -1,22 +1,62 @@
 # md²
 
-md² is an open-source Kanban-style tracker for software development that is built around plain markdown files instead of a database, and treats AI coding agents as first-class citizens of the workflow — not an afterthought bolted onto a card.
+**A local, Git-native workspace for coordinating features, worktrees, coding agents, prompts, commits, and automation.**
 
-Every piece of work — a feature, a bug, a job — is a single markdown file with a small structured header (id, status, owner, affected files, ...) and a body written in normal prose. Nothing is hidden in a proprietary format: the "database" is just a folder of `.md` files in a git repository, so it can be read, diffed, grepped, and edited with any tool you already use, and it works equally well as a home for human notes or as context an agent can read and write directly.
+AI-assisted development quickly becomes fragmented.
 
-## Why cards, why markdown
+You may have multiple worktrees, ten or more VS Code windows, several agent sessions, repeated prompts, generated scripts, and a long history of commits—without a clear overview of which agent is working on which feature.
 
-- **The board is the repo.** Cards live in a working folder inside your project's GitHub repository (or, when paired with the desktop app, a local git checkout). A card's `status` field determines which column it appears in — move a card between columns and its file is updated (and committed) accordingly.
-- **No lock-in.** Because everything is markdown with a light front-matter header, a project's history is legible without md² at all. Renaming, templating, and searching all just operate on files.
-- **Agents read and write the same files you do.** A card's body is the brief an agent works from, and an agent's output — logs, generated diffs, follow-up questions — is linked back to that same card, so a human and an agent are always looking at the same source of truth.
+md² organises all of that around the work itself.
 
-## How it works
+Each feature, bug, or task is represented by a Markdown card inside your project. That card can be linked to its worktree, agent sessions, actions, commits, design notes, logs, and token usage. Agents can read and update the same local files directly, while you manage the overall workflow from a single dashboard.
 
-- **Two views on the same data:** a **card view** (kanban columns driven by card `status`, drag-and-drop reordering, inline title editing, policy indicators) and a **text view** (a folder tree next to a tabbed markdown editor), so you can work at the level of the whole board or dive into a single file.
-- **Actions** are the operations you can run against a card — anything from "implement this feature" (dispatched to an AI agent as a configurable prompt) to a lint/test script or an arbitrary shell command. Actions can chain (`before`/`after` steps), branch on their own output via regex conditions, and fire automatically on state changes (e.g. dragging a card into "in progress" kicks off an "implement" action).
-- **Agent-aware by design.** When run inside its companion Electron desktop app, md² can launch coding-agent CLIs directly, stream their stdin/stdout/stderr into logs attached to the card, and let you continue an existing agent conversation with a single click — from the card, or from a split view in the editor.
-- **Data layer with two backends.** In the browser, md² talks to GitHub's API directly (sign in with GitHub, work against any repo/branch). Paired with the desktop app, it additionally gets direct local git and filesystem access, so agent actions and file edits can happen without a network round-trip.
-- **Everything else is configurable:** card types and ID schemes, markdown style presets, the color theme (light/dark, round-cornered, borderless "flat" look), and the set of available actions are all driven by project configuration rather than hardcoded.
+## Why md²
+
+### One dashboard for agents and worktrees
+
+A card can be linked to the worktree and coding agent working on it. Instead of searching through editor windows and terminals, you can see the state of the entire project in one place.
+
+Agents can update their cards automatically as work progresses.
+
+### Context stays with the feature
+
+A feature often takes multiple prompts, sessions, and commits to complete.
+
+md² links those interactions back to the feature instead of presenting one large, disconnected history of agent conversations.
+
+### Local Markdown as shared project knowledge
+
+Cards, design notes, plans, and other project information are ordinary Markdown files stored inside the repository.
+
+Agents can read and update them directly without requiring access to an external project-management service. The files can also be searched, diffed, versioned, and edited with normal development tools.
+
+### Reusable, controlled actions
+
+Repeated prompts often grow into large collections of instructions or skills. Loading all of them can consume tokens and introduce irrelevant context.
+
+md² lets you create smaller reusable actions for specific tasks. Actions can contain automatically resolved placeholders such as:
+
+`{{card-file}}`
+
+This keeps prompts focused on the current task.
+
+### Automation without unnecessary agent calls
+
+Not every development task requires an AI agent.
+
+Command actions can commit changes, update diagrams, run tests, change card state, or execute scripts at specific points in the workflow.
+
+For recurring complex work, an agent can create a script once and md² can reuse it later without spending tokens on the same reasoning every time.
+
+### Token usage tied to actual work
+
+md² tracks token usage and cost:
+
+* per action
+* per feature
+* across the complete project
+
+This makes it easier to understand where agent time and tokens are being spent.
 
 md² is still an evolving concept — see [design/architecture/initial description](design/architecture/initial%20description) for the original design notes this project is built from.
 
