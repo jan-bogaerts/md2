@@ -9,6 +9,9 @@ affects:
 agents:
 policy:
 ---
+Reference mockup: `New Card Dialog.dc.html` (desktop + mobile side by side, light/dark toggle top-right).
+Style tokens and component conventions: `STYLE_GUIDE.md`.
+
 ## Why
 
 The current dialog is low-value and hard to scan:
