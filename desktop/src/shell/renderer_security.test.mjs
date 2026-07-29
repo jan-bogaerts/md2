@@ -4,15 +4,14 @@ import { pathToFileURL } from 'node:url';
 import { describe, expect, it, vi } from 'vitest';
 
 const require = createRequire(import.meta.url);
-const { DEFAULT_APP_URL } = require('./config');
 const { isTrustedRendererLocation, registerNavigationGuards, resolveRendererTarget } = require('./renderer_security');
 
 describe('renderer target resolution', () => {
-    it('defaults to the local Vite server while unpackaged', () => {
-        expect(resolveRendererTarget(false, 'ignored', {})).toEqual({
-            trustedLocation: DEFAULT_APP_URL,
+    it('uses the development launcher URL while unpackaged', () => {
+        expect(resolveRendererTarget(false, 'ignored', { MD2_APP_URL: 'http://localhost:5173' })).toEqual({
+            trustedLocation: 'http://localhost:5173',
             type: 'url',
-            url: DEFAULT_APP_URL,
+            url: 'http://localhost:5173',
         });
     });
 

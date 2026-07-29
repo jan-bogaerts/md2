@@ -32,6 +32,7 @@ describe('electron-builder configuration', () => {
                 target: [{ arch: ['x64'], target: 'nsis' }],
             },
         });
+        expect(config.files).toContain('!**/*.map');
         expect(config.files).toContainEqual(expect.objectContaining({ from: '.', to: 'desktop' }));
         expect(config.files).toContainEqual(expect.objectContaining({ from: '../app/dist', to: 'desktop/renderer' }));
         expect(config.files).toContainEqual(expect.objectContaining({ from: '../shared', to: 'shared' }));

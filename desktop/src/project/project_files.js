@@ -102,6 +102,18 @@ async function readTopLevelFolders(rootPath) {
         .sort((left, right) => left.path.localeCompare(right.path));
 }
 
+async function isTrackedFile(rootPath, repositoryPath) {
+    try {
+        await runGit(rootPath, ['ls-files', '--error-unmatch', '--', repositoryPath]);
+
+        return true;
+    } catch (error) {
+        if (error && typeof error === 'object' && error.code === 1) return false;
+
+        throw error;
+    }
+}
+
 function createMissingWorkingFolderError(workingFolder) {
     const error = new Error(`Working folder is missing: ${workingFolder}`);
     error.code = 'missing-working-folder';
@@ -303,9 +315,14 @@ async function moveFilesNow(request, project) {
         const sourcePath = ensureInsideRoot(rootPath, path.join(rootPath, move.fromPath));
         const targetPath = ensureInsideRoot(rootPath, path.join(rootPath, move.toPath));
         const targetRepositoryPath = normalizePath(path.relative(rootPath, targetPath));
+        const sourceRepositoryPath = normalizePath(path.relative(rootPath, sourcePath));
         const data = move.encoding === 'base64' ? Buffer.from(move.content, 'base64') : move.content;
         await fs.promises.mkdir(path.dirname(targetPath), { recursive: true });
-        await runGit(rootPath, ['mv', normalizePath(path.relative(rootPath, sourcePath)), targetRepositoryPath]);
+        if (await isTrackedFile(rootPath, sourceRepositoryPath)) {
+            await runGit(rootPath, ['mv', sourceRepositoryPath, targetRepositoryPath]);
+        } else {
+            await fs.promises.rename(sourcePath, targetPath);
+        }
         await fs.promises.writeFile(targetPath, data);
         await runGit(rootPath, ['add', targetRepositoryPath]);
     }

@@ -50,6 +50,7 @@ function createBuilderConfig(secrets = loadSigningSecrets()) {
         extraResources: [{ from: '.env', to: '.env' }],
         extraMetadata: { main: 'desktop/main.js' },
         files: [
+            '!**/*.map',
             {
                 from: '.',
                 to: '.',

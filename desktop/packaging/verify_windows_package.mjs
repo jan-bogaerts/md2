@@ -66,7 +66,8 @@ export function assertAppContentIsReleaseSafe(asarPath, entries, extractFileImpl
     const appEntries = entries.filter((entry) => APP_OWNED_ENTRY_PATTERN.test(entry));
 
     for (const entry of appEntries) {
-        const content = extractFileImplementation(asarPath, entry);
+        const archiveEntry = entry.replaceAll('/', path.sep);
+        const content = extractFileImplementation(asarPath, archiveEntry);
         const forbiddenValue = FORBIDDEN_APP_CONTENT.find((value) => content.includes(Buffer.from(value)));
         if (forbiddenValue) throw new Error(`Forbidden release content in ${entry}: ${forbiddenValue}`);
     }
@@ -88,19 +89,20 @@ async function verifySignatures(paths, expectedPublisher) {
     if (!expectedPublisher) throw new Error('publisherName in signing_secrets.json is required to verify signed artifacts');
 
     const scriptPath = path.join(currentDirectory, 'verify_authenticode.ps1');
-    const args = [
-        '-NoProfile',
-        '-ExecutionPolicy',
-        'Bypass',
-        '-File',
-        scriptPath,
-        '-ArtifactPath',
-        paths.executablePath,
-        paths.installerPath,
-        '-ExpectedPublisher',
-        expectedPublisher,
-    ];
-    await execFileAsync('powershell.exe', args);
+    for (const artifactPath of [paths.executablePath, paths.installerPath]) {
+        const args = [
+            '-NoProfile',
+            '-ExecutionPolicy',
+            'Bypass',
+            '-File',
+            scriptPath,
+            '-ArtifactPath',
+            artifactPath,
+            '-ExpectedPublisher',
+            expectedPublisher,
+        ];
+        await execFileAsync('powershell.exe', args);
+    }
 }
 
 export async function verifyWindowsPackage(secrets = loadSigningSecrets()) {

@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest';
 
 const require = createRequire(import.meta.url);
 const {
-    DEFAULT_APP_URL,
     DEFAULT_CODEX_SEARCH_ENABLED,
     DEFAULT_DESKTOP_AGENT,
     DEFAULT_DESKTOP_MODEL,
@@ -26,8 +25,8 @@ function createFakeStore(initial = {}) {
 }
 
 describe('resolveAppUrl', () => {
-    it('defaults to the local Vite development server', () => {
-        expect(resolveAppUrl({})).toBe(DEFAULT_APP_URL);
+    it('requires an app URL for the unpackaged renderer', () => {
+        expect(() => resolveAppUrl({})).toThrow('MD2_APP_URL is required for the unpackaged renderer');
     });
 
     it('uses MD2_APP_URL when configured', () => {

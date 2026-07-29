@@ -1,4 +1,3 @@
-const DEFAULT_APP_URL = 'http://localhost:5173';
 const DEFAULT_DESKTOP_AGENT = 'codex';
 const DEFAULT_DESKTOP_MODEL = '';
 const DEFAULT_CODEX_SEARCH_ENABLED = true;
@@ -6,7 +5,9 @@ const DESKTOP_CONFIG_STORE_KEY = 'desktopConfig';
 const { BUILTIN_AGENT_PROFILES, normalizeAgentProfiles } = require('../actions/agent_profiles.mjs');
 
 function resolveAppUrl(env = process.env) {
-    return env.MD2_APP_URL || DEFAULT_APP_URL;
+    if (!env.MD2_APP_URL) throw new Error('MD2_APP_URL is required for the unpackaged renderer');
+
+    return env.MD2_APP_URL;
 }
 
 function originFromUrl(url) {
@@ -85,7 +86,6 @@ function writeDesktopConfig(store, values) {
 }
 
 module.exports = {
-    DEFAULT_APP_URL,
     DEFAULT_DESKTOP_AGENT,
     DEFAULT_DESKTOP_MODEL,
     DEFAULT_CODEX_SEARCH_ENABLED,

@@ -43,7 +43,8 @@ describe('Windows package verification', () => {
     });
 
     it('rejects development URLs and signing-password names in app content', () => {
-        const extractFile = (_asarPath, entry) => Buffer.from(entry === 'desktop/main.js' ? 'http://localhost:5173' : 'release');
+        const mainEntry = path.join('desktop', 'main.js');
+        const extractFile = (_asarPath, entry) => Buffer.from(entry === mainEntry ? 'http://localhost:5173' : 'release');
 
         expect(() => assertAppContentIsReleaseSafe('app.asar', validEntries, extractFile))
             .toThrow('Forbidden release content in desktop/main.js: http://localhost:5173');
