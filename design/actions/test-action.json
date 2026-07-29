@@ -1,0 +1,9 @@
+{
+  "id": "1028c55b-0845-4c8a-8fb4-88c9dbd6375a",
+  "label": "test action",
+  "description": "Dtestescribe this action.",
+  "type": "agent",
+  "phrases": [],
+  "prompt": "Describe what the agent should do.",
+  "streaming": true
+}
