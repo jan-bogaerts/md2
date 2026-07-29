@@ -1,9 +1,5 @@
----
-internalId: 4898f94e-e4b3-4daa-a407-a0f6919c0e43
----
-
 Read and implement the feature/job described in: 
-`design\feature_descriptions\F_80_custom_release_and_archived_folders.md`
+`design\feature_descriptions\F_86_codex_conversation_activity_frontend.md`
 
 You do not need to look at the git status. This is not your concern.  The worktree is what it is, you only need to touch what is required for the above mentioned job/feature description.
 

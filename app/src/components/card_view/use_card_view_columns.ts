@@ -1,6 +1,6 @@
 import { useMemo, useSyncExternalStore } from 'react'
-import { UNASSIGNED_STATUS } from '../../data/card_ordering'
-import { defaultColumnAccent, type ProjectCard, type StateConfig } from '../../data/data_types'
+import { statusOf } from '../../data/card_ordering'
+import { defaultColumnAccent, type StateConfig } from '../../data/data_types'
 import {
     CARD_ADDED_EVENT,
     CARD_CHANGED_EVENT,
@@ -15,10 +15,6 @@ import {
 export interface VisibleCardColumn {
     color: string
     status: string
-}
-
-function statusOf(card: ProjectCard) {
-    return card.header.status ?? UNASSIGNED_STATUS
 }
 
 function areSameColumns(first: VisibleCardColumn[], second: VisibleCardColumn[]) {

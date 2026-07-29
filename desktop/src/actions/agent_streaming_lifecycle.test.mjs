@@ -38,7 +38,7 @@ function request(command) {
 }
 
 describe('AgentRunnerService streaming lifecycle', () => {
-    it('keeps one process across turns, persists boundaries, and completes only after Finish', async () => {
+    it('keeps one process across turns and persists only after Finish', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-agent-streaming-'));
         const scriptPath = join(rootPath, 'streaming-agent.cjs');
         const persistedStatuses = [];
@@ -87,8 +87,7 @@ describe('AgentRunnerService streaming lifecycle', () => {
             expect(result.exitCode).toBe(0);
             expect(result.run.conversation.status).toBe('completed');
             expect(result.run.conversation.messages.filter(({ role }) => role === 'assistant')).toHaveLength(2);
-            expect(persistedStatuses).toContain('waitingForInput');
-            expect(persistedStatuses.at(-1)).toBe('completed');
+            expect(persistedStatuses).toEqual(['completed']);
         } finally {
             await service.stopAll();
             await rm(rootPath, { force: true, recursive: true });

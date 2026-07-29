@@ -82,6 +82,7 @@ const localBridgeDispatch = createLocalBridgeDispatch({
     actionWorktreeExecutionService,
     agentExecutableAvailability: (profiles) => loadAgentExecutableAvailability(profiles, { resolver: agentExecutableResolver }),
     agentRunnerService,
+    codexRuntimeService,
     desktopConfigStore: store,
     diffService,
     localGitService,

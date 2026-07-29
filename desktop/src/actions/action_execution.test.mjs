@@ -461,7 +461,7 @@ describe('ActionExecution', () => {
     it('publishes nested agent events and terminal metadata', async () => {
         const agentExecutor = {
             execute: vi.fn(async (input) => {
-                input.onEvent({ content: 'chunk', type: 'output' });
+                input.onEvent({ content: 'chunk', messageId: 'assistant-1', sequence: 2, type: 'output' });
                 input.onEvent({
                     activity: {
                         content: 'running', id: 'activity-1', label: 'Command', providerItemId: 'command-1',
@@ -481,7 +481,11 @@ describe('ActionExecution', () => {
 
         await execution.completion;
 
-        expect(events).toContainEqual(expect.objectContaining({status: 'running', type: 'update', update: { content: 'chunk', kind: 'output' }}));
+        expect(events).toContainEqual(expect.objectContaining({
+            status: 'running',
+            type: 'update',
+            update: { content: 'chunk', kind: 'output', messageId: 'assistant-1', sequence: 2 },
+        }));
         expect(events).toContainEqual(expect.objectContaining({
             status: 'running',
             type: 'update',

@@ -34,8 +34,8 @@ function createActivityEvent(activity, id, timestamp, sequence) {
     };
     if (typeof activity.command === 'string') event.command = activity.command;
     if (Array.isArray(activity.details)) event.details = [...activity.details];
-    if (activity.durationMs === null || Number.isFinite(activity.durationMs)) event.durationMs = activity.durationMs;
-    if (activity.exitCode === null || Number.isSafeInteger(activity.exitCode)) event.exitCode = activity.exitCode;
+    if (Number.isFinite(activity.durationMs)) event.durationMs = activity.durationMs;
+    if (Number.isSafeInteger(activity.exitCode)) event.exitCode = activity.exitCode;
     if (typeof activity.output === 'string') event.output = activity.output;
     if (Array.isArray(activity.summary)) event.summary = [...activity.summary];
     if (typeof activity.workingDirectory === 'string') event.workingDirectory = activity.workingDirectory;

@@ -44,14 +44,14 @@ Codex app-server defines `item/started` and `item/completed` as the shared lifec
   - `plan` and `contextCompaction`: concise conversation activity. Final plan text replaces non-authoritative deltas.
 - Keep review-mode, model-reroute, safety-buffering, verification, and turn failure notifications as system activity when they affect what the user sees or why execution paused.
 - Unknown item types must not fail the run. Record a diagnostic containing method/type and item id, not the complete raw envelope.
-- Continue using generated app-server schemas from the installed Codex version as protocol fixtures. Do not infer fields through casing fallbacks beyond the already verified exec/app-server vocabulary.
+- Do not infer protocol fields through casing fallbacks beyond the already verified exec/app-server vocabulary.
 
 ## Conversation activity contract
 
 - Extend conversation events with selected structured fields needed by UI: provider item id, stable sequence, lifecycle status, label, command, working directory, output, exit code, and duration. Do not persist whole protocol objects.
 - Assign sequence at ingestion so messages and activities can be rendered deterministically even when timestamps match. Updating a streamed item retains its sequence.
-- Persist reasoning and command/tool activity with the conversation. Keep account rate limits out of conversation JSON, card activity, project activity, action logs, telemetry payloads, and Git commits.
-- Extend `AgentRunnerService.handleStreamingEvent` to upsert activity by item id, redact known secret answers from every textual field, queue persistence, and emit a live `agentActivity` update.
+- Persist reasoning and command/tool activity with the terminal conversation. Do not commit partial conversation output while a run remains active. Keep account rate limits out of conversation JSON, card activity, project activity, action logs, telemetry payloads, and Git commits.
+- Extend `AgentRunnerService.handleStreamingEvent` to upsert activity by item id, redact known secret answers from every textual field, and emit a live `agentActivity` update.
 - Keep reasoning excluded from `normalizeConversationContext`; continued agents must not receive hidden reasoning. Keep relevant command/tool results available to the existing handoff transcript.
 - Preserve existing assistant/user message ownership. Activities are not assistant messages and must not affect provider-session message cursors.
 

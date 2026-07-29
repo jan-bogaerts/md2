@@ -386,7 +386,12 @@ class ActionExecution {
                 return;
             }
 
-            const update = { content: agentEvent.content, kind: agentEvent.type };
+            const update = {
+                content: agentEvent.content,
+                kind: agentEvent.type,
+                ...(agentEvent.messageId !== undefined ? { messageId: agentEvent.messageId } : {}),
+                ...(agentEvent.sequence !== undefined ? { sequence: agentEvent.sequence } : {}),
+            };
             this.publish(action, phase, 'running', { type: 'update', update });
         };
         const runInput = isRoot ? this.runInput : { extraPrompt: '' };

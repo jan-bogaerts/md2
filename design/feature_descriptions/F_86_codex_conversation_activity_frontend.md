@@ -3,7 +3,7 @@ author:
 id: F_86
 internalId: d3327df5-7931-4bd0-bf65-3b7fe4eb1417
 title: Codex conversation activity and rate-limit UI
-status: new
+status: ready
 owner:
 affects:
 policy:

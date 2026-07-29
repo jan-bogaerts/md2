@@ -108,6 +108,7 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
     private actionExecutionListeners: Set<(event: ActionExecutionEvent) => void>
     private actionExecutionSubscriptions: Map<(event: ActionExecutionEvent) => void, string>
     private connectPromise: Promise<void> | null
+    private connectionListeners: Set<(connected: boolean) => void>
     private codexRateLimitCallbacks: Map<string, (snapshot: CodexRateLimitSnapshot) => void>
     private codexRateLimitListeners: Set<(snapshot: CodexRateLimitSnapshot) => void>
     private codexRateLimitSubscriptions: Map<(snapshot: CodexRateLimitSnapshot) => void, string>
@@ -131,6 +132,7 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         this.actionExecutionListeners = new Set()
         this.actionExecutionSubscriptions = new Map()
         this.connectPromise = null
+        this.connectionListeners = new Set()
         this.codexRateLimitCallbacks = new Map()
         this.codexRateLimitListeners = new Set()
         this.codexRateLimitSubscriptions = new Map()
@@ -164,6 +166,12 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
 
     disconnect() {
         this.socket?.close()
+    }
+
+    onConnectionChanged(callback: (connected: boolean) => void) {
+        this.connectionListeners.add(callback)
+
+        return () => this.connectionListeners.delete(callback)
     }
 
     async checkoutBranch(project: ProjectReference, branch: string): Promise<ProjectReference> {
@@ -538,6 +546,7 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
             const handleOpen = () => {
                 this.connectPromise = null
                 resolve()
+                for (const listener of this.connectionListeners) listener(true)
                 void this.restoreActionExecutionSubscriptions()
                 void this.restoreCodexRateLimitSubscriptions()
             }
@@ -682,6 +691,7 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
 
     private handleClose() {
         const error = new Error('Remote-control connection closed')
+        for (const listener of this.connectionListeners) listener(false)
         for (const pending of this.pending.values()) pending.reject(error)
         this.pending.clear()
         this.actionExecutionCallbacks.clear()

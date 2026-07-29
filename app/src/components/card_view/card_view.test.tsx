@@ -263,8 +263,10 @@ describe('CardView', () => {
         const firstCard = screen.getByRole('button', { name: 'Drag F-1' })
         const secondCard = screen.getByRole('button', { name: 'Drag F-2' })
         const dropPosition = screen.getByLabelText('Card drop position')
+        const endDropTarget = screen.getByLabelText('done column end drop target')
         expect(firstCard.compareDocumentPosition(dropPosition) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
         expect(dropPosition.compareDocumentPosition(secondCard) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+        expect(secondCard.compareDocumentPosition(endDropTarget) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
         expect(dropPosition).toHaveStyle({ minHeight: '123px' })
     })
 

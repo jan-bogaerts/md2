@@ -107,7 +107,7 @@ export class DataService extends EventTarget {
             this.createProjectLoadingDependencies(),
             (snapshot, project, projectLoadToken) => this.agents.loadAgentConversationsInBackground(snapshot, project, projectLoadToken),
         )
-        this.releases = new ReleaseOperations(this.createReleaseOperationsDependencies(), () => this.cards.flushPendingCommitBatch())
+        this.releases = new ReleaseOperations(this.createReleaseOperationsDependencies(), () => this.cards.flushPendingCommits())
         agentConversationService.subscribe(() => this.dispatchChanged())
         register('dataService', this)
     }

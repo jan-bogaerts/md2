@@ -155,6 +155,27 @@ function assistantMessageId(run) {
     return run.streaming ? `${run.id}-turn-${run.turnIndex}-assistant` : `${run.id}-assistant`;
 }
 
+function startAssistantItem(run, itemId) {
+    if (run.assistantItems.has(itemId)) throw new Error(`Duplicate assistant item ${itemId}`);
+    run.assistantItemIndex += 1;
+    const item = {
+        messageId: `${run.id}-turn-${run.turnIndex}-assistant-${run.assistantItemIndex}`,
+        sequence: nextRunSequence(run),
+    };
+    run.assistantItems.set(itemId, item);
+    run.currentAssistantMessageId = item.messageId;
+
+    return item;
+}
+
+function assistantItem(run, itemId) {
+    if (!itemId) return null;
+    const item = run.assistantItems.get(itemId);
+    if (!item) throw new Error(`Missing assistant item ${itemId}`);
+
+    return item;
+}
+
 /**
  * Exact text appended to `existing` for `chunk`, including the paragraph separator.
  * Streaming chunks are provider deltas that must concatenate verbatim; the adapter owns their separators.
@@ -174,32 +195,36 @@ function joinChunk(existing, chunk, streaming) {
 }
 
 /** Appends a chunk and returns the appended segment, so streamed events carry the same separators. */
-function appendAssistantOutput(run, content, timestamp) {
+function appendAssistantOutput(run, content, timestamp, itemId = null) {
     const segment = chunkSegment(run.stdout, content, run.streaming);
     run.stdout += segment;
-    const messageId = assistantMessageId(run);
+    const item = assistantItem(run, itemId);
+    const messageId = item?.messageId ?? assistantMessageId(run);
     const currentIndex = run.conversation.messages.findIndex(({ id }) => id === messageId);
     if (currentIndex < 0) {
         const initialContent = run.streaming ? content : content.replace(/^\n+|\n+$/g, '');
-        run.conversation.messages.push(createMessage(
+        const message = createMessage(
             messageId,
             'assistant',
             initialContent,
             timestamp,
             run.agent,
-            nextRunSequence(run),
-        ));
-        return segment;
+            item?.sequence ?? nextRunSequence(run),
+        );
+        run.conversation.messages.push(message);
+
+        return { message, segment };
     }
 
     const current = run.conversation.messages[currentIndex];
-    run.conversation.messages[currentIndex] = { ...current, content: joinChunk(current.content, content, run.streaming), timestamp };
+    const message = { ...current, content: joinChunk(current.content, content, run.streaming), timestamp };
+    run.conversation.messages[currentIndex] = message;
 
-    return segment;
+    return { message, segment };
 }
 
 function completeAssistantOutput(run, completedAt) {
-    const messageId = assistantMessageId(run);
+    const messageId = run.currentAssistantMessageId ?? assistantMessageId(run);
     const currentIndex = run.conversation.messages.findIndex(({ id }) => id === messageId);
     if (currentIndex < 0) return;
 
@@ -304,10 +329,13 @@ class AgentRunnerService {
         });
         const run = {
             agent,
+            assistantItemIndex: 0,
+            assistantItems: new Map(),
             cancelled: false,
             child,
             changedPaths: new Set(),
             conversation,
+            currentAssistantMessageId: null,
             id,
             missingSession: false,
             nextSequence,
@@ -339,7 +367,6 @@ class AgentRunnerService {
             termination: null,
             turnUsage: null,
             waitingForQuestion: false,
-            persistence: Promise.resolve(),
         };
         const writeLine = (message) => writeJsonLine(child.stdin, message);
         run.streamingAdapter = streaming
@@ -380,7 +407,6 @@ class AgentRunnerService {
             } catch (error) {
                 this.failStreamingRun(run, error);
             }
-            this.queuePersistence(run);
         } else {
             if (typeof request.contextInput === 'string' && request.contextInput.length > 0) child.stdin.write(request.contextInput);
             child.stdin.end();
@@ -441,7 +467,6 @@ class AgentRunnerService {
         } catch (error) {
             this.failStreamingRun(run, error);
             run.conversation.status = 'failed';
-            this.queuePersistence(run);
             throw error;
         }
         const timestamp = new Date().toISOString();
@@ -451,7 +476,6 @@ class AgentRunnerService {
         const userMessage = run.conversation.messages.at(-1);
         run.conversation.status = 'running';
         run.turnActive = true;
-        this.queuePersistence(run);
         emitRunEvent(run, { type: 'userMessage', userMessage });
         emitRunEvent(run, { state: 'running', type: 'state' });
     }
@@ -477,17 +501,16 @@ class AgentRunnerService {
                     `${questionId}: ${secretQuestionIds.has(questionId) ? '[secret]' : Array.isArray(answer) ? answer.join(', ') : answer}`
                 ))
                 .join('\n');
+            run.secretValues ??= new Set();
+            secretAnswerValues(pendingQuestions, answers).forEach((answer) => run.secretValues.add(answer));
             try {
                 await run.streamingAdapter.answerQuestion(requestId, answers);
             } catch (error) {
                 this.failStreamingRun(run, error);
                 run.conversation.status = 'failed';
-                this.queuePersistence(run);
                 throw error;
             }
             const timestamp = new Date().toISOString();
-            run.secretValues ??= new Set();
-            secretAnswerValues(pendingQuestions, answers).forEach((answer) => run.secretValues.add(answer));
             run.conversation.messages.push(createMessage(
                 `${run.id}-answer-${run.conversation.messages.length}`,
                 'user',
@@ -500,7 +523,6 @@ class AgentRunnerService {
             run.conversation.status = 'running';
             run.waitingForQuestion = false;
             run.pendingQuestions = [];
-            this.queuePersistence(run);
             emitRunEvent(run, { type: 'questionAnswered', userMessage });
             emitRunEvent(run, { state: 'running', type: 'state' });
         });
@@ -527,16 +549,6 @@ class AgentRunnerService {
         run.termination ??= this.terminateProcessTree(run.child);
 
         return run.termination;
-    }
-
-    queuePersistence(run) {
-        run.persistence = run.persistence
-            .then(() => this.persistConversation(run))
-            .catch((error) => {
-                this.failStreamingRun(run, error instanceof Error ? error : new Error('Agent conversation persistence failed'));
-            });
-
-        return run.persistence;
     }
 
     handleCodexRuntimeEvent(event) {
@@ -587,7 +599,6 @@ class AgentRunnerService {
             .then(() => run.streamingAdapter.handleMessage(message))
             .catch((error) => {
                 this.failStreamingRun(run, error);
-                this.queuePersistence(run);
             });
     }
 
@@ -598,7 +609,7 @@ class AgentRunnerService {
         const timestamp = new Date().toISOString();
         const safeContent = redactSecrets(content, run.secretValues);
         if (channel === 'stdout') {
-            const segment = appendAssistantOutput(run, safeContent, timestamp);
+            const { segment } = appendAssistantOutput(run, safeContent, timestamp);
             if (segment.length === 0) return;
             emitRunEvent(run, { content: segment, type: 'output' });
             return;
@@ -643,7 +654,7 @@ class AgentRunnerService {
             ));
         }
         if (providerEvent.assistantText.length > 0) {
-            const segment = appendAssistantOutput(run, providerEvent.assistantText, timestamp);
+            const { segment } = appendAssistantOutput(run, providerEvent.assistantText, timestamp);
             if (segment.length > 0) emitRunEvent(run, { content: segment, type: 'output' });
         } else if (providerEvent.errorText.length > 0 && !run.reportedProviderErrors.has(providerEvent.errorText)) {
             const separator = run.stderr.length > 0 && !run.stderr.endsWith('\n') ? '\n' : '';
@@ -670,13 +681,25 @@ class AgentRunnerService {
             return;
         }
         if (event.type === 'turnStarted') {
+            run.assistantItemIndex = 0;
+            run.assistantItems.clear();
+            run.currentAssistantMessageId = null;
             run.turnStarted = true;
+            return;
+        }
+        if (event.type === 'assistantStarted') {
+            startAssistantItem(run, requireString(event.itemId, 'assistant item id'));
             return;
         }
         if (event.type === 'assistant') {
             const safeContent = redactSecrets(event.content, run.secretValues);
-            const segment = appendAssistantOutput(run, safeContent, timestamp);
-            if (segment.length > 0) emitRunEvent(run, { content: segment, type: 'output' });
+            const itemId = run.agent === 'codex'
+                ? requireString(event.itemId, 'assistant item id')
+                : event.itemId;
+            const { message, segment } = appendAssistantOutput(run, safeContent, timestamp, itemId);
+            if (segment.length > 0) {
+                emitRunEvent(run, { content: segment, messageId: message.id, sequence: message.sequence, type: 'output' });
+            }
             return;
         }
         if (event.type === 'changedPaths') {
@@ -703,7 +726,6 @@ class AgentRunnerService {
                 );
                 run.conversation.events.push(activity);
             }
-            this.queuePersistence(run);
             emitRunEvent(run, { activity, type: 'agentActivity' });
             return;
         }
@@ -736,7 +758,6 @@ class AgentRunnerService {
             run.waitingForQuestion = true;
             run.pendingQuestions = event.questions;
             emitRunEvent(run, { questions: event.questions, requestId: event.requestId, state: 'waitingForInput', type: 'question' });
-            this.queuePersistence(run);
             return;
         }
         if (event.type !== 'turnCompleted') return;
@@ -775,7 +796,6 @@ class AgentRunnerService {
             nextRunSequence(run),
         ));
         emitRunEvent(run, { state: 'waitingForInput', type: 'state' });
-        this.queuePersistence(run);
     }
 
     handleMalformedOutput(runId, line) {
@@ -860,7 +880,6 @@ class AgentRunnerService {
             run.protocolLines?.finish();
             await run.protocolHandling;
             this.flushStderr(runId);
-            await run.persistence;
             const completedAt = new Date().toISOString();
             if (run.streaming && !run.finishing && !run.cancelled && !run.streamingFailure) {
                 run.streamingFailure = new Error('Streaming agent process exited before Finish');

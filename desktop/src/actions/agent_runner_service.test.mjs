@@ -585,8 +585,11 @@ describe('AgentRunnerService', () => {
         }));
     });
 
-    it('redacts secret structured answers before transcript persistence', async () => {
-        const answerQuestion = vi.fn();
+    it('redacts secret activity emitted while the provider answer write is pending', async () => {
+        let releaseAnswer;
+        const answerQuestion = vi.fn(() => new Promise((resolve) => {
+            releaseAnswer = resolve;
+        }));
         const persistConversation = vi.fn(async () => undefined);
         const service = new AgentRunnerService({ persistConversation });
         const run = {
@@ -607,22 +610,24 @@ describe('AgentRunnerService', () => {
         service.processes.set('run-1', run);
         const answers = { choice: ['Yes'], token: ['top-secret'] };
 
-        await service.answerQuestion('run-1', 7, answers);
-        service.handleStreamingEvent('run-1', { content: 'echo top-secret', type: 'assistant' });
-        service.handleStreamingEvent('run-1', { content: 'tool returned top-secret', toolType: 'tool.result', type: 'transcript' });
-        await run.persistence;
+        const answering = service.answerQuestion('run-1', 7, answers);
+        await vi.waitFor(() => expect(answerQuestion).toHaveBeenCalled());
+        await service.handleStreamingEvent('run-1', { content: 'echo top-secret', type: 'assistant' });
+        await service.handleStreamingEvent('run-1', { content: 'tool returned top-secret', toolType: 'tool.result', type: 'transcript' });
+        releaseAnswer();
+        await answering;
 
         expect(answerQuestion).toHaveBeenCalledWith(7, answers);
-        expect(run.conversation.messages[0].content).toContain('token: [secret]');
-        expect(run.conversation.messages[0].content).not.toContain('top-secret');
+        const answerMessage = run.conversation.messages.find(({ role }) => role === 'user');
+        expect(answerMessage.content).toContain('token: [secret]');
+        expect(answerMessage.content).not.toContain('top-secret');
         expect(run.stdout).toContain('echo [secret]');
         expect(run.conversation.events[0].content).toBe('tool returned [secret]');
-        expect(persistConversation).toHaveBeenCalled();
-        expect(JSON.stringify(persistConversation.mock.calls)).not.toContain('top-secret');
+        expect(persistConversation).not.toHaveBeenCalled();
         expect(JSON.stringify(run.onEvent.mock.calls)).not.toContain('top-secret');
     });
 
-    it('upserts sequenced activity, redacts every display field, persists, and emits live updates', async () => {
+    it('upserts sequenced activity and emits redacted live updates without active-run persistence', async () => {
         const persistConversation = vi.fn(async () => undefined);
         const service = new AgentRunnerService({ persistConversation });
         const run = {
@@ -652,8 +657,6 @@ describe('AgentRunnerService', () => {
             activity: { ...activity, output: 'final top-secret', status: 'completed' },
             type: 'activity',
         });
-        await run.persistence;
-
         expect(run.conversation.events).toHaveLength(1);
         expect(run.conversation.events[0]).toMatchObject({
             command: 'echo [secret]',
@@ -672,8 +675,68 @@ describe('AgentRunnerService', () => {
             activity: expect.objectContaining({ output: 'final [secret]', sequence: 4 }),
             type: 'agentActivity',
         }));
-        expect(persistConversation).toHaveBeenCalled();
-        expect(JSON.stringify(persistConversation.mock.calls)).not.toContain('top-secret');
+        expect(persistConversation).not.toHaveBeenCalled();
+    });
+
+    it('creates a new assistant message after intervening activity', async () => {
+        const service = new AgentRunnerService();
+        const run = {
+            agent: 'codex',
+            assistantItemIndex: 0,
+            assistantItems: new Map(),
+            conversation: { events: [], messages: [], status: 'running' },
+            currentAssistantMessageId: null,
+            id: 'run-1',
+            nextSequence: 2,
+            onEvent: vi.fn(),
+            secretValues: new Set(),
+            stdout: '',
+            streaming: true,
+            turnIndex: 1,
+        };
+        service.processes.set('run-1', run);
+
+        await service.handleStreamingEvent('run-1', { itemId: 'message-1', type: 'assistantStarted' });
+        await service.handleStreamingEvent('run-1', { content: 'Fi', itemId: 'message-1', type: 'assistant' });
+        await service.handleStreamingEvent('run-1', { content: 'rst', itemId: 'message-1', type: 'assistant' });
+        await service.handleStreamingEvent('run-1', {
+            activity: {
+                content: 'Thinking',
+                label: 'Reasoning',
+                providerItemId: 'reasoning-1',
+                status: 'completed',
+                type: 'reasoning',
+            },
+            type: 'activity',
+        });
+        await service.handleStreamingEvent('run-1', {
+            activity: {
+                content: '',
+                label: 'Command',
+                providerItemId: 'command-1',
+                status: 'inProgress',
+                type: 'commandExecution',
+            },
+            type: 'activity',
+        });
+        await service.handleStreamingEvent('run-1', { itemId: 'message-2', type: 'assistantStarted' });
+        await service.handleStreamingEvent('run-1', { content: 'Done', itemId: 'message-2', type: 'assistant' });
+
+        expect(run.conversation.messages).toEqual([
+            expect.objectContaining({ content: 'First', id: 'run-1-turn-1-assistant-1', sequence: 2 }),
+            expect.objectContaining({ content: 'Done', id: 'run-1-turn-1-assistant-2', sequence: 5 }),
+        ]);
+        expect(run.conversation.events).toEqual([
+            expect.objectContaining({ providerItemId: 'reasoning-1', sequence: 3 }),
+            expect.objectContaining({ providerItemId: 'command-1', sequence: 4 }),
+        ]);
+        expect(run.onEvent).toHaveBeenLastCalledWith({
+            content: 'Done',
+            messageId: 'run-1-turn-1-assistant-2',
+            runId: 'run-1',
+            sequence: 5,
+            type: 'output',
+        });
     });
 
     it('routes account runtime updates without conversation persistence', () => {
@@ -721,8 +784,6 @@ describe('AgentRunnerService', () => {
         service.processes.set('run-1', run);
 
         await expect(service.sendMessage('run-1', 'ghost')).rejects.toThrow(writeError);
-        await run.persistence;
-
         expect(run.conversation.messages).toHaveLength(1);
         expect(run.conversation.status).toBe('failed');
         expect(run.onEvent).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'userMessage' }));
@@ -752,8 +813,6 @@ describe('AgentRunnerService', () => {
         service.processes.set('run-1', run);
 
         await expect(service.answerQuestion('run-1', 7, { confirm: ['Yes'] })).rejects.toThrow(writeError);
-        await run.persistence;
-
         expect(run.conversation.messages).toHaveLength(0);
         expect(run.conversation.status).toBe('failed');
         expect(run.onEvent).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'questionAnswered' }));

@@ -173,6 +173,8 @@ class CodexStreamingAdapter {
         this.rootPath = rootPath;
         this.activeTurnId = null;
         this.activeItems = new Map();
+        this.assistantItemOrder = [];
+        this.assistantStreams = new Map();
         this.completedItemIds = new Set();
         this.diagnosticSequence = 1;
         this.initialPrompt = null;
@@ -292,6 +294,10 @@ class CodexStreamingAdapter {
 
     async handleNotification(method, params) {
         if (method === 'turn/started') {
+            this.activeItems.clear();
+            this.assistantItemOrder = [];
+            this.assistantStreams.clear();
+            this.completedItemIds.clear();
             this.activeTurnId = params.turn?.id ?? params.turnId;
             await this.onEvent({ turnId: this.activeTurnId, type: 'turnStarted' });
             return;
@@ -304,7 +310,8 @@ class CodexStreamingAdapter {
             const trackedItem = await this.requireActiveItem(method, params.itemId, 'agentMessage');
             if (!trackedItem) return;
             trackedItem.assistantText = trackedItem.assistantText || params.delta.length > 0;
-            await this.onEvent({ content: params.delta, itemId: params.itemId, type: 'assistant' });
+            trackedItem.bufferedAssistantText += params.delta;
+            await this.flushAssistantStreams();
             return;
         }
         if (method === 'item/reasoning/summaryTextDelta') {
@@ -400,7 +407,19 @@ class CodexStreamingAdapter {
         }
         const activity = normalizeCodexActivity(item, 'inProgress');
         const knownNonActivity = CODEX_NON_ACTIVITY_ITEM_TYPES.has(item.type);
-        this.activeItems.set(item.id, { activity, assistantText: false, itemType: item.type });
+        const trackedItem = {
+            activity,
+            assistantCompleted: false,
+            assistantText: false,
+            bufferedAssistantText: '',
+            itemType: item.type,
+        };
+        this.activeItems.set(item.id, trackedItem);
+        if (item.type === 'agentMessage') {
+            this.assistantItemOrder.push(item.id);
+            this.assistantStreams.set(item.id, trackedItem);
+            await this.onEvent({ itemId: item.id, type: 'assistantStarted' });
+        }
         if (activity) {
             await this.emitActivity(activity);
             return;
@@ -423,8 +442,9 @@ class CodexStreamingAdapter {
             await this.emitDiagnostic(method, item.type, item.id);
             return;
         }
-        if (item.type === 'agentMessage' && trackedItem?.assistantText) {
-            await this.onEvent({ content: '\n\n', itemId: item.id, type: 'assistant' });
+        if (item.type === 'agentMessage' && trackedItem) {
+            trackedItem.assistantCompleted = true;
+            await this.flushAssistantStreams();
         }
         const changedPaths = codexChangedPaths(item, this.rootPath);
         if (changedPaths.length > 0) await this.onEvent({ paths: changedPaths, type: 'changedPaths' });
@@ -460,6 +480,26 @@ class CodexStreamingAdapter {
             ? trackedItem.activity.summary.join('\n\n')
             : trackedItem.activity.details.join('\n\n');
         await this.emitActivity(trackedItem.activity);
+    }
+
+    async flushAssistantStreams() {
+        while (this.assistantItemOrder.length > 0) {
+            const itemId = this.assistantItemOrder[0];
+            const stream = this.assistantStreams.get(itemId);
+            if (!stream) {
+                this.assistantItemOrder.shift();
+                continue;
+            }
+            if (stream.bufferedAssistantText.length > 0) {
+                const content = stream.bufferedAssistantText;
+                stream.bufferedAssistantText = '';
+                await this.onEvent({ content, itemId, type: 'assistant' });
+            }
+            if (!stream.assistantCompleted) return;
+            if (stream.assistantText) await this.onEvent({ content: '\n\n', itemId, type: 'assistant' });
+            this.assistantStreams.delete(itemId);
+            this.assistantItemOrder.shift();
+        }
     }
 
     async emitActivity(activity) {

@@ -17,7 +17,7 @@ import { cardBodyPopoverService } from './card_body_popover_service'
 import { CardColumn } from './card_column'
 import { CardDragOverlay } from './card_drag_overlay'
 import { cardDragDropService } from './card_drag_drop_service'
-import { resolveCardDragEvent, type CardVerticalBounds } from './card_drag'
+import { resolveCardDragEvent } from './card_drag'
 import { CardViewScrollZones } from './card_view_scroll_zones'
 import { useCardViewColumns } from './use_card_view_columns'
 
@@ -36,20 +36,6 @@ async function runCardEdit(action: () => unknown, fallbackMessage: string) {
     }
 }
 
-function measureCardVerticalBounds(): Map<string, CardVerticalBounds> {
-    const boundsByPath = new Map<string, CardVerticalBounds>()
-    const cardElements = document.querySelectorAll<HTMLElement>('[data-card-path]')
-    for (const cardElement of cardElements) {
-        const path = cardElement.dataset.cardPath
-        if (!path) throw new Error('Card element is missing its path')
-
-        const { height, top } = cardElement.getBoundingClientRect()
-        boundsByPath.set(path, { height, top })
-    }
-
-    return boundsByPath
-}
-
 function currentCardColumns(states: StateConfig[]) {
     const cards = dataService.getState().snapshot?.activeCards ?? []
 
@@ -66,7 +52,6 @@ export function CardView(props: CardViewProps) {
     useAgentAcknowledgements()
     const columns = useCardViewColumns(states)
     const [openAffectsPath, setOpenAffectsPath] = useState<string | null>(null)
-    const initialCardBoundsRef = useRef(new Map<string, CardVerticalBounds>())
     const rootElementRef = useRef<HTMLDivElement>(null)
     const scrollContainerRef = useRef<HTMLDivElement>(null)
     const missingRootReportedRef = useRef(false)
@@ -83,7 +68,6 @@ export function CardView(props: CardViewProps) {
 
     const clearActiveCard = useCallback(() => {
         cardDragDropService.endDrag()
-        initialCardBoundsRef.current.clear()
     }, [])
 
     useEffect(() => {
@@ -120,7 +104,6 @@ export function CardView(props: CardViewProps) {
     useEffect(() => () => cardBodyPopoverService.close(), [])
 
     const handleDragStart = useCallback((event: DragStartEvent) => {
-        initialCardBoundsRef.current = measureCardVerticalBounds()
         cardDragDropService.startDrag(
             String(event.active.id),
             event.active.rect.current.initial?.height ?? null,
@@ -136,7 +119,7 @@ export function CardView(props: CardViewProps) {
         }
 
         const dragColumns = currentCardColumns(states)
-        const drop = resolveCardDragEvent(dragColumns, event, initialCardBoundsRef.current)
+        const drop = resolveCardDragEvent(dragColumns, event)
         const sourceColumn = dragColumns.find((column) => column.cards.some((card) => card.path === String(active.id)))
         const dropPreview = drop && sourceColumn?.status !== drop.targetStatus ? drop : null
         cardDragDropService.setDropPreview(dropPreview)
@@ -144,7 +127,7 @@ export function CardView(props: CardViewProps) {
 
     const handleDragEnd = useCallback((event: DragEndEvent) => {
         const { active, over } = event
-        const drop = over ? resolveCardDragEvent(currentCardColumns(states), event, initialCardBoundsRef.current) : null
+        const drop = over ? resolveCardDragEvent(currentCardColumns(states), event) : null
         clearActiveCard()
         const path = String(active.id)
         if (drop) void runCardEdit(() => dataService.cards.moveCard(path, drop.targetStatus, drop.targetIndex), `Card move failed: ${path}`)

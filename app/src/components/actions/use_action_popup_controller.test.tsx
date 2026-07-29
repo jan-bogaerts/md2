@@ -82,6 +82,64 @@ describe('useActionPopupController', () => {
         expect(loadHistory).toHaveBeenCalledTimes(1)
     })
 
+    it('keeps separate live assistant messages around intervening activity', () => {
+        const emit = installBridge()
+        const agentAction: ActionDefinition = {
+            ...action,
+            agent: 'codex',
+            command: null,
+            prompt: 'Review',
+            streaming: true,
+            type: 'agent',
+        }
+        const userMessage = {
+            agent: 'codex',
+            content: 'Review',
+            id: 'user-1',
+            role: 'user' as const,
+            sequence: 1,
+            timestamp: 'now',
+        }
+        const { result } = renderHook(() => useActionPopupController({ action: agentAction, context }))
+        emit({ actionId: action.id, context, executionId: 'execution-1', phase: 'main', rootActionId: action.id, status: 'running', type: 'execution' })
+        emit({
+            actionId: action.id, context, executionId: 'execution-1', phase: 'main', rootActionId: action.id, status: 'running', type: 'update',
+            update: { conversationId: 'conversation-1', kind: 'agentStarted', reference: 'log.json', startedAt: 'now', title: 'Build', userMessage },
+        })
+        emit({
+            actionId: action.id, context, executionId: 'execution-1', phase: 'main', rootActionId: action.id, status: 'running', type: 'update',
+            update: { content: 'First', kind: 'output', messageId: 'assistant-1', sequence: 2 },
+        })
+        emit({
+            actionId: action.id, context, executionId: 'execution-1', phase: 'main', rootActionId: action.id, status: 'running', type: 'update',
+            update: {
+                activity: {
+                    content: 'Thinking',
+                    id: 'reasoning-1',
+                    providerItemId: 'reasoning-1',
+                    sequence: 3,
+                    status: 'completed',
+                    timestamp: 'now',
+                    type: 'reasoning',
+                },
+                kind: 'agentActivity',
+            },
+        })
+        emit({
+            actionId: action.id, context, executionId: 'execution-1', phase: 'main', rootActionId: action.id, status: 'running', type: 'update',
+            update: { content: 'Second', kind: 'output', messageId: 'assistant-2', sequence: 4 },
+        })
+
+        expect(result.current.displayedConversation).toMatchObject({
+            events: [expect.objectContaining({ providerItemId: 'reasoning-1', sequence: 3 })],
+            messages: [
+                userMessage,
+                expect.objectContaining({ content: 'First', id: 'assistant-1', sequence: 2 }),
+                expect.objectContaining({ content: 'Second', id: 'assistant-2', sequence: 4 }),
+            ],
+        })
+    })
+
     it('uses effective assignment for runs and excludes project session assignment from schedules', async () => {
         const effectiveContext: ActionContext = { kind: 'project', worktree: '1' }
         const scheduleContext: ActionContext = { kind: 'project' }

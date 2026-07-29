@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { CommitRequest, MarkdownFile, StorageService } from '../../data/data_types'
+import { orderByAfter } from '../../data/card_ordering'
+import type { CommitRequest, MarkdownFile, ProjectSnapshot, StorageService } from '../../data/data_types'
 import { configService } from '../config/config_service'
 import { projectPersistenceService } from '../project/project_persistence_service'
 import { DIALOG_SERVICE_EVENT, dialogService, type DialogServiceMessage, type DialogSeverity } from '.././dialog_service'
@@ -28,6 +29,30 @@ function recordDialogMessages(severity: DialogSeverity) {
         messages,
         stop: () => dialogService.removeEventListener(DIALOG_SERVICE_EVENT, handleDialogMessage),
     }
+}
+
+function createMovePersistenceStorage(initialFiles: MarkdownFile[]) {
+    let persistedFiles = initialFiles
+    const commit = vi.fn<StorageService['commit']>(async (request) => {
+        const committedFilesByPath = new Map(request.files.map((file) => [file.path, file]))
+        persistedFiles = persistedFiles.map((file) => committedFilesByPath.get(file.path) ?? file)
+
+        return request.files
+    })
+    const loadPersistedFiles = async () => ({ files: persistedFiles, workingFolder: 'design' })
+    const storage = createStorage({
+        commit,
+        loadProject: vi.fn(loadPersistedFiles),
+        loadProjectRoot: vi.fn(loadPersistedFiles),
+    })
+
+    return { commit, storage }
+}
+
+function orderedInternalIds(snapshot: ProjectSnapshot | null, status: string) {
+    const cards = snapshot?.activeCards.filter((card) => card.header.status === status) ?? []
+
+    return orderByAfter(cards).map((card) => card.header.internalId)
 }
 
 describe('CardOperations', () => {
@@ -363,6 +388,72 @@ describe('CardOperations', () => {
         const movedContent = committed.files[0].content
         expect(movedContent).toContain('status: done')
         expect(movedContent).toContain('after: p')
+    })
+
+    it('persists a same-column move to first place as one valid chain', async () => {
+        configService.init()
+        const moveFiles = [
+            activeCardFile('a'),
+            activeCardFile('b', { after: 'a' }),
+            activeCardFile('c', { after: 'b' }),
+            activeCardFile('d', { after: 'c' }),
+        ]
+        const { commit, storage } = createMovePersistenceStorage(moveFiles)
+        const service = createDataService()
+        service.init({ storage })
+
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        await service.cards.moveCard('design/C-1-c.md', 'todo', 0)
+        await service.cards.flushPendingCommits()
+        const reloadedSnapshot = await service.projectLoading.reloadCurrentProjectSnapshot()
+
+        expect(commit).toHaveBeenCalledTimes(1)
+        const request = commit.mock.calls[0][0]
+        expect(request.files.map((file) => file.path)).toEqual([
+            'design/C-1-c.md',
+            'design/A-1-a.md',
+            'design/D-1-d.md',
+        ])
+        expect(orderedInternalIds(reloadedSnapshot, 'todo')).toEqual(['c', 'a', 'b', 'd'])
+        const todoCards = reloadedSnapshot?.activeCards.filter((card) => card.header.status === 'todo') ?? []
+        expect(todoCards.filter((card) => card.header.after === null)).toHaveLength(1)
+        expect(todoCards.find((card) => card.header.internalId === 'c')?.header.after).toBeNull()
+        expect(todoCards.find((card) => card.header.internalId === 'a')?.header.after).toBe('c')
+        expect(todoCards.find((card) => card.header.internalId === 'd')?.header.after).toBe('b')
+    })
+
+    it('persists a cross-column move to first place and repairs both chains', async () => {
+        configService.init()
+        const moveFiles = [
+            activeCardFile('a'),
+            activeCardFile('b', { after: 'a' }),
+            activeCardFile('c', { after: 'b' }),
+            activeCardFile('p', { status: 'done' }),
+            activeCardFile('q', { after: 'p', status: 'done' }),
+        ]
+        const { commit, storage } = createMovePersistenceStorage(moveFiles)
+        const service = createDataService()
+        service.init({ storage })
+
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        await service.cards.moveCard('design/B-1-b.md', 'done', 0)
+        await service.cards.flushPendingCommits()
+        const reloadedSnapshot = await service.projectLoading.reloadCurrentProjectSnapshot()
+
+        expect(commit).toHaveBeenCalledTimes(1)
+        const request = commit.mock.calls[0][0]
+        expect(request.files.map((file) => file.path)).toEqual([
+            'design/B-1-b.md',
+            'design/P-1-p.md',
+            'design/C-1-c.md',
+        ])
+        expect(orderedInternalIds(reloadedSnapshot, 'todo')).toEqual(['a', 'c'])
+        expect(orderedInternalIds(reloadedSnapshot, 'done')).toEqual(['b', 'p', 'q'])
+        const cardsByInternalId = new Map(reloadedSnapshot?.activeCards.map((card) => [card.header.internalId, card]))
+        expect(cardsByInternalId.get('b')?.header).toMatchObject({ after: null, status: 'done' })
+        expect(cardsByInternalId.get('p')?.header.after).toBe('b')
+        expect(cardsByInternalId.get('c')?.header.after).toBe('a')
+        expect(cardsByInternalId.get('q')?.header.after).toBe('p')
     })
 
     it('keeps the window receiver when scheduling a card move', async () => {

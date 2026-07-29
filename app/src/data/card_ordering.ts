@@ -21,7 +21,8 @@ export interface CardMoveUpdate {
 /** Cards with a null/empty status share this column key so grouping stays total. */
 export const UNASSIGNED_STATUS = ''
 
-function statusOf(card: ProjectCard) {
+/** A card's column key, mapping a missing status onto the unassigned column. */
+export function statusOf(card: ProjectCard) {
     return card.header.status ?? UNASSIGNED_STATUS
 }
 

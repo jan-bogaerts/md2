@@ -5,6 +5,7 @@ import { configService } from './config/config_service'
 import { actionExecutionService } from './actions/action_execution_service'
 import { actionService } from './actions/action_service'
 import { agentCapabilitiesService } from './agents/agent_capabilities_service'
+import { codexRateLimitService } from './agents/codex_rate_limit_service'
 import { dataService } from './data/data_service'
 import { githubAuthService, initDefaultGithubAuthService } from './github/github_auth_service'
 import { openFilesService } from './open_files_service'
@@ -39,6 +40,7 @@ function initializeServices() {
     cardMarkdownDataSource.init(dataService)
     actionMarkdownDataSource.init(actionService)
     actionExecutionService.start()
+    codexRateLimitService.start()
 }
 
 const DEFAULT_DEPENDENCIES: ApplicationStartupDependencies = {

@@ -1,4 +1,5 @@
 import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Typography } from '@mui/material'
+import { dialogService } from '../../services/dialog_service'
 
 interface CardDeleteDialogProps {
     cardPath: string | null
@@ -12,20 +13,20 @@ export function CardDeleteDialog(props: CardDeleteDialogProps) {
 
     const handleDeleteClick = async () => {
         if (!cardPath) return
-
         try {
-            await onDeleteCard(cardPath)
-            onClose()
+            onClose();
+            await onDeleteCard(cardPath);
         } catch {
-            // ProjectWorkspace owns the user-visible delete error.
+            dialogService.error(`Could not delete card at path: ${cardPath}`);
         }
     }
 
     return (
         <Dialog fullWidth maxWidth="xs" onClose={onClose} open={!!cardPath}>
             <DialogTitle>Delete card</DialogTitle>
-            <DialogContent>
-                {cardPath ? <Typography>Delete {cardPath}?</Typography> : null}
+            <DialogContent sx={{ wordBreak: 'break-all' }} >
+                Are you sure you want to delete this card?
+                {cardPath ? <Typography>Path: {cardPath}?</Typography> : null}
             </DialogContent>
             <DialogActions>
                 <Button onClick={onClose}>Cancel</Button>

@@ -85,6 +85,8 @@ export type ActionExecutionUpdate =
         command?: string
         content: string
         kind: 'error' | 'output'
+        messageId?: string
+        sequence?: number
     }
 
 export type ActionExecutionEvent =

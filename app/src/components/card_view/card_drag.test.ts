@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { DragMoveEvent } from '@dnd-kit/core'
-import { columnDropId, getCardDropPlacement, getCardTypeColor, resolveCardDragEvent, resolveDrop } from './card_drag'
+import { columnDropId, getCardTypeColor, resolveCardDragEvent, resolveDrop } from './card_drag'
 import type { CardColumn } from '../../data/card_ordering'
 import type { CardTypeConfig, ProjectCard } from '../../data/data_types'
 
@@ -23,50 +23,42 @@ const columns: CardColumn[] = [
 
 describe('resolveDrop', () => {
     it('returns null when dropped on itself', () => {
-        expect(resolveDrop(columns, 'a', 'a', 'before')).toBeNull()
+        expect(resolveDrop(columns, 'a', 'a')).toBeNull()
     })
 
-    it('inserts before the card it is dropped over in the destination column', () => {
-        expect(resolveDrop(columns, 'c', 'a', 'before')).toEqual({ targetIndex: 0, targetStatus: 'todo' })
+    it('inserts at the position of the card it is dropped on', () => {
+        expect(resolveDrop(columns, 'c', 'a')).toEqual({ targetIndex: 0, targetStatus: 'todo' })
     })
 
-    it('inserts after the card it is dropped over in the destination column', () => {
-        expect(resolveDrop(columns, 'a', 'p', 'after')).toEqual({ targetIndex: 1, targetStatus: 'done' })
+    it('moves one position up when dropped on the preceding card', () => {
+        expect(resolveDrop(columns, 'c', 'b')).toEqual({ targetIndex: 1, targetStatus: 'todo' })
     })
 
-    it('appends after the final card in a destination column with two cards', () => {
-        expect(resolveDrop(columns, 'a', 'q', 'after')).toEqual({ targetIndex: 2, targetStatus: 'done' })
+    it('moves one position down when dropped on the following card', () => {
+        expect(resolveDrop(columns, 'b', 'c')).toEqual({ targetIndex: 2, targetStatus: 'todo' })
     })
 
-    it('appends to the end when dropped on a column container', () => {
-        expect(resolveDrop(columns, 'a', columnDropId('done'), 'before')).toEqual({ targetIndex: 2, targetStatus: 'done' })
+    it('inserts at the hovered position in another column', () => {
+        expect(resolveDrop(columns, 'a', 'q')).toEqual({ targetIndex: 1, targetStatus: 'done' })
+    })
+
+    it('appends to the end when dropped on the column end target', () => {
+        expect(resolveDrop(columns, 'a', columnDropId('done'))).toEqual({ targetIndex: 2, targetStatus: 'done' })
     })
 
     it('targets the destination column when dropped over a card in another column', () => {
-        expect(resolveDrop(columns, 'a', 'p', 'before')).toEqual({ targetIndex: 0, targetStatus: 'done' })
-    })
-})
-
-describe('getCardDropPlacement', () => {
-    it('places the drop before a card when the pointer is in its top half', () => {
-        expect(getCardDropPlacement(124, 100, 50)).toBe('before')
-    })
-
-    it('places the drop after a card when the pointer is in its bottom half', () => {
-        expect(getCardDropPlacement(126, 100, 50)).toBe('after')
+        expect(resolveDrop(columns, 'a', 'p')).toEqual({ targetIndex: 0, targetStatus: 'done' })
     })
 })
 
 describe('resolveCardDragEvent', () => {
-    it('uses current collision bounds when target card has no drag-start measurement', () => {
+    it('inserts at the hovered card without pointer-position calculations', () => {
         const event = {
             active: { id: 'a' },
-            activatorEvent: { clientY: 100 },
-            delta: { x: 0, y: 31 },
             over: { id: 'p', rect: { height: 60, top: 100 } },
         } as unknown as DragMoveEvent
 
-        expect(resolveCardDragEvent(columns, event, new Map())).toEqual({ targetIndex: 1, targetStatus: 'done' })
+        expect(resolveCardDragEvent(columns, event)).toEqual({ targetIndex: 0, targetStatus: 'done' })
     })
 })
 

@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 const require = createRequire(import.meta.url);
 const {
     accumulateUsage,
+    createActivityEvent,
     createConversation,
     createEvent,
     createMessage,
@@ -28,6 +29,23 @@ describe('agent conversation', () => {
     it('creates messages and events in persisted shapes', () => {
         expect(createMessage('message-1', 'assistant', 'done', 'now', 'codex')).toEqual({agent: 'codex', content: 'done', id: 'message-1', role: 'assistant', timestamp: 'now'});
         expect(createEvent('event-1', 'output', 'done', 'now')).toEqual({content: 'done', id: 'event-1', timestamp: 'now', type: 'output'});
+    });
+
+    it('omits unavailable numeric activity detail', () => {
+        const activity = {
+            content: '',
+            durationMs: null,
+            exitCode: null,
+            label: 'Command',
+            providerItemId: 'command-1',
+            status: 'inProgress',
+            type: 'commandExecution',
+        };
+
+        expect(createActivityEvent(activity, 'event-1', 'now', 2)).not.toMatchObject({
+            durationMs: expect.anything(),
+            exitCode: expect.anything(),
+        });
     });
 
     it('creates a new running conversation', () => {

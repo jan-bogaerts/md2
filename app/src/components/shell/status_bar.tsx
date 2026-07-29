@@ -5,6 +5,7 @@ import { RunningAgentsIndicator } from './running_agents_indicator'
 import { ProjectAgentUsageSummary } from './project_agent_usage_summary'
 import { ProjectCardCountSummary } from './project_card_count_summary'
 import { ProjectSyncStatus } from './project_sync_status'
+import { CodexRateLimitStatus } from './codex_rate_limit_status'
 
 /** Compact desktop status bar for board totals, synchronization and agents. */
 export function StatusBar() {
@@ -29,6 +30,7 @@ export function StatusBar() {
             <ProjectSyncStatus />
             <Box sx={{ flex: 1 }} />
             <ProjectAgentUsageSummary />
+            <CodexRateLimitStatus />
             <RemoteControlStatusIndicator />
             <KeyboardStatus />
             <RunningAgentsIndicator />

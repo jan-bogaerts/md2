@@ -1,7 +1,7 @@
 import { actionContextIdentity } from '../../data/action_context'
 import type { ActionContext } from '../../data/action_context'
 import type { ActionDefinition } from '../../data/action_types'
-import type { AgentConversationMessage } from '../../data/data_types'
+import type { AgentConversationEvent, AgentConversationMessage } from '../../data/data_types'
 import type {
     AgentQuestion,
     ActionExecutionEvent,
@@ -37,8 +37,9 @@ export interface LiveActionExecution {
 }
 
 export interface LiveAgentTurn {
-    assistantText: string
+    activities: AgentConversationEvent[]
     conversationId: string
+    currentAssistantMessageId?: string
     reference: string
     startedAt: string
     title: string
@@ -130,6 +131,58 @@ function updateOutputLogs(
     next[currentIndex] = updated
 
     return next
+}
+
+function activityIdentity(activity: AgentConversationEvent) {
+    return activity.providerItemId ?? activity.id
+}
+
+function upsertAgentActivity(activities: AgentConversationEvent[], activity: AgentConversationEvent) {
+    const identity = activityIdentity(activity)
+    const currentIndex = activities.findIndex((current) => activityIdentity(current) === identity)
+    if (currentIndex < 0) return [...activities, activity]
+
+    const current = activities[currentIndex]
+    const next = [...activities]
+    next[currentIndex] = {
+        ...activity,
+        ...(activity.sequence === undefined && current.sequence !== undefined ? { sequence: current.sequence } : {}),
+    }
+
+    return next
+}
+
+function nextConversationSequence(turn: LiveAgentTurn) {
+    const sequences = [
+        ...turn.messages.map(({ sequence }) => sequence),
+        ...turn.activities.map(({ sequence }) => sequence),
+    ].filter((sequence): sequence is number => sequence !== undefined)
+
+    return sequences.length > 0 ? Math.max(...sequences) + 1 : undefined
+}
+
+function appendAssistantMessage(
+    turn: LiveAgentTurn,
+    update: { content: string, messageId?: string, sequence?: number },
+) {
+    const sequence = update.sequence ?? nextConversationSequence(turn)
+    const messageId = update.messageId
+        ?? turn.currentAssistantMessageId
+        ?? `${turn.conversationId}-assistant-${sequence ?? turn.messages.length + 1}`
+    const currentIndex = turn.messages.findIndex(({ id }) => id === messageId)
+    const messages = currentIndex < 0
+        ? [...turn.messages, {
+            content: update.content,
+            id: messageId,
+            role: 'assistant' as const,
+            ...(sequence !== undefined ? { sequence } : {}),
+            timestamp: turn.startedAt,
+        }]
+        : turn.messages.map((message, index) => index === currentIndex
+            ? { ...message, content: `${message.content}${update.content}` }
+            : message)
+
+    return { ...turn, currentAssistantMessageId: messageId, messages }
 }
 
 function contextKey(context: ActionContext) {
@@ -439,9 +492,25 @@ export class ActionExecutionService extends EventTarget {
             const { continued, conversationId, reference, startedAt, title, userMessage } = event.update
             next = {
                 ...next,
-                agentTurn: { assistantText: '', conversationId, messages: [userMessage], reference, startedAt, title },
+                agentTurn: {
+                    activities: [],
+                    conversationId,
+                    messages: [userMessage],
+                    reference,
+                    startedAt,
+                    title,
+                },
             }
             if (continued) this.clearExecutionPromptDraft(event.executionId, event.actionId)
+        }
+        if (event.type === 'update' && event.update.kind === 'agentActivity' && next.agentTurn) {
+            next = {
+                ...next,
+                agentTurn: {
+                    ...next.agentTurn,
+                    activities: upsertAgentActivity(next.agentTurn.activities, event.update.activity),
+                },
+            }
         }
         if (event.type === 'update' && event.update.kind === 'agentQuestion') {
             next = { ...next, question: { questions: event.update.questions, requestId: event.update.requestId } }
@@ -451,20 +520,12 @@ export class ActionExecutionService extends EventTarget {
             && (event.update.kind === 'agentUserMessage' || event.update.kind === 'agentQuestionAnswer')
             && next.agentTurn
         ) {
-            const assistantMessage = next.agentTurn.assistantText.length > 0
-                ? [{
-                    content: next.agentTurn.assistantText,
-                    id: `${event.update.userMessage.id}-previous-assistant`,
-                    role: 'assistant' as const,
-                    timestamp: event.update.userMessage.timestamp,
-                }]
-                : []
             next = {
                 ...next,
                 agentTurn: {
                     ...next.agentTurn,
-                    assistantText: '',
-                    messages: [...next.agentTurn.messages, ...assistantMessage, event.update.userMessage],
+                    currentAssistantMessageId: undefined,
+                    messages: [...next.agentTurn.messages, event.update.userMessage],
                 },
                 question: null,
             }
@@ -474,7 +535,7 @@ export class ActionExecutionService extends EventTarget {
         }
         if (event.type === 'update' && (event.update.kind === 'output' || event.update.kind === 'error')) {
             const agentTurn = event.update.kind === 'output' && next.agentTurn
-                ? { ...next.agentTurn, assistantText: `${next.agentTurn.assistantText}${event.update.content}` }
+                ? appendAssistantMessage(next.agentTurn, event.update)
                 : next.agentTurn
             next = { ...next, agentTurn, logs: updateOutputLogs(next.logs, event, event.update) }
         }

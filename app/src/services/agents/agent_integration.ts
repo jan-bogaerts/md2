@@ -5,6 +5,7 @@ import {
     type AgentConversation,
     type AgentConversationError,
     type MarkdownFile,
+    type ProjectConfig,
     type ProjectReference,
     type ProjectSnapshot,
     type StorageService,
@@ -57,6 +58,22 @@ function mergeAgentConversations(existing: AgentConversation[], loaded: AgentCon
     loaded.forEach((conversation) => conversationsById.set(conversation.id, conversation))
 
     return [...conversationsById.values()]
+}
+
+function isInsideFolder(path: string, folder: string) {
+    const normalizedPath = path.replace(/\\/gu, '/')
+    const normalizedFolder = folder.replace(/\\/gu, '/').replace(/^\/+|\/+$/gu, '')
+
+    return normalizedPath.startsWith(`${normalizedFolder}/`)
+}
+
+function cardsForAgentConversationLoading(snapshot: ProjectSnapshot, config: ProjectConfig) {
+    const historicalCards = snapshot.backgroundCards.filter((card) => (
+        !!card.header.internalId
+        && (isInsideFolder(card.path, config.archivedFolder) || isInsideFolder(card.path, config.releasesFolder))
+    ))
+
+    return [...snapshot.activeCards, ...historicalCards]
 }
 
 async function loadAgentConversationReference(
@@ -212,10 +229,11 @@ export class AgentIntegration {
     }
 
     async loadAgentConversationsInBackground(snapshot: ProjectSnapshot, project: ProjectReference, projectLoadToken: number) {
-        const cards = [...snapshot.activeCards, ...snapshot.backgroundCards]
         const agentConversationLoadToken = this.dependencies.beginAgentConversationLoad()
 
         try {
+            const { config } = this.dependencies.requireDependencies()
+            const cards = cardsForAgentConversationLoading(snapshot, config)
             await this.resolveAndAttachAgentConversations(cards, project, projectLoadToken, agentConversationLoadToken)
         } catch (error) {
             dialogService.warning('Agent conversations could not be loaded and were skipped.', { title: 'Some agent conversations were not loaded' })

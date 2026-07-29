@@ -52,6 +52,7 @@ export interface CodexRateLimitSnapshot {
 
 export interface ElectronCodexRuntimeBridge {
     getCodexRateLimits(): Promise<CodexRateLimitSnapshot | null>
+    onConnectionChanged?(callback: (connected: boolean) => void): () => void
     onCodexRateLimits(callback: (snapshot: CodexRateLimitSnapshot) => void): () => void
 }
 

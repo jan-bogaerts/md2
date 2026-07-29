@@ -241,6 +241,7 @@ describe('CodexStreamingAdapter', () => {
         await adapter.handleMessage({ method: 'turn/completed', params: { turn: { status: 'completed' } } });
 
         expect(events).toContainEqual({ content: 'hello', itemId: 'message-1', type: 'assistant' });
+        expect(events).toContainEqual({ itemId: 'message-1', type: 'assistantStarted' });
         expect(events).toContainEqual({ content: '\n\n', itemId: 'message-1', type: 'assistant' });
         expect(events).toContainEqual({ paths: ['design/feature.md'], type: 'changedPaths' });
         expect(events).toContainEqual({ questions, requestId: 99, type: 'question' });
@@ -269,8 +270,8 @@ describe('CodexStreamingAdapter', () => {
 
         expect(events.filter(({ type }) => type === 'assistant')).toEqual([
             { content: 'first', itemId: 'message-1', type: 'assistant' },
-            { content: 'second', itemId: 'message-2', type: 'assistant' },
             { content: '\n\n', itemId: 'message-1', type: 'assistant' },
+            { content: 'second', itemId: 'message-2', type: 'assistant' },
             { content: '\n\n', itemId: 'message-2', type: 'assistant' },
         ]);
         expect(events.filter(({ activity }) => activity?.type === 'diagnostic')).toHaveLength(2);
@@ -318,6 +319,23 @@ describe('CodexStreamingAdapter', () => {
         expect(reasoning.some(({ details, summary }) => details[0] === 'Raw detail' && summary[1] === 'Verify')).toBe(true);
     });
 
+    it('retains completed reasoning without text', async () => {
+        const { adapter, events } = harness('codex');
+        const reasoning = { content: [], id: 'reasoning-empty', summary: [], type: 'reasoning' };
+
+        await adapter.handleMessage({ method: 'item/started', params: { item: reasoning } });
+        await adapter.handleMessage({ method: 'item/completed', params: { item: reasoning } });
+
+        expect(events.at(-1)).toEqual({
+            activity: expect.objectContaining({
+                content: '',
+                providerItemId: 'reasoning-empty',
+                status: 'completed',
+            }),
+            type: 'activity',
+        });
+    });
+
     it('retains exact command and ordered output through authoritative completion', async () => {
         const { adapter, events } = harness('codex');
         const started = {
@@ -359,6 +377,82 @@ describe('CodexStreamingAdapter', () => {
         });
     });
 
+    it('retains declined command state', async () => {
+        const { adapter, events } = harness('codex');
+        const command = {
+            aggregatedOutput: '',
+            command: 'npm publish',
+            commandActions: [],
+            cwd: 'C:\\repo',
+            durationMs: 5,
+            exitCode: null,
+            id: 'command-declined',
+            processId: null,
+            source: 'agent',
+            status: 'declined',
+            type: 'commandExecution',
+        };
+
+        await adapter.handleMessage({ method: 'item/started', params: { item: { ...command, status: 'inProgress' } } });
+        await adapter.handleMessage({ method: 'item/completed', params: { item: command } });
+
+        expect(events.at(-1)).toEqual({
+            activity: expect.objectContaining({
+                command: 'npm publish',
+                providerItemId: 'command-declined',
+                status: 'declined',
+            }),
+            type: 'activity',
+        });
+    });
+
+    it('replaces plan deltas, records compaction and system activity, and omits terminal input', async () => {
+        const { adapter, events } = harness('codex');
+        const plan = { id: 'plan-1', text: '', type: 'plan' };
+
+        await adapter.handleMessage({ method: 'turn/started', params: { turn: { id: 'turn-1' } } });
+        await adapter.handleMessage({ method: 'item/started', params: { item: plan } });
+        await adapter.handleMessage({ method: 'item/plan/delta', params: { delta: 'draft', itemId: 'plan-1' } });
+        await adapter.handleMessage({ method: 'item/completed', params: { item: { ...plan, text: 'final' } } });
+        await adapter.handleMessage({
+            method: 'item/started',
+            params: { item: { id: 'compaction-1', type: 'contextCompaction' } },
+        });
+        await adapter.handleMessage({
+            method: 'item/completed',
+            params: { item: { id: 'compaction-1', type: 'contextCompaction' } },
+        });
+        await adapter.handleMessage({
+            method: 'model/rerouted',
+            params: { fromModel: 'first', reason: 'capacity', toModel: 'second', turnId: 'turn-1' },
+        });
+        await adapter.handleMessage({
+            method: 'item/commandExecution/terminalInteraction',
+            params: { itemId: 'command-1', processId: 'process-1', stdin: 'secret terminal input' },
+        });
+
+        const activities = events.filter(({ activity }) => activity).map(({ activity }) => activity);
+        expect(activities).toContainEqual(expect.objectContaining({ content: 'final', providerItemId: 'plan-1' }));
+        expect(activities).toContainEqual(expect.objectContaining({ label: 'Context compacted', providerItemId: 'compaction-1' }));
+        expect(activities).toContainEqual(expect.objectContaining({ label: 'Model rerouted', type: 'system' }));
+        expect(JSON.stringify(activities)).not.toContain('secret terminal input');
+    });
+
+    it('clears completed item tracking when next turn starts', async () => {
+        const { adapter, events } = harness('codex');
+        const message = { id: 'reused-item', phase: null, text: '', type: 'agentMessage' };
+
+        await adapter.handleMessage({ method: 'turn/started', params: { turn: { id: 'turn-1' } } });
+        await adapter.handleMessage({ method: 'item/started', params: { item: message } });
+        await adapter.handleMessage({ method: 'item/completed', params: { item: message } });
+        await adapter.handleMessage({ method: 'turn/completed', params: { turn: { id: 'turn-1', status: 'completed' } } });
+        await adapter.handleMessage({ method: 'turn/started', params: { turn: { id: 'turn-2' } } });
+        await adapter.handleMessage({ method: 'item/started', params: { item: message } });
+
+        const diagnostics = events.filter(({ activity }) => activity?.type === 'diagnostic');
+        expect(diagnostics).toHaveLength(0);
+    });
+
     it('normalizes supported tool activity and diagnoses unknown item types without failing', async () => {
         const { adapter, events } = harness('codex');
         const webSearch = { action: null, id: 'search-1', query: 'Codex schema', type: 'webSearch' };
@@ -381,6 +475,32 @@ describe('CodexStreamingAdapter', () => {
         const diagnostics = events.filter(({ activity }) => activity?.type === 'diagnostic').map(({ activity }) => activity.content);
         expect(diagnostics).toEqual(['item/started: futureTool (future-1)', 'item/completed: futureTool (future-1)']);
         expect(diagnostics.join('')).not.toContain('not persisted');
+    });
+
+    it('bounds structured tool result text without truncating command output', async () => {
+        const { adapter, events } = harness('codex');
+        const longText = 'x'.repeat(20_000);
+        const dynamicTool = {
+            arguments: { input: 'value' },
+            contentItems: null,
+            durationMs: null,
+            id: 'dynamic-1',
+            namespace: null,
+            status: 'inProgress',
+            success: null,
+            tool: 'inspect',
+            type: 'dynamicToolCall',
+        };
+
+        await adapter.handleMessage({ method: 'item/started', params: { item: dynamicTool } });
+        await adapter.handleMessage({
+            method: 'item/completed',
+            params: { item: { ...dynamicTool, contentItems: [{ text: longText, type: 'inputText' }], status: 'completed', success: true } },
+        });
+
+        const activity = events.at(-1).activity;
+        expect(activity.output.length).toBeLessThan(longText.length);
+        expect(activity.output).toContain('[activity content truncated]');
     });
 
     it('resumes a saved thread before sending the first turn', async () => {

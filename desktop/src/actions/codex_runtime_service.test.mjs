@@ -73,6 +73,29 @@ describe('CodexRuntimeService', () => {
         });
     });
 
+    it('accepts valid sparse updates with omitted optional fields', () => {
+        const service = new CodexRuntimeService();
+        service.publishRateLimits({
+            rateLimits: bucket('codex', 20),
+            rateLimitsByLimitId: null,
+        }, 10);
+
+        expect(service.publishRateLimits({
+            rateLimits: {
+                limitId: 'codex',
+                primary: { usedPercent: 45 },
+            },
+        }, 11, true)).toBe(true);
+        expect(service.getSnapshot()).toMatchObject({
+            buckets: [{
+                limitId: 'codex',
+                limitName: 'Codex',
+                primary: { resetsAt: 100, usedPercent: 45, windowDurationMins: 300 },
+            }],
+            observedAt: 11,
+        });
+    });
+
     it('rejects malformed and older reports without erasing newer data', () => {
         const service = new CodexRuntimeService();
         const listener = vi.fn();

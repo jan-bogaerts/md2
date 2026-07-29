@@ -129,8 +129,92 @@ describe('ActionExecutionService', () => {
         })
 
         expect(service.getSnapshot().executions[0]).toMatchObject({
-            agentTurn: { assistantText: 'live answer', conversationId: 'conversation-1', messages: [userMessage], reference: 'log.json' },
+            agentTurn: {
+                conversationId: 'conversation-1',
+                messages: [userMessage, expect.objectContaining({ content: 'live answer', role: 'assistant' })],
+                reference: 'log.json',
+            },
             logs: [{ stdout: 'live answer' }],
+        })
+        service.stop()
+    })
+
+    it('upserts live agent activity by provider item id without changing its sequence', () => {
+        const { bridge, emit } = bridgeWithEvents()
+        setActionBridgeOverride(bridge)
+        const service = new ActionExecutionService()
+        service.start()
+        const userMessage = {
+            content: 'Run tests',
+            id: 'message-1',
+            role: 'user' as const,
+            sequence: 1,
+            timestamp: 'now',
+        }
+
+        emit({
+            actionId: 'review', context, executionId: 'execution-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
+            update: { conversationId: 'conversation-1', kind: 'agentStarted', reference: 'log.json', startedAt: 'now', title: 'Review', userMessage },
+        })
+        emit({
+            actionId: 'review', context, executionId: 'execution-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
+            update: {
+                activity: {
+                    command: 'npm test',
+                    content: '',
+                    id: 'activity-started',
+                    providerItemId: 'command-1',
+                    sequence: 3,
+                    status: 'inProgress',
+                    timestamp: 'now',
+                    type: 'commandExecution',
+                },
+                kind: 'agentActivity',
+            },
+        })
+        emit({
+            actionId: 'review', context, executionId: 'execution-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
+            update: { content: 'Testing', kind: 'output', messageId: 'assistant-1', sequence: 2 },
+        })
+        emit({
+            actionId: 'review', context, executionId: 'execution-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
+            update: { content: '...', kind: 'output', messageId: 'assistant-1', sequence: 2 },
+        })
+        emit({
+            actionId: 'review', context, executionId: 'execution-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
+            update: {
+                activity: {
+                    command: 'npm test',
+                    content: 'passed',
+                    id: 'activity-completed',
+                    output: 'passed',
+                    providerItemId: 'command-1',
+                    status: 'completed',
+                    timestamp: 'later',
+                    type: 'commandExecution',
+                },
+                kind: 'agentActivity',
+            },
+        })
+        emit({
+            actionId: 'review', context, executionId: 'execution-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
+            update: { content: 'Done', kind: 'output', messageId: 'assistant-2', sequence: 4 },
+        })
+
+        expect(service.getSnapshot().executions[0].agentTurn).toMatchObject({
+            activities: [{
+                id: 'activity-completed',
+                output: 'passed',
+                providerItemId: 'command-1',
+                sequence: 3,
+                status: 'completed',
+            }],
+            currentAssistantMessageId: 'assistant-2',
+            messages: [
+                userMessage,
+                expect.objectContaining({ content: 'Testing...', id: 'assistant-1', sequence: 2 }),
+                expect.objectContaining({ content: 'Done', id: 'assistant-2', sequence: 4 }),
+            ],
         })
         service.stop()
     })
@@ -213,7 +297,10 @@ describe('ActionExecutionService', () => {
         resolveSnapshot(events)
 
         await vi.waitFor(() => expect(service.getRunningExecutionForContext(context)).toMatchObject({
-            agentTurn: { assistantText: 'proposal', conversationId: 'conversation-1' },
+            agentTurn: {
+                conversationId: 'conversation-1',
+                messages: expect.arrayContaining([expect.objectContaining({ content: 'proposal', role: 'assistant' })]),
+            },
             question: { questions, requestId: 7 },
             status: 'waitingForInput',
         }))

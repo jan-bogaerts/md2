@@ -5,7 +5,7 @@ import { useCallback, useSyncExternalStore } from 'react'
 import type { ReactNode } from 'react'
 import type { CardTypeConfig } from '../../data/data_types'
 import { requestOpenNewCardDialog } from '../project_command_events'
-import { CardColumnDropTarget } from './card_column_drop_target'
+import { CardColumnEndDropTarget } from './card_column_end_drop_target'
 import { cardDragDropService } from './card_drag_drop_service'
 import { ProjectCardView, type CardHandlers } from './project_card_view'
 import type { VisibleCardColumn } from './use_card_view_columns'
@@ -104,24 +104,23 @@ export function CardColumn(props: CardColumnProps) {
                 </Tooltip>
             </Box>
             <SortableContext items={cardPaths} strategy={verticalListSortingStrategy}>
-                <CardColumnDropTarget status={column.status}>
-                    {cardElements}
-                    {cardPaths.length === 0 && dropPreviewIndex === null ? (
-                        <Box
-                            sx={{
-                                border: '1.5px dashed',
-                                borderColor: 'divider',
-                                borderRadius: 1.25,
-                                color: 'text.disabled',
-                                fontSize: 12,
-                                p: 2,
-                                textAlign: 'center',
-                            }}
-                        >
-                            Drop a card here
-                        </Box>
-                    ) : null}
-                </CardColumnDropTarget>
+                {cardElements}
+                {cardPaths.length === 0 && dropPreviewIndex === null ? (
+                    <Box
+                        sx={{
+                            border: '1.5px dashed',
+                            borderColor: 'divider',
+                            borderRadius: 1.25,
+                            color: 'text.disabled',
+                            fontSize: 12,
+                            p: 2,
+                            textAlign: 'center',
+                        }}
+                    >
+                        Drop a card here
+                    </Box>
+                ) : null}
+                <CardColumnEndDropTarget status={column.status} />
             </SortableContext>
         </Paper>
     )

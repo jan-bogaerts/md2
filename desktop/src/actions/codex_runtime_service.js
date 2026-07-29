@@ -1,14 +1,15 @@
 const DEFAULT_RATE_LIMIT_ID = 'default';
 
 function nullableString(value) {
-    return value === null || typeof value === 'string';
+    return value === undefined || value === null || typeof value === 'string';
 }
 
 function nullableNumber(value) {
-    return value === null || (typeof value === 'number' && Number.isFinite(value));
+    return value === undefined || value === null || (typeof value === 'number' && Number.isFinite(value));
 }
 
 function normalizeWindow(window) {
+    if (window === undefined) return undefined;
     if (window === null) return null;
     if (!window || typeof window !== 'object' || Array.isArray(window)) return undefined;
     if (typeof window.usedPercent !== 'number' || !Number.isFinite(window.usedPercent)) return undefined;
@@ -22,6 +23,7 @@ function normalizeWindow(window) {
 }
 
 function normalizeCredits(credits) {
+    if (credits === undefined) return undefined;
     if (credits === null) return null;
     if (!credits || typeof credits !== 'object' || Array.isArray(credits)) return undefined;
     if (typeof credits.hasCredits !== 'boolean' || typeof credits.unlimited !== 'boolean') return undefined;
@@ -35,6 +37,7 @@ function normalizeCredits(credits) {
 }
 
 function normalizeIndividualLimit(individualLimit) {
+    if (individualLimit === undefined) return undefined;
     if (individualLimit === null) return null;
     if (!individualLimit || typeof individualLimit !== 'object' || Array.isArray(individualLimit)) return undefined;
     if (typeof individualLimit.limit !== 'string' || typeof individualLimit.used !== 'string') return undefined;
@@ -57,7 +60,14 @@ function normalizeBucket(value, fallbackLimitId) {
     const secondary = normalizeWindow(value.secondary);
     const credits = normalizeCredits(value.credits);
     const individualLimit = normalizeIndividualLimit(value.individualLimit);
-    if (primary === undefined || secondary === undefined || credits === undefined || individualLimit === undefined) return null;
+    const hasInvalidField = (value.primary !== undefined && primary === undefined)
+        || (value.secondary !== undefined && secondary === undefined)
+        || (value.credits !== undefined && credits === undefined)
+        || (value.individualLimit !== undefined && individualLimit === undefined);
+    if (hasInvalidField) return null;
+    const hasLimitData = fallbackLimitId !== null
+        || Object.values(value).some((field) => field !== undefined && field !== null);
+    if (!hasLimitData) return null;
 
     return {
         credits,
@@ -68,6 +78,29 @@ function normalizeBucket(value, fallbackLimitId) {
         primary,
         rateLimitReachedType: value.rateLimitReachedType,
         secondary,
+    };
+}
+
+function completeWindow(window) {
+    if (!window) return null;
+
+    return {
+        resetsAt: window.resetsAt ?? null,
+        usedPercent: window.usedPercent,
+        windowDurationMins: window.windowDurationMins ?? null,
+    };
+}
+
+function completeBucket(bucket) {
+    return {
+        credits: bucket.credits ?? null,
+        individualLimit: bucket.individualLimit ?? null,
+        limitId: bucket.limitId,
+        limitName: bucket.limitName ?? null,
+        planType: bucket.planType ?? null,
+        primary: completeWindow(bucket.primary),
+        rateLimitReachedType: bucket.rateLimitReachedType ?? null,
+        secondary: completeWindow(bucket.secondary),
     };
 }
 
@@ -114,6 +147,17 @@ function normalizeBuckets(payload) {
     return bucket ? [bucket] : null;
 }
 
+function mergeWindow(current, incoming) {
+    if (!incoming) return current;
+    if (!current) return incoming;
+
+    return {
+        resetsAt: incoming.resetsAt ?? current.resetsAt,
+        usedPercent: incoming.usedPercent,
+        windowDurationMins: incoming.windowDurationMins ?? current.windowDurationMins,
+    };
+}
+
 function mergeBucket(current, incoming) {
     if (!current) return incoming;
 
@@ -123,9 +167,9 @@ function mergeBucket(current, incoming) {
         limitId: incoming.limitId,
         limitName: incoming.limitName ?? current.limitName,
         planType: incoming.planType ?? current.planType,
-        primary: incoming.primary ?? current.primary,
+        primary: mergeWindow(current.primary, incoming.primary),
         rateLimitReachedType: incoming.rateLimitReachedType ?? current.rateLimitReachedType,
-        secondary: incoming.secondary ?? current.secondary,
+        secondary: mergeWindow(current.secondary, incoming.secondary),
     };
 }
 
@@ -157,7 +201,7 @@ class CodexRuntimeService {
         if (sparse) {
             for (const bucket of buckets) currentBuckets.set(bucket.limitId, mergeBucket(currentBuckets.get(bucket.limitId), bucket));
         }
-        const normalizedBuckets = sparse ? [...currentBuckets.values()] : buckets;
+        const normalizedBuckets = (sparse ? [...currentBuckets.values()] : buckets).map(completeBucket);
         const rateLimitResetCredits = sparse && resetCredits === null
             ? this.snapshot?.rateLimitResetCredits ?? null
             : resetCredits;

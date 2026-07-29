@@ -204,6 +204,73 @@ describe('AgentIntegration', () => {
         })
     })
 
+    it('loads conversations only for active, archived, and released cards', async () => {
+        configService.init()
+        const activeFile: MarkdownFile = {
+            content: '---\nid: F-1\ninternalId: active-card\ntitle: Active\nstatus: active\n---\n\n# Active',
+            path: 'design/active/F-1-active.md',
+        }
+        const archivedFile: MarkdownFile = {
+            content: '---\nid: F-2\ninternalId: archived-card\ntitle: Archived\nstatus: archived\nagents:\n  - design/activity/card__archived-card.json#conversation=archived\n---\n\n# Archived',
+            path: 'design/archived/F-2-archived.md',
+        }
+        const releasedFile: MarkdownFile = {
+            content: '---\nid: F-3\ninternalId: released-card\ntitle: Released\nstatus: ready\nagents:\n  - design/activity/card__released-card.json#conversation=released\n---\n\n# Released',
+            path: 'design/history/v1/F-3-released.md',
+        }
+        const actionDocument: MarkdownFile = {
+            content: '---\nid: A-1\ninternalId: action-document\ntitle: Action prompt\nagents:\n  - design/activity/card__action-document.json#conversation=action\n---\n\n# Action prompt',
+            path: 'design/actions/prompt.md',
+        }
+        const allFiles = [activeFile, archivedFile, releasedFile, actionDocument]
+        const loadAgentConversation = vi.fn(async (_project, path: string) => {
+            if (path.includes('archived-card')) {
+                return {
+                    ...conversation(path),
+                    cardInternalId: 'archived-card',
+                    cardPath: archivedFile.path,
+                    id: 'archived',
+                }
+            }
+
+            return {
+                ...conversation(path),
+                cardInternalId: 'released-card',
+                cardPath: releasedFile.path,
+                id: 'released',
+            }
+        })
+        const storage = createStorage({
+            loadAgentConversation,
+            loadProject: vi.fn(async () => ({ files: allFiles, workingFolder: 'design/active' })),
+            loadProjectConfig: vi.fn(async () => ({
+                actionsFolder: 'actions',
+                archivedFolder: 'archived',
+                backgroundShade: 'blue' as const,
+                projectFolder: 'design',
+                releasesFolder: 'history',
+                workingFolder: 'active',
+            })),
+            loadProjectRoot: vi.fn(async () => ({ files: [activeFile], workingFolder: 'design/active' })),
+        })
+        const service = createDataService()
+        service.init({ storage })
+
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+
+        await vi.waitFor(() => {
+            const snapshot = service.getState().snapshot
+            expect(snapshot?.backgroundCards.find(({ path }) => path === archivedFile.path)?.agentConversations).toHaveLength(1)
+            expect(snapshot?.backgroundCards.find(({ path }) => path === releasedFile.path)?.agentConversations).toHaveLength(1)
+        })
+        const loadedReferences = loadAgentConversation.mock.calls.map(([, reference]) => reference)
+        expect(loadedReferences).toEqual(expect.arrayContaining([
+            'design/activity/card__archived-card.json#conversation=archived',
+            'design/activity/card__released-card.json#conversation=released',
+        ]))
+        expect(loadedReferences).not.toContain('design/activity/card__action-document.json#conversation=action')
+    })
+
     it('keeps conversations available while their card file is temporarily absent', async () => {
         vi.useFakeTimers()
         configService.init()
