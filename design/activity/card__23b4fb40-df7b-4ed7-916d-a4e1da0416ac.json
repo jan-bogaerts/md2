@@ -1061,15 +1061,15 @@
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-2c16e31f-4304-44a4-88e9-826add8e5e86-activity-54",
           "label": "Reasoning",
           "providerItemId": "rs_05368acf29b00229016a69ba2f229c8191ac8bc9896eff2d08",
           "sequence": 54,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-07-29T08:30:39.829Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
           "content": "",
@@ -1083,15 +1083,15 @@
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-2c16e31f-4304-44a4-88e9-826add8e5e86-activity-59",
           "label": "Reasoning",
           "providerItemId": "rs_05368acf29b00229016a69ba6a11248191a7ad870c41e47229",
           "sequence": 59,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-07-29T08:31:39.888Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
           "content": "1",
@@ -1296,6 +1296,31 @@
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
       "startedAt": "2026-07-29T08:24:29.302Z",
+      "status": "cancelled"
+    },
+    {
+      "commits": [],
+      "completedAt": "2026-07-29T08:31:41.269Z",
+      "conversationIds": [
+        "agent-7f8322c6-c56e-48c4-9b1b-e695ea788c52"
+      ],
+      "executionId": "action-cb8e5be8-72b3-4c0f-a666-a510b6fec75a",
+      "history": {
+        "agent": "codex",
+        "completedAt": "2026-07-29T08:31:41.269Z",
+        "model": "gpt-5.6-sol",
+        "output": "Updating F_81 status only.\n\nF_81 status set to `ready`.\n\nUsing `caveman` and `technical-writer`. Verify current sections against referenced controller/editor files; edit only\u001b[2m2026-07-29T08:30:31.238259Z\u001b[0m \u001b[31mERROR\u001b[0m \u001b[2mcodex_models_manager::cache\u001b[0m\u001b[2m:\u001b[0m failed to load models cache: missing field `supports_reasoning_summaries` at line 86 column 5\n",
+        "prompt": "mark card as ready",
+        "status": "failed",
+        "thinkingLevel": "medium"
+      },
+      "origin": {
+        "cardInternalId": "23b4fb40-df7b-4ed7-916d-a4e1da0416ac",
+        "kind": "card"
+      },
+      "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
+      "rootActionLabel": "implement",
+      "startedAt": "2026-07-29T08:30:31.008Z",
       "status": "cancelled"
     }
   ],
