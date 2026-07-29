@@ -9,7 +9,7 @@ affects:
 agents:
   - design/activity/card__3e151ae1-ffa3-42ba-819c-a6973683af03.json#conversation=agent-91909559-05d3-498a-97e3-f1796a805b1e
 policy:
-after: 455a095f-9014-4c81-b327-87b6f3a969cc
+after: ac0b585c-0f35-4d48-be98-a229e98d92ae
 ---
 On mobile, the ´edit card´ popup should take up the window size.
 
