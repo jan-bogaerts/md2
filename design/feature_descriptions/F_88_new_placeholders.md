@@ -9,8 +9,13 @@ affects:
 agents:
 policy:
 ---
-
 # Goal
+
+add support for new placeholders:
+
+* workfolder
+* releases folder
+* ...
 
 # Current status
 
