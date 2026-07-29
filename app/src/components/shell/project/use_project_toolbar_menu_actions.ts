@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
     DEFAULT_CARD_BODY_TEMPLATE,
     DEFAULT_CARD_TYPES,
+    DEFAULT_STATES,
     type BranchReference,
     type CardDraft,
     type ProjectReference,
@@ -16,7 +17,13 @@ import { projectSessionService, type ProjectOpenResolution } from '../../../serv
 import { useProjectConfig } from '../../hooks/use_project_config'
 import { useProjectSession } from '../../hooks/use_project_session'
 import { useProjectState } from '../../hooks/use_project_state'
-import { OPEN_NEW_CARD_DIALOG_EVENT, OPEN_PROJECT_DIALOG_EVENT, type OpenProjectDialogDetail, type ProjectDialogSource } from '../../project_command_events'
+import {
+    OPEN_NEW_CARD_DIALOG_EVENT,
+    OPEN_PROJECT_DIALOG_EVENT,
+    type OpenNewCardDialogDetail,
+    type OpenProjectDialogDetail,
+    type ProjectDialogSource,
+} from '../../project_command_events'
 
 type ProjectDialogMode = 'open' | 'branch' | 'card' | 'release'
 
@@ -52,11 +59,13 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
     const [projectOpenResolution, setProjectOpenResolution] = useState<ProjectOpenResolution | null>(null)
     const [initialProjectSource, setInitialProjectSource] = useState<ProjectDialogSource | null>(null)
     const [initialRemoteProject, setInitialRemoteProject] = useState<ProjectReference | null>(null)
+    const [newCardInitialStatus, setNewCardInitialStatus] = useState('')
     const [repositories, setRepositories] = useState<RepositoryReference[]>(EMPTY_REPOSITORIES)
     const [switchBranch, setSwitchBranch] = useState(project?.branch ?? '')
     const activeCards = snapshot?.activeCards ?? []
     const cardTypes = projectConfig?.cardTypes ?? DEFAULT_CARD_TYPES
     const cardBodyTemplate = projectConfig?.cardBodyTemplate ?? DEFAULT_CARD_BODY_TEMPLATE
+    const states = projectConfig?.states ?? DEFAULT_STATES
     const pushMode = (projectConfig?.pushMode ?? 'auto') as PushMode
 
     const closeDialog = useCallback(() => {
@@ -140,14 +149,24 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
     }, [electronBridge, isGithubAuthenticated, loadRepositories, onOpenDialog, openElectronProject])
 
     useEffect(() => {
-        const handleOpenNewCardDialog = () => {
-            if (project) onOpenDialog('card')
+        const handleOpenNewCardDialog = (event: Event) => {
+            if (!project) return
+
+            const { status } = (event as CustomEvent<OpenNewCardDialogDetail>).detail
+            const initialStatus = states.some((stateConfig) => stateConfig.state === status) ? status : states[0]?.state
+            setNewCardInitialStatus(initialStatus ?? '')
+            onOpenDialog('card')
         }
 
         window.addEventListener(OPEN_NEW_CARD_DIALOG_EVENT, handleOpenNewCardDialog)
 
         return () => window.removeEventListener(OPEN_NEW_CARD_DIALOG_EVENT, handleOpenNewCardDialog)
-    }, [onOpenDialog, project])
+    }, [onOpenDialog, project, states])
+
+    const openNewCardDialog = () => {
+        setNewCardInitialStatus(states[0]?.state ?? '')
+        onOpenDialog('card')
+    }
 
     const openProjectDialog = () => {
         if (electronBridge) {
@@ -300,8 +319,8 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
         }
     }
 
-    const createCard = async (draft: CardDraft) => {
-        await projectSessionService.createCard(draft)
+    const createCard = async (draft: CardDraft, initialState: string) => {
+        await projectSessionService.createCard(draft, initialState)
         closeDialog()
     }
 
@@ -316,6 +335,7 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
         completeRelease,
         initialProjectSource,
         initialRemoteProject,
+        newCardInitialStatus,
         createCard,
         createProjectFolders,
         createRemoteProject,
@@ -331,6 +351,7 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
         projectOpenResolution,
         openBranchDialog,
         openGithubProject,
+        openNewCardDialog,
         openWorkingFolder,
         openProjectDialog,
         openRemoteProject,
@@ -340,6 +361,7 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
         pushMode,
         repositories,
         setSwitchBranch,
+        states,
         switchBranch,
         switchProjectBranch,
     }

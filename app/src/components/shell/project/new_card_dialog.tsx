@@ -1,5 +1,4 @@
 import {
-    alpha,
     Box,
     Button,
     Dialog,
@@ -7,139 +6,135 @@ import {
     DialogContent,
     DialogTitle,
     IconButton,
-    MenuItem,
-    Select,
     Stack,
     TextField,
     Tooltip,
     Typography,
-    type Theme,
     useMediaQuery,
     useTheme,
 } from '@mui/material'
-import type { SelectChangeEvent } from '@mui/material'
-import CardsOutline from 'mdi-material-ui/CardsOutline'
 import Close from 'mdi-material-ui/Close'
 import Plus from 'mdi-material-ui/Plus'
 import type { ChangeEvent, FormEvent, KeyboardEvent } from 'react'
-import { useRef, useState } from 'react'
-import type { CardDraft, CardTypeConfig } from '../../../data/data_types'
-import { MarkdownEditor, type MarkdownEditorHandle } from '../../editor/markdown_editor'
+import { useEffect, useRef, useState } from 'react'
+import type { CardDraft, CardTypeConfig, StateConfig } from '../../../data/data_types'
+import { CardTypePillGroup } from './card_type_pill_group'
+import { NewCardColumnPicker } from './new_card_column_picker'
 
-const CONTROL_HEIGHT = 42
 const DIALOG_WIDTH = 480
-
-function fieldSx(theme: Theme) {
-    return {
-        '& .MuiOutlinedInput-root': {
-            borderRadius: '9px',
-            '&.Mui-focused': { boxShadow: `0 0 0 3px ${alpha(theme.palette.primary.main, 0.14)}` },
-            '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderWidth: 1 },
-            '& .MuiOutlinedInput-notchedOutline': { borderColor: theme.palette.divider },
-            '&:not(.MuiInputBase-multiline)': { height: CONTROL_HEIGHT },
-        },
-    }
-}
-
-function selectSx(theme: Theme) {
-    return {
-        borderRadius: '9px',
-        height: CONTROL_HEIGHT,
-        '&.Mui-focused': { boxShadow: `0 0 0 3px ${alpha(theme.palette.primary.main, 0.14)}` },
-        '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderWidth: 1 },
-        '& .MuiOutlinedInput-notchedOutline': { borderColor: theme.palette.divider },
-    }
-}
-
-function markdownEditorFrameSx(theme: Theme) {
-    return {
-        border: 1,
-        borderColor: 'divider',
-        borderRadius: '9px',
-        overflow: 'hidden',
-        '&:focus-within': {
-            borderColor: 'primary.main',
-            boxShadow: `0 0 0 3px ${alpha(theme.palette.primary.main, 0.14)}`,
-        },
-        '& .mdxeditor-toolbar': {
-            borderBottom: 1,
-            borderColor: 'divider',
-            borderRadius: 0,
-            flexWrap: 'wrap',
-            gap: 0.25,
-            padding: 0.5,
-        },
-        '& .mdxeditor-content': {
-            minHeight: 120,
-            padding: '12px 14px',
-        },
-    }
-}
-
-function iconBadgeSx(theme: Theme) {
-    return {
-        alignItems: 'center',
-        backgroundColor: alpha(theme.palette.primary.main, theme.palette.mode === 'dark' ? 0.18 : 0.1),
-        borderRadius: '8px',
-        color: 'primary.main',
-        display: 'flex',
-        height: 30,
-        justifyContent: 'center',
-        width: 30,
-    }
-}
+const DISCARD_CARD_MESSAGE = 'Discard this new card draft?'
 
 interface NewCardDialogProps {
     cardBodyTemplate: string
     cardTypes: CardTypeConfig[]
+    initialTargetStatus: string
     isLoading: boolean
     isProjectOpen: boolean
     open: boolean
     onClose: () => void
-    onCreateCard: (draft: CardDraft) => Promise<void>
+    onCreateCard: (draft: CardDraft, initialState: string) => Promise<void>
+    states: StateConfig[]
 }
 
-/** Dialog for creating a new project card. */
+/** Responsive form for creating a card in a selected board column. */
 export function NewCardDialog(props: NewCardDialogProps) {
-    const { cardBodyTemplate, cardTypes, isLoading, isProjectOpen, onClose, onCreateCard, open } = props
+    const {
+        cardBodyTemplate,
+        cardTypes,
+        initialTargetStatus,
+        isLoading,
+        isProjectOpen,
+        onClose,
+        onCreateCard,
+        open,
+        states,
+    } = props
     const theme = useTheme()
     const isMobile = useMediaQuery(theme.breakpoints.down('md'))
-    // The editor is uncontrolled while typing; `body` only keeps the draft across
-    // dialog close/reopen (populated by the editor's flush on unmount).
-    const [body, setBody] = useState(cardBodyTemplate)
-    const bodyEditorRef = useRef<MarkdownEditorHandle>(null)
-    const [dialogPaperElement, setDialogPaperElement] = useState<HTMLDivElement | null>(null)
+    const wasOpenRef = useRef(false)
+    const [body, setBody] = useState('')
+    const [isInsertedTemplateUntouched, setIsInsertedTemplateUntouched] = useState(false)
+    const [targetStatus, setTargetStatus] = useState('')
     const [title, setTitle] = useState('')
-    const [type, setType] = useState('feature')
-    const selectedType = cardTypes.some((typeConfig) => typeConfig.type === type) ? type : cardTypes[0]?.type ?? ''
-    const isSubmitDisabled = !isProjectOpen || title.length === 0 || selectedType.length === 0 || isLoading
+    const [type, setType] = useState('')
+    const defaultType = cardTypes[0]?.type ?? ''
+    const defaultStatus = states[0]?.state ?? ''
+    const selectedType = cardTypes.some((typeConfig) => typeConfig.type === type) ? type : defaultType
+    const selectedStatus = states.some((stateConfig) => stateConfig.state === targetStatus) ? targetStatus : defaultStatus
+    const isDirty = title.length > 0
+        || body.length > 0
+        || selectedType !== defaultType
+        || selectedStatus !== initialTargetStatus
+    const isSubmitDisabled = !isProjectOpen || title.trim().length === 0
+        || selectedType.length === 0 || selectedStatus.length === 0 || isLoading
 
-    const handleTypeChange = (event: SelectChangeEvent) => {
-        setType(event.target.value)
+    const resetForm = () => {
+        setBody('')
+        setIsInsertedTemplateUntouched(false)
+        setTargetStatus(initialTargetStatus)
+        setTitle('')
+        setType(defaultType)
+    }
+
+    useEffect(() => {
+        if (open && !wasOpenRef.current) {
+            setBody('')
+            setIsInsertedTemplateUntouched(false)
+            setTargetStatus(initialTargetStatus)
+            setTitle('')
+            setType(defaultType)
+        }
+        wasOpenRef.current = open
+    }, [defaultType, initialTargetStatus, open])
+
+    const closeDialog = () => {
+        if (isDirty && !window.confirm(DISCARD_CARD_MESSAGE)) return
+
+        resetForm()
+        onClose()
+    }
+
+    const handleDialogClose = () => {
+        closeDialog()
     }
 
     const handleTitleChange = (event: ChangeEvent<HTMLInputElement>) => {
         setTitle(event.target.value)
     }
 
+    const handleBodyChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
+        setBody(event.target.value)
+        setIsInsertedTemplateUntouched(false)
+    }
+
+    const handleTemplateClick = () => {
+        if (isInsertedTemplateUntouched && body === cardBodyTemplate) {
+            setBody('')
+            setIsInsertedTemplateUntouched(false)
+
+            return
+        }
+
+        const nextBody = body.length > 0 ? `${body}\n\n${cardBodyTemplate}` : cardBodyTemplate
+        setBody(nextBody)
+        setIsInsertedTemplateUntouched(body.length === 0)
+    }
+
     const handleCreateClick = async () => {
         if (isSubmitDisabled) return
 
         const draft: CardDraft = {
-            body: bodyEditorRef.current?.getMarkdown() ?? body,
+            body,
             bodyIncludesTemplate: true,
-            title,
+            title: title.trim(),
             type: selectedType,
         }
         try {
-            await onCreateCard(draft)
+            await onCreateCard(draft, selectedStatus)
         } catch {
             return
         }
-        bodyEditorRef.current?.setMarkdown(cardBodyTemplate)
-        setBody(cardBodyTemplate)
-        setTitle('')
-        setType('feature')
+        resetForm()
     }
 
     const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -147,201 +142,258 @@ export function NewCardDialog(props: NewCardDialogProps) {
         await handleCreateClick()
     }
 
-    const handleBodyKeyDown = (event: KeyboardEvent<HTMLElement>) => {
-        if (event.key !== 'Enter' || (!event.ctrlKey && !event.metaKey)) return
+    const handleFormKeyDown = (event: KeyboardEvent<HTMLFormElement>) => {
+        if (event.key === 'Escape') {
+            event.preventDefault()
+            closeDialog()
+
+            return
+        }
+
+        if (event.key !== 'Enter' || !event.ctrlKey) return
 
         event.preventDefault()
         void handleCreateClick()
     }
 
+    const templateButtonLabel = isInsertedTemplateUntouched && body === cardBodyTemplate ? 'Clear' : 'Template'
+    const createButton = (
+        <Button aria-label="Create card" disabled={isSubmitDisabled} type="submit" variant="contained">
+            <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+                <Plus sx={{ fontSize: 17 }} />
+                <span>Create card</span>
+                {!isMobile ? (
+                    <Box
+                        component="span"
+                        sx={{
+                            bgcolor: 'rgba(255,255,255,0.18)',
+                            borderRadius: '5px',
+                            fontSize: 10.5,
+                            fontWeight: 600,
+                            px: 0.625,
+                            py: 0.25,
+                        }}
+                    >
+                        Ctrl+↵
+                    </Box>
+                ) : null}
+            </Stack>
+        </Button>
+    )
+
     return (
         <Dialog
+            aria-labelledby="new-card-dialog-heading"
+            fullScreen={isMobile}
             maxWidth={false}
-            onClose={onClose}
+            onClose={handleDialogClose}
             open={open}
             slotProps={{
                 backdrop: { sx: { backdropFilter: 'blur(2px)', backgroundColor: 'rgba(16, 24, 40, 0.45)' } },
                 paper: {
-                    ref: setDialogPaperElement,
                     sx: {
-                        border: 1,
+                        border: isMobile ? 0 : 1,
                         borderColor: 'divider',
-                        borderRadius: '14px',
-                        boxShadow: '0 24px 60px rgba(16,24,40,0.28)',
-                        maxHeight: 'calc(100dvh - 32px)',
-                        maxWidth: 'calc(100% - 32px)',
+                        borderRadius: isMobile ? 0 : '14px',
+                        boxShadow: isMobile ? 'none' : '0 24px 60px rgba(16,24,40,0.28)',
+                        height: isMobile ? '100dvh' : 'auto',
+                        maxHeight: isMobile ? '100dvh' : 'calc(100dvh - 32px)',
+                        maxWidth: isMobile ? '100%' : 'calc(100% - 32px)',
                         overflow: 'hidden',
-                        width: DIALOG_WIDTH,
+                        width: isMobile ? '100%' : DIALOG_WIDTH,
                     },
                 },
             }}
         >
             <Box
                 component="form"
+                onKeyDown={handleFormKeyDown}
                 onSubmit={handleSubmit}
-                sx={{ display: 'flex', flexDirection: 'column', maxHeight: 'calc(100dvh - 32px)', minHeight: 0, overflow: 'hidden' }}
+                sx={{ display: 'flex', flexDirection: 'column', height: isMobile ? '100%' : 'auto', maxHeight: '100dvh', minHeight: 0 }}
             >
                 <DialogTitle
+                    component="div"
+                    id="new-card-dialog-header"
                     sx={{
                         alignItems: 'center',
                         borderBottom: 1,
                         borderColor: 'divider',
                         display: 'flex',
-                        gap: 1.25,
-                        minHeight: 66,
-                        px: 2.5,
-                        py: 1.5,
                         flexShrink: 0,
+                        gap: 1.25,
+                        minHeight: isMobile ? 56 : 62,
+                        px: isMobile ? 1 : 2.25,
+                        py: 1,
                     }}
                 >
-                    <Box sx={iconBadgeSx}>
-                        <Plus fontSize="small" />
-                    </Box>
-                    <Box sx={{ flex: 1 }}>
-                        <Typography sx={{ fontSize: 14, fontWeight: 700, lineHeight: 1.35 }}>
-                            New card
-                        </Typography>
-                        <Typography aria-hidden color="text.secondary" sx={{ fontSize: 12, lineHeight: 1.35 }}>
-                            Add a card to the board
-                        </Typography>
-                    </Box>
-                    <IconButton aria-label="Close" onClick={onClose} size="small" sx={{ color: 'text.disabled', height: 30, width: 30 }}>
-                        <Close sx={{ fontSize: 17 }} />
-                    </IconButton>
+                    {isMobile ? (
+                        <Button onClick={closeDialog} sx={{ minHeight: 44, minWidth: 72 }} type="button" variant="text">
+                            Cancel
+                        </Button>
+                    ) : (
+                        <Box
+                            sx={{
+                                alignItems: 'center',
+                                bgcolor: 'custom.primaryBg',
+                                borderRadius: 1,
+                                color: 'primary.main',
+                                display: 'flex',
+                                height: 30,
+                                justifyContent: 'center',
+                                width: 30,
+                            }}
+                        >
+                            <Plus sx={{ fontSize: 18 }} />
+                        </Box>
+                    )}
+                    <Typography
+                        component="h2"
+                        id="new-card-dialog-heading"
+                        sx={{
+                            flex: 1,
+                            fontSize: isMobile ? 16 : 15.5,
+                            fontWeight: 700,
+                            textAlign: isMobile ? 'center' : 'left',
+                        }}
+                    >
+                        New card
+                    </Typography>
+                    {isMobile ? (
+                        <Button disabled={isSubmitDisabled} sx={{ minHeight: 44, minWidth: 72 }} type="submit" variant="text">
+                            Create
+                        </Button>
+                    ) : (
+                        <Tooltip title="Close">
+                            <IconButton aria-label="Close" onClick={closeDialog} size="small" sx={{ height: 30, width: 30 }}>
+                                <Close sx={{ fontSize: 17 }} />
+                            </IconButton>
+                        </Tooltip>
+                    )}
                 </DialogTitle>
                 <DialogContent
                     data-testid="new-card-dialog-content"
-                    sx={{ display: 'flex', flex: 1, flexDirection: 'column', gap: 2.25, minHeight: 0, overflowY: 'auto', px: 2.5, py: 2.5 }}
+                    sx={{
+                        display: 'flex',
+                        flex: 1,
+                        flexDirection: 'column',
+                        gap: isMobile ? 2.25 : 2,
+                        minHeight: 0,
+                        overflowY: 'auto',
+                        px: isMobile ? 2 : 2.25,
+                        py: isMobile ? 2.25 : 2.25,
+                    }}
                 >
-                    <Stack data-testid="new-card-heading-row" direction="row" spacing={1.25} sx={{ minWidth: 0 }}>
-                        <Stack spacing={0.75} sx={{ flex: isMobile ? '0 0 72px' : '0 0 150px', minWidth: 0 }}>
-                            <Typography color="text.secondary" id="card-type-label" sx={{ fontSize: 12, fontWeight: 600 }}>
-                                Card type
+                    <TextField
+                        autoFocus
+                        fullWidth
+                        id="new-card-title"
+                        onChange={handleTitleChange}
+                        placeholder="Card title…"
+                        slotProps={{ htmlInput: { 'aria-label': 'Title' } }}
+                        sx={{
+                            '& .MuiOutlinedInput-root': {
+                                borderRadius: isMobile ? '11px' : '9px',
+                                height: isMobile ? 48 : 46,
+                                '&.Mui-focused': { boxShadow: (currentTheme) => `0 0 0 3px ${currentTheme.palette.custom.primaryBg}` },
+                                '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderWidth: 1 },
+                                '& .MuiOutlinedInput-notchedOutline': { borderColor: 'custom.borderStrong' },
+                            },
+                            '& input': {
+                                fontSize: isMobile ? 18 : 17,
+                                fontWeight: 600,
+                            },
+                        }}
+                        value={title}
+                        variant="outlined"
+                    />
+                    <CardTypePillGroup
+                        cardTypes={cardTypes}
+                        isMobile={isMobile}
+                        onChange={setType}
+                        selectedType={selectedType}
+                    />
+                    <Stack spacing={isMobile ? 1.125 : 0.875}>
+                        <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+                            <Typography color="text.secondary" component="label" htmlFor="new-card-description" sx={{ fontSize: 12, fontWeight: 600 }}>
+                                Description
                             </Typography>
-                            <Select
-                                labelId="card-type-label"
-                                onChange={handleTypeChange}
-                                renderValue={() => {
-                                    const selectedTypeConfig = cardTypes.find((typeConfig) => typeConfig.type === selectedType)
-
-                                    return (
-                                        <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-                                            <Box
-                                                aria-hidden
-                                                data-testid="selected-card-type-icon"
-                                                sx={{ backgroundColor: selectedTypeConfig?.color, borderRadius: '50%', height: 9, width: 9 }}
-                                            />
-                                            {!isMobile ? <span>{selectedTypeConfig?.label}</span> : null}
-                                        </Stack>
-                                    )
-                                }}
+                            {!isMobile ? (
+                                <Typography color="custom.text3" sx={{ fontSize: 11.5 }}>
+                                    Markdown
+                                </Typography>
+                            ) : null}
+                            <Box sx={{ flex: 1 }} />
+                            <Button
+                                disabled={cardBodyTemplate.length === 0}
+                                onClick={handleTemplateClick}
                                 size="small"
-                                sx={selectSx}
-                                value={selectedType}
-                            >
-                                {cardTypes.map((typeConfig) => (
-                                    <MenuItem key={typeConfig.type} value={typeConfig.type}>
-                                        <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-                                            <Box aria-hidden sx={{ backgroundColor: typeConfig.color, borderRadius: '50%', height: 9, width: 9 }} />
-                                            <span>{typeConfig.label}</span>
-                                        </Stack>
-                                    </MenuItem>
-                                ))}
-                            </Select>
-                        </Stack>
-                        <Stack spacing={0.75} sx={{ flex: 1, minWidth: 0 }}>
-                            <Typography color="text.secondary" component="label" htmlFor="new-card-title" sx={{ fontSize: 12, fontWeight: 600 }}>
-                                Title
-                            </Typography>
-                            <TextField
-                                autoFocus
-                                id="new-card-title"
-                                onChange={handleTitleChange}
-                                placeholder="Short, descriptive name"
-                                size="small"
-                                sx={fieldSx}
-                                value={title}
+                                sx={{ minHeight: isMobile ? 44 : 30 }}
+                                type="button"
                                 variant="outlined"
-                            />
-                        </Stack>
-                    </Stack>
-                    <Stack spacing={0.75}>
-                        <Stack direction="row" spacing={1}>
-                            <Typography color="text.secondary" id="new-card-body-label" sx={{ fontSize: 12, fontWeight: 600 }}>
-                                Body
-                            </Typography>
-                            <Typography color="text.disabled" sx={{ fontSize: 11.5 }}>
-                                Markdown supported
-                            </Typography>
+                            >
+                                {templateButtonLabel}
+                            </Button>
                         </Stack>
                         <Box
-                            aria-labelledby="new-card-body-label"
-                            onKeyDownCapture={handleBodyKeyDown}
-                            role="group"
-                            sx={markdownEditorFrameSx}
-                        >
-                            <MarkdownEditor
-                                hideToolbar
-                                markdown={body}
-                                onChange={setBody}
-                                overlayContainer={dialogPaperElement}
-                                ref={bodyEditorRef}
-                            />
-                        </Box>
+                            aria-label="Description"
+                            component="textarea"
+                            id="new-card-description"
+                            onChange={handleBodyChange}
+                            placeholder="Describe the goal, context, and tasks — or insert the template."
+                            sx={{
+                                bgcolor: 'background.paper',
+                                border: 1,
+                                borderColor: 'custom.borderStrong',
+                                borderRadius: isMobile ? '11px' : '9px',
+                                boxSizing: 'border-box',
+                                color: 'text.primary',
+                                fontFamily: '"Cascadia Code", "Consolas", monospace',
+                                fontSize: 13.5,
+                                lineHeight: 1.7,
+                                minHeight: isMobile ? 260 : 270,
+                                outline: 'none',
+                                p: 1.625,
+                                resize: isMobile ? 'none' : 'vertical',
+                                width: '100%',
+                                '&:focus': {
+                                    borderColor: 'primary.main',
+                                    boxShadow: (currentTheme) => `0 0 0 3px ${currentTheme.palette.custom.primaryBg}`,
+                                },
+                                '&:hover:not(:focus)': { borderColor: 'custom.borderHover' },
+                                '&::placeholder': { color: 'custom.text4', opacity: 1 },
+                            }}
+                            value={body}
+                        />
                     </Stack>
                 </DialogContent>
                 <DialogActions
                     sx={{
-                        backgroundColor: 'background.default',
+                        alignItems: 'stretch',
+                        bgcolor: 'background.default',
                         borderColor: 'divider',
                         borderTop: 1,
-                        justifyContent: 'space-between',
-                        minHeight: 65,
-                        px: 2.5,
-                        py: 1.5,
+                        flexDirection: isMobile ? 'column' : 'row',
                         flexShrink: 0,
+                        gap: isMobile ? 1.5 : 1,
+                        justifyContent: 'space-between',
+                        m: 0,
+                        px: isMobile ? 2 : 2.25,
+                        py: isMobile ? 1.5 : 1.5,
+                        pb: isMobile ? 'max(12px, env(safe-area-inset-bottom))' : 1.5,
                     }}
                 >
-                    {!isMobile ? (
-                        <>
-                            <Stack color="text.secondary" direction="row" spacing={0.75} sx={{ alignItems: 'center' }}>
-                                <CardsOutline sx={{ fontSize: 14 }} />
-                                <Typography sx={{ fontSize: 12 }}>
-                                    Adds to <Box component="strong" sx={{ color: 'text.primary', fontWeight: 600, ml: 0.5 }}>New</Box>
-                                </Typography>
-                            </Stack>
-                            <Stack direction="row" spacing={1.25}>
-                                <Button onClick={onClose} type="button" variant="outlined">
-                                    Cancel
-                                </Button>
-                                <Button disabled={isSubmitDisabled} startIcon={<Plus />} type="submit" variant="contained">
-                                    Create card
-                                </Button>
-                            </Stack>
-                        </>
-                    ) : (
-                        <Stack direction="row" spacing={1.25} sx={{ justifyContent: 'flex-end', width: '100%' }}>
-                            <Tooltip title="Cancel">
-                                <IconButton aria-label="Cancel" onClick={onClose} type="button">
-                                    <Close />
-                                </IconButton>
-                            </Tooltip>
-                            <Tooltip title="Create card">
-                                <span>
-                                    <IconButton
-                                        aria-label="Create card"
-                                        disabled={isSubmitDisabled}
-                                        sx={{
-                                            backgroundColor: 'primary.main',
-                                            color: 'primary.contrastText',
-                                            '&:hover': { backgroundColor: 'primary.dark' },
-                                        }}
-                                        type="submit"
-                                    >
-                                        <Plus />
-                                    </IconButton>
-                                </span>
-                            </Tooltip>
+                    <NewCardColumnPicker
+                        isMobile={isMobile}
+                        onChange={setTargetStatus}
+                        selectedStatus={selectedStatus}
+                        states={states}
+                    />
+                    {isMobile ? createButton : (
+                        <Stack direction="row" spacing={1}>
+                            <Button onClick={closeDialog} type="button" variant="outlined">
+                                Cancel
+                            </Button>
+                            {createButton}
                         </Stack>
                     )}
                 </DialogActions>

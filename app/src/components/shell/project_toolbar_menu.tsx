@@ -55,7 +55,7 @@ export function ProjectToolbarMenu(props: ProjectToolbarMenuProps) {
         }
     }
     const handleOpenReleaseDialog = () => openDialog('release')
-    const handleOpenCardDialog = () => openDialog('card')
+    const handleOpenCardDialog = () => actions.openNewCardDialog()
     const handleCreateProjectFolders = (projectFolder: string) => {
         void actions.createProjectFolders(projectFolder)
     }
@@ -126,11 +126,13 @@ export function ProjectToolbarMenu(props: ProjectToolbarMenuProps) {
             <NewCardDialog
                 cardBodyTemplate={actions.cardBodyTemplate}
                 cardTypes={actions.cardTypes}
+                initialTargetStatus={actions.newCardInitialStatus}
                 isLoading={actions.isLoading}
                 isProjectOpen={actions.isProjectOpen}
                 onClose={actions.closeDialog}
                 onCreateCard={actions.createCard}
                 open={dialogMode === 'card'}
+                states={actions.states}
             />
         </>
     )

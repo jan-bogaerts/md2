@@ -108,7 +108,7 @@ describe('CardOperations', () => {
         service.init({ storage })
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
-        await service.cards.createCard({ body: 'Body', title: 'New Card', type: 'feature' })
+        await service.cards.createCard({ body: 'Body', title: 'New Card', type: 'feature' }, 'new')
 
         expect(storage.commit).toHaveBeenCalledWith(expect.objectContaining({ message: 'Create design/F-4-new-card.md' }) as CommitRequest)
         expect(storage.push).toHaveBeenCalledWith({ branch: 'main', id: 'project' })
@@ -126,7 +126,7 @@ describe('CardOperations', () => {
         service.addEventListener(CARD_CHANGED_EVENT, changed)
         service.addEventListener(CARD_REMOVED_EVENT, removed)
 
-        const file = await service.cards.createCard({ body: 'Body', title: 'New Card', type: 'feature' })
+        const file = await service.cards.createCard({ body: 'Body', title: 'New Card', type: 'feature' }, 'new')
         const renamedFile = await service.cards.updateCardTitle(file.path, 'Renamed Card')
         await service.cards.deleteCard(renamedFile.path)
 
@@ -242,7 +242,7 @@ describe('CardOperations', () => {
         try {
             service.init({ storage })
             await service.projectLoading.openProject({ branch: 'main', id: 'project' })
-            const file = await service.cards.createCard({ body: 'Body', title: 'New Card', type: 'feature' })
+            const file = await service.cards.createCard({ body: 'Body', title: 'New Card', type: 'feature' }, 'new')
 
             expect(file.path).toBe('design/F-4-new-card.md')
             expect(service.getState().snapshot?.activeCards.some((card) => card.path === file.path)).toBe(true)
@@ -265,11 +265,23 @@ describe('CardOperations', () => {
         service.init({ storage })
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
-        await service.cards.createCard({ body: '', title: 'New Job', type: 'job' })
-        await service.cards.createCard({ body: '', title: 'New Bug', type: 'bug' })
+        await service.cards.createCard({ body: '', title: 'New Job', type: 'job' }, 'new')
+        await service.cards.createCard({ body: '', title: 'New Bug', type: 'bug' }, 'new')
 
         expect(storage.commit).toHaveBeenCalledWith(expect.objectContaining({ files: [expect.objectContaining({ path: 'design/J-1-new-job.md' })] }) as CommitRequest)
         expect(storage.commit).toHaveBeenCalledWith(expect.objectContaining({ files: [expect.objectContaining({ path: 'design/B-1-new-bug.md' })] }) as CommitRequest)
+    })
+
+    it('creates a card in the requested initial state', async () => {
+        configService.init()
+        const service = createDataService()
+        service.init({ storage: createStorage() })
+
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        const file = await service.cards.createCard({ body: '', title: 'Designed', type: 'feature' }, 'design')
+
+        expect(file.content).toContain('status: design')
+        expect(service.getState().snapshot?.activeCards.find((card) => card.path === file.path)?.header.status).toBe('design')
     })
 
     it('emits usage events after project and card operations succeed', async () => {
@@ -280,7 +292,7 @@ describe('CardOperations', () => {
 
         service.init({ storage })
         await service.projectLoading.createProject({ branch: 'main', id: 'project' })
-        await service.cards.createCard({ body: 'Body', title: 'New Card', type: 'feature' })
+        await service.cards.createCard({ body: 'Body', title: 'New Card', type: 'feature' }, 'new')
 
         expect(trackEvent).toHaveBeenCalledWith('create_project')
         expect(trackEvent).toHaveBeenCalledWith('open_project')
@@ -303,7 +315,7 @@ describe('CardOperations', () => {
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
         trackEvent.mockClear()
 
-        await expect(service.cards.createCard({ body: 'Body', title: 'New Card', type: 'feature' })).rejects.toThrow('commit failed')
+        await expect(service.cards.createCard({ body: 'Body', title: 'New Card', type: 'feature' }, 'new')).rejects.toThrow('commit failed')
         expect(trackEvent).not.toHaveBeenCalledWith('create_card')
 
         trackEvent.mockRestore()
@@ -316,7 +328,7 @@ describe('CardOperations', () => {
         service.init({ storage })
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
-        await service.cards.createCard({ body: 'Body', title: 'New Card', type: 'feature' })
+        await service.cards.createCard({ body: 'Body', title: 'New Card', type: 'feature' }, 'new')
 
         expect(storage.commit).toHaveBeenCalledTimes(1)
         expect(storage.push).not.toHaveBeenCalled()

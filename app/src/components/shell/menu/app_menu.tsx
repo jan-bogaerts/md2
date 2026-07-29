@@ -132,7 +132,7 @@ export function AppMenu(props: AppMenuProps) {
     }
 
     const handleOpenCardDialog = () => {
-        openDialog('card')
+        actions.openNewCardDialog()
     }
 
     const handleCommit = async () => {
@@ -459,11 +459,13 @@ export function AppMenu(props: AppMenuProps) {
             <NewCardDialog
                 cardBodyTemplate={actions.cardBodyTemplate}
                 cardTypes={actions.cardTypes}
+                initialTargetStatus={actions.newCardInitialStatus}
                 isLoading={actions.isLoading}
                 isProjectOpen={actions.isProjectOpen}
                 onClose={actions.closeDialog}
                 onCreateCard={actions.createCard}
                 open={dialogMode === 'card'}
+                states={actions.states}
             />
         </Menu>
     )

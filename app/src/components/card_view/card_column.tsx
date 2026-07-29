@@ -39,6 +39,9 @@ export function CardColumn(props: CardColumnProps) {
     const dropPreviewHeight = dropPreview?.dropPreviewHeight ?? null
     const dropPreviewIndex = dropPreview?.dropPreviewIndex ?? null
     const columnLabel = column.status || 'Unassigned'
+    const handleAddCard = () => {
+        requestOpenNewCardDialog(column.status)
+    }
     const dropPlaceholder = (
         <Box
             aria-label="Card drop position"
@@ -98,7 +101,7 @@ export function CardColumn(props: CardColumnProps) {
                 />
                 <Box sx={{ flex: 1 }} />
                 <Tooltip title="New card">
-                    <IconButton aria-label={`Add card from ${columnLabel} column`} onClick={requestOpenNewCardDialog} size="small" sx={{ height: 26, width: 26 }}>
+                    <IconButton aria-label={`Add card from ${columnLabel} column`} onClick={handleAddCard} size="small" sx={{ height: 26, width: 26 }}>
                         <Plus sx={{ fontSize: 16 }} />
                     </IconButton>
                 </Tooltip>

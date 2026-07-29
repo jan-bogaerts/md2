@@ -38,7 +38,7 @@ export class CardOperations {
         this.projectFiles = new ProjectFileOperations(this.context)
     }
 
-    async createCard(draft: CardDraft) {
+    async createCard(draft: CardDraft, initialState: string) {
         const { config, project } = this.context.requireProject('create a card')
         const { dependencies } = this.context
 
@@ -48,7 +48,7 @@ export class CardOperations {
             config.cardSeparator,
             config.cardTypes,
             config.cardBodyTemplate,
-            config.states[0].state,
+            initialState,
             draft,
         )
         dependencies.replaceFiles([...dependencies.files(), file], config.workingFolder)

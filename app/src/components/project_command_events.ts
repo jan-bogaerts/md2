@@ -12,10 +12,14 @@ export interface OpenProjectDialogDetail {
     source?: ProjectDialogSource
 }
 
+export interface OpenNewCardDialogDetail {
+    status?: string
+}
+
 export function requestOpenProjectDialog(source?: ProjectDialogSource, project?: ProjectReference, resolution?: ProjectOpenResolution) {
     window.dispatchEvent(new CustomEvent<OpenProjectDialogDetail>(OPEN_PROJECT_DIALOG_EVENT, { detail: { project, resolution, source } }))
 }
 
-export function requestOpenNewCardDialog() {
-    window.dispatchEvent(new CustomEvent(OPEN_NEW_CARD_DIALOG_EVENT))
+export function requestOpenNewCardDialog(status?: string) {
+    window.dispatchEvent(new CustomEvent<OpenNewCardDialogDetail>(OPEN_NEW_CARD_DIALOG_EVENT, { detail: { status } }))
 }

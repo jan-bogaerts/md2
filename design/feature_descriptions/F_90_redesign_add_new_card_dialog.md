@@ -3,7 +3,7 @@ author:
 id: F_90
 internalId: eb3a4820-0edb-4161-8fe5-926a981d2c8f
 title: redesign add new card dialog
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:

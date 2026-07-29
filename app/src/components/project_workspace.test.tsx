@@ -555,7 +555,7 @@ describe('ProjectWorkspace', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Project' }))
         fireEvent.click(screen.getByRole('menuitem', { name: 'New card...' }))
         fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'New Card' } })
-        fireEvent.change(within(screen.getByRole('group', { name: 'Body' })).getByRole('textbox'), { target: { value: 'Body' } })
+        fireEvent.change(screen.getByRole('textbox', { name: 'Description' }), { target: { value: 'Body' } })
         fireEvent.click(screen.getByRole('button', { name: 'Create card' }))
 
         await waitFor(() => expect(bridge.commit).toHaveBeenCalledWith(expect.objectContaining({files: [expect.objectContaining({ path: 'design/F-3-new-card.md' })]})))
@@ -576,7 +576,7 @@ describe('ProjectWorkspace', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Project' }))
         fireEvent.click(screen.getByRole('menuitem', { name: 'New card...' }))
         fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'New Card' } })
-        fireEvent.change(within(screen.getByRole('group', { name: 'Body' })).getByRole('textbox'), { target: { value: 'Body' } })
+        fireEvent.change(screen.getByRole('textbox', { name: 'Description' }), { target: { value: 'Body' } })
         fireEvent.click(screen.getByRole('button', { name: 'Create card' }))
 
         expect(await screen.findByText('commit failed')).toBeInTheDocument()
@@ -599,15 +599,29 @@ describe('ProjectWorkspace', () => {
 
         fireEvent.click(screen.getByRole('button', { name: 'Project' }))
         fireEvent.click(screen.getByRole('menuitem', { name: 'New card...' }))
-        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Card type' }))
-        expect(await screen.findByRole('option', { name: 'Task' })).toBeInTheDocument()
-        expect(screen.queryByRole('option', { name: 'Feature' })).toBeNull()
-
-        fireEvent.click(screen.getByRole('option', { name: 'Task' }))
+        expect(screen.getByRole('radio', { name: 'Task' })).toHaveAttribute('aria-checked', 'true')
+        expect(screen.queryByRole('radio', { name: 'Feature' })).toBeNull()
         fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'New Task' } })
         fireEvent.click(screen.getByRole('button', { name: 'Create card' }))
 
         await waitFor(() => expect(bridge.commit).toHaveBeenCalledWith(expect.objectContaining({files: [expect.objectContaining({ path: 'design/T-1-new-task.md' })]})))
+    })
+
+    it('creates a card in the column that launched the dialog', async () => {
+        const bridge = createBridge()
+        window.md2Data = bridge
+
+        renderProjectSurface()
+        await openLocalProject()
+        await findRootCard()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Add card from design column' }))
+        expect(screen.getByRole('combobox', { name: 'Target column' })).toHaveTextContent('design')
+        fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Design Card' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Create card' }))
+
+        await waitFor(() => expect(screen.queryByRole('dialog', { name: 'New card' })).toBeNull())
+        expect(await within(screen.getByLabelText('design column')).findByText('Design Card')).toBeInTheDocument()
     })
 
     it('completes a release from the project menu', async () => {

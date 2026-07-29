@@ -1,6 +1,12 @@
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { DEFAULT_CARD_TYPES, type BranchReference, type ProjectReference, type RepositoryReference } from '../../../data/data_types'
+import {
+    DEFAULT_CARD_TYPES,
+    DEFAULT_STATES,
+    type BranchReference,
+    type ProjectReference,
+    type RepositoryReference,
+} from '../../../data/data_types'
 import {
     configureRemoteControlConnection,
     REMOTE_CONTROL_ENDPOINT_KEY,
@@ -279,42 +285,70 @@ describe('project dialog components', () => {
         await waitFor(() => expect(createProjectFolders).toHaveBeenCalledWith('docs'))
     })
 
-    it('renders the new card dialog and submits a draft without mounting the menu', async () => {
+    it('opens the new card dialog with empty focused title-first fields and dynamic type pills', async () => {
         const createCard = vi.fn(async () => undefined)
+        const cardTypes = [
+            { color: '#123456', idPrefix: 'A', label: 'Architecture', type: 'architecture' },
+            { color: '#654321', idPrefix: 'R', label: 'Research', type: 'research' },
+        ]
 
         render(
             <NewCardDialog
-                cardBodyTemplate=""
-                cardTypes={DEFAULT_CARD_TYPES}
+                cardBodyTemplate="# Goal"
+                cardTypes={cardTypes}
+                initialTargetStatus="new"
                 isLoading={false}
                 isProjectOpen
                 onClose={vi.fn()}
                 onCreateCard={createCard}
                 open
+                states={DEFAULT_STATES}
             />,
             { wrapper: AppThemeProvider },
         )
 
-        expect(screen.getByText('Add a card to the board')).toBeInTheDocument()
-        expect(screen.getByText('Markdown supported')).toBeInTheDocument()
-        expect(screen.getByText('Adds to')).toBeInTheDocument()
-        expect(screen.getByRole('combobox', { name: 'Card type' })).toHaveTextContent('Feature')
-        expect(screen.getByTestId('new-card-heading-row')).toContainElement(screen.getByLabelText('Title'))
-        const bodyGroup = within(screen.getByRole('group', { name: 'Body' }))
-        expect(bodyGroup.queryByTestId('mdx-editor-toolbar')).toBeNull()
-        expect(bodyGroup.queryByTestId('block-type-select')).toBeNull()
-        expect(bodyGroup.queryByTestId('insert-code-block')).toBeNull()
-        expect(within(screen.getByRole('dialog', { name: 'New card' })).getByTestId('mdx-editor-overlay')).toBeInTheDocument()
-
-        fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'New Card' } })
-        fireEvent.change(within(screen.getByRole('group', { name: 'Body' })).getByRole('textbox'), { target: { value: 'Body' } })
-        fireEvent.click(screen.getByRole('button', { name: 'Create card' }))
-
-        await waitFor(() => expect(createCard).toHaveBeenCalledWith({ body: 'Body', bodyIncludesTemplate: true, title: 'New Card', type: 'feature' }))
+        const title = screen.getByRole('textbox', { name: 'Title' })
+        expect(title).toHaveAttribute('placeholder', 'Card title…')
+        await waitFor(() => expect(title).toHaveFocus())
+        expect(screen.getByRole('textbox', { name: 'Description' })).toHaveValue('')
+        expect(screen.getByRole('button', { name: 'Create card' })).toBeDisabled()
+        expect(screen.getByRole('radiogroup', { name: 'Type' })).toBeInTheDocument()
+        expect(screen.getAllByRole('radio').map((radio) => radio.textContent)).toEqual(['Architecture', 'Research'])
+        expect(screen.getByRole('radio', { name: 'Architecture' })).toHaveAttribute('aria-checked', 'true')
+        expect(screen.getByRole('radio', { name: 'Architecture' }).querySelector('div')).toHaveStyle({ backgroundColor: '#123456' })
     })
 
-    it('uses mobile card controls without hiding configured type options', async () => {
-        mockMatchMedia(true)
+    it('inserts, clears, and safely appends the configured description template', () => {
+        const cardBodyTemplate = '# Goal\n\n# Tasks'
+
+        render(
+            <NewCardDialog
+                cardBodyTemplate={cardBodyTemplate}
+                cardTypes={DEFAULT_CARD_TYPES}
+                initialTargetStatus="new"
+                isLoading={false}
+                isProjectOpen
+                onClose={vi.fn()}
+                onCreateCard={vi.fn(async () => undefined)}
+                open
+                states={DEFAULT_STATES}
+            />,
+            { wrapper: AppThemeProvider },
+        )
+
+        const description = screen.getByRole('textbox', { name: 'Description' })
+        fireEvent.click(screen.getByRole('button', { name: 'Template' }))
+        expect(description).toHaveValue(cardBodyTemplate)
+        fireEvent.click(screen.getByRole('button', { name: 'Clear' }))
+        expect(description).toHaveValue('')
+
+        fireEvent.click(screen.getByRole('button', { name: 'Template' }))
+        fireEvent.change(description, { target: { value: `${cardBodyTemplate}\nEdited` } })
+        fireEvent.click(screen.getByRole('button', { name: 'Template' }))
+        expect(description).toHaveValue(`${cardBodyTemplate}\nEdited\n\n${cardBodyTemplate}`)
+    })
+
+    it('selects dynamic types by click and keyboard radiogroup controls', () => {
         const createCard = vi.fn(async () => undefined)
         const cardTypes = [
             { color: '#123456', idPrefix: 'A', label: 'Architecture', type: 'architecture' },
@@ -325,53 +359,76 @@ describe('project dialog components', () => {
             <NewCardDialog
                 cardBodyTemplate=""
                 cardTypes={cardTypes}
+                initialTargetStatus="new"
                 isLoading={false}
                 isProjectOpen
                 onClose={vi.fn()}
                 onCreateCard={createCard}
                 open
+                states={DEFAULT_STATES}
             />,
             { wrapper: AppThemeProvider },
         )
 
-        const typeSelect = screen.getByRole('combobox', { name: 'Card type' })
-        expect(typeSelect).not.toHaveTextContent('Architecture')
-        expect(screen.getByTestId('selected-card-type-icon')).toBeInTheDocument()
-        fireEvent.mouseDown(typeSelect)
-        expect(await screen.findByRole('option', { name: 'Architecture' })).toBeInTheDocument()
-        fireEvent.click(screen.getByRole('option', { name: 'Research' }))
-        expect(typeSelect).not.toHaveTextContent('Research')
-
-        expect(screen.queryByText('Adds to')).toBeNull()
-        const cancelButton = screen.getByRole('button', { name: 'Cancel' })
-        const createButton = screen.getByRole('button', { name: 'Create card' })
-        expect(cancelButton).toHaveTextContent('')
-        expect(createButton).toHaveTextContent('')
-        fireEvent.mouseOver(cancelButton)
-        expect(await screen.findByRole('tooltip', { name: 'Cancel' })).toBeInTheDocument()
-
-        fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Mobile card' } })
-        fireEvent.click(createButton)
-        await waitFor(() => expect(createCard).toHaveBeenCalledWith({
-            body: '',
-            bodyIncludesTemplate: true,
-            title: 'Mobile card',
-            type: 'research',
-        }))
+        const architecture = screen.getByRole('radio', { name: 'Architecture' })
+        const research = screen.getByRole('radio', { name: 'Research' })
+        fireEvent.keyDown(architecture, { key: 'ArrowRight' })
+        expect(research).toHaveFocus()
+        expect(research).toHaveAttribute('aria-checked', 'false')
+        fireEvent.keyDown(research, { key: ' ' })
+        expect(research).toHaveAttribute('aria-checked', 'true')
+        fireEvent.click(architecture)
+        expect(architecture).toHaveAttribute('aria-checked', 'true')
     })
 
-    it('keeps new card header and footer fixed around scrollable content', () => {
+    it('trims the title and creates the card in the selected target column', async () => {
+        const createCard = vi.fn(async () => undefined)
+
+        render(
+            <NewCardDialog
+                cardBodyTemplate="# Goal"
+                cardTypes={DEFAULT_CARD_TYPES}
+                initialTargetStatus="design"
+                isLoading={false}
+                isProjectOpen
+                onClose={vi.fn()}
+                onCreateCard={createCard}
+                open
+                states={DEFAULT_STATES}
+            />,
+            { wrapper: AppThemeProvider },
+        )
+
+        expect(screen.getByRole('combobox', { name: 'Target column' })).toHaveTextContent('design')
+        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Target column' }))
+        fireEvent.click(await screen.findByRole('option', { name: 'in progress' }))
+        fireEvent.change(screen.getByRole('textbox', { name: 'Title' }), { target: { value: '  New Card  ' } })
+        fireEvent.change(screen.getByRole('textbox', { name: 'Description' }), { target: { value: 'Body' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Create card' }))
+
+        await waitFor(() => expect(createCard).toHaveBeenCalledWith({
+            body: 'Body',
+            bodyIncludesTemplate: true,
+            title: 'New Card',
+            type: 'feature',
+        }, 'in progress'))
+    })
+
+    it('uses full-height mobile chrome with synchronized create controls and safe footer targets', async () => {
         mockMatchMedia(true)
+        const createCard = vi.fn(async () => undefined)
 
         render(
             <NewCardDialog
                 cardBodyTemplate=""
                 cardTypes={DEFAULT_CARD_TYPES}
+                initialTargetStatus="new"
                 isLoading={false}
                 isProjectOpen
                 onClose={vi.fn()}
-                onCreateCard={vi.fn(async () => undefined)}
+                onCreateCard={createCard}
                 open
+                states={DEFAULT_STATES}
             />,
             { wrapper: AppThemeProvider },
         )
@@ -380,54 +437,64 @@ describe('project dialog components', () => {
         const content = screen.getByTestId('new-card-dialog-content')
         const title = dialog.querySelector('.MuiDialogTitle-root')
         const actions = dialog.querySelector('.MuiDialogActions-root')
+        const topCreate = screen.getByRole('button', { name: 'Create' })
+        const footerCreate = screen.getByRole('button', { name: 'Create card' })
 
+        expect(topCreate).toBeDisabled()
+        expect(footerCreate).toBeDisabled()
         expect(content).toHaveStyle({ flex: '1', minHeight: '0', overflowY: 'auto' })
         expect(title).toHaveStyle({ flexShrink: '0' })
         expect(actions).toHaveStyle({ flexShrink: '0' })
-        expect(content.parentElement).toHaveStyle({ display: 'flex', flexDirection: 'column', overflow: 'hidden' })
+        expect(screen.getByRole('combobox', { name: 'Target column' }).closest('.MuiInputBase-root')).toHaveStyle({ height: '44px' })
+        expect(screen.getByRole('textbox', { name: 'Description' })).toHaveStyle({ minHeight: '260px', resize: 'none' })
+
+        fireEvent.change(screen.getByRole('textbox', { name: 'Title' }), { target: { value: 'Mobile card' } })
+        expect(topCreate).toBeEnabled()
+        expect(footerCreate).toBeEnabled()
+        fireEvent.click(topCreate)
+        await waitFor(() => expect(createCard).toHaveBeenCalledWith({
+            body: '',
+            bodyIncludesTemplate: true,
+            title: 'Mobile card',
+            type: 'feature',
+        }, 'new'))
     })
 
-    it('disables new card submit while loading', () => {
-        render(
-            <NewCardDialog
-                cardBodyTemplate=""
-                cardTypes={DEFAULT_CARD_TYPES}
-                isLoading
-                isProjectOpen
-                onClose={vi.fn()}
-                onCreateCard={vi.fn(async () => undefined)}
-                open
-            />,
-            { wrapper: AppThemeProvider },
-        )
-
-        fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'New Card' } })
-
-        expect(screen.getByRole('button', { name: 'Create card' })).toBeDisabled()
-    })
-
-    it('submits a new card from the body with the control-enter shortcut', async () => {
+    it('submits with Ctrl+Enter and confirms dirty Escape cancellation', async () => {
         const createCard = vi.fn(async () => undefined)
+        const close = vi.fn()
+        const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false)
 
         render(
             <NewCardDialog
                 cardBodyTemplate=""
                 cardTypes={DEFAULT_CARD_TYPES}
+                initialTargetStatus="new"
                 isLoading={false}
                 isProjectOpen
-                onClose={vi.fn()}
+                onClose={close}
                 onCreateCard={createCard}
                 open
+                states={DEFAULT_STATES}
             />,
             { wrapper: AppThemeProvider },
         )
 
-        fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Keyboard card' } })
-        const bodyEditor = within(screen.getByRole('group', { name: 'Body' })).getByRole('textbox')
-        fireEvent.change(bodyEditor, { target: { value: 'Shortcut body' } })
-        fireEvent.keyDown(bodyEditor, { ctrlKey: true, key: 'Enter' })
+        fireEvent.change(screen.getByRole('textbox', { name: 'Title' }), { target: { value: 'Keyboard card' } })
+        fireEvent.keyDown(screen.getByRole('textbox', { name: 'Title' }), { key: 'Escape' })
+        expect(confirm).toHaveBeenCalledWith('Discard this new card draft?')
+        expect(close).not.toHaveBeenCalled()
 
-        await waitFor(() => expect(createCard).toHaveBeenCalledWith({ body: 'Shortcut body', bodyIncludesTemplate: true, title: 'Keyboard card', type: 'feature' }))
+        const description = screen.getByRole('textbox', { name: 'Description' })
+        fireEvent.change(description, { target: { value: 'Shortcut body' } })
+        fireEvent.keyDown(description, { ctrlKey: true, key: 'Enter' })
+
+        await waitFor(() => expect(createCard).toHaveBeenCalledWith({
+            body: 'Shortcut body',
+            bodyIncludesTemplate: true,
+            title: 'Keyboard card',
+            type: 'feature',
+        }, 'new'))
     })
 
     it('renders the complete release dialog and submits a release name without mounting the menu', async () => {

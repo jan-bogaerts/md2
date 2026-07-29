@@ -324,8 +324,8 @@ export class ProjectSessionService extends EventTarget {
         await this.withLoading('Release completion failed', () => dataService.releases.completeRelease(releaseName))
     }
 
-    async createCard(draft: CardDraft) {
-        await this.withLoading('Card creation failed', () => dataService.cards.createCard(draft))
+    async createCard(draft: CardDraft, initialState: string) {
+        await this.withLoading('Card creation failed', () => dataService.cards.createCard(draft, initialState))
     }
 
     private async withLoading<T>(fallbackMessage: string, operation: () => Promise<T>): Promise<T> {
