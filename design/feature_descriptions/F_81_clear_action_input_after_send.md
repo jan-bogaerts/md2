@@ -12,7 +12,6 @@ agents:
   - design/activity/card__23b4fb40-df7b-4ed7-916d-a4e1da0416ac.json#conversation=agent-7f8322c6-c56e-48c4-9b1b-e695ea788c52
 policy:
 after: 
-worktree: 1
 ---
 
 # Goal
