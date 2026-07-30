@@ -1389,6 +1389,72 @@
         "reasoningTokens": 79,
         "totalTokens": 150938
       }
+    },
+    {
+      "actionId": "md2.custom-prompt",
+      "cardInternalId": "3ffa4da3-1e0f-4930-ad38-6bf247b13c52",
+      "cardPath": "design/feature_descriptions/F_91_remove_finished_reasoning_blocks.md",
+      "completedAt": "2026-07-30T13:08:31.083Z",
+      "events": [
+        {
+          "content": "codex --model gpt-5.6-sol -c model_reasoning_effort=medium app-server --stdio",
+          "id": "agent-turn-df243882-d379-4051-b096-f70702277148-started",
+          "sequence": 2,
+          "timestamp": "2026-07-30T13:08:14.575Z",
+          "type": "started"
+        },
+        {
+          "content": "\u001b[2m2026-07-30T13:08:14.872346Z\u001b[0m \u001b[31mERROR\u001b[0m \u001b[2mcodex_models_manager::cache\u001b[0m\u001b[2m:\u001b[0m failed to load models cache: missing field `supports_reasoning_summaries` at line 86 column 5\n",
+          "id": "agent-turn-df243882-d379-4051-b096-f70702277148-error-1",
+          "sequence": 3,
+          "timestamp": "2026-07-30T13:08:14.871Z",
+          "type": "error"
+        },
+        {
+          "content": "\u001b[2m2026-07-30T13:08:25.490414Z\u001b[0m \u001b[31mERROR\u001b[0m \u001b[2mcodex_models_manager::manager\u001b[0m\u001b[2m:\u001b[0m failed to renew cache TTL: missing field `supports_reasoning_summaries` at line 86 column 5\n",
+          "id": "agent-turn-df243882-d379-4051-b096-f70702277148-error-2",
+          "sequence": 4,
+          "timestamp": "2026-07-30T13:08:25.490Z",
+          "type": "error"
+        },
+        {
+          "content": "\u001b[2m2026-07-30T13:08:28.658306Z\u001b[0m \u001b[31mERROR\u001b[0m \u001b[2mcodex_models_manager::manager\u001b[0m\u001b[2m:\u001b[0m failed to renew cache TTL: missing field `supports_reasoning_summaries` at line 86 column 5\n",
+          "id": "agent-turn-df243882-d379-4051-b096-f70702277148-error-3",
+          "sequence": 6,
+          "timestamp": "2026-07-30T13:08:28.657Z",
+          "type": "error"
+        },
+        {
+          "content": "1",
+          "id": "agent-turn-df243882-d379-4051-b096-f70702277148-closed",
+          "sequence": 7,
+          "timestamp": "2026-07-30T13:08:31.083Z",
+          "type": "closed"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-613c25fc-76d8-4a0f-b2bb-c42e90909cef",
+      "messages": [
+        {
+          "content": "we just implemented `design/feature_descriptions/F_91_remove_finished_reasoning_blocks.md`, now reasoning blocks are no longer shown at all. this is no good, running reasoning blocks should still be shown. fix it.\nbe short and to the point, use $caveman",
+          "id": "agent-turn-df243882-d379-4051-b096-f70702277148-user",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-07-30T13:08:14.575Z"
+        },
+        {
+          "agent": "codex",
+          "content": "Using caveman skill. Inspect reasoning display flow, feature doc, tests.\n\n",
+          "id": "agent-turn-df243882-d379-4051-b096-f70702277148-turn-1-assistant-1",
+          "role": "assistant",
+          "sequence": 5,
+          "timestamp": "2026-07-30T13:08:31.083Z"
+        }
+      ],
+      "providerSessions": [],
+      "startedAt": "2026-07-30T13:08:14.575Z",
+      "status": "cancelled",
+      "title": "Custom prompt"
     }
   ],
   "origin": {
@@ -1429,12 +1495,12 @@
       ],
       "executionId": "action-6a2eda10-1b91-430d-a549-e1f4b06a08bc",
       "history": {
-        "agent": "codex",
         "completedAt": "2026-07-30T12:52:54.406Z",
-        "model": "gpt-5.6-sol",
         "output": "Using `caveman` for terse output. Reading feature, architecture, referenced code, tests. Then block plan only; no edits.\n\nChange Plan created. No edits.\n\n- Block 1: presentation-only reasoning filter.\n- Block 2: acceptance-criteria regression tests.\n- Block 3: tests, lint, typecheck; then set feature `status: ready`.\n\nPersistence unchanged. `buildConversationFeed` has one local caller; no shared-helper impact.\n\nApprove plan to start.\n\nBlock 1 starting. Filter stays inside feed construction; persisted conversation untouched.\n\nBlock 1 done. Block 2 adding focused lifecycle coverage and preserving existing ordering test with in-progress reasoning.\n\nTests blocked: app dependencies absent (`vitest` not found). Checking existing install options before requesting dependency install.\n\nBlock 2 done: 22 focused tests pass. Block 3 running formatter/lint, typecheck, full app suite; status changes only after all pass.\n\nAll checks pass: lint, typecheck, 181 files / 1351 tests. Updating feature status to `ready`.\n\nCompleted F_91. Completed reasoning hidden; other activities preserved. Tests: 1351 passed; lint/typecheck passed; status `ready`.\n\n`feat: hide completed reasoning blocks from conversation chat and add lifecycle regression coverage.`\n\n\u001b[2m2026-07-30T12:36:19.137068Z\u001b[0m \u001b[31mERROR\u001b[0m \u001b[2mcodex_models_manager::cache\u001b[0m\u001b[2m:\u001b[0m failed to load models cache: missing field `supports_reasoning_summaries` at line 86 column 5\n\u001b[2m2026-07-30T12:40:53.206288Z\u001b[0m \u001b[31mERROR\u001b[0m \u001b[2mcodex_core::tools::router\u001b[0m\u001b[2m:\u001b[0m \u001b[3merror\u001b[0m\u001b[2m=\u001b[0mapply_patch verification failed: Failed to find expected lines in C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev2\\app\\src\\components\\actions\\action_conversation_chat.test.tsx:\n        expect(screen.queryByText('Raw detail')).not.toBeInTheDocument()\n    })\n\n    it('keeps one command collapsed and exposes exact final details accessibly', () => {\n        const command = 'node -e \"console.log(\\'hÃ©llo\\')\" \\\\\\n--flag'\n        const activity: AgentConversationEvent = {\n\u001b[2m2026-07-30T12:41:23.188143Z\u001b[0m \u001b[31mERROR\u001b[0m \u001b[2mcodex_models_manager::manager\u001b[0m\u001b[2m:\u001b[0m failed to renew cache TTL: missing field `supports_reasoning_summaries` at line 86 column 5\n\u001b[2m2026-07-30T12:41:29.807430Z\u001b[0m \u001b[31mERROR\u001b[0m \u001b[2mcodex_core::tools::router\u001b[0m\u001b[2m:\u001b[0m \u001b[3merror\u001b[0m\u001b[2m=\u001b[0mExit code: 1\nWall time: 0.6 seconds\nOutput:\n\n> app@0.0.3 test\n> vitest run src/components/actions/action_conversation_chat.test.tsx\n\n'vitest' is not recognized as an internal or external command,\r\noperable program or batch file.\r\n\n\u001b[2m2026-07-30T12:41:29.838844Z\u001b[0m \u001b[31mERROR\u001b[0m \u001b[2mcodex_models_manager::manager\u001b[0m\u001b[2m:\u001b[0m failed to renew cache TTL: missing field `supports_reasoning_summaries` at line 86 column 5\n\u001b[2m2026-07-30T12:41:34.875704Z\u001b[0m \u001b[31mERROR\u001b[0m \u001b[2mcodex_models_manager::manager\u001b[0m\u001b[2m:\u001b[0m failed to renew cache TTL: missing field `supports_reasoning_summaries` at line 86 column 5\n\u001b[2m2026-07-30T12:42:08.825852Z\u001b[0m \u001b[31mERROR\u001b[0m \u001b[2mcodex_models_manager::manager\u001b[0m\u001b[2m:\u001b[0m failed to renew cache TTL: missing field `supports_reasoning_summaries` at line 86 column 5\n\u001b[2m2026-07-30T12:44:53.305197Z\u001b[0m \u001b[31mERROR\u001b[0m \u001b[2mcodex_models_manager::manager\u001b[0m\u001b[2m:\u001b[0m failed to renew cache TTL: missing field `supports_reasoning_summaries` at line 86 column 5\n",
         "prompt": "Read and implement the feature/job described in:  \\`C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev2\\\\design/feature_descriptions/F_91_remove_finished_reasoning_blocks.md\\`\n\nYou do not need to look at the git status. This is not your concern.  The worktree is what it is, you only need to touch what is required for the above mentioned job/feature description.\n\nUse the Block Workflow:\n\n1. Propose a Change Plan with blocks (no edits yet).\n2. create a task for each block\n3. Wait for approval.\n4. include tests\n5. After implementation is done, update the field \\`status\\` in the markdown feature description file to \\`ready\\`\n6. Finally, print a 1 or 2 sentence commit statement for git. No need to do anything else for git, no need to commit.\n\nYou may read any files referenced by relative paths in the spec and any file you think is related to the spec.\nRespect the Test Plan and Acceptance Criteria. Keep everything short and to the point.\n\nKeep it short and to the point. use $caveman skill",
         "status": "failed",
+        "agent": "codex",
+        "model": "gpt-5.6-sol",
         "thinkingLevel": "medium"
       },
       "origin": {
