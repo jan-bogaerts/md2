@@ -1511,6 +1511,31 @@
       "rootActionLabel": "implement",
       "startedAt": "2026-07-30T12:36:18.893Z",
       "status": "cancelled"
+    },
+    {
+      "commits": [],
+      "completedAt": "2026-07-30T13:08:31.458Z",
+      "conversationIds": [
+        "agent-613c25fc-76d8-4a0f-b2bb-c42e90909cef"
+      ],
+      "executionId": "action-90ac16bb-223b-4c36-ab31-3b3dcf73655d",
+      "history": {
+        "agent": "codex",
+        "completedAt": "2026-07-30T13:08:31.458Z",
+        "model": "gpt-5.6-sol",
+        "output": "Using caveman skill. Inspect reasoning display flow, feature doc, tests.\n\n\u001b[2m2026-07-30T13:08:14.872346Z\u001b[0m \u001b[31mERROR\u001b[0m \u001b[2mcodex_models_manager::cache\u001b[0m\u001b[2m:\u001b[0m failed to load models cache: missing field `supports_reasoning_summaries` at line 86 column 5\n\u001b[2m2026-07-30T13:08:25.490414Z\u001b[0m \u001b[31mERROR\u001b[0m \u001b[2mcodex_models_manager::manager\u001b[0m\u001b[2m:\u001b[0m failed to renew cache TTL: missing field `supports_reasoning_summaries` at line 86 column 5\n\u001b[2m2026-07-30T13:08:28.658306Z\u001b[0m \u001b[31mERROR\u001b[0m \u001b[2mcodex_models_manager::manager\u001b[0m\u001b[2m:\u001b[0m failed to renew cache TTL: missing field `supports_reasoning_summaries` at line 86 column 5\n",
+        "prompt": "we just implemented `design/feature_descriptions/F_91_remove_finished_reasoning_blocks.md`, now reasoning blocks are no longer shown at all. this is no good, running reasoning blocks should still be shown. fix it.\nbe short and to the point, use $caveman",
+        "status": "failed",
+        "thinkingLevel": "medium"
+      },
+      "origin": {
+        "cardInternalId": "3ffa4da3-1e0f-4930-ad38-6bf247b13c52",
+        "kind": "card"
+      },
+      "rootActionId": "md2.custom-prompt",
+      "rootActionLabel": "Custom prompt",
+      "startedAt": "2026-07-30T13:08:14.574Z",
+      "status": "cancelled"
     }
   ],
   "version": 1
