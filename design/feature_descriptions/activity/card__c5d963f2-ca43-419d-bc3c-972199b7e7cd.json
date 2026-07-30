@@ -1,0 +1,36 @@
+{
+  "conversations": [],
+  "origin": {
+    "cardInternalId": "c5d963f2-ca43-419d-bc3c-972199b7e7cd",
+    "kind": "card"
+  },
+  "records": [
+    {
+      "commits": [
+        {
+          "commit": "97d0e900222e7b9354f24b5dbe27040a9c8597f4",
+          "committedAt": "2026-07-30T22:36:19+02:00",
+          "deletions": 3,
+          "filePaths": [
+            "app/src/components/actions/action_conversation_picker.test.tsx",
+            "app/src/components/actions/action_conversation_picker.tsx",
+            "app/src/components/actions/use_action_popup_controller.test.tsx",
+            "app/src/components/actions/use_action_popup_controller.ts",
+            "design/feature_descriptions/F_102_select_empty_conversation.md"
+          ],
+          "filesChanged": 5,
+          "insertions": 99,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-07-30T22:36:19+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "c5d963f2-ca43-419d-bc3c-972199b7e7cd",
+        "kind": "card"
+      },
+      "type": "system"
+    }
+  ],
+  "version": 1
+}
