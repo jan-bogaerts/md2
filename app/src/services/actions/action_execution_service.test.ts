@@ -393,6 +393,43 @@ describe('ActionExecutionService', () => {
         service.stop()
     })
 
+    it('separates idle and active prompt drafts before active-action metadata arrives', async () => {
+        const activeContext = { ...context, cardInternalId: 'card-1' }
+        const { bridge, emit } = bridgeWithEvents()
+        setActionBridgeOverride(bridge)
+        const service = new ActionExecutionService()
+        service.start()
+        await service.setPromptDraft('review', activeContext, 'Idle prompt')
+        emit({
+            actionId: 'review',
+            context: activeContext,
+            executionId: 'execution-1',
+            phase: 'main',
+            rootActionId: 'review',
+            status: 'running',
+            type: 'execution',
+        })
+
+        expect(service.getPromptDraft('review', activeContext)).toBe('')
+        await service.setPromptDraft('review', activeContext, 'Active draft')
+        emit({
+            actionId: 'review',
+            actionType: 'agent',
+            autoFinish: null,
+            context: activeContext,
+            executionId: 'execution-1',
+            interactionReady: false,
+            phase: 'main',
+            rootActionId: 'review',
+            status: 'running',
+            streaming: false,
+            type: 'agentState',
+        })
+
+        expect(service.getPromptDraft('review', activeContext)).toBe('Active draft')
+        service.stop()
+    })
+
     it('keeps a prompt draft when backend send acknowledgement fails', async () => {
         const activeContext = { ...context, cardInternalId: 'card-1' }
         const { bridge, emit } = bridgeWithEvents({

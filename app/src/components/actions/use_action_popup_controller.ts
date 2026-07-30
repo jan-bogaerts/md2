@@ -172,11 +172,11 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
     const sharedExecutionActive = sharedExecution?.status === 'queued'
         || sharedExecution?.status === 'running'
         || sharedExecution?.status === 'waitingForInput'
-    const interactionKey = sharedExecutionActive && sharedExecution.activeActionId
-        ? `${sharedExecution.executionId}\u0000${sharedExecution.activeActionId}`
+    const interactionKey = sharedExecutionActive
+        ? `${sharedExecution.executionId}\u0000${sharedExecution.activeActionId ?? action.id}`
         : promptContextKey
     const sharedPromptDraft = actionExecutionService.getPromptDraft(action.id, context)
-    const initialPrompt = sharedPromptDraft || input.initialPrompt || ''
+    const initialPrompt = sharedExecutionActive ? sharedPromptDraft : sharedPromptDraft || input.initialPrompt || ''
     const promptKey = `${interactionKey}\u0000${input.continueFrom ?? ''}\u0000${input.initialPrompt ?? ''}`
     const agentProfiles = mergeAgentProfiles(configuredAgentProfiles)
     const defaultAgent = action.agent ?? configuredAgent
@@ -189,7 +189,7 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
     const [conversationHistoryState, setConversationHistoryState] = useState<{ conversations: AgentConversation[], key: string }>({ conversations: [], key: '' })
     const [promptState, setPromptState] = useState<{ key: string, status: PromptPreparationStatus, value: string }>({
         key: promptKey,
-        status: action.type === 'agent' && !input.continueFrom ? 'loading' : 'ready',
+        status: action.type === 'agent' && !input.continueFrom && !sharedExecutionActive ? 'loading' : 'ready',
         value: initialPrompt,
     })
     // Bumped whenever the prompt is replaced externally (prepared, phrase, cleared) but
@@ -238,7 +238,7 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
         : {
             key: promptKey,
             status: action.type === 'agent' && !input.continueFrom && !sharedExecutionActive ? 'loading' : 'ready',
-            value: sharedPromptDraft || input.initialPrompt || '',
+            value: initialPrompt,
         }
     const prompt = activePromptState.value
     const promptPreparationPending = activePromptState.status === 'loading'
@@ -303,7 +303,19 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
         const requestId = promptRequestRef.current + 1
         promptRequestRef.current = requestId
         promptEditRevisionRef.current = 0
-        if (action.type !== 'agent' || input.continueFrom || sharedExecutionActive) return
+        if (action.type !== 'agent' || input.continueFrom) return
+        if (sharedExecutionActive) {
+            async function resetActivePrompt() {
+                await Promise.resolve()
+                if (promptRequestRef.current !== requestId) return
+
+                const activePromptDraft = actionExecutionService.getPromptDraft(action.id, context)
+                setPromptState({ key: promptKey, status: 'ready', value: activePromptDraft })
+                setPromptResetToken((token) => token + 1)
+            }
+            void resetActivePrompt()
+            return
+        }
 
         const editRevision = promptEditRevisionRef.current
 

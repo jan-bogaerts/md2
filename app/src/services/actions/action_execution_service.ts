@@ -199,7 +199,7 @@ function executionPromptDraftKey(executionId: string, actionId: string) {
 }
 
 function promptDraftKey(actionId: string, context: ActionContext, execution: LiveActionExecution | null) {
-    if (execution?.activeActionId) return executionPromptDraftKey(execution.executionId, execution.activeActionId)
+    if (execution) return executionPromptDraftKey(execution.executionId, execution.activeActionId ?? actionId)
 
     return idlePromptDraftKey(actionId, context)
 }
@@ -343,14 +343,16 @@ export class ActionExecutionService extends EventTarget {
     }
 
     getPromptDraft(actionId: string, context: ActionContext) {
-        const execution = this.getRunningExecutionForContext(context)
+        const runningExecution = this.getRunningExecutionForContext(context)
+        const execution = runningExecution?.rootActionId === actionId ? runningExecution : null
         const key = promptDraftKey(actionId, context, execution)
 
         return this.promptDrafts.get(key)?.value ?? ''
     }
 
     async setPromptDraft(actionId: string, context: ActionContext, value: string) {
-        const execution = this.getRunningExecutionForContext(context)
+        const runningExecution = this.getRunningExecutionForContext(context)
+        const execution = runningExecution?.rootActionId === actionId ? runningExecution : null
         const key = promptDraftKey(actionId, context, execution)
         const previous = this.promptDrafts.get(key)
         const revision = (previous?.revision ?? -1) + 1
@@ -368,7 +370,8 @@ export class ActionExecutionService extends EventTarget {
     }
 
     async sendPromptDraft(actionId: string, context: ActionContext) {
-        const execution = this.getRunningExecutionForContext(context)
+        const runningExecution = this.getRunningExecutionForContext(context)
+        const execution = runningExecution?.rootActionId === actionId ? runningExecution : null
         if (!execution?.activeActionId) throw new Error('Action execution has no active agent')
         const key = promptDraftKey(actionId, context, execution)
         const draft = this.promptDrafts.get(key)
@@ -380,7 +383,8 @@ export class ActionExecutionService extends EventTarget {
     }
 
     clearPromptDraft(actionId: string, context: ActionContext) {
-        const execution = this.getRunningExecutionForContext(context)
+        const runningExecution = this.getRunningExecutionForContext(context)
+        const execution = runningExecution?.rootActionId === actionId ? runningExecution : null
         this.promptDrafts.delete(promptDraftKey(actionId, context, execution))
         this.promptDrafts.delete(idlePromptDraftKey(actionId, context))
         this.dispatchEvent(new CustomEvent('changed'))

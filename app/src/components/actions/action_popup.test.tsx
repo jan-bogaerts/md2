@@ -207,6 +207,58 @@ describe('ActionPopup', () => {
         expect(screen.getByRole('button', { name: 'Stream' })).toBeInTheDocument()
     })
 
+    it('clears stored prefill when switching to an active action and restores its draft after reopen', async () => {
+        actionExecutionService.stop()
+        let executionListener: ((event: ActionExecutionEvent) => void) | null = null
+        window.md2Actions = {
+            loadActionRunHistory: vi.fn(async () => []),
+            onActionExecution: vi.fn((listener) => {
+                executionListener = listener
+
+                return vi.fn()
+            }),
+            prepareActionPrompt: vi.fn(async ({ actionId }: { actionId: string }) => ({ prompt: `${actionId} stored prompt` })),
+        } as unknown as typeof window.md2Actions
+        actionExecutionService.start()
+        actionService.loadFromFiles([
+            file(agentDefinition('idle', { label: 'Idle action' })),
+            file(agentDefinition('active', { label: 'Active action' })),
+        ])
+        renderPopup()
+        const actionGroup = within(screen.getByRole('group', { name: 'Actions' }))
+        await waitFor(() => expect(within(screen.getByLabelText('Prompt')).getByRole('textbox')).toHaveValue('idle stored prompt'))
+        await waitFor(() => expect(executionListener).not.toBeNull())
+
+        act(() => {
+            executionListener?.({
+                actionId: 'active', context, executionId: 'execution-1', phase: 'main',
+                rootActionId: 'active', status: 'running', type: 'execution',
+            })
+            executionListener?.({
+                actionId: 'active',
+                actionType: 'agent',
+                autoFinish: null,
+                context,
+                executionId: 'execution-1',
+                interactionReady: false,
+                phase: 'main',
+                rootActionId: 'active',
+                status: 'waitingForInput',
+                streaming: true,
+                type: 'agentState',
+            })
+        })
+        fireEvent.click(actionGroup.getByRole('button', { name: /Active action/u }))
+
+        await waitFor(() => expect(within(screen.getByLabelText('Prompt')).getByRole('textbox')).toHaveValue(''))
+        await act(async () => actionExecutionService.setPromptDraft('active', context, 'Keep active draft'))
+        cleanup()
+        renderPopup()
+        fireEvent.click(within(screen.getByRole('group', { name: 'Actions' })).getByRole('button', { name: /Active action/u }))
+
+        await waitFor(() => expect(within(screen.getByLabelText('Prompt')).getByRole('textbox')).toHaveValue('Keep active draft'))
+    })
+
     it('closes from the popup header', () => {
         const { onClose } = renderPopup()
 
