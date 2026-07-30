@@ -2318,15 +2318,15 @@
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-b549e74c-04d8-430c-9e1c-b587388a14b4-activity-93",
           "label": "Reasoning",
           "providerItemId": "rs_0bd326758c4be16c016a6b4fb933448191b56037ac812ab0be",
           "sequence": 93,
           "status": "inProgress",
+          "summary": [],
           "timestamp": "2026-07-30T13:20:56.149Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
           "content": "1",
@@ -2525,6 +2525,31 @@
       "rootActionId": "md2.custom-prompt",
       "rootActionLabel": "Custom prompt",
       "startedAt": "2026-07-30T13:09:04.162Z",
+      "status": "cancelled"
+    },
+    {
+      "commits": [],
+      "completedAt": "2026-07-30T13:21:01.555Z",
+      "conversationIds": [
+        "agent-613c25fc-76d8-4a0f-b2bb-c42e90909cef"
+      ],
+      "executionId": "action-8ab388a4-b414-4c7e-88bd-fccf03a581b8",
+      "history": {
+        "agent": "codex",
+        "completedAt": "2026-07-30T13:21:01.554Z",
+        "model": "gpt-5.6-sol",
+        "output": "\u001b[2m2026-07-30T13:20:40.325358Z\u001b[0m \u001b[31mERROR\u001b[0m \u001b[2mcodex_models_manager::cache\u001b[0m\u001b[2m:\u001b[0m failed to load models cache: missing field `supports_reasoning_summaries` at line 86 column 5\n",
+        "prompt": "continue",
+        "status": "failed",
+        "thinkingLevel": "medium"
+      },
+      "origin": {
+        "cardInternalId": "3ffa4da3-1e0f-4930-ad38-6bf247b13c52",
+        "kind": "card"
+      },
+      "rootActionId": "md2.custom-prompt",
+      "rootActionLabel": "Custom prompt",
+      "startedAt": "2026-07-30T13:20:40.090Z",
       "status": "cancelled"
     }
   ],
