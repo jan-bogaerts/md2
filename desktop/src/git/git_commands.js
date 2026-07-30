@@ -49,7 +49,7 @@ async function pathExists(targetPath) {
 function executeGit(rootPath, args) {
     return new Promise((resolve, reject) => {
         execFile('git', args, { cwd: rootPath }, (error, stdout, stderr) => {
-            console.log('[git:complete]', args);
+            // console.log('[git:complete]', args);
             if (error) {
                 reject(error);
                 return;

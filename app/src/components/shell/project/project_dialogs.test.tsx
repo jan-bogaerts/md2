@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
     DEFAULT_CARD_TYPES,
@@ -34,6 +34,10 @@ function mockMatchMedia(matches: boolean) {
         removeEventListener: () => {},
         removeListener: () => {},
     })) as unknown as typeof window.matchMedia
+}
+
+function getDescriptionEditor() {
+    return within(screen.getByRole('group', { name: 'Description' })).getByRole('textbox')
 }
 
 describe('project dialog components', () => {
@@ -310,7 +314,8 @@ describe('project dialog components', () => {
         const title = screen.getByRole('textbox', { name: 'Title' })
         expect(title).toHaveAttribute('placeholder', 'Card title…')
         await waitFor(() => expect(title).toHaveFocus())
-        expect(screen.getByRole('textbox', { name: 'Description' })).toHaveValue('')
+        expect(getDescriptionEditor()).toHaveValue('')
+        expect(screen.queryByTestId('mdx-editor-toolbar')).not.toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Create card' })).toBeDisabled()
         expect(screen.getByRole('radiogroup', { name: 'Type' })).toBeInTheDocument()
         expect(screen.getAllByRole('radio').map((radio) => radio.textContent)).toEqual(['Architecture', 'Research'])
@@ -336,7 +341,7 @@ describe('project dialog components', () => {
             { wrapper: AppThemeProvider },
         )
 
-        const description = screen.getByRole('textbox', { name: 'Description' })
+        const description = getDescriptionEditor()
         fireEvent.click(screen.getByRole('button', { name: 'Template' }))
         expect(description).toHaveValue(cardBodyTemplate)
         fireEvent.click(screen.getByRole('button', { name: 'Clear' }))
@@ -403,7 +408,7 @@ describe('project dialog components', () => {
         fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Target column' }))
         fireEvent.click(await screen.findByRole('option', { name: 'in progress' }))
         fireEvent.change(screen.getByRole('textbox', { name: 'Title' }), { target: { value: '  New Card  ' } })
-        fireEvent.change(screen.getByRole('textbox', { name: 'Description' }), { target: { value: 'Body' } })
+        fireEvent.change(getDescriptionEditor(), { target: { value: 'Body' } })
         fireEvent.click(screen.getByRole('button', { name: 'Create card' }))
 
         await waitFor(() => expect(createCard).toHaveBeenCalledWith({
@@ -446,7 +451,7 @@ describe('project dialog components', () => {
         expect(title).toHaveStyle({ flexShrink: '0' })
         expect(actions).toHaveStyle({ flexShrink: '0' })
         expect(screen.getByRole('combobox', { name: 'Target column' }).closest('.MuiInputBase-root')).toHaveStyle({ height: '44px' })
-        expect(screen.getByRole('textbox', { name: 'Description' })).toHaveStyle({ minHeight: '260px', resize: 'none' })
+        expect(screen.getByRole('group', { name: 'Description' })).toHaveStyle({ minHeight: '260px', resize: 'none' })
 
         fireEvent.change(screen.getByRole('textbox', { name: 'Title' }), { target: { value: 'Mobile card' } })
         expect(topCreate).toBeEnabled()
@@ -485,7 +490,7 @@ describe('project dialog components', () => {
         expect(confirm).toHaveBeenCalledWith('Discard this new card draft?')
         expect(close).not.toHaveBeenCalled()
 
-        const description = screen.getByRole('textbox', { name: 'Description' })
+        const description = getDescriptionEditor()
         fireEvent.change(description, { target: { value: 'Shortcut body' } })
         fireEvent.keyDown(description, { ctrlKey: true, key: 'Enter' })
 

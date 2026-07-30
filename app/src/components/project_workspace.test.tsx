@@ -555,7 +555,7 @@ describe('ProjectWorkspace', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Project' }))
         fireEvent.click(screen.getByRole('menuitem', { name: 'New card...' }))
         fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'New Card' } })
-        fireEvent.change(screen.getByRole('textbox', { name: 'Description' }), { target: { value: 'Body' } })
+        fireEvent.change(within(screen.getByRole('group', { name: 'Description' })).getByRole('textbox'), { target: { value: 'Body' } })
         fireEvent.click(screen.getByRole('button', { name: 'Create card' }))
 
         await waitFor(() => expect(bridge.commit).toHaveBeenCalledWith(expect.objectContaining({files: [expect.objectContaining({ path: 'design/F-3-new-card.md' })]})))
@@ -576,7 +576,7 @@ describe('ProjectWorkspace', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Project' }))
         fireEvent.click(screen.getByRole('menuitem', { name: 'New card...' }))
         fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'New Card' } })
-        fireEvent.change(screen.getByRole('textbox', { name: 'Description' }), { target: { value: 'Body' } })
+        fireEvent.change(within(screen.getByRole('group', { name: 'Description' })).getByRole('textbox'), { target: { value: 'Body' } })
         fireEvent.click(screen.getByRole('button', { name: 'Create card' }))
 
         expect(await screen.findByText('commit failed')).toBeInTheDocument()

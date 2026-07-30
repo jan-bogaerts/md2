@@ -18,6 +18,7 @@ import Plus from 'mdi-material-ui/Plus'
 import type { ChangeEvent, FormEvent, KeyboardEvent } from 'react'
 import { useEffect, useRef, useState } from 'react'
 import type { CardDraft, CardTypeConfig, StateConfig } from '../../../data/data_types'
+import { MarkdownEditor, type MarkdownEditorHandle } from '../../editor/markdown_editor'
 import { CardTypePillGroup } from './card_type_pill_group'
 import { NewCardColumnPicker } from './new_card_column_picker'
 
@@ -51,6 +52,7 @@ export function NewCardDialog(props: NewCardDialogProps) {
     } = props
     const theme = useTheme()
     const isMobile = useMediaQuery(theme.breakpoints.down('md'))
+    const bodyEditorRef = useRef<MarkdownEditorHandle>(null)
     const wasOpenRef = useRef(false)
     const [body, setBody] = useState('')
     const [isInsertedTemplateUntouched, setIsInsertedTemplateUntouched] = useState(false)
@@ -69,6 +71,7 @@ export function NewCardDialog(props: NewCardDialogProps) {
         || selectedType.length === 0 || selectedStatus.length === 0 || isLoading
 
     const resetForm = () => {
+        bodyEditorRef.current?.setMarkdown('')
         setBody('')
         setIsInsertedTemplateUntouched(false)
         setTargetStatus(initialTargetStatus)
@@ -78,6 +81,7 @@ export function NewCardDialog(props: NewCardDialogProps) {
 
     useEffect(() => {
         if (open && !wasOpenRef.current) {
+            bodyEditorRef.current?.setMarkdown('')
             setBody('')
             setIsInsertedTemplateUntouched(false)
             setTargetStatus(initialTargetStatus)
@@ -102,13 +106,14 @@ export function NewCardDialog(props: NewCardDialogProps) {
         setTitle(event.target.value)
     }
 
-    const handleBodyChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
-        setBody(event.target.value)
+    const handleBodyChange = (markdown: string) => {
+        setBody(markdown)
         setIsInsertedTemplateUntouched(false)
     }
 
     const handleTemplateClick = () => {
         if (isInsertedTemplateUntouched && body === cardBodyTemplate) {
+            bodyEditorRef.current?.setMarkdown('')
             setBody('')
             setIsInsertedTemplateUntouched(false)
 
@@ -116,6 +121,7 @@ export function NewCardDialog(props: NewCardDialogProps) {
         }
 
         const nextBody = body.length > 0 ? `${body}\n\n${cardBodyTemplate}` : cardBodyTemplate
+        bodyEditorRef.current?.setMarkdown(nextBody)
         setBody(nextBody)
         setIsInsertedTemplateUntouched(body.length === 0)
     }
@@ -161,7 +167,7 @@ export function NewCardDialog(props: NewCardDialogProps) {
         <Button aria-label="Create card" disabled={isSubmitDisabled} type="submit" variant="contained">
             <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
                 <Plus sx={{ fontSize: 17 }} />
-                <span>Create card</span>
+                <span>Add</span>
                 {!isMobile ? (
                     <Box
                         component="span"
@@ -293,6 +299,7 @@ export function NewCardDialog(props: NewCardDialogProps) {
                         sx={{
                             '& .MuiOutlinedInput-root': {
                                 borderRadius: isMobile ? '11px' : '9px',
+                                mt: 1,
                                 height: isMobile ? 48 : 46,
                                 '&.Mui-focused': { boxShadow: (currentTheme) => `0 0 0 3px ${currentTheme.palette.custom.primaryBg}` },
                                 '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderWidth: 1 },
@@ -314,7 +321,7 @@ export function NewCardDialog(props: NewCardDialogProps) {
                     />
                     <Stack spacing={isMobile ? 1.125 : 0.875}>
                         <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-                            <Typography color="text.secondary" component="label" htmlFor="new-card-description" sx={{ fontSize: 12, fontWeight: 600 }}>
+                            <Typography color="text.secondary" id="new-card-description-label" sx={{ fontSize: 12, fontWeight: 600 }}>
                                 Description
                             </Typography>
                             {!isMobile ? (
@@ -335,11 +342,9 @@ export function NewCardDialog(props: NewCardDialogProps) {
                             </Button>
                         </Stack>
                         <Box
-                            aria-label="Description"
-                            component="textarea"
-                            id="new-card-description"
-                            onChange={handleBodyChange}
-                            placeholder="Describe the goal, context, and tasks — or insert the template."
+                            aria-labelledby="new-card-description-label"
+                            data-testid="new-card-description"
+                            role="group"
                             sx={{
                                 bgcolor: 'background.paper',
                                 border: 1,
@@ -347,31 +352,42 @@ export function NewCardDialog(props: NewCardDialogProps) {
                                 borderRadius: isMobile ? '11px' : '9px',
                                 boxSizing: 'border-box',
                                 color: 'text.primary',
-                                fontFamily: '"Cascadia Code", "Consolas", monospace',
-                                fontSize: 13.5,
-                                lineHeight: 1.7,
+                                height: isMobile ? 260 : 270,
                                 minHeight: isMobile ? 260 : 270,
                                 outline: 'none',
-                                p: 1.625,
+                                overflow: 'auto',
                                 resize: isMobile ? 'none' : 'vertical',
                                 width: '100%',
-                                '&:focus': {
+                                '&:focus-within': {
                                     borderColor: 'primary.main',
                                     boxShadow: (currentTheme) => `0 0 0 3px ${currentTheme.palette.custom.primaryBg}`,
                                 },
-                                '&:hover:not(:focus)': { borderColor: 'custom.borderHover' },
-                                '&::placeholder': { color: 'custom.text4', opacity: 1 },
+                                '&:hover:not(:focus-within)': { borderColor: 'custom.borderHover' },
+                                '& > [data-sticky-toolbar]': { minHeight: '100%' },
+                                '& .light-theme, & .dark-theme': { minHeight: '100%' },
+                                '& .mdxeditor-content': {
+                                    boxSizing: 'border-box',
+                                    minHeight: isMobile ? 258 : 268,
+                                    p: 1.625,
+                                },
                             }}
-                            value={body}
-                        />
+                        >
+                            <MarkdownEditor
+                                hideToolbar
+                                markdown={body}
+                                onChange={setBody}
+                                onLiveChange={handleBodyChange}
+                                ref={bodyEditorRef}
+                            />
+                        </Box>
                     </Stack>
                 </DialogContent>
                 <DialogActions
                     sx={{
                         alignItems: 'stretch',
                         bgcolor: 'background.default',
-                        borderColor: 'divider',
                         borderTop: 1,
+                        borderColor: 'divider',
                         flexDirection: isMobile ? 'column' : 'row',
                         flexShrink: 0,
                         gap: isMobile ? 1.5 : 1,

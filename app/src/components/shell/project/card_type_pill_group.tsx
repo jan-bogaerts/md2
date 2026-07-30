@@ -81,6 +81,7 @@ export function CardTypePillGroup(props: CardTypePillGroupProps) {
                             sx={{
                                 bgcolor: isSelected ? 'custom.primaryBg' : 'custom.track',
                                 border: 1,
+                                flex: 1,
                                 borderColor: isSelected ? 'primary.main' : 'transparent',
                                 borderRadius: '99px',
                                 color: isSelected ? 'primary.main' : 'text.secondary',
