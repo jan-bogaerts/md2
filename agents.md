@@ -133,6 +133,13 @@ you must:
    ```
 
    Run the command in each affected subproject, for example `app/` and/or `desktop/`.
+4. **Keep only tests for stable behavior**
+  Temporary tests must be removed before finishing when they:
+   - Assert visual values or configuration constants.
+   - Duplicate existing coverage.
+   - Run Git, agents, servers, shells, or external programs.
+
+Mock external boundaries. Tests must stay fast and in-process.
 
 ### Test Conventions
 
