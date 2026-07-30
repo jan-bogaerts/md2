@@ -37,6 +37,7 @@ function createDispatch(options = {}) {
         subscribe: vi.fn(() => vi.fn()),
     };
     const localGitService = {
+        appendAndCommitSystemActivity: vi.fn(async () => undefined),
         assertGitRoot: vi.fn(),
         checkoutBranch: vi.fn(async (project, branch) => ({ ...project, branch })),
         commit: vi.fn(async () => []),
@@ -62,6 +63,14 @@ function createDispatch(options = {}) {
         loadProjectRoot: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
         resolveLocalProject: vi.fn(async () => ({ branch: 'topic', id: 'C:/repo', rootPath: 'C:/repo' })),
         readFileAtCommit: vi.fn(async () => ({ content: '# Card', exists: true })),
+        resolveCommitMetadata: vi.fn(async (_rootPath, commit) => ({
+            commit,
+            committedAt: '2026-07-30T12:00:00.000Z',
+            deletions: 1,
+            filePaths: ['design/F-1.md'],
+            filesChanged: 1,
+            insertions: 2,
+        })),
         runCommand: vi.fn(async () => ({ exitCode: 0, stderr: '', stdout: 'ok' })),
         push: vi.fn(async () => undefined),
         watchProject: vi.fn(() => vi.fn()),
@@ -80,7 +89,7 @@ function createDispatch(options = {}) {
         commit: vi.fn(async () => undefined),
         discard: vi.fn(async () => undefined),
         getRecords: vi.fn(() => []),
-        integrate: vi.fn(async () => undefined),
+        integrate: vi.fn(async () => ({ branch: 'main', commit: 'a'.repeat(40) })),
         park: vi.fn(async () => undefined),
         prepare: vi.fn(async () => undefined),
         pull: vi.fn(async () => undefined),
@@ -231,7 +240,7 @@ describe('createLocalBridgeDispatch', () => {
     });
 
     it('delegates card worktree lifecycle operations', async () => {
-        const { dispatch, worktreeService } = createDispatch();
+        const { dispatch, localGitService, worktreeService } = createDispatch();
         const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
         const request = { project, worktree: 1 };
 
@@ -250,6 +259,70 @@ describe('createLocalBridgeDispatch', () => {
         expect(worktreeService.pull).toHaveBeenCalledWith(project, 1);
         expect(worktreeService.push).toHaveBeenCalledWith(project, 1);
         expect(worktreeService.refreshRemote).toHaveBeenCalledWith(project);
+        expect(localGitService.appendAndCommitSystemActivity).not.toHaveBeenCalled();
+    });
+
+    it('tracks a card integration under its stable internal id', async () => {
+        const { dispatch, localGitService, worktreeService } = createDispatch();
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
+        const request = { cardInternalId: 'stable-card-id', project, projectFolder: 'design', worktree: 1 };
+
+        await dispatch.dataBridge.integrateWorktree(request);
+
+        const origin = { cardInternalId: 'stable-card-id', kind: 'card' };
+        expect(worktreeService.integrate).toHaveBeenCalledWith(project, 1);
+        expect(localGitService.resolveCommitMetadata).toHaveBeenCalledWith(project.rootPath, 'a'.repeat(40));
+        expect(localGitService.appendAndCommitSystemActivity).toHaveBeenCalledWith(
+            project,
+            'design',
+            origin,
+            {
+                commits: [{
+                    branch: 'main',
+                    commit: 'a'.repeat(40),
+                    committedAt: '2026-07-30T12:00:00.000Z',
+                    deletions: 1,
+                    filePaths: ['design/F-1.md'],
+                    filesChanged: 1,
+                    insertions: 2,
+                }],
+                completedAt: '2026-07-30T12:00:00.000Z',
+                label: 'Integrate into project',
+                origin,
+                type: 'system',
+            },
+            'Record Integrate into project activity',
+        );
+    });
+
+    it('reports history persistence failure after successful card integration', async () => {
+        const { dispatch, localGitService, worktreeService } = createDispatch();
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
+        localGitService.appendAndCommitSystemActivity.mockRejectedValueOnce(new Error('activity commit failed'));
+
+        await expect(dispatch.dataBridge.integrateWorktree({
+            cardInternalId: 'card-1',
+            project,
+            projectFolder: 'design',
+            worktree: 1,
+        })).rejects.toThrow('Worktree integrated, but card history tracking failed: activity commit failed');
+
+        expect(worktreeService.integrate).toHaveBeenCalledOnce();
+    });
+
+    it('writes no activity when card integration fails', async () => {
+        const { dispatch, localGitService, worktreeService } = createDispatch();
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
+        worktreeService.integrate.mockRejectedValueOnce(new Error('squash failed'));
+
+        await expect(dispatch.dataBridge.integrateWorktree({
+            cardInternalId: 'card-1',
+            project,
+            projectFolder: 'design',
+            worktree: 1,
+        })).rejects.toThrow('squash failed');
+
+        expect(localGitService.appendAndCommitSystemActivity).not.toHaveBeenCalled();
     });
 
     it('delegates primary pull and refreshes monitored state after push', async () => {

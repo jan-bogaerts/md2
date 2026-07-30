@@ -83,8 +83,25 @@ function parseHistory(value, index) {
     return history
 }
 
+function parseSystemRecord(value, index, activityOrigin) {
+    if (!Array.isArray(value.commits) || value.commits.length !== 1) {
+        throw new Error(`Malformed activity file: system records[${index}].commits must contain one commit`)
+    }
+    const origin = parseOrigin(value.origin)
+    if (!sameOrigin(origin, activityOrigin)) throw new Error(`Malformed activity file: records[${index}].origin does not match activity origin`)
+
+    return {
+        commits: value.commits.map(parseCommit),
+        completedAt: requiredTimestamp(value.completedAt, `records[${index}].completedAt`),
+        label: requiredString(value.label, `records[${index}].label`),
+        origin,
+        type: 'system',
+    }
+}
+
 function parseRecord(value, index, activityOrigin) {
     if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`Malformed activity file: invalid records[${index}]`)
+    if (value.type === 'system') return parseSystemRecord(value, index, activityOrigin)
     const status = requiredString(value.status, `records[${index}].status`)
     if (!ACTION_ACTIVITY_STATUSES.has(status)) throw new Error(`Malformed activity file: invalid records[${index}].status`)
     if (!Array.isArray(value.commits)) throw new Error(`Malformed activity file: invalid records[${index}].commits`)

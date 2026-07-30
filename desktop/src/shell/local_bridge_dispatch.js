@@ -1,6 +1,23 @@
 const { resolveAgentCommand } = require('../actions/agent_profiles.mjs');
 
+const INTEGRATION_ACTIVITY_LABEL = 'Integrate into project';
 const SEARCH_AGENT_PROMPT_PREFIX = 'Return only a single JavaScript-compatible regular expression pattern (no explanation, no surrounding text or markdown) that matches the following search request:\n\n';
+
+function cardIntegrationTracking(request) {
+    const hasCardInternalId = Object.hasOwn(request, 'cardInternalId');
+    const hasProjectFolder = Object.hasOwn(request, 'projectFolder');
+    if (!hasCardInternalId && !hasProjectFolder) return null;
+    if (typeof request.cardInternalId !== 'string' || request.cardInternalId.length === 0) {
+        throw new Error('Missing worktree integration cardInternalId');
+    }
+    if (typeof request.projectFolder !== 'string') throw new Error('Missing worktree integration projectFolder');
+
+    return { cardInternalId: request.cardInternalId, projectFolder: request.projectFolder };
+}
+
+function errorMessage(error) {
+    return error instanceof Error ? error.message : String(error);
+}
 
 function resolveSearchAgent(config) {
     const resolved = resolveAgentCommand(config);
@@ -136,10 +153,36 @@ function createLocalBridgeDispatch(dependencies) {
 
             return worktreeService.discard(request.project, request.worktree);
         },
-        integrateWorktree: (request) => {
+        integrateWorktree: async (request) => {
             if (!request || typeof request !== 'object') throw new Error('Missing worktree integration request');
+            const tracking = cardIntegrationTracking(request);
+            const integration = await worktreeService.integrate(request.project, request.worktree);
+            if (!tracking) return;
 
-            return worktreeService.integrate(request.project, request.worktree);
+            try {
+                if (!integration || typeof integration.commit !== 'string' || typeof integration.branch !== 'string') {
+                    throw new Error('Worktree integration returned no commit metadata');
+                }
+                const metadata = await localGitService.resolveCommitMetadata(request.project.rootPath, integration.commit);
+                const origin = { cardInternalId: tracking.cardInternalId, kind: 'card' };
+                const commit = { ...metadata, branch: integration.branch };
+                const record = {
+                    commits: [commit],
+                    completedAt: metadata.committedAt,
+                    label: INTEGRATION_ACTIVITY_LABEL,
+                    origin,
+                    type: 'system',
+                };
+                await localGitService.appendAndCommitSystemActivity(
+                    request.project,
+                    tracking.projectFolder,
+                    origin,
+                    record,
+                    `Record ${INTEGRATION_ACTIVITY_LABEL} activity`,
+                );
+            } catch (error) {
+                throw new Error(`Worktree integrated, but card history tracking failed: ${errorMessage(error)}`, { cause: error });
+            }
         },
         parkWorktree: (request) => {
             if (!request || typeof request !== 'object') throw new Error('Missing worktree parking request');

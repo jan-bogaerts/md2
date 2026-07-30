@@ -152,6 +152,13 @@ export interface WorktreeOperationRequest {
     worktree: number
 }
 
+export interface CardWorktreeIntegrationRequest extends WorktreeOperationRequest {
+    cardInternalId: string
+    projectFolder: string
+}
+
+export type IntegrateWorktreeRequest = CardWorktreeIntegrationRequest | WorktreeOperationRequest
+
 export interface CommitWorktreeRequest extends WorktreeOperationRequest {
     message: string
 }
@@ -362,7 +369,7 @@ export interface StorageService {
     listRepositoryFiles(project: ProjectReference): Promise<string[]>
     listTopLevelFolders(project: ProjectReference): Promise<TopLevelFolderReference[]>
     loadPendingPush?(project: ProjectReference): Promise<void>
-    integrateWorktree?(request: WorktreeOperationRequest): Promise<void>
+    integrateWorktree?(request: IntegrateWorktreeRequest): Promise<void>
     moveFiles(request: MoveFilesRequest): Promise<void>
     parkWorktree?(request: WorktreeOperationRequest): Promise<void>
     prepareWorktree?(request: PrepareWorktreeRequest): Promise<void>

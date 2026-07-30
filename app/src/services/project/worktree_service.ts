@@ -192,13 +192,14 @@ export class WorktreeService extends EventTarget {
     }
 
     async integrateCardWorktree(path: string) {
-        const { project, storage, worktree } = this.requireCardOperation(path)
+        const { card, project, projectFolder, storage, worktree } = this.requireCardOperation(path)
         if (!storage.integrateWorktree) throw new Error('Worktree integration requires Electron local mode')
+        if (!card.header.internalId) throw new Error(`Cannot integrate card without an internal ID: ${path}`)
 
         this.startCardOperation(path)
         try {
             await this.requirePendingChangesFlusher()()
-            await storage.integrateWorktree({ project, worktree })
+            await storage.integrateWorktree({ cardInternalId: card.header.internalId, project, projectFolder, worktree })
         } finally {
             this.finishCardOperation(path)
         }
@@ -339,12 +340,14 @@ export class WorktreeService extends EventTarget {
 
     private requireCardOperation(path: string) {
         const card = this.requireCard(path)
+        const snapshot = this.snapshotProvider?.()
+        if (!snapshot) throw new Error('Worktree project snapshot is not initialized')
         const worktree = card.header.worktree
         if (!Number.isInteger(worktree) || !worktree || worktree <= 0) throw new Error(`Card has no valid worktree assignment: ${path}`)
 
         this.requireValidRecord(worktree)
 
-        return { project: this.requireProject(), storage: this.requireStorage(), worktree }
+        return { card, project: this.requireProject(), projectFolder: snapshot.workingFolder, storage: this.requireStorage(), worktree }
     }
 
     private startProjectOperation() {

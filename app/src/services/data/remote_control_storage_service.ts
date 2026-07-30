@@ -27,6 +27,7 @@ import type {
     CommitResult,
     DeleteFileRequest,
     DeleteFolderRequest,
+    IntegrateWorktreeRequest,
     MoveFilesRequest,
     PrepareWorktreeRequest,
     ProjectAsset,
@@ -273,7 +274,7 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         this.pendingPushBranches.add(request.branch)
     }
 
-    async integrateWorktree(request: WorktreeOperationRequest): Promise<void> {
+    async integrateWorktree(request: IntegrateWorktreeRequest): Promise<void> {
         await this.request('integrateWorktree', [request])
         this.pendingPushBranches.add(request.project.branch)
     }

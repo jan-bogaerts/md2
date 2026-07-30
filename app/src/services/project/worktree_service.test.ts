@@ -229,5 +229,23 @@ describe('WorktreeService', () => {
         expect(flushPendingChanges.mock.invocationCallOrder[0]).toBeLessThan(
             vi.mocked(storage.integrateWorktree!).mock.invocationCallOrder[0],
         )
+        expect(storage.integrateWorktree).toHaveBeenCalledWith({
+            cardInternalId: assignedCard.header.internalId,
+            project,
+            projectFolder: 'design',
+            worktree: 1,
+        })
+    })
+
+    it('integrates a project worktree without card tracking fields', async () => {
+        const { emit, storage } = createStorage()
+        const service = new WorktreeService()
+        initService(service, storage)
+        emit(project, [first])
+        service.setProjectActionWorktree(1)
+
+        await service.integrateProjectWorktree()
+
+        expect(storage.integrateWorktree).toHaveBeenCalledWith({ project, worktree: 1 })
     })
 })

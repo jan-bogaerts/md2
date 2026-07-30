@@ -36,12 +36,23 @@ export interface ActionActivityRecord {
     rootActionLabel: string
     startedAt: string
     status: ActionActivityStatus
+    type?: undefined
 }
+
+export interface SystemActivityRecord {
+    commits: [ActivityCommitReference]
+    completedAt: string
+    label: string
+    origin: ActivityOrigin
+    type: 'system'
+}
+
+export type ActivityRecord = ActionActivityRecord | SystemActivityRecord
 
 export interface CardActivityFile {
     conversations: Omit<AgentConversation, 'path'>[]
     origin: ActivityOrigin
-    records: ActionActivityRecord[]
+    records: ActivityRecord[]
     version: 1
 }
 

@@ -5,6 +5,7 @@ const { withGitIndexMutations } = require('./git_index_coordinator');
 
 const PARKING_BRANCH_PREFIX = 'md2/parking/';
 const REFRESH_INTERVAL_MS = 5000;
+const INTEGRATION_COMMIT_MESSAGE = 'Integrate into project';
 const PRIMARY_CHECKPOINT_MESSAGE = 'Save project changes before worktree synchronization';
 
 function pathKey(folderPath) {
@@ -275,6 +276,7 @@ class WorktreeService {
         return this.enqueueMutation(async () => {
             const activeProject = this.requireActiveProject(project);
             await this.commitPrimaryChanges(activeProject);
+            const checkpointCommit = await this.runGit(activeProject.rootPath, ['rev-parse', 'HEAD']);
             const cachedRecord = this.resolve(activeProject, index);
             let record = await this.requireClean(cachedRecord, activeProject.branch);
             if (record.branch === activeProject.branch) throw new Error(`Linked worktree is already on the project branch: ${activeProject.branch}`);
@@ -294,8 +296,21 @@ class WorktreeService {
             }
             if (record.status.baseAhead <= 0) throw new Error('Linked worktree has no changes to integrate');
 
-            await this.runGit(activeProject.rootPath, ['merge', '--ff-only', record.branch]);
+            let commit;
+            try {
+                await this.runGit(activeProject.rootPath, ['merge', '--squash', record.branch]);
+                const stagedPaths = await this.runGit(activeProject.rootPath, ['diff', '--cached', '--name-only']);
+                if (stagedPaths.length === 0) throw new Error('Linked worktree has no changes to integrate');
+                await this.runGit(activeProject.rootPath, ['commit', '-m', INTEGRATION_COMMIT_MESSAGE]);
+                commit = await this.runGit(activeProject.rootPath, ['rev-parse', 'HEAD']);
+            } catch (error) {
+                await this.runGit(activeProject.rootPath, ['reset', '--hard', checkpointCommit]);
+                await this.refreshAfterMutation();
+                throw error;
+            }
             await this.refreshAfterMutation();
+
+            return { branch: activeProject.branch, commit };
         });
     }
 

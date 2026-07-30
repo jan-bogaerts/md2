@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { CardActivityFile } from '../../../../shared/card_activity.mjs'
 import { setActionBridgeOverride, type ElectronActionBridge } from '../../data/electron_action_bridge'
-import { loadCardBodyDiff, loadCardCommits, type CardCommit } from './card_commit_history'
+import { cardCommitLabel, loadCardBodyDiff, loadCardCommits, type CardCommit } from './card_commit_history'
 
 const cardInternalId = 'card-060'
 const olderHash = 'a'.repeat(40)
@@ -45,7 +45,7 @@ describe('loadCardCommits', () => {
         const commits = await loadCardCommits(cardInternalId)
 
         expect(commits.map(({ commit }) => commit)).toEqual([newerHash, olderHash])
-        expect(commits[0].record.executionId).toBe('new')
+        expect(commits[0].record).toMatchObject({ executionId: 'new' })
     })
 
     it('returns no history when local activity support is unavailable', async () => {
@@ -58,6 +58,31 @@ describe('loadCardCommits', () => {
         installBridge({ loadCardActivity: vi.fn(async () => ({ ...activity(), version: 2 } as never)) })
 
         await expect(loadCardCommits(cardInternalId)).rejects.toThrow('unsupported version 2')
+    })
+
+    it('loads one system integration commit with its system label', async () => {
+        const completedAt = '2026-07-20T12:00:00.000Z'
+        const integrationActivity: CardActivityFile = {
+            conversations: [],
+            origin: { cardInternalId, kind: 'card' },
+            records: [{
+                commits: [{
+                    branch: 'main', commit: newerHash, committedAt: completedAt, deletions: 1,
+                    filePaths: ['cards/F-060.md'], filesChanged: 1, insertions: 2,
+                }],
+                completedAt,
+                label: 'Integrate into project',
+                origin: { cardInternalId, kind: 'card' },
+                type: 'system',
+            }],
+            version: 1,
+        }
+        installBridge({ loadCardActivity: vi.fn(async () => integrationActivity) })
+
+        const commits = await loadCardCommits(cardInternalId)
+
+        expect(commits).toHaveLength(1)
+        expect(cardCommitLabel(commits[0].record)).toBe('Integrate into project')
     })
 })
 

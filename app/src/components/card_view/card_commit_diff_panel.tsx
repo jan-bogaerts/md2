@@ -1,6 +1,6 @@
 import { Box, Button, Divider, Stack, Typography } from '@mui/material'
 import { useEffect, useState, type MouseEvent } from 'react'
-import { loadCardBodyDiff, type CardBodyDiff, type CardCommit } from '../../services/actions/card_commit_history'
+import { cardCommitLabel, loadCardBodyDiff, type CardBodyDiff, type CardCommit } from '../../services/actions/card_commit_history'
 import { dialogService } from '../../services/dialog_service'
 import type { DiffCommitReference } from '../../services/data/diff_service'
 import { DiffView } from '../actions/diff_view'
@@ -70,7 +70,7 @@ export function CardCommitDiffPanel(props: CardCommitDiffPanelProps) {
         <Box aria-label="Card commit diff" role="region" sx={{ display: 'flex', flex: 1, flexDirection: 'column', minHeight: 0, overflowY: 'auto' }}>
             <Box sx={{ alignItems: 'center', borderBottom: '1px solid', borderColor: 'divider', display: 'flex', gap: 1, p: 1.5 }}>
                 <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Typography variant="subtitle2">{commit.record.rootActionLabel}</Typography>
+                    <Typography variant="subtitle2">{cardCommitLabel(commit.record)}</Typography>
                     <Typography color="text.secondary" variant="caption">
                         {new Date(commit.committedAt).toLocaleString()} · {commit.commit.slice(0, 7)}
                     </Typography>

@@ -109,6 +109,13 @@ async function appendAndCommitActionActivity(project, projectFolder, origin, rec
     }), message);
 }
 
+async function appendAndCommitSystemActivity(project, projectFolder, origin, record, message) {
+    return updateAndCommitActivity(project, projectFolder, origin, (activity) => ({
+        ...activity,
+        records: [...activity.records, record],
+    }), message);
+}
+
 function upsertConversation(activity, conversation) {
     const storedConversation = Object.fromEntries(Object.entries(conversation).filter(([fieldName]) => fieldName !== 'path'));
 
@@ -215,6 +222,7 @@ function activityConversationReference(projectFolder, origin, conversationId) {
 module.exports = {
     activityConversationReference,
     appendAndCommitActionActivity,
+    appendAndCommitSystemActivity,
     appendActionActivity,
     listAgentConversationReferences,
     loadCardActivity,

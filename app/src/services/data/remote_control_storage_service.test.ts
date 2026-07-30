@@ -116,10 +116,11 @@ describe('RemoteControlStorageService', () => {
         const addition = service.addWorktree(project)
         const preparationRequest = { branchName: 'card-title', project, worktree: 1 }
         const operationRequest = { project, worktree: 1 }
+        const integrationRequest = { ...operationRequest, cardInternalId: 'stable-card-id', projectFolder: 'design' }
         const commitRequest = { ...operationRequest, message: 'F-1: Card' }
         const commit = service.commitWorktree(commitRequest)
         const discard = service.discardWorktreeChanges(operationRequest)
-        const integration = service.integrateWorktree(operationRequest)
+        const integration = service.integrateWorktree(integrationRequest)
         const parking = service.parkWorktree(operationRequest)
         const preparation = service.prepareWorktree(preparationRequest)
         const pull = service.pullWorktree(operationRequest)
@@ -143,7 +144,7 @@ describe('RemoteControlStorageService', () => {
         expect(addRequest).toMatchObject({ method: 'addWorktree', params: [project] })
         expect(commitSentRequest).toMatchObject({ method: 'commitWorktree', params: [commitRequest] })
         expect(discardRequest).toMatchObject({ method: 'discardWorktreeChanges', params: [operationRequest] })
-        expect(integrateRequest).toMatchObject({ method: 'integrateWorktree', params: [operationRequest] })
+        expect(integrateRequest).toMatchObject({ method: 'integrateWorktree', params: [integrationRequest] })
         expect(parkRequest).toMatchObject({ method: 'parkWorktree', params: [operationRequest] })
         expect(prepareRequest).toMatchObject({ method: 'prepareWorktree', params: [preparationRequest] })
         expect(pullRequest).toMatchObject({ method: 'pullWorktree', params: [operationRequest] })
