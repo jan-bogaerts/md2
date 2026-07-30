@@ -8,8 +8,10 @@ owner:
 affects:
 agents:
 policy:
-after: 18fd04d3-5df7-4f54-ab7a-94d96f210f13
+after: 901e1f2a-b0ad-4f79-9aa2-69fb75662cd1
 ---
 We have 'rootProjectFolder' placeholder. this currently maps to the folder that the agent is running on, so it could the the main project folder or a worktree.&#x20;
 
 We need to improve this and split it up in `worktree-folder` and 'project-folder' where the last one always references the main project folder while 'worktree-folder' references the folder that the agent is currently running in.
+
+Also, we need to add the 'releases-folder' as well
