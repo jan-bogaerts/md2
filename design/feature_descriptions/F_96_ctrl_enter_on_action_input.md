@@ -8,7 +8,7 @@ owner:
 affects:
 agents:
 policy:
-after: e5b95f2c-cd0c-4623-8e12-d0c497447e71
+after: d4afff38-5581-42f4-a8f3-8ded807ab27a
 ---
 
 when pressing ctrl + enter on action input, the input is sent, this is good, but before this happens, the input box still adds an enter, which should not be the case.
