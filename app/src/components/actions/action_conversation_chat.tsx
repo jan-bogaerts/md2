@@ -6,6 +6,8 @@ import type { AgentConversation, AgentConversationEvent, AgentConversationMessag
 import { useAppTheme } from '../../theme/use_app_theme'
 import { buildMarkdownContentSx } from '../editor/markdown_style_sx'
 import type { PopupRunStatus } from './action_popup_defaults'
+import { ActionConversationLink } from './action_conversation_link'
+import { actionConversationUrlTransform } from './action_conversation_url_transform'
 import { actionStatusLabel } from './action_status'
 import { ConversationTimer } from './conversation_timer'
 import { AgentToolActivity } from './agent_tool_activity'
@@ -15,6 +17,7 @@ import { activityIdentity } from './activity_display'
 
 const CHAT_END_TOLERANCE = 4
 const MIN_CHAT_HEIGHT = 96
+const MARKDOWN_COMPONENTS = { a: ActionConversationLink }
 
 interface ActionConversationChatProps {
     conversation: AgentConversation | null
@@ -123,7 +126,13 @@ export function ActionConversationChat({ conversation, onConversationViewed, sta
                     }}
                 >
                     <Box className="mdxeditor-content">
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{entry.value.content}</ReactMarkdown>
+                        <ReactMarkdown
+                            components={MARKDOWN_COMPONENTS}
+                            remarkPlugins={[remarkGfm]}
+                            urlTransform={actionConversationUrlTransform}
+                        >
+                            {entry.value.content}
+                        </ReactMarkdown>
                     </Box>
                 </Box>
             ) : (

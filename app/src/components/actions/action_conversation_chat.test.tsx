@@ -1,6 +1,8 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AgentConversation, AgentConversationEvent, AgentConversationMessage } from '../../data/data_types'
+import { dataService } from '../../services/data/data_service'
+import { dialogService } from '../../services/dialog_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import { ActionConversationChat } from './action_conversation_chat'
 
@@ -82,6 +84,7 @@ describe('ActionConversationChat', () => {
 
     afterEach(() => {
         cleanup()
+        vi.restoreAllMocks()
         restoreProperty('clientHeight', originalClientHeight)
         restoreProperty('scrollHeight', originalScrollHeight)
         restoreProperty('scrollTop', originalScrollTop)
@@ -177,6 +180,42 @@ describe('ActionConversationChat', () => {
         )
 
         expect(viewport.scrollTop).toBe(0)
+    })
+
+    it('keeps normal web links on browser navigation', () => {
+        renderChat(conversation('links.json', [message('message-1', '[Website](https://example.com/docs)')]))
+        const link = screen.getByRole('link', { name: 'Website' })
+        let componentPreventedNavigation = true
+        const inspectClick = (event: MouseEvent) => {
+            componentPreventedNavigation = event.defaultPrevented
+            event.preventDefault()
+        }
+        document.addEventListener('click', inspectClick, { once: true })
+
+        expect(link).toHaveAttribute('href', 'https://example.com/docs')
+        fireEvent.click(link)
+        expect(componentPreventedNavigation).toBe(false)
+    })
+
+    it('reports invalid local file links without browser navigation', async () => {
+        vi.spyOn(dataService, 'getState').mockReturnValue({
+            project: { branch: 'main', id: 'local', rootPath: 'C:/repo' },
+            runningAgents: [],
+            snapshot: {
+                activeCards: [],
+                backgroundCards: [],
+                repositoryFiles: [],
+                workingFolder: 'design',
+            },
+        })
+        const reportError = vi.spyOn(dialogService, 'error')
+        renderChat(conversation('links.json', [message('message-1', '[Missing](design/missing.md)')]))
+
+        expect(fireEvent.click(screen.getByRole('link', { name: 'Missing' }))).toBe(false)
+        await waitFor(() => expect(reportError).toHaveBeenCalledWith(
+            expect.objectContaining({ message: expect.stringContaining('target does not exist') }),
+            { fallbackMessage: 'Local file link could not be opened: design/missing.md' },
+        ))
     })
 
     it('keeps vertical scrolling on the chat viewport and wraps long message tokens', () => {
