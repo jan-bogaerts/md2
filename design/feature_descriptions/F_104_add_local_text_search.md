@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
 policy:
+after: 2d44bfea-2083-4ec7-b549-3fd4d02f4af9
 ---
 
 Add local text search to the markdown editor so that it becomes available in all components that use the markdown editor.
