@@ -10,6 +10,10 @@ md² organises all of that around the work itself.
 
 Each feature, bug, or task is represented by a Markdown card inside your project. That card can be linked to its worktree, agent sessions, actions, commits, design notes, logs, and token usage. Agents can read and update the same local files directly, while you manage the overall workflow from a single dashboard.
 
+## Docs
+
+Full docs: https://jan-bogaerts.github.io/md2/
+
 ## Why md²
 
 ### One dashboard for agents and worktrees
