@@ -393,6 +393,43 @@ describe('ActionExecutionService', () => {
         service.stop()
     })
 
+    it('keeps prompt sessions separate for two cards waiting at once', async () => {
+        const beginActionPromptDraft = vi.fn()
+            .mockResolvedValueOnce(11)
+            .mockResolvedValueOnce(22)
+        const setActionQueuedMessage = vi.fn(async () => ({ accepted: true }))
+        const firstContext = { ...context, cardInternalId: 'card-1' }
+        const secondContext = { ...context, cardInternalId: 'card-2', file: 'design/F-2.md' }
+        const { bridge, emit } = bridgeWithEvents({ beginActionPromptDraft, setActionQueuedMessage })
+        setActionBridgeOverride(bridge)
+        const service = new ActionExecutionService()
+        service.start()
+        for (const [executionId, activeContext] of [['execution-1', firstContext], ['execution-2', secondContext]] as const) {
+            emit({
+                actionId: 'review',
+                actionType: 'agent',
+                autoFinish: null,
+                context: activeContext,
+                executionId,
+                interactionReady: true,
+                phase: 'main',
+                rootActionId: 'review',
+                status: 'waitingForInput',
+                streaming: true,
+                type: 'agentState',
+            })
+        }
+
+        await Promise.all([
+            service.setPromptDraft('review', firstContext, 'First answer'),
+            service.setPromptDraft('review', secondContext, 'Second answer'),
+        ])
+
+        expect(setActionQueuedMessage).toHaveBeenCalledWith('execution-1', 11, 'First answer', 0)
+        expect(setActionQueuedMessage).toHaveBeenCalledWith('execution-2', 22, 'Second answer', 0)
+        service.stop()
+    })
+
     it('keeps a prompt draft when backend send acknowledgement fails', async () => {
         const activeContext = { ...context, cardInternalId: 'card-1' }
         const { bridge, emit } = bridgeWithEvents({

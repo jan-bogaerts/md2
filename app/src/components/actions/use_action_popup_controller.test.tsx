@@ -203,6 +203,7 @@ describe('useActionPopupController', () => {
             runAction,
         }))
         await waitFor(() => expect(result.current.displayedConversation?.id).toBe('conversation-1'))
+        await waitFor(() => expect(result.current.prompt).toBe(''))
 
         await act(async () => result.current.handleRun('Continue here'))
 

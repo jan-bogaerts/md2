@@ -357,8 +357,14 @@ export class ActionExecutionService extends EventTarget {
         const pending = (previous?.pending ?? Promise.resolve()).catch(() => undefined).then(async () => {
             if (!execution?.interactionReady || execution.activeActionType !== 'agent' || !execution.activeActionId) return
 
-            const sessionId = await this.getPromptDraftSession(execution.executionId, execution.activeActionId)
-            await setActionQueuedMessageForSession(execution.executionId, sessionId, value, revision)
+            const sessionKey = executionPromptDraftKey(execution.executionId, execution.activeActionId)
+            try {
+                const sessionId = await this.getPromptDraftSession(execution.executionId, execution.activeActionId)
+                await setActionQueuedMessageForSession(execution.executionId, sessionId, value, revision)
+            } catch (error) {
+                this.promptDraftSessions.delete(sessionKey)
+                throw error
+            }
         })
         const draft = { pending, revision, value }
         this.promptDrafts.set(key, draft)
@@ -375,8 +381,15 @@ export class ActionExecutionService extends EventTarget {
         if (!draft || draft.value.trim().length === 0) throw new Error('Queued agent prompt is empty')
 
         await draft.pending
-        const sessionId = await this.getPromptDraftSession(execution.executionId, execution.activeActionId)
-        await sendActionQueuedMessage(execution.executionId, sessionId, draft.revision)
+        const sessionKey = executionPromptDraftKey(execution.executionId, execution.activeActionId)
+        try {
+            const sessionId = await this.getPromptDraftSession(execution.executionId, execution.activeActionId)
+            await setActionQueuedMessageForSession(execution.executionId, sessionId, draft.value, draft.revision)
+            await sendActionQueuedMessage(execution.executionId, sessionId, draft.revision)
+        } catch (error) {
+            this.promptDraftSessions.delete(sessionKey)
+            throw error
+        }
     }
 
     clearPromptDraft(actionId: string, context: ActionContext) {
@@ -586,7 +599,10 @@ export class ActionExecutionService extends EventTarget {
         const current = this.promptDraftSessions.get(key)
         if (current) return current
 
-        const session = beginActionPromptDraft(executionId)
+        const session = beginActionPromptDraft(executionId).catch((error: unknown) => {
+            this.promptDraftSessions.delete(key)
+            throw error
+        })
         this.promptDraftSessions.set(key, session)
 
         return session

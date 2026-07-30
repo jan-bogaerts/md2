@@ -273,6 +273,7 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
         : null
     const displayedConversation = liveConversation ?? selectedConversation
     const conversations = mergeConversationHistory(selectedHistory, action.id, context, liveConversation)
+    const restoredWaitingConversation = !sharedExecutionActive && selectedConversation?.status === 'waitingForInput'
     const continuationReference = liveConversation?.path
         ?? selectedConversation?.path
         ?? input.continueFrom
@@ -303,7 +304,7 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
         const requestId = promptRequestRef.current + 1
         promptRequestRef.current = requestId
         promptEditRevisionRef.current = 0
-        if (action.type !== 'agent' || input.continueFrom || sharedExecutionActive) return
+        if (action.type !== 'agent' || input.continueFrom || sharedExecutionActive || restoredWaitingConversation) return
 
         const editRevision = promptEditRevisionRef.current
 
@@ -323,7 +324,16 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
         }
 
         void loadPreparedPrompt()
-    }, [action.id, action.type, context, input.continueFrom, preparePrompt, promptKey, sharedExecutionActive])
+    }, [
+        action.id,
+        action.type,
+        context,
+        input.continueFrom,
+        preparePrompt,
+        promptKey,
+        restoredWaitingConversation,
+        sharedExecutionActive,
+    ])
 
     const refreshConversationHistory = async () => {
         if (!input.enableConversations || action.type !== 'agent') return
@@ -355,6 +365,13 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
                         ? null
                         : latestWaitingConversation(loadedConversations, action.id, activeContext)
                     setSelectedConversationState({ conversation: waitingConversation, key: selectionKey })
+                    if (waitingConversation) {
+                        promptRequestRef.current += 1
+                        promptEditRevisionRef.current = 0
+                        setPromptState({ key: promptKey, status: 'ready', value: '' })
+                        actionExecutionService.clearPromptDraft(action.id, activeContext)
+                        setPromptResetToken((token) => token + 1)
+                    }
                     return
                 }
 
@@ -385,6 +402,7 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
         input.enableConversations,
         loadConversation,
         loadConversations,
+        promptKey,
         selectionKey,
         sharedExecutionActive,
     ])
