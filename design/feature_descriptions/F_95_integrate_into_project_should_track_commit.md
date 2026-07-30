@@ -3,13 +3,14 @@ author:
 id: F_95
 internalId: e5b95f2c-cd0c-4623-8e12-d0c497447e71
 title: integrate into project should track commit
-status: design
+status: ready for implementation
 owner: 
 affects:
 agents:
   - design/activity/card__e5b95f2c-cd0c-4623-8e12-d0c497447e71.json#conversation=agent-669207fb-b61f-4b7f-ae5d-3fde7751fcd3
 policy:
 after: 
+worktree: 1
 ---
 
 ## Current state
