@@ -387,7 +387,7 @@ describe('useActionPopupController', () => {
         },
     )
 
-    it('does not replace prompt while an execution is active', () => {
+    it('shows empty input and skips preparation while an execution is active', async () => {
         const emit = installBridge()
         const agentAction: ActionDefinition = {
             ...action,
@@ -403,7 +403,7 @@ describe('useActionPopupController', () => {
         const loadConversations = vi.fn(async () => [])
         const loadHistory = vi.fn(async () => [])
 
-        renderHook(() => useActionPopupController({
+        const { result } = renderHook(() => useActionPopupController({
             action: agentAction,
             context,
             loadConversations,
@@ -412,6 +412,77 @@ describe('useActionPopupController', () => {
         }))
 
         expect(preparePrompt).not.toHaveBeenCalled()
+        expect(result.current.prompt).toBe('')
+        await waitFor(() => expect(result.current.promptResetToken).toBeGreaterThan(0))
+    })
+
+    it('restores active prompt draft after popup controller remount', async () => {
+        const emit = installBridge()
+        const agentAction: ActionDefinition = {
+            ...action,
+            command: null,
+            prompt: 'Plan',
+            type: 'agent',
+        }
+        emit({
+            actionId: action.id, context, executionId: 'execution-1', phase: 'main',
+            rootActionId: action.id, status: 'running', type: 'execution',
+        })
+        emit({
+            actionId: action.id, actionType: 'agent', autoFinish: null, context, executionId: 'execution-1',
+            interactionReady: false, phase: 'main', rootActionId: action.id, status: 'waitingForInput',
+            streaming: true, type: 'agentState',
+        })
+        await actionExecutionService.setPromptDraft(action.id, context, 'Keep active draft')
+        const dependencies = {
+            action: agentAction,
+            context,
+            loadConversations: vi.fn(async () => []),
+            loadHistory: vi.fn(async () => []),
+            preparePrompt: vi.fn(async () => 'Prepared'),
+        }
+        const first = renderHook(() => useActionPopupController(dependencies))
+        await waitFor(() => expect(first.result.current.prompt).toBe('Keep active draft'))
+
+        first.unmount()
+        const second = renderHook(() => useActionPopupController(dependencies))
+
+        await waitFor(() => expect(second.result.current.prompt).toBe('Keep active draft'))
+        expect(dependencies.preparePrompt).not.toHaveBeenCalled()
+    })
+
+    it('ignores prompt preparation that finishes after execution becomes active', async () => {
+        const emit = installBridge()
+        const agentAction: ActionDefinition = {
+            ...action,
+            command: null,
+            prompt: 'Plan',
+            type: 'agent',
+        }
+        let resolvePreparation!: (value: string) => void
+        const preparation = new Promise<string>((resolve) => {
+            resolvePreparation = resolve
+        })
+        const preparePrompt = vi.fn(async () => preparation)
+        const loadConversations = vi.fn(async () => [])
+        const loadHistory = vi.fn(async () => [])
+        const { result } = renderHook(() => useActionPopupController({
+            action: agentAction,
+            context,
+            loadConversations,
+            loadHistory,
+            preparePrompt,
+        }))
+        await waitFor(() => expect(preparePrompt).toHaveBeenCalledOnce())
+
+        emit({
+            actionId: action.id, context, executionId: 'execution-1', phase: 'main',
+            rootActionId: action.id, status: 'running', type: 'execution',
+        })
+        await waitFor(() => expect(result.current.prompt).toBe(''))
+        act(() => resolvePreparation('Stale prepared prompt'))
+
+        await waitFor(() => expect(result.current.prompt).toBe(''))
     })
 
     it('restores prompt draft after popup controller remount', async () => {

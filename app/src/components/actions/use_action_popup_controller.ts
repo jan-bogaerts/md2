@@ -176,7 +176,7 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
         ? `${sharedExecution.executionId}\u0000${sharedExecution.activeActionId}`
         : promptContextKey
     const sharedPromptDraft = actionExecutionService.getPromptDraft(action.id, context)
-    const initialPrompt = sharedPromptDraft || input.initialPrompt || ''
+    const initialPrompt = sharedExecutionActive ? sharedPromptDraft : sharedPromptDraft || input.initialPrompt || ''
     const promptKey = `${interactionKey}\u0000${input.continueFrom ?? ''}\u0000${input.initialPrompt ?? ''}`
     const agentProfiles = mergeAgentProfiles(configuredAgentProfiles)
     const defaultAgent = action.agent ?? configuredAgent
@@ -189,7 +189,7 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
     const [conversationHistoryState, setConversationHistoryState] = useState<{ conversations: AgentConversation[], key: string }>({ conversations: [], key: '' })
     const [promptState, setPromptState] = useState<{ key: string, status: PromptPreparationStatus, value: string }>({
         key: promptKey,
-        status: action.type === 'agent' && !input.continueFrom ? 'loading' : 'ready',
+        status: action.type === 'agent' && !input.continueFrom && !sharedExecutionActive ? 'loading' : 'ready',
         value: initialPrompt,
     })
     // Bumped whenever the prompt is replaced externally (prepared, phrase, cleared) but
