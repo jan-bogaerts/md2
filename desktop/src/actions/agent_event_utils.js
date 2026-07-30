@@ -54,6 +54,7 @@ class JsonLineBuffer {
     emit(line) {
         if (line.trim().length === 0) return;
 
+        console.log('[agent:raw]', this.label, line);
         this.onLine(line);
     }
 }
