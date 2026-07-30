@@ -14,3 +14,22 @@ after:
 When an agent is waiting for a response, but the action popup was closed or on the wrong 'action', then when the user clicks on the action to view the conversation and answer, the input box is prefilled again with the action's prompt. this is annoying cause it needs to be removed.
 
 so, when activating an action that has a running conversation, don't prefill the input
+
+# Current state
+
+`useActionPopupController` prepares an action's stored prompt for a new conversation. When popup opens on another action, or reopens while execution state is being restored, that prepared prompt can remain in `promptState` when user selects action with a `queued`, `running`, or `waitingForInput` conversation.
+
+# Implementation details
+
+- Give active execution its own prompt identity, including before active-child metadata arrives.
+- When active action is selected, seed editor only from its shared user-entered draft; otherwise show empty input.
+- Invalidate pending prompt preparation and bump `promptResetToken` when action becomes active.
+- Keep stored-prompt prefill for idle actions starting new conversations. Keep command actions unchanged.
+
+# Acceptance criteria
+
+- Selecting or reopening action with active conversation does not prefill its stored action prompt.
+- Existing user-entered draft for active conversation is restored.
+- Late prompt-preparation result cannot overwrite active conversation input.
+- Idle agent actions still prefill stored prompt.
+- Controller and popup tests cover action switching, popup reopen, draft restore, and preparation race.
