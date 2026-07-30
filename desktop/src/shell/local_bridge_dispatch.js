@@ -190,6 +190,11 @@ function createLocalBridgeDispatch(dependencies) {
 
             return actionRunnerService.answerAgentQuestion(executionId, requestId, answers);
         },
+        beginActionPromptDraft: (executionId) => {
+            if (!actionRunnerService) throw new Error('Action runner is not available');
+
+            return actionRunnerService.beginAgentPromptDraft(executionId);
+        },
         generateDiff: async (request) => {
             const result = await diffService.generateDiff(currentLocalProject, request);
 
@@ -279,15 +284,15 @@ function createLocalBridgeDispatch(dependencies) {
 
             return actionRunnerService.sendAgentMessage(executionId, content);
         },
-        sendActionQueuedMessage: (executionId, revision) => {
+        sendActionQueuedMessage: (executionId, sessionId, revision) => {
             if (!actionRunnerService) throw new Error('Action runner is not available');
 
-            return actionRunnerService.sendQueuedAgentMessage(executionId, revision);
+            return actionRunnerService.sendQueuedAgentMessage(executionId, sessionId, revision);
         },
-        setActionQueuedMessage: (executionId, content, revision) => {
+        setActionQueuedMessage: (executionId, sessionId, content, revision) => {
             if (!actionRunnerService) throw new Error('Action runner is not available');
 
-            return actionRunnerService.setAgentQueuedMessage(executionId, content, revision);
+            return actionRunnerService.setAgentQueuedMessage(executionId, sessionId, content, revision);
         },
         startAction: (request) => {
             if (!actionRunnerService) throw new Error('Action runner is not available');

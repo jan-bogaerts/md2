@@ -60,9 +60,9 @@ class ActionRunnerService {
         this.projectFolder = null;
     }
 
-    startProject(project, actionsFolder, projectFolder) {
+    async startProject(project, actionsFolder, projectFolder) {
         if (typeof projectFolder !== 'string') throw new Error('Missing action runner projectFolder');
-        if (this.project) this.stop();
+        if (this.project) await this.stop();
         this.project = project;
         this.actionsFolder = actionsFolder;
         this.projectFolder = projectFolder;
@@ -87,8 +87,27 @@ class ActionRunnerService {
         });
     }
 
-    stop() {
-        for (const execution of this.executions.values()) execution.cancel();
+    async stop() {
+        const completions = [...this.executions.values()].map((execution) => {
+            execution.cancel();
+
+            return execution.completion;
+        });
+        await Promise.all(completions);
+        this.clearProject();
+    }
+
+    async suspend() {
+        const completions = [...this.executions.values()].map((execution) => {
+            execution.suspend();
+
+            return execution.completion;
+        });
+        await Promise.all(completions);
+        this.clearProject();
+    }
+
+    clearProject() {
         this.project = null;
         this.actionsFolder = null;
         this.actionCacheReady = null;
@@ -174,12 +193,16 @@ class ActionRunnerService {
         return this.requireExecution(executionId).sendAgentMessage(content);
     }
 
-    setAgentQueuedMessage(executionId, content, revision) {
-        this.requireExecution(executionId).setAgentQueuedMessage(content, revision);
+    beginAgentPromptDraft(executionId) {
+        return this.requireExecution(executionId).beginAgentPromptDraft();
     }
 
-    sendQueuedAgentMessage(executionId, revision) {
-        return this.requireExecution(executionId).sendQueuedAgentMessage(revision);
+    setAgentQueuedMessage(executionId, sessionId, content, revision) {
+        return this.requireExecution(executionId).setAgentQueuedMessage(sessionId, content, revision);
+    }
+
+    sendQueuedAgentMessage(executionId, sessionId, revision) {
+        return this.requireExecution(executionId).sendQueuedAgentMessage(sessionId, revision);
     }
 
     answerAgentQuestion(executionId, requestId, answers) {

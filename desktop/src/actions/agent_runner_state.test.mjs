@@ -7,7 +7,10 @@ const { AgentRunnerService } = require('./agent_runner_service');
 describe('AgentRunnerService state handling', () => {
     it('consumes one queued revision exactly once', async () => {
         const sendMessage = vi.fn();
-        const service = new AgentRunnerService({ persistConversation: vi.fn(async () => undefined) });
+        const service = new AgentRunnerService({
+            persistConversation: vi.fn(async () => undefined),
+            persistConversationCheckpoint: vi.fn(async () => undefined),
+        });
         service.processes.set('run-1', {
             conversation: { messages: [], status: 'running' },
             id: 'run-1',
@@ -15,6 +18,7 @@ describe('AgentRunnerService state handling', () => {
             persistence: Promise.resolve(),
             queuedMessage: null,
             queuedMessageRevision: -1,
+            queuedMessageSessionId: 0,
             sentQueuedMessageRevision: -1,
             streaming: true,
             streamingAdapter: { sendMessage },
@@ -22,12 +26,140 @@ describe('AgentRunnerService state handling', () => {
             turnIndex: 1,
         });
 
-        service.setQueuedMessage('run-1', 'approved', 0);
-        await service.sendQueuedMessage('run-1', 0);
-        await service.sendQueuedMessage('run-1', 0);
+        const sessionId = service.beginQueuedMessageDraft('run-1');
+        service.setQueuedMessage('run-1', sessionId, 'approved', 0);
+        await expect(service.sendQueuedMessage('run-1', sessionId, 0)).resolves.toEqual({ sent: true });
+        await expect(service.sendQueuedMessage('run-1', sessionId, 0)).rejects.toThrow('already sent');
 
         expect(sendMessage).toHaveBeenCalledOnce();
         expect(sendMessage).toHaveBeenCalledWith('approved');
+    });
+
+    it('accepts revision zero from a new prompt session after renderer restart', () => {
+        const service = new AgentRunnerService();
+        const run = {
+            id: 'run-1',
+            queuedMessage: { content: 'old', revision: 4 },
+            queuedMessageRevision: 4,
+            queuedMessageSessionId: 1,
+            sentQueuedMessageRevision: 3,
+        };
+        service.processes.set('run-1', run);
+
+        const sessionId = service.beginQueuedMessageDraft('run-1');
+        const result = service.setQueuedMessage('run-1', sessionId, 'new', 0);
+
+        expect(result).toEqual({ accepted: true });
+        expect(run.queuedMessage).toEqual({ content: 'new', revision: 0 });
+        expect(() => service.setQueuedMessage('run-1', 1, 'stale', 5)).toThrow('session expired');
+    });
+
+    it('checkpoints the complete transcript when a turn starts waiting for input', async () => {
+        const persistConversationCheckpoint = vi.fn(async () => undefined);
+        const service = new AgentRunnerService({ persistConversationCheckpoint });
+        const run = {
+            agent: 'codex',
+            conversation: {
+                events: [],
+                messages: [{ content: 'Done', id: 'assistant-1', role: 'assistant', timestamp: 'now' }],
+                providerSessions: [],
+                status: 'running',
+            },
+            currentAssistantMessageId: 'assistant-1',
+            finishing: false,
+            id: 'run-1',
+            missingSession: false,
+            nextSequence: 2,
+            onEvent: vi.fn(),
+            persistence: Promise.resolve(),
+            providerConversationId: 'provider-1',
+            queuedMessage: null,
+            request: {},
+            streaming: true,
+            turnActive: true,
+            turnIndex: 1,
+            waitingForQuestion: false,
+        };
+        service.processes.set('run-1', run);
+
+        await service.handleStreamingEvent('run-1', { type: 'turnCompleted' });
+
+        expect(persistConversationCheckpoint).toHaveBeenCalledWith(expect.objectContaining({
+            conversation: expect.objectContaining({
+                messages: [expect.objectContaining({ content: 'Done' })],
+                status: 'waitingForInput',
+            }),
+        }));
+    });
+
+    it('waits for close processing after terminating every run', async () => {
+        const { promise: closed, resolve: resolveClosed } = Promise.withResolvers();
+        const service = new AgentRunnerService({ terminateProcessTree: vi.fn(async () => undefined) });
+        service.processes.set('run-1', {
+            cancelled: false,
+            child: {},
+            closed,
+            termination: null,
+        });
+        let completed = false;
+
+        const stopping = service.stopAll().then(() => {
+            completed = true;
+        });
+        await Promise.resolve();
+        expect(completed).toBe(false);
+        resolveClosed();
+        await stopping;
+        expect(completed).toBe(true);
+    });
+
+    it('persists a suspended waiting run as resumable', async () => {
+        const persistConversation = vi.fn(async () => undefined);
+        const service = new AgentRunnerService({ persistConversation });
+        const run = {
+            agent: 'codex',
+            cancelled: false,
+            changedPaths: new Set(),
+            child: { pid: 10 },
+            conversation: {
+                completedAt: null,
+                events: [],
+                id: 'conversation-1',
+                messages: [{ content: 'Done', id: 'assistant-1', role: 'assistant', timestamp: 'now' }],
+                providerSessions: [],
+                status: 'waitingForInput',
+            },
+            currentAssistantMessageId: null,
+            finishing: false,
+            id: 'run-1',
+            missingSession: false,
+            onComplete: vi.fn(),
+            onEvent: vi.fn(),
+            persistence: Promise.resolve(),
+            protocolHandling: Promise.resolve(),
+            request: {},
+            startedAt: '2026-07-30T10:00:00.000Z',
+            stderr: '',
+            stderrBuffer: '',
+            stdout: '',
+            streaming: true,
+            streamingFailure: null,
+            suspended: true,
+            termination: Promise.resolve(),
+            turnUsage: null,
+        };
+        service.processes.set('run-1', run);
+        service.runningConversationIds.add('conversation-1');
+
+        await service.handleClose('run-1', 1);
+
+        expect(persistConversation).toHaveBeenCalledWith(expect.objectContaining({
+            conversation: expect.objectContaining({
+                completedAt: null,
+                status: 'waitingForInput',
+            }),
+            stderr: '',
+        }));
     });
 
     it('redacts secret answers from stored and emitted activity', async () => {
@@ -35,7 +167,10 @@ describe('AgentRunnerService state handling', () => {
         const answerQuestion = vi.fn(() => new Promise((resolve) => {
             releaseAnswer = resolve;
         }));
-        const service = new AgentRunnerService({ persistConversation: vi.fn(async () => undefined) });
+        const service = new AgentRunnerService({
+            persistConversation: vi.fn(async () => undefined),
+            persistConversationCheckpoint: vi.fn(async () => undefined),
+        });
         const run = {
             conversation: { events: [], messages: [], status: 'waitingForInput' },
             id: 'run-1',
@@ -109,6 +244,7 @@ describe('AgentRunnerService state handling', () => {
         const writeError = new Error('stdin write failed');
         const service = new AgentRunnerService({
             persistConversation: vi.fn(async () => undefined),
+            persistConversationCheckpoint: vi.fn(async () => undefined),
             terminateProcessTree: vi.fn(async () => undefined),
         });
         const run = {

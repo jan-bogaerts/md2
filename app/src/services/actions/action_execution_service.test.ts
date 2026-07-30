@@ -364,9 +364,10 @@ describe('ActionExecutionService', () => {
     })
 
     it('preserves and synchronizes active-action prompt drafts', async () => {
-        const setActionQueuedMessage = vi.fn(async () => undefined)
+        const beginActionPromptDraft = vi.fn(async () => 2)
+        const setActionQueuedMessage = vi.fn(async () => ({ accepted: true }))
         const activeContext = { ...context, cardInternalId: 'card-1' }
-        const { bridge, emit } = bridgeWithEvents({ setActionQueuedMessage })
+        const { bridge, emit } = bridgeWithEvents({ beginActionPromptDraft, setActionQueuedMessage })
         setActionBridgeOverride(bridge)
         const service = new ActionExecutionService()
         service.start()
@@ -387,7 +388,40 @@ describe('ActionExecutionService', () => {
         await service.setPromptDraft('review', activeContext, 'Follow up')
 
         expect(service.getPromptDraft('review', activeContext)).toBe('Follow up')
-        expect(setActionQueuedMessage).toHaveBeenCalledWith('execution-1', 'Follow up', 0)
+        expect(beginActionPromptDraft).toHaveBeenCalledWith('execution-1')
+        expect(setActionQueuedMessage).toHaveBeenCalledWith('execution-1', 2, 'Follow up', 0)
+        service.stop()
+    })
+
+    it('keeps a prompt draft when backend send acknowledgement fails', async () => {
+        const activeContext = { ...context, cardInternalId: 'card-1' }
+        const { bridge, emit } = bridgeWithEvents({
+            beginActionPromptDraft: vi.fn(async () => 3),
+            sendActionQueuedMessage: vi.fn(async () => {
+                throw new Error('Queued agent message session expired')
+            }),
+            setActionQueuedMessage: vi.fn(async () => ({ accepted: true })),
+        })
+        setActionBridgeOverride(bridge)
+        const service = new ActionExecutionService()
+        service.start()
+        emit({
+            actionId: 'review',
+            actionType: 'agent',
+            autoFinish: null,
+            context: activeContext,
+            executionId: 'execution-1',
+            interactionReady: true,
+            phase: 'main',
+            rootActionId: 'review',
+            status: 'waitingForInput',
+            streaming: true,
+            type: 'agentState',
+        })
+        await service.setPromptDraft('review', activeContext, 'Do not lose this')
+
+        await expect(service.sendPromptDraft('review', activeContext)).rejects.toThrow('session expired')
+        expect(service.getPromptDraft('review', activeContext)).toBe('Do not lose this')
         service.stop()
     })
 
@@ -404,9 +438,10 @@ describe('ActionExecutionService', () => {
     })
 
     it('clears a queued draft when streaming sends it automatically', async () => {
-        const setActionQueuedMessage = vi.fn(async () => undefined)
+        const beginActionPromptDraft = vi.fn(async () => 2)
+        const setActionQueuedMessage = vi.fn(async () => ({ accepted: true }))
         const activeContext = { ...context, cardInternalId: 'card-1' }
-        const { bridge, emit } = bridgeWithEvents({ setActionQueuedMessage })
+        const { bridge, emit } = bridgeWithEvents({ beginActionPromptDraft, setActionQueuedMessage })
         setActionBridgeOverride(bridge)
         const service = new ActionExecutionService()
         service.start()

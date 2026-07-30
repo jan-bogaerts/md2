@@ -268,7 +268,7 @@ async function stopAndQuit() {
         await flushRendererPendingCommits();
         await remoteControlService.stop();
         actionSchedulerService.stop();
-        actionRunnerService.stop();
+        await actionRunnerService.suspend();
         await agentRunnerService.stopAll();
         await trackEvent('electron_stop');
         await flush();

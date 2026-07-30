@@ -13,6 +13,7 @@ const {
 const {
     conversationReference,
     persistConversation,
+    persistConversationCheckpoint,
 } = require('./agent_conversation_persistence');
 const { JsonLineBuffer } = require('./agent_event_utils');
 const { createAgentProviderProtocolParser } = require('./agent_provider_protocol');
@@ -135,6 +136,11 @@ function redactActivity(activity, secretValues) {
     };
 }
 
+function requireQueuedMessageSession(run, sessionId) {
+    if (!Number.isSafeInteger(sessionId) || sessionId <= 0) throw new Error('Invalid queued agent message session');
+    if (sessionId !== run.queuedMessageSessionId) throw new Error('Queued agent message session expired');
+}
+
 function nextConversationSequence(conversation) {
     const entries = [...conversation.messages, ...conversation.events];
     const highestSequence = entries.reduce((highest, entry) => (
@@ -253,6 +259,8 @@ class AgentRunnerService {
         this.persistConversation = dependencies.persistConversation
             ?? dependencies.persistTerminalConversation
             ?? persistConversation;
+        this.persistConversationCheckpoint = dependencies.persistConversationCheckpoint
+            ?? persistConversationCheckpoint;
         this.executableResolver = dependencies.executableResolver ?? new AgentExecutableResolver();
         this.terminateDescendantProcesses = dependencies.terminateDescendantProcesses ?? terminateDescendantProcesses;
         this.terminateProcessTree = dependencies.terminateProcessTree ?? terminateProcessTree;
@@ -327,6 +335,7 @@ class AgentRunnerService {
             runId: id,
             startedAt,
         });
+        const { promise: closed, resolve: resolveClosed } = Promise.withResolvers();
         const run = {
             agent,
             assistantItemIndex: 0,
@@ -334,6 +343,7 @@ class AgentRunnerService {
             cancelled: false,
             child,
             changedPaths: new Set(),
+            closed,
             conversation,
             currentAssistantMessageId: null,
             id,
@@ -344,14 +354,17 @@ class AgentRunnerService {
             onEvent,
             interactionWrites: Promise.resolve(),
             pendingQuestions: [],
+            persistence: Promise.resolve(),
             providerConversationId: null,
             protocolLines: null,
             protocolHandling: Promise.resolve(),
             reference,
             reportedProviderErrors: new Set(),
+            resolveClosed,
             queuedMessage: null,
             queuedMessageRevision: -1,
             sentQueuedMessageRevision: -1,
+            queuedMessageSessionId: 0,
             secretValues: new Set(),
             request,
             stderr: '',
@@ -365,6 +378,7 @@ class AgentRunnerService {
             turnIndex: 1,
             turnActive: streaming,
             termination: null,
+            suspended: false,
             turnUsage: null,
             waitingForQuestion: false,
         };
@@ -396,7 +410,7 @@ class AgentRunnerService {
         child.on('error', (error) => this.handleError(id, error));
         child.stdin.on('error', (error) => this.handleError(id, error));
         child.on('close', (exitCode) => {
-            void this.handleClose(id, exitCode ?? 1);
+            void this.handleClose(id, exitCode ?? 1).finally(run.resolveClosed);
         });
         if (streaming) {
             const initialPrompt = typeof request.contextInput === 'string' && request.contextInput.length > 0
@@ -434,6 +448,24 @@ class AgentRunnerService {
         return this.ensureTermination(run);
     }
 
+    suspend(runId) {
+        const run = this.requireRun(runId);
+        run.suspended = true;
+        run.queuedMessage = null;
+
+        return this.ensureTermination(run);
+    }
+
+    beginQueuedMessageDraft(runId) {
+        const run = this.requireRun(runId);
+        run.queuedMessageSessionId += 1;
+        run.queuedMessage = null;
+        run.queuedMessageRevision = -1;
+        run.sentQueuedMessageRevision = -1;
+
+        return run.queuedMessageSessionId;
+    }
+
     sendMessage(runId, content) {
         const run = this.requireStreamingRun(runId);
         if (typeof content !== 'string' || content.trim().length === 0) throw new Error('Agent message is required');
@@ -444,19 +476,24 @@ class AgentRunnerService {
         });
     }
 
-    sendQueuedMessage(runId, revision) {
+    sendQueuedMessage(runId, sessionId, revision) {
         const run = this.requireRun(runId);
+        requireQueuedMessageSession(run, sessionId);
         if (!Number.isSafeInteger(revision) || revision < 0) throw new Error('Invalid queued agent message revision');
 
         return queueInteractionWrite(run, async () => {
-            if (revision <= run.sentQueuedMessageRevision) return;
-            if (!run.queuedMessage || run.queuedMessage.revision > revision) return;
-            if (!run.streaming) return;
+            requireQueuedMessageSession(run, sessionId);
+            if (revision <= run.sentQueuedMessageRevision) throw new Error('Queued agent message was already sent');
+            if (!run.queuedMessage) throw new Error('Queued agent message is empty');
+            if (run.queuedMessage.revision !== revision) throw new Error('Queued agent message changed before it was sent');
+            if (!run.streaming) throw new Error('Queued agent messaging requires a streaming agent');
 
             const { content, revision: queuedRevision } = run.queuedMessage;
             await this.sendStreamingMessage(run, content);
             run.queuedMessage = null;
             run.sentQueuedMessageRevision = queuedRevision;
+
+            return { sent: true };
         });
     }
 
@@ -476,17 +513,21 @@ class AgentRunnerService {
         const userMessage = run.conversation.messages.at(-1);
         run.conversation.status = 'running';
         run.turnActive = true;
+        await this.persistCheckpoint(run);
         emitRunEvent(run, { type: 'userMessage', userMessage });
         emitRunEvent(run, { state: 'running', type: 'state' });
     }
 
-    setQueuedMessage(runId, content, revision) {
+    setQueuedMessage(runId, sessionId, content, revision) {
         const run = this.requireRun(runId);
+        requireQueuedMessageSession(run, sessionId);
         if (!Number.isSafeInteger(revision) || revision < 0) throw new Error('Invalid queued agent message revision');
-        if (revision < run.queuedMessageRevision) return;
+        if (revision < run.queuedMessageRevision) return { accepted: false };
         if (typeof content !== 'string') throw new Error('Invalid queued agent message');
         run.queuedMessageRevision = revision;
         run.queuedMessage = content.trim().length > 0 ? { content, revision } : null;
+
+        return { accepted: true };
     }
 
     answerQuestion(runId, requestId, answers) {
@@ -523,6 +564,7 @@ class AgentRunnerService {
             run.conversation.status = 'running';
             run.waitingForQuestion = false;
             run.pendingQuestions = [];
+            await this.persistCheckpoint(run);
             emitRunEvent(run, { type: 'questionAnswered', userMessage });
             emitRunEvent(run, { state: 'running', type: 'state' });
         });
@@ -536,13 +578,13 @@ class AgentRunnerService {
     }
 
     stopAll() {
-        const terminations = [];
+        const completions = [];
         for (const run of this.processes.values()) {
             run.cancelled = true;
-            terminations.push(this.ensureTermination(run));
+            completions.push(Promise.all([this.ensureTermination(run), run.closed]));
         }
 
-        return Promise.all(terminations);
+        return Promise.all(completions);
     }
 
     ensureTermination(run) {
@@ -757,6 +799,7 @@ class AgentRunnerService {
             run.conversation.status = 'waitingForInput';
             run.waitingForQuestion = true;
             run.pendingQuestions = event.questions;
+            await this.persistCheckpoint(run);
             emitRunEvent(run, { questions: event.questions, requestId: event.requestId, state: 'waitingForInput', type: 'question' });
             return;
         }
@@ -795,6 +838,7 @@ class AgentRunnerService {
             timestamp,
             nextRunSequence(run),
         ));
+        await this.persistCheckpoint(run);
         emitRunEvent(run, { state: 'waitingForInput', type: 'state' });
     }
 
@@ -881,7 +925,7 @@ class AgentRunnerService {
             await run.protocolHandling;
             this.flushStderr(runId);
             const completedAt = new Date().toISOString();
-            if (run.streaming && !run.finishing && !run.cancelled && !run.streamingFailure) {
+            if (run.streaming && !run.finishing && !run.cancelled && !run.streamingFailure && !run.suspended) {
                 run.streamingFailure = new Error('Streaming agent process exited before Finish');
                 const separator = run.stderr.length > 0 && !run.stderr.endsWith('\n') ? '\n' : '';
                 run.stderr += `${separator}${run.streamingFailure.message}`;
@@ -897,8 +941,11 @@ class AgentRunnerService {
                 updateProviderSession(run, synchronizedMessage.id, completedAt);
                 if (run.turnUsage) run.conversation.usage = accumulateUsage(run.conversation.usage, run.turnUsage);
             }
-            run.conversation.completedAt = completedAt;
-            run.conversation.status = run.cancelled ? 'cancelled' : succeeded ? 'completed' : 'failed';
+            const preserveWaitingState = run.suspended && run.conversation.status === 'waitingForInput';
+            run.conversation.completedAt = preserveWaitingState ? null : completedAt;
+            run.conversation.status = preserveWaitingState
+                ? 'waitingForInput'
+                : run.cancelled ? 'cancelled' : succeeded ? 'completed' : 'failed';
             run.conversation.events.push(createEvent(
                 `${runId}-closed`,
                 'closed',
@@ -914,6 +961,7 @@ class AgentRunnerService {
                 pid: run.child.pid,
                 runId,
             });
+            await run.persistence;
             await this.persistConversation(run);
             this.processes.delete(runId);
             this.runningConversationIds.delete(run.conversation.id);
@@ -932,6 +980,14 @@ class AgentRunnerService {
         if (!run) throw new Error(`Agent run is not active: ${runId}`);
 
         return run;
+    }
+
+    persistCheckpoint(run) {
+        const snapshot = { ...run, conversation: structuredClone(run.conversation) };
+        const write = run.persistence.then(() => this.persistConversationCheckpoint(snapshot));
+        run.persistence = write.catch(() => undefined);
+
+        return write;
     }
 
     requireStreamingRun(runId) {

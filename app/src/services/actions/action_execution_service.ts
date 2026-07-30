@@ -57,6 +57,7 @@ export interface ActionExecutionSnapshot {
 
 type EventListener = (event: ActionExecutionEvent) => void
 interface PromptDraft {
+    pending: Promise<void>
     revision: number
     value: string
 }
@@ -217,18 +218,27 @@ export async function sendActionMessage(executionId: string, content: string) {
     await bridge.sendActionMessage(executionId, content)
 }
 
-export async function setActionQueuedMessage(executionId: string, content: string, revision: number) {
+export async function beginActionPromptDraft(executionId: string) {
+    const bridge = getElectronActionBridge()
+    if (!bridge?.beginActionPromptDraft) throw new Error('Agent prompt queue requires Electron')
+
+    return bridge.beginActionPromptDraft(executionId)
+}
+
+export async function setActionQueuedMessageForSession(executionId: string, sessionId: number, content: string, revision: number) {
     const bridge = getElectronActionBridge()
     if (!bridge?.setActionQueuedMessage) throw new Error('Agent prompt queue requires Electron')
 
-    await bridge.setActionQueuedMessage(executionId, content, revision)
+    const result = await bridge.setActionQueuedMessage(executionId, sessionId, content, revision)
+    if (!result.accepted) throw new Error('Queued agent prompt was superseded')
 }
 
-export async function sendActionQueuedMessage(executionId: string, revision: number) {
+export async function sendActionQueuedMessage(executionId: string, sessionId: number, revision: number) {
     const bridge = getElectronActionBridge()
     if (!bridge?.sendActionQueuedMessage) throw new Error('Sending queued agent prompt requires Electron')
 
-    await bridge.sendActionQueuedMessage(executionId, revision)
+    const result = await bridge.sendActionQueuedMessage(executionId, sessionId, revision)
+    if (!result.sent) throw new Error('Queued agent prompt was not sent')
 }
 
 export async function answerActionQuestion(
@@ -263,6 +273,7 @@ export class ActionExecutionService extends EventTarget {
     private eventSequences = new Map<string, number>()
     private executions = new Map<string, LiveActionExecution>()
     private promptDrafts = new Map<string, PromptDraft>()
+    private promptDraftSessions = new Map<string, Promise<number>>()
     private runningSnapshot: LiveActionExecution[] = []
     private recoveryEvents: ActionExecutionEvent[] | null = null
     private snapshot: ActionExecutionSnapshot = { executions: [] }
@@ -294,6 +305,7 @@ export class ActionExecutionService extends EventTarget {
         this.eventSequences = new Map()
         this.executions = new Map()
         this.promptDrafts = new Map()
+        this.promptDraftSessions = new Map()
         this.recoveryEvents = null
         this.publish()
     }
@@ -341,12 +353,18 @@ export class ActionExecutionService extends EventTarget {
         const execution = this.getRunningExecutionForContext(context)
         const key = promptDraftKey(actionId, context, execution)
         const previous = this.promptDrafts.get(key)
-        const draft = { revision: (previous?.revision ?? -1) + 1, value }
+        const revision = (previous?.revision ?? -1) + 1
+        const pending = (previous?.pending ?? Promise.resolve()).catch(() => undefined).then(async () => {
+            if (!execution?.interactionReady || execution.activeActionType !== 'agent' || !execution.activeActionId) return
+
+            const sessionId = await this.getPromptDraftSession(execution.executionId, execution.activeActionId)
+            await setActionQueuedMessageForSession(execution.executionId, sessionId, value, revision)
+        })
+        const draft = { pending, revision, value }
         this.promptDrafts.set(key, draft)
         this.dispatchEvent(new CustomEvent('changed'))
-        if (!execution?.interactionReady || execution.activeActionType !== 'agent') return
 
-        await setActionQueuedMessage(execution.executionId, value, draft.revision)
+        await pending
     }
 
     async sendPromptDraft(actionId: string, context: ActionContext) {
@@ -356,7 +374,9 @@ export class ActionExecutionService extends EventTarget {
         const draft = this.promptDrafts.get(key)
         if (!draft || draft.value.trim().length === 0) throw new Error('Queued agent prompt is empty')
 
-        await sendActionQueuedMessage(execution.executionId, draft.revision)
+        await draft.pending
+        const sessionId = await this.getPromptDraftSession(execution.executionId, execution.activeActionId)
+        await sendActionQueuedMessage(execution.executionId, sessionId, draft.revision)
     }
 
     clearPromptDraft(actionId: string, context: ActionContext) {
@@ -547,6 +567,7 @@ export class ActionExecutionService extends EventTarget {
 
     private clearExecutionPromptDraft(executionId: string, actionId: string) {
         this.promptDrafts.delete(executionPromptDraftKey(executionId, actionId))
+        this.promptDraftSessions.delete(executionPromptDraftKey(executionId, actionId))
         this.dispatchEvent(new CustomEvent('promptDraftCleared', { detail: { actionId, executionId } }))
     }
 
@@ -555,6 +576,20 @@ export class ActionExecutionService extends EventTarget {
         for (const key of this.promptDrafts.keys()) {
             if (key.startsWith(prefix)) this.promptDrafts.delete(key)
         }
+        for (const key of this.promptDraftSessions.keys()) {
+            if (key.startsWith(prefix)) this.promptDraftSessions.delete(key)
+        }
+    }
+
+    private getPromptDraftSession(executionId: string, actionId: string) {
+        const key = executionPromptDraftKey(executionId, actionId)
+        const current = this.promptDraftSessions.get(key)
+        if (current) return current
+
+        const session = beginActionPromptDraft(executionId)
+        this.promptDraftSessions.set(key, session)
+
+        return session
     }
 
     private publish() {

@@ -8,6 +8,7 @@ function createDispatch(options = {}) {
     const agentExecutableAvailability = vi.fn(async () => ({ codex: { available: true, error: null } }));
     const actionRunnerService = {
         answerAgentQuestion: vi.fn(),
+        beginAgentPromptDraft: vi.fn(() => 2),
         cancel: vi.fn(),
         finishAgentExecution: vi.fn(),
         handleCardStateChange: vi.fn(),
@@ -298,15 +299,17 @@ describe('createLocalBridgeDispatch', () => {
 
         await dispatch.actionBridge.cancelActionExecution('action-1');
         await dispatch.actionBridge.sendActionMessage('action-1', 'approved');
-        await dispatch.actionBridge.setActionQueuedMessage('action-1', 'next', 3);
-        await dispatch.actionBridge.sendActionQueuedMessage('action-1', 3);
+        expect(dispatch.actionBridge.beginActionPromptDraft('action-1')).toBe(2);
+        await dispatch.actionBridge.setActionQueuedMessage('action-1', 2, 'next', 3);
+        await dispatch.actionBridge.sendActionQueuedMessage('action-1', 2, 3);
         await dispatch.actionBridge.answerActionQuestion('action-1', 7, { confirm: ['Yes'] });
         await dispatch.actionBridge.finishActionExecution('action-1');
 
         expect(actionRunnerService.cancel).toHaveBeenCalledWith('action-1');
         expect(actionRunnerService.sendAgentMessage).toHaveBeenCalledWith('action-1', 'approved');
-        expect(actionRunnerService.setAgentQueuedMessage).toHaveBeenCalledWith('action-1', 'next', 3);
-        expect(actionRunnerService.sendQueuedAgentMessage).toHaveBeenCalledWith('action-1', 3);
+        expect(actionRunnerService.beginAgentPromptDraft).toHaveBeenCalledWith('action-1');
+        expect(actionRunnerService.setAgentQueuedMessage).toHaveBeenCalledWith('action-1', 2, 'next', 3);
+        expect(actionRunnerService.sendQueuedAgentMessage).toHaveBeenCalledWith('action-1', 2, 3);
         expect(actionRunnerService.answerAgentQuestion).toHaveBeenCalledWith('action-1', 7, { confirm: ['Yes'] });
         expect(actionRunnerService.finishAgentExecution).toHaveBeenCalledWith('action-1');
     });

@@ -53,21 +53,33 @@ class ActionExecution {
         if (this.activeAgentRunId) this.agentRunnerService.stop(this.activeAgentRunId);
     }
 
+    suspend() {
+        this.controller.abort();
+        if (this.activeAgentRunId) this.agentRunnerService.suspend(this.activeAgentRunId);
+    }
+
     sendAgentMessage(content) {
         if (!this.activeAgentRunId) throw new Error(`Action execution has no active streaming agent: ${this.executionId}`);
         if (this.activeAgentQuestion) throw new Error('Answer pending structured question before sending queued prompt');
         return this.agentRunnerService.sendMessage(this.activeAgentRunId, content);
     }
 
-    setAgentQueuedMessage(content, revision) {
+    beginAgentPromptDraft() {
         if (!this.activeAgentRunId) throw new Error(`Action execution has no active agent: ${this.executionId}`);
-        this.agentRunnerService.setQueuedMessage(this.activeAgentRunId, content, revision);
+
+        return this.agentRunnerService.beginQueuedMessageDraft(this.activeAgentRunId);
     }
 
-    sendQueuedAgentMessage(revision) {
+    setAgentQueuedMessage(sessionId, content, revision) {
+        if (!this.activeAgentRunId) throw new Error(`Action execution has no active agent: ${this.executionId}`);
+
+        return this.agentRunnerService.setQueuedMessage(this.activeAgentRunId, sessionId, content, revision);
+    }
+
+    sendQueuedAgentMessage(sessionId, revision) {
         if (!this.activeAgentRunId) throw new Error(`Action execution has no active agent: ${this.executionId}`);
         if (this.activeAgentQuestion) throw new Error('Answer pending structured question before sending queued prompt');
-        return this.agentRunnerService.sendQueuedMessage(this.activeAgentRunId, revision);
+        return this.agentRunnerService.sendQueuedMessage(this.activeAgentRunId, sessionId, revision);
     }
 
     async answerAgentQuestion(requestId, answers) {

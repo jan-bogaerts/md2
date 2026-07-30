@@ -93,6 +93,7 @@ export interface OpenInEditorRequest {
 
 export interface ElectronActionBridge {
     answerActionQuestion?(executionId: string, requestId: number | string | null, answers: Record<string, string[]>): Promise<void>
+    beginActionPromptDraft?(executionId: string): Promise<number>
     cancelActionExecution(executionId: string): Promise<void>
     finishActionExecution?(executionId: string): Promise<void>
     generateDiff(request: DiffRequest): Promise<DiffResult>
@@ -108,8 +109,8 @@ export interface ElectronActionBridge {
     registerActionSchedule?(request: ActionScheduleRegistrationRequest): Promise<void>
     runSearchRegexpAgent(input: string, callback?: (event: AgentRunEvent) => void): Promise<string>
     sendActionMessage?(executionId: string, content: string): Promise<void>
-    sendActionQueuedMessage?(executionId: string, revision: number): Promise<void>
-    setActionQueuedMessage?(executionId: string, content: string, revision: number): Promise<void>
+    sendActionQueuedMessage?(executionId: string, sessionId: number, revision: number): Promise<{ sent: true }>
+    setActionQueuedMessage?(executionId: string, sessionId: number, content: string, revision: number): Promise<{ accepted: boolean }>
     startAction(request: ActionStartRequest): Promise<string>
     startUnattendedAction?(request: ActionStartRequest): Promise<string>
 }

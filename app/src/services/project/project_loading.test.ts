@@ -520,6 +520,36 @@ describe('ProjectLoading', () => {
         expect(actionService.getActions().map((action) => action.id)).not.toContain('action-do')
     })
 
+    it('does not reload project files when an activity checkpoint changes', async () => {
+        vi.useFakeTimers()
+        configService.init()
+        const loadActionFiles = vi.fn(async () => [])
+        const loadFile = vi.fn()
+        let watchChange: (event: { changeKind: 'changed'; path: string }) => void = () => {
+            throw new Error('Watcher not registered')
+        }
+        const storage = createStorage({
+            loadActionFiles,
+            loadFile,
+            watchProject: vi.fn((_project, onChange) => {
+                watchChange = onChange
+
+                return vi.fn()
+            }),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        loadActionFiles.mockClear()
+        loadFile.mockClear()
+
+        watchChange({ changeKind: 'changed', path: 'design/activity/card__card-1.json' })
+        await vi.advanceTimersByTimeAsync(1000)
+
+        expect(loadActionFiles).not.toHaveBeenCalled()
+        expect(loadFile).not.toHaveBeenCalled()
+    })
+
     it('marks an action watcher event during its commit as a local publication echo', async () => {
         vi.useFakeTimers()
         configService.init()

@@ -1,5 +1,6 @@
 const {
     activityConversationReference,
+    upsertActivityConversation,
     upsertAndCommitActivityConversation,
 } = require('./activity_files');
 
@@ -28,4 +29,19 @@ async function persistTerminalConversation(run) {
     );
 }
 
-module.exports = { conversationReference, persistConversation: persistTerminalConversation, persistTerminalConversation };
+async function persistConversationCheckpoint(run) {
+    const request = requireActivityRequest(run.request);
+    await upsertActivityConversation(
+        request.activityProject,
+        request.projectFolder,
+        request.activityOrigin,
+        run.conversation,
+    );
+}
+
+module.exports = {
+    conversationReference,
+    persistConversation: persistTerminalConversation,
+    persistConversationCheckpoint,
+    persistTerminalConversation,
+};

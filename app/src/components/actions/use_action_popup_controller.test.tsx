@@ -165,6 +165,54 @@ describe('useActionPopupController', () => {
         expect(scheduleAction).toHaveBeenCalledWith(action, scheduleContext, expect.objectContaining({ type: 'at' }))
     })
 
+    it('restores a persisted waiting conversation and continues it with submitted input', async () => {
+        const agentAction: ActionDefinition = {
+            ...action,
+            command: null,
+            prompt: 'Plan',
+            streaming: true,
+            type: 'agent',
+        }
+        const restoredContext: ActionContext = { ...context, cardInternalId: 'card-1' }
+        const conversation = {
+            actionId: action.id,
+            cardInternalId: 'card-1',
+            cardPath: context.file ?? null,
+            completedAt: null,
+            events: [],
+            hasExplicitTitle: true,
+            id: 'conversation-1',
+            messages: [{ content: 'Saved answer', id: 'assistant-1', role: 'assistant' as const, timestamp: 'now' }],
+            path: 'activity.json#conversation=conversation-1',
+            providerSessions: [],
+            startedAt: '2026-07-30T10:00:00.000Z',
+            status: 'waitingForInput' as const,
+            title: 'Build',
+        }
+        const loadConversations = vi.fn(async () => [conversation])
+        const loadHistory = vi.fn(async () => [])
+        const preparePrompt = vi.fn(async () => 'Initial prompt')
+        const runAction = vi.fn(async () => ({ logs: [], status: 'completed' as const }))
+        const { result } = renderHook(() => useActionPopupController({
+            action: agentAction,
+            context: restoredContext,
+            enableConversations: true,
+            loadConversations,
+            loadHistory,
+            preparePrompt,
+            runAction,
+        }))
+        await waitFor(() => expect(result.current.displayedConversation?.id).toBe('conversation-1'))
+
+        await act(async () => result.current.handleRun('Continue here'))
+
+        expect(runAction).toHaveBeenCalledWith(agentAction, restoredContext, {
+            continueFrom: conversation.path,
+            prompt: 'Continue here',
+            thinkingLevel: 'none',
+        }, expect.any(Function))
+    })
+
     it('sends later streaming turns and structured answers through active execution', async () => {
         const emit = installBridge()
         const streamingAction: ActionDefinition = {

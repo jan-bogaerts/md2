@@ -232,7 +232,9 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
                         <ActionConversationChat
                             conversation={controller.displayedConversation}
                             onConversationViewed={props.onConversationViewed}
-                            status={controller.runStatus}
+                            status={controller.runStatus === 'idle' && controller.displayedConversation?.status === 'waitingForInput'
+                                ? 'waitingForInput'
+                                : controller.runStatus}
                         />
                         <ActionAgentPrompt
                             convertMessage={controller.convertMessage}

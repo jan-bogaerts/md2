@@ -123,12 +123,12 @@ describe('ActionRunnerService', () => {
         expect(agentRunnerService.start).not.toHaveBeenCalled();
     });
 
-    it('returns current actions folder and clears readiness on stop', () => {
+    it('returns current actions folder and clears readiness on stop', async () => {
         const { runner } = createRunner();
 
         expect(runner.requireActionsFolder()).toBe('actions');
         expect(runner.requireProjectFolder()).toBe('design');
-        runner.stop();
+        await runner.stop();
         expect(() => runner.requireActionsFolder()).toThrow('Action runner has no actions folder');
     });
 
@@ -296,8 +296,9 @@ describe('ActionRunnerService', () => {
         const firstId = await runner.start({ actionId: 'main', context, runInput: {} });
         const secondId = await runner.start({ actionId: 'main', context, runInput: {} });
 
-        runner.stop();
+        const stopping = runner.stop();
         resolve();
+        await stopping;
 
         await expect(runner.wait(firstId)).resolves.toMatchObject({ status: 'cancelled' });
         await expect(runner.wait(secondId)).resolves.toMatchObject({ status: 'cancelled' });

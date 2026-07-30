@@ -389,12 +389,21 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         await this.request('sendActionMessage', [executionId, content])
     }
 
-    async sendActionQueuedMessage(executionId: string, revision: number): Promise<void> {
-        await this.request('sendActionQueuedMessage', [executionId, revision])
+    async beginActionPromptDraft(executionId: string): Promise<number> {
+        return this.request('beginActionPromptDraft', [executionId])
     }
 
-    async setActionQueuedMessage(executionId: string, content: string, revision: number): Promise<void> {
-        await this.request('setActionQueuedMessage', [executionId, content, revision])
+    async sendActionQueuedMessage(executionId: string, sessionId: number, revision: number): Promise<{ sent: true }> {
+        return this.request('sendActionQueuedMessage', [executionId, sessionId, revision])
+    }
+
+    async setActionQueuedMessage(
+        executionId: string,
+        sessionId: number,
+        content: string,
+        revision: number,
+    ): Promise<{ accepted: boolean }> {
+        return this.request('setActionQueuedMessage', [executionId, sessionId, content, revision])
     }
 
     async answerActionQuestion(

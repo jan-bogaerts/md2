@@ -89,6 +89,12 @@ function conversationContextKey(actionId: string, context: ActionContext) {
     return `${actionId}\u0000${actionContextIdentity(context)}`
 }
 
+function latestWaitingConversation(conversations: AgentConversation[], actionId: string, context: ActionContext) {
+    return conversations
+        .filter((conversation) => belongsToAction(conversation, actionId, context) && conversation.status === 'waitingForInput')
+        .sort((left, right) => conversationTimestamp(right) - conversationTimestamp(left))[0] ?? null
+}
+
 function liveAgentConversation(
     turn: LiveAgentTurn,
     actionId: string,
@@ -345,7 +351,10 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
 
                 setConversationHistoryState({ conversations: loadedConversations, key: conversationKey })
                 if (!input.continueFrom) {
-                    setSelectedConversationState({ conversation: null, key: selectionKey })
+                    const waitingConversation = sharedExecutionActive
+                        ? null
+                        : latestWaitingConversation(loadedConversations, action.id, activeContext)
+                    setSelectedConversationState({ conversation: waitingConversation, key: selectionKey })
                     return
                 }
 
@@ -377,6 +386,7 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
         loadConversation,
         loadConversations,
         selectionKey,
+        sharedExecutionActive,
     ])
 
     useEffect(() => {

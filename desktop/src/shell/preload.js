@@ -59,6 +59,7 @@ const DATA_METHODS = [
 ];
 const ACTION_METHODS = [
     'answerActionQuestion',
+    'beginActionPromptDraft',
     'cancelActionExecution',
     'finishActionExecution',
     'generateDiff',
