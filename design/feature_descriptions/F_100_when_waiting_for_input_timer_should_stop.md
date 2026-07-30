@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
 policy:
+after: 0f92d6ef-ec13-478c-b3f9-d1b0bfcf391d
 ---
 
 on the action popup, when the state is 'waiting for input', the timer should stop counting and only restart again once the input has been provided.
