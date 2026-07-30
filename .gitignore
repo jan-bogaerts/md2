@@ -147,3 +147,7 @@ vite.config.ts.timestamp-*
 .vite/
 
 /.claude/skills/
+
+# GitHub Pages local build
+docs/_site/
+.jekyll-cache/

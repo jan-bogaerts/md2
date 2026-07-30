@@ -19,11 +19,11 @@ Release names must be plain (letters, digits, `.`, `-`, `_`).
 
 Cards you want off the board without belonging to a release go to the archived folder instead.
 
-In this repository the result looks like [`design/releases/0_0_3/`](../../design/releases/0_0_3/): one Markdown file per card plus `release_notes.md`.
+In this repository the result looks like [`design/releases/0_0_3/`](https://github.com/jan-bogaerts/md2/blob/main/design/releases/0_0_3/): one Markdown file per card plus `release_notes.md`.
 
 ## Release notes
 
-`release_notes.md` in the release folder is written from the cards it contains — one user-visible line per change, not per commit. See [`design/releases/0_0_3/release_notes.md`](../../design/releases/0_0_3/release_notes.md) for the tone.
+`release_notes.md` in the release folder is written from the cards it contains — one user-visible line per change, not per commit. See [`design/releases/0_0_3/release_notes.md`](https://github.com/jan-bogaerts/md2/blob/main/design/releases/0_0_3/release_notes.md) for the tone.
 
 ## Versioning
 
@@ -39,6 +39,6 @@ cd .. && npm run build:windows
 
 The build fails on unsigned or unverifiable artifacts, missing packaged files, a dev-server URL leaking into the bundle, or stray certificate and source-map files. Smoke-test the installed build with the dev server stopped: open a local Git project, edit and commit a file, list branches, run an action, and install over the previous version to confirm settings survive.
 
-Details and signing configuration: [`desktop/packaging/BUILDING_WINDOWS.md`](../../desktop/packaging/BUILDING_WINDOWS.md).
+Details and signing configuration: [`desktop/packaging/BUILDING_WINDOWS.md`](https://github.com/jan-bogaerts/md2/blob/main/desktop/packaging/BUILDING_WINDOWS.md).
 
 See also: [Development setup](development-setup.md), [Project layout](../concepts/project-layout.md).

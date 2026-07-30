@@ -29,6 +29,6 @@ npm run install:all
 npm run build:windows
 ```
 
-Artifacts land in `release/`. Signing requires certificate configuration; see [`desktop/packaging/BUILDING_WINDOWS.md`](../../desktop/packaging/BUILDING_WINDOWS.md).
+Artifacts land in `release/`. Signing requires certificate configuration; see [`desktop/packaging/BUILDING_WINDOWS.md`](https://github.com/jan-bogaerts/md2/blob/main/desktop/packaging/BUILDING_WINDOWS.md).
 
 Next: [Open your first project](first-project.md).

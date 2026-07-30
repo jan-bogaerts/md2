@@ -1,0 +1,15 @@
+title: md² documentation
+description: Local, Git-native workspace for coordinating coding agents.
+theme: jekyll-theme-primer
+plugins:
+  - jekyll-relative-links
+  - jekyll-readme-index
+  - jekyll-optional-front-matter
+  - jekyll-titles-from-headings
+relative_links:
+  enabled: true
+  collections: false
+exclude:
+  - _site
+  - Gemfile
+  - Gemfile.lock

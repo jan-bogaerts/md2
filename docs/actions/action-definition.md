@@ -2,6 +2,7 @@
 
 One JSON file per action, stored in the project's actions folder. Edit them through the action editor (tree → action, or **New action** in the menu) — md² never shows raw JSON, but this is what ends up on disk.
 
+{% raw %}
 ```json
 {
   "id": "implement",
@@ -15,6 +16,7 @@ One JSON file per action, stored in the project's actions folder. Edit them thro
   "onAfter": ["complete-card"]
 }
 ```
+{% endraw %}
 
 ## Fields
 

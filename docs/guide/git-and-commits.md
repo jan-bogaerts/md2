@@ -25,9 +25,9 @@ The **Home** tab of the application menu has the Git controls:
 
 Commits produced while actions ran on a card are recorded with that card. Open the card popup and use the commit icon to pick one; its diff is shown in the popup.
 
-![A commit diff inside the card popup](../../screenshots/Screenshot%202026-07-23%20190011.jpg)
+![A commit diff inside the card popup](../screenshots/Screenshot%202026-07-23%20190011.jpg)
 
-The diff itself comes from a configurable command, `project.diffCommand`, default `git show {{commit}}`. Available placeholders: `{{rootProjectFolder}}`, `{{commit}}`, `{{branch}}`, `{{file}}`.
+The diff itself comes from a configurable command, `project.diffCommand`, default {% raw %}`git show {{commit}}`. Available placeholders: `{{rootProjectFolder}}`, `{{commit}}`, `{{branch}}`, `{{file}}`{% endraw %}.
 
 ## GitHub mode
 

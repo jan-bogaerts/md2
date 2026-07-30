@@ -1,6 +1,6 @@
 # Remote control
 
-![Connect popover with QR code and connect links](../../screenshots/Screenshot%202026-07-23%20191736.jpg)
+![Connect popover with QR code and connect links](../screenshots/Screenshot%202026-07-23%20191736.jpg)
 
 Remote control lets a phone, tablet, or another computer drive the md² instance running on your desktop. The remote browser is a full client: same project, same files, same actions — executed on the desktop machine.
 

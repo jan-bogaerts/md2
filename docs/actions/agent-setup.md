@@ -1,5 +1,7 @@
 # Agent setup
 
+{% raw %}
+
 md² does not talk to model APIs. It starts the agent CLI you already have installed and reads its structured output, so your existing login, config, and permissions apply.
 
 ## Defaults
@@ -75,5 +77,7 @@ Transcripts are JSON files under `<projectFolder>/activity`, one per card plus o
 Resuming uses the recorded provider session id. Switching to another provider mid-conversation sends the normalized transcript through stdin, so context is not lost.
 
 Closing the project or quitting the app ends live streaming sessions; a streaming process that dies before **Finish** fails the action.
+
+{% endraw %}
 
 See also: [Actions and agents](../concepts/actions-and-agents.md), [Running actions](running-actions.md).

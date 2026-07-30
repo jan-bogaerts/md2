@@ -1,5 +1,7 @@
 # Placeholders
 
+{% raw %}
+
 Placeholders let one action definition work for every card. They are written as `{{name}}` and resolved on the desktop side, just before the process starts.
 
 | Placeholder | Resolves to |
@@ -41,5 +43,7 @@ In the prompt editor, type `{{` for a typeahead list, or insert one from the too
 - `{{card-prompt}}` is empty when you run without typing anything. Write prompts that read fine either way.
 - The diff command in project configuration has its own placeholder set: `{{rootProjectFolder}}`, `{{commit}}`, `{{branch}}`, `{{file}}`.
 - Custom agent profiles support `{{model}}` in `command` and `{{sessionId}}` in `resumeCommand`. Those are profile placeholders, not action placeholders.
+
+{% endraw %}
 
 See also: [Action definition](action-definition.md), [Cookbook](cookbook.md).

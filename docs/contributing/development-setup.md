@@ -4,10 +4,10 @@
 
 | Folder | What it is |
 | --- | --- |
-| [`app/`](../../app/) | React + Vite web UI. TypeScript. |
-| [`desktop/`](../../desktop/) | Electron host: file system, Git, action runner, agents, remote control. JavaScript. |
-| [`shared/`](../../shared/) | Logic and types used by both, as `.mjs` with `.d.mts` declarations. |
-| [`design/`](../../design/) | md²'s own cards, architecture notes, and release folders. |
+| [`app/`](https://github.com/jan-bogaerts/md2/tree/main/app) | React + Vite web UI. TypeScript. |
+| [`desktop/`](https://github.com/jan-bogaerts/md2/tree/main/desktop) | Electron host: file system, Git, action runner, agents, remote control. JavaScript. |
+| [`shared/`](https://github.com/jan-bogaerts/md2/tree/main/shared) | Logic and types used by both, as `.mjs` with `.d.mts` declarations. |
+| [`design/`](https://github.com/jan-bogaerts/md2/tree/main/design) | md²'s own cards, architecture notes, and release folders. |
 | [`docs/`](../) | This documentation. |
 
 `app` and `desktop` each have their own `package.json`; the root `package.json` wires up the common workflows.
@@ -56,7 +56,7 @@ Use `npm run typecheck` (`tsc --noEmit`) for type errors — `npm run build` als
 npm run build:windows
 ```
 
-Builds the React app, packages the Electron shell with electron-builder, and verifies the artifacts in `release/`. Signing configuration and the pre-release checklist are in [`desktop/packaging/BUILDING_WINDOWS.md`](../../desktop/packaging/BUILDING_WINDOWS.md).
+Builds the React app, packages the Electron shell with electron-builder, and verifies the artifacts in `release/`. Signing configuration and the pre-release checklist are in [`desktop/packaging/BUILDING_WINDOWS.md`](https://github.com/jan-bogaerts/md2/blob/main/desktop/packaging/BUILDING_WINDOWS.md).
 
 ## Optional environment
 

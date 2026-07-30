@@ -1,6 +1,6 @@
 # Running actions
 
-![Board with a card popup and the action popup open](../../screenshots/Screenshot%202026-07-23%20180206.jpg)
+![Board with a card popup and the action popup open](../screenshots/Screenshot%202026-07-23%20180206.jpg)
 
 ## Entry points
 
@@ -20,7 +20,7 @@ The popup is resizable and shows the action label, its description, run controls
 
 For agent actions you also get:
 
-- a prompt box for run-specific input (`{{card-prompt}}`);
+- a prompt box for run-specific input ({% raw %}`{{card-prompt}}`{% endraw %});
 - agent, model, and reasoning-level selectors, prefilled from the definition and the defaults. Changing them affects this run only, never the definition;
 - phrase buttons, if the action defines `phrases`;
 - **Convert to action**, which turns a custom prompt you just wrote into a reusable action definition.

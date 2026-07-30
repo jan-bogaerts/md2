@@ -1,6 +1,6 @@
 # List view
 
-![List view with the file tree, an action editor tab, and the conversation panel](../../screenshots/Screenshot%202026-07-23%20190055.jpg)
+![List view with the file tree, an action editor tab, and the conversation panel](../screenshots/Screenshot%202026-07-23%20190055.jpg)
 
 List view is the tree-plus-tabs half of md². Switch to it with the **List** toggle in the application menu.
 
@@ -30,7 +30,7 @@ Undo history is kept per document, so switching tabs does not throw it away.
 
 ## Editing actions
 
-Action tabs use the same layout, with structured controls instead of raw JSON. Agent actions get a Markdown editor for the `prompt`, with `{{` typeahead for placeholders; command actions edit their command line as a field. Sub-tabs at the bottom switch between **Definition**, **Prompt**, and any phrases the action defines.
+Action tabs use the same layout, with structured controls instead of raw JSON. Agent actions get a Markdown editor for the `prompt`, with {% raw %}`{{`{% endraw %} typeahead for placeholders; command actions edit their command line as a field. Sub-tabs at the bottom switch between **Definition**, **Prompt**, and any phrases the action defines.
 
 Invalid values are shown in place with the actual error and are not written to disk.
 

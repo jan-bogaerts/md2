@@ -61,6 +61,6 @@ Anything both sides must agree on lives in `shared/`: action definition validati
 
 ## Where the design lives
 
-[`design/architecture/`](../../design/architecture/) holds the architecture notes and the original description; [`design/releases/`](../../design/releases/) holds the per-release card folders. They record intent and history — this page describes the code as it stands.
+[`design/architecture/`](https://github.com/jan-bogaerts/md2/tree/main/design/architecture/) holds the architecture notes and the original description; [`design/releases/`](https://github.com/jan-bogaerts/md2/tree/main/design/releases/) holds the per-release card folders. They record intent and history — this page describes the code as it stands.
 
 See also: [Development setup](development-setup.md), [Release process](release-process.md).

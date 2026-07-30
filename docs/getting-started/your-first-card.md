@@ -33,9 +33,9 @@ Drag the card to another column. That rewrites its `status` field, and the `afte
 | Label | `Implement` |
 | Description | `Implement this feature` |
 | Type | `agent` |
-| Prompt | `Read and implement the feature described in {{card-file}}.` |
+| Prompt | {% raw %}`Read and implement the feature described in {{card-file}}.`{% endraw %} |
 
-Type `{{` in the prompt for the placeholder list. The action is saved as JSON in the actions folder and appears on your cards.
+Type {% raw %}`{{`{% endraw %} in the prompt for the placeholder list. The action is saved as JSON in the actions folder and appears on your cards.
 
 ## 5. Run it
 

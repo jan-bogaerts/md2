@@ -13,7 +13,7 @@ Both are started the same way, both stream their output into the same log, and b
 
 A prompt you retype is a prompt that drifts. Actions give you:
 
-- **Placeholders.** `{{card-file}}` resolves to the card being acted on, so one definition works for every card.
+- **Placeholders.** {% raw %}`{{card-file}}`{% endraw %} resolves to the card being acted on, so one definition works for every card.
 - **Scoping.** `appliesTo` filters decide where an action shows up, so a bug-only action does not clutter feature cards.
 - **Chaining.** `onBefore`, `on`, and `onAfter` compose small actions instead of growing one giant prompt.
 - **No agent at all when none is needed.** Committing, running tests, or regenerating a diagram is a command action; it costs no tokens.

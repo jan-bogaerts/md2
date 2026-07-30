@@ -1,8 +1,9 @@
 # md² documentation
 
-md² is a local, Git-native workspace for coordinating features, worktrees, coding agents, prompts, commits, and automation. Every card is a Markdown file in your repository — agents read and write the same files you do.
+md² is a local, Git-native workspace for coordinating coding agents, features, worktrees, prompts, commits, and automations. 
+Every card is a Markdown file, every action and log a json file, all in your repository — agents read and write the same files you do.
 
-![md² board with a card and the action popup open](../screenshots/Screenshot%202026-07-23%20180206.jpg)
+![md² board with a card and the action popup open](screenshots/Screenshot%202026-07-23%20180206.jpg)
 
 ## Getting started
 
@@ -38,7 +39,7 @@ md² is a local, Git-native workspace for coordinating features, worktrees, codi
 | Page | What it covers |
 | --- | --- |
 | [Action definition](actions/action-definition.md) | Every field, `appliesTo` filters, validation rules |
-| [Placeholders](actions/placeholders.md) | `{{card-file}}`, `{{card-prompt}}`, `{{card-title}}`, `{{rootProjectFolder}}` |
+| [Placeholders](actions/placeholders.md) | {% raw %}`{{card-file}}`, `{{card-prompt}}`, `{{card-title}}`, `{{rootProjectFolder}}`{% endraw %} |
 | [Running actions](actions/running-actions.md) | Entry points, popup, conversations, chains, state triggers, scheduling |
 | [Agent setup](actions/agent-setup.md) | Profiles, models, reasoning levels, conversation logs |
 | [Cookbook](actions/cookbook.md) | Copy-paste action definitions |

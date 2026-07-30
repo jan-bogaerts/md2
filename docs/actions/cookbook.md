@@ -1,5 +1,7 @@
 # Action cookbook
 
+{% raw %}
+
 Copy-paste starting points. Save each one as a JSON file in the project's actions folder, or build the same thing in the action editor.
 
 ## Implement a feature in its worktree
@@ -126,5 +128,7 @@ Streaming keeps one session alive so you can steer, and auto-finish closes it on
   "appliesTo": { "kind": "card" }
 }
 ```
+
+{% endraw %}
 
 See also: [Action definition](action-definition.md), [Placeholders](placeholders.md), [Running actions](running-actions.md).

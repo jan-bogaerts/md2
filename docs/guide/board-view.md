@@ -1,6 +1,6 @@
 # Board view
 
-![Board view with a card popup and the action popup](../../screenshots/Screenshot%202026-07-23%20180206.jpg)
+![Board view with a card popup and the action popup](../screenshots/Screenshot%202026-07-23%20180206.jpg)
 
 Switch between **Board** and **List** with the toggle in the application menu.
 
@@ -35,7 +35,7 @@ Click a card to open the card popup: the Markdown editor with its formatting too
 
 When commits were recorded for the card, a commit icon appears in the popup. Pick a commit to see its diff in place.
 
-![Card popup showing a commit diff](../../screenshots/Screenshot%202026-07-23%20190011.jpg)
+![Card popup showing a commit diff](../screenshots/Screenshot%202026-07-23%20190011.jpg)
 
 ## Mobile
 
