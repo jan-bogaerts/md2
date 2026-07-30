@@ -79,11 +79,12 @@ describe('electron action runner client', () => {
     it('sends only action id, context, and run-specific input and collects phase events', async () => {
         const bridge = createBridge()
         setActionBridgeOverride(bridge)
-        vi.spyOn(dataService.projectLoading, 'reloadCurrentProjectSnapshot').mockResolvedValue(null)
+        const reloadCurrentProjectSnapshot = vi.spyOn(dataService.projectLoading, 'reloadCurrentProjectSnapshot')
 
         const result = await runElectronAction(action, context, { extraPrompt: 'focus' })
 
         expect(bridge.startAction).toHaveBeenCalledWith({ actionId: 'test', context, runInput: { extraPrompt: 'focus' } })
+        expect(reloadCurrentProjectSnapshot).not.toHaveBeenCalled()
         expect(result).toEqual({
             logs: [{ actionId: 'test', actionName: 'test', command: 'npm test', message: 'test completed', phase: 'main', status: 'completed', stderr: '', stdout: 'ok' }],
             status: 'completed',
@@ -93,7 +94,6 @@ describe('electron action runner client', () => {
     it('flushes pending card edits before starting the action', async () => {
         const bridge = createBridge()
         setActionBridgeOverride(bridge)
-        vi.spyOn(dataService.projectLoading, 'reloadCurrentProjectSnapshot').mockResolvedValue(null)
         const snapshot = projectPersistenceService.getSnapshot()
         vi.spyOn(projectPersistenceService, 'getSnapshot').mockReturnValue({ ...snapshot, hasPendingSave: true })
         const flush = vi.spyOn(projectPersistenceService, 'flushPendingChanges').mockImplementation(async () => {
@@ -108,7 +108,6 @@ describe('electron action runner client', () => {
     it('does not flush when no card edits are pending', async () => {
         const bridge = createBridge()
         setActionBridgeOverride(bridge)
-        vi.spyOn(dataService.projectLoading, 'reloadCurrentProjectSnapshot').mockResolvedValue(null)
         vi.spyOn(projectPersistenceService, 'getSnapshot').mockReturnValue({ hasPendingPush: false, hasPendingSave: false, localSaveState: 'saved' })
         const flush = vi.spyOn(projectPersistenceService, 'flushPendingChanges').mockResolvedValue()
 
@@ -126,20 +125,9 @@ describe('electron action runner client', () => {
         expect(bridge.cancelActionExecution).toHaveBeenCalledWith('action-1')
     })
 
-    it('rejects with terminal snapshot processing error', async () => {
-        const bridge = createBridge()
-        const processingError = new Error('snapshot reload failed')
-        setActionBridgeOverride(bridge)
-        vi.spyOn(dataService.projectLoading, 'reloadCurrentProjectSnapshot').mockRejectedValue(processingError)
-
-        await expect(runElectronAction(action, context)).rejects.toBe(processingError)
-
-    })
-
     it('reuses one shared subscription across successful runs', async () => {
         const bridge = createBridge()
         setActionBridgeOverride(bridge)
-        vi.spyOn(dataService.projectLoading, 'reloadCurrentProjectSnapshot').mockResolvedValue(null)
 
         await runElectronAction(action, context)
         await runElectronAction(action, context)

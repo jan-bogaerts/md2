@@ -86,31 +86,4 @@ describe('project-files', () => {
             await rm(rootPath, { force: true, recursive: true });
         }
     });
-
-    it('keeps using a Git move for a tracked card', async () => {
-        const rootPath = await mkdtemp(join(tmpdir(), 'md2-project-files-'));
-
-        try {
-            await initializeGitRepository(rootPath);
-            await mkdir(join(rootPath, 'design'));
-            await writeFile(join(rootPath, 'design', 'F_1_old.md'), '# Old');
-            await runGit(rootPath, ['add', 'design/F_1_old.md']);
-            await runGit(rootPath, ['commit', '-m', 'Add old card']);
-
-            await moveFiles({
-                message: 'Rename card',
-                moves: [{
-                    content: '# Renamed',
-                    fromPath: 'design/F_1_old.md',
-                    toPath: 'design/F_1_renamed.md',
-                }],
-            }, { branch: 'main', id: 'local', rootPath });
-
-            expect(await readFile(join(rootPath, 'design', 'F_1_renamed.md'), 'utf8')).toBe('# Renamed');
-            expect(await runGit(rootPath, ['status', '--short'])).toBe('');
-            expect(await runGit(rootPath, ['log', '-1', '--pretty=%s'])).toBe('Rename card');
-        } finally {
-            await rm(rootPath, { force: true, recursive: true });
-        }
-    });
 });

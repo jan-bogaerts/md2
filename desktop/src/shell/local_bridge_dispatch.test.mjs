@@ -189,6 +189,20 @@ describe('createLocalBridgeDispatch', () => {
         expect(localGitService.commit).toHaveBeenCalledWith(expect.any(Object), currentProject);
     });
 
+    it('reloads current project data without restarting project services', async () => {
+        const { actionSchedulerService, dispatch, localGitService, worktreeService } = createDispatch();
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
+
+        await dispatch.dataBridge.loadProject(project, 'design');
+        await dispatch.dataBridge.loadProject(project, 'design');
+        await dispatch.dataBridge.loadProjectRoot(project, 'design');
+
+        expect(localGitService.loadProject).toHaveBeenCalledTimes(2);
+        expect(localGitService.loadProjectRoot).toHaveBeenCalledOnce();
+        expect(actionSchedulerService.startProject).toHaveBeenCalledOnce();
+        expect(worktreeService.startProject).toHaveBeenCalledOnce();
+    });
+
     it('adds a worktree at the selected folder and returns the picker status', async () => {
         const openWorktreeFolder = vi.fn(async () => 'C:/feature');
         const { dispatch, worktreeService } = createDispatch({ openWorktreeFolder });

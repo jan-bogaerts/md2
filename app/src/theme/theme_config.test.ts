@@ -30,6 +30,19 @@ describe('theme_config', () => {
         })
     })
 
+    it('uses compact typography defaults for every preset', () => {
+        MARKDOWN_STYLE_PRESET_NAMES.forEach((name) => {
+            const preset = MARKDOWN_STYLE_PRESETS[name]
+
+            expect(preset.title1.fontSize).toBe('20px')
+            expect(preset.title2.fontSize).toBe('18px')
+            expect(preset.title3.fontSize).toBe('16px')
+            expect(preset.body.fontSize).toBe('14px')
+            expect(preset.list.fontSize).toBe('14px')
+            expect(preset.list.lineHeight).toBe('1.35')
+        })
+    })
+
     it('includes custom as a selectable style without treating it as a preset', () => {
         expect(MARKDOWN_STYLE_NAMES).toEqual(['modern', 'classic', 'serif', 'sans-serif', 'handwritten', 'custom'])
         expect(isMarkdownStyleName('custom')).toBe(true)

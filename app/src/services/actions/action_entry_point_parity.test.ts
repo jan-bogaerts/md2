@@ -3,7 +3,6 @@ import type { ActionExecutionEvent, ActionStartRequest } from '../../data/action
 import { actionService } from './action_service'
 import { actionExecutionService } from './action_execution_service'
 import { configService } from '../config/config_service'
-import { dataService } from '../data/data_service'
 import { runElectronAction } from './electron_action_runner'
 import { createDataService, createStorage } from '.././test_support/data_service_test_support'
 
@@ -45,7 +44,6 @@ describe('action entry-point parity', () => {
         const bridge = window.md2Actions
         if (!bridge) throw new Error('Missing action bridge')
         bridge.startUnattendedAction = bridge.startAction
-        vi.spyOn(dataService.projectLoading, 'reloadCurrentProjectSnapshot').mockResolvedValue(null)
         const cardFile = { content: '---\nid: F-1\ninternalId: a\ntitle: A\nstatus: todo\n---\n\n# A', path: 'design/F-1-a.md' }
         const actionFile = {
             content: JSON.stringify({command: 'run', description: 'Ready', id: 'action-ready', label: 'Ready', onState: 'ready', type: 'command'}),

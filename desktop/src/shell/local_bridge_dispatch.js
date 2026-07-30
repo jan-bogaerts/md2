@@ -28,7 +28,16 @@ function createLocalBridgeDispatch(dependencies) {
     } = dependencies;
     let currentLocalProject = null;
 
+    function isCurrentProject(project) {
+        return !!currentLocalProject
+            && currentLocalProject.branch === project.branch
+            && currentLocalProject.id === project.id
+            && currentLocalProject.rootPath === project.rootPath;
+    }
+
     async function activateProject(project) {
+        if (isCurrentProject(project)) return;
+
         currentLocalProject = project;
         if (actionSchedulerService) await actionSchedulerService.startProject(project);
         await worktreeService.startProject(project);

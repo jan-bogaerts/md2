@@ -115,17 +115,17 @@ function createSectionStyle(
 
 function buildMarkdownStyle(fontFamily: string): MarkdownStyleConfig {
     return {
-        title1: createSectionStyle(fontFamily, '2rem', '1.2', '0', '0.5em', createFormatting(true, false, false)),
-        title2: createSectionStyle(fontFamily, '1.5rem', '1.25', '1em', '0.5em', createFormatting(true, false, false)),
-        title3: createSectionStyle(fontFamily, '1.25rem', '1.3', '1em', '0.5em', createFormatting(true, false, false)),
-        body: createSectionStyle(fontFamily, '1rem', '1.6', '0', '1em', createFormatting(false, false, false)),
-        caption: createSectionStyle(fontFamily, '0.85rem', '1.4', '0', '0.75em', createFormatting(false, true, false)),
+        title1: createSectionStyle(fontFamily, '18px', '1.3', '0', '0.4em', createFormatting(true, false, false)),
+        title2: createSectionStyle(fontFamily, '16px', '1.3', '0.8em', '0.4em', createFormatting(true, false, false)),
+        title3: createSectionStyle(fontFamily, '15px', '1.3', '0.8em', '0.4em', createFormatting(true, false, false)),
+        body: createSectionStyle(fontFamily, '14px', '1.5', '0', '0.75em', createFormatting(false, false, false)),
+        caption: createSectionStyle(fontFamily, '12px', '1.4', '0', '0.5em', createFormatting(false, true, false)),
         link: createSectionStyle(fontFamily, 'inherit', 'inherit', '0', '0', createFormatting(false, false, true)),
-        list: createSectionStyle(fontFamily, '1rem', '1.6', '0', '1em', createFormatting(false, false, false)),
-        blockquote: createSectionStyle(fontFamily, '1rem', '1.6', '0', '1em', createFormatting(false, true, false)),
+        list: createSectionStyle(fontFamily, '14px', '1.35', '0', '0.75em', createFormatting(false, false, false)),
+        blockquote: createSectionStyle(fontFamily, '14px', '1.5', '0', '0.75em', createFormatting(false, true, false)),
         inlineCode: createSectionStyle(MONOSPACE_FONT, '0.9em', 'inherit', '0', '0', createFormatting(false, false, false)),
-        codeBlock: createSectionStyle(MONOSPACE_FONT, '0.9rem', '1.5', '0', '1em', createFormatting(false, false, false)),
-        table: createSectionStyle(fontFamily, '0.95rem', '1.5', '0', '1em', createFormatting(false, false, false)),
+        codeBlock: createSectionStyle(MONOSPACE_FONT, '13px', '1.45', '0', '0.75em', createFormatting(false, false, false)),
+        table: createSectionStyle(fontFamily, '13px', '1.4', '0', '0.75em', createFormatting(false, false, false)),
     }
 }
 
