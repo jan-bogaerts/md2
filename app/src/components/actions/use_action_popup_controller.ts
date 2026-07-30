@@ -523,6 +523,12 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
         const requestId = selectionRequestRef.current + 1
         selectionRequestRef.current = requestId
 
+        if (!path) {
+            setSelectedConversationState({ conversation: null, key: selectionKey })
+            setLiveActionKey(null)
+            return
+        }
+
         try {
             const conversation = await loadConversation(path)
             if (selectionRequestRef.current !== requestId) return

@@ -1,6 +1,8 @@
-import { describe, expect, it } from 'vitest'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ActionContext } from '../../data/action_context'
 import type { AgentConversation } from '../../data/data_types'
+import { ActionConversationPicker } from './action_conversation_picker'
 import { mergeConversationHistory } from './use_action_popup_controller'
 import { conversationPickerLabel, formatConversationDateTime } from './action_conversation_picker_data'
 
@@ -24,6 +26,30 @@ function conversation(overrides: Partial<AgentConversation> = {}): AgentConversa
 }
 
 describe('conversation picker data', () => {
+    afterEach(cleanup)
+
+    it('allows selecting empty conversation after history is selected', () => {
+        const onChange = vi.fn()
+        const selectedConversation = conversation()
+        render(
+            <ActionConversationPicker
+                conversations={[selectedConversation]}
+                disabled={false}
+                loading={false}
+                onChange={onChange}
+                selectedPath={selectedConversation.path}
+            />,
+        )
+
+        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Conversation history' }))
+        const options = within(screen.getByRole('listbox'))
+        const emptyConversation = options.getByRole('option', { name: 'Conversations' })
+        expect(emptyConversation).not.toHaveAttribute('aria-disabled', 'true')
+        fireEvent.click(emptyConversation)
+
+        expect(onChange).toHaveBeenCalledOnce()
+    })
+
     it('uses explicit titles with local date/time and falls back to date/time alone', () => {
         const titled = conversation()
         const untitled = conversation({ hasExplicitTitle: false, title: 'conversation-1' })

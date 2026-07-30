@@ -214,6 +214,70 @@ describe('useActionPopupController', () => {
         }, expect.any(Function))
     })
 
+    it('resets selected history without loading an empty path and preserves later continuation', async () => {
+        const agentAction: ActionDefinition = {
+            ...action,
+            command: null,
+            prompt: 'Plan',
+            type: 'agent',
+        }
+        const restoredContext: ActionContext = { ...context, cardInternalId: 'card-1' }
+        const conversation = {
+            actionId: action.id,
+            cardInternalId: 'card-1',
+            cardPath: context.file ?? null,
+            completedAt: '2026-07-30T10:05:00.000Z',
+            events: [],
+            hasExplicitTitle: true,
+            id: 'conversation-1',
+            messages: [{ content: 'Saved answer', id: 'assistant-1', role: 'assistant' as const, timestamp: 'now' }],
+            path: 'activity.json#conversation=conversation-1',
+            providerSessions: [],
+            startedAt: '2026-07-30T10:00:00.000Z',
+            status: 'completed' as const,
+            title: 'Build',
+        }
+        const loadConversation = vi.fn(async () => conversation)
+        const loadConversations = vi.fn(async () => [conversation])
+        const loadHistory = vi.fn(async () => [])
+        const preparePrompt = vi.fn(async () => 'Initial prompt')
+        const runAction = vi.fn(async () => ({ logs: [], status: 'completed' as const }))
+        const { result } = renderHook(() => useActionPopupController({
+            action: agentAction,
+            context: restoredContext,
+            enableConversations: true,
+            loadConversation,
+            loadConversations,
+            loadHistory,
+            preparePrompt,
+            runAction,
+        }))
+        await waitFor(() => expect(result.current.conversationHistoryLoading).toBe(false))
+
+        const historyEvent = { target: { value: conversation.path } } as ChangeEvent<HTMLInputElement>
+        await act(async () => result.current.handleConversationChange(historyEvent))
+        expect(result.current.displayedConversation?.id).toBe(conversation.id)
+
+        const resetEvent = { target: { value: '' } } as ChangeEvent<HTMLInputElement>
+        await act(async () => result.current.handleConversationChange(resetEvent))
+        expect(result.current.displayedConversation).toBeNull()
+        expect(loadConversation).toHaveBeenCalledTimes(1)
+
+        await act(async () => result.current.handleRun('Start new'))
+        expect(runAction).toHaveBeenLastCalledWith(agentAction, restoredContext, {
+            prompt: 'Start new',
+            thinkingLevel: 'none',
+        }, expect.any(Function))
+
+        await act(async () => result.current.handleConversationChange(historyEvent))
+        await act(async () => result.current.handleRun('Continue history'))
+        expect(runAction).toHaveBeenLastCalledWith(agentAction, restoredContext, {
+            continueFrom: conversation.path,
+            prompt: 'Continue history',
+            thinkingLevel: 'none',
+        }, expect.any(Function))
+    })
+
     it('sends later streaming turns and structured answers through active execution', async () => {
         const emit = installBridge()
         const streamingAction: ActionDefinition = {
