@@ -306,7 +306,7 @@ describe('ActionConversationChat', () => {
         expect(screen.queryByText('Raw detail')).not.toBeInTheDocument()
     })
 
-    it('keeps reasoning visible while its conversation runs and removes it when the conversation completes', () => {
+    it('omits completed reasoning while its conversation runs', () => {
         const activity: AgentConversationEvent = {
             content: 'Inspect code',
             id: 'reasoning-1',
@@ -327,19 +327,7 @@ describe('ActionConversationChat', () => {
             completedAt: null,
             status: 'running',
         }
-        const { rerender } = renderChat(runningConversation)
-
-        expect(screen.getByText('Inspect code')).toBeInTheDocument()
-        expect(screen.getByText('Reasoning')).toBeInTheDocument()
-
-        rerender(
-            <AppThemeProvider>
-                <ActionConversationChat
-                    conversation={{ ...runningConversation, completedAt: 'now', status: 'completed' }}
-                    status="idle"
-                />
-            </AppThemeProvider>,
-        )
+        renderChat(runningConversation)
 
         expect(screen.queryByText('Inspect code')).not.toBeInTheDocument()
         expect(screen.queryByText('Reasoning')).not.toBeInTheDocument()

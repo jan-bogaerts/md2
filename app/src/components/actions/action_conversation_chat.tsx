@@ -41,13 +41,12 @@ function isCodexConversation(conversation: AgentConversation) {
 
 function buildConversationFeed(conversation: AgentConversation | null) {
     if (!conversation) return []
-    const conversationActive = conversation.status === 'running' || conversation.status === 'waitingForInput'
     const messages: ConversationFeedEntry[] = conversation.messages
         .filter(({ role }) => role === 'user' || role === 'assistant')
         .map((value, order) => ({ kind: 'message', order, value }))
     const activities: ConversationFeedEntry[] = isCodexConversation(conversation)
         ? conversation.events
-            .filter(({ status, type }) => conversationActive || type !== 'reasoning' || status !== 'completed')
+            .filter(({ status, type }) => type !== 'reasoning' || status !== 'completed')
             .map((value, index) => ({ kind: 'activity', order: messages.length + index, value }))
         : []
 

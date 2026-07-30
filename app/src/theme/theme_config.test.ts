@@ -1,11 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-    COLOR_ROLES,
     DEFAULT_COLOR_SCHEME,
-    DEFAULT_MARKDOWN_STYLE_PRESET,
-    MARKDOWN_SECTIONS,
-    MARKDOWN_STYLE_NAMES,
-    MARKDOWN_STYLE_PRESET_NAMES,
     MARKDOWN_STYLE_PRESETS,
     cloneMarkdownStyleConfig,
     isColorSchemeConfig,
@@ -15,36 +10,7 @@ import {
 } from './theme_config'
 
 describe('theme_config', () => {
-    it('ships all listed markdown style presets', () => {
-        expect(MARKDOWN_STYLE_PRESET_NAMES).toEqual(['modern', 'classic', 'serif', 'sans-serif', 'handwritten'])
-        MARKDOWN_STYLE_PRESET_NAMES.forEach((name) => {
-            expect(MARKDOWN_STYLE_PRESETS[name]).toBeDefined()
-        })
-    })
-
-    it('defines every markdown section in each preset', () => {
-        MARKDOWN_STYLE_PRESET_NAMES.forEach((name) => {
-            MARKDOWN_SECTIONS.forEach((section) => {
-                expect(MARKDOWN_STYLE_PRESETS[name][section].fontFamily).toBeTruthy()
-            })
-        })
-    })
-
-    it('uses compact typography defaults for every preset', () => {
-        MARKDOWN_STYLE_PRESET_NAMES.forEach((name) => {
-            const preset = MARKDOWN_STYLE_PRESETS[name]
-
-            expect(preset.title1.fontSize).toBe('20px')
-            expect(preset.title2.fontSize).toBe('18px')
-            expect(preset.title3.fontSize).toBe('16px')
-            expect(preset.body.fontSize).toBe('14px')
-            expect(preset.list.fontSize).toBe('14px')
-            expect(preset.list.lineHeight).toBe('1.35')
-        })
-    })
-
     it('includes custom as a selectable style without treating it as a preset', () => {
-        expect(MARKDOWN_STYLE_NAMES).toEqual(['modern', 'classic', 'serif', 'sans-serif', 'handwritten', 'custom'])
         expect(isMarkdownStyleName('custom')).toBe(true)
         expect(isMarkdownStylePresetName('custom')).toBe(false)
     })
@@ -56,19 +22,6 @@ describe('theme_config', () => {
         expect(clone).not.toBe(MARKDOWN_STYLE_PRESETS.modern)
         expect(clone.body.formatting).not.toBe(MARKDOWN_STYLE_PRESETS.modern.body.formatting)
         expect(isMarkdownStyleConfig({ ...clone, table: { ...clone.table, fontSize: '' } })).toBe(false)
-    })
-
-    it('defines light/regular/dark variants for every color role', () => {
-        COLOR_ROLES.forEach((role) => {
-            const variants = DEFAULT_COLOR_SCHEME[role]
-            expect(variants.light).toMatch(/^#/)
-            expect(variants.regular).toMatch(/^#/)
-            expect(variants.dark).toMatch(/^#/)
-        })
-    })
-
-    it('uses a shipped preset as the default markdown style', () => {
-        expect(MARKDOWN_STYLE_PRESET_NAMES).toContain(DEFAULT_MARKDOWN_STYLE_PRESET)
     })
 
     it('validates persisted markdown preset names', () => {

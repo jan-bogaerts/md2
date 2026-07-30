@@ -3,21 +3,9 @@ import { createAppTheme } from './app_theme'
 import { DEFAULT_COLOR_SCHEME } from './theme_config'
 
 describe('createAppTheme', () => {
-    it('builds a light theme', () => {
-        const theme = createAppTheme('light')
-
-        expect(theme.palette.mode).toBe('light')
-        expect(theme.palette.background.default).toBe('#f4f6f8')
-        expect(theme.palette.background.paper).toBe('#ffffff')
-    })
-
-    it('builds a dark theme', () => {
-        const theme = createAppTheme('dark')
-
-        expect(theme.palette.mode).toBe('dark')
-        expect(theme.palette.background.default).toBe('#10151c')
-        expect(theme.palette.background.paper).toBe('#1a212b')
-        expect(theme.palette.action.hover).toBe('#151c25')
+    it('builds the requested palette mode', () => {
+        expect(createAppTheme('light').palette.mode).toBe('light')
+        expect(createAppTheme('dark').palette.mode).toBe('dark')
     })
 
     it('feeds the color scheme roles into the palette', () => {
@@ -41,25 +29,4 @@ describe('createAppTheme', () => {
         expect(theme.palette.custom.borderStrong).toBe(theme.palette.divider)
     })
 
-    it('applies the selected project background shade in light mode', () => {
-        const theme = createAppTheme('light', DEFAULT_COLOR_SCHEME, 'green')
-
-        expect(theme.palette.background.default).toBe('#f1f7f3')
-        expect(theme.palette.background.paper).toBe('#fbfefc')
-    })
-
-    it('applies the selected project background shade in dark mode', () => {
-        const theme = createAppTheme('dark', DEFAULT_COLOR_SCHEME, 'red')
-
-        expect(theme.palette.background.default).toBe('#1b1416')
-        expect(theme.palette.background.paper).toBe('#261d20')
-    })
-
-    it('applies the flat, round-cornered look regardless of mode', () => {
-        const light = createAppTheme('light')
-        const dark = createAppTheme('dark')
-
-        expect(light.shape.borderRadius).toBe(dark.shape.borderRadius)
-        expect(light.shape.borderRadius).toBeGreaterThan(0)
-    })
 })

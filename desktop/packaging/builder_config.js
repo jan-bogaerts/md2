@@ -65,7 +65,6 @@ function createBuilderConfig(secrets = loadSigningSecrets()) {
                     'src/**/*.mjs',
                     'build/md2.ico',
                     '!**/*.test.mjs',
-                    '!src/integrations/test_sftp_server.mjs',
                 ],
             },
             {
