@@ -10,11 +10,4 @@ agents:
 policy:
 after: 
 ---
-
-# Goal
-
-# Current status
-
-# Details
-
-# Tasks
+Sometimes the agent produces a link to a local project file.&#x20;
