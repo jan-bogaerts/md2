@@ -201,7 +201,7 @@ describe('ActionConversationChat', () => {
                 id: 'reasoning-1',
                 providerItemId: 'reasoning-1',
                 sequence: 2,
-                status: 'completed',
+                status: 'inProgress',
                 summary: ['Inspect code'],
                 timestamp,
                 type: 'reasoning',
@@ -265,6 +265,112 @@ describe('ActionConversationChat', () => {
         expect(screen.getByText('Summary one')).toBeInTheDocument()
         expect(screen.getByText('Summary two')).toBeInTheDocument()
         expect(screen.queryByText('Raw detail')).not.toBeInTheDocument()
+    })
+
+    it('removes live reasoning when completion arrives', () => {
+        const activity: AgentConversationEvent = {
+            content: 'Inspect code',
+            id: 'reasoning-1',
+            providerItemId: 'reasoning-1',
+            sequence: 2,
+            status: 'inProgress',
+            summary: ['Inspect code'],
+            timestamp: 'now',
+            type: 'reasoning',
+        }
+        const first = conversation(
+            'codex.json',
+            [{ ...message('message-1', 'Start'), agent: 'codex', sequence: 1 }],
+            [activity],
+            'codex',
+        )
+        const { rerender } = renderChat(first)
+
+        expect(screen.getByText('Inspect code')).toBeInTheDocument()
+
+        rerender(
+            <AppThemeProvider>
+                <ActionConversationChat
+                    conversation={{ ...first, events: [{ ...activity, status: 'completed' }] }}
+                    status="idle"
+                />
+            </AppThemeProvider>,
+        )
+
+        expect(screen.queryByText('Inspect code')).not.toBeInTheDocument()
+        expect(screen.queryByText('Reasoning')).not.toBeInTheDocument()
+    })
+
+    it('omits completed reasoning when a conversation opens', () => {
+        const activity: AgentConversationEvent = {
+            content: 'Finished inspection',
+            id: 'reasoning-1',
+            providerItemId: 'reasoning-1',
+            sequence: 2,
+            status: 'completed',
+            summary: ['Finished inspection'],
+            timestamp: 'now',
+            type: 'reasoning',
+        }
+
+        renderChat(conversation(
+            'codex.json',
+            [{ ...message('message-1', 'Saved answer'), agent: 'codex', sequence: 3 }],
+            [activity],
+            'codex',
+        ))
+
+        expect(screen.getByText('Saved answer')).toBeInTheDocument()
+        expect(screen.queryByText('Finished inspection')).not.toBeInTheDocument()
+    })
+
+    it.each([
+        ['failed', 'Failed'],
+        ['declined', 'Declined'],
+    ])('keeps %s reasoning visible with its error state', (status, label) => {
+        const activity: AgentConversationEvent = {
+            content: `${label} inspection`,
+            id: `reasoning-${status}`,
+            providerItemId: `reasoning-${status}`,
+            sequence: 2,
+            status,
+            summary: [`${label} inspection`],
+            timestamp: 'now',
+            type: 'reasoning',
+        }
+
+        renderChat(conversation(
+            'codex.json',
+            [{ ...message('message-1', 'Start'), agent: 'codex', sequence: 1 }],
+            [activity],
+            'codex',
+        ))
+
+        expect(screen.getByText(label)).toBeInTheDocument()
+        expect(screen.getByText(`${label} inspection`)).toBeInTheDocument()
+    })
+
+    it('keeps completed non-reasoning activity visible', () => {
+        const activity: AgentConversationEvent = {
+            content: 'Search complete',
+            id: 'search-1',
+            label: 'Web search',
+            providerItemId: 'search-1',
+            sequence: 2,
+            status: 'completed',
+            timestamp: 'now',
+            type: 'webSearch',
+        }
+
+        renderChat(conversation(
+            'codex.json',
+            [{ ...message('message-1', 'Start'), agent: 'codex', sequence: 1 }],
+            [activity],
+            'codex',
+        ))
+
+        expect(screen.getByRole('button', { name: 'Web search details' })).toBeInTheDocument()
+        expect(screen.getByText('Completed')).toBeInTheDocument()
     })
 
     it('keeps one command collapsed and exposes exact final details accessibly', () => {

@@ -42,7 +42,9 @@ function buildConversationFeed(conversation: AgentConversation | null) {
         .filter(({ role }) => role === 'user' || role === 'assistant')
         .map((value, order) => ({ kind: 'message', order, value }))
     const activities: ConversationFeedEntry[] = isCodexConversation(conversation)
-        ? conversation.events.map((value, index) => ({ kind: 'activity', order: messages.length + index, value }))
+        ? conversation.events
+            .filter(({ status, type }) => type !== 'reasoning' || status !== 'completed')
+            .map((value, index) => ({ kind: 'activity', order: messages.length + index, value }))
         : []
 
     return [...messages, ...activities].sort((left, right) => {
