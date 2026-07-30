@@ -3,7 +3,7 @@ author:
 id: F_94
 internalId: d4afff38-5581-42f4-a8f3-8ded807ab27a
 title: no prefill prompt running conv
-status: ready for implementation
+status: in progress
 owner: 
 affects:
 agents:
