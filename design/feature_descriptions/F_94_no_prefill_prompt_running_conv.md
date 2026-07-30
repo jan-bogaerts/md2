@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
 policy:
+after: edda4ba9-0e14-414b-8da7-aa252093661c
 ---
 
 When an agent is waiting for a response, but the action popup was closed or on the wrong 'action', then when the user clicks on the action to view the conversation and answer, the input box is prefilled again with the action's prompt. this is annoying cause it needs to be removed.

@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
 policy:
+after: d33002d3-ee0e-4c08-8e26-36f790500ee2
 ---
 
 When on an action popup where an agent (first button in the list) is running, and it goes to 'waitForInput' state, input box remains disabled, so the user can not respond. this needs to be fixed.

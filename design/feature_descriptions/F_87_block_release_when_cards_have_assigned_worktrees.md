@@ -3,6 +3,7 @@ internalId: 18fd04d3-5df7-4f54-ab7a-94d96f210f13
 id: F_87
 status: new
 title: Block release when cards have assigned worktrees
+after: 58f7a536-89fd-490b-8112-2a850481bf23
 ---
 
 # Block release when cards have assigned worktrees
