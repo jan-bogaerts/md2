@@ -3,11 +3,12 @@ author:
 id: F_102
 internalId: c5d963f2-ca43-419d-bc3c-972199b7e7cd
 title: select empty conversation
-status: new
+status: design
 owner: 
 affects:
 agents:
 policy:
+after: 
 ---
 
 When an action has historical logs and the user selects one, he is no longer able to select an empty 'conversation'
