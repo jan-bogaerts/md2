@@ -11,7 +11,6 @@ agents:
   - design/activity/card__3ffa4da3-1e0f-4930-ad38-6bf247b13c52.json#conversation=agent-935ba088-264e-4936-bc2f-ce510574cb6a
 policy:
 after: 
-worktree: 2
 ---
 
 when a reasoning output of an agent finishes, we should remove the block
