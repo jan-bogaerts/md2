@@ -11,7 +11,6 @@ agents:
   - design/activity/card__d4afff38-5581-42f4-a8f3-8ded807ab27a.json#conversation=agent-eaf3b548-ffca-4a10-a9ef-f9b2daca8e7f
 policy:
 after: 
-worktree: 2
 ---
 
 When an agent is waiting for a response, but the action popup was closed or on the wrong 'action', then when the user clicks on the action to view the conversation and answer, the input box is prefilled again with the action's prompt. this is annoying cause it needs to be removed.

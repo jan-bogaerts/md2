@@ -11,7 +11,6 @@ agents:
   - design/activity/card__e5b95f2c-cd0c-4623-8e12-d0c497447e71.json#conversation=agent-30ffcc2f-bbf1-4a10-bf60-cbd82505a55c
 policy:
 after: 
-worktree: 1
 ---
 
 ## Current state
