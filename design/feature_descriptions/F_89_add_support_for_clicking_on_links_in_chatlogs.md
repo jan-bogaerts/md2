@@ -13,7 +13,6 @@ agents:
   - design/activity/card__9ef42f8e-d6f7-4514-8e4a-5555318c4b51.json#conversation=agent-dfb64fe8-31c4-4a33-bb76-469d3c6ab95c
 policy:
 after: 
-worktree: 1
 ---
 Sometimes the agent produces a link to a local project file. Currently, when the user clicks on this link, the system crashes.
 
