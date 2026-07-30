@@ -10,4 +10,6 @@ agents:
 policy:
 after: 
 ---
-Sometimes the agent produces a link to a local project file.&#x20;
+Sometimes the agent produces a link to a local project file. Currently, when the user clicks on this link, the system crashes.
+
+What should happen: if it is a md file or action-json file in the design folder (or subfolder), show it in the list view with the correct editor. Otherwise, open it with vscode (externally)
