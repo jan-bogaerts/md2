@@ -12,4 +12,4 @@ after:
 ---
 When a worktree's branch is merged into the main project through the `worktree selector's context menu`, the card should retain the commit id so that the history of the card's code changes can be tracked.
 
-Cards already are able to show commit differences and show a selector to show them. These are for commits that were done automatically after an action that has this feature enabled, was done. However this feature no longer seems to work correctly, which also needs to be checked.
+Cards already are able to show commit differences and show a selector to show them. These are for commits that were done automatically after an action that has this feature enabled, was done.&#x20;
