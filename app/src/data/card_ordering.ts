@@ -121,13 +121,28 @@ function clamp(value: number, min: number, max: number) {
     return Math.min(Math.max(value, min), max)
 }
 
+function addColumnOrderingUpdates(
+    orderedCards: ProjectCard[],
+    status: string,
+    updates: Map<string, CardMoveUpdate>,
+) {
+    for (let index = 0; index < orderedCards.length; index += 1) {
+        const card = orderedCards[index]
+        const predecessor = orderedCards[index - 1]
+        const predecessorInternalId = predecessor?.header.internalId ?? null
+        if (predecessor && !predecessorInternalId) {
+            throw new Error(`Cannot order card after a card without an internalId: ${predecessor.path}`)
+        }
+
+        updates.set(card.path, { after: predecessorInternalId, path: card.path, status })
+    }
+}
+
 /**
- * Compute the minimal set of header changes to move `cardPath` into
- * `targetStatus` at `targetIndex`. At most three cards change: the moved card
- * (new `status` + `after`), the card that now follows it in the target column,
- * and the card that used to follow it in the source column. No-op moves and
- * links whose values are unchanged are filtered out so only affected cards are
- * written.
+ * Compute header changes to move `cardPath` into `targetStatus` at
+ * `targetIndex`. Both affected columns are rebuilt as single valid chains, then
+ * unchanged links are filtered out. A valid input chain still changes at most
+ * the moved card, its new follower, and its old follower.
  */
 export function computeMove(
     cards: ProjectCard[],
@@ -138,30 +153,19 @@ export function computeMove(
     const moved = cards.find((card) => card.path === cardPath)
     if (!moved) return []
 
-    const movedInternalId = moved.header.internalId
     const updates = new Map<string, CardMoveUpdate>()
-
     const sourceStatus = statusOf(moved)
     const sourceOrdered = orderByAfter(cards.filter((card) => statusOf(card) === sourceStatus))
-    const movedPosition = sourceOrdered.findIndex((card) => card.path === cardPath)
-    const oldFollower = sourceOrdered[movedPosition + 1]
-
-    const targetOrdered = orderByAfter(
-        cards.filter((card) => statusOf(card) === targetStatus && card.path !== cardPath),
-    )
+    const sourceWithoutMoved = sourceOrdered.filter((card) => card.path !== cardPath)
+    const targetOrdered = sourceStatus === targetStatus
+        ? sourceWithoutMoved
+        : orderByAfter(cards.filter((card) => statusOf(card) === targetStatus))
     const insertIndex = clamp(targetIndex, 0, targetOrdered.length)
-    const newPredecessor = targetOrdered[insertIndex - 1] ?? null
-    const newFollower = targetOrdered[insertIndex] ?? null
+    const nextTargetOrder = [...targetOrdered]
+    nextTargetOrder.splice(insertIndex, 0, moved)
 
-    updates.set(cardPath, { after: newPredecessor?.header.internalId ?? null, path: cardPath, status: targetStatus })
-
-    if (newFollower && movedInternalId) {
-        updates.set(newFollower.path, { after: movedInternalId, path: newFollower.path, status: targetStatus })
-    }
-
-    if (oldFollower && !updates.has(oldFollower.path)) {
-        updates.set(oldFollower.path, { after: moved.header.after, path: oldFollower.path, status: sourceStatus })
-    }
+    addColumnOrderingUpdates(nextTargetOrder, targetStatus, updates)
+    if (sourceStatus !== targetStatus) addColumnOrderingUpdates(sourceWithoutMoved, sourceStatus, updates)
 
     const byPath = new Map(cards.map((card) => [card.path, card]))
 

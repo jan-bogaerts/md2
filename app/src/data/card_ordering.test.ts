@@ -132,6 +132,25 @@ describe('computeMove', () => {
         expect(updates).toContainEqual({ after: 'b', path: 'design/d.md', status: 'active' })
     })
 
+    it('repairs multiple heads when moving a card to first place', () => {
+        const cards = [card('a'), card('b'), card('c'), card('d')]
+        const updates = computeMove(cards, 'design/d.md', 'active', 0)
+        const updatesByPath = new Map(updates.map((update) => [update.path, update]))
+        const updatedCards = cards.map((currentCard) => {
+            const update = updatesByPath.get(currentCard.path)
+            if (!update) return currentCard
+
+            return { ...currentCard, header: { ...currentCard.header, after: update.after, status: update.status } }
+        })
+
+        expect(paths(orderByAfter(updatedCards))).toEqual(['d', 'a', 'b', 'c'])
+        expect(updates).toEqual([
+            { after: 'd', path: 'design/a.md', status: 'active' },
+            { after: 'a', path: 'design/b.md', status: 'active' },
+            { after: 'b', path: 'design/c.md', status: 'active' },
+        ])
+    })
+
     it('moves a card to the end of its column with a minimal write set', () => {
         const updates = computeMove(column, 'design/b.md', 'active', 3)
 
