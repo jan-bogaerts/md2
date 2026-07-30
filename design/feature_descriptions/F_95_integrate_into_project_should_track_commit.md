@@ -7,6 +7,7 @@ status: design
 owner: 
 affects:
 agents:
+  - design/activity/card__e5b95f2c-cd0c-4623-8e12-d0c497447e71.json#conversation=agent-669207fb-b61f-4b7f-ae5d-3fde7751fcd3
 policy:
 after: 
 ---
@@ -20,17 +21,18 @@ Card commit history reads tracked `<projectFolder>/activity/card__<cardInternalI
 ## Implementation details
 
 - Add a card-specific integration request containing `cardInternalId` and `projectFolder`; project-level worktree integration remains untracked.
-- After any rebase and before fast-forwarding, capture all commits with `git rev-list --reverse <project-branch>..<worktree-branch>`.
-- Fast-forward the project branch, resolve each captured commit's existing activity metadata, then append one system activity record labeled `Integrate into project` to the card's primary-checkout activity file. Do not model it as a user action.
-- Commit the activity-file update through the existing serialized activity writer. Return only after both integration and history persistence finish, so existing card-history reload and diff UI show the commits.
+- After any rebase, squash the card branch's complete change onto the project branch and create one integration commit. Do not fast-forward or retain the card branch's individual commits on the project branch.
+- Resolve the integration commit's activity metadata, then append one system activity record containing only that commit and labeled `Integrate into project` to the card's primary-checkout activity file. Do not model it as a user action.
+- Commit the activity-file update through the existing serialized activity writer. Return only after both integration and history persistence finish, so existing card-history reload and diff UI show the integration commit.
+- If applying or committing the squash fails, restore the primary checkout to its state after the primary-worktree checkpoint and before the squash attempt.
 - Failed integration writes no activity record. If integration succeeds but activity persistence fails, report that partial failure clearly; never claim tracking succeeded.
 
 ## Acceptance criteria
 
-- Integrating a card worktree records every newly integrated commit once, oldest first, under the card's stable `internalId`.
-- Rebased commit hashes are captured after the rebase; primary checkpoint and activity-file commits are not included.
-- Recorded commits appear under `Integrate into project` in the existing card commit selector and open the existing diffs.
-- Clean integration with no outgoing commits remains rejected and creates no activity record.
-- Failed integration creates no activity record. History-persistence failure after a successful fast-forward is visible.
+- Integrating a card worktree with one or several outgoing commits creates and records exactly one squash commit under the card's stable `internalId`.
+- The squash commit contains the combined change between the project branch and the rebased card branch. Primary checkpoint and activity-file commits are not included.
+- The squash commit appears once under `Integrate into project` in the existing card commit selector and opens one combined diff for the integration.
+- Integration with no outgoing commits or no combined change remains rejected and creates no activity record.
+- Failed integration creates no activity record. History-persistence failure after a successful squash commit is visible.
 - Project-level worktree integration creates no card activity.
-- Tests cover one and several commits, rebase before integration, stable card ownership, failure paths, metadata order, and project-level exclusion.
+- Tests cover one and several source commits producing one squash commit, rebase before integration, stable card ownership, squash cleanup and persistence failure paths, and project-level exclusion.
