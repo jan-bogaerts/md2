@@ -326,6 +326,13 @@
           "sequence": 33,
           "timestamp": "2026-07-30T18:31:42.827Z",
           "type": "turnCompleted"
+        },
+        {
+          "content": "1",
+          "id": "agent-turn-12806277-0175-4f39-b9f4-e025621c9474-closed",
+          "sequence": 34,
+          "timestamp": "2026-07-30T20:36:36.201Z",
+          "type": "closed"
         }
       ],
       "hasExplicitTitle": true,
@@ -368,7 +375,7 @@
           "id": "agent-turn-12806277-0175-4f39-b9f4-e025621c9474-turn-1-assistant-4",
           "role": "assistant",
           "sequence": 32,
-          "timestamp": "2026-07-30T18:31:42.827Z"
+          "timestamp": "2026-07-30T20:36:36.201Z"
         }
       ],
       "providerSessions": [
