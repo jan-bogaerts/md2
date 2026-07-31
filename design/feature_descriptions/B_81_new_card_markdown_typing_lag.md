@@ -3,7 +3,7 @@ author:
 id: B_81
 internalId: 8e4a295a-8788-4232-8be7-c97f5a1cf5c8
 title: new card Markdown typing lag
-status: design
+status: ready
 owner:
 affects:
 agents:
