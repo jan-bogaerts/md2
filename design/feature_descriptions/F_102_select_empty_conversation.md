@@ -10,7 +10,7 @@ agents:
   - design/activity/card__c5d963f2-ca43-419d-bc3c-972199b7e7cd.json#conversation=agent-8f84d42e-e9bd-4f0f-9d4e-6f32ffbf345d
   - design/activity/card__c5d963f2-ca43-419d-bc3c-972199b7e7cd.json#conversation=agent-863e4b6f-a74b-475b-b633-5cfb3623f00c
 policy:
-after: 
+after: 8e4a295a-8788-4232-8be7-c97f5a1cf5c8
 ---
 
 When an action has historical logs and the user selects one, he is no longer able to select an empty 'conversation'

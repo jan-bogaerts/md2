@@ -3,7 +3,7 @@ author:
 id: F_98
 internalId: ff356504-eed4-47f3-bb38-2c749b6fcba6
 title: worktree vs project folder placeholders
-status: in progress
+status: ready
 owner: 
 affects:
 agents:
