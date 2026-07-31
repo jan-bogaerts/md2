@@ -21,7 +21,7 @@ const { createAgentStreamingAdapter } = require('./agent_streaming_adapter');
 const { AgentExecutableResolver } = require('./agent_executable_availability');
 const { createAgentEnvironment } = require('./agent_environment');
 const { diagnoseCodexCacheError, isCodexCacheError } = require('./agent_codex_cache_diagnostic');
-const { terminateDescendantProcesses, terminateProcessTree } = require('./process_tree');
+const { createOwnedProcessTracker, terminateDescendantProcesses, terminateProcessTree } = require('./process_tree');
 const { assertGitRoot, ensureInsideRoot, requireRootPath } = require('../git/git_commands');
 
 const HIDDEN_STDERR_LINES = [
@@ -279,6 +279,7 @@ class AgentRunnerService {
             ?? persistConversationCheckpoint;
         this.executableResolver = dependencies.executableResolver ?? new AgentExecutableResolver();
         this.diagnoseCodexCacheError = dependencies.diagnoseCodexCacheError ?? diagnoseCodexCacheError;
+        this.createOwnedProcessTracker = dependencies.createOwnedProcessTracker ?? createOwnedProcessTracker;
         this.terminateDescendantProcesses = dependencies.terminateDescendantProcesses ?? terminateDescendantProcesses;
         this.terminateProcessTree = dependencies.terminateProcessTree ?? terminateProcessTree;
         this.processes = new Map();
@@ -343,6 +344,10 @@ class AgentRunnerService {
             stdio: ['pipe', 'pipe', 'pipe'],
             // windowsHide: true,
         });
+        const processTracker = child.pid && process.platform === 'win32'
+            ? this.createOwnedProcessTracker(child.pid, id)
+            : null;
+        if (processTracker) void processTracker.start();
         console.log('[agent:start]', {
             arguments: configuredArguments,
             cwd: rootPath,
@@ -377,6 +382,7 @@ class AgentRunnerService {
             pendingQuestions: [],
             pendingApprovals: new Map(),
             persistence: Promise.resolve(),
+            processTracker,
             providerConversationId: null,
             protocolLines: null,
             protocolHandling: Promise.resolve(),
@@ -621,7 +627,7 @@ class AgentRunnerService {
     }
 
     ensureTermination(run) {
-        run.termination ??= this.terminateProcessTree(run.child);
+        run.termination ??= this.terminateProcessTree(run.child, run.processTracker);
 
         return run.termination;
     }
@@ -998,7 +1004,7 @@ class AgentRunnerService {
 
         try {
             if (run.termination) await run.termination;
-            else await this.terminateDescendantProcesses(run.child.pid);
+            else await this.terminateDescendantProcesses(run.child.pid, run.processTracker);
             run.parser?.finish();
             run.protocolLines?.finish();
             await run.protocolHandling;

@@ -1,9 +1,10 @@
 const { execFile } = require('node:child_process');
 const { promisify } = require('node:util');
+const { OwnedProcessTracker } = require('./owned_process_tracker');
 
 const execFileAsync = promisify(execFile);
 const WINDOWS_PROCESS_QUERY = [
-    "$processes = @(Get-CimInstance Win32_Process | Select-Object Name, ProcessId, ParentProcessId)",
+    "$processes = @(Get-CimInstance Win32_Process | Select-Object CreationDate, Name, ProcessId, ParentProcessId)",
     '$processes | ConvertTo-Json -Compress',
 ].join('; ');
 
@@ -34,6 +35,7 @@ async function listWindowsProcesses() {
     const records = JSON.parse(stdout);
 
     return (Array.isArray(records) ? records : [records]).map((record) => ({
+        creationTime: record.CreationDate,
         name: record.Name,
         parentPid: record.ParentProcessId,
         pid: record.ProcessId,
@@ -59,7 +61,24 @@ async function taskkill(pid, tree) {
     await execFileAsync('taskkill.exe', argumentsList, { windowsHide: true });
 }
 
-async function terminateDescendantProcesses(rootPid) {
+async function terminateProcessByPid(pid) {
+    await taskkill(pid, true);
+}
+
+function createOwnedProcessTracker(rootPid, owner) {
+    return new OwnedProcessTracker({
+        listProcesses: listWindowsProcesses,
+        owner,
+        rootPid,
+        terminateProcess: terminateProcessByPid,
+    });
+}
+
+async function terminateDescendantProcesses(rootPid, processTracker) {
+    if (processTracker) {
+        await processTracker.terminate(false);
+        return;
+    }
     const descendants = await listDescendantProcesses(rootPid);
     if (descendants.length === 0) return;
     console.warn('[agent:orphan-descendants]', { descendants, rootPid, timestamp: new Date().toISOString() });
@@ -72,13 +91,18 @@ async function terminateDescendantProcesses(rootPid) {
     }
 }
 
-async function terminateProcessTree(child) {
+async function terminateProcessTree(child, processTracker) {
     if (!child.pid) {
         child.kill();
         return;
     }
     if (process.platform !== 'win32') {
         child.kill();
+        return;
+    }
+    if (processTracker) {
+        const rootTerminated = await processTracker.terminate(true);
+        if (!rootTerminated && child.exitCode === null && child.signalCode === null) child.kill();
         return;
     }
 
@@ -93,7 +117,13 @@ async function terminateProcessTree(child) {
     } catch {
         child.kill();
     }
-    await terminateDescendantProcesses(child.pid);
 }
 
-module.exports = { descendantProcesses, listDescendantProcesses, terminateDescendantProcesses, terminateProcessTree };
+module.exports = {
+    createOwnedProcessTracker,
+    descendantProcesses,
+    listDescendantProcesses,
+    listWindowsProcesses,
+    terminateDescendantProcesses,
+    terminateProcessTree,
+};

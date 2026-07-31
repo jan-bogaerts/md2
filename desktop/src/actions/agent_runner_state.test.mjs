@@ -150,9 +150,29 @@ describe('AgentRunnerService state handling', () => {
         expect(completed).toBe(true);
     });
 
+    it('terminates cancellation through the run process tracker', async () => {
+        const processTracker = { terminate: vi.fn(async () => undefined) };
+        const terminateProcessTree = vi.fn(async () => undefined);
+        const service = new AgentRunnerService({ terminateProcessTree });
+        const child = {};
+        service.processes.set('run-1', {
+            cancelled: false,
+            child,
+            processTracker,
+            queuedMessage: null,
+            termination: null,
+        });
+
+        await service.stop('run-1');
+
+        expect(terminateProcessTree).toHaveBeenCalledWith(child, processTracker);
+    });
+
     it('persists a suspended waiting run as resumable', async () => {
         const persistConversation = vi.fn(async () => undefined);
-        const service = new AgentRunnerService({ persistConversation });
+        const terminateDescendantProcesses = vi.fn(async () => undefined);
+        const service = new AgentRunnerService({ persistConversation, terminateDescendantProcesses });
+        const processTracker = { terminate: vi.fn(async () => undefined) };
         const run = {
             agent: 'codex',
             cancelled: false,
@@ -173,6 +193,7 @@ describe('AgentRunnerService state handling', () => {
             onComplete: vi.fn(),
             onEvent: vi.fn(),
             persistence: Promise.resolve(),
+            processTracker,
             protocolHandling: Promise.resolve(),
             request: {},
             startedAt: '2026-07-30T10:00:00.000Z',
@@ -182,7 +203,7 @@ describe('AgentRunnerService state handling', () => {
             streaming: true,
             streamingFailure: null,
             suspended: true,
-            termination: Promise.resolve(),
+            termination: null,
             turnUsage: null,
         };
         service.processes.set('run-1', run);
@@ -197,6 +218,7 @@ describe('AgentRunnerService state handling', () => {
             }),
             stderr: '',
         }));
+        expect(terminateDescendantProcesses).toHaveBeenCalledWith(10, processTracker);
     });
 
     it('redacts secret answers from stored and emitted activity', async () => {

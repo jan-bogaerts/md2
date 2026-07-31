@@ -1,12 +1,12 @@
-const { exec, execFile } = require('node:child_process');
+const { exec } = require('node:child_process');
 const fs = require('node:fs');
 const path = require('node:path');
 const { promisify } = require('node:util');
 
-const execFileAsync = promisify(execFile);
 const execAsync = promisify(exec);
 const { describeGitIndexLock } = require('./git_lock_diagnostics');
 const { withGitIndexMutation } = require('./git_index_coordinator');
+const { GitProcess, gitTimeoutPolicy } = require('./git_process');
 const DETACHED_HEAD_BRANCH = 'HEAD (detached)';
 const LITERAL_PATHSPEC_ARGUMENT = '--literal-pathspecs';
 const FULL_COMMIT_PATTERN = /^[0-9a-f]{40}$/iu;
@@ -46,18 +46,17 @@ async function pathExists(targetPath) {
     }
 }
 
-function executeGit(rootPath, args) {
-    return new Promise((resolve, reject) => {
-        execFile('git', args, { cwd: rootPath }, (error, stdout, stderr) => {
-            // console.log('[git:complete]', args);
-            if (error) {
-                reject(error);
-                return;
-            }
-
-            resolve({ stderr, stdout });
-        });
+function executeGit(rootPath, args, options = {}) {
+    const policy = gitTimeoutPolicy(args);
+    const process = new GitProcess({
+        args,
+        maxBuffer: options.maxBuffer,
+        operation: options.operation ?? policy.operation,
+        rootPath,
+        timeoutMs: options.timeoutMs ?? policy.timeoutMs,
     });
+
+    return process.run();
 }
 
 function isGitIndexLockError(error) {
@@ -287,7 +286,10 @@ async function readFileAtCommit(project, request) {
         throw error;
     }
 
-    const { stdout } = await execFileAsync('git', ['show', `${revision}:${filePath}`], { cwd: rootPath, maxBuffer: 1024 * 1024 * 32 });
+    const { stdout } = await executeGit(rootPath, ['show', `${revision}:${filePath}`], {
+        maxBuffer: 1024 * 1024 * 32,
+        operation: 'desktop Git read historical file',
+    });
 
     return { content: stdout, exists: true };
 }

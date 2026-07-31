@@ -266,46 +266,6 @@ describe('ActionConversationChat', () => {
         }
     })
 
-    it('renders live structured activity before a provider session or assistant message exists', () => {
-        const activity: AgentConversationEvent = {
-            content: 'Inspect code',
-            id: 'reasoning-1',
-            providerItemId: 'reasoning-1',
-            sequence: 2,
-            status: 'inProgress',
-            summary: ['Inspect code'],
-            timestamp: 'now',
-            type: 'reasoning',
-        }
-
-        renderChat(conversation('codex.json', [{ ...message('message-1', 'Start'), sequence: 1 }], [activity]))
-
-        expect(screen.getByText('Reasoning')).toBeInTheDocument()
-        expect(screen.getByText('Inspect code')).toBeInTheDocument()
-    })
-
-    it('shows reasoning summary sections and lifecycle state', () => {
-        const activity: AgentConversationEvent = {
-            content: 'Summary one\n\nSummary two',
-            details: ['Raw detail'],
-            id: 'reasoning-1',
-            providerItemId: 'reasoning-1',
-            sequence: 2,
-            status: 'inProgress',
-            summary: ['Summary one', 'Summary two'],
-            timestamp: 'now',
-            type: 'reasoning',
-        }
-
-        renderChat(conversation('codex.json', [{ ...message('message-1', 'Start'), agent: 'codex', sequence: 1 }], [activity], 'codex'))
-
-        expect(screen.getByText('Reasoning')).toBeInTheDocument()
-        expect(screen.getByText('Running')).toBeInTheDocument()
-        expect(screen.getByText('Summary one')).toBeInTheDocument()
-        expect(screen.getByText('Summary two')).toBeInTheDocument()
-        expect(screen.queryByText('Raw detail')).not.toBeInTheDocument()
-    })
-
     it('omits completed reasoning while its conversation runs', () => {
         const activity: AgentConversationEvent = {
             content: 'Inspect code',

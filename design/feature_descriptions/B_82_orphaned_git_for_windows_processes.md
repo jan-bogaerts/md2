@@ -3,7 +3,7 @@ author:
 id: B_82
 internalId: d97a054f-5a67-47bb-9070-df874cf9148e
 title: agent runs leave orphaned Git for Windows processes
-status: design
+status: ready
 owner:
 affects:
 agents:
