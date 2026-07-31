@@ -11,7 +11,6 @@ agents:
   - design/activity/card__c5d963f2-ca43-419d-bc3c-972199b7e7cd.json#conversation=agent-863e4b6f-a74b-475b-b633-5cfb3623f00c
 policy:
 after: 
-worktree: 1
 ---
 
 When an action has historical logs and the user selects one, he is no longer able to select an empty 'conversation'
