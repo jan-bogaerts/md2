@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
 policy:
+after: 01c2c981-7ead-4c33-b999-03a69c6812e9
 ---
 
 When an action has 'response' prompts, the list of buttons is shown below the prompt input as soon as the action starts.

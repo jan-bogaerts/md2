@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
 policy:
+after: 4b1a6636-3545-4409-bbfe-eed686514d7c
 ---
 
 When an agent is finished, we show a small blue led on the 'action' button in the `action-popup`. This is ok. However, it remains there for as long as the action popup remains open. Also, the user initially gets to see an empty chat window, which is confusing. So:
