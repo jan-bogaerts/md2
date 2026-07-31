@@ -5,7 +5,15 @@ const generateDiffBridge = vi.fn()
 
 vi.mock('../../data/electron_action_bridge', () => ({getElectronActionBridge: () => ({ generateDiff: generateDiffBridge })}))
 
-vi.mock('../config/config_service', () => ({configService: { get: () => 'git show {{commit}}' }}))
+vi.mock('../config/config_service', () => ({
+    configService: {
+        get: () => 'git show {{commit}}',
+        getProjectConfig: () => ({
+            actionsFolder: 'actions', archivedFolder: 'archived', projectFolder: 'design',
+            releasesFolder: 'delivery/releases', workingFolder: 'feature_descriptions',
+        }),
+    },
+}))
 
 const { generateDiff } = await import('./diff_service')
 
@@ -25,6 +33,7 @@ describe('generateDiff', () => {
 
         expect(generateDiffBridge).toHaveBeenCalledWith({
             branch: 'topic', commit: 'abc123456789', filePath: 'app/a.ts',
+            releasesFolder: 'design/delivery/releases',
             template: 'git show {{commit}}',
         })
     })

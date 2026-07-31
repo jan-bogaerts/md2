@@ -21,6 +21,7 @@ class ActionExecution {
         this.executionId = snapshot.executionId;
         this.project = snapshot.project;
         this.projectFolder = snapshot.projectFolder;
+        this.releasesFolder = snapshot.releasesFolder;
         this.rootAction = snapshot.rootAction;
         this.runInput = snapshot.runInput;
         this.startedAt = snapshot.startedAt;
@@ -338,7 +339,9 @@ class ActionExecution {
             context: this.context,
             extraPrompt: isRoot ? this.runInput.extraPrompt : '',
             onOutput,
+            primaryProject: this.project,
             project,
+            releasesFolder: this.releasesFolder,
             signal: this.controller.signal,
         });
     }
@@ -418,6 +421,7 @@ class ActionExecution {
             project,
             projectFolder: this.projectFolder,
             primaryProject: this.project,
+            releasesFolder: this.releasesFolder,
             runInput,
             signal: this.controller.signal,
         };

@@ -9,7 +9,9 @@ Placeholders let one action definition work for every card. They are written as 
 | `{{card-file}}` | Path to the selected card's Markdown file. |
 | `{{card-title}}` | Title of the selected card. |
 | `{{card-prompt}}` | The extra text you typed in the action popup for this run. |
-| `{{rootProjectFolder}}` | Absolute path to the local project root. |
+| `{{worktree-folder}}` | Absolute path to the action execution checkout. |
+| `{{project-folder}}` | Absolute path to the opened repository. |
+| `{{releases-folder}}` | Absolute path to the configured releases folder under the opened repository. |
 
 They work in both `prompt` (agent actions) and `command` (command actions).
 
@@ -41,7 +43,7 @@ In the prompt editor, type `{{` for a typeahead list, or insert one from the too
 
 - A card placeholder only resolves when the action runs with card context. Use `appliesTo` with `"kind": "card"` so an action that needs `{{card-file}}` is only offered where it makes sense.
 - `{{card-prompt}}` is empty when you run without typing anything. Write prompts that read fine either way.
-- The diff command in project configuration has its own placeholder set: `{{rootProjectFolder}}`, `{{commit}}`, `{{branch}}`, `{{file}}`.
+- The diff command in project configuration supports the same three folder placeholders plus `{{commit}}`, `{{branch}}`, and `{{file}}`. For diffs, `{{worktree-folder}}` and `{{project-folder}}` both resolve to the opened repository.
 - Custom agent profiles support `{{model}}` in `command` and `{{sessionId}}` in `resumeCommand`. Those are profile placeholders, not action placeholders.
 
 {% endraw %}

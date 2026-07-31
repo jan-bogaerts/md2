@@ -1,4 +1,5 @@
 import { createRequire } from 'node:module';
+import path from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 
 const require = createRequire(import.meta.url);
@@ -55,7 +56,7 @@ function createRunner(actionFiles = [actionFile('main')], overrides = {}) {
         localGitService,
         ...overrides,
     });
-    runner.startProject(project, 'actions', 'design');
+    runner.startProject(project, 'actions', 'design', 'design/releases');
 
     return { actionWorktreeExecutionService, agentRunnerService, commandRunner, localGitService, runner };
 }
@@ -99,7 +100,7 @@ describe('ActionRunnerService', () => {
         const runner = new ActionRunnerService({});
 
         await expect(runner.start({ actionId: 'main', context, runInput: {} })).rejects.toThrow('Action runner has no project');
-        runner.startProject(project, 'actions', 'design');
+        runner.startProject(project, 'actions', 'design', 'design/releases');
         await expect(runner.start({ actionId: 'main', context, runInput: {} })).rejects.toThrow('Action runner has no local Git service');
     });
 
@@ -148,7 +149,7 @@ describe('ActionRunnerService', () => {
         const files = [actionFile('main', {
             command: undefined,
             needsWorkTree: true,
-            prompt: 'Review {{card-file}} in {{rootProjectFolder}}',
+            prompt: 'Review {{card-file}} in {{worktree-folder}}; project {{project-folder}}; releases {{releases-folder}}',
             trackFileChanges: true,
             type: 'agent',
         })];
@@ -156,7 +157,7 @@ describe('ActionRunnerService', () => {
         const worktreeProject = { ...project, branch: 'feature', rootPath: 'C:/worktrees/2' };
         actionWorktreeExecutionService.resolve.mockResolvedValueOnce({ executionProject: worktreeProject, executionWorktree: 2 });
 
-        await expect(runner.prepareActionPrompt({ actionId: 'main', context })).resolves.toEqual({prompt: 'Review design/F-010.md in C:/worktrees/2\n\nDo not stage or commit changes. md2 will commit files captured from provider edit tools.'});
+        await expect(runner.prepareActionPrompt({ actionId: 'main', context })).resolves.toEqual({prompt: `Review design/F-010.md in C:/worktrees/2; project C:/repo; releases ${path.resolve('C:/repo', 'design/releases')}\n\nDo not stage or commit changes. md2 will commit files captured from provider edit tools.`});
         expect(actionWorktreeExecutionService.resolve).toHaveBeenCalledWith(project, expect.objectContaining({ id: 'main' }), context);
         expect(actionWorktreeExecutionService.execute).not.toHaveBeenCalled();
         expect(agentRunnerService.start).not.toHaveBeenCalled();
@@ -248,7 +249,7 @@ describe('ActionRunnerService', () => {
         const executionId = await runner.start({ actionId: 'main', context, runInput: {} });
         await vi.waitFor(() => expect(commandRunner).toHaveBeenCalledTimes(1));
 
-        runner.startProject({ branch: 'other', id: 'other', rootPath: 'C:/other' }, 'other-actions', 'other-design');
+        runner.startProject({ branch: 'other', id: 'other', rootPath: 'C:/other' }, 'other-actions', 'other-design', 'other-design/releases');
         resolve();
         const result = await runner.wait(executionId);
 

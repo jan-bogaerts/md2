@@ -53,6 +53,7 @@ function executionInput(overrides = {}) {
         project,
         projectFolder: 'design',
         primaryProject: project,
+        releasesFolder: 'design/releases',
         runInput: { extraPrompt: '' },
         signal: new AbortController().signal,
         ...overrides,

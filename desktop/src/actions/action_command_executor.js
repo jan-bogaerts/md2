@@ -38,7 +38,14 @@ async function runCommand(project, command, signal, onOutput, spawnCommand = spa
 }
 
 function executeCommandAction(input) {
-    const command = resolvePlaceholders(input.action.command, input.context, input.project, input.extraPrompt);
+    const command = resolvePlaceholders(
+        input.action.command,
+        input.context,
+        input.project,
+        input.primaryProject,
+        input.releasesFolder,
+        input.extraPrompt,
+    );
     const onOutput = ({ stderr, stdout }) => input.onOutput({ command, stderr, stdout });
 
     return input.commandRunner(input.project, command, input.signal, onOutput);

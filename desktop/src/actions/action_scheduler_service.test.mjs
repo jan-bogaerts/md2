@@ -1,4 +1,5 @@
 import { createRequire } from 'node:module';
+import path from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 
 const require = createRequire(import.meta.url);
@@ -28,7 +29,7 @@ function summarizeExecutionEvents(executionEvents) {
     }));
 }
 
-function createAction(id = 'implement') {
+function createAction(id = 'implement', overrides = {}) {
     return {
         content: JSON.stringify({
             command: 'echo done',
@@ -36,6 +37,7 @@ function createAction(id = 'implement') {
             id,
             label: id,
             type: 'command',
+            ...overrides,
         }),
         path: `actions/${id}.json`,
     };
@@ -167,9 +169,10 @@ describe('ActionSchedulerService', () => {
 
     it('loads schedules and actions from the actions folder inside the configured project folder', async () => {
         const schedule = createSchedule('schedule-1', 'implement', { timestamp: '2026-07-06T09:59:00.000Z', type: 'at' });
-        const localGitService = createLocalGitService([schedule], [createAction()], {
+        const localGitService = createLocalGitService([schedule], [createAction('implement', { command: 'echo {{releases-folder}}' })], {
             actionsFolder: 'actions',
             projectFolder: 'projects/demo',
+            releasesFolder: 'delivery/releases',
         });
         const scheduler = createScheduler(localGitService);
 
@@ -178,8 +181,16 @@ describe('ActionSchedulerService', () => {
 
         expect(localGitService.loadActionSchedules).toHaveBeenCalledWith(project, 'projects/demo/actions');
         expect(localGitService.loadActionFiles).toHaveBeenCalledWith(project, 'projects/demo/actions');
+        expect(localGitService.runCommand).toHaveBeenCalledWith(
+            project,
+            `echo ${path.resolve('C:/repo', 'projects/demo/delivery/releases')}`,
+        );
         expect(localGitService.histories).toEqual([expect.objectContaining({
-            entry: expect.objectContaining({ command: 'echo done', output: 'done', status: 'completed' }),
+            entry: expect.objectContaining({
+                command: `echo ${path.resolve('C:/repo', 'projects/demo/delivery/releases')}`,
+                output: 'done',
+                status: 'completed',
+            }),
             request: expect.objectContaining({ actionId: 'implement', projectFolder: 'projects/demo' }),
         })]);
     });

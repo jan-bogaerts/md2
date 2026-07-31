@@ -61,7 +61,14 @@ class ActionAgentExecutor {
                     input.runInput.extraPrompt.trim().length > 0 ? input.runInput.extraPrompt : CONTINUE_INPUT,
                     input.action.trackFileChanges,
                 )
-                : prepareAgentPrompt(input.action, input.context, input.project, input.runInput.extraPrompt);
+                : prepareAgentPrompt(
+                    input.action,
+                    input.context,
+                    input.project,
+                    input.primaryProject,
+                    input.releasesFolder,
+                    input.runInput.extraPrompt,
+                );
         const command = executionCommand(resolvedAgent, providerSession, streaming);
         const contextInput = sourceConversation
             ? normalizeConversationContext(sourceConversation, providerSession?.synchronizedThroughMessageId ?? null)

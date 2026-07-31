@@ -58,14 +58,17 @@ class ActionRunnerService {
         this.listeners = new Set();
         this.project = null;
         this.projectFolder = null;
+        this.releasesFolder = null;
     }
 
-    async startProject(project, actionsFolder, projectFolder) {
+    async startProject(project, actionsFolder, projectFolder, releasesFolder) {
         if (typeof projectFolder !== 'string') throw new Error('Missing action runner projectFolder');
+        if (typeof releasesFolder !== 'string' || releasesFolder.length === 0) throw new Error('Missing action runner releasesFolder');
         if (this.project) await this.stop();
         this.project = project;
         this.actionsFolder = actionsFolder;
         this.projectFolder = projectFolder;
+        this.releasesFolder = releasesFolder;
         this.actionCacheReady = this.actionDefinitionCache && this.localGitService
             ? this.initializeProject(project, actionsFolder)
             : null;
@@ -112,6 +115,7 @@ class ActionRunnerService {
         this.actionsFolder = null;
         this.actionCacheReady = null;
         this.projectFolder = null;
+        this.releasesFolder = null;
         this.configuredStates = [];
         this.actionDefinitionCache?.stop();
     }
@@ -141,6 +145,7 @@ class ActionRunnerService {
             executionId,
             project,
             projectFolder: this.projectFolder,
+            releasesFolder: this.releasesFolder,
             rootAction,
             runInput: startRequest.runInput,
             startedAt: new Date().toISOString(),
@@ -167,7 +172,15 @@ class ActionRunnerService {
         if (action.type !== 'agent') throw new Error('Cannot prepare a prompt for a command action');
         const resolution = await this.actionWorktreeExecutionService.resolve(project, action, promptRequest.context);
 
-        return { prompt: prepareAgentPrompt(action, promptRequest.context, resolution.executionProject) };
+        return {
+            prompt: prepareAgentPrompt(
+                action,
+                promptRequest.context,
+                resolution.executionProject,
+                project,
+                this.releasesFolder,
+            ),
+        };
     }
 
     async wait(executionId) {
@@ -225,6 +238,7 @@ class ActionRunnerService {
 
     requireProjectFolder() {
         if (this.projectFolder === null) throw new Error('Action runner has no projectFolder');
+        if (this.releasesFolder === null) throw new Error('Action runner has no releasesFolder');
 
         return this.projectFolder;
     }

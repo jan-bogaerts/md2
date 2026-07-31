@@ -1,16 +1,36 @@
 import type { ActionContext } from '../../data/action_context'
 import type { ActionDefinition } from '../../data/action_types'
-import type { ProjectReference } from '../../data/data_types'
 
-const PLACEHOLDER_PATTERN = /\{\{\s*(rootProjectFolder|card-file|card-title|card-prompt)\s*\}\}/gu
+const PLACEHOLDER_PATTERN = /\{\{\s*(worktree-folder|project-folder|releases-folder|card-file|card-title|card-prompt)\s*\}\}/gu
 const CARD_PROMPT_PLACEHOLDER_PATTERN = /\{\{\s*card-prompt\s*\}\}/u
 
-export function resolvePlaceholders(text: string, context: ActionContext, project: ProjectReference, extraPrompt: string): string {
-    return text.replace(PLACEHOLDER_PATTERN, (_match, name: string) => {
-        if (name === 'rootProjectFolder') {
-            if (!project.rootPath) throw new Error('Cannot resolve rootProjectFolder without a local project rootPath')
+export interface ActionFolderPlaceholderValues {
+    projectFolder: string
+    releasesFolder: string
+    worktreeFolder: string
+}
 
-            return project.rootPath
+export function resolvePlaceholders(
+    text: string,
+    context: ActionContext,
+    folders: ActionFolderPlaceholderValues,
+    extraPrompt: string,
+): string {
+    return text.replace(PLACEHOLDER_PATTERN, (_match, name: string) => {
+        if (name === 'worktree-folder') {
+            if (!folders.worktreeFolder) throw new Error('Cannot resolve worktree-folder without an execution checkout path')
+
+            return folders.worktreeFolder
+        }
+        if (name === 'project-folder') {
+            if (!folders.projectFolder) throw new Error('Cannot resolve project-folder without an opened repository path')
+
+            return folders.projectFolder
+        }
+        if (name === 'releases-folder') {
+            if (!folders.releasesFolder) throw new Error('Cannot resolve releases-folder without a configured releases folder')
+
+            return folders.releasesFolder
         }
 
         if (name === 'card-prompt') return extraPrompt
@@ -30,11 +50,11 @@ export function resolvePlaceholders(text: string, context: ActionContext, projec
 export function resolveAgentPrompt(
     action: ActionDefinition,
     context: ActionContext,
-    project: ProjectReference,
+    folders: ActionFolderPlaceholderValues,
     extraPrompt: string,
 ): string {
     if (!action.prompt) throw new Error(`Missing prompt for agent action "${action.label}"`)
-    const resolvedText = resolvePlaceholders(action.prompt, context, project, extraPrompt)
+    const resolvedText = resolvePlaceholders(action.prompt, context, folders, extraPrompt)
     if (CARD_PROMPT_PLACEHOLDER_PATTERN.test(action.prompt)) return resolvedText
     if (extraPrompt.trim().length === 0) return resolvedText
 

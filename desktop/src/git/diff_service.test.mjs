@@ -1,4 +1,5 @@
 import { createRequire } from 'node:module';
+import path from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 
 const require = createRequire(import.meta.url);
@@ -38,14 +39,29 @@ describe('diff-service', () => {
         expect(() => parseUnifiedDiff('not a diff at all')).toThrow('could not be parsed');
     });
 
-    it('resolves diff command placeholders', () => {
-        const command = resolveDiffCommand('git show {{commit}} -- {{file}}', { commit: 'abc1234', file: 'design/F-010.md' });
+    it('resolves diff command and folder placeholders', () => {
+        const values = {
+            commit: 'abc1234',
+            file: 'design/F-010.md',
+            'project-folder': 'C:/repo',
+            'releases-folder': 'C:/repo/delivery/releases',
+            'worktree-folder': 'C:/repo',
+        };
+        const command = resolveDiffCommand(
+            'git -C {{worktree-folder}} show {{commit}} -- {{file}} {{project-folder}} {{releases-folder}}',
+            values,
+        );
 
-        expect(command).toBe('git show abc1234 -- design/F-010.md');
+        expect(command).toBe('git -C C:/repo show abc1234 -- design/F-010.md C:/repo C:/repo/delivery/releases');
     });
 
     it('fails fast when a diff placeholder value is missing', () => {
         expect(() => resolveDiffCommand('git show {{commit}}', { commit: '' })).toThrow('Missing diff command value: commit');
+    });
+
+    it('does not resolve removed rootProjectFolder placeholder', () => {
+        expect(resolveDiffCommand('git -C {{rootProjectFolder}} show {{commit}}', { commit: 'abc1234' }))
+            .toBe('git -C {{rootProjectFolder}} show abc1234');
     });
 
     it('generates normalized diff data through the runner', async () => {
@@ -59,6 +75,21 @@ describe('diff-service', () => {
         expect(runner).toHaveBeenCalledWith('git show abc1234', expect.objectContaining({ cwd: 'C:/repo' }));
         expect(result.commit).toBe('abc1234');
         expect(result.files).toHaveLength(1);
+    });
+
+    it('resolves custom releases folder from the opened repository for diff commands', async () => {
+        const runner = vi.fn(async () => ({ stdout: SAMPLE_DIFF }));
+        const template = 'git -C {{project-folder}} show {{commit}} -- {{releases-folder}}';
+        await generateDiff(
+            { branch: 'main', id: 'local', rootPath: 'C:/repo' },
+            { branch: 'main', commit: 'abc1234', filePath: '', releasesFolder: 'delivery/releases', template },
+            runner,
+        );
+
+        expect(runner).toHaveBeenCalledWith(
+            `git -C C:/repo show abc1234 -- ${path.resolve('C:/repo', 'delivery/releases')}`,
+            expect.objectContaining({ cwd: 'C:/repo' }),
+        );
     });
 
     it('reports diff command failures clearly', async () => {

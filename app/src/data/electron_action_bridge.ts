@@ -63,6 +63,7 @@ export interface DiffRequest {
     branch: string
     commit: string
     filePath: string
+    releasesFolder: string
     template: string
 }
 

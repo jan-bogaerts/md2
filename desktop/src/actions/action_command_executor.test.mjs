@@ -1,7 +1,7 @@
 import { EventEmitter } from 'node:events';
 import { mkdir, mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { createRequire } from 'node:module';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -124,16 +124,20 @@ describe('executeCommandAction', () => {
         });
         const onOutput = vi.fn();
         const input = {
-            action: { command: 'run {{card-file}} {{card-prompt}}' },
+            action: { command: 'run {{worktree-folder}} {{project-folder}} {{releases-folder}} {{card-file}} {{card-prompt}}' },
             commandRunner,
             context: { file: 'design/card.md' },
             extraPrompt: 'focus',
             onOutput,
+            primaryProject: { rootPath: 'C:/repo' },
             project: { rootPath: 'C:/repo' },
+            releasesFolder: 'design/releases',
             signal: new AbortController().signal,
         };
 
-        await expect(executeCommandAction(input)).resolves.toMatchObject({ command: 'run design/card.md focus' });
-        expect(onOutput).toHaveBeenCalledWith({ command: 'run design/card.md focus', stderr: '', stdout: 'chunk' });
+        const command = `run C:/repo C:/repo ${resolve('C:/repo', 'design/releases')} design/card.md focus`;
+
+        await expect(executeCommandAction(input)).resolves.toMatchObject({ command });
+        expect(onOutput).toHaveBeenCalledWith({ command, stderr: '', stdout: 'chunk' });
     });
 });

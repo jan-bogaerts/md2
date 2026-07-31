@@ -70,6 +70,7 @@ function createExecution(rootAction, overrides = {}) {
         executionId: 'execution-1',
         project,
         projectFolder: 'design',
+        releasesFolder: 'design/releases',
         rootAction,
         runInput: { extraPrompt: '', ...overrides.runInput },
         startedAt: '2026-07-20T10:00:00.000Z',
