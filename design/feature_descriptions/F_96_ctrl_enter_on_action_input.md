@@ -7,6 +7,7 @@ status: ready for implementation
 owner: 
 affects:
 agents:
+  - design/activity/card__d33002d3-ee0e-4c08-8e26-36f790500ee2.json#conversation=agent-b71da0c0-6751-4be3-831a-918b3a7d2ba6
 policy:
 after: 
 worktree: 2
