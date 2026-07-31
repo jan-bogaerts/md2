@@ -12,7 +12,7 @@ import {
     reportWorkspaceError,
     reportWorkspaceNotice,
 } from '../data/data_service_context'
-import { planExternalCardImports } from '../data/external_card_import_service'
+import { planExternalCardImports, type ExternalCardImportPlan } from '../data/external_card_import_service'
 import { telemetryService } from '../telemetry/telemetry_service'
 import { createRandomProjectBackgroundShade } from '../../theme/project_background_shade'
 import { worktreeService } from './worktree_service'
@@ -434,7 +434,11 @@ export class ProjectLoading {
         const activeProject = this.dependencies.project()
         if (activeProject?.id !== currentProject.id || activeProject.branch !== currentProject.branch) return nextFiles
 
-        const promise = this.executeExternalCardImport(nextFiles, workingFolder, currentProject)
+        const { config } = this.dependencies.requireDependencies()
+        const plan = planExternalCardImports(nextFiles, workingFolder, config.cardSeparator, config.cardTypes, config.states[0].state)
+        if (plan.moves.length === 0) return nextFiles
+
+        const promise = this.executeExternalCardImport(nextFiles, currentProject, plan)
         const activeImport = { project: currentProject, promise }
         this.externalCardImportInProgress = activeImport
 
@@ -449,13 +453,10 @@ export class ProjectLoading {
 
     private async executeExternalCardImport(
         files: MarkdownFile[],
-        workingFolder: string,
         currentProject: ProjectReference,
+        plan: ExternalCardImportPlan,
     ): Promise<ExternalCardImportResult> {
         const { config, storage } = this.dependencies.requireDependencies()
-
-        const plan = planExternalCardImports(files, workingFolder, config.cardSeparator, config.cardTypes, config.states[0].state)
-        if (plan.moves.length === 0) return { files, importedFiles: [], sourcePaths: [], succeeded: true }
 
         const importPaths = plan.moves.flatMap((move) => [move.fromPath, move.toPath])
         const sourcePaths = plan.moves.map((move) => move.fromPath)
