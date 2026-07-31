@@ -9,7 +9,6 @@ affects:
 agents:
 policy:
 ---
-
 by default, the agents run in sandbox-mode which limits what they can do.&#x20;
 
-The user should be able to determine the access-level of the agent. just like the other agent configurations (agent-
+The user should be able to determine the access-level of the agent. just like the other agent configurations (which agent, model,..) there should be a config for the access level. User should be able to set this at all levels that other agent configs can be set: action config, global default, local chat,...
