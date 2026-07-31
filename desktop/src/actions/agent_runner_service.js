@@ -20,6 +20,7 @@ const { createAgentProviderProtocolParser } = require('./agent_provider_protocol
 const { createAgentStreamingAdapter } = require('./agent_streaming_adapter');
 const { AgentExecutableResolver } = require('./agent_executable_availability');
 const { createAgentEnvironment } = require('./agent_environment');
+const { diagnoseCodexCacheError, isCodexCacheError } = require('./agent_codex_cache_diagnostic');
 const { terminateDescendantProcesses, terminateProcessTree } = require('./process_tree');
 const { assertGitRoot, ensureInsideRoot, requireRootPath } = require('../git/git_commands');
 
@@ -157,6 +158,17 @@ function nextRunSequence(run) {
     return sequence;
 }
 
+function createActivityEventIndexes(events) {
+    const activityEventIndexes = new Map();
+    for (const [index, { providerItemId }] of events.entries()) {
+        if (typeof providerItemId === 'string' && !activityEventIndexes.has(providerItemId)) {
+            activityEventIndexes.set(providerItemId, index);
+        }
+    }
+
+    return activityEventIndexes;
+}
+
 function assistantMessageId(run) {
     return run.streaming ? `${run.id}-turn-${run.turnIndex}-assistant` : `${run.id}-assistant`;
 }
@@ -262,6 +274,7 @@ class AgentRunnerService {
         this.persistConversationCheckpoint = dependencies.persistConversationCheckpoint
             ?? persistConversationCheckpoint;
         this.executableResolver = dependencies.executableResolver ?? new AgentExecutableResolver();
+        this.diagnoseCodexCacheError = dependencies.diagnoseCodexCacheError ?? diagnoseCodexCacheError;
         this.terminateDescendantProcesses = dependencies.terminateDescendantProcesses ?? terminateDescendantProcesses;
         this.terminateProcessTree = dependencies.terminateProcessTree ?? terminateProcessTree;
         this.processes = new Map();
@@ -337,6 +350,7 @@ class AgentRunnerService {
         });
         const { promise: closed, resolve: resolveClosed } = Promise.withResolvers();
         const run = {
+            activityEventIndexes: createActivityEventIndexes(conversation.events),
             agent,
             assistantItemIndex: 0,
             assistantItems: new Map(),
@@ -345,7 +359,10 @@ class AgentRunnerService {
             changedPaths: new Set(),
             closed,
             conversation,
+            codexCacheErrorReported: false,
             currentAssistantMessageId: null,
+            environment,
+            executable,
             id,
             missingSession: false,
             nextSequence,
@@ -369,6 +386,7 @@ class AgentRunnerService {
             request,
             stderr: '',
             stderrBuffer: '',
+            stderrHandling: Promise.resolve(),
             finishing: false,
             stdout: '',
             startedAt,
@@ -620,10 +638,32 @@ class AgentRunnerService {
             const filtered = filterCompleteStderrLines(run.stderrBuffer);
             run.stderrBuffer = filtered.remainder;
             if (filtered.content.length === 0) return;
-            this.recordOutput(runId, channel, filtered.content);
+            this.recordStderr(run, filtered.content);
             return;
         }
         this.recordOutput(runId, channel, content);
+    }
+
+    recordStderr(run, content) {
+        const parts = content.split(/(\r\n|\r|\n)/u);
+        for (let index = 0; index < parts.length; index += 2) {
+            const line = parts[index];
+            const delimiter = parts[index + 1] ?? '';
+            if (line.length === 0 && delimiter.length === 0) continue;
+            if (run.agent !== 'codex' || !isCodexCacheError(line)) {
+                this.recordOutput(run.id, 'stderr', `${line}${delimiter}`);
+                continue;
+            }
+            if (run.codexCacheErrorReported) continue;
+            run.codexCacheErrorReported = true;
+            const diagnostic = run.stderrHandling.then(async () => {
+                const message = await this.diagnoseCodexCacheError(line, run.executable, run.environment);
+                this.recordOutput(run.id, 'stderr', `${message}\n`);
+            });
+            run.stderrHandling = diagnostic.catch(() => {
+                this.recordOutput(run.id, 'stderr', `${line}${delimiter}`);
+            });
+        }
     }
 
     handleStreamingLine(runId, line) {
@@ -673,7 +713,7 @@ class AgentRunnerService {
 
         const content = run.stderrBuffer;
         run.stderrBuffer = '';
-        if (!isHiddenStderrLine(content)) this.recordOutput(runId, 'stderr', content);
+        if (!isHiddenStderrLine(content)) this.recordStderr(run, content);
     }
 
     handleProviderEvent(runId, providerEvent) {
@@ -750,11 +790,10 @@ class AgentRunnerService {
         }
         if (event.type === 'activity') {
             const safeActivity = redactActivity(event.activity, run.secretValues);
-            const currentIndex = run.conversation.events.findIndex(
-                ({ providerItemId }) => providerItemId === safeActivity.providerItemId,
-            );
+            const providerItemId = requireString(safeActivity.providerItemId, 'activity providerItemId');
+            const currentIndex = run.activityEventIndexes.get(providerItemId);
             let activity;
-            if (currentIndex >= 0) {
+            if (currentIndex !== undefined) {
                 const current = run.conversation.events[currentIndex];
                 activity = createActivityEvent(safeActivity, current.id, timestamp, current.sequence);
                 run.conversation.events[currentIndex] = activity;
@@ -766,6 +805,7 @@ class AgentRunnerService {
                     timestamp,
                     sequence,
                 );
+                run.activityEventIndexes.set(providerItemId, run.conversation.events.length);
                 run.conversation.events.push(activity);
             }
             emitRunEvent(run, { activity, type: 'agentActivity' });
@@ -924,6 +964,7 @@ class AgentRunnerService {
             run.protocolLines?.finish();
             await run.protocolHandling;
             this.flushStderr(runId);
+            await run.stderrHandling;
             const completedAt = new Date().toISOString();
             if (run.streaming && !run.finishing && !run.cancelled && !run.streamingFailure && !run.suspended) {
                 run.streamingFailure = new Error('Streaming agent process exited before Finish');

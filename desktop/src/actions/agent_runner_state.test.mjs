@@ -5,6 +5,41 @@ const require = createRequire(import.meta.url);
 const { AgentRunnerService } = require('./agent_runner_service');
 
 describe('AgentRunnerService state handling', () => {
+    it('reports one diagnosed Codex cache error and suppresses repeats', async () => {
+        const diagnoseCodexCacheError = vi.fn(async () => 'Codex versions differ. Update Codex.');
+        const service = new AgentRunnerService({ diagnoseCodexCacheError });
+        const run = {
+            agent: 'codex',
+            child: {},
+            codexCacheErrorReported: false,
+            conversation: { events: [], messages: [] },
+            environment: { Path: 'C:\\tools' },
+            executable: 'codex.cmd',
+            id: 'run-1',
+            nextSequence: 1,
+            onEvent: vi.fn(),
+            secretValues: new Set(),
+            stderr: '',
+            stderrBuffer: '',
+            stderrHandling: Promise.resolve(),
+        };
+        service.processes.set('run-1', run);
+
+        service.handleOutput('run-1', 'stderr', Buffer.from('failed to load models cache: broken\n'));
+        service.handleOutput('run-1', 'stderr', Buffer.from('failed to renew cache TTL: broken\n'));
+        await run.stderrHandling;
+
+        expect(diagnoseCodexCacheError).toHaveBeenCalledOnce();
+        expect(diagnoseCodexCacheError).toHaveBeenCalledWith(
+            'failed to load models cache: broken',
+            'codex.cmd',
+            { Path: 'C:\\tools' },
+        );
+        expect(run.stderr).toBe('Codex versions differ. Update Codex.\n');
+        expect(run.conversation.events).toHaveLength(1);
+        expect(run.onEvent).toHaveBeenCalledOnce();
+    });
+
     it('consumes one queued revision exactly once', async () => {
         const sendMessage = vi.fn();
         const service = new AgentRunnerService({
@@ -201,6 +236,7 @@ describe('AgentRunnerService state handling', () => {
     it('creates separate assistant messages around intervening activity', async () => {
         const service = new AgentRunnerService();
         const run = {
+            activityEventIndexes: new Map(),
             agent: 'codex',
             assistantItemIndex: 0,
             assistantItems: new Map(),
@@ -238,6 +274,60 @@ describe('AgentRunnerService state handling', () => {
         expect(run.conversation.events).toEqual([
             expect.objectContaining({ providerItemId: 'reasoning-1', sequence: 3 }),
         ]);
+    });
+
+    it('updates an indexed activity without scanning or appending conversation history', async () => {
+        const service = new AgentRunnerService();
+        const existingActivity = {
+            content: 'Running',
+            id: 'activity-1',
+            label: 'Command',
+            providerItemId: 'command-1',
+            sequence: 7,
+            status: 'inProgress',
+            timestamp: 'earlier',
+            type: 'commandExecution',
+        };
+        const events = [
+            { content: 'started', id: 'started-1', sequence: 1, timestamp: 'earlier', type: 'started' },
+            existingActivity,
+            { content: 'unrelated', id: 'event-1', sequence: 8, timestamp: 'earlier', type: 'diagnostic' },
+        ];
+        events.findIndex = vi.fn(() => { throw new Error('conversation history was scanned'); });
+        const run = {
+            activityEventIndexes: new Map([['command-1', 1]]),
+            conversation: { events, messages: [], status: 'running' },
+            id: 'run-1',
+            nextSequence: 9,
+            onEvent: vi.fn(),
+            secretValues: new Set(),
+        };
+        service.processes.set('run-1', run);
+
+        await service.handleStreamingEvent('run-1', {
+            activity: {
+                content: 'Completed',
+                label: 'Command',
+                providerItemId: 'command-1',
+                status: 'completed',
+                type: 'commandExecution',
+            },
+            type: 'activity',
+        });
+
+        expect(events.findIndex).not.toHaveBeenCalled();
+        expect(run.conversation.events).toHaveLength(3);
+        expect(run.conversation.events[1]).toMatchObject({
+            content: 'Completed',
+            id: 'activity-1',
+            providerItemId: 'command-1',
+            sequence: 7,
+            status: 'completed',
+        });
+        expect(run.onEvent).toHaveBeenCalledWith(expect.objectContaining({
+            activity: expect.objectContaining({ content: 'Completed', id: 'activity-1' }),
+            type: 'agentActivity',
+        }));
     });
 
     it('does not append a user message when the provider write fails', async () => {
