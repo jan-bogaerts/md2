@@ -3,7 +3,7 @@ author:
 id: F_108
 internalId: 5cdae748-9597-4d29-8dc0-3d4b5df3aa7f
 title: add file-search editor plugin
-status: design
+status: ready for implementation
 owner: 
 affects:
 agents:
