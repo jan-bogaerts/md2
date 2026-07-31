@@ -95,10 +95,11 @@ export function ActionAgentPrompt(props: ActionAgentPromptProps) {
         persistPromptHeight(clamped)
     }
 
-    const handlePromptKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    const handlePromptKeyDownCapture = (event: KeyboardEvent<HTMLDivElement>) => {
         if (event.key !== 'Enter' || (!event.ctrlKey && !event.metaKey) || !onRunShortcut) return
 
         event.preventDefault()
+        event.stopPropagation()
         promptEditorRef.current?.flush()
         onRunShortcut()
     }
@@ -130,7 +131,7 @@ export function ActionAgentPrompt(props: ActionAgentPromptProps) {
             />
             <Box
                 aria-label="Prompt"
-                onKeyDown={handlePromptKeyDown}
+                onKeyDownCapture={handlePromptKeyDownCapture}
                 sx={{
                     borderRadius: '9px',
                     border: 1,
