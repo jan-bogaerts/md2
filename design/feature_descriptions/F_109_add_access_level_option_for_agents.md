@@ -10,6 +10,29 @@ agents:
 policy:
 after: d97a054f-5a67-47bb-9070-df874cf9148e
 ---
-by default, the agents run in sandbox-mode which limits what they can do.&#x20;
+## Current state
 
-The user should be able to determine the access-level of the agent. just like the other agent configurations (which agent, model,..) there should be a config for the access level. User should be able to set this at all levels that other agent configs can be set: action config, global default, local chat,...
+MD² selects agent, model, and thinking level globally, per action, and per run. Agent profiles define model choices and command arguments. Access level and approval policy are not represented in profiles, action definitions, run requests, or UI controls.
+
+Agent commands therefore omit both settings. Codex and Claude use provider defaults or user configuration, so MD² cannot show, validate, or audit effective permissions.
+
+## Implementation details
+
+- Add provider-specific access-level and approval-policy choices, argument names, and defaults to each agent profile. Keep provider wording unchanged; built-in Codex choices use `read-only`, `workspace-write`, and `danger-full-access`, plus `untrusted`, `on-request`, and `never`.
+- Add `desktop.accessLevel` and `desktop.approvalPolicy` defaults. Add optional `accessLevel` and `approvalPolicy` overrides to agent action definitions and run input. Resolution order is run override, action override, then desktop default.
+- Show profile-supported choices beside agent, model, and thinking level in config, action editor, and local run/chat controls. Changing agent resets incompatible selections to that profile's defaults. Clearly report profiles that do not expose either capability.
+- Validate profile definitions, saved actions, renderer requests, and Electron execution. Reject unknown values, missing argument mappings, or values unsupported by selected agent before process start.
+- Add resolved arguments before one-shot, resume, and streaming subcommands. For built-in Codex, use `--sandbox <accessLevel>` and `--ask-for-approval <approvalPolicy>`; other profiles use their configured arguments without MD² translating provider terms.
+- Propagate effective values through scheduled, chained, continued, local-bridge, and remote-control runs. Record them in execution events and action history.
+- Add profile, config persistence, action validation/editor, popup/controller, request-contract, command-building, execution, bridge, remote-control, continuation, and scheduling tests.
+
+## Acceptance criteria
+
+- Each agent exposes only its configured access levels and approval policies, using provider-specific names.
+- User can set global defaults, action overrides, and local run/chat overrides for both settings.
+- Run override wins over action override; action override wins over desktop default.
+- Codex receives exact resolved `--sandbox` and `--ask-for-approval` values for one-shot, resumed, and streaming runs.
+- Unsupported, stale, or malformed selections fail before process start with a clear error.
+- Switching agents cannot retain incompatible access or approval selections.
+- Scheduled, chained, continued, local, and remote runs use and report effective settings consistently.
+- Existing agent/model/thinking-level behavior, approval handling, and execution tests remain valid.
