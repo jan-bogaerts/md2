@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
 policy:
+after: 26fc69f5-78ff-4e8e-81a7-c458232db575
 ---
 
 The approval box shown when an agent requests approval for a command or file change, is currently shown below the input box. Instead, it should float over the input and chatlog, with it's bottom edge against the bottom of the input. resizable from the top

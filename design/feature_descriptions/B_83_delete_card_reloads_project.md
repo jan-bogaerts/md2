@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
 policy:
+after: d47986a5-1380-4dd1-adb9-fff106a9a143
 ---
 
 deleting a card currently reloads the entire project (project\_loading.ts: reloadCurrentProjectSnapshot). this shouldn't be done.
