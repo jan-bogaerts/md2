@@ -11,7 +11,6 @@ agents:
   - design/activity/card__ff356504-eed4-47f3-bb38-2c749b6fcba6.json#conversation=agent-a472fd01-9411-4b9c-9e4b-ba02bb0a4e27
 policy:
 after: 
-worktree: 1
 ---
 We have 'rootProjectFolder' placeholder. this currently maps to the folder that the agent is running on, so it could the the main project folder or a worktree.&#x20;
 
