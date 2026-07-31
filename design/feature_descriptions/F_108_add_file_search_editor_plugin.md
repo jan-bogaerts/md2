@@ -3,12 +3,12 @@ author:
 id: F_108
 internalId: 5cdae748-9597-4d29-8dc0-3d4b5df3aa7f
 title: add file-search editor plugin
-status: new
+status: design
 owner: 
 affects:
 agents:
 policy:
-after: a529defa-f2ad-4307-923b-856a8ce80243
+after: 
 ---
 
 The markdown editor currently already has support for the `placeholder plugin (place holder type ahead pluging)` which shows an overlay container when the user enters '{{'
