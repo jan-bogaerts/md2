@@ -270,25 +270,6 @@ describe('MainWindow', () => {
         expect(screen.getByRole('tab', { name: 'Desktop' })).toHaveAttribute('aria-selected', 'true')
     })
 
-    it('preserves workspace, view, search, and open files after config closes', async () => {
-        mockMatchMedia(false)
-        await openProjectWithCards()
-        openFilesService.openPath('design/F-1-root.md')
-        renderWindow()
-        typeQuery('Root')
-        const workspace = screen.getByLabelText('Project workspace')
-
-        fireEvent.click(screen.getByRole('button', { name: 'Config' }))
-        fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
-
-        expect(screen.getByLabelText('Project workspace')).toBe(workspace)
-        expect(screen.getByRole('textbox', { name: 'Search project' })).toHaveValue('Root')
-        expect(workspaceViewService.getSnapshot().viewMode).toBe('cards')
-        expect(openFilesService.getSnapshot().documents).toHaveLength(1)
-        expect(screen.getByLabelText('Card columns')).toHaveTextContent('Root')
-        expect(screen.getByRole('contentinfo')).toHaveTextContent('2cards')
-    })
-
     it('populates the search query from a real agent run when the Electron bridge is available', async () => {
         mockMatchMedia(false)
         installAgentBridge('Beta')

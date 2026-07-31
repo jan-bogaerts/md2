@@ -113,9 +113,29 @@ export default defineConfig({
         ],
     },
     test: {
-        environment: 'jsdom',
         // The forks pool can crash under rolldown-vite; threads is stable and faster here.
         pool: 'threads',
-        setupFiles: './src/test/setup.ts',
+        projects: [
+            {
+                extends: true,
+                test: {
+                    environment: 'node',
+                    include: ['vite.config.test.ts', 'src/**/*.node.test.ts'],
+                    isolate: false,
+                    name: 'unit',
+                },
+            },
+            {
+                extends: true,
+                test: {
+                    environment: 'jsdom',
+                    exclude: ['src/**/*.node.test.ts'],
+                    include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
+                    isolate: true,
+                    name: 'ui',
+                    setupFiles: './src/test/setup.ts',
+                },
+            },
+        ],
     },
 })

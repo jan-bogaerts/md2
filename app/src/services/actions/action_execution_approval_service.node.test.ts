@@ -16,7 +16,7 @@ describe('ActionExecutionService approvals', () => {
     afterEach(() => setActionBridgeOverride(null))
 
     it('replays unresolved approvals and discards resolved requests', async () => {
-        let listener: ((event: ActionExecutionEvent) => void) | null = null
+        const listeners: Array<(event: ActionExecutionEvent) => void> = []
         const commandApproval: AgentApproval = {
             command: 'npm test', filePaths: [], itemId: 'command-1', kind: 'commandExecution', requestId: 41,
             startedAtMs: 1, threadId: 'thread-1', turnId: 'turn-1',
@@ -44,7 +44,7 @@ describe('ActionExecutionService approvals', () => {
         const bridge = {
             loadActiveActionExecutionEvents: vi.fn(async () => events),
             onActionExecution: vi.fn((callback) => {
-                listener = callback
+                listeners.push(callback)
 
                 return vi.fn()
             }),
@@ -56,6 +56,7 @@ describe('ActionExecutionService approvals', () => {
         await vi.waitFor(() => expect(service.getSnapshot().executions[0]?.approvals).toEqual([
             { ...fileApproval, submitted: false },
         ]))
+        const [listener] = listeners
         if (!listener) throw new Error('Missing action execution listener')
         listener({
             actionId: 'build', context, executionId: 'execution-1', phase: 'main', rootActionId: 'build', sequence: 6,
