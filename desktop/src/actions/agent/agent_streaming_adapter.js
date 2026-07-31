@@ -1,4 +1,4 @@
-const { normalizeAgentTokenUsage } = require('../../../shared/agent_usage_math.mjs');
+const { normalizeAgentTokenUsage } = require('../../../../shared/agent_usage_math.mjs');
 const { claudeAssistantText, claudeChangedPaths, claudeTranscriptEvents, claudeUsage } = require('./agent_claude_events');
 const { codexChangedPaths } = require('./agent_codex_events');
 const { diagnosticActivity, normalizeCodexActivity, systemActivity } = require('./agent_codex_activity');

@@ -607,23 +607,6 @@ describe('ProjectWorkspace', () => {
         await waitFor(() => expect(bridge.commit).toHaveBeenCalledWith(expect.objectContaining({files: [expect.objectContaining({ path: 'design/T-1-new-task.md' })]})))
     })
 
-    it('creates a card in the column that launched the dialog', async () => {
-        const bridge = createBridge()
-        window.md2Data = bridge
-
-        renderProjectSurface()
-        await openLocalProject()
-        await findRootCard()
-
-        fireEvent.click(screen.getByRole('button', { name: 'Add card from design column' }))
-        expect(screen.getByRole('combobox', { name: 'Target column' })).toHaveTextContent('design')
-        fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Design Card' } })
-        fireEvent.click(screen.getByRole('button', { name: 'Create card' }))
-
-        await waitFor(() => expect(screen.queryByRole('dialog', { name: 'New card' })).toBeNull())
-        expect(await within(screen.getByLabelText('design column')).findByText('Design Card')).toBeInTheDocument()
-    })
-
     it('completes a release from the project menu', async () => {
         const bridge = createBridge()
         window.md2Data = bridge

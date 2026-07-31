@@ -9,7 +9,7 @@ import {
     validateAgentProfiles,
 } from './agent_profiles.mjs';
 
-const sharedAgentProfiles = await import('../../../shared/agent_profiles.mjs');
+const sharedAgentProfiles = await import('../../../../shared/agent_profiles.mjs');
 
 describe('agent_profiles shared adapter', () => {
     it('uses the shared implementation for desktop exports', () => {

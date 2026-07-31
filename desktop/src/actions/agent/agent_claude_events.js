@@ -1,4 +1,4 @@
-const { normalizeAgentTokenUsage } = require('../../../shared/agent_usage_math.mjs');
+const { normalizeAgentTokenUsage } = require('../../../../shared/agent_usage_math.mjs');
 const { normalizeChangedPaths, normalizedContent } = require('./agent_event_utils');
 
 const CLAUDE_FILE_TOOLS = new Set(['Edit', 'MultiEdit', 'NotebookEdit', 'Write']);

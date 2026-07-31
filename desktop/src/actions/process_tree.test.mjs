@@ -2,120 +2,39 @@ import { createRequire } from 'node:module';
 import { describe, expect, it, vi } from 'vitest';
 
 const require = createRequire(import.meta.url);
-const { OwnedProcessTracker } = require('./owned_process_tracker');
-const { descendantProcesses } = require('./process_tree');
+const { terminateProcessTree } = require('./process_tree');
 
 describe('process-tree', () => {
-    it('finds every descendant without including unrelated processes', () => {
-        const processes = [
-            { name: 'sh.exe', parentPid: 10, pid: 20 },
-            { name: 'git.exe', parentPid: 20, pid: 30 },
-            { name: 'node.exe', parentPid: 99, pid: 40 },
-        ];
+    it('terminates only the known Windows process tree', async () => {
+        const child = { exitCode: null, kill: vi.fn(), pid: 10, signalCode: null };
+        const terminateWindowsTree = vi.fn(async () => undefined);
 
-        expect(descendantProcesses(processes, 10)).toEqual([
-            { name: 'sh.exe', parentPid: 10, pid: 20 },
-            { name: 'git.exe', parentPid: 20, pid: 30 },
-        ]);
-    });
-});
+        const terminated = await terminateProcessTree(child, { platform: 'win32', terminateWindowsTree });
 
-describe('OwnedProcessTracker', () => {
-    it('reports and terminates its original root identity during cancellation', async () => {
-        const snapshot = [{ creationTime: 'root-start', name: 'agent.exe', parentPid: 1, pid: 10 }];
-        const terminateProcess = vi.fn(async () => undefined);
-        const tracker = new OwnedProcessTracker({
-            clearInterval: vi.fn(),
-            listProcesses: vi.fn(async () => snapshot),
-            owner: 'run-1',
-            rootPid: 10,
-            setInterval: vi.fn(() => 1),
-            terminateProcess,
-        });
-
-        await tracker.start();
-        const rootTerminated = await tracker.terminate(true);
-
-        expect(rootTerminated).toBe(true);
-        expect(terminateProcess).toHaveBeenCalledWith(10);
+        expect(terminated).toBe(true);
+        expect(terminateWindowsTree).toHaveBeenCalledWith(10);
+        expect(child.kill).not.toHaveBeenCalled();
     });
 
-    it('retains descendants after their intermediate parent exits', async () => {
-        const snapshots = [
-            [
-                { creationTime: 'root-start', name: 'agent.exe', parentPid: 1, pid: 10 },
-                { creationTime: 'shell-start', name: 'sh.exe', parentPid: 10, pid: 20 },
-                { creationTime: 'git-start', name: 'git.exe', parentPid: 20, pid: 30 },
-            ],
-            [
-                { creationTime: 'root-start', name: 'agent.exe', parentPid: 1, pid: 10 },
-                { creationTime: 'git-start', name: 'git.exe', parentPid: 20, pid: 30 },
-            ],
-        ];
-        const terminateProcess = vi.fn(async () => undefined);
-        const tracker = new OwnedProcessTracker({
-            clearInterval: vi.fn(),
-            listProcesses: vi.fn(async () => snapshots.shift()),
-            owner: 'run-1',
-            rootPid: 10,
-            setInterval: vi.fn(() => 1),
-            terminateProcess,
-        });
+    it('terminates the known POSIX process group', async () => {
+        const child = { exitCode: null, kill: vi.fn(), pid: 10, signalCode: null };
+        const terminateProcessGroup = vi.fn();
 
-        await tracker.start();
-        await tracker.terminate(false);
+        const terminated = await terminateProcessTree(child, { platform: 'linux', terminateProcessGroup });
 
-        expect(terminateProcess).toHaveBeenCalledOnce();
-        expect(terminateProcess).toHaveBeenCalledWith(30);
+        expect(terminated).toBe(true);
+        expect(terminateProcessGroup).toHaveBeenCalledWith(10);
+        expect(child.kill).not.toHaveBeenCalled();
     });
 
-    it('does not terminate a reused PID or unrelated process', async () => {
-        const snapshots = [
-            [
-                { creationTime: 'root-start', name: 'agent.exe', parentPid: 1, pid: 10 },
-                { creationTime: 'git-start', name: 'git.exe', parentPid: 10, pid: 30 },
-                { creationTime: 'other-start', name: 'git.exe', parentPid: 99, pid: 40 },
-            ],
-            [
-                { creationTime: 'root-start', name: 'agent.exe', parentPid: 1, pid: 10 },
-                { creationTime: 'reused-start', name: 'unrelated.exe', parentPid: 99, pid: 30 },
-                { creationTime: 'other-start', name: 'git.exe', parentPid: 99, pid: 40 },
-            ],
-        ];
-        const terminateProcess = vi.fn(async () => undefined);
-        const tracker = new OwnedProcessTracker({
-            clearInterval: vi.fn(),
-            listProcesses: vi.fn(async () => snapshots.shift()),
-            owner: 'run-1',
-            rootPid: 10,
-            setInterval: vi.fn(() => 1),
-            terminateProcess,
-        });
+    it('does not inspect or terminate an already closed process', async () => {
+        const child = { exitCode: 0, kill: vi.fn(), pid: 10, signalCode: null };
+        const terminateWindowsTree = vi.fn(async () => undefined);
 
-        await tracker.start();
-        await tracker.terminate(false);
+        const terminated = await terminateProcessTree(child, { platform: 'win32', terminateWindowsTree });
 
-        expect(terminateProcess).not.toHaveBeenCalled();
-    });
-
-    it('does not claim a reused root PID after initial root exit', async () => {
-        const snapshots = [
-            [],
-            [{ creationTime: 'reused-start', name: 'unrelated.exe', parentPid: 99, pid: 10 }],
-        ];
-        const terminateProcess = vi.fn(async () => undefined);
-        const tracker = new OwnedProcessTracker({
-            clearInterval: vi.fn(),
-            listProcesses: vi.fn(async () => snapshots.shift()),
-            owner: 'run-1',
-            rootPid: 10,
-            setInterval: vi.fn(() => 1),
-            terminateProcess,
-        });
-
-        await tracker.start();
-        await tracker.terminate(true);
-
-        expect(terminateProcess).not.toHaveBeenCalled();
+        expect(terminated).toBe(false);
+        expect(terminateWindowsTree).not.toHaveBeenCalled();
+        expect(child.kill).not.toHaveBeenCalled();
     });
 });

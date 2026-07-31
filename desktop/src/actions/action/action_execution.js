@@ -1,7 +1,7 @@
 const { ActionCancellationError } = require('./action_cancellation_error');
 const { executeCommandAction } = require('./action_command_executor');
 const { ActionPhaseError } = require('./action_phase_error');
-const { runWithGitOperationContext } = require('../git/git_operation_context');
+const { runWithGitOperationContext } = require('../../git/git_operation_context');
 const {
     captureCommitReferences,
     combineOutput,

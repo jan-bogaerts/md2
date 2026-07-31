@@ -21,8 +21,8 @@ const { createAgentStreamingAdapter } = require('./agent_streaming_adapter');
 const { AgentExecutableResolver } = require('./agent_executable_availability');
 const { createAgentEnvironment } = require('./agent_environment');
 const { diagnoseCodexCacheError, isCodexCacheError } = require('./agent_codex_cache_diagnostic');
-const { createOwnedProcessTracker, terminateDescendantProcesses, terminateProcessTree } = require('./process_tree');
-const { assertGitRoot, ensureInsideRoot, requireRootPath } = require('../git/git_commands');
+const { terminateProcessTree } = require('../process_tree');
+const { assertGitRoot, ensureInsideRoot, requireRootPath } = require('../../git/git_commands');
 
 const HIDDEN_STDERR_LINES = [
     /^completed$/i,
@@ -32,6 +32,7 @@ const HIDDEN_STDERR_LINES = [
     /^Reading additional input from stdin\.\.\.$/,
     /^Waiting for the debugger to disconnect\.\.\.$/,
 ];
+const AGENT_FINISH_GRACE_MS = 5_000;
 
 function isHiddenStderrLine(line) {
     return HIDDEN_STDERR_LINES.some((pattern) => pattern.test(line.trim()));
@@ -279,9 +280,10 @@ class AgentRunnerService {
             ?? persistConversationCheckpoint;
         this.executableResolver = dependencies.executableResolver ?? new AgentExecutableResolver();
         this.diagnoseCodexCacheError = dependencies.diagnoseCodexCacheError ?? diagnoseCodexCacheError;
-        this.createOwnedProcessTracker = dependencies.createOwnedProcessTracker ?? createOwnedProcessTracker;
-        this.terminateDescendantProcesses = dependencies.terminateDescendantProcesses ?? terminateDescendantProcesses;
+        this.clearTimeout = dependencies.clearTimeout ?? clearTimeout;
+        this.setTimeout = dependencies.setTimeout ?? setTimeout;
         this.terminateProcessTree = dependencies.terminateProcessTree ?? terminateProcessTree;
+        this.handleFinishTimeout = this.handleFinishTimeout.bind(this);
         this.processes = new Map();
         this.runningConversationIds = new Set();
     }
@@ -340,14 +342,11 @@ class AgentRunnerService {
         const argumentsList = streaming ? configuredArguments : [...configuredArguments, prompt];
         const child = crossSpawn(executable, argumentsList, {
             cwd: rootPath,
+            detached: process.platform !== 'win32',
             env: environment,
             stdio: ['pipe', 'pipe', 'pipe'],
             // windowsHide: true,
         });
-        const processTracker = child.pid && process.platform === 'win32'
-            ? this.createOwnedProcessTracker(child.pid, id)
-            : null;
-        if (processTracker) void processTracker.start();
         console.log('[agent:start]', {
             arguments: configuredArguments,
             cwd: rootPath,
@@ -372,6 +371,8 @@ class AgentRunnerService {
             currentAssistantMessageId: null,
             environment,
             executable,
+            finishForced: false,
+            finishTimeout: null,
             id,
             missingSession: false,
             nextSequence,
@@ -382,7 +383,6 @@ class AgentRunnerService {
             pendingQuestions: [],
             pendingApprovals: new Map(),
             persistence: Promise.resolve(),
-            processTracker,
             providerConversationId: null,
             protocolLines: null,
             protocolHandling: Promise.resolve(),
@@ -473,6 +473,7 @@ class AgentRunnerService {
         const run = this.requireRun(runId);
         run.cancelled = true;
         run.queuedMessage = null;
+        this.clearFinishTimeout(run);
 
         return this.ensureTermination(run);
     }
@@ -481,6 +482,7 @@ class AgentRunnerService {
         const run = this.requireRun(runId);
         run.suspended = true;
         run.queuedMessage = null;
+        this.clearFinishTimeout(run);
 
         return this.ensureTermination(run);
     }
@@ -613,13 +615,43 @@ class AgentRunnerService {
         const run = this.requireStreamingRun(runId);
         run.finishing = true;
         run.queuedMessage = null;
-        if (!run.turnActive || run.waitingForQuestion) run.child.stdin.end();
+        if (!run.turnActive || run.waitingForQuestion) this.beginFinishShutdown(run);
+    }
+
+    beginFinishShutdown(run) {
+        if (run.finishTimeout !== null && run.finishTimeout !== undefined) return;
+        run.finishTimeout = this.setTimeout(this.handleFinishTimeout, AGENT_FINISH_GRACE_MS, run.id);
+        run.child.stdin.end();
+    }
+
+    clearFinishTimeout(run) {
+        if (run.finishTimeout === null || run.finishTimeout === undefined) return;
+        this.clearTimeout(run.finishTimeout);
+        run.finishTimeout = null;
+    }
+
+    async handleFinishTimeout(runId) {
+        const run = this.processes.get(runId);
+        if (!run) return;
+        run.finishTimeout = null;
+        console.warn('[agent:finish-timeout]', {
+            graceMs: AGENT_FINISH_GRACE_MS,
+            pid: run.child.pid,
+            runId,
+            timestamp: new Date().toISOString(),
+        });
+        try {
+            run.finishForced = await this.ensureTermination(run);
+        } catch (error) {
+            this.handleError(runId, error);
+        }
     }
 
     stopAll() {
         const completions = [];
         for (const run of this.processes.values()) {
             run.cancelled = true;
+            this.clearFinishTimeout(run);
             completions.push(Promise.all([this.ensureTermination(run), run.closed]));
         }
 
@@ -627,7 +659,7 @@ class AgentRunnerService {
     }
 
     ensureTermination(run) {
-        run.termination ??= this.terminateProcessTree(run.child, run.processTracker);
+        run.termination ??= this.terminateProcessTree(run.child);
 
         return run.termination;
     }
@@ -901,7 +933,7 @@ class AgentRunnerService {
             return;
         }
         if (run.finishing) {
-            run.child.stdin.end();
+            this.beginFinishShutdown(run);
             return;
         }
         if (run.queuedMessage) {
@@ -1001,10 +1033,10 @@ class AgentRunnerService {
     async handleClose(runId, exitCode) {
         const run = this.processes.get(runId);
         if (!run) return;
+        this.clearFinishTimeout(run);
 
         try {
             if (run.termination) await run.termination;
-            else await this.terminateDescendantProcesses(run.child.pid, run.processTracker);
             run.parser?.finish();
             run.protocolLines?.finish();
             await run.protocolHandling;
@@ -1016,7 +1048,7 @@ class AgentRunnerService {
                 const separator = run.stderr.length > 0 && !run.stderr.endsWith('\n') ? '\n' : '';
                 run.stderr += `${separator}${run.streamingFailure.message}`;
             }
-            const succeeded = exitCode === 0
+            const succeeded = (exitCode === 0 || (run.finishing && run.finishForced))
                 && !run.missingSession
                 && !run.cancelled
                 && !run.streamingFailure
@@ -1084,4 +1116,4 @@ class AgentRunnerService {
     }
 }
 
-module.exports = { AgentRunnerService };
+module.exports = { AGENT_FINISH_GRACE_MS, AgentRunnerService };

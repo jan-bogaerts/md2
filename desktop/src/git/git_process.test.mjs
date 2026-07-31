@@ -1,4 +1,5 @@
 import { createRequire } from 'node:module';
+import { platform } from 'node:process';
 import { describe, expect, it, vi } from 'vitest';
 
 const require = createRequire(import.meta.url);
@@ -74,6 +75,7 @@ describe('git process', () => {
         complete(null, 'abc\n', '');
 
         await expect(result).resolves.toEqual({ stderr: '', stdout: 'abc\n' });
+        expect(execFile).toHaveBeenCalledWith('git', ['rev-parse', 'HEAD'], expect.objectContaining({detached: platform !== 'win32'}), complete);
         expect(terminateProcessTree).not.toHaveBeenCalled();
     });
 });

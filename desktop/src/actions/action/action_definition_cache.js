@@ -1,8 +1,8 @@
 const {
     BUILTIN_CUSTOM_PROMPT,
     BUILTIN_REMARKABLE_CONVERT,
-} = require('../../../shared/action_definitions.mjs');
-const { loadTolerantActionDefinitionGraph } = require('../../../shared/tolerant_action_definitions.mjs');
+} = require('../../../../shared/action_definitions.mjs');
+const { loadTolerantActionDefinitionGraph } = require('../../../../shared/tolerant_action_definitions.mjs');
 
 const BUILTIN_ACTION_IDS = new Set([BUILTIN_CUSTOM_PROMPT.id, BUILTIN_REMARKABLE_CONVERT.id]);
 

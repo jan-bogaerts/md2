@@ -1,5 +1,5 @@
 const path = require('node:path');
-const { normalizePath } = require('../../../shared/path_utils.mjs');
+const { normalizePath } = require('../../../../shared/path_utils.mjs');
 
 /**
  * Turn a provider-reported file path into a repo-relative POSIX pathspec, or null when the path

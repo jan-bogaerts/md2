@@ -59,7 +59,7 @@ class GitProcess {
             this.reject = reject;
             this.resolve = resolve;
         });
-        const executionOptions = { cwd: this.rootPath, windowsHide: true };
+        const executionOptions = { cwd: this.rootPath, detached: process.platform !== 'win32', windowsHide: true };
         if (this.maxBuffer !== undefined) executionOptions.maxBuffer = this.maxBuffer;
         try {
             this.child = this.execFile('git', this.args, executionOptions, this.handleComplete);

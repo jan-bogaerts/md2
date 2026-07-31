@@ -6,15 +6,15 @@ const {
     ensureInsideRoot,
     pathExists,
     requireRootPath,
-} = require('../git/git_commands');
+} = require('../../git/git_commands');
 const {
     ACTION_SCHEDULES_FILE,
     cancelPendingActionSchedule,
     createActionScheduleFile,
     parseActionScheduleFile,
-} = require('./schedule_store');
-const { normalizePath } = require('../../../shared/path_utils.mjs');
-const { loadActivityConversation, readActivityFile, resolveActivityPath } = require('./activity_files');
+} = require('../schedule/schedule_store');
+const { normalizePath } = require('../../../../shared/path_utils.mjs');
+const { loadActivityConversation, readActivityFile, resolveActivityPath } = require('../activity/activity_files');
 
 const JSON_EXTENSION = '.json';
 

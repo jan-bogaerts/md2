@@ -2,7 +2,7 @@ const {
     activityConversationReference,
     upsertActivityConversation,
     upsertAndCommitActivityConversation,
-} = require('./activity_files');
+} = require('../activity/activity_files');
 
 function requireActivityRequest(request) {
     if (!request?.activityProject) throw new Error('Missing agent activityProject');

@@ -1,4 +1,4 @@
-const { resolveAgentCommand } = require('../actions/agent_profiles.mjs');
+const { resolveAgentCommand } = require('../actions/agent/agent_profiles.mjs');
 
 const INTEGRATION_ACTIVITY_LABEL = 'Integrate into project';
 const SEARCH_AGENT_PROMPT_PREFIX = 'Return only a single JavaScript-compatible regular expression pattern (no explanation, no surrounding text or markdown) that matches the following search request:\n\n';

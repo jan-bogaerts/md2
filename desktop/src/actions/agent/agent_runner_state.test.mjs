@@ -2,7 +2,7 @@ import { createRequire } from 'node:module';
 import { describe, expect, it, vi } from 'vitest';
 
 const require = createRequire(import.meta.url);
-const { AgentRunnerService } = require('./agent_runner_service');
+const { AGENT_FINISH_GRACE_MS, AgentRunnerService } = require('./agent_runner_service');
 
 describe('AgentRunnerService state handling', () => {
     it('reports one diagnosed Codex cache error and suppresses repeats', async () => {
@@ -150,29 +150,26 @@ describe('AgentRunnerService state handling', () => {
         expect(completed).toBe(true);
     });
 
-    it('terminates cancellation through the run process tracker', async () => {
-        const processTracker = { terminate: vi.fn(async () => undefined) };
-        const terminateProcessTree = vi.fn(async () => undefined);
+    it('terminates cancellation through the owned child handle', async () => {
+        const terminateProcessTree = vi.fn(async () => true);
         const service = new AgentRunnerService({ terminateProcessTree });
         const child = {};
         service.processes.set('run-1', {
             cancelled: false,
             child,
-            processTracker,
             queuedMessage: null,
             termination: null,
         });
 
         await service.stop('run-1');
 
-        expect(terminateProcessTree).toHaveBeenCalledWith(child, processTracker);
+        expect(terminateProcessTree).toHaveBeenCalledWith(child);
     });
 
-    it('persists a suspended waiting run as resumable', async () => {
+    it('does not scan for descendants after a process closes normally', async () => {
         const persistConversation = vi.fn(async () => undefined);
-        const terminateDescendantProcesses = vi.fn(async () => undefined);
-        const service = new AgentRunnerService({ persistConversation, terminateDescendantProcesses });
-        const processTracker = { terminate: vi.fn(async () => undefined) };
+        const terminateProcessTree = vi.fn(async () => undefined);
+        const service = new AgentRunnerService({ persistConversation, terminateProcessTree });
         const run = {
             agent: 'codex',
             cancelled: false,
@@ -193,7 +190,6 @@ describe('AgentRunnerService state handling', () => {
             onComplete: vi.fn(),
             onEvent: vi.fn(),
             persistence: Promise.resolve(),
-            processTracker,
             protocolHandling: Promise.resolve(),
             request: {},
             startedAt: '2026-07-30T10:00:00.000Z',
@@ -218,7 +214,70 @@ describe('AgentRunnerService state handling', () => {
             }),
             stderr: '',
         }));
-        expect(terminateDescendantProcesses).toHaveBeenCalledWith(10, processTracker);
+        expect(terminateProcessTree).not.toHaveBeenCalled();
+    });
+
+    it('forces termination when graceful Finish exceeds its deadline', async () => {
+        const setTimeout = vi.fn(() => 7);
+        const terminateProcessTree = vi.fn(async () => true);
+        const service = new AgentRunnerService({ setTimeout, terminateProcessTree });
+        const child = { pid: 10, stdin: { end: vi.fn() } };
+        service.processes.set('run-1', {
+            child,
+            finishTimeout: null,
+            finishing: false,
+            id: 'run-1',
+            queuedMessage: null,
+            streaming: true,
+            termination: null,
+            turnActive: false,
+            waitingForQuestion: false,
+        });
+
+        service.finish('run-1');
+
+        expect(child.stdin.end).toHaveBeenCalledOnce();
+        expect(setTimeout).toHaveBeenCalledWith(service.handleFinishTimeout, AGENT_FINISH_GRACE_MS, 'run-1');
+        await service.handleFinishTimeout('run-1');
+        expect(terminateProcessTree).toHaveBeenCalledWith(child);
+        expect(service.processes.get('run-1').finishForced).toBe(true);
+    });
+
+    it('starts graceful Finish only after the active turn completes', async () => {
+        const setTimeout = vi.fn(() => 7);
+        const child = { stdin: { end: vi.fn() } };
+        const service = new AgentRunnerService({ setTimeout });
+        service.processes.set('run-1', {
+            agent: 'codex',
+            child,
+            conversation: {
+                events: [],
+                messages: [{ content: 'Done', id: 'assistant-1', role: 'assistant', timestamp: 'now' }],
+                providerSessions: [],
+                status: 'running',
+            },
+            currentAssistantMessageId: 'assistant-1',
+            finishTimeout: null,
+            finishing: true,
+            id: 'run-1',
+            missingSession: false,
+            nextSequence: 2,
+            onEvent: vi.fn(),
+            pendingApprovals: new Map(),
+            persistence: Promise.resolve(),
+            providerConversationId: 'provider-1',
+            queuedMessage: null,
+            request: {},
+            streaming: true,
+            turnActive: true,
+            turnIndex: 1,
+            waitingForQuestion: false,
+        });
+
+        await service.handleStreamingEvent('run-1', { type: 'turnCompleted' });
+
+        expect(child.stdin.end).toHaveBeenCalledOnce();
+        expect(setTimeout).toHaveBeenCalledWith(service.handleFinishTimeout, AGENT_FINISH_GRACE_MS, 'run-1');
     });
 
     it('redacts secret answers from stored and emitted activity', async () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { extractCommitSummaries } from '../../../shared/action_history.mjs';
+import { extractCommitSummaries } from '../../../../shared/action_history.mjs';
 
 describe('extractCommitSummaries', () => {
     it('parses every normal and root commit summary line', () => {

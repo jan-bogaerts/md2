@@ -1,5 +1,5 @@
 const path = require('node:path');
-const { requireRootPath } = require('../git/git_commands');
+const { requireRootPath } = require('../../git/git_commands');
 
 const PLACEHOLDER_PATTERN = /\{\{\s*(worktree-folder|project-folder|releases-folder|card-file|card-title|card-prompt)\s*\}\}/gu;
 const CARD_PROMPT_PLACEHOLDER_PATTERN = /\{\{\s*card-prompt\s*\}\}/u;

@@ -11,6 +11,9 @@ const LINE_SOURCE_MAP_DIRECTIVE_PATTERN = /^\s*\/\/[#@]\s*sourceMappingURL=.*$/g
 const BLOCK_SOURCE_MAP_DIRECTIVE_PATTERN = /\/\*[#@]\s*sourceMappingURL=.*?\*\//gsu
 const JSON_CONTENT_TYPE = 'application/json'
 const LOCAL_URL_BASE = 'http://localhost'
+const NODE_TEST_GROUP_ORDER = 0
+const UI_TEST_GROUP_ORDER = 1
+const NODE_TEST_WORKERS = 1
 
 type NextFunction = (error?: Error) => void
 
@@ -122,7 +125,9 @@ export default defineConfig({
                     environment: 'node',
                     include: ['vite.config.test.ts', 'src/**/*.node.test.ts'],
                     isolate: false,
+                    maxWorkers: NODE_TEST_WORKERS,
                     name: 'unit',
+                    sequence: { groupOrder: NODE_TEST_GROUP_ORDER },
                 },
             },
             {
@@ -133,6 +138,7 @@ export default defineConfig({
                     include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
                     isolate: true,
                     name: 'ui',
+                    sequence: { groupOrder: UI_TEST_GROUP_ORDER },
                     setupFiles: './src/test/setup.ts',
                 },
             },

@@ -1,5 +1,5 @@
 const { spawn } = require('node:child_process');
-const { assertGitRoot, requireRootPath } = require('../git/git_commands');
+const { assertGitRoot, requireRootPath } = require('../../git/git_commands');
 const { ActionCancellationError } = require('./action_cancellation_error');
 const { resolvePlaceholders } = require('./action_text');
 

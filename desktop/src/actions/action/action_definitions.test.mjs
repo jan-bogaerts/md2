@@ -4,8 +4,8 @@ import {
     loadActionDefinitions,
     sanitizeActionValidationError,
     validateActionDefinition,
-} from '../../../shared/action_definitions.mjs';
-import { ACTION_DEFINITION_VALIDATION_PARITY_CASES } from '../../../shared/action_definition_validation_parity_cases.mjs';
+} from '../../../../shared/action_definitions.mjs';
+import { ACTION_DEFINITION_VALIDATION_PARITY_CASES } from '../../../../shared/action_definition_validation_parity_cases.mjs';
 
 // Load and return the thrown ActionValidationError for assertion on its routing metadata.
 function validationError(files) {

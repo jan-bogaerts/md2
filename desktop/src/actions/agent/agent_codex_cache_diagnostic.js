@@ -2,6 +2,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const crossSpawn = require('cross-spawn');
+const { terminateProcessTree } = require('../process_tree');
 
 const CODEX_CACHE_ERROR_PATTERN = /failed to (?:load models cache|renew cache TTL):/iu;
 const CODEX_VERSION_PATTERN = /codex-cli\s+(\d+\.\d+\.\d+(?:-[^\s]+)?)/iu;
@@ -37,13 +38,14 @@ function parseCodexVersion(output) {
 function readCodexVersion(executable, environment, spawn = crossSpawn) {
     return new Promise((resolve) => {
         const child = spawn(executable, ['--version'], {
+            detached: process.platform !== 'win32',
             env: environment,
             stdio: ['ignore', 'pipe', 'pipe'],
             windowsHide: true,
         });
         let output = '';
-        const timeout = setTimeout(() => {
-            child.kill();
+        const timeout = setTimeout(async () => {
+            await terminateProcessTree(child);
             resolve(null);
         }, VERSION_CHECK_TIMEOUT_MS);
         child.stdout.on('data', (chunk) => {

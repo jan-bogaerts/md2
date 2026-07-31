@@ -6,7 +6,7 @@ const {
     activityFilePath,
     conversationActivityReference,
     parseConversationActivityReference,
-} = require('../../../shared/activity_paths.mjs');
+} = require('../../../../shared/activity_paths.mjs');
 
 describe('activity paths', () => {
     it('uses stable card identity under tracked project activity', () => {

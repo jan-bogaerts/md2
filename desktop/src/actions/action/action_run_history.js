@@ -1,5 +1,5 @@
-const { extractCommitSummaries } = require('../../../shared/action_history.mjs');
-const { requireRootPath } = require('../git/git_commands');
+const { extractCommitSummaries } = require('../../../../shared/action_history.mjs');
+const { requireRootPath } = require('../../git/git_commands');
 
 function combineOutput(result) {
     return `${result.stdout}${result.stderr}`;

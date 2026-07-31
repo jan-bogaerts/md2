@@ -1,5 +1,5 @@
-const { buildResumeAgentCommand, resolveAgentCommand } = require('./agent_profiles.mjs');
-const { normalizeConversationContext } = require('./agent_transcript');
+const { buildResumeAgentCommand, resolveAgentCommand } = require('../agent/agent_profiles.mjs');
+const { normalizeConversationContext } = require('../agent/agent_transcript');
 const { prepareAgentPrompt, withTrackedFileCommitInstruction } = require('./action_text');
 
 const CONTINUE_INPUT = 'continue';

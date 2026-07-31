@@ -1,6 +1,6 @@
 import { createRequire } from 'node:module';
 import { EventEmitter } from 'node:events';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const require = createRequire(import.meta.url);
 const {
@@ -25,6 +25,10 @@ function versionProcess(version) {
 }
 
 describe('Codex cache diagnostics', () => {
+    afterEach(() => {
+        vi.useRealTimers();
+    });
+
     it('recognizes load and renewal errors', () => {
         expect(isCodexCacheError('failed to load models cache: missing field')).toBe(true);
         expect(isCodexCacheError('failed to renew cache TTL: missing field')).toBe(true);
@@ -67,5 +71,26 @@ describe('Codex cache diagnostics', () => {
         expect(readFile).toHaveBeenCalledWith('C:\\codex-md2\\models_cache.json', 'utf8');
         expect(spawn).toHaveBeenCalledWith('codex.cmd', ['--version'], expect.objectContaining({ windowsHide: true }));
         expect(message).toContain('Running Codex version: 0.144.6. Cache client version: 0.146.0.');
+    });
+
+    it('terminates a timed-out version probe through its owned child handle', async () => {
+        vi.useFakeTimers();
+        const child = new EventEmitter();
+        child.kill = vi.fn();
+        child.stdout = new EventEmitter();
+        child.stderr = new EventEmitter();
+        const spawn = vi.fn(() => child);
+        const messagePromise = diagnoseCodexCacheError(
+            'failed to load models cache: broken',
+            'codex.cmd',
+            {},
+            { homeDirectory: 'C:\\Users\\person', readFile: vi.fn(async () => { throw new Error('missing'); }), spawn },
+        );
+
+        await vi.advanceTimersByTimeAsync(5_000);
+        const message = await messagePromise;
+
+        expect(child.kill).toHaveBeenCalledOnce();
+        expect(message).toContain('could not determine both');
     });
 });

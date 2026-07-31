@@ -2,12 +2,12 @@ const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const { createActivityFile, findActivityConversation, parseActivityFile } = require('../../../shared/card_activity.mjs');
+const { createActivityFile, findActivityConversation, parseActivityFile } = require('../../../../shared/card_activity.mjs');
 const {
     activityFilePath,
     conversationActivityReference,
     parseConversationActivityReference,
-} = require('../../../shared/activity_paths.mjs');
+} = require('../../../../shared/activity_paths.mjs');
 const {
     assertGitRoot,
     commitExists,
@@ -16,7 +16,7 @@ const {
     isCommitAncestor,
     pathExists,
     requireRootPath,
-} = require('../git/git_commands');
+} = require('../../git/git_commands');
 
 const activityWriteQueues = new Map();
 const VISIBILITY_CHECK_CONCURRENCY = 8;
