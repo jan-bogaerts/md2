@@ -4,7 +4,14 @@ import type { ActionScheduleTrigger } from './action_schedule_types'
 import type { AgentRunEvent } from './data_types'
 import type { AgentAvailability } from './electron_data_bridge'
 import type { ThinkingLevel } from './agent_profiles'
-import type { ActionExecutionEvent, ActionPromptRequest, ActionStartRequest, PreparedActionPrompt } from './action_run_types'
+import type {
+    ActionExecutionEvent,
+    ActionPromptRequest,
+    ActionStartRequest,
+    AgentApprovalDecision,
+    AgentApprovalRequestId,
+    PreparedActionPrompt,
+} from './action_run_types'
 
 export interface ActionRunHistoryRequest {
     actionId: string
@@ -93,6 +100,7 @@ export interface OpenInEditorRequest {
 }
 
 export interface ElectronActionBridge {
+    answerActionApproval?(executionId: string, requestId: AgentApprovalRequestId, decision: AgentApprovalDecision): Promise<void>
     answerActionQuestion?(executionId: string, requestId: number | string | null, answers: Record<string, string[]>): Promise<void>
     beginActionPromptDraft?(executionId: string): Promise<number>
     cancelActionExecution(executionId: string): Promise<void>

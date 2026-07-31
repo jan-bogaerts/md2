@@ -253,6 +253,83 @@ describe('CodexStreamingAdapter', () => {
         expect(writes.at(-1)).toEqual({ id: 99, result: { answers: { confirm: { answers: ['Yes'] } } } });
     });
 
+    it('tracks concurrent approval requests and writes only supported decisions', async () => {
+        const { adapter, events, writes } = harness('codex');
+        const policyDecision = { acceptWithExecpolicyAmendment: { execpolicy_amendment: ['npm', 'test'] } };
+        await adapter.start('plan');
+        await adapter.handleMessage({ id: 1, result: {} });
+        await adapter.handleMessage({ id: 3, result: { thread: { id: 'thread-1' } } });
+        await adapter.handleMessage({ method: 'turn/started', params: { turn: { id: 'turn-1' } } });
+        await adapter.handleMessage({
+            method: 'item/started',
+            params: { item: { command: 'npm test', cwd: 'C:\\repo', id: 'command-1', type: 'commandExecution' } },
+        });
+        await adapter.handleMessage({
+            method: 'item/started',
+            params: { item: { changes: [{ kind: 'update', path: 'app/src/main.ts' }], id: 'file-1', type: 'fileChange' } },
+        });
+        await adapter.handleMessage({
+            id: 41,
+            method: 'item/commandExecution/requestApproval',
+            params: {
+                availableDecisions: ['decline', policyDecision],
+                command: 'npm test',
+                commandActions: [{ command: 'npm test', type: 'unknown' }],
+                cwd: 'C:\\repo',
+                itemId: 'command-1',
+                networkApprovalContext: { host: 'registry.npmjs.org', protocol: 'https' },
+                reason: 'Needs network',
+                startedAtMs: 1,
+                threadId: 'thread-1',
+                turnId: 'turn-1',
+            },
+        });
+        await adapter.handleMessage({
+            id: 'file-request',
+            method: 'item/fileChange/requestApproval',
+            params: { itemId: 'file-1', reason: 'Write file', startedAtMs: 2, threadId: 'thread-1', turnId: 'turn-1' },
+        });
+
+        await expect(adapter.answerApproval(41, 'accept')).rejects.toThrow('Unsupported');
+        await adapter.answerApproval(41, policyDecision);
+        await expect(adapter.answerApproval(41, policyDecision)).rejects.toThrow('already submitted');
+        await adapter.answerApproval('file-request', 'acceptForSession');
+        await adapter.handleMessage({
+            method: 'serverRequest/resolved',
+            params: { requestId: 41, threadId: 'thread-1' },
+        });
+        await adapter.handleMessage({ method: 'turn/completed', params: { turn: { id: 'turn-1', status: 'completed' } } });
+
+        expect(events).toContainEqual(expect.objectContaining({
+            approval: expect.objectContaining({
+                filePaths: ['app/src/main.ts'],
+                kind: 'fileChange',
+                requestId: 'file-request',
+            }),
+            type: 'approval',
+        }));
+        expect(events.filter(({ type }) => type === 'approvalResolved')).toEqual([
+            { requestId: 41, type: 'approvalResolved' },
+            { requestId: 'file-request', type: 'approvalResolved' },
+        ]);
+        expect(writes).toContainEqual({ id: 41, result: { decision: policyDecision } });
+        expect(writes).toContainEqual({ id: 'file-request', result: { decision: 'acceptForSession' } });
+    });
+
+    it('rejects approval requests that do not match the active turn item', async () => {
+        const { adapter } = harness('codex');
+        await adapter.start('plan');
+        await adapter.handleMessage({ id: 1, result: {} });
+        await adapter.handleMessage({ id: 3, result: { thread: { id: 'thread-1' } } });
+        await adapter.handleMessage({ method: 'turn/started', params: { turn: { id: 'turn-1' } } });
+
+        await expect(adapter.handleMessage({
+            id: 41,
+            method: 'item/fileChange/requestApproval',
+            params: { itemId: 'missing', startedAtMs: 1, threadId: 'thread-1', turnId: 'turn-1' },
+        })).rejects.toThrow('Mismatched Codex approval item id');
+    });
+
     it('closes only matching streamed agent messages once', async () => {
         const { adapter, events } = harness('codex');
         const agentMessage = (id) => ({ id, phase: null, text: '', type: 'agentMessage' });

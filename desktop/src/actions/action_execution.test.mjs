@@ -306,6 +306,58 @@ describe('ActionExecution', () => {
         expect(agentRunnerService.stop).toHaveBeenCalledWith('agent-run');
     });
 
+    it('publishes isolated approvals and blocks prompts until every request resolves', async () => {
+        const agentCompletion = deferred();
+        const agentStarted = deferred();
+        const answerApproval = vi.fn(async () => undefined);
+        const sendMessage = vi.fn(async () => undefined);
+        const agentRunnerService = { answerApproval, sendMessage, stop: vi.fn() };
+        let agentInput;
+        const agentExecutor = {
+            execute: vi.fn(async (input) => {
+                agentInput = input;
+                input.onActiveRunChange('agent-run');
+                agentStarted.resolve();
+                await agentCompletion.promise;
+                input.onActiveRunChange(null);
+
+                return {
+                    agent: 'codex', conversationId: 'conversation', exitCode: 0, model: 'gpt', prompt: 'run',
+                    reference: 'run.json', stderr: '', stdout: '', thinkingLevel: 'none',
+                };
+            }),
+        };
+        const rootAction = action('main', { agent: 'codex', model: 'gpt', prompt: 'run', streaming: true, type: 'agent' });
+        const { events, execution } = createExecution(rootAction, { agentExecutor, agentRunnerService });
+        await agentStarted.promise;
+        const firstApproval = { itemId: 'command-1', kind: 'commandExecution', requestId: 41, threadId: 'thread-1', turnId: 'turn-1' };
+        const secondApproval = { itemId: 'file-1', kind: 'fileChange', requestId: 42, threadId: 'thread-1', turnId: 'turn-1' };
+        agentInput.onEvent({ approval: firstApproval, type: 'approval' });
+        agentInput.onEvent({ approval: secondApproval, type: 'approval' });
+
+        expect(() => execution.sendAgentMessage('next')).toThrow('pending approval');
+        await execution.answerAgentApproval(41, 'accept');
+        agentInput.onEvent({ requestId: 41, type: 'approvalSubmitted' });
+        agentInput.onEvent({ requestId: 41, state: 'waitingForInput', type: 'approvalResolved' });
+        expect(() => execution.sendAgentMessage('still blocked')).toThrow('pending approval');
+        agentInput.onEvent({ requestId: 42, state: 'running', type: 'approvalResolved' });
+        await execution.sendAgentMessage('next');
+        agentCompletion.resolve();
+        await execution.completion;
+
+        expect(answerApproval).toHaveBeenCalledWith('agent-run', 41, 'accept');
+        expect(sendMessage).toHaveBeenCalledWith('agent-run', 'next');
+        expect(events.filter(({ update }) => update?.kind === 'agentApproval')).toHaveLength(2);
+        expect(events).toContainEqual(expect.objectContaining({
+            status: 'waitingForInput',
+            update: { kind: 'agentApprovalResolved', requestId: 41 },
+        }));
+        expect(events).toContainEqual(expect.objectContaining({
+            status: 'running',
+            update: { kind: 'agentApprovalResolved', requestId: 42 },
+        }));
+    });
+
     it('runs a queued one-shot follow-up before action completion', async () => {
         const firstResult = {
             agent: 'codex', changedPaths: ['first.ts'], conversationId: 'conversation', exitCode: 0,

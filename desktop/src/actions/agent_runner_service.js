@@ -103,6 +103,10 @@ function queueInteractionWrite(run, operation) {
     return write;
 }
 
+function hasPendingInteraction(run) {
+    return run.waitingForQuestion || run.pendingApprovals.size > 0;
+}
+
 function secretAnswerValues(questions, answers) {
     const secretQuestionIds = new Set(questions.filter(({ isSecret }) => isSecret).map(({ id }) => id));
 
@@ -371,6 +375,7 @@ class AgentRunnerService {
             onEvent,
             interactionWrites: Promise.resolve(),
             pendingQuestions: [],
+            pendingApprovals: new Map(),
             persistence: Promise.resolve(),
             providerConversationId: null,
             protocolLines: null,
@@ -579,12 +584,22 @@ class AgentRunnerService {
                 nextRunSequence(run),
             ));
             const userMessage = run.conversation.messages.at(-1);
-            run.conversation.status = 'running';
             run.waitingForQuestion = false;
             run.pendingQuestions = [];
+            const state = hasPendingInteraction(run) ? 'waitingForInput' : 'running';
+            run.conversation.status = state;
             await this.persistCheckpoint(run);
-            emitRunEvent(run, { type: 'questionAnswered', userMessage });
-            emitRunEvent(run, { state: 'running', type: 'state' });
+            emitRunEvent(run, { state, type: 'questionAnswered', userMessage });
+            emitRunEvent(run, { state, type: 'state' });
+        });
+    }
+
+    answerApproval(runId, requestId, decision) {
+        const run = this.requireStreamingRun(runId);
+        if (!run.pendingApprovals.has(requestId)) throw new Error(`Unknown or stale agent approval request id: ${requestId}`);
+
+        return queueInteractionWrite(run, async () => {
+            await run.streamingAdapter.answerApproval(requestId, decision);
         });
     }
 
@@ -843,11 +858,35 @@ class AgentRunnerService {
             emitRunEvent(run, { questions: event.questions, requestId: event.requestId, state: 'waitingForInput', type: 'question' });
             return;
         }
+        if (event.type === 'approval') {
+            const requestId = event.approval.requestId;
+            if (run.pendingApprovals.has(requestId)) throw new Error(`Duplicate agent approval request id: ${requestId}`);
+            run.pendingApprovals.set(requestId, { ...event.approval, submitted: false });
+            run.conversation.status = 'waitingForInput';
+            emitRunEvent(run, { approval: event.approval, state: 'waitingForInput', type: 'approval' });
+            return;
+        }
+        if (event.type === 'approvalSubmitted') {
+            const approval = run.pendingApprovals.get(event.requestId);
+            if (!approval) return;
+            approval.submitted = true;
+            emitRunEvent(run, { requestId: event.requestId, type: 'approvalSubmitted' });
+            return;
+        }
+        if (event.type === 'approvalResolved') {
+            if (!run.pendingApprovals.delete(event.requestId)) return;
+            const state = hasPendingInteraction(run) ? 'waitingForInput' : 'running';
+            run.conversation.status = state;
+            emitRunEvent(run, { requestId: event.requestId, state, type: 'approvalResolved' });
+            emitRunEvent(run, { state, type: 'state' });
+            return;
+        }
         if (event.type !== 'turnCompleted') return;
 
         completeAssistantOutput(run, timestamp);
         run.turnActive = false;
         run.waitingForQuestion = false;
+        run.pendingApprovals.clear();
         run.missingSession = run.missingSession || event.missingSession;
         if (event.missingSession) run.finishing = true;
         if (event.usage) run.conversation.usage = accumulateUsage(run.conversation.usage, event.usage);

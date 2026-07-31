@@ -222,6 +222,10 @@ class ActionRunnerService {
         return this.requireExecution(executionId).answerAgentQuestion(requestId, answers);
     }
 
+    answerAgentApproval(executionId, requestId, decision) {
+        return this.requireExecution(executionId).answerAgentApproval(requestId, decision);
+    }
+
     finishAgentExecution(executionId) {
         this.requireExecution(executionId).finishAgent();
     }

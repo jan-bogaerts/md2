@@ -1,7 +1,12 @@
 import type { ActionContext } from '../../data/action_context'
 import type { ActionScheduleTrigger } from '../../data/action_schedule_types'
 import type { ActionDefinition } from '../../data/action_types'
-import type { ActionRunInput, ActionRunResult } from '../../data/action_run_types'
+import type {
+    ActionRunInput,
+    ActionRunResult,
+    AgentApprovalDecision,
+    AgentApprovalRequestId,
+} from '../../data/action_run_types'
 import type { AgentConversation } from '../../data/data_types'
 import { getElectronActionBridge, type ActionRunHistoryEntry } from '../../data/electron_action_bridge'
 import { defaultActionHistoryLoader, loadActionHistory } from '../../services/actions/action_history'
@@ -10,6 +15,7 @@ import { dataService } from '../../services/data/data_service'
 import { projectPersistenceService } from '../../services/project/project_persistence_service'
 import { cancelElectronAction, runElectronAction } from '../../services/actions/electron_action_runner'
 import {
+    answerActionApproval,
     answerActionQuestion,
     finishActionExecution,
     sendActionMessage,
@@ -24,6 +30,11 @@ export type AnswerQuestion = (
     executionId: string,
     requestId: number | string | null,
     answers: Record<string, string[]>,
+) => Promise<void>
+export type AnswerApproval = (
+    executionId: string,
+    requestId: AgentApprovalRequestId,
+    decision: AgentApprovalDecision,
 ) => Promise<void>
 export type ConvertPromptToAction = (input: ConvertPromptToActionInput) => Promise<{ path: string }>
 export type LoadHistory = (action: ActionDefinition, context: ActionContext) => Promise<ActionRunHistoryEntry[]>
@@ -103,6 +114,14 @@ export function defaultAnswerQuestion(
     answers: Record<string, string[]>,
 ) {
     return answerActionQuestion(executionId, requestId, answers)
+}
+
+export function defaultAnswerApproval(
+    executionId: string,
+    requestId: AgentApprovalRequestId,
+    decision: AgentApprovalDecision,
+) {
+    return answerActionApproval(executionId, requestId, decision)
 }
 
 export async function defaultScheduleAction(action: ActionDefinition, context: ActionContext, trigger: ActionScheduleTrigger) {

@@ -1,5 +1,12 @@
 import type { ActionFile } from '../../data/action_types'
-import type { ActionExecutionEvent, ActionPromptRequest, ActionStartRequest, PreparedActionPrompt } from '../../data/action_run_types'
+import type {
+    ActionExecutionEvent,
+    ActionPromptRequest,
+    ActionStartRequest,
+    AgentApprovalDecision,
+    AgentApprovalRequestId,
+    PreparedActionPrompt,
+} from '../../data/action_run_types'
 import type { ActionSchedule } from '../../data/action_schedule_types'
 import type {
     ActionRunHistoryEntry,
@@ -413,6 +420,14 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         answers: Record<string, string[]>,
     ): Promise<void> {
         await this.request('answerActionQuestion', [executionId, requestId, answers])
+    }
+
+    async answerActionApproval(
+        executionId: string,
+        requestId: AgentApprovalRequestId,
+        decision: AgentApprovalDecision,
+    ): Promise<void> {
+        await this.request('answerActionApproval', [executionId, requestId, decision])
     }
 
     async finishActionExecution(executionId: string): Promise<void> {

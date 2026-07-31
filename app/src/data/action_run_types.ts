@@ -45,6 +45,58 @@ export interface AgentQuestion {
     question: string
 }
 
+export type AgentApprovalRequestId = number | string
+export type AgentNetworkProtocol = 'http' | 'https' | 'socks5Tcp' | 'socks5Udp'
+export type AgentFileSystemPath =
+    | { path: string, type: 'path' }
+    | { pattern: string, type: 'glob_pattern' }
+    | { type: 'special', value: string }
+export interface AgentAdditionalPermissions {
+    fileSystem: {
+        entries?: { access: 'deny' | 'read' | 'write', path: AgentFileSystemPath }[]
+        read: string[] | null
+        write: string[] | null
+    } | null
+    network: { enabled: boolean | null } | null
+}
+export type AgentCommandAction =
+    | { command: string, name: string, path: string, type: 'read' }
+    | { command: string, path: string | null, type: 'listFiles' }
+    | { command: string, path: string | null, query: string | null, type: 'search' }
+    | { command: string, type: 'unknown' }
+export interface AgentNetworkPolicyAmendment {
+    action: 'allow' | 'deny'
+    host: string
+}
+export type AgentApprovalDecision =
+    | 'accept'
+    | 'acceptForSession'
+    | 'cancel'
+    | 'decline'
+    | { acceptWithExecpolicyAmendment: { execpolicy_amendment: string[] } }
+    | { applyNetworkPolicyAmendment: { network_policy_amendment: AgentNetworkPolicyAmendment } }
+export interface AgentApproval {
+    additionalPermissions?: AgentAdditionalPermissions | null
+    approvalId?: string | null
+    availableDecisions?: AgentApprovalDecision[] | null
+    command?: string | null
+    commandActions?: AgentCommandAction[] | null
+    cwd?: string | null
+    environmentId?: string | null
+    filePaths: string[]
+    grantRoot?: string | null
+    itemId: string
+    kind: 'commandExecution' | 'fileChange'
+    networkApprovalContext?: { host: string, protocol: AgentNetworkProtocol } | null
+    proposedExecpolicyAmendment?: string[] | null
+    proposedNetworkPolicyAmendments?: AgentNetworkPolicyAmendment[] | null
+    reason?: string | null
+    requestId: AgentApprovalRequestId
+    startedAtMs: number
+    threadId: string
+    turnId: string
+}
+
 interface ActionExecutionEventBase {
     actionId: string
     actionType?: ActionType
@@ -72,6 +124,14 @@ export type ActionExecutionUpdate =
         kind: 'agentQuestion'
         questions: AgentQuestion[]
         requestId: number | string | null
+    }
+    | {
+        approval: AgentApproval
+        kind: 'agentApproval'
+    }
+    | {
+        kind: 'agentApprovalResolved' | 'agentApprovalSubmitted'
+        requestId: AgentApprovalRequestId
     }
     | {
         kind: 'agentQuestionAnswer' | 'agentUserMessage'

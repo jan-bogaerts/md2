@@ -19,6 +19,7 @@ export function actionPopupRunDisabled(
         || (controller.agentActive && (
             !controller.interactionReady
             || prompt.trim().length === 0
+            || controller.pendingApprovals.length > 0
             || !!controller.structuredQuestion
         ))
         || (sessionActive && !controller.agentActive)

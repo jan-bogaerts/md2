@@ -58,6 +58,7 @@ const DATA_METHODS = [
     'stopAgent',
 ];
 const ACTION_METHODS = [
+    'answerActionApproval',
     'answerActionQuestion',
     'beginActionPromptDraft',
     'cancelActionExecution',

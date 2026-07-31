@@ -11,7 +11,7 @@ import {
     type ThinkingLevel,
     validateThinkingLevel,
 } from '../../data/agent_profiles'
-import type { ActionExecutionStatus, ActionRunResult } from '../../data/action_run_types'
+import type { ActionExecutionStatus, ActionRunResult, AgentApprovalDecision, AgentApprovalRequestId } from '../../data/action_run_types'
 import type { AgentConversation } from '../../data/data_types'
 import { actionExecutionService, type LiveAgentTurn } from '../../services/actions/action_execution_service'
 import { dialogService } from '../../services/dialog_service'
@@ -19,6 +19,7 @@ import { useActionExecution } from '../hooks/use_action_executions'
 import { useConfigValueOrFallback } from '../hooks/use_config_value'
 import { useAgentCapabilities } from '../hooks/use_agent_capabilities'
 import {
+    defaultAnswerApproval,
     defaultCancelAction,
     defaultAnswerQuestion,
     defaultConvertPromptToAction,
@@ -30,6 +31,7 @@ import {
     defaultRunAction,
     defaultSendMessage,
     defaultScheduleAction,
+    type AnswerApproval,
     type CancelAction,
     type AnswerQuestion,
     type ConvertPromptToAction,
@@ -50,6 +52,7 @@ type PromptPreparationStatus = 'failed' | 'loading' | 'ready'
 
 interface ActionPopupControllerInput {
     action: ActionDefinition
+    answerApproval?: AnswerApproval
     answerQuestion?: AnswerQuestion
     cancelAction?: CancelAction
     continueFrom?: string
@@ -159,6 +162,7 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
     const sharedExecution = useActionExecution(action.id, context)
     const convertPromptToAction = input.convertPromptToAction ?? defaultConvertPromptToAction
     const cancelAction = input.cancelAction ?? defaultCancelAction
+    const answerApproval = input.answerApproval ?? defaultAnswerApproval
     const answerQuestion = input.answerQuestion ?? defaultAnswerQuestion
     const finishAction = input.finishAction ?? defaultFinishAction
     const loadHistory = input.loadHistory ?? defaultLoadHistory
@@ -472,7 +476,7 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
 
     const handleRun = async (currentPrompt: string) => {
         if (agentActive && executionId) {
-            if (sharedExecution?.question) return
+            if (sharedExecution?.question || sharedExecution?.approvals.length) return
             try {
                 if (streamingActive) {
                     if (input.sendMessage) await sendMessage(executionId, currentPrompt)
@@ -571,6 +575,17 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
             await answerQuestion(executionId, sharedExecution.question.requestId, answers)
         } catch (error) {
             dialogService.error(error, { fallbackMessage: 'Could not answer agent question' })
+        }
+    }
+
+    const handleAnswerApproval = async (requestId: AgentApprovalRequestId, decision: AgentApprovalDecision) => {
+        if (!executionId) return
+
+        try {
+            await answerApproval(executionId, requestId, decision)
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: 'Could not answer agent approval' })
+            throw error
         }
     }
 
@@ -683,6 +698,7 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
         executionDisabledMessage,
         executionValidationError: input.executionValidationError ?? null,
         handleActionLabelChange,
+        handleAnswerApproval,
         handleAnswerQuestion,
         handleCancel,
         handleAgentChange,
@@ -705,6 +721,7 @@ export function useActionPopupController(input: ActionPopupControllerInput) {
         isFollowUp,
         model,
         manualFinishAvailable,
+        pendingApprovals: sharedExecution?.approvals ?? [],
         runLogs,
         runStatus,
         streamingActive,

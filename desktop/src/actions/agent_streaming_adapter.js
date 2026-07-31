@@ -7,6 +7,12 @@ const { isMissingSession } = require('./agent_provider_protocol');
 const CODEX_CLIENT_NAME = 'md2';
 const CODEX_CLIENT_VERSION = '1';
 const CODEX_MISSING_THREAD_ERROR_CODE = -32600;
+const CODEX_APPROVAL_METHODS = new Map([
+    ['item/commandExecution/requestApproval', 'commandExecution'],
+    ['item/fileChange/requestApproval', 'fileChange'],
+]);
+const CODEX_COMMAND_APPROVAL_DECISIONS = ['accept', 'acceptForSession', 'decline', 'cancel'];
+const CODEX_FILE_APPROVAL_DECISIONS = ['accept', 'acceptForSession', 'decline', 'cancel'];
 const CLAUDE_QUESTION_TOOL = 'AskUserQuestion';
 const CODEX_NON_ACTIVITY_ITEM_TYPES = new Set(['agentMessage', 'hookPrompt', 'userMessage']);
 
@@ -164,6 +170,23 @@ function isCodexMissingThreadError(error, providerConversationId) {
     return error.message === `no rollout found for thread id ${providerConversationId}`;
 }
 
+function requireCodexApprovalId(value, field) {
+    if (typeof value !== 'string' || value.length === 0) throw new Error(`Missing Codex approval ${field}`);
+
+    return value;
+}
+
+function sameDecision(left, right) {
+    return JSON.stringify(left) === JSON.stringify(right);
+}
+
+function availableApprovalDecisions(approval) {
+    if (approval.kind === 'fileChange') return CODEX_FILE_APPROVAL_DECISIONS;
+    if (Array.isArray(approval.availableDecisions)) return approval.availableDecisions;
+
+    return CODEX_COMMAND_APPROVAL_DECISIONS;
+}
+
 class CodexStreamingAdapter {
     constructor(writeLine, onEvent, rootPath, providerConversationId, onRuntimeEvent) {
         this.writeLine = writeLine;
@@ -180,6 +203,7 @@ class CodexStreamingAdapter {
         this.initialPrompt = null;
         this.nextRequestId = 1;
         this.pendingRequests = new Map();
+        this.pendingApprovals = new Map();
         this.threadId = null;
         this.turnUsage = null;
     }
@@ -215,6 +239,24 @@ class CodexStreamingAdapter {
         await this.writeLine({ id: requestId, result: { answers: normalizedAnswers } });
     }
 
+    async answerApproval(requestId, decision) {
+        const pendingApproval = this.pendingApprovals.get(requestId);
+        if (!pendingApproval) throw new Error(`Unknown or stale Codex approval request id: ${requestId}`);
+        if (pendingApproval.submitted) throw new Error(`Codex approval request was already submitted: ${requestId}`);
+        const availableDecisions = availableApprovalDecisions(pendingApproval.approval);
+        if (!availableDecisions.some((availableDecision) => sameDecision(availableDecision, decision))) {
+            throw new Error(`Unsupported Codex approval decision for request ${requestId}`);
+        }
+        pendingApproval.submitted = true;
+        try {
+            await this.writeLine({ id: requestId, result: { decision } });
+        } catch (error) {
+            pendingApproval.submitted = false;
+            throw error;
+        }
+        await this.onEvent({ requestId, type: 'approvalSubmitted' });
+    }
+
     async sendRequest(method, params, purpose = null) {
         const id = this.nextRequestId;
         this.nextRequestId += 1;
@@ -236,7 +278,36 @@ class CodexStreamingAdapter {
             await this.onEvent({ questions: message.params.questions, requestId: message.id, type: 'question' });
             return;
         }
+        if (CODEX_APPROVAL_METHODS.has(message.method)) {
+            await this.handleApprovalRequest(message);
+            return;
+        }
         await this.handleNotification(message.method, message.params ?? {});
+    }
+
+    async handleApprovalRequest(message) {
+        if (message.id === null || message.id === undefined) throw new Error('Missing Codex approval request id');
+        if (this.pendingApprovals.has(message.id)) throw new Error(`Duplicate Codex approval request id: ${message.id}`);
+        const kind = CODEX_APPROVAL_METHODS.get(message.method);
+        const params = message.params;
+        if (!params || typeof params !== 'object' || Array.isArray(params)) throw new Error('Missing Codex approval params');
+        const threadId = requireCodexApprovalId(params.threadId, 'thread id');
+        const turnId = requireCodexApprovalId(params.turnId, 'turn id');
+        const itemId = requireCodexApprovalId(params.itemId, 'item id');
+        if (threadId !== this.threadId) throw new Error(`Mismatched Codex approval thread id: ${threadId}`);
+        if (turnId !== this.activeTurnId) throw new Error(`Mismatched Codex approval turn id: ${turnId}`);
+        const trackedItem = this.activeItems.get(itemId);
+        if (!trackedItem || trackedItem.itemType !== kind || this.completedItemIds.has(itemId)) {
+            throw new Error(`Mismatched Codex approval item id: ${itemId}`);
+        }
+        const filePaths = kind === 'fileChange'
+            ? trackedItem.item.changes
+                ?.filter(({ path }) => typeof path === 'string' && path.length > 0)
+                .map(({ path }) => path) ?? []
+            : [];
+        const approval = { ...structuredClone(params), filePaths, kind, requestId: message.id };
+        this.pendingApprovals.set(message.id, { approval, submitted: false });
+        await this.onEvent({ approval, type: 'approval' });
     }
 
     async handleResponse(message) {
@@ -300,6 +371,10 @@ class CodexStreamingAdapter {
             this.completedItemIds.clear();
             this.activeTurnId = params.turn?.id ?? params.turnId;
             await this.onEvent({ turnId: this.activeTurnId, type: 'turnStarted' });
+            return;
+        }
+        if (method === 'serverRequest/resolved') {
+            await this.handleApprovalResolved(params);
             return;
         }
         if (method === 'item/started') {
@@ -386,6 +461,8 @@ class CodexStreamingAdapter {
                     type: 'system',
                 });
             }
+            const completedTurnId = params.turn?.id ?? this.activeTurnId;
+            await this.resolveApprovalsForTurn(completedTurnId);
             this.activeTurnId = null;
             await this.onEvent({ error, type: 'turnCompleted', usage: this.turnUsage });
             this.turnUsage = null;
@@ -393,6 +470,24 @@ class CodexStreamingAdapter {
         }
         if (method?.startsWith('item/') && typeof params.itemId === 'string') {
             await this.emitDiagnostic(method, null, params.itemId);
+        }
+    }
+
+    async handleApprovalResolved(params) {
+        const pendingApproval = this.pendingApprovals.get(params.requestId);
+        if (!pendingApproval) return;
+        if (params.threadId !== pendingApproval.approval.threadId) {
+            throw new Error(`Mismatched Codex approval resolution thread id: ${params.threadId}`);
+        }
+        this.pendingApprovals.delete(params.requestId);
+        await this.onEvent({ requestId: params.requestId, type: 'approvalResolved' });
+    }
+
+    async resolveApprovalsForTurn(turnId) {
+        for (const [requestId, pendingApproval] of this.pendingApprovals) {
+            if (pendingApproval.approval.turnId !== turnId) continue;
+            this.pendingApprovals.delete(requestId);
+            await this.onEvent({ requestId, type: 'approvalResolved' });
         }
     }
 
@@ -412,6 +507,7 @@ class CodexStreamingAdapter {
             assistantCompleted: false,
             assistantText: false,
             bufferedAssistantText: '',
+            item: structuredClone(item),
             itemType: item.type,
         };
         this.activeItems.set(item.id, trackedItem);

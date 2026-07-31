@@ -28,7 +28,7 @@ export function ReasoningActivity({ activity }: ReasoningActivityProps) {
             }}
         >
             <Stack direction="row" spacing={1} sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
-                <Typography color="text.secondary" sx={{ fontWeight: 600 }} variant="caption">Reasoning</Typography>
+                <Typography color="text.secondary" sx={{ fontWeight: 600 }} variant="caption">Burning tokens</Typography>
                 <Typography color={hasError ? 'error.main' : 'custom.text3'} role="status" variant="caption">
                     {activityStatusLabel(activity.status)}
                 </Typography>

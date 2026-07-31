@@ -228,6 +228,11 @@ function createLocalBridgeDispatch(dependencies) {
     };
 
     const actionBridge = {
+        answerActionApproval: (executionId, requestId, decision) => {
+            if (!actionRunnerService) throw new Error('Action runner is not available');
+
+            return actionRunnerService.answerAgentApproval(executionId, requestId, decision);
+        },
         answerActionQuestion: (executionId, requestId, answers) => {
             if (!actionRunnerService) throw new Error('Action runner is not available');
 

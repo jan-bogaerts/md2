@@ -50,6 +50,7 @@ describe('AgentRunnerService state handling', () => {
             conversation: { messages: [], status: 'running' },
             id: 'run-1',
             onEvent: vi.fn(),
+            pendingApprovals: new Map(),
             persistence: Promise.resolve(),
             queuedMessage: null,
             queuedMessageRevision: -1,
@@ -106,6 +107,7 @@ describe('AgentRunnerService state handling', () => {
             missingSession: false,
             nextSequence: 2,
             onEvent: vi.fn(),
+            pendingApprovals: new Map(),
             persistence: Promise.resolve(),
             providerConversationId: 'provider-1',
             queuedMessage: null,
@@ -210,6 +212,7 @@ describe('AgentRunnerService state handling', () => {
             conversation: { events: [], messages: [], status: 'waitingForInput' },
             id: 'run-1',
             onEvent: vi.fn(),
+            pendingApprovals: new Map(),
             pendingQuestions: [{ id: 'token', isSecret: true }],
             persistence: Promise.resolve(),
             streaming: true,
@@ -378,5 +381,63 @@ describe('AgentRunnerService state handling', () => {
         expect(codexRuntimeService.publishRateLimits).toHaveBeenCalledWith(payload, 10, true);
         expect(codexRuntimeService.publishUnavailable).toHaveBeenCalledWith(11);
         expect(persistConversation).not.toHaveBeenCalled();
+    });
+
+    it('keeps approval state separate from conversation persistence and other pending input', async () => {
+        const persistConversationCheckpoint = vi.fn(async () => undefined);
+        const answerApproval = vi.fn(async () => undefined);
+        const service = new AgentRunnerService({ persistConversationCheckpoint });
+        const run = {
+            conversation: { events: [], messages: [], status: 'running' },
+            id: 'run-1',
+            interactionWrites: Promise.resolve(),
+            onEvent: vi.fn(),
+            pendingApprovals: new Map(),
+            pendingQuestions: [],
+            persistence: Promise.resolve(),
+            streaming: true,
+            streamingAdapter: { answerApproval },
+            turnActive: true,
+            waitingForQuestion: true,
+        };
+        service.processes.set('run-1', run);
+        const approval = {
+            command: 'npm test',
+            itemId: 'command-1',
+            kind: 'commandExecution',
+            requestId: 41,
+            threadId: 'thread-1',
+            turnId: 'turn-1',
+        };
+
+        await service.handleStreamingEvent('run-1', { approval, type: 'approval' });
+        await service.answerApproval('run-1', 41, 'accept');
+        await service.handleStreamingEvent('run-1', { requestId: 41, type: 'approvalSubmitted' });
+        await service.handleStreamingEvent('run-1', { requestId: 41, type: 'approvalResolved' });
+
+        expect(answerApproval).toHaveBeenCalledWith(41, 'accept');
+        expect(run.conversation.messages).toEqual([]);
+        expect(run.conversation.events).toEqual([]);
+        expect(run.conversation.status).toBe('waitingForInput');
+        expect(persistConversationCheckpoint).not.toHaveBeenCalled();
+        expect(run.onEvent).toHaveBeenCalledWith(expect.objectContaining({ type: 'approval' }));
+        expect(run.onEvent).toHaveBeenCalledWith(expect.objectContaining({ state: 'waitingForInput', type: 'approvalResolved' }));
+    });
+
+    it('rejects an invalid approval decision without failing the active run', async () => {
+        const service = new AgentRunnerService();
+        const run = {
+            conversation: { events: [], messages: [], status: 'waitingForInput' },
+            id: 'run-1',
+            pendingApprovals: new Map([[41, { requestId: 41 }]]),
+            streaming: true,
+            streamingAdapter: { answerApproval: vi.fn(async () => { throw new Error('Unsupported decision'); }) },
+        };
+        service.processes.set('run-1', run);
+
+        await expect(service.answerApproval('run-1', 41, 'accept')).rejects.toThrow('Unsupported decision');
+
+        expect(run.conversation.status).toBe('waitingForInput');
+        expect(run.pendingApprovals.has(41)).toBe(true);
     });
 });

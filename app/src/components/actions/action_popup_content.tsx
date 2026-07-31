@@ -12,6 +12,7 @@ import { ResizablePopper } from '../resizable_popper'
 import { WorktreeSelector, type WorktreeAssignment, type WorktreeAssignmentTarget } from '../worktree_selector'
 import { ActionAgentPresetName } from './action_agent_preset_name'
 import { ActionAgentPrompt } from './action_agent_prompt'
+import { ActionAgentApproval } from './action_agent_approval'
 import { ActionAgentQuestion } from './action_agent_question'
 import { ActionAgentSelectors } from './action_agent_selectors'
 import { ActionConversationChat } from './action_conversation_chat'
@@ -245,6 +246,13 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
                             promptFailed={controller.promptPreparationFailed}
                             promptLoading={controller.promptPreparationPending}
                         />
+                        {controller.pendingApprovals.map((approval) => (
+                            <ActionAgentApproval
+                                approval={approval}
+                                key={`${typeof approval.requestId}-${approval.requestId}`}
+                                onDecision={controller.handleAnswerApproval}
+                            />
+                        ))}
                         {controller.structuredQuestion ? (
                             <ActionAgentQuestion
                                 onAnswer={controller.handleAnswerQuestion}

@@ -3,6 +3,9 @@ import type { ActionContext } from '../../data/action_context'
 import type { ActionDefinition } from '../../data/action_types'
 import type { AgentConversationEvent, AgentConversationMessage } from '../../data/data_types'
 import type {
+    AgentApproval,
+    AgentApprovalDecision,
+    AgentApprovalRequestId,
     AgentQuestion,
     ActionExecutionEvent,
     ActionExecutionStatus,
@@ -29,11 +32,16 @@ export interface LiveActionExecution {
     context: ActionContext
     executionId: string
     logs: ActionRunLogEntry[]
+    approvals: LiveAgentApproval[]
     interactionReady: boolean
     question: LiveAgentQuestion | null
     reference: string | null
     rootActionId: string
     status: ActionExecutionStatus
+}
+
+export interface LiveAgentApproval extends AgentApproval {
+    submitted: boolean
 }
 
 export interface LiveAgentTurn {
@@ -250,6 +258,17 @@ export async function answerActionQuestion(
     if (!bridge?.answerActionQuestion) throw new Error('Streaming agent questions require Electron')
 
     await bridge.answerActionQuestion(executionId, requestId, answers)
+}
+
+export async function answerActionApproval(
+    executionId: string,
+    requestId: AgentApprovalRequestId,
+    decision: AgentApprovalDecision,
+) {
+    const bridge = getElectronActionBridge()
+    if (!bridge?.answerActionApproval) throw new Error('Streaming agent approvals require Electron')
+
+    await bridge.answerActionApproval(executionId, requestId, decision)
 }
 
 export async function finishActionExecution(executionId: string) {
@@ -484,6 +503,7 @@ export class ActionExecutionService extends EventTarget {
             activeActionStreaming: false,
             activeActionType: null,
             agentTurn: null,
+            approvals: [],
             context: event.context,
             executionId: event.executionId,
             logs: [],
@@ -496,6 +516,7 @@ export class ActionExecutionService extends EventTarget {
         let next = { ...current, context: event.context, rootActionId: event.rootActionId }
         if (event.type === 'execution') next = { ...next, status: event.status }
         if (event.type === 'execution' && TERMINAL_STATUSES.has(event.status as ActionRunStatus)) {
+            next = { ...next, approvals: [], question: null }
             this.clearExecutionPromptDrafts(event.executionId)
         }
         if (event.type === 'agentState') next = { ...next, status: event.status }
@@ -551,6 +572,24 @@ export class ActionExecutionService extends EventTarget {
         }
         if (event.type === 'update' && event.update.kind === 'agentQuestion') {
             next = { ...next, question: { questions: event.update.questions, requestId: event.update.requestId } }
+        }
+        if (event.type === 'update' && event.update.kind === 'agentApproval') {
+            const requestId = event.update.approval.requestId
+            const approvals = next.approvals.filter((approval) => approval.requestId !== requestId)
+            next = { ...next, approvals: [...approvals, { ...event.update.approval, submitted: false }] }
+        }
+        if (event.type === 'update' && event.update.kind === 'agentApprovalSubmitted') {
+            const { requestId } = event.update
+            next = {
+                ...next,
+                approvals: next.approvals.map((approval) => approval.requestId === requestId
+                    ? { ...approval, submitted: true }
+                    : approval),
+            }
+        }
+        if (event.type === 'update' && event.update.kind === 'agentApprovalResolved') {
+            const { requestId } = event.update
+            next = { ...next, approvals: next.approvals.filter((approval) => approval.requestId !== requestId) }
         }
         if (
             event.type === 'update'

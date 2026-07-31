@@ -34,6 +34,7 @@ class ActionExecution {
         this.activeAction = null;
         this.activeAgentRunId = null;
         this.activeAgentQuestion = false;
+        this.activeAgentApprovals = new Map();
         this.autoFinishPending = false;
         this.commitReferenceKeys = new Set();
         this.commitReferences = [];
@@ -62,6 +63,7 @@ class ActionExecution {
     sendAgentMessage(content) {
         if (!this.activeAgentRunId) throw new Error(`Action execution has no active streaming agent: ${this.executionId}`);
         if (this.activeAgentQuestion) throw new Error('Answer pending structured question before sending queued prompt');
+        if (this.activeAgentApprovals.size > 0) throw new Error('Answer pending approval before sending queued prompt');
         return this.agentRunnerService.sendMessage(this.activeAgentRunId, content);
     }
 
@@ -80,6 +82,7 @@ class ActionExecution {
     sendQueuedAgentMessage(sessionId, revision) {
         if (!this.activeAgentRunId) throw new Error(`Action execution has no active agent: ${this.executionId}`);
         if (this.activeAgentQuestion) throw new Error('Answer pending structured question before sending queued prompt');
+        if (this.activeAgentApprovals.size > 0) throw new Error('Answer pending approval before sending queued prompt');
         return this.agentRunnerService.sendQueuedMessage(this.activeAgentRunId, sessionId, revision);
     }
 
@@ -87,6 +90,13 @@ class ActionExecution {
         if (!this.activeAgentRunId) throw new Error(`Action execution has no active streaming agent: ${this.executionId}`);
         await this.agentRunnerService.answerQuestion(this.activeAgentRunId, requestId, answers);
         this.activeAgentQuestion = false;
+    }
+
+    answerAgentApproval(requestId, decision) {
+        if (!this.activeAgentRunId) throw new Error(`Action execution has no active streaming agent: ${this.executionId}`);
+        if (!this.activeAgentApprovals.has(requestId)) throw new Error(`Unknown or stale action approval request id: ${requestId}`);
+
+        return this.agentRunnerService.answerApproval(this.activeAgentRunId, requestId, decision);
     }
 
     finishAgent() {
@@ -358,6 +368,7 @@ class ActionExecution {
             }
             else {
                 this.activeAgentQuestion = false;
+                this.activeAgentApprovals.clear();
                 this.publish(action, phase, 'running', { interactionReady: false, type: 'agentState' });
             }
         };
@@ -392,7 +403,27 @@ class ActionExecution {
             if (agentEvent.type === 'questionAnswered') {
                 this.activeAgentQuestion = false;
                 const update = { kind: 'agentQuestionAnswer', userMessage: agentEvent.userMessage };
-                this.publish(action, phase, 'running', { type: 'update', update });
+                this.publish(action, phase, agentEvent.state, { type: 'update', update });
+                return;
+            }
+            if (agentEvent.type === 'approval') {
+                this.activeAgentApprovals.set(agentEvent.approval.requestId, { ...agentEvent.approval, submitted: false });
+                const update = { approval: agentEvent.approval, kind: 'agentApproval' };
+                this.publish(action, phase, 'waitingForInput', { type: 'update', update });
+                return;
+            }
+            if (agentEvent.type === 'approvalSubmitted') {
+                const approval = this.activeAgentApprovals.get(agentEvent.requestId);
+                if (!approval) return;
+                approval.submitted = true;
+                const update = { kind: 'agentApprovalSubmitted', requestId: agentEvent.requestId };
+                this.publish(action, phase, 'waitingForInput', { type: 'update', update });
+                return;
+            }
+            if (agentEvent.type === 'approvalResolved') {
+                if (!this.activeAgentApprovals.delete(agentEvent.requestId)) return;
+                const update = { kind: 'agentApprovalResolved', requestId: agentEvent.requestId };
+                this.publish(action, phase, agentEvent.state, { type: 'update', update });
                 return;
             }
             if (agentEvent.type === 'agentActivity') {
