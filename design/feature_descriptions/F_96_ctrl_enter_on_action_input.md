@@ -3,7 +3,7 @@ author:
 id: F_96
 internalId: d33002d3-ee0e-4c08-8e26-36f790500ee2
 title: ctrl enter on action input
-status: in progress
+status: ready
 owner: 
 affects:
 agents:
