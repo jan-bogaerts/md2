@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
 policy:
+after: d47986a5-1380-4dd1-adb9-fff106a9a143
 ---
 
 after the 'integrate into project' command, the worktree selector icon is not updated and the wrong state is shown.

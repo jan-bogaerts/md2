@@ -3,12 +3,12 @@ author:
 id: F_98
 internalId: ff356504-eed4-47f3-bb38-2c749b6fcba6
 title: worktree vs project folder placeholders
-status: new
+status: design
 owner: 
 affects:
 agents:
 policy:
-after: 18fd04d3-5df7-4f54-ab7a-94d96f210f13
+after: 
 ---
 We have 'rootProjectFolder' placeholder. this currently maps to the folder that the agent is running on, so it could the the main project folder or a worktree.&#x20;
 
