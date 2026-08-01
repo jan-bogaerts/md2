@@ -3,13 +3,13 @@ author:
 id: B_80
 internalId: e69b9faf-30dd-4ad6-9d99-7e6af4d18c76
 title: worktree selector not updated
-status: design
+status: in progress
 owner: 
 affects:
 agents:
   - design/activity/card__e69b9faf-30dd-4ad6-9d99-7e6af4d18c76.json#conversation=agent-e533433a-31ad-4168-8a1c-f57869151ddd
 policy:
-after: 
+after: 9ef42f8e-d6f7-4514-8e4a-5555318c4b51
 worktree: 2
 ---
 after the 'integrate into project' command is run on a card that is assigned to a worktree, the worktree selector icon is not updated and the wrong state is shown on the card. if the user clicks again on the icon and runs the 'integrate into project' again, the app gives an error to say nothing left to integrate. then the icon gets updated correctly
