@@ -102,6 +102,7 @@ function createDispatch(options = {}) {
         resolvePath: vi.fn(),
         startProject: vi.fn(async () => undefined),
         subscribe: vi.fn(() => vi.fn()),
+        synchronize: vi.fn(async () => undefined),
     };
     const desktopConfig = options.desktopConfig ?? {agent: 'codex', agentProfiles: [{ command: ['codex'], models: ['gpt-5'], name: 'codex' }], model: 'gpt-5'};
     const dispatch = createLocalBridgeDispatch({
@@ -256,6 +257,7 @@ describe('createLocalBridgeDispatch', () => {
         expect(worktreeService.commit).toHaveBeenCalledWith(project, 1, 'F-1: Card');
         expect(worktreeService.discard).toHaveBeenCalledWith(project, 1);
         expect(worktreeService.integrate).toHaveBeenCalledWith(project, 1);
+        expect(worktreeService.synchronize).not.toHaveBeenCalled();
         expect(worktreeService.park).toHaveBeenCalledWith(project, 1);
         expect(worktreeService.pull).toHaveBeenCalledWith(project, 1);
         expect(worktreeService.push).toHaveBeenCalledWith(project, 1);
@@ -294,6 +296,9 @@ describe('createLocalBridgeDispatch', () => {
             },
             'Record Integrate into project activity',
         );
+        expect(worktreeService.synchronize).toHaveBeenCalledWith(project, 1);
+        expect(localGitService.appendAndCommitSystemActivity.mock.invocationCallOrder[0])
+            .toBeLessThan(worktreeService.synchronize.mock.invocationCallOrder[0]);
     });
 
     it('reports history persistence failure after successful card integration', async () => {
@@ -309,6 +314,24 @@ describe('createLocalBridgeDispatch', () => {
         })).rejects.toThrow('Worktree integrated, but card history tracking failed: activity commit failed');
 
         expect(worktreeService.integrate).toHaveBeenCalledOnce();
+        expect(worktreeService.synchronize).not.toHaveBeenCalled();
+    });
+
+    it('reports linked-worktree synchronization failure after card history is tracked', async () => {
+        const { dispatch, localGitService, worktreeService } = createDispatch();
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
+        worktreeService.synchronize.mockRejectedValueOnce(new Error('reset failed'));
+
+        await expect(dispatch.dataBridge.integrateWorktree({
+            cardInternalId: 'card-1',
+            project,
+            projectFolder: 'design',
+            worktree: 1,
+        })).rejects.toThrow('Worktree integrated and card history tracked, but linked worktree synchronization failed: reset failed');
+
+        expect(localGitService.appendAndCommitSystemActivity).toHaveBeenCalledOnce();
+        expect(worktreeService.synchronize).toHaveBeenCalledWith(project, 1);
+        expect(worktreeService.park).not.toHaveBeenCalled();
     });
 
     it('writes no activity when card integration fails', async () => {
@@ -324,6 +347,7 @@ describe('createLocalBridgeDispatch', () => {
         })).rejects.toThrow('squash failed');
 
         expect(localGitService.appendAndCommitSystemActivity).not.toHaveBeenCalled();
+        expect(worktreeService.synchronize).not.toHaveBeenCalled();
     });
 
     it('delegates primary pull and refreshes monitored state after push', async () => {

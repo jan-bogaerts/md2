@@ -183,6 +183,11 @@ function createLocalBridgeDispatch(dependencies) {
             } catch (error) {
                 throw new Error(`Worktree integrated, but card history tracking failed: ${errorMessage(error)}`, { cause: error });
             }
+            try {
+                await worktreeService.synchronize(request.project, request.worktree);
+            } catch (error) {
+                throw new Error(`Worktree integrated and card history tracked, but linked worktree synchronization failed: ${errorMessage(error)}`, { cause: error });
+            }
         },
         parkWorktree: (request) => {
             if (!request || typeof request !== 'object') throw new Error('Missing worktree parking request');

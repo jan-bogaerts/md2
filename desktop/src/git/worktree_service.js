@@ -308,9 +308,26 @@ class WorktreeService {
                 await this.refreshAfterMutation();
                 throw error;
             }
-            await this.refreshAfterMutation();
+            try {
+                await this.synchronizeRecord(activeProject, record);
+                await this.refreshAfterMutation();
+            } catch (error) {
+                const message = error instanceof Error ? error.message : String(error);
+                throw new Error(`Worktree integrated, but linked worktree synchronization failed: ${message}`, { cause: error });
+            }
 
             return { branch: activeProject.branch, commit };
+        });
+    }
+
+    synchronize(project, index) {
+        return this.enqueueMutation(async () => {
+            const activeProject = this.requireActiveProject(project);
+            const cachedRecord = this.resolve(activeProject, index);
+            const record = await this.requireClean(cachedRecord, activeProject.branch);
+            if (record.branch === activeProject.branch) throw new Error(`Linked worktree is already on the project branch: ${activeProject.branch}`);
+            await this.synchronizeRecord(activeProject, record);
+            await this.refreshAfterMutation();
         });
     }
 
@@ -377,6 +394,10 @@ class WorktreeService {
         this.publish(null);
 
         return refreshedRecord;
+    }
+
+    async synchronizeRecord(project, record) {
+        await this.runGit(record.path, ['reset', '--hard', project.branch]);
     }
 
     async refreshLocal() {
