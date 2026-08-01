@@ -10,6 +10,7 @@ agents:
   - design/activity/card__e5b95f2c-cd0c-4623-8e12-d0c497447e71.json#conversation=agent-4e6f97b9-647e-49fc-93f7-cf09e5eff1aa
 policy:
 after: 9ef42f8e-d6f7-4514-8e4a-5555318c4b51
+worktree: 3
 ---
 
 ## Current state
