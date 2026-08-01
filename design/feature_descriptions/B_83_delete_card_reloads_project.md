@@ -3,14 +3,14 @@ author:
 id: B_83
 internalId: 0b35236a-2fe4-4b58-86f8-bd84af5ac7ce
 title: delete card reloads project
-status: ready for implementation
+status: in progress
 owner: 
 affects:
 agents:
   - design/activity/card__0b35236a-2fe4-4b58-86f8-bd84af5ac7ce.json#conversation=agent-d3dee85b-e4fb-4763-89bc-755010c3286e
   - design/activity/card__0b35236a-2fe4-4b58-86f8-bd84af5ac7ce.json#conversation=agent-eddffaed-b7c2-49fc-ac0d-64d88b763b83
 policy:
-after: 0f5a1edf-4b4e-4dea-8c7a-05df83ae1288
+after: 
 worktree: 2
 ---
 
