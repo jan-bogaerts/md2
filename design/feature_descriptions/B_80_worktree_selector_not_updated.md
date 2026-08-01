@@ -3,7 +3,7 @@ author:
 id: B_80
 internalId: e69b9faf-30dd-4ad6-9d99-7e6af4d18c76
 title: worktree selector not updated
-status: in progress
+status: ready
 owner: 
 affects:
 agents:
