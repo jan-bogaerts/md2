@@ -3,12 +3,13 @@ author:
 id: F_109
 internalId: 0f5a1edf-4b4e-4dea-8c7a-05df83ae1288
 title: add access-level option for agents
-status: ready for implementation
+status: in progress
 owner: 
 affects:
 agents:
+  - design/activity/card__0f5a1edf-4b4e-4dea-8c7a-05df83ae1288.json#conversation=agent-61257114-41c8-4311-a5e7-8d8d4e79471d
 policy:
-after: 
+after: 0b35236a-2fe4-4b58-86f8-bd84af5ac7ce
 worktree: 3
 ---
 ## Current state
