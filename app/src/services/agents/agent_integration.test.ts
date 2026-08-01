@@ -440,6 +440,46 @@ describe('AgentIntegration', () => {
         expect(actionRunRegistry.getGlobalActiveSnapshot()).toHaveLength(0)
     })
 
+    it('links an agent conversation when it starts without loading it before completion', async () => {
+        configService.init()
+        let actionRunCallback: ((event: ActionRunEvent) => void) | null = null
+        window.md2Actions = {
+            onActionRun: (callback: (event: ActionRunEvent) => void) => {
+                actionRunCallback = callback
+
+                return vi.fn()
+            },
+        } as unknown as typeof window.md2Actions
+        const storage = createStorage()
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        if (!actionRunCallback) throw new Error('Action run callback not registered')
+        const emitActionRun = actionRunCallback as (event: ActionRunEvent) => void
+
+        const context = { cardInternalId: 'root-card', file: 'design/F-1-root.md', kind: 'card' as const }
+        const reference = 'design/activity/card__root-card.json#conversation=agent-1'
+        const runningConversation = { ...conversation(reference), completedAt: null, status: 'running' as const }
+        const startedEvent = {
+            actionId: 'implement', context, runId: 'action-1', phase: 'main' as const,
+            rootActionId: 'implement', status: 'running' as const, type: 'update' as const,
+            update: { conversation: runningConversation, kind: 'agentStarted' as const },
+        }
+        emitActionRun(startedEvent)
+        emitActionRun({ ...startedEvent, update: { ...startedEvent.update, continued: true } })
+
+        expect(service.getState().snapshot?.activeCards[0].header.agentLogReferences).toEqual([reference])
+        expect(storage.loadAgentConversation).not.toHaveBeenCalled()
+
+        emitActionRun({
+            actionId: 'implement', context, runId: 'action-1', runWorktree: null, phase: 'main', reference,
+            rootActionId: 'implement', status: 'completed', type: 'action',
+        })
+
+        await vi.waitFor(() => expect(storage.loadAgentConversation).toHaveBeenCalledTimes(1))
+        expect(service.getState().snapshot?.activeCards[0].header.agentLogReferences).toEqual([reference])
+    })
+
     it('links the final conversation reference and loads it once', async () => {
         configService.init()
         let actionRunCallback: ((event: ActionRunEvent) => void) | null = null
