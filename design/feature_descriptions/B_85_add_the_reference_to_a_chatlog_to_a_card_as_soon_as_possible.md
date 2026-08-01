@@ -13,31 +13,28 @@ agents:
   - design/activity/card__56dd54b0-9554-4545-85d4-bb45efef4d6e.json#conversation=agent-fdc1c401-34d8-4a9d-824d-df49bcaddfcc
 policy:
 after: 5cdae748-9597-4d29-8dc0-3d4b5df3aa7f
+worktree: 2
 ---
 
-do not wait until the end of the conversation to update the card so that it has the reference to the chatlog of the agent-action, but add it as soon as the chatlog file is first created.
-
-this file should be created upon first log entry and updated frequently, not just at end of conversation
+Do not wait until the agent action finishes to add its conversation reference to the card. Add the reference when the conversation starts.
 
 ## Current state
 
-Agent chatlogs are canonical conversations embedded in `design/activity/card__<internalId>.json`. `AgentRunnerService` builds the conversation and reference at startup, but persists only selected waiting/input checkpoints and the terminal snapshot. One-shot runs therefore create the file only when they end.
+The desktop sends an `agentStarted` update containing the new conversation and its `conversation.path` reference. `AgentIntegration` receives this update but does not add the reference to the card.
 
-`AgentIntegration` adds the reference from the terminal `action` event. It ignores the earlier `agentStarted` update, although that update already contains the conversation reference.
+The reference is currently added only when the terminal `action` event arrives. If the app closes before that event, the card never receives the reference.
 
 ## implementation details
 
-- Persist the initial conversation, containing its user and `started` entries, before publishing `agentStarted`. Publish no reference when this first write fails.
-- After every conversation-entry append or update, queue a full conversation checkpoint. This includes each streaming delta, provider event, message, diagnostic, error, and closing entry; do not throttle or merge writes.
-- Keep writes ordered through the existing run and activity-file queues. Checkpoints remain uncommitted; terminal persistence waits for them and commits the final snapshot.
-- On card-scoped `agentStarted`, add `conversation.path` to the card's `agents` header. Keep terminal linking as fallback, but make linking and loading idempotent for continuations and terminal events.
-- Add regression tests for initial persistence ordering, every entry mutation, write serialization/failure, early card linking, and duplicate prevention.
+- When `AgentIntegration` receives an `agentStarted` update for a card-scoped action, add `update.conversation.path` to that card's `agents` header through the existing card save path.
+- Do not load the conversation from the activity file at this point. The running conversation is already held by `ActionRunRegistry`, and the existing terminal event remains responsible for loading the completed conversation.
+- Keep reference insertion idempotent so continuations and the terminal event do not add duplicates.
+- Do not change when or how the activity file itself is written.
+- Add a regression test showing that `agentStarted` updates the card before any terminal event is received. Keep the existing terminal linking and loading test.
 
 ## acceptance criteria
 
-- First activity file exists with initial user and `started` entries before its reference is added to the card.
-- Active card contains conversation reference while agent is still running; reloading project can load current partial conversation.
-- Every appended or updated conversation entry produces one ordered checkpoint containing that change, including every streaming delta.
-- Completion waits for pending checkpoints, writes final status and `closed` entry, and commits final activity file.
-- Continuation and terminal events never add duplicate references or load same conversation twice.
-- Failed initial persistence leaves no dangling card reference and fails action through existing error handling.
+- A card-scoped `agentStarted` update adds the conversation reference to the card immediately, without waiting for completion.
+- If the app closes during the conversation after that card save is persisted, reopening the project still shows the reference in the card header.
+- A continuation or terminal event does not add the same reference twice.
+- Existing activity-file persistence behavior is unchanged.
