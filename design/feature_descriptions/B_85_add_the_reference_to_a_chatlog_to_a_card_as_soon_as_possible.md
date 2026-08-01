@@ -13,7 +13,7 @@ agents:
   - design/activity/card__56dd54b0-9554-4545-85d4-bb45efef4d6e.json#conversation=agent-fdc1c401-34d8-4a9d-824d-df49bcaddfcc
   - design/activity/card__56dd54b0-9554-4545-85d4-bb45efef4d6e.json#conversation=agent-b6935fe5-d8cc-4262-9e6c-97f954ac15a9
 policy:
-after: 
+after: e5b95f2c-cd0c-4623-8e12-d0c497447e71
 ---
 
 Do not wait until the agent action finishes to add its conversation reference to the card. Add the reference when the conversation starts.
