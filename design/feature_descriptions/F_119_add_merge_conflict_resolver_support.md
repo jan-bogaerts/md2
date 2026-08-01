@@ -3,6 +3,7 @@ internalId: 3373bf52-14c0-4cc7-8f7c-555c835af9a0
 id: F_119
 status: new
 title: add merge conflict resolver support
+after: a729f80c-de80-4c12-9b53-bf0fbf29e4cb
 ---
 
 - in config allow user to specify which external merge-conflict resolver tool to use.
