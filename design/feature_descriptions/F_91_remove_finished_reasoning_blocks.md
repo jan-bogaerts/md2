@@ -8,7 +8,7 @@ owner:
 affects:
 agents:
 policy:
-after: 
+after: eb3a4820-0edb-4161-8fe5-926a981d2c8f
 ---
 
 when a reasoning output of an agent finishes, we should remove the block

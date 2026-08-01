@@ -3,12 +3,12 @@ author:
 id: F_95
 internalId: e5b95f2c-cd0c-4623-8e12-d0c497447e71
 title: integrate into project should track commit
-status: ready
+status: in progress
 owner: 
 affects:
 agents:
 policy:
-after: 
+after: 9ef42f8e-d6f7-4514-8e4a-5555318c4b51
 ---
 
 ## Current state
