@@ -3,12 +3,12 @@ author:
 id: F_89
 internalId: 9ef42f8e-d6f7-4514-8e4a-5555318c4b51
 title: add support for clicking on links in chatlogs
-status: in progress
+status: ready
 owner: 
 affects:
 agents:
 policy:
-after: 
+after: e69b9faf-30dd-4ad6-9d99-7e6af4d18c76
 ---
 Sometimes the agent produces a link to a local project file. Currently, when the user clicks on this link, the system crashes.
 
