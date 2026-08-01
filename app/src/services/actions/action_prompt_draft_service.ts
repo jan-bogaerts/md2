@@ -60,6 +60,7 @@ async function sendActionQueuedMessage(runId: string, sessionId: number, revisio
 export class ActionPromptDraft {
     private editorSnapshot: ActionPromptDraftEditorSnapshot
     private readonly editorListeners = new Set<ActionPromptDraftListener>()
+    private locallyEdited = false
     private run: ActionPromptRunBinding | null
     private pendingWrite: Promise<void> = Promise.resolve()
     private preparationRequired: boolean
@@ -106,6 +107,7 @@ export class ActionPromptDraft {
     /** Record an editor-local value without starting asynchronous synchronization. */
     readonly edit = (value: string) => {
         this.revision += 1
+        this.locallyEdited = true
         this.preparationRequired = false
         this.setPreparationStatus('ready')
         this.setValue(value)
@@ -114,6 +116,7 @@ export class ActionPromptDraft {
     /** Replace editor content from an external source and notify editor exactly once. */
     replace(value: string) {
         this.revision += 1
+        this.locallyEdited = false
         this.preparationRequired = false
         this.setValue(value)
         this.editorSnapshot = {
@@ -146,6 +149,10 @@ export class ActionPromptDraft {
             this.setPreparationStatus('failed')
             throw error
         }
+    }
+
+    hasLocalEdits() {
+        return this.locallyEdited
     }
 
     async synchronize() {
@@ -277,6 +284,14 @@ export class ActionPromptDraftService {
             if (key.startsWith(idlePrefix) || (key.startsWith('run\u0000') && key.endsWith(runSuffix))) {
                 this.clearByKey(key)
             }
+        }
+    }
+
+    /** Drop cached prepared defaults while preserving user edits and active-run drafts. */
+    invalidateIdlePreparedDrafts(actionId: string) {
+        const idlePrefix = `idle\u0000${actionId}\u0000`
+        for (const [key, draft] of this.drafts) {
+            if (key.startsWith(idlePrefix) && !draft.hasLocalEdits()) this.drafts.delete(key)
         }
     }
 

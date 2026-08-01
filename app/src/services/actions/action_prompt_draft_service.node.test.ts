@@ -143,4 +143,23 @@ describe('ActionPromptDraftService', () => {
         service.clearAll()
         expect(replacement.getSnapshot()).toBe('')
     })
+
+    it('invalidates idle prepared defaults without discarding user or active-run drafts', async () => {
+        const service = new ActionPromptDraftService()
+        const prepared = service.getDraft('review', context, null, { prepare: true })
+        await prepared.prepare(async () => 'Prepared prompt')
+        const editedContext = { ...context, cardInternalId: 'card-2' }
+        const edited = service.getDraft('review', editedContext, null, { prepare: true })
+        edited.edit('User prompt')
+        const active = service.getDraft('review', context, run, { prepare: false })
+        active.edit('Active prompt')
+
+        service.invalidateIdlePreparedDrafts('review')
+
+        const replacement = service.getDraft('review', context, null, { prepare: true })
+        expect(replacement).not.toBe(prepared)
+        expect(prepared.getSnapshot()).toBe('Prepared prompt')
+        expect(service.getDraft('review', editedContext, null, { prepare: true })).toBe(edited)
+        expect(service.getDraft('review', context, run, { prepare: false })).toBe(active)
+    })
 })

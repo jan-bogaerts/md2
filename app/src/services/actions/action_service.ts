@@ -236,10 +236,10 @@ export class ActionService extends EventTarget {
             )
         }
         this.error = null
-        this.dispatchActionsChanged()
-
         const savedAction = actions.find((action) => action.sourcePath === path)
         if (!savedAction) throw new Error(`Missing saved action after persistence: ${path}`)
+        actionPromptDraftService.invalidateIdlePreparedDrafts(savedAction.id)
+        this.dispatchActionsChanged()
 
         return savedAction
     }
