@@ -9,6 +9,7 @@ affects:
 agents:
 policy:
 after: 
+worktree: 3
 ---
 ## Current state
 
