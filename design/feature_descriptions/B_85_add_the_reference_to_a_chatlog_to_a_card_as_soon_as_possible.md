@@ -11,6 +11,7 @@ agents:
   - design/activity/card__56dd54b0-9554-4545-85d4-bb45efef4d6e.json#conversation=agent-8e9088cf-eb68-4d7d-9b85-131ebf4fe279
   - design/activity/card__56dd54b0-9554-4545-85d4-bb45efef4d6e.json#conversation=agent-a88e0082-d8e6-48e9-8721-64f9642bf0a7
   - design/activity/card__56dd54b0-9554-4545-85d4-bb45efef4d6e.json#conversation=agent-fdc1c401-34d8-4a9d-824d-df49bcaddfcc
+  - design/activity/card__56dd54b0-9554-4545-85d4-bb45efef4d6e.json#conversation=agent-b6935fe5-d8cc-4262-9e6c-97f954ac15a9
 policy:
 after: 5cdae748-9597-4d29-8dc0-3d4b5df3aa7f
 worktree: 2
