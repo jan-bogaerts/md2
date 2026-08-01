@@ -12,7 +12,6 @@ agents:
   - design/activity/card__56dd54b0-9554-4545-85d4-bb45efef4d6e.json#conversation=agent-a88e0082-d8e6-48e9-8721-64f9642bf0a7
 policy:
 after: 5cdae748-9597-4d29-8dc0-3d4b5df3aa7f
-worktree: 2
 ---
 
 do not wait until the end of the conversation to update the card so that it has the reference to the chatlog of the agent-action, but add it as soon as the chatlog file is first created.
