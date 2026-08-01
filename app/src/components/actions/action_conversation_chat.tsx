@@ -4,7 +4,6 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import type { AgentConversation, AgentConversationEvent } from '../../data/data_types'
 import { useAppTheme } from '../../theme/use_app_theme'
-import { buildMarkdownContentSx } from '../editor/markdown_style_sx'
 import type { PopupRunStatus } from './action_popup_defaults'
 import { ActionConversationLink } from './action_conversation_link'
 import { actionConversationUrlTransform } from './action_conversation_url_transform'
@@ -52,8 +51,7 @@ function renderEvent(event: AgentConversationEvent) {
 
 /** Ordered user/assistant transcript shown above the popup prompt. */
 export function ActionConversationChat({ conversation, onConversationViewed, status }: ActionConversationChatProps) {
-    const { markdownStyleConfig } = useAppTheme()
-    const markdownContentSx = buildMarkdownContentSx(markdownStyleConfig)
+    const { markdownContentSx } = useAppTheme()
     const entries = visibleConversationEntries(conversation)
     const viewportRef = useRef<HTMLDivElement>(null)
     const conversationPathRef = useRef<string | null | undefined>(undefined)

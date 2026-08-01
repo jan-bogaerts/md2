@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import type { ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type {
     AgentConversation,
@@ -10,6 +11,8 @@ import type {
 import { dataService } from '../../services/data/data_service'
 import { dialogService } from '../../services/dialog_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
+import { AppThemeContext } from '../../theme/theme_context'
+import { useAppTheme } from '../../theme/use_app_theme'
 import { ActionConversationChat } from './action_conversation_chat'
 
 let clientHeight = 100
@@ -62,6 +65,13 @@ function renderChat(value: AgentConversation | null) {
     )
 }
 
+function MarkdownContentSxOverride({ children }: { children: ReactNode }) {
+    const theme = useAppTheme()
+    const value = { ...theme, markdownContentSx: { paddingTop: '37px' } }
+
+    return <AppThemeContext.Provider value={value}>{children}</AppThemeContext.Provider>
+}
+
 function restoreProperty(name: 'clientHeight' | 'scrollHeight' | 'scrollTop', descriptor?: PropertyDescriptor) {
     if (descriptor) {
         Object.defineProperty(HTMLElement.prototype, name, descriptor)
@@ -102,6 +112,22 @@ describe('ActionConversationChat', () => {
         renderChat(conversation('first.json', [message('message-1', 'First')]))
 
         expect(screen.getByLabelText('Conversation chat').scrollTop).toBe(200)
+    })
+
+    it('uses the derived Markdown style provided by the app theme', () => {
+        render(
+            <AppThemeProvider>
+                <MarkdownContentSxOverride>
+                    <ActionConversationChat
+                        conversation={conversation('styled.json', [message('message-1', 'Styled')])}
+                        status="idle"
+                    />
+                </MarkdownContentSxOverride>
+            </AppThemeProvider>,
+        )
+        const messageBox = screen.getByText('Styled').closest('.mdxeditor-content')?.parentElement
+
+        expect(messageBox).toHaveStyle({ paddingTop: '37px' })
     })
 
     it('returns to the end when the selected conversation changes', () => {

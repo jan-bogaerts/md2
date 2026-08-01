@@ -26,7 +26,6 @@ import type {
     MarkdownDataSource,
     MarkdownDocumentTarget,
 } from './markdown_data_source'
-import { buildMarkdownContentSx } from './markdown_style_sx'
 
 const DEFAULT_CODE_LANGUAGE = ''
 const CODE_BLOCK_LANGUAGES = { '': 'Plain text', js: 'JavaScript', ts: 'TypeScript', tsx: 'TSX', bash: 'Shell' }
@@ -108,7 +107,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
     const initialDocumentRef = useRef<MarkdownDocumentSnapshot | null>(null)
     if (!initialDocumentRef.current) initialDocumentRef.current = initialDocument(props)
     const initialDocumentSnapshot = initialDocumentRef.current
-    const { markdownStyleConfig, mode } = useAppTheme()
+    const { markdownContentSx, mode } = useAppTheme()
     const editorRef = useRef<MDXEditorMethods>(null)
     const activeTargetRef = useRef(initialDocumentSnapshot.target)
     const latestMarkdownRef = useRef(initialDocumentSnapshot.markdown)
@@ -266,7 +265,6 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         [overlayContainer, placeholders],
     )
     const toolbarContents = customToolbarContents ?? defaultToolbarContents
-    const markdownContentSx = buildMarkdownContentSx(markdownStyleConfig)
     const stickySx = stickyToolbar
         ? { '& .mdxeditor-toolbar': { position: 'sticky', top: 0, zIndex: 1 } }
         : undefined

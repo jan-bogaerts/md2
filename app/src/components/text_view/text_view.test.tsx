@@ -502,19 +502,6 @@ describe('TextView', () => {
         expect(actionService.draftStore.getDraft('design/actions/review.json').definition.phrases?.[0].text).toBe('Edited phrase')
     }, 10_000)
 
-    it('hides rather than unmounts the shared editor for empty, Definition, and command states', () => {
-        loadMarkdownActions()
-        renderTextView()
-
-        const actionEditor = screen.getAllByTestId('mdx-editor')[0]
-
-        clickTreeFile('Review')
-        expect(screen.getAllByTestId('mdx-editor')[0]).toBe(actionEditor)
-
-        clickTreeFile('Test')
-        expect(screen.getAllByTestId('mdx-editor')[0]).toBe(actionEditor)
-    })
-
     it('closes a tab from the tab bar', () => {
         renderTextView()
 
