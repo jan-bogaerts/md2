@@ -1,26 +1,37 @@
 import { CUSTOM_PROMPT_ACTION_ID, type ActionDefinition } from '../../data/action_types'
-import type { ActionPopupController } from './use_action_popup_controller'
+import type { ActionPromptPreparationStatus } from '../../services/actions/action_prompt_draft_service'
 
-/** Applies popup execution readiness rules to the current live prompt. */
+interface ActionPopupRunState {
+    agentActive: boolean
+    hasApprovals: boolean
+    hasQuestion: boolean
+    interactionReady: boolean
+    runDisabledMessage: string | null
+    runStatus: string
+    saveDisabled: boolean
+}
+
+/** Applies popup run readiness rules to the current live prompt. */
 export function actionPopupRunDisabled(
     action: ActionDefinition,
-    controller: ActionPopupController,
+    runState: ActionPopupRunState,
     prompt: string,
+    preparationStatus: ActionPromptPreparationStatus,
     showSaveControls: boolean,
 ) {
-    const sessionActive = controller.runStatus === 'queued'
-        || controller.runStatus === 'running'
-        || controller.runStatus === 'waitingForInput'
+    const sessionActive = runState.runStatus === 'queued'
+        || runState.runStatus === 'running'
+        || runState.runStatus === 'waitingForInput'
 
-    return !!controller.executionDisabledMessage
-        || controller.promptPreparationPending
-        || controller.promptPreparationFailed
+    return !!runState.runDisabledMessage
+        || preparationStatus !== 'ready'
         || (action.id === CUSTOM_PROMPT_ACTION_ID && prompt.trim().length === 0)
-        || (controller.agentActive && (
-            !controller.interactionReady
+        || (runState.agentActive && (
+            !runState.interactionReady
             || prompt.trim().length === 0
-            || !!controller.structuredQuestion
+            || runState.hasApprovals
+            || runState.hasQuestion
         ))
-        || (sessionActive && !controller.agentActive)
-        || (showSaveControls && controller.saveDisabled)
+        || (sessionActive && !runState.agentActive)
+        || (showSaveControls && runState.saveDisabled)
 }

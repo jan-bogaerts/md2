@@ -1,20 +1,40 @@
 import { createRequire } from 'node:module';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 const require = createRequire(import.meta.url);
-const { descendantProcesses } = require('./process_tree');
+const { terminateProcessTree } = require('./process_tree');
 
 describe('process-tree', () => {
-    it('finds every descendant without including unrelated processes', () => {
-        const processes = [
-            { name: 'sh.exe', parentPid: 10, pid: 20 },
-            { name: 'git.exe', parentPid: 20, pid: 30 },
-            { name: 'node.exe', parentPid: 99, pid: 40 },
-        ];
+    it('terminates only the known Windows process tree', async () => {
+        const child = { exitCode: null, kill: vi.fn(), pid: 10, signalCode: null };
+        const terminateWindowsTree = vi.fn(async () => undefined);
 
-        expect(descendantProcesses(processes, 10)).toEqual([
-            { name: 'sh.exe', parentPid: 10, pid: 20 },
-            { name: 'git.exe', parentPid: 20, pid: 30 },
-        ]);
+        const terminated = await terminateProcessTree(child, { platform: 'win32', terminateWindowsTree });
+
+        expect(terminated).toBe(true);
+        expect(terminateWindowsTree).toHaveBeenCalledWith(10);
+        expect(child.kill).not.toHaveBeenCalled();
+    });
+
+    it('terminates the known POSIX process group', async () => {
+        const child = { exitCode: null, kill: vi.fn(), pid: 10, signalCode: null };
+        const terminateProcessGroup = vi.fn();
+
+        const terminated = await terminateProcessTree(child, { platform: 'linux', terminateProcessGroup });
+
+        expect(terminated).toBe(true);
+        expect(terminateProcessGroup).toHaveBeenCalledWith(10);
+        expect(child.kill).not.toHaveBeenCalled();
+    });
+
+    it('does not inspect or terminate an already closed process', async () => {
+        const child = { exitCode: 0, kill: vi.fn(), pid: 10, signalCode: null };
+        const terminateWindowsTree = vi.fn(async () => undefined);
+
+        const terminated = await terminateProcessTree(child, { platform: 'win32', terminateWindowsTree });
+
+        expect(terminated).toBe(false);
+        expect(terminateWindowsTree).not.toHaveBeenCalled();
+        expect(child.kill).not.toHaveBeenCalled();
     });
 });

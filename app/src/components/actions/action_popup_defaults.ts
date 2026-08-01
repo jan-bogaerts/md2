@@ -1,7 +1,12 @@
 import type { ActionContext } from '../../data/action_context'
 import type { ActionScheduleTrigger } from '../../data/action_schedule_types'
 import type { ActionDefinition } from '../../data/action_types'
-import type { ActionRunInput, ActionRunResult } from '../../data/action_run_types'
+import type {
+    ActionRunInput,
+    ActionRunResult,
+    AgentApprovalDecision,
+    AgentApprovalRequestId,
+} from '../../data/action_run_types'
 import type { AgentConversation } from '../../data/data_types'
 import { getElectronActionBridge, type ActionRunHistoryEntry } from '../../data/electron_action_bridge'
 import { defaultActionHistoryLoader, loadActionHistory } from '../../services/actions/action_history'
@@ -10,20 +15,26 @@ import { dataService } from '../../services/data/data_service'
 import { projectPersistenceService } from '../../services/project/project_persistence_service'
 import { cancelElectronAction, runElectronAction } from '../../services/actions/electron_action_runner'
 import {
+    answerActionApproval,
     answerActionQuestion,
-    finishActionExecution,
+    finishActionRun,
     sendActionMessage,
-} from '../../services/actions/action_execution_service'
+} from '../../services/actions/action_run_registry'
 import { flushMarkdownEditors } from '../editor/markdown_editor_flush'
 
 export type PopupRunStatus = 'idle' | 'queued' | 'running' | 'waitingForInput' | ActionRunResult['status']
-export type CancelAction = (executionId: string) => Promise<void>
-export type SendMessage = (executionId: string, content: string) => Promise<void>
-export type FinishAction = (executionId: string) => Promise<void>
+export type CancelAction = (runId: string) => Promise<void>
+export type SendMessage = (runId: string, content: string) => Promise<void>
+export type FinishAction = (runId: string) => Promise<void>
 export type AnswerQuestion = (
-    executionId: string,
+    runId: string,
     requestId: number | string | null,
     answers: Record<string, string[]>,
+) => Promise<void>
+export type AnswerApproval = (
+    runId: string,
+    requestId: AgentApprovalRequestId,
+    decision: AgentApprovalDecision,
 ) => Promise<void>
 export type ConvertPromptToAction = (input: ConvertPromptToActionInput) => Promise<{ path: string }>
 export type LoadHistory = (action: ActionDefinition, context: ActionContext) => Promise<ActionRunHistoryEntry[]>
@@ -34,7 +45,7 @@ export type RunAction = (
     action: ActionDefinition,
     context: ActionContext,
     input?: ActionRunInput,
-    onStarted?: (executionId: string) => void,
+    onStarted?: (runId: string) => void,
 ) => Promise<ActionRunResult>
 export type ScheduleAction = (action: ActionDefinition, context: ActionContext, trigger: ActionScheduleTrigger) => Promise<void>
 
@@ -42,7 +53,7 @@ export function defaultRunAction(
     action: ActionDefinition,
     context: ActionContext,
     input?: ActionRunInput,
-    onStarted?: (executionId: string) => void,
+    onStarted?: (runId: string) => void,
 ) {
     return runElectronAction(action, context, input, onStarted)
 }
@@ -85,24 +96,32 @@ export async function defaultConvertPromptToAction(input: ConvertPromptToActionI
     return { definition, path }
 }
 
-export function defaultCancelAction(executionId: string) {
-    return cancelElectronAction(executionId)
+export function defaultCancelAction(runId: string) {
+    return cancelElectronAction(runId)
 }
 
-export function defaultSendMessage(executionId: string, content: string) {
-    return sendActionMessage(executionId, content)
+export function defaultSendMessage(runId: string, content: string) {
+    return sendActionMessage(runId, content)
 }
 
-export function defaultFinishAction(executionId: string) {
-    return finishActionExecution(executionId)
+export function defaultFinishAction(runId: string) {
+    return finishActionRun(runId)
 }
 
 export function defaultAnswerQuestion(
-    executionId: string,
+    runId: string,
     requestId: number | string | null,
     answers: Record<string, string[]>,
 ) {
-    return answerActionQuestion(executionId, requestId, answers)
+    return answerActionQuestion(runId, requestId, answers)
+}
+
+export function defaultAnswerApproval(
+    runId: string,
+    requestId: AgentApprovalRequestId,
+    decision: AgentApprovalDecision,
+) {
+    return answerActionApproval(runId, requestId, decision)
 }
 
 export async function defaultScheduleAction(action: ActionDefinition, context: ActionContext, trigger: ActionScheduleTrigger) {

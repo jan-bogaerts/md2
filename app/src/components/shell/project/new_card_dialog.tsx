@@ -16,10 +16,11 @@ import {
 import Close from 'mdi-material-ui/Close'
 import Plus from 'mdi-material-ui/Plus'
 import type { ChangeEvent, FormEvent, KeyboardEvent } from 'react'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { CardDraft, CardTypeConfig, StateConfig } from '../../../data/data_types'
-import { MarkdownEditor, type MarkdownEditorHandle } from '../../editor/markdown_editor'
+import type { MarkdownEditorHandle } from '../../editor/markdown_editor'
 import { CardTypePillGroup } from './card_type_pill_group'
+import { NewCardMarkdownEditor } from './new_card_markdown_editor'
 import { NewCardColumnPicker } from './new_card_column_picker'
 
 const DIALOG_WIDTH = 480
@@ -54,7 +55,6 @@ export function NewCardDialog(props: NewCardDialogProps) {
     const isMobile = useMediaQuery(theme.breakpoints.down('md'))
     const bodyEditorRef = useRef<MarkdownEditorHandle>(null)
     const wasOpenRef = useRef(false)
-    const [body, setBody] = useState('')
     const [isInsertedTemplateUntouched, setIsInsertedTemplateUntouched] = useState(false)
     const [targetStatus, setTargetStatus] = useState('')
     const [title, setTitle] = useState('')
@@ -63,16 +63,11 @@ export function NewCardDialog(props: NewCardDialogProps) {
     const defaultStatus = states[0]?.state ?? ''
     const selectedType = cardTypes.some((typeConfig) => typeConfig.type === type) ? type : defaultType
     const selectedStatus = states.some((stateConfig) => stateConfig.state === targetStatus) ? targetStatus : defaultStatus
-    const isDirty = title.length > 0
-        || body.length > 0
-        || selectedType !== defaultType
-        || selectedStatus !== initialTargetStatus
     const isSubmitDisabled = !isProjectOpen || title.trim().length === 0
         || selectedType.length === 0 || selectedStatus.length === 0 || isLoading
 
     const resetForm = () => {
         bodyEditorRef.current?.setMarkdown('')
-        setBody('')
         setIsInsertedTemplateUntouched(false)
         setTargetStatus(initialTargetStatus)
         setTitle('')
@@ -80,18 +75,22 @@ export function NewCardDialog(props: NewCardDialogProps) {
     }
 
     useEffect(() => {
-        if (open && !wasOpenRef.current) {
+        if ((open && !wasOpenRef.current) || !isProjectOpen) {
             bodyEditorRef.current?.setMarkdown('')
-            setBody('')
             setIsInsertedTemplateUntouched(false)
             setTargetStatus(initialTargetStatus)
             setTitle('')
             setType(defaultType)
         }
-        wasOpenRef.current = open
-    }, [defaultType, initialTargetStatus, open])
+        wasOpenRef.current = open && isProjectOpen
+    }, [defaultType, initialTargetStatus, isProjectOpen, open])
 
     const closeDialog = () => {
+        const body = bodyEditorRef.current?.getMarkdown() ?? ''
+        const isDirty = title.length > 0
+            || body.length > 0
+            || selectedType !== defaultType
+            || selectedStatus !== initialTargetStatus
         if (isDirty && !window.confirm(DISCARD_CARD_MESSAGE)) return
 
         resetForm()
@@ -106,15 +105,14 @@ export function NewCardDialog(props: NewCardDialogProps) {
         setTitle(event.target.value)
     }
 
-    const handleBodyChange = (markdown: string) => {
-        setBody(markdown)
-        setIsInsertedTemplateUntouched(false)
-    }
+    const handleBodyDirtyChange = useCallback((dirty: boolean) => {
+        if (dirty) setIsInsertedTemplateUntouched(false)
+    }, [])
 
     const handleTemplateClick = () => {
+        const body = bodyEditorRef.current?.getMarkdown() ?? ''
         if (isInsertedTemplateUntouched && body === cardBodyTemplate) {
             bodyEditorRef.current?.setMarkdown('')
-            setBody('')
             setIsInsertedTemplateUntouched(false)
 
             return
@@ -122,13 +120,13 @@ export function NewCardDialog(props: NewCardDialogProps) {
 
         const nextBody = body.length > 0 ? `${body}\n\n${cardBodyTemplate}` : cardBodyTemplate
         bodyEditorRef.current?.setMarkdown(nextBody)
-        setBody(nextBody)
         setIsInsertedTemplateUntouched(body.length === 0)
     }
 
     const handleCreateClick = async () => {
         if (isSubmitDisabled) return
 
+        const body = bodyEditorRef.current?.getMarkdown() ?? ''
         const draft: CardDraft = {
             body,
             bodyIncludesTemplate: true,
@@ -162,7 +160,7 @@ export function NewCardDialog(props: NewCardDialogProps) {
         void handleCreateClick()
     }
 
-    const templateButtonLabel = isInsertedTemplateUntouched && body === cardBodyTemplate ? 'Clear' : 'Template'
+    const templateButtonLabel = isInsertedTemplateUntouched ? 'Clear' : 'Template'
     const createButton = (
         <Button aria-label="Create card" disabled={isSubmitDisabled} type="submit" variant="contained">
             <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
@@ -372,11 +370,8 @@ export function NewCardDialog(props: NewCardDialogProps) {
                                 },
                             }}
                         >
-                            <MarkdownEditor
-                                hideToolbar
-                                markdown={body}
-                                onChange={setBody}
-                                onLiveChange={handleBodyChange}
+                            <NewCardMarkdownEditor
+                                onDirtyChange={handleBodyDirtyChange}
                                 ref={bodyEditorRef}
                             />
                         </Box>

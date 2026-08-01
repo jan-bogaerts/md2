@@ -3,7 +3,7 @@ import { alpha } from '@mui/material/styles'
 import Robot from 'mdi-material-ui/Robot'
 import { useState, useSyncExternalStore } from 'react'
 import { agentConversationService } from '../../services/agents/agent_conversation_service'
-import { useRunningActionExecutions } from '../hooks/use_action_executions'
+import { useActiveActionRuns } from '../hooks/use_action_runs'
 
 function subscribeToRunningAgents(onStoreChange: () => void) {
     return agentConversationService.subscribe(onStoreChange)
@@ -16,10 +16,10 @@ function getRunningAgentsSnapshot() {
 /** Shows the number of running agents and lists them in a popover when opened. */
 export function RunningAgentsIndicator() {
     const directRunningAgents = useSyncExternalStore(subscribeToRunningAgents, getRunningAgentsSnapshot, getRunningAgentsSnapshot)
-    const runningActionExecutions = useRunningActionExecutions()
+    const activeActionRuns = useActiveActionRuns()
     const agents = [
         ...directRunningAgents,
-        ...runningActionExecutions.map(({ executionId, rootActionId }) => ({ id: executionId, label: `Action ${rootActionId}` })),
+        ...activeActionRuns.map(({ runId, rootActionId }) => ({ id: runId, label: `Action ${rootActionId}` })),
     ]
     const [anchorElement, setAnchorElement] = useState<HTMLElement | null>(null)
 

@@ -6,12 +6,14 @@ import {
     DEFAULT_MARKDOWN_STYLE_PRESET,
     MARKDOWN_STYLE_PRESETS,
 } from './theme_config'
+import { buildMarkdownContentSx } from '../components/editor/markdown_style_sx'
 
 const ignoreThemeChange = () => undefined
 const FALLBACK_APP_THEME: AppThemeContextValue = {
     colorScheme: DEFAULT_COLOR_SCHEME,
     markdownStyle: DEFAULT_MARKDOWN_STYLE_PRESET,
     markdownStyleConfig: MARKDOWN_STYLE_PRESETS[DEFAULT_MARKDOWN_STYLE_PRESET],
+    markdownContentSx: buildMarkdownContentSx(MARKDOWN_STYLE_PRESETS[DEFAULT_MARKDOWN_STYLE_PRESET]),
     mode: 'light',
     setColorScheme: ignoreThemeChange,
     setCustomMarkdownStyle: ignoreThemeChange,

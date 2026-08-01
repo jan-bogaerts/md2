@@ -1,9 +1,18 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import type { ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { AgentConversation, AgentConversationEvent, AgentConversationMessage } from '../../data/data_types'
+import type {
+    AgentConversation,
+    AgentConversationEntry,
+    AgentConversationEvent,
+    AgentConversationEventEntry,
+    AgentConversationMessageEntry,
+} from '../../data/data_types'
 import { dataService } from '../../services/data/data_service'
 import { dialogService } from '../../services/dialog_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
+import { AppThemeContext } from '../../theme/theme_context'
+import { useAppTheme } from '../../theme/use_app_theme'
 import { ActionConversationChat } from './action_conversation_chat'
 
 let clientHeight = 100
@@ -13,14 +22,17 @@ const originalClientHeight = Object.getOwnPropertyDescriptor(HTMLElement.prototy
 const originalScrollHeight = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'scrollHeight')
 const originalScrollTop = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'scrollTop')
 
-function message(id: string, content: string): AgentConversationMessage {
-    return { content, id, role: 'assistant', timestamp: '2026-07-27T10:00:00.000Z' }
+function message(id: string, content: string): AgentConversationMessageEntry {
+    return { content, id, kind: 'message', role: 'assistant', timestamp: '2026-07-27T10:00:00.000Z' }
+}
+
+function eventEntry(event: AgentConversationEvent): AgentConversationEventEntry {
+    return { ...event, kind: 'event' }
 }
 
 function conversation(
     path: string,
-    messages: AgentConversationMessage[],
-    events: AgentConversationEvent[] = [],
+    entries: AgentConversationEntry[],
     agent: string | null = null,
 ): AgentConversation {
     return {
@@ -28,17 +40,16 @@ function conversation(
         cardInternalId: 'card-1',
         cardPath: 'design/F-83.md',
         completedAt: '2026-07-27T10:01:00.000Z',
-        events,
+        entries,
         hasExplicitTitle: true,
         id: path,
-        messages,
         path,
         providerSessions: agent ? [{
             agent,
             conversationId: 'provider-1',
             createdAt: '2026-07-27T10:00:00.000Z',
             lastUsedAt: '2026-07-27T10:01:00.000Z',
-            synchronizedThroughMessageId: messages.at(-1)?.id ?? '',
+            synchronizedThroughMessageId: entries.findLast((entry) => entry.kind === 'message')?.id ?? '',
         }] : [],
         startedAt: '2026-07-27T10:00:00.000Z',
         status: 'completed',
@@ -52,6 +63,13 @@ function renderChat(value: AgentConversation | null) {
             <ActionConversationChat conversation={value} status="idle" />
         </AppThemeProvider>,
     )
+}
+
+function MarkdownContentSxOverride({ children }: { children: ReactNode }) {
+    const theme = useAppTheme()
+    const value = { ...theme, markdownContentSx: { paddingTop: '37px' } }
+
+    return <AppThemeContext.Provider value={value}>{children}</AppThemeContext.Provider>
 }
 
 function restoreProperty(name: 'clientHeight' | 'scrollHeight' | 'scrollTop', descriptor?: PropertyDescriptor) {
@@ -94,6 +112,22 @@ describe('ActionConversationChat', () => {
         renderChat(conversation('first.json', [message('message-1', 'First')]))
 
         expect(screen.getByLabelText('Conversation chat').scrollTop).toBe(200)
+    })
+
+    it('uses the derived Markdown style provided by the app theme', () => {
+        render(
+            <AppThemeProvider>
+                <MarkdownContentSxOverride>
+                    <ActionConversationChat
+                        conversation={conversation('styled.json', [message('message-1', 'Styled')])}
+                        status="idle"
+                    />
+                </MarkdownContentSxOverride>
+            </AppThemeProvider>,
+        )
+        const messageBox = screen.getByText('Styled').closest('.mdxeditor-content')?.parentElement
+
+        expect(messageBox).toHaveStyle({ paddingTop: '37px' })
     })
 
     it('returns to the end when the selected conversation changes', () => {
@@ -182,19 +216,21 @@ describe('ActionConversationChat', () => {
         expect(viewport.scrollTop).toBe(0)
     })
 
-    it('keeps normal web links on browser navigation', () => {
+    it('opens web links outside the renderer', () => {
         renderChat(conversation('links.json', [message('message-1', '[Website](https://example.com/docs)')]))
         const link = screen.getByRole('link', { name: 'Website' })
-        let componentPreventedNavigation = true
-        const inspectClick = (event: MouseEvent) => {
-            componentPreventedNavigation = event.defaultPrevented
-            event.preventDefault()
-        }
-        document.addEventListener('click', inspectClick, { once: true })
 
         expect(link).toHaveAttribute('href', 'https://example.com/docs')
-        fireEvent.click(link)
-        expect(componentPreventedNavigation).toBe(false)
+        expect(link).toHaveAttribute('rel', 'noopener noreferrer')
+        expect(link).toHaveAttribute('target', '_blank')
+    })
+
+    it('preserves absolute Windows paths emitted in Markdown links', () => {
+        const path = 'C:\\repo\\design\\F_89_links.md'
+        renderChat(conversation('links.json', [message('message-1', `[F_89_links.md](${path})`)]))
+
+        expect(screen.getByRole('link', { name: 'F_89_links.md' }))
+            .toHaveAttribute('href', 'C:%5Crepo%5Cdesign%5CF_89_links.md')
     })
 
     it('reports invalid local file links without browser navigation', async () => {
@@ -209,9 +245,13 @@ describe('ActionConversationChat', () => {
             },
         })
         const reportError = vi.spyOn(dialogService, 'error')
+        const bubbledClick = vi.fn()
         renderChat(conversation('links.json', [message('message-1', '[Missing](design/missing.md)')]))
+        document.addEventListener('click', bubbledClick)
 
         expect(fireEvent.click(screen.getByRole('link', { name: 'Missing' }))).toBe(false)
+        document.removeEventListener('click', bubbledClick)
+        expect(bubbledClick).not.toHaveBeenCalled()
         await waitFor(() => expect(reportError).toHaveBeenCalledWith(
             expect.objectContaining({ message: expect.stringContaining('target does not exist') }),
             { fallbackMessage: 'Local file link could not be opened: design/missing.md' },
@@ -230,7 +270,7 @@ describe('ActionConversationChat', () => {
         expect(messageBox).not.toHaveStyle({ overflowX: 'auto' })
     })
 
-    it('renders Codex messages and activity in backend sequence order', () => {
+    it('renders Codex entries in array order without sorting by sequence', () => {
         const timestamp = '2026-07-27T10:00:00.000Z'
         const firstMessage = { ...message('message-1', 'First message'), agent: 'codex', sequence: 1 }
         const finalMessage = { ...message('message-2', 'Final message'), agent: 'codex', sequence: 4 }
@@ -257,53 +297,20 @@ describe('ActionConversationChat', () => {
             },
         ]
 
-        renderChat(conversation('codex.json', [finalMessage, firstMessage], events.reverse(), 'codex'))
+        const value = conversation('codex.json', [], 'codex')
+        value.entries = [
+            { ...firstMessage, kind: 'message' },
+            { ...events[0], kind: 'event', sequence: 30 },
+            { ...events[1], kind: 'event', sequence: 20 },
+            { ...finalMessage, kind: 'message', sequence: 10 },
+        ]
+        renderChat(value)
 
         const orderedText = ['First message', 'Inspect code', 'npm test', 'Final message']
         const elements = orderedText.map((text) => screen.getByText(text))
         for (let index = 1; index < elements.length; index += 1) {
             expect(elements[index - 1].compareDocumentPosition(elements[index]) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0)
         }
-    })
-
-    it('renders live structured activity before a provider session or assistant message exists', () => {
-        const activity: AgentConversationEvent = {
-            content: 'Inspect code',
-            id: 'reasoning-1',
-            providerItemId: 'reasoning-1',
-            sequence: 2,
-            status: 'inProgress',
-            summary: ['Inspect code'],
-            timestamp: 'now',
-            type: 'reasoning',
-        }
-
-        renderChat(conversation('codex.json', [{ ...message('message-1', 'Start'), sequence: 1 }], [activity]))
-
-        expect(screen.getByText('Reasoning')).toBeInTheDocument()
-        expect(screen.getByText('Inspect code')).toBeInTheDocument()
-    })
-
-    it('shows reasoning summary sections and lifecycle state', () => {
-        const activity: AgentConversationEvent = {
-            content: 'Summary one\n\nSummary two',
-            details: ['Raw detail'],
-            id: 'reasoning-1',
-            providerItemId: 'reasoning-1',
-            sequence: 2,
-            status: 'inProgress',
-            summary: ['Summary one', 'Summary two'],
-            timestamp: 'now',
-            type: 'reasoning',
-        }
-
-        renderChat(conversation('codex.json', [{ ...message('message-1', 'Start'), agent: 'codex', sequence: 1 }], [activity], 'codex'))
-
-        expect(screen.getByText('Reasoning')).toBeInTheDocument()
-        expect(screen.getByText('Running')).toBeInTheDocument()
-        expect(screen.getByText('Summary one')).toBeInTheDocument()
-        expect(screen.getByText('Summary two')).toBeInTheDocument()
-        expect(screen.queryByText('Raw detail')).not.toBeInTheDocument()
     })
 
     it('omits completed reasoning while its conversation runs', () => {
@@ -320,8 +327,7 @@ describe('ActionConversationChat', () => {
         const runningConversation: AgentConversation = {
             ...conversation(
                 'codex.json',
-                [{ ...message('message-1', 'Start'), agent: 'codex', sequence: 1 }],
-                [activity],
+                [{ ...message('message-1', 'Start'), agent: 'codex', sequence: 1 }, eventEntry(activity)],
                 'codex',
             ),
             completedAt: null,
@@ -347,8 +353,7 @@ describe('ActionConversationChat', () => {
 
         renderChat(conversation(
             'codex.json',
-            [{ ...message('message-1', 'Saved answer'), agent: 'codex', sequence: 3 }],
-            [activity],
+            [{ ...message('message-1', 'Saved answer'), agent: 'codex', sequence: 3 }, eventEntry(activity)],
             'codex',
         ))
 
@@ -373,8 +378,7 @@ describe('ActionConversationChat', () => {
 
         renderChat(conversation(
             'codex.json',
-            [{ ...message('message-1', 'Start'), agent: 'codex', sequence: 1 }],
-            [activity],
+            [{ ...message('message-1', 'Start'), agent: 'codex', sequence: 1 }, eventEntry(activity)],
             'codex',
         ))
 
@@ -396,8 +400,7 @@ describe('ActionConversationChat', () => {
 
         renderChat(conversation(
             'codex.json',
-            [{ ...message('message-1', 'Start'), agent: 'codex', sequence: 1 }],
-            [activity],
+            [{ ...message('message-1', 'Start'), agent: 'codex', sequence: 1 }, eventEntry(activity)],
             'codex',
         ))
 
@@ -422,7 +425,7 @@ describe('ActionConversationChat', () => {
             workingDirectory: 'C:\\repo',
         }
 
-        renderChat(conversation('codex.json', [{ ...message('message-1', 'Start'), agent: 'codex', sequence: 1 }], [activity], 'codex'))
+        renderChat(conversation('codex.json', [{ ...message('message-1', 'Start'), agent: 'codex', sequence: 1 }, eventEntry(activity)], 'codex'))
 
         const button = screen.getByRole('button', { name: /Command details:/u })
         expect(button).toHaveAttribute('aria-expanded', 'false')
@@ -450,7 +453,7 @@ describe('ActionConversationChat', () => {
             type: 'webSearch',
         }
 
-        renderChat(conversation('codex.json', [{ ...message('message-1', 'Start'), agent: 'codex', sequence: 1 }], [activity], 'codex'))
+        renderChat(conversation('codex.json', [{ ...message('message-1', 'Start'), agent: 'codex', sequence: 1 }, eventEntry(activity)], 'codex'))
         const button = screen.getByRole('button', { name: 'Web search details' })
         fireEvent.click(button)
 
@@ -473,7 +476,7 @@ describe('ActionConversationChat', () => {
             type: 'commandExecution',
         }
 
-        renderChat(conversation('codex.json', [{ ...message('message-1', 'Start'), sequence: 1 }], [activity]))
+        renderChat(conversation('codex.json', [{ ...message('message-1', 'Start'), sequence: 1 }, eventEntry(activity)]))
         fireEvent.click(screen.getByRole('button', { name: 'Command details: npm test' }))
 
         expect(screen.queryByText(/Exit code:/u)).not.toBeInTheDocument()
@@ -491,7 +494,7 @@ describe('ActionConversationChat', () => {
             type: 'webSearch',
         }
 
-        renderChat(conversation('claude.json', [{ ...message('message-1', '**Assistant Markdown**'), agent: 'claude', sequence: 1 }], [activity], 'claude'))
+        renderChat(conversation('claude.json', [{ ...message('message-1', '**Assistant Markdown**'), agent: 'claude', sequence: 1 }, eventEntry(activity)], 'claude'))
 
         expect(screen.getByText('Assistant Markdown').tagName).toBe('STRONG')
         expect(screen.queryByRole('button', { name: 'Web search details' })).not.toBeInTheDocument()
@@ -502,7 +505,7 @@ describe('ActionConversationChat', () => {
             ...message('message-1', '**First**\n\nSecond'),
             agent: 'codex',
             sequence: 1,
-        }], [], 'codex'))
+        }], 'codex'))
 
         const first = screen.getByText('First')
         const second = screen.getByText('Second')
@@ -524,8 +527,7 @@ describe('ActionConversationChat', () => {
         }
         const first = conversation(
             'codex.json',
-            [{ ...message('message-1', 'Start'), agent: 'codex', sequence: 1 }],
-            [started],
+            [{ ...message('message-1', 'Start'), agent: 'codex', sequence: 1 }, eventEntry(started)],
             'codex',
         )
         const { rerender } = renderChat(first)
@@ -538,7 +540,11 @@ describe('ActionConversationChat', () => {
 
         rerender(
             <AppThemeProvider>
-                <ActionConversationChat conversation={{ ...first, events: [completed] }} status="idle" />
+                <ActionConversationChat conversation={{
+                    ...first, entries: first.entries.map((entry) => (
+                        entry.kind === 'event' ? { ...completed, kind: 'event' } as const : entry
+                    )),
+                }} status="idle" />
             </AppThemeProvider>,
         )
 
@@ -575,14 +581,20 @@ describe('ActionConversationChat', () => {
         }
         const first = conversation(
             'codex.json',
-            [{ ...message('message-1', 'Start'), agent: 'codex', sequence: 1 }],
-            [firstActivity, commandActivity],
+            [
+                { ...message('message-1', 'Start'), agent: 'codex', sequence: 1 },
+                eventEntry(firstActivity),
+                eventEntry(commandActivity),
+            ],
             'codex',
         )
         const grown = conversation(
             'codex.json',
-            first.messages,
-            [grownActivity, { ...commandActivity, content: 'line one\nline two', output: 'line one\nline two' }],
+            [
+                ...first.entries.filter((entry) => entry.kind === 'message'),
+                eventEntry(grownActivity),
+                eventEntry({ ...commandActivity, content: 'line one\nline two', output: 'line one\nline two' }),
+            ],
             'codex',
         )
         const { rerender } = renderChat(first)

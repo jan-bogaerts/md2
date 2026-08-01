@@ -23,7 +23,7 @@ vi.mock('../hooks/use_card_commits', () => ({
                 commits: [],
                 completedAt: '2026-07-20T10:00:00.000Z',
                 conversationIds: [],
-                executionId: 'execution-1',
+                runId: 'run-1',
                 history: { completedAt: '2026-07-20T10:00:00.000Z', output: '', prompt: '', status: 'completed' },
                 origin: { cardInternalId: 'card-060', kind: 'card' },
                 rootActionId: 'implement',

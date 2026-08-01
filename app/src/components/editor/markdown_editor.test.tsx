@@ -1,6 +1,7 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { createRef } from 'react'
+import { createRef, type ReactNode } from 'react'
+import { AppThemeContext } from '../../theme/theme_context'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import { ACTION_PROMPT_PLACEHOLDERS } from '../../data/action_placeholders'
 import { dialogService } from '../../services/dialog_service'
@@ -73,6 +74,13 @@ function MarkdownEditorWithStyleControl() {
             <MarkdownEditor markdown="" onChange={vi.fn()} />
         </>
     )
+}
+
+function MarkdownContentSxOverride({ children }: { children: ReactNode }) {
+    const theme = useAppTheme()
+    const value = { ...theme, markdownContentSx: { paddingTop: '37px' } }
+
+    return <AppThemeContext.Provider value={value}>{children}</AppThemeContext.Provider>
 }
 
 describe('MarkdownEditor', () => {
@@ -566,5 +574,17 @@ describe('MarkdownEditor', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Serif' }))
 
         expect(editorWrapper?.className).not.toBe(initialClassName)
+    })
+
+    it('uses the derived Markdown style provided by the app theme', () => {
+        const { container } = render(
+            <AppThemeProvider>
+                <MarkdownContentSxOverride>
+                    <MarkdownEditor markdown="" onChange={vi.fn()} />
+                </MarkdownContentSxOverride>
+            </AppThemeProvider>,
+        )
+
+        expect(container.querySelector('[data-sticky-toolbar="false"]')).toHaveStyle({ paddingTop: '37px' })
     })
 })

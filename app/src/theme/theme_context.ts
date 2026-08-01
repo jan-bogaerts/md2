@@ -1,5 +1,5 @@
 import { createContext } from 'react'
-import type { PaletteMode } from '@mui/material'
+import type { PaletteMode, SxProps, Theme } from '@mui/material'
 import type {
     ColorSchemeConfig,
     MarkdownStyleConfig,
@@ -13,6 +13,7 @@ export interface AppThemeContextValue {
     colorScheme: ColorSchemeConfig
     markdownStyle: MarkdownStyleName
     markdownStyleConfig: MarkdownStyleConfig
+    markdownContentSx: SxProps<Theme>
     toggleMode: () => void
     setColorScheme: (colorScheme: ColorSchemeConfig) => void
     setCustomMarkdownStyle: (markdownStyleConfig: MarkdownStyleConfig) => void

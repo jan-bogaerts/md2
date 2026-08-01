@@ -1,15 +1,62 @@
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ActionContext } from '../../data/action_context'
-import type { ActionExecutionEvent } from '../../data/action_run_types'
+import type { ActionRunEvent } from '../../data/action_run_types'
 import type { ActionFile } from '../../data/action_types'
 import type { ProjectReference, StorageService, WorktreeRecord } from '../../data/data_types'
 import { actionService } from '../../services/actions/action_service'
-import { actionExecutionService } from '../../services/actions/action_execution_service'
+import { actionRunRegistry } from '../../services/actions/action_run_registry'
+import { actionPromptDraftService } from '../../services/actions/action_prompt_draft_service'
 import { dialogService } from '../../services/dialog_service'
 import { worktreeService } from '../../services/project/worktree_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import { ActionPopup, CARD_RUN_POPUP_SIZE_STORAGE_KEY, PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY } from './action_popup'
+
+const renderProbes = vi.hoisted(() => ({
+    chat: vi.fn(),
+    content: vi.fn(),
+    popup: vi.fn(),
+    selector: vi.fn(),
+}))
+
+vi.mock('./action_popup_content', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('./action_popup_content')>()
+
+    return {
+        ...actual,
+        ActionPopupContent: function ActionPopupContentRenderProbe(props: Parameters<typeof actual.ActionPopupContent>[0]) {
+            renderProbes.content()
+
+            return actual.ActionPopupContent(props)
+        },
+    }
+})
+
+vi.mock('./action_selector', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('./action_selector')>()
+
+    return {
+        ...actual,
+        ActionSelector: function ActionSelectorRenderProbe(props: Parameters<typeof actual.ActionSelector>[0]) {
+            renderProbes.selector()
+
+            return actual.ActionSelector(props)
+        },
+    }
+})
+
+vi.mock('./action_conversation_chat', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('./action_conversation_chat')>()
+
+    return {
+        ...actual,
+        ActionConversationChat: function ActionConversationChatRenderProbe(props: Parameters<typeof actual.ActionConversationChat>[0]) {
+            renderProbes.chat()
+
+            return actual.ActionConversationChat(props)
+        },
+    }
+})
 
 function file(definition: { id: string }): ActionFile {
     return { content: JSON.stringify(definition), path: `actions/${definition.id}.json` }
@@ -40,9 +87,15 @@ function worktreeStorage(): StorageService {
 }
 
 function renderPopup(contextOverride: ActionContext = context, onClose = vi.fn()) {
+    function ActionPopupRenderProbe() {
+        renderProbes.popup()
+
+        return <ActionPopup anchorElement={document.body} context={contextOverride} onClose={onClose} />
+    }
+
     render(
         <AppThemeProvider>
-            <ActionPopup anchorElement={document.body} context={contextOverride} onClose={onClose} />
+            <ActionPopupRenderProbe />
         </AppThemeProvider>,
     )
 
@@ -51,8 +104,9 @@ function renderPopup(contextOverride: ActionContext = context, onClose = vi.fn()
 
 describe('ActionPopup', () => {
     beforeEach(async () => {
+        Object.values(renderProbes).forEach((probe) => probe.mockClear())
         window.md2Actions = {
-            onActionExecution: vi.fn(() => vi.fn()),
+            onActionRun: vi.fn(() => vi.fn()),
             prepareActionPrompt: vi.fn(async () => ({ prompt: '' })),
         } as unknown as typeof window.md2Actions
         actionService.loadFromFiles([
@@ -64,6 +118,7 @@ describe('ActionPopup', () => {
             assignCardWorktree: vi.fn(),
             cardSeparatorProvider: () => '-',
             flushPendingChanges: vi.fn(async () => undefined),
+            projectFolderProvider: () => 'design',
             projectProvider: () => project,
             snapshotProvider: () => null,
             storageProvider: () => storage,
@@ -71,7 +126,7 @@ describe('ActionPopup', () => {
     })
 
     afterEach(() => {
-        actionExecutionService.stop()
+        actionRunRegistry.stop()
         delete window.md2Actions
         actionService.clear()
         worktreeService.clear()
@@ -88,6 +143,136 @@ describe('ActionPopup', () => {
         expect(actionGroup.getByRole('button', { name: 'First action' })).toHaveAttribute('aria-pressed', 'true')
         expect(actionGroup.getByRole('button', { name: 'Second action' })).toHaveAttribute('aria-pressed', 'false')
         expect(dialog.getByRole('button', { name: 'Run' })).toBeInTheDocument()
+    })
+
+    it('does not render popup content while typing or flushing a prompt', async () => {
+        const loadActionRunHistory = vi.fn(async () => [])
+        window.md2Actions = {
+            loadActionRunHistory,
+            onActionRun: vi.fn(() => vi.fn()),
+            prepareActionPrompt: vi.fn(async () => ({ prompt: 'Plan' })),
+        } as unknown as typeof window.md2Actions
+        actionService.loadFromFiles([file(agentDefinition('review', { label: 'Review' }))])
+        renderPopup()
+        const prompt = within(screen.getByLabelText('Prompt')).getByRole('textbox')
+        await waitFor(() => expect(prompt).toHaveValue('Plan'))
+        await waitFor(() => expect(loadActionRunHistory).toHaveBeenCalled())
+        Object.values(renderProbes).forEach((probe) => probe.mockClear())
+
+        fireEvent.change(prompt, { target: { value: 'Draft' } })
+        expect(renderProbes.content).not.toHaveBeenCalled()
+        expect(renderProbes.popup).not.toHaveBeenCalled()
+        expect(renderProbes.selector).not.toHaveBeenCalled()
+        expect(renderProbes.chat).not.toHaveBeenCalled()
+
+        fireEvent.blur(prompt)
+        await act(async () => undefined)
+        expect(renderProbes.content).not.toHaveBeenCalled()
+        expect(renderProbes.popup).not.toHaveBeenCalled()
+        expect(renderProbes.selector).not.toHaveBeenCalled()
+        expect(renderProbes.chat).not.toHaveBeenCalled()
+    })
+
+    it('does not render popup roots or leaves for another context run', async () => {
+        actionRunRegistry.stop()
+        let runListener: ((event: ActionRunEvent) => void) | null = null
+        window.md2Actions = {
+            onActionRun: vi.fn((listener) => {
+                runListener = listener
+                return vi.fn()
+            }),
+        } as unknown as typeof window.md2Actions
+        actionRunRegistry.start()
+        renderPopup()
+        await waitFor(() => expect(runListener).not.toBeNull())
+        Object.values(renderProbes).forEach((probe) => probe.mockClear())
+
+        act(() => runListener?.({
+            actionId: 'first',
+            context: { file: 'design/F-099.md', kind: 'card', state: 'design', type: 'feature' },
+            phase: 'main',
+            rootActionId: 'first',
+            runId: 'other-run',
+            status: 'running',
+            type: 'run',
+        }))
+
+        Object.values(renderProbes).forEach((probe) => expect(probe).not.toHaveBeenCalled())
+    })
+
+    it('renders only selector boundary when another action status changes', async () => {
+        actionRunRegistry.stop()
+        let runListener: ((event: ActionRunEvent) => void) | null = null
+        window.md2Actions = {
+            onActionRun: vi.fn((listener) => {
+                runListener = listener
+                return vi.fn()
+            }),
+        } as unknown as typeof window.md2Actions
+        actionRunRegistry.start()
+        renderPopup()
+        await waitFor(() => expect(runListener).not.toBeNull())
+        Object.values(renderProbes).forEach((probe) => probe.mockClear())
+
+        act(() => runListener?.({actionId: 'second', context, phase: 'main', rootActionId: 'second', runId: 'run-2', status: 'running', type: 'run'}))
+
+        expect(renderProbes.selector).toHaveBeenCalled()
+        expect(renderProbes.popup).not.toHaveBeenCalled()
+        expect(renderProbes.content).not.toHaveBeenCalled()
+        expect(renderProbes.chat).not.toHaveBeenCalled()
+    })
+
+    it('renders only conversation boundary while conversation streams', async () => {
+        actionRunRegistry.stop()
+        let runListener: ((event: ActionRunEvent) => void) | null = null
+        window.md2Actions = {
+            onActionRun: vi.fn((listener) => {
+                runListener = listener
+                return vi.fn()
+            }),
+            prepareActionPrompt: vi.fn(async () => ({ prompt: '' })),
+        } as unknown as typeof window.md2Actions
+        actionService.loadFromFiles([file(agentDefinition('review', { label: 'Review', streaming: true }))])
+        actionRunRegistry.start()
+        renderPopup()
+        await waitFor(() => expect(runListener).not.toBeNull())
+        const event = {actionId: 'review', context, phase: 'main' as const, rootActionId: 'review', runId: 'run-1', status: 'running' as const}
+        act(() => {
+            runListener?.({ ...event, type: 'run' })
+            runListener?.({
+                ...event,
+                type: 'update',
+                update: {
+                    conversation: {
+                        actionId: 'review',
+                        cardInternalId: null,
+                        cardPath: context.file ?? null,
+                        completedAt: null,
+                        entries: [],
+                        hasExplicitTitle: false,
+                        id: 'conversation-1',
+                        path: 'conversation.json',
+                        providerSessions: [],
+                        startedAt: '2026-08-01T12:00:00.000Z',
+                        status: 'running',
+                        title: 'Review',
+                    },
+                    kind: 'agentStarted',
+                },
+            })
+        })
+        Object.values(renderProbes).forEach((probe) => probe.mockClear())
+
+        act(() => runListener?.({
+            ...event,
+            type: 'update',
+            update: { content: 'streamed', kind: 'output', messageId: 'assistant-1', sequence: 1 },
+        }))
+
+        expect(renderProbes.chat).toHaveBeenCalled()
+        expect(renderProbes.popup).not.toHaveBeenCalled()
+        expect(renderProbes.content).not.toHaveBeenCalled()
+        expect(renderProbes.selector).not.toHaveBeenCalled()
     })
 
     it('owns action selection internally', () => {
@@ -161,26 +346,26 @@ describe('ActionPopup', () => {
     })
 
     it('shows waiting action state through popup reopen, resume, and completion', async () => {
-        actionExecutionService.stop()
-        let executionListener: ((event: ActionExecutionEvent) => void) | null = null
+        actionRunRegistry.stop()
+        let runListener: ((event: ActionRunEvent) => void) | null = null
         window.md2Actions = {
             loadActionRunHistory: vi.fn(async () => []),
-            onActionExecution: vi.fn((listener) => {
-                executionListener = listener
+            onActionRun: vi.fn((listener) => {
+                runListener = listener
                 return vi.fn()
             }),
             prepareActionPrompt: vi.fn(async () => ({ prompt: 'Plan' })),
         } as unknown as typeof window.md2Actions
-        actionExecutionService.start()
+        actionRunRegistry.start()
         actionService.loadFromFiles([file(agentDefinition('stream', { label: 'Stream', streaming: true }))])
         renderPopup()
-        await waitFor(() => expect(executionListener).not.toBeNull())
+        await waitFor(() => expect(runListener).not.toBeNull())
         const eventBase = {
             actionId: 'stream',
             actionType: 'agent' as const,
             autoFinish: null,
             context,
-            executionId: 'execution-1',
+            runId: 'run-1',
             interactionReady: true,
             phase: 'main' as const,
             rootActionId: 'stream',
@@ -188,8 +373,8 @@ describe('ActionPopup', () => {
         }
 
         act(() => {
-            executionListener?.({ ...eventBase, status: 'running', type: 'execution' })
-            executionListener?.({ ...eventBase, status: 'waitingForInput', type: 'agentState' })
+            runListener?.({ ...eventBase, status: 'running', type: 'run' })
+            runListener?.({ ...eventBase, status: 'waitingForInput', type: 'agentState' })
         })
         const waitingButton = screen.getByRole('button', { name: /Stream.*Agent is waiting for input/u })
         expect(waitingButton).toBeInTheDocument()
@@ -200,11 +385,65 @@ describe('ActionPopup', () => {
         renderPopup()
         expect(screen.getByRole('button', { name: /Stream.*Agent is waiting for input/u })).toBeInTheDocument()
 
-        act(() => executionListener?.({ ...eventBase, status: 'running', type: 'agentState' }))
+        act(() => runListener?.({ ...eventBase, status: 'running', type: 'agentState' }))
         expect(screen.getByRole('button', { name: /Stream.*Agent is running/u })).toBeInTheDocument()
 
-        act(() => executionListener?.({ ...eventBase, status: 'completed', type: 'execution' }))
+        act(() => runListener?.({ ...eventBase, status: 'completed', type: 'run' }))
         expect(screen.getByRole('button', { name: 'Stream' })).toBeInTheDocument()
+    })
+
+    it('clears stored prefill when switching to an active action and restores its draft after reopen', async () => {
+        actionRunRegistry.stop()
+        let runListener: ((event: ActionRunEvent) => void) | null = null
+        window.md2Actions = {
+            loadActionRunHistory: vi.fn(async () => []),
+            onActionRun: vi.fn((listener) => {
+                runListener = listener
+
+                return vi.fn()
+            }),
+            prepareActionPrompt: vi.fn(async ({ actionId }: { actionId: string }) => ({ prompt: `${actionId} stored prompt` })),
+        } as unknown as typeof window.md2Actions
+        actionRunRegistry.start()
+        actionService.loadFromFiles([
+            file(agentDefinition('idle', { label: 'Idle action' })),
+            file(agentDefinition('active', { label: 'Active action' })),
+        ])
+        renderPopup()
+        const actionGroup = within(screen.getByRole('group', { name: 'Actions' }))
+        await waitFor(() => expect(within(screen.getByLabelText('Prompt')).getByRole('textbox')).toHaveValue('idle stored prompt'))
+        await waitFor(() => expect(runListener).not.toBeNull())
+
+        act(() => {
+            runListener?.({
+                actionId: 'active', context, runId: 'run-1', phase: 'main',
+                rootActionId: 'active', status: 'running', type: 'run',
+            })
+            runListener?.({
+                actionId: 'active',
+                actionType: 'agent',
+                autoFinish: null,
+                context,
+                runId: 'run-1',
+                interactionReady: false,
+                phase: 'main',
+                rootActionId: 'active',
+                status: 'waitingForInput',
+                streaming: true,
+                type: 'agentState',
+            })
+        })
+        fireEvent.click(actionGroup.getByRole('button', { name: /Active action/u }))
+
+        await waitFor(() => expect(within(screen.getByLabelText('Prompt')).getByRole('textbox')).toHaveValue(''))
+        const activeRun = actionRunRegistry.getActionRunStore('active', context)?.getSnapshot()
+        if (!activeRun) throw new Error('Missing active run')
+        act(() => actionPromptDraftService.getDraft('active', context, activeRun, { prepare: false }).edit('Keep active draft'))
+        cleanup()
+        renderPopup()
+        fireEvent.click(within(screen.getByRole('group', { name: 'Actions' })).getByRole('button', { name: /Active action/u }))
+
+        await waitFor(() => expect(within(screen.getByLabelText('Prompt')).getByRole('textbox')).toHaveValue('Keep active draft'))
     })
 
     it('closes from the popup header', () => {
@@ -279,28 +518,28 @@ describe('ActionPopup', () => {
     })
 
     it('shows uniform icon-only Send, Finish, and Stop controls while waiting', async () => {
-        actionExecutionService.stop()
-        let executionListener: ((event: ActionExecutionEvent) => void) | null = null
-        const finishActionExecution = vi.fn(async () => undefined)
+        actionRunRegistry.stop()
+        let runListener: ((event: ActionRunEvent) => void) | null = null
+        const finishActionRun = vi.fn(async () => undefined)
         window.md2Actions = {
-            finishActionExecution,
+            finishActionRun,
             loadActionRunHistory: vi.fn(async () => []),
-            onActionExecution: vi.fn((listener) => {
-                executionListener = listener
+            onActionRun: vi.fn((listener) => {
+                runListener = listener
                 return vi.fn()
             }),
             prepareActionPrompt: vi.fn(async () => ({ prompt: 'Plan' })),
         } as unknown as typeof window.md2Actions
-        actionExecutionService.start()
+        actionRunRegistry.start()
         actionService.loadFromFiles([file(agentDefinition('stream', { label: 'Stream', streaming: true }))])
         renderPopup()
-        await waitFor(() => expect(executionListener).not.toBeNull())
+        await waitFor(() => expect(runListener).not.toBeNull())
         const eventBase = {
             actionId: 'stream',
             actionType: 'agent' as const,
             autoFinish: null,
             context,
-            executionId: 'execution-1',
+            runId: 'run-1',
             interactionReady: true,
             phase: 'main' as const,
             rootActionId: 'stream',
@@ -308,40 +547,40 @@ describe('ActionPopup', () => {
         }
 
         act(() => {
-            executionListener?.({ ...eventBase, status: 'running', type: 'execution' })
-            executionListener?.({ ...eventBase, status: 'waitingForInput', type: 'agentState' })
+            runListener?.({ ...eventBase, status: 'running', type: 'run' })
+            runListener?.({ ...eventBase, status: 'waitingForInput', type: 'agentState' })
         })
 
         expect(screen.getByRole('button', { name: 'Send' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Finish' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Stop' })).toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: 'Finish' }))
-        await waitFor(() => expect(finishActionExecution).toHaveBeenCalledWith('execution-1'))
+        await waitFor(() => expect(finishActionRun).toHaveBeenCalledWith('run-1'))
     })
 
     it('uses active one-shot child controls and omits Finish', async () => {
-        actionExecutionService.stop()
-        let executionListener: ((event: ActionExecutionEvent) => void) | null = null
+        actionRunRegistry.stop()
+        let runListener: ((event: ActionRunEvent) => void) | null = null
         window.md2Actions = {
             loadActionRunHistory: vi.fn(async () => []),
-            onActionExecution: vi.fn((listener) => {
-                executionListener = listener
+            onActionRun: vi.fn((listener) => {
+                runListener = listener
                 return vi.fn()
             }),
             prepareActionPrompt: vi.fn(async () => ({ prompt: 'Plan' })),
         } as unknown as typeof window.md2Actions
-        actionExecutionService.start()
+        actionRunRegistry.start()
         actionService.loadFromFiles([file(agentDefinition('one-shot', { label: 'One shot' }))])
         renderPopup()
-        await waitFor(() => expect(executionListener).not.toBeNull())
+        await waitFor(() => expect(runListener).not.toBeNull())
 
         act(() => {
-            executionListener?.({
+            runListener?.({
                 actionId: 'one-shot',
                 actionType: 'agent',
                 autoFinish: null,
                 context,
-                executionId: 'execution-1',
+                runId: 'run-1',
                 interactionReady: true,
                 phase: 'main',
                 rootActionId: 'one-shot',
@@ -357,30 +596,30 @@ describe('ActionPopup', () => {
     })
 
     it('hides agent Send controls while an agent root runs a command child', async () => {
-        actionExecutionService.stop()
-        let executionListener: ((event: ActionExecutionEvent) => void) | null = null
-        const cancelActionExecution = vi.fn(async () => undefined)
+        actionRunRegistry.stop()
+        let runListener: ((event: ActionRunEvent) => void) | null = null
+        const cancelActionRun = vi.fn(async () => undefined)
         window.md2Actions = {
-            cancelActionExecution,
+            cancelActionRun,
             loadActionRunHistory: vi.fn(async () => []),
-            onActionExecution: vi.fn((listener) => {
-                executionListener = listener
+            onActionRun: vi.fn((listener) => {
+                runListener = listener
                 return vi.fn()
             }),
             prepareActionPrompt: vi.fn(async () => ({ prompt: 'Plan' })),
         } as unknown as typeof window.md2Actions
-        actionExecutionService.start()
+        actionRunRegistry.start()
         actionService.loadFromFiles([file(agentDefinition('root-agent', { label: 'Root agent' }))])
         renderPopup()
-        await waitFor(() => expect(executionListener).not.toBeNull())
+        await waitFor(() => expect(runListener).not.toBeNull())
 
         act(() => {
-            executionListener?.({
-                actionId: 'root-agent', context, executionId: 'execution-1', phase: 'main', rootActionId: 'root-agent',
-                status: 'running', type: 'execution',
+            runListener?.({
+                actionId: 'root-agent', context, runId: 'run-1', phase: 'main', rootActionId: 'root-agent',
+                status: 'running', type: 'run',
             })
-            executionListener?.({
-                actionId: 'command-child', actionType: 'command', context, executionId: 'execution-1', phase: 'after',
+            runListener?.({
+                actionId: 'command-child', actionType: 'command', context, runId: 'run-1', phase: 'after',
                 rootActionId: 'root-agent', status: 'running', streaming: false, type: 'action',
             })
         })
@@ -388,35 +627,35 @@ describe('ActionPopup', () => {
         expect(screen.queryByRole('button', { name: 'Send' })).not.toBeInTheDocument()
         expect(screen.queryByRole('button', { name: 'Run' })).not.toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: 'Stop' }))
-        await waitFor(() => expect(cancelActionExecution).toHaveBeenCalledWith('execution-1'))
+        await waitFor(() => expect(cancelActionRun).toHaveBeenCalledWith('run-1'))
     })
 
     it('shows queued state and allows cancelling before the agent starts', async () => {
-        actionExecutionService.stop()
-        let executionListener: ((event: ActionExecutionEvent) => void) | null = null
-        const cancelActionExecution = vi.fn(async () => undefined)
+        actionRunRegistry.stop()
+        let runListener: ((event: ActionRunEvent) => void) | null = null
+        const cancelActionRun = vi.fn(async () => undefined)
         window.md2Actions = {
-            cancelActionExecution,
+            cancelActionRun,
             loadActionRunHistory: vi.fn(async () => []),
-            onActionExecution: vi.fn((listener) => {
-                executionListener = listener
+            onActionRun: vi.fn((listener) => {
+                runListener = listener
 
                 return vi.fn()
             }),
             prepareActionPrompt: vi.fn(async () => ({ prompt: 'Plan' })),
         } as unknown as typeof window.md2Actions
-        actionExecutionService.start()
+        actionRunRegistry.start()
         actionService.loadFromFiles([file(agentDefinition('queued-agent', { label: 'Queued agent' }))])
         renderPopup()
-        await waitFor(() => expect(executionListener).not.toBeNull())
+        await waitFor(() => expect(runListener).not.toBeNull())
 
         act(() => {
-            executionListener?.({
-                actionId: 'queued-agent', context, executionId: 'execution-1', phase: 'main',
-                rootActionId: 'queued-agent', status: 'running', type: 'execution',
+            runListener?.({
+                actionId: 'queued-agent', context, runId: 'run-1', phase: 'main',
+                rootActionId: 'queued-agent', status: 'running', type: 'run',
             })
-            executionListener?.({
-                actionId: 'queued-agent', actionType: 'agent', context, executionId: 'execution-1',
+            runListener?.({
+                actionId: 'queued-agent', actionType: 'agent', context, runId: 'run-1',
                 interactionReady: false, phase: 'main', rootActionId: 'queued-agent', status: 'queued',
                 streaming: false, type: 'action',
             })
@@ -427,35 +666,35 @@ describe('ActionPopup', () => {
         const stopButton = screen.getByRole('button', { name: 'Stop' })
         expect(stopButton).toBeEnabled()
         fireEvent.click(stopButton)
-        await waitFor(() => expect(cancelActionExecution).toHaveBeenCalledWith('execution-1'))
+        await waitFor(() => expect(cancelActionRun).toHaveBeenCalledWith('run-1'))
     })
 
     it('shows agent controls for a streaming child of a command root', async () => {
-        actionExecutionService.stop()
-        let executionListener: ((event: ActionExecutionEvent) => void) | null = null
+        actionRunRegistry.stop()
+        let runListener: ((event: ActionRunEvent) => void) | null = null
         window.md2Actions = {
             loadActionRunHistory: vi.fn(async () => []),
-            onActionExecution: vi.fn((listener) => {
-                executionListener = listener
+            onActionRun: vi.fn((listener) => {
+                runListener = listener
                 return vi.fn()
             }),
         } as unknown as typeof window.md2Actions
-        actionExecutionService.start()
+        actionRunRegistry.start()
         actionService.loadFromFiles([file(commandDefinition('root-command', { label: 'Root command' }))])
         renderPopup()
-        await waitFor(() => expect(executionListener).not.toBeNull())
+        await waitFor(() => expect(runListener).not.toBeNull())
 
         act(() => {
-            executionListener?.({
-                actionId: 'root-command', context, executionId: 'execution-1', phase: 'main', rootActionId: 'root-command',
-                status: 'running', type: 'execution',
+            runListener?.({
+                actionId: 'root-command', context, runId: 'run-1', phase: 'main', rootActionId: 'root-command',
+                status: 'running', type: 'run',
             })
-            executionListener?.({
+            runListener?.({
                 actionId: 'stream-child',
                 actionType: 'agent',
                 autoFinish: null,
                 context,
-                executionId: 'execution-1',
+                runId: 'run-1',
                 interactionReady: true,
                 phase: 'after',
                 rootActionId: 'root-command',

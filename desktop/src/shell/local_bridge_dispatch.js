@@ -1,6 +1,23 @@
-const { resolveAgentCommand } = require('../actions/agent_profiles.mjs');
+const { resolveAgentCommand } = require('../actions/agent/agent_profiles.mjs');
 
+const INTEGRATION_ACTIVITY_LABEL = 'Integrate into project';
 const SEARCH_AGENT_PROMPT_PREFIX = 'Return only a single JavaScript-compatible regular expression pattern (no explanation, no surrounding text or markdown) that matches the following search request:\n\n';
+
+function cardIntegrationTracking(request) {
+    const hasCardInternalId = Object.hasOwn(request, 'cardInternalId');
+    const hasProjectFolder = Object.hasOwn(request, 'projectFolder');
+    if (!hasCardInternalId && !hasProjectFolder) return null;
+    if (typeof request.cardInternalId !== 'string' || request.cardInternalId.length === 0) {
+        throw new Error('Missing worktree integration cardInternalId');
+    }
+    if (typeof request.projectFolder !== 'string') throw new Error('Missing worktree integration projectFolder');
+
+    return { cardInternalId: request.cardInternalId, projectFolder: request.projectFolder };
+}
+
+function errorMessage(error) {
+    return error instanceof Error ? error.message : String(error);
+}
 
 function resolveSearchAgent(config) {
     const resolved = resolveAgentCommand(config);
@@ -136,10 +153,41 @@ function createLocalBridgeDispatch(dependencies) {
 
             return worktreeService.discard(request.project, request.worktree);
         },
-        integrateWorktree: (request) => {
+        integrateWorktree: async (request) => {
             if (!request || typeof request !== 'object') throw new Error('Missing worktree integration request');
+            const tracking = cardIntegrationTracking(request);
+            const integration = await worktreeService.integrate(request.project, request.worktree);
+            if (!tracking) return;
 
-            return worktreeService.integrate(request.project, request.worktree);
+            try {
+                if (!integration || typeof integration.commit !== 'string' || typeof integration.branch !== 'string') {
+                    throw new Error('Worktree integration returned no commit metadata');
+                }
+                const metadata = await localGitService.resolveCommitMetadata(request.project.rootPath, integration.commit);
+                const origin = { cardInternalId: tracking.cardInternalId, kind: 'card' };
+                const commit = { ...metadata, branch: integration.branch };
+                const record = {
+                    commits: [commit],
+                    completedAt: metadata.committedAt,
+                    label: INTEGRATION_ACTIVITY_LABEL,
+                    origin,
+                    type: 'system',
+                };
+                await localGitService.appendAndCommitSystemActivity(
+                    request.project,
+                    tracking.projectFolder,
+                    origin,
+                    record,
+                    `Record ${INTEGRATION_ACTIVITY_LABEL} activity`,
+                );
+            } catch (error) {
+                throw new Error(`Worktree integrated, but card history tracking failed: ${errorMessage(error)}`, { cause: error });
+            }
+            try {
+                await worktreeService.synchronize(request.project, request.worktree);
+            } catch (error) {
+                throw new Error(`Worktree integrated and card history tracked, but linked worktree synchronization failed: ${errorMessage(error)}`, { cause: error });
+            }
         },
         parkWorktree: (request) => {
             if (!request || typeof request !== 'object') throw new Error('Missing worktree parking request');
@@ -185,15 +233,20 @@ function createLocalBridgeDispatch(dependencies) {
     };
 
     const actionBridge = {
-        answerActionQuestion: (executionId, requestId, answers) => {
+        answerActionApproval: (runId, requestId, decision) => {
             if (!actionRunnerService) throw new Error('Action runner is not available');
 
-            return actionRunnerService.answerAgentQuestion(executionId, requestId, answers);
+            return actionRunnerService.answerAgentApproval(runId, requestId, decision);
         },
-        beginActionPromptDraft: (executionId) => {
+        answerActionQuestion: (runId, requestId, answers) => {
             if (!actionRunnerService) throw new Error('Action runner is not available');
 
-            return actionRunnerService.beginAgentPromptDraft(executionId);
+            return actionRunnerService.answerAgentQuestion(runId, requestId, answers);
+        },
+        beginActionPromptDraft: (runId) => {
+            if (!actionRunnerService) throw new Error('Action runner is not available');
+
+            return actionRunnerService.beginAgentPromptDraft(runId);
         },
         generateDiff: async (request) => {
             const result = await diffService.generateDiff(currentLocalProject, request);
@@ -208,10 +261,10 @@ function createLocalBridgeDispatch(dependencies) {
 
             return localGitService.loadActionRunHistory(currentLocalProject, historyRequest);
         },
-        loadActiveActionExecutionEvents: () => {
+        loadActiveActionRunEvents: () => {
             if (!actionRunnerService) throw new Error('Action runner is not available');
 
-            return actionRunnerService.loadActiveExecutionEvents();
+            return actionRunnerService.loadActiveRunEvents();
         },
         notifyActionCardStateChange: (cardInternalId, state) => {
             if (!actionRunnerService) throw new Error('Action runner is not available');
@@ -233,17 +286,17 @@ function createLocalBridgeDispatch(dependencies) {
 
             return agentExecutableAvailability(agentProfiles);
         },
-        cancelActionExecution: (executionId) => {
+        cancelActionRun: (runId) => {
             if (!actionRunnerService) throw new Error('Action runner is not available');
 
-            return actionRunnerService.cancel(executionId);
+            return actionRunnerService.cancel(runId);
         },
-        finishActionExecution: (executionId) => {
+        finishActionRun: (runId) => {
             if (!actionRunnerService) throw new Error('Action runner is not available');
 
-            return actionRunnerService.finishAgentExecution(executionId);
+            return actionRunnerService.finishAgentRun(runId);
         },
-        onActionExecution: (callback) => {
+        onActionRun: (callback) => {
             if (!actionRunnerService) throw new Error('Action runner is not available');
 
             return actionRunnerService.subscribe(callback);
@@ -279,20 +332,20 @@ function createLocalBridgeDispatch(dependencies) {
 
             return result.stdout;
         },
-        sendActionMessage: (executionId, content) => {
+        sendActionMessage: (runId, content) => {
             if (!actionRunnerService) throw new Error('Action runner is not available');
 
-            return actionRunnerService.sendAgentMessage(executionId, content);
+            return actionRunnerService.sendAgentMessage(runId, content);
         },
-        sendActionQueuedMessage: (executionId, sessionId, revision) => {
+        sendActionQueuedMessage: (runId, sessionId, revision) => {
             if (!actionRunnerService) throw new Error('Action runner is not available');
 
-            return actionRunnerService.sendQueuedAgentMessage(executionId, sessionId, revision);
+            return actionRunnerService.sendQueuedAgentMessage(runId, sessionId, revision);
         },
-        setActionQueuedMessage: (executionId, sessionId, content, revision) => {
+        setActionQueuedMessage: (runId, sessionId, content, revision) => {
             if (!actionRunnerService) throw new Error('Action runner is not available');
 
-            return actionRunnerService.setAgentQueuedMessage(executionId, sessionId, content, revision);
+            return actionRunnerService.setAgentQueuedMessage(runId, sessionId, content, revision);
         },
         startAction: (request) => {
             if (!actionRunnerService) throw new Error('Action runner is not available');

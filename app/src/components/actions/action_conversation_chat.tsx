@@ -2,18 +2,17 @@ import { Box, Stack, Typography } from '@mui/material'
 import { useEffect, useLayoutEffect, useRef, type UIEvent } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import type { AgentConversation, AgentConversationEvent, AgentConversationMessage } from '../../data/data_types'
+import type { AgentConversation, AgentConversationEvent } from '../../data/data_types'
 import { useAppTheme } from '../../theme/use_app_theme'
-import { buildMarkdownContentSx } from '../editor/markdown_style_sx'
 import type { PopupRunStatus } from './action_popup_defaults'
 import { ActionConversationLink } from './action_conversation_link'
 import { actionConversationUrlTransform } from './action_conversation_url_transform'
 import { actionStatusLabel } from './action_status'
 import { ConversationTimer } from './conversation_timer'
-import { AgentToolActivity } from './agent_tool_activity'
-import { CommandExecutionActivity } from './command_execution_activity'
-import { ReasoningActivity } from './reasoning_activity'
-import { activityIdentity } from './activity_display'
+import { AgentToolEvent } from './agent_tool_event'
+import { CommandExecutionEvent } from './command_execution_event'
+import { ReasoningEvent } from './reasoning_event'
+import { eventIdentity } from './event_display'
 
 const CHAT_END_TOLERANCE = 4
 const MIN_CHAT_HEIGHT = 96
@@ -25,54 +24,35 @@ interface ActionConversationChatProps {
     status: PopupRunStatus
 }
 
-type ConversationFeedEntry =
-    | { kind: 'activity', order: number, value: AgentConversationEvent }
-    | { kind: 'message', order: number, value: AgentConversationMessage }
-
 function viewportIsAtEnd(viewport: HTMLDivElement) {
     return viewport.scrollHeight - viewport.clientHeight - viewport.scrollTop <= CHAT_END_TOLERANCE
 }
 
 function isCodexConversation(conversation: AgentConversation) {
     return conversation.providerSessions.some(({ agent }) => agent === 'codex')
-        || conversation.messages.some(({ agent }) => agent === 'codex')
-        || conversation.events.some(({ providerItemId }) => !!providerItemId)
+        || conversation.entries.some((entry) => entry.kind === 'message' && entry.agent === 'codex')
+        || conversation.entries.some((entry) => entry.kind === 'event' && !!entry.providerItemId)
 }
 
-function buildConversationFeed(conversation: AgentConversation | null) {
+function visibleConversationEntries(conversation: AgentConversation | null) {
     if (!conversation) return []
-    const messages: ConversationFeedEntry[] = conversation.messages
-        .filter(({ role }) => role === 'user' || role === 'assistant')
-        .map((value, order) => ({ kind: 'message', order, value }))
-    const activities: ConversationFeedEntry[] = isCodexConversation(conversation)
-        ? conversation.events
-            .filter(({ status, type }) => type !== 'reasoning' || status !== 'completed')
-            .map((value, index) => ({ kind: 'activity', order: messages.length + index, value }))
-        : []
+    const showEvents = isCodexConversation(conversation)
 
-    return [...messages, ...activities].sort((left, right) => {
-        const leftSequence = left.value.sequence
-        const rightSequence = right.value.sequence
-        if (leftSequence !== undefined && rightSequence !== undefined) return leftSequence - rightSequence || left.order - right.order
-        if (leftSequence !== undefined) return -1
-        if (rightSequence !== undefined) return 1
-
-        return left.order - right.order
-    })
+    return conversation.entries.filter((entry) => entry.kind === 'message'
+        || (showEvents && (entry.type !== 'reasoning' || entry.status !== 'completed')))
 }
 
-function renderActivity(activity: AgentConversationEvent) {
-    if (activity.type === 'reasoning') return <ReasoningActivity activity={activity} />
-    if (activity.type === 'commandExecution') return <CommandExecutionActivity activity={activity} />
+function renderEvent(event: AgentConversationEvent) {
+    if (event.type === 'reasoning') return <ReasoningEvent event={event} />
+    if (event.type === 'commandExecution') return <CommandExecutionEvent event={event} />
 
-    return <AgentToolActivity activity={activity} />
+    return <AgentToolEvent event={event} />
 }
 
 /** Ordered user/assistant transcript shown above the popup prompt. */
 export function ActionConversationChat({ conversation, onConversationViewed, status }: ActionConversationChatProps) {
-    const { markdownStyleConfig } = useAppTheme()
-    const markdownContentSx = buildMarkdownContentSx(markdownStyleConfig)
-    const feed = buildConversationFeed(conversation)
+    const { markdownContentSx } = useAppTheme()
+    const entries = visibleConversationEntries(conversation)
     const viewportRef = useRef<HTMLDivElement>(null)
     const conversationPathRef = useRef<string | null | undefined>(undefined)
     const stuckToEndRef = useRef(true)
@@ -108,12 +88,12 @@ export function ActionConversationChat({ conversation, onConversationViewed, sta
             spacing={1}
             sx={{ flex: 1, minHeight: MIN_CHAT_HEIGHT, overflowX: 'hidden', overflowY: 'auto' }}
         >
-            {feed.map((entry) => entry.kind === 'message' ? (
+            {entries.map((entry) => entry.kind === 'message' ? (
                 <Box
-                    key={entry.value.id}
+                    key={entry.id}
                     sx={{
-                        alignSelf: entry.value.role === 'user' ? 'flex-end' : 'flex-start',
-                        bgcolor: entry.value.role === 'user' ? 'custom.primaryBg' : 'custom.track',
+                        alignSelf: entry.role === 'user' ? 'flex-end' : 'flex-start',
+                        bgcolor: entry.role === 'user' ? 'custom.primaryBg' : 'custom.track',
                         borderRadius: 1,
                         flexShrink: 0,
                         maxWidth: '88%',
@@ -130,13 +110,13 @@ export function ActionConversationChat({ conversation, onConversationViewed, sta
                             remarkPlugins={[remarkGfm]}
                             urlTransform={actionConversationUrlTransform}
                         >
-                            {entry.value.content}
+                            {entry.content}
                         </ReactMarkdown>
                     </Box>
                 </Box>
             ) : (
-                <Box key={activityIdentity(entry.value)} sx={{ minWidth: 0 }}>
-                    {renderActivity(entry.value)}
+                <Box key={eventIdentity(entry)} sx={{ minWidth: 0 }}>
+                    {renderEvent(entry)}
                 </Box>
             ))}
             {status !== 'idle' ? (

@@ -4,7 +4,14 @@ import type { ActionScheduleTrigger } from './action_schedule_types'
 import type { AgentRunEvent } from './data_types'
 import type { AgentAvailability } from './electron_data_bridge'
 import type { ThinkingLevel } from './agent_profiles'
-import type { ActionExecutionEvent, ActionPromptRequest, ActionStartRequest, PreparedActionPrompt } from './action_run_types'
+import type {
+    ActionRunEvent,
+    ActionPromptRequest,
+    ActionStartRequest,
+    AgentApprovalDecision,
+    AgentApprovalRequestId,
+    PreparedActionPrompt,
+} from './action_run_types'
 
 export interface ActionRunHistoryRequest {
     actionId: string
@@ -63,6 +70,7 @@ export interface DiffRequest {
     branch: string
     commit: string
     filePath: string
+    releasesFolder: string
     template: string
 }
 
@@ -92,25 +100,26 @@ export interface OpenInEditorRequest {
 }
 
 export interface ElectronActionBridge {
-    answerActionQuestion?(executionId: string, requestId: number | string | null, answers: Record<string, string[]>): Promise<void>
-    beginActionPromptDraft?(executionId: string): Promise<number>
-    cancelActionExecution(executionId: string): Promise<void>
-    finishActionExecution?(executionId: string): Promise<void>
+    answerActionApproval?(runId: string, requestId: AgentApprovalRequestId, decision: AgentApprovalDecision): Promise<void>
+    answerActionQuestion?(runId: string, requestId: number | string | null, answers: Record<string, string[]>): Promise<void>
+    beginActionPromptDraft?(runId: string): Promise<number>
+    cancelActionRun(runId: string): Promise<void>
+    finishActionRun?(runId: string): Promise<void>
     generateDiff(request: DiffRequest): Promise<DiffResult>
     loadActionRunHistory(request: ActionRunHistoryRequest): Promise<ActionRunHistoryEntry[]>
-    loadActiveActionExecutionEvents?(): Promise<ActionExecutionEvent[]>
+    loadActiveActionRunEvents?(): Promise<ActionRunEvent[]>
     notifyActionCardStateChange?(cardInternalId: string, state: string): Promise<void>
     loadCardActivity?(request: CardActivityRequest): Promise<CardActivityFile>
     loadAgentAvailability?(): Promise<Record<string, AgentAvailability>>
-    onActionExecution(callback: (event: ActionExecutionEvent) => void): () => void
+    onActionRun(callback: (event: ActionRunEvent) => void): () => void
     openInEditor(request: OpenInEditorRequest): Promise<void>
     prepareActionPrompt(request: ActionPromptRequest): Promise<PreparedActionPrompt>
     readFileAtCommit?(request: ReadFileAtCommitRequest): Promise<HistoricalFileContent>
     registerActionSchedule?(request: ActionScheduleRegistrationRequest): Promise<void>
     runSearchRegexpAgent(input: string, callback?: (event: AgentRunEvent) => void): Promise<string>
-    sendActionMessage?(executionId: string, content: string): Promise<void>
-    sendActionQueuedMessage?(executionId: string, sessionId: number, revision: number): Promise<{ sent: true }>
-    setActionQueuedMessage?(executionId: string, sessionId: number, content: string, revision: number): Promise<{ accepted: boolean }>
+    sendActionMessage?(runId: string, content: string): Promise<void>
+    sendActionQueuedMessage?(runId: string, sessionId: number, revision: number): Promise<{ sent: true }>
+    setActionQueuedMessage?(runId: string, sessionId: number, content: string, revision: number): Promise<{ accepted: boolean }>
     startAction(request: ActionStartRequest): Promise<string>
     startUnattendedAction?(request: ActionStartRequest): Promise<string>
 }
@@ -133,6 +142,6 @@ export function getElectronActionBridge() {
     return window.md2Actions ?? null
 }
 
-export function hasExecutionBackend() {
+export function hasActionRunBackend() {
     return getElectronActionBridge() !== null
 }

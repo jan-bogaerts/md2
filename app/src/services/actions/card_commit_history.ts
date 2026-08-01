@@ -1,10 +1,10 @@
-import type { ActivityCommitReference, ActionActivityRecord, CardActivityFile } from '../../../../shared/card_activity.mjs'
+import type { ActivityCommitReference, ActivityRecord, CardActivityFile } from '../../../../shared/card_activity.mjs'
 import { parseActivityValue } from '../../../../shared/card_activity.mjs'
 import { getElectronActionBridge } from '../../data/electron_action_bridge'
 import { markdownParsingService } from '../data/markdown_parsing_service'
 
 export interface CardCommit extends ActivityCommitReference {
-    record: ActionActivityRecord
+    record: ActivityRecord
 }
 
 export interface CardBodyDiff {
@@ -24,6 +24,10 @@ export async function loadCardCommits(cardInternalId: string): Promise<CardCommi
     return activity.records
         .flatMap((record) => record.commits.map((commit) => ({ ...commit, record })))
         .sort((left, right) => right.committedAt.localeCompare(left.committedAt))
+}
+
+export function cardCommitLabel(record: ActivityRecord) {
+    return record.type === 'system' ? record.label : record.rootActionLabel
 }
 
 /** Read both historical card revisions and exclude frontmatter from diff input. */

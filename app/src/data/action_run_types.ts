@@ -1,10 +1,10 @@
 import type { ActionContext } from './action_context'
-import type { AgentConversationEvent, AgentConversationMessage } from './data_types'
+import type { AgentConversation, AgentConversationEventEntry, AgentConversationMessageEntry } from './data_types'
 import type { ThinkingLevel } from './agent_profiles'
 import type { ActionAutoFinish, ActionType } from './action_types'
 
-export type ActionRunStatus = 'cancelled' | 'completed' | 'failed' | 'okButNotAfter'
-export type ActionExecutionStatus = ActionRunStatus | 'queued' | 'running' | 'waitingForInput'
+export type ActionRunTerminalStatus = 'cancelled' | 'completed' | 'failed' | 'okButNotAfter'
+export type ActionRunStatus = ActionRunTerminalStatus | 'queued' | 'running' | 'waitingForInput'
 export type ActionRunPhase = 'after' | 'before' | 'main' | 'on'
 
 export interface ActionRunInput {
@@ -45,12 +45,64 @@ export interface AgentQuestion {
     question: string
 }
 
-interface ActionExecutionEventBase {
+export type AgentApprovalRequestId = number | string
+export type AgentNetworkProtocol = 'http' | 'https' | 'socks5Tcp' | 'socks5Udp'
+export type AgentFileSystemPath =
+    | { path: string, type: 'path' }
+    | { pattern: string, type: 'glob_pattern' }
+    | { type: 'special', value: string }
+export interface AgentAdditionalPermissions {
+    fileSystem: {
+        entries?: { access: 'deny' | 'read' | 'write', path: AgentFileSystemPath }[]
+        read: string[] | null
+        write: string[] | null
+    } | null
+    network: { enabled: boolean | null } | null
+}
+export type AgentCommandAction =
+    | { command: string, name: string, path: string, type: 'read' }
+    | { command: string, path: string | null, type: 'listFiles' }
+    | { command: string, path: string | null, query: string | null, type: 'search' }
+    | { command: string, type: 'unknown' }
+export interface AgentNetworkPolicyAmendment {
+    action: 'allow' | 'deny'
+    host: string
+}
+export type AgentApprovalDecision =
+    | 'accept'
+    | 'acceptForSession'
+    | 'cancel'
+    | 'decline'
+    | { acceptWithExecpolicyAmendment: { execpolicy_amendment: string[] } }
+    | { applyNetworkPolicyAmendment: { network_policy_amendment: AgentNetworkPolicyAmendment } }
+export interface AgentApproval {
+    additionalPermissions?: AgentAdditionalPermissions | null
+    approvalId?: string | null
+    availableDecisions?: AgentApprovalDecision[] | null
+    command?: string | null
+    commandActions?: AgentCommandAction[] | null
+    cwd?: string | null
+    environmentId?: string | null
+    filePaths: string[]
+    grantRoot?: string | null
+    itemId: string
+    kind: 'commandExecution' | 'fileChange'
+    networkApprovalContext?: { host: string, protocol: AgentNetworkProtocol } | null
+    proposedExecpolicyAmendment?: string[] | null
+    proposedNetworkPolicyAmendments?: AgentNetworkPolicyAmendment[] | null
+    reason?: string | null
+    requestId: AgentApprovalRequestId
+    startedAtMs: number
+    threadId: string
+    turnId: string
+}
+
+interface ActionRunEventBase {
     actionId: string
     actionType?: ActionType
     autoFinish?: ActionAutoFinish | null
     context: ActionContext
-    executionId: string
+    runId: string
     interactionReady?: boolean
     phase: ActionRunPhase
     rootActionId: string
@@ -58,15 +110,15 @@ interface ActionExecutionEventBase {
     streaming?: boolean
 }
 
-export type ActionExecutionUpdate =
+export type ActionRunUpdate =
     | {
         continued?: boolean
-        conversationId: string
+        conversation: AgentConversation
         kind: 'agentStarted'
-        reference: string
-        startedAt: string
-        title: string
-        userMessage: AgentConversationMessage
+    }
+    | {
+        conversation: AgentConversation
+        kind: 'agentClosed'
     }
     | {
         kind: 'agentQuestion'
@@ -74,12 +126,20 @@ export type ActionExecutionUpdate =
         requestId: number | string | null
     }
     | {
-        kind: 'agentQuestionAnswer' | 'agentUserMessage'
-        userMessage: AgentConversationMessage
+        approval: AgentApproval
+        kind: 'agentApproval'
     }
     | {
-        activity: AgentConversationEvent
-        kind: 'agentActivity'
+        kind: 'agentApprovalResolved' | 'agentApprovalSubmitted'
+        requestId: AgentApprovalRequestId
+    }
+    | {
+        kind: 'agentQuestionAnswer' | 'agentUserMessage'
+        userMessage: AgentConversationMessageEntry
+    }
+    | {
+        event: AgentConversationEventEntry
+        kind: 'agentEvent'
     }
     | {
         command?: string
@@ -89,29 +149,29 @@ export type ActionExecutionUpdate =
         sequence?: number
     }
 
-export type ActionExecutionEvent =
-    | ActionExecutionEventBase & {
-        status: ActionExecutionStatus
-        type: 'execution'
+export type ActionRunEvent =
+    | ActionRunEventBase & {
+        status: ActionRunStatus
+        type: 'run'
     }
-    | ActionExecutionEventBase & {
+    | ActionRunEventBase & {
         command?: string
-        executionWorktree?: number | null
+        conversationId?: string
+        runWorktree?: number | null
         message?: string | null
         reference?: string
-        runId?: string
-        status: ActionExecutionStatus
+        status: ActionRunStatus
         thinkingLevel?: ThinkingLevel
         type: 'action'
     }
-    | ActionExecutionEventBase & {
+    | ActionRunEventBase & {
         status: 'running' | 'waitingForInput'
         type: 'agentState'
     }
-    | ActionExecutionEventBase & {
-        status: 'running' | 'waitingForInput'
+    | ActionRunEventBase & {
+        status: ActionRunStatus
         type: 'update'
-        update: ActionExecutionUpdate
+        update: ActionRunUpdate
     }
 
 export interface ActionRunLogEntry {
@@ -120,7 +180,7 @@ export interface ActionRunLogEntry {
     command: string | null
     message: string
     phase: ActionRunPhase
-    status: ActionExecutionStatus
+    status: ActionRunStatus
     stderr: string
     stdout: string
     thinkingLevel?: ThinkingLevel

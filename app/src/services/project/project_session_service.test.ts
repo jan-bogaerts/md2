@@ -1,4 +1,4 @@
-﻿import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ElectronDataBridge } from '../../data/electron_data_bridge'
 import { beforeEach } from 'vitest'
 import { getElectronActionBridge, setActionBridgeOverride, type ElectronActionBridge } from '../../data/electron_action_bridge'
@@ -15,10 +15,10 @@ import { createDeferred } from '../test_support/data_service_test_support'
 
 function createActionBridge(): ElectronActionBridge {
     return {
-        cancelActionExecution: vi.fn(async () => {}),
+        cancelActionRun: vi.fn(async () => {}),
         generateDiff: vi.fn(async () => ({ commit: 'commit-1', files: [] })),
         loadActionRunHistory: vi.fn(async () => []),
-        onActionExecution: vi.fn(() => () => {}),
+        onActionRun: vi.fn(() => () => {}),
         openInEditor: vi.fn(),
         prepareActionPrompt: vi.fn(async () => ({ prompt: '' })),
         runSearchRegexpAgent: vi.fn(async () => ''),

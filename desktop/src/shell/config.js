@@ -2,7 +2,7 @@ const DEFAULT_DESKTOP_AGENT = 'codex';
 const DEFAULT_DESKTOP_MODEL = '';
 const DEFAULT_CODEX_SEARCH_ENABLED = true;
 const DESKTOP_CONFIG_STORE_KEY = 'desktopConfig';
-const { BUILTIN_AGENT_PROFILES, normalizeAgentProfiles } = require('../actions/agent_profiles.mjs');
+const { BUILTIN_AGENT_PROFILES, normalizeAgentProfiles } = require('../actions/agent/agent_profiles.mjs');
 
 function resolveAppUrl(env = process.env) {
     if (!env.MD2_APP_URL) throw new Error('MD2_APP_URL is required for the unpackaged renderer');

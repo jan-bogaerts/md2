@@ -181,7 +181,7 @@ export const CONFIG_ENTRIES: ConfigEntry[] = [
     },
     {
         defaultValue: DEFAULT_DIFF_COMMAND,
-        description: 'Command template used to render a commit diff. Placeholders: {{rootProjectFolder}}, {{commit}}, {{branch}}, {{file}}.',
+        description: 'Command template used to render a commit diff. Placeholders: {{worktree-folder}}, {{project-folder}}, {{releases-folder}}, {{commit}}, {{branch}}, {{file}}.',
         editable: true,
         key: 'project.diffCommand',
         label: 'Diff command',

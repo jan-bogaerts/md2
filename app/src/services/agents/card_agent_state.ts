@@ -8,9 +8,11 @@ function isConversationWaiting(card: ProjectCard) {
         if (conversation.status === 'waitingForInput') return true
         if (conversation.status !== 'running') return false
 
-        const stateEvent = [...conversation.events].reverse().find((event) => event.type === 'waiting' || event.type === 'resumed')
+        const stateEvent = conversation.entries.findLast((entry) => (
+            entry.kind === 'event' && (entry.type === 'waiting' || entry.type === 'resumed')
+        ))
 
-        return stateEvent?.type === 'waiting'
+        return stateEvent?.kind === 'event' && stateEvent.type === 'waiting'
     })
 }
 

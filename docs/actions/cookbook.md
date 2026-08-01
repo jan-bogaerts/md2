@@ -29,7 +29,7 @@ No agent, no tokens.
   "label": "Commit",
   "description": "Commit all changes in the project folder",
   "type": "command",
-  "command": "git -C {{rootProjectFolder}} add -A && git -C {{rootProjectFolder}} commit -m \"{{card-title}}\""
+  "command": "git -C {{worktree-folder}} add -A && git -C {{worktree-folder}} commit -m \"{{card-title}}\""
 }
 ```
 
@@ -41,7 +41,7 @@ No agent, no tokens.
   "label": "Run tests",
   "description": "Run the project test suite",
   "type": "command",
-  "command": "npm test --prefix {{rootProjectFolder}}"
+  "command": "npm test --prefix {{worktree-folder}}"
 }
 ```
 
@@ -91,7 +91,7 @@ Dragging a card to `ready` fires this automatically.
   "label": "Push",
   "description": "Push the current branch",
   "type": "command",
-  "command": "git -C {{rootProjectFolder}} push",
+  "command": "git -C {{worktree-folder}} push",
   "onState": "ready"
 }
 ```

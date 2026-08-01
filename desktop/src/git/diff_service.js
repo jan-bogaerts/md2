@@ -5,7 +5,7 @@ const { promisify } = require('node:util');
 const { requireRootPath } = require('./git_commands');
 
 const execAsync = promisify(exec);
-const DIFF_PLACEHOLDER_PATTERN = /\{\{\s*(rootProjectFolder|commit|branch|file)\s*\}\}/g;
+const DIFF_PLACEHOLDER_PATTERN = /\{\{\s*(worktree-folder|project-folder|releases-folder|commit|branch|file)\s*\}\}/g;
 const HUNK_HEADER_PATTERN = /^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/;
 const DIFF_FILE_HEADER = 'diff --git ';
 const OLD_PATH_HEADER = '--- ';
@@ -117,7 +117,11 @@ async function generateDiff(project, request, runner = execAsync) {
         branch: request.branch,
         commit: request.commit,
         file: request.filePath,
-        rootProjectFolder: rootPath,
+        'project-folder': rootPath,
+        'releases-folder': typeof request.releasesFolder === 'string' && request.releasesFolder.length > 0
+            ? path.resolve(rootPath, request.releasesFolder)
+            : null,
+        'worktree-folder': rootPath,
     });
 
     let stdout;

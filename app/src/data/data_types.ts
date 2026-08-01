@@ -152,6 +152,13 @@ export interface WorktreeOperationRequest {
     worktree: number
 }
 
+export interface CardWorktreeIntegrationRequest extends WorktreeOperationRequest {
+    cardInternalId: string
+    projectFolder: string
+}
+
+export type IntegrateWorktreeRequest = CardWorktreeIntegrationRequest | WorktreeOperationRequest
+
 export interface CommitWorktreeRequest extends WorktreeOperationRequest {
     message: string
 }
@@ -270,6 +277,16 @@ export interface AgentConversationEvent {
     workingDirectory?: string
 }
 
+export interface AgentConversationMessageEntry extends AgentConversationMessage {
+    kind: 'message'
+}
+
+export interface AgentConversationEventEntry extends AgentConversationEvent {
+    kind: 'event'
+}
+
+export type AgentConversationEntry = AgentConversationMessageEntry | AgentConversationEventEntry
+
 export interface AgentTokenUsage {
     cachedInputTokens: number
     costUsd?: number
@@ -284,10 +301,9 @@ export interface AgentConversation {
     cardInternalId?: string | null
     cardPath: string | null
     completedAt: string | null
-    events: AgentConversationEvent[]
+    entries: AgentConversationEntry[]
     hasExplicitTitle: boolean
     id: string
-    messages: AgentConversationMessage[]
     path: string
     providerSessions: AgentProviderSession[]
     startedAt: string
@@ -303,18 +319,14 @@ export interface AgentConversationError {
 
 export type AgentRunEvent =
     | {
-        conversationId: string
-        reference: string
+        conversation: AgentConversation
         runId: string
-        startedAt: string
-        title: string
         type: 'started'
-        userMessage: AgentConversationMessage
     }
     | {
-        activity: AgentConversationEvent
+        event: AgentConversationEventEntry
         runId: string
-        type: 'agentActivity'
+        type: 'agentEvent'
     }
     | {
         content: string
@@ -322,9 +334,8 @@ export type AgentRunEvent =
         type: 'error' | 'output'
     }
     | {
-        reference: string
+        conversation: AgentConversation
         runId: string
-        status: AgentConversationStatus
         type: 'closed'
     }
 
@@ -362,7 +373,7 @@ export interface StorageService {
     listRepositoryFiles(project: ProjectReference): Promise<string[]>
     listTopLevelFolders(project: ProjectReference): Promise<TopLevelFolderReference[]>
     loadPendingPush?(project: ProjectReference): Promise<void>
-    integrateWorktree?(request: WorktreeOperationRequest): Promise<void>
+    integrateWorktree?(request: IntegrateWorktreeRequest): Promise<void>
     moveFiles(request: MoveFilesRequest): Promise<void>
     parkWorktree?(request: WorktreeOperationRequest): Promise<void>
     prepareWorktree?(request: PrepareWorktreeRequest): Promise<void>

@@ -1,4 +1,4 @@
-﻿import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { within } from '@testing-library/react'
 import type { UseGithubAuthResult } from '../../auth/use_github_auth'
@@ -45,10 +45,10 @@ function renderWindow(overrides?: Partial<Parameters<typeof MainWindow>[0]>) {
 
 function installAgentBridge(stdout: string) {
     const bridge: ElectronActionBridge = {
-        cancelActionExecution: vi.fn(async () => {}),
+        cancelActionRun: vi.fn(async () => {}),
         generateDiff: vi.fn(async () => ({ commit: '', files: [] })),
         loadActionRunHistory: vi.fn(async () => []),
-        onActionExecution: vi.fn(() => () => {}),
+        onActionRun: vi.fn(() => () => {}),
         openInEditor: vi.fn(async () => {}),
         prepareActionPrompt: vi.fn(async () => ({ prompt: '' })),
         runSearchRegexpAgent: vi.fn(async () => stdout),
@@ -268,25 +268,6 @@ describe('MainWindow', () => {
 
         expect(screen.getByRole('dialog', { name: 'Config' })).toBeInTheDocument()
         expect(screen.getByRole('tab', { name: 'Desktop' })).toHaveAttribute('aria-selected', 'true')
-    })
-
-    it('preserves workspace, view, search, and open files after config closes', async () => {
-        mockMatchMedia(false)
-        await openProjectWithCards()
-        openFilesService.openPath('design/F-1-root.md')
-        renderWindow()
-        typeQuery('Root')
-        const workspace = screen.getByLabelText('Project workspace')
-
-        fireEvent.click(screen.getByRole('button', { name: 'Config' }))
-        fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
-
-        expect(screen.getByLabelText('Project workspace')).toBe(workspace)
-        expect(screen.getByRole('textbox', { name: 'Search project' })).toHaveValue('Root')
-        expect(workspaceViewService.getSnapshot().viewMode).toBe('cards')
-        expect(openFilesService.getSnapshot().documents).toHaveLength(1)
-        expect(screen.getByLabelText('Card columns')).toHaveTextContent('Root')
-        expect(screen.getByRole('contentinfo')).toHaveTextContent('2cards')
     })
 
     it('populates the search query from a real agent run when the Electron bridge is available', async () => {

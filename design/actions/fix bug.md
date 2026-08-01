@@ -1,9 +1,5 @@
----
-internalId: bd2b391d-02cf-4e71-a699-5d6eaf0f84ad
----
-
 Read and fix the bug described in: 
-`design\feature_descriptions\B_77_uncaught_react_errors_bypass_dialog_service.md`
+`design\feature_descriptions\B_82_orphaned_git_for_windows_processes.md`
 
 You do not need to look at the git status. This is not your concern.  The worktree is what it is, you only need to touch what is required for the above mentioned job/feature description.
 

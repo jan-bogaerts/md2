@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { AgentConversation, MarkdownFile, StorageProjectFiles } from '../../data/data_types'
-import type { ActionExecutionEvent } from '../../data/action_run_types'
+import type { ActionRunEvent } from '../../data/action_run_types'
 import { runElectronAction } from '../actions/electron_action_runner'
-import { actionExecutionService } from '../actions/action_execution_service'
+import { actionRunRegistry } from '../actions/action_run_registry'
 import { configService } from '../config/config_service'
 import { conversation, createDataService, createDeferred, createStorage, waitForWorkerTurn } from '.././test_support/data_service_test_support'
 
@@ -10,7 +10,7 @@ vi.mock('../actions/electron_action_runner', () => ({ runElectronAction: vi.fn(a
 
 describe('AgentIntegration', () => {
     afterEach(() => {
-        actionExecutionService.stop()
+        actionRunRegistry.stop()
         vi.useRealTimers()
         vi.mocked(runElectronAction).mockClear()
         delete window.md2Actions
@@ -412,11 +412,11 @@ describe('AgentIntegration', () => {
         )
     })
 
-    it('tracks desktop-owned scheduled runs only in the shared execution store', async () => {
+    it('tracks desktop-owned scheduled runs only in the shared run registry', async () => {
         configService.init()
-        let scheduledRunCallback: ((event: ActionExecutionEvent) => void) | null = null
+        let scheduledRunCallback: ((event: ActionRunEvent) => void) | null = null
         window.md2Actions = {
-            onActionExecution: (callback: (event: ActionExecutionEvent) => void) => {
+            onActionRun: (callback: (event: ActionRunEvent) => void) => {
                 scheduledRunCallback = callback
 
                 return vi.fn()
@@ -428,23 +428,23 @@ describe('AgentIntegration', () => {
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
         if (!scheduledRunCallback) throw new Error('Scheduled run callback not registered')
-        const emitScheduledRun = scheduledRunCallback as (event: ActionExecutionEvent) => void
+        const emitScheduledRun = scheduledRunCallback as (event: ActionRunEvent) => void
 
         const context = { cardInternalId: 'root-card', file: 'design/F-1-root.md', kind: 'card' as const }
-        emitScheduledRun({ actionId: 'implement', context, executionId: 'schedule-1', phase: 'main', rootActionId: 'implement', status: 'running', type: 'execution' })
-        expect(actionExecutionService.getRunningSnapshot()).toEqual([expect.objectContaining({ executionId: 'schedule-1' })])
+        emitScheduledRun({ actionId: 'implement', context, runId: 'schedule-1', phase: 'main', rootActionId: 'implement', status: 'running', type: 'run' })
+        expect(actionRunRegistry.getGlobalActiveSnapshot()).toEqual([expect.objectContaining({ runId: 'schedule-1' })])
         expect(service.getState().runningAgents).toEqual([])
 
-        emitScheduledRun({ actionId: 'implement', context, executionId: 'schedule-1', phase: 'main', rootActionId: 'implement', status: 'completed', type: 'execution' })
+        emitScheduledRun({ actionId: 'implement', context, runId: 'schedule-1', phase: 'main', rootActionId: 'implement', status: 'completed', type: 'run' })
 
-        expect(actionExecutionService.getRunningSnapshot()).toHaveLength(0)
+        expect(actionRunRegistry.getGlobalActiveSnapshot()).toHaveLength(0)
     })
 
-    it('links the final conversation reference and loads it once', async () => {
+    it('links an agent conversation when it starts without loading it before completion', async () => {
         configService.init()
-        let actionRunCallback: ((event: ActionExecutionEvent) => void) | null = null
+        let actionRunCallback: ((event: ActionRunEvent) => void) | null = null
         window.md2Actions = {
-            onActionExecution: (callback: (event: ActionExecutionEvent) => void) => {
+            onActionRun: (callback: (event: ActionRunEvent) => void) => {
                 actionRunCallback = callback
 
                 return vi.fn()
@@ -455,11 +455,51 @@ describe('AgentIntegration', () => {
         service.init({ storage })
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
         if (!actionRunCallback) throw new Error('Action run callback not registered')
-        const emitActionRun = actionRunCallback as (event: ActionExecutionEvent) => void
+        const emitActionRun = actionRunCallback as (event: ActionRunEvent) => void
+
+        const context = { cardInternalId: 'root-card', file: 'design/F-1-root.md', kind: 'card' as const }
+        const reference = 'design/activity/card__root-card.json#conversation=agent-1'
+        const runningConversation = { ...conversation(reference), completedAt: null, status: 'running' as const }
+        const startedEvent = {
+            actionId: 'implement', context, runId: 'action-1', phase: 'main' as const,
+            rootActionId: 'implement', status: 'running' as const, type: 'update' as const,
+            update: { conversation: runningConversation, kind: 'agentStarted' as const },
+        }
+        emitActionRun(startedEvent)
+        emitActionRun({ ...startedEvent, update: { ...startedEvent.update, continued: true } })
+
+        expect(service.getState().snapshot?.activeCards[0].header.agentLogReferences).toEqual([reference])
+        expect(storage.loadAgentConversation).not.toHaveBeenCalled()
+
+        emitActionRun({
+            actionId: 'implement', context, runId: 'action-1', runWorktree: null, phase: 'main', reference,
+            rootActionId: 'implement', status: 'completed', type: 'action',
+        })
+
+        await vi.waitFor(() => expect(storage.loadAgentConversation).toHaveBeenCalledTimes(1))
+        expect(service.getState().snapshot?.activeCards[0].header.agentLogReferences).toEqual([reference])
+    })
+
+    it('links the final conversation reference and loads it once', async () => {
+        configService.init()
+        let actionRunCallback: ((event: ActionRunEvent) => void) | null = null
+        window.md2Actions = {
+            onActionRun: (callback: (event: ActionRunEvent) => void) => {
+                actionRunCallback = callback
+
+                return vi.fn()
+            },
+        } as unknown as typeof window.md2Actions
+        const storage = createStorage()
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        if (!actionRunCallback) throw new Error('Action run callback not registered')
+        const emitActionRun = actionRunCallback as (event: ActionRunEvent) => void
 
         const context = { cardInternalId: 'root-card', file: 'design/F-1-root.md', kind: 'card' as const }
         emitActionRun({
-            actionId: 'implement', context, executionId: 'action-1', executionWorktree: null, phase: 'main',
+            actionId: 'implement', context, runId: 'action-1', runWorktree: null, phase: 'main',
             reference: 'design/activity/card__root-card.json#conversation=agent-1', rootActionId: 'implement', status: 'completed', type: 'action',
         })
 

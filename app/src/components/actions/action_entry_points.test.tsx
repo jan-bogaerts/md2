@@ -8,8 +8,8 @@ import { dataService } from '../../services/data/data_service'
 import type { ActionFile } from '../../data/action_types'
 import { cardContext, folderContext } from '../../data/action_context'
 import { DEFAULT_CARD_TYPES, type ProjectCard } from '../../data/data_types'
-import type { ActionExecutionEvent } from '../../data/action_run_types'
-import { actionExecutionService } from '../../services/actions/action_execution_service'
+import type { ActionRunEvent } from '../../data/action_run_types'
+import { actionRunRegistry } from '../../services/actions/action_run_registry'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import { dialogService } from '../../services/dialog_service'
 
@@ -43,7 +43,7 @@ function card(id: string, status: string | null, title = id): ProjectCard {
 const featureCard = card('F-010', 'design')
 
 afterEach(() => {
-    actionExecutionService.stop()
+    actionRunRegistry.stop()
     delete window.md2Actions
     cleanup()
     actionService.clear()
@@ -128,29 +128,29 @@ describe('ActionEntryPoints filtering', () => {
     it.each(['completed', 'failed', 'cancelled', 'okButNotAfter'] as const)(
         'disables card entry points while running and enables them after %s',
         (terminalStatus) => {
-            let listener: ((event: ActionExecutionEvent) => void) | null = null
+            let listener: ((event: ActionRunEvent) => void) | null = null
             window.md2Actions = {
-                onActionExecution: (nextListener: (event: ActionExecutionEvent) => void) => {
+                onActionRun: (nextListener: (event: ActionRunEvent) => void) => {
                     listener = nextListener
 
                     return vi.fn()
                 },
             } as unknown as typeof window.md2Actions
-            actionExecutionService.start()
+            actionRunRegistry.start()
             const context = cardContext(featureCard, DEFAULT_CARD_TYPES)
             render(<ActionEntryPoints context={context} variant="icons" />)
-            if (!listener) throw new Error('Missing execution listener')
-            const emit = listener as (event: ActionExecutionEvent) => void
+            if (!listener) throw new Error('Missing run listener')
+            const emit = listener as (event: ActionRunEvent) => void
 
             act(() => emit({
-                actionId: 'implement', context, executionId: 'execution-1', phase: 'main', rootActionId: 'implement',
-                status: 'running', type: 'execution',
+                actionId: 'implement', context, runId: 'run-1', phase: 'main', rootActionId: 'implement',
+                status: 'running', type: 'run',
             }))
             expect(screen.getByRole('button', { name: 'Implement' })).toBeDisabled()
 
             act(() => emit({
-                actionId: 'implement', context, executionId: 'execution-1', phase: 'main', rootActionId: 'implement',
-                status: terminalStatus, type: 'execution',
+                actionId: 'implement', context, runId: 'run-1', phase: 'main', rootActionId: 'implement',
+                status: terminalStatus, type: 'run',
             }))
             expect(screen.getByRole('button', { name: 'Implement' })).toBeEnabled()
         },

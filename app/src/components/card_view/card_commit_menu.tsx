@@ -2,7 +2,7 @@ import { Badge, Box, Divider, IconButton, Popover, Stack, Tooltip, Typography } 
 import SourceCommit from 'mdi-material-ui/SourceCommit'
 import type { MouseEvent } from 'react'
 import { useState } from 'react'
-import type { CardCommit } from '../../services/actions/card_commit_history'
+import { cardCommitLabel, type CardCommit } from '../../services/actions/card_commit_history'
 import { dialogService } from '../../services/dialog_service'
 
 interface CardCommitMenuProps {
@@ -54,7 +54,7 @@ export function CardCommitMenu(props: CardCommitMenuProps) {
                         <Box
                             component="button"
                             data-commit-index={commitIndex}
-                            key={`${commit.record.executionId}:${commit.commit}:${commitIndex}`}
+                            key={`${commit.commit}:${commitIndex}`}
                             onClick={selectCommit}
                             title={commit.commit}
                             sx={{
@@ -71,7 +71,7 @@ export function CardCommitMenu(props: CardCommitMenuProps) {
                             }}
                             type="button"
                         >
-                            <Typography variant="body2">{commit.record.rootActionLabel} · {commitDate(commit.committedAt)}</Typography>
+                            <Typography variant="body2">{cardCommitLabel(commit.record)} · {commitDate(commit.committedAt)}</Typography>
                             <Typography color="text.secondary" variant="caption">
                                 {commit.commit.slice(0, 7)} · +{commit.insertions}/−{commit.deletions}
                             </Typography>

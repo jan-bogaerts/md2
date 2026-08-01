@@ -1,18 +1,17 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { AgentConversation, ProjectCard, WorktreeRecord } from '../../data/data_types'
+import type { AgentConversation, AgentConversationEvent, ProjectCard, WorktreeRecord } from '../../data/data_types'
 import { worktreeService } from '../../services/project/worktree_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import { CardWorktreeIndicator } from './card_worktree_indicator'
 
-function conversation(status: AgentConversation['status'], events: AgentConversation['events'] = []): AgentConversation {
+function conversation(status: AgentConversation['status'], events: AgentConversationEvent[] = []): AgentConversation {
     return {
         cardPath: 'design/F-1.md',
         completedAt: status === 'running' ? null : '2026-01-01T00:01:00.000Z',
-        events,
+        entries: events.map((event) => ({ ...event, kind: 'event' })),
         hasExplicitTitle: true,
         id: 'agent-1',
-        messages: [],
         path: '.md2-agent-logs/agent-1.json',
         providerSessions: [],
         startedAt: '2026-01-01T00:00:00.000Z',

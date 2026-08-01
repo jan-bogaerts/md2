@@ -502,6 +502,77 @@ describe('project dialog components', () => {
         }, 'new'))
     })
 
+    it('confirms cancellation for description-only edits', () => {
+        const close = vi.fn()
+        const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false)
+
+        render(
+            <NewCardDialog
+                cardBodyTemplate=""
+                cardTypes={DEFAULT_CARD_TYPES}
+                initialTargetStatus="new"
+                isLoading={false}
+                isProjectOpen
+                onClose={close}
+                onCreateCard={vi.fn(async () => undefined)}
+                open
+                states={DEFAULT_STATES}
+            />,
+            { wrapper: AppThemeProvider },
+        )
+
+        fireEvent.change(getDescriptionEditor(), { target: { value: 'Description only' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+
+        expect(confirm).toHaveBeenCalledWith('Discard this new card draft?')
+        expect(close).not.toHaveBeenCalled()
+    })
+
+    it('resets the draft after successful creation and project closure', async () => {
+        const createCard = vi.fn(async () => undefined)
+        const { rerender } = render(
+            <NewCardDialog
+                cardBodyTemplate="# Goal"
+                cardTypes={DEFAULT_CARD_TYPES}
+                initialTargetStatus="new"
+                isLoading={false}
+                isProjectOpen
+                onClose={vi.fn()}
+                onCreateCard={createCard}
+                open
+                states={DEFAULT_STATES}
+            />,
+            { wrapper: AppThemeProvider },
+        )
+
+        fireEvent.change(screen.getByRole('textbox', { name: 'Title' }), { target: { value: 'Created card' } })
+        fireEvent.change(getDescriptionEditor(), { target: { value: 'Created body' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Create card' }))
+        await waitFor(() => expect(createCard).toHaveBeenCalled())
+        expect(screen.getByRole('textbox', { name: 'Title' })).toHaveValue('')
+        expect(getDescriptionEditor()).toHaveValue('')
+
+        fireEvent.change(screen.getByRole('textbox', { name: 'Title' }), { target: { value: 'Abandoned card' } })
+        fireEvent.change(getDescriptionEditor(), { target: { value: 'Abandoned body' } })
+        rerender(
+            <AppThemeProvider>
+                <NewCardDialog
+                    cardBodyTemplate="# Goal"
+                    cardTypes={DEFAULT_CARD_TYPES}
+                    initialTargetStatus="new"
+                    isLoading={false}
+                    isProjectOpen={false}
+                    onClose={vi.fn()}
+                    onCreateCard={createCard}
+                    open
+                    states={DEFAULT_STATES}
+                />
+            </AppThemeProvider>,
+        )
+        expect(screen.getByRole('textbox', { name: 'Title' })).toHaveValue('')
+        expect(getDescriptionEditor()).toHaveValue('')
+    })
+
     it('renders the complete release dialog and submits a release name without mounting the menu', async () => {
         const completeRelease = vi.fn(async () => undefined)
 

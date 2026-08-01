@@ -8,7 +8,7 @@ describe('AgentChatFab', () => {
     beforeEach(() => {
         configService.init()
         window.md2Actions = {
-            onActionExecution: vi.fn(() => vi.fn()),
+            onActionRun: vi.fn(() => vi.fn()),
             prepareActionPrompt: vi.fn(async () => ({ prompt: '' })),
         } as unknown as typeof window.md2Actions
         Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 })

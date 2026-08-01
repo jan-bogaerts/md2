@@ -6,8 +6,9 @@ import DeleteOutline from 'mdi-material-ui/DeleteOutline'
 import FileDocumentOutline from 'mdi-material-ui/FileDocumentOutline'
 import FolderSearchOutline from 'mdi-material-ui/FolderSearchOutline'
 import type { ProjectCard } from '../../data/data_types'
+import type { ActionContext } from '../../data/action_context'
 import { POPOVER_SIDE_MARGIN, POPOVER_TOP_MARGIN, ResizablePopover } from '../resizable_popover'
-import { useRunningActionForFile } from '../hooks/use_action_executions'
+import { useRunningActionForContext } from '../hooks/use_action_runs'
 import { CardBodyEditor } from './card_body_editor'
 import { CardDeleteDialog } from './card_delete_dialog'
 import { AgentUsageDisplay } from '../agents/agent_usage_display'
@@ -203,8 +204,13 @@ export function CardBodyPopover(props: CardBodyPopoverProps) {
     }
 
     const titleId = card ? `card-body-popover-${card.header.internalId}` : 'card-body-popover'
-    const runningExecution = useRunningActionForFile(card?.path ?? null)
-    const statusLabel = runningExecution ? 'Running' : 'Idle'
+    const actionContext: ActionContext = {
+        ...(card?.header.internalId ? { cardInternalId: card.header.internalId } : {}),
+        ...(card ? { file: card.path } : {}),
+        kind: 'card',
+    }
+    const runningRun = useRunningActionForContext(actionContext)
+    const statusLabel = runningRun ? 'Running' : 'Idle'
     const fullscreenSize = `calc(100vw - ${POPOVER_SIDE_MARGIN * 2}px)`
     const fullscreenHeight = `calc(100vh - ${POPOVER_TOP_MARGIN + POPOVER_SIDE_MARGIN}px)`
 
@@ -320,7 +326,7 @@ export function CardBodyPopover(props: CardBodyPopoverProps) {
                                 fontSize: 11.5,
                                 gap: '5px',
                             }}>
-                                <Box sx={{ backgroundColor: runningExecution ? 'success.main' : 'text.disabled', borderRadius: '50%', height: 7, width: 7 }} />
+                                <Box sx={{ backgroundColor: runningRun ? 'success.main' : 'text.disabled', borderRadius: '50%', height: 7, width: 7 }} />
                                 {statusLabel}
                             </Box>
                             <Divider orientation="vertical" sx={{ borderColor: 'divider', height: 20 }} />

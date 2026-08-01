@@ -7,12 +7,13 @@ const { createLocalBridgeDispatch } = require('./local_bridge_dispatch');
 function createDispatch(options = {}) {
     const agentExecutableAvailability = vi.fn(async () => ({ codex: { available: true, error: null } }));
     const actionRunnerService = {
+        answerAgentApproval: vi.fn(),
         answerAgentQuestion: vi.fn(),
         beginAgentPromptDraft: vi.fn(() => 2),
         cancel: vi.fn(),
-        finishAgentExecution: vi.fn(),
+        finishAgentRun: vi.fn(),
         handleCardStateChange: vi.fn(),
-        loadActiveExecutionEvents: vi.fn(() => [{ executionId: 'execution-1', sequence: 1 }]),
+        loadActiveRunEvents: vi.fn(() => [{ runId: 'run-1', sequence: 1 }]),
         prepareActionPrompt: vi.fn(async () => ({ prompt: 'Prepared prompt' })),
         requireActionsFolder: vi.fn(() => 'actions'),
         requireProjectFolder: vi.fn(() => 'design'),
@@ -37,6 +38,7 @@ function createDispatch(options = {}) {
         subscribe: vi.fn(() => vi.fn()),
     };
     const localGitService = {
+        appendAndCommitSystemActivity: vi.fn(async () => undefined),
         assertGitRoot: vi.fn(),
         checkoutBranch: vi.fn(async (project, branch) => ({ ...project, branch })),
         commit: vi.fn(async () => []),
@@ -62,17 +64,25 @@ function createDispatch(options = {}) {
         loadProjectRoot: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
         resolveLocalProject: vi.fn(async () => ({ branch: 'topic', id: 'C:/repo', rootPath: 'C:/repo' })),
         readFileAtCommit: vi.fn(async () => ({ content: '# Card', exists: true })),
+        resolveCommitMetadata: vi.fn(async (_rootPath, commit) => ({
+            commit,
+            committedAt: '2026-07-30T12:00:00.000Z',
+            deletions: 1,
+            filePaths: ['design/F-1.md'],
+            filesChanged: 1,
+            insertions: 2,
+        })),
         runCommand: vi.fn(async () => ({ exitCode: 0, stderr: '', stdout: 'ok' })),
         push: vi.fn(async () => undefined),
         watchProject: vi.fn(() => vi.fn()),
     };
-    const actionWorktreeExecutionService = {
+    const actionWorktreeRunService = {
         execute: vi.fn(async (primaryProject, _action, _context, runner) => ({
             ...await runner(primaryProject),
             branch: primaryProject.branch,
             repositoryRoot: primaryProject.rootPath,
         })),
-        resolve: vi.fn(async (primaryProject) => ({ executionProject: primaryProject, transferRecord: null })),
+        resolve: vi.fn(async (primaryProject) => ({ runProject: primaryProject, transferRecord: null })),
         runWithCardLock: vi.fn(async (_primaryProject, _context, operation) => operation()),
     };
     const worktreeService = {
@@ -80,7 +90,7 @@ function createDispatch(options = {}) {
         commit: vi.fn(async () => undefined),
         discard: vi.fn(async () => undefined),
         getRecords: vi.fn(() => []),
-        integrate: vi.fn(async () => undefined),
+        integrate: vi.fn(async () => ({ branch: 'main', commit: 'a'.repeat(40) })),
         park: vi.fn(async () => undefined),
         prepare: vi.fn(async () => undefined),
         pull: vi.fn(async () => undefined),
@@ -92,12 +102,13 @@ function createDispatch(options = {}) {
         resolvePath: vi.fn(),
         startProject: vi.fn(async () => undefined),
         subscribe: vi.fn(() => vi.fn()),
+        synchronize: vi.fn(async () => undefined),
     };
     const desktopConfig = options.desktopConfig ?? {agent: 'codex', agentProfiles: [{ command: ['codex'], models: ['gpt-5'], name: 'codex' }], model: 'gpt-5'};
     const dispatch = createLocalBridgeDispatch({
         actionRunnerService,
         actionSchedulerService,
-        actionWorktreeExecutionService,
+        actionWorktreeRunService,
         agentExecutableAvailability,
         agentRunnerService,
         codexRuntimeService,
@@ -231,7 +242,7 @@ describe('createLocalBridgeDispatch', () => {
     });
 
     it('delegates card worktree lifecycle operations', async () => {
-        const { dispatch, worktreeService } = createDispatch();
+        const { dispatch, localGitService, worktreeService } = createDispatch();
         const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
         const request = { project, worktree: 1 };
 
@@ -246,10 +257,97 @@ describe('createLocalBridgeDispatch', () => {
         expect(worktreeService.commit).toHaveBeenCalledWith(project, 1, 'F-1: Card');
         expect(worktreeService.discard).toHaveBeenCalledWith(project, 1);
         expect(worktreeService.integrate).toHaveBeenCalledWith(project, 1);
+        expect(worktreeService.synchronize).not.toHaveBeenCalled();
         expect(worktreeService.park).toHaveBeenCalledWith(project, 1);
         expect(worktreeService.pull).toHaveBeenCalledWith(project, 1);
         expect(worktreeService.push).toHaveBeenCalledWith(project, 1);
         expect(worktreeService.refreshRemote).toHaveBeenCalledWith(project);
+        expect(localGitService.appendAndCommitSystemActivity).not.toHaveBeenCalled();
+    });
+
+    it('tracks a card integration under its stable internal id', async () => {
+        const { dispatch, localGitService, worktreeService } = createDispatch();
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
+        const request = { cardInternalId: 'stable-card-id', project, projectFolder: 'design', worktree: 1 };
+
+        await dispatch.dataBridge.integrateWorktree(request);
+
+        const origin = { cardInternalId: 'stable-card-id', kind: 'card' };
+        expect(worktreeService.integrate).toHaveBeenCalledWith(project, 1);
+        expect(localGitService.resolveCommitMetadata).toHaveBeenCalledWith(project.rootPath, 'a'.repeat(40));
+        expect(localGitService.appendAndCommitSystemActivity).toHaveBeenCalledWith(
+            project,
+            'design',
+            origin,
+            {
+                commits: [{
+                    branch: 'main',
+                    commit: 'a'.repeat(40),
+                    committedAt: '2026-07-30T12:00:00.000Z',
+                    deletions: 1,
+                    filePaths: ['design/F-1.md'],
+                    filesChanged: 1,
+                    insertions: 2,
+                }],
+                completedAt: '2026-07-30T12:00:00.000Z',
+                label: 'Integrate into project',
+                origin,
+                type: 'system',
+            },
+            'Record Integrate into project activity',
+        );
+        expect(worktreeService.synchronize).toHaveBeenCalledWith(project, 1);
+        expect(localGitService.appendAndCommitSystemActivity.mock.invocationCallOrder[0])
+            .toBeLessThan(worktreeService.synchronize.mock.invocationCallOrder[0]);
+    });
+
+    it('reports history persistence failure after successful card integration', async () => {
+        const { dispatch, localGitService, worktreeService } = createDispatch();
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
+        localGitService.appendAndCommitSystemActivity.mockRejectedValueOnce(new Error('activity commit failed'));
+
+        await expect(dispatch.dataBridge.integrateWorktree({
+            cardInternalId: 'card-1',
+            project,
+            projectFolder: 'design',
+            worktree: 1,
+        })).rejects.toThrow('Worktree integrated, but card history tracking failed: activity commit failed');
+
+        expect(worktreeService.integrate).toHaveBeenCalledOnce();
+        expect(worktreeService.synchronize).not.toHaveBeenCalled();
+    });
+
+    it('reports linked-worktree synchronization failure after card history is tracked', async () => {
+        const { dispatch, localGitService, worktreeService } = createDispatch();
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
+        worktreeService.synchronize.mockRejectedValueOnce(new Error('reset failed'));
+
+        await expect(dispatch.dataBridge.integrateWorktree({
+            cardInternalId: 'card-1',
+            project,
+            projectFolder: 'design',
+            worktree: 1,
+        })).rejects.toThrow('Worktree integrated and card history tracked, but linked worktree synchronization failed: reset failed');
+
+        expect(localGitService.appendAndCommitSystemActivity).toHaveBeenCalledOnce();
+        expect(worktreeService.synchronize).toHaveBeenCalledWith(project, 1);
+        expect(worktreeService.park).not.toHaveBeenCalled();
+    });
+
+    it('writes no activity when card integration fails', async () => {
+        const { dispatch, localGitService, worktreeService } = createDispatch();
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
+        worktreeService.integrate.mockRejectedValueOnce(new Error('squash failed'));
+
+        await expect(dispatch.dataBridge.integrateWorktree({
+            cardInternalId: 'card-1',
+            project,
+            projectFolder: 'design',
+            worktree: 1,
+        })).rejects.toThrow('squash failed');
+
+        expect(localGitService.appendAndCommitSystemActivity).not.toHaveBeenCalled();
+        expect(worktreeService.synchronize).not.toHaveBeenCalled();
     });
 
     it('delegates primary pull and refreshes monitored state after push', async () => {
@@ -294,27 +392,29 @@ describe('createLocalBridgeDispatch', () => {
         expect(actionRunnerService.prepareActionPrompt).toHaveBeenCalledWith(request);
     });
 
-    it('delegates cancellation and streaming interaction by execution id', async () => {
+    it('delegates cancellation and streaming interaction by run ID', async () => {
         const { actionRunnerService, dispatch } = createDispatch();
 
-        await dispatch.actionBridge.cancelActionExecution('action-1');
+        await dispatch.actionBridge.cancelActionRun('action-1');
         await dispatch.actionBridge.sendActionMessage('action-1', 'approved');
         expect(dispatch.actionBridge.beginActionPromptDraft('action-1')).toBe(2);
         await dispatch.actionBridge.setActionQueuedMessage('action-1', 2, 'next', 3);
         await dispatch.actionBridge.sendActionQueuedMessage('action-1', 2, 3);
+        await dispatch.actionBridge.answerActionApproval('action-1', 41, 'accept');
         await dispatch.actionBridge.answerActionQuestion('action-1', 7, { confirm: ['Yes'] });
-        await dispatch.actionBridge.finishActionExecution('action-1');
+        await dispatch.actionBridge.finishActionRun('action-1');
 
         expect(actionRunnerService.cancel).toHaveBeenCalledWith('action-1');
         expect(actionRunnerService.sendAgentMessage).toHaveBeenCalledWith('action-1', 'approved');
         expect(actionRunnerService.beginAgentPromptDraft).toHaveBeenCalledWith('action-1');
         expect(actionRunnerService.setAgentQueuedMessage).toHaveBeenCalledWith('action-1', 2, 'next', 3);
         expect(actionRunnerService.sendQueuedAgentMessage).toHaveBeenCalledWith('action-1', 2, 3);
+        expect(actionRunnerService.answerAgentApproval).toHaveBeenCalledWith('action-1', 41, 'accept');
         expect(actionRunnerService.answerAgentQuestion).toHaveBeenCalledWith('action-1', 7, { confirm: ['Yes'] });
-        expect(actionRunnerService.finishAgentExecution).toHaveBeenCalledWith('action-1');
+        expect(actionRunnerService.finishAgentRun).toHaveBeenCalledWith('action-1');
     });
 
-    it('delegates card-state auto-finish events to every local execution', async () => {
+    it('delegates card-state auto-finish events to every local run', async () => {
         const { actionRunnerService, dispatch } = createDispatch();
 
         await dispatch.actionBridge.notifyActionCardStateChange('card-1', 'ready');
@@ -378,22 +478,22 @@ describe('createLocalBridgeDispatch', () => {
         expect(localGitService.loadProjectAsset).toHaveBeenCalledWith(project, 'actions/icon.png');
     });
 
-    it('exposes shared action execution subscriptions through the action bridge', () => {
+    it('exposes shared action run subscriptions through the action bridge', () => {
         const { actionRunnerService, dispatch } = createDispatch();
         const callback = vi.fn();
 
-        dispatch.actionBridge.onActionExecution(callback);
+        dispatch.actionBridge.onActionRun(callback);
 
         expect(actionRunnerService.subscribe).toHaveBeenCalledWith(callback);
     });
 
-    it('loads active action execution events through the action bridge', () => {
+    it('loads active action run events through the action bridge', () => {
         const { actionRunnerService, dispatch } = createDispatch();
 
-        const events = dispatch.actionBridge.loadActiveActionExecutionEvents();
+        const events = dispatch.actionBridge.loadActiveActionRunEvents();
 
-        expect(events).toEqual([{ executionId: 'execution-1', sequence: 1 }]);
-        expect(actionRunnerService.loadActiveExecutionEvents).toHaveBeenCalledOnce();
+        expect(events).toEqual([{ runId: 'run-1', sequence: 1 }]);
+        expect(actionRunnerService.loadActiveRunEvents).toHaveBeenCalledOnce();
     });
 
     it('exposes worktree state subscriptions through the data bridge', () => {

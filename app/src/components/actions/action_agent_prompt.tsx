@@ -1,7 +1,8 @@
 import { Box, Typography } from '@mui/material'
-import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
+import { dialogService } from '../../services/dialog_service'
+import type { ActionPromptDraft } from '../../services/actions/action_prompt_draft_service'
 import { MarkdownEditor, type MarkdownEditorHandle } from '../editor/markdown_editor'
-import type { ActionPromptDraft } from './action_prompt_draft'
 
 const MIN_PROMPT_HEIGHT = 72
 const MIN_CHAT_HEIGHT = 96
@@ -19,26 +20,35 @@ function readStoredPromptHeight(): number {
 interface ActionAgentPromptProps {
     convertMessage: string | null
     disabled: boolean
-    onPromptChange: (value: string) => void
     onRunShortcut?: () => void
     promptDraft: ActionPromptDraft
-    promptFailed: boolean
-    promptLoading: boolean
 }
 
 /** Resizable prompt editor shown below an agent conversation. */
 export function ActionAgentPrompt(props: ActionAgentPromptProps) {
-    const {convertMessage, disabled, onPromptChange, onRunShortcut, promptDraft, promptFailed, promptLoading} = props
+    const {convertMessage, disabled, onRunShortcut, promptDraft} = props
     const promptEditorRef = useRef<MarkdownEditorHandle>(null)
     const promptHeightStartRef = useRef(0)
     const pointerStartYRef = useRef(0)
     const splitContainerRef = useRef<HTMLElement | null>(null)
     const [promptHeight, setPromptHeight] = useState(readStoredPromptHeight)
     const [resizingPrompt, setResizingPrompt] = useState(false)
+    const editorSnapshot = useSyncExternalStore(
+        promptDraft.subscribeEditor,
+        promptDraft.getEditorSnapshot,
+        promptDraft.getEditorSnapshot,
+    )
 
     useEffect(() => {
         promptEditorRef.current?.setMarkdown(promptDraft.getSnapshot())
-    }, [promptDraft])
+    }, [editorSnapshot.replacementRevision, promptDraft])
+
+    const handlePromptChange = (value: string) => {
+        promptDraft.edit(value)
+        void promptDraft.synchronize().catch((error: unknown) => {
+            dialogService.error(error, { fallbackMessage: 'Could not queue agent prompt' })
+        })
+    }
 
     const clampPromptHeight = (proposed: number) => {
         const container = splitContainerRef.current
@@ -95,10 +105,11 @@ export function ActionAgentPrompt(props: ActionAgentPromptProps) {
         persistPromptHeight(clamped)
     }
 
-    const handlePromptKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    const handlePromptKeyDownCapture = (event: KeyboardEvent<HTMLDivElement>) => {
         if (event.key !== 'Enter' || (!event.ctrlKey && !event.metaKey) || !onRunShortcut) return
 
         event.preventDefault()
+        event.stopPropagation()
         promptEditorRef.current?.flush()
         onRunShortcut()
     }
@@ -130,7 +141,7 @@ export function ActionAgentPrompt(props: ActionAgentPromptProps) {
             />
             <Box
                 aria-label="Prompt"
-                onKeyDown={handlePromptKeyDown}
+                onKeyDownCapture={handlePromptKeyDownCapture}
                 sx={{
                     borderRadius: '9px',
                     border: 1,
@@ -149,9 +160,9 @@ export function ActionAgentPrompt(props: ActionAgentPromptProps) {
                     flushOnBlur
                     hideToolbar
                     markdown={promptDraft.getSnapshot()}
-                    onChange={onPromptChange}
-                    onLiveChange={promptDraft.set}
-                    readOnly={disabled || promptLoading || promptFailed}
+                    onChange={handlePromptChange}
+                    onLiveChange={promptDraft.edit}
+                    readOnly={disabled || editorSnapshot.preparationStatus !== 'ready'}
                     ref={promptEditorRef}
                 />
             </Box>

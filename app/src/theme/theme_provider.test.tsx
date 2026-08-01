@@ -1,4 +1,4 @@
-import { cleanup, render, renderHook, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, render, renderHook, screen, waitFor } from '@testing-library/react'
 import { StrictMode, type ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { dialogService } from '../services/dialog_service'
@@ -48,6 +48,29 @@ describe('AppThemeProvider', () => {
         expect(screen.getByText('mode:light')).toBeInTheDocument()
         expect(screen.getByText('style:modern')).toBeInTheDocument()
         expect(screen.getByText(`font:${MARKDOWN_STYLE_PRESETS.modern.body.fontFamily}`)).toBeInTheDocument()
+    })
+
+    it('retains the derived Markdown style across unrelated provider renders', () => {
+        const wrapper = ({ children }: { children: ReactNode }) => <AppThemeProvider>{children}</AppThemeProvider>
+        const { result, rerender } = renderHook(() => useAppTheme(), { wrapper })
+        const initialMarkdownContentSx = result.current.markdownContentSx
+
+        rerender()
+        expect(result.current.markdownContentSx).toBe(initialMarkdownContentSx)
+
+        act(() => result.current.toggleMode())
+        expect(result.current.markdownContentSx).toBe(initialMarkdownContentSx)
+    })
+
+    it('replaces the derived Markdown style when its configuration changes', () => {
+        const wrapper = ({ children }: { children: ReactNode }) => <AppThemeProvider>{children}</AppThemeProvider>
+        const { result } = renderHook(() => useAppTheme(), { wrapper })
+        const initialMarkdownContentSx = result.current.markdownContentSx
+
+        act(() => result.current.setMarkdownStyle('serif'))
+
+        expect(result.current.markdownContentSx).not.toBe(initialMarkdownContentSx)
+        expect(result.current.markdownStyleConfig).toBe(MARKDOWN_STYLE_PRESETS.serif)
     })
 
     it('syncs the palette mode into the Electron bridge when present', () => {

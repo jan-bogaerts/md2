@@ -5,7 +5,7 @@ import { displayActionsForContext, type ActionContext } from '../../data/action_
 import type { ActionDefinition } from '../../data/action_types'
 import { dialogService } from '../../services/dialog_service'
 import { useActions } from '../hooks/use_actions'
-import { useRunningActionForContext } from '../hooks/use_action_executions'
+import { useRunningActionForContext } from '../hooks/use_action_runs'
 import { ActionIcon } from './action_icon'
 import { resolveActionIcon, type ActionIconSource } from './action_icon_resolver'
 import { ActionPopup } from './action_popup'
@@ -38,8 +38,8 @@ interface ActionPopupState {
 export function ActionEntryPoints(props: ActionEntryPointsProps) {
     const { context, onMenuItemSelected, popupAnchorElement, variant, visibility = 'all-matching' } = props
     const { actions: loadedActions } = useActions()
-    const runningExecution = useRunningActionForContext(context)
-    const executionDisabled = !!runningExecution
+    const runningRun = useRunningActionForContext(context)
+    const runDisabled = !!runningRun
     const [iconSources, setIconSources] = useState<Record<string, ActionIconSource>>({})
     const [popupState, setPopupState] = useState<ActionPopupState | null>(null)
 
@@ -109,7 +109,7 @@ export function ActionEntryPoints(props: ActionEntryPointsProps) {
             {matching.map((action) => (
                 <MenuItem
                     data-action-id={action.id}
-                    disabled={executionDisabled}
+                    disabled={runDisabled}
                     key={action.id}
                     onClick={handleOpen}
                 >
@@ -132,7 +132,7 @@ export function ActionEntryPoints(props: ActionEntryPointsProps) {
                     <IconButton
                         aria-label={action.label}
                         data-action-id={action.id}
-                        disabled={executionDisabled}
+                        disabled={runDisabled}
                         onClick={handleOpen}
                         size="small"
                     >

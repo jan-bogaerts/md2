@@ -2,8 +2,9 @@ import { Avatar, Box, Stack, Typography, useTheme } from '@mui/material'
 import { alpha } from '@mui/material/styles'
 import { useSyncExternalStore } from 'react'
 import type { CardTypeConfig, ProjectCard } from '../../data/data_types'
+import { cardContext } from '../../data/action_context'
 import { getCardTypeColor } from './card_drag'
-import { useRunningActionForFile } from '../hooks/use_action_executions'
+import { useRunningActionForContext } from '../hooks/use_action_runs'
 import { useProjectCard } from './use_project_card'
 import { cardDragDropService } from './card_drag_drop_service'
 
@@ -43,7 +44,7 @@ function CardDragOverlayContent(props: CardDragOverlayContentProps) {
     const theme = useTheme()
     const accentColor = getCardTypeColor(cardTypes, card.header.id) ?? theme.palette.primary.main
     const accentBackground = alpha(accentColor, 0.16)
-    const runningExecution = useRunningActionForFile(card.path)
+    const runningRun = useRunningActionForContext(cardContext(card, cardTypes))
     const assignee = card.header.owner ?? card.header.author ?? card.header.id
 
     return (
@@ -82,8 +83,8 @@ function CardDragOverlayContent(props: CardDragOverlayContentProps) {
                         {card.header.id}
                     </Box>
                     <Box component="span" sx={{ alignItems: 'center', color: 'text.secondary', display: 'flex', fontSize: 11, gap: 0.625 }}>
-                        <Box sx={{ bgcolor: runningExecution ? 'success.main' : 'text.disabled', borderRadius: '50%', height: 7, width: 7 }} />
-                        {runningExecution ? 'Running' : 'Idle'}
+                        <Box sx={{ bgcolor: runningRun ? 'success.main' : 'text.disabled', borderRadius: '50%', height: 7, width: 7 }} />
+                        {runningRun ? 'Running' : 'Idle'}
                     </Box>
                 </Stack>
                 <Typography sx={{ color: 'text.primary', fontSize: 13.5, fontWeight: 500, lineHeight: 1.4 }}>

@@ -1,5 +1,12 @@
 import type { ActionFile } from '../../data/action_types'
-import type { ActionExecutionEvent, ActionPromptRequest, ActionStartRequest, PreparedActionPrompt } from '../../data/action_run_types'
+import type {
+    ActionRunEvent,
+    ActionPromptRequest,
+    ActionStartRequest,
+    AgentApprovalDecision,
+    AgentApprovalRequestId,
+    PreparedActionPrompt,
+} from '../../data/action_run_types'
 import type { ActionSchedule } from '../../data/action_schedule_types'
 import type {
     ActionRunHistoryEntry,
@@ -27,6 +34,7 @@ import type {
     CommitResult,
     DeleteFileRequest,
     DeleteFolderRequest,
+    IntegrateWorktreeRequest,
     MoveFilesRequest,
     PrepareWorktreeRequest,
     ProjectAsset,
@@ -75,8 +83,8 @@ interface WatchProjectPayload {
     subscriptionId: string
 }
 
-interface ActionExecutionPayload {
-    event: ActionExecutionEvent
+interface ActionRunPayload {
+    event: ActionRunEvent
     requestId: string
     subscriptionId: string
 }
@@ -104,9 +112,9 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         return this.request<boolean>('addWorktree', [project])
     }
 
-    private actionExecutionCallbacks: Map<string, (event: ActionExecutionEvent) => void>
-    private actionExecutionListeners: Set<(event: ActionExecutionEvent) => void>
-    private actionExecutionSubscriptions: Map<(event: ActionExecutionEvent) => void, string>
+    private actionRunCallbacks: Map<string, (event: ActionRunEvent) => void>
+    private actionRunListeners: Set<(event: ActionRunEvent) => void>
+    private actionRunSubscriptions: Map<(event: ActionRunEvent) => void, string>
     private connectPromise: Promise<void> | null
     private connectionListeners: Set<(connected: boolean) => void>
     private codexRateLimitCallbacks: Map<string, (snapshot: CodexRateLimitSnapshot) => void>
@@ -117,7 +125,7 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
     private readonly pendingPushBranches: Set<string>
     private pending: Map<string, PendingRequest>
     private requestAgentEvents: Map<string, (event: AgentRunEvent) => void>
-    private requestActionExecutionEvents: Map<string, (event: ActionExecutionEvent) => void>
+    private requestActionRunEvents: Map<string, (event: ActionRunEvent) => void>
     private requestCodexRateLimitEvents: Map<string, (snapshot: CodexRateLimitSnapshot) => void>
     private requestWatchEvents: Map<string, (event: ProjectWatchEvent) => void>
     private requestWorktreeEvents: Map<string, (state: WorktreeState) => void>
@@ -128,9 +136,9 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
     private worktreeCallbacks: Map<string, (state: WorktreeState) => void>
 
     constructor() {
-        this.actionExecutionCallbacks = new Map()
-        this.actionExecutionListeners = new Set()
-        this.actionExecutionSubscriptions = new Map()
+        this.actionRunCallbacks = new Map()
+        this.actionRunListeners = new Set()
+        this.actionRunSubscriptions = new Map()
         this.connectPromise = null
         this.connectionListeners = new Set()
         this.codexRateLimitCallbacks = new Map()
@@ -141,7 +149,7 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         this.pendingPushBranches = new Set()
         this.pending = new Map()
         this.requestAgentEvents = new Map()
-        this.requestActionExecutionEvents = new Map()
+        this.requestActionRunEvents = new Map()
         this.requestCodexRateLimitEvents = new Map()
         this.requestWatchEvents = new Map()
         this.requestWorktreeEvents = new Map()
@@ -273,7 +281,7 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         this.pendingPushBranches.add(request.branch)
     }
 
-    async integrateWorktree(request: WorktreeOperationRequest): Promise<void> {
+    async integrateWorktree(request: IntegrateWorktreeRequest): Promise<void> {
         await this.request('integrateWorktree', [request])
         this.pendingPushBranches.add(request.project.branch)
     }
@@ -381,41 +389,49 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         }
     }
 
-    async cancelActionExecution(executionId: string): Promise<void> {
-        await this.request('cancelActionExecution', [executionId])
+    async cancelActionRun(runId: string): Promise<void> {
+        await this.request('cancelActionRun', [runId])
     }
 
-    async sendActionMessage(executionId: string, content: string): Promise<void> {
-        await this.request('sendActionMessage', [executionId, content])
+    async sendActionMessage(runId: string, content: string): Promise<void> {
+        await this.request('sendActionMessage', [runId, content])
     }
 
-    async beginActionPromptDraft(executionId: string): Promise<number> {
-        return this.request('beginActionPromptDraft', [executionId])
+    async beginActionPromptDraft(runId: string): Promise<number> {
+        return this.request('beginActionPromptDraft', [runId])
     }
 
-    async sendActionQueuedMessage(executionId: string, sessionId: number, revision: number): Promise<{ sent: true }> {
-        return this.request('sendActionQueuedMessage', [executionId, sessionId, revision])
+    async sendActionQueuedMessage(runId: string, sessionId: number, revision: number): Promise<{ sent: true }> {
+        return this.request('sendActionQueuedMessage', [runId, sessionId, revision])
     }
 
     async setActionQueuedMessage(
-        executionId: string,
+        runId: string,
         sessionId: number,
         content: string,
         revision: number,
     ): Promise<{ accepted: boolean }> {
-        return this.request('setActionQueuedMessage', [executionId, sessionId, content, revision])
+        return this.request('setActionQueuedMessage', [runId, sessionId, content, revision])
     }
 
     async answerActionQuestion(
-        executionId: string,
+        runId: string,
         requestId: number | string | null,
         answers: Record<string, string[]>,
     ): Promise<void> {
-        await this.request('answerActionQuestion', [executionId, requestId, answers])
+        await this.request('answerActionQuestion', [runId, requestId, answers])
     }
 
-    async finishActionExecution(executionId: string): Promise<void> {
-        await this.request('finishActionExecution', [executionId])
+    async answerActionApproval(
+        runId: string,
+        requestId: AgentApprovalRequestId,
+        decision: AgentApprovalDecision,
+    ): Promise<void> {
+        await this.request('answerActionApproval', [runId, requestId, decision])
+    }
+
+    async finishActionRun(runId: string): Promise<void> {
+        await this.request('finishActionRun', [runId])
     }
 
     async generateDiff(request: DiffRequest): Promise<DiffResult> {
@@ -426,8 +442,8 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         return this.request<ActionRunHistoryEntry[]>('loadActionRunHistory', [request])
     }
 
-    async loadActiveActionExecutionEvents(): Promise<ActionExecutionEvent[]> {
-        return this.request<ActionExecutionEvent[]>('loadActiveActionExecutionEvents', [])
+    async loadActiveActionRunEvents(): Promise<ActionRunEvent[]> {
+        return this.request<ActionRunEvent[]>('loadActiveActionRunEvents', [])
     }
 
     async getCodexRateLimits(): Promise<CodexRateLimitSnapshot | null> {
@@ -446,20 +462,20 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         return this.request<Record<string, AgentAvailability>>('loadAgentAvailability', [])
     }
 
-    onActionExecution(callback: (event: ActionExecutionEvent) => void): () => void {
-        this.actionExecutionListeners.add(callback)
-        void this.subscribeActionExecution(callback, false).catch(() => undefined)
+    onActionRun(callback: (event: ActionRunEvent) => void): () => void {
+        this.actionRunListeners.add(callback)
+        void this.subscribeActionRun(callback, false).catch(() => undefined)
 
         return () => {
-            this.actionExecutionListeners.delete(callback)
-            for (const [requestId, pendingCallback] of this.requestActionExecutionEvents) {
-                if (pendingCallback === callback) this.requestActionExecutionEvents.delete(requestId)
+            this.actionRunListeners.delete(callback)
+            for (const [requestId, pendingCallback] of this.requestActionRunEvents) {
+                if (pendingCallback === callback) this.requestActionRunEvents.delete(requestId)
             }
-            const subscriptionId = this.actionExecutionSubscriptions.get(callback)
+            const subscriptionId = this.actionRunSubscriptions.get(callback)
             if (!subscriptionId) return
 
-            this.actionExecutionSubscriptions.delete(callback)
-            this.actionExecutionCallbacks.delete(subscriptionId)
+            this.actionRunSubscriptions.delete(callback)
+            this.actionRunCallbacks.delete(subscriptionId)
             void this.request('unsubscribe', [subscriptionId])
         }
     }
@@ -556,7 +572,7 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
                 this.connectPromise = null
                 resolve()
                 for (const listener of this.connectionListeners) listener(true)
-                void this.restoreActionExecutionSubscriptions()
+                void this.restoreActionRunSubscriptions()
                 void this.restoreCodexRateLimitSubscriptions()
             }
             const handleError = () => {
@@ -595,8 +611,8 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
     }
 
     private handleEvent(message: RemoteControlEvent) {
-        if (message.event === 'actionExecution') {
-            this.handleActionExecutionEvent(message.payload as ActionExecutionPayload)
+        if (message.event === 'actionRun') {
+            this.handleActionRunEvent(message.payload as ActionRunPayload)
             return
         }
         if (message.event === 'codexRateLimits') {
@@ -615,9 +631,9 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         if (message.event === 'agentRun') this.handleAgentRunEvent(message.payload as AgentRunPayload)
     }
 
-    private handleActionExecutionEvent(payload: ActionExecutionPayload) {
-        const callback = this.actionExecutionCallbacks.get(payload.subscriptionId)
-            ?? this.requestActionExecutionEvents.get(payload.requestId)
+    private handleActionRunEvent(payload: ActionRunPayload) {
+        const callback = this.actionRunCallbacks.get(payload.subscriptionId)
+            ?? this.requestActionRunEvents.get(payload.requestId)
         callback?.(payload.event)
     }
 
@@ -627,32 +643,32 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         callback?.(payload.snapshot)
     }
 
-    private async restoreActionExecutionSubscriptions() {
-        const pendingCallbacks = new Set(this.requestActionExecutionEvents.values())
-        const callbacks = [...this.actionExecutionListeners].filter((callback) => !pendingCallbacks.has(callback))
-        await Promise.allSettled(callbacks.map((callback) => this.subscribeActionExecution(callback, true)))
+    private async restoreActionRunSubscriptions() {
+        const pendingCallbacks = new Set(this.requestActionRunEvents.values())
+        const callbacks = [...this.actionRunListeners].filter((callback) => !pendingCallbacks.has(callback))
+        await Promise.allSettled(callbacks.map((callback) => this.subscribeActionRun(callback, true)))
     }
 
-    private async subscribeActionExecution(callback: (event: ActionExecutionEvent) => void, recover: boolean) {
+    private async subscribeActionRun(callback: (event: ActionRunEvent) => void, recover: boolean) {
         const id = this.createRequestId()
-        this.requestActionExecutionEvents.set(id, callback)
+        this.requestActionRunEvents.set(id, callback)
         try {
             const result = await this.sendRequest<{ subscriptionId: string }>({
                 id,
-                method: 'onActionExecution',
+                method: 'onActionRun',
                 params: [],
             })
-            if (!this.actionExecutionListeners.has(callback)) {
+            if (!this.actionRunListeners.has(callback)) {
                 await this.request('unsubscribe', [result.subscriptionId])
                 return
             }
-            this.actionExecutionSubscriptions.set(callback, result.subscriptionId)
-            this.actionExecutionCallbacks.set(result.subscriptionId, callback)
+            this.actionRunSubscriptions.set(callback, result.subscriptionId)
+            this.actionRunCallbacks.set(result.subscriptionId, callback)
             if (!recover) return
-            const events = await this.loadActiveActionExecutionEvents()
+            const events = await this.loadActiveActionRunEvents()
             for (const event of events) callback(event)
         } finally {
-            this.requestActionExecutionEvents.delete(id)
+            this.requestActionRunEvents.delete(id)
         }
     }
 
@@ -703,12 +719,12 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         for (const listener of this.connectionListeners) listener(false)
         for (const pending of this.pending.values()) pending.reject(error)
         this.pending.clear()
-        this.actionExecutionCallbacks.clear()
-        this.actionExecutionSubscriptions.clear()
+        this.actionRunCallbacks.clear()
+        this.actionRunSubscriptions.clear()
         this.codexRateLimitCallbacks.clear()
         this.codexRateLimitSubscriptions.clear()
         this.requestAgentEvents.clear()
-        this.requestActionExecutionEvents.clear()
+        this.requestActionRunEvents.clear()
         this.requestCodexRateLimitEvents.clear()
         this.requestWatchEvents.clear()
         this.requestWorktreeEvents.clear()

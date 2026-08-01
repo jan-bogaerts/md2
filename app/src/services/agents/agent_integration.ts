@@ -1,6 +1,6 @@
 import { cardContext, fileContext, type ActionContext } from '../../data/action_context'
 import { BUILTIN_CUSTOM_PROMPT, type ActionDefinition } from '../../data/action_types'
-import type { ActionExecutionEvent } from '../../data/action_run_types'
+import type { ActionRunEvent } from '../../data/action_run_types'
 import {
     type AgentConversation,
     type AgentConversationError,
@@ -11,7 +11,7 @@ import {
     type StorageService,
 } from '../../data/data_types'
 import { actionService } from '../actions/action_service'
-import { actionExecutionService } from '../actions/action_execution_service'
+import { actionRunRegistry } from '../actions/action_run_registry'
 import { loadAgentConversation } from './agent_conversation_service'
 import { runElectronAction } from '../actions/electron_action_runner'
 import { mapWithConcurrency } from '.././concurrency'
@@ -165,9 +165,9 @@ export class AgentIntegration {
 
     startScheduledRunWatch() {
         this.stopScheduledRunWatch()
-        this.scheduledRunCleanup = actionExecutionService.subscribeEvents((event) => {
+        this.scheduledRunCleanup = actionRunRegistry.subscribeActiveRunEvents((event) => {
             try {
-                this.handleActionExecutionEvent(event)
+                this.handleActionRunEvent(event)
             } catch (error) {
                 telemetryService.captureError(error)
             }
@@ -199,7 +199,7 @@ export class AgentIntegration {
         return runElectronAction(action, fileContext(card, config.cardTypes), { continueFrom: sourcePath })
     }
 
-    private linkAgentConversationReference(cardPath: string, reference: string) {
+    private saveAgentConversationReference(cardPath: string, reference: string) {
         const { config } = this.dependencies.requireDependencies()
         const existingFile = this.dependencies.requireFile(cardPath)
         const card = markdownParsingService.parseCard(existingFile, config.workingFolder)
@@ -209,8 +209,14 @@ export class AgentIntegration {
             path: cardPath,
             sha: existingFile.sha,
         })
-        if (!card.header.internalId) throw new Error(`Cannot link a card conversation without an internal ID: ${cardPath}`)
-        void this.loadLinkedAgentConversation(card.header.internalId, cardPath, reference)
+
+        return card.header.internalId
+    }
+
+    private linkAgentConversationReference(cardPath: string, reference: string) {
+        const cardInternalId = this.saveAgentConversationReference(cardPath, reference)
+        if (!cardInternalId) throw new Error(`Cannot link a card conversation without an internal ID: ${cardPath}`)
+        void this.loadLinkedAgentConversation(cardInternalId, cardPath, reference)
     }
 
     private async loadLinkedAgentConversation(cardInternalId: string, cardPath: string, reference: string) {
@@ -349,11 +355,19 @@ export class AgentIntegration {
         this.dependencies.refreshSnapshot(config.workingFolder)
     }
 
-    private handleActionExecutionEvent(event: ActionExecutionEvent) {
+    private handleActionRunEvent(event: ActionRunEvent) {
+        if (
+            event.type === 'update'
+            && event.update.kind === 'agentStarted'
+            && event.context.kind === 'card'
+            && event.context.file
+        ) {
+            this.saveAgentConversationReference(event.context.file, event.update.conversation.path)
+        }
         if (event.type === 'action') this.linkActionConversation(event)
     }
 
-    private linkActionConversation(event: ActionExecutionEvent) {
+    private linkActionConversation(event: ActionRunEvent) {
         if (event.type !== 'action' || event.status === 'running' || !event.context.file || !event.reference) return
 
         this.linkAgentConversationReference(event.context.file, event.reference)

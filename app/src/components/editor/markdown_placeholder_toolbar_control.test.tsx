@@ -28,12 +28,16 @@ describe('MarkdownPlaceholderToolbarControl', () => {
         expect(screen.queryByRole('menu')).not.toBeInTheDocument()
     })
 
-    it('offers the card title placeholder', () => {
+    it('offers all folder placeholders without the removed root placeholder', () => {
         vi.spyOn(mdxEditor, 'useCellValue').mockReturnValue({ dispatchCommand: vi.fn(), focus: vi.fn() } as never)
         render(<MarkdownPlaceholderToolbarControl placeholders={ACTION_PROMPT_PLACEHOLDERS} />)
 
         fireEvent.click(screen.getByRole('button', { name: 'Insert placeholder' }))
 
-        expect(within(screen.getByRole('menu')).getByRole('menuitem', { name: /card-title/u })).toBeInTheDocument()
+        const menu = within(screen.getByRole('menu'))
+        expect(menu.getByRole('menuitem', { name: /worktree-folder/u })).toBeInTheDocument()
+        expect(menu.getByRole('menuitem', { name: /project-folder/u })).toBeInTheDocument()
+        expect(menu.getByRole('menuitem', { name: /releases-folder/u })).toBeInTheDocument()
+        expect(menu.queryByRole('menuitem', { name: /rootProjectFolder/u })).not.toBeInTheDocument()
     })
 })

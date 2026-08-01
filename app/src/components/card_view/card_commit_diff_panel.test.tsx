@@ -31,7 +31,7 @@ function cardCommit(overrides: Partial<CardCommit> = {}): CardCommit {
         commits: [],
         completedAt: committedAt,
         conversationIds: [],
-        executionId: 'execution-1',
+        runId: 'run-1',
         history: { completedAt: committedAt, output: '', prompt: '', status: 'completed' },
         origin: { cardInternalId: 'card-060', kind: 'card' },
         rootActionId: 'implement',
@@ -125,7 +125,7 @@ describe('CardCommitDiffPanel', () => {
         renderPanel(cardCommit({ filePaths: ['app/other.ts'] }))
 
         expect(screen.getByText('Also changed (1)')).toBeInTheDocument()
-        expect(screen.queryByText('Loading diffâ€¦')).not.toBeInTheDocument()
+        expect(screen.queryByText('Loading diff…')).not.toBeInTheDocument()
         expect(readFileAtCommit).not.toHaveBeenCalled()
         await waitFor(() => expect(screen.getByRole('button', { name: 'app/other.ts' })).toBeEnabled())
     })

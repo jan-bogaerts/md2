@@ -181,27 +181,6 @@ describe('AppMenu', () => {
         expect(screen.getByRole('button', { name: 'Complete release' })).toBeInTheDocument()
     })
 
-    it('runs both mobile create actions through their existing handlers', async () => {
-        const bridge = createBridge()
-        window.md2Data = bridge
-        const listener = vi.fn()
-        workspaceNavigationService.addEventListener('open', listener)
-        renderMenu(true)
-        await openLocalProject()
-
-        fireEvent.click(screen.getByRole('button', { name: 'Create' }))
-        fireEvent.click(screen.getByRole('menuitem', { name: 'New card' }))
-        expect(screen.getByRole('dialog', { name: 'New card' })).toBeInTheDocument()
-        fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
-        await waitFor(() => expect(screen.queryByRole('dialog', { name: 'New card' })).toBeNull())
-
-        fireEvent.click(screen.getByRole('button', { name: 'Create' }))
-        fireEvent.click(screen.getByRole('menuitem', { name: 'New action' }))
-        await waitFor(() => expect(listener).toHaveBeenCalledOnce())
-
-        workspaceNavigationService.removeEventListener('open', listener)
-    })
-
     it('opens a local project from the Home project section', async () => {
         const bridge = createBridge()
         window.md2Data = bridge

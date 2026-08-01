@@ -31,7 +31,7 @@ export function ActionConversationPicker(props: ActionConversationPickerProps) {
             value={selectedPath}
             variant="standard"
         >
-            <MenuItem disabled value="">Conversations</MenuItem>
+            <MenuItem value="">Conversations</MenuItem>
             {conversations.map((conversation) => (
                 <MenuItem key={conversation.path} value={conversation.path}>{conversationPickerLabel(conversation)}</MenuItem>
             ))}

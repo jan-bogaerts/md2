@@ -7,74 +7,131 @@ import Play from 'mdi-material-ui/Play'
 import { useSyncExternalStore } from 'react'
 import type { ActionContext } from '../../data/action_context'
 import type { ActionDefinition } from '../../data/action_types'
+import { useActionRunSelector } from '../hooks/use_action_runs'
+import type { ActionConversationStore } from './action_conversation_store'
+import type { ActionHistoryStore } from './action_history_store'
+import {
+    cancelPopupAction,
+    convertPromptToAction,
+    currentActionPromptDraft,
+    finishPopupAction,
+    runPopupAction,
+    saveAndRunPopupAction,
+} from './action_popup_operations'
 import { actionPopupRunDisabled } from './action_popup_run_disabled'
-import { ActionUsageSummary } from './action_usage_summary'
-import type { ActionPopupController } from './use_action_popup_controller'
-import type { ActionPromptDraft } from './action_prompt_draft'
+import type { ActionRunInputStore } from './action_run_input_store'
+import type { ActionRunResultStore } from './action_run_result_store'
+import type { ActionScheduleStore } from './action_schedule_store'
+import { ActionUsageSummaryOwner } from './action_usage_summary_owner'
+import { useActionRunSettings } from './use_action_run_settings'
 
 interface ActionPopupBottomRowProps {
     action: ActionDefinition
     assignmentContext: ActionContext
-    baseContext: ActionContext
-    controller: ActionPopupController
-    promptDraft: ActionPromptDraft
+    conversationStore: ActionConversationStore
+    historyStore: ActionHistoryStore
+    inputStore: ActionRunInputStore
+    resultStore: ActionRunResultStore
+    runValidationError: string | null
+    scheduleStore: ActionScheduleStore
     showSaveControls: boolean
 }
 
-/** Bottom action row; only this popup section subscribes to live prompt changes. */
+/** Run controls; subscribes only to run and prompt values used by this row. */
 export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
-    const { action, assignmentContext, baseContext, controller, promptDraft, showSaveControls } = props
+    const {
+        action, assignmentContext, conversationStore, historyStore, inputStore, resultStore,
+        runValidationError, scheduleStore, showSaveControls,
+    } = props
+    const settings = useActionRunSettings(action, inputStore)
+    const runStatus = useActionRunSelector(action.id, assignmentContext, (run) => run?.status ?? 'idle')
+    const agentActive = useActionRunSelector(action.id, assignmentContext, (run) => {
+        const active = run?.status === 'queued' || run?.status === 'running' || run?.status === 'waitingForInput'
+
+        return !!active && run?.activeActionType === 'agent'
+    })
+    const interactionReady = useActionRunSelector(action.id, assignmentContext, (run) => !!run?.interactionReady)
+    const manualFinishAvailable = useActionRunSelector(
+        action.id,
+        assignmentContext,
+        (run) => run?.activeActionType === 'agent' && !!run.activeActionStreaming && !run.activeActionAutoFinish,
+    )
+    const hasApprovals = useActionRunSelector(action.id, assignmentContext, (run) => !!run?.approvals.length)
+    const hasQuestion = useActionRunSelector(action.id, assignmentContext, (run) => !!run?.question)
+    const promptDraft = currentActionPromptDraft(action, assignmentContext, action.type === 'agent')
     const prompt = useSyncExternalStore(promptDraft.subscribe, promptDraft.getSnapshot, promptDraft.getSnapshot)
-    const sessionActive = controller.runStatus === 'queued'
-        || controller.runStatus === 'running'
-        || controller.runStatus === 'waitingForInput'
-    const showAgentSend = sessionActive ? controller.agentActive : action.type === 'agent'
+    const editorSnapshot = useSyncExternalStore(
+        promptDraft.subscribeEditor,
+        promptDraft.getEditorSnapshot,
+        promptDraft.getEditorSnapshot,
+    )
+    const sessionActive = runStatus === 'queued' || runStatus === 'running' || runStatus === 'waitingForInput'
+    const showAgentSend = sessionActive ? agentActive : action.type === 'agent'
     const showCommandRun = !sessionActive && action.type === 'command'
-    const showUsageSummary = baseContext.kind === 'card' && !!baseContext.file
-    const runDisabled = actionPopupRunDisabled(action, controller, prompt, showSaveControls)
+    const saveDisabled = settings.actionLabel.trim().length === 0 || sessionActive || !!settings.runDisabledMessage
+    const runState = {
+        agentActive,
+        hasApprovals,
+        hasQuestion,
+        interactionReady,
+        runDisabledMessage: settings.runDisabledMessage,
+        runStatus,
+        saveDisabled,
+    }
+    const runDisabled = actionPopupRunDisabled(
+        action,
+        runState,
+        prompt,
+        editorSnapshot.preparationStatus,
+        showSaveControls,
+    )
+    const operationInput = {
+        action,
+        context: assignmentContext,
+        conversationStore,
+        historyStore,
+        inputStore,
+        resultStore,
+        runValidationError,
+        settings,
+    }
 
     const handlePrimaryRun = async () => {
-        const currentPrompt = promptDraft.getSnapshot()
-        if (showSaveControls) await controller.handleSaveAndRun(currentPrompt)
-        else await controller.handleRun(currentPrompt)
+        if (showSaveControls) await saveAndRunPopupAction(operationInput)
+        else await runPopupAction(operationInput)
     }
-
     const handleSave = async () => {
-        await controller.handleConvertToAction(promptDraft.getSnapshot())
+        await convertPromptToAction(operationInput)
     }
+    const handleCancel = () => void cancelPopupAction(action, assignmentContext)
+    const handleFinish = () => void finishPopupAction(action, assignmentContext)
+    const handleToggleSchedule = () => scheduleStore.toggle()
 
     return (
         <Box sx={{ alignItems: 'center', bgcolor: 'background.default', borderTop: 1, borderColor: 'divider', display: 'flex', gap: 1, px: 2, py: 1.5 }}>
-            {showUsageSummary && action.type === 'agent' && assignmentContext.cardInternalId ? (
-                <ActionUsageSummary
-                    actionId={action.id}
-                    cardInternalId={assignmentContext.cardInternalId}
-                    conversations={controller.conversations}
-                    history={controller.history}
-                />
-            ) : null}
+            <ActionUsageSummaryOwner
+                action={action}
+                context={assignmentContext}
+                conversationStore={conversationStore}
+                historyStore={historyStore}
+            />
             <Box sx={{ flex: 1 }} />
             {sessionActive ? (
                 <Tooltip title="Stop">
                     <span>
-                        <IconButton
-                            aria-label="Stop"
-                            disabled={!controller.backendAvailable}
-                            onClick={controller.handleCancel}
-                            size="small"
-                        >
+                        <IconButton aria-label="Stop" disabled={!settings.backendAvailable} onClick={handleCancel} size="small">
                             <StopOutlined sx={{ fontSize: 18 }} />
                         </IconButton>
                     </span>
                 </Tooltip>
             ) : null}
-            {controller.manualFinishAvailable ? (
+            {manualFinishAvailable ? (
                 <Tooltip title="Finish">
                     <span>
                         <IconButton
                             aria-label="Finish"
-                            disabled={!controller.backendAvailable || !controller.interactionReady}
-                            onClick={controller.handleFinish}
+                            disabled={!settings.backendAvailable || !interactionReady}
+                            onClick={handleFinish}
                             size="small"
                         >
                             <CheckOutlined sx={{ fontSize: 18 }} />
@@ -83,13 +140,11 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
                 </Tooltip>
             ) : null}
             {showSaveControls ? (
-                <Button disabled={controller.saveDisabled} onClick={handleSave} size="small" variant="outlined">
-                    Save
-                </Button>
+                <Button disabled={saveDisabled} onClick={handleSave} size="small" variant="outlined">Save</Button>
             ) : null}
             <Button
-                disabled={sessionActive || !controller.backendAvailable}
-                onClick={controller.handleToggleSchedule}
+                disabled={sessionActive || !settings.backendAvailable}
+                onClick={handleToggleSchedule}
                 size="small"
                 startIcon={<CalendarOutline sx={{ fontSize: '14px !important' }} />}
                 sx={{
@@ -106,13 +161,7 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
             {showAgentSend ? (
                 <Tooltip title="Send">
                     <span>
-                        <IconButton
-                            aria-label="Send"
-                            color="primary"
-                            disabled={runDisabled}
-                            onClick={handlePrimaryRun}
-                            size="small"
-                        >
+                        <IconButton aria-label="Send" color="primary" disabled={runDisabled} onClick={handlePrimaryRun} size="small">
                             <ArrowUpwardOutlined sx={{ fontSize: 18 }} />
                         </IconButton>
                     </span>

@@ -687,6 +687,45 @@ describe('ProjectLoading', () => {
         expect(card?.header.internalId).toBeTruthy()
     })
 
+    it('imports an external markdown file once when watcher reloads overlap', async () => {
+        vi.useFakeTimers()
+        configService.init()
+        let watchChange: (event: { changeKind: 'added' | 'changed' | 'removed' | 'unknown'; path: string }) => void = () => {
+            throw new Error('Watcher not registered')
+        }
+        const externalFile = { content: '# New external note', path: 'design/free-note.md' }
+        const firstLoad = createDeferred<typeof externalFile>()
+        const move = createDeferred<void>()
+        const loadFile = vi.fn()
+            .mockImplementationOnce(async () => firstLoad.promise)
+            .mockImplementationOnce(async () => externalFile)
+        const storage = createStorage({
+            loadFile,
+            moveFiles: vi.fn(async () => move.promise),
+            watchProject: vi.fn((_project, onChange) => {
+                watchChange = onChange
+
+                return vi.fn()
+            }),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+
+        watchChange({ changeKind: 'added', path: externalFile.path })
+        await vi.advanceTimersByTimeAsync(50)
+        watchChange({ changeKind: 'changed', path: externalFile.path })
+        await vi.advanceTimersByTimeAsync(50)
+        firstLoad.resolve(externalFile)
+        await vi.advanceTimersByTimeAsync(0)
+
+        expect(storage.moveFiles).toHaveBeenCalledTimes(1)
+        move.resolve()
+        await vi.advanceTimersByTimeAsync(0)
+
+        expect(storage.moveFiles).toHaveBeenCalledTimes(1)
+    })
+
     it('updates markdown content when the watcher reports an external edit', async () => {
         vi.useFakeTimers()
         configService.init()

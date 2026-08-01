@@ -12,7 +12,7 @@ import {
     reportWorkspaceError,
     reportWorkspaceNotice,
 } from '../data/data_service_context'
-import { planExternalCardImports } from '../data/external_card_import_service'
+import { planExternalCardImports, type ExternalCardImportPlan } from '../data/external_card_import_service'
 import { telemetryService } from '../telemetry/telemetry_service'
 import { createRandomProjectBackgroundShade } from '../../theme/project_background_shade'
 import { worktreeService } from './worktree_service'
@@ -34,6 +34,18 @@ const MARKDOWN_REMOVAL_GRACE_MS = 750
 const PROJECT_LOAD_ERROR_REPORTED = Symbol('project-load-error-reported')
 
 type ReportedProjectLoadError = object & { [PROJECT_LOAD_ERROR_REPORTED]?: boolean }
+
+interface ExternalCardImportResult {
+    files: MarkdownFile[]
+    importedFiles: MarkdownFile[]
+    sourcePaths: string[]
+    succeeded: boolean
+}
+
+interface ExternalCardImportInProgress {
+    project: ProjectReference
+    promise: Promise<ExternalCardImportResult>
+}
 
 export function isProjectLoadErrorReported(error: unknown) {
     return typeof error === 'object' && error !== null && !!(error as ReportedProjectLoadError)[PROJECT_LOAD_ERROR_REPORTED]
@@ -125,6 +137,7 @@ export class ProjectLoading {
     private markdownReloadEventsByPath: Map<string, ProjectWatchEvent> = new Map()
     private markdownRemovalTimeoutsByPath: Map<string, number> = new Map()
     private markdownReloadTimeout: number | null = null
+    private externalCardImportInProgress: ExternalCardImportInProgress | null = null
     private watchCleanup: (() => void) | null = null
 
     constructor(
@@ -402,14 +415,51 @@ export class ProjectLoading {
     }
 
     private async importExternalCardFiles(files: MarkdownFile[], workingFolder: string) {
-        const { config, storage } = this.dependencies.requireDependencies()
         const currentProject = this.dependencies.project()
         if (!currentProject) return files
 
-        const plan = planExternalCardImports(files, workingFolder, config.cardSeparator, config.cardTypes, config.states[0].state)
-        if (plan.moves.length === 0) return files
+        let nextFiles = files
+        while (this.externalCardImportInProgress) {
+            const activeImport = this.externalCardImportInProgress
+            const result = await activeImport.promise
+            const isSameProject = activeImport.project.id === currentProject.id
+                && activeImport.project.branch === currentProject.branch
+            if (isSameProject) {
+                if (!result.succeeded) return nextFiles
+                nextFiles = mergeFiles(removeFilesByPath(nextFiles, result.sourcePaths), result.importedFiles)
+            }
+            if (this.externalCardImportInProgress === activeImport) this.externalCardImportInProgress = null
+        }
+
+        const activeProject = this.dependencies.project()
+        if (activeProject?.id !== currentProject.id || activeProject.branch !== currentProject.branch) return nextFiles
+
+        const { config } = this.dependencies.requireDependencies()
+        const plan = planExternalCardImports(nextFiles, workingFolder, config.cardSeparator, config.cardTypes, config.states[0].state)
+        if (plan.moves.length === 0) return nextFiles
+
+        const promise = this.executeExternalCardImport(nextFiles, currentProject, plan)
+        const activeImport = { project: currentProject, promise }
+        this.externalCardImportInProgress = activeImport
+
+        try {
+            const result = await promise
+
+            return result.files
+        } finally {
+            if (this.externalCardImportInProgress === activeImport) this.externalCardImportInProgress = null
+        }
+    }
+
+    private async executeExternalCardImport(
+        files: MarkdownFile[],
+        currentProject: ProjectReference,
+        plan: ExternalCardImportPlan,
+    ): Promise<ExternalCardImportResult> {
+        const { config, storage } = this.dependencies.requireDependencies()
 
         const importPaths = plan.moves.flatMap((move) => [move.fromPath, move.toPath])
+        const sourcePaths = plan.moves.map((move) => move.fromPath)
         const inFlightCommitPaths = this.dependencies.commitPathsInFlight()
         importPaths.forEach((path) => inFlightCommitPaths.add(path))
 
@@ -423,7 +473,7 @@ export class ProjectLoading {
             reportWorkspaceError(errorMessage(error, 'External file import failed'))
             telemetryService.captureError(error)
 
-            return files
+            return { files, importedFiles: [], sourcePaths: [], succeeded: false }
         } finally {
             importPaths.forEach((path) => inFlightCommitPaths.delete(path))
         }
@@ -434,7 +484,9 @@ export class ProjectLoading {
         reportWorkspaceNotice(importedNoticeMessage(plan.moves.length))
         telemetryService.trackEvent('external_file_import')
 
-        return mergeFiles(removeFilesByPath(files, plan.moves.map((move) => move.fromPath)), plan.importedFiles)
+        const importedFiles = mergeFiles(removeFilesByPath(files, sourcePaths), plan.importedFiles)
+
+        return { files: importedFiles, importedFiles: plan.importedFiles, sourcePaths, succeeded: true }
     }
 
     private async loadFullProjectInBackground(

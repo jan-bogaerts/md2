@@ -10,7 +10,7 @@ import { telemetryService } from '../../services/telemetry/telemetry_service'
 import { dialogService } from '../../services/dialog_service'
 import { ActionEntryPoints } from '../actions/action_entry_points'
 import { CardRunButton } from '../actions/card_run_button'
-import { useRunningActionForFile } from '../hooks/use_action_executions'
+import { useRunningActionForContext } from '../hooks/use_action_runs'
 import { CardDeleteDialog } from './card_delete_dialog'
 import { CardPolicyMenuItem } from './card_policy_menu_item'
 import { CardWorktreeIndicator } from './card_worktree_indicator'
@@ -89,8 +89,9 @@ function ProjectCardViewContent(props: ProjectCardViewContentProps) {
     )
     const accentColor = getCardTypeColor(cardTypes, card.header.id) ?? theme.palette.primary.main
     const accentBackground = alpha(accentColor, 0.16)
-    const runningExecution = useRunningActionForFile(card.path)
-    const statusLabel = runningExecution ? 'Running' : 'Idle'
+    const context = cardContext(card, cardTypes)
+    const runningRun = useRunningActionForContext(context)
+    const statusLabel = runningRun ? 'Running' : 'Idle'
 
     const commitTitle = () => {
         setIsEditingTitle(false)
@@ -228,7 +229,7 @@ function ProjectCardViewContent(props: ProjectCardViewContentProps) {
                         {card.header.id}
                     </Box>
                     <Box component="span" sx={{ alignItems: 'center', color: 'text.secondary', display: 'flex', fontSize: 11, gap: 0.625 }}>
-                        <Box sx={{ bgcolor: runningExecution ? 'success.main' : 'text.disabled', borderRadius: '50%', height: 7, width: 7 }} />
+                        <Box sx={{ bgcolor: runningRun ? 'success.main' : 'text.disabled', borderRadius: '50%', height: 7, width: 7 }} />
                         {statusLabel}
                     </Box>
                     <Box sx={{ flex: 1 }} />
@@ -265,7 +266,7 @@ function ProjectCardViewContent(props: ProjectCardViewContentProps) {
                     <Box sx={{ pointerEvents: 'auto' }}>
                         <CardRunButton
                             card={card}
-                            context={cardContext(card, cardTypes)}
+                            context={context}
                             projectKey={projectKey}
                         />
                     </Box>
@@ -294,7 +295,7 @@ function ProjectCardViewContent(props: ProjectCardViewContentProps) {
                 open={!!actionsAnchorElement || !!actionsMenuPosition}
             >
                 <ActionEntryPoints
-                    context={cardContext(card, cardTypes)}
+                    context={context}
                     onMenuItemSelected={closeCardActions}
                     popupAnchorElement={cardElement}
                     variant="menuItems"

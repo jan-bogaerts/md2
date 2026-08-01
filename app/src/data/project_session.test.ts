@@ -6,10 +6,10 @@ import { configureRemoteControlConnection, REMOTE_CONTROL_ENDPOINT_KEY, REMOTE_C
 
 function createActionBridge(): ElectronActionBridge {
     return {
-        cancelActionExecution: vi.fn(async () => {}),
+        cancelActionRun: vi.fn(async () => {}),
         generateDiff: vi.fn(async () => ({ commit: 'commit-1', files: [] })),
         loadActionRunHistory: vi.fn(async () => []),
-        onActionExecution: vi.fn(() => () => {}),
+        onActionRun: vi.fn(() => () => {}),
         openInEditor: vi.fn(),
         prepareActionPrompt: vi.fn(async () => ({ prompt: '' })),
         runSearchRegexpAgent: vi.fn(async () => ''),

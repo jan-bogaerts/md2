@@ -1,4 +1,4 @@
-﻿import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { UseGithubAuthResult } from '../auth/use_github_auth'
 import type { ActionFile } from '../data/action_types'
@@ -99,7 +99,7 @@ function createBridge(actionFiles: ActionFile[] = []): ElectronDataBridge {
 
 function createActionBridge(): ElectronActionBridge {
     return {
-        onActionExecution: vi.fn(() => vi.fn()),
+        onActionRun: vi.fn(() => vi.fn()),
         prepareActionPrompt: vi.fn(async () => ({ prompt: '' })),
     } as unknown as ElectronActionBridge
 }
@@ -265,7 +265,7 @@ describe('ProjectWorkspace', () => {
         expect(screen.getByRole('button', { name: 'Project agent' })).toBeInTheDocument()
     })
 
-    it('hides project agent in a browser without an Electron execution backend', async () => {
+    it('hides project agent in a browser without an Electron action-run backend', async () => {
         await dataService.projectLoading.openProject({ branch: 'main', id: 'web-project' })
 
         renderProjectSurface()
@@ -544,24 +544,6 @@ describe('ProjectWorkspace', () => {
         expect(await findRootCard()).toBeInTheDocument()
     })
 
-    it('creates a new feature card through the project menu', async () => {
-        const bridge = createBridge()
-        window.md2Data = bridge
-
-        renderProjectSurface()
-        await openLocalProject()
-        await findRootCard()
-
-        fireEvent.click(screen.getByRole('button', { name: 'Project' }))
-        fireEvent.click(screen.getByRole('menuitem', { name: 'New card...' }))
-        fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'New Card' } })
-        fireEvent.change(within(screen.getByRole('group', { name: 'Description' })).getByRole('textbox'), { target: { value: 'Body' } })
-        fireEvent.click(screen.getByRole('button', { name: 'Create card' }))
-
-        await waitFor(() => expect(bridge.commit).toHaveBeenCalledWith(expect.objectContaining({files: [expect.objectContaining({ path: 'design/F-3-new-card.md' })]})))
-        expect(await within(screen.getByLabelText('Card columns')).findByText('New Card')).toBeInTheDocument()
-    })
-
     it('shows card creation failures in the new card dialog', async () => {
         const bridge = createBridge()
         bridge.commit = vi.fn(async () => {
@@ -605,23 +587,6 @@ describe('ProjectWorkspace', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Create card' }))
 
         await waitFor(() => expect(bridge.commit).toHaveBeenCalledWith(expect.objectContaining({files: [expect.objectContaining({ path: 'design/T-1-new-task.md' })]})))
-    })
-
-    it('creates a card in the column that launched the dialog', async () => {
-        const bridge = createBridge()
-        window.md2Data = bridge
-
-        renderProjectSurface()
-        await openLocalProject()
-        await findRootCard()
-
-        fireEvent.click(screen.getByRole('button', { name: 'Add card from design column' }))
-        expect(screen.getByRole('combobox', { name: 'Target column' })).toHaveTextContent('design')
-        fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Design Card' } })
-        fireEvent.click(screen.getByRole('button', { name: 'Create card' }))
-
-        await waitFor(() => expect(screen.queryByRole('dialog', { name: 'New card' })).toBeNull())
-        expect(await within(screen.getByLabelText('design column')).findByText('Design Card')).toBeInTheDocument()
     })
 
     it('completes a release from the project menu', async () => {

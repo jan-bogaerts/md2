@@ -1,4 +1,5 @@
 import { Box, Typography } from '@mui/material'
+import { useMemo } from 'react'
 import type { MarkdownStyleConfig } from '../../theme/theme_config'
 import { buildMarkdownContentSx } from '../editor/markdown_style_sx'
 
@@ -8,7 +9,7 @@ interface MarkdownStylePreviewProps {
 
 export function MarkdownStylePreview(props: MarkdownStylePreviewProps) {
     const { config } = props
-    const contentSx = buildMarkdownContentSx(config)
+    const contentSx = useMemo(() => buildMarkdownContentSx(config), [config])
 
     return (
         <Box aria-label="Markdown style preview" sx={{ border: 1, borderColor: 'divider', borderRadius: 1, p: 2, ...contentSx }}>

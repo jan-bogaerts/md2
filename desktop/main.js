@@ -9,18 +9,18 @@ if (existsSync(desktopEnvironmentPath)) process.loadEnvFile(desktopEnvironmentPa
 
 const Store = require('electron-store');
 const { readDesktopConfig, resolveBridgeAllowedOrigins, writeDesktopConfig } = require('./src/shell/config');
-const { AgentRunnerService } = require('./src/actions/agent_runner_service');
-const { CodexRuntimeService } = require('./src/actions/codex_runtime_service');
-const { AgentExecutableResolver, loadAgentExecutableAvailability } = require('./src/actions/agent_executable_availability');
-const { ActionSchedulerService } = require('./src/actions/action_scheduler_service');
-const { ActionRunnerService } = require('./src/actions/action_runner_service');
+const { AgentRunnerService } = require('./src/actions/agent/agent_runner_service');
+const { CodexRuntimeService } = require('./src/actions/agent/codex_runtime_service');
+const { AgentExecutableResolver, loadAgentExecutableAvailability } = require('./src/actions/agent/agent_executable_availability');
+const { ActionSchedulerService } = require('./src/actions/action/action_scheduler_service');
+const { ActionRunnerService } = require('./src/actions/action/action_runner_service');
 const diffService = require('./src/git/diff_service');
 const { createLocalBridgeDispatch } = require('./src/shell/local_bridge_dispatch');
 const localGitService = require('./src/git/local_git_service');
 const { RemoteControlService } = require('./src/integrations/remote_control_service');
 const remarkableService = require('./src/integrations/remarkable_service');
 const { WorktreeService } = require('./src/git/worktree_service');
-const { ActionWorktreeExecutionService } = require('./src/actions/action_worktree_execution_service');
+const { ActionWorktreeRunService } = require('./src/actions/action/action_worktree_run_service');
 const { captureError, flush, registerProcessErrorHandlers, startElectronTelemetry, trackEvent } = require('./src/integrations/telemetry');
 const { THEME_MODE_STORE_KEY, resolveThemeMode, resolveTitleBarOverlay } = require('./src/shell/theme');
 const { registerNavigationGuards, resolveRendererStaticDir, resolveRendererTarget } = require('./src/shell/renderer_security');
@@ -52,7 +52,7 @@ const {
 const QUIT_FLUSH_TIMEOUT_MS = 5000;
 const QUIT_WATCHDOG_TIMEOUT_MS = 10000;
 const EVENT_METHODS = new Set(['runSearchRegexpAgent', 'startAgentConversation']);
-const SUBSCRIPTION_METHODS = new Set(['onActionExecution', 'onCodexRateLimits', 'onWorktreesChanged', 'watchProject']);
+const SUBSCRIPTION_METHODS = new Set(['onActionRun', 'onCodexRateLimits', 'onWorktreesChanged', 'watchProject']);
 
 const store = new Store();
 Store.initRenderer();
@@ -60,12 +60,12 @@ const agentExecutableResolver = new AgentExecutableResolver();
 const codexRuntimeService = new CodexRuntimeService();
 const agentRunnerService = new AgentRunnerService({ codexRuntimeService, executableResolver: agentExecutableResolver });
 const worktreeService = new WorktreeService({ errorReporter: captureError, runGit: localGitService.runGit });
-const actionWorktreeExecutionService = new ActionWorktreeExecutionService({
+const actionWorktreeRunService = new ActionWorktreeRunService({
     runGit: localGitService.runGit,
     worktreeService,
 });
 const actionRunnerService = new ActionRunnerService({
-    actionWorktreeExecutionService,
+    actionWorktreeRunService,
     agentConfigProvider: () => readDesktopConfig(store),
     agentRunnerService,
     codexRuntimeService,
@@ -79,7 +79,7 @@ const actionSchedulerService = new ActionSchedulerService({
 const localBridgeDispatch = createLocalBridgeDispatch({
     actionRunnerService,
     actionSchedulerService,
-    actionWorktreeExecutionService,
+    actionWorktreeRunService,
     agentExecutableAvailability: (profiles) => loadAgentExecutableAvailability(profiles, { resolver: agentExecutableResolver }),
     agentRunnerService,
     codexRuntimeService,
