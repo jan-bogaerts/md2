@@ -122,6 +122,7 @@ export class DataService extends EventTarget {
             assignCardWorktree: (path, worktree) => this.cards.updateCardWorktree(path, worktree),
             cardSeparatorProvider: () => this.requireDependencies().config.cardSeparator,
             flushPendingChanges: flushAggregatePendingChanges,
+            projectFolderProvider: () => this.requireDependencies().config.projectFolder,
             projectProvider: () => this.projectState.project,
             snapshotProvider: () => this.projectState.snapshot,
             storageProvider: () => this.storage,

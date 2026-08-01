@@ -59,12 +59,14 @@ function initService(
     storage: StorageService,
     projectSnapshot = snapshot(),
     flushPendingChanges = vi.fn(async () => undefined),
+    projectFolder = 'design',
 ) {
     const assignCardWorktree = vi.fn()
     service.init({
         assignCardWorktree,
         cardSeparatorProvider: () => '-',
         flushPendingChanges,
+        projectFolderProvider: () => projectFolder,
         projectProvider: () => project,
         snapshotProvider: () => projectSnapshot,
         storageProvider: () => storage,
@@ -219,9 +221,10 @@ describe('WorktreeService', () => {
     it('flushes project changes before integrating a card worktree', async () => {
         const { emit, storage } = createStorage()
         const service = new WorktreeService()
-        const assignedCard = card('design/F-1.md', 'Assigned', 1)
+        const assignedCard = card('design/feature_descriptions/F-1.md', 'Assigned', 1)
         const flushPendingChanges = vi.fn(async () => undefined)
-        initService(service, storage, snapshot([assignedCard]), flushPendingChanges)
+        const projectSnapshot = { ...snapshot([assignedCard]), workingFolder: 'design/feature_descriptions' }
+        initService(service, storage, projectSnapshot, flushPendingChanges)
         emit(project, [first])
 
         await service.integrateCardWorktree(assignedCard.path)

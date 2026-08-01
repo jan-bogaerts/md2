@@ -15,6 +15,7 @@ interface WorktreeServiceDependencies {
     assignCardWorktree: (path: string, worktree: number | null) => void
     cardSeparatorProvider: () => CardSeparator
     flushPendingChanges: () => Promise<void>
+    projectFolderProvider: () => string
     projectProvider: () => ProjectReference | null
     snapshotProvider: () => ProjectSnapshot | null
     storageProvider: () => StorageService | null
@@ -31,6 +32,7 @@ export class WorktreeService extends EventTarget {
     private preparingProjectWorktree = false
     private projectActionWorktree: number | null = null
     private primaryStatus: WorktreeStatus | null = null
+    private projectFolderProvider: (() => string) | null = null
     private projectProvider: (() => ProjectReference | null) | null = null
     private records: WorktreeRecord[] = []
     private snapshotProvider: (() => ProjectSnapshot | null) | null = null
@@ -92,6 +94,7 @@ export class WorktreeService extends EventTarget {
         this.assignCardWorktreeValue = dependencies.assignCardWorktree
         this.cardSeparatorProvider = dependencies.cardSeparatorProvider
         this.flushPendingChanges = dependencies.flushPendingChanges
+        this.projectFolderProvider = dependencies.projectFolderProvider
         this.projectProvider = dependencies.projectProvider
         this.snapshotProvider = dependencies.snapshotProvider
         this.storageProvider = dependencies.storageProvider
@@ -192,9 +195,10 @@ export class WorktreeService extends EventTarget {
     }
 
     async integrateCardWorktree(path: string) {
-        const { card, project, projectFolder, storage, worktree } = this.requireCardOperation(path)
+        const { card, project, storage, worktree } = this.requireCardOperation(path)
         if (!storage.integrateWorktree) throw new Error('Worktree integration requires Electron local mode')
         if (!card.header.internalId) throw new Error(`Cannot integrate card without an internal ID: ${path}`)
+        const projectFolder = this.requireProjectFolder()
 
         this.startCardOperation(path)
         try {
@@ -347,7 +351,7 @@ export class WorktreeService extends EventTarget {
 
         this.requireValidRecord(worktree)
 
-        return { card, project: this.requireProject(), projectFolder: snapshot.workingFolder, storage: this.requireStorage(), worktree }
+        return { card, project: this.requireProject(), storage: this.requireStorage(), worktree }
     }
 
     private startProjectOperation() {
@@ -375,6 +379,13 @@ export class WorktreeService extends EventTarget {
         if (!this.assignCardWorktreeValue) throw new Error('Worktree card assignment is not initialized')
 
         return this.assignCardWorktreeValue
+    }
+
+    private requireProjectFolder() {
+        const projectFolder = this.projectFolderProvider?.()
+        if (typeof projectFolder !== 'string') throw new Error('Worktree project folder is not initialized')
+
+        return projectFolder
     }
 
     private requireCard(path: string): ProjectCard {
