@@ -1,4 +1,5 @@
 import { buildReleaseMoves, findArchiveAssetPaths, validateReleaseName } from '../data/release_archiving'
+import { statusOf } from '../data/card_ordering'
 import type { MarkdownFile, ProjectAsset, ProjectReference, ProjectSnapshot } from '../data/data_types'
 import { type RequiredDataServiceDependencies } from './data/data_service_context'
 import { telemetryService } from './telemetry/telemetry_service'
@@ -31,16 +32,20 @@ export class ReleaseOperations {
         const safeReleaseName = validateReleaseName(releaseName)
         await this.flushPendingCommitBatch()
 
+        const finalState = config.states.at(-1)
+        if (!finalState) throw new Error('Cannot complete a release without configured states')
+
         const activeCards = this.dependencies.snapshot()?.activeCards ?? []
-        if (activeCards.length === 0) throw new Error('Cannot complete a release without active cards')
+        const releaseCards = activeCards.filter((card) => statusOf(card) === finalState.state)
+        if (releaseCards.length === 0) throw new Error(`Cannot complete a release without cards in the final column: ${finalState.state}`)
 
         const repositoryFiles = this.dependencies.snapshot()?.repositoryFiles ?? []
         const files = this.dependencies.files()
-        const assetPaths = findArchiveAssetPaths(files, activeCards)
+        const assetPaths = findArchiveAssetPaths(files, releaseCards)
         const assetFiles = await this.loadReleaseAssets(assetPaths)
         const moves = buildReleaseMoves(
             [...files, ...assetFiles],
-            activeCards,
+            releaseCards,
             config.projectFolder,
             config.releasesFolder,
             safeReleaseName,

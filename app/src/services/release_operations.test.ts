@@ -3,6 +3,11 @@ import type { MarkdownFile } from '../data/data_types'
 import { configService } from './config/config_service'
 import { createDataService, createStorage, files, storageFiles } from './test_support/data_service_test_support'
 
+const RELEASE_STATES = [
+    { alwaysVisible: true, state: 'active' },
+    { alwaysVisible: true, state: 'done' },
+]
+
 describe('ReleaseOperations', () => {
     afterEach(() => {
         vi.useRealTimers()
@@ -12,21 +17,25 @@ describe('ReleaseOperations', () => {
 
     it('completes a release under the configured project releases folder and refreshes the snapshot', async () => {
         configService.init()
-        const activeRootFile = { ...files[0], path: 'design/active/F-1-root.md' }
+        const finalColumnFile = {
+            ...files[0],
+            content: files[0].content.replace('status: active', 'status: done'),
+            path: 'design/active/F-1-root.md',
+        }
         const releaseFiles: MarkdownFile[] = [
-            activeRootFile,
+            finalColumnFile,
             { content: '---\nid: F-2\ninternalId: imported-card\ntitle: Imported\nstatus: active\n---\n\n# Imported', path: 'design/active/F-2-imported.md' },
             files[1],
         ]
         const archivedFiles: MarkdownFile[] = [
-            { content: files[0].content, path: 'design/releases/v1/F-1-root.md' },
-            { content: releaseFiles[1].content, path: 'design/releases/v1/F-2-imported.md' },
+            { content: finalColumnFile.content, path: 'design/releases/v1/F-1-root.md' },
+            releaseFiles[1],
             files[1],
         ]
         const storage = createStorage({
             listRepositoryFiles: vi.fn()
-                .mockResolvedValueOnce(['design/active/F-1-root.md'])
-                .mockResolvedValueOnce(['design/releases/v1/F-1-root.md']),
+                .mockResolvedValueOnce(['design/active/F-1-root.md', 'design/active/F-2-imported.md'])
+                .mockResolvedValueOnce(['design/active/F-2-imported.md', 'design/releases/v1/F-1-root.md']),
             loadProject: vi.fn()
                 .mockResolvedValueOnce({ files: releaseFiles, workingFolder: 'design' })
                 .mockResolvedValueOnce({ files: archivedFiles, workingFolder: 'design' }),
@@ -35,6 +44,7 @@ describe('ReleaseOperations', () => {
                 backgroundShade: 'blue' as const,
                 projectFolder: 'design',
                 releasesFolder: 'releases',
+                states: RELEASE_STATES,
                 workingFolder: 'active',
             })),
             loadProjectRoot: vi.fn(async () => ({ files: releaseFiles.slice(0, 2), workingFolder: 'design/active' })),
@@ -50,30 +60,24 @@ describe('ReleaseOperations', () => {
             message: 'Complete release v1',
             moves: [
                 {
-                    content: files[0].content,
+                    content: finalColumnFile.content,
                     fromPath: 'design/active/F-1-root.md',
                     sha: undefined,
                     toPath: 'design/releases/v1/F-1-root.md',
-                },
-                {
-                    content: releaseFiles[1].content,
-                    fromPath: 'design/active/F-2-imported.md',
-                    sha: undefined,
-                    toPath: 'design/releases/v1/F-2-imported.md',
                 },
             ],
         })
         expect(storage.push).toHaveBeenCalledWith({ branch: 'main', id: 'project' })
         if (!snapshot) throw new Error('Expected release completion to return a snapshot')
 
-        expect(snapshot.activeCards).toHaveLength(0)
+        expect(snapshot.activeCards.map((card) => card.path)).toEqual(['design/active/F-2-imported.md'])
         expect(snapshot.backgroundCards.map((card) => card.path)).toContain('design/releases/v1/F-1-root.md')
     })
 
     it('loads referenced assets and includes them in the release move batch', async () => {
         configService.init()
         const releaseFiles: MarkdownFile[] = [
-            { content: '---\nid: F-1\ninternalId: root-card\ntitle: Root\nstatus: active\n---\n\n# Root\n\n![note](note.png)', path: 'design/F-1-root.md' },
+            { content: '---\nid: F-1\ninternalId: root-card\ntitle: Root\nstatus: done\n---\n\n# Root\n\n![note](note.png)', path: 'design/F-1-root.md' },
         ]
         const archivedFiles: MarkdownFile[] = [
             { content: releaseFiles[0].content, path: 'history/v1/F-1-root.md' },
@@ -89,6 +93,7 @@ describe('ReleaseOperations', () => {
                 encoding: 'base64' as const,
                 path: 'design/note.png',
             })),
+            loadProjectConfig: vi.fn(async () => ({ projectFolder: '', states: RELEASE_STATES, workingFolder: 'design' })),
             loadProjectRoot: vi.fn(async () => ({ files: releaseFiles, workingFolder: 'design' })),
         })
         const service = createDataService()
@@ -131,13 +136,29 @@ describe('ReleaseOperations', () => {
         expect(storage.moveFiles).not.toHaveBeenCalled()
     })
 
+    it('rejects release completion when the final column has no cards', async () => {
+        configService.init()
+        const storage = createStorage({loadProjectConfig: vi.fn(async () => ({ projectFolder: '', states: RELEASE_STATES, workingFolder: 'design' }))})
+        const service = createDataService()
+        service.init({ storage })
+
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+
+        await expect(service.releases.completeRelease('v1')).rejects.toThrow('without cards in the final column: done')
+        expect(storage.moveFiles).not.toHaveBeenCalled()
+    })
+
     it('rejects duplicate release folders before moving files', async () => {
         configService.init()
+        const finalColumnFile = { ...files[0], content: files[0].content.replace('status: active', 'status: done') }
         const storage = createStorage({
+            listRepositoryFiles: vi.fn(async () => ['design/F-1-root.md', 'history/v1/F-9.md']),
             loadProject: vi.fn(async () => ({
-                files: [...storageFiles, { content: '# Archived', path: 'history/v1/F-9.md' }],
+                files: [finalColumnFile, ...storageFiles.slice(1), { content: '# Archived', path: 'history/v1/F-9.md' }],
                 workingFolder: 'design',
             })),
+            loadProjectConfig: vi.fn(async () => ({ projectFolder: '', states: RELEASE_STATES, workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: [finalColumnFile], workingFolder: 'design' })),
         })
         const service = createDataService()
         service.init({ storage })
@@ -150,12 +171,20 @@ describe('ReleaseOperations', () => {
 
     it('leaves release completion unpushed in manual mode', async () => {
         configService.init()
-        const archivedFiles: MarkdownFile[] = [{ content: files[0].content, path: 'history/v1/F-1-root.md' }]
+        const finalColumnFile = { ...files[0], content: files[0].content.replace('status: active', 'status: done') }
+        const archivedFiles: MarkdownFile[] = [{ content: finalColumnFile.content, path: 'history/v1/F-1-root.md' }]
         const storage = createStorage({
             loadProject: vi.fn()
-                .mockResolvedValueOnce({ files: storageFiles, workingFolder: 'design' })
+                .mockResolvedValueOnce({ files: [finalColumnFile, ...storageFiles.slice(1)], workingFolder: 'design' })
                 .mockResolvedValueOnce({ files: archivedFiles, workingFolder: 'design' }),
-            loadProjectConfig: vi.fn(async () => ({ backgroundShade: 'blue' as const, projectFolder: '', pushMode: 'manual' as const, workingFolder: 'design' })),
+            loadProjectConfig: vi.fn(async () => ({
+                backgroundShade: 'blue' as const,
+                projectFolder: '',
+                pushMode: 'manual' as const,
+                states: RELEASE_STATES,
+                workingFolder: 'design',
+            })),
+            loadProjectRoot: vi.fn(async () => ({ files: [finalColumnFile], workingFolder: 'design' })),
         })
         const service = createDataService()
         service.init({ storage })
