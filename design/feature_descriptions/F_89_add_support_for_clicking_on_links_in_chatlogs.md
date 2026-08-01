@@ -7,10 +7,6 @@ status: in progress
 owner: 
 affects:
 agents:
-  - design/activity/card__9ef42f8e-d6f7-4514-8e4a-5555318c4b51.json#conversation=agent-8f29aec9-2a25-4b34-901d-7e1888b7c54c
-  - design/activity/card__9ef42f8e-d6f7-4514-8e4a-5555318c4b51.json#conversation=agent-3870dd3a-434f-4a6a-96ee-7817aa6dcb64
-  - design/activity/card__9ef42f8e-d6f7-4514-8e4a-5555318c4b51.json#conversation=agent-043a2500-69db-4780-8a38-2b09fd7c75cd
-  - design/activity/card__9ef42f8e-d6f7-4514-8e4a-5555318c4b51.json#conversation=agent-dfb64fe8-31c4-4a33-bb76-469d3c6ab95c
 policy:
 after: 
 ---
