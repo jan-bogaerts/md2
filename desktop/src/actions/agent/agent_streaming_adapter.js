@@ -1,7 +1,7 @@
 const { normalizeAgentTokenUsage } = require('../../../../shared/agent_usage_math.mjs');
 const { claudeAssistantText, claudeChangedPaths, claudeTranscriptEvents, claudeUsage } = require('./agent_claude_events');
 const { codexChangedPaths } = require('./agent_codex_events');
-const { diagnosticActivity, normalizeCodexActivity, systemActivity } = require('./agent_codex_activity');
+const { diagnosticEvent, normalizeCodexEvent, systemEvent } = require('./agent_codex_event');
 const { isMissingSession } = require('./agent_provider_protocol');
 
 const CODEX_CLIENT_NAME = 'md2';
@@ -14,7 +14,7 @@ const CODEX_APPROVAL_METHODS = new Map([
 const CODEX_COMMAND_APPROVAL_DECISIONS = ['accept', 'acceptForSession', 'decline', 'cancel'];
 const CODEX_FILE_APPROVAL_DECISIONS = ['accept', 'acceptForSession', 'decline', 'cancel'];
 const CLAUDE_QUESTION_TOOL = 'AskUserQuestion';
-const CODEX_NON_ACTIVITY_ITEM_TYPES = new Set(['agentMessage', 'hookPrompt', 'userMessage']);
+const CODEX_NON_EVENT_ITEM_TYPES = new Set(['agentMessage', 'hookPrompt', 'userMessage']);
 
 function requireMessage(content) {
     if (typeof content !== 'string' || content.trim().length === 0) throw new Error('Streaming agent message is required');
@@ -159,9 +159,9 @@ function codexUsage(params) {
     });
 }
 
-function ensureActivityTextPart(activity, field, index) {
+function ensureEventTextPart(event, field, index) {
     if (!Number.isSafeInteger(index) || index < 0) return;
-    while (activity[field].length <= index) activity[field].push('');
+    while (event[field].length <= index) event[field].push('');
 }
 
 function isCodexMissingThreadError(error, providerConversationId) {
@@ -396,8 +396,8 @@ class CodexStreamingAdapter {
         if (method === 'item/reasoning/summaryPartAdded') {
             const trackedItem = await this.requireActiveItem(method, params.itemId, 'reasoning');
             if (!trackedItem) return;
-            ensureActivityTextPart(trackedItem.activity, 'summary', params.summaryIndex);
-            await this.emitActivity(trackedItem.activity);
+            ensureEventTextPart(trackedItem.event, 'summary', params.summaryIndex);
+            await this.emitEvent(trackedItem.event);
             return;
         }
         if (method === 'item/reasoning/textDelta') {
@@ -407,16 +407,16 @@ class CodexStreamingAdapter {
         if (method === 'item/commandExecution/outputDelta') {
             const trackedItem = await this.requireActiveItem(method, params.itemId, 'commandExecution');
             if (!trackedItem) return;
-            trackedItem.activity.output += params.delta;
-            trackedItem.activity.content = trackedItem.activity.output;
-            await this.emitActivity(trackedItem.activity);
+            trackedItem.event.output += params.delta;
+            trackedItem.event.content = trackedItem.event.output;
+            await this.emitEvent(trackedItem.event);
             return;
         }
         if (method === 'item/plan/delta') {
             const trackedItem = await this.requireActiveItem(method, params.itemId, 'plan');
             if (!trackedItem) return;
-            trackedItem.activity.content += params.delta;
-            await this.emitActivity(trackedItem.activity);
+            trackedItem.event.content += params.delta;
+            await this.emitEvent(trackedItem.event);
             return;
         }
         if (method === 'thread/tokenUsage/updated') {
@@ -431,14 +431,14 @@ class CodexStreamingAdapter {
             await this.handleItemCompleted(method, params.item);
             return;
         }
-        const normalizedSystemActivity = systemActivity(method, params);
-        if (normalizedSystemActivity) {
-            await this.emitActivity(normalizedSystemActivity);
+        const normalizedSystemEvent = systemEvent(method, params);
+        if (normalizedSystemEvent) {
+            await this.emitEvent(normalizedSystemEvent);
             return;
         }
         if (method === 'error') {
             const content = params.error?.message ?? 'Codex turn failed';
-            await this.emitActivity({
+            await this.emitEvent({
                 content,
                 label: 'Turn failure',
                 providerItemId: `system:${this.activeTurnId ?? 'unknown-turn'}:error`,
@@ -453,7 +453,7 @@ class CodexStreamingAdapter {
                 ? params.turn.error?.message ?? 'Codex turn failed'
                 : null;
             if (error) {
-                await this.emitActivity({
+                await this.emitEvent({
                     content: error,
                     label: 'Turn failure',
                     providerItemId: `system:${params.turn?.id ?? this.activeTurnId ?? 'unknown-turn'}:turn/completed`,
@@ -500,10 +500,10 @@ class CodexStreamingAdapter {
             await this.emitDiagnostic(method, item.type, item.id);
             return;
         }
-        const activity = normalizeCodexActivity(item, 'inProgress');
-        const knownNonActivity = CODEX_NON_ACTIVITY_ITEM_TYPES.has(item.type);
+        const event = normalizeCodexEvent(item, 'inProgress');
+        const knownNonEvent = CODEX_NON_EVENT_ITEM_TYPES.has(item.type);
         const trackedItem = {
-            activity,
+            event,
             assistantCompleted: false,
             assistantText: false,
             bufferedAssistantText: '',
@@ -516,11 +516,11 @@ class CodexStreamingAdapter {
             this.assistantStreams.set(item.id, trackedItem);
             await this.onEvent({ itemId: item.id, type: 'assistantStarted' });
         }
-        if (activity) {
-            await this.emitActivity(activity);
+        if (event) {
+            await this.emitEvent(event);
             return;
         }
-        if (!knownNonActivity) await this.emitDiagnostic(method, item.type, item.id);
+        if (!knownNonEvent) await this.emitDiagnostic(method, item.type, item.id);
     }
 
     async handleItemCompleted(method, item) {
@@ -544,9 +544,9 @@ class CodexStreamingAdapter {
         }
         const changedPaths = codexChangedPaths(item, this.rootPath);
         if (changedPaths.length > 0) await this.onEvent({ paths: changedPaths, type: 'changedPaths' });
-        const activity = normalizeCodexActivity(item, 'completed');
-        if (activity) await this.emitActivity(activity);
-        if (!activity && !CODEX_NON_ACTIVITY_ITEM_TYPES.has(item.type) && trackedItem) {
+        const event = normalizeCodexEvent(item, 'completed');
+        if (event) await this.emitEvent(event);
+        if (!event && !CODEX_NON_EVENT_ITEM_TYPES.has(item.type) && trackedItem) {
             await this.emitDiagnostic(method, item.type, item.id);
         }
         this.activeItems.delete(item.id);
@@ -570,12 +570,12 @@ class CodexStreamingAdapter {
             if (trackedItem) await this.emitDiagnostic(method, 'reasoning', params.itemId);
             return;
         }
-        ensureActivityTextPart(trackedItem.activity, field, index);
-        trackedItem.activity[field][index] += params.delta;
-        trackedItem.activity.content = trackedItem.activity.summary.length > 0
-            ? trackedItem.activity.summary.join('\n\n')
-            : trackedItem.activity.details.join('\n\n');
-        await this.emitActivity(trackedItem.activity);
+        ensureEventTextPart(trackedItem.event, field, index);
+        trackedItem.event[field][index] += params.delta;
+        trackedItem.event.content = trackedItem.event.summary.length > 0
+            ? trackedItem.event.summary.join('\n\n')
+            : trackedItem.event.details.join('\n\n');
+        await this.emitEvent(trackedItem.event);
     }
 
     async flushAssistantStreams() {
@@ -598,14 +598,14 @@ class CodexStreamingAdapter {
         }
     }
 
-    async emitActivity(activity) {
-        await this.onEvent({ activity: structuredClone(activity), type: 'activity' });
+    async emitEvent(event) {
+        await this.onEvent({ event: structuredClone(event), type: 'event' });
     }
 
     async emitDiagnostic(method, itemType, itemId) {
-        const activity = diagnosticActivity(method, itemType, itemId, this.diagnosticSequence);
+        const event = diagnosticEvent(method, itemType, itemId, this.diagnosticSequence);
         this.diagnosticSequence += 1;
-        await this.emitActivity(activity);
+        await this.emitEvent(event);
     }
 }
 

@@ -7,10 +7,9 @@ function conversation(): AgentConversation {
     return {
         cardPath: '.md2-search-regexp',
         completedAt: '2026-01-01T00:01:00.000Z',
-        events: [],
+        entries: [],
         hasExplicitTitle: true,
         id: 'agent-1',
-        messages: [],
         path: '.md2-agent-logs/one.json',
         providerSessions: [],
         startedAt: '2026-01-01T00:00:00.000Z',
@@ -34,10 +33,10 @@ function makeBridge(runSearchRegexpAgent: ElectronActionBridge['runSearchRegexpA
 
 function emitAgentEvents(callback?: (event: AgentRunEvent) => void) {
     const agentConversation = conversation()
-    const userMessage = { content: 'Find matches', id: 'message-1', role: 'user' as const, timestamp: agentConversation.startedAt }
+    const userMessage = { content: 'Find matches', id: 'message-1', kind: 'message' as const, role: 'user' as const, timestamp: agentConversation.startedAt }
     callback?.({
-        conversationId: agentConversation.id, reference: agentConversation.path, runId: 'agent-1', startedAt: agentConversation.startedAt,
-        title: agentConversation.title, type: 'started', userMessage,
+        conversationId: agentConversation.id, entries: [userMessage], reference: agentConversation.path, runId: 'agent-1',
+        startedAt: agentConversation.startedAt, title: agentConversation.title, type: 'started',
     })
     callback?.({ reference: agentConversation.path, runId: 'agent-1', status: agentConversation.status, type: 'closed' })
 }

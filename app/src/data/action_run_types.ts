@@ -1,5 +1,5 @@
 import type { ActionContext } from './action_context'
-import type { AgentConversationEvent, AgentConversationMessage } from './data_types'
+import type { AgentConversationEntry, AgentConversationEventEntry, AgentConversationMessageEntry } from './data_types'
 import type { ThinkingLevel } from './agent_profiles'
 import type { ActionAutoFinish, ActionType } from './action_types'
 
@@ -114,11 +114,11 @@ export type ActionExecutionUpdate =
     | {
         continued?: boolean
         conversationId: string
+        entries: AgentConversationEntry[]
         kind: 'agentStarted'
         reference: string
         startedAt: string
         title: string
-        userMessage: AgentConversationMessage
     }
     | {
         kind: 'agentQuestion'
@@ -135,11 +135,11 @@ export type ActionExecutionUpdate =
     }
     | {
         kind: 'agentQuestionAnswer' | 'agentUserMessage'
-        userMessage: AgentConversationMessage
+        userMessage: AgentConversationMessageEntry
     }
     | {
-        activity: AgentConversationEvent
-        kind: 'agentActivity'
+        event: AgentConversationEventEntry
+        kind: 'agentEvent'
     }
     | {
         command?: string

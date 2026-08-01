@@ -4,10 +4,10 @@ const crossSpawn = require('cross-spawn');
 
 const {
     accumulateUsage,
-    createActivityEvent,
+    createProviderEventEntry,
     createConversation,
-    createEvent,
-    createMessage,
+    createEventEntry,
+    createMessageEntry,
     updateProviderSession,
 } = require('./agent_conversation');
 const {
@@ -129,16 +129,16 @@ function redactTextArray(values, secretValues) {
     return values.map((value) => redactSecrets(value, secretValues));
 }
 
-function redactActivity(activity, secretValues) {
+function redactConversationEvent(event, secretValues) {
     return {
-        ...activity,
-        command: redactSecrets(activity.command, secretValues),
-        content: redactSecrets(activity.content, secretValues),
-        details: Array.isArray(activity.details) ? redactTextArray(activity.details, secretValues) : activity.details,
-        label: redactSecrets(activity.label, secretValues),
-        output: redactSecrets(activity.output, secretValues),
-        summary: Array.isArray(activity.summary) ? redactTextArray(activity.summary, secretValues) : activity.summary,
-        workingDirectory: redactSecrets(activity.workingDirectory, secretValues),
+        ...event,
+        command: redactSecrets(event.command, secretValues),
+        content: redactSecrets(event.content, secretValues),
+        details: Array.isArray(event.details) ? redactTextArray(event.details, secretValues) : event.details,
+        label: redactSecrets(event.label, secretValues),
+        output: redactSecrets(event.output, secretValues),
+        summary: Array.isArray(event.summary) ? redactTextArray(event.summary, secretValues) : event.summary,
+        workingDirectory: redactSecrets(event.workingDirectory, secretValues),
     };
 }
 
@@ -148,12 +148,11 @@ function requireQueuedMessageSession(run, sessionId) {
 }
 
 function nextConversationSequence(conversation) {
-    const entries = [...conversation.messages, ...conversation.events];
-    const highestSequence = entries.reduce((highest, entry) => (
+    const highestSequence = conversation.entries.reduce((highest, entry) => (
         Number.isSafeInteger(entry.sequence) ? Math.max(highest, entry.sequence) : highest
     ), 0);
 
-    return Math.max(highestSequence, entries.length) + 1;
+    return Math.max(highestSequence, conversation.entries.length) + 1;
 }
 
 function nextRunSequence(run) {
@@ -163,22 +162,26 @@ function nextRunSequence(run) {
     return sequence;
 }
 
-function createActivityEventIndexes(events) {
-    const activityEventIndexes = new Map();
-    for (const [index, { providerItemId }] of events.entries()) {
-        if (typeof providerItemId === 'string' && !activityEventIndexes.has(providerItemId)) {
-            activityEventIndexes.set(providerItemId, index);
+function createProviderEventEntryIndexes(entries) {
+    const providerEventEntryIndexes = new Map();
+    for (const [index, entry] of entries.entries()) {
+        if (entry.kind === 'event' && typeof entry.providerItemId === 'string' && !providerEventEntryIndexes.has(entry.providerItemId)) {
+            providerEventEntryIndexes.set(entry.providerItemId, index);
         }
     }
 
-    return activityEventIndexes;
+    return providerEventEntryIndexes;
+}
+
+function lastMessageEntry(conversation) {
+    return conversation.entries.findLast(({ kind }) => kind === 'message');
 }
 
 function assistantMessageId(run) {
     return run.streaming ? `${run.id}-turn-${run.turnIndex}-assistant` : `${run.id}-assistant`;
 }
 
-function startAssistantItem(run, itemId) {
+function startAssistantItem(run, itemId, timestamp) {
     if (run.assistantItems.has(itemId)) throw new Error(`Duplicate assistant item ${itemId}`);
     run.assistantItemIndex += 1;
     const item = {
@@ -187,6 +190,14 @@ function startAssistantItem(run, itemId) {
     };
     run.assistantItems.set(itemId, item);
     run.currentAssistantMessageId = item.messageId;
+    run.conversation.entries.push(createMessageEntry(
+        item.messageId,
+        'assistant',
+        '',
+        timestamp,
+        run.agent,
+        item.sequence,
+    ));
 
     return item;
 }
@@ -223,10 +234,10 @@ function appendAssistantOutput(run, content, timestamp, itemId = null) {
     run.stdout += segment;
     const item = assistantItem(run, itemId);
     const messageId = item?.messageId ?? assistantMessageId(run);
-    const currentIndex = run.conversation.messages.findIndex(({ id }) => id === messageId);
+    const currentIndex = run.conversation.entries.findIndex((entry) => entry.kind === 'message' && entry.id === messageId);
     if (currentIndex < 0) {
         const initialContent = run.streaming ? content : content.replace(/^\n+|\n+$/g, '');
-        const message = createMessage(
+        const message = createMessageEntry(
             messageId,
             'assistant',
             initialContent,
@@ -234,24 +245,24 @@ function appendAssistantOutput(run, content, timestamp, itemId = null) {
             run.agent,
             item?.sequence ?? nextRunSequence(run),
         );
-        run.conversation.messages.push(message);
+        run.conversation.entries.push(message);
 
         return { message, segment };
     }
 
-    const current = run.conversation.messages[currentIndex];
+    const current = run.conversation.entries[currentIndex];
     const message = { ...current, content: joinChunk(current.content, content, run.streaming), timestamp };
-    run.conversation.messages[currentIndex] = message;
+    run.conversation.entries[currentIndex] = message;
 
     return { message, segment };
 }
 
 function completeAssistantOutput(run, completedAt) {
     const messageId = run.currentAssistantMessageId ?? assistantMessageId(run);
-    const currentIndex = run.conversation.messages.findIndex(({ id }) => id === messageId);
+    const currentIndex = run.conversation.entries.findIndex((entry) => entry.kind === 'message' && entry.id === messageId);
     if (currentIndex < 0) return;
 
-    run.conversation.messages[currentIndex] = { ...run.conversation.messages[currentIndex], timestamp: completedAt };
+    run.conversation.entries[currentIndex] = { ...run.conversation.entries[currentIndex], timestamp: completedAt };
 }
 
 function createRunResult(request, exitCode, run) {
@@ -326,14 +337,14 @@ class AgentRunnerService {
         let nextSequence = nextConversationSequence(conversation);
         if (this.runningConversationIds.has(conversation.id)) throw new Error(`Agent conversation already has a running turn: ${conversation.id}`);
         const reference = request.reference ?? conversationReference(request, conversation.id);
-        const lastMessage = conversation.messages.at(-1);
+        const lastMessage = lastMessageEntry(conversation);
         if (request.reuseLastUserMessage) {
             if (lastMessage?.role !== 'user' || lastMessage.content !== prompt) throw new Error('Missing failed-turn user message for agent retry');
         } else {
-            conversation.messages.push(createMessage(`${id}-user`, 'user', prompt, startedAt, undefined, nextSequence));
+            conversation.entries.push(createMessageEntry(`${id}-user`, 'user', prompt, startedAt, undefined, nextSequence));
             nextSequence += 1;
         }
-        conversation.events.push(createEvent(`${id}-started`, 'started', command.join(' '), startedAt, nextSequence));
+        conversation.entries.push(createEventEntry(`${id}-started`, 'started', command.join(' '), startedAt, nextSequence));
         nextSequence += 1;
         const [configuredExecutable, ...configuredArguments] = command;
         const environment = createAgentEnvironment(process.env);
@@ -358,7 +369,7 @@ class AgentRunnerService {
         });
         const { promise: closed, resolve: resolveClosed } = Promise.withResolvers();
         const run = {
-            activityEventIndexes: createActivityEventIndexes(conversation.events),
+            providerEventEntryIndexes: createProviderEventEntryIndexes(conversation.entries),
             agent,
             assistantItemIndex: 0,
             assistantItems: new Map(),
@@ -454,16 +465,16 @@ class AgentRunnerService {
             if (typeof request.contextInput === 'string' && request.contextInput.length > 0) child.stdin.write(request.contextInput);
             child.stdin.end();
         }
-        const userMessage = conversation.messages.at(-1);
+        const userMessage = lastMessageEntry(conversation);
         if (!userMessage || userMessage.role !== 'user') throw new Error('Missing current agent user message');
         emitRunEvent(run, {
             continued: !!request.conversation,
             conversationId: conversation.id,
+            entries: structuredClone(conversation.entries),
             reference,
             startedAt,
             title: conversation.title,
             type: 'started',
-            userMessage,
         });
 
         return { conversation: { ...conversation, path: reference }, reference, runId: id };
@@ -539,9 +550,9 @@ class AgentRunnerService {
         }
         const timestamp = new Date().toISOString();
         if (run.conversation.status === 'waitingForInput') run.turnIndex += 1;
-        const messageId = `${run.id}-user-${run.conversation.messages.length}`;
-        run.conversation.messages.push(createMessage(messageId, 'user', message, timestamp, undefined, nextRunSequence(run)));
-        const userMessage = run.conversation.messages.at(-1);
+        const messageId = `${run.id}-user-${run.conversation.entries.length}`;
+        run.conversation.entries.push(createMessageEntry(messageId, 'user', message, timestamp, undefined, nextRunSequence(run)));
+        const userMessage = lastMessageEntry(run.conversation);
         run.conversation.status = 'running';
         run.turnActive = true;
         await this.persistCheckpoint(run);
@@ -583,15 +594,15 @@ class AgentRunnerService {
                 throw error;
             }
             const timestamp = new Date().toISOString();
-            run.conversation.messages.push(createMessage(
-                `${run.id}-answer-${run.conversation.messages.length}`,
+            run.conversation.entries.push(createMessageEntry(
+                `${run.id}-answer-${run.conversation.entries.length}`,
                 'user',
                 content,
                 timestamp,
                 undefined,
                 nextRunSequence(run),
             ));
-            const userMessage = run.conversation.messages.at(-1);
+            const userMessage = lastMessageEntry(run.conversation);
             run.waitingForQuestion = false;
             run.pendingQuestions = [];
             const state = hasPendingInteraction(run) ? 'waitingForInput' : 'running';
@@ -750,8 +761,8 @@ class AgentRunnerService {
             return;
         }
         run.stderr += safeContent;
-        run.conversation.events.push(createEvent(
-            `${runId}-error-${run.conversation.events.length}`,
+        run.conversation.entries.push(createEventEntry(
+            `${runId}-error-${run.conversation.entries.length}`,
             'error',
             safeContent,
             timestamp,
@@ -780,8 +791,8 @@ class AgentRunnerService {
         if (providerEvent.conversationId) run.providerConversationId = providerEvent.conversationId;
         if (providerEvent.usage) run.turnUsage = providerEvent.usage;
         for (const transcriptEvent of providerEvent.transcriptEvents) {
-            run.conversation.events.push(createEvent(
-                `${runId}-provider-${run.conversation.events.length}`,
+            run.conversation.entries.push(createEventEntry(
+                `${runId}-provider-${run.conversation.entries.length}`,
                 transcriptEvent.toolType,
                 transcriptEvent.content,
                 timestamp,
@@ -795,8 +806,8 @@ class AgentRunnerService {
             const separator = run.stderr.length > 0 && !run.stderr.endsWith('\n') ? '\n' : '';
             run.reportedProviderErrors.add(providerEvent.errorText);
             run.stderr += `${separator}${providerEvent.errorText}`;
-            run.conversation.events.push(createEvent(
-                `${runId}-error-${run.conversation.events.length}`,
+            run.conversation.entries.push(createEventEntry(
+                `${runId}-error-${run.conversation.entries.length}`,
                 'error',
                 providerEvent.errorText,
                 timestamp,
@@ -823,7 +834,8 @@ class AgentRunnerService {
             return;
         }
         if (event.type === 'assistantStarted') {
-            startAssistantItem(run, requireString(event.itemId, 'assistant item id'));
+            const item = startAssistantItem(run, requireString(event.itemId, 'assistant item id'), timestamp);
+            emitRunEvent(run, { content: '', messageId: item.messageId, sequence: item.sequence, type: 'output' });
             return;
         }
         if (event.type === 'assistant') {
@@ -841,33 +853,33 @@ class AgentRunnerService {
             event.paths.forEach((filePath) => run.changedPaths.add(filePath));
             return;
         }
-        if (event.type === 'activity') {
-            const safeActivity = redactActivity(event.activity, run.secretValues);
-            const providerItemId = requireString(safeActivity.providerItemId, 'activity providerItemId');
-            const currentIndex = run.activityEventIndexes.get(providerItemId);
-            let activity;
+        if (event.type === 'event') {
+            const safeEvent = redactConversationEvent(event.event, run.secretValues);
+            const providerItemId = requireString(safeEvent.providerItemId, 'event providerItemId');
+            const currentIndex = run.providerEventEntryIndexes.get(providerItemId);
+            let eventEntry;
             if (currentIndex !== undefined) {
-                const current = run.conversation.events[currentIndex];
-                activity = createActivityEvent(safeActivity, current.id, timestamp, current.sequence);
-                run.conversation.events[currentIndex] = activity;
+                const current = run.conversation.entries[currentIndex];
+                eventEntry = createProviderEventEntry(safeEvent, current.id, timestamp, current.sequence);
+                run.conversation.entries[currentIndex] = eventEntry;
             } else {
                 const sequence = nextRunSequence(run);
-                activity = createActivityEvent(
-                    safeActivity,
-                    `${runId}-activity-${sequence}`,
+                eventEntry = createProviderEventEntry(
+                    safeEvent,
+                    `${runId}-event-${sequence}`,
                     timestamp,
                     sequence,
                 );
-                run.activityEventIndexes.set(providerItemId, run.conversation.events.length);
-                run.conversation.events.push(activity);
+                run.providerEventEntryIndexes.set(providerItemId, run.conversation.entries.length);
+                run.conversation.entries.push(eventEntry);
             }
-            emitRunEvent(run, { activity, type: 'agentActivity' });
+            emitRunEvent(run, { event: eventEntry, type: 'agentEvent' });
             return;
         }
         if (event.type === 'transcript') {
             const safeContent = redactSecrets(event.content, run.secretValues);
-            run.conversation.events.push(createEvent(
-                `${runId}-provider-${run.conversation.events.length}`,
+            run.conversation.entries.push(createEventEntry(
+                `${runId}-provider-${run.conversation.entries.length}`,
                 event.toolType,
                 safeContent,
                 timestamp,
@@ -944,11 +956,11 @@ class AgentRunnerService {
             run.sentQueuedMessageRevision = revision;
             return;
         }
-        const synchronizedMessage = run.conversation.messages.at(-1);
+        const synchronizedMessage = lastMessageEntry(run.conversation);
         if (synchronizedMessage) updateProviderSession(run, synchronizedMessage.id, timestamp);
         run.conversation.status = 'waitingForInput';
         run.conversation.completedAt = null;
-        run.conversation.events.push(createEvent(
+        run.conversation.entries.push(createEventEntry(
             `${runId}-turn-${run.turnIndex}-completed`,
             'turnCompleted',
             '',
@@ -966,8 +978,8 @@ class AgentRunnerService {
         if (!run.streaming) {
             const timestamp = new Date().toISOString();
             const message = `Malformed ${run.agent} JSONL event: ${line}`;
-            run.conversation.events.push(createEvent(
-                `${runId}-malformed-${run.conversation.events.length}`,
+            run.conversation.entries.push(createEventEntry(
+                `${runId}-malformed-${run.conversation.entries.length}`,
                 'diagnostic',
                 message,
                 timestamp,
@@ -989,8 +1001,8 @@ class AgentRunnerService {
         const timestamp = new Date().toISOString();
         const message = error instanceof Error ? error.message : 'Agent process failed';
         run.stderr += message;
-        run.conversation.events.push(createEvent(
-            `${runId}-error-${run.conversation.events.length}`,
+        run.conversation.entries.push(createEventEntry(
+            `${runId}-error-${run.conversation.entries.length}`,
             'error',
             message,
             timestamp,
@@ -1012,8 +1024,8 @@ class AgentRunnerService {
         run.pendingQuestions = [];
         const separator = run.stderr.length > 0 && !run.stderr.endsWith('\n') ? '\n' : '';
         run.stderr += `${separator}${message}`;
-        run.conversation.events.push(createEvent(
-            `${run.id}-error-${run.conversation.events.length}`,
+        run.conversation.entries.push(createEventEntry(
+            `${run.id}-error-${run.conversation.entries.length}`,
             'error',
             message,
             timestamp,
@@ -1055,7 +1067,7 @@ class AgentRunnerService {
                 && (!run.streaming || run.finishing);
             completeAssistantOutput(run, completedAt);
             if (succeeded) {
-                const synchronizedMessage = run.conversation.messages.at(-1);
+                const synchronizedMessage = lastMessageEntry(run.conversation);
                 updateProviderSession(run, synchronizedMessage.id, completedAt);
                 if (run.turnUsage) run.conversation.usage = accumulateUsage(run.conversation.usage, run.turnUsage);
             }
@@ -1064,7 +1076,7 @@ class AgentRunnerService {
             run.conversation.status = preserveWaitingState
                 ? 'waitingForInput'
                 : run.cancelled ? 'cancelled' : succeeded ? 'completed' : 'failed';
-            run.conversation.events.push(createEvent(
+            run.conversation.entries.push(createEventEntry(
                 `${runId}-closed`,
                 'closed',
                 String(exitCode),

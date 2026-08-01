@@ -89,7 +89,7 @@ function providerConversationId(agent, event) {
     return null;
 }
 
-function isTurnActivity(agent, event) {
+function isTurnEvent(agent, event) {
     if (agent === 'codex') return event.type === 'turn.started' || event.type === 'item.started' || event.type === 'item.completed';
     if (agent === 'claude') return event.type === 'assistant' || event.type === 'user';
 
@@ -136,7 +136,7 @@ class AgentProviderProtocolParser {
         }
 
         const missingSession = isMissingSession(this.agent, event, this.turnStarted);
-        this.turnStarted = this.turnStarted || isTurnActivity(this.agent, event);
+        this.turnStarted = this.turnStarted || isTurnEvent(this.agent, event);
         const assistantText = this.agent === 'codex' ? codexAssistantText(event) : claudeAssistantText(event);
         this.onEvent({
             assistantText,

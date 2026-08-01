@@ -2,11 +2,11 @@ import { createRequire } from 'node:module';
 import { describe, expect, it } from 'vitest';
 
 const require = createRequire(import.meta.url);
-const { normalizeCodexActivity } = require('./agent_codex_activity');
+const { normalizeCodexEvent } = require('./agent_codex_event');
 
-describe('Codex activity normalization', () => {
+describe('Codex event normalization', () => {
     it('selects readable tool fields without persisting raw nested JSON', () => {
-        const activity = normalizeCodexActivity({
+        const event = normalizeCodexEvent({
             arguments: {
                 count: 2,
                 nested: { secret: 'hidden' },
@@ -22,14 +22,14 @@ describe('Codex activity normalization', () => {
             type: 'mcpToolCall',
         }, 'completed');
 
-        expect(activity).toMatchObject({
+        expect(event).toMatchObject({
             content: 'Count: 2\nQuery: Codex schema',
             label: 'docs: search',
             output: 'Type: text\nText: Found result\nResult Count: 1',
         });
-        expect(JSON.stringify(activity)).not.toContain('secret');
-        expect(JSON.stringify(activity)).not.toContain('source');
-        expect(activity.content).not.toContain('{');
-        expect(activity.output).not.toContain('{');
+        expect(JSON.stringify(event)).not.toContain('secret');
+        expect(JSON.stringify(event)).not.toContain('source');
+        expect(event.content).not.toContain('{');
+        expect(event.output).not.toContain('{');
     });
 });

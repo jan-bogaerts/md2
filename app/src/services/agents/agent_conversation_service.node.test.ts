@@ -9,7 +9,7 @@ describe('parseAgentConversationLog', () => {
                 cardPath: 'design/F-1.md',
                 completedAt: null,
                 id: 'agent-1',
-                messages: [{ agent: 'codex', content: 'hello', id: 'm1', role: 'assistant', timestamp: '2026-01-01T00:00:00.000Z' }],
+                entries: [{ agent: 'codex', content: 'hello', id: 'm1', kind: 'message', role: 'assistant', timestamp: '2026-01-01T00:00:00.000Z' }],
                 providerSessions: [{
                     agent: 'codex', conversationId: 'session-1', createdAt: '2026-01-01T00:00:00.000Z',
                     lastUsedAt: '2026-01-01T00:00:01.000Z', synchronizedThroughMessageId: 'm1',
@@ -22,9 +22,8 @@ describe('parseAgentConversationLog', () => {
         )
 
         expect(conversation.path).toBe('.md2-agent-logs/one.json')
-        expect(conversation.events).toEqual([])
         expect(conversation.hasExplicitTitle).toBe(true)
-        expect(conversation.messages[0].content).toBe('hello')
+        expect(conversation.entries[0]).toMatchObject({ content: 'hello', kind: 'message' })
         expect(conversation.providerSessions[0].conversationId).toBe('session-1')
     })
 
@@ -33,7 +32,7 @@ describe('parseAgentConversationLog', () => {
             cardPath: null,
             completedAt: null,
             id: 'agent-1',
-            messages: [],
+            entries: [],
             startedAt: '2026-01-01T00:00:00.000Z',
             status: 'completed',
         }), '.md2-agent-logs/one.json')
@@ -47,7 +46,7 @@ describe('parseAgentConversationLog', () => {
             cardPath: null,
             completedAt: null,
             id: 'agent-1',
-            messages: [],
+            entries: [],
             startedAt: '2026-01-01T00:00:00.000Z',
             status: 'completed',
             usage: {
@@ -73,13 +72,14 @@ describe('parseAgentConversationLog', () => {
     it('preserves structured sequenced conversation activity', () => {
         const conversation = parseAgentConversationLog(JSON.stringify({
             completedAt: null,
-            events: [{
+            entries: [{
                 command: 'npm test',
                 content: 'running',
                 details: ['detail'],
                 durationMs: 25,
                 exitCode: 1,
                 id: 'activity-1',
+                kind: 'event',
                 label: 'Command',
                 output: 'failed',
                 providerItemId: 'command-1',
@@ -89,21 +89,21 @@ describe('parseAgentConversationLog', () => {
                 timestamp: '2026-01-01T00:00:01.000Z',
                 type: 'commandExecution',
                 workingDirectory: 'C:\\repo',
-            }],
-            id: 'agent-1',
-            messages: [{
+            }, {
                 content: 'hello',
                 id: 'm1',
+                kind: 'message',
                 role: 'assistant',
                 sequence: 1,
                 timestamp: '2026-01-01T00:00:00.000Z',
             }],
+            id: 'agent-1',
             startedAt: '2026-01-01T00:00:00.000Z',
             status: 'completed',
         }), 'design/logs/one.json')
 
-        expect(conversation.messages[0].sequence).toBe(1)
-        expect(conversation.events[0]).toMatchObject({
+        expect(conversation.entries[1]).toMatchObject({ kind: 'message', sequence: 1 })
+        expect(conversation.entries[0]).toMatchObject({
             command: 'npm test',
             details: ['detail'],
             durationMs: 25,
@@ -119,9 +119,32 @@ describe('parseAgentConversationLog', () => {
 
     it('fails malformed logs with missing required data', () => {
         expect(() => parseAgentConversationLog(
-            JSON.stringify({ cardPath: 'design/F-1.md', id: 'agent-1', messages: [], status: 'completed' }),
+            JSON.stringify({ cardPath: 'design/F-1.md', entries: [], id: 'agent-1', status: 'completed' }),
             '.md2-agent-logs/bad.json',
         )).toThrow('missing startedAt')
+    })
+
+    it('requires entries and rejects legacy conversation collections', () => {
+        expect(() => parseAgentConversationLog(JSON.stringify({
+            events: [],
+            id: 'agent-1',
+            messages: [],
+            startedAt: '2026-01-01T00:00:00.000Z',
+            status: 'completed',
+        }), 'design/logs/legacy.json')).toThrow('Malformed agent conversation: missing entries')
+    })
+
+    it.each([
+        { content: 'hello', id: 'm1', kind: 'unknown', timestamp: '2026-01-01T00:00:00.000Z' },
+        { content: 'hello', id: '', kind: 'message', role: 'assistant', timestamp: '2026-01-01T00:00:00.000Z' },
+        { content: 'running', id: 'e1', kind: 'event', timestamp: '2026-01-01T00:00:00.000Z', type: '' },
+    ])('rejects malformed entry %#', (entry) => {
+        expect(() => parseAgentConversationLog(JSON.stringify({
+            entries: [entry],
+            id: 'agent-1',
+            startedAt: '2026-01-01T00:00:00.000Z',
+            status: 'completed',
+        }), 'design/logs/bad-entry.json')).toThrow('Malformed agent conversation: invalid entries[0]')
     })
 
     it.each([

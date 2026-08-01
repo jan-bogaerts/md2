@@ -1,7 +1,7 @@
 import { actionContextIdentity } from '../../data/action_context'
 import type { ActionContext } from '../../data/action_context'
 import type { ActionDefinition } from '../../data/action_types'
-import type { AgentConversationEvent, AgentConversationMessage } from '../../data/data_types'
+import type { AgentConversationEntry, AgentConversationEventEntry } from '../../data/data_types'
 import type {
     AgentApproval,
     AgentApprovalDecision,
@@ -45,13 +45,12 @@ export interface LiveAgentApproval extends AgentApproval {
 }
 
 export interface LiveAgentTurn {
-    activities: AgentConversationEvent[]
     conversationId: string
     currentAssistantMessageId?: string
+    entries: AgentConversationEntry[]
     reference: string
     startedAt: string
     title: string
-    messages: AgentConversationMessage[]
 }
 
 export interface LiveAgentQuestion {
@@ -142,30 +141,28 @@ function updateOutputLogs(
     return next
 }
 
-function activityIdentity(activity: AgentConversationEvent) {
-    return activity.providerItemId ?? activity.id
+function eventIdentity(event: AgentConversationEventEntry) {
+    return event.providerItemId ?? event.id
 }
 
-function upsertAgentActivity(activities: AgentConversationEvent[], activity: AgentConversationEvent) {
-    const identity = activityIdentity(activity)
-    const currentIndex = activities.findIndex((current) => activityIdentity(current) === identity)
-    if (currentIndex < 0) return [...activities, activity]
+function upsertAgentEvent(entries: AgentConversationEntry[], event: AgentConversationEventEntry) {
+    const identity = eventIdentity(event)
+    const currentIndex = entries.findIndex((entry) => entry.kind === 'event' && eventIdentity(entry) === identity)
+    if (currentIndex < 0) return [...entries, event]
 
-    const current = activities[currentIndex]
-    const next = [...activities]
+    const current = entries[currentIndex]
+    const next = [...entries]
     next[currentIndex] = {
-        ...activity,
-        ...(activity.sequence === undefined && current.sequence !== undefined ? { sequence: current.sequence } : {}),
+        ...event,
+        ...(event.sequence === undefined && current.sequence !== undefined ? { sequence: current.sequence } : {}),
     }
 
     return next
 }
 
 function nextConversationSequence(turn: LiveAgentTurn) {
-    const sequences = [
-        ...turn.messages.map(({ sequence }) => sequence),
-        ...turn.activities.map(({ sequence }) => sequence),
-    ].filter((sequence): sequence is number => sequence !== undefined)
+    const sequences = turn.entries.map(({ sequence }) => sequence)
+        .filter((sequence): sequence is number => sequence !== undefined)
 
     return sequences.length > 0 ? Math.max(...sequences) + 1 : undefined
 }
@@ -177,21 +174,22 @@ function appendAssistantMessage(
     const sequence = update.sequence ?? nextConversationSequence(turn)
     const messageId = update.messageId
         ?? turn.currentAssistantMessageId
-        ?? `${turn.conversationId}-assistant-${sequence ?? turn.messages.length + 1}`
-    const currentIndex = turn.messages.findIndex(({ id }) => id === messageId)
-    const messages = currentIndex < 0
-        ? [...turn.messages, {
+        ?? `${turn.conversationId}-assistant-${sequence ?? turn.entries.length + 1}`
+    const currentIndex = turn.entries.findIndex((entry) => entry.kind === 'message' && entry.id === messageId)
+    const entries: AgentConversationEntry[] = currentIndex < 0
+        ? [...turn.entries, {
             content: update.content,
             id: messageId,
+            kind: 'message',
             role: 'assistant' as const,
             ...(sequence !== undefined ? { sequence } : {}),
             timestamp: turn.startedAt,
         }]
-        : turn.messages.map((message, index) => index === currentIndex
-            ? { ...message, content: `${message.content}${update.content}` }
-            : message)
+        : turn.entries.map((entry, index) => index === currentIndex
+            ? { ...entry, content: `${entry.content}${update.content}` }
+            : entry)
 
-    return { ...turn, currentAssistantMessageId: messageId, messages }
+    return { ...turn, currentAssistantMessageId: messageId, entries }
 }
 
 function contextKey(context: ActionContext) {
@@ -547,13 +545,12 @@ export class ActionExecutionService extends EventTarget {
             }
         }
         if (event.type === 'update' && event.update.kind === 'agentStarted') {
-            const { continued, conversationId, reference, startedAt, title, userMessage } = event.update
+            const { continued, conversationId, entries, reference, startedAt, title } = event.update
             next = {
                 ...next,
                 agentTurn: {
-                    activities: [],
                     conversationId,
-                    messages: [userMessage],
+                    entries,
                     reference,
                     startedAt,
                     title,
@@ -561,12 +558,12 @@ export class ActionExecutionService extends EventTarget {
             }
             if (continued) this.clearExecutionPromptDraft(event.executionId, event.actionId)
         }
-        if (event.type === 'update' && event.update.kind === 'agentActivity' && next.agentTurn) {
+        if (event.type === 'update' && event.update.kind === 'agentEvent' && next.agentTurn) {
             next = {
                 ...next,
                 agentTurn: {
                     ...next.agentTurn,
-                    activities: upsertAgentActivity(next.agentTurn.activities, event.update.activity),
+                    entries: upsertAgentEvent(next.agentTurn.entries, event.update.event),
                 },
             }
         }
@@ -601,7 +598,7 @@ export class ActionExecutionService extends EventTarget {
                 agentTurn: {
                     ...next.agentTurn,
                     currentAssistantMessageId: undefined,
-                    messages: [...next.agentTurn.messages, event.update.userMessage],
+                    entries: [...next.agentTurn.entries, event.update.userMessage],
                 },
                 question: null,
             }

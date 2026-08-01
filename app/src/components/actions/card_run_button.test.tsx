@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cardContext } from '../../data/action_context'
 import type { ActionExecutionEvent } from '../../data/action_run_types'
 import type { ActionFile } from '../../data/action_types'
-import { DEFAULT_CARD_TYPES, type AgentConversation, type ProjectCard } from '../../data/data_types'
+import { DEFAULT_CARD_TYPES, type AgentConversation, type AgentConversationEvent, type ProjectCard } from '../../data/data_types'
 import { actionExecutionService } from '../../services/actions/action_execution_service'
 import { actionService } from '../../services/actions/action_service'
 import { agentAcknowledgementService } from '../../services/agents/agent_acknowledgement_service'
@@ -16,17 +16,16 @@ const PROJECT_KEY = 'project:main'
 
 function conversation(
     status: AgentConversation['status'],
-    events: AgentConversation['events'] = [],
+    events: AgentConversationEvent[] = [],
     actionId?: string,
 ): AgentConversation {
     return {
         actionId,
         cardPath: 'design/F-010.md',
         completedAt: status === 'running' ? null : '2026-01-01T00:01:00.000Z',
-        events,
+        entries: events.map((event) => ({ ...event, kind: 'event' })),
         hasExplicitTitle: true,
         id: 'agent-1',
-        messages: [],
         path: '.md2-agent-logs/agent-1.json',
         providerSessions: [],
         startedAt: '2026-01-01T00:00:00.000Z',
@@ -316,7 +315,14 @@ describe('CardRunButton', () => {
 
         rerender(
             <AppThemeProvider>
-                <CardRunButton card={cardWith([conversation('running')])} context={cardContext(card, DEFAULT_CARD_TYPES)} projectKey={PROJECT_KEY} />
+                <CardRunButton
+                    card={cardWith([conversation('running', [
+                        { content: '', id: 'wait', timestamp: '2026-01-01T00:00:20.000Z', type: 'waiting' },
+                        { content: '', id: 'resume', timestamp: '2026-01-01T00:00:30.000Z', type: 'resumed' },
+                    ])])}
+                    context={cardContext(card, DEFAULT_CARD_TYPES)}
+                    projectKey={PROJECT_KEY}
+                />
                 <CardActionPopupHost />
             </AppThemeProvider>,
         )

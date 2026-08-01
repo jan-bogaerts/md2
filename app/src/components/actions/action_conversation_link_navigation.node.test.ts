@@ -52,6 +52,7 @@ describe('action conversation link navigation', () => {
     it('classifies repository paths and Windows paths as local while preserving web links', () => {
         expect(isLocalFileLink('design/F_89_links.md')).toBe(true)
         expect(isLocalFileLink('C:\\repo\\design\\F_89_links.md')).toBe(true)
+        expect(isLocalFileLink('C:%5Crepo%5Cdesign%5CF_89_links.md')).toBe(true)
         expect(isLocalFileLink('file:///C:/repo/design/F_89_links.md')).toBe(true)
         expect(isLocalFileLink('https://example.com/file.md')).toBe(false)
         expect(isLocalFileLink('mailto:test@example.com')).toBe(false)

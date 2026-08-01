@@ -277,6 +277,16 @@ export interface AgentConversationEvent {
     workingDirectory?: string
 }
 
+export interface AgentConversationMessageEntry extends AgentConversationMessage {
+    kind: 'message'
+}
+
+export interface AgentConversationEventEntry extends AgentConversationEvent {
+    kind: 'event'
+}
+
+export type AgentConversationEntry = AgentConversationMessageEntry | AgentConversationEventEntry
+
 export interface AgentTokenUsage {
     cachedInputTokens: number
     costUsd?: number
@@ -291,10 +301,9 @@ export interface AgentConversation {
     cardInternalId?: string | null
     cardPath: string | null
     completedAt: string | null
-    events: AgentConversationEvent[]
+    entries: AgentConversationEntry[]
     hasExplicitTitle: boolean
     id: string
-    messages: AgentConversationMessage[]
     path: string
     providerSessions: AgentProviderSession[]
     startedAt: string
@@ -311,17 +320,17 @@ export interface AgentConversationError {
 export type AgentRunEvent =
     | {
         conversationId: string
+        entries: AgentConversationEntry[]
         reference: string
         runId: string
         startedAt: string
         title: string
         type: 'started'
-        userMessage: AgentConversationMessage
     }
     | {
-        activity: AgentConversationEvent
+        event: AgentConversationEventEntry
         runId: string
-        type: 'agentActivity'
+        type: 'agentEvent'
     }
     | {
         content: string

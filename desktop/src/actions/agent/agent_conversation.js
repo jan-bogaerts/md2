@@ -1,44 +1,47 @@
 const { sumAgentTokenUsage } = require('../../../../shared/agent_usage_math.mjs');
 
-function createMessage(id, role, content, timestamp, agent, sequence) {
+function createMessageEntry(id, role, content, timestamp, agent, sequence) {
     return {
         ...(agent ? { agent } : {}),
         content,
         id,
+        kind: 'message',
         role,
         ...(Number.isSafeInteger(sequence) ? { sequence } : {}),
         timestamp,
     };
 }
 
-function createEvent(id, type, content, timestamp, sequence) {
+function createEventEntry(id, type, content, timestamp, sequence) {
     return {
         content,
         id,
+        kind: 'event',
         ...(Number.isSafeInteger(sequence) ? { sequence } : {}),
         timestamp,
         type,
     };
 }
 
-function createActivityEvent(activity, id, timestamp, sequence) {
+function createProviderEventEntry(providerEvent, id, timestamp, sequence) {
     const event = {
-        content: activity.content,
+        content: providerEvent.content,
         id,
-        label: activity.label,
-        providerItemId: activity.providerItemId,
+        kind: 'event',
+        label: providerEvent.label,
+        providerItemId: providerEvent.providerItemId,
         sequence,
-        status: activity.status,
+        status: providerEvent.status,
         timestamp,
-        type: activity.type,
+        type: providerEvent.type,
     };
-    if (typeof activity.command === 'string') event.command = activity.command;
-    if (Array.isArray(activity.details)) event.details = [...activity.details];
-    if (Number.isFinite(activity.durationMs)) event.durationMs = activity.durationMs;
-    if (Number.isSafeInteger(activity.exitCode)) event.exitCode = activity.exitCode;
-    if (typeof activity.output === 'string') event.output = activity.output;
-    if (Array.isArray(activity.summary)) event.summary = [...activity.summary];
-    if (typeof activity.workingDirectory === 'string') event.workingDirectory = activity.workingDirectory;
+    if (typeof providerEvent.command === 'string') event.command = providerEvent.command;
+    if (Array.isArray(providerEvent.details)) event.details = [...providerEvent.details];
+    if (Number.isFinite(providerEvent.durationMs)) event.durationMs = providerEvent.durationMs;
+    if (Number.isSafeInteger(providerEvent.exitCode)) event.exitCode = providerEvent.exitCode;
+    if (typeof providerEvent.output === 'string') event.output = providerEvent.output;
+    if (Array.isArray(providerEvent.summary)) event.summary = [...providerEvent.summary];
+    if (typeof providerEvent.workingDirectory === 'string') event.workingDirectory = providerEvent.workingDirectory;
 
     return event;
 }
@@ -55,8 +58,7 @@ function createConversation(request, id, startedAt) {
         return {
             ...persistedConversation,
             completedAt: null,
-            events: [...request.conversation.events],
-            messages: [...request.conversation.messages],
+            entries: [...request.conversation.entries],
             providerSessions: [...(request.conversation.providerSessions ?? [])],
             status: 'running',
         };
@@ -67,10 +69,9 @@ function createConversation(request, id, startedAt) {
         cardInternalId: request.activityOrigin.kind === 'card' ? request.activityOrigin.cardInternalId : null,
         ...(request.cardPath ? { cardPath: request.cardPath } : {}),
         completedAt: null,
-        events: [],
+        entries: [],
         hasExplicitTitle: true,
         id,
-        messages: [],
         providerSessions: [],
         startedAt,
         status: 'running',
@@ -98,9 +99,9 @@ function updateProviderSession(run, synchronizedThroughMessageId, completedAt) {
 
 module.exports = {
     accumulateUsage,
-    createActivityEvent,
+    createProviderEventEntry,
     createConversation,
-    createEvent,
-    createMessage,
+    createEventEntry,
+    createMessageEntry,
     updateProviderSession,
 };

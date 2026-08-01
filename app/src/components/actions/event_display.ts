@@ -2,7 +2,7 @@ import type { AgentConversationEvent } from '../../data/data_types'
 
 const COMMAND_PREVIEW_LENGTH = 96
 
-export function activityStatusLabel(status?: string) {
+export function eventStatusLabel(status?: string) {
     if (!status) return 'Unknown'
     if (status === 'inProgress' || status === 'running' || status === 'started') return 'Running'
     if (status === 'completed') return 'Completed'
@@ -12,7 +12,7 @@ export function activityStatusLabel(status?: string) {
     return status
 }
 
-export function activityHasError(status?: string) {
+export function eventHasError(status?: string) {
     return status === 'failed' || status === 'declined'
 }
 
@@ -24,10 +24,10 @@ export function commandPreview(command?: string) {
     return `${characters.slice(0, COMMAND_PREVIEW_LENGTH - 1).join('')}…`
 }
 
-export function readableActivityText(value?: string) {
+export function readableEventText(value?: string) {
     return value?.trim() ? value.split(/\r?\n/u) : []
 }
 
-export function activityIdentity(activity: AgentConversationEvent) {
-    return activity.providerItemId ?? activity.id
+export function eventIdentity(event: AgentConversationEvent) {
+    return event.providerItemId ?? event.id
 }

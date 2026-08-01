@@ -82,7 +82,7 @@ describe('useActionPopupController', () => {
         expect(loadHistory).toHaveBeenCalledTimes(1)
     })
 
-    it('keeps separate live assistant messages around intervening activity', () => {
+    it('keeps separate live assistant messages around intervening event', () => {
         const emit = installBridge()
         const agentAction: ActionDefinition = {
             ...action,
@@ -96,6 +96,7 @@ describe('useActionPopupController', () => {
             agent: 'codex',
             content: 'Review',
             id: 'user-1',
+            kind: 'message' as const,
             role: 'user' as const,
             sequence: 1,
             timestamp: 'now',
@@ -104,7 +105,7 @@ describe('useActionPopupController', () => {
         emit({ actionId: action.id, context, executionId: 'execution-1', phase: 'main', rootActionId: action.id, status: 'running', type: 'execution' })
         emit({
             actionId: action.id, context, executionId: 'execution-1', phase: 'main', rootActionId: action.id, status: 'running', type: 'update',
-            update: { conversationId: 'conversation-1', kind: 'agentStarted', reference: 'log.json', startedAt: 'now', title: 'Build', userMessage },
+            update: { conversationId: 'conversation-1', entries: [userMessage], kind: 'agentStarted', reference: 'log.json', startedAt: 'now', title: 'Build' },
         })
         emit({
             actionId: action.id, context, executionId: 'execution-1', phase: 'main', rootActionId: action.id, status: 'running', type: 'update',
@@ -113,16 +114,17 @@ describe('useActionPopupController', () => {
         emit({
             actionId: action.id, context, executionId: 'execution-1', phase: 'main', rootActionId: action.id, status: 'running', type: 'update',
             update: {
-                activity: {
+                event: {
                     content: 'Thinking',
                     id: 'reasoning-1',
+                    kind: 'event',
                     providerItemId: 'reasoning-1',
                     sequence: 3,
                     status: 'completed',
                     timestamp: 'now',
                     type: 'reasoning',
                 },
-                kind: 'agentActivity',
+                kind: 'agentEvent',
             },
         })
         emit({
@@ -131,10 +133,10 @@ describe('useActionPopupController', () => {
         })
 
         expect(result.current.displayedConversation).toMatchObject({
-            events: [expect.objectContaining({ providerItemId: 'reasoning-1', sequence: 3 })],
-            messages: [
+            entries: [
                 userMessage,
                 expect.objectContaining({ content: 'First', id: 'assistant-1', sequence: 2 }),
+                expect.objectContaining({ providerItemId: 'reasoning-1', sequence: 3 }),
                 expect.objectContaining({ content: 'Second', id: 'assistant-2', sequence: 4 }),
             ],
         })
@@ -179,10 +181,9 @@ describe('useActionPopupController', () => {
             cardInternalId: 'card-1',
             cardPath: context.file ?? null,
             completedAt: null,
-            events: [],
+            entries: [{ content: 'Saved answer', id: 'assistant-1', kind: 'message' as const, role: 'assistant' as const, timestamp: 'now' }],
             hasExplicitTitle: true,
             id: 'conversation-1',
-            messages: [{ content: 'Saved answer', id: 'assistant-1', role: 'assistant' as const, timestamp: 'now' }],
             path: 'activity.json#conversation=conversation-1',
             providerSessions: [],
             startedAt: '2026-07-30T10:00:00.000Z',
@@ -227,10 +228,9 @@ describe('useActionPopupController', () => {
             cardInternalId: 'card-1',
             cardPath: context.file ?? null,
             completedAt: '2026-07-30T10:05:00.000Z',
-            events: [],
+            entries: [{ content: 'Saved answer', id: 'assistant-1', kind: 'message' as const, role: 'assistant' as const, timestamp: 'now' }],
             hasExplicitTitle: true,
             id: 'conversation-1',
-            messages: [{ content: 'Saved answer', id: 'assistant-1', role: 'assistant' as const, timestamp: 'now' }],
             path: 'activity.json#conversation=conversation-1',
             providerSessions: [],
             startedAt: '2026-07-30T10:00:00.000Z',
@@ -292,7 +292,7 @@ describe('useActionPopupController', () => {
         const loadConversations = vi.fn(async () => [])
         const loadHistory = vi.fn(async () => [])
         const preparePrompt = vi.fn(async () => 'Plan')
-        const userMessage = { content: 'Plan', id: 'message-1', role: 'user' as const, timestamp: 'now' }
+        const userMessage = { content: 'Plan', id: 'message-1', kind: 'message' as const, role: 'user' as const, timestamp: 'now' }
         const { result } = renderHook(() => useActionPopupController({
             action: streamingAction,
             answerQuestion,
@@ -306,7 +306,7 @@ describe('useActionPopupController', () => {
         emit({ actionId: action.id, context, executionId: 'execution-1', phase: 'main', rootActionId: action.id, status: 'running', type: 'execution' })
         emit({
             actionId: action.id, context, executionId: 'execution-1', phase: 'main', rootActionId: action.id, status: 'running', type: 'update',
-            update: { conversationId: 'conversation-1', kind: 'agentStarted', reference: 'log.json', startedAt: 'now', title: 'Build', userMessage },
+            update: { conversationId: 'conversation-1', entries: [userMessage], kind: 'agentStarted', reference: 'log.json', startedAt: 'now', title: 'Build' },
         })
         emit({
             actionId: action.id, actionType: 'agent', autoFinish: null, context, executionId: 'execution-1',

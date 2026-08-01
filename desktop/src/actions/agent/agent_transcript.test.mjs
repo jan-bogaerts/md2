@@ -6,15 +6,13 @@ const { normalizeConversationContext } = require('./agent_transcript');
 
 function conversation() {
     return {
-        events: [
-            { content: 'tests passed', id: 'e1', timestamp: '2026-01-01T00:00:02.500Z', type: 'tool.command_execution' },
-            { content: 'hidden', id: 'e2', timestamp: '2026-01-01T00:00:02.600Z', type: 'diagnostic' },
-            { content: 'permission denied', id: 'e3', timestamp: '2026-01-01T00:00:02.700Z', type: 'error' },
-        ],
-        messages: [
-            { content: 'first', id: 'm1', role: 'user', timestamp: '2026-01-01T00:00:01.000Z' },
-            { agent: 'claude', content: '\u001b[31manswer\u001b[0m', id: 'm2', role: 'assistant', timestamp: '2026-01-01T00:00:02.000Z' },
-            { content: 'next', id: 'm3', role: 'user', timestamp: '2026-01-01T00:00:03.000Z' },
+        entries: [
+            { content: 'first', id: 'm1', kind: 'message', role: 'user', timestamp: '2026-01-01T00:00:01.000Z' },
+            { agent: 'claude', content: '\u001b[31manswer\u001b[0m', id: 'm2', kind: 'message', role: 'assistant', timestamp: '2026-01-01T00:00:02.000Z' },
+            { content: 'tests passed', id: 'e1', kind: 'event', timestamp: '2026-01-01T00:00:02.500Z', type: 'tool.command_execution' },
+            { content: 'hidden', id: 'e2', kind: 'event', timestamp: '2026-01-01T00:00:02.600Z', type: 'diagnostic' },
+            { content: 'permission denied', id: 'e3', kind: 'event', timestamp: '2026-01-01T00:00:02.700Z', type: 'error' },
+            { content: 'next', id: 'm3', kind: 'message', role: 'user', timestamp: '2026-01-01T00:00:03.000Z' },
         ],
     };
 }
@@ -47,23 +45,35 @@ describe('normalizeConversationContext', () => {
     it('orders by ingestion sequence, includes command results, and excludes reasoning', () => {
         const timestamp = '2026-01-01T00:00:00.000Z';
         const result = normalizeConversationContext({
-            events: [
+            entries: [
                 {
                     command: 'npm test', content: '', id: 'command-1', label: 'Command', output: 'passed',
-                    providerItemId: 'command-1', sequence: 2, status: 'completed', timestamp, type: 'commandExecution',
+                    kind: 'event', providerItemId: 'command-1', sequence: 2, status: 'completed', timestamp, type: 'commandExecution',
                 },
                 {
                     content: 'hidden chain of thought', id: 'reasoning-1', label: 'Reasoning',
-                    providerItemId: 'reasoning-1', sequence: 1, status: 'completed', timestamp, type: 'reasoning',
+                    kind: 'event', providerItemId: 'reasoning-1', sequence: 1, status: 'completed', timestamp, type: 'reasoning',
                 },
-            ],
-            messages: [
-                { content: 'after command', id: 'message-1', role: 'assistant', sequence: 3, timestamp },
+                { content: 'after command', id: 'message-1', kind: 'message', role: 'assistant', sequence: 3, timestamp },
             ],
         });
 
         expect(result.indexOf('npm test')).toBeLessThan(result.indexOf('after command'));
         expect(result).toContain('passed');
         expect(result).not.toContain('hidden chain of thought');
+    });
+
+    it('uses entry positions after cursor even when timestamps and sequences disagree', () => {
+        const timestamp = '2026-01-01T00:00:00.000Z';
+        const result = normalizeConversationContext({
+            entries: [
+                { content: 'cursor', id: 'm1', kind: 'message', role: 'assistant', sequence: 10, timestamp },
+                { content: 'interleaved', id: 'e1', kind: 'event', sequence: 1, timestamp, type: 'error' },
+                { content: 'next', id: 'm2', kind: 'message', role: 'user', sequence: 2, timestamp },
+            ],
+        }, 'm1');
+
+        expect(result.indexOf('interleaved')).toBeLessThan(result.indexOf('next'));
+        expect(result).not.toContain('cursor');
     });
 });

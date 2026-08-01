@@ -39,6 +39,7 @@ function normalizeMessage(value) {
         ...(agent ? { agent } : {}),
         content: value.content,
         id,
+        kind: 'message',
         role: value.role,
         ...(sequence !== null ? { sequence } : {}),
         timestamp,
@@ -71,6 +72,7 @@ function normalizeEvent(value) {
         ...(durationMs !== null ? { durationMs } : {}),
         ...(exitCode !== null ? { exitCode } : {}),
         id,
+        kind: 'event',
         ...(label ? { label } : {}),
         ...(output !== null ? { output } : {}),
         ...(providerItemId ? { providerItemId } : {}),
@@ -101,7 +103,25 @@ function normalizeArray(value, normalize) {
     return value.map(normalize).filter((entry) => entry !== null)
 }
 
-/** Parse one canonical conversation record while discarding malformed optional entries. */
+function normalizeEntries(value) {
+    if (!Array.isArray(value)) throw new Error('Malformed agent conversation: missing entries')
+
+    return value.map((entry, index) => {
+        if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+            throw new Error(`Malformed agent conversation: invalid entries[${index}]`)
+        }
+        const normalized = entry.kind === 'message'
+            ? normalizeMessage(entry)
+            : entry.kind === 'event'
+                ? normalizeEvent(entry)
+                : null
+        if (!normalized) throw new Error(`Malformed agent conversation: invalid entries[${index}]`)
+
+        return normalized
+    })
+}
+
+/** Parse one canonical conversation record and validate every ordered entry. */
 export function parseAgentConversation(content, referencePath) {
     const parsed = JSON.parse(content)
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('Malformed agent conversation: root must be an object')
@@ -117,10 +137,9 @@ export function parseAgentConversation(content, referencePath) {
         cardInternalId: optionalString(parsed.cardInternalId),
         cardPath: optionalString(parsed.cardPath),
         completedAt: optionalString(parsed.completedAt),
-        events: normalizeArray(parsed.events, normalizeEvent),
+        entries: normalizeEntries(parsed.entries),
         hasExplicitTitle,
         id,
-        messages: normalizeArray(parsed.messages, normalizeMessage),
         path: referencePath,
         providerSessions: normalizeArray(parsed.providerSessions, normalizeProviderSession),
         startedAt,

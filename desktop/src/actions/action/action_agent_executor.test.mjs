@@ -12,9 +12,8 @@ function conversation(overrides = {}) {
     return {
         cardInternalId: cardContext.cardInternalId,
         cardPath: cardContext.file,
-        events: [],
+        entries: [{ content: 'old answer', id: 'm1', kind: 'message', role: 'assistant', timestamp: '2026-01-01T00:00:00.000Z' }],
         id: 'conversation-1',
-        messages: [{ content: 'old answer', id: 'm1', role: 'assistant', timestamp: '2026-01-01T00:00:00.000Z' }],
         providerSessions: [],
         ...overrides,
     };
@@ -125,9 +124,9 @@ describe('ActionAgentExecutor', () => {
         const agentConfigProvider = () => ({ agent: 'custom', agentProfiles: [profile], model: 'default' });
         const { agentRunnerService, executor, localGitService } = createExecutor({ agentConfigProvider });
         localGitService.loadAgentConversation.mockResolvedValueOnce(conversation({
-            messages: [
-                { content: 'old', id: 'm1', role: 'assistant', timestamp: '2026-01-01T00:00:00.000Z' },
-                { agent: 'other', content: 'new', id: 'm2', role: 'assistant', timestamp: '2026-01-01T00:00:01.000Z' },
+            entries: [
+                { content: 'old', id: 'm1', kind: 'message', role: 'assistant', timestamp: '2026-01-01T00:00:00.000Z' },
+                { agent: 'other', content: 'new', id: 'm2', kind: 'message', role: 'assistant', timestamp: '2026-01-01T00:00:01.000Z' },
             ],
             providerSessions: [{ agent: 'custom', conversationId: 'session-1', synchronizedThroughMessageId: 'm1' }],
         }));
@@ -148,9 +147,9 @@ describe('ActionAgentExecutor', () => {
     it('resumes restarted Codex streaming after its cursor', async () => {
         const { agentRunnerService, executor, localGitService } = createExecutor();
         localGitService.loadAgentConversation.mockResolvedValueOnce(conversation({
-            messages: [
-                { content: 'old', id: 'm1', role: 'assistant', timestamp: '2026-01-01T00:00:00.000Z' },
-                { agent: 'claude', content: 'new', id: 'm2', role: 'assistant', timestamp: '2026-01-01T00:00:01.000Z' },
+            entries: [
+                { content: 'old', id: 'm1', kind: 'message', role: 'assistant', timestamp: '2026-01-01T00:00:00.000Z' },
+                { agent: 'claude', content: 'new', id: 'm2', kind: 'message', role: 'assistant', timestamp: '2026-01-01T00:00:01.000Z' },
             ],
             providerSessions: [{ agent: 'codex', conversationId: 'thread-1', synchronizedThroughMessageId: 'm1' }],
         }));
@@ -172,9 +171,9 @@ describe('ActionAgentExecutor', () => {
     it('resumes restarted Claude streaming with its saved session', async () => {
         const { agentRunnerService, executor, localGitService } = createExecutor();
         localGitService.loadAgentConversation.mockResolvedValueOnce(conversation({
-            messages: [
-                { content: 'old', id: 'm1', role: 'assistant', timestamp: '2026-01-01T00:00:00.000Z' },
-                { agent: 'codex', content: 'new', id: 'm2', role: 'assistant', timestamp: '2026-01-01T00:00:01.000Z' },
+            entries: [
+                { content: 'old', id: 'm1', kind: 'message', role: 'assistant', timestamp: '2026-01-01T00:00:00.000Z' },
+                { agent: 'codex', content: 'new', id: 'm2', kind: 'message', role: 'assistant', timestamp: '2026-01-01T00:00:01.000Z' },
             ],
             providerSessions: [{ agent: 'claude', conversationId: 'session-1', synchronizedThroughMessageId: 'm1' }],
         }));
@@ -200,9 +199,9 @@ describe('ActionAgentExecutor', () => {
     it('starts streaming with full context when selected agent has no session', async () => {
         const { agentRunnerService, executor, localGitService } = createExecutor();
         localGitService.loadAgentConversation.mockResolvedValueOnce(conversation({
-            messages: [
-                { content: 'first', id: 'm1', role: 'user', timestamp: '2026-01-01T00:00:00.000Z' },
-                { agent: 'claude', content: 'answer', id: 'm2', role: 'assistant', timestamp: '2026-01-01T00:00:01.000Z' },
+            entries: [
+                { content: 'first', id: 'm1', kind: 'message', role: 'user', timestamp: '2026-01-01T00:00:00.000Z' },
+                { agent: 'claude', content: 'answer', id: 'm2', kind: 'message', role: 'assistant', timestamp: '2026-01-01T00:00:01.000Z' },
             ],
             providerSessions: [{ agent: 'claude', conversationId: 'session-1', synchronizedThroughMessageId: 'm2' }],
         }));
@@ -221,7 +220,7 @@ describe('ActionAgentExecutor', () => {
     it('switches provider with full normalized context and default continue prompt', async () => {
         const { agentRunnerService, executor, localGitService } = createExecutor();
         localGitService.loadAgentConversation.mockResolvedValueOnce(conversation({
-            messages: [{ agent: 'claude', content: 'answer', id: 'm1', role: 'assistant', timestamp: '2026-01-01T00:00:00.000Z' }],
+            entries: [{ agent: 'claude', content: 'answer', id: 'm1', kind: 'message', role: 'assistant', timestamp: '2026-01-01T00:00:00.000Z' }],
             providerSessions: [{ agent: 'claude', conversationId: 'claude-1', synchronizedThroughMessageId: 'm1' }],
         }));
 
@@ -280,9 +279,9 @@ describe('ActionAgentExecutor', () => {
             .mockImplementationOnce(async (_project, _request, _onEvent, onComplete) => {
                 const failedConversation = {
                     ...sourceConversation,
-                    messages: [
-                        ...sourceConversation.messages,
-                        { content: 'next', id: 'current', role: 'user', timestamp: 'now' },
+                    entries: [
+                        ...sourceConversation.entries,
+                        { content: 'next', id: 'current', kind: 'message', role: 'user', timestamp: 'now' },
                     ],
                 };
                 onComplete(1, {
@@ -317,7 +316,7 @@ describe('ActionAgentExecutor', () => {
         const fallbackRequest = agentRunnerService.start.mock.calls[1][1];
         expect(fallbackRequest.contextInput).toContain('old answer');
         expect(fallbackRequest.reuseLastUserMessage).toBe(true);
-        expect(fallbackRequest.conversation.messages.filter(({ content, role }) => role === 'user' && content === 'next')).toHaveLength(1);
+        expect(fallbackRequest.conversation.entries.filter(({ content, kind, role }) => kind === 'message' && role === 'user' && content === 'next')).toHaveLength(1);
         expect(fallbackRequest).not.toHaveProperty('providerConversationId');
     });
 

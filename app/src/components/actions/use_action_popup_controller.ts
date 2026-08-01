@@ -105,11 +105,6 @@ function liveAgentConversation(
     status: ActionExecutionStatus,
     base: AgentConversation | null,
 ): AgentConversation {
-    const liveMessageIds = new Set(turn.messages.map(({ id }) => id))
-    const liveActivityIds = new Set(turn.activities.map(({ providerItemId, id }) => providerItemId ?? id))
-    const priorMessages = (base?.messages ?? []).filter(({ id }) => !liveMessageIds.has(id))
-    const priorEvents = (base?.events ?? []).filter(({ providerItemId, id }) => !liveActivityIds.has(providerItemId ?? id))
-    const messages = [...priorMessages, ...turn.messages]
     const conversationStatus = status === 'queued' || status === 'running' || status === 'waitingForInput'
         ? status === 'queued' ? 'running' : status
         : status === 'cancelled'
@@ -123,10 +118,9 @@ function liveAgentConversation(
         cardInternalId: context.cardInternalId ?? null,
         cardPath: context.file ?? null,
         completedAt: null,
-        events: [...priorEvents, ...turn.activities],
+        entries: turn.entries,
         hasExplicitTitle: base?.hasExplicitTitle ?? true,
         id: turn.conversationId,
-        messages,
         path: turn.reference,
         providerSessions: base?.providerSessions ?? [],
         startedAt: base?.startedAt ?? turn.startedAt,

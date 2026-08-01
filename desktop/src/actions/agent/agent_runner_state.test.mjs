@@ -12,7 +12,7 @@ describe('AgentRunnerService state handling', () => {
             agent: 'codex',
             child: {},
             codexCacheErrorReported: false,
-            conversation: { events: [], messages: [] },
+            conversation: { entries: [] },
             environment: { Path: 'C:\\tools' },
             executable: 'codex.cmd',
             id: 'run-1',
@@ -36,7 +36,7 @@ describe('AgentRunnerService state handling', () => {
             { Path: 'C:\\tools' },
         );
         expect(run.stderr).toBe('Codex versions differ. Update Codex.\n');
-        expect(run.conversation.events).toHaveLength(1);
+        expect(run.conversation.entries).toHaveLength(1);
         expect(run.onEvent).toHaveBeenCalledOnce();
     });
 
@@ -47,7 +47,7 @@ describe('AgentRunnerService state handling', () => {
             persistConversationCheckpoint: vi.fn(async () => undefined),
         });
         service.processes.set('run-1', {
-            conversation: { messages: [], status: 'running' },
+            conversation: { entries: [], status: 'running' },
             id: 'run-1',
             onEvent: vi.fn(),
             pendingApprovals: new Map(),
@@ -96,8 +96,7 @@ describe('AgentRunnerService state handling', () => {
         const run = {
             agent: 'codex',
             conversation: {
-                events: [],
-                messages: [{ content: 'Done', id: 'assistant-1', role: 'assistant', timestamp: 'now' }],
+                entries: [{ content: 'Done', id: 'assistant-1', kind: 'message', role: 'assistant', timestamp: 'now' }],
                 providerSessions: [],
                 status: 'running',
             },
@@ -123,7 +122,7 @@ describe('AgentRunnerService state handling', () => {
 
         expect(persistConversationCheckpoint).toHaveBeenCalledWith(expect.objectContaining({
             conversation: expect.objectContaining({
-                messages: [expect.objectContaining({ content: 'Done' })],
+                entries: expect.arrayContaining([expect.objectContaining({ content: 'Done', kind: 'message' })]),
                 status: 'waitingForInput',
             }),
         }));
@@ -177,9 +176,8 @@ describe('AgentRunnerService state handling', () => {
             child: { pid: 10 },
             conversation: {
                 completedAt: null,
-                events: [],
+                entries: [{ content: 'Done', id: 'assistant-1', kind: 'message', role: 'assistant', timestamp: 'now' }],
                 id: 'conversation-1',
-                messages: [{ content: 'Done', id: 'assistant-1', role: 'assistant', timestamp: 'now' }],
                 providerSessions: [],
                 status: 'waitingForInput',
             },
@@ -251,8 +249,7 @@ describe('AgentRunnerService state handling', () => {
             agent: 'codex',
             child,
             conversation: {
-                events: [],
-                messages: [{ content: 'Done', id: 'assistant-1', role: 'assistant', timestamp: 'now' }],
+                entries: [{ content: 'Done', id: 'assistant-1', kind: 'message', role: 'assistant', timestamp: 'now' }],
                 providerSessions: [],
                 status: 'running',
             },
@@ -280,7 +277,7 @@ describe('AgentRunnerService state handling', () => {
         expect(setTimeout).toHaveBeenCalledWith(service.handleFinishTimeout, AGENT_FINISH_GRACE_MS, 'run-1');
     });
 
-    it('redacts secret answers from stored and emitted activity', async () => {
+    it('redacts secret answers from stored and emitted events', async () => {
         let releaseAnswer;
         const answerQuestion = vi.fn(() => new Promise((resolve) => {
             releaseAnswer = resolve;
@@ -290,7 +287,7 @@ describe('AgentRunnerService state handling', () => {
             persistConversationCheckpoint: vi.fn(async () => undefined),
         });
         const run = {
-            conversation: { events: [], messages: [], status: 'waitingForInput' },
+            conversation: { entries: [], status: 'waitingForInput' },
             id: 'run-1',
             onEvent: vi.fn(),
             pendingApprovals: new Map(),
@@ -311,20 +308,20 @@ describe('AgentRunnerService state handling', () => {
         releaseAnswer();
         await answering;
 
-        const answerMessage = run.conversation.messages.find(({ role }) => role === 'user');
+        const answerMessage = run.conversation.entries.find((entry) => entry.kind === 'message' && entry.role === 'user');
         expect(answerMessage.content).toContain('token: [secret]');
         expect(run.stdout).toContain('echo [secret]');
         expect(JSON.stringify(run.onEvent.mock.calls)).not.toContain('top-secret');
     });
 
-    it('creates separate assistant messages around intervening activity', async () => {
+    it('creates separate assistant messages around intervening event', async () => {
         const service = new AgentRunnerService();
         const run = {
-            activityEventIndexes: new Map(),
+            providerEventEntryIndexes: new Map(),
             agent: 'codex',
             assistantItemIndex: 0,
             assistantItems: new Map(),
-            conversation: { events: [], messages: [], status: 'running' },
+            conversation: { entries: [], status: 'running' },
             currentAssistantMessageId: null,
             id: 'run-1',
             nextSequence: 2,
@@ -337,34 +334,33 @@ describe('AgentRunnerService state handling', () => {
         service.processes.set('run-1', run);
 
         await service.handleStreamingEvent('run-1', { itemId: 'message-1', type: 'assistantStarted' });
-        await service.handleStreamingEvent('run-1', { content: 'First', itemId: 'message-1', type: 'assistant' });
         await service.handleStreamingEvent('run-1', {
-            activity: {
+            event: {
                 content: 'Thinking',
                 label: 'Reasoning',
                 providerItemId: 'reasoning-1',
                 status: 'completed',
                 type: 'reasoning',
             },
-            type: 'activity',
+            type: 'event',
         });
+        await service.handleStreamingEvent('run-1', { content: 'First', itemId: 'message-1', type: 'assistant' });
         await service.handleStreamingEvent('run-1', { itemId: 'message-2', type: 'assistantStarted' });
         await service.handleStreamingEvent('run-1', { content: 'Done', itemId: 'message-2', type: 'assistant' });
 
-        expect(run.conversation.messages).toEqual([
+        expect(run.conversation.entries).toEqual([
             expect.objectContaining({ content: 'First', sequence: 2 }),
-            expect.objectContaining({ content: 'Done', sequence: 4 }),
-        ]);
-        expect(run.conversation.events).toEqual([
             expect.objectContaining({ providerItemId: 'reasoning-1', sequence: 3 }),
+            expect.objectContaining({ content: 'Done', sequence: 4 }),
         ]);
     });
 
-    it('updates an indexed activity without scanning or appending conversation history', async () => {
+    it('updates an indexed event without scanning or appending conversation history', async () => {
         const service = new AgentRunnerService();
-        const existingActivity = {
+        const existingEvent = {
             content: 'Running',
             id: 'activity-1',
+            kind: 'event',
             label: 'Command',
             providerItemId: 'command-1',
             sequence: 7,
@@ -372,15 +368,15 @@ describe('AgentRunnerService state handling', () => {
             timestamp: 'earlier',
             type: 'commandExecution',
         };
-        const events = [
-            { content: 'started', id: 'started-1', sequence: 1, timestamp: 'earlier', type: 'started' },
-            existingActivity,
-            { content: 'unrelated', id: 'event-1', sequence: 8, timestamp: 'earlier', type: 'diagnostic' },
+        const entries = [
+            { content: 'started', id: 'started-1', kind: 'event', sequence: 1, timestamp: 'earlier', type: 'started' },
+            existingEvent,
+            { content: 'unrelated', id: 'event-1', kind: 'event', sequence: 8, timestamp: 'earlier', type: 'diagnostic' },
         ];
-        events.findIndex = vi.fn(() => { throw new Error('conversation history was scanned'); });
+        entries.findIndex = vi.fn(() => { throw new Error('conversation history was scanned'); });
         const run = {
-            activityEventIndexes: new Map([['command-1', 1]]),
-            conversation: { events, messages: [], status: 'running' },
+            providerEventEntryIndexes: new Map([['command-1', 1]]),
+            conversation: { entries, status: 'running' },
             id: 'run-1',
             nextSequence: 9,
             onEvent: vi.fn(),
@@ -389,19 +385,19 @@ describe('AgentRunnerService state handling', () => {
         service.processes.set('run-1', run);
 
         await service.handleStreamingEvent('run-1', {
-            activity: {
+            event: {
                 content: 'Completed',
                 label: 'Command',
                 providerItemId: 'command-1',
                 status: 'completed',
                 type: 'commandExecution',
             },
-            type: 'activity',
+            type: 'event',
         });
 
-        expect(events.findIndex).not.toHaveBeenCalled();
-        expect(run.conversation.events).toHaveLength(3);
-        expect(run.conversation.events[1]).toMatchObject({
+        expect(entries.findIndex).not.toHaveBeenCalled();
+        expect(run.conversation.entries).toHaveLength(3);
+        expect(run.conversation.entries[1]).toMatchObject({
             content: 'Completed',
             id: 'activity-1',
             providerItemId: 'command-1',
@@ -409,8 +405,8 @@ describe('AgentRunnerService state handling', () => {
             status: 'completed',
         });
         expect(run.onEvent).toHaveBeenCalledWith(expect.objectContaining({
-            activity: expect.objectContaining({ content: 'Completed', id: 'activity-1' }),
-            type: 'agentActivity',
+            event: expect.objectContaining({ content: 'Completed', id: 'activity-1' }),
+            type: 'agentEvent',
         }));
     });
 
@@ -424,8 +420,7 @@ describe('AgentRunnerService state handling', () => {
         const run = {
             child: { stdin: { end: vi.fn() } },
             conversation: {
-                events: [],
-                messages: [{ content: 'initial', id: 'user-1', role: 'user', timestamp: 'now' }],
+                entries: [{ content: 'initial', id: 'user-1', kind: 'message', role: 'user', timestamp: 'now' }],
                 status: 'waitingForInput',
             },
             id: 'run-1',
@@ -443,7 +438,7 @@ describe('AgentRunnerService state handling', () => {
         service.processes.set('run-1', run);
 
         await expect(service.sendMessage('run-1', 'ghost')).rejects.toThrow(writeError);
-        expect(run.conversation.messages).toHaveLength(1);
+        expect(run.conversation.entries.filter(({ kind }) => kind === 'message')).toHaveLength(1);
         expect(run.conversation.status).toBe('failed');
     });
 
@@ -469,7 +464,7 @@ describe('AgentRunnerService state handling', () => {
         const answerApproval = vi.fn(async () => undefined);
         const service = new AgentRunnerService({ persistConversationCheckpoint });
         const run = {
-            conversation: { events: [], messages: [], status: 'running' },
+            conversation: { entries: [], status: 'running' },
             id: 'run-1',
             interactionWrites: Promise.resolve(),
             onEvent: vi.fn(),
@@ -497,8 +492,7 @@ describe('AgentRunnerService state handling', () => {
         await service.handleStreamingEvent('run-1', { requestId: 41, type: 'approvalResolved' });
 
         expect(answerApproval).toHaveBeenCalledWith(41, 'accept');
-        expect(run.conversation.messages).toEqual([]);
-        expect(run.conversation.events).toEqual([]);
+        expect(run.conversation.entries).toEqual([]);
         expect(run.conversation.status).toBe('waitingForInput');
         expect(persistConversationCheckpoint).not.toHaveBeenCalled();
         expect(run.onEvent).toHaveBeenCalledWith(expect.objectContaining({ type: 'approval' }));
@@ -508,7 +502,7 @@ describe('AgentRunnerService state handling', () => {
     it('rejects an invalid approval decision without failing the active run', async () => {
         const service = new AgentRunnerService();
         const run = {
-            conversation: { events: [], messages: [], status: 'waitingForInput' },
+            conversation: { entries: [], status: 'waitingForInput' },
             id: 'run-1',
             pendingApprovals: new Map([[41, { requestId: 41 }]]),
             streaming: true,

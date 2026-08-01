@@ -4,10 +4,10 @@ import { describe, expect, it } from 'vitest';
 const require = createRequire(import.meta.url);
 const {
     accumulateUsage,
-    createActivityEvent,
+    createProviderEventEntry,
     createConversation,
-    createEvent,
-    createMessage,
+    createEventEntry,
+    createMessageEntry,
     updateProviderSession,
 } = require('./agent_conversation');
 
@@ -27,12 +27,12 @@ describe('agent conversation', () => {
     });
 
     it('creates messages and events in persisted shapes', () => {
-        expect(createMessage('message-1', 'assistant', 'done', 'now', 'codex')).toEqual({agent: 'codex', content: 'done', id: 'message-1', role: 'assistant', timestamp: 'now'});
-        expect(createEvent('event-1', 'output', 'done', 'now')).toEqual({content: 'done', id: 'event-1', timestamp: 'now', type: 'output'});
+        expect(createMessageEntry('message-1', 'assistant', 'done', 'now', 'codex')).toEqual({agent: 'codex', content: 'done', id: 'message-1', kind: 'message', role: 'assistant', timestamp: 'now'});
+        expect(createEventEntry('event-1', 'output', 'done', 'now')).toEqual({content: 'done', id: 'event-1', kind: 'event', timestamp: 'now', type: 'output'});
     });
 
-    it('omits unavailable numeric activity detail', () => {
-        const activity = {
+    it('omits unavailable numeric event detail', () => {
+        const providerEvent = {
             content: '',
             durationMs: null,
             exitCode: null,
@@ -42,7 +42,7 @@ describe('agent conversation', () => {
             type: 'commandExecution',
         };
 
-        expect(createActivityEvent(activity, 'event-1', 'now', 2)).not.toMatchObject({
+        expect(createProviderEventEntry(providerEvent, 'event-1', 'now', 2)).not.toMatchObject({
             durationMs: expect.anything(),
             exitCode: expect.anything(),
         });
@@ -54,10 +54,9 @@ describe('agent conversation', () => {
             cardInternalId: 'card-1',
             cardPath: 'design/card.md',
             completedAt: null,
-            events: [],
+            entries: [],
             hasExplicitTitle: true,
             id: 'agent-1',
-            messages: [],
             providerSessions: [],
             startedAt: 'now',
             status: 'running',
@@ -66,12 +65,11 @@ describe('agent conversation', () => {
     });
 
     it('resumes a conversation without persisting its path', () => {
-        const conversation = {completedAt: 'before', events: [], id: 'agent-1', messages: [], path: 'log.json', providerSessions: [], status: 'completed'};
+        const conversation = {completedAt: 'before', entries: [], id: 'agent-1', path: 'log.json', providerSessions: [], status: 'completed'};
         const resumed = createConversation({ activityOrigin: { kind: 'project' }, conversation }, 'unused', 'unused');
 
-        expect(resumed).toEqual({ completedAt: null, events: [], id: 'agent-1', messages: [], providerSessions: [], status: 'running' });
-        expect(resumed.events).not.toBe(conversation.events);
-        expect(resumed.messages).not.toBe(conversation.messages);
+        expect(resumed).toEqual({ completedAt: null, entries: [], id: 'agent-1', providerSessions: [], status: 'running' });
+        expect(resumed.entries).not.toBe(conversation.entries);
         expect(resumed.providerSessions).not.toBe(conversation.providerSessions);
     });
 

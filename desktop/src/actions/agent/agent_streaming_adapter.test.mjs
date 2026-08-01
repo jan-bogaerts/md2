@@ -351,7 +351,7 @@ describe('CodexStreamingAdapter', () => {
             { content: 'second', itemId: 'message-2', type: 'assistant' },
             { content: '\n\n', itemId: 'message-2', type: 'assistant' },
         ]);
-        expect(events.filter(({ activity }) => activity?.type === 'diagnostic')).toHaveLength(2);
+        expect(events.filter(({ event }) => event?.type === 'diagnostic')).toHaveLength(2);
     });
 
     it('streams reasoning sections and replaces them with authoritative completion', async () => {
@@ -385,7 +385,7 @@ describe('CodexStreamingAdapter', () => {
             params: { item: { content: ['Final detail'], id: 'reasoning-1', summary: ['Final summary'], type: 'reasoning' } },
         });
 
-        const reasoning = events.filter(({ activity }) => activity?.providerItemId === 'reasoning-1').map(({ activity }) => activity);
+        const reasoning = events.filter(({ event }) => event?.providerItemId === 'reasoning-1').map(({ event }) => event);
         expect(reasoning[0]).toMatchObject({ status: 'inProgress', summary: [] });
         expect(reasoning.at(-1)).toMatchObject({
             content: 'Final summary',
@@ -404,12 +404,12 @@ describe('CodexStreamingAdapter', () => {
         await adapter.handleMessage({ method: 'item/completed', params: { item: reasoning } });
 
         expect(events.at(-1)).toEqual({
-            activity: expect.objectContaining({
+            event: expect.objectContaining({
                 content: '',
                 providerItemId: 'reasoning-empty',
                 status: 'completed',
             }),
-            type: 'activity',
+            type: 'event',
         });
     });
 
@@ -442,7 +442,7 @@ describe('CodexStreamingAdapter', () => {
             params: { item: { ...started, aggregatedOutput: 'final output', durationMs: 25, exitCode: 1, status: 'failed' } },
         });
 
-        const command = events.filter(({ activity }) => activity?.providerItemId === 'command-1').map(({ activity }) => activity);
+        const command = events.filter(({ event }) => event?.providerItemId === 'command-1').map(({ event }) => event);
         expect(command[0]).toMatchObject({ command: started.command, output: '', status: 'inProgress', workingDirectory: 'C:\\repo' });
         expect(command[2].output).toBe('first\nsecond');
         expect(command.at(-1)).toMatchObject({
@@ -474,16 +474,16 @@ describe('CodexStreamingAdapter', () => {
         await adapter.handleMessage({ method: 'item/completed', params: { item: command } });
 
         expect(events.at(-1)).toEqual({
-            activity: expect.objectContaining({
+            event: expect.objectContaining({
                 command: 'npm publish',
                 providerItemId: 'command-declined',
                 status: 'declined',
             }),
-            type: 'activity',
+            type: 'event',
         });
     });
 
-    it('replaces plan deltas, records compaction and system activity, and omits terminal input', async () => {
+    it('replaces plan deltas, records compaction and system events, and omits terminal input', async () => {
         const { adapter, events } = harness('codex');
         const plan = { id: 'plan-1', text: '', type: 'plan' };
 
@@ -508,11 +508,11 @@ describe('CodexStreamingAdapter', () => {
             params: { itemId: 'command-1', processId: 'process-1', stdin: 'secret terminal input' },
         });
 
-        const activities = events.filter(({ activity }) => activity).map(({ activity }) => activity);
-        expect(activities).toContainEqual(expect.objectContaining({ content: 'final', providerItemId: 'plan-1' }));
-        expect(activities).toContainEqual(expect.objectContaining({ label: 'Context compacted', providerItemId: 'compaction-1' }));
-        expect(activities).toContainEqual(expect.objectContaining({ label: 'Model rerouted', type: 'system' }));
-        expect(JSON.stringify(activities)).not.toContain('secret terminal input');
+        const conversationEvents = events.filter(({ event }) => event).map(({ event }) => event);
+        expect(conversationEvents).toContainEqual(expect.objectContaining({ content: 'final', providerItemId: 'plan-1' }));
+        expect(conversationEvents).toContainEqual(expect.objectContaining({ label: 'Context compacted', providerItemId: 'compaction-1' }));
+        expect(conversationEvents).toContainEqual(expect.objectContaining({ label: 'Model rerouted', type: 'system' }));
+        expect(JSON.stringify(conversationEvents)).not.toContain('secret terminal input');
     });
 
     it('clears completed item tracking when next turn starts', async () => {
@@ -526,11 +526,11 @@ describe('CodexStreamingAdapter', () => {
         await adapter.handleMessage({ method: 'turn/started', params: { turn: { id: 'turn-2' } } });
         await adapter.handleMessage({ method: 'item/started', params: { item: message } });
 
-        const diagnostics = events.filter(({ activity }) => activity?.type === 'diagnostic');
+        const diagnostics = events.filter(({ event }) => event?.type === 'diagnostic');
         expect(diagnostics).toHaveLength(0);
     });
 
-    it('normalizes supported tool activity and diagnoses unknown item types without failing', async () => {
+    it('normalizes supported tool events and diagnoses unknown item types without failing', async () => {
         const { adapter, events } = harness('codex');
         const webSearch = { action: null, id: 'search-1', query: 'Codex schema', type: 'webSearch' };
         const unknown = { id: 'future-1', payload: { secret: 'not persisted' }, type: 'futureTool' };
@@ -541,15 +541,15 @@ describe('CodexStreamingAdapter', () => {
         await adapter.handleMessage({ method: 'item/completed', params: { item: unknown } });
 
         expect(events).toContainEqual({
-            activity: expect.objectContaining({
+            event: expect.objectContaining({
                 content: 'Codex schema',
                 label: 'Web search',
                 providerItemId: 'search-1',
                 status: 'completed',
             }),
-            type: 'activity',
+            type: 'event',
         });
-        const diagnostics = events.filter(({ activity }) => activity?.type === 'diagnostic').map(({ activity }) => activity.content);
+        const diagnostics = events.filter(({ event }) => event?.type === 'diagnostic').map(({ event }) => event.content);
         expect(diagnostics).toEqual(['item/started: futureTool (future-1)', 'item/completed: futureTool (future-1)']);
         expect(diagnostics.join('')).not.toContain('not persisted');
     });
@@ -575,9 +575,9 @@ describe('CodexStreamingAdapter', () => {
             params: { item: { ...dynamicTool, contentItems: [{ text: longText, type: 'inputText' }], status: 'completed', success: true } },
         });
 
-        const activity = events.at(-1).activity;
-        expect(activity.output.length).toBeLessThan(longText.length);
-        expect(activity.output).toContain('[activity content truncated]');
+        const event = events.at(-1).event;
+        expect(event.output.length).toBeLessThan(longText.length);
+        expect(event.output).toContain('[event content truncated]');
     });
 
     it('resumes a saved thread before sending the first turn', async () => {

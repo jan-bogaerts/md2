@@ -2,23 +2,23 @@ import BuildOutlined from '@mui/icons-material/BuildOutlined'
 import { Box, Button, Stack, Typography } from '@mui/material'
 import { useState } from 'react'
 import type { AgentConversationEvent } from '../../data/data_types'
-import { activityHasError, activityStatusLabel, readableActivityText } from './activity_display'
+import { eventHasError, eventStatusLabel, readableEventText } from './event_display'
 
 const TOOL_DETAIL_MAX_HEIGHT = 240
 
-interface AgentToolActivityProps {
-    activity: AgentConversationEvent
+interface AgentToolEventProps {
+    event: AgentConversationEvent
 }
 
-/** Generic compact renderer for normalized Codex tool and system activity. */
-export function AgentToolActivity({ activity }: AgentToolActivityProps) {
+/** Generic compact renderer for normalized Codex tool and system events. */
+export function AgentToolEvent({ event }: AgentToolEventProps) {
     const [expanded, setExpanded] = useState(false)
-    const label = activity.label ?? 'Agent activity'
-    const hasError = activityHasError(activity.status)
-    const contentLines = readableActivityText(activity.content)
-    const outputLines = readableActivityText(activity.output)
-    const durationMs = typeof activity.durationMs === 'number' && Number.isFinite(activity.durationMs)
-        ? activity.durationMs
+    const label = event.label ?? 'Agent event'
+    const hasError = eventHasError(event.status)
+    const contentLines = readableEventText(event.content)
+    const outputLines = readableEventText(event.output)
+    const durationMs = typeof event.durationMs === 'number' && Number.isFinite(event.durationMs)
+        ? event.durationMs
         : null
     const hasDetail = contentLines.length > 0 || outputLines.length > 0 || durationMs !== null
     const toggleExpanded = () => {
@@ -56,7 +56,7 @@ export function AgentToolActivity({ activity }: AgentToolActivityProps) {
                 <Stack direction="row" spacing={1} sx={{ alignItems: 'center', minWidth: 0, width: '100%' }}>
                     <Typography noWrap sx={{ flex: 1, minWidth: 0 }} variant="caption">{label}</Typography>
                     <Typography color="inherit" role="status" variant="caption">
-                        {activityStatusLabel(activity.status)}
+                        {eventStatusLabel(event.status)}
                     </Typography>
                 </Stack>
             </Button>

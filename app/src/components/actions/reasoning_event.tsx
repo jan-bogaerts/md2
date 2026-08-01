@@ -1,19 +1,19 @@
 import { Box, Stack, Typography } from '@mui/material'
 import type { AgentConversationEvent } from '../../data/data_types'
-import { activityHasError, activityStatusLabel } from './activity_display'
+import { eventHasError, eventIdentity, eventStatusLabel } from './event_display'
 
-interface ReasoningActivityProps {
-    activity: AgentConversationEvent
+interface ReasoningEventProps {
+    event: AgentConversationEvent
 }
 
 /** Subdued live reasoning summary preserving provider section boundaries. */
-export function ReasoningActivity({ activity }: ReasoningActivityProps) {
-    const sections = activity.summary && activity.summary.length > 0
-        ? activity.summary
-        : activity.details && activity.details.length > 0
-            ? activity.details
-            : activity.content ? [activity.content] : []
-    const hasError = activityHasError(activity.status)
+export function ReasoningEvent({ event }: ReasoningEventProps) {
+    const sections = event.summary && event.summary.length > 0
+        ? event.summary
+        : event.details && event.details.length > 0
+            ? event.details
+            : event.content ? [event.content] : []
+    const hasError = eventHasError(event.status)
 
     return (
         <Box
@@ -30,13 +30,13 @@ export function ReasoningActivity({ activity }: ReasoningActivityProps) {
             <Stack direction="row" spacing={1} sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
                 <Typography color="text.secondary" sx={{ fontWeight: 600 }} variant="caption">Burning tokens</Typography>
                 <Typography color={hasError ? 'error.main' : 'custom.text3'} role="status" variant="caption">
-                    {activityStatusLabel(activity.status)}
+                    {eventStatusLabel(event.status)}
                 </Typography>
             </Stack>
             {sections.map((section, index) => (
                 <Typography
                     color={hasError ? 'error.main' : 'text.secondary'}
-                    key={`${activityIdentity(activity)}-section-${index}`}
+                    key={`${eventIdentity(event)}-section-${index}`}
                     sx={{ overflowWrap: 'anywhere', whiteSpace: 'pre-wrap' }}
                     variant="body2"
                 >
@@ -45,8 +45,4 @@ export function ReasoningActivity({ activity }: ReasoningActivityProps) {
             ))}
         </Box>
     )
-}
-
-function activityIdentity(activity: AgentConversationEvent) {
-    return activity.providerItemId ?? activity.id
 }

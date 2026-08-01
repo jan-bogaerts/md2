@@ -6,12 +6,12 @@ import { RunningAgentsIndicator } from './running_agents_indicator'
 
 const startedEvent = (runId: string): AgentRunEvent => ({
     conversationId: runId,
+    entries: [{ content: '', id: runId, kind: 'message', role: 'user', timestamp: '2026-01-01T00:00:00.000Z' }],
     reference: runId,
     runId,
     startedAt: '2026-01-01T00:00:00.000Z',
     title: 'Run',
     type: 'started',
-    userMessage: { content: '', id: runId, role: 'user', timestamp: '2026-01-01T00:00:00.000Z' },
 })
 
 describe('RunningAgentsIndicator', () => {

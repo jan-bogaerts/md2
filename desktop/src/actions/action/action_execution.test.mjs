@@ -516,11 +516,11 @@ describe('ActionExecution', () => {
             execute: vi.fn(async (input) => {
                 input.onEvent({ content: 'chunk', messageId: 'assistant-1', sequence: 2, type: 'output' });
                 input.onEvent({
-                    activity: {
+                    event: {
                         content: 'running', id: 'activity-1', label: 'Command', providerItemId: 'command-1',
                         sequence: 3, status: 'inProgress', timestamp: 'now', type: 'commandExecution',
                     },
-                    type: 'agentActivity',
+                    type: 'agentEvent',
                 });
 
                 return {
@@ -543,8 +543,8 @@ describe('ActionExecution', () => {
             status: 'running',
             type: 'update',
             update: {
-                activity: expect.objectContaining({ providerItemId: 'command-1', sequence: 3 }),
-                kind: 'agentActivity',
+                event: expect.objectContaining({ providerItemId: 'command-1', sequence: 3 }),
+                kind: 'agentEvent',
             },
         }));
         expect(events).toContainEqual(expect.objectContaining({reference: 'run.json', runId: 'conversation', status: 'completed', thinkingLevel: 'high', type: 'action'}));

@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createRequire } from 'node:module';
@@ -18,9 +18,8 @@ describe('project activity conversations', () => {
             await mkdir(join(rootPath, '.git'));
             await upsertActivityConversation(project, 'design', { kind: 'project' }, {
                 completedAt: '2026-07-21T10:01:00.000Z',
-                events: [],
+                entries: [],
                 id: 'conversation-1',
-                messages: [],
                 providerSessions: [],
                 startedAt: '2026-07-21T10:00:00.000Z',
                 status: 'completed',
@@ -30,6 +29,10 @@ describe('project activity conversations', () => {
             await expect(listAgentConversationReferences(project, 'design')).resolves.toEqual([
                 'design/activity/project.json#conversation=conversation-1',
             ]);
+            const persisted = JSON.parse(await readFile(join(rootPath, 'design', 'activity', 'project.json'), 'utf8'));
+            expect(persisted.conversations[0]).toHaveProperty('entries');
+            expect(persisted.conversations[0]).not.toHaveProperty('messages');
+            expect(persisted.conversations[0]).not.toHaveProperty('events');
         } finally {
             await rm(rootPath, { force: true, recursive: true });
         }

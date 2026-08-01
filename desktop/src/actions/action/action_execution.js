@@ -374,8 +374,8 @@ class ActionExecution {
         };
         const onEvent = (agentEvent) => {
             if (agentEvent.type === 'started') {
-                const { continued, conversationId, reference, startedAt, title, userMessage } = agentEvent;
-                const update = { continued, conversationId, kind: 'agentStarted', reference, startedAt, title, userMessage };
+                const { continued, conversationId, entries, reference, startedAt, title } = agentEvent;
+                const update = { continued, conversationId, entries, kind: 'agentStarted', reference, startedAt, title };
                 this.publish(action, phase, 'running', { type: 'update', update });
                 return;
             }
@@ -426,8 +426,8 @@ class ActionExecution {
                 this.publish(action, phase, agentEvent.state, { type: 'update', update });
                 return;
             }
-            if (agentEvent.type === 'agentActivity') {
-                const update = { activity: agentEvent.activity, kind: 'agentActivity' };
+            if (agentEvent.type === 'agentEvent') {
+                const update = { event: agentEvent.event, kind: 'agentEvent' };
                 this.publish(action, phase, 'running', { type: 'update', update });
                 return;
             }

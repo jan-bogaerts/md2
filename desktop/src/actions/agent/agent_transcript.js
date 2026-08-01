@@ -1,6 +1,6 @@
 const ESCAPE_CHARACTER = String.fromCharCode(27);
 const ANSI_ESCAPE_PATTERN = new RegExp(`${ESCAPE_CHARACTER}\\[[0-?]*[ -/]*[@-~]`, 'gu');
-const HANDOFF_ACTIVITY_TYPES = new Set([
+const HANDOFF_EVENT_TYPES = new Set([
     'collabAgentToolCall',
     'commandExecution',
     'dynamicToolCall',
@@ -47,7 +47,7 @@ function normalizeEvent(event) {
             timestamp: event.timestamp,
         };
     }
-    if (!HANDOFF_ACTIVITY_TYPES.has(event.type)) return null;
+    if (!HANDOFF_EVENT_TYPES.has(event.type)) return null;
     const content = [event.command, event.content, event.output]
         .filter((value, index, values) => typeof value === 'string' && value.length > 0 && values.indexOf(value) === index)
         .map(cleanContent)
@@ -63,31 +63,11 @@ function normalizeEvent(event) {
     };
 }
 
-function messagesAfterCursor(conversation, afterMessageId) {
-    if (!afterMessageId) return conversation.messages;
-    const cursorIndex = conversation.messages.findIndex(({ id }) => id === afterMessageId);
+function entriesAfterCursor(conversation, afterMessageId) {
+    if (!afterMessageId) return conversation.entries;
+    const cursorIndex = conversation.entries.findIndex((entry) => entry.kind === 'message' && entry.id === afterMessageId);
 
-    return cursorIndex < 0 ? conversation.messages : conversation.messages.slice(cursorIndex + 1);
-}
-
-function cursorTimestamp(conversation, afterMessageId) {
-    if (!afterMessageId) return null;
-
-    return conversation.messages.find(({ id }) => id === afterMessageId)?.timestamp ?? null;
-}
-
-function cursorSequence(conversation, afterMessageId) {
-    if (!afterMessageId) return null;
-
-    return conversation.messages.find(({ id }) => id === afterMessageId)?.sequence ?? null;
-}
-
-function compareConversationItems(first, second) {
-    if (Number.isSafeInteger(first.sequence) && Number.isSafeInteger(second.sequence)) {
-        return first.sequence - second.sequence;
-    }
-
-    return first.timestamp.localeCompare(second.timestamp);
+    return cursorIndex < 0 ? conversation.entries : conversation.entries.slice(cursorIndex + 1);
 }
 
 function removeConsecutiveDuplicates(items) {
@@ -95,20 +75,9 @@ function removeConsecutiveDuplicates(items) {
 }
 
 function normalizeConversationContext(conversation, afterMessageId = null) {
-    const sourceMessages = messagesAfterCursor(conversation, afterMessageId);
-    const messages = sourceMessages.map(normalizeMessage).filter((message) => message);
-    const eventCursorTimestamp = cursorTimestamp(conversation, afterMessageId);
-    const eventCursorSequence = cursorSequence(conversation, afterMessageId);
-    const events = conversation.events
-        .map(normalizeEvent)
-        .filter((event) => event && (
-            eventCursorTimestamp === null
-            || (Number.isSafeInteger(event.sequence) && Number.isSafeInteger(eventCursorSequence)
-                ? event.sequence > eventCursorSequence
-                : event.timestamp >= eventCursorTimestamp)
-        ));
-    const orderedItems = [...messages, ...events].sort(compareConversationItems);
-    const items = removeConsecutiveDuplicates(orderedItems);
+    const items = removeConsecutiveDuplicates(entriesAfterCursor(conversation, afterMessageId)
+        .map((entry) => entry.kind === 'message' ? normalizeMessage(entry) : normalizeEvent(entry))
+        .filter((entry) => entry));
     if (items.length === 0) return '';
 
     return ['MD² conversation context', ...items.flatMap(({ content, label }) => [`[${label}]`, content])].join('\n\n');

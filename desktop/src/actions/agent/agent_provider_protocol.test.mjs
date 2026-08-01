@@ -181,7 +181,7 @@ describe('agent provider protocol', () => {
         expect(events.map(({ changedPaths }) => changedPaths)).toEqual([[], []]);
     });
 
-    it('recognizes structured missing-session failures only before turn activity', () => {
+    it('recognizes structured missing-session failures only before turn events', () => {
         const first = parser('codex');
         first.instance.push('{"type":"error","code":"thread_not_found","message":"thread does not exist"}\n');
         first.instance.finish();

@@ -2,12 +2,12 @@ import TerminalOutlined from '@mui/icons-material/TerminalOutlined'
 import { Box, Button, Stack, Typography } from '@mui/material'
 import { useState } from 'react'
 import type { AgentConversationEvent } from '../../data/data_types'
-import { activityHasError, activityStatusLabel, commandPreview } from './activity_display'
+import { commandPreview, eventHasError, eventStatusLabel } from './event_display'
 
 const COMMAND_DETAIL_MAX_HEIGHT = 320
 
-interface CommandExecutionActivityProps {
-    activity: AgentConversationEvent
+interface CommandExecutionEventProps {
+    event: AgentConversationEvent
 }
 
 function detailValue(value: string | number) {
@@ -28,15 +28,15 @@ function detailValue(value: string | number) {
 }
 
 /** Collapsed command lifecycle entry with exact execution detail on demand. */
-export function CommandExecutionActivity({ activity }: CommandExecutionActivityProps) {
+export function CommandExecutionEvent({ event }: CommandExecutionEventProps) {
     const [expanded, setExpanded] = useState(false)
-    const preview = commandPreview(activity.command) || 'Command'
-    const hasError = activityHasError(activity.status)
-    const durationMs = typeof activity.durationMs === 'number' && Number.isFinite(activity.durationMs)
-        ? activity.durationMs
+    const preview = commandPreview(event.command) || 'Command'
+    const hasError = eventHasError(event.status)
+    const durationMs = typeof event.durationMs === 'number' && Number.isFinite(event.durationMs)
+        ? event.durationMs
         : null
-    const exitCode = typeof activity.exitCode === 'number' && Number.isSafeInteger(activity.exitCode)
-        ? activity.exitCode
+    const exitCode = typeof event.exitCode === 'number' && Number.isSafeInteger(event.exitCode)
+        ? event.exitCode
         : null
     const toggleExpanded = () => {
         setExpanded((current) => !current)
@@ -72,7 +72,7 @@ export function CommandExecutionActivity({ activity }: CommandExecutionActivityP
                 <Stack direction="row" spacing={1} sx={{ alignItems: 'center', minWidth: 0, width: '100%' }}>
                     <Typography noWrap sx={{ flex: 1, minWidth: 0 }} variant="caption">{preview}</Typography>
                     <Typography color="inherit" role="status" variant="caption">
-                        {activityStatusLabel(activity.status)}
+                        {eventStatusLabel(event.status)}
                     </Typography>
                 </Stack>
             </Button>
@@ -90,12 +90,12 @@ export function CommandExecutionActivity({ activity }: CommandExecutionActivityP
                         p: 1,
                     }}
                 >
-                    <Box><Typography color="custom.text3" variant="caption">Command</Typography>{detailValue(activity.command ?? '')}</Box>
-                    {activity.workingDirectory ? (
-                        <Box><Typography color="custom.text3" variant="caption">Working directory</Typography>{detailValue(activity.workingDirectory)}</Box>
+                    <Box><Typography color="custom.text3" variant="caption">Command</Typography>{detailValue(event.command ?? '')}</Box>
+                    {event.workingDirectory ? (
+                        <Box><Typography color="custom.text3" variant="caption">Working directory</Typography>{detailValue(event.workingDirectory)}</Box>
                     ) : null}
-                    {activity.output ? (
-                        <Box><Typography color="custom.text3" variant="caption">Output</Typography>{detailValue(activity.output)}</Box>
+                    {event.output ? (
+                        <Box><Typography color="custom.text3" variant="caption">Output</Typography>{detailValue(event.output)}</Box>
                     ) : null}
                     {exitCode !== null || durationMs !== null ? (
                         <Stack direction="row" spacing={2}>

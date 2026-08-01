@@ -5,6 +5,7 @@ import { workspaceNavigationService } from '../../services/project/workspace_nav
 import { workspaceViewService } from '../../services/project/workspace_view_service'
 
 const ABSOLUTE_WINDOWS_PATH_PATTERN = /^[a-z]:\//iu
+const ENCODED_ABSOLUTE_WINDOWS_PATH_PATTERN = /^[a-z]:(?:%2f|%5c)/iu
 const FILE_URL_PATTERN = /^file:\/+/iu
 const URL_SCHEME_PATTERN = /^[a-z][a-z\d+.-]*:/iu
 
@@ -54,7 +55,11 @@ function isPathInsideFolder(path: string, folder: string) {
 export function isLocalFileLink(href: string) {
     const normalizedHref = href.trim().replace(/\\/gu, '/')
     if (!normalizedHref || normalizedHref.startsWith('#') || normalizedHref.startsWith('/') || normalizedHref.startsWith('//')) return false
-    if (ABSOLUTE_WINDOWS_PATH_PATTERN.test(normalizedHref) || FILE_URL_PATTERN.test(normalizedHref)) return true
+    if (
+        ABSOLUTE_WINDOWS_PATH_PATTERN.test(normalizedHref)
+        || ENCODED_ABSOLUTE_WINDOWS_PATH_PATTERN.test(normalizedHref)
+        || FILE_URL_PATTERN.test(normalizedHref)
+    ) return true
 
     return !URL_SCHEME_PATTERN.test(normalizedHref)
 }

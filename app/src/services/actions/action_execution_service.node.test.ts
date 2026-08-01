@@ -115,13 +115,17 @@ describe('ActionExecutionService', () => {
         setActionBridgeOverride(bridge)
         const service = new ActionExecutionService()
         service.start()
-        const userMessage = { content: 'Review this', id: 'message-1', role: 'user' as const, timestamp: 'now' }
+        const userMessage = { content: 'Review this', id: 'message-1', kind: 'message' as const, role: 'user' as const, timestamp: 'now' }
 
         emit({ actionId: 'review', context, executionId: 'execution-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'execution' })
         emit({ actionId: 'review', context, executionId: 'execution-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'action' })
         emit({
             actionId: 'review', context, executionId: 'execution-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
-            update: { conversationId: 'conversation-1', kind: 'agentStarted', reference: 'log.json', startedAt: 'now', title: 'Review', userMessage },
+            update: { conversationId: 'conversation-1', entries: [userMessage], kind: 'agentStarted', reference: 'log.json', startedAt: 'now', title: 'Review' },
+        })
+        emit({
+            actionId: 'review', context, executionId: 'execution-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
+            update: { content: '', kind: 'output', messageId: 'assistant-1', sequence: 2 },
         })
         emit({
             actionId: 'review', context, executionId: 'execution-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
@@ -131,7 +135,7 @@ describe('ActionExecutionService', () => {
         expect(service.getSnapshot().executions[0]).toMatchObject({
             agentTurn: {
                 conversationId: 'conversation-1',
-                messages: [userMessage, expect.objectContaining({ content: 'live answer', role: 'assistant' })],
+                entries: [userMessage, expect.objectContaining({ content: 'live answer', kind: 'message', role: 'assistant' })],
                 reference: 'log.json',
             },
             logs: [{ stdout: 'live answer' }],
@@ -139,7 +143,7 @@ describe('ActionExecutionService', () => {
         service.stop()
     })
 
-    it('upserts live agent activity by provider item id without changing its sequence', () => {
+    it('upserts live agent event by provider item id without changing its sequence', () => {
         const { bridge, emit } = bridgeWithEvents()
         setActionBridgeOverride(bridge)
         const service = new ActionExecutionService()
@@ -147,6 +151,7 @@ describe('ActionExecutionService', () => {
         const userMessage = {
             content: 'Run tests',
             id: 'message-1',
+            kind: 'message' as const,
             role: 'user' as const,
             sequence: 1,
             timestamp: 'now',
@@ -154,22 +159,27 @@ describe('ActionExecutionService', () => {
 
         emit({
             actionId: 'review', context, executionId: 'execution-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
-            update: { conversationId: 'conversation-1', kind: 'agentStarted', reference: 'log.json', startedAt: 'now', title: 'Review', userMessage },
+            update: { conversationId: 'conversation-1', entries: [userMessage], kind: 'agentStarted', reference: 'log.json', startedAt: 'now', title: 'Review' },
+        })
+        emit({
+            actionId: 'review', context, executionId: 'execution-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
+            update: { content: '', kind: 'output', messageId: 'assistant-1', sequence: 2 },
         })
         emit({
             actionId: 'review', context, executionId: 'execution-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
             update: {
-                activity: {
+                event: {
                     command: 'npm test',
                     content: '',
                     id: 'activity-started',
+                    kind: 'event',
                     providerItemId: 'command-1',
                     sequence: 3,
                     status: 'inProgress',
                     timestamp: 'now',
                     type: 'commandExecution',
                 },
-                kind: 'agentActivity',
+                kind: 'agentEvent',
             },
         })
         emit({
@@ -183,17 +193,18 @@ describe('ActionExecutionService', () => {
         emit({
             actionId: 'review', context, executionId: 'execution-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
             update: {
-                activity: {
+                event: {
                     command: 'npm test',
                     content: 'passed',
                     id: 'activity-completed',
+                    kind: 'event',
                     output: 'passed',
                     providerItemId: 'command-1',
                     status: 'completed',
                     timestamp: 'later',
                     type: 'commandExecution',
                 },
-                kind: 'agentActivity',
+                kind: 'agentEvent',
             },
         })
         emit({
@@ -202,17 +213,11 @@ describe('ActionExecutionService', () => {
         })
 
         expect(service.getSnapshot().executions[0].agentTurn).toMatchObject({
-            activities: [{
-                id: 'activity-completed',
-                output: 'passed',
-                providerItemId: 'command-1',
-                sequence: 3,
-                status: 'completed',
-            }],
             currentAssistantMessageId: 'assistant-2',
-            messages: [
+            entries: [
                 userMessage,
                 expect.objectContaining({ content: 'Testing...', id: 'assistant-1', sequence: 2 }),
+                expect.objectContaining({ id: 'activity-completed', output: 'passed', providerItemId: 'command-1', sequence: 3, status: 'completed' }),
                 expect.objectContaining({ content: 'Done', id: 'assistant-2', sequence: 4 }),
             ],
         })
@@ -224,14 +229,14 @@ describe('ActionExecutionService', () => {
         setActionBridgeOverride(bridge)
         const service = new ActionExecutionService()
         service.start()
-        const firstMessage = { content: 'Plan', id: 'message-1', role: 'user' as const, timestamp: 'now' }
-        const nextMessage = { content: 'Approved', id: 'message-2', role: 'user' as const, timestamp: 'later' }
+        const firstMessage = { content: 'Plan', id: 'message-1', kind: 'message' as const, role: 'user' as const, timestamp: 'now' }
+        const nextMessage = { content: 'Approved', id: 'message-2', kind: 'message' as const, role: 'user' as const, timestamp: 'later' }
         const questions = [{ header: 'Confirm', id: 'confirm', question: 'Proceed?' }]
 
         emit({ actionId: 'review', context, executionId: 'execution-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'execution' })
         emit({
             actionId: 'review', context, executionId: 'execution-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
-            update: { conversationId: 'conversation-1', kind: 'agentStarted', reference: 'log.json', startedAt: 'now', title: 'Review', userMessage: firstMessage },
+            update: { conversationId: 'conversation-1', entries: [firstMessage], kind: 'agentStarted', reference: 'log.json', startedAt: 'now', title: 'Review' },
         })
         emit({
             actionId: 'review', context, executionId: 'execution-1', phase: 'main', rootActionId: 'review', status: 'waitingForInput', type: 'update',
@@ -251,7 +256,7 @@ describe('ActionExecutionService', () => {
         emit({ actionId: 'review', context, executionId: 'execution-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'agentState' })
 
         expect(service.getSnapshot().executions[0]).toMatchObject({
-            agentTurn: { messages: [firstMessage, nextMessage] },
+            agentTurn: { entries: [firstMessage, nextMessage] },
             question: null,
             status: 'running',
         })
@@ -266,7 +271,7 @@ describe('ActionExecutionService', () => {
         const { bridge, emit } = bridgeWithEvents({ loadActiveActionExecutionEvents: vi.fn(() => snapshot) })
         setActionBridgeOverride(bridge)
         const service = new ActionExecutionService()
-        const userMessage = { content: 'Plan', id: 'message-1', role: 'user' as const, timestamp: 'now' }
+        const userMessage = { content: 'Plan', id: 'message-1', kind: 'message' as const, role: 'user' as const, timestamp: 'now' }
         const questions = [{ header: 'Confirm', id: 'confirm', question: 'Proceed?' }]
         const events: ActionExecutionEvent[] = [
             { ...executionEvent('running'), sequence: 1 },
@@ -277,7 +282,7 @@ describe('ActionExecutionService', () => {
             {
                 actionId: 'build', context, executionId: 'execution-1', phase: 'main', rootActionId: 'build', sequence: 3,
                 status: 'running', type: 'update',
-                update: { conversationId: 'conversation-1', kind: 'agentStarted', reference: 'log.json', startedAt: 'now', title: 'Build', userMessage },
+                update: { conversationId: 'conversation-1', entries: [userMessage], kind: 'agentStarted', reference: 'log.json', startedAt: 'now', title: 'Build' },
             },
             {
                 actionId: 'build', context, executionId: 'execution-1', phase: 'main', rootActionId: 'build', sequence: 4,
@@ -299,7 +304,7 @@ describe('ActionExecutionService', () => {
         await vi.waitFor(() => expect(service.getRunningExecutionForContext(context)).toMatchObject({
             agentTurn: {
                 conversationId: 'conversation-1',
-                messages: expect.arrayContaining([expect.objectContaining({ content: 'proposal', role: 'assistant' })]),
+                entries: expect.arrayContaining([expect.objectContaining({ content: 'proposal', kind: 'message', role: 'assistant' })]),
             },
             question: { questions, requestId: 7 },
             status: 'waitingForInput',
@@ -472,7 +477,7 @@ describe('ActionExecutionService', () => {
                 reference: 'activity.json#conversation=conversation-1',
                 startedAt: '2026-07-27T10:00:00.000Z',
                 title: 'Review',
-                userMessage: { content: 'Start', id: 'user-1', role: 'user', timestamp: '2026-07-27T10:00:00.000Z' },
+                entries: [{ content: 'Start', id: 'user-1', kind: 'message', role: 'user', timestamp: '2026-07-27T10:00:00.000Z' }],
             },
         })
         await service.setPromptDraft('review', activeContext, 'Follow up')
@@ -487,7 +492,7 @@ describe('ActionExecutionService', () => {
             type: 'update',
             update: {
                 kind: 'agentUserMessage',
-                userMessage: { content: 'Follow up', id: 'user-2', role: 'user', timestamp: '2026-07-27T10:01:00.000Z' },
+                userMessage: { content: 'Follow up', id: 'user-2', kind: 'message', role: 'user', timestamp: '2026-07-27T10:01:00.000Z' },
             },
         })
 
