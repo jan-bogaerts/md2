@@ -29,7 +29,7 @@ function commit(): CardCommit {
             commits: [],
             completedAt: committedAt,
             conversationIds: [],
-            executionId: 'execution-1',
+            runId: 'run-1',
             history: { completedAt: committedAt, output: '', prompt: '', status: 'completed' },
             origin: { cardInternalId: 'card-060', kind: 'card' },
             rootActionId: 'implement',

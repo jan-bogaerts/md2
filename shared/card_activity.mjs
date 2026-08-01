@@ -114,7 +114,7 @@ function parseRecord(value, index, activityOrigin) {
         commits: value.commits.map(parseCommit),
         completedAt: requiredTimestamp(value.completedAt, `records[${index}].completedAt`),
         conversationIds: requiredStringArray(value.conversationIds, `records[${index}].conversationIds`),
-        executionId: requiredString(value.executionId, `records[${index}].executionId`),
+        runId: requiredString(value.runId, `records[${index}].runId`),
         history: parseHistory(value.history, index),
         origin,
         rootActionId: requiredString(value.rootActionId, `records[${index}].rootActionId`),

@@ -321,7 +321,7 @@ describe('RemoteControlStorageService', () => {
             service.sendActionQueuedMessage('action-1', 2, 3),
             service.answerActionApproval('action-1', 41, 'accept'),
             service.answerActionQuestion('action-1', 7, { confirm: ['Yes'] }),
-            service.finishActionExecution('action-1'),
+            service.finishActionRun('action-1'),
             service.notifyActionCardStateChange('card-1', 'ready'),
         ]
         await flushPromises()
@@ -333,7 +333,7 @@ describe('RemoteControlStorageService', () => {
             { method: 'sendActionQueuedMessage', params: ['action-1', 2, 3] },
             { method: 'answerActionApproval', params: ['action-1', 41, 'accept'] },
             { method: 'answerActionQuestion', params: ['action-1', 7, { confirm: ['Yes'] }] },
-            { method: 'finishActionExecution', params: ['action-1'] },
+            { method: 'finishActionRun', params: ['action-1'] },
             { method: 'notifyActionCardStateChange', params: ['card-1', 'ready'] },
         ])
         requests.forEach(({ id, method }) => {
@@ -350,11 +350,11 @@ describe('RemoteControlStorageService', () => {
         await Promise.all(operations)
     })
 
-    it('reattaches action execution events and reloads active state after reconnect', async () => {
+    it('reattaches action run events and reloads active state after reconnect', async () => {
         installWebSocket()
         const service = createService()
         const callback = vi.fn()
-        service.onActionExecution(callback)
+        service.onActionRun(callback)
         const firstSocket = lastSocket()
         firstSocket.open()
         await flushPromises()
@@ -369,20 +369,20 @@ describe('RemoteControlStorageService', () => {
         await reconnection
         await vi.waitFor(() => expect(secondSocket.sent).toHaveLength(1))
         const secondSubscription = JSON.parse(secondSocket.sent[0]) as { id: string, method: string }
-        expect(secondSubscription.method).toBe('onActionExecution')
+        expect(secondSubscription.method).toBe('onActionRun')
         secondSocket.receive({ id: secondSubscription.id, result: { subscriptionId: 'action-events-2' } })
         await vi.waitFor(() => expect(secondSocket.sent).toHaveLength(2))
         const snapshotRequest = JSON.parse(secondSocket.sent[1]) as { id: string, method: string }
-        expect(snapshotRequest.method).toBe('loadActiveActionExecutionEvents')
+        expect(snapshotRequest.method).toBe('loadActiveActionRunEvents')
         const event = {
             actionId: 'review',
             context: { file: 'design/F-1.md', kind: 'card' },
-            executionId: 'execution-1',
+            runId: 'run-1',
             phase: 'main',
             rootActionId: 'review',
             sequence: 1,
             status: 'running',
-            type: 'execution',
+            type: 'run',
         }
         secondSocket.receive({ id: snapshotRequest.id, result: [event] })
 

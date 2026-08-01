@@ -20,10 +20,10 @@ function conversation(): AgentConversation {
 
 function makeBridge(runSearchRegexpAgent: ElectronActionBridge['runSearchRegexpAgent']): ElectronActionBridge {
     return {
-        cancelActionExecution: vi.fn(async () => {}),
+        cancelActionRun: vi.fn(async () => {}),
         generateDiff: vi.fn(async () => ({ commit: '', files: [] })),
         loadActionRunHistory: vi.fn(async () => []),
-        onActionExecution: vi.fn(() => () => {}),
+        onActionRun: vi.fn(() => () => {}),
         openInEditor: vi.fn(async () => {}),
         prepareActionPrompt: vi.fn(async () => ({ prompt: '' })),
         runSearchRegexpAgent,
@@ -35,10 +35,10 @@ function emitAgentEvents(callback?: (event: AgentRunEvent) => void) {
     const agentConversation = conversation()
     const userMessage = { content: 'Find matches', id: 'message-1', kind: 'message' as const, role: 'user' as const, timestamp: agentConversation.startedAt }
     callback?.({
-        conversationId: agentConversation.id, entries: [userMessage], reference: agentConversation.path, runId: 'agent-1',
-        startedAt: agentConversation.startedAt, title: agentConversation.title, type: 'started',
+        conversation: { ...agentConversation, completedAt: null, entries: [userMessage], status: 'running' },
+        runId: 'agent-1', type: 'started',
     })
-    callback?.({ reference: agentConversation.path, runId: 'agent-1', status: agentConversation.status, type: 'closed' })
+    callback?.({ conversation: agentConversation, runId: 'agent-1', type: 'closed' })
 }
 
 describe('extractRegexpExpression', () => {

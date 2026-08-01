@@ -50,7 +50,7 @@ describe('captureCommitReferences', () => {
         });
     });
 
-    it('uses tracked commit hash and execution worktree metadata', async () => {
+    it('uses tracked commit hash and run worktree metadata', async () => {
         const trackedAction = { ...action, trackFileChanges: true, type: 'agent' };
         const result = { stderr: '', stdout: '[wrong wrong12] ignored', trackedCommit: 'abcdef3' };
         const localGitService = {

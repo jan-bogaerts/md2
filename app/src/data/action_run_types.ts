@@ -1,10 +1,10 @@
 import type { ActionContext } from './action_context'
-import type { AgentConversationEntry, AgentConversationEventEntry, AgentConversationMessageEntry } from './data_types'
+import type { AgentConversation, AgentConversationEventEntry, AgentConversationMessageEntry } from './data_types'
 import type { ThinkingLevel } from './agent_profiles'
 import type { ActionAutoFinish, ActionType } from './action_types'
 
-export type ActionRunStatus = 'cancelled' | 'completed' | 'failed' | 'okButNotAfter'
-export type ActionExecutionStatus = ActionRunStatus | 'queued' | 'running' | 'waitingForInput'
+export type ActionRunTerminalStatus = 'cancelled' | 'completed' | 'failed' | 'okButNotAfter'
+export type ActionRunStatus = ActionRunTerminalStatus | 'queued' | 'running' | 'waitingForInput'
 export type ActionRunPhase = 'after' | 'before' | 'main' | 'on'
 
 export interface ActionRunInput {
@@ -97,12 +97,12 @@ export interface AgentApproval {
     turnId: string
 }
 
-interface ActionExecutionEventBase {
+interface ActionRunEventBase {
     actionId: string
     actionType?: ActionType
     autoFinish?: ActionAutoFinish | null
     context: ActionContext
-    executionId: string
+    runId: string
     interactionReady?: boolean
     phase: ActionRunPhase
     rootActionId: string
@@ -110,15 +110,15 @@ interface ActionExecutionEventBase {
     streaming?: boolean
 }
 
-export type ActionExecutionUpdate =
+export type ActionRunUpdate =
     | {
         continued?: boolean
-        conversationId: string
-        entries: AgentConversationEntry[]
+        conversation: AgentConversation
         kind: 'agentStarted'
-        reference: string
-        startedAt: string
-        title: string
+    }
+    | {
+        conversation: AgentConversation
+        kind: 'agentClosed'
     }
     | {
         kind: 'agentQuestion'
@@ -149,29 +149,29 @@ export type ActionExecutionUpdate =
         sequence?: number
     }
 
-export type ActionExecutionEvent =
-    | ActionExecutionEventBase & {
-        status: ActionExecutionStatus
-        type: 'execution'
+export type ActionRunEvent =
+    | ActionRunEventBase & {
+        status: ActionRunStatus
+        type: 'run'
     }
-    | ActionExecutionEventBase & {
+    | ActionRunEventBase & {
         command?: string
-        executionWorktree?: number | null
+        conversationId?: string
+        runWorktree?: number | null
         message?: string | null
         reference?: string
-        runId?: string
-        status: ActionExecutionStatus
+        status: ActionRunStatus
         thinkingLevel?: ThinkingLevel
         type: 'action'
     }
-    | ActionExecutionEventBase & {
+    | ActionRunEventBase & {
         status: 'running' | 'waitingForInput'
         type: 'agentState'
     }
-    | ActionExecutionEventBase & {
-        status: 'running' | 'waitingForInput'
+    | ActionRunEventBase & {
+        status: ActionRunStatus
         type: 'update'
-        update: ActionExecutionUpdate
+        update: ActionRunUpdate
     }
 
 export interface ActionRunLogEntry {
@@ -180,7 +180,7 @@ export interface ActionRunLogEntry {
     command: string | null
     message: string
     phase: ActionRunPhase
-    status: ActionExecutionStatus
+    status: ActionRunStatus
     stderr: string
     stdout: string
     thinkingLevel?: ThinkingLevel

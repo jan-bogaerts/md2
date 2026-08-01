@@ -319,12 +319,8 @@ export interface AgentConversationError {
 
 export type AgentRunEvent =
     | {
-        conversationId: string
-        entries: AgentConversationEntry[]
-        reference: string
+        conversation: AgentConversation
         runId: string
-        startedAt: string
-        title: string
         type: 'started'
     }
     | {
@@ -338,9 +334,8 @@ export type AgentRunEvent =
         type: 'error' | 'output'
     }
     | {
-        reference: string
+        conversation: AgentConversation
         runId: string
-        status: AgentConversationStatus
         type: 'closed'
     }
 

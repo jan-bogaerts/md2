@@ -50,16 +50,14 @@ function accumulateUsage(current, turn) {
     return sumAgentTokenUsage([current, turn]);
 }
 
-function createConversation(request, id, startedAt) {
+function createConversation(request, id, startedAt, reference) {
     if (request.conversation) {
-        const persistedEntries = Object.entries(request.conversation).filter(([fieldName]) => fieldName !== 'path');
-        const persistedConversation = Object.fromEntries(persistedEntries);
-
         return {
-            ...persistedConversation,
+            ...request.conversation,
             completedAt: null,
             entries: [...request.conversation.entries],
-            providerSessions: [...(request.conversation.providerSessions ?? [])],
+            path: reference,
+            providerSessions: [...request.conversation.providerSessions],
             status: 'running',
         };
     }
@@ -67,11 +65,12 @@ function createConversation(request, id, startedAt) {
     return {
         actionId: request.actionId ?? null,
         cardInternalId: request.activityOrigin.kind === 'card' ? request.activityOrigin.cardInternalId : null,
-        ...(request.cardPath ? { cardPath: request.cardPath } : {}),
+        cardPath: request.cardPath ?? null,
         completedAt: null,
         entries: [],
         hasExplicitTitle: true,
         id,
+        path: reference,
         providerSessions: [],
         startedAt,
         status: 'running',

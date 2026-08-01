@@ -1,94 +1,99 @@
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { act, cleanup, render, screen } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { CUSTOM_PROMPT_ACTION_ID, type ActionDefinition } from '../../data/action_types'
+import { actionPromptDraftService } from '../../services/actions/action_prompt_draft_service'
+import { actionRunRegistry } from '../../services/actions/action_run_registry'
+import { agentCapabilitiesService } from '../../services/agents/agent_capabilities_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
+import { ActionConversationStore } from './action_conversation_store'
+import { ActionHistoryStore } from './action_history_store'
 import { ActionPopupBottomRow } from './action_popup_bottom_row'
-import { ActionPromptDraft } from './action_prompt_draft'
-import type { ActionPopupController } from './use_action_popup_controller'
+import { ActionRunInputStore } from './action_run_input_store'
+import { ActionRunResultStore } from './action_run_result_store'
+import { ActionScheduleStore } from './action_schedule_store'
 
-afterEach(cleanup)
+const context = { kind: 'project' as const }
+const action = {
+    description: 'Custom prompt',
+    id: CUSTOM_PROMPT_ACTION_ID,
+    label: 'Custom prompt',
+    phrases: [],
+    prompt: '',
+    type: 'agent',
+} as unknown as ActionDefinition
 
-function controller(): ActionPopupController {
-    return {
-        agentActive: false,
-        backendAvailable: true,
-        conversations: [],
-        executionDisabledMessage: null,
-        handleCancel: vi.fn(),
-        handleConvertToAction: vi.fn(async () => true),
-        handleFinish: vi.fn(),
-        handleRun: vi.fn(),
-        handleSaveAndRun: vi.fn(),
-        handleToggleSchedule: vi.fn(),
-        history: [],
-        interactionReady: false,
-        manualFinishAvailable: false,
-        promptPreparationFailed: false,
-        promptPreparationPending: false,
-        runStatus: 'idle',
-        saveDisabled: false,
-        structuredQuestion: null,
-    } as unknown as ActionPopupController
+function renderBottomRow() {
+    const conversationStore = new ActionConversationStore(action.id, context)
+    const historyStore = new ActionHistoryStore(action, context)
+    const inputStore = new ActionRunInputStore()
+    const resultStore = new ActionRunResultStore()
+    const scheduleStore = new ActionScheduleStore()
+    const unrelatedRender = vi.fn()
+
+    function UnrelatedContent() {
+        unrelatedRender()
+
+        return <div>Conversation</div>
+    }
+
+    render(
+        <AppThemeProvider>
+            <UnrelatedContent />
+            <ActionPopupBottomRow
+                action={action}
+                assignmentContext={context}
+                conversationStore={conversationStore}
+                historyStore={historyStore}
+                inputStore={inputStore}
+                resultStore={resultStore}
+                runValidationError={null}
+                scheduleStore={scheduleStore}
+                showSaveControls={false}
+            />
+        </AppThemeProvider>,
+    )
+
+    return { unrelatedRender }
 }
 
 describe('ActionPopupBottomRow', () => {
-    it('enables Send from the first live prompt change without rerendering unrelated content', () => {
-        const promptDraft = new ActionPromptDraft('')
-        const popupController = controller()
-        const unrelatedRender = vi.fn()
-        const action = { id: CUSTOM_PROMPT_ACTION_ID, type: 'agent' } as ActionDefinition
+    beforeEach(() => {
+        window.md2Actions = { onActionRun: vi.fn(() => vi.fn()) } as unknown as typeof window.md2Actions
+        vi.spyOn(agentCapabilitiesService, 'getSnapshot').mockReturnValue({
+            availability: { error: null, loading: false, values: { '': { available: true, error: null } } },
+            models: { error: null, loading: false, values: [] },
+            thinkingLevels: { error: null, loading: false, values: [] },
+        })
+    })
 
-        function UnrelatedContent() {
-            unrelatedRender()
+    afterEach(() => {
+        actionPromptDraftService.clearAll()
+        actionRunRegistry.stop()
+        delete window.md2Actions
+        cleanup()
+        vi.restoreAllMocks()
+    })
 
-            return <div>Conversation</div>
-        }
-
-        render(
-            <AppThemeProvider>
-                <UnrelatedContent />
-                <ActionPopupBottomRow
-                    action={action}
-                    assignmentContext={{ kind: 'project' }}
-                    baseContext={{ kind: 'project' }}
-                    controller={popupController}
-                    promptDraft={promptDraft}
-                    showSaveControls={false}
-                />
-            </AppThemeProvider>,
-        )
+    it('enables Send from first live prompt change without rendering unrelated content', () => {
+        const promptDraft = actionPromptDraftService.getDraft(action.id, context, null, { prepare: false })
+        const { unrelatedRender } = renderBottomRow()
         const send = screen.getByRole('button', { name: 'Send' })
         expect(send).toBeDisabled()
 
-        act(() => promptDraft.set('P'))
+        act(() => promptDraft.edit('P'))
 
         expect(send).toBeEnabled()
         expect(unrelatedRender).toHaveBeenCalledTimes(1)
-
-        fireEvent.click(send)
-
-        expect(popupController.handleRun).toHaveBeenCalledWith('P')
     })
 
-    it('disables Send when the live prompt is cleared', () => {
-        const promptDraft = new ActionPromptDraft('Plan')
-        const action = { id: CUSTOM_PROMPT_ACTION_ID, type: 'agent' } as ActionDefinition
-        render(
-            <AppThemeProvider>
-                <ActionPopupBottomRow
-                    action={action}
-                    assignmentContext={{ kind: 'project' }}
-                    baseContext={{ kind: 'project' }}
-                    controller={controller()}
-                    promptDraft={promptDraft}
-                    showSaveControls={false}
-                />
-            </AppThemeProvider>,
-        )
+    it('disables Send when live prompt is cleared', () => {
+        const promptDraft = actionPromptDraftService.getDraft(action.id, context, null, { prepare: false })
+        promptDraft.edit('Plan')
+        renderBottomRow()
         const send = screen.getByRole('button', { name: 'Send' })
         expect(send).toBeEnabled()
 
-        act(() => promptDraft.set(''))
+        act(() => promptDraft.edit(''))
 
         expect(send).toBeDisabled()
     })

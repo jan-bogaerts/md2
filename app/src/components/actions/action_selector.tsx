@@ -4,13 +4,15 @@ import HelpCircleOutline from 'mdi-material-ui/HelpCircleOutline'
 import Play from 'mdi-material-ui/Play'
 import Plus from 'mdi-material-ui/Plus'
 import type { MouseEvent } from 'react'
-import type { ActionExecutionStatus } from '../../data/action_run_types'
+import type { ActionContext } from '../../data/action_context'
+import type { ActionRunStatus } from '../../data/action_run_types'
 import type { ActionDefinition } from '../../data/action_types'
+import { useActiveActionRunsForContext } from '../hooks/use_action_runs'
 
 interface ActionSelectorProps {
-    activeActionStatuses: Record<string, ActionExecutionStatus>
     adding: boolean
     actions: ActionDefinition[]
+    context: ActionContext
     onAdd: () => void
     onSelect: (actionId: string) => void
     selectedAction: ActionDefinition
@@ -19,7 +21,12 @@ interface ActionSelectorProps {
 
 /** Horizontally scrollable, mutually exclusive action selector used by the card Run popup. */
 export function ActionSelector(props: ActionSelectorProps) {
-    const { activeActionStatuses, adding, actions, onAdd, onSelect, selectedAction, unseenResultActionIds } = props
+    const { adding, actions, context, onAdd, onSelect, selectedAction, unseenResultActionIds } = props
+    const activeRuns = useActiveActionRunsForContext(context)
+    const activeActionStatuses: Record<string, ActionRunStatus> = {}
+    for (const { rootActionId, status } of activeRuns) {
+        if (status === 'waitingForInput' || !activeActionStatuses[rootActionId]) activeActionStatuses[rootActionId] = status
+    }
 
     const handleChange = (_event: MouseEvent<HTMLElement>, actionId: string | null) => {
         if (actionId) onSelect(actionId)

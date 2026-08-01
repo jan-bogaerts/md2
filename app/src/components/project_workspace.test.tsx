@@ -1,4 +1,4 @@
-﻿import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { UseGithubAuthResult } from '../auth/use_github_auth'
 import type { ActionFile } from '../data/action_types'
@@ -99,7 +99,7 @@ function createBridge(actionFiles: ActionFile[] = []): ElectronDataBridge {
 
 function createActionBridge(): ElectronActionBridge {
     return {
-        onActionExecution: vi.fn(() => vi.fn()),
+        onActionRun: vi.fn(() => vi.fn()),
         prepareActionPrompt: vi.fn(async () => ({ prompt: '' })),
     } as unknown as ElectronActionBridge
 }
@@ -265,7 +265,7 @@ describe('ProjectWorkspace', () => {
         expect(screen.getByRole('button', { name: 'Project agent' })).toBeInTheDocument()
     })
 
-    it('hides project agent in a browser without an Electron execution backend', async () => {
+    it('hides project agent in a browser without an Electron action-run backend', async () => {
         await dataService.projectLoading.openProject({ branch: 'main', id: 'web-project' })
 
         renderProjectSurface()

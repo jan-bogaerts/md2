@@ -1,6 +1,6 @@
 import { Button, Stack, Typography } from '@mui/material'
 import type { ReactNode } from 'react'
-import { hasExecutionBackend } from '../data/electron_action_bridge'
+import { hasActionRunBackend } from '../data/electron_action_bridge'
 import { AgentChatFab } from './agents/agent_chat_fab'
 import { useProjectReference } from './hooks/use_project_reference'
 import { requestOpenProjectDialog } from './project_command_events'
@@ -17,7 +17,7 @@ function openProjectDialog() {
 export function ProjectWorkspaceAvailability({ children }: ProjectWorkspaceAvailabilityProps) {
     const project = useProjectReference()
 
-    if (project) return <>{children}{hasExecutionBackend() ? <AgentChatFab /> : null}</>
+    if (project) return <>{children}{hasActionRunBackend() ? <AgentChatFab /> : null}</>
 
     return (
         <Stack

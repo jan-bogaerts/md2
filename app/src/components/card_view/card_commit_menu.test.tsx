@@ -4,7 +4,7 @@ import { AppThemeProvider } from '../../theme/theme_provider'
 import type { CardCommit } from '../../services/actions/card_commit_history'
 import { CardCommitMenu } from './card_commit_menu'
 
-function commit(executionId: string, hashCharacter: string): CardCommit {
+function commit(runId: string, hashCharacter: string): CardCommit {
     const committedAt = '2026-07-20T10:00:00.000Z'
 
     return {
@@ -19,7 +19,7 @@ function commit(executionId: string, hashCharacter: string): CardCommit {
             commits: [],
             completedAt: committedAt,
             conversationIds: [],
-            executionId,
+            runId,
             history: { completedAt: committedAt, output: '', prompt: '', status: 'completed' },
             origin: { cardInternalId: 'card-060', kind: 'card' },
             rootActionId: 'implement',

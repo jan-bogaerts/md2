@@ -85,7 +85,7 @@ class ActionAgentExecutor {
             command,
             ...(sourceConversation ? { conversation: sourceConversation, reference } : {}),
             ...(contextInput ? { contextInput } : {}),
-            executionId: input.executionId,
+            actionRunId: input.runId,
             prompt,
             projectFolder: input.projectFolder,
             streaming,
@@ -123,7 +123,7 @@ class ActionAgentExecutor {
         const onComplete = (exitCode, run) => resolve({
             command: request.command,
             changedPaths: run.changedPaths ? [...run.changedPaths] : [],
-            conversation: { ...run.conversation, path: run.reference },
+            conversation: structuredClone(run.conversation),
             conversationId: run.conversation.id,
             exitCode,
             missingSession: run.missingSession,

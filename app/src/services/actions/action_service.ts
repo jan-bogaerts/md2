@@ -15,6 +15,7 @@ import {
     validateActionDefinitionGraph,
 } from './action_definition_loader'
 import { ActionDraftStore } from './action_draft_store'
+import { actionPromptDraftService } from './action_prompt_draft_service'
 import { actionPath, actionValidationResult, nextActionName, preserveActionEditorStates } from './action_service_helpers'
 import type { OpenDocumentSaveReference } from '../open_files_service'
 import {
@@ -136,15 +137,23 @@ export class ActionService extends EventTarget {
     }
 
     private loadFiles(files: ActionFile[], preserveEditorState: boolean) {
+        const previousActionIds = new Set(this.actions.map(({ id }) => id))
         const previousDefinitions = new Map(this.definitions.map(({ definition, path }) => [path, definition]))
         const previousDraftPaths = this.draftStore.paths()
         const { actions, definitions, issues } = loadTolerantActionDefinitionGraph(files, { validateAgentCapabilities: false })
         if (!preserveEditorState) {
+            actionPromptDraftService.clearAll()
             this.draftStore.clear()
             this.publicationRevisionsByPath.clear()
             this.uncommittedCreationPaths.clear()
         }
         this.actions = preserveEditorState ? preserveActionEditorStates(this.actions, actions) : actions
+        if (preserveEditorState) {
+            const actionIds = new Set(this.actions.map(({ id }) => id))
+            for (const actionId of previousActionIds) {
+                if (!actionIds.has(actionId)) actionPromptDraftService.clearAction(actionId)
+            }
+        }
         this.definitions = definitions
         this.error = issues.length > 0 ? issues.map(({ message }) => message).join('\n') : null
         this.files = files
@@ -236,6 +245,7 @@ export class ActionService extends EventTarget {
     }
 
     clear() {
+        actionPromptDraftService.clearAll()
         this.actions = [BUILTIN_CUSTOM_PROMPT, BUILTIN_REMARKABLE_CONVERT]
         this.resetState()
     }

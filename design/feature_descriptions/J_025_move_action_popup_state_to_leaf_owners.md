@@ -69,4 +69,3 @@ Make popup roots own layout and selection only. Move changing application data, 
 ## Dependencies
 
 J-021, J-022, J-023, and J-024 must be implemented first.
-

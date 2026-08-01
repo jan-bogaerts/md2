@@ -3,11 +3,11 @@ import { getElectronActionBridge, setActionBridgeOverride, type ElectronActionBr
 
 function createBridge(): ElectronActionBridge {
     return {
-        cancelActionExecution: vi.fn(async () => {}),
+        cancelActionRun: vi.fn(async () => {}),
         generateDiff: vi.fn(async () => ({ commit: 'commit-1', files: [] })),
         openInEditor: vi.fn(),
         loadActionRunHistory: vi.fn(async () => []),
-        onActionExecution: vi.fn(() => () => {}),
+        onActionRun: vi.fn(() => () => {}),
         prepareActionPrompt: vi.fn(async () => ({ prompt: '' })),
         runSearchRegexpAgent: vi.fn(async () => ''),
         startAction: vi.fn(async () => 'action-1'),

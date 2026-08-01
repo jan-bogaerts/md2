@@ -20,8 +20,8 @@ function createDeferred() {
     return { promise, resolve: resolveDeferred };
 }
 
-function summarizeExecutionEvents(executionEvents) {
-    return executionEvents.map((event) => ({
+function summarizeRunEvents(runEvents) {
+    return runEvents.map((event) => ({
         actionId: event.actionId,
         phase: event.phase,
         status: event.status,
@@ -115,7 +115,7 @@ function createLocalGitService(
 }
 
 function createScheduler(localGitService, timerDependencies = {}) {
-    const actionWorktreeExecutionService = timerDependencies.actionWorktreeExecutionService ?? {
+    const actionWorktreeRunService = timerDependencies.actionWorktreeRunService ?? {
         execute: vi.fn(async (primaryProject, _action, _context, runner) => ({
             ...await runner(primaryProject),
             branch: primaryProject.branch,
@@ -125,8 +125,8 @@ function createScheduler(localGitService, timerDependencies = {}) {
     };
     const configuredAgentRunnerService = timerDependencies.agentRunnerService ?? { run: vi.fn() };
     const agentRunnerService = {
-        start: vi.fn(async (executionProject, request, onEvent, onComplete) => {
-            void configuredAgentRunnerService.run(executionProject, request, onEvent).then((result) => onComplete(result.exitCode, {conversation: { id: 'agent-1' }, reference: 'design/activity/project.json#conversation=agent-1', stderr: result.stderr, stdout: result.stdout}));
+        start: vi.fn(async (runProject, request, onEvent, onComplete) => {
+            void configuredAgentRunnerService.run(runProject, request, onEvent).then((result) => onComplete(result.exitCode, {conversation: { id: 'agent-1' }, reference: 'design/activity/project.json#conversation=agent-1', stderr: result.stderr, stdout: result.stdout}));
 
             return { runId: 'agent-1' };
         }),
@@ -134,10 +134,10 @@ function createScheduler(localGitService, timerDependencies = {}) {
     };
     const agentConfigProvider = timerDependencies.agentConfigProvider ?? (() => ({ agent: 'codex', agentProfiles: [], model: '' }));
     const actionRunnerService = timerDependencies.actionRunnerService ?? new ActionRunnerService({
-        actionWorktreeExecutionService,
+        actionWorktreeRunService,
         agentConfigProvider,
         agentRunnerService,
-        commandRunner: (executionProject, command) => localGitService.runCommand(executionProject, command),
+        commandRunner: (runProject, command) => localGitService.runCommand(runProject, command),
         localGitService,
     });
 
@@ -149,7 +149,7 @@ function createScheduler(localGitService, timerDependencies = {}) {
         setTimeout: vi.fn(() => 'timer'),
         ...timerDependencies,
         actionRunnerService,
-        actionWorktreeExecutionService,
+        actionWorktreeRunService,
         agentConfigProvider,
         agentRunnerService,
     });
@@ -266,7 +266,7 @@ describe('ActionSchedulerService', () => {
         await vi.waitFor(() => expect(localGitService.runCommand).toHaveBeenCalledWith(project, 'echo done'));
     });
 
-    it('emits shared action execution events while firing a schedule', async () => {
+    it('emits shared action run events while firing a schedule', async () => {
         const schedule = createSchedule('schedule-1', 'implement', { timestamp: '2026-07-06T09:59:00.000Z', type: 'at' });
         const localGitService = createLocalGitService([schedule]);
         const scheduler = createScheduler(localGitService);
@@ -276,7 +276,7 @@ describe('ActionSchedulerService', () => {
         await scheduler.startProject(project);
         await scheduler.fireSchedule('schedule-1');
 
-        expect(events.filter((event) => event.type === 'execution').map((event) => event.status)).toEqual(['running', 'completed']);
+        expect(events.filter((event) => event.type === 'run').map((event) => event.status)).toEqual(['running', 'completed']);
         expect(events[0]).toMatchObject({ actionId: 'implement', rootActionId: 'implement' });
     });
 
@@ -395,7 +395,7 @@ describe('ActionSchedulerService', () => {
             cancel: vi.fn(),
             start: vi.fn(async () => 'action-1'),
             startProject: vi.fn(),
-            wait: vi.fn(async () => ({ executionId: 'action-1', failure: runnerStatus === 'completed' ? null : 'runner result', status: runnerStatus })),
+            wait: vi.fn(async () => ({ runId: 'action-1', failure: runnerStatus === 'completed' ? null : 'runner result', status: runnerStatus })),
         };
         const scheduler = createScheduler(localGitService, { actionRunnerService });
 
@@ -405,7 +405,7 @@ describe('ActionSchedulerService', () => {
         expect(localGitService.schedules()).toEqual([{ ...schedule, status: scheduleStatus }]);
     });
 
-    it('delegates running schedule cancellation through shared execution id', async () => {
+    it('delegates running schedule cancellation through shared run id', async () => {
         const schedule = createSchedule('schedule-1', 'implement', { timestamp: '2026-07-06T09:59:00.000Z', type: 'at' });
         const localGitService = createLocalGitService([schedule]);
         const completion = createDeferred();
@@ -423,7 +423,7 @@ describe('ActionSchedulerService', () => {
         await scheduler.cancelActionSchedule(schedule.id);
         expect(actionRunnerService.cancel).toHaveBeenCalledWith('action-1');
 
-        completion.resolve({ executionId: 'action-1', failure: 'Action cancelled', status: 'cancelled' });
+        completion.resolve({ runId: 'action-1', failure: 'Action cancelled', status: 'cancelled' });
         await firing;
         expect(localGitService.schedules()).toEqual([{ ...schedule, status: 'cancelled' }]);
     });
@@ -449,13 +449,13 @@ describe('ActionSchedulerService', () => {
         scheduler.actionRunnerService.subscribe((event) => events.push(event));
         const request = { actionId: 'main', context, runInput: {} };
 
-        const directExecutionId = await scheduler.actionRunnerService.start(request);
-        const directResult = await scheduler.actionRunnerService.wait(directExecutionId);
+        const directRunId = await scheduler.actionRunnerService.start(request);
+        const directResult = await scheduler.actionRunnerService.wait(directRunId);
         const directEvents = events.splice(0);
         await scheduler.fireSchedule(schedule.id);
         const scheduledEvents = events.splice(0);
 
-        expect(summarizeExecutionEvents(scheduledEvents)).toEqual(summarizeExecutionEvents(directEvents));
+        expect(summarizeRunEvents(scheduledEvents)).toEqual(summarizeRunEvents(directEvents));
         expect(directResult.status).toBe('completed');
         expect(localGitService.schedules()).toEqual([{ ...schedule, status: 'completed' }]);
     });

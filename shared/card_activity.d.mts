@@ -20,7 +20,7 @@ export interface ActionActivityRecord {
     commits: ActivityCommitReference[]
     completedAt: string
     conversationIds: string[]
-    executionId: string
+    runId: string
     history: {
         agent?: string | null
         command?: string

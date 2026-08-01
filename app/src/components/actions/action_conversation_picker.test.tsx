@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ActionContext } from '../../data/action_context'
 import type { AgentConversation } from '../../data/data_types'
 import { ActionConversationPicker } from './action_conversation_picker'
-import { mergeConversationHistory } from './use_action_popup_controller'
+import { conversationOptions } from './action_conversation_store'
 import { conversationPickerLabel, formatConversationDateTime } from './action_conversation_picker_data'
 
 function conversation(overrides: Partial<AgentConversation> = {}): AgentConversation {
@@ -66,7 +66,7 @@ describe('conversation picker data', () => {
         const otherCard = conversation({ cardInternalId: 'card-2', cardPath: 'design/F-2.md', id: 'other', path: 'other.json' })
         const liveNewest = conversation({ entries: [{ content: 'live', id: 'm1', kind: 'message', role: 'assistant', timestamp: 'now' }], id: 'newest', path: 'live-newest.json' })
 
-        const result = mergeConversationHistory([older, newest, otherAction, otherCard], 'action-review', context, liveNewest)
+        const result = conversationOptions([older, newest, otherAction, otherCard], 'action-review', context, liveNewest)
 
         expect(result.map(({ id }) => id)).toEqual(['newest', 'older'])
         expect(result[0].entries[0].content).toBe('live')
@@ -75,7 +75,7 @@ describe('conversation picker data', () => {
     it('keeps project conversations separate from card conversations', () => {
         const projectConversation = conversation({ cardInternalId: null, cardPath: null, id: 'project', path: 'project.json' })
 
-        expect(mergeConversationHistory([conversation(), projectConversation], 'action-review', { kind: 'project' }, null))
+        expect(conversationOptions([conversation(), projectConversation], 'action-review', { kind: 'project' }, null))
             .toEqual([projectConversation])
     })
 })

@@ -67,7 +67,7 @@ class ActionSchedulerService {
         this.project = null;
         this.actionsFolder = null;
         this.projectFolder = null;
-        this.executionIdsByScheduleId = new Map();
+        this.runIdsByScheduleId = new Map();
         this.runningScheduleIds = new Set();
         this.timers = new Map();
     }
@@ -84,7 +84,7 @@ class ActionSchedulerService {
     stop() {
         clearScheduleTimers(this.timers, this.clearTimeout);
         this.runningScheduleIds.clear();
-        this.executionIdsByScheduleId.clear();
+        this.runIdsByScheduleId.clear();
         this.project = null;
         this.actionsFolder = null;
         this.projectFolder = null;
@@ -113,9 +113,9 @@ class ActionSchedulerService {
     async cancelActionSchedule(scheduleId) {
         if (typeof scheduleId !== 'string' || scheduleId.length === 0) throw new Error('Missing action schedule id');
 
-        const executionId = this.executionIdsByScheduleId.get(scheduleId);
-        if (executionId) {
-            this.actionRunnerService.cancel(executionId);
+        const runId = this.runIdsByScheduleId.get(scheduleId);
+        if (runId) {
+            this.actionRunnerService.cancel(runId);
 
             return this.localGitService.loadActionSchedules(this.requireCurrentProject(), await this.requireActionsFolder());
         }
@@ -189,7 +189,7 @@ class ActionSchedulerService {
                 await this.updateScheduleStatus(scheduleId, 'failed');
             }
         } finally {
-            this.executionIdsByScheduleId.delete(scheduleId);
+            this.runIdsByScheduleId.delete(scheduleId);
             this.runningScheduleIds.delete(scheduleId);
         }
     }
@@ -215,10 +215,10 @@ class ActionSchedulerService {
 
     async runScheduledAction(schedule) {
         const request = { actionId: schedule.actionId, context: schedule.context, runInput: {} };
-        const executionId = await this.actionRunnerService.start(request, { interactive: false });
-        this.executionIdsByScheduleId.set(schedule.id, executionId);
+        const runId = await this.actionRunnerService.start(request, { interactive: false });
+        this.runIdsByScheduleId.set(schedule.id, runId);
 
-        return this.actionRunnerService.wait(executionId);
+        return this.actionRunnerService.wait(runId);
     }
 
     async findRunningSchedule(scheduleId) {
@@ -244,7 +244,7 @@ class ActionSchedulerService {
             commits: [],
             completedAt,
             conversationIds: [],
-            executionId: `schedule-${schedule.id}`,
+            runId: `schedule-${schedule.id}`,
             history: entry,
             origin,
             rootActionId: schedule.actionId,

@@ -1,4 +1,4 @@
-﻿import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { within } from '@testing-library/react'
 import type { UseGithubAuthResult } from '../../auth/use_github_auth'
@@ -45,10 +45,10 @@ function renderWindow(overrides?: Partial<Parameters<typeof MainWindow>[0]>) {
 
 function installAgentBridge(stdout: string) {
     const bridge: ElectronActionBridge = {
-        cancelActionExecution: vi.fn(async () => {}),
+        cancelActionRun: vi.fn(async () => {}),
         generateDiff: vi.fn(async () => ({ commit: '', files: [] })),
         loadActionRunHistory: vi.fn(async () => []),
-        onActionExecution: vi.fn(() => () => {}),
+        onActionRun: vi.fn(() => () => {}),
         openInEditor: vi.fn(async () => {}),
         prepareActionPrompt: vi.fn(async () => ({ prompt: '' })),
         runSearchRegexpAgent: vi.fn(async () => stdout),

@@ -8,7 +8,7 @@ import type { ProjectCard } from '../../data/data_types'
 import { cardActionPopupService } from '../../services/actions/card_action_popup_service'
 import { hasUnseenAgentResult } from '../../services/agents/agent_acknowledgement_service'
 import { agentStateDescription, cardAgentState } from '../../services/agents/card_agent_state'
-import { useRunningActionForContext } from '../hooks/use_action_executions'
+import { useRunningActionForContext } from '../hooks/use_action_runs'
 
 interface CardRunButtonProps {
     card: ProjectCard
@@ -16,11 +16,11 @@ interface CardRunButtonProps {
     projectKey: string
 }
 
-/** Opens the card action selector and execution popup, and surfaces the card's agent state. */
+/** Opens the card action selector and run popup, and surfaces the card's agent state. */
 export function CardRunButton({ card, context, projectKey }: CardRunButtonProps) {
     const agentState = cardAgentState(projectKey, card)
-    const runningExecution = useRunningActionForContext(context)
-    const liveStatus = runningExecution?.status
+    const runningRun = useRunningActionForContext(context)
+    const liveStatus = runningRun?.status
     const isQueued = liveStatus === 'queued'
     const isWaiting = liveStatus ? liveStatus === 'waitingForInput' : agentState === 'waiting for input'
     const isRunning = liveStatus ? liveStatus === 'running' : agentState === 'running'

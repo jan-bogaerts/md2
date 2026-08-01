@@ -1,13 +1,9 @@
 import { useId, useMemo, useState } from 'react'
-import {
-    actionContextIdentity, displayActionsForContext, projectContextWithWorktree, type ActionContext,
-} from '../../data/action_context'
+import { displayActionsForContext, projectContextWithWorktree, type ActionContext } from '../../data/action_context'
 import { CUSTOM_PROMPT_ACTION_ID } from '../../data/action_types'
-import type { ActionExecutionStatus } from '../../data/action_run_types'
 import type { AgentConversation } from '../../data/data_types'
 import { dialogService } from '../../services/dialog_service'
 import { useActions } from '../hooks/use_actions'
-import { useRunningActionExecutions } from '../hooks/use_action_executions'
 import { useProjectState } from '../hooks/use_project_state'
 import { useProjectActionWorktree } from '../hooks/use_worktrees'
 import { ActionPopupContent } from './action_popup_content'
@@ -25,11 +21,10 @@ interface ActionPopupProps {
     unseenResultActionIds?: string[]
 }
 
-/** Universal action selector and execution popup for the supplied context. */
+/** Universal action selector and run popup for the supplied context. */
 export function ActionPopup(props: ActionPopupProps) {
     const { anchorElement, context, initialActionId, open } = props
     const { actions: loadedActions } = useActions()
-    const runningExecutions = useRunningActionExecutions()
     const { project } = useProjectState()
     const projectActionWorktree = useProjectActionWorktree()
     const effectiveContext = useMemo(
@@ -37,12 +32,6 @@ export function ActionPopup(props: ActionPopupProps) {
         [context, projectActionWorktree],
     )
     const actions = useMemo(() => displayActionsForContext(loadedActions, effectiveContext), [effectiveContext, loadedActions])
-    const contextIdentity = actionContextIdentity(context)
-    const activeActionStatuses: Record<string, ActionExecutionStatus> = {}
-    const contextExecutions = runningExecutions.filter((execution) => actionContextIdentity(execution.context) === contextIdentity)
-    for (const { rootActionId, status } of contextExecutions) {
-        if (status === 'waitingForInput' || !activeActionStatuses[rootActionId]) activeActionStatuses[rootActionId] = status
-    }
     const [selectedActionId, setSelectedActionId] = useState<string | null>(initialActionId ?? actions[0]?.id ?? null)
     const [showSaveControls, setShowSaveControls] = useState(false)
     const [fullHeight, setFullHeight] = useState(false)
@@ -90,7 +79,6 @@ export function ActionPopup(props: ActionPopupProps) {
             onToggleFullHeight={handleToggleFullHeight}
             open={open ?? !!anchorElement}
             primaryPath={project?.rootPath ?? project?.id ?? null}
-            activeActionStatuses={activeActionStatuses}
             showSaveControls={showSaveControls}
             titleId={titleId}
         />

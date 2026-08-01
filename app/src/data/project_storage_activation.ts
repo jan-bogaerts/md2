@@ -6,7 +6,7 @@ import { setActionBridgeOverride } from './electron_action_bridge'
 import { setCodexRuntimeBridgeOverride } from './electron_codex_runtime_bridge'
 import type { StorageType } from './project_session'
 
-/** Wire action execution for the storage backend that is becoming active. */
+/** Wire action runs for the storage backend that is becoming active. */
 export function activateStorageService(storageType: StorageType, storage: StorageService) {
     if (storageType !== 'remote') {
         setActionBridgeOverride(null)

@@ -38,18 +38,18 @@ function createRunner(actionFiles = [actionFile('main')], overrides = {}) {
     };
     const commandRunner = vi.fn(async (_project, command) => ({ command, exitCode: 0, stderr: '', stdout: command }));
     const agentRunnerService = { start: vi.fn(), stop: vi.fn() };
-    const actionWorktreeExecutionService = {
+    const actionWorktreeRunService = {
         execute: vi.fn(async (primaryProject, _action, _context, execute) => ({
             ...await execute(primaryProject),
             branch: primaryProject.branch,
-            executionWorktree: null,
+            runWorktree: null,
             repositoryRoot: primaryProject.rootPath,
         })),
-        resolve: vi.fn(async (primaryProject) => ({ executionProject: primaryProject, executionWorktree: null })),
+        resolve: vi.fn(async (primaryProject) => ({ runProject: primaryProject, runWorktree: null })),
         runWithCardLock: vi.fn(async (_primaryProject, _context, operation) => operation()),
     };
     const runner = new ActionRunnerService({
-        actionWorktreeExecutionService,
+        actionWorktreeRunService,
         agentConfigProvider: () => ({ agent: 'codex', agentProfiles: [], model: '' }),
         agentRunnerService,
         commandRunner,
@@ -58,42 +58,42 @@ function createRunner(actionFiles = [actionFile('main')], overrides = {}) {
     });
     runner.startProject(project, 'actions', 'design', 'design/releases');
 
-    return { actionWorktreeExecutionService, agentRunnerService, commandRunner, localGitService, runner };
+    return { actionWorktreeRunService, agentRunnerService, commandRunner, localGitService, runner };
 }
 
 async function runToCompletion(runner, request = { actionId: 'main', context, runInput: {} }) {
-    const executionId = await runner.start(request);
+    const runId = await runner.start(request);
 
-    return runner.wait(executionId);
+    return runner.wait(runId);
 }
 
 describe('ActionRunnerService', () => {
-    it('returns ordered events for active executions only', () => {
+    it('returns ordered events for active runs only', () => {
         const { runner } = createRunner();
-        const firstEvent = { executionId: 'execution-1', sequence: 1, type: 'execution' };
-        const secondEvent = { executionId: 'execution-1', sequence: 2, type: 'agentState' };
-        runner.executionEvents.set('execution-1', []);
+        const firstEvent = { runId: 'run-1', sequence: 1, type: 'run' };
+        const secondEvent = { runId: 'run-1', sequence: 2, type: 'agentState' };
+        runner.runEvents.set('run-1', []);
 
         runner.publish(firstEvent);
         runner.publish(secondEvent);
-        const events = runner.loadActiveExecutionEvents();
+        const events = runner.loadActiveRunEvents();
         events[0].sequence = 99;
 
         expect(events).toEqual([{ ...firstEvent, sequence: 99 }, secondEvent]);
-        expect(runner.loadActiveExecutionEvents()).toEqual([firstEvent, secondEvent]);
+        expect(runner.loadActiveRunEvents()).toEqual([firstEvent, secondEvent]);
     });
 
-    it('forwards card-state changes to every live execution', () => {
+    it('forwards card-state changes to every live run', () => {
         const { runner } = createRunner();
-        const firstExecution = { handleCardStateChange: vi.fn() };
-        const secondExecution = { handleCardStateChange: vi.fn() };
-        runner.executions.set('first', firstExecution);
-        runner.executions.set('second', secondExecution);
+        const firstRun = { handleCardStateChange: vi.fn() };
+        const secondRun = { handleCardStateChange: vi.fn() };
+        runner.runs.set('first', firstRun);
+        runner.runs.set('second', secondRun);
 
         runner.handleCardStateChange('card-1', 'ready');
 
-        expect(firstExecution.handleCardStateChange).toHaveBeenCalledWith('card-1', 'ready');
-        expect(secondExecution.handleCardStateChange).toHaveBeenCalledWith('card-1', 'ready');
+        expect(firstRun.handleCardStateChange).toHaveBeenCalledWith('card-1', 'ready');
+        expect(secondRun.handleCardStateChange).toHaveBeenCalledWith('card-1', 'ready');
     });
 
     it('requires project and collaborators before start', async () => {
@@ -145,7 +145,7 @@ describe('ActionRunnerService', () => {
         expect(localGitService.loadActionFile).toHaveBeenCalledTimes(2);
     });
 
-    it('prepares a canonical prompt against the resolved worktree without starting execution', async () => {
+    it('prepares a canonical prompt against the resolved worktree without starting run', async () => {
         const files = [actionFile('main', {
             command: undefined,
             needsWorkTree: true,
@@ -153,18 +153,18 @@ describe('ActionRunnerService', () => {
             trackFileChanges: true,
             type: 'agent',
         })];
-        const { actionWorktreeExecutionService, agentRunnerService, localGitService, runner } = createRunner(files);
+        const { actionWorktreeRunService, agentRunnerService, localGitService, runner } = createRunner(files);
         const worktreeProject = { ...project, branch: 'feature', rootPath: 'C:/worktrees/2' };
-        actionWorktreeExecutionService.resolve.mockResolvedValueOnce({ executionProject: worktreeProject, executionWorktree: 2 });
+        actionWorktreeRunService.resolve.mockResolvedValueOnce({ runProject: worktreeProject, runWorktree: 2 });
 
         await expect(runner.prepareActionPrompt({ actionId: 'main', context })).resolves.toEqual({prompt: `Review design/F-010.md in C:/worktrees/2; project C:/repo; releases ${path.resolve('C:/repo', 'design/releases')}\n\nDo not stage or commit changes. md2 will commit files captured from provider edit tools.`});
-        expect(actionWorktreeExecutionService.resolve).toHaveBeenCalledWith(project, expect.objectContaining({ id: 'main' }), context);
-        expect(actionWorktreeExecutionService.execute).not.toHaveBeenCalled();
+        expect(actionWorktreeRunService.resolve).toHaveBeenCalledWith(project, expect.objectContaining({ id: 'main' }), context);
+        expect(actionWorktreeRunService.execute).not.toHaveBeenCalled();
         expect(agentRunnerService.start).not.toHaveBeenCalled();
         expect(localGitService.appendAndCommitActionActivity).not.toHaveBeenCalled();
     });
 
-    it('drops unknown persisted fields before execution', async () => {
+    it('drops unknown persisted fields before run', async () => {
         const { commandRunner, runner } = createRunner([actionFile('main', { needsWorktree: true })]);
 
         await expect(runToCompletion(runner)).resolves.toMatchObject({ status: 'completed' });
@@ -174,7 +174,7 @@ describe('ActionRunnerService', () => {
     it.each([
         ['circular reference', [actionFile('main', { onBefore: ['linked'] }), actionFile('linked', { onAfter: ['main'] })], {}, 'Circular action reference'],
         ['unknown action', [actionFile('other')], {}, 'Unknown action: main'],
-    ])('rejects %s before execution id creation', async (_label, files, runInput, message) => {
+    ])('rejects %s before run id creation', async (_label, files, runInput, message) => {
         const { commandRunner, runner } = createRunner(files);
 
         await expect(runner.start({ actionId: 'main', context, runInput })).rejects.toThrow(message);
@@ -189,7 +189,7 @@ describe('ActionRunnerService', () => {
         expect(agentRunnerService.start).not.toHaveBeenCalled();
     });
 
-    it('composes real execution and command collaborators with ordered events', async () => {
+    it('composes real run and command collaborators with ordered events', async () => {
         const files = [
             actionFile('before'),
             actionFile('main', { on: [{ actionId: 'matched', condition: 'main' }], onAfter: ['after'], onBefore: ['before'] }),
@@ -213,52 +213,52 @@ describe('ActionRunnerService', () => {
 
     it('wait returns active completion and consumes stored completed result when retrieved', async () => {
         const { runner } = createRunner();
-        const executionId = await runner.start({ actionId: 'main', context, runInput: {} });
+        const runId = await runner.start({ actionId: 'main', context, runInput: {} });
 
-        await expect(runner.wait(executionId)).resolves.toMatchObject({ executionId, status: 'completed' });
-        await expect(runner.wait(executionId)).resolves.toMatchObject({ executionId, status: 'completed' });
-        await expect(runner.wait(executionId)).rejects.toThrow(`Unknown action execution: ${executionId}`);
+        await expect(runner.wait(runId)).resolves.toMatchObject({ runId, status: 'completed' });
+        await expect(runner.wait(runId)).resolves.toMatchObject({ runId, status: 'completed' });
+        await expect(runner.wait(runId)).rejects.toThrow(`Unknown action run: ${runId}`);
     });
 
-    it('retains only newest 100 unconsumed results', async () => {
+    it('retains every unconsumed terminal result until its waiter retrieves it', async () => {
         const { runner } = createRunner();
-        const executionIds = [];
+        const runIds = [];
         const terminalIds = [];
         runner.subscribe((event) => {
-            if (event.type === 'execution' && event.status === 'completed') terminalIds.push(event.executionId);
+            if (event.type === 'run' && event.status === 'completed') terminalIds.push(event.runId);
         });
 
         for (let index = 0; index < 101; index++) {
-            executionIds.push(await runner.start({ actionId: 'main', context, runInput: {} }));
+            runIds.push(await runner.start({ actionId: 'main', context, runInput: {} }));
         }
         await vi.waitFor(() => expect(terminalIds).toHaveLength(101));
 
-        await expect(runner.wait(executionIds[0])).rejects.toThrow(`Unknown action execution: ${executionIds[0]}`);
-        await expect(runner.wait(executionIds[1])).resolves.toMatchObject({ status: 'completed' });
+        await expect(runner.wait(runIds[0])).resolves.toMatchObject({ status: 'completed' });
+        await expect(runner.wait(runIds[100])).resolves.toMatchObject({ status: 'completed' });
     });
 
-    it('cancels an active execution when the project switches', async () => {
+    it('cancels an active run when the project switches', async () => {
         const { promise, resolve } = Promise.withResolvers();
-        const commandRunner = vi.fn(async (executionProject, command) => {
+        const commandRunner = vi.fn(async (runProject, command) => {
             if (command === 'main') await promise;
 
             return { command, exitCode: 0, stderr: '', stdout: command };
         });
         const files = [actionFile('main', { onAfter: ['after'] }), actionFile('after')];
         const { localGitService, runner } = createRunner(files, { commandRunner });
-        const executionId = await runner.start({ actionId: 'main', context, runInput: {} });
+        const runId = await runner.start({ actionId: 'main', context, runInput: {} });
         await vi.waitFor(() => expect(commandRunner).toHaveBeenCalledTimes(1));
 
         runner.startProject({ branch: 'other', id: 'other', rootPath: 'C:/other' }, 'other-actions', 'other-design', 'other-design/releases');
         resolve();
-        const result = await runner.wait(executionId);
+        const result = await runner.wait(runId);
 
         expect(result.status).toBe('cancelled');
         expect(commandRunner.mock.calls.map((call) => call[0])).toEqual([project]);
         expect(localGitService.appendAndCommitActionActivity.mock.calls[0][1]).toBe('design');
     });
 
-    it('delegates cancel and rejects unknown execution id', async () => {
+    it('delegates cancel and rejects unknown run id', async () => {
         const { promise, resolve } = Promise.withResolvers();
         const commandRunner = vi.fn(async (_project, command, signal) => {
             await promise;
@@ -267,25 +267,25 @@ describe('ActionRunnerService', () => {
             return { command, exitCode: 0, stderr: '', stdout: '' };
         });
         const { runner } = createRunner(undefined, { commandRunner });
-        const executionId = await runner.start({ actionId: 'main', context, runInput: {} });
+        const runId = await runner.start({ actionId: 'main', context, runInput: {} });
 
-        expect(() => runner.cancel('unknown')).toThrow('Unknown action execution: unknown');
-        runner.cancel(executionId);
+        expect(() => runner.cancel('unknown')).toThrow('Unknown action run: unknown');
+        runner.cancel(runId);
         resolve();
-        await expect(runner.wait(executionId)).resolves.toMatchObject({ status: 'cancelled' });
+        await expect(runner.wait(runId)).resolves.toMatchObject({ status: 'cancelled' });
     });
 
-    it('registers execution before running-event listener can cancel it', async () => {
+    it('registers run before running-event listener can cancel it', async () => {
         const { commandRunner, runner } = createRunner();
         runner.subscribe((event) => {
-            if (event.type === 'execution' && event.status === 'running') runner.cancel(event.executionId);
+            if (event.type === 'run' && event.status === 'running') runner.cancel(event.runId);
         });
 
         await expect(runToCompletion(runner)).resolves.toMatchObject({ status: 'cancelled' });
         expect(commandRunner).not.toHaveBeenCalled();
     });
 
-    it('stop cancels every active execution and clears project state', async () => {
+    it('stop cancels every active run and clears project state', async () => {
         const { promise, resolve } = Promise.withResolvers();
         const commandRunner = vi.fn(async (_project, command, signal) => {
             await promise;

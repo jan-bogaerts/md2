@@ -136,8 +136,8 @@ class WorktreeService {
         }
 
         const record = this.records.find((candidate) => pathKey(candidate.path) === pathKey(canonicalFolder));
-        if (!record) throw new Error('Execution repository root is not a linked worktree');
-        if (!record.valid) throw new Error(`Execution repository root is invalid: ${record.error}`);
+        if (!record) throw new Error('Run repository root is not a linked worktree');
+        if (!record.valid) throw new Error(`Run repository root is invalid: ${record.error}`);
 
         return record;
     }

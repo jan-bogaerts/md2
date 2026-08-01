@@ -12,9 +12,9 @@ const { conversationActivityReference } = require('../../../../shared/activity_p
 const origin = { cardInternalId: 'card-1', kind: 'card' };
 const context = { cardInternalId: 'card-1', file: 'design/F-010.md', kind: 'card', type: 'feature' };
 
-function activityRecord(executionId, output = 'done') {
+function activityRecord(runId, output = 'done') {
     return {
-        commits: [], completedAt: '2026-07-20T10:01:00.000Z', conversationIds: [], executionId,
+        commits: [], completedAt: '2026-07-20T10:01:00.000Z', conversationIds: [], runId,
         history: { completedAt: '2026-07-20T10:01:00.000Z', output, prompt: 'run', status: 'completed' },
         origin, rootActionId: 'implement', rootActionLabel: 'Implement', startedAt: '2026-07-20T10:00:00.000Z',
         status: 'completed',
@@ -61,7 +61,7 @@ describe('action-files', () => {
         const rootPath = await createRoot('md2-action-history-');
         const project = { branch: 'main', rootPath };
         try {
-            await appendActionActivity(project, 'design', origin, activityRecord('execution-1'));
+            await appendActionActivity(project, 'design', origin, activityRecord('run-1'));
 
             await expect(loadActionRunHistory(project, { actionId: 'implement', context, projectFolder: 'design' }))
                 .resolves.toEqual([{ completedAt: '2026-07-20T10:01:00.000Z', output: 'done', prompt: 'run', status: 'completed' }]);
@@ -75,7 +75,7 @@ describe('action-files', () => {
         const project = { branch: 'main', rootPath };
         try {
             await Promise.all(Array.from({ length: 20 }, (_value, index) => (
-                appendActionActivity(project, 'design', origin, activityRecord(`execution-${index}`, `done-${index}`))
+                appendActionActivity(project, 'design', origin, activityRecord(`run-${index}`, `done-${index}`))
             )));
             const content = await readFile(join(rootPath, 'design', 'activity', 'card__card-1.json'), 'utf8');
 

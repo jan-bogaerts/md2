@@ -268,7 +268,7 @@ function completeAssistantOutput(run, completedAt) {
 function createRunResult(request, exitCode, run) {
     return {
         command: request.command,
-        conversation: { ...run.conversation, path: run.reference },
+        conversation: structuredClone(run.conversation),
         exitCode,
         missingSession: run.missingSession,
         prompt: request.prompt,
@@ -333,10 +333,11 @@ class AgentRunnerService {
 
         const id = `agent-turn-${crypto.randomUUID()}`;
         const startedAt = new Date().toISOString();
-        const conversation = createConversation(request, `agent-${crypto.randomUUID()}`, startedAt);
+        const conversationId = request.conversation?.id ?? `agent-${crypto.randomUUID()}`;
+        const reference = request.reference ?? conversationReference(request, conversationId);
+        const conversation = createConversation(request, conversationId, startedAt, reference);
         let nextSequence = nextConversationSequence(conversation);
         if (this.runningConversationIds.has(conversation.id)) throw new Error(`Agent conversation already has a running turn: ${conversation.id}`);
-        const reference = request.reference ?? conversationReference(request, conversation.id);
         const lastMessage = lastMessageEntry(conversation);
         if (request.reuseLastUserMessage) {
             if (lastMessage?.role !== 'user' || lastMessage.content !== prompt) throw new Error('Missing failed-turn user message for agent retry');
@@ -361,7 +362,7 @@ class AgentRunnerService {
         console.log('[agent:start]', {
             arguments: configuredArguments,
             cwd: rootPath,
-            executionId: request.executionId ?? null,
+            actionRunId: request.actionRunId ?? null,
             executable,
             pid: child.pid,
             runId: id,
@@ -469,15 +470,11 @@ class AgentRunnerService {
         if (!userMessage || userMessage.role !== 'user') throw new Error('Missing current agent user message');
         emitRunEvent(run, {
             continued: !!request.conversation,
-            conversationId: conversation.id,
-            entries: structuredClone(conversation.entries),
-            reference,
-            startedAt,
-            title: conversation.title,
+            conversation: structuredClone(conversation),
             type: 'started',
         });
 
-        return { conversation: { ...conversation, path: reference }, reference, runId: id };
+        return { conversation: structuredClone(conversation), reference, runId: id };
     }
 
     stop(runId) {
@@ -1086,7 +1083,7 @@ class AgentRunnerService {
             console.log('[agent:complete]', {
                 completedAt,
                 durationMs: Date.parse(completedAt) - Date.parse(run.startedAt),
-                executionId: run.request.executionId ?? null,
+                actionRunId: run.request.actionRunId ?? null,
                 exitCode,
                 pid: run.child.pid,
                 runId,
@@ -1095,7 +1092,7 @@ class AgentRunnerService {
             await this.persistConversation(run);
             this.processes.delete(runId);
             this.runningConversationIds.delete(run.conversation.id);
-            emitRunEvent(run, { reference: run.reference, status: run.conversation.status, type: 'closed' });
+            emitRunEvent(run, { conversation: structuredClone(run.conversation), type: 'closed' });
             if (run.onComplete) run.onComplete(succeeded ? 0 : exitCode || 1, run);
         } catch (error) {
             if (run.onCompletionError) run.onCompletionError(error);

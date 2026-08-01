@@ -6,7 +6,7 @@ import type {
     AgentCommandAction,
     AgentFileSystemPath,
 } from '../../data/action_run_types'
-import type { LiveAgentApproval } from '../../services/actions/action_execution_service'
+import type { LiveAgentApproval } from '../../services/actions/action_run_registry'
 
 const DEFAULT_APPROVAL_DECISIONS: AgentApprovalDecision[] = ['accept', 'acceptForSession', 'decline', 'cancel']
 

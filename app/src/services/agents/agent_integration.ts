@@ -1,6 +1,6 @@
 import { cardContext, fileContext, type ActionContext } from '../../data/action_context'
 import { BUILTIN_CUSTOM_PROMPT, type ActionDefinition } from '../../data/action_types'
-import type { ActionExecutionEvent } from '../../data/action_run_types'
+import type { ActionRunEvent } from '../../data/action_run_types'
 import {
     type AgentConversation,
     type AgentConversationError,
@@ -11,7 +11,7 @@ import {
     type StorageService,
 } from '../../data/data_types'
 import { actionService } from '../actions/action_service'
-import { actionExecutionService } from '../actions/action_execution_service'
+import { actionRunRegistry } from '../actions/action_run_registry'
 import { loadAgentConversation } from './agent_conversation_service'
 import { runElectronAction } from '../actions/electron_action_runner'
 import { mapWithConcurrency } from '.././concurrency'
@@ -165,9 +165,9 @@ export class AgentIntegration {
 
     startScheduledRunWatch() {
         this.stopScheduledRunWatch()
-        this.scheduledRunCleanup = actionExecutionService.subscribeEvents((event) => {
+        this.scheduledRunCleanup = actionRunRegistry.subscribeActiveRunEvents((event) => {
             try {
-                this.handleActionExecutionEvent(event)
+                this.handleActionRunEvent(event)
             } catch (error) {
                 telemetryService.captureError(error)
             }
@@ -349,11 +349,11 @@ export class AgentIntegration {
         this.dependencies.refreshSnapshot(config.workingFolder)
     }
 
-    private handleActionExecutionEvent(event: ActionExecutionEvent) {
+    private handleActionRunEvent(event: ActionRunEvent) {
         if (event.type === 'action') this.linkActionConversation(event)
     }
 
-    private linkActionConversation(event: ActionExecutionEvent) {
+    private linkActionConversation(event: ActionRunEvent) {
         if (event.type !== 'action' || event.status === 'running' || !event.context.file || !event.reference) return
 
         this.linkAgentConversationReference(event.context.file, event.reference)

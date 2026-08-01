@@ -1,14 +1,14 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { ActionExecutionEvent, ActionStartRequest } from '../../data/action_run_types'
+import type { ActionRunEvent, ActionStartRequest } from '../../data/action_run_types'
 import { actionService } from './action_service'
-import { actionExecutionService } from './action_execution_service'
+import { actionRunRegistry } from './action_run_registry'
 import { configService } from '../config/config_service'
 import { runElectronAction } from './electron_action_runner'
 import { createDataService, createStorage } from '.././test_support/data_service_test_support'
 
 describe('action entry-point parity', () => {
     afterEach(() => {
-        actionExecutionService.stop()
+        actionRunRegistry.stop()
         delete window.md2Actions
         configService.clear()
         vi.restoreAllMocks()
@@ -16,29 +16,29 @@ describe('action entry-point parity', () => {
 
     it('delegates manual and onState runs through identical Electron requests', async () => {
         configService.init()
-        const listeners = new Set<(event: ActionExecutionEvent) => void>()
+        const listeners = new Set<(event: ActionRunEvent) => void>()
         const requests: ActionStartRequest[] = []
         window.md2Actions = {
-            onActionExecution: (listener: (event: ActionExecutionEvent) => void) => {
+            onActionRun: (listener: (event: ActionRunEvent) => void) => {
                 listeners.add(listener)
 
                 return () => listeners.delete(listener)
             },
             startAction: async (request: ActionStartRequest) => {
                 requests.push(request)
-                const executionId = `action-${requests.length}`
-                const actionEvent: ActionExecutionEvent = {
-                    actionId: request.actionId, command: 'run', context: request.context, executionId, phase: 'main', rootActionId: request.actionId,
+                const runId = `action-${requests.length}`
+                const actionEvent: ActionRunEvent = {
+                    actionId: request.actionId, command: 'run', context: request.context, runId, phase: 'main', rootActionId: request.actionId,
                     status: 'completed', type: 'action',
                 }
-                const executionEvent: ActionExecutionEvent = {
-                    actionId: request.actionId, context: request.context, executionId, phase: 'main', rootActionId: request.actionId,
-                    status: 'completed', type: 'execution',
+                const runEvent: ActionRunEvent = {
+                    actionId: request.actionId, context: request.context, runId, phase: 'main', rootActionId: request.actionId,
+                    status: 'completed', type: 'run',
                 }
                 for (const listener of listeners) listener(actionEvent)
-                for (const listener of listeners) listener(executionEvent)
+                for (const listener of listeners) listener(runEvent)
 
-                return executionId
+                return runId
             },
         } as unknown as typeof window.md2Actions
         const bridge = window.md2Actions

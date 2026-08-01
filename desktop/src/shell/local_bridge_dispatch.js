@@ -228,20 +228,20 @@ function createLocalBridgeDispatch(dependencies) {
     };
 
     const actionBridge = {
-        answerActionApproval: (executionId, requestId, decision) => {
+        answerActionApproval: (runId, requestId, decision) => {
             if (!actionRunnerService) throw new Error('Action runner is not available');
 
-            return actionRunnerService.answerAgentApproval(executionId, requestId, decision);
+            return actionRunnerService.answerAgentApproval(runId, requestId, decision);
         },
-        answerActionQuestion: (executionId, requestId, answers) => {
+        answerActionQuestion: (runId, requestId, answers) => {
             if (!actionRunnerService) throw new Error('Action runner is not available');
 
-            return actionRunnerService.answerAgentQuestion(executionId, requestId, answers);
+            return actionRunnerService.answerAgentQuestion(runId, requestId, answers);
         },
-        beginActionPromptDraft: (executionId) => {
+        beginActionPromptDraft: (runId) => {
             if (!actionRunnerService) throw new Error('Action runner is not available');
 
-            return actionRunnerService.beginAgentPromptDraft(executionId);
+            return actionRunnerService.beginAgentPromptDraft(runId);
         },
         generateDiff: async (request) => {
             const result = await diffService.generateDiff(currentLocalProject, request);
@@ -256,10 +256,10 @@ function createLocalBridgeDispatch(dependencies) {
 
             return localGitService.loadActionRunHistory(currentLocalProject, historyRequest);
         },
-        loadActiveActionExecutionEvents: () => {
+        loadActiveActionRunEvents: () => {
             if (!actionRunnerService) throw new Error('Action runner is not available');
 
-            return actionRunnerService.loadActiveExecutionEvents();
+            return actionRunnerService.loadActiveRunEvents();
         },
         notifyActionCardStateChange: (cardInternalId, state) => {
             if (!actionRunnerService) throw new Error('Action runner is not available');
@@ -281,17 +281,17 @@ function createLocalBridgeDispatch(dependencies) {
 
             return agentExecutableAvailability(agentProfiles);
         },
-        cancelActionExecution: (executionId) => {
+        cancelActionRun: (runId) => {
             if (!actionRunnerService) throw new Error('Action runner is not available');
 
-            return actionRunnerService.cancel(executionId);
+            return actionRunnerService.cancel(runId);
         },
-        finishActionExecution: (executionId) => {
+        finishActionRun: (runId) => {
             if (!actionRunnerService) throw new Error('Action runner is not available');
 
-            return actionRunnerService.finishAgentExecution(executionId);
+            return actionRunnerService.finishAgentRun(runId);
         },
-        onActionExecution: (callback) => {
+        onActionRun: (callback) => {
             if (!actionRunnerService) throw new Error('Action runner is not available');
 
             return actionRunnerService.subscribe(callback);
@@ -327,20 +327,20 @@ function createLocalBridgeDispatch(dependencies) {
 
             return result.stdout;
         },
-        sendActionMessage: (executionId, content) => {
+        sendActionMessage: (runId, content) => {
             if (!actionRunnerService) throw new Error('Action runner is not available');
 
-            return actionRunnerService.sendAgentMessage(executionId, content);
+            return actionRunnerService.sendAgentMessage(runId, content);
         },
-        sendActionQueuedMessage: (executionId, sessionId, revision) => {
+        sendActionQueuedMessage: (runId, sessionId, revision) => {
             if (!actionRunnerService) throw new Error('Action runner is not available');
 
-            return actionRunnerService.sendQueuedAgentMessage(executionId, sessionId, revision);
+            return actionRunnerService.sendQueuedAgentMessage(runId, sessionId, revision);
         },
-        setActionQueuedMessage: (executionId, sessionId, content, revision) => {
+        setActionQueuedMessage: (runId, sessionId, content, revision) => {
             if (!actionRunnerService) throw new Error('Action runner is not available');
 
-            return actionRunnerService.setAgentQueuedMessage(executionId, sessionId, content, revision);
+            return actionRunnerService.setAgentQueuedMessage(runId, sessionId, content, revision);
         },
         startAction: (request) => {
             if (!actionRunnerService) throw new Error('Action runner is not available');

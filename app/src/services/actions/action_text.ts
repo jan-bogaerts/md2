@@ -18,7 +18,7 @@ export function resolvePlaceholders(
 ): string {
     return text.replace(PLACEHOLDER_PATTERN, (_match, name: string) => {
         if (name === 'worktree-folder') {
-            if (!folders.worktreeFolder) throw new Error('Cannot resolve worktree-folder without an execution checkout path')
+            if (!folders.worktreeFolder) throw new Error('Cannot resolve worktree-folder without a run checkout path')
 
             return folders.worktreeFolder
         }

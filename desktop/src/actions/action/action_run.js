@@ -13,19 +13,19 @@ function errorMessage(error, fallback) {
     return error instanceof Error ? error.message : fallback;
 }
 
-class ActionExecution {
+class ActionRun {
     constructor(snapshot, dependencies) {
         this.actionsFolder = snapshot.actionsFolder;
         this.activityOrigin = snapshot.activityOrigin;
         this.context = snapshot.context;
-        this.executionId = snapshot.executionId;
+        this.runId = snapshot.runId;
         this.project = snapshot.project;
         this.projectFolder = snapshot.projectFolder;
         this.releasesFolder = snapshot.releasesFolder;
         this.rootAction = snapshot.rootAction;
         this.runInput = snapshot.runInput;
         this.startedAt = snapshot.startedAt;
-        this.actionWorktreeExecutionService = dependencies.actionWorktreeExecutionService;
+        this.actionWorktreeRunService = dependencies.actionWorktreeRunService;
         this.agentExecutor = dependencies.agentExecutor;
         this.agentRunnerService = dependencies.agentRunnerService;
         this.commandRunner = dependencies.commandRunner;
@@ -61,46 +61,46 @@ class ActionExecution {
     }
 
     sendAgentMessage(content) {
-        if (!this.activeAgentRunId) throw new Error(`Action execution has no active streaming agent: ${this.executionId}`);
+        if (!this.activeAgentRunId) throw new Error(`Action run has no active streaming agent: ${this.runId}`);
         if (this.activeAgentQuestion) throw new Error('Answer pending structured question before sending queued prompt');
         if (this.activeAgentApprovals.size > 0) throw new Error('Answer pending approval before sending queued prompt');
         return this.agentRunnerService.sendMessage(this.activeAgentRunId, content);
     }
 
     beginAgentPromptDraft() {
-        if (!this.activeAgentRunId) throw new Error(`Action execution has no active agent: ${this.executionId}`);
+        if (!this.activeAgentRunId) throw new Error(`Action run has no active agent: ${this.runId}`);
 
         return this.agentRunnerService.beginQueuedMessageDraft(this.activeAgentRunId);
     }
 
     setAgentQueuedMessage(sessionId, content, revision) {
-        if (!this.activeAgentRunId) throw new Error(`Action execution has no active agent: ${this.executionId}`);
+        if (!this.activeAgentRunId) throw new Error(`Action run has no active agent: ${this.runId}`);
 
         return this.agentRunnerService.setQueuedMessage(this.activeAgentRunId, sessionId, content, revision);
     }
 
     sendQueuedAgentMessage(sessionId, revision) {
-        if (!this.activeAgentRunId) throw new Error(`Action execution has no active agent: ${this.executionId}`);
+        if (!this.activeAgentRunId) throw new Error(`Action run has no active agent: ${this.runId}`);
         if (this.activeAgentQuestion) throw new Error('Answer pending structured question before sending queued prompt');
         if (this.activeAgentApprovals.size > 0) throw new Error('Answer pending approval before sending queued prompt');
         return this.agentRunnerService.sendQueuedMessage(this.activeAgentRunId, sessionId, revision);
     }
 
     async answerAgentQuestion(requestId, answers) {
-        if (!this.activeAgentRunId) throw new Error(`Action execution has no active streaming agent: ${this.executionId}`);
+        if (!this.activeAgentRunId) throw new Error(`Action run has no active streaming agent: ${this.runId}`);
         await this.agentRunnerService.answerQuestion(this.activeAgentRunId, requestId, answers);
         this.activeAgentQuestion = false;
     }
 
     answerAgentApproval(requestId, decision) {
-        if (!this.activeAgentRunId) throw new Error(`Action execution has no active streaming agent: ${this.executionId}`);
+        if (!this.activeAgentRunId) throw new Error(`Action run has no active streaming agent: ${this.runId}`);
         if (!this.activeAgentApprovals.has(requestId)) throw new Error(`Unknown or stale action approval request id: ${requestId}`);
 
         return this.agentRunnerService.answerApproval(this.activeAgentRunId, requestId, decision);
     }
 
     finishAgent() {
-        if (!this.activeAgentRunId) throw new Error(`Action execution has no active streaming agent: ${this.executionId}`);
+        if (!this.activeAgentRunId) throw new Error(`Action run has no active streaming agent: ${this.runId}`);
         this.agentRunnerService.finish(this.activeAgentRunId);
     }
 
@@ -120,17 +120,17 @@ class ActionExecution {
     }
 
     async run() {
-        return runWithGitOperationContext({ executionId: this.executionId }, () => this.runWithContext());
+        return runWithGitOperationContext({ runId: this.runId }, () => this.runWithContext());
     }
 
     async runWithContext() {
-        this.publish(this.rootAction, 'main', 'running', { type: 'execution' });
+        this.publish(this.rootAction, 'main', 'running', { type: 'run' });
         let status = 'completed';
         let failure = null;
         try {
             const onQueued = () => this.publish(this.rootAction, 'main', 'queued', { type: 'action' });
             const lockOptions = { onQueued, signal: this.controller.signal };
-            await this.actionWorktreeExecutionService.runWithCardLock(
+            await this.actionWorktreeRunService.runWithCardLock(
                 this.project,
                 this.context,
                 () => this.runAction(this.rootAction, 'main', true),
@@ -152,11 +152,11 @@ class ActionExecution {
         }
 
         const result = {
-            executionId: this.executionId,
+            runId: this.runId,
             failure: failure ? errorMessage(failure, 'Action failed') : null,
             status,
         };
-        this.publish(this.rootAction, 'main', status, { message: result.failure, type: 'execution' });
+        this.publish(this.rootAction, 'main', status, { message: result.failure, type: 'run' });
 
         return result;
     }
@@ -188,10 +188,10 @@ class ActionExecution {
             if (this.controller.signal.aborted) {
                 this.publish(action, phase, 'cancelled', {
                     command: Array.isArray(result.command) ? result.command.join(' ') : result.command,
-                    executionWorktree: result.executionWorktree,
+                    runWorktree: result.runWorktree,
                     message: 'Action cancelled',
                     reference: result.reference,
-                    runId: result.conversationId,
+                    conversationId: result.conversationId,
                     thinkingLevel: result.thinkingLevel,
                     type: 'action',
                 });
@@ -204,10 +204,10 @@ class ActionExecution {
             const output = combineOutput(result);
             this.publish(action, phase, status, {
                 command: Array.isArray(result.command) ? result.command.join(' ') : result.command,
-                executionWorktree: result.executionWorktree,
+                runWorktree: result.runWorktree,
                 message: status === 'completed' ? `${action.label} completed` : `${action.label} failed with exit code ${result.exitCode}`,
                 reference: result.reference,
-                runId: result.conversationId,
+                conversationId: result.conversationId,
                 thinkingLevel: result.thinkingLevel,
                 type: 'action',
             });
@@ -247,13 +247,13 @@ class ActionExecution {
             throw new Error(`Action "${action.label}" requires card context for autoFinish`);
         }
 
-        return this.actionWorktreeExecutionService.execute(this.project, action, this.context, async (project) => {
+        return this.actionWorktreeRunService.execute(this.project, action, this.context, async (project) => {
             this.publish(action, phase, 'running', { type: 'action' });
             const result = action.type === 'agent'
                 ? await this.executeAgentAction(action, phase, isRoot, project)
                 : await this.executeCommandAction(action, phase, isRoot, project);
             const committedResult = await this.commitTrackedAgentChanges(project, action, result);
-            const executionProject = {
+            const runProject = {
                 ...project,
                 branch: committedResult.branch ?? project.branch,
                 rootPath: committedResult.repositoryRoot ?? project.rootPath,
@@ -261,7 +261,7 @@ class ActionExecution {
             const historyInput = {
                 action,
                 context: this.context,
-                project: executionProject,
+                project: runProject,
                 projectFolder: this.projectFolder,
                 result: committedResult,
             };
@@ -305,7 +305,7 @@ class ActionExecution {
             commits,
             completedAt,
             conversationIds: [...new Set(this.conversationIds)],
-            executionId: this.executionId,
+            runId: this.runId,
             history,
             origin: this.activityOrigin,
             rootActionId: this.rootAction.id,
@@ -374,12 +374,16 @@ class ActionExecution {
         };
         const onEvent = (agentEvent) => {
             if (agentEvent.type === 'started') {
-                const { continued, conversationId, entries, reference, startedAt, title } = agentEvent;
-                const update = { continued, conversationId, entries, kind: 'agentStarted', reference, startedAt, title };
+                const { continued, conversation } = agentEvent;
+                const update = { continued, conversation, kind: 'agentStarted' };
                 this.publish(action, phase, 'running', { type: 'update', update });
                 return;
             }
-            if (agentEvent.type === 'closed') return;
+            if (agentEvent.type === 'closed') {
+                const update = { conversation: agentEvent.conversation, kind: 'agentClosed' };
+                this.publish(action, phase, agentEvent.conversation.status, { type: 'update', update });
+                return;
+            }
             if (agentEvent.type === 'state') {
                 this.publish(action, phase, agentEvent.state, { interactionReady: true, type: 'agentState' });
                 return;
@@ -446,7 +450,7 @@ class ActionExecution {
             action,
             activityOrigin: this.activityOrigin,
             context: this.context,
-            executionId: this.executionId,
+            runId: this.runId,
             onActiveRunChange,
             onEvent,
             project,
@@ -484,7 +488,7 @@ class ActionExecution {
             actionType: action.type,
             autoFinish: action.autoFinish ?? null,
             context: this.context,
-            executionId: this.executionId,
+            runId: this.runId,
             interactionReady: details.interactionReady ?? false,
             phase,
             rootActionId: this.rootAction.id,
@@ -502,4 +506,4 @@ class ActionExecution {
     }
 }
 
-module.exports = { ActionExecution };
+module.exports = { ActionRun };

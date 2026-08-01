@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { dataService } from '../../services/data/data_service'
-import { actionExecutionService } from '../../services/actions/action_execution_service'
+import { actionRunRegistry } from '../../services/actions/action_run_registry'
+import type { ActionRunEvent } from '../../data/action_run_types'
 import { loadCardCommits, type CardCommit } from '../../services/actions/card_commit_history'
 import { worktreeService } from '../../services/project/worktree_service'
 import type { ProjectReference } from '../../data/data_types'
@@ -32,9 +33,9 @@ export function useCardCommits(cardInternalId: string | null): CardCommitsState 
     const reload = useCallback(() => setReloadNonce((current) => current + 1), [])
 
     useEffect(() => {
-        const handleActionEvent = (event: Parameters<Parameters<typeof actionExecutionService.subscribeEvents>[0]>[0]) => {
-            if (event.type !== 'execution' || event.status === 'running') return
-            if (event.context.cardInternalId === cardInternalId) reload()
+        const handleActionEvent = (event: ActionRunEvent) => {
+            if (event.type !== 'run' || event.status === 'running') return
+            reload()
         }
         const handleProjectChange = () => {
             const nextProjectKey = projectKey(dataService.getState().project)
@@ -42,7 +43,8 @@ export function useCardCommits(cardInternalId: string | null): CardCommitsState 
             currentProjectKey.current = nextProjectKey
             reload()
         }
-        const unsubscribeAction = actionExecutionService.subscribeEvents(handleActionEvent)
+        const actionContext = { ...(cardInternalId ? { cardInternalId } : {}), kind: 'card' as const }
+        const unsubscribeAction = actionRunRegistry.subscribeContextEvents(actionContext, handleActionEvent)
         worktreeService.addEventListener('changed', reload)
         dataService.addEventListener('changed', handleProjectChange)
         dataService.addEventListener('repositoryChanged', reload)

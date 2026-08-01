@@ -4,36 +4,56 @@ import ArrowExpandVertical from 'mdi-material-ui/ArrowExpandVertical'
 import Close from 'mdi-material-ui/Close'
 import { useMemo } from 'react'
 import type { ActionContext } from '../../data/action_context'
-import type { ActionExecutionStatus } from '../../data/action_run_types'
 import type { ActionDefinition } from '../../data/action_types'
 import type { AgentConversation } from '../../data/data_types'
 import { worktreeService } from '../../services/project/worktree_service'
 import { ResizablePopper } from '../resizable_popper'
-import { WorktreeSelector, type WorktreeAssignment, type WorktreeAssignmentTarget } from '../worktree_selector'
-import { ActionAgentPresetName } from './action_agent_preset_name'
-import { ActionAgentPrompt } from './action_agent_prompt'
-import { ActionAgentApproval } from './action_agent_approval'
-import { ActionAgentQuestion } from './action_agent_question'
-import { ActionAgentSelectors } from './action_agent_selectors'
-import { ActionConversationChat } from './action_conversation_chat'
-import { ActionConversationPicker } from './action_conversation_picker'
-import { ActionLogErrorDisplay } from './action_log_error_display'
-import { ActionPhraseButtons } from './action_phrase_buttons'
+import type { WorktreeAssignmentTarget } from '../worktree_selector'
+import { ActionAgentApprovals } from './action_agent_approvals'
+import { ActionAgentInteractionVisibility } from './action_agent_interaction_visibility'
+import { ActionAgentPresetNameOwner } from './action_agent_preset_name_owner'
+import { ActionAgentPromptOwner } from './action_agent_prompt_owner'
+import { ActionAgentQuestionOwner } from './action_agent_question_owner'
+import { ActionAgentSelectorsOwner } from './action_agent_selectors_owner'
+import { ActionConversationChatOwner } from './action_conversation_chat_owner'
+import { ActionConversationPickerOwner } from './action_conversation_picker_owner'
+import { ActionConversationStore } from './action_conversation_store'
+import { ActionHistoryStore } from './action_history_store'
+import { ActionLogErrorOwner } from './action_log_error_owner'
+import { ActionPhraseButtonsOwner } from './action_phrase_buttons_owner'
 import { ActionPopupBottomRow } from './action_popup_bottom_row'
-import { statusColor } from './action_popup_defaults'
-import { actionPopupRunDisabled } from './action_popup_run_disabled'
-import { ActionPromptDraft } from './action_prompt_draft'
-import { ActionRunHistory } from './action_run_history'
-import { ActionRunStatus } from './action_run_status'
-import { ActionScheduleForm } from './action_schedule_form'
+import { ActionRunDisabledMessage } from './action_run_disabled_message'
+import { ActionRunHistoryOwner } from './action_run_history_owner'
+import { ActionRunInputStore } from './action_run_input_store'
+import { ActionRunResultStore } from './action_run_result_store'
+import { ActionRunStatusOwner } from './action_run_status_owner'
+import { ActionScheduleOwner } from './action_schedule_owner'
+import { ActionScheduleStore } from './action_schedule_store'
 import { ActionSelector } from './action_selector'
-import { useActionPopupController } from './use_action_popup_controller'
+import { ActionWorktreeSelectorOwner } from './action_worktree_selector_owner'
 
 export const CARD_RUN_POPUP_SIZE_STORAGE_KEY = 'md2.cardRunPopupSize'
 export const PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY = 'md2.projectAgentPopupSize'
 
+interface ActionPopupBindings {
+    conversationStore: ActionConversationStore
+    historyStore: ActionHistoryStore
+    inputStore: ActionRunInputStore
+    resultStore: ActionRunResultStore
+    scheduleStore: ActionScheduleStore
+}
+
+function createActionPopupBindings(action: ActionDefinition, context: ActionContext): ActionPopupBindings {
+    return {
+        conversationStore: new ActionConversationStore(action.id, context),
+        historyStore: new ActionHistoryStore(action, context),
+        inputStore: new ActionRunInputStore(),
+        resultStore: new ActionRunResultStore(),
+        scheduleStore: new ActionScheduleStore(),
+    }
+}
+
 interface ActionPopupContentProps {
-    activeActionStatuses: Record<string, ActionExecutionStatus>
     action: ActionDefinition
     actions: ActionDefinition[]
     anchorElement: HTMLElement | null
@@ -61,7 +81,7 @@ function worktreeValidationMessage(action: ActionDefinition, context: ActionCont
     const hasWorktreeAssignment = context.worktree !== undefined || !!context.worktreeError
     if (!hasWorktreeAssignment && !action.needsWorkTree) return null
     if (context.kind !== 'card' && context.kind !== 'project') {
-        const reason = action.needsWorkTree ? 'when needsWorkTree is set' : 'for worktree execution'
+        const reason = action.needsWorkTree ? 'when needsWorkTree is set' : 'for a worktree run'
         return `Action "${action.label}" requires card or project context ${reason}`
     }
     if (context.worktreeError) return context.worktreeError
@@ -84,34 +104,25 @@ function worktreeAssignmentTarget(context: ActionContext): WorktreeAssignmentTar
     return null
 }
 
-/** Presentation and execution behavior for the internally selected popup action. */
+/** Presentation and run behavior for the internally selected popup action. */
 export function ActionPopupContent(props: ActionPopupContentProps) {
     const {
-        action, actions, activeActionStatuses, anchorElement, assignmentContext, baseContext, draggable, fullHeight, onAddAction, onClose,
+        action, actions, anchorElement, assignmentContext, baseContext, draggable, fullHeight, onAddAction, onClose,
         onSelectAction, onToggleFullHeight, open, primaryPath, showSaveControls, titleId, unseenResultActionIds = [],
     } = props
-    const controller = useActionPopupController({
-        action,
-        context: assignmentContext,
-        scheduleContext: baseContext,
-        enableConversations: action.type === 'agent',
-        executionValidationError: worktreeValidationMessage(action, assignmentContext),
-    })
-    const sessionActive = controller.runStatus === 'queued'
-        || controller.runStatus === 'running'
-        || controller.runStatus === 'waitingForInput'
-    const showAgentInteraction = action.type === 'agent' || controller.agentActive
+    const bindings = useMemo(
+        () => createActionPopupBindings(action, assignmentContext),
+        [action, assignmentContext],
+    )
+    const { conversationStore, historyStore, inputStore, resultStore, scheduleStore } = bindings
+    const runValidationError = worktreeValidationMessage(action, assignmentContext)
     const sizeStorageKey = baseContext.kind === 'project'
         ? PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY
         : CARD_RUN_POPUP_SIZE_STORAGE_KEY
-    const promptDraft = useMemo(
-        () => new ActionPromptDraft(controller.prompt, controller.promptResetToken),
-        [controller.prompt, controller.promptResetToken],
-    )
     const parsedWorktree = assignmentContext.worktree && /^[1-9]\d*$/u.test(assignmentContext.worktree)
         ? Number.parseInt(assignmentContext.worktree, 10)
         : null
-    const worktreeAssignment: WorktreeAssignment = {
+    const worktreeAssignment = {
         worktree: parsedWorktree,
         worktreeError: assignmentContext.worktreeError ?? null,
         worktreeValue: assignmentContext.worktree ?? null,
@@ -119,13 +130,6 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
     const assignmentTarget = baseContext.kind === 'card' || baseContext.kind === 'file' || baseContext.kind === 'project'
         ? worktreeAssignmentTarget(baseContext)
         : null
-    const handleRunShortcut = () => {
-        const prompt = promptDraft.getSnapshot()
-        if (actionPopupRunDisabled(action, controller, prompt, showSaveControls)) return
-        if (showSaveControls) void controller.handleSaveAndRun(prompt)
-        else void controller.handleRun(prompt)
-    }
-
     return (
         <ResizablePopper
             anchorElement={anchorElement}
@@ -162,20 +166,19 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
             >
                 <Box data-testid="action-popup-toolbar" sx={{ alignItems: 'center', display: 'flex', gap: 1 }}>
                     {assignmentTarget ? (
-                        <WorktreeSelector
+                        <ActionWorktreeSelectorOwner
+                            actionId={action.id}
                             assignment={worktreeAssignment}
                             assignmentTarget={assignmentTarget}
-                            disabled={sessionActive}
+                            context={assignmentContext}
                             primaryPath={primaryPath}
                         />
                     ) : null}
                     {action.type === 'agent' ? (
-                        <ActionConversationPicker
-                            conversations={controller.conversations}
-                            disabled={sessionActive}
-                            loading={controller.conversationHistoryLoading}
-                            onChange={controller.handleConversationChange}
-                            selectedPath={controller.displayedConversation?.path ?? ''}
+                        <ActionConversationPickerOwner
+                            actionId={action.id}
+                            context={assignmentContext}
+                            store={conversationStore}
                         />
                     ) : null}
                     <Box sx={{ flex: 1 }} />
@@ -194,9 +197,9 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
                     </IconButton>
                 </Box>
                 <ActionSelector
-                    activeActionStatuses={activeActionStatuses}
                     adding={showSaveControls}
                     actions={actions}
+                    context={assignmentContext}
                     onAdd={onAddAction}
                     onSelect={onSelectAction}
                     selectedAction={action}
@@ -204,105 +207,81 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
                 />
             </Box>
             <Stack spacing={2} sx={{ flex: 1, minHeight: 0, overflow: 'auto', px: 1.5, py: 1 }}>
-                {showAgentInteraction ? (
+                <ActionAgentInteractionVisibility action={action} context={assignmentContext}>
                     <Stack spacing={1} sx={{ flex: 1, minHeight: 0 }}>
                         {showSaveControls ? (
-                            <ActionAgentPresetName
-                                actionLabel={controller.actionLabel}
-                                onActionLabelChange={controller.handleActionLabelChange}
-                                onRunShortcut={handleRunShortcut}
+                            <ActionAgentPresetNameOwner
+                                action={action}
+                                context={assignmentContext}
+                                conversationStore={conversationStore}
+                                historyStore={historyStore}
+                                inputStore={inputStore}
+                                resultStore={resultStore}
+                                runValidationError={runValidationError}
                             />
                         ) : null}
                         <Box sx={{ alignItems: 'center', color: 'text.secondary', display: 'flex', flexWrap: 'wrap', fontSize: 12, gap: 0.75 }}>
                             {action.type === 'agent' ? (
-                                <ActionAgentSelectors
-                                    agent={controller.agent}
-                                    agentAvailability={controller.agentAvailability}
-                                    agentProfiles={controller.agentProfiles}
-                                    disabled={sessionActive}
-                                    model={controller.model}
-                                    onAgentChange={controller.handleAgentChange}
-                                    onModelChange={controller.handleModelChange}
-                                    onThinkingLevelChange={controller.handleThinkingLevelChange}
-                                    selectedAgentModels={controller.selectedAgentModels}
-                                    thinkingLevel={controller.thinkingLevel}
+                                <ActionAgentSelectorsOwner
+                                    action={action}
+                                    context={assignmentContext}
+                                    store={inputStore}
                                 />
                             ) : null}
-                            <ActionLogErrorDisplay logs={controller.runLogs} />
+                            <ActionLogErrorOwner actionId={action.id} context={assignmentContext} resultStore={resultStore} />
                         </Box>
-                        <ActionConversationChat
-                            conversation={controller.displayedConversation}
+                        <ActionConversationChatOwner
+                            actionId={action.id}
+                            context={assignmentContext}
                             onConversationViewed={props.onConversationViewed}
-                            status={controller.runStatus === 'idle' && controller.displayedConversation?.status === 'waitingForInput'
-                                ? 'waitingForInput'
-                                : controller.runStatus}
+                            store={conversationStore}
                         />
-                        <ActionAgentPrompt
-                            convertMessage={controller.convertMessage}
-                            disabled={false}
-                            onPromptChange={controller.handlePromptChange}
-                            onRunShortcut={handleRunShortcut}
-                            promptDraft={promptDraft}
-                            promptFailed={controller.promptPreparationFailed}
-                            promptLoading={controller.promptPreparationPending}
+                        <ActionAgentPromptOwner
+                            action={action}
+                            context={assignmentContext}
+                            conversationStore={conversationStore}
+                            historyStore={historyStore}
+                            inputStore={inputStore}
+                            resultStore={resultStore}
+                            runValidationError={runValidationError}
+                            showSaveControls={showSaveControls}
                         />
-                        {controller.pendingApprovals.map((approval) => (
-                            <ActionAgentApproval
-                                approval={approval}
-                                key={`${typeof approval.requestId}-${approval.requestId}`}
-                                onDecision={controller.handleAnswerApproval}
-                            />
-                        ))}
-                        {controller.structuredQuestion ? (
-                            <ActionAgentQuestion
-                                onAnswer={controller.handleAnswerQuestion}
-                                questions={controller.structuredQuestion.questions}
-                            />
-                        ) : null}
+                        <ActionAgentApprovals actionId={action.id} context={assignmentContext} />
+                        <ActionAgentQuestionOwner actionId={action.id} context={assignmentContext} />
                     </Stack>
+                </ActionAgentInteractionVisibility>
+                <ActionPhraseButtonsOwner
+                    action={action}
+                    context={assignmentContext}
+                    conversationStore={conversationStore}
+                    historyStore={historyStore}
+                    inputStore={inputStore}
+                    resultStore={resultStore}
+                    runValidationError={runValidationError}
+                />
+                <ActionScheduleOwner action={action} context={baseContext} store={scheduleStore} />
+                {action.type !== 'agent' ? (
+                    <ActionRunStatusOwner actionId={action.id} context={assignmentContext} resultStore={resultStore} />
                 ) : null}
-                {controller.isFollowUp && action.phrases.length > 0 ? (
-                    <ActionPhraseButtons
-                        onDoubleClick={controller.handlePhraseDoubleClick}
-                        onSelect={controller.handlePhraseSelect}
-                        phrases={action.phrases}
-                    />
-                ) : null}
-                {controller.scheduleOpen ? (
-                    <ActionScheduleForm
-                        message={controller.scheduleMessage}
-                        onRegister={controller.handleScheduleAction}
-                        onTimestampChange={controller.handleScheduleTimestampChange}
-                        timestamp={controller.scheduleTimestamp}
-                    />
-                ) : null}
-                {action.type !== 'agent' && controller.runStatus !== 'idle' ? (
-                    <ActionRunStatus
-                        color={statusColor(controller.runStatus)}
-                        logs={controller.runLogs}
-                        status={controller.runStatus}
-                    />
-                ) : null}
-                {controller.executionDisabledMessage ? (
-                    <Typography color="text.secondary" role="note" variant="caption">
-                        {controller.executionDisabledMessage}
-                    </Typography>
-                ) : null}
-                {controller.executionValidationError ? (
+                <ActionRunDisabledMessage action={action} store={inputStore} />
+                {runValidationError ? (
                     <Typography color="error.main" role="alert" variant="caption">
-                        {controller.executionValidationError}
+                        {runValidationError}
                     </Typography>
                 ) : null}
                 {action.type !== 'agent' ? (
-                    <ActionRunHistory compact entries={controller.history} error={controller.historyError} />
+                    <ActionRunHistoryOwner store={historyStore} />
                 ) : null}
             </Stack>
             <ActionPopupBottomRow
                 action={action}
                 assignmentContext={assignmentContext}
-                baseContext={baseContext}
-                controller={controller}
-                promptDraft={promptDraft}
+                conversationStore={conversationStore}
+                historyStore={historyStore}
+                inputStore={inputStore}
+                resultStore={resultStore}
+                runValidationError={runValidationError}
+                scheduleStore={scheduleStore}
                 showSaveControls={showSaveControls}
             />
         </ResizablePopper>

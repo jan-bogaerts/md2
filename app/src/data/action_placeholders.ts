@@ -9,7 +9,7 @@ export const ACTION_PROMPT_PLACEHOLDERS: readonly ActionPlaceholder[] = [
     { description: 'Additional prompt entered when the card action runs.', name: 'card-prompt' },
     { description: 'Absolute path to the opened repository.', name: 'project-folder' },
     { description: 'Absolute path to the configured releases folder.', name: 'releases-folder' },
-    { description: 'Absolute path to the action execution checkout.', name: 'worktree-folder' },
+    { description: 'Absolute path to the action run checkout.', name: 'worktree-folder' },
 ]
 
 /** Format an action placeholder for insertion into template text. */

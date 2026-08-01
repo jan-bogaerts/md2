@@ -2,7 +2,7 @@ import { createRequire } from 'node:module';
 import { describe, expect, it, vi } from 'vitest';
 
 const require = createRequire(import.meta.url);
-const { ActionExecution } = require('./action_execution');
+const { ActionRun } = require('./action_run');
 
 const context = { cardInternalId: 'card-1', file: 'design/card.md', kind: 'card' };
 const project = { branch: 'main', rootPath: 'C:/repo' };
@@ -26,7 +26,7 @@ function deferred() {
     return { promise, resolve };
 }
 
-function createExecution(rootAction, overrides = {}) {
+function createRun(rootAction, overrides = {}) {
     const events = [];
     const appendActionRunHistory = overrides.localGitService?.appendActionRunHistory ?? vi.fn(async () => []);
     const localGitService = {
@@ -49,25 +49,25 @@ function createExecution(rootAction, overrides = {}) {
 
         return { command, exitCode: 0, stderr: '', stdout: command };
     });
-    const actionWorktreeExecutionService = {
+    const actionWorktreeRunService = {
         execute: vi.fn(async (primaryProject, _action, _context, run) => ({
             ...await run(primaryProject),
             branch: primaryProject.branch,
-            executionWorktree: null,
+            runWorktree: null,
             repositoryRoot: primaryProject.rootPath,
         })),
         runWithCardLock: vi.fn(async (_primaryProject, _context, operation) => operation()),
-        ...overrides.actionWorktreeExecutionService,
+        ...overrides.actionWorktreeRunService,
     };
     const agentRunnerService = overrides.agentRunnerService ?? { stop: vi.fn() };
     const agentExecutor = overrides.agentExecutor ?? { execute: vi.fn() };
-    const execution = new ActionExecution({
+    const run = new ActionRun({
         actionsFolder: 'actions',
         activityOrigin: overrides.context?.kind === 'project'
             ? { kind: 'project' }
             : { cardInternalId: 'card-1', kind: 'card' },
         context: overrides.context ?? context,
-        executionId: 'execution-1',
+        runId: 'run-1',
         project,
         projectFolder: 'design',
         releasesFolder: 'design/releases',
@@ -75,19 +75,19 @@ function createExecution(rootAction, overrides = {}) {
         runInput: { extraPrompt: '', ...overrides.runInput },
         startedAt: '2026-07-20T10:00:00.000Z',
     }, {
-        actionWorktreeExecutionService,
+        actionWorktreeRunService,
         agentExecutor,
         agentRunnerService,
         commandRunner,
         localGitService,
         publisher: (event) => events.push(event),
     });
-    execution.start((completion) => completion);
+    run.start((completion) => completion);
 
-    return { actionWorktreeExecutionService, agentRunnerService, commandRunner, events, execution, localGitService };
+    return { actionWorktreeRunService, agentRunnerService, commandRunner, events, run, localGitService };
 }
 
-describe('ActionExecution', () => {
+describe('ActionRun', () => {
     it('runs before, main, every matching on rule, and after in declaration order', async () => {
         const before = action('before');
         const firstMatch = action('first-match');
@@ -101,9 +101,9 @@ describe('ActionExecution', () => {
             onAfter: [after],
             onBefore: [before],
         });
-        const { commandRunner, execution } = createExecution(rootAction);
+        const { commandRunner, run } = createRun(rootAction);
 
-        await expect(execution.completion).resolves.toMatchObject({ status: 'completed' });
+        await expect(run.completion).resolves.toMatchObject({ status: 'completed' });
         expect(commandRunner.mock.calls.map((call) => call[1])).toEqual(['before', 'main', 'first-match', 'second-match', 'after']);
     });
 
@@ -117,9 +117,9 @@ describe('ActionExecution', () => {
         const failure = action(_phase === 'main' ? 'main' : 'failure');
         const rootAction = createRoot(failure);
         const commandRunner = vi.fn(async (_project, command) => ({command, exitCode: command === failure.id ? 1 : 0, stderr: '', stdout: command}));
-        const { execution } = createExecution(rootAction, { commandRunner });
+        const { run } = createRun(rootAction, { commandRunner });
 
-        await expect(execution.completion).resolves.toMatchObject({ status: expectedStatus });
+        await expect(run.completion).resolves.toMatchObject({ status: expectedStatus });
     });
 
     it.each([
@@ -128,37 +128,37 @@ describe('ActionExecution', () => {
     ])('keeps nested after failure in root %s subtree failed', async (_phase, createRoot) => {
         const parent = action('parent', { onAfter: [action('failure')] });
         const commandRunner = vi.fn(async (_project, command) => ({command, exitCode: command === 'failure' ? 1 : 0, stderr: '', stdout: command}));
-        const { execution } = createExecution(createRoot(parent), { commandRunner });
+        const { run } = createRun(createRoot(parent), { commandRunner });
 
-        await expect(execution.completion).resolves.toMatchObject({ status: 'failed' });
+        await expect(run.completion).resolves.toMatchObject({ status: 'failed' });
     });
 
     it('resolves worktree independently for each linked action', async () => {
         const rootAction = action('main', { onAfter: [action('after')], onBefore: [action('before')] });
-        const { actionWorktreeExecutionService, execution } = createExecution(rootAction);
+        const { actionWorktreeRunService, run } = createRun(rootAction);
 
-        await execution.completion;
+        await run.completion;
 
-        expect(actionWorktreeExecutionService.execute.mock.calls.map((call) => call[1].id)).toEqual(['before', 'main', 'after']);
+        expect(actionWorktreeRunService.execute.mock.calls.map((call) => call[1].id)).toEqual(['before', 'main', 'after']);
     });
 
     it('publishes queued before running when the card lock is occupied', async () => {
-        const actionWorktreeExecutionService = {
+        const actionWorktreeRunService = {
             runWithCardLock: vi.fn(async (_primaryProject, _context, operation, options) => {
                 options.onQueued();
 
                 return operation();
             }),
         };
-        const { events, execution } = createExecution(action('main'), { actionWorktreeExecutionService });
+        const { events, run } = createRun(action('main'), { actionWorktreeRunService });
 
-        await execution.completion;
+        await run.completion;
 
         expect(events
             .filter((event) => event.type === 'action')
             .map(({ status }) => status))
             .toEqual(['queued', 'running', 'completed']);
-        expect(actionWorktreeExecutionService.runWithCardLock.mock.calls[0][3].signal).toBe(execution.controller.signal);
+        expect(actionWorktreeRunService.runWithCardLock.mock.calls[0][3].signal).toBe(run.controller.signal);
     });
 
     it('applies root run input only to root action', async () => {
@@ -166,9 +166,9 @@ describe('ActionExecution', () => {
             id: 'main',
             onBefore: [action('before={{card-prompt}}', { id: 'before' })],
         });
-        const { commandRunner, execution } = createExecution(rootAction, { runInput: { extraPrompt: 'focus' } });
+        const { commandRunner, run } = createRun(rootAction, { runInput: { extraPrompt: 'focus' } });
 
-        await execution.completion;
+        await run.completion;
 
         expect(commandRunner.mock.calls.map((call) => call[1])).toEqual(['before=', 'main=focus']);
     });
@@ -182,9 +182,9 @@ describe('ActionExecution', () => {
                 prompt: input.runInput.prompt ?? input.action.prompt, stderr: '', stdout: input.action.id, thinkingLevel: 'none',
             })),
         };
-        const { execution } = createExecution(rootAction, { agentExecutor, runInput: { prompt: 'Root edited' } });
+        const { run } = createRun(rootAction, { agentExecutor, runInput: { prompt: 'Root edited' } });
 
-        await execution.completion;
+        await run.completion;
 
         expect(agentExecutor.execute.mock.calls.map(([input]) => input.runInput)).toEqual([
             { extraPrompt: '' },
@@ -208,12 +208,12 @@ describe('ActionExecution', () => {
             }),
         };
         const events = [];
-        const execution = new ActionExecution({
+        const run = new ActionRun({
             actionsFolder: 'actions', activityOrigin: { cardInternalId: 'card-1', kind: 'card' }, context,
-            executionId: 'execution-1', project, projectFolder: 'design', rootAction: action('main'),
+            runId: 'run-1', project, projectFolder: 'design', rootAction: action('main'),
             runInput: { extraPrompt: '' }, startedAt: '2026-07-20T10:00:00.000Z',
         }, {
-            actionWorktreeExecutionService: {
+            actionWorktreeRunService: {
                 execute: async (primaryProject, _action, _context, run) => run(primaryProject),
                 runWithCardLock: async (_primaryProject, _context, operation) => operation(),
             },
@@ -227,9 +227,9 @@ describe('ActionExecution', () => {
                 if (event.type === 'update') order.push(`${event.status}:${event.update.content}`);
             },
         });
-        execution.start((completion) => completion);
+        run.start((completion) => completion);
 
-        await execution.completion;
+        await run.completion;
 
         expect(order).toEqual(['running:', 'running:chunk', 'process', 'completed:', 'history']);
         expect(events.every((event) => event.context === context)).toBe(true);
@@ -243,18 +243,18 @@ describe('ActionExecution', () => {
 
             return { command, exitCode: 0, stderr: '', stdout: command };
         });
-        const { commandRunner: runner, events, execution } = createExecution(
+        const { commandRunner: runner, events, run } = createRun(
             action('main', { onAfter: [action('after')] }),
             { commandRunner },
         );
-        execution.cancel();
+        run.cancel();
         commandCompletion.resolve();
 
-        await expect(execution.completion).resolves.toMatchObject({ status: 'cancelled' });
+        await expect(run.completion).resolves.toMatchObject({ status: 'cancelled' });
         expect(runner).toHaveBeenCalledTimes(1);
         expect(events.slice(-2).map(({ status, type }) => ({ status, type }))).toEqual([
             { status: 'cancelled', type: 'action' },
-            { status: 'cancelled', type: 'execution' },
+            { status: 'cancelled', type: 'run' },
         ]);
     });
 
@@ -270,12 +270,12 @@ describe('ActionExecution', () => {
 
             return { command, exitCode: 0, stderr: '', stdout: command };
         });
-        const { events, execution } = createExecution(action('main', rootOverrides), { commandRunner });
+        const { events, run } = createRun(action('main', rootOverrides), { commandRunner });
         await vi.waitFor(() => expect(commandRunner.mock.calls.map((call) => call[1])).toContain('target'));
-        execution.cancel();
+        run.cancel();
         targetCompletion.resolve();
 
-        await expect(execution.completion).resolves.toMatchObject({ status: 'cancelled' });
+        await expect(run.completion).resolves.toMatchObject({ status: 'cancelled' });
         expect(commandRunner.mock.calls.map((call) => call[1])).toEqual(expectedCommands);
         expect(events).toContainEqual(expect.objectContaining({ actionId: 'target', phase, status: 'cancelled', type: 'action' }));
     });
@@ -296,12 +296,12 @@ describe('ActionExecution', () => {
             }),
         };
         const rootAction = action('main', { agent: 'codex', model: 'gpt', prompt: 'run', type: 'agent' });
-        const { execution } = createExecution(rootAction, { agentExecutor, agentRunnerService });
+        const { run } = createRun(rootAction, { agentExecutor, agentRunnerService });
         await vi.waitFor(() => expect(agentExecutor.execute).toHaveBeenCalled());
-        execution.cancel();
+        run.cancel();
         agentCompletion.resolve();
 
-        await execution.completion;
+        await run.completion;
 
         expect(agentRunnerService.stop).toHaveBeenCalledWith('agent-run');
     });
@@ -328,22 +328,22 @@ describe('ActionExecution', () => {
             }),
         };
         const rootAction = action('main', { agent: 'codex', model: 'gpt', prompt: 'run', streaming: true, type: 'agent' });
-        const { events, execution } = createExecution(rootAction, { agentExecutor, agentRunnerService });
+        const { events, run } = createRun(rootAction, { agentExecutor, agentRunnerService });
         await agentStarted.promise;
         const firstApproval = { itemId: 'command-1', kind: 'commandExecution', requestId: 41, threadId: 'thread-1', turnId: 'turn-1' };
         const secondApproval = { itemId: 'file-1', kind: 'fileChange', requestId: 42, threadId: 'thread-1', turnId: 'turn-1' };
         agentInput.onEvent({ approval: firstApproval, type: 'approval' });
         agentInput.onEvent({ approval: secondApproval, type: 'approval' });
 
-        expect(() => execution.sendAgentMessage('next')).toThrow('pending approval');
-        await execution.answerAgentApproval(41, 'accept');
+        expect(() => run.sendAgentMessage('next')).toThrow('pending approval');
+        await run.answerAgentApproval(41, 'accept');
         agentInput.onEvent({ requestId: 41, type: 'approvalSubmitted' });
         agentInput.onEvent({ requestId: 41, state: 'waitingForInput', type: 'approvalResolved' });
-        expect(() => execution.sendAgentMessage('still blocked')).toThrow('pending approval');
+        expect(() => run.sendAgentMessage('still blocked')).toThrow('pending approval');
         agentInput.onEvent({ requestId: 42, state: 'running', type: 'approvalResolved' });
-        await execution.sendAgentMessage('next');
+        await run.sendAgentMessage('next');
         agentCompletion.resolve();
-        await execution.completion;
+        await run.completion;
 
         expect(answerApproval).toHaveBeenCalledWith('agent-run', 41, 'accept');
         expect(sendMessage).toHaveBeenCalledWith('agent-run', 'next');
@@ -374,9 +374,9 @@ describe('ActionExecution', () => {
         };
         const agentExecutor = { execute: vi.fn().mockResolvedValueOnce(firstResult).mockResolvedValueOnce(secondResult) };
         const rootAction = action('main', { agent: 'codex', model: 'gpt', prompt: 'run', type: 'agent' });
-        const { events, execution } = createExecution(rootAction, { agentExecutor });
+        const { events, run } = createRun(rootAction, { agentExecutor });
 
-        await execution.completion;
+        await run.completion;
 
         expect(agentExecutor.execute).toHaveBeenCalledTimes(2);
         expect(agentExecutor.execute.mock.calls[1][0].runInput).toMatchObject({
@@ -396,11 +396,11 @@ describe('ActionExecution', () => {
             streaming: true,
             type: 'agent',
         });
-        const { execution } = createExecution(rootAction, {
+        const { run } = createRun(rootAction, {
             agentExecutor,
             context: { kind: 'project' },
         });
-        await expect(execution.completion).resolves.toMatchObject({
+        await expect(run.completion).resolves.toMatchObject({
             failure: expect.stringContaining('requires card context for autoFinish'),
             status: 'failed',
         });
@@ -432,20 +432,20 @@ describe('ActionExecution', () => {
                 };
             }),
         };
-        const { execution } = createExecution(rootAction, { agentExecutor, agentRunnerService, commandRunner });
-        execution.handleCardStateChange('card-1', 'ready');
+        const { run } = createRun(rootAction, { agentExecutor, agentRunnerService, commandRunner });
+        run.handleCardStateChange('card-1', 'ready');
         commandCompletion.resolve();
         await agentStarted.promise;
 
         expect(agentRunnerService.finish).not.toHaveBeenCalled();
-        execution.handleCardStateChange('other-card', 'ready');
-        execution.handleCardStateChange('card-1', 'design');
-        execution.handleCardStateChange('card-1', 'ready');
+        run.handleCardStateChange('other-card', 'ready');
+        run.handleCardStateChange('card-1', 'design');
+        run.handleCardStateChange('card-1', 'ready');
         expect(agentRunnerService.finish).toHaveBeenCalledOnce();
         expect(agentRunnerService.finish).toHaveBeenCalledWith('agent-run');
 
         agentCompletion.resolve();
-        await execution.completion;
+        await run.completion;
     });
 
     it('finishes every matching streaming child in one chain', async () => {
@@ -469,14 +469,14 @@ describe('ActionExecution', () => {
                 };
             }),
         };
-        const { execution } = createExecution(rootAction, { agentExecutor, agentRunnerService });
+        const { run } = createRun(rootAction, { agentExecutor, agentRunnerService });
         await vi.waitFor(() => expect(agentExecutor.execute).toHaveBeenCalledTimes(1));
-        execution.handleCardStateChange('card-1', 'ready');
+        run.handleCardStateChange('card-1', 'ready');
         firstCompletion.resolve();
         await vi.waitFor(() => expect(agentExecutor.execute).toHaveBeenCalledTimes(2));
-        execution.handleCardStateChange('card-1', 'ready');
+        run.handleCardStateChange('card-1', 'ready');
         secondCompletion.resolve();
-        await execution.completion;
+        await run.completion;
 
         expect(agentRunnerService.finish.mock.calls).toEqual([['agent-run-1'], ['agent-run-2']]);
     });
@@ -501,19 +501,26 @@ describe('ActionExecution', () => {
             }),
         };
         const rootAction = action('stream', {agent: 'codex', autoFinish: { state: 'ready' }, model: 'gpt', prompt: 'run', streaming: true, type: 'agent'});
-        const { execution } = createExecution(rootAction, { agentExecutor, agentRunnerService });
+        const { run } = createRun(rootAction, { agentExecutor, agentRunnerService });
         await executorStarted.promise;
-        execution.handleCardStateChange('card-1', 'ready');
+        run.handleCardStateChange('card-1', 'ready');
         processReady.resolve();
         await vi.waitFor(() => expect(agentRunnerService.finish).toHaveBeenCalledWith('agent-run'));
         agentCompletion.resolve();
 
-        await execution.completion;
+        await run.completion;
     });
 
     it('publishes nested agent events and terminal metadata', async () => {
+        const runningConversation = {
+            actionId: 'main', cardInternalId: 'card-1', cardPath: 'design/F-1.md', completedAt: null, entries: [],
+            hasExplicitTitle: true, id: 'conversation', path: 'run.json', providerSessions: [],
+            startedAt: 'now', status: 'running', title: 'Main',
+        };
+        const completedConversation = { ...runningConversation, completedAt: 'later', status: 'completed' };
         const agentExecutor = {
             execute: vi.fn(async (input) => {
+                input.onEvent({ continued: false, conversation: runningConversation, type: 'started' });
                 input.onEvent({ content: 'chunk', messageId: 'assistant-1', sequence: 2, type: 'output' });
                 input.onEvent({
                     event: {
@@ -522,6 +529,7 @@ describe('ActionExecution', () => {
                     },
                     type: 'agentEvent',
                 });
+                input.onEvent({ conversation: completedConversation, type: 'closed' });
 
                 return {
                     agent: 'codex', exitCode: 0, model: 'gpt', prompt: 'run',
@@ -530,14 +538,24 @@ describe('ActionExecution', () => {
             }),
         };
         const rootAction = action('main', { agent: 'codex', model: 'gpt', prompt: 'run', type: 'agent' });
-        const { events, execution } = createExecution(rootAction, { agentExecutor });
+        const { events, run } = createRun(rootAction, { agentExecutor });
 
-        await execution.completion;
+        await run.completion;
 
         expect(events).toContainEqual(expect.objectContaining({
             status: 'running',
             type: 'update',
+            update: { continued: false, conversation: runningConversation, kind: 'agentStarted' },
+        }));
+        expect(events).toContainEqual(expect.objectContaining({
+            status: 'running',
+            type: 'update',
             update: { content: 'chunk', kind: 'output', messageId: 'assistant-1', sequence: 2 },
+        }));
+        expect(events).toContainEqual(expect.objectContaining({
+            status: 'completed',
+            type: 'update',
+            update: { conversation: completedConversation, kind: 'agentClosed' },
         }));
         expect(events).toContainEqual(expect.objectContaining({
             status: 'running',
@@ -547,7 +565,7 @@ describe('ActionExecution', () => {
                 kind: 'agentEvent',
             },
         }));
-        expect(events).toContainEqual(expect.objectContaining({reference: 'run.json', runId: 'conversation', status: 'completed', thinkingLevel: 'high', type: 'action'}));
+        expect(events).toContainEqual(expect.objectContaining({conversationId: 'conversation', reference: 'run.json', runId: 'run-1', status: 'completed', thinkingLevel: 'high', type: 'action'}));
     });
 
     it('commits successful tracked agent paths before writing explicit history metadata', async () => {
@@ -565,14 +583,14 @@ describe('ActionExecution', () => {
             filePaths: ['app/a.ts', 'app/b.ts'],
         }));
         const rootAction = action('main', {agent: 'codex', model: 'gpt', prompt: 'run', trackFileChanges: true, type: 'agent'});
-        const { execution, localGitService } = createExecution(rootAction, {
+        const { run, localGitService } = createRun(rootAction, {
             agentExecutor,
             localGitService: { commitTrackedPaths, resolveCommitMetadata },
         });
 
-        await expect(execution.completion).resolves.toMatchObject({ status: 'completed' });
+        await expect(run.completion).resolves.toMatchObject({ status: 'completed' });
 
-        expect(commitTrackedPaths).toHaveBeenCalledWith('C:/repo', ['app/a.ts', 'app/b.ts'], 'main', execution.controller.signal);
+        expect(commitTrackedPaths).toHaveBeenCalledWith('C:/repo', ['app/a.ts', 'app/b.ts'], 'main', run.controller.signal);
         expect(localGitService.appendActionRunHistory.mock.calls[0][2].commits[0]).toMatchObject({
             actionId: 'main', actionName: 'main', commit: 'abcdef3456789012345678901234567890123456',
             filePaths: ['app/a.ts', 'app/b.ts'],
@@ -597,17 +615,17 @@ describe('ActionExecution', () => {
                 filePaths: [`${rootPath}/${commit}.md`],
             })),
         };
-        const actionWorktreeExecutionService = {
+        const actionWorktreeRunService = {
             execute: vi.fn(async (_primaryProject, currentAction, _context, run) => {
-                const executionProject = { branch: currentAction.id, rootPath: `C:/repo/${currentAction.id}` };
+                const runProject = { branch: currentAction.id, rootPath: `C:/repo/${currentAction.id}` };
 
-                return { ...await run(executionProject), branch: executionProject.branch, repositoryRoot: executionProject.rootPath };
+                return { ...await run(runProject), branch: runProject.branch, repositoryRoot: runProject.rootPath };
             }),
         };
-        const executionValues = createExecution(rootAction, { actionWorktreeExecutionService, commandRunner, localGitService });
-        const { execution, localGitService: service } = executionValues;
+        const runValues = createRun(rootAction, { actionWorktreeRunService, commandRunner, localGitService });
+        const { run, localGitService: service } = runValues;
 
-        await expect(execution.completion).resolves.toMatchObject({ status: 'completed' });
+        await expect(run.completion).resolves.toMatchObject({ status: 'completed' });
 
         const record = service.appendAndCommitActionActivity.mock.calls[0][3];
         expect(record.commits.map(({ actionId }) => actionId ?? 'main')).toEqual(['before', 'main', 'matching', 'after']);
@@ -621,9 +639,9 @@ describe('ActionExecution', () => {
             stdout: '[topic abcdef1] first\n[topic abcdef2] second\n[topic abcdef1] duplicate',
         }));
         const resolveCommitMetadata = vi.fn(async (_rootPath, commit) => ({commit: commit.padEnd(40, commit.at(-1)), committedAt: '2026-07-15T10:00:00+00:00', filePaths: [`${commit}.md`]}));
-        const { execution, localGitService } = createExecution(rootAction, {commandRunner, localGitService: { resolveCommitMetadata }});
+        const { run, localGitService } = createRun(rootAction, {commandRunner, localGitService: { resolveCommitMetadata }});
 
-        await execution.completion;
+        await run.completion;
 
         const entry = localGitService.appendActionRunHistory.mock.calls[0][2];
         expect(entry.commits.map(({ actionId, actionName, commit }) => ({actionId, actionName, commit}))).toEqual([
@@ -641,9 +659,9 @@ describe('ActionExecution', () => {
             commitTrackedPaths: vi.fn(async () => 'abcdef3'),
             resolveCommitMetadata: vi.fn(async () => ({commit: 'abcdef3456789012345678901234567890123456', committedAt: '2026-07-15T10:00:00+00:00', filePaths: ['app/a.ts']})),
         };
-        const { execution, localGitService: service } = createExecution(rootAction, { agentExecutor, localGitService });
+        const { run, localGitService: service } = createRun(rootAction, { agentExecutor, localGitService });
 
-        await execution.completion;
+        await run.completion;
 
         expect(service.appendAndCommitActionActivity).toHaveBeenCalledOnce();
         expect(service.appendAndCommitActionActivity.mock.calls[0][3].commits[0].actionId).toBe('tracked');
@@ -656,9 +674,9 @@ describe('ActionExecution', () => {
             stdout: `[main ${command === 'main' ? 'aaaaaaa' : 'bbbbbbb'}] ${command}`,
         }));
         const resolveCommitMetadata = vi.fn(async (_rootPath, commit) => ({commit: commit.padEnd(40, commit[0]), committedAt: '2026-07-15T10:00:00+00:00', filePaths: [`${commit}.md`]}));
-        const { execution, localGitService } = createExecution(rootAction, {commandRunner, localGitService: { resolveCommitMetadata }});
+        const { run, localGitService } = createRun(rootAction, {commandRunner, localGitService: { resolveCommitMetadata }});
 
-        await expect(execution.completion).resolves.toMatchObject({ status: 'okButNotAfter' });
+        await expect(run.completion).resolves.toMatchObject({ status: 'okButNotAfter' });
 
         const rootWrite = localGitService.appendActionRunHistory.mock.calls.find((call) => call[1].actionId === 'main');
         expect(rootWrite[2].commits.map(({ actionId }) => actionId)).toEqual(['main', 'after']);
@@ -673,9 +691,9 @@ describe('ActionExecution', () => {
             stdout: command === 'committing' ? '[main abcdef1] done' : command,
         }));
         const resolveCommitMetadata = vi.fn(async () => ({commit: 'abcdef1234567890123456789012345678901234', committedAt: '2026-07-15T10:00:00+00:00', filePaths: ['done.md']}));
-        const { execution, localGitService } = createExecution(rootAction, {commandRunner, localGitService: { resolveCommitMetadata }});
+        const { run, localGitService } = createRun(rootAction, {commandRunner, localGitService: { resolveCommitMetadata }});
 
-        await expect(execution.completion).resolves.toMatchObject({ status: 'failed' });
+        await expect(run.completion).resolves.toMatchObject({ status: 'failed' });
 
         const rootWrite = localGitService.appendActionRunHistory.mock.calls.find((call) => call[1].actionId === 'main');
         expect(rootWrite[2]).toMatchObject({ status: 'failed' });
@@ -690,15 +708,15 @@ describe('ActionExecution', () => {
             return { command: 'main', exitCode: 0, stderr: '', stdout: '[main abcdef1] completed before cancel' };
         });
         const resolveCommitMetadata = vi.fn(async () => ({commit: 'abcdef1234567890123456789012345678901234', committedAt: '2026-07-15T10:00:00+00:00', filePaths: ['done.md']}));
-        const { execution, localGitService } = createExecution(action('main'), {commandRunner, localGitService: { resolveCommitMetadata }});
-        execution.cancel();
+        const { run, localGitService } = createRun(action('main'), {commandRunner, localGitService: { resolveCommitMetadata }});
+        run.cancel();
         commandCompletion.resolve();
 
-        await expect(execution.completion).resolves.toMatchObject({ status: 'cancelled' });
+        await expect(run.completion).resolves.toMatchObject({ status: 'cancelled' });
         expect(localGitService.appendActionRunHistory.mock.calls[0][2].commits).toHaveLength(1);
     });
 
-    it('keeps concurrent execution commit accumulators isolated', async () => {
+    it('keeps concurrent run commit accumulators isolated', async () => {
         const rootAction = action('main');
         const createCommandRunner = (commit) => vi.fn(async () => ({command: 'main', exitCode: 0, stderr: '', stdout: `[main ${commit}] run`}));
         const createLocalGitService = () => ({
@@ -707,10 +725,10 @@ describe('ActionExecution', () => {
         });
         const firstService = createLocalGitService();
         const secondService = createLocalGitService();
-        const first = createExecution(rootAction, {commandRunner: createCommandRunner('aaaaaaa'), localGitService: firstService});
-        const second = createExecution(rootAction, {commandRunner: createCommandRunner('bbbbbbb'), localGitService: secondService});
+        const first = createRun(rootAction, {commandRunner: createCommandRunner('aaaaaaa'), localGitService: firstService});
+        const second = createRun(rootAction, {commandRunner: createCommandRunner('bbbbbbb'), localGitService: secondService});
 
-        await Promise.all([first.execution.completion, second.execution.completion]);
+        await Promise.all([first.run.completion, second.run.completion]);
 
         expect(firstService.appendActionRunHistory.mock.calls[0][2].commits[0].commit).toBe('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
         expect(secondService.appendActionRunHistory.mock.calls[0][2].commits[0].commit).toBe('bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb');
@@ -728,9 +746,9 @@ describe('ActionExecution', () => {
         };
         const commitTrackedPaths = vi.fn(async () => 'abcdef3');
         const rootAction = action('main', {agent: 'codex', model: 'gpt', prompt: 'run', trackFileChanges: true, type: 'agent'});
-        const { execution } = createExecution(rootAction, { agentExecutor, localGitService: { commitTrackedPaths } });
+        const { run } = createRun(rootAction, { agentExecutor, localGitService: { commitTrackedPaths } });
 
-        await execution.completion;
+        await run.completion;
 
         expect(commitTrackedPaths).not.toHaveBeenCalled();
     });
@@ -750,27 +768,27 @@ describe('ActionExecution', () => {
         };
         const commitTrackedPaths = vi.fn(async () => 'abcdef3');
         const rootAction = action('main', {agent: 'codex', model: 'gpt', prompt: 'run', trackFileChanges: true, type: 'agent'});
-        const { execution } = createExecution(rootAction, { agentExecutor, localGitService: { commitTrackedPaths } });
-        execution.cancel();
+        const { run } = createRun(rootAction, { agentExecutor, localGitService: { commitTrackedPaths } });
+        run.cancel();
         agentCompletion.resolve();
 
-        await execution.completion;
+        await run.completion;
 
         expect(commitTrackedPaths).not.toHaveBeenCalled();
     });
 
     it('fails command continuation with established message', async () => {
-        const { commandRunner, execution } = createExecution(action('main'), {runInput: { continueFrom: 'source.json' }});
+        const { commandRunner, run } = createRun(action('main'), {runInput: { continueFrom: 'source.json' }});
 
-        await expect(execution.completion).resolves.toMatchObject({failure: 'Conversation continuation requires an agent action', status: 'failed'});
+        await expect(run.completion).resolves.toMatchObject({failure: 'Conversation continuation requires an agent action', status: 'failed'});
         expect(commandRunner).not.toHaveBeenCalled();
     });
 
     it('turns history failure into action failure before terminal event', async () => {
         const localGitService = { appendActionRunHistory: vi.fn(async () => { throw new Error('history failed'); }) };
-        const { events, execution } = createExecution(action('main'), { localGitService });
+        const { events, run } = createRun(action('main'), { localGitService });
 
-        await expect(execution.completion).resolves.toMatchObject({ failure: 'history failed', status: 'failed' });
+        await expect(run.completion).resolves.toMatchObject({ failure: 'history failed', status: 'failed' });
         expect(events.filter(({ type }) => type === 'action').at(-1)).toMatchObject({ message: 'history failed', status: 'failed' });
     });
 });

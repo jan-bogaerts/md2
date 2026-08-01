@@ -1,10 +1,10 @@
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cardContext } from '../../data/action_context'
-import type { ActionExecutionEvent } from '../../data/action_run_types'
+import type { ActionRunEvent } from '../../data/action_run_types'
 import type { ActionFile } from '../../data/action_types'
 import { DEFAULT_CARD_TYPES, type AgentConversation, type AgentConversationEvent, type ProjectCard } from '../../data/data_types'
-import { actionExecutionService } from '../../services/actions/action_execution_service'
+import { actionRunRegistry } from '../../services/actions/action_run_registry'
 import { actionService } from '../../services/actions/action_service'
 import { agentAcknowledgementService } from '../../services/agents/agent_acknowledgement_service'
 import { cardActionPopupService } from '../../services/actions/card_action_popup_service'
@@ -80,7 +80,7 @@ function renderCardRunButton(projectCard: ProjectCard = card) {
 describe('CardRunButton', () => {
     beforeEach(() => {
         window.md2Actions = {
-            onActionExecution: vi.fn(() => vi.fn()),
+            onActionRun: vi.fn(() => vi.fn()),
             prepareActionPrompt: vi.fn(async () => ({ prompt: '' })),
         } as unknown as typeof window.md2Actions
         actionService.loadFromFiles([
@@ -91,7 +91,7 @@ describe('CardRunButton', () => {
     })
 
     afterEach(() => {
-        actionExecutionService.stop()
+        actionRunRegistry.stop()
         cardActionPopupService.clear()
         delete window.md2Actions
         cleanup()
@@ -117,21 +117,21 @@ describe('CardRunButton', () => {
     })
 
     it('opens the card action popup while an action is running', () => {
-        let listener: ((event: ActionExecutionEvent) => void) | null = null
+        let listener: ((event: ActionRunEvent) => void) | null = null
         window.md2Actions = {
-            onActionExecution: (nextListener: (event: ActionExecutionEvent) => void) => {
+            onActionRun: (nextListener: (event: ActionRunEvent) => void) => {
                 listener = nextListener
 
                 return vi.fn()
             },
         } as unknown as typeof window.md2Actions
-        actionExecutionService.start()
-        if (!listener) throw new Error('Missing action execution listener')
+        actionRunRegistry.start()
+        if (!listener) throw new Error('Missing action run listener')
         const context = cardContext(card, DEFAULT_CARD_TYPES)
-        const emit = listener as (event: ActionExecutionEvent) => void
+        const emit = listener as (event: ActionRunEvent) => void
         act(() => emit({
-            actionId: 'implement', context, executionId: 'execution-1', phase: 'main', rootActionId: 'implement',
-            status: 'running', type: 'execution',
+            actionId: 'implement', context, runId: 'run-1', phase: 'main', rootActionId: 'implement',
+            status: 'running', type: 'run',
         }))
         render(
             <>
@@ -151,53 +151,53 @@ describe('CardRunButton', () => {
     })
 
     it('prefers live waiting and resumed states over persisted conversation state', () => {
-        let listener: ((event: ActionExecutionEvent) => void) | null = null
+        let listener: ((event: ActionRunEvent) => void) | null = null
         window.md2Actions = {
-            onActionExecution: (nextListener: (event: ActionExecutionEvent) => void) => {
+            onActionRun: (nextListener: (event: ActionRunEvent) => void) => {
                 listener = nextListener
 
                 return vi.fn()
             },
         } as unknown as typeof window.md2Actions
-        actionExecutionService.start()
-        if (!listener) throw new Error('Missing action execution listener')
+        actionRunRegistry.start()
+        if (!listener) throw new Error('Missing action run listener')
         const waitingCard = cardWith([conversation('waitingForInput')])
         const context = cardContext(waitingCard, DEFAULT_CARD_TYPES)
         renderCardRunButton(waitingCard)
 
         expect(screen.getByRole('button', { name: /Agent is waiting for input/u })).toBeInTheDocument()
 
-        const emit = listener as (event: ActionExecutionEvent) => void
+        const emit = listener as (event: ActionRunEvent) => void
         act(() => emit({
-            actionId: 'implement', context, executionId: 'execution-1', phase: 'main', rootActionId: 'implement',
-            status: 'running', type: 'execution',
+            actionId: 'implement', context, runId: 'run-1', phase: 'main', rootActionId: 'implement',
+            status: 'running', type: 'run',
         }))
         expect(screen.getByRole('button', { name: /Action is running/u })).toBeInTheDocument()
 
         act(() => emit({
-            actionId: 'implement', context, executionId: 'execution-1', phase: 'main', rootActionId: 'implement',
+            actionId: 'implement', context, runId: 'run-1', phase: 'main', rootActionId: 'implement',
             status: 'waitingForInput', type: 'agentState',
         }))
         expect(screen.getByRole('button', { name: /Agent is waiting for input/u })).toBeInTheDocument()
 
         act(() => emit({
-            actionId: 'implement', context, executionId: 'execution-1', phase: 'main', rootActionId: 'implement',
+            actionId: 'implement', context, runId: 'run-1', phase: 'main', rootActionId: 'implement',
             status: 'running', type: 'agentState',
         }))
         expect(screen.getByRole('button', { name: /Action is running/u })).toBeInTheDocument()
     })
 
     it('keeps the popup anchor mounted when an action starts', () => {
-        let listener: ((event: ActionExecutionEvent) => void) | null = null
+        let listener: ((event: ActionRunEvent) => void) | null = null
         window.md2Actions = {
-            onActionExecution: (nextListener: (event: ActionExecutionEvent) => void) => {
+            onActionRun: (nextListener: (event: ActionRunEvent) => void) => {
                 listener = nextListener
 
                 return vi.fn()
             },
         } as unknown as typeof window.md2Actions
-        actionExecutionService.start()
-        if (!listener) throw new Error('Missing action execution listener')
+        actionRunRegistry.start()
+        if (!listener) throw new Error('Missing action run listener')
 
         const context = cardContext(card, DEFAULT_CARD_TYPES)
         render(
@@ -210,10 +210,10 @@ describe('CardRunButton', () => {
         const runButton = screen.getByRole('button', { name: 'Run' })
         fireEvent.click(runButton)
 
-        const emit = listener as (event: ActionExecutionEvent) => void
+        const emit = listener as (event: ActionRunEvent) => void
         act(() => emit({
-            actionId: 'implement', context, executionId: 'execution-1', phase: 'main', rootActionId: 'implement',
-            status: 'running', type: 'execution',
+            actionId: 'implement', context, runId: 'run-1', phase: 'main', rootActionId: 'implement',
+            status: 'running', type: 'run',
         }))
 
         expect(screen.getByRole('button', { name: 'Run — Action is running' })).toBe(runButton)

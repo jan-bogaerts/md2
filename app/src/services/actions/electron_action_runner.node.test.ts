@@ -1,10 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ActionDefinition } from '../../data/action_types'
-import type { ActionExecutionEvent } from '../../data/action_run_types'
+import type { ActionRunEvent } from '../../data/action_run_types'
 import { setActionBridgeOverride, type ElectronActionBridge } from '../../data/electron_action_bridge'
 import { dataService } from '../data/data_service'
 import { projectPersistenceService } from '../project/project_persistence_service'
-import { actionExecutionService } from './action_execution_service'
+import { actionRunRegistry } from './action_run_registry'
 import { cancelElectronAction, runElectronAction } from './electron_action_runner'
 
 const action: ActionDefinition = {
@@ -34,13 +34,13 @@ const action: ActionDefinition = {
 const context = { file: 'design/F-1.md', kind: 'card' as const }
 
 function createBridge(): ElectronActionBridge {
-    let callback: ((event: ActionExecutionEvent) => void) | null = null
+    let callback: ((event: ActionRunEvent) => void) | null = null
 
     return {
-        cancelActionExecution: vi.fn(async () => {}),
+        cancelActionRun: vi.fn(async () => {}),
         generateDiff: vi.fn(async () => ({ commit: '', files: [] })),
         loadActionRunHistory: vi.fn(async () => []),
-        onActionExecution: vi.fn((listener) => {
+        onActionRun: vi.fn((listener) => {
             callback = listener
 
             return vi.fn()
@@ -49,20 +49,20 @@ function createBridge(): ElectronActionBridge {
         prepareActionPrompt: vi.fn(async () => ({ prompt: '' })),
         runSearchRegexpAgent: vi.fn(),
         startAction: vi.fn(async () => {
-            const emit = callback as unknown as (event: ActionExecutionEvent) => void
+            const emit = callback as unknown as (event: ActionRunEvent) => void
             emit({
-                actionId: 'test', command: 'npm test', context, executionId: 'action-1', phase: 'main', rootActionId: 'test',
+                actionId: 'test', command: 'npm test', context, runId: 'action-1', phase: 'main', rootActionId: 'test',
                 status: 'running', type: 'action',
             })
             emit({
-                actionId: 'test', context, executionId: 'action-1', phase: 'main', rootActionId: 'test', status: 'running', type: 'update',
+                actionId: 'test', context, runId: 'action-1', phase: 'main', rootActionId: 'test', status: 'running', type: 'update',
                 update: { content: 'ok', kind: 'output' },
             })
             emit({
-                actionId: 'test', command: 'npm test', context, executionId: 'action-1', phase: 'main', rootActionId: 'test',
+                actionId: 'test', command: 'npm test', context, runId: 'action-1', phase: 'main', rootActionId: 'test',
                 status: 'completed', type: 'action',
             })
-            emit({ actionId: 'test', context, executionId: 'action-1', phase: 'main', rootActionId: 'test', status: 'completed', type: 'execution' })
+            emit({ actionId: 'test', context, runId: 'action-1', phase: 'main', rootActionId: 'test', status: 'completed', type: 'run' })
 
             return 'action-1'
         }),
@@ -71,7 +71,7 @@ function createBridge(): ElectronActionBridge {
 
 describe('electron action runner client', () => {
     afterEach(() => {
-        actionExecutionService.stop()
+        actionRunRegistry.stop()
         setActionBridgeOverride(null)
         vi.restoreAllMocks()
     })
@@ -116,13 +116,13 @@ describe('electron action runner client', () => {
         expect(flush).not.toHaveBeenCalled()
     })
 
-    it('cancels by Electron execution id', async () => {
+    it('cancels by Electron run ID', async () => {
         const bridge = createBridge()
         setActionBridgeOverride(bridge)
 
         await cancelElectronAction('action-1')
 
-        expect(bridge.cancelActionExecution).toHaveBeenCalledWith('action-1')
+        expect(bridge.cancelActionRun).toHaveBeenCalledWith('action-1')
     })
 
     it('reuses one shared subscription across successful runs', async () => {
@@ -132,6 +132,6 @@ describe('electron action runner client', () => {
         await runElectronAction(action, context)
         await runElectronAction(action, context)
 
-        expect(bridge.onActionExecution).toHaveBeenCalledTimes(1)
+        expect(bridge.onActionRun).toHaveBeenCalledTimes(1)
     })
 })

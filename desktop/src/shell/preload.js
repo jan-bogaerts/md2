@@ -61,11 +61,11 @@ const ACTION_METHODS = [
     'answerActionApproval',
     'answerActionQuestion',
     'beginActionPromptDraft',
-    'cancelActionExecution',
-    'finishActionExecution',
+    'cancelActionRun',
+    'finishActionRun',
     'generateDiff',
     'loadActionRunHistory',
-    'loadActiveActionExecutionEvents',
+    'loadActiveActionRunEvents',
     'notifyActionCardStateChange',
     'loadCardActivity',
     'loadAgentAvailability',
@@ -227,7 +227,7 @@ if (!isAllowedOrigin()) {
     };
     const actionBridge = {
         ...createBridge(ACTION_METHODS),
-        onActionExecution: (callback) => subscribeBridge('onActionExecution', [], callback),
+        onActionRun: (callback) => subscribeBridge('onActionRun', [], callback),
     };
     const codexRuntimeBridge = {
         ...createBridge(CODEX_RUNTIME_METHODS),

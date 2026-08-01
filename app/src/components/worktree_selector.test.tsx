@@ -62,7 +62,7 @@ describe('WorktreeSelector', () => {
         expect(screen.getByRole('menuitem', { name: /2 — C:\\missing: Folder missing/u })).toBeInTheDocument()
     })
 
-    it('cannot open while execution is running', () => {
+    it('cannot open while a run is active', () => {
         withRecords(worktrees)
         render(
             <AppThemeProvider>

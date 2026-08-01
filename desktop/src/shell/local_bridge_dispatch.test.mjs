@@ -11,9 +11,9 @@ function createDispatch(options = {}) {
         answerAgentQuestion: vi.fn(),
         beginAgentPromptDraft: vi.fn(() => 2),
         cancel: vi.fn(),
-        finishAgentExecution: vi.fn(),
+        finishAgentRun: vi.fn(),
         handleCardStateChange: vi.fn(),
-        loadActiveExecutionEvents: vi.fn(() => [{ executionId: 'execution-1', sequence: 1 }]),
+        loadActiveRunEvents: vi.fn(() => [{ runId: 'run-1', sequence: 1 }]),
         prepareActionPrompt: vi.fn(async () => ({ prompt: 'Prepared prompt' })),
         requireActionsFolder: vi.fn(() => 'actions'),
         requireProjectFolder: vi.fn(() => 'design'),
@@ -76,13 +76,13 @@ function createDispatch(options = {}) {
         push: vi.fn(async () => undefined),
         watchProject: vi.fn(() => vi.fn()),
     };
-    const actionWorktreeExecutionService = {
+    const actionWorktreeRunService = {
         execute: vi.fn(async (primaryProject, _action, _context, runner) => ({
             ...await runner(primaryProject),
             branch: primaryProject.branch,
             repositoryRoot: primaryProject.rootPath,
         })),
-        resolve: vi.fn(async (primaryProject) => ({ executionProject: primaryProject, transferRecord: null })),
+        resolve: vi.fn(async (primaryProject) => ({ runProject: primaryProject, transferRecord: null })),
         runWithCardLock: vi.fn(async (_primaryProject, _context, operation) => operation()),
     };
     const worktreeService = {
@@ -107,7 +107,7 @@ function createDispatch(options = {}) {
     const dispatch = createLocalBridgeDispatch({
         actionRunnerService,
         actionSchedulerService,
-        actionWorktreeExecutionService,
+        actionWorktreeRunService,
         agentExecutableAvailability,
         agentRunnerService,
         codexRuntimeService,
@@ -368,17 +368,17 @@ describe('createLocalBridgeDispatch', () => {
         expect(actionRunnerService.prepareActionPrompt).toHaveBeenCalledWith(request);
     });
 
-    it('delegates cancellation and streaming interaction by execution id', async () => {
+    it('delegates cancellation and streaming interaction by run ID', async () => {
         const { actionRunnerService, dispatch } = createDispatch();
 
-        await dispatch.actionBridge.cancelActionExecution('action-1');
+        await dispatch.actionBridge.cancelActionRun('action-1');
         await dispatch.actionBridge.sendActionMessage('action-1', 'approved');
         expect(dispatch.actionBridge.beginActionPromptDraft('action-1')).toBe(2);
         await dispatch.actionBridge.setActionQueuedMessage('action-1', 2, 'next', 3);
         await dispatch.actionBridge.sendActionQueuedMessage('action-1', 2, 3);
         await dispatch.actionBridge.answerActionApproval('action-1', 41, 'accept');
         await dispatch.actionBridge.answerActionQuestion('action-1', 7, { confirm: ['Yes'] });
-        await dispatch.actionBridge.finishActionExecution('action-1');
+        await dispatch.actionBridge.finishActionRun('action-1');
 
         expect(actionRunnerService.cancel).toHaveBeenCalledWith('action-1');
         expect(actionRunnerService.sendAgentMessage).toHaveBeenCalledWith('action-1', 'approved');
@@ -387,10 +387,10 @@ describe('createLocalBridgeDispatch', () => {
         expect(actionRunnerService.sendQueuedAgentMessage).toHaveBeenCalledWith('action-1', 2, 3);
         expect(actionRunnerService.answerAgentApproval).toHaveBeenCalledWith('action-1', 41, 'accept');
         expect(actionRunnerService.answerAgentQuestion).toHaveBeenCalledWith('action-1', 7, { confirm: ['Yes'] });
-        expect(actionRunnerService.finishAgentExecution).toHaveBeenCalledWith('action-1');
+        expect(actionRunnerService.finishAgentRun).toHaveBeenCalledWith('action-1');
     });
 
-    it('delegates card-state auto-finish events to every local execution', async () => {
+    it('delegates card-state auto-finish events to every local run', async () => {
         const { actionRunnerService, dispatch } = createDispatch();
 
         await dispatch.actionBridge.notifyActionCardStateChange('card-1', 'ready');
@@ -454,22 +454,22 @@ describe('createLocalBridgeDispatch', () => {
         expect(localGitService.loadProjectAsset).toHaveBeenCalledWith(project, 'actions/icon.png');
     });
 
-    it('exposes shared action execution subscriptions through the action bridge', () => {
+    it('exposes shared action run subscriptions through the action bridge', () => {
         const { actionRunnerService, dispatch } = createDispatch();
         const callback = vi.fn();
 
-        dispatch.actionBridge.onActionExecution(callback);
+        dispatch.actionBridge.onActionRun(callback);
 
         expect(actionRunnerService.subscribe).toHaveBeenCalledWith(callback);
     });
 
-    it('loads active action execution events through the action bridge', () => {
+    it('loads active action run events through the action bridge', () => {
         const { actionRunnerService, dispatch } = createDispatch();
 
-        const events = dispatch.actionBridge.loadActiveActionExecutionEvents();
+        const events = dispatch.actionBridge.loadActiveActionRunEvents();
 
-        expect(events).toEqual([{ executionId: 'execution-1', sequence: 1 }]);
-        expect(actionRunnerService.loadActiveExecutionEvents).toHaveBeenCalledOnce();
+        expect(events).toEqual([{ runId: 'run-1', sequence: 1 }]);
+        expect(actionRunnerService.loadActiveRunEvents).toHaveBeenCalledOnce();
     });
 
     it('exposes worktree state subscriptions through the data bridge', () => {

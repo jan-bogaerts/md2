@@ -3,13 +3,11 @@ const { ActionAgentExecutor } = require('./action_agent_executor');
 const { runCommand } = require('./action_command_executor');
 const { ActionDefinitionCache } = require('./action_definition_cache');
 const { resolveActionDefinition } = require('./action_definition_resolver');
-const { ActionExecution } = require('./action_execution');
+const { ActionRun } = require('./action_run');
 const { prepareAgentPrompt } = require('./action_text');
 const { validatePreparePromptRequest, validateStartRequest } = require('./action_run_request');
 
-const COMPLETED_EXECUTION_LIMIT = 100;
-
-function createExecutionId() {
+function createRunId() {
     return `action-${crypto.randomUUID()}`;
 }
 
@@ -36,7 +34,7 @@ function hasStreamingAction(action, visited = new Set()) {
 
 class ActionRunnerService {
     constructor(dependencies) {
-        this.actionWorktreeExecutionService = dependencies?.actionWorktreeExecutionService;
+        this.actionWorktreeRunService = dependencies?.actionWorktreeRunService;
         this.agentConfigProvider = dependencies?.agentConfigProvider;
         this.agentRunnerService = dependencies?.agentRunnerService;
         this.commandRunner = dependencies?.commandRunner ?? runCommand;
@@ -51,10 +49,10 @@ class ActionRunnerService {
         });
         this.actionsFolder = null;
         this.actionCacheReady = null;
-        this.completedResults = new Map();
+        this.completedRunResults = new Map();
         this.configuredStates = [];
-        this.executionEvents = new Map();
-        this.executions = new Map();
+        this.runEvents = new Map();
+        this.runs = new Map();
         this.listeners = new Set();
         this.project = null;
         this.projectFolder = null;
@@ -91,20 +89,20 @@ class ActionRunnerService {
     }
 
     async stop() {
-        const completions = [...this.executions.values()].map((execution) => {
-            execution.cancel();
+        const completions = [...this.runs.values()].map((run) => {
+            run.cancel();
 
-            return execution.completion;
+            return run.completion;
         });
         await Promise.all(completions);
         this.clearProject();
     }
 
     async suspend() {
-        const completions = [...this.executions.values()].map((execution) => {
-            execution.suspend();
+        const completions = [...this.runs.values()].map((run) => {
+            run.suspend();
 
-            return execution.completion;
+            return run.completion;
         });
         await Promise.all(completions);
         this.clearProject();
@@ -121,7 +119,7 @@ class ActionRunnerService {
     }
 
     subscribe(listener) {
-        if (typeof listener !== 'function') throw new Error('Missing action execution listener');
+        if (typeof listener !== 'function') throw new Error('Missing action run listener');
         this.listeners.add(listener);
 
         return () => this.listeners.delete(listener);
@@ -137,12 +135,12 @@ class ActionRunnerService {
         if (options.interactive === false && hasStreamingAction(rootAction)) {
             throw new Error(`Streaming action requires an interactive manual run: ${rootAction.label}`);
         }
-        const executionId = createExecutionId();
-        const execution = new ActionExecution({
+        const runId = createRunId();
+        const run = new ActionRun({
             actionsFolder,
             activityOrigin: origin,
             context: startRequest.context,
-            executionId,
+            runId,
             project,
             projectFolder: this.projectFolder,
             releasesFolder: this.releasesFolder,
@@ -150,18 +148,18 @@ class ActionRunnerService {
             runInput: startRequest.runInput,
             startedAt: new Date().toISOString(),
         }, {
-            actionWorktreeExecutionService: this.actionWorktreeExecutionService,
+            actionWorktreeRunService: this.actionWorktreeRunService,
             agentExecutor: this.agentExecutor,
             agentRunnerService: this.agentRunnerService,
             commandRunner: this.commandRunner,
             localGitService: this.localGitService,
             publisher: this.publish.bind(this),
         });
-        this.executionEvents.set(executionId, []);
-        this.executions.set(executionId, execution);
-        execution.start(this.finalizeExecution.bind(this, execution));
+        this.runEvents.set(runId, []);
+        this.runs.set(runId, run);
+        run.start(this.finalizeRun.bind(this, run));
 
-        return executionId;
+        return runId;
     }
 
     async prepareActionPrompt(request) {
@@ -170,68 +168,68 @@ class ActionRunnerService {
         const project = { ...this.project };
         const action = await this.loadRootAction(promptRequest.actionId);
         if (action.type !== 'agent') throw new Error('Cannot prepare a prompt for a command action');
-        const resolution = await this.actionWorktreeExecutionService.resolve(project, action, promptRequest.context);
+        const resolution = await this.actionWorktreeRunService.resolve(project, action, promptRequest.context);
 
         return {
             prompt: prepareAgentPrompt(
                 action,
                 promptRequest.context,
-                resolution.executionProject,
+                resolution.runProject,
                 project,
                 this.releasesFolder,
             ),
         };
     }
 
-    async wait(executionId) {
-        const execution = this.executions.get(executionId);
-        if (execution) return execution.completion;
+    async wait(runId) {
+        const run = this.runs.get(runId);
+        if (run) return run.completion;
 
-        const result = this.completedResults.get(executionId);
-        if (!result) throw new Error(`Unknown action execution: ${executionId}`);
-        this.completedResults.delete(executionId);
+        const result = this.completedRunResults.get(runId);
+        if (!result) throw new Error(`Unknown action run: ${runId}`);
+        this.completedRunResults.delete(runId);
 
         return result;
     }
 
-    loadActiveExecutionEvents() {
-        return [...this.executionEvents.values()].flatMap((events) => events.map((event) => structuredClone(event)));
+    loadActiveRunEvents() {
+        return [...this.runEvents.values()].flatMap((events) => events.map((event) => structuredClone(event)));
     }
 
-    cancel(executionId) {
-        this.requireExecution(executionId).cancel();
+    cancel(runId) {
+        this.requireRun(runId).cancel();
     }
 
-    sendAgentMessage(executionId, content) {
-        return this.requireExecution(executionId).sendAgentMessage(content);
+    sendAgentMessage(runId, content) {
+        return this.requireRun(runId).sendAgentMessage(content);
     }
 
-    beginAgentPromptDraft(executionId) {
-        return this.requireExecution(executionId).beginAgentPromptDraft();
+    beginAgentPromptDraft(runId) {
+        return this.requireRun(runId).beginAgentPromptDraft();
     }
 
-    setAgentQueuedMessage(executionId, sessionId, content, revision) {
-        return this.requireExecution(executionId).setAgentQueuedMessage(sessionId, content, revision);
+    setAgentQueuedMessage(runId, sessionId, content, revision) {
+        return this.requireRun(runId).setAgentQueuedMessage(sessionId, content, revision);
     }
 
-    sendQueuedAgentMessage(executionId, sessionId, revision) {
-        return this.requireExecution(executionId).sendQueuedAgentMessage(sessionId, revision);
+    sendQueuedAgentMessage(runId, sessionId, revision) {
+        return this.requireRun(runId).sendQueuedAgentMessage(sessionId, revision);
     }
 
-    answerAgentQuestion(executionId, requestId, answers) {
-        return this.requireExecution(executionId).answerAgentQuestion(requestId, answers);
+    answerAgentQuestion(runId, requestId, answers) {
+        return this.requireRun(runId).answerAgentQuestion(requestId, answers);
     }
 
-    answerAgentApproval(executionId, requestId, decision) {
-        return this.requireExecution(executionId).answerAgentApproval(requestId, decision);
+    answerAgentApproval(runId, requestId, decision) {
+        return this.requireRun(runId).answerAgentApproval(requestId, decision);
     }
 
-    finishAgentExecution(executionId) {
-        this.requireExecution(executionId).finishAgent();
+    finishAgentRun(runId) {
+        this.requireRun(runId).finishAgent();
     }
 
     handleCardStateChange(cardInternalId, state) {
-        for (const execution of this.executions.values()) execution.handleCardStateChange(cardInternalId, state);
+        for (const run of this.runs.values()) run.handleCardStateChange(cardInternalId, state);
     }
 
     requireActionsFolder() {
@@ -254,19 +252,16 @@ class ActionRunnerService {
         return resolveActionDefinition(this.actionDefinitionCache, config.agentProfiles, actionId, this.configuredStates);
     }
 
-    async finalizeExecution(execution, runCompletion) {
+    async finalizeRun(run, runCompletion) {
         const result = await runCompletion;
-        this.executions.delete(execution.executionId);
-        this.executionEvents.delete(execution.executionId);
-        this.completedResults.set(execution.executionId, result);
-        if (this.completedResults.size > COMPLETED_EXECUTION_LIMIT) {
-            this.completedResults.delete(this.completedResults.keys().next().value);
-        }
+        this.runs.delete(run.runId);
+        this.runEvents.delete(run.runId);
+        this.completedRunResults.set(run.runId, result);
         return result;
     }
 
     publish(event) {
-        const events = this.executionEvents.get(event.executionId);
+        const events = this.runEvents.get(event.runId);
         if (events) events.push(event);
         for (const listener of this.listeners) {
             try {
@@ -281,15 +276,15 @@ class ActionRunnerService {
         try {
             this.errorReporter(error);
         } catch {
-            // Error reporting must not affect action execution.
+            // Error reporting must not affect action runs.
         }
     }
 
-    requireExecution(executionId) {
-        const execution = this.executions.get(executionId);
-        if (!execution) throw new Error(`Unknown action execution: ${executionId}`);
+    requireRun(runId) {
+        const run = this.runs.get(runId);
+        if (!run) throw new Error(`Unknown action run: ${runId}`);
 
-        return execution;
+        return run;
     }
 
     requireReady() {
@@ -304,7 +299,7 @@ class ActionRunnerService {
         if (!this.localGitService) throw new Error('Action runner has no local Git service');
         if (!this.actionDefinitionCache) throw new Error('Action runner has no action definition cache');
         if (!this.actionCacheReady) throw new Error('Action runner action definition cache is not ready');
-        if (!this.actionWorktreeExecutionService) throw new Error('Action runner has no worktree execution service');
+        if (!this.actionWorktreeRunService) throw new Error('Action runner has no worktree run service');
         if (!this.agentConfigProvider) throw new Error('Action runner has no agent config provider');
     }
 }

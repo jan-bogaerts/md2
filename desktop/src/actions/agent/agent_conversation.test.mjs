@@ -49,7 +49,7 @@ describe('agent conversation', () => {
     });
 
     it('creates a new running conversation', () => {
-        expect(createConversation({ actionId: 'review', activityOrigin: { cardInternalId: 'card-1', kind: 'card' }, cardPath: 'design/card.md', title: 'Review' }, 'agent-1', 'now')).toEqual({
+        expect(createConversation({ actionId: 'review', activityOrigin: { cardInternalId: 'card-1', kind: 'card' }, cardPath: 'design/card.md', title: 'Review' }, 'agent-1', 'now', 'log.json')).toEqual({
             actionId: 'review',
             cardInternalId: 'card-1',
             cardPath: 'design/card.md',
@@ -57,6 +57,7 @@ describe('agent conversation', () => {
             entries: [],
             hasExplicitTitle: true,
             id: 'agent-1',
+            path: 'log.json',
             providerSessions: [],
             startedAt: 'now',
             status: 'running',
@@ -64,11 +65,11 @@ describe('agent conversation', () => {
         });
     });
 
-    it('resumes a conversation without persisting its path', () => {
-        const conversation = {completedAt: 'before', entries: [], id: 'agent-1', path: 'log.json', providerSessions: [], status: 'completed'};
-        const resumed = createConversation({ activityOrigin: { kind: 'project' }, conversation }, 'unused', 'unused');
+    it('resumes the canonical conversation at its requested reference', () => {
+        const conversation = {completedAt: 'before', entries: [], id: 'agent-1', path: 'old.json', providerSessions: [], status: 'completed'};
+        const resumed = createConversation({ activityOrigin: { kind: 'project' }, conversation }, 'unused', 'unused', 'log.json');
 
-        expect(resumed).toEqual({ completedAt: null, entries: [], id: 'agent-1', providerSessions: [], status: 'running' });
+        expect(resumed).toEqual({ completedAt: null, entries: [], id: 'agent-1', path: 'log.json', providerSessions: [], status: 'running' });
         expect(resumed.entries).not.toBe(conversation.entries);
         expect(resumed.providerSessions).not.toBe(conversation.providerSessions);
     });

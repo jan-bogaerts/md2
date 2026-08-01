@@ -2,7 +2,7 @@ import { actionMarkdownDataSource } from '../components/editor/action_markdown_d
 import { cardMarkdownDataSource } from '../components/editor/card_markdown_data_source'
 import { readDesktopConfigFromBridge } from './config/config_persistence'
 import { configService } from './config/config_service'
-import { actionExecutionService } from './actions/action_execution_service'
+import { actionRunRegistry } from './actions/action_run_registry'
 import { actionService } from './actions/action_service'
 import { agentCapabilitiesService } from './agents/agent_capabilities_service'
 import { codexRateLimitService } from './agents/codex_rate_limit_service'
@@ -39,7 +39,7 @@ function initializeServices() {
     projectPersistenceService.init({ actionService, dataService, openFilesService })
     cardMarkdownDataSource.init(dataService)
     actionMarkdownDataSource.init(actionService)
-    actionExecutionService.start()
+    actionRunRegistry.start()
     codexRateLimitService.start()
 }
 

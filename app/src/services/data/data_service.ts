@@ -7,7 +7,7 @@ import { agentConversationService, listAgentConversationReferences, loadAgentCon
 import { CardOperations, type CardOperationsDeps } from './card_operations'
 import { configService } from '../config/config_service'
 import { type DataServiceDependencies, getProjectConfigOrNull, reportCommitFlushFailure } from './data_service_context'
-import { notifyActionCardStateChange } from '../actions/action_execution_service'
+import { notifyActionCardStateChange } from '../actions/action_run_registry'
 import { AgentIntegration, type AgentIntegrationDeps } from '../agents/agent_integration'
 import { ProjectLoading, type ProjectLoadingDeps } from '../project/project_loading'
 import { ProjectState } from '../project/project_state'

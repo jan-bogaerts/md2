@@ -8,11 +8,11 @@ const olderHash = 'a'.repeat(40)
 const newerHash = 'b'.repeat(40)
 
 function activity(): CardActivityFile {
-    const record = (executionId: string, commit: string, committedAt: string) => ({
+    const record = (runId: string, commit: string, committedAt: string) => ({
         commits: [{ branch: 'main', commit, committedAt, deletions: 1, filePaths: ['cards/F-060.md'], filesChanged: 1, insertions: 2 }],
         completedAt: committedAt,
         conversationIds: [],
-        executionId,
+        runId,
         history: { completedAt: committedAt, output: '', prompt: '', status: 'completed' as const },
         origin: { cardInternalId, kind: 'card' as const },
         rootActionId: 'implement',
@@ -45,7 +45,7 @@ describe('loadCardCommits', () => {
         const commits = await loadCardCommits(cardInternalId)
 
         expect(commits.map(({ commit }) => commit)).toEqual([newerHash, olderHash])
-        expect(commits[0].record).toMatchObject({ executionId: 'new' })
+        expect(commits[0].record).toMatchObject({ runId: 'new' })
     })
 
     it('returns no history when local activity support is unavailable', async () => {

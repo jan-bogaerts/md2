@@ -1,6 +1,6 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { LiveAgentApproval } from '../../services/actions/action_execution_service'
+import type { LiveAgentApproval } from '../../services/actions/action_run_registry'
 import { ActionAgentApproval } from './action_agent_approval'
 
 const approval: LiveAgentApproval = {

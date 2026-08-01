@@ -85,4 +85,3 @@ Remove the undifferentiated global `changed` event and complete-run snapshot. Un
 ## Dependencies
 
 J-022 and J-023 must be implemented first.
-
