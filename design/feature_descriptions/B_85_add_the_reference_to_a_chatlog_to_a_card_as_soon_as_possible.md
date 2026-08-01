@@ -9,6 +9,7 @@ affects:
 agents:
 policy:
 after: 
+worktree: 2
 ---
 
 do not wait until the end of the conversation to update the card so that it has the reference to the chatlog of the agent-action, but add it as soon as the chatlog file is first created.
