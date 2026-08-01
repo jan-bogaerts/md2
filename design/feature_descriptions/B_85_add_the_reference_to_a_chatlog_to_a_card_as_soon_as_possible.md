@@ -3,12 +3,13 @@ author:
 id: B_85
 internalId: 56dd54b0-9554-4545-85d4-bb45efef4d6e
 title: add the reference to a chatlog to a card as soon as possible
-status: design
+status: ready for implementation
 owner: 
 affects:
 agents:
+  - design/activity/card__56dd54b0-9554-4545-85d4-bb45efef4d6e.json#conversation=agent-f03c3094-abbc-4fc5-a061-a5f004b7aa4a
 policy:
-after: 
+after: 5cdae748-9597-4d29-8dc0-3d4b5df3aa7f
 worktree: 2
 ---
 
