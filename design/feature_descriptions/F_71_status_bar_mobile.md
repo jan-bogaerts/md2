@@ -10,4 +10,4 @@ agents:
 policy:
 after: b692b422-3e30-4518-91c1-bcee5451b046
 ---
-On mobile, user sgould also have ptoject status info.
+On mobile, user should also have project status info.
