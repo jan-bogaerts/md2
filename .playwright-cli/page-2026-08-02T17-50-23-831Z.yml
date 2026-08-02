@@ -1,0 +1,44 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - button "Open menu" [ref=e6] [cursor=pointer]
+      - img "MD² application icon" [ref=e10]
+      - tablist "Application menu" [ref=e14]:
+        - tab "Home" [selected] [ref=e15] [cursor=pointer]
+        - tab "Run" [ref=e16] [cursor=pointer]
+      - button "Create" [ref=e19] [cursor=pointer]
+      - button "Search" [ref=e23] [cursor=pointer]
+    - tabpanel [ref=e28]:
+      - generic [ref=e29]:
+        - group "View" [ref=e30]:
+          - group [ref=e31]:
+            - button "Cards view" [pressed] [ref=e32] [cursor=pointer]:
+              - generic [ref=e35]: Board
+            - button "Text view" [ref=e36] [cursor=pointer]:
+              - generic [ref=e39]: List
+        - separator [ref=e40]
+        - group "Project" [ref=e41]:
+          - generic "Open project" [ref=e42]:
+            - button "Open project" [ref=e43] [cursor=pointer]
+          - generic "Switch branch" [ref=e46]:
+            - generic [ref=e47]:
+              - combobox "Switch branch" [disabled] [ref=e48]
+              - textbox [disabled]
+              - group
+          - generic "Commit" [ref=e49]:
+            - button "Commit" [disabled]
+          - generic "Push" [ref=e50]:
+            - button "Push" [disabled]
+          - generic "Pull" [ref=e51]:
+            - button "Pull" [disabled]
+        - separator [ref=e52]
+        - group "Settings" [ref=e53]:
+          - generic "Config" [ref=e54]:
+            - button "Config" [ref=e55] [cursor=pointer]
+          - generic "Connect to a remote md2 server" [ref=e58]:
+            - button "Connect" [ref=e59] [cursor=pointer]
+  - region "Project workspace" [ref=e60]:
+    - generic [ref=e62]:
+      - heading "No project open" [level=2] [ref=e63]
+      - paragraph [ref=e64]: Open a GitHub repository or local folder to work with project cards.
+      - button "Open project..." [ref=e65] [cursor=pointer]
