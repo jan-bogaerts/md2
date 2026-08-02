@@ -10,7 +10,7 @@ agents:
   - design/activity/card__b692b422-3e30-4518-91c1-bcee5451b046.json#conversation=agent-332f2b3e-fd65-4d76-ad55-c2d70f1b9b25
   - design/activity/card__b692b422-3e30-4518-91c1-bcee5451b046.json#conversation=agent-920bd107-7631-4ebb-9c0b-31d6db64d8db
 policy:
-after: fb78171f-6c8d-4760-8e63-7ac2eff93256
+after: b0ac8dca-7740-48b1-b5d4-1c1e5750ee39
 worktree: 3
 ---
 

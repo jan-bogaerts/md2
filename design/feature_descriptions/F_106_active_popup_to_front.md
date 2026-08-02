@@ -9,7 +9,7 @@ affects:
 agents:
   - design/activity/card__b0ac8dca-7740-48b1-b5d4-1c1e5750ee39.json#conversation=agent-5f1da2db-defb-49ac-96ba-9af01b3f450d
 policy:
-after: b692b422-3e30-4518-91c1-bcee5451b046
+after: 58f7a536-89fd-490b-8112-2a850481bf23
 ---
 
 we have a number of popup components used in the cards-view. multiple popups can be open at the same time. but the last opened remains on top, this is annoying. we should bring the active popup to the front. Active is the popup that has keyboard focus or where the user clicks on
