@@ -8,7 +8,7 @@ owner:
 affects:
 agents:
 policy:
-after: b692b422-3e30-4518-91c1-bcee5451b046
+after: a529defa-f2ad-4307-923b-856a8ce80243
 ---
 
 When in listview, The width of the tab-content container appears to be determined by the width of the tab bar. The result is that if there are many tabs open, the text in the markdown editor is too wide, but there are no scollbars, so part of text is not visible.

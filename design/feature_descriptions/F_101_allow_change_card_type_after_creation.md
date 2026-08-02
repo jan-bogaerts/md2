@@ -8,7 +8,7 @@ owner:
 affects:
 agents:
 policy:
-after: e5cd5482-cb72-4890-b111-cd1030847cc8
+after: 0f92d6ef-ec13-478c-b3f9-d1b0bfcf391d
 ---
 
 It is currently not able to change the card type after creation.

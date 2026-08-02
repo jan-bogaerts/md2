@@ -9,7 +9,7 @@ affects:
 agents:
   - design/activity/card__cf144ebc-ebd3-4148-8ad8-99bac886dd3f.json#conversation=agent-36dc93ea-6a9e-46ba-91a9-def33cccdc0a
 policy:
-after: 18fd04d3-5df7-4f54-ab7a-94d96f210f13
+after: b0ac8dca-7740-48b1-b5d4-1c1e5750ee39
 ---
 
 the Action popup's input is a markdown editor. It should support markdownPlaceholderPlugin so that placeholders can be inserted.
