@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
 policy:
+after: 528ea430-ce5c-4e61-ac31-70c93daf5eaa
 ---
 
 Release is done, but dialog remains open, released cards aren't removed from the board

@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
 policy:
+after: dc388d9d-a25d-4e74-bc32-71325cefa426
 ---
 
 When the agent is waiting for regular input, we show the `run` button in a special state (orange, with indicator). We should do the same if the agent asked a specific question or asked for permission for something
