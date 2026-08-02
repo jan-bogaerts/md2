@@ -20,9 +20,15 @@ describe('history entries', () => {
     });
 
     it('preserves agent fields without commit ownership', () => {
-        const result = {agent: 'codex', exitCode: 0, model: 'gpt', prompt: 'review', stderr: '', stdout: 'done', thinkingLevel: 'high'};
+        const result = {
+            accessLevel: 'workspace-write', agent: 'codex', approvalPolicy: 'on-request', exitCode: 0,
+            model: 'gpt', prompt: 'review', stderr: '', stdout: 'done', thinkingLevel: 'high',
+        };
 
-        expect(createAgentHistoryEntry({ action, completedAt, result })).toEqual({agent: 'codex', completedAt, model: 'gpt', output: 'done', prompt: 'review', status: 'completed', thinkingLevel: 'high'});
+        expect(createAgentHistoryEntry({ action, completedAt, result })).toEqual({
+            accessLevel: 'workspace-write', agent: 'codex', approvalPolicy: 'on-request', completedAt,
+            model: 'gpt', output: 'done', prompt: 'review', status: 'completed', thinkingLevel: 'high',
+        });
     });
 });
 

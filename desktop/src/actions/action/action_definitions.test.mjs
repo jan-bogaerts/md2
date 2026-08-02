@@ -6,11 +6,12 @@ import {
     validateActionDefinition,
 } from '../../../../shared/action_definitions.mjs';
 import { ACTION_DEFINITION_VALIDATION_PARITY_CASES } from '../../../../shared/action_definition_validation_parity_cases.mjs';
+import { BUILTIN_AGENT_PROFILES } from '../../../../shared/agent_profiles.mjs';
 
 // Load and return the thrown ActionValidationError for assertion on its routing metadata.
-function validationError(files) {
+function validationError(files, dependencies = {}) {
     try {
-        loadActionDefinitions(files);
+        loadActionDefinitions(files, dependencies);
     } catch (error) {
         return error;
     }
@@ -138,6 +139,8 @@ describe('loadActionDefinitions', () => {
             [{ ...IMPLEMENT, text: 'legacy' }, { code: 'legacy-field', field: null }],
             [{ ...IMPLEMENT, command: 'x' }, { code: 'field-not-allowed', field: 'command' }],
             [{ ...IMPLEMENT, model: 'm' }, { code: 'agent-required', field: 'model' }],
+            [{ ...IMPLEMENT, accessLevel: 'safe' }, { code: 'agent-required', field: 'accessLevel' }],
+            [{ ...IMPLEMENT, approvalPolicy: 'ask' }, { code: 'agent-required', field: 'approvalPolicy' }],
             [{ ...IMPLEMENT, thinkingLevel: 'high' }, { code: 'agent-model-required', field: 'thinkingLevel' }],
         ];
         for (const [definition, expected] of cases) {
@@ -170,7 +173,9 @@ describe('loadActionDefinitions', () => {
     it('accepts a complete definition using every canonical nested field', () => {
         const definition = {
             ...IMPLEMENT,
+            accessLevel: 'workspace-write',
             agent: 'codex',
+            approvalPolicy: 'on-request',
             appliesTo: {
                 file: 'design/F-010.md', folder: 'design', kind: 'card', state: 'ready', type: 'feature',
                 worktree: '1', worktreeError: 'none',
@@ -185,9 +190,24 @@ describe('loadActionDefinitions', () => {
             thinkingLevel: 'high',
             trackFileChanges: true,
         };
-        const profiles = [{ command: ['codex'], models: ['gpt-5'], name: 'codex' }];
+        const profiles = [{
+            accessLevelArgument: '--sandbox', accessLevels: ['workspace-write'], approvalPolicies: ['on-request'],
+            approvalPolicyArgument: '--ask-for-approval', command: ['codex'], defaultAccessLevel: 'workspace-write',
+            defaultApprovalPolicy: 'on-request', models: ['gpt-5'], name: 'codex',
+        }];
 
         expect(() => loadActionDefinitions([file('implement', definition), file('lint', LINT)], { profiles })).not.toThrow();
+    });
+
+    it('rejects stale and unsupported action permission selections', () => {
+        const profiles = [{ command: ['agent'], models: ['model'], name: 'agent' }];
+        const accessError = validationError([file('implement', { ...IMPLEMENT, accessLevel: 'safe', agent: 'agent' })], { profiles });
+
+        expect(accessError).toMatchObject({ code: 'unsupported-access-level', field: 'accessLevel' });
+        expect(() => loadActionDefinitions(
+            [file('implement', { ...IMPLEMENT, agent: 'codex', approvalPolicy: 'removed' })],
+            { profiles: BUILTIN_AGENT_PROFILES },
+        )).toThrow('Unknown approval policy');
     });
 
     it('keeps list index for unknown ids and invalid regex after reordering rules', () => {

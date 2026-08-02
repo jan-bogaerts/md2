@@ -9,7 +9,7 @@ describe('validateStartRequest', () => {
         expect(validateStartRequest({ actionId: 'main', context: { kind } })).toEqual({
             actionId: 'main',
             context: { kind },
-            runInput: { agent: undefined, continueFrom: undefined, extraPrompt: '', model: undefined, thinkingLevel: undefined },
+            runInput: { accessLevel: undefined, agent: undefined, approvalPolicy: undefined, continueFrom: undefined, extraPrompt: '', model: undefined, thinkingLevel: undefined },
         });
     });
 
@@ -28,12 +28,12 @@ describe('validateStartRequest', () => {
     });
 
     it('preserves accepted optional strings', () => {
-        const runInput = { agent: 'codex', continueFrom: 'log.json', extraPrompt: 'next', model: 'gpt', prompt: '', thinkingLevel: 'high' };
+        const runInput = { accessLevel: 'workspace-write', agent: 'codex', approvalPolicy: 'on-request', continueFrom: 'log.json', extraPrompt: 'next', model: 'gpt', prompt: '', thinkingLevel: 'high' };
 
         expect(validateStartRequest({ actionId: 'main', context: { kind: 'project' }, runInput }).runInput).toEqual(runInput);
     });
 
-    it.each(['agent', 'continueFrom', 'extraPrompt', 'model', 'prompt', 'thinkingLevel'])('rejects non-string %s', (fieldName) => {
+    it.each(['accessLevel', 'agent', 'approvalPolicy', 'continueFrom', 'extraPrompt', 'model', 'prompt', 'thinkingLevel'])('rejects non-string %s', (fieldName) => {
         const request = { actionId: 'main', context: { kind: 'project' }, runInput: { [fieldName]: 1 } };
 
         expect(() => validateStartRequest(request)).toThrow(`Invalid action run input ${fieldName}`);

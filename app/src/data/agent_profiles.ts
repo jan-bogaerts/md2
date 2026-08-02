@@ -6,6 +6,8 @@ export {
     buildAgentCommand,
     buildAgentExecutionCommand,
     buildResumeAgentCommand,
+    defaultAccessLevelForProfile,
+    defaultApprovalPolicyForProfile,
     defaultModelForProfile,
     findAgentProfile,
     mergeAgentProfiles,

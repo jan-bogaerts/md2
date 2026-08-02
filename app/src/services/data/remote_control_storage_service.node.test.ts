@@ -305,6 +305,25 @@ describe('RemoteControlStorageService', () => {
         await expect(request).rejects.toThrow('command failed')
     })
 
+    it('preserves access and approval overrides in remote action requests', async () => {
+        installWebSocket()
+        const service = createService()
+        const actionRequest = {
+            ...actionStartRequest(),
+            runInput: { accessLevel: 'read-only', approvalPolicy: 'untrusted' },
+        }
+        const request = service.startAction(actionRequest)
+        const socket = lastSocket()
+
+        socket.open()
+        await flushPromises()
+        const sentRequest = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
+        expect(sentRequest).toMatchObject({ method: 'startAction', params: [actionRequest] })
+        socket.receive({ id: sentRequest.id, result: 'run-1' })
+
+        await expect(request).resolves.toBe('run-1')
+    })
+
     it('routes streaming interaction methods through remote control', async () => {
         installWebSocket()
         const service = createService()

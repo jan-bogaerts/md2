@@ -8,7 +8,9 @@ export type ActionRunStatus = ActionRunTerminalStatus | 'queued' | 'running' | '
 export type ActionRunPhase = 'after' | 'before' | 'main' | 'on'
 
 export interface ActionRunInput {
+    accessLevel?: string
     agent?: string
+    approvalPolicy?: string
     continueFrom?: string
     extraPrompt?: string
     model?: string
@@ -159,6 +161,8 @@ export type ActionRunEvent =
         conversationId?: string
         runWorktree?: number | null
         message?: string | null
+        accessLevel?: string
+        approvalPolicy?: string
         reference?: string
         status: ActionRunStatus
         thinkingLevel?: ThinkingLevel
@@ -175,8 +179,10 @@ export type ActionRunEvent =
     }
 
 export interface ActionRunLogEntry {
+    accessLevel?: string
     actionId: string
     actionName: string
+    approvalPolicy?: string
     command: string | null
     message: string
     phase: ActionRunPhase

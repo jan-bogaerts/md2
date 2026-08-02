@@ -21,7 +21,9 @@ function createAgentHistoryEntry(input) {
     const completedAt = input.completedAt ?? new Date().toISOString();
 
     return {
+        ...(input.result.accessLevel !== undefined ? { accessLevel: input.result.accessLevel } : {}),
         agent: input.result.agent,
+        ...(input.result.approvalPolicy !== undefined ? { approvalPolicy: input.result.approvalPolicy } : {}),
         completedAt,
         model: input.result.model,
         output: combineOutput(input.result),

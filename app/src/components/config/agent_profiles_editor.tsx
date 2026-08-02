@@ -33,7 +33,13 @@ interface AgentProfileFormProps {
 }
 
 interface AgentProfileFormState {
+    accessLevelArgument: string
+    accessLevels: string
+    approvalPolicies: string
+    approvalPolicyArgument: string
     command: string
+    defaultAccessLevel: string
+    defaultApprovalPolicy: string
     defaultModel: string
     modelArgument: string
     models: string
@@ -43,7 +49,13 @@ interface AgentProfileFormState {
 
 function toFormState(profile?: AgentProfile): AgentProfileFormState {
     return {
+        accessLevelArgument: profile?.accessLevelArgument ?? '',
+        accessLevels: profile?.accessLevels?.join(`${COMMA_SEPARATOR} `) ?? '',
+        approvalPolicies: profile?.approvalPolicies?.join(`${COMMA_SEPARATOR} `) ?? '',
+        approvalPolicyArgument: profile?.approvalPolicyArgument ?? '',
         command: profile ? JSON.stringify(profile.command) : '',
+        defaultAccessLevel: profile?.defaultAccessLevel ?? '',
+        defaultApprovalPolicy: profile?.defaultApprovalPolicy ?? '',
         defaultModel: profile?.defaultModel ?? '',
         modelArgument: profile?.modelArgument ?? '',
         models: profile?.models?.join(`${COMMA_SEPARATOR} `) ?? '',
@@ -67,8 +79,20 @@ function readCommand(value: string) {
 
 function toAgentProfile(form: AgentProfileFormState): AgentProfile {
     const models = readModels(form.models)
+    const accessLevels = readModels(form.accessLevels)
+    const approvalPolicies = readModels(form.approvalPolicies)
 
     return {
+        ...(accessLevels.length > 0 ? {
+            accessLevelArgument: form.accessLevelArgument.trim(),
+            accessLevels,
+            defaultAccessLevel: form.defaultAccessLevel.trim(),
+        } : {}),
+        ...(approvalPolicies.length > 0 ? {
+            approvalPolicies,
+            approvalPolicyArgument: form.approvalPolicyArgument.trim(),
+            defaultApprovalPolicy: form.defaultApprovalPolicy.trim(),
+        } : {}),
         command: readCommand(form.command),
         ...(form.defaultModel.trim().length > 0 ? { defaultModel: form.defaultModel.trim() } : {}),
         ...(form.modelArgument.trim().length > 0 ? { modelArgument: form.modelArgument.trim() } : {}),
@@ -84,6 +108,8 @@ function validateForm(form: AgentProfileFormState, usedNames: string[]) {
     const command = form.command.trim()
     const models = readModels(form.models)
     const defaultModel = form.defaultModel.trim()
+    const accessLevels = readModels(form.accessLevels)
+    const approvalPolicies = readModels(form.approvalPolicies)
 
     if (name.length === 0) errors.push('Name is required.')
     if (usedNames.includes(name)) errors.push(`Duplicate agent profile: ${name}`)
@@ -106,6 +132,18 @@ function validateForm(form: AgentProfileFormState, usedNames: string[]) {
     if (new Set(models).size !== models.length) errors.push('Model names must be unique.')
     if (defaultModel.length > 0 && models.length > 0 && !models.includes(defaultModel)) {
         errors.push(`Default model must be one of: ${models.join(', ')}`)
+    }
+    if (accessLevels.length > 0 && form.accessLevelArgument.trim().length === 0) errors.push('Access-level argument is required.')
+    if (new Set(accessLevels).size !== accessLevels.length) errors.push('Access levels must be unique.')
+    if (accessLevels.length > 0 && !accessLevels.includes(form.defaultAccessLevel.trim())) errors.push('Default access level must match a configured choice.')
+    if (accessLevels.length === 0 && (form.accessLevelArgument.trim().length > 0 || form.defaultAccessLevel.trim().length > 0)) {
+        errors.push('Access-level choices are required when argument or default is set.')
+    }
+    if (approvalPolicies.length > 0 && form.approvalPolicyArgument.trim().length === 0) errors.push('Approval-policy argument is required.')
+    if (new Set(approvalPolicies).size !== approvalPolicies.length) errors.push('Approval policies must be unique.')
+    if (approvalPolicies.length > 0 && !approvalPolicies.includes(form.defaultApprovalPolicy.trim())) errors.push('Default approval policy must match a configured choice.')
+    if (approvalPolicies.length === 0 && (form.approvalPolicyArgument.trim().length > 0 || form.defaultApprovalPolicy.trim().length > 0)) {
+        errors.push('Approval-policy choices are required when argument or default is set.')
     }
 
     return errors
@@ -172,6 +210,12 @@ function AgentProfileForm(props: AgentProfileFormProps) {
                 <TextField disabled={disabled} fullWidth label="Model argument" name="modelArgument" onChange={onTextChange} size="small" value={form.modelArgument} />
                 <TextField disabled={disabled} fullWidth helperText="Comma-separated model names." label="Models" name="models" onChange={onTextChange} size="small" value={form.models} />
                 <TextField disabled={disabled} fullWidth label="Profile default model" name="defaultModel" onChange={onTextChange} size="small" value={form.defaultModel} />
+                <TextField disabled={disabled} fullWidth helperText="Comma-separated provider values. Leave empty when unsupported." label="Access levels" name="accessLevels" onChange={onTextChange} size="small" value={form.accessLevels} />
+                <TextField disabled={disabled} fullWidth label="Access-level argument" name="accessLevelArgument" onChange={onTextChange} size="small" value={form.accessLevelArgument} />
+                <TextField disabled={disabled} fullWidth label="Default access level" name="defaultAccessLevel" onChange={onTextChange} size="small" value={form.defaultAccessLevel} />
+                <TextField disabled={disabled} fullWidth helperText="Comma-separated provider values. Leave empty when unsupported." label="Approval policies" name="approvalPolicies" onChange={onTextChange} size="small" value={form.approvalPolicies} />
+                <TextField disabled={disabled} fullWidth label="Approval-policy argument" name="approvalPolicyArgument" onChange={onTextChange} size="small" value={form.approvalPolicyArgument} />
+                <TextField disabled={disabled} fullWidth label="Default approval policy" name="defaultApprovalPolicy" onChange={onTextChange} size="small" value={form.defaultApprovalPolicy} />
                 <TextField
                     disabled={disabled}
                     fullWidth

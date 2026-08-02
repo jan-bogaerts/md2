@@ -25,6 +25,8 @@ function action(overrides: Partial<ActionDefinition> = {}): ActionDefinition {
         trackFileChanges: false,
         type: 'agent',
         ...overrides,
+        accessLevel: overrides.accessLevel ?? null,
+        approvalPolicy: overrides.approvalPolicy ?? null,
         phrases: overrides.phrases ?? [],
         streaming: overrides.streaming ?? false,
     }

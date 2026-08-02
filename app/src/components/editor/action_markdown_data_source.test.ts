@@ -11,7 +11,8 @@ function setup() {
     }
     const action = {
         ...draft,
-        agent: null, appliesTo: null, builtin: false, command: null, icon: null, model: null,
+        accessLevel: draft.accessLevel ?? null, agent: null, appliesTo: null, approvalPolicy: draft.approvalPolicy ?? null,
+        builtin: false, command: null, icon: null, model: null,
         needsWorkTree: false, on: [], onAfter: [], onBefore: [], onState: null,
         phrases: draft.phrases ?? [], prompt: draft.prompt ?? null,
         sourcePath: 'actions/review.json', thinkingLevel: null, trackFileChanges: false, streaming: draft.streaming ?? false,

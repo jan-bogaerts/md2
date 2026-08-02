@@ -32,6 +32,56 @@ describe('agent profile resolution', () => {
         expect(buildAgentCommand({ command: ['codex'], modelArgument: '--model', models: ['gpt-5'], name: 'codex' }, 'gpt-5')).toEqual(['codex', '--model', 'gpt-5']);
     });
 
+    it('resolves provider permissions from run overrides, desktop defaults, then profile defaults', () => {
+        const config = {
+            accessLevel: 'read-only',
+            agent: 'codex',
+            agentProfiles: BUILTIN_AGENT_PROFILES,
+            approvalPolicy: 'untrusted',
+            model: '',
+        };
+
+        expect(resolveAgentCommand(config).command).toEqual([
+            'codex', '--model', 'gpt-5.5', '--sandbox', 'read-only', '--ask-for-approval', 'untrusted', '--search', 'exec', '--json',
+        ]);
+        expect(resolveAgentCommand(config, { accessLevel: 'danger-full-access', approvalPolicy: 'never' }).command).toEqual([
+            'codex', '--model', 'gpt-5.5', '--sandbox', 'danger-full-access', '--ask-for-approval', 'never', '--search', 'exec', '--json',
+        ]);
+        expect(resolveAgentCommand({ agent: 'codex', agentProfiles: BUILTIN_AGENT_PROFILES, model: '' })).toMatchObject({
+            accessLevel: 'workspace-write',
+            approvalPolicy: 'on-request',
+        });
+    });
+
+    it('places permissions before streaming and resumed subcommands', () => {
+        const resolved = resolveAgentCommand({ agent: 'codex', agentProfiles: BUILTIN_AGENT_PROFILES, model: '' }, {}, true);
+
+        expect(resolved.command).toEqual([
+            'codex', '--model', 'gpt-5.5', '--sandbox', 'workspace-write', '--ask-for-approval', 'on-request', 'app-server', '--stdio',
+        ]);
+        expect(buildResumeAgentCommand(resolved.profile, 'thread-1', buildAgentExecutionCommand(
+            resolved.profile,
+            resolved.model,
+            'none',
+            false,
+            { accessLevel: 'workspace-write', approvalPolicy: 'on-request' },
+        ))).toEqual([
+            'codex', '--model', 'gpt-5.5', '--sandbox', 'workspace-write', '--ask-for-approval', 'on-request',
+            'exec', 'resume', '--json', 'thread-1',
+        ]);
+    });
+
+    it('uses Claude provider policy names and rejects unsupported or malformed selections', () => {
+        const config = { agent: 'claude', agentProfiles: BUILTIN_AGENT_PROFILES, model: 'sonnet' };
+
+        expect(resolveAgentCommand(config).command).toContain('--permission-mode');
+        expect(resolveAgentCommand(config).command).toContain('default');
+        expect(() => resolveAgentCommand(config, { accessLevel: 'read-only' })).toThrow('does not support access level');
+        expect(() => resolveAgentCommand({ ...config, approvalPolicy: 'removed' })).toThrow('Unknown approval policy');
+        const missingArgumentProfile = {accessLevels: ['safe'], command: ['agent'], defaultAccessLevel: 'safe', models: ['model'], name: 'agent'};
+        expect(() => validateAgentProfiles([missingArgumentProfile])).toThrow('accessLevelArgument');
+    });
+
     it('translates fixed thinking levels through provider-specific adapters', () => {
         const codex = { command: ['codex'], modelArgument: '--model', models: ['gpt-5'], name: 'codex' };
         const claude = { command: ['claude'], modelArgument: '--model', models: ['sonnet'], name: 'claude' };

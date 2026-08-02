@@ -23,6 +23,8 @@ export function ActionRunStatus(props: ActionRunStatusProps) {
                         <Typography key={`${log.actionName}-${log.phase}-${index}`} color="text.secondary" variant="caption">
                             {log.phase}: {log.message}{log.stdout || log.stderr ? ` — ${log.stdout}${log.stderr}` : ''}
                             {log.thinkingLevel ? ` (thinking: ${log.thinkingLevel})` : ''}
+                            {log.accessLevel ? ` (access: ${log.accessLevel})` : ''}
+                            {log.approvalPolicy ? ` (approval: ${log.approvalPolicy})` : ''}
                         </Typography>
                     ))}
                 </Stack>

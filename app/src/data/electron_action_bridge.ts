@@ -54,7 +54,9 @@ export interface CommitReference {
 }
 
 export interface ActionRunHistoryEntry {
+    accessLevel?: string
     agent?: string | null
+    approvalPolicy?: string
     command?: string
     commits?: CommitReference[]
     completedAt: string

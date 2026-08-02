@@ -10,6 +10,8 @@ export const {
     buildAgentExecutionCommand,
     buildAgentStreamingCommand,
     buildResumeAgentCommand,
+    defaultAccessLevelForProfile,
+    defaultApprovalPolicyForProfile,
     defaultModelForProfile,
     findAgentProfile,
     mergeAgentProfiles,
@@ -30,13 +32,27 @@ export function resolveAgentCommand(config, selection = {}, streaming = false) {
     if (!profile) throw new Error(`Unknown agent profile: ${agent}`);
     const model = (selection.model ?? defaultModel) || defaultModelForProfile(profile);
     const thinkingLevel = selection.thinkingLevel ?? config.thinkingLevel ?? 'none';
-    validateAgentSelection(profiles, { agent, model }, 'desktop config');
+    const accessLevel = selection.accessLevel !== undefined
+        ? selection.accessLevel
+        : profile.accessLevels
+            ? (config.accessLevel || profile.defaultAccessLevel)
+            : undefined;
+    const approvalPolicy = selection.approvalPolicy !== undefined
+        ? selection.approvalPolicy
+        : profile.approvalPolicies
+            ? (config.approvalPolicy || profile.defaultApprovalPolicy)
+            : undefined;
+    const capabilities = {
+        ...(accessLevel !== undefined && accessLevel !== '' ? { accessLevel } : {}),
+        ...(approvalPolicy !== undefined && approvalPolicy !== '' ? { approvalPolicy } : {}),
+    };
+    validateAgentSelection(profiles, { agent, model, ...capabilities }, 'desktop config');
 
     const searchEnabled = config.codexSearchEnabled ?? true;
 
     const command = streaming
-        ? buildAgentStreamingCommand(profile, model, thinkingLevel)
-        : buildAgentExecutionCommand(profile, model, thinkingLevel, searchEnabled);
+        ? buildAgentStreamingCommand(profile, model, thinkingLevel, capabilities)
+        : buildAgentExecutionCommand(profile, model, thinkingLevel, searchEnabled, capabilities);
 
-    return { agent, command, model, profile, thinkingLevel };
+    return { agent, command, model, profile, thinkingLevel, ...capabilities };
 }

@@ -80,6 +80,31 @@ describe('ActionAgentExecutor', () => {
         expect(input.onActiveRunChange.mock.calls.map(([runId]) => runId)).toEqual(['active-run', null]);
     });
 
+    it('resolves run permission overrides before action and desktop defaults', async () => {
+        const agentConfigProvider = () => ({accessLevel: 'workspace-write', agent: 'codex', agentProfiles: [], approvalPolicy: 'on-request', model: ''});
+        const { agentRunnerService, executor } = createExecutor({ agentConfigProvider });
+        const permissionAction = { ...action, accessLevel: 'read-only', approvalPolicy: 'untrusted' };
+
+        const result = await executor.execute(executionInput({
+            action: permissionAction,
+            runInput: { accessLevel: 'danger-full-access', approvalPolicy: 'never', extraPrompt: '' },
+        }));
+
+        expect(result).toMatchObject({ accessLevel: 'danger-full-access', approvalPolicy: 'never' });
+        expect(agentRunnerService.start.mock.calls[0][1].command).toEqual([
+            'codex', '--model', 'gpt-5.5', '--sandbox', 'danger-full-access', '--ask-for-approval', 'never',
+            '--search', 'exec', '--json',
+        ]);
+    });
+
+    it('rejects stale permission overrides before process start', async () => {
+        const { agentRunnerService, executor } = createExecutor();
+
+        await expect(executor.execute(executionInput({runInput: { accessLevel: 'removed', extraPrompt: '' }})))
+            .rejects.toThrow('Unknown access level');
+        expect(agentRunnerService.start).not.toHaveBeenCalled();
+    });
+
     it('uses a root prompt override unchanged without tracked-file composition', async () => {
         const { agentRunnerService, executor } = createExecutor();
         const trackedAction = { ...action, prompt: 'Stored {{card-file}}', trackFileChanges: true };
@@ -161,7 +186,7 @@ describe('ActionAgentExecutor', () => {
 
         const request = agentRunnerService.start.mock.calls[0][1];
         expect(request).toMatchObject({
-            command: ['codex', '--model', 'gpt-5.5', 'app-server', '--stdio'],
+            command: ['codex', '--model', 'gpt-5.5', '--sandbox', 'workspace-write', '--ask-for-approval', 'on-request', 'app-server', '--stdio'],
             contextInput: expect.stringContaining('new'),
             providerConversationId: 'thread-1',
         });
@@ -187,7 +212,7 @@ describe('ActionAgentExecutor', () => {
         const request = agentRunnerService.start.mock.calls[0][1];
         expect(request).toMatchObject({
             command: [
-                'claude', '--model', 'default', '--print', '--verbose', '--output-format', 'stream-json',
+                'claude', '--model', 'default', '--permission-mode', 'default', '--print', '--verbose', '--output-format', 'stream-json',
                 '--input-format', 'stream-json', '--permission-prompt-tool', 'stdio', '--resume', 'session-1',
             ],
             contextInput: expect.stringContaining('new'),

@@ -11,7 +11,15 @@ import ContentSaveOutline from 'mdi-material-ui/ContentSaveOutline'
 import FileDocumentPlusOutline from 'mdi-material-ui/FileDocumentPlusOutline'
 import FolderOpen from 'mdi-material-ui/FolderOpen'
 import TextBoxOutline from 'mdi-material-ui/TextBoxOutline'
-import { defaultModelForProfile, findAgentProfile, mergeAgentProfiles, THINKING_LEVELS, validateThinkingLevel } from '../../../data/agent_profiles'
+import {
+    defaultAccessLevelForProfile,
+    defaultApprovalPolicyForProfile,
+    defaultModelForProfile,
+    findAgentProfile,
+    mergeAgentProfiles,
+    THINKING_LEVELS,
+    validateThinkingLevel,
+} from '../../../data/agent_profiles'
 import { configService } from '../../../services/config/config_service'
 import { writeDesktopConfigToBridge } from '../../../services/config/config_persistence'
 import { projectSessionService } from '../../../services/project/project_session_service'
@@ -86,6 +94,8 @@ export function AppMenu(props: AppMenuProps) {
     const selectedModels = selectedProfile?.models ?? []
     const configuredModel = useConfigValue('desktop.model')
     const selectedThinkingLevel = useConfigValue('desktop.thinkingLevel')
+    const selectedAccessLevel = useConfigValue('desktop.accessLevel')
+    const selectedApprovalPolicy = useConfigValue('desktop.approvalPolicy')
     const desktopAvailable = useHasDesktopConfig()
     const selectedModel = configuredModel || (selectedProfile ? defaultModelForProfile(selectedProfile) : '')
     const projectBranch = project?.branch ?? ''
@@ -170,6 +180,8 @@ export function AppMenu(props: AppMenuProps) {
         const nextModel = profile ? defaultModelForProfile(profile) : ''
         configService.set('desktop.agent', event.target.value)
         configService.set('desktop.model', nextModel)
+        configService.set('desktop.accessLevel', profile ? defaultAccessLevelForProfile(profile) ?? '' : '')
+        configService.set('desktop.approvalPolicy', profile ? defaultApprovalPolicyForProfile(profile) ?? '' : '')
         persistDesktopConfig()
     }
 
@@ -189,6 +201,16 @@ export function AppMenu(props: AppMenuProps) {
     const handleThinkingLevelChange = (event: SelectChangeEvent) => {
         const thinkingLevel = validateThinkingLevel(event.target.value, 'Default reasoning level')
         configService.set('desktop.thinkingLevel', thinkingLevel)
+        persistDesktopConfig()
+    }
+
+    const handleAccessLevelChange = (event: SelectChangeEvent) => {
+        configService.set('desktop.accessLevel', event.target.value)
+        persistDesktopConfig()
+    }
+
+    const handleApprovalPolicyChange = (event: SelectChangeEvent) => {
+        configService.set('desktop.approvalPolicy', event.target.value)
         persistDesktopConfig()
     }
 
@@ -403,6 +425,32 @@ export function AppMenu(props: AppMenuProps) {
                                 <MenuItem key={level} value={level}>{level}</MenuItem>
                             ))}
                         </MenuSelect>
+                        {selectedProfile?.accessLevels ? (
+                            <MenuSelect
+                                disabled={!desktopAvailable}
+                                label="Default access level"
+                                minWidth={140}
+                                onChange={handleAccessLevelChange}
+                                value={selectedAccessLevel}
+                            >
+                                {selectedProfile.accessLevels.map((accessLevel) => (
+                                    <MenuItem key={accessLevel} value={accessLevel}>{accessLevel}</MenuItem>
+                                ))}
+                            </MenuSelect>
+                        ) : <TextField disabled size="small" value="Access unsupported" />}
+                        {selectedProfile?.approvalPolicies ? (
+                            <MenuSelect
+                                disabled={!desktopAvailable}
+                                label="Default approval policy"
+                                minWidth={140}
+                                onChange={handleApprovalPolicyChange}
+                                value={selectedApprovalPolicy}
+                            >
+                                {selectedProfile.approvalPolicies.map((approvalPolicy) => (
+                                    <MenuItem key={approvalPolicy} value={approvalPolicy}>{approvalPolicy}</MenuItem>
+                                ))}
+                            </MenuSelect>
+                        ) : <TextField disabled size="small" value="Approval unsupported" />}
                     </Section>
                     <Divider flexItem orientation="vertical" sx={{ my: 1.5 }} />
                     <Section label="Actions">

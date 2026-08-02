@@ -33,10 +33,14 @@ class ActionAgentExecutor {
 
     async execute(input) {
         const config = this.agentConfigProvider();
+        const accessLevel = input.runInput.accessLevel ?? input.action.accessLevel;
+        const approvalPolicy = input.runInput.approvalPolicy ?? input.action.approvalPolicy;
         const thinkingLevel = input.runInput.thinkingLevel ?? input.action.thinkingLevel;
         const streaming = input.action.streaming;
         const resolvedAgent = resolveAgentCommand(config, {
+            ...(accessLevel ? { accessLevel } : {}),
             ...(input.runInput.agent ? { agent: input.runInput.agent } : (input.action.agent ? { agent: input.action.agent } : {})),
+            ...(approvalPolicy ? { approvalPolicy } : {}),
             ...(input.runInput.model ? { model: input.runInput.model } : (input.action.model ? { model: input.action.model } : {})),
             ...(thinkingLevel ? { thinkingLevel } : {}),
         }, streaming);
@@ -99,7 +103,14 @@ class ActionAgentExecutor {
         const result = await this.runAgentTurn(input, request, fallback);
         const executionResult = withoutConversation(result);
 
-        return { ...executionResult, agent: resolvedAgent.agent, model: resolvedAgent.model, thinkingLevel: resolvedAgent.thinkingLevel };
+        return {
+            ...executionResult,
+            accessLevel: resolvedAgent.accessLevel,
+            agent: resolvedAgent.agent,
+            approvalPolicy: resolvedAgent.approvalPolicy,
+            model: resolvedAgent.model,
+            thinkingLevel: resolvedAgent.thinkingLevel,
+        };
     }
 
     async runAgentTurn(input, request, fallback) {

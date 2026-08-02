@@ -17,8 +17,10 @@ import { DEFAULT_CARD_TYPES, type ProjectCard } from './data_types'
 
 function action(name: string, appliesTo: ActionDefinition['appliesTo']): ActionDefinition {
     return {
+        accessLevel: null,
         agent: null,
         appliesTo,
+        approvalPolicy: null,
         builtin: false,
         command: 'run',
         description: name,

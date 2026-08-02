@@ -22,7 +22,9 @@ export interface ActionActivityRecord {
     conversationIds: string[]
     runId: string
     history: {
+        accessLevel?: string
         agent?: string | null
+        approvalPolicy?: string
         command?: string
         completedAt: string
         model?: string

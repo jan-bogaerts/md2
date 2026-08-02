@@ -532,7 +532,7 @@ describe('ActionRun', () => {
                 input.onEvent({ conversation: completedConversation, type: 'closed' });
 
                 return {
-                    agent: 'codex', exitCode: 0, model: 'gpt', prompt: 'run',
+                    accessLevel: 'workspace-write', agent: 'codex', approvalPolicy: 'on-request', exitCode: 0, model: 'gpt', prompt: 'run',
                     conversationId: 'conversation', reference: 'run.json', stderr: '', stdout: 'done', thinkingLevel: 'high',
                 };
             }),
@@ -565,7 +565,10 @@ describe('ActionRun', () => {
                 kind: 'agentEvent',
             },
         }));
-        expect(events).toContainEqual(expect.objectContaining({conversationId: 'conversation', reference: 'run.json', runId: 'run-1', status: 'completed', thinkingLevel: 'high', type: 'action'}));
+        expect(events).toContainEqual(expect.objectContaining({
+            accessLevel: 'workspace-write', approvalPolicy: 'on-request', conversationId: 'conversation', reference: 'run.json',
+            runId: 'run-1', status: 'completed', thinkingLevel: 'high', type: 'action',
+        }));
     });
 
     it('commits successful tracked agent paths before writing explicit history metadata', async () => {

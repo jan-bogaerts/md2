@@ -16,7 +16,14 @@ import { Fragment, useEffect, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import type { ConfigEntry, ConfigValue } from '../../services/config/config_service'
 import { dialogService } from '../../services/dialog_service'
-import { defaultModelForProfile, findAgentProfile, mergeAgentProfiles, type AgentProfile } from '../../data/agent_profiles'
+import {
+    defaultAccessLevelForProfile,
+    defaultApprovalPolicyForProfile,
+    defaultModelForProfile,
+    findAgentProfile,
+    mergeAgentProfiles,
+    type AgentProfile,
+} from '../../data/agent_profiles'
 import { AgentProfilesEditor } from './agent_profiles_editor'
 
 const CONFIG_PLACEHOLDER_PARTS_PATTERN = /(\{\{[^{}]+\}\})/u
@@ -58,18 +65,28 @@ export function ConfigValueEditor(props: ConfigValueEditorProps) {
     const { disabled = false, entry, onChange, onValidityChange, value, values } = props
     const [jsonText, setJsonText] = useState(() => (entry.type === 'json' ? JSON.stringify(value, null, 2) : ''))
     const agentProfiles = mergeAgentProfiles((values?.['desktop.agentProfiles'] ?? []) as AgentProfile[])
-    const selectedAgentProfile = entry.key === 'desktop.model'
-        ? findAgentProfile(agentProfiles, (values?.['desktop.agent'] ?? '') as string)
-        : null
+    const selectedAgentProfile = findAgentProfile(agentProfiles, (values?.['desktop.agent'] ?? '') as string)
     const selectedAgentModels = selectedAgentProfile?.models ?? []
+    const stringValue = value as string
     const selectOptions = entry.key === 'desktop.agent'
         ? agentProfiles.map((profile) => ({ label: profile.name, value: profile.name }))
         : entry.key === 'desktop.model' && selectedAgentModels.length > 0
             ? selectedAgentModels.map((model) => ({ label: model, value: model }))
-            : entry.type === 'select'
-                ? entry.options ?? []
-                : null
-    const stringValue = value as string
+            : entry.key === 'desktop.accessLevel' && selectedAgentProfile?.accessLevels
+                ? selectedAgentProfile.accessLevels.map((accessLevel) => ({ label: accessLevel, value: accessLevel }))
+                : entry.key === 'desktop.approvalPolicy' && selectedAgentProfile?.approvalPolicies
+                    ? [
+                        ...(!selectedAgentProfile.approvalPolicies.includes(stringValue) && stringValue
+                            ? [{ label: `${stringValue} - unavailable`, value: stringValue }]
+                            : []),
+                        ...selectedAgentProfile.approvalPolicies.map((approvalPolicy) => ({
+                            label: approvalPolicy,
+                            value: approvalPolicy,
+                        })),
+                    ]
+                    : entry.type === 'select'
+                        ? entry.options ?? []
+                        : null
     const selectValue = entry.key === 'desktop.model' && selectedAgentModels.length > 0 && stringValue.length === 0
         ? defaultModelForProfile(selectedAgentProfile as AgentProfile)
         : stringValue
@@ -105,6 +122,12 @@ export function ConfigValueEditor(props: ConfigValueEditorProps) {
     }
 
     const handleSelectChange = (event: SelectChangeEvent) => {
+        if (entry.key === 'desktop.agent') {
+            const profile = findAgentProfile(agentProfiles, event.target.value)
+            onChange('desktop.model', profile ? defaultModelForProfile(profile) : '')
+            onChange('desktop.accessLevel', profile ? defaultAccessLevelForProfile(profile) ?? '' : '')
+            onChange('desktop.approvalPolicy', profile ? defaultApprovalPolicyForProfile(profile) ?? '' : '')
+        }
         onChange(entry.key, event.target.value)
     }
 
@@ -125,6 +148,13 @@ export function ConfigValueEditor(props: ConfigValueEditorProps) {
     }
 
     if (sliderConfigurationError) return null
+
+    if (entry.key === 'desktop.accessLevel' && !selectedAgentProfile?.accessLevels) {
+        return <TextField disabled fullWidth helperText={`${selectedAgentProfile?.name ?? 'Selected agent'} does not expose access levels.`} label={entry.label} value="Not supported" />
+    }
+    if (entry.key === 'desktop.approvalPolicy' && !selectedAgentProfile?.approvalPolicies) {
+        return <TextField disabled fullWidth helperText={`${selectedAgentProfile?.name ?? 'Selected agent'} does not expose approval policies.`} label={entry.label} value="Not supported" />
+    }
 
     if (entry.type === 'boolean') {
         return (

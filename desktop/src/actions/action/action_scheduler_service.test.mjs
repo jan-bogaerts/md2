@@ -292,9 +292,14 @@ describe('ActionSchedulerService', () => {
         await scheduler.startProject(project);
         await scheduler.fireSchedule('schedule-1');
 
-        expect(agentRunner).toHaveBeenCalledWith(project, expect.objectContaining({command: ['codex', '--model', 'gpt-5.5', '-c', 'model_reasoning_effort=high', '--search', 'exec', '--json']}), expect.any(Function));
+        expect(agentRunner).toHaveBeenCalledWith(project, expect.objectContaining({
+            command: [
+                'codex', '--model', 'gpt-5.5', '-c', 'model_reasoning_effort=high', '--sandbox', 'workspace-write',
+                '--ask-for-approval', 'on-request', '--search', 'exec', '--json',
+            ],
+        }), expect.any(Function));
         expect(localGitService.histories[0]).toMatchObject({
-            entry: { agent: 'codex', model: 'gpt-5.5', thinkingLevel: 'high' },
+            entry: { accessLevel: 'workspace-write', agent: 'codex', approvalPolicy: 'on-request', model: 'gpt-5.5', thinkingLevel: 'high' },
             request: { actionId: 'implement', context, projectFolder: '' },
         });
     });
@@ -311,7 +316,12 @@ describe('ActionSchedulerService', () => {
         await scheduler.startProject(project);
         await scheduler.fireSchedule('schedule-1');
 
-        expect(agentRunner).toHaveBeenCalledWith(project, expect.objectContaining({ command: ['codex', '--model', 'gpt-5.5', '--search', 'exec', '--json'] }), expect.any(Function));
+        expect(agentRunner).toHaveBeenCalledWith(project, expect.objectContaining({
+            command: [
+                'codex', '--model', 'gpt-5.5', '--sandbox', 'workspace-write', '--ask-for-approval', 'on-request',
+                '--search', 'exec', '--json',
+            ],
+        }), expect.any(Function));
         expect(localGitService.histories[0].entry).toMatchObject({ thinkingLevel: 'none' });
     });
 
@@ -332,8 +342,8 @@ describe('ActionSchedulerService', () => {
         await scheduler.fireSchedule('schedule-1');
 
         expect(agentRunner.mock.calls.map((call) => call[1].command)).toEqual([
-            ['codex', '--model', 'gpt-5.5', '-c', 'model_reasoning_effort=low', '--search', 'exec', '--json'],
-            ['codex', '--model', 'gpt-5.5', '-c', 'model_reasoning_effort=high', '--search', 'exec', '--json'],
+            ['codex', '--model', 'gpt-5.5', '-c', 'model_reasoning_effort=low', '--sandbox', 'workspace-write', '--ask-for-approval', 'on-request', '--search', 'exec', '--json'],
+            ['codex', '--model', 'gpt-5.5', '-c', 'model_reasoning_effort=high', '--sandbox', 'workspace-write', '--ask-for-approval', 'on-request', '--search', 'exec', '--json'],
         ]);
         expect(localGitService.histories.map(({ entry }) => entry.thinkingLevel)).toEqual(['high']);
     });
