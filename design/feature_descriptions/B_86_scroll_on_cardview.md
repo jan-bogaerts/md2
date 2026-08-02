@@ -10,6 +10,7 @@ agents:
   - design/activity/card__fb78171f-6c8d-4760-8e63-7ac2eff93256.json#conversation=agent-97ea4269-4ceb-4668-996c-394ef6c17461
   - design/activity/card__fb78171f-6c8d-4760-8e63-7ac2eff93256.json#conversation=agent-a957a84b-06b9-401d-a353-05e3a23df0c2
 policy:
+after: 58f7a536-89fd-490b-8112-2a850481bf23
 ---
 
 On mobile, cards view does not scroll. We should already have made a component for this.
