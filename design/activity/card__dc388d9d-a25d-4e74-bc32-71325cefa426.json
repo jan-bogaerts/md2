@@ -976,14 +976,14 @@
       ],
       "runId": "action-c2cb8aa7-4483-4b74-b62a-bba620e7cfa9",
       "history": {
-        "accessLevel": "workspace-write",
-        "agent": "codex",
-        "approvalPolicy": "on-request",
         "completedAt": "2026-08-03T16:39:59.255Z",
-        "model": "gpt-5.6-sol",
         "output": "Still conflict: code currently maps `{{project-folder}}` to repository root. New `{{repository-folder}}` would duplicate it.\n\nConfirm intended mapping:\n\n- `{{repository-folder}}` = repository root\n- `{{project-folder}}` = repository root + configured `projectFolder`\n\nAlso confirm spelling: `repository-folder`, not `respository-folder`.\n\n",
         "prompt": "ok, there is a confusion, perhaps picked the wrong names. lets keep project-folder as is currently, forget about working-folder mentioned currently in the card. instead we will add `respository-folder` which points to the repository root",
         "status": "failed",
+        "accessLevel": "workspace-write",
+        "agent": "codex",
+        "approvalPolicy": "on-request",
+        "model": "gpt-5.6-sol",
         "thinkingLevel": "medium"
       },
       "origin": {
@@ -994,6 +994,26 @@
       "rootActionLabel": "complete card",
       "startedAt": "2026-08-03T16:36:35.468Z",
       "status": "cancelled"
+    },
+    {
+      "commits": [],
+      "completedAt": "2026-08-03T16:41:43.476Z",
+      "conversationIds": [],
+      "runId": "action-6a506c76-a4c3-4ea8-8a31-f203dbabdef1",
+      "history": {
+        "completedAt": "2026-08-03T16:41:43.476Z",
+        "output": "Missing agent prompt",
+        "prompt": "",
+        "status": "failed"
+      },
+      "origin": {
+        "cardInternalId": "dc388d9d-a25d-4e74-bc32-71325cefa426",
+        "kind": "card"
+      },
+      "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "rootActionLabel": "complete card",
+      "startedAt": "2026-08-03T16:41:43.448Z",
+      "status": "failed"
     }
   ],
   "version": 1
