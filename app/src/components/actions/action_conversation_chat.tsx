@@ -125,7 +125,7 @@ export function ActionConversationChat({ conversation, onConversationViewed, sta
                         {actionStatusLabel(status)}
                     </Typography>
                     {conversation ? (
-                        <ConversationTimer completedAt={conversation.completedAt} startedAt={conversation.startedAt} />
+                        <ConversationTimer completedAt={conversation.completedAt} startedAt={conversation.startedAt} status={status} />
                     ) : null}
                 </Stack>
             ) : null}

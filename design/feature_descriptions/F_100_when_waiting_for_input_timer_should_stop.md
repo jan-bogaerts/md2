@@ -3,7 +3,7 @@ author:
 id: F_100
 internalId: b692b422-3e30-4518-91c1-bcee5451b046
 title: when waiting for input timer should stop
-status: new
+status: ready
 owner: 
 affects:
 agents:
