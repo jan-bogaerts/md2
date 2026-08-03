@@ -627,16 +627,16 @@
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-1f41411a-e600-4562-a4ae-6f2a96d51dce-event-46",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_08d68b6076277be7016a70a7142dd88191b9423b5bda788f89",
           "sequence": 46,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-03T14:35:00.063Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
           "agent": "codex",
@@ -648,33 +648,33 @@
           "timestamp": "2026-08-03T14:35:00.489Z"
         },
         {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Item 'design\\\\feature_descriptions\\\\F_133_set_default_push_mode_to_manual.md' | Select-Object FullName, Length; Get-Content -Raw 'design\\\\feature_descriptions\\\\F_133_set_default_push_mode_to_manual.md'\"",
           "content": "\r\nFullName                                                                                              Length\r\n--------                                                                                              ------\r\nC:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_133_set_default_push_mode_to_manual.md    380\r\n---\nauthor: \nid: F_133\ninternalId: 252c6173-b044-4c83-8867-e99254db44d5\ntitle: set default push mode to manual\nstatus: ready for implementation\nowner: \naffects:\nagents:\n  - design/activity/card__252c6173-b044-4c83-8867-e99254db44d5.json#conversation=agent-18b8d2e7-1d51-4674-b796-0aa81047e6af\npolicy:\nafter: \n---\n\nprobably best if we set the config's default push mode to 'manual'\r\n\r\n\r\n",
+          "durationMs": 401,
+          "exitCode": 0,
           "id": "agent-turn-1f41411a-e600-4562-a4ae-6f2a96d51dce-event-48",
           "kind": "event",
           "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Item 'design\\\\feature_descriptions\\\\F_133_set_default_push_mode_to_manual.md' | Select-Object FullName, Length; Get-Content -Raw 'design\\\\feature_descriptions\\\\F_133_set_default_push_mode_to_manual.md'\"",
+          "output": "\r\nFullName                                                                                              Length\r\n--------                                                                                              ------\r\nC:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_133_set_default_push_mode_to_manual.md    380\r\n---\nauthor: \nid: F_133\ninternalId: 252c6173-b044-4c83-8867-e99254db44d5\ntitle: set default push mode to manual\nstatus: ready for implementation\nowner: \naffects:\nagents:\n  - design/activity/card__252c6173-b044-4c83-8867-e99254db44d5.json#conversation=agent-18b8d2e7-1d51-4674-b796-0aa81047e6af\npolicy:\nafter: \n---\n\nprobably best if we set the config's default push mode to 'manual'\r\n\r\n\r\n",
           "providerItemId": "exec-ce252a8e-dfef-4798-9f50-fcf0b8118666",
           "sequence": 48,
           "status": "completed",
           "timestamp": "2026-08-03T14:35:03.281Z",
           "type": "commandExecution",
-          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Item 'design\\\\feature_descriptions\\\\F_133_set_default_push_mode_to_manual.md' | Select-Object FullName, Length; Get-Content -Raw 'design\\\\feature_descriptions\\\\F_133_set_default_push_mode_to_manual.md'\"",
-          "durationMs": 401,
-          "exitCode": 0,
-          "output": "\r\nFullName                                                                                              Length\r\n--------                                                                                              ------\r\nC:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_133_set_default_push_mode_to_manual.md    380\r\n---\nauthor: \nid: F_133\ninternalId: 252c6173-b044-4c83-8867-e99254db44d5\ntitle: set default push mode to manual\nstatus: ready for implementation\nowner: \naffects:\nagents:\n  - design/activity/card__252c6173-b044-4c83-8867-e99254db44d5.json#conversation=agent-18b8d2e7-1d51-4674-b796-0aa81047e6af\npolicy:\nafter: \n---\n\nprobably best if we set the config's default push mode to 'manual'\r\n\r\n\r\n",
           "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-1f41411a-e600-4562-a4ae-6f2a96d51dce-event-49",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_08d68b6076277be7016a70a71adbf481919871793d40f695f6",
           "sequence": 49,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-03T14:35:06.704Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
           "content": "",
@@ -689,31 +689,31 @@
         },
         {
           "content": "",
+          "details": [],
           "id": "agent-turn-1f41411a-e600-4562-a4ae-6f2a96d51dce-event-51",
           "kind": "event",
           "label": "Reasoning",
           "providerItemId": "rs_08d68b6076277be7016a70a72412508191bea7ddd858b37fde",
           "sequence": 51,
           "status": "completed",
+          "summary": [],
           "timestamp": "2026-08-03T14:35:15.101Z",
-          "type": "reasoning",
-          "details": [],
-          "summary": []
+          "type": "reasoning"
         },
         {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design\\\\feature_descriptions\\\\F_133_set_default_push_mode_to_manual.md'; git diff -- 'design/feature_descriptions/F_133_set_default_push_mode_to_manual.md'\"",
           "content": "---\nauthor: \nid: F_133\ninternalId: 252c6173-b044-4c83-8867-e99254db44d5\ntitle: set default push mode to manual\nstatus: ready for implementation\nowner: \naffects:\nagents:\n  - design/activity/card__252c6173-b044-4c83-8867-e99254db44d5.json#conversation=agent-18b8d2e7-1d51-4674-b796-0aa81047e6af\npolicy:\nafter: \n---\n\nprobably best if we set the config's default push mode to 'manual'\n\n## Current state\n\n`project.pushMode` defaults to `auto` in both `CONFIG_ENTRIES` and `DEFAULT_PROJECT_CONFIG`. `ConfigService` uses the first when project config is missing or omits `pushMode`; project-folder creation uses the second. Explicit saved values override both defaults.\n\nAuto mode pushes after persistence operations. Manual mode keeps commits pending, reports pending state, and exposes explicit Push action.\n\n## Implementation details\n\n- Change both push-mode defaults from `auto` to `manual`.\n- Preserve explicit `auto` and `manual` values. Add no migration or compatibility branch; configs without `pushMode` receive new default.\n- Do not change push execution, pending-commit restoration, persistence notifications, or Push action visibility.\n- Update config-service and project-creation tests asserting default.\n\n## Acceptance criteria\n\n- New projects persist `pushMode: \"manual\"`.\n- Missing project config, or config without `pushMode`, resolves to manual mode.\n- Explicit `pushMode: \"auto\"` still enables automatic pushes; explicit manual mode keeps current behavior.\n- Tests cover both default paths and explicit-value preservation.\n\r\ndiff --git a/design/feature_descriptions/F_133_set_default_push_mode_to_manual.md b/design/feature_descriptions/F_133_set_default_push_mode_to_manual.md\nindex df0bbc0..ed36c66 100644\n--- a/design/feature_descriptions/F_133_set_default_push_mode_to_manual.md\n+++ b/design/feature_descriptions/F_133_set_default_push_mode_to_manual.md\n@@ -12,4 +12,24 @@ policy:\n after: \n ---\n \n-probably best if we set the config's default push mode to 'manual'\n\\ No newline at end of file\n+probably best if we set the config's default push mode to 'manual'\n+\n+## Current state\n+\n+`project.pushMode` defaults to `auto` in both `CONFIG_ENTRIES` and `DEFAULT_PROJECT_CONFIG`. `ConfigService` uses the first when project config is missing or omits `pushMode`; project-folder creation uses the second. Explicit saved values override both defaults.\n+\n+Auto mode pushes after persistence operations. Manual mode keeps commits pending, reports pending state, and exposes explicit Push action.\n+\n+## Implementation details\n+\n+- Change both push-mode defaults from `auto` to `manual`.\n+- Preserve explicit `auto` and `manual` values. Add no migration or compatibility branch; configs without `pushMode` receive new default.\n+- Do not change push execution, pending-commit restoration, persistence notifications, or Push action visibility.\n+- Update config-service and project-creation tests asserting default.\n+\n+## Acceptance criteria\n+\n+- New projects persist `pushMode: \"manual\"`.\n+- Missing project config, or config without `pushMode`, resolves to manual mode.\n+- Explicit `pushMode: \"auto\"` still enables automatic pushes; explicit manual mode keeps current behavior.\n+- Tests cover both default paths and explicit-value preservation.\n",
+          "durationMs": 495,
+          "exitCode": 0,
           "id": "agent-turn-1f41411a-e600-4562-a4ae-6f2a96d51dce-event-52",
           "kind": "event",
           "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design\\\\feature_descriptions\\\\F_133_set_default_push_mode_to_manual.md'; git diff -- 'design/feature_descriptions/F_133_set_default_push_mode_to_manual.md'\"",
+          "output": "---\nauthor: \nid: F_133\ninternalId: 252c6173-b044-4c83-8867-e99254db44d5\ntitle: set default push mode to manual\nstatus: ready for implementation\nowner: \naffects:\nagents:\n  - design/activity/card__252c6173-b044-4c83-8867-e99254db44d5.json#conversation=agent-18b8d2e7-1d51-4674-b796-0aa81047e6af\npolicy:\nafter: \n---\n\nprobably best if we set the config's default push mode to 'manual'\n\n## Current state\n\n`project.pushMode` defaults to `auto` in both `CONFIG_ENTRIES` and `DEFAULT_PROJECT_CONFIG`. `ConfigService` uses the first when project config is missing or omits `pushMode`; project-folder creation uses the second. Explicit saved values override both defaults.\n\nAuto mode pushes after persistence operations. Manual mode keeps commits pending, reports pending state, and exposes explicit Push action.\n\n## Implementation details\n\n- Change both push-mode defaults from `auto` to `manual`.\n- Preserve explicit `auto` and `manual` values. Add no migration or compatibility branch; configs without `pushMode` receive new default.\n- Do not change push execution, pending-commit restoration, persistence notifications, or Push action visibility.\n- Update config-service and project-creation tests asserting default.\n\n## Acceptance criteria\n\n- New projects persist `pushMode: \"manual\"`.\n- Missing project config, or config without `pushMode`, resolves to manual mode.\n- Explicit `pushMode: \"auto\"` still enables automatic pushes; explicit manual mode keeps current behavior.\n- Tests cover both default paths and explicit-value preservation.\n\r\ndiff --git a/design/feature_descriptions/F_133_set_default_push_mode_to_manual.md b/design/feature_descriptions/F_133_set_default_push_mode_to_manual.md\nindex df0bbc0..ed36c66 100644\n--- a/design/feature_descriptions/F_133_set_default_push_mode_to_manual.md\n+++ b/design/feature_descriptions/F_133_set_default_push_mode_to_manual.md\n@@ -12,4 +12,24 @@ policy:\n after: \n ---\n \n-probably best if we set the config's default push mode to 'manual'\n\\ No newline at end of file\n+probably best if we set the config's default push mode to 'manual'\n+\n+## Current state\n+\n+`project.pushMode` defaults to `auto` in both `CONFIG_ENTRIES` and `DEFAULT_PROJECT_CONFIG`. `ConfigService` uses the first when project config is missing or omits `pushMode`; project-folder creation uses the second. Explicit saved values override both defaults.\n+\n+Auto mode pushes after persistence operations. Manual mode keeps commits pending, reports pending state, and exposes explicit Push action.\n+\n+## Implementation details\n+\n+- Change both push-mode defaults from `auto` to `manual`.\n+- Preserve explicit `auto` and `manual` values. Add no migration or compatibility branch; configs without `pushMode` receive new default.\n+- Do not change push execution, pending-commit restoration, persistence notifications, or Push action visibility.\n+- Update config-service and project-creation tests asserting default.\n+\n+## Acceptance criteria\n+\n+- New projects persist `pushMode: \"manual\"`.\n+- Missing project config, or config without `pushMode`, resolves to manual mode.\n+- Explicit `pushMode: \"auto\"` still enables automatic pushes; explicit manual mode keeps current behavior.\n+- Tests cover both default paths and explicit-value preservation.\n",
           "providerItemId": "exec-d8b73d76-4659-4688-b9ac-25f2d6f041d9",
           "sequence": 52,
           "status": "completed",
           "timestamp": "2026-08-03T14:35:17.266Z",
           "type": "commandExecution",
-          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design\\\\feature_descriptions\\\\F_133_set_default_push_mode_to_manual.md'; git diff -- 'design/feature_descriptions/F_133_set_default_push_mode_to_manual.md'\"",
-          "durationMs": 495,
-          "exitCode": 0,
-          "output": "---\nauthor: \nid: F_133\ninternalId: 252c6173-b044-4c83-8867-e99254db44d5\ntitle: set default push mode to manual\nstatus: ready for implementation\nowner: \naffects:\nagents:\n  - design/activity/card__252c6173-b044-4c83-8867-e99254db44d5.json#conversation=agent-18b8d2e7-1d51-4674-b796-0aa81047e6af\npolicy:\nafter: \n---\n\nprobably best if we set the config's default push mode to 'manual'\n\n## Current state\n\n`project.pushMode` defaults to `auto` in both `CONFIG_ENTRIES` and `DEFAULT_PROJECT_CONFIG`. `ConfigService` uses the first when project config is missing or omits `pushMode`; project-folder creation uses the second. Explicit saved values override both defaults.\n\nAuto mode pushes after persistence operations. Manual mode keeps commits pending, reports pending state, and exposes explicit Push action.\n\n## Implementation details\n\n- Change both push-mode defaults from `auto` to `manual`.\n- Preserve explicit `auto` and `manual` values. Add no migration or compatibility branch; configs without `pushMode` receive new default.\n- Do not change push execution, pending-commit restoration, persistence notifications, or Push action visibility.\n- Update config-service and project-creation tests asserting default.\n\n## Acceptance criteria\n\n- New projects persist `pushMode: \"manual\"`.\n- Missing project config, or config without `pushMode`, resolves to manual mode.\n- Explicit `pushMode: \"auto\"` still enables automatic pushes; explicit manual mode keeps current behavior.\n- Tests cover both default paths and explicit-value preservation.\n\r\ndiff --git a/design/feature_descriptions/F_133_set_default_push_mode_to_manual.md b/design/feature_descriptions/F_133_set_default_push_mode_to_manual.md\nindex df0bbc0..ed36c66 100644\n--- a/design/feature_descriptions/F_133_set_default_push_mode_to_manual.md\n+++ b/design/feature_descriptions/F_133_set_default_push_mode_to_manual.md\n@@ -12,4 +12,24 @@ policy:\n after: \n ---\n \n-probably best if we set the config's default push mode to 'manual'\n\\ No newline at end of file\n+probably best if we set the config's default push mode to 'manual'\n+\n+## Current state\n+\n+`project.pushMode` defaults to `auto` in both `CONFIG_ENTRIES` and `DEFAULT_PROJECT_CONFIG`. `ConfigService` uses the first when project config is missing or omits `pushMode`; project-folder creation uses the second. Explicit saved values override both defaults.\n+\n+Auto mode pushes after persistence operations. Manual mode keeps commits pending, reports pending state, and exposes explicit Push action.\n+\n+## Implementation details\n+\n+- Change both push-mode defaults from `auto` to `manual`.\n+- Preserve explicit `auto` and `manual` values. Add no migration or compatibility branch; configs without `pushMode` receive new default.\n+- Do not change push execution, pending-commit restoration, persistence notifications, or Push action visibility.\n+- Update config-service and project-creation tests asserting default.\n+\n+## Acceptance criteria\n+\n+- New projects persist `pushMode: \"manual\"`.\n+- Missing project config, or config without `pushMode`, resolves to manual mode.\n+- Explicit `pushMode: \"auto\"` still enables automatic pushes; explicit manual mode keeps current behavior.\n+- Tests cover both default paths and explicit-value preservation.\n",
           "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
         },
         {
@@ -795,6 +795,45 @@
       "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "rootActionLabel": "complete card",
       "startedAt": "2026-08-03T14:27:48.653Z",
+      "status": "completed"
+    },
+    {
+      "commits": [
+        {
+          "branch": "dev_main",
+          "commit": "90e83b9c4b14baf5d5ef2e7353bb37c68fdfd26a",
+          "committedAt": "2026-08-03T16:36:18+02:00",
+          "deletions": 1,
+          "filePaths": [
+            "design/feature_descriptions/F_133_set_default_push_mode_to_manual.md"
+          ],
+          "filesChanged": 1,
+          "insertions": 21
+        }
+      ],
+      "completedAt": "2026-08-03T14:36:18.690Z",
+      "conversationIds": [
+        "agent-18b8d2e7-1d51-4674-b796-0aa81047e6af"
+      ],
+      "runId": "action-865a4c1a-aa79-4b08-b074-f88a5e2bdb0c",
+      "history": {
+        "accessLevel": "workspace-write",
+        "agent": "codex",
+        "approvalPolicy": "on-request",
+        "completedAt": "2026-08-03T14:36:18.497Z",
+        "model": "gpt-5.6-sol",
+        "output": "Checking exact path, then rewriting through provider edit tool.\n\nUpdated exact file and verified content exists: [F_133_set_default_push_mode_to_manual.md](C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_133_set_default_push_mode_to_manual.md). No staging or commit.\n\n",
+        "prompt": "the file is still empty, can you update it again, this is the location: `design/feature_descriptions/F_133_set_default_push_mode_to_manual.md`",
+        "status": "completed",
+        "thinkingLevel": "medium"
+      },
+      "origin": {
+        "cardInternalId": "252c6173-b044-4c83-8867-e99254db44d5",
+        "kind": "card"
+      },
+      "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "rootActionLabel": "complete card",
+      "startedAt": "2026-08-03T14:34:54.248Z",
       "status": "completed"
     }
   ],
