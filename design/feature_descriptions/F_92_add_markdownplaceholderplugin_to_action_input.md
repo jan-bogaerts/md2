@@ -3,14 +3,14 @@ author:
 id: F_92
 internalId: cf144ebc-ebd3-4148-8ad8-99bac886dd3f
 title: add markdownPlaceholderPlugin to action input
-status: ready for implementation
+status: design
 owner: 
 affects:
 agents:
   - design/activity/card__cf144ebc-ebd3-4148-8ad8-99bac886dd3f.json#conversation=agent-36dc93ea-6a9e-46ba-91a9-def33cccdc0a
   - design/activity/card__cf144ebc-ebd3-4148-8ad8-99bac886dd3f.json#conversation=agent-af0f70e2-7ad8-473a-9862-c858ecd84874
 policy:
-after: 
+after: b9792dd7-f034-4b29-9da5-04fc8cea37c9
 worktree: 2
 ---
 
