@@ -3,7 +3,7 @@ author:
 id: F_125
 internalId: e6a79155-179c-46bb-b31e-722dffd7ec2e
 title: show waitforInput state when agent asked question
-status: design
+status: ready
 owner: 
 affects:
 agents:
