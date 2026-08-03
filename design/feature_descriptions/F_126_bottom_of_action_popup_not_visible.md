@@ -8,7 +8,7 @@ owner:
 affects:
 agents:
 policy:
-after: dc388d9d-a25d-4e74-bc32-71325cefa426
+after: 3d893637-4714-428d-be90-b839925b7cad
 ---
 
 On mobile, when action popup fully expanded, the bottom bar is not visible. It is hidden behind android buttons. We should leave some space
