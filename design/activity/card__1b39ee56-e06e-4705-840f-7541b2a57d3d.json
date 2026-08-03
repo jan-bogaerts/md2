@@ -2197,14 +2197,14 @@
       ],
       "runId": "action-45329185-231f-461b-bbf7-bdd72e9493ec",
       "history": {
-        "accessLevel": "workspace-write",
-        "agent": "codex",
-        "approvalPolicy": "on-request",
         "completedAt": "2026-08-02T18:08:05.148Z",
-        "model": "gpt-5.5",
         "output": "Using `caveman` skill for terse output. Reading feature, architecture, related code/tests. No edits. Then block plan + task per block; wait approval.\n\nChange Plan tasks created:\n\n1. Add remote `loadFile`; test success/error parity.\n2. Audit all five push message paths; fix verified setup/cleanup gaps; test server/client.\n3. Test mobile project refresh for added, changed, removed markdown.\n4. Run related tests, affected lint, set feature `status: ready`.\n\nNo edits made. Approve plan to start.\n\nPlan approved. Starting Block 1. `loadFile` has one consumer path: `ProjectLoading` watcher reload. Local storage keeps existing bridge behavior; remote storage gains same contract.\n\nBlock 1 code/tests added. Block 2 audit: all five names match. Verified defect: `watchProject` cleanup before subscription response can leak remote subscription and still deliver events. Only `ProjectLoading` consumes it; desired new behavior applies there. Server/preload call sites unchanged.\n\nBlock 2 implementation/tests added. Block 3 now joining real remote watcher and remote `loadFile` with `ProjectLoading`; existing local watcher tests already cover state logic, new regression proves mobile transport chain. Expanding same regression across added/changed/removed.\n\nBlock 3 passes: mobile transport test covers add/change/remove without reopen. Starting Block 4 validation. Related tests: 56 passed. Running required linters for affected app and desktop.\n\nApp lint found two unused mock constructor parameters. Removing them; runtime still accepts WebSocket arguments. Then rerun linters.\n\nValidation clean. Final required action from feature workflow: update source feature status from `new` to `ready`.\n\nImplemented B_87.\n\n- Added remote `loadFile` proxy.\n- Fixed early `watchProject` cleanup leak.\n- Audited/tested all five push message types.\n- Added mobile add/change/remove refresh regression.\n- Related tests: 56 passed.\n- App + desktop lint: clean.\n- Feature status set to `ready`.\n\nFiles: [remote storage](C:/Users/janbo/Documents/dev/md2_workers/dev1/app/src/services/data/remote_control_storage_service.ts), [feature](C:/Users/janbo/Documents/dev/md2/design/feature_descriptions/B_87_card_changed_not_pushed_to_mobile.md).\n\n\u001b[2m2026-08-02T17:58:49.839492Z\u001b[0m \u001b[31mERROR\u001b[0m \u001b[2mcodex_core::tools::router\u001b[0m\u001b[2m:\u001b[0m \u001b[3merror\u001b[0m\u001b[2m=\u001b[0mExit code: 1\nWall time: 23.7 seconds\nOutput:\n\n> app@0.0.4 lint\n> eslint .\n\n\nC:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\services\\project\\project_loading.test.ts\n  21:17  error  '_url' is defined but never used       @typescript-eslint/no-unused-vars\n  21:31  error  '_protocol' is defined but never used  @typescript-eslint/no-unused-vars\n\n✖ 2 problems (2 errors, 0 warnings)\n\n\n",
         "prompt": "Read and implement the feature/job described in:  \\`C:\\Users\\janbo\\Documents\\dev\\md2\\\\design/feature_descriptions/B_87_card_changed_not_pushed_to_mobile.md\\`\n\nYou do not need to look at the git status. This is not your concern.  The worktree is what it is, you only need to touch what is required for the above mentioned job/feature description.\n\nUse the Block Workflow:\n\n1. Propose a Change Plan with blocks (no edits yet).\n2. create a task for each block\n3. Wait for approval.\n4. include tests.\n5. After implementation is done, update the field \\`status\\` in the markdown feature description file to \\`ready\\`\n\nYou may read any files referenced by relative paths in the spec and any file you think is related to the spec.\nRespect the Test Plan and Acceptance Criteria.&#x20;\n\nYou should only run the related tests, do not run the entire test suite, that will be done manually later on.\n\nKeep it short and to the point. use $caveman skill",
         "status": "completed",
+        "accessLevel": "workspace-write",
+        "agent": "codex",
+        "approvalPolicy": "on-request",
+        "model": "gpt-5.5",
         "thinkingLevel": "none"
       },
       "origin": {
@@ -2215,6 +2215,31 @@
       "rootActionLabel": "implement",
       "startedAt": "2026-08-02T17:52:42.828Z",
       "status": "completed"
+    },
+    {
+      "commits": [
+        {
+          "commit": "92807cf114dabf537c22c60d9eb5c9c8bad2acd9",
+          "committedAt": "2026-08-03T08:29:14+02:00",
+          "deletions": 2,
+          "filePaths": [
+            "app/src/services/data/remote_control_storage_service.node.test.ts",
+            "app/src/services/data/remote_control_storage_service.ts",
+            "app/src/services/project/project_loading.test.ts",
+            "desktop/src/integrations/remote_control_service.test.mjs"
+          ],
+          "filesChanged": 4,
+          "insertions": 320,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-03T08:29:14+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "1b39ee56-e06e-4705-840f-7541b2a57d3d",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 1
