@@ -1,4 +1,5 @@
 import { createRequire } from 'node:module';
+import path from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 
 const require = createRequire(import.meta.url);
@@ -105,13 +106,44 @@ describe('ActionAgentExecutor', () => {
         expect(agentRunnerService.start).not.toHaveBeenCalled();
     });
 
-    it('uses a root prompt override unchanged without tracked-file composition', async () => {
+    it('resolves placeholders in an edited or custom root prompt without tracked-file composition', async () => {
         const { agentRunnerService, executor } = createExecutor();
         const trackedAction = { ...action, prompt: 'Stored {{card-file}}', trackFileChanges: true };
+        const runProject = { branch: 'feature', rootPath: 'C:/worktree' };
 
-        await executor.execute(executionInput({ action: trackedAction, runInput: { extraPrompt: 'legacy', prompt: 'Exact edited prompt' } }));
+        await executor.execute(executionInput({
+            action: trackedAction,
+            project: runProject,
+            runInput: {
+                extraPrompt: 'focus',
+                prompt: 'Review {{card-file}} in {{worktree-folder}} for {{project-folder}} releases {{releases-folder}}: {{card-prompt}} {{unknown}}',
+            },
+        }));
 
-        expect(agentRunnerService.start.mock.calls[0][1].prompt).toBe('Exact edited prompt');
+        expect(agentRunnerService.start.mock.calls[0][1].prompt).toBe(
+            `Review design/card.md in C:/worktree for C:/repo releases ${path.resolve('C:/repo', 'design/releases')}: focus {{unknown}}`,
+        );
+    });
+
+    it('keeps an already prepared root prompt unchanged without tracked-file recomposition', async () => {
+        const { agentRunnerService, executor } = createExecutor();
+        const trackedAction = { ...action, trackFileChanges: true };
+        const preparedPrompt = 'Review design/card.md\n\nDo not stage or commit changes. md2 will commit files captured from provider edit tools.';
+
+        await executor.execute(executionInput({ action: trackedAction, runInput: { extraPrompt: 'legacy', prompt: preparedPrompt } }));
+
+        expect(agentRunnerService.start.mock.calls[0][1].prompt).toBe(preparedPrompt);
+    });
+
+    it('rejects a root prompt with missing placeholder context before process start', async () => {
+        const { agentRunnerService, executor } = createExecutor();
+
+        await expect(executor.execute(executionInput({
+            activityOrigin: { kind: 'project' },
+            context: { kind: 'project' },
+            runInput: { extraPrompt: '', prompt: 'Review {{card-file}}' },
+        }))).rejects.toThrow('Cannot resolve card-file placeholder without a file context');
+        expect(agentRunnerService.start).not.toHaveBeenCalled();
     });
 
     it('preserves an empty root prompt override by presence', async () => {

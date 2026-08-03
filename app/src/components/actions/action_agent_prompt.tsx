@@ -1,5 +1,6 @@
 import { Box, Typography } from '@mui/material'
 import { useEffect, useRef, useState, useSyncExternalStore, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
+import { ACTION_PROMPT_PLACEHOLDERS } from '../../data/action_placeholders'
 import { dialogService } from '../../services/dialog_service'
 import type { ActionPromptDraft } from '../../services/actions/action_prompt_draft_service'
 import { MarkdownEditor, type MarkdownEditorHandle } from '../editor/markdown_editor'
@@ -162,6 +163,7 @@ export function ActionAgentPrompt(props: ActionAgentPromptProps) {
                     markdown={promptDraft.getSnapshot()}
                     onChange={handlePromptChange}
                     onLiveChange={promptDraft.edit}
+                    placeholders={ACTION_PROMPT_PLACEHOLDERS}
                     readOnly={disabled || editorSnapshot.preparationStatus !== 'ready'}
                     ref={promptEditorRef}
                 />

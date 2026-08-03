@@ -1,6 +1,6 @@
 const { buildResumeAgentCommand, resolveAgentCommand } = require('../agent/agent_profiles.mjs');
 const { normalizeConversationContext } = require('../agent/agent_transcript');
-const { prepareAgentPrompt, withTrackedFileCommitInstruction } = require('./action_text');
+const { prepareAgentPrompt, resolvePlaceholders, withTrackedFileCommitInstruction } = require('./action_text');
 
 const CONTINUE_INPUT = 'continue';
 function continuationReferencePath(reference) {
@@ -59,7 +59,14 @@ class ActionAgentExecutor {
             ?.find(({ agent }) => agent === resolvedAgent.agent) ?? null;
         const hasPromptOverride = Object.hasOwn(input.runInput, 'prompt');
         const prompt = hasPromptOverride
-            ? input.runInput.prompt
+            ? resolvePlaceholders(
+                input.runInput.prompt,
+                input.context,
+                input.project,
+                input.primaryProject,
+                input.releasesFolder,
+                input.runInput.extraPrompt,
+            )
             : sourceConversation
                 ? withTrackedFileCommitInstruction(
                     input.runInput.extraPrompt.trim().length > 0 ? input.runInput.extraPrompt : CONTINUE_INPUT,

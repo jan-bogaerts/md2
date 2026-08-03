@@ -1,6 +1,7 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ActionAgentPrompt } from './action_agent_prompt'
+import { ACTION_PROMPT_PLACEHOLDERS } from '../../data/action_placeholders'
 import { ActionPromptDraft } from '../../services/actions/action_prompt_draft_service'
 
 const setMarkdown = vi.hoisted(() => vi.fn())
@@ -14,6 +15,7 @@ vi.mock('../editor/markdown_editor', async () => {
             markdown: string
             onChange: (markdown: string) => void
             onLiveChange?: (markdown: string) => void
+            placeholders?: readonly { name: string }[]
             readOnly?: boolean
         }, ref) {
             const valueRef = useRef(props.markdown)
@@ -36,6 +38,7 @@ vi.mock('../editor/markdown_editor', async () => {
                 <textarea
                     aria-label="Markdown prompt"
                     data-flush-on-blur={props.flushOnBlur ? 'true' : 'false'}
+                    data-placeholders={props.placeholders?.map(({ name }) => name).join(',')}
                     value={value}
                     onBlur={(event) => props.onChange(event.currentTarget.value)}
                     onChange={(event) => {
@@ -61,6 +64,22 @@ vi.mock('../editor/markdown_editor', async () => {
 afterEach(cleanup)
 
 describe('ActionAgentPrompt', () => {
+    it('configures action placeholders on its hidden-toolbar editor', () => {
+        const promptDraft = new ActionPromptDraft('', false, null)
+        render(
+            <ActionAgentPrompt
+                convertMessage={null}
+                disabled={false}
+                promptDraft={promptDraft}
+            />,
+        )
+
+        expect(screen.getByLabelText('Markdown prompt')).toHaveAttribute(
+            'data-placeholders',
+            ACTION_PROMPT_PLACEHOLDERS.map(({ name }) => name).join(','),
+        )
+    })
+
     it('keeps typing local and synchronizes the prompt on blur', () => {
         const promptDraft = new ActionPromptDraft('', false, null)
         const synchronize = vi.spyOn(promptDraft, 'synchronize')
