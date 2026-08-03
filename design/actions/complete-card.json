@@ -6,8 +6,8 @@
   "appliesTo": {
     "kind": "card"
   },
+  "trackFileChanges": true,
   "streaming": true,
   "phrases": [],
-  "prompt": "Add \\`Current state\\`, \\`implementation details\\`, \\`acceptance criteria\\` for \\`{{card-file}}\\`.&#x20;\n\nRead all referenced files before you begin. &#x20;\nAsk any question if something is ambiguous or not yet clear.\nKeep it short and to the point. use $caveman skill",
-  "trackFileChanges": true
+  "prompt": "Add `Current state`, `implementation details`, `acceptance criteria` for `{{card-file}}`.&#x20;\n\nRead all referenced files before you begin except `agents` files. it is possible that the file is not yet written. &#x20;\nAsk any question if something is ambiguous or not yet clear.\nKeep it short and to the point. use $caveman skill"
 }
