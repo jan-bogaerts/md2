@@ -3,12 +3,12 @@ author:
 id: B_78
 internalId: 5514bce2-faa7-4d0f-970e-4a0d3dc4397d
 title: release moves all cards
-status: new
+status: ready
 owner: 
 affects:
 agents:
 policy:
-after: 58f7a536-89fd-490b-8112-2a850481bf23
+after: 5cdae748-9597-4d29-8dc0-3d4b5df3aa7f
 ---
 
 # Goal

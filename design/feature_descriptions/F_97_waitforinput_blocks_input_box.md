@@ -3,12 +3,12 @@ author:
 id: F_97
 internalId: c9f18659-b8ae-4fa1-8400-9056c028ccfd
 title: waitForInput blocks input box
-status: new
+status: ready
 owner: 
 affects:
 agents:
 policy:
-after: edda4ba9-0e14-414b-8da7-aa252093661c
+after: 5514bce2-faa7-4d0f-970e-4a0d3dc4397d
 ---
 
 When on an action popup where an agent (first button in the list) is running, and it goes to 'waitForInput' state, input box remains disabled, so the user can not respond. this needs to be fixed.
