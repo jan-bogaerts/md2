@@ -85,6 +85,14 @@ export class CardActionPopupService extends EventTarget {
         this.setEntries(this.entries.filter((candidate) => candidate.id !== id))
     }
 
+    activate(id: string) {
+        const entryIndex = this.entries.findIndex((entry) => entry.id === id)
+        if (entryIndex < 0 || entryIndex === this.entries.length - 1) return
+
+        const entry = this.entries[entryIndex]
+        this.setEntries([...this.entries.filter((candidate) => candidate.id !== id), entry])
+    }
+
     clear() {
         if (this.entries.length === 0) return
 

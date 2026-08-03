@@ -22,6 +22,7 @@ interface ResizablePopperProps {
     fullHeight?: boolean
     initialSize: PopperSize
     labelId: string
+    onActivate?: () => void
     onClose: () => void
     open: boolean
     paperSx?: SxProps<Theme>
@@ -29,6 +30,7 @@ interface ResizablePopperProps {
     resizeCorner?: ResizeCorner
     resizeFromAllSides?: boolean
     resizeLabel: string
+    stackPosition?: number
     storageKey?: string
 }
 
@@ -126,6 +128,7 @@ export function ResizablePopper(props: ResizablePopperProps) {
         fullHeight = false,
         initialSize,
         labelId,
+        onActivate,
         onClose,
         open,
         paperSx,
@@ -133,6 +136,7 @@ export function ResizablePopper(props: ResizablePopperProps) {
         resizeCorner = 'lower-right',
         resizeFromAllSides = false,
         resizeLabel,
+        stackPosition,
         storageKey,
     } = props
     const [size, setSize] = useState(() => loadSize(initialSize, storageKey))
@@ -194,6 +198,8 @@ export function ResizablePopper(props: ResizablePopperProps) {
     }
 
     const startDrag = (event: ReactPointerEvent) => {
+        onActivate?.()
+
         try {
             if (!draggable || fullHeight) return
 
@@ -284,12 +290,18 @@ export function ResizablePopper(props: ResizablePopperProps) {
             open={open}
             placement={placement}
             popperOptions={VIEWPORT_POPPER_OPTIONS}
-            sx={{ left: detached ? '0 !important' : undefined, top: detached ? '0 !important' : undefined, transform: detached ? 'none !important' : undefined, zIndex: 'modal' }}
+            sx={{
+                left: detached ? '0 !important' : undefined,
+                top: detached ? '0 !important' : undefined,
+                transform: detached ? 'none !important' : undefined,
+                zIndex: stackPosition === undefined ? 'modal' : (theme) => theme.zIndex.modal + stackPosition,
+            }}
         >
             <Paper
                 aria-labelledby={labelId}
                 data-full-height={fullHeight ? 'true' : undefined}
                 onClickCapture={handlePaperClickCapture}
+                onFocusCapture={onActivate}
                 onKeyDown={handleKeyDown}
                 onPointerDownCapture={startDrag}
                 ref={paperRef}

@@ -13,5 +13,7 @@ export function CardActionPopupHost() {
         () => cardActionPopupService.getSnapshot(),
     )
 
-    return entries.map((entry) => <CardActionPopupHostEntry entry={entry} key={entry.id} />)
+    return entries.map((entry, stackPosition) => (
+        <CardActionPopupHostEntry entry={entry} key={entry.id} stackPosition={stackPosition} />
+    ))
 }

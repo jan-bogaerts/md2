@@ -278,6 +278,55 @@ describe('CardRunButton', () => {
         expect(screen.getAllByRole('dialog')).toHaveLength(2)
     })
 
+    it('keeps the active card popup at the front without resetting popup state', () => {
+        const secondCard = {
+            ...card,
+            header: { ...card.header, id: 'F-011', internalId: 'f-011', title: 'Second feature' },
+            path: 'design/F-011.md',
+        }
+        render(
+            <>
+                <button type="button">Background action</button>
+                <CardRunButton card={card} context={cardContext(card, DEFAULT_CARD_TYPES)} projectKey={PROJECT_KEY} />
+                <CardRunButton card={secondCard} context={cardContext(secondCard, DEFAULT_CARD_TYPES)} projectKey={PROJECT_KEY} />
+                <CardActionPopupHost />
+            </>,
+            { wrapper: AppThemeProvider },
+        )
+        const [firstRunButton, secondRunButton] = screen.getAllByRole('button', { name: 'Run' })
+        fireEvent.click(firstRunButton)
+        const firstDialog = screen.getByRole('dialog')
+        fireEvent.click(within(firstDialog).getByRole('button', { name: 'Run lint' }))
+        fireEvent.click(secondRunButton)
+        const secondDialog = screen.getAllByRole('dialog').find((dialog) => dialog !== firstDialog)
+        if (!secondDialog) throw new Error('Missing second card action popup')
+
+        expect(firstDialog.parentElement).toHaveStyle({ zIndex: '1300' })
+        expect(secondDialog.parentElement).toHaveStyle({ zIndex: '1301' })
+
+        fireEvent.pointerDown(firstDialog)
+
+        expect(firstDialog.parentElement).toHaveStyle({ zIndex: '1301' })
+        expect(secondDialog.parentElement).toHaveStyle({ zIndex: '1300' })
+        expect(screen.getAllByRole('dialog')).toContain(firstDialog)
+        expect(within(firstDialog).getByRole('button', { name: 'Run lint' })).toHaveAttribute('aria-pressed', 'true')
+
+        fireEvent.focus(within(secondDialog).getByRole('button', { name: 'Create branch' }))
+
+        expect(firstDialog.parentElement).toHaveStyle({ zIndex: '1300' })
+        expect(secondDialog.parentElement).toHaveStyle({ zIndex: '1301' })
+
+        fireEvent.pointerDown(screen.getByRole('button', { name: 'Background action' }))
+
+        expect(firstDialog.parentElement).toHaveStyle({ zIndex: '1300' })
+        expect(secondDialog.parentElement).toHaveStyle({ zIndex: '1301' })
+
+        fireEvent.click(within(secondDialog).getByRole('button', { name: 'Close' }))
+
+        expect(screen.getAllByRole('dialog')).toEqual([firstDialog])
+        expect(firstDialog.parentElement).toHaveStyle({ zIndex: '1300' })
+    })
+
     it('selects one action at a time inside the Run popup', () => {
         renderCardRunButton()
 

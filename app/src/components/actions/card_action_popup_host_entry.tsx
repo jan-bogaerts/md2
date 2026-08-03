@@ -14,10 +14,11 @@ import { ActionPopup } from './action_popup'
 
 interface CardActionPopupHostEntryProps {
     entry: CardActionPopupEntry
+    stackPosition: number
 }
 
 /** Renders one service-owned card action popup with isolated local controller state. */
-export function CardActionPopupHostEntry({ entry }: CardActionPopupHostEntryProps) {
+export function CardActionPopupHostEntry({ entry, stackPosition }: CardActionPopupHostEntryProps) {
     useAgentAcknowledgements()
     const { snapshot } = useProjectState()
     const cards = [...(snapshot?.activeCards ?? []), ...(snapshot?.backgroundCards ?? [])]
@@ -37,6 +38,10 @@ export function CardActionPopupHostEntry({ entry }: CardActionPopupHostEntryProp
         cardActionPopupService.close(entry.id)
     }
 
+    const handleActivate = () => {
+        cardActionPopupService.activate(entry.id)
+    }
+
     const handleConversationViewed = (conversation: AgentConversation) => {
         try {
             if (!cardPath) throw new Error('Cannot acknowledge a card conversation without a card path')
@@ -54,8 +59,10 @@ export function CardActionPopupHostEntry({ entry }: CardActionPopupHostEntryProp
             anchorElement={anchorElement}
             context={entry.context}
             draggable
+            onActivate={handleActivate}
             onClose={handleClose}
             onConversationViewed={handleConversationViewed}
+            stackPosition={stackPosition}
             unseenResultConversations={unseenResultConversations}
         />
     )

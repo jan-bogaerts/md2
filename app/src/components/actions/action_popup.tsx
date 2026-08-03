@@ -15,9 +15,11 @@ interface ActionPopupProps {
     context: ActionContext
     draggable?: boolean
     initialActionId?: string
+    onActivate?: () => void
     onClose: () => void
     onConversationViewed?: (conversation: AgentConversation) => void
     open?: boolean
+    stackPosition?: number
     unseenResultConversations?: AgentConversation[]
 }
 

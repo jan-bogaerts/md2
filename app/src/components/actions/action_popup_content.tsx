@@ -62,6 +62,7 @@ interface ActionPopupContentProps {
     draggable?: boolean
     fullHeight: boolean
     onAddAction: () => void
+    onActivate?: () => void
     onClose: () => void
     onConversationViewed?: (conversation: AgentConversation) => void
     onSelectAction: (actionId: string) => void
@@ -69,6 +70,7 @@ interface ActionPopupContentProps {
     open: boolean
     primaryPath: string | null
     showSaveControls: boolean
+    stackPosition?: number
     titleId: string
     unseenResultConversations?: AgentConversation[]
 }
@@ -107,8 +109,9 @@ function worktreeAssignmentTarget(context: ActionContext): WorktreeAssignmentTar
 /** Presentation and run behavior for the internally selected popup action. */
 export function ActionPopupContent(props: ActionPopupContentProps) {
     const {
-        action, actions, anchorElement, assignmentContext, baseContext, draggable, fullHeight, onAddAction, onClose,
-        onSelectAction, onToggleFullHeight, open, primaryPath, showSaveControls, titleId, unseenResultConversations = [],
+        action, actions, anchorElement, assignmentContext, baseContext, draggable, fullHeight, onActivate, onAddAction,
+        onClose, onSelectAction, onToggleFullHeight, open, primaryPath, showSaveControls, stackPosition, titleId,
+        unseenResultConversations = [],
     } = props
     const bindings = useMemo(
         () => createActionPopupBindings(action, assignmentContext),
@@ -140,6 +143,7 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
             fullHeight={fullHeight}
             initialSize={{ height: 450, width: 400 }}
             labelId={titleId}
+            onActivate={onActivate}
             onClose={onClose}
             open={open}
             paperSx={{
@@ -152,6 +156,7 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
             }}
             resizeFromAllSides
             resizeLabel="Resize action popup"
+            stackPosition={stackPosition}
             storageKey={sizeStorageKey}
         >
             <Typography
