@@ -3,7 +3,7 @@ author:
 id: F_105
 internalId: f9129167-19a8-4d52-8478-00f1423553d7
 title: add color to action button for waiting
-status: design
+status: ready
 owner: 
 affects:
 agents:
