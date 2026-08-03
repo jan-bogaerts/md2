@@ -3,7 +3,7 @@ author:
 id: B_87
 internalId: 1b39ee56-e06e-4705-840f-7541b2a57d3d
 title: Card changed not pushed to mobile
-status: new
+status: ready
 owner: 
 affects:
 agents:
