@@ -189,6 +189,10 @@ export class CardOperations {
         return this.context.commitFiles(request)
     }
 
+    pushCommittedFiles(request: CommitRequest) {
+        return this.context.pushCommittedFiles(request)
+    }
+
     commitAndMergeFiles(request: CommitRequest, fallbackFiles: MarkdownFile[] = []) {
         return this.context.commitAndMergeFiles(request, fallbackFiles)
     }

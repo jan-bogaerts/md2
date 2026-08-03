@@ -2,7 +2,7 @@ import { Box } from '@mui/material'
 import { useRef } from 'react'
 import type { PointerEvent, RefObject } from 'react'
 
-const SCROLL_ZONE_WIDTH = 20
+const SCROLL_ZONE_WIDTH = 40
 
 interface CardViewScrollZonesProps {
     scrollContainerRef: RefObject<HTMLDivElement | null>

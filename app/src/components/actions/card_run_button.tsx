@@ -6,7 +6,6 @@ import type { MouseEvent } from 'react'
 import type { ActionContext } from '../../data/action_context'
 import type { ProjectCard } from '../../data/data_types'
 import { cardActionPopupService } from '../../services/actions/card_action_popup_service'
-import { hasUnseenAgentResult } from '../../services/agents/agent_acknowledgement_service'
 import { agentStateDescription, cardAgentState } from '../../services/agents/card_agent_state'
 import { useRunningActionForContext } from '../hooks/use_action_runs'
 
@@ -33,14 +32,8 @@ export function CardRunButton({ card, context, projectKey }: CardRunButtonProps)
                 ? 'Action is running'
                 : agentStateDescription(agentState)
     const accent = isWaiting ? 'warning.main' : isUnseen ? 'info.main' : 'primary.main'
-    const unseenResultActionIds = [...new Set(card.agentConversations.flatMap((conversation) => {
-        if (!conversation.actionId || !hasUnseenAgentResult(projectKey, card.path, [conversation])) return []
-
-        return [conversation.actionId]
-    }))]
-
     const handleRun = (event: MouseEvent<HTMLButtonElement>) => {
-        cardActionPopupService.toggle(context, event.currentTarget, projectKey, unseenResultActionIds)
+        cardActionPopupService.toggle(context, event.currentTarget, projectKey)
     }
 
     const button = (

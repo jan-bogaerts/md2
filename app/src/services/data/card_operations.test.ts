@@ -5,7 +5,7 @@ import { configService } from '../config/config_service'
 import { projectPersistenceService } from '../project/project_persistence_service'
 import { DIALOG_SERVICE_EVENT, dialogService, type DialogServiceMessage, type DialogSeverity } from '.././dialog_service'
 import { telemetryService } from '../telemetry/telemetry_service'
-import { activeCardFile, createDataService, createStorage } from '.././test_support/data_service_test_support'
+import { activeCardFile, createDataService, createDeferred, createStorage } from '.././test_support/data_service_test_support'
 import { openFilesService } from '../open_files_service'
 import { actionService } from '../actions/action_service'
 import {
@@ -1002,6 +1002,34 @@ describe('CardOperations', () => {
 
         expect(commit).toHaveBeenCalledTimes(2)
         expect(commit.mock.calls[1][0].files[0].sha).toBe('sha-2')
+    })
+
+    it('clears the saved document revision before automatic push completes', async () => {
+        configService.init()
+        const push = createDeferred<void>()
+        const storage = createStorage({
+            commit: vi.fn(async (request) => request.files),
+            push: vi.fn(() => push.promise),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        const card = service.getState().snapshot?.activeCards[0]
+        if (!card) throw new Error('Expected loaded card')
+        const document = openFilesService.openDocument(card)
+        if (document.kind !== 'card') throw new Error('Expected card document')
+        const content = '# Root\n\nLocal edit'
+        document.updateDraft({ ...card, content }, 'test')
+        service.cards.updateCardBody(card.path, content, document.createSaveReference())
+
+        const flush = service.cards.flushPendingCommits()
+        await vi.waitFor(() => expect(storage.push).toHaveBeenCalledOnce())
+
+        expect(document.dirty).toBe(false)
+        expect(service.hasPendingFile(card.path)).toBe(false)
+
+        push.resolve()
+        await flush
     })
 
     it('updates card affects through the shared header rewrite and save flow', async () => {

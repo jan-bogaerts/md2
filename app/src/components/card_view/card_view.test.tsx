@@ -1,5 +1,6 @@
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { DndContext } from '@dnd-kit/core'
+import { createRef } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { CardView } from './card_view'
 import { CardColumn } from './card_column'
@@ -64,18 +65,22 @@ function renderCardView(
     repositoryFiles = ['app/src/app.tsx', 'design/F-1.md'],
 ) {
     setProjectCards(activeCards, repositoryFiles)
+    const scrollContainerRef = createRef<HTMLDivElement>()
 
     render(
         <AppThemeProvider>
-            <CardView
-                cardTypes={DEFAULT_CARD_TYPES}
-                isMobile={false}
-                states={[
-                    { alwaysVisible: false, state: 'todo' },
-                    { alwaysVisible: false, state: 'done' },
-                ]}
-                {...overrides}
-            />
+            <div data-testid="mobile-scroll-container" ref={scrollContainerRef}>
+                <CardView
+                    cardTypes={DEFAULT_CARD_TYPES}
+                    isMobile={false}
+                    scrollContainerRef={scrollContainerRef}
+                    states={[
+                        { alwaysVisible: false, state: 'todo' },
+                        { alwaysVisible: false, state: 'done' },
+                    ]}
+                    {...overrides}
+                />
+            </div>
         </AppThemeProvider>,
     )
 }
@@ -165,33 +170,33 @@ describe('CardView', () => {
         expect(screen.getByTestId('right-card-scroll-zone')).toBeInTheDocument()
     })
 
-    it('scrolls card columns in both directions from either mobile edge and stops on pointer up', () => {
+    it('scrolls the mobile shell container from either edge and stops on pointer up', () => {
         renderCardView({ isMobile: true })
-        const cardColumns = screen.getByLabelText('Card columns')
+        const scrollContainer = screen.getByTestId('mobile-scroll-container')
         const leftZone = screen.getByTestId('left-card-scroll-zone')
         const rightZone = screen.getByTestId('right-card-scroll-zone')
-        cardColumns.scrollTop = 100
+        scrollContainer.scrollTop = 100
 
         fireEvent.pointerDown(leftZone, { clientY: 100, pointerId: 1 })
         fireEvent.pointerMove(leftZone, { clientY: 70, pointerId: 1 })
-        expect(cardColumns.scrollTop).toBe(130)
+        expect(scrollContainer.scrollTop).toBe(130)
 
         fireEvent.pointerUp(leftZone, { pointerId: 1 })
         fireEvent.pointerMove(leftZone, { clientY: 40, pointerId: 1 })
-        expect(cardColumns.scrollTop).toBe(130)
+        expect(scrollContainer.scrollTop).toBe(130)
 
         fireEvent.pointerDown(rightZone, { clientY: 50, pointerId: 2 })
         fireEvent.pointerMove(rightZone, { clientY: 80, pointerId: 2 })
-        expect(cardColumns.scrollTop).toBe(100)
+        expect(scrollContainer.scrollTop).toBe(100)
     })
 
     it('stops edge scrolling on pointer cancellation and uses native scroll boundaries', () => {
         renderCardView({ isMobile: true })
-        const cardColumns = screen.getByLabelText('Card columns')
+        const scrollContainer = screen.getByTestId('mobile-scroll-container')
         const leftZone = screen.getByTestId('left-card-scroll-zone')
         const rightZone = screen.getByTestId('right-card-scroll-zone')
         let scrollTop = 0
-        Object.defineProperty(cardColumns, 'scrollTop', {
+        Object.defineProperty(scrollContainer, 'scrollTop', {
             configurable: true,
             get: () => scrollTop,
             set: (value: number) => {
@@ -201,16 +206,16 @@ describe('CardView', () => {
 
         fireEvent.pointerDown(leftZone, { clientY: 100, pointerId: 1 })
         fireEvent.pointerMove(leftZone, { clientY: 130, pointerId: 1 })
-        expect(cardColumns.scrollTop).toBe(0)
+        expect(scrollContainer.scrollTop).toBe(0)
 
         fireEvent.pointerCancel(leftZone, { pointerId: 1 })
         fireEvent.pointerMove(leftZone, { clientY: 70, pointerId: 1 })
-        expect(cardColumns.scrollTop).toBe(0)
+        expect(scrollContainer.scrollTop).toBe(0)
 
-        cardColumns.scrollTop = 200
+        scrollContainer.scrollTop = 200
         fireEvent.pointerDown(rightZone, { clientY: 100, pointerId: 2 })
         fireEvent.pointerMove(rightZone, { clientY: 70, pointerId: 2 })
-        expect(cardColumns.scrollTop).toBe(200)
+        expect(scrollContainer.scrollTop).toBe(200)
     })
 
     it('keeps edge gestures away from cards and preserves card interaction outside the zones', () => {
@@ -553,6 +558,7 @@ describe('CardView', () => {
                 <CardView
                     cardTypes={DEFAULT_CARD_TYPES}
                     isMobile={false}
+                    scrollContainerRef={createRef<HTMLDivElement>()}
                     states={[
                         { alwaysVisible: false, state: 'todo' },
                         { alwaysVisible: false, state: 'done' },

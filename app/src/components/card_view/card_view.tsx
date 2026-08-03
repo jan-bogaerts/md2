@@ -2,6 +2,7 @@ import { Box } from '@mui/material'
 import { DndContext, DragOverlay, PointerSensor, closestCorners, useSensor, useSensors } from '@dnd-kit/core'
 import type { DragEndEvent, DragMoveEvent, DragStartEvent } from '@dnd-kit/core'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import type { RefObject } from 'react'
 import { buildCardColumns } from '../../data/card_ordering'
 import type { CardTypeConfig, StateConfig } from '../../data/data_types'
 import { useAgentAcknowledgements } from '../hooks/use_agent_acknowledgements'
@@ -25,6 +26,7 @@ const DRAG_ACTIVATION_DISTANCE = 2
 interface CardViewProps {
     cardTypes: CardTypeConfig[]
     isMobile: boolean
+    scrollContainerRef: RefObject<HTMLDivElement | null>
     states: StateConfig[]
 }
 
@@ -47,13 +49,13 @@ export function CardView(props: CardViewProps) {
     const {
         cardTypes,
         isMobile,
+        scrollContainerRef,
         states,
     } = props
     useAgentAcknowledgements()
     const columns = useCardViewColumns(states)
     const [openAffectsPath, setOpenAffectsPath] = useState<string | null>(null)
     const rootElementRef = useRef<HTMLDivElement>(null)
-    const scrollContainerRef = useRef<HTMLDivElement>(null)
     const missingRootReportedRef = useRef(false)
     const wasVisibleRef = useRef<boolean | null>(null)
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: DRAG_ACTIVATION_DISTANCE } }))
@@ -182,7 +184,6 @@ export function CardView(props: CardViewProps) {
             >
                 <Box
                     aria-label="Card columns"
-                    ref={scrollContainerRef}
                     sx={{
                         alignItems: 'flex-start',
                         display: 'flex',
@@ -192,7 +193,7 @@ export function CardView(props: CardViewProps) {
                         height: '100%',
                         overflowX: isMobile ? 'hidden' : 'auto',
                         overflowY: 'auto',
-                        p: 2.5,
+                        p: isMobile ? 0 : 2.5,
                     }}
                 >
                     {columns.map((column) => (

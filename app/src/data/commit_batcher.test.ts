@@ -18,6 +18,49 @@ describe('CommitBatcher', () => {
         expect(acknowledge).toHaveBeenCalledOnce()
     })
 
+    it('acknowledges local persistence before waiting for post-commit work', async () => {
+        const postCommit = createDeferred<void>()
+        const acknowledge = vi.fn()
+        const afterCommit = vi.fn(async () => postCommit.promise)
+        const batcher = new CommitBatcher({
+            afterCommit,
+            clearDelay: vi.fn(),
+            commit: vi.fn(async () => undefined),
+            onPendingChange: vi.fn(),
+            setDelay: vi.fn(() => 1),
+        })
+        const saveReference = { acknowledge, document: {} } as never
+        batcher.schedule('main', [{ content: 'saved', path: 'card.md', saveReference }], 'Update card')
+
+        const flush = batcher.flush()
+        await vi.waitFor(() => expect(afterCommit).toHaveBeenCalledOnce())
+
+        expect(acknowledge).toHaveBeenCalledOnce()
+        expect(batcher.hasPendingFile('card.md')).toBe(false)
+
+        postCommit.resolve()
+        await flush
+    })
+
+    it('keeps a locally persisted revision acknowledged when post-commit work fails', async () => {
+        const acknowledge = vi.fn()
+        const pushFailure = new Error('push failed')
+        const batcher = new CommitBatcher({
+            afterCommit: vi.fn(async () => { throw pushFailure }),
+            clearDelay: vi.fn(),
+            commit: vi.fn(async () => undefined),
+            onPendingChange: vi.fn(),
+            setDelay: vi.fn(() => 1),
+        })
+        const saveReference = { acknowledge, document: {} } as never
+        batcher.schedule('main', [{ content: 'saved', path: 'card.md', saveReference }], 'Update card')
+
+        await expect(batcher.flush()).rejects.toBe(pushFailure)
+
+        expect(acknowledge).toHaveBeenCalledOnce()
+        expect(batcher.hasPendingFile('card.md')).toBe(false)
+    })
+
     it('does not acknowledge a document revision when physical persistence fails', async () => {
         const acknowledge = vi.fn()
         const failure = new Error('commit failed')

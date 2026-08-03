@@ -114,6 +114,34 @@ describe('ActionConversationChat', () => {
         expect(screen.getByLabelText('Conversation chat').scrollTop).toBe(200)
     })
 
+    it('marks active conversation viewed when it completes while displayed', async () => {
+        const onConversationViewed = vi.fn()
+        const completedConversation = conversation('active.json', [message('message-1', 'Done')])
+        const runningConversation = { ...completedConversation, completedAt: null, status: 'running' as const }
+        const { rerender } = render(
+            <AppThemeProvider>
+                <ActionConversationChat
+                    conversation={runningConversation}
+                    onConversationViewed={onConversationViewed}
+                    status="running"
+                />
+            </AppThemeProvider>,
+        )
+        expect(onConversationViewed).not.toHaveBeenCalled()
+
+        rerender(
+            <AppThemeProvider>
+                <ActionConversationChat
+                    conversation={completedConversation}
+                    onConversationViewed={onConversationViewed}
+                    status="completed"
+                />
+            </AppThemeProvider>,
+        )
+
+        await waitFor(() => expect(onConversationViewed).toHaveBeenCalledWith(completedConversation))
+    })
+
     it('uses the derived Markdown style provided by the app theme', () => {
         render(
             <AppThemeProvider>

@@ -153,9 +153,9 @@ export class CardOperationContext {
         }
     }
 
-    /** Commits, merges the result into local state and applies the configured push mode. */
+    /** Commits and merges the result into local state. */
     async commitFiles(request: CommitRequest) {
-        const { config, storage } = this.dependencies.requireDependencies()
+        const { config } = this.dependencies.requireDependencies()
         const updatedFiles = await this.commitTrackingPaths(request)
 
         if (updatedFiles.length > 0) {
@@ -163,11 +163,22 @@ export class CardOperationContext {
             this.dependencies.refreshSnapshot(config.workingFolder)
         }
 
-        const currentProject = this.dependencies.project()
-        if (currentProject && config.pushMode === 'auto') await storage.push(currentProject)
         if (config.pushMode === 'manual') this.dependencies.dispatchPersistenceChanged()
 
         return updatedFiles
+    }
+
+    /** Pushes a successfully persisted batch without delaying local save acknowledgement. */
+    async pushCommittedFiles(request: CommitRequest) {
+        const { config, storage } = this.dependencies.requireDependencies()
+        if (config.pushMode !== 'auto') return
+
+        const currentProject = this.dependencies.project()
+        if (!currentProject) throw new Error('Cannot push committed files before a project is open')
+        if (currentProject.branch !== request.branch) throw new Error(`Cannot push committed files for inactive branch: ${request.branch}`)
+
+        await storage.push(currentProject)
+        this.dependencies.dispatchPersistenceChanged()
     }
 
     /** Commits and merges, falling back to the requested files when storage returns nothing. */

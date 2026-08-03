@@ -5,6 +5,7 @@ import type { OpenDocumentSaveReference } from '../services/open_files_service'
 type DelayId = number
 
 interface CommitBatcherDependencies {
+    afterCommit?: (request: CommitRequest) => Promise<unknown>
     clearDelay: (delayId: DelayId) => void
     commit: (request: CommitRequest) => Promise<unknown>
     delayMs?: number
@@ -29,6 +30,7 @@ export interface CommitFileChange extends MarkdownFile {
 
 export class CommitBatcher {
     private activeFlush: Promise<void> | null
+    private readonly afterCommit: ((request: CommitRequest) => Promise<unknown>) | null
     private readonly clearDelay
     private readonly commit
     private readonly delayMs
@@ -42,6 +44,7 @@ export class CommitBatcher {
 
     constructor(dependencies: CommitBatcherDependencies) {
         this.activeFlush = null
+        this.afterCommit = dependencies.afterCommit ?? null
         this.clearDelay = dependencies.clearDelay
         this.commit = dependencies.commit
         this.delayMs = dependencies.delayMs ?? AUTO_COMMIT_DELAY_MS
@@ -176,6 +179,7 @@ export class CommitBatcher {
         }
         if (this.pendingChanges.size === 0) this.pendingBranch = null
         this.onPendingChange()
+        await this.afterCommit?.(request)
     }
 
     private createCommitMessage() {

@@ -1,5 +1,5 @@
 import { Box, Divider, Drawer, Typography } from '@mui/material'
-import type { ReactNode } from 'react'
+import type { ReactNode, RefObject } from 'react'
 import { useCallback, useEffect, useRef } from 'react'
 import type { UseGithubAuthResult } from '../../auth/use_github_auth'
 import { workspaceViewService } from '../../services/project/workspace_view_service'
@@ -14,12 +14,13 @@ interface MobileMainWindowProps {
     leftPanel: ReactNode
     onCloseMenu: () => void
     rightPanel: ReactNode
+    rightPanelContainerRef: RefObject<HTMLDivElement | null>
     showNavigationInCards: boolean
 }
 
 /** Mobile window layout with navigation drawer and workspace content. */
 export function MobileMainWindow(props: MobileMainWindowProps) {
-    const { auth, isMenuOpen, leftPanel, onCloseMenu, rightPanel, showNavigationInCards } = props
+    const { auth, isMenuOpen, leftPanel, onCloseMenu, rightPanel, rightPanelContainerRef, showNavigationInCards } = props
     const navigationElementRef = useRef<HTMLDivElement>(null)
     const handleNavigationElement = useCallback((element: HTMLDivElement | null) => {
         navigationElementRef.current = element
@@ -64,7 +65,7 @@ export function MobileMainWindow(props: MobileMainWindowProps) {
                     </Box>
                 </Box>
             </Drawer>
-            <Box sx={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>{rightPanel}</Box>
+            <Box ref={rightPanelContainerRef} sx={{ flex: 1, minHeight: 0, overflow: 'auto' }}>{rightPanel}</Box>
         </>
     )
 }

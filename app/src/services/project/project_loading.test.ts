@@ -617,6 +617,46 @@ describe('ProjectLoading', () => {
         await vi.advanceTimersByTimeAsync(0)
     })
 
+    it('ignores a markdown watcher event received during its local commit', async () => {
+        vi.useFakeTimers()
+        configService.init()
+        configService.set('react.autoCommitDelayMs', 1000)
+        const commit = createDeferred<StorageProjectFiles['files']>()
+        const loadFile = vi.fn(async () => files[0])
+        let watchChange: (event: { changeKind: 'added' | 'changed' | 'removed' | 'unknown'; path: string }) => void = () => {
+            throw new Error('Watcher not registered')
+        }
+        const storage = createStorage({
+            commit: vi.fn(() => commit.promise),
+            loadFile,
+            watchProject: vi.fn((_project, onChange) => {
+                watchChange = onChange
+
+                return vi.fn()
+            }),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        const conflicts = recordDialogMessages('error')
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+
+        try {
+            service.cards.updateCardBody(files[0].path, '# Root\n\nLocal edit')
+            await vi.advanceTimersByTimeAsync(1000)
+            expect(storage.commit).toHaveBeenCalledOnce()
+
+            watchChange({ changeKind: 'changed', path: files[0].path })
+            await vi.advanceTimersByTimeAsync(150)
+
+            expect(loadFile).not.toHaveBeenCalled()
+            expect(conflicts.messages).toEqual([])
+        } finally {
+            commit.resolve([])
+            await vi.advanceTimersByTimeAsync(0)
+            conflicts.stop()
+        }
+    })
+
     it('surfaces action reload validation errors while loading other usable actions', async () => {
         vi.useFakeTimers()
         configService.init()
