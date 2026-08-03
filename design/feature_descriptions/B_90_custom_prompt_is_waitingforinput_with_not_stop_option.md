@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
 policy:
+after: 9df160a1-c669-422b-aea5-da5655c12134
 ---
 We had a card where the 'custom prompt' action had a conversation that was in the state 'waitingForInput', but no 'stop' or 'ready' buttons are available to mark the conversation as done.
 

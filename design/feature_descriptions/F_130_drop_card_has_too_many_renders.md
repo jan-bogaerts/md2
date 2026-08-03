@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
 policy:
+after: dfbc6cef-75cf-4a68-8e34-e72a7724769e
 ---
 it seems when dropping a card, that first the 'drop target' is removed, a full refresh is done to show the drop target is gone, then the card is added and then a final rerender is done. there is a visible glitch.
 
