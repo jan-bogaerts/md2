@@ -3,13 +3,13 @@ author:
 id: F_111
 internalId: 6fdba724-f0ab-484a-9831-0480bc6d5e8d
 title: remove new conv-led upon load conv
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
   - design/activity/card__6fdba724-f0ab-484a-9831-0480bc6d5e8d.json#conversation=agent-f72013d8-6964-4773-8e15-c3efcc2c41f0
 policy:
-after: 
+after: 1b39ee56-e06e-4705-840f-7541b2a57d3d
 ---
 When an agent is finished, we show a small blue led on the 'action' button in the `action-popup`. This is ok. However, it remains there for as long as the action popup remains open. Also, the user initially gets to see an empty chat window, which is confusing. So:
 

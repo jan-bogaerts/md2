@@ -10,7 +10,7 @@ agents:
   - design/activity/card__1b39ee56-e06e-4705-840f-7541b2a57d3d.json#conversation=agent-6e7b30ea-5d5c-439b-b2b0-7f656fe5a400
   - design/activity/card__1b39ee56-e06e-4705-840f-7541b2a57d3d.json#conversation=agent-c6f98940-00b7-4041-a50e-fe0c85838b84
 policy:
-after: 
+after: b692b422-3e30-4518-91c1-bcee5451b046
 ---
 
 When an agent changes a card and the app is running in electron, the app gets updates and the card refreshed. This does not happen when app is on mobile and connected to electron.
