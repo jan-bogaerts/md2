@@ -3,13 +3,13 @@ author:
 id: F_110
 internalId: 4b1a6636-3545-4409-bbfe-eed686514d7c
 title: card-action popup should show card id
-status: design
+status: ready for implementation
 owner: 
 affects:
 agents:
   - design/activity/card__4b1a6636-3545-4409-bbfe-eed686514d7c.json#conversation=agent-f450eda4-992d-4caf-b501-14ee88edcdb8
 policy:
-after: dc388d9d-a25d-4e74-bc32-71325cefa426
+after: 
 ---
 
 currently it's rather hard to see which action-popup belongs to which card (or is for the global project agent).
