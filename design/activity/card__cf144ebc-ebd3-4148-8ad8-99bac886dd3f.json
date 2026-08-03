@@ -1380,7 +1380,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 33,
-          "timestamp": "2026-08-02T17:22:35.965Z"
+          "timestamp": "2026-08-03T06:23:14.534Z"
         },
         {
           "content": "",
@@ -1389,6 +1389,14 @@
           "sequence": 34,
           "timestamp": "2026-08-02T17:22:35.965Z",
           "type": "turnCompleted"
+        },
+        {
+          "content": "1",
+          "id": "agent-turn-ae28100e-1b48-43a1-8fba-1c04a721c5de-closed",
+          "kind": "event",
+          "sequence": 35,
+          "timestamp": "2026-08-03T06:23:14.534Z",
+          "type": "closed"
         }
       ],
       "hasExplicitTitle": true,
