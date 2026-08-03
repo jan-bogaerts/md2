@@ -11,7 +11,6 @@ agents:
   - design/activity/card__b9792dd7-f034-4b29-9da5-04fc8cea37c9.json#conversation=agent-85ec9c5a-93f3-4e15-89b7-c363a9e9c18e
 policy:
 after: 252c6173-b044-4c83-8867-e99254db44d5
-worktree: 1
 ---
 
 Currently, we only have full support for streaming agents for the codex agent. we should do the same for the claude agent
