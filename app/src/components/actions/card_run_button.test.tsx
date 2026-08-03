@@ -1,7 +1,7 @@
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cardContext } from '../../data/action_context'
-import type { ActionRunEvent } from '../../data/action_run_types'
+import type { ActionRunEvent, ActionRunUpdate, AgentApproval } from '../../data/action_run_types'
 import type { ActionFile } from '../../data/action_types'
 import { DEFAULT_CARD_TYPES, type AgentConversation, type AgentConversationEvent, type ProjectCard, type ProjectSnapshot } from '../../data/data_types'
 import { actionRunRegistry } from '../../services/actions/action_run_registry'
@@ -69,6 +69,17 @@ const card: ProjectCard = {
     },
     isActive: true,
     path: 'design/F-010.md',
+}
+
+const approval: AgentApproval = {
+    command: 'npm test',
+    filePaths: [],
+    itemId: 'command-1',
+    kind: 'commandExecution',
+    requestId: 41,
+    startedAtMs: 1,
+    threadId: 'thread-1',
+    turnId: 'turn-1',
 }
 
 function cardWith(conversations: AgentConversation[]): ProjectCard {
@@ -205,6 +216,67 @@ describe('CardRunButton', () => {
         }))
         expect(screen.getByRole('button', { name: /Action is running/u })).toBeInTheDocument()
     })
+
+    it.each(['agentQuestion', 'agentApproval'] as const)(
+        'shows waiting card and popup states for %s updates without agent state events',
+        (interactionKind) => {
+            let listener: ((event: ActionRunEvent) => void) | null = null
+            window.md2Actions = {
+                onActionRun: (nextListener: (event: ActionRunEvent) => void) => {
+                    listener = nextListener
+
+                    return vi.fn()
+                },
+                prepareActionPrompt: vi.fn(async () => ({ prompt: '' })),
+            } as unknown as typeof window.md2Actions
+            actionRunRegistry.start()
+            if (!listener) throw new Error('Missing action run listener')
+            const context = cardContext(card, DEFAULT_CARD_TYPES)
+            renderCardRunButton()
+            const emit = listener as (event: ActionRunEvent) => void
+            const interactionUpdate: ActionRunUpdate = interactionKind === 'agentQuestion'
+                ? { kind: 'agentQuestion', questions: [{ header: 'Confirm', id: 'confirm', question: 'Proceed?' }], requestId: 7 }
+                : { approval, kind: 'agentApproval' }
+
+            act(() => {
+                emit({
+                    actionId: 'implement', context, runId: 'run-1', phase: 'main', rootActionId: 'implement',
+                    status: 'running', type: 'run',
+                })
+                emit({
+                    actionId: 'implement', context, runId: 'run-1', phase: 'main', rootActionId: 'implement',
+                    status: 'running', type: 'update', update: { conversation: conversation('running', [], 'implement'), kind: 'agentStarted' },
+                })
+                emit({
+                    actionId: 'implement', context, runId: 'run-1', phase: 'main', rootActionId: 'implement',
+                    status: 'waitingForInput', type: 'update', update: interactionUpdate,
+                })
+            })
+
+            const runButton = screen.getByRole('button', { name: /Run.*Agent is waiting for input/u })
+            fireEvent.click(runButton)
+            expect(within(screen.getByRole('dialog')).getByRole('button', {name: /Implement.*Agent is waiting for input/u})).toBeInTheDocument()
+
+            fireEvent.click(runButton)
+            expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+            fireEvent.click(runButton)
+            expect(within(screen.getByRole('dialog')).getByRole('button', {name: /Implement.*Agent is waiting for input/u})).toBeInTheDocument()
+
+            const resolvedUpdate: ActionRunUpdate = interactionKind === 'agentQuestion'
+                ? {
+                    kind: 'agentQuestionAnswer',
+                    userMessage: { content: 'Proceed', id: 'message-1', kind: 'message', role: 'user', timestamp: 'later' },
+                }
+                : { kind: 'agentApprovalResolved', requestId: approval.requestId }
+            act(() => emit({
+                actionId: 'implement', context, runId: 'run-1', phase: 'main', rootActionId: 'implement',
+                status: 'running', type: 'update', update: resolvedUpdate,
+            }))
+
+            expect(screen.getByRole('button', { name: /Run.*Action is running/u })).toBeInTheDocument()
+            expect(within(screen.getByRole('dialog')).getByRole('button', {name: /Implement.*Agent is running/u})).toBeInTheDocument()
+        },
+    )
 
     it('keeps the popup anchor mounted when an action starts', () => {
         let listener: ((event: ActionRunEvent) => void) | null = null

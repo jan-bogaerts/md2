@@ -336,7 +336,7 @@ describe('ActionRunRegistry', () => {
         service.stop()
     })
 
-    it('keeps waiting streaming runs active and tracks questions and later turns', () => {
+    it('sets question updates to waiting and restores running when answered without agent state events', () => {
         const { bridge, emit } = bridgeWithEvents()
         setActionBridgeOverride(bridge)
         const service = new ActionRunRegistry()
@@ -354,7 +354,6 @@ describe('ActionRunRegistry', () => {
             actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'waitingForInput', type: 'update',
             update: { kind: 'agentQuestion', questions, requestId: 7 },
         })
-        emit({ actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'waitingForInput', type: 'agentState' })
 
         expect(getRun(service)).toMatchObject({
             question: { questions, requestId: 7 },
@@ -363,9 +362,8 @@ describe('ActionRunRegistry', () => {
 
         emit({
             actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
-            update: { kind: 'agentUserMessage', userMessage: nextMessage },
+            update: { kind: 'agentQuestionAnswer', userMessage: nextMessage },
         })
-        emit({ actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'agentState' })
 
         expect(getRun(service)).toMatchObject({
             conversation: { entries: [firstMessage, nextMessage], status: 'running' },
@@ -404,13 +402,9 @@ describe('ActionRunRegistry', () => {
                 actionId: 'build', context, runId: 'run-1', phase: 'main', rootActionId: 'build', sequence: 5,
                 status: 'waitingForInput', type: 'update', update: { kind: 'agentQuestion', questions, requestId: 7 },
             },
-            {
-                actionId: 'build', actionType: 'agent', context, runId: 'run-1', interactionReady: true,
-                phase: 'main', rootActionId: 'build', sequence: 6, status: 'waitingForInput', streaming: true, type: 'agentState',
-            },
         ]
         service.start()
-        emit(events[5])
+        emit(events[4])
         resolveSnapshot(events)
 
         await vi.waitFor(() => expect(getRun(service)).toMatchObject({

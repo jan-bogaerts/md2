@@ -584,12 +584,20 @@ export class ActionRunRegistry extends EventTarget {
             }
         }
         if (event.type === 'update' && event.update.kind === 'agentQuestion') {
-            next = { ...next, question: { questions: event.update.questions, requestId: event.update.requestId } }
+            next = {
+                ...next,
+                question: { questions: event.update.questions, requestId: event.update.requestId },
+                status: 'waitingForInput',
+            }
         }
         if (event.type === 'update' && event.update.kind === 'agentApproval') {
             const requestId = event.update.approval.requestId
             const approvals = next.approvals.filter((approval) => approval.requestId !== requestId)
-            next = { ...next, approvals: [...approvals, { ...event.update.approval, submitted: false }] }
+            next = {
+                ...next,
+                approvals: [...approvals, { ...event.update.approval, submitted: false }],
+                status: 'waitingForInput',
+            }
         }
         if (event.type === 'update' && event.update.kind === 'agentApprovalSubmitted') {
             const { requestId } = event.update
@@ -602,7 +610,12 @@ export class ActionRunRegistry extends EventTarget {
         }
         if (event.type === 'update' && event.update.kind === 'agentApprovalResolved') {
             const { requestId } = event.update
-            next = { ...next, approvals: next.approvals.filter((approval) => approval.requestId !== requestId) }
+            const approvals = next.approvals.filter((approval) => approval.requestId !== requestId)
+            next = {
+                ...next,
+                approvals,
+                status: next.question || approvals.length > 0 ? 'waitingForInput' : event.status,
+            }
         }
         if (
             event.type === 'update'
@@ -616,6 +629,7 @@ export class ActionRunRegistry extends EventTarget {
                     entries: [...next.conversation.entries, event.update.userMessage],
                 },
                 question: null,
+                status: next.approvals.length > 0 ? 'waitingForInput' : event.status,
             }
             if (event.update.kind === 'agentUserMessage') {
                 actionPromptDraftService.clearRunDraft(event.runId, event.actionId)
