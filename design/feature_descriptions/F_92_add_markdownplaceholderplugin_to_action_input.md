@@ -11,6 +11,7 @@ agents:
   - design/activity/card__cf144ebc-ebd3-4148-8ad8-99bac886dd3f.json#conversation=agent-af0f70e2-7ad8-473a-9862-c858ecd84874
 policy:
 after: 
+worktree: 2
 ---
 
 the Action popup's input is a markdown editor. It should support markdownPlaceholderPlugin so that placeholders can be inserted.
