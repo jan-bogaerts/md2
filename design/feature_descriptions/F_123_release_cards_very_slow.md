@@ -10,5 +10,6 @@ agents:
 policy:
 after: 528ea430-ce5c-4e61-ac31-70c93daf5eaa
 ---
+Release is done, but dialog remains open, released cards aren't removed from the board.
 
-Release is done, but dialog remains open, released cards aren't removed from the board
+It appears to mostly take a long time
