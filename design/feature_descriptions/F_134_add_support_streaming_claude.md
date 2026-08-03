@@ -3,7 +3,7 @@ author:
 id: F_134
 internalId: b9792dd7-f034-4b29-9da5-04fc8cea37c9
 title: add support streaming claude
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:

@@ -287,6 +287,7 @@ describe('ProjectSessionService storage activation', () => {
         expect(bridge.saveProjectConfig).toHaveBeenCalledWith(project, expect.objectContaining({
             backgroundShade: expect.stringMatching(/^(amber|blue|green|purple|red)$/u),
             projectFolder: 'design',
+            pushMode: 'manual',
             workingFolder: 'active',
         }))
         expect(dataService.projectLoading.openProject).toHaveBeenCalledWith(project)

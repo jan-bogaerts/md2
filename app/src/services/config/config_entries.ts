@@ -194,7 +194,7 @@ export const CONFIG_ENTRIES: ConfigEntry[] = [
         type: 'string',
     },
     {
-        defaultValue: 'auto',
+        defaultValue: 'manual',
         description: 'Push commits automatically or wait for an explicit push.',
         editable: true,
         key: 'project.pushMode',

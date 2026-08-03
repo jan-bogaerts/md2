@@ -50,6 +50,25 @@ describe('ConfigService', () => {
         expect(service.getProjectConfig().actionsFolder).toBe('actions')
     })
 
+    it('defaults push mode to manual and preserves explicit values', () => {
+        service.init()
+        service.loadProjectConfig(null)
+
+        expect(service.getProjectConfig().pushMode).toBe('manual')
+
+        service.loadProjectConfig({ workingFolder: 'docs' })
+
+        expect(service.getProjectConfig().pushMode).toBe('manual')
+
+        service.loadProjectConfig({ pushMode: 'auto' })
+
+        expect(service.getProjectConfig().pushMode).toBe('auto')
+
+        service.loadProjectConfig({ pushMode: 'manual' })
+
+        expect(service.getProjectConfig().pushMode).toBe('manual')
+    })
+
     it('defaults new projects to underscore and identifies existing configs without the key as legacy hyphen projects', () => {
         service.init()
         service.loadProjectConfig(null)
@@ -150,20 +169,20 @@ describe('ConfigService', () => {
         service.init()
         service.loadProjectConfig(null)
         service.loadDraft()
-        service.setDraftValue('project.pushMode', 'manual')
+        service.setDraftValue('project.pushMode', 'auto')
         service.discardDraft()
 
-        expect(service.getProjectConfig().pushMode).toBe('auto')
+        expect(service.getProjectConfig().pushMode).toBe('manual')
     })
 
     it('applies validated draft values on save', () => {
         service.init()
         service.loadProjectConfig(null)
         service.loadDraft()
-        service.setDraftValue('project.pushMode', 'manual')
+        service.setDraftValue('project.pushMode', 'auto')
         service.saveDraft()
 
-        expect(service.getProjectConfig().pushMode).toBe('manual')
+        expect(service.getProjectConfig().pushMode).toBe('auto')
     })
 
     it('detects draft changes by config source', () => {
@@ -179,7 +198,7 @@ describe('ConfigService', () => {
         expect(service.hasDraftChangesForSource('react')).toBe(true)
         expect(service.hasDraftChangesForSource('project')).toBe(false)
 
-        service.setDraftValue('project.pushMode', 'manual')
+        service.setDraftValue('project.pushMode', 'auto')
 
         expect(service.hasDraftChangesForSource('project')).toBe(true)
     })

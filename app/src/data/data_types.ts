@@ -447,7 +447,7 @@ export const DEFAULT_PROJECT_CONFIG: ProjectConfig = {
     cardTypes: DEFAULT_CARD_TYPES,
     diffCommand: DEFAULT_DIFF_COMMAND,
     projectFolder: DEFAULT_PROJECT_FOLDER,
-    pushMode: 'auto',
+    pushMode: 'manual',
     releasesFolder: DEFAULT_RELEASES_FOLDER,
     states: DEFAULT_STATES,
     workingFolder: DEFAULT_WORKING_FOLDER,
