@@ -93,11 +93,14 @@ export function ActionSelector(props: ActionSelectorProps) {
                                         overflow: 'hidden',
                                         position: 'relative',
                                         ...(isWaiting && {
-                                            borderColor: 'warning.main',
-                                            color: 'warning.main',
-                                            '&.Mui-selected': {
+                                            '&.MuiToggleButton-root.MuiToggleButtonGroup-grouped': {
                                                 borderColor: 'warning.main',
                                                 color: 'warning.main',
+                                                '&:hover': { borderColor: 'warning.main', color: 'warning.main' },
+                                                '&.Mui-selected': {
+                                                    borderColor: 'warning.main',
+                                                    color: 'warning.main',
+                                                },
                                             },
                                         }),
                                         ...(isRunning && {
