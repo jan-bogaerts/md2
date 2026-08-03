@@ -9,6 +9,7 @@ affects:
 agents:
   - design/activity/card__b0ac8dca-7740-48b1-b5d4-1c1e5750ee39.json#conversation=agent-5f1da2db-defb-49ac-96ba-9af01b3f450d
   - design/activity/card__b0ac8dca-7740-48b1-b5d4-1c1e5750ee39.json#conversation=agent-3012e198-eb8c-4264-af53-b13d6043fb6a
+  - design/activity/card__b0ac8dca-7740-48b1-b5d4-1c1e5750ee39.json#conversation=agent-6d02c78d-31fb-447a-a191-eae980575b35
 policy:
 after: 
 worktree: 1
