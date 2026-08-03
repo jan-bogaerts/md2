@@ -2,7 +2,7 @@
 author: 
 id: F_123
 internalId: 3d893637-4714-428d-be90-b839925b7cad
-title: release cards fails to stop
+title: release cards very slow
 status: new
 owner: 
 affects:
