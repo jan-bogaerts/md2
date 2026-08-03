@@ -11,7 +11,6 @@ agents:
   - design/activity/card__b692b422-3e30-4518-91c1-bcee5451b046.json#conversation=agent-920bd107-7631-4ebb-9c0b-31d6db64d8db
 policy:
 after: fb78171f-6c8d-4760-8e63-7ac2eff93256
-worktree: 3
 ---
 
 on the action popup, when the state is 'waiting for input', the timer should stop counting and only restart again once the input has been provided.
