@@ -490,6 +490,28 @@ describe('ActionConversationChat', () => {
         expect(screen.queryByText(/\{"query"/u)).not.toBeInTheDocument()
     })
 
+    it('renders one canonical multiline diagnostic block in line order', () => {
+        const activity: AgentConversationEvent = {
+            content: 'item/started: futureTool (future-1)\nitem/completed: futureTool (future-1)',
+            id: 'diagnostic-1',
+            label: 'Codex protocol diagnostic',
+            providerItemId: 'diagnostic:future-1:1',
+            sequence: 1,
+            status: 'completed',
+            timestamp: 'now',
+            type: 'diagnostic',
+        }
+
+        renderChat(conversation('codex.json', [eventEntry(activity)], 'codex'))
+        const buttons = screen.getAllByRole('button', { name: 'Codex protocol diagnostic details' })
+        expect(buttons).toHaveLength(1)
+        fireEvent.click(buttons[0])
+
+        const started = screen.getByText('item/started: futureTool (future-1)')
+        const completed = screen.getByText('item/completed: futureTool (future-1)')
+        expect(started.compareDocumentPosition(completed) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0)
+    })
+
     it('omits legacy null command metadata', () => {
         const activity: AgentConversationEvent = {
             command: 'npm test',

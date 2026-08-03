@@ -1,13 +1,11 @@
-import { promises as fsPromises } from 'node:fs';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createRequire } from 'node:module';
 import { describe, expect, it, vi } from 'vitest';
 
-const LARGE_REPOSITORY_FILE_COUNT = 150_000;
-
 const require = createRequire(import.meta.url);
+const { GitProcess } = require('../git/git_process');
 const {
     listRepositoryFiles,
     loadProject,
@@ -31,49 +29,29 @@ describe('project-files', () => {
         }
     });
 
-    it('lists repository files as normalized repo-relative paths excluding git internals', async () => {
+    it('lists tracked and nonignored untracked repository files while excluding deleted paths', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-project-files-'));
 
         try {
             await mkdir(join(rootPath, '.git'), { recursive: true });
-            await writeFile(join(rootPath, '.git', 'config'), 'git config');
-            await mkdir(join(rootPath, 'app', 'src'), { recursive: true });
-            await writeFile(join(rootPath, 'app', 'src', 'main.tsx'), 'main');
-            await writeFile(join(rootPath, 'README.md'), 'readme');
-
-            const files = await listRepositoryFiles({ branch: 'main', id: 'local', rootPath });
-
-            expect(files).toEqual(['app/src/main.tsx', 'README.md']);
-        } finally {
-            await rm(rootPath, { force: true, recursive: true });
-        }
-    });
-
-    it('lists a subtree with more files than the function argument limit', async () => {
-        const rootPath = await mkdtemp(join(tmpdir(), 'md2-project-files-'));
-        const largeFolderPath = join(rootPath, 'large');
-
-        try {
-            await mkdir(join(rootPath, '.git'));
-            const fileEntries = Array.from({ length: LARGE_REPOSITORY_FILE_COUNT }, (_, index) => ({
-                isDirectory: () => false,
-                isFile: () => true,
-                name: `file-${String(index).padStart(6, '0')}.txt`,
-            }));
-            vi.spyOn(fsPromises, 'readdir').mockImplementation(async (folderPath) => {
-                if (folderPath === rootPath) {
-                    return [{ isDirectory: () => true, isFile: () => false, name: 'large' }];
-                }
-
-                if (folderPath === largeFolderPath) return fileEntries;
-                throw new Error(`Unexpected folder path: ${folderPath}`);
+            const runGitProcess = vi.spyOn(GitProcess.prototype, 'run');
+            runGitProcess.mockResolvedValueOnce({
+                stderr: '',
+                stdout: 'app\\src\\main.tsx\0README.md\0notes.txt\0deleted.md\0',
             });
+            runGitProcess.mockResolvedValueOnce({ stderr: '', stdout: 'deleted.md\0' });
 
             const files = await listRepositoryFiles({ branch: 'main', id: 'local', rootPath });
 
-            expect(files).toHaveLength(LARGE_REPOSITORY_FILE_COUNT);
-            expect(files[0]).toBe('large/file-000000.txt');
-            expect(files.at(-1)).toBe('large/file-149999.txt');
+            expect(runGitProcess.mock.instances[0].args).toEqual([
+                'ls-files',
+                '--cached',
+                '--others',
+                '--exclude-standard',
+                '--deduplicate',
+                '-z',
+            ]);
+            expect(files).toEqual(['app/src/main.tsx', 'notes.txt', 'README.md']);
         } finally {
             vi.restoreAllMocks();
             await rm(rootPath, { force: true, recursive: true });

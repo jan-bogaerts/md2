@@ -173,6 +173,10 @@ function createProviderEventEntryIndexes(entries) {
     return providerEventEntryIndexes;
 }
 
+function appendDiagnosticContent(eventEntry, content) {
+    return { ...eventEntry, content: `${eventEntry.content}\n${content}` };
+}
+
 function lastMessageEntry(conversation) {
     return conversation.entries.findLast(({ kind }) => kind === 'message');
 }
@@ -860,15 +864,21 @@ class AgentRunnerService {
                 eventEntry = createProviderEventEntry(safeEvent, current.id, timestamp, current.sequence);
                 run.conversation.entries[currentIndex] = eventEntry;
             } else {
-                const sequence = nextRunSequence(run);
-                eventEntry = createProviderEventEntry(
-                    safeEvent,
-                    `${runId}-event-${sequence}`,
-                    timestamp,
-                    sequence,
-                );
-                run.providerEventEntryIndexes.set(providerItemId, run.conversation.entries.length);
-                run.conversation.entries.push(eventEntry);
+                const previousEntry = run.conversation.entries.at(-1);
+                if (safeEvent.type === 'diagnostic' && previousEntry?.kind === 'event' && previousEntry.type === 'diagnostic') {
+                    eventEntry = appendDiagnosticContent(previousEntry, safeEvent.content);
+                    run.conversation.entries[run.conversation.entries.length - 1] = eventEntry;
+                } else {
+                    const sequence = nextRunSequence(run);
+                    eventEntry = createProviderEventEntry(
+                        safeEvent,
+                        `${runId}-event-${sequence}`,
+                        timestamp,
+                        sequence,
+                    );
+                    run.providerEventEntryIndexes.set(providerItemId, run.conversation.entries.length);
+                    run.conversation.entries.push(eventEntry);
+                }
             }
             emitRunEvent(run, { event: eventEntry, type: 'agentEvent' });
             return;

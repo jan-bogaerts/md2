@@ -4,6 +4,13 @@ import { describe, expect, it, vi } from 'vitest';
 const require = createRequire(import.meta.url);
 const { AGENT_FINISH_GRACE_MS, AgentRunnerService } = require('./agent_runner_service');
 
+function diagnosticStreamingEvent(content, providerItemId) {
+    return {
+        event: { content, label: 'Codex protocol diagnostic', providerItemId, status: 'completed', type: 'diagnostic' },
+        type: 'event',
+    };
+}
+
 describe('AgentRunnerService state handling', () => {
     it('reports one diagnosed Codex cache error and suppresses repeats', async () => {
         const diagnoseCodexCacheError = vi.fn(async () => 'Codex versions differ. Update Codex.');
@@ -406,6 +413,51 @@ describe('AgentRunnerService state handling', () => {
         });
         expect(run.onEvent).toHaveBeenCalledWith(expect.objectContaining({
             event: expect.objectContaining({ content: 'Completed', id: 'activity-1' }),
+            type: 'agentEvent',
+        }));
+    });
+
+    it('groups consecutive diagnostics while preserving first identity and recognized event boundaries', async () => {
+        const service = new AgentRunnerService();
+        const run = {
+            providerEventEntryIndexes: new Map(),
+            conversation: { entries: [], status: 'running' },
+            id: 'run-1',
+            nextSequence: 1,
+            onEvent: vi.fn(),
+            secretValues: new Set(),
+        };
+        service.processes.set('run-1', run);
+
+        await service.handleStreamingEvent('run-1', diagnosticStreamingEvent('item/started: futureTool (future-1)', 'diagnostic:future-1:1'));
+        await service.handleStreamingEvent('run-1', diagnosticStreamingEvent('item/completed: futureTool (future-1)', 'diagnostic:future-1:2'));
+        await service.handleStreamingEvent('run-1', {
+            event: { content: 'Search', label: 'Web search', providerItemId: 'search-1', status: 'completed', type: 'webSearch' },
+            type: 'event',
+        });
+        await service.handleStreamingEvent('run-1', diagnosticStreamingEvent('item/started: futureTool (future-2)', 'diagnostic:future-2:3'));
+        await service.handleStreamingEvent('run-1', diagnosticStreamingEvent('item/completed: futureTool (future-2)', 'diagnostic:future-2:4'));
+
+        expect(run.conversation.entries).toEqual([
+            expect.objectContaining({
+                content: 'item/started: futureTool (future-1)\nitem/completed: futureTool (future-1)',
+                id: 'run-1-event-1',
+                providerItemId: 'diagnostic:future-1:1',
+                sequence: 1,
+            }),
+            expect.objectContaining({ providerItemId: 'search-1', sequence: 2 }),
+            expect.objectContaining({
+                content: 'item/started: futureTool (future-2)\nitem/completed: futureTool (future-2)',
+                id: 'run-1-event-3',
+                providerItemId: 'diagnostic:future-2:3',
+                sequence: 3,
+            }),
+        ]);
+        expect(run.onEvent).toHaveBeenNthCalledWith(2, expect.objectContaining({
+            event: expect.objectContaining({
+                content: 'item/started: futureTool (future-1)\nitem/completed: futureTool (future-1)',
+                providerItemId: 'diagnostic:future-1:1',
+            }),
             type: 'agentEvent',
         }));
     });

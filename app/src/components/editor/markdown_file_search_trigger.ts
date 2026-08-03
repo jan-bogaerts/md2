@@ -1,5 +1,4 @@
 import type { TriggerFn } from '@lexical/react/LexicalTypeaheadMenuPlugin'
-import { repositoryFileMatchesQuery } from './markdown_file_search'
 
 const FILE_SEARCH_TRIGGER_PATTERN = /(^|[\s(])@([^\s@]*)$/u
 
@@ -19,12 +18,9 @@ function parseFileSearchTrigger(text: string) {
 
 export const matchFileSearchTrigger: TriggerFn = (text) => parseFileSearchTrigger(text)
 
-/** Match file-search trigger only when current query has repository results. */
+/** Match file-search trigger only when a repository file index is available. */
 export function matchFileSearchTriggerForFiles(text: string, repositoryFiles: readonly string[]) {
-    const match = parseFileSearchTrigger(text)
-    if (!match || !repositoryFiles.some((repositoryPath) => (
-        repositoryFileMatchesQuery(repositoryPath, match.matchingString)
-    ))) return null
+    if (repositoryFiles.length === 0) return null
 
-    return match
+    return parseFileSearchTrigger(text)
 }

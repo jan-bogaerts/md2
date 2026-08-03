@@ -103,10 +103,28 @@ function normalizeArray(value, normalize) {
     return value.map(normalize).filter((entry) => entry !== null)
 }
 
+function coalesceDiagnosticEntries(entries) {
+    const groupedEntries = []
+    for (const entry of entries) {
+        const previousEntry = groupedEntries.at(-1)
+        if (entry.kind === 'event' && entry.type === 'diagnostic'
+            && previousEntry?.kind === 'event' && previousEntry.type === 'diagnostic') {
+            groupedEntries[groupedEntries.length - 1] = {
+                ...previousEntry,
+                content: `${previousEntry.content}\n${entry.content}`,
+            }
+            continue
+        }
+        groupedEntries.push(entry)
+    }
+
+    return groupedEntries
+}
+
 function normalizeEntries(value) {
     if (!Array.isArray(value)) throw new Error('Malformed agent conversation: missing entries')
 
-    return value.map((entry, index) => {
+    const entries = value.map((entry, index) => {
         if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
             throw new Error(`Malformed agent conversation: invalid entries[${index}]`)
         }
@@ -119,6 +137,8 @@ function normalizeEntries(value) {
 
         return normalized
     })
+
+    return coalesceDiagnosticEntries(entries)
 }
 
 /** Parse one canonical conversation record and validate every ordered entry. */

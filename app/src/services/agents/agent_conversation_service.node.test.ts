@@ -117,6 +117,54 @@ describe('parseAgentConversationLog', () => {
         })
     })
 
+    it('groups persisted consecutive diagnostics while preserving boundaries and first identity', () => {
+        const timestamp = '2026-01-01T00:00:00.000Z'
+        const conversation = parseAgentConversationLog(JSON.stringify({
+            completedAt: timestamp,
+            entries: [
+                {
+                    content: 'item/started: futureTool (future-1)', id: 'diagnostic-1', kind: 'event',
+                    label: 'Codex protocol diagnostic', providerItemId: 'diagnostic:future-1:1', sequence: 1,
+                    status: 'completed', timestamp, type: 'diagnostic',
+                },
+                {
+                    content: 'item/completed: futureTool (future-1)', id: 'diagnostic-2', kind: 'event',
+                    payload: { secret: 'not persisted' }, providerItemId: 'diagnostic:future-1:2', sequence: 2,
+                    timestamp, type: 'diagnostic',
+                },
+                {
+                    content: 'Search', id: 'search-1', kind: 'event', providerItemId: 'search-1', sequence: 3,
+                    timestamp, type: 'webSearch',
+                },
+                {
+                    content: 'already grouped line one\nalready grouped line two', id: 'diagnostic-3', kind: 'event',
+                    providerItemId: 'diagnostic:future-2:3', sequence: 4, timestamp, type: 'diagnostic',
+                },
+                { content: 'Answer', id: 'message-1', kind: 'message', role: 'assistant', sequence: 5, timestamp },
+                {
+                    content: 'item/started: futureTool (future-3)', id: 'diagnostic-4', kind: 'event',
+                    providerItemId: 'diagnostic:future-3:4', sequence: 6, timestamp, type: 'diagnostic',
+                },
+            ],
+            id: 'agent-1',
+            startedAt: timestamp,
+            status: 'completed',
+        }), 'design/logs/diagnostics.json')
+
+        expect(conversation.entries).toHaveLength(5)
+        expect(conversation.entries[0]).toMatchObject({
+            content: 'item/started: futureTool (future-1)\nitem/completed: futureTool (future-1)',
+            id: 'diagnostic-1',
+            providerItemId: 'diagnostic:future-1:1',
+            sequence: 1,
+        })
+        expect(conversation.entries.map(({ id }) => id)).toEqual([
+            'diagnostic-1', 'search-1', 'diagnostic-3', 'message-1', 'diagnostic-4',
+        ])
+        expect(conversation.entries[2]).toMatchObject({ content: 'already grouped line one\nalready grouped line two' })
+        expect(JSON.stringify(conversation.entries)).not.toContain('not persisted')
+    })
+
     it('fails malformed logs with missing required data', () => {
         expect(() => parseAgentConversationLog(
             JSON.stringify({ cardPath: 'design/F-1.md', entries: [], id: 'agent-1', status: 'completed' }),
