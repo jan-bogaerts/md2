@@ -251,6 +251,9 @@ export class DataService extends EventTarget {
             dispatchChanged: () => this.dispatchChanged(),
             dispatchPersistenceChanged: () => this.dispatchPersistenceChanged(),
             commitPathsInFlight: () => this.projectState.commitPathsInFlight,
+            deleteFile: (path, committedFiles, workingFolder) => (
+                this.projectState.deleteFile(path, committedFiles, workingFolder)
+            ),
             files: () => this.projectState.files,
             mergeCommittedFiles: (files, workingFolder) => this.projectState.mergeCommittedFiles(files, workingFolder),
             project: () => this.projectState.project,

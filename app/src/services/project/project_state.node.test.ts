@@ -41,6 +41,20 @@ describe('ProjectState', () => {
         expect(state.snapshot?.activeCards.map((card) => card.path)).toEqual(['design/F-1-first.md', 'design/F-2-second.md'])
     })
 
+    it('merges companion writes and removes a deleted file from loaded and repository state', () => {
+        const state = createState()
+        const firstFile = createFile('design/F-1-first.md', 'First')
+        const secondFile = createFile('design/F-2-second.md', 'Second')
+        const updatedSecondFile = { ...secondFile, content: secondFile.content.replace('Body', 'Updated'), sha: 'updated-sha' }
+
+        state.replaceProjectFiles([firstFile, secondFile], WORKING_FOLDER, [firstFile.path, secondFile.path])
+        state.deleteFile(firstFile.path, [updatedSecondFile], WORKING_FOLDER)
+
+        expect(state.files).toEqual([updatedSecondFile])
+        expect(state.snapshot?.activeCards.map((card) => card.path)).toEqual([secondFile.path])
+        expect(state.snapshot?.repositoryFiles).toEqual([secondFile.path])
+    })
+
     it('reports active card transitions after snapshot changes', () => {
         const activeCardsChanged = vi.fn()
         const state = new ProjectState((cards) => cards, activeCardsChanged)

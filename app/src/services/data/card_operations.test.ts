@@ -602,23 +602,25 @@ describe('CardOperations', () => {
             activeCardFile('b', { after: 'a', sha: 'sha-b' }),
             activeCardFile('c', { after: 'b', sha: 'sha-c' }),
         ]
-        const refreshedFiles = [
-            activeCardFile('a', { sha: 'sha-a' }),
-            activeCardFile('c', { after: 'a', sha: 'sha-c-next' }),
-        ]
+        const commit = vi.fn<StorageService['commit']>(async (request) => (
+            request.files.map((file) => ({ ...file, sha: 'sha-c-next' }))
+        ))
         const storage = createStorage({
-            loadProject: vi.fn()
-                .mockResolvedValueOnce({ files: deletionFiles, workingFolder: 'design' })
-                .mockResolvedValueOnce({ files: refreshedFiles, workingFolder: 'design' }),
+            commit,
+            listRepositoryFiles: vi.fn(async () => deletionFiles.map(({ path }) => path)),
+            loadProject: vi.fn(async () => ({ files: deletionFiles, workingFolder: 'design' })),
             loadProjectRoot: vi.fn(async () => ({ files: deletionFiles, workingFolder: 'design' })),
         })
         const service = createDataService()
         service.init({ storage })
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        const reloadCurrentProjectSnapshot = vi.spyOn(service.projectLoading, 'reloadCurrentProjectSnapshot')
+        const loadProjectCalls = vi.mocked(storage.loadProject).mock.calls.length
+        const listRepositoryFilesCalls = vi.mocked(storage.listRepositoryFiles).mock.calls.length
         const snapshot = await service.cards.deleteCard('design/B-1-b.md')
 
-        const repairCommit = vi.mocked(storage.commit).mock.calls[0][0]
+        const repairCommit = commit.mock.calls[0][0]
         expect(repairCommit).toMatchObject({ branch: 'main', message: 'Repair ordering after deleting design/B-1-b.md' })
         expect(repairCommit.files.map((file) => file.path)).toEqual(['design/C-1-c.md'])
         expect(repairCommit.files[0].content).toContain('after: a')
@@ -632,6 +634,14 @@ describe('CardOperations', () => {
             vi.mocked(storage.deleteFile).mock.invocationCallOrder[0],
         )
         expect(snapshot?.activeCards.map((card) => card.path)).toEqual(['design/A-1-a.md', 'design/C-1-c.md'])
+        expect(snapshot?.activeCards.find((card) => card.path === 'design/C-1-c.md')).toMatchObject({
+            header: expect.objectContaining({ after: 'a' }),
+            sha: 'sha-c-next',
+        })
+        expect(snapshot?.repositoryFiles).toEqual(['design/A-1-a.md', 'design/C-1-c.md'])
+        expect(reloadCurrentProjectSnapshot).not.toHaveBeenCalled()
+        expect(storage.loadProject).toHaveBeenCalledTimes(loadProjectCalls)
+        expect(storage.listRepositoryFiles).toHaveBeenCalledTimes(listRepositoryFilesCalls)
     })
 
     it('does not repair ordering after deleting a tail card', async () => {
@@ -641,9 +651,7 @@ describe('CardOperations', () => {
             activeCardFile('b', { after: 'a', sha: 'sha-b' }),
         ]
         const storage = createStorage({
-            loadProject: vi.fn()
-                .mockResolvedValueOnce({ files: deletionFiles, workingFolder: 'design' })
-                .mockResolvedValueOnce({ files: [deletionFiles[0]], workingFolder: 'design' }),
+            loadProject: vi.fn(async () => ({ files: deletionFiles, workingFolder: 'design' })),
             loadProjectRoot: vi.fn(async () => ({ files: deletionFiles, workingFolder: 'design' })),
         })
         const service = createDataService()
@@ -659,11 +667,10 @@ describe('CardOperations', () => {
     it('deletes an action file that is indexed in the repository but not loaded as a card', async () => {
         configService.init()
         const actionPath = 'design/actions/test.json'
-        let deleted = false
-        const deleteFile = vi.fn(async () => { deleted = true })
+        const deleteFile = vi.fn()
         const storage = createStorage({
             deleteFile,
-            listRepositoryFiles: vi.fn(async () => deleted ? [] : [actionPath]),
+            listRepositoryFiles: vi.fn(async () => [actionPath]),
             loadProject: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
             loadProjectRoot: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
         })
@@ -672,6 +679,7 @@ describe('CardOperations', () => {
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
         await vi.waitFor(() => expect(service.getState().snapshot?.repositoryFiles).toContain(actionPath))
+        const listRepositoryFilesCalls = vi.mocked(storage.listRepositoryFiles).mock.calls.length
         await service.cards.deleteFile(actionPath)
 
         expect(deleteFile).toHaveBeenCalledWith({
@@ -680,6 +688,7 @@ describe('CardOperations', () => {
             path: actionPath,
         })
         expect(service.getState().snapshot?.repositoryFiles).not.toContain(actionPath)
+        expect(storage.listRepositoryFiles).toHaveBeenCalledTimes(listRepositoryFilesCalls)
     })
 
     it('leaves deleted files unpushed in manual mode', async () => {
@@ -689,9 +698,7 @@ describe('CardOperations', () => {
             activeCardFile('b', { after: 'a', sha: 'sha-b' }),
         ]
         const storage = createStorage({
-            loadProject: vi.fn()
-                .mockResolvedValueOnce({ files: deletionFiles, workingFolder: 'design' })
-                .mockResolvedValueOnce({ files: [deletionFiles[0]], workingFolder: 'design' }),
+            loadProject: vi.fn(async () => ({ files: deletionFiles, workingFolder: 'design' })),
             loadProjectRoot: vi.fn(async () => ({ files: deletionFiles, workingFolder: 'design' })),
             loadProjectConfig: vi.fn(async () => ({ backgroundShade: 'blue' as const, projectFolder: '', pushMode: 'manual' as const, workingFolder: 'design' })),
         })
@@ -738,9 +745,7 @@ describe('CardOperations', () => {
             activeCardFile('b', { after: 'a', sha: 'sha-b' }),
         ]
         const storage = createStorage({
-            loadProject: vi.fn()
-                .mockResolvedValueOnce({ files: deletionFiles, workingFolder: 'design' })
-                .mockResolvedValueOnce({ files: [deletionFiles[0]], workingFolder: 'design' }),
+            loadProject: vi.fn(async () => ({ files: deletionFiles, workingFolder: 'design' })),
             loadProjectRoot: vi.fn(async () => ({ files: deletionFiles, workingFolder: 'design' })),
         })
         const service = createDataService()

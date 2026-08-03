@@ -17,6 +17,7 @@ type PendingCommitFile = MarkdownFile & { saveReference?: OpenDocumentSaveRefere
 export interface CardOperationsDeps {
     cardPathChanged(fromPath: string, toPath: string): void
     commitPathsInFlight(): Set<string>
+    deleteFile(path: string, committedFiles: MarkdownFile[], workingFolder: string): void
     dispatchChanged(): void
     dispatchPersistenceChanged(): void
     files(): MarkdownFile[]
