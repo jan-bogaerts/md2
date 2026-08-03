@@ -3,7 +3,7 @@ author:
 id: F_111
 internalId: 6fdba724-f0ab-484a-9831-0480bc6d5e8d
 title: remove new conv-led upon load conv
-status: design
+status: ready for implementation
 owner: 
 affects:
 agents:
