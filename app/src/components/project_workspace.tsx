@@ -81,6 +81,7 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
     const actionsFolder = projectConfig?.actionsFolder ?? `${DEFAULT_PROJECT_FOLDER}/${DEFAULT_ACTIONS_FOLDER}`
     const archivedFolder = projectConfig?.archivedFolder ?? `${DEFAULT_PROJECT_FOLDER}/${DEFAULT_ARCHIVED_FOLDER}`
     const releasesFolder = projectConfig?.releasesFolder ?? `${DEFAULT_PROJECT_FOLDER}/${DEFAULT_RELEASES_FOLDER}`
+    const mobileScrollContainerRef = useRef<HTMLDivElement>(null)
     const onLeftPanelInteractionRef = useRef(onLeftPanelInteraction)
     const statusColors = useMemo(() => new Map(
         states.map(({ color, state }, index) => [state, color ?? defaultColumnAccent(index)]),
@@ -234,15 +235,16 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
             />
         </Paper>
     )
-    const views = (
-        <>
-            {isMobile ? <MobileLayout content={textView} /> : <SplitLayout left={fileTree} right={textView} />}
-            <CardView cardTypes={cardTypes} isMobile={isMobile} states={states} />
-        </>
-    )
+
     const workspace = (
         <ProjectWorkspaceAvailability>
-            {views}
+            {isMobile ? <MobileLayout content={textView} /> : <SplitLayout left={fileTree} right={textView} />}
+            <CardView
+                cardTypes={cardTypes}
+                isMobile={isMobile}
+                scrollContainerRef={mobileScrollContainerRef}
+                states={states}
+            />
         </ProjectWorkspaceAvailability>
     )
     const navigation = project ? fileTree : (
@@ -257,7 +259,7 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
         <Box
             aria-label="Project workspace"
             component="section"
-            sx={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}
+            sx={{ display: 'flex', flex: 1, minHeight: 0, overflow: isMobile ? 'unset' : 'hidden' }}
         >
             {isMobile ? (
                 <MobileMainWindow
@@ -266,6 +268,7 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
                     leftPanel={navigation}
                     onCloseMenu={onLeftPanelInteraction}
                     rightPanel={workspace}
+                    rightPanelContainerRef={mobileScrollContainerRef}
                     showNavigationInCards={!project}
                 />
             ) : workspace}

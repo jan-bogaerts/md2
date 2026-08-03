@@ -91,6 +91,14 @@ export class ProjectState {
         this.replaceFiles(mergeFiles(this.currentFiles, files), workingFolder)
     }
 
+    /** Merges successful companion writes and removes a deleted file from one rebuilt snapshot. */
+    deleteFile(path: string, committedFiles: MarkdownFile[], workingFolder: string) {
+        const files = mergeFiles(this.currentFiles, committedFiles).filter((file) => file.path !== path)
+        const repositoryFiles = (this.currentSnapshot?.repositoryFiles ?? []).filter((filePath) => filePath !== path)
+
+        this.replaceProjectFiles(files, workingFolder, repositoryFiles)
+    }
+
     /** Moves a loaded file and its repository entry to a committed path. */
     renameFile(fromPath: string, toPath: string, workingFolder: string) {
         if (fromPath === toPath) return

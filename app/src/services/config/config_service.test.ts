@@ -249,8 +249,10 @@ describe('ConfigService', () => {
         })
 
         expect(service.getDesktopValues()).toEqual({
+            accessLevel: 'workspace-write',
             agent: 'claude',
             agentProfiles: BUILTIN_AGENT_PROFILES,
+            approvalPolicy: 'on-request',
             codexSearchEnabled: true,
             model: '',
             thinkingLevel: 'high',

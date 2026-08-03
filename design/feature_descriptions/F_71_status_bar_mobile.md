@@ -8,6 +8,6 @@ owner:
 affects:
 agents:
 policy:
-after: 5514bce2-faa7-4d0f-970e-4a0d3dc4397d
+after: eeb46f0d-77d7-4a9d-a83e-b64e9101b994
 ---
-On mobile, user sgould also have ptoject status info.
+On mobile, user should also have project status info.

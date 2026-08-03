@@ -1,8 +1,10 @@
 import type { ThinkingLevel } from '../../data/agent_profiles'
 
 interface ActionRunInputSnapshot {
+    accessLevelOverride: string | null
     actionLabel: string
     agentOverride: string | null
+    approvalPolicyOverride: string | null
     convertMessage: string | null
     modelOverride: string | null
     thinkingLevelOverride: ThinkingLevel | null
@@ -11,8 +13,10 @@ interface ActionRunInputSnapshot {
 type Listener = () => void
 
 const INITIAL_SNAPSHOT: ActionRunInputSnapshot = {
+    accessLevelOverride: null,
     actionLabel: '',
     agentOverride: null,
+    approvalPolicyOverride: null,
     convertMessage: null,
     modelOverride: null,
     thinkingLevelOverride: null,
@@ -35,8 +39,15 @@ export class ActionRunInputStore {
         this.publish({ ...this.snapshot, actionLabel, convertMessage: null })
     }
 
-    setAgent(agentOverride: string, modelOverride: string) {
-        this.publish({ ...this.snapshot, agentOverride, modelOverride, thinkingLevelOverride: 'none' })
+    setAgent(agentOverride: string, modelOverride: string, accessLevelOverride: string | null, approvalPolicyOverride: string | null) {
+        this.publish({
+            ...this.snapshot,
+            accessLevelOverride,
+            agentOverride,
+            approvalPolicyOverride,
+            modelOverride,
+            thinkingLevelOverride: 'none',
+        })
     }
 
     setModel(modelOverride: string) {
@@ -45,6 +56,14 @@ export class ActionRunInputStore {
 
     setThinkingLevel(thinkingLevelOverride: ThinkingLevel) {
         this.publish({ ...this.snapshot, thinkingLevelOverride })
+    }
+
+    setAccessLevel(accessLevelOverride: string) {
+        this.publish({ ...this.snapshot, accessLevelOverride })
+    }
+
+    setApprovalPolicy(approvalPolicyOverride: string) {
+        this.publish({ ...this.snapshot, approvalPolicyOverride })
     }
 
     setConvertMessage(convertMessage: string | null) {

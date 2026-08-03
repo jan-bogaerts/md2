@@ -35,8 +35,10 @@ export interface ActionPhrase {
 }
 
 export interface RawActionDefinition {
+    accessLevel?: string
     agent?: string
     appliesTo?: ActionAppliesTo
+    approvalPolicy?: string
     autoFinish?: ActionAutoFinish
     command?: string
     description: string
@@ -66,8 +68,10 @@ export interface OnRule extends RawOnRule {
 }
 
 export interface ActionDefinition {
+    accessLevel: string | null
     agent: string | null
     appliesTo: ActionAppliesTo | null
+    approvalPolicy: string | null
     autoFinish?: ActionAutoFinish | null
     builtin: boolean
     command: string | null

@@ -73,9 +73,8 @@ async function readRootMarkdownFiles(rootPath, folderPath) {
     return files;
 }
 
-async function readRepositoryFilePaths(rootPath, folderPath) {
+async function readRepositoryFilePaths(rootPath, folderPath, files) {
     const entries = await fs.promises.readdir(folderPath, { withFileTypes: true });
-    const files = [];
 
     for (const entry of entries) {
         if (entry.name === GIT_FOLDER) continue;
@@ -83,14 +82,12 @@ async function readRepositoryFilePaths(rootPath, folderPath) {
         const entryPath = path.join(folderPath, entry.name);
 
         if (entry.isDirectory()) {
-            files.push(...await readRepositoryFilePaths(rootPath, entryPath));
+            await readRepositoryFilePaths(rootPath, entryPath, files);
             continue;
         }
 
         if (entry.isFile()) files.push(normalizePath(path.relative(rootPath, entryPath)));
     }
-
-    return files;
 }
 
 async function readTopLevelFolders(rootPath) {
@@ -219,7 +216,8 @@ async function loadProjectConfig(project) {
 async function listRepositoryFiles(project) {
     const rootPath = requireRootPath(project);
     await assertGitRoot(rootPath);
-    const files = await readRepositoryFilePaths(rootPath, rootPath);
+    const files = [];
+    await readRepositoryFilePaths(rootPath, rootPath, files);
 
     return files.sort((left, right) => left.localeCompare(right));
 }

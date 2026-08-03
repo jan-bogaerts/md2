@@ -8,7 +8,7 @@ owner:
 affects:
 agents:
 policy:
-after: b0ac8dca-7740-48b1-b5d4-1c1e5750ee39
+after: f9129167-19a8-4d52-8478-00f1423553d7
 ---
 
 When an agent is running and we send a steering prompt to it, the prompt just disappears until the backend reports back that it has been sent. this is super annoying.

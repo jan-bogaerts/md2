@@ -9,7 +9,38 @@ import { telemetryService } from '../telemetry/telemetry_service'
 import { GLOBAL_PROGRESS_EVENT, globalProgressService, type GlobalProgress } from '.././global_progress_service'
 import { createDataService, createDeferred, createStorage, files, storageFiles, waitForWorkerTurn } from '.././test_support/data_service_test_support'
 import { markdownParsingService } from '../data/markdown_parsing_service'
+import { RemoteControlStorageService } from '../data/remote_control_storage_service'
 import { openFilesService } from '../open_files_service'
+
+class ProjectLoadingMockWebSocket extends EventTarget {
+    static instances: ProjectLoadingMockWebSocket[] = []
+
+    readyState = 0
+    sent: string[] = []
+
+    constructor() {
+        super()
+        ProjectLoadingMockWebSocket.instances.push(this)
+    }
+
+    send(message: string) {
+        this.sent.push(message)
+    }
+
+    open() {
+        this.readyState = 1
+        this.dispatchEvent(new Event('open'))
+    }
+
+    receive(message: unknown) {
+        this.dispatchEvent(new MessageEvent('message', { data: JSON.stringify(message) }))
+    }
+}
+
+async function flushPromises() {
+    await Promise.resolve()
+    await Promise.resolve()
+}
 
 function actionDefinition(id: string, overrides: Record<string, unknown> = {}): RawActionDefinition {
     return { command: 'run', description: id, id: `action-${id}`, label: id, type: 'command', ...overrides } as RawActionDefinition
@@ -37,6 +68,7 @@ describe('ProjectLoading', () => {
         actionService.clear()
         configService.clear()
         globalProgressService.finish()
+        vi.unstubAllGlobals()
     })
 
     it('blocks project navigation while an invalid action draft remains unsaved', async () => {
@@ -585,6 +617,46 @@ describe('ProjectLoading', () => {
         await vi.advanceTimersByTimeAsync(0)
     })
 
+    it('ignores a markdown watcher event received during its local commit', async () => {
+        vi.useFakeTimers()
+        configService.init()
+        configService.set('react.autoCommitDelayMs', 1000)
+        const commit = createDeferred<StorageProjectFiles['files']>()
+        const loadFile = vi.fn(async () => files[0])
+        let watchChange: (event: { changeKind: 'added' | 'changed' | 'removed' | 'unknown'; path: string }) => void = () => {
+            throw new Error('Watcher not registered')
+        }
+        const storage = createStorage({
+            commit: vi.fn(() => commit.promise),
+            loadFile,
+            watchProject: vi.fn((_project, onChange) => {
+                watchChange = onChange
+
+                return vi.fn()
+            }),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        const conflicts = recordDialogMessages('error')
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+
+        try {
+            service.cards.updateCardBody(files[0].path, '# Root\n\nLocal edit')
+            await vi.advanceTimersByTimeAsync(1000)
+            expect(storage.commit).toHaveBeenCalledOnce()
+
+            watchChange({ changeKind: 'changed', path: files[0].path })
+            await vi.advanceTimersByTimeAsync(150)
+
+            expect(loadFile).not.toHaveBeenCalled()
+            expect(conflicts.messages).toEqual([])
+        } finally {
+            commit.resolve([])
+            await vi.advanceTimersByTimeAsync(0)
+            conflicts.stop()
+        }
+    })
+
     it('surfaces action reload validation errors while loading other usable actions', async () => {
         vi.useFakeTimers()
         configService.init()
@@ -752,6 +824,91 @@ describe('ProjectLoading', () => {
 
         const card = service.getState().snapshot?.activeCards.find((candidate) => candidate.path === 'design/F-1-root.md')
         expect(card?.content).toContain('Externally changed')
+    })
+
+    it('refreshes mobile project state for remotely watched markdown additions, changes, and removals', async () => {
+        vi.useFakeTimers()
+        ProjectLoadingMockWebSocket.instances = []
+        vi.stubGlobal('WebSocket', ProjectLoadingMockWebSocket)
+        configService.init()
+        const remoteStorage = new RemoteControlStorageService()
+        remoteStorage.init({ endpoint: 'ws://127.0.0.1:1234', token: 'token-1' })
+        const storage = createStorage({
+            loadFile: remoteStorage.loadFile.bind(remoteStorage),
+            watchProject: remoteStorage.watchProject.bind(remoteStorage),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        const socket = ProjectLoadingMockWebSocket.instances[0]
+        if (!socket) throw new Error('Remote-control socket was not created')
+
+        socket.open()
+        await flushPromises()
+        const watchRequest = JSON.parse(socket.sent[0]) as { id: string, method: string }
+        expect(watchRequest.method).toBe('watchProject')
+        socket.receive({ id: watchRequest.id, result: { subscriptionId: 'watch-1' } })
+        socket.receive({
+            event: 'watchProject',
+            payload: {
+                event: { changeKind: 'changed', path: 'design/F-1-root.md' },
+                requestId: watchRequest.id,
+                subscriptionId: 'watch-1',
+            },
+        })
+        await vi.advanceTimersByTimeAsync(50)
+        const loadRequest = JSON.parse(socket.sent[1]) as { id: string, method: string, params: unknown[] }
+        expect(loadRequest).toMatchObject({
+            method: 'loadFile',
+            params: [{ branch: 'main', id: 'project' }, 'design/F-1-root.md'],
+        })
+        socket.receive({
+            id: loadRequest.id,
+            result: {
+                content: '---\nid: F-1\ninternalId: root-card\ntitle: Root\nstatus: active\n---\n\n# Root\n\nRemote agent change',
+                path: 'design/F-1-root.md',
+            },
+        })
+        await vi.advanceTimersByTimeAsync(0)
+
+        const card = service.getState().snapshot?.activeCards.find(({ path }) => path === 'design/F-1-root.md')
+        expect(card?.content).toContain('Remote agent change')
+
+        socket.receive({
+            event: 'watchProject',
+            payload: {
+                event: { changeKind: 'added', path: 'design/F-2-mobile.md' },
+                requestId: watchRequest.id,
+                subscriptionId: 'watch-1',
+            },
+        })
+        await vi.advanceTimersByTimeAsync(50)
+        const addedLoadRequest = JSON.parse(socket.sent[2]) as { id: string, method: string, params: unknown[] }
+        expect(addedLoadRequest).toMatchObject({
+            method: 'loadFile',
+            params: [{ branch: 'main', id: 'project' }, 'design/F-2-mobile.md'],
+        })
+        socket.receive({
+            id: addedLoadRequest.id,
+            result: {
+                content: '---\nid: F-2\ninternalId: mobile-card\ntitle: Mobile\nstatus: active\n---\n\n# Mobile',
+                path: 'design/F-2-mobile.md',
+            },
+        })
+        await vi.advanceTimersByTimeAsync(0)
+        expect(service.getState().snapshot?.activeCards.some(({ path }) => path === 'design/F-2-mobile.md')).toBe(true)
+
+        socket.receive({
+            event: 'watchProject',
+            payload: {
+                event: { changeKind: 'removed', path: 'design/F-1-root.md' },
+                requestId: watchRequest.id,
+                subscriptionId: 'watch-1',
+            },
+        })
+        await vi.advanceTimersByTimeAsync(800)
+
+        expect(service.getState().snapshot?.activeCards.some(({ path }) => path === 'design/F-1-root.md')).toBe(false)
     })
 
     it('removes a markdown card when the watcher reports deletion', async () => {

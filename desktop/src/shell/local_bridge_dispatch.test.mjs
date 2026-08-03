@@ -376,7 +376,10 @@ describe('createLocalBridgeDispatch', () => {
     it('delegates safe action start requests to the shared runner', async () => {
         const { actionRunnerService, dispatch } = createDispatch();
         const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
-        const request = { actionId: 'test', context: { file: 'design/F-1.md', kind: 'card' }, runInput: { extraPrompt: 'focus' } };
+        const request = {
+            actionId: 'test', context: { file: 'design/F-1.md', kind: 'card' },
+            runInput: { accessLevel: 'read-only', approvalPolicy: 'untrusted', extraPrompt: 'focus' },
+        };
 
         await dispatch.dataBridge.loadProject(project, 'design');
         await expect(dispatch.actionBridge.startAction(request)).resolves.toBe('action-1');

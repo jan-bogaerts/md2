@@ -82,9 +82,10 @@ export class ProjectFileOperations {
 
         const existingFile = dependencies.files().find((file) => file.path === path)
         const repairFile = repairActiveOrdering ? this.createDeleteRepairFile(path) : null
+        let committedRepairFiles: MarkdownFile[] = []
 
         if (repairFile) {
-            await storage.commit({
+            committedRepairFiles = await storage.commit({
                 branch: project.branch,
                 files: [repairFile],
                 message: `Repair ordering after deleting ${path}`,
@@ -100,7 +101,9 @@ export class ProjectFileOperations {
 
         if (config.pushMode === 'auto') await storage.push(project)
 
-        await dependencies.reloadCurrentProjectSnapshot()
+        if (repairFile && committedRepairFiles.length === 0) committedRepairFiles = [repairFile]
+        dependencies.deleteFile(path, committedRepairFiles, config.workingFolder)
+        dependencies.dispatchChanged()
 
         return dependencies.snapshot()
     }

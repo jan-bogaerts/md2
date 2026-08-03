@@ -74,7 +74,7 @@ function parseHistory(value, index) {
         prompt: requiredString(value.prompt, `records[${index}].history.prompt`, true),
         status,
     }
-    for (const fieldName of ['agent', 'command', 'model', 'thinkingLevel']) {
+    for (const fieldName of ['accessLevel', 'agent', 'approvalPolicy', 'command', 'model', 'thinkingLevel']) {
         if (value[fieldName] === undefined) continue
         if (fieldName === 'agent' && value[fieldName] === null) history[fieldName] = null
         else history[fieldName] = requiredString(value[fieldName], `records[${index}].history.${fieldName}`)

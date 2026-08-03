@@ -570,7 +570,10 @@ export class ProjectLoading {
             return
         }
 
-        if (isProjectMarkdownPath(event.path, config.projectFolder)) this.scheduleMarkdownReload(event)
+        if (!isProjectMarkdownPath(event.path, config.projectFolder)) return
+        if (this.dependencies.commitPathsInFlight().has(event.path)) return
+
+        this.scheduleMarkdownReload(event)
     }
 
     private async reloadProjectConfigFromWatch() {

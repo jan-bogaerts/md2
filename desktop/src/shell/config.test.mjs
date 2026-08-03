@@ -4,7 +4,9 @@ import { describe, expect, it } from 'vitest';
 const require = createRequire(import.meta.url);
 const {
     DEFAULT_CODEX_SEARCH_ENABLED,
+    DEFAULT_DESKTOP_ACCESS_LEVEL,
     DEFAULT_DESKTOP_AGENT,
+    DEFAULT_DESKTOP_APPROVAL_POLICY,
     DEFAULT_DESKTOP_MODEL,
     DESKTOP_CONFIG_STORE_KEY,
     readDesktopConfig,
@@ -37,8 +39,10 @@ describe('resolveAppUrl', () => {
 describe('resolveDesktopConfig', () => {
     it('defaults desktop config values', () => {
         expect(resolveDesktopConfig({})).toEqual({
+            accessLevel: DEFAULT_DESKTOP_ACCESS_LEVEL,
             agent: DEFAULT_DESKTOP_AGENT,
             agentProfiles: expect.arrayContaining([expect.objectContaining({ command: ['codex'], name: 'codex' })]),
+            approvalPolicy: DEFAULT_DESKTOP_APPROVAL_POLICY,
             codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
             model: DEFAULT_DESKTOP_MODEL,
         });
@@ -46,8 +50,10 @@ describe('resolveDesktopConfig', () => {
 
     it('uses configured desktop values', () => {
         expect(resolveDesktopConfig({MD2_AGENT: 'custom-codex'})).toEqual({
+            accessLevel: DEFAULT_DESKTOP_ACCESS_LEVEL,
             agent: DEFAULT_DESKTOP_AGENT,
             agentProfiles: expect.arrayContaining([expect.objectContaining({ command: ['custom-codex'], name: 'codex' })]),
+            approvalPolicy: DEFAULT_DESKTOP_APPROVAL_POLICY,
             codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
             model: DEFAULT_DESKTOP_MODEL,
         });
@@ -59,8 +65,10 @@ describe('readDesktopConfig', () => {
         const store = createFakeStore();
 
         expect(readDesktopConfig(store, {})).toEqual({
+            accessLevel: DEFAULT_DESKTOP_ACCESS_LEVEL,
             agent: DEFAULT_DESKTOP_AGENT,
             agentProfiles: expect.arrayContaining([expect.objectContaining({ name: 'codex' })]),
+            approvalPolicy: DEFAULT_DESKTOP_APPROVAL_POLICY,
             codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
             model: DEFAULT_DESKTOP_MODEL,
         });
@@ -70,8 +78,10 @@ describe('readDesktopConfig', () => {
         const store = createFakeStore({ [DESKTOP_CONFIG_STORE_KEY]: { agent: 'claude' } });
 
         expect(readDesktopConfig(store, {})).toEqual({
+            accessLevel: DEFAULT_DESKTOP_ACCESS_LEVEL,
             agent: 'claude',
             agentProfiles: expect.arrayContaining([expect.objectContaining({ name: 'claude' })]),
+            approvalPolicy: DEFAULT_DESKTOP_APPROVAL_POLICY,
             codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
             model: DEFAULT_DESKTOP_MODEL,
         });
@@ -89,11 +99,13 @@ describe('readDesktopConfig', () => {
         });
 
         expect(readDesktopConfig(store, { MD2_AGENT: 'env-codex' })).toEqual({
+            accessLevel: DEFAULT_DESKTOP_ACCESS_LEVEL,
             agent: 'custom',
             agentProfiles: expect.arrayContaining([
                 expect.objectContaining({ command: ['env-codex'], name: 'codex' }),
                 expect.objectContaining({ command: ['stored-custom'], name: 'custom' }),
             ]),
+            approvalPolicy: DEFAULT_DESKTOP_APPROVAL_POLICY,
             codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
             model: DEFAULT_DESKTOP_MODEL,
         });
@@ -149,8 +161,10 @@ describe('writeDesktopConfig', () => {
         writeDesktopConfig(store, { agent: 'claude' });
 
         expect(readDesktopConfig(store, {})).toEqual({
+            accessLevel: DEFAULT_DESKTOP_ACCESS_LEVEL,
             agent: 'claude',
             agentProfiles: expect.arrayContaining([expect.objectContaining({ name: 'claude' })]),
+            approvalPolicy: DEFAULT_DESKTOP_APPROVAL_POLICY,
             codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
             model: DEFAULT_DESKTOP_MODEL,
         });
@@ -163,8 +177,10 @@ describe('writeDesktopConfig', () => {
         writeDesktopConfig(store, { model: 'custom-model' });
 
         expect(readDesktopConfig(store, {})).toEqual({
+            accessLevel: DEFAULT_DESKTOP_ACCESS_LEVEL,
             agent: 'claude',
             agentProfiles: expect.arrayContaining([expect.objectContaining({ name: 'claude' })]),
+            approvalPolicy: DEFAULT_DESKTOP_APPROVAL_POLICY,
             codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
             model: 'custom-model',
         });

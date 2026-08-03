@@ -1,5 +1,5 @@
 const ALLOWED_REQUEST_FIELDS = new Set(['actionId', 'context', 'runInput']);
-const ALLOWED_RUN_INPUT_FIELDS = new Set(['agent', 'continueFrom', 'extraPrompt', 'model', 'prompt', 'thinkingLevel']);
+const ALLOWED_RUN_INPUT_FIELDS = new Set(['accessLevel', 'agent', 'approvalPolicy', 'continueFrom', 'extraPrompt', 'model', 'prompt', 'thinkingLevel']);
 const CONTEXT_KINDS = new Set(['card', 'file', 'folder', 'project']);
 
 function readOptionalString(value, fieldName) {
@@ -34,7 +34,9 @@ function validateRunInput(runInput = {}) {
     if (unsupportedField) throw new Error(`Unsupported action runInput field: ${unsupportedField}`);
 
     return {
+        accessLevel: readOptionalString(runInput.accessLevel, 'accessLevel'),
         agent: readOptionalString(runInput.agent, 'agent'),
+        approvalPolicy: readOptionalString(runInput.approvalPolicy, 'approvalPolicy'),
         continueFrom: readOptionalString(runInput.continueFrom, 'continueFrom'),
         extraPrompt: readOptionalString(runInput.extraPrompt, 'extraPrompt') ?? '',
         model: readOptionalString(runInput.model, 'model'),

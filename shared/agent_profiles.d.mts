@@ -1,5 +1,11 @@
 export interface AgentProfile {
+    accessLevelArgument?: string
+    accessLevels?: string[]
+    approvalPolicies?: string[]
+    approvalPolicyArgument?: string
     command: string[]
+    defaultAccessLevel?: string
+    defaultApprovalPolicy?: string
     defaultModel?: string
     modelArgument?: string
     models: string[]
@@ -8,7 +14,9 @@ export interface AgentProfile {
 }
 
 export interface AgentSelection {
+    accessLevel?: string
     agent: string
+    approvalPolicy?: string
     model: string
     thinkingLevel?: ThinkingLevel
 }
@@ -26,8 +34,10 @@ export function findAgentProfile(profiles: AgentProfile[], name: string): AgentP
 export function validateAgentSelection(profiles: AgentProfile[], selection: AgentSelection, source: string): void
 export function validateThinkingLevel(value: unknown, source: string): ThinkingLevel
 export function defaultModelForProfile(profile: AgentProfile): string
+export function defaultAccessLevelForProfile(profile: AgentProfile): string | null
+export function defaultApprovalPolicyForProfile(profile: AgentProfile): string | null
 export function buildAgentCommand(profile: AgentProfile, model: string): string[]
-export function buildAgentExecutionCommand(profile: AgentProfile, model: string, thinkingLevel: ThinkingLevel, searchEnabled?: boolean): string[]
-export function buildAgentStreamingCommand(profile: AgentProfile, model: string, thinkingLevel: ThinkingLevel): string[]
+export function buildAgentExecutionCommand(profile: AgentProfile, model: string, thinkingLevel: ThinkingLevel, searchEnabled?: boolean, capabilities?: Pick<AgentSelection, 'accessLevel' | 'approvalPolicy'>): string[]
+export function buildAgentStreamingCommand(profile: AgentProfile, model: string, thinkingLevel: ThinkingLevel, capabilities?: Pick<AgentSelection, 'accessLevel' | 'approvalPolicy'>): string[]
 export function supportsAgentStreaming(profile: AgentProfile): boolean
 export function buildResumeAgentCommand(profile: AgentProfile, sessionId: string, executionCommand?: string[]): string[]

@@ -1,4 +1,6 @@
 const DEFAULT_DESKTOP_AGENT = 'codex';
+const DEFAULT_DESKTOP_ACCESS_LEVEL = 'workspace-write';
+const DEFAULT_DESKTOP_APPROVAL_POLICY = 'on-request';
 const DEFAULT_DESKTOP_MODEL = '';
 const DEFAULT_CODEX_SEARCH_ENABLED = true;
 const DESKTOP_CONFIG_STORE_KEY = 'desktopConfig';
@@ -38,8 +40,10 @@ function resolveDesktopConfig(env = process.env) {
         : null;
 
     return {
+        accessLevel: DEFAULT_DESKTOP_ACCESS_LEVEL,
         agent: DEFAULT_DESKTOP_AGENT,
         agentProfiles,
+        approvalPolicy: DEFAULT_DESKTOP_APPROVAL_POLICY,
         codexSearchEnabled: DEFAULT_CODEX_SEARCH_ENABLED,
         ...(bridgeAllowedOrigins ? { bridgeAllowedOrigins } : {}),
         model: DEFAULT_DESKTOP_MODEL,
@@ -66,10 +70,38 @@ function applyDefaultAgentProfileModels(agentProfiles) {
     });
 }
 
+function applyDefaultAgentProfileCapabilities(agentProfiles) {
+    if (!Array.isArray(agentProfiles)) return agentProfiles;
+
+    return agentProfiles.map((profile) => {
+        if (!profile || typeof profile !== 'object' || Array.isArray(profile)) return profile;
+        const builtInProfile = BUILTIN_AGENT_PROFILES.find(({ name }) => name === profile.name);
+        if (!builtInProfile) return profile;
+
+        return {
+            ...profile,
+            ...(builtInProfile.accessLevels ? {
+                accessLevelArgument: builtInProfile.accessLevelArgument,
+                accessLevels: builtInProfile.accessLevels,
+                defaultAccessLevel: builtInProfile.defaultAccessLevel,
+            } : {}),
+            ...(builtInProfile.approvalPolicies ? {
+                approvalPolicies: builtInProfile.approvalPolicies,
+                approvalPolicyArgument: builtInProfile.approvalPolicyArgument,
+                defaultApprovalPolicy: builtInProfile.defaultApprovalPolicy,
+            } : {}),
+        };
+    });
+}
+
 function readDesktopConfig(store, env = process.env) {
-    const resolved = { ...resolveDesktopConfig(env), ...readStoredDesktopConfig(store) };
+    const stored = readStoredDesktopConfig(store);
+    const resolved = { ...resolveDesktopConfig(env), ...stored };
     const profilesWithDefaultModels = applyDefaultAgentProfileModels(resolved.agentProfiles);
-    const agentProfiles = normalizeAgentProfiles(profilesWithDefaultModels);
+    const profilesWithDefaults = stored.accessLevel === undefined && stored.approvalPolicy === undefined
+        ? applyDefaultAgentProfileCapabilities(profilesWithDefaultModels)
+        : profilesWithDefaultModels;
+    const agentProfiles = normalizeAgentProfiles(profilesWithDefaults);
     if (env.MD2_AGENT) {
         const defaultProfile = agentProfiles.find((profile) => profile.name === DEFAULT_DESKTOP_AGENT);
         if (defaultProfile) defaultProfile.command = [env.MD2_AGENT];
@@ -86,7 +118,9 @@ function writeDesktopConfig(store, values) {
 }
 
 module.exports = {
+    DEFAULT_DESKTOP_ACCESS_LEVEL,
     DEFAULT_DESKTOP_AGENT,
+    DEFAULT_DESKTOP_APPROVAL_POLICY,
     DEFAULT_DESKTOP_MODEL,
     DEFAULT_CODEX_SEARCH_ENABLED,
     DESKTOP_CONFIG_STORE_KEY,

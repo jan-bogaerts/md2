@@ -18,7 +18,9 @@ import type { ActionRunResultStore } from './action_run_result_store'
 const DEFAULT_CONVERT_LABEL_LENGTH = 40
 
 export interface ResolvedActionRunSettings {
+    accessLevel: string
     agent: string
+    approvalPolicy: string
     model: string
     thinkingLevel: ThinkingLevel
 }
@@ -54,7 +56,9 @@ async function runWithPrompt(input: ActionPopupOperationInput, prompt: string) {
         const continuationPath = conversationStore.continuationPath(liveConversation)
         const runInput = action.type === 'agent'
             ? {
+                ...(settings.accessLevel ? { accessLevel: settings.accessLevel } : {}),
                 ...(settings.agent ? { agent: settings.agent } : {}),
+                ...(settings.approvalPolicy ? { approvalPolicy: settings.approvalPolicy } : {}),
                 ...(continuationPath ? { continueFrom: continuationPath } : {}),
                 prompt,
                 ...(settings.model ? { model: settings.model } : {}),
@@ -121,7 +125,9 @@ export async function convertPromptToAction(input: ActionPopupOperationInput) {
     try {
         const label = actionLabel.trim().length > 0 ? actionLabel : prompt.trim().slice(0, DEFAULT_CONVERT_LABEL_LENGTH)
         const convertInput = {
+            ...(settings.accessLevel ? { accessLevel: settings.accessLevel } : {}),
             ...(settings.agent ? { agent: settings.agent } : {}),
+            ...(settings.approvalPolicy ? { approvalPolicy: settings.approvalPolicy } : {}),
             context,
             label,
             ...(settings.model ? { model: settings.model } : {}),

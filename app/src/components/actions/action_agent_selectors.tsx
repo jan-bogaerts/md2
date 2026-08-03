@@ -4,23 +4,30 @@ import { THINKING_LEVELS, type AgentProfile, type ThinkingLevel } from '../../da
 import type { AgentAvailability } from '../../data/electron_data_bridge'
 
 interface ActionAgentSelectorsProps {
+    accessLevel: string
     agent: string
     agentAvailability: Record<string, AgentAvailability>
     agentProfiles: AgentProfile[]
+    approvalPolicy: string
     disabled: boolean
     model: string
+    onAccessLevelChange: (event: ChangeEvent<HTMLInputElement>) => void
     onAgentChange: (event: ChangeEvent<HTMLInputElement>) => void
+    onApprovalPolicyChange: (event: ChangeEvent<HTMLInputElement>) => void
     onModelChange: (event: ChangeEvent<HTMLInputElement>) => void
     onThinkingLevelChange: (event: ChangeEvent<HTMLInputElement>) => void
+    selectedAccessLevels: string[]
     selectedAgentModels: string[]
+    selectedApprovalPolicies: string[]
     thinkingLevel: ThinkingLevel
 }
 
 /** Compact agent, model and thinking selectors for an action popup. */
 export function ActionAgentSelectors(props: ActionAgentSelectorsProps) {
     const {
-        agent, agentAvailability, agentProfiles, disabled, model, onAgentChange, onModelChange,
-        onThinkingLevelChange, selectedAgentModels, thinkingLevel,
+        accessLevel, agent, agentAvailability, agentProfiles, approvalPolicy, disabled, model,
+        onAccessLevelChange, onAgentChange, onApprovalPolicyChange, onModelChange,
+        onThinkingLevelChange, selectedAccessLevels, selectedAgentModels, selectedApprovalPolicies, thinkingLevel,
     } = props
 
     return (
@@ -105,6 +112,40 @@ export function ActionAgentSelectors(props: ActionAgentSelectorsProps) {
             >
                 {THINKING_LEVELS.map((level) => <MenuItem key={level} value={level}>{level}</MenuItem>)}
             </TextField>
+            <Box sx={{ bgcolor: 'divider', height: 14, mx: 0.25, width: '1px' }} />
+            {selectedAccessLevels.length > 0 ? (
+                <TextField
+                    disabled={disabled}
+                    onChange={onAccessLevelChange}
+                    select
+                    slotProps={{ select: { inputProps: { 'aria-label': 'Access level' } } }}
+                    sx={{ minWidth: 110, '& .MuiInputBase-root': { borderRadius: '6px', color: 'text.secondary', fontSize: 12, fontWeight: 600, height: 26, pl: 0.75 }, '& .MuiInput-root:before, & .MuiInput-root:after': { display: 'none' } }}
+                    value={accessLevel}
+                    variant="standard"
+                >
+                    {!selectedAccessLevels.includes(accessLevel)
+                        ? <MenuItem value={accessLevel}>{accessLevel} - unavailable</MenuItem>
+                        : null}
+                    {selectedAccessLevels.map((level) => <MenuItem key={level} value={level}>{level}</MenuItem>)}
+                </TextField>
+            ) : <TextField disabled slotProps={{ htmlInput: { 'aria-label': 'Access level' } }} sx={{ width: 110 }} value="Not supported" variant="standard" />}
+            <Box sx={{ bgcolor: 'divider', height: 14, mx: 0.25, width: '1px' }} />
+            {selectedApprovalPolicies.length > 0 ? (
+                <TextField
+                    disabled={disabled}
+                    onChange={onApprovalPolicyChange}
+                    select
+                    slotProps={{ select: { inputProps: { 'aria-label': 'Approval policy' } } }}
+                    sx={{ minWidth: 110, '& .MuiInputBase-root': { borderRadius: '6px', color: 'text.secondary', fontSize: 12, fontWeight: 600, height: 26, pl: 0.75 }, '& .MuiInput-root:before, & .MuiInput-root:after': { display: 'none' } }}
+                    value={approvalPolicy}
+                    variant="standard"
+                >
+                    {!selectedApprovalPolicies.includes(approvalPolicy)
+                        ? <MenuItem value={approvalPolicy}>{approvalPolicy} - unavailable</MenuItem>
+                        : null}
+                    {selectedApprovalPolicies.map((policy) => <MenuItem key={policy} value={policy}>{policy}</MenuItem>)}
+                </TextField>
+            ) : <TextField disabled slotProps={{ htmlInput: { 'aria-label': 'Approval policy' } }} sx={{ width: 110 }} value="Not supported" variant="standard" />}
         </>
     )
 }

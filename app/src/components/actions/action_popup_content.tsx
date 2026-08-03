@@ -70,7 +70,7 @@ interface ActionPopupContentProps {
     primaryPath: string | null
     showSaveControls: boolean
     titleId: string
-    unseenResultActionIds?: string[]
+    unseenResultConversations?: AgentConversation[]
 }
 
 /**
@@ -108,13 +108,16 @@ function worktreeAssignmentTarget(context: ActionContext): WorktreeAssignmentTar
 export function ActionPopupContent(props: ActionPopupContentProps) {
     const {
         action, actions, anchorElement, assignmentContext, baseContext, draggable, fullHeight, onAddAction, onClose,
-        onSelectAction, onToggleFullHeight, open, primaryPath, showSaveControls, titleId, unseenResultActionIds = [],
+        onSelectAction, onToggleFullHeight, open, primaryPath, showSaveControls, titleId, unseenResultConversations = [],
     } = props
     const bindings = useMemo(
         () => createActionPopupBindings(action, assignmentContext),
         [action, assignmentContext],
     )
     const { conversationStore, historyStore, inputStore, resultStore, scheduleStore } = bindings
+    const unseenResultConversation = unseenResultConversations.find(({ actionId }) => actionId === action.id) ?? null
+    const unseenResultActionIds = unseenResultConversations.flatMap(({ actionId }) => actionId ? [actionId] : [])
+    conversationStore.configureInitialSelection(unseenResultConversation?.path ?? null)
     const runValidationError = worktreeValidationMessage(action, assignmentContext)
     const sizeStorageKey = baseContext.kind === 'project'
         ? PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY

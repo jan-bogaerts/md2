@@ -34,14 +34,24 @@ describe('ConversationTimer', () => {
 
     it('freezes at the completed duration when the run is done', () => {
         render(
-            <ConversationTimer completedAt="2026-01-01T00:01:30.000Z" startedAt="2026-01-01T00:00:00.000Z" />,
+            <ConversationTimer
+                completedAt="2026-01-01T00:01:30.000Z"
+                startedAt="2026-01-01T00:00:00.000Z"
+                status="completed"
+            />,
         )
+
+        expect(screen.getByLabelText('Elapsed time')).toHaveTextContent('1:30')
+
+        act(() => {
+            vi.advanceTimersByTime(3_000)
+        })
 
         expect(screen.getByLabelText('Elapsed time')).toHaveTextContent('1:30')
     })
 
     it('ticks once a second while the run is active', () => {
-        render(<ConversationTimer completedAt={null} startedAt="2026-01-01T00:00:00.000Z" />)
+        render(<ConversationTimer completedAt={null} startedAt="2026-01-01T00:00:00.000Z" status="running" />)
 
         expect(screen.getByLabelText('Elapsed time')).toHaveTextContent('0:05')
 
@@ -50,5 +60,41 @@ describe('ConversationTimer', () => {
         })
 
         expect(screen.getByLabelText('Elapsed time')).toHaveTextContent('0:08')
+    })
+
+    it('stops ticking while the run waits for input', () => {
+        render(<ConversationTimer completedAt={null} startedAt="2026-01-01T00:00:00.000Z" status="waitingForInput" />)
+
+        expect(screen.getByLabelText('Elapsed time')).toHaveTextContent('0:05')
+
+        act(() => {
+            vi.advanceTimersByTime(3_000)
+        })
+
+        expect(screen.getByLabelText('Elapsed time')).toHaveTextContent('0:05')
+    })
+
+    it('resumes from the frozen value without counting time spent waiting', () => {
+        const { rerender } = render(
+            <ConversationTimer completedAt={null} startedAt="2026-01-01T00:00:00.000Z" status="running" />,
+        )
+
+        act(() => {
+            vi.advanceTimersByTime(3_000)
+        })
+        expect(screen.getByLabelText('Elapsed time')).toHaveTextContent('0:08')
+
+        rerender(<ConversationTimer completedAt={null} startedAt="2026-01-01T00:00:00.000Z" status="waitingForInput" />)
+        act(() => {
+            vi.advanceTimersByTime(10_000)
+        })
+        expect(screen.getByLabelText('Elapsed time')).toHaveTextContent('0:08')
+
+        rerender(<ConversationTimer completedAt={null} startedAt="2026-01-01T00:00:00.000Z" status="running" />)
+        act(() => {
+            vi.advanceTimersByTime(2_000)
+        })
+
+        expect(screen.getByLabelText('Elapsed time')).toHaveTextContent('0:10')
     })
 })

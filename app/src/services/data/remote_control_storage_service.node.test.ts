@@ -87,6 +87,28 @@ describe('RemoteControlStorageService', () => {
         await expect(second).resolves.toEqual([{ name: 'main' }])
     })
 
+    it('loads one markdown file through remote control and propagates desktop errors', async () => {
+        installWebSocket()
+        const service = createService()
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
+        const firstLoad = service.loadFile(project, 'design/F-1.md')
+        const socket = lastSocket()
+
+        socket.open()
+        await flushPromises()
+        const firstRequest = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
+        expect(firstRequest).toMatchObject({ method: 'loadFile', params: [project, 'design/F-1.md'] })
+        socket.receive({ id: firstRequest.id, result: { content: '# Changed', path: 'design/F-1.md' } })
+        await expect(firstLoad).resolves.toEqual({ content: '# Changed', path: 'design/F-1.md' })
+
+        const missingLoad = service.loadFile(project, 'design/missing.md')
+        await flushPromises()
+        const secondRequest = JSON.parse(socket.sent[1]) as { id: string }
+        socket.receive({ error: { message: 'File not found: design/missing.md' }, id: secondRequest.id })
+
+        await expect(missingLoad).rejects.toThrow('File not found: design/missing.md')
+    })
+
     it('receives account-wide Codex runtime snapshots through dedicated remote subscription', async () => {
         installWebSocket()
         const service = createService()
@@ -305,6 +327,25 @@ describe('RemoteControlStorageService', () => {
         await expect(request).rejects.toThrow('command failed')
     })
 
+    it('preserves access and approval overrides in remote action requests', async () => {
+        installWebSocket()
+        const service = createService()
+        const actionRequest = {
+            ...actionStartRequest(),
+            runInput: { accessLevel: 'read-only', approvalPolicy: 'untrusted' },
+        }
+        const request = service.startAction(actionRequest)
+        const socket = lastSocket()
+
+        socket.open()
+        await flushPromises()
+        const sentRequest = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
+        expect(sentRequest).toMatchObject({ method: 'startAction', params: [actionRequest] })
+        socket.receive({ id: sentRequest.id, result: 'run-1' })
+
+        await expect(request).resolves.toBe('run-1')
+    })
+
     it('routes streaming interaction methods through remote control', async () => {
         installWebSocket()
         const service = createService()
@@ -422,6 +463,107 @@ describe('RemoteControlStorageService', () => {
             payload: { event: { changeKind: 'changed', path: 'design/F-1.md' }, requestId: watchRequest.id, subscriptionId: 'sub-1' },
         })
         expect(watchCallback).toHaveBeenCalledWith({ changeKind: 'changed', path: 'design/F-1.md' })
+    })
+
+    it('routes every server-push message and cleans persistent subscriptions', async () => {
+        installWebSocket()
+        const service = createService()
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
+        const watchCallback = vi.fn()
+        const agentCallback = vi.fn()
+        const actionCallback = vi.fn()
+        const rateLimitCallback = vi.fn()
+        const worktreeCallback = vi.fn()
+        const stopWatch = service.watchProject(project, watchCallback)
+        const stopAction = service.onActionRun(actionCallback)
+        const stopRateLimits = service.onCodexRateLimits(rateLimitCallback)
+        const stopWorktrees = service.onWorktreesChanged(worktreeCallback)
+        const agentRun = service.runSearchRegexpAgent('find cards', agentCallback)
+        const socket = lastSocket()
+
+        socket.open()
+        await flushPromises()
+        const requests = socket.sent.map((message) => JSON.parse(message) as { id: string, method: string })
+        const requestByMethod = new Map(requests.map((request) => [request.method, request]))
+        const actionEvent = { runId: 'action-1', sequence: 1, status: 'running', type: 'run' }
+        const agentEvent = { content: 'working', runId: 'agent-1', type: 'output' }
+        const snapshot = { available: true, buckets: [], observedAt: 10, rateLimitResetCredits: null }
+        const worktreeState = { error: null, primaryStatus: null, project, records: [] }
+        const subscriptions = [
+            ['watchProject', 'watch-1'],
+            ['onActionRun', 'action-1'],
+            ['onCodexRateLimits', 'limits-1'],
+            ['onWorktreesChanged', 'worktrees-1'],
+        ] as const
+
+        socket.receive({
+            event: 'watchProject',
+            payload: { event: { changeKind: 'changed', path: 'design/F-1.md' }, requestId: requestByMethod.get('watchProject')?.id, subscriptionId: 'watch-1' },
+        })
+        socket.receive({ event: 'agentRun', payload: { event: agentEvent, requestId: requestByMethod.get('runSearchRegexpAgent')?.id } })
+        socket.receive({
+            event: 'actionRun',
+            payload: { event: actionEvent, requestId: requestByMethod.get('onActionRun')?.id, subscriptionId: 'action-1' },
+        })
+        socket.receive({
+            event: 'codexRateLimits',
+            payload: { requestId: requestByMethod.get('onCodexRateLimits')?.id, snapshot, subscriptionId: 'limits-1' },
+        })
+        socket.receive({
+            event: 'worktreesChanged',
+            payload: { requestId: requestByMethod.get('onWorktreesChanged')?.id, state: worktreeState, subscriptionId: 'worktrees-1' },
+        })
+        for (const [method, subscriptionId] of subscriptions) {
+            const request = requestByMethod.get(method)
+            if (!request) throw new Error(`Missing ${method} request`)
+            socket.receive({ id: request.id, result: { subscriptionId } })
+        }
+        const agentRequest = requestByMethod.get('runSearchRegexpAgent')
+        if (!agentRequest) throw new Error('Missing runSearchRegexpAgent request')
+        socket.receive({ id: agentRequest.id, result: 'agent-1' })
+        await expect(agentRun).resolves.toBe('agent-1')
+
+        expect(watchCallback).toHaveBeenCalledWith({ changeKind: 'changed', path: 'design/F-1.md' })
+        expect(agentCallback).toHaveBeenCalledWith(agentEvent)
+        expect(actionCallback).toHaveBeenCalledWith(actionEvent)
+        expect(rateLimitCallback).toHaveBeenCalledWith(snapshot)
+        expect(worktreeCallback).toHaveBeenCalledWith(worktreeState)
+
+        stopWatch()
+        stopAction()
+        stopRateLimits()
+        stopWorktrees()
+        await vi.waitFor(() => expect(socket.sent).toHaveLength(requests.length + subscriptions.length))
+        const unsubscribeIds = socket.sent.slice(requests.length).map((message) => {
+            const request = JSON.parse(message) as { method: string, params: string[] }
+            expect(request.method).toBe('unsubscribe')
+
+            return request.params[0]
+        })
+        expect(unsubscribeIds).toEqual(expect.arrayContaining(subscriptions.map(([, subscriptionId]) => subscriptionId)))
+    })
+
+    it('unsubscribes a project watcher stopped before setup completes', async () => {
+        installWebSocket()
+        const service = createService()
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
+        const callback = vi.fn()
+        const stop = service.watchProject(project, callback)
+        const socket = lastSocket()
+
+        socket.open()
+        await flushPromises()
+        const watchRequest = JSON.parse(socket.sent[0]) as { id: string }
+        stop()
+        socket.receive({ id: watchRequest.id, result: { subscriptionId: 'watch-1' } })
+        await vi.waitFor(() => expect(socket.sent).toHaveLength(2))
+        expect(JSON.parse(socket.sent[1])).toEqual(expect.objectContaining({ method: 'unsubscribe', params: ['watch-1'] }))
+        socket.receive({
+            event: 'watchProject',
+            payload: { event: { changeKind: 'changed', path: 'design/F-1.md' }, requestId: watchRequest.id, subscriptionId: 'watch-1' },
+        })
+
+        expect(callback).not.toHaveBeenCalled()
     })
 
     it('fails pending requests clearly when the socket closes', async () => {

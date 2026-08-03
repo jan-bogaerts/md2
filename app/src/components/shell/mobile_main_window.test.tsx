@@ -1,4 +1,5 @@
 import { act, cleanup, render, screen } from '@testing-library/react'
+import { createRef } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { UseGithubAuthResult } from '../../auth/use_github_auth'
 import { workspaceViewService } from '../../services/project/workspace_view_service'
@@ -17,6 +18,8 @@ const auth: UseGithubAuthResult = {
 }
 
 function renderMobileMainWindow(showNavigationInCards: boolean) {
+    const rightPanelContainerRef = createRef<HTMLDivElement>()
+
     return render(
         <AppThemeProvider>
             <MobileMainWindow
@@ -25,6 +28,7 @@ function renderMobileMainWindow(showNavigationInCards: boolean) {
                 leftPanel={<nav>Project navigation</nav>}
                 onCloseMenu={vi.fn()}
                 rightPanel={<main>Project workspace</main>}
+                rightPanelContainerRef={rightPanelContainerRef}
                 showNavigationInCards={showNavigationInCards}
             />
         </AppThemeProvider>,

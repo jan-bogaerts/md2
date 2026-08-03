@@ -14,6 +14,8 @@ import type { ActionRunInputStore } from './action_run_input_store'
 /** Resolve agent input and backend state only for controls that consume it. */
 export function useActionRunSettings(action: ActionDefinition, store: ActionRunInputStore) {
     const configuredAgent = useConfigValueOrFallback('desktop.agent', '')
+    const configuredAccessLevel = useConfigValueOrFallback('desktop.accessLevel', '')
+    const configuredApprovalPolicy = useConfigValueOrFallback('desktop.approvalPolicy', '')
     const configuredAgentProfiles = useConfigValueOrFallback('desktop.agentProfiles', [])
     const configuredModel = useConfigValueOrFallback('desktop.model', '')
     const configuredThinkingLevel = useConfigValueOrFallback('desktop.thinkingLevel', 'none')
@@ -28,6 +30,8 @@ export function useActionRunSettings(action: ActionDefinition, store: ActionRunI
     const model = snapshot.modelOverride ?? defaultModel
     const selectedAgentProfile = findAgentProfile(agentProfiles, agent)
     const selectedAgentModels = selectedAgentProfile?.models ?? []
+    const selectedAccessLevels = selectedAgentProfile?.accessLevels ?? []
+    const selectedApprovalPolicies = selectedAgentProfile?.approvalPolicies ?? []
     const selectedAvailability = capabilities.availability.values[agent]
     const selectedAgentAvailable = action.type !== 'agent'
         || (!!selectedAvailability?.available && !capabilities.availability.error)
@@ -44,17 +48,27 @@ export function useActionRunSettings(action: ActionDefinition, store: ActionRunI
         `action "${action.label}"`,
     )
     const thinkingLevel = snapshot.thinkingLevelOverride ?? definitionThinkingLevel
+    const accessLevel = selectedAgentProfile?.accessLevels
+        ? snapshot.accessLevelOverride ?? action.accessLevel ?? configuredAccessLevel
+        : action.accessLevel ?? ''
+    const approvalPolicy = selectedAgentProfile?.approvalPolicies
+        ? snapshot.approvalPolicyOverride ?? action.approvalPolicy ?? configuredApprovalPolicy
+        : action.approvalPolicy ?? ''
 
     return {
         ...snapshot,
+        accessLevel,
         agent,
         agentAvailability: capabilities.availability.values,
         agentProfiles,
+        approvalPolicy,
         backendAvailable,
         model,
         runDisabledMessage,
         selectedAgentAvailable,
         selectedAgentModels,
+        selectedAccessLevels,
+        selectedApprovalPolicies,
         thinkingLevel,
     }
 }

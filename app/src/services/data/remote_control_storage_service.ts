@@ -35,6 +35,7 @@ import type {
     DeleteFileRequest,
     DeleteFolderRequest,
     IntegrateWorktreeRequest,
+    MarkdownFile,
     MoveFilesRequest,
     PrepareWorktreeRequest,
     ProjectAsset,
@@ -250,6 +251,10 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         return this.request<StorageProjectFiles>('loadProject', [project, workingFolder])
     }
 
+    async loadFile(project: ProjectReference, path: string): Promise<MarkdownFile> {
+        return this.request<MarkdownFile>('loadFile', [project, path])
+    }
+
     async loadProjectRoot(project: ProjectReference, workingFolder: string): Promise<StorageProjectFiles> {
         return this.request<StorageProjectFiles>('loadProjectRoot', [project, workingFolder])
     }
@@ -346,15 +351,22 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
 
     watchProject(project: ProjectReference, onChange: (event: ProjectWatchEvent) => void): () => void {
         const id = this.createRequestId()
+        let cancelled = false
         let subscriptionId: string | null = null
         this.requestWatchEvents.set(id, onChange)
         void this.sendRequest<{ subscriptionId: string }>({ id, method: 'watchProject', params: [project] }).then((result) => {
             subscriptionId = result.subscriptionId
+            if (cancelled) {
+                void this.request('unsubscribe', [subscriptionId])
+                return
+            }
+
             this.watchCallbacks.set(result.subscriptionId, onChange)
             this.requestWatchEvents.delete(id)
         })
 
         return () => {
+            cancelled = true
             this.requestWatchEvents.delete(id)
             if (!subscriptionId) return
 

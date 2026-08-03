@@ -8,8 +8,11 @@ owner:
 affects:
 agents:
 policy:
-after: cf144ebc-ebd3-4148-8ad8-99bac886dd3f
+after: 5514bce2-faa7-4d0f-970e-4a0d3dc4397d
 ---
-
 The 'finish' button on the action popup should remain disabled while the agent is still rendering output and not waiting for a response.
 warning: the stop button should remain active.
+
+
+
+a test

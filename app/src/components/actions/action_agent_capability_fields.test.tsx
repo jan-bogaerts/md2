@@ -106,7 +106,7 @@ describe('ActionAgentCapabilityFields', () => {
         expect(screen.getByLabelText('Thinking level')).toHaveTextContent('extreme — unavailable')
     })
 
-    it('clears stale model and thinking-level values when agent changes', async () => {
+    it('resets incompatible agent capabilities to profile defaults when agent changes', async () => {
         const service = new AgentCapabilitiesService(provider())
         const onChange = vi.fn()
         renderFields(service, definition, onChange)
@@ -115,6 +115,12 @@ describe('ActionAgentCapabilityFields', () => {
         fireEvent.mouseDown(screen.getByLabelText('Agent'))
         fireEvent.click(within(screen.getByRole('listbox')).getByRole('option', { name: 'claude' }))
 
-        expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ agent: 'claude', model: undefined, thinkingLevel: undefined }))
+        expect(onChange).toHaveBeenCalledWith(expect.objectContaining({
+            accessLevel: undefined,
+            agent: 'claude',
+            approvalPolicy: 'default',
+            model: undefined,
+            thinkingLevel: undefined,
+        }))
     })
 })

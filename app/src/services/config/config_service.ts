@@ -172,7 +172,7 @@ function validateValue<K extends ConfigKey>(key: K, value: unknown): ConfigValue
     ) {
         return normalizeConfigPath(requireString(value, entry.key), entry.key) as ConfigValueTypes[K]
     }
-    if (key === 'desktop.model') {
+    if (key === 'desktop.model' || key === 'desktop.accessLevel' || key === 'desktop.approvalPolicy') {
         if (typeof value !== 'string') throw new Error(`Missing config field: ${entry.key}`)
 
         return value as ConfigValueTypes[K]
@@ -235,8 +235,10 @@ export class ConfigService extends EventTarget {
 
         nextValues = mergeStoredReactValues(nextValues, mergeValue)
 
+        if (desktopConfig?.accessLevel !== undefined) nextValues = mergeValue(nextValues, 'desktop.accessLevel', desktopConfig.accessLevel)
         if (desktopConfig?.agent !== undefined) nextValues = mergeValue(nextValues, 'desktop.agent', desktopConfig.agent)
         if (desktopConfig?.agentProfiles !== undefined) nextValues = mergeValue(nextValues, 'desktop.agentProfiles', desktopConfig.agentProfiles)
+        if (desktopConfig?.approvalPolicy !== undefined) nextValues = mergeValue(nextValues, 'desktop.approvalPolicy', desktopConfig.approvalPolicy)
         if (desktopConfig?.codexSearchEnabled !== undefined) {
             nextValues = mergeValue(nextValues, 'desktop.codexSearchEnabled', desktopConfig.codexSearchEnabled)
         }
@@ -332,8 +334,10 @@ export class ConfigService extends EventTarget {
         this.requireInitialized()
 
         return {
+            accessLevel: this.values['desktop.accessLevel'],
             agent: this.values['desktop.agent'],
             agentProfiles: this.values['desktop.agentProfiles'],
+            approvalPolicy: this.values['desktop.approvalPolicy'],
             codexSearchEnabled: this.values['desktop.codexSearchEnabled'],
             model: this.values['desktop.model'],
             thinkingLevel: this.values['desktop.thinkingLevel'],

@@ -18,7 +18,7 @@ interface ActionRunHistoryProps {
 function HistoryEntryRow(props: HistoryEntryRowProps) {
     const { entry } = props
     const agentLabel = entry.agent
-        ? ` (${entry.agent}${entry.model ? ` / ${entry.model}` : ''}${entry.thinkingLevel ? ` / ${entry.thinkingLevel}` : ''})`
+        ? ` (${entry.agent}${entry.model ? ` / ${entry.model}` : ''}${entry.thinkingLevel ? ` / ${entry.thinkingLevel}` : ''}${entry.accessLevel ? ` / ${entry.accessLevel}` : ''}${entry.approvalPolicy ? ` / ${entry.approvalPolicy}` : ''})`
         : ''
 
     return (

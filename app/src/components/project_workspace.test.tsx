@@ -591,6 +591,11 @@ describe('ProjectWorkspace', () => {
 
     it('completes a release from the project menu', async () => {
         const bridge = createBridge()
+        bridge.loadProjectConfig = vi.fn(async () => ({
+            projectFolder: '',
+            states: [{ alwaysVisible: true, state: 'active' }],
+            workingFolder: 'design',
+        }))
         window.md2Data = bridge
 
         renderProjectSurface()

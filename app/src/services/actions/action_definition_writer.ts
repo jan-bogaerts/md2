@@ -5,7 +5,9 @@ import { generateUuid } from '../../data/uuid'
 const ACTION_FILE_EXTENSION = '.json'
 
 export interface ConvertPromptToActionInput {
+    accessLevel?: string
     agent?: string
+    approvalPolicy?: string
     context: ActionContext
     description?: string
     label: string
@@ -28,7 +30,9 @@ export function createActionDefinition(input: ConvertPromptToActionInput): RawAc
     const description = input.description?.trim()
 
     return {
+        ...(input.accessLevel ? { accessLevel: input.accessLevel } : {}),
         ...(input.agent ? { agent: input.agent } : {}),
+        ...(input.approvalPolicy ? { approvalPolicy: input.approvalPolicy } : {}),
         appliesTo: input.context.type ? { type: input.context.type } : undefined,
         description: description && description.length > 0 ? description : `Custom prompt action: ${input.label.trim()}`,
         id: generateUuid(),

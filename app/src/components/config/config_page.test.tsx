@@ -451,8 +451,10 @@ describe('ConfigPage', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
         expect(setDesktopConfig).toHaveBeenCalledWith({
+            accessLevel: 'workspace-write',
             agent: 'claude',
             agentProfiles: BUILTIN_AGENT_PROFILES,
+            approvalPolicy: 'on-request',
             codexSearchEnabled: false,
             model: '',
             thinkingLevel: 'none',

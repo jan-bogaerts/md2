@@ -130,6 +130,7 @@ export class DataService extends EventTarget {
         this.agents.startScheduledRunWatch()
         const delayMs = configService.get('react.autoCommitDelayMs')
         this.commitBatcher = new CommitBatcher({
+            afterCommit: (request) => this.cards.pushCommittedFiles(request),
             clearDelay: (delayId) => window.clearTimeout(delayId),
             commit: (request) => this.cards.commitFiles(request),
             delayMs,
@@ -251,6 +252,9 @@ export class DataService extends EventTarget {
             dispatchChanged: () => this.dispatchChanged(),
             dispatchPersistenceChanged: () => this.dispatchPersistenceChanged(),
             commitPathsInFlight: () => this.projectState.commitPathsInFlight,
+            deleteFile: (path, committedFiles, workingFolder) => (
+                this.projectState.deleteFile(path, committedFiles, workingFolder)
+            ),
             files: () => this.projectState.files,
             mergeCommittedFiles: (files, workingFolder) => this.projectState.mergeCommittedFiles(files, workingFolder),
             project: () => this.projectState.project,

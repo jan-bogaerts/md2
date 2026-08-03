@@ -20,8 +20,10 @@ export type ConfigSource = 'react' | 'desktop' | 'project'
 export type ConfigValueType = 'boolean' | 'number' | 'select' | 'string' | 'json'
 
 export interface ConfigValueTypes {
+    'desktop.accessLevel': string
     'desktop.agent': string
     'desktop.agentProfiles': AgentProfile[]
+    'desktop.approvalPolicy': string
     'desktop.codexSearchEnabled': boolean
     'desktop.model': string
     'desktop.thinkingLevel': ThinkingLevel
@@ -69,8 +71,10 @@ export interface ConfigEntry {
 export type ConfigValues = ConfigValueTypes
 
 export interface DesktopConfigValues {
+    accessLevel?: string
     agent: string
     agentProfiles: AgentProfile[]
+    approvalPolicy?: string
     codexSearchEnabled?: boolean
     model: string
     thinkingLevel?: ThinkingLevel
@@ -246,6 +250,26 @@ export const CONFIG_ENTRIES: ConfigEntry[] = [
         section: 'project',
         source: 'project',
         type: 'json',
+    },
+    {
+        defaultValue: 'workspace-write',
+        description: 'Default access level for desktop agent actions.',
+        editable: true,
+        key: 'desktop.accessLevel',
+        label: 'Default access level',
+        section: 'desktop',
+        source: 'desktop',
+        type: 'string',
+    },
+    {
+        defaultValue: 'on-request',
+        description: 'Default approval policy for desktop agent actions.',
+        editable: true,
+        key: 'desktop.approvalPolicy',
+        label: 'Default approval policy',
+        section: 'desktop',
+        source: 'desktop',
+        type: 'string',
     },
     {
         defaultValue: 'codex',

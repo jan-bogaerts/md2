@@ -35,7 +35,7 @@ export function MobileLayout(props: MobileLayoutProps) {
     }, [])
 
     return (
-        <Box ref={containerRef} sx={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+        <Box ref={containerRef} sx={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'auto' }}>
             <Box sx={{ flex: 1, minWidth: 0, overflow: 'auto' }}>
                 {content}
             </Box>

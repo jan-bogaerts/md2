@@ -1,16 +1,27 @@
-import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cardContext } from '../../data/action_context'
 import type { ActionRunEvent } from '../../data/action_run_types'
 import type { ActionFile } from '../../data/action_types'
-import { DEFAULT_CARD_TYPES, type AgentConversation, type AgentConversationEvent, type ProjectCard } from '../../data/data_types'
+import { DEFAULT_CARD_TYPES, type AgentConversation, type AgentConversationEvent, type ProjectCard, type ProjectSnapshot } from '../../data/data_types'
 import { actionRunRegistry } from '../../services/actions/action_run_registry'
 import { actionService } from '../../services/actions/action_service'
 import { agentAcknowledgementService } from '../../services/agents/agent_acknowledgement_service'
 import { cardActionPopupService } from '../../services/actions/card_action_popup_service'
+import { dataService } from '../../services/data/data_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import { CardActionPopupHost } from './card_action_popup_host'
 import { CardRunButton } from './card_run_button'
+
+const projectState = vi.hoisted(() => ({ snapshot: null as ProjectSnapshot | null }))
+
+vi.mock('../hooks/use_project_state', () => ({
+    useProjectState: () => ({
+        project: { branch: 'main', id: 'project', rootPath: 'C:\\project' },
+        runningAgents: [],
+        snapshot: projectState.snapshot,
+    }),
+}))
 
 const PROJECT_KEY = 'project:main'
 
@@ -21,6 +32,7 @@ function conversation(
 ): AgentConversation {
     return {
         actionId,
+        cardInternalId: 'f-010',
         cardPath: 'design/F-010.md',
         completedAt: status === 'running' ? null : '2026-01-01T00:01:00.000Z',
         entries: events.map((event) => ({ ...event, kind: 'event' })),
@@ -64,6 +76,12 @@ function cardWith(conversations: AgentConversation[]): ProjectCard {
 }
 
 function renderCardRunButton(projectCard: ProjectCard = card) {
+    projectState.snapshot = {
+        activeCards: [projectCard],
+        backgroundCards: [],
+        repositoryFiles: [],
+        workingFolder: 'design',
+    }
     render(
         <>
             <CardRunButton
@@ -96,6 +114,7 @@ describe('CardRunButton', () => {
         delete window.md2Actions
         cleanup()
         actionService.clear()
+        projectState.snapshot = null
         window.localStorage.clear()
         vi.restoreAllMocks()
     })
@@ -270,13 +289,20 @@ describe('CardRunButton', () => {
         expect(actionGroup.getByRole('button', { name: 'Implement' })).toHaveAttribute('aria-pressed', 'false')
     })
 
-    it('marks actions with unseen agent results inside the Run popup', () => {
-        renderCardRunButton(cardWith([conversation('completed', [], 'implement')]))
+    it('loads unseen result and clears its popup LED after display', async () => {
+        const completedConversation = conversation('completed', [], 'implement')
+        const projectCard = cardWith([completedConversation])
+        vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([completedConversation])
+        vi.spyOn(dataService, 'loadAgentConversation').mockResolvedValue(completedConversation)
+        renderCardRunButton(projectCard)
 
         fireEvent.click(screen.getByRole('button', { name: 'Run — New agent result available' }))
         const actionGroup = within(screen.getByRole('group', { name: 'Actions' }))
 
-        expect(actionGroup.getByRole('button', { name: 'Implement — New agent result available' })).toBeInTheDocument()
+        fireEvent.click(actionGroup.getByRole('button', { name: 'Implement — New agent result available' }))
+
+        await waitFor(() => expect(actionGroup.getByRole('button', { name: 'Implement' })).toBeInTheDocument())
+        expect(dataService.loadAgentConversation).toHaveBeenCalledWith(completedConversation.path)
         expect(actionGroup.getByRole('button', { name: 'Run lint' })).toBeInTheDocument()
     })
 

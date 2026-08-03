@@ -11,11 +11,13 @@ import {
     type FocusEvent, type ReactNode,
 } from 'react'
 import type { ActionPlaceholder } from '../../data/action_placeholders'
+import { useProjectState } from '../hooks/use_project_state'
 import { dialogService } from '../../services/dialog_service'
 import { useAppTheme } from '../../theme/use_app_theme'
 import { markdownDocumentHistoryPlugin } from './markdown_document_history_realm_plugin'
 import type { MarkdownDocumentHistoryStore } from './markdown_document_history_store'
 import { MarkdownFormatToolbarControls } from './markdown_format_toolbar_controls'
+import { markdownFileSearchPlugin } from './markdown_file_search_realm_plugin'
 import { plainMarkdownPlugin } from './plain_markdown_realm_plugin'
 import { markdownPlaceholderPlugin } from './markdown_placeholder_realm_plugin'
 import { registerMarkdownEditorFlush } from './markdown_editor_flush'
@@ -30,6 +32,7 @@ import type {
 const DEFAULT_CODE_LANGUAGE = ''
 const CODE_BLOCK_LANGUAGES = { '': 'Plain text', js: 'JavaScript', ts: 'TypeScript', tsx: 'TSX', bash: 'Shell' }
 const EMPTY_PLACEHOLDERS: readonly ActionPlaceholder[] = []
+const EMPTY_REPOSITORY_FILES: readonly string[] = []
 
 export interface MarkdownEditorHandle {
     flush(): boolean
@@ -104,6 +107,8 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
     const dataSource = props.dataSource
     const binding = props.binding
     const historyStore = props.historyStore
+    const { snapshot } = useProjectState()
+    const repositoryFiles = snapshot?.repositoryFiles ?? EMPTY_REPOSITORY_FILES
     const initialDocumentRef = useRef<MarkdownDocumentSnapshot | null>(null)
     if (!initialDocumentRef.current) initialDocumentRef.current = initialDocument(props)
     const initialDocumentSnapshot = initialDocumentRef.current
@@ -286,6 +291,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         ...(viewMode ? [diffSourcePlugin({ diffMarkdown: diffMarkdown ?? '', viewMode })] : []),
         ...(hideToolbar ? [] : [toolbarPlugin({ toolbarContents })]),
         markdownPlaceholderPlugin({ overlayContainer, placeholders }),
+        markdownFileSearchPlugin({ overlayContainer, repositoryFiles }),
         markdownPastePlugin({ insertMarkdown }),
         ...(historyPlugin ? [historyPlugin] : []),
     ]

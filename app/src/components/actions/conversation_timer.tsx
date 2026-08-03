@@ -1,10 +1,12 @@
 import { Typography } from '@mui/material'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import type { PopupRunStatus } from './action_popup_defaults'
 import { formatDuration } from './conversation_duration'
 
 interface ConversationTimerProps {
     completedAt: string | null
     startedAt: string
+    status: PopupRunStatus
 }
 
 function elapsedMs(startedAt: string, completedAt: string | null) {
@@ -17,23 +19,29 @@ function elapsedMs(startedAt: string, completedAt: string | null) {
  * Isolated run timer. While the run is active it ticks once a second; keeping it
  * in its own component means only this node re-renders, not the whole chat log.
  */
-export function ConversationTimer({ completedAt, startedAt }: ConversationTimerProps) {
-    const [, forceTick] = useState(0)
+export function ConversationTimer({ completedAt, startedAt, status }: ConversationTimerProps) {
+    const [elapsed, setElapsed] = useState(() => elapsedMs(startedAt, null))
+    const lastTickAtRef = useRef(0)
 
     useEffect(() => {
-        if (completedAt) return
+        if (completedAt || status !== 'running') return
 
-        const interval = setInterval(() => forceTick((tick) => tick + 1), 1000)
+        lastTickAtRef.current = Date.now()
+        const interval = setInterval(() => {
+            const now = Date.now()
+            const elapsedSinceLastTick = now - lastTickAtRef.current
+            lastTickAtRef.current = now
+            setElapsed((currentElapsed) => currentElapsed + elapsedSinceLastTick)
+        }, 1000)
 
         return () => clearInterval(interval)
-    }, [completedAt])
+    }, [completedAt, status])
 
-    // Derived during render so a completed run is static and a live run recomputes each tick.
-    const elapsed = elapsedMs(startedAt, completedAt)
+    const displayedElapsed = completedAt ? elapsedMs(startedAt, completedAt) : elapsed
 
     return (
         <Typography aria-label="Elapsed time" color="text.secondary" variant="caption">
-            {`⏱ ${formatDuration(elapsed)}`}
+            {`⏱ ${formatDuration(displayedElapsed)}`}
         </Typography>
     )
 }

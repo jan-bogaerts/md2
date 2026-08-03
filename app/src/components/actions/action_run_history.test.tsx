@@ -28,9 +28,11 @@ describe('ActionRunHistory', () => {
         expect(screen.queryByText('Run history unavailable.')).not.toBeInTheDocument()
     })
 
-    it('renders agent and model labels', () => {
+    it('renders agent, model, and permission labels', () => {
         const entries: ActionRunHistoryEntry[] = [{
             agent: 'codex',
+            accessLevel: 'workspace-write',
+            approvalPolicy: 'on-request',
             completedAt: '2026-07-05T10:00:00.000Z',
             model: 'gpt-5',
             output: 'done',
@@ -41,7 +43,7 @@ describe('ActionRunHistory', () => {
 
         render(<ActionRunHistory entries={entries} error={null} />)
 
-        expect(screen.getByText('completed (codex / gpt-5 / high): done')).toBeInTheDocument()
+        expect(screen.getByText('completed (codex / gpt-5 / high / workspace-write / on-request): done')).toBeInTheDocument()
     })
 
     it('shows commit date, performer, short hash, and independent diff toggles', () => {

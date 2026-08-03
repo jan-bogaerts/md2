@@ -11,7 +11,6 @@ export interface CardActionPopupEntry {
     fallbackAnchorElement: HTMLElement
     id: string
     projectKey: string
-    unseenResultActionIds: string[]
 }
 
 function projectKey(service: DataService) {
@@ -57,7 +56,7 @@ export class CardActionPopupService extends EventTarget {
         return this.entries
     }
 
-    toggle(context: ActionContext, anchorElement: HTMLElement, activeProjectKey: string, unseenResultActionIds: string[]) {
+    toggle(context: ActionContext, anchorElement: HTMLElement, activeProjectKey: string) {
         const contextIdentity = actionContextIdentity(context)
         const existing = this.entries.find((entry) => actionContextIdentity(entry.context) === contextIdentity)
         if (existing) {
@@ -73,7 +72,6 @@ export class CardActionPopupService extends EventTarget {
             fallbackAnchorElement: createFallbackAnchor(anchorElement),
             id: `card-action-popup-${this.nextId}`,
             projectKey: activeProjectKey,
-            unseenResultActionIds: [...unseenResultActionIds],
         }
         this.nextId += 1
         this.setEntries([...this.entries, entry])

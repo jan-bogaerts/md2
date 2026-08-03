@@ -29,13 +29,22 @@ function buildCodexStreamingCommand(command) {
 
 export const BUILTIN_AGENT_PROFILES = [
     {
+        accessLevelArgument: '--sandbox',
+        accessLevels: ['read-only', 'workspace-write', 'danger-full-access'],
+        approvalPolicies: ['untrusted', 'on-request', 'never'],
+        approvalPolicyArgument: '--ask-for-approval',
         command: ['codex'],
+        defaultAccessLevel: 'workspace-write',
+        defaultApprovalPolicy: 'on-request',
         modelArgument: '--model',
         models: ['gpt-5.5', 'gpt-5.6-sol', 'gpt-5.6-terra', 'gpt-5.6-luna'],
         name: 'codex',
     },
     {
+        approvalPolicies: ['default', 'acceptEdits', 'auto', 'dontAsk', 'plan', 'bypassPermissions'],
+        approvalPolicyArgument: '--permission-mode',
         command: ['claude'],
+        defaultApprovalPolicy: 'default',
         modelArgument: '--model',
         models: ['default', 'sonnet', 'fable', 'opus', 'haiku'],
         name: 'claude',
@@ -77,6 +86,26 @@ function readCommand(value, fieldName) {
     return value.map((argument, index) => requireString(argument, `${fieldName}[${index}]`))
 }
 
+function readCapability(profile, profileName, choicesField, argumentField, defaultField, label) {
+    const choices = profile[choicesField]
+    const argument = profile[argumentField]
+    const defaultValue = profile[defaultField]
+    if (choices === undefined) {
+        if (argument !== undefined || defaultValue !== undefined) throw new Error(`Missing agent profile field: ${choicesField}`)
+
+        return {}
+    }
+
+    const validatedChoices = readModels(choices, `${profileName}.${choicesField}`)
+    const validatedArgument = requireString(argument, `${profileName}.${argumentField}`)
+    const validatedDefault = requireString(defaultValue, `${profileName}.${defaultField}`)
+    if (!validatedChoices.includes(validatedDefault)) {
+        throw new Error(`Invalid default ${label} for agent profile ${profile.name}: ${validatedDefault}`)
+    }
+
+    return { [argumentField]: validatedArgument, [choicesField]: validatedChoices, [defaultField]: validatedDefault }
+}
+
 function validateAgentProfile(profile, index, names) {
     if (!profile || typeof profile !== 'object' || Array.isArray(profile)) throw new Error(`Invalid agent profile: ${index}`)
     const name = requireString(profile.name, `desktop.agentProfiles[${index}].name`)
@@ -88,7 +117,12 @@ function validateAgentProfile(profile, index, names) {
         throw new Error(`Invalid default model for agent profile ${name}: ${defaultModel}`)
     }
 
+    const profileName = `desktop.agentProfiles[${index}]`
+    const accessLevelCapability = readCapability(profile, profileName, 'accessLevels', 'accessLevelArgument', 'defaultAccessLevel', 'access level')
+    const approvalPolicyCapability = readCapability(profile, profileName, 'approvalPolicies', 'approvalPolicyArgument', 'defaultApprovalPolicy', 'approval policy')
     const validated = {
+        ...accessLevelCapability,
+        ...approvalPolicyCapability,
         command: readCommand(profile.command, `desktop.agentProfiles[${index}].command`),
         ...(defaultModel !== undefined ? { defaultModel } : {}),
         ...(profile.modelArgument !== undefined ? { modelArgument: requireString(profile.modelArgument, `desktop.agentProfiles[${index}].modelArgument`) } : {}),
@@ -160,6 +194,29 @@ export function validateAgentSelection(profiles, selection, source) {
         error.code = 'unknown-model'
         throw error
     }
+    validateCapabilitySelection(profile, selection.accessLevel, 'accessLevels', 'access level', source)
+    validateCapabilitySelection(profile, selection.approvalPolicy, 'approvalPolicies', 'approval policy', source)
+}
+
+function validateCapabilitySelection(profile, value, choicesField, label, source) {
+    if (value === undefined) return
+    const codeName = choicesField === 'accessLevels' ? 'access-level' : 'approval-policy'
+    if (typeof value !== 'string' || value.length === 0) {
+        const error = new Error(`Invalid ${label} in ${source}: ${String(value)}`)
+        error.code = `invalid-${codeName}`
+        throw error
+    }
+    const choices = profile[choicesField]
+    if (!choices) {
+        const error = new Error(`Agent profile does not support ${label}: ${profile.name}`)
+        error.code = `unsupported-${codeName}`
+        throw error
+    }
+    if (!choices.includes(value)) {
+        const error = new Error(`Unknown ${label} for agent profile ${profile.name} in ${source}: ${value}`)
+        error.code = `unknown-${codeName}`
+        throw error
+    }
 }
 
 export function validateThinkingLevel(value, source) {
@@ -176,6 +233,14 @@ export function defaultModelForProfile(profile) {
     if (profile.defaultModel !== undefined) return profile.defaultModel
 
     return profile.models?.[0] ?? ''
+}
+
+export function defaultAccessLevelForProfile(profile) {
+    return profile.defaultAccessLevel ?? null
+}
+
+export function defaultApprovalPolicyForProfile(profile) {
+    return profile.defaultApprovalPolicy ?? null
 }
 
 export function buildAgentCommand(profile, model) {
@@ -196,6 +261,20 @@ function buildCodexThinkingCommand(command, thinkingLevel) {
 
 function buildClaudeThinkingCommand(command, thinkingLevel) {
     return [...command, '--effort', thinkingLevel]
+}
+
+function buildCapabilityCommand(command, profile, selection) {
+    let result = command
+    if (selection.accessLevel !== undefined) {
+        const argument = requireString(profile.accessLevelArgument, `agent profile ${profile.name}.accessLevelArgument`)
+        result = [...result, argument, selection.accessLevel]
+    }
+    if (selection.approvalPolicy !== undefined) {
+        const argument = requireString(profile.approvalPolicyArgument, `agent profile ${profile.name}.approvalPolicyArgument`)
+        result = [...result, argument, selection.approvalPolicy]
+    }
+
+    return result
 }
 
 const THINKING_LEVEL_ADAPTERS = new Map([
@@ -231,8 +310,10 @@ const RESUME_COMMAND_ADAPTERS = new Map([
     ['codex', buildCodexResumeCommand],
 ])
 
-export function buildAgentExecutionCommand(profile, model, thinkingLevel, searchEnabled = true) {
+export function buildAgentExecutionCommand(profile, model, thinkingLevel, searchEnabled = true, capabilities = {}) {
     const validatedThinkingLevel = validateThinkingLevel(thinkingLevel, `agent profile ${profile.name}`)
+    validateCapabilitySelection(profile, capabilities.accessLevel, 'accessLevels', 'access level', `agent profile ${profile.name}`)
+    validateCapabilitySelection(profile, capabilities.approvalPolicy, 'approvalPolicies', 'approval policy', `agent profile ${profile.name}`)
     let command = buildAgentCommand(profile, model)
 
     if (validatedThinkingLevel !== 'none') {
@@ -240,6 +321,7 @@ export function buildAgentExecutionCommand(profile, model, thinkingLevel, search
         if (!thinkingAdapter) throw new Error(`Agent profile does not support thinking levels: ${profile.name}`)
         command = thinkingAdapter(command, validatedThinkingLevel)
     }
+    command = buildCapabilityCommand(command, profile, capabilities)
 
     const outputAdapter = OUTPUT_COMMAND_ADAPTERS.get(profile.name)
 
@@ -250,9 +332,11 @@ export function supportsAgentStreaming(profile) {
     return STREAMING_COMMAND_ADAPTERS.has(profile.name)
 }
 
-export function buildAgentStreamingCommand(profile, model, thinkingLevel) {
+export function buildAgentStreamingCommand(profile, model, thinkingLevel, capabilities = {}) {
     if (!supportsAgentStreaming(profile)) throw new Error(`Agent profile does not support streaming: ${profile.name}`)
     const validatedThinkingLevel = validateThinkingLevel(thinkingLevel, `agent profile ${profile.name}`)
+    validateCapabilitySelection(profile, capabilities.accessLevel, 'accessLevels', 'access level', `agent profile ${profile.name}`)
+    validateCapabilitySelection(profile, capabilities.approvalPolicy, 'approvalPolicies', 'approval policy', `agent profile ${profile.name}`)
     let command = buildAgentCommand(profile, model)
 
     if (validatedThinkingLevel !== 'none') {
@@ -260,6 +344,7 @@ export function buildAgentStreamingCommand(profile, model, thinkingLevel) {
         if (!thinkingAdapter) throw new Error(`Agent profile does not support thinking levels: ${profile.name}`)
         command = thinkingAdapter(command, validatedThinkingLevel)
     }
+    command = buildCapabilityCommand(command, profile, capabilities)
 
     return STREAMING_COMMAND_ADAPTERS.get(profile.name)(command)
 }

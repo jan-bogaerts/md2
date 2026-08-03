@@ -56,6 +56,8 @@ function latestWaitingConversation(conversations: AgentConversation[], actionId:
 export class ActionConversationStore {
     private readonly actionId: string
     private readonly context: ActionContext
+    private initialSelectionConfigured = false
+    private initialSelectionPath: string | null = null
     private loadRequest = 0
     private readonly listeners = new Set<Listener>()
     private snapshot: ActionConversationSnapshot = { conversations: [], loading: true, selectedConversation: null }
@@ -73,6 +75,14 @@ export class ActionConversationStore {
         return () => this.listeners.delete(listener)
     }
 
+    /** Sets one automatic selection consumed by initial history load. */
+    configureInitialSelection(path: string | null) {
+        if (this.initialSelectionConfigured) return
+
+        this.initialSelectionConfigured = true
+        this.initialSelectionPath = path
+    }
+
     async load() {
         const request = this.loadRequest + 1
         this.loadRequest = request
@@ -83,9 +93,25 @@ export class ActionConversationStore {
 
             const run = actionRunRegistry.getActionRunStore(this.actionId, this.context)?.getSnapshot() ?? null
             const runActive = run?.status === 'queued' || run?.status === 'running' || run?.status === 'waitingForInput'
-            const selectedConversation = runActive
+            let selectedConversation = runActive
                 ? this.snapshot.selectedConversation
                 : this.snapshot.selectedConversation ?? latestWaitingConversation(conversations, this.actionId, this.context)
+            const initialSelectionPath = this.initialSelectionPath
+            this.initialSelectionPath = null
+            if (!runActive && !selectedConversation && initialSelectionPath) {
+                try {
+                    const loadedConversation = await defaultLoadConversation(initialSelectionPath)
+                    if (request !== this.loadRequest) return
+                    this.validateSelection(loadedConversation)
+                    selectedConversation = loadedConversation
+                } catch (error) {
+                    if (request !== this.loadRequest) return
+
+                    this.setSnapshot({ conversations, loading: false, selectedConversation: null })
+                    dialogService.error(error, { fallbackMessage: 'Could not load agent conversation' })
+                    return
+                }
+            }
             this.setSnapshot({ conversations, loading: false, selectedConversation })
             if (selectedConversation?.status === 'waitingForInput') {
                 actionPromptDraftService.clearDraft(this.actionId, this.context, null)
@@ -110,8 +136,7 @@ export class ActionConversationStore {
         try {
             const conversation = await defaultLoadConversation(path)
             if (request !== this.loadRequest) return
-            if (!belongsToContext(conversation, this.context)) throw new Error('Selected agent conversation belongs to another context')
-            if (conversation.actionId !== this.actionId) throw new Error('Selected agent conversation belongs to another action')
+            this.validateSelection(conversation)
 
             this.setSnapshot({ ...this.snapshot, selectedConversation: conversation })
             this.clearPromptDraft()
@@ -136,6 +161,11 @@ export class ActionConversationStore {
     private clearPromptDraft() {
         const run = actionRunRegistry.getActionRunStore(this.actionId, this.context)?.getSnapshot() ?? null
         actionPromptDraftService.clearDraft(this.actionId, this.context, run)
+    }
+
+    private validateSelection(conversation: AgentConversation) {
+        if (!belongsToContext(conversation, this.context)) throw new Error('Selected agent conversation belongs to another context')
+        if (conversation.actionId !== this.actionId) throw new Error('Selected agent conversation belongs to another action')
     }
 
     private setSnapshot(snapshot: ActionConversationSnapshot) {

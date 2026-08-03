@@ -27,6 +27,25 @@ function cardKey(projectId: string, cardPath: string) {
     return `${projectId}:${cardPath}`
 }
 
+/** Returns newest completed result for one action beyond card acknowledgement checkpoint. */
+export function latestUnseenAgentResult(
+    projectId: string,
+    cardPath: string,
+    conversations: AgentConversation[],
+    actionId: string,
+) {
+    const acknowledgedAt = readAcknowledgements()[cardKey(projectId, cardPath)]
+
+    return conversations
+        .filter((conversation) => conversation.actionId === actionId)
+        .filter((conversation) => {
+            const timestamp = completedTimestamp(conversation)
+
+            return !!timestamp && (!acknowledgedAt || timestamp > acknowledgedAt)
+        })
+        .sort((left, right) => (completedTimestamp(right) ?? '').localeCompare(completedTimestamp(left) ?? ''))[0] ?? null
+}
+
 export function hasUnseenAgentResult(projectId: string, cardPath: string, conversations: AgentConversation[]) {
     const timestamp = latestCompletedTimestamp(conversations)
     if (!timestamp) return false

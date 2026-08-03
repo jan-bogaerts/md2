@@ -18,7 +18,7 @@ interface ActionPopupProps {
     onClose: () => void
     onConversationViewed?: (conversation: AgentConversation) => void
     open?: boolean
-    unseenResultActionIds?: string[]
+    unseenResultConversations?: AgentConversation[]
 }
 
 /** Universal action selector and run popup for the supplied context. */
