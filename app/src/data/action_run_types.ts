@@ -87,16 +87,20 @@ export interface AgentApproval {
     environmentId?: string | null
     filePaths: string[]
     grantRoot?: string | null
+    input?: Record<string, unknown> | null
     itemId: string
-    kind: 'commandExecution' | 'fileChange'
+    kind: 'commandExecution' | 'fileChange' | 'toolUse'
     networkApprovalContext?: { host: string, protocol: AgentNetworkProtocol } | null
     proposedExecpolicyAmendment?: string[] | null
     proposedNetworkPolicyAmendments?: AgentNetworkPolicyAmendment[] | null
+    provider?: 'claude' | 'codex'
+    permissionSuggestions?: unknown[] | null
     reason?: string | null
     requestId: AgentApprovalRequestId
     startedAtMs: number
-    threadId: string
-    turnId: string
+    threadId?: string
+    toolName?: string | null
+    turnId?: string
 }
 
 interface ActionRunEventBase {
@@ -148,6 +152,8 @@ export type ActionRunUpdate =
         content: string
         kind: 'error' | 'output'
         messageId?: string
+        previousContent?: string
+        replace?: boolean
         sequence?: number
     }
 

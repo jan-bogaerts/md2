@@ -268,6 +268,10 @@ describe('ActionRunRegistry', () => {
         })
         emit({
             actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
+            update: { content: 'Testing passed', kind: 'output', messageId: 'assistant-1', previousContent: 'Testing...', replace: true, sequence: 2 },
+        })
+        emit({
+            actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
             update: {
                 event: {
                     command: 'npm test',
@@ -291,11 +295,12 @@ describe('ActionRunRegistry', () => {
         expect(getRun(service).conversation).toMatchObject({
             entries: [
                 userMessage,
-                expect.objectContaining({ content: 'Testing...', id: 'assistant-1', sequence: 2 }),
+                expect.objectContaining({ content: 'Testing passed', id: 'assistant-1', sequence: 2 }),
                 expect.objectContaining({ id: 'activity-completed', output: 'passed', providerItemId: 'command-1', sequence: 3, status: 'completed' }),
                 expect.objectContaining({ content: 'Done', id: 'assistant-2', sequence: 4 }),
             ],
         })
+        expect(getRun(service).logs.at(-1)?.stdout).toBe('Testing passedDone')
         service.stop()
     })
 

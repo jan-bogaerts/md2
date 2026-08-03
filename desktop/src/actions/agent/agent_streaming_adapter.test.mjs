@@ -26,7 +26,7 @@ describe('ClaudeStreamingAdapter', () => {
 
         await adapter.start('plan');
         await adapter.handleMessage({ session_id: 'session-1', subtype: 'init', type: 'system' });
-        await adapter.handleMessage({ message: { content: [{ text: 'proposal', type: 'text' }] }, type: 'assistant' });
+        await adapter.handleMessage({ message: { content: [{ text: 'proposal', type: 'text' }], id: 'message-1' }, type: 'assistant' });
         await adapter.handleMessage({ total_cost_usd: 0.01, type: 'result', usage: { input_tokens: 4, output_tokens: 2 } });
         await adapter.sendMessage('approved');
 
@@ -35,7 +35,7 @@ describe('ClaudeStreamingAdapter', () => {
             { message: { content: 'approved', role: 'user' }, type: 'user' },
         ]);
         expect(events).toContainEqual({ conversationId: 'session-1', type: 'sessionStarted' });
-        expect(events).toContainEqual({ content: 'proposal', type: 'assistant' });
+        expect(events).toContainEqual({ content: 'proposal', itemId: 'message-1:text:0', type: 'assistantCompleted' });
         expect(events.at(-1)).toMatchObject({ error: null, type: 'turnCompleted' });
     });
 
@@ -74,15 +74,16 @@ describe('ClaudeStreamingAdapter', () => {
         });
     });
 
-    it('maps root-confined file changes and tool transcript events', async () => {
+    it('maps root-confined file changes and tool lifecycle events', async () => {
         const { adapter, events } = harness('claude');
 
         await adapter.handleMessage({
             message: {
                 content: [
-                    { input: { file_path: 'design\\feature.md' }, name: 'Write', type: 'tool_use' },
-                    { input: { file_path: 'C:\\outside\\secret.md' }, name: 'Edit', type: 'tool_use' },
+                    { id: 'tool-1', input: { file_path: 'design\\feature.md' }, name: 'Write', type: 'tool_use' },
+                    { id: 'tool-2', input: { file_path: 'C:\\outside\\secret.md' }, name: 'Edit', type: 'tool_use' },
                 ],
+                id: 'message-1',
             },
             type: 'assistant',
         });
@@ -93,11 +94,13 @@ describe('ClaudeStreamingAdapter', () => {
 
         expect(events).toContainEqual({ paths: ['design/feature.md'], type: 'changedPaths' });
         expect(events).toContainEqual({
-            content: '{"file_path":"design\\\\feature.md"}',
-            toolType: 'tool.Write',
-            type: 'transcript',
+            event: expect.objectContaining({ content: 'design\\feature.md', providerItemId: 'tool-1', type: 'fileChange' }),
+            type: 'event',
         });
-        expect(events).toContainEqual({ content: 'written', toolType: 'tool.result', type: 'transcript' });
+        expect(events).toContainEqual({
+            event: expect.objectContaining({ output: 'written', providerItemId: 'tool-1', status: 'completed' }),
+            type: 'event',
+        });
     });
 
     it('reports only structured pre-turn missing-session results as resumable', async () => {
@@ -110,7 +113,7 @@ describe('ClaudeStreamingAdapter', () => {
             type: 'result',
         });
         const started = harness('claude', 'session-missing');
-        await started.adapter.handleMessage({ message: { content: [{ text: 'started', type: 'text' }] }, type: 'assistant' });
+        await started.adapter.handleMessage({ message: { content: [{ text: 'started', type: 'text' }], id: 'message-1' }, type: 'assistant' });
         await started.adapter.handleMessage({
             errors: ['No conversation found with session ID: session-missing'],
             is_error: true,
@@ -126,19 +129,154 @@ describe('ClaudeStreamingAdapter', () => {
 
     it('separates assistant messages within a turn and restarts the separator each turn', async () => {
         const { adapter, events } = harness('claude');
-        const assistantMessage = (text) => ({ message: { content: [{ text, type: 'text' }] }, type: 'assistant' });
+        let messageIndex = 0;
+        const assistantMessage = (text) => {
+            messageIndex += 1;
+
+            return { message: { content: [{ text, type: 'text' }], id: `message-${messageIndex}` }, type: 'assistant' };
+        };
 
         await adapter.handleMessage(assistantMessage('first'));
         await adapter.handleMessage(assistantMessage('second'));
         await adapter.handleMessage({ type: 'result' });
         await adapter.handleMessage(assistantMessage('next turn'));
 
-        const assistantEvents = events.filter(({ type }) => type === 'assistant');
+        const assistantEvents = events.filter(({ type }) => type === 'assistantCompleted');
         expect(assistantEvents).toEqual([
-            { content: 'first', type: 'assistant' },
-            { content: '\n\nsecond', type: 'assistant' },
-            { content: 'next turn', type: 'assistant' },
+            { content: 'first', itemId: 'message-1:text:0', type: 'assistantCompleted' },
+            { content: '\n\nsecond', itemId: 'message-2:text:0', type: 'assistantCompleted' },
+            { content: 'next turn', itemId: 'message-3:text:0', type: 'assistantCompleted' },
         ]);
+    });
+
+    it('streams ordered text, thinking, and tool activity then replaces text with authoritative completion', async () => {
+        const { adapter, events } = harness('claude');
+
+        await adapter.handleMessage({
+            event: { message: { id: 'message-1' }, type: 'message_start' },
+            type: 'stream_event',
+        });
+        await adapter.handleMessage({
+            event: { content_block: { thinking: '', type: 'thinking' }, index: 0, type: 'content_block_start' },
+            type: 'stream_event',
+        });
+        await adapter.handleMessage({
+            event: { delta: { thinking: 'check', type: 'thinking_delta' }, index: 0, type: 'content_block_delta' },
+            type: 'stream_event',
+        });
+        await adapter.handleMessage({
+            event: { content_block: { text: '', type: 'text' }, index: 1, type: 'content_block_start' },
+            type: 'stream_event',
+        });
+        await adapter.handleMessage({
+            event: { delta: { text: 'dra', type: 'text_delta' }, index: 1, type: 'content_block_delta' },
+            type: 'stream_event',
+        });
+        await adapter.handleMessage({
+            event: { content_block: { id: 'tool-1', input: {}, name: 'Bash', type: 'tool_use' }, index: 2, type: 'content_block_start' },
+            type: 'stream_event',
+        });
+        await adapter.handleMessage({
+            event: { delta: { partial_json: '{"command":"npm test"}', type: 'input_json_delta' }, index: 2, type: 'content_block_delta' },
+            type: 'stream_event',
+        });
+        await adapter.handleMessage({
+            message: {
+                content: [
+                    { thinking: 'check carefully', type: 'thinking' },
+                    { text: 'draft', type: 'text' },
+                    { id: 'tool-1', input: { command: 'npm test' }, name: 'Bash', type: 'tool_use' },
+                ],
+                id: 'message-1',
+            },
+            type: 'assistant',
+        });
+
+        expect(events.map(({ type }) => type)).toEqual([
+            'turnStarted', 'event', 'event', 'assistantStarted', 'assistant', 'event', 'event', 'event', 'assistantCompleted', 'event',
+        ]);
+        expect(events).toContainEqual({ content: 'dra', itemId: 'message-1:text:1', type: 'assistant' });
+        expect(events).toContainEqual({ content: 'draft', itemId: 'message-1:text:1', type: 'assistantCompleted' });
+        expect(events.at(-1)).toEqual({
+            event: expect.objectContaining({ command: 'npm test', providerItemId: 'tool-1', status: 'inProgress' }),
+            type: 'event',
+        });
+    });
+
+    it('keeps concurrent approvals isolated and maps Claude decisions to control responses', async () => {
+        const { adapter, events, writes } = harness('claude');
+        const permissionSuggestions = [{ behavior: 'allow', destination: 'session', tool: 'Bash' }];
+        const approvalRequest = (requestId, toolUseId, command, suggestions = permissionSuggestions) => ({
+            request: {
+                decision_reason: 'Command needs permission',
+                input: { command },
+                permission_suggestions: suggestions,
+                subtype: 'can_use_tool',
+                tool_name: 'Bash',
+                tool_use_id: toolUseId,
+            },
+            request_id: requestId,
+            type: 'control_request',
+        });
+
+        await adapter.handleMessage(approvalRequest('request-1', 'tool-1', 'npm test'));
+        await adapter.handleMessage(approvalRequest('request-2', 'tool-2', 'npm run lint', []));
+        await adapter.answerApproval('request-1', 'acceptForSession');
+        await adapter.answerApproval('request-2', 'cancel');
+
+        expect(events.filter(({ type }) => type === 'approval')).toEqual([
+            { approval: expect.objectContaining({ command: 'npm test', provider: 'claude', requestId: 'request-1', toolName: 'Bash' }), type: 'approval' },
+            { approval: expect.objectContaining({ availableDecisions: ['accept', 'decline', 'cancel'], requestId: 'request-2' }), type: 'approval' },
+        ]);
+        expect(writes.at(-2)).toEqual({
+            response: {
+                request_id: 'request-1',
+                response: {
+                    behavior: 'allow',
+                    toolUseID: 'tool-1',
+                    updatedInput: { command: 'npm test' },
+                    updatedPermissions: permissionSuggestions,
+                },
+                subtype: 'success',
+            },
+            type: 'control_response',
+        });
+        expect(writes.at(-1)).toEqual({
+            response: {
+                request_id: 'request-2',
+                response: { behavior: 'deny', interrupt: true, message: 'User stopped the turn', toolUseID: 'tool-2' },
+                subtype: 'success',
+            },
+            type: 'control_response',
+        });
+        expect(events.filter(({ type }) => type === 'approvalResolved')).toEqual([
+            { requestId: 'request-1', type: 'approvalResolved' },
+            { requestId: 'request-2', type: 'approvalResolved' },
+        ]);
+    });
+
+    it.each([
+        ['accept', { behavior: 'allow', toolUseID: 'tool-1', updatedInput: { command: 'npm test' } }],
+        ['decline', { behavior: 'deny', message: 'User declined this tool request', toolUseID: 'tool-1' }],
+    ])('maps Claude %s approval decisions exactly', async (decision, response) => {
+        const { adapter, writes } = harness('claude');
+        await adapter.handleMessage({
+            request: {
+                input: { command: 'npm test' },
+                subtype: 'can_use_tool',
+                tool_name: 'Bash',
+                tool_use_id: 'tool-1',
+            },
+            request_id: 'request-1',
+            type: 'control_request',
+        });
+
+        await adapter.answerApproval('request-1', decision);
+
+        expect(writes.at(-1)).toEqual({
+            response: { request_id: 'request-1', response, subtype: 'success' },
+            type: 'control_response',
+        });
     });
 });
 

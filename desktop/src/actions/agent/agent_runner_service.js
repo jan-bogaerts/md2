@@ -261,6 +261,20 @@ function appendAssistantOutput(run, content, timestamp, itemId = null) {
     return { message, segment };
 }
 
+function replaceAssistantOutput(run, content, timestamp, itemId) {
+    const item = assistantItem(run, itemId);
+    const currentIndex = run.conversation.entries.findIndex((entry) => entry.kind === 'message' && entry.id === item.messageId);
+    if (currentIndex < 0) throw new Error(`Missing assistant message ${item.messageId}`);
+    const current = run.conversation.entries[currentIndex];
+    if (current.content === content) return { message: current, previousContent: current.content, replaced: false };
+    if (!run.stdout.endsWith(current.content)) throw new Error(`Assistant item is not latest output: ${itemId}`);
+    run.stdout = `${run.stdout.slice(0, run.stdout.length - current.content.length)}${content}`;
+    const message = { ...current, content, timestamp };
+    run.conversation.entries[currentIndex] = message;
+
+    return { message, previousContent: current.content, replaced: true };
+}
+
 function completeAssistantOutput(run, completedAt) {
     const messageId = run.currentAssistantMessageId ?? assistantMessageId(run);
     const currentIndex = run.conversation.entries.findIndex((entry) => entry.kind === 'message' && entry.id === messageId);
@@ -847,6 +861,22 @@ class AgentRunnerService {
             const { message, segment } = appendAssistantOutput(run, safeContent, timestamp, itemId);
             if (segment.length > 0) {
                 emitRunEvent(run, { content: segment, messageId: message.id, sequence: message.sequence, type: 'output' });
+            }
+            return;
+        }
+        if (event.type === 'assistantCompleted') {
+            const safeContent = redactSecrets(event.content, run.secretValues);
+            const itemId = requireString(event.itemId, 'assistant item id');
+            const { message, previousContent, replaced } = replaceAssistantOutput(run, safeContent, timestamp, itemId);
+            if (replaced) {
+                emitRunEvent(run, {
+                    content: safeContent,
+                    messageId: message.id,
+                    previousContent,
+                    replace: true,
+                    sequence: message.sequence,
+                    type: 'output',
+                });
             }
             return;
         }

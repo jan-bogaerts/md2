@@ -444,6 +444,8 @@ class ActionRun {
                 content: agentEvent.content,
                 kind: agentEvent.type,
                 ...(agentEvent.messageId !== undefined ? { messageId: agentEvent.messageId } : {}),
+                ...(agentEvent.previousContent !== undefined ? { previousContent: agentEvent.previousContent } : {}),
+                ...(agentEvent.replace !== undefined ? { replace: agentEvent.replace } : {}),
                 ...(agentEvent.sequence !== undefined ? { sequence: agentEvent.sequence } : {}),
             };
             this.publish(action, phase, 'running', { type: 'update', update });

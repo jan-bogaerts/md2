@@ -96,6 +96,19 @@ function runningLogIndex(logs: ActionRunLogEntry[], event: ActionRunEvent) {
     ))
 }
 
+type AgentOutputUpdate = Pick<
+    Extract<ActionRunUpdate, { kind: 'error' | 'output' }>,
+    'content' | 'previousContent' | 'replace'
+>
+
+function updatedStdout(currentStdout: string, update: AgentOutputUpdate) {
+    if (!update.replace) return `${currentStdout}${update.content}`
+    if (update.previousContent === undefined) throw new Error('Missing previous assistant output')
+    if (!currentStdout.endsWith(update.previousContent)) throw new Error('Assistant output replacement is out of order')
+
+    return `${currentStdout.slice(0, currentStdout.length - update.previousContent.length)}${update.content}`
+}
+
 function updateActionLogs(logs: ActionRunLogEntry[], event: Extract<ActionRunEvent, { type: 'action' }>) {
     const currentIndex = runningLogIndex(logs, event)
     if (currentIndex < 0) return [...logs, createLog(event)]
@@ -127,7 +140,7 @@ function updateOutputLogs(
         ...current,
         command: update.command ?? current.command,
         stderr: update.kind === 'error' ? `${current.stderr}${update.content}` : current.stderr,
-        stdout: update.kind === 'output' ? `${current.stdout}${update.content}` : current.stdout,
+        stdout: update.kind === 'output' ? updatedStdout(current.stdout, update) : current.stdout,
     }
     if (currentIndex < 0) return [...logs, updated]
     const next = [...logs]
@@ -164,7 +177,7 @@ function nextConversationSequence(conversation: AgentConversation) {
 
 function appendAssistantMessage(
     conversation: AgentConversation,
-    update: { content: string, messageId?: string, sequence?: number },
+    update: { content: string, messageId?: string, replace?: boolean, sequence?: number },
 ) {
     const sequence = update.sequence ?? nextConversationSequence(conversation)
     const latestUserIndex = conversation.entries.findLastIndex((entry) => entry.kind === 'message' && entry.role === 'user')
@@ -184,7 +197,7 @@ function appendAssistantMessage(
             timestamp: conversation.startedAt,
         }]
         : conversation.entries.map((entry, index) => index === currentIndex
-            ? { ...entry, content: `${entry.content}${update.content}` }
+            ? { ...entry, content: update.replace ? update.content : `${entry.content}${update.content}` }
             : entry)
 
     return { ...conversation, entries }

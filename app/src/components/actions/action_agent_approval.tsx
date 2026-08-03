@@ -43,6 +43,12 @@ function commandActionLabel(action: AgentCommandAction) {
     return action.command
 }
 
+function structuredValueLabel(value: unknown) {
+    if (typeof value === 'string') return value
+
+    return JSON.stringify(value, null, 2) ?? String(value)
+}
+
 function permissionLabels(approval: LiveAgentApproval) {
     const permissions = approval.additionalPermissions
     if (!permissions) return []
@@ -61,6 +67,8 @@ function permissionLabels(approval: LiveAgentApproval) {
 
 function approvalDetails(approval: LiveAgentApproval) {
     const details: { label: string, values: string[] }[] = []
+    if (approval.provider) details.push({ label: 'Provider', values: [approval.provider] })
+    if (approval.toolName) details.push({ label: 'Tool', values: [approval.toolName] })
     if (approval.command) details.push({ label: 'Command', values: [approval.command] })
     if (approval.cwd) details.push({ label: 'Working directory', values: [approval.cwd] })
     if (approval.environmentId) details.push({ label: 'Environment', values: [approval.environmentId] })
@@ -75,11 +83,15 @@ function approvalDetails(approval: LiveAgentApproval) {
     if (permissions.length > 0) details.push({ label: 'Requested permissions', values: permissions })
     if (approval.grantRoot) details.push({ label: 'Requested write root', values: [approval.grantRoot] })
     if (approval.filePaths.length > 0) details.push({ label: 'Affected files', values: approval.filePaths })
+    if (approval.input) details.push({ label: 'Input', values: [structuredValueLabel(approval.input)] })
+    if (approval.permissionSuggestions?.length) {
+        details.push({ label: 'Session permission suggestions', values: approval.permissionSuggestions.map(structuredValueLabel) })
+    }
 
     return details
 }
 
-/** Security context and exact provider decisions for one pending Codex approval. */
+/** Security context and exact provider decisions for one pending agent approval. */
 export function ActionAgentApproval({ approval, onDecision }: ActionAgentApprovalProps) {
     const [submitting, setSubmitting] = useState(false)
     const decisions = approval.availableDecisions ?? DEFAULT_APPROVAL_DECISIONS

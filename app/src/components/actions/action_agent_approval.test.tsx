@@ -81,4 +81,22 @@ describe('ActionAgentApproval', () => {
         expect(screen.getByText('app/main.ts')).toBeInTheDocument()
         expect(screen.getByText('desktop/main.js')).toBeInTheDocument()
     })
+
+    it('shows Claude tool input and provider permission suggestions', () => {
+        render(<ActionAgentApproval approval={{
+            ...approval,
+            availableDecisions: ['accept', 'acceptForSession', 'decline', 'cancel'],
+            command: 'npm test',
+            input: { command: 'npm test' },
+            permissionSuggestions: [{ behavior: 'allow', destination: 'session', tool: 'Bash' }],
+            provider: 'claude',
+            requestId: 'request-1',
+            toolName: 'Bash',
+        }} onDecision={vi.fn()} />)
+
+        expect(screen.getByText('claude')).toBeInTheDocument()
+        expect(screen.getByText('Bash')).toBeInTheDocument()
+        expect(screen.getByText(/"command": "npm test"/u)).toBeInTheDocument()
+        expect(screen.getByText(/"destination": "session"/u)).toBeInTheDocument()
+    })
 })

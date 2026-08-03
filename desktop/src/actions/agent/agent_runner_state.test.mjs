@@ -362,6 +362,42 @@ describe('AgentRunnerService state handling', () => {
         ]);
     });
 
+    it('replaces streamed assistant text with authoritative provider completion', async () => {
+        const service = new AgentRunnerService();
+        const run = {
+            agent: 'claude',
+            assistantItemIndex: 0,
+            assistantItems: new Map(),
+            conversation: { entries: [], status: 'running' },
+            currentAssistantMessageId: null,
+            id: 'run-1',
+            nextSequence: 1,
+            onEvent: vi.fn(),
+            secretValues: new Set(),
+            stdout: '',
+            streaming: true,
+            turnIndex: 1,
+        };
+        service.processes.set('run-1', run);
+
+        await service.handleStreamingEvent('run-1', { itemId: 'message-1:text:0', type: 'assistantStarted' });
+        await service.handleStreamingEvent('run-1', { content: 'dra', itemId: 'message-1:text:0', type: 'assistant' });
+        await service.handleStreamingEvent('run-1', {
+            content: 'draft',
+            itemId: 'message-1:text:0',
+            type: 'assistantCompleted',
+        });
+
+        expect(run.stdout).toBe('draft');
+        expect(run.conversation.entries).toEqual([expect.objectContaining({ content: 'draft', sequence: 1 })]);
+        expect(run.onEvent).toHaveBeenLastCalledWith(expect.objectContaining({
+            content: 'draft',
+            previousContent: 'dra',
+            replace: true,
+            type: 'output',
+        }));
+    });
+
     it('updates an indexed event without scanning or appending conversation history', async () => {
         const service = new AgentRunnerService();
         const existingEvent = {

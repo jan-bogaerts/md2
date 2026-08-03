@@ -245,7 +245,7 @@ describe('ActionAgentExecutor', () => {
         expect(request).toMatchObject({
             command: [
                 'claude', '--model', 'default', '--permission-mode', 'default', '--print', '--verbose', '--output-format', 'stream-json',
-                '--input-format', 'stream-json', '--permission-prompt-tool', 'stdio', '--resume', 'session-1',
+                '--include-partial-messages', '--input-format', 'stream-json', '--permission-prompt-tool', 'stdio', '--resume', 'session-1',
             ],
             contextInput: expect.stringContaining('new'),
             providerConversationId: 'session-1',

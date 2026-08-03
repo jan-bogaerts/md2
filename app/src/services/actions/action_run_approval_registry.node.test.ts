@@ -22,8 +22,9 @@ describe('ActionRunRegistry approvals', () => {
             startedAtMs: 1, threadId: 'thread-1', turnId: 'turn-1',
         }
         const fileApproval: AgentApproval = {
-            filePaths: ['app/main.ts'], itemId: 'file-1', kind: 'fileChange', requestId: 42,
-            startedAtMs: 2, threadId: 'thread-1', turnId: 'turn-1',
+            filePaths: ['app/main.ts'], input: { file_path: 'app/main.ts' }, itemId: 'file-1', kind: 'fileChange',
+            permissionSuggestions: [{ behavior: 'allow', destination: 'session' }], provider: 'claude', requestId: 42,
+            startedAtMs: 2, toolName: 'Write',
         }
         const events: ActionRunEvent[] = [
             {

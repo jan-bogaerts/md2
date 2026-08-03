@@ -28,7 +28,7 @@ function viewportIsAtEnd(viewport: HTMLDivElement) {
     return viewport.scrollHeight - viewport.clientHeight - viewport.scrollTop <= CHAT_END_TOLERANCE
 }
 
-function isCodexConversation(conversation: AgentConversation) {
+function hasAgentActivity(conversation: AgentConversation) {
     return conversation.providerSessions.some(({ agent }) => agent === 'codex')
         || conversation.entries.some((entry) => entry.kind === 'message' && entry.agent === 'codex')
         || conversation.entries.some((entry) => entry.kind === 'event' && !!entry.providerItemId)
@@ -36,7 +36,7 @@ function isCodexConversation(conversation: AgentConversation) {
 
 function visibleConversationEntries(conversation: AgentConversation | null) {
     if (!conversation) return []
-    const showEvents = isCodexConversation(conversation)
+    const showEvents = hasAgentActivity(conversation)
 
     return conversation.entries.filter((entry) => entry.kind === 'message'
         || (showEvents && (entry.type !== 'reasoning' || entry.status !== 'completed')))
