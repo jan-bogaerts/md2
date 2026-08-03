@@ -2419,12 +2419,12 @@
       ],
       "runId": "action-df9115d2-53d9-45e8-9c46-d37e40b641f7",
       "history": {
-        "agent": "codex",
         "completedAt": "2026-08-01T17:41:23.505Z",
-        "model": "gpt-5.6-sol",
         "output": "Plan approved. Starting Block 1: `ProjectState` deletion primitive and dependency wiring.\n\nBlock 1 wired. Block 2 now replaces full reload after successful storage deletion; failure leaves snapshot untouched.\n\nBlock 2 complete. Block 3 adds regression coverage for state removal, follower repair, no project/index reload, events, failure and push/flush preservation.\n\nCode and tests updated. Running only related service/state and file-tree deletion suites, then targeted lint.\n\nAll 86 related tests pass; targeted lint clean. Final required action: feature status `ready`.\n\nImplemented B_83.\n\n- File/card deletion updates `ProjectState` directly.\n- Repair file merged; deleted path removed from loaded files and repository index.\n- Snapshot rebuilt once; existing events dispatched.\n- No project, repository-index, or agent-conversation reload.\n- Failure, SHA, pending commits, ordering, push modes preserved.\n- Feature status set to `ready`.\n\nValidation:\n\n- 4 related test files passed.\n- 86 tests passed.\n- Targeted lint clean.\n\n\u001b[2m2026-08-01T17:37:12.957005Z\u001b[0m \u001b[31mERROR\u001b[0m \u001b[2mcodex_core::tools::router\u001b[0m\u001b[2m:\u001b[0m \u001b[3merror\u001b[0m\u001b[2m=\u001b[0mExit code: 1\nWall time: 0.3 seconds\nOutput:\nrg: app\\src\\services\\data\\*.ts: IO error for operation on app\\src\\services\\data\\*.ts: The filename, directory name, or volume label syntax is incorrect. (os error 123)\n\n\u001b[2m2026-08-01T17:39:59.451586Z\u001b[0m \u001b[31mERROR\u001b[0m \u001b[2mcodex_core::tools::router\u001b[0m\u001b[2m:\u001b[0m \u001b[3merror\u001b[0m\u001b[2m=\u001b[0mapply_patch verification failed: Failed to find expected lines in C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_83_delete_card_reloads_project.md:\nstatus: ready for implementation\n",
         "prompt": "go",
         "status": "completed",
+        "agent": "codex",
+        "model": "gpt-5.6-sol",
         "thinkingLevel": "medium"
       },
       "origin": {
@@ -2435,6 +2435,33 @@
       "rootActionLabel": "implement",
       "startedAt": "2026-08-01T17:36:49.263Z",
       "status": "completed"
+    },
+    {
+      "commits": [
+        {
+          "commit": "ef8b0284b288517db22da0fc207650d1f94f514e",
+          "committedAt": "2026-08-03T08:29:00+02:00",
+          "deletions": 22,
+          "filePaths": [
+            "app/src/services/data/card_operation_context.ts",
+            "app/src/services/data/card_operations.test.ts",
+            "app/src/services/data/data_service.ts",
+            "app/src/services/data/project_file_operations.ts",
+            "app/src/services/project/project_state.node.test.ts",
+            "app/src/services/project/project_state.ts"
+          ],
+          "filesChanged": 6,
+          "insertions": 56,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-03T08:29:00+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "0b35236a-2fe4-4b58-86f8-bd84af5ac7ce",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 1
