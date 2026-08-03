@@ -11,5 +11,3 @@ policy:
 after: a57b89e0-49f4-4c25-9d99-deea222460cd
 ---
 an agent changed the state of a card to ready, but the UI did not get updated. the card remained in the old column, did not move to the 'ready' column
-
-It appears this is perhaps mor general: now an agent updated a card, but the card content is not updated in the ui when you click on the card, so the file watcher never reported a change perhaps?
