@@ -375,6 +375,7 @@ describe('CardRunButton', () => {
 
         expect(firstDialog.parentElement).toHaveStyle({ zIndex: '1300' })
         expect(secondDialog.parentElement).toHaveStyle({ zIndex: '1301' })
+        expect(secondDialog).toHaveFocus()
 
         fireEvent.pointerDown(firstDialog)
 

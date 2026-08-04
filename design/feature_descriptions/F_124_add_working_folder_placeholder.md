@@ -3,7 +3,7 @@ author:
 id: F_124
 internalId: dc388d9d-a25d-4e74-bc32-71325cefa426
 title: add repository-folder placeholder
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:

@@ -3,7 +3,7 @@ author:
 id: F_103
 internalId: 2d44bfea-2083-4ec7-b549-3fd4d02f4af9
 title: sticky editor toolbar
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:

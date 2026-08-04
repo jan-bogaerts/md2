@@ -75,6 +75,9 @@ describe('ResizablePopper', () => {
         const dialog = screen.getByRole('dialog', { name: 'Test popper' })
 
         expect(document.querySelector('.MuiPopper-root')).toHaveStyle({ zIndex: '1303' })
+        expect(dialog).toHaveFocus()
+        expect(onActivate).toHaveBeenCalledOnce()
+        onActivate.mockClear()
 
         fireEvent.pointerDown(dialog)
         fireEvent.pointerDown(screen.getByRole('separator', { name: 'Resize test popper' }))

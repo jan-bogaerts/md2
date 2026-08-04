@@ -3,7 +3,7 @@ author:
 id: F_110
 internalId: 4b1a6636-3545-4409-bbfe-eed686514d7c
 title: card-action popup should show card id
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:

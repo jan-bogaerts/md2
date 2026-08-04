@@ -1,6 +1,6 @@
 import { Box, Paper, Popper } from '@mui/material'
 import type { PopperPlacementType, PopperProps, SxProps, Theme } from '@mui/material'
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent, ReactNode } from 'react'
 import { dialogService } from '../services/dialog_service'
 import type { ResizeCorner } from './resizable_popover'
@@ -143,10 +143,18 @@ export function ResizablePopper(props: ResizablePopperProps) {
     const [position, setPosition] = useState<PopperPosition | null>(() => draggable && !anchorElement ? centeredPosition(size) : null)
     const [detachedLeft, setDetachedLeft] = useState<number | null>(null)
     const anchoredLeftRef = useRef<number | null>(null)
+    const focusOnMountRef = useRef(stackPosition !== undefined)
     const paperRef = useRef<HTMLDivElement | null>(null)
     const resizeRef = useRef<AbortController | null>(null)
 
     useEffect(() => () => resizeRef.current?.abort(), [])
+    const setPaperElement = useCallback((element: HTMLDivElement | null) => {
+        paperRef.current = element
+        if (!element || !focusOnMountRef.current) return
+
+        focusOnMountRef.current = false
+        element.focus()
+    }, [])
     useEffect(() => {
         if (!storageKey) return
 
@@ -304,9 +312,10 @@ export function ResizablePopper(props: ResizablePopperProps) {
                 onFocusCapture={onActivate}
                 onKeyDown={handleKeyDown}
                 onPointerDownCapture={startDrag}
-                ref={paperRef}
+                ref={setPaperElement}
                 role="dialog"
                 style={paperStyle}
+                tabIndex={stackPosition === undefined ? undefined : -1}
                 sx={[{
                     display: 'flex',
                     maxHeight: fullHeight ? '100vh' : 'calc(100vh - 32px)',
