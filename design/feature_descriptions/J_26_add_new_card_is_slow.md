@@ -8,7 +8,7 @@ owner:
 affects:
 agents:
 policy:
-after: 9df160a1-c669-422b-aea5-da5655c12134
+after: dfbc6cef-75cf-4a68-8e34-e72a7724769e
 ---
 
 when adding a new card, a lot seems to happen before the dialog is closed and the user can continue to work. needs further investation.

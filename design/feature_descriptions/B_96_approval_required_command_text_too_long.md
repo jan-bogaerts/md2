@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
 policy:
+after: 02a44ecf-5974-4822-8e07-8a00f2c889c8
 ---
 
 when an agent needs to ask for approval for a command, it shows the command text. this is currently far too long. we should clip the text and expand if the user clicks on it
