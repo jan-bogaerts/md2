@@ -11,6 +11,7 @@ import { dialogService } from '../../services/dialog_service'
 import { worktreeService } from '../../services/project/worktree_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import { ActionPopup, CARD_RUN_POPUP_SIZE_STORAGE_KEY, PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY } from './action_popup'
+import { useMarkdownTypeaheadStackPosition } from '../editor/markdown_typeahead_layer_context'
 
 const renderProbes = vi.hoisted(() => ({
     agentPrompt: vi.fn(),
@@ -30,7 +31,7 @@ vi.mock('./action_agent_prompt', async (importOriginal) => {
     return {
         ...actual,
         ActionAgentPrompt: function ActionAgentPromptRenderProbe(props: Parameters<typeof actual.ActionAgentPrompt>[0]) {
-            renderProbes.agentPrompt()
+            renderProbes.agentPrompt(useMarkdownTypeaheadStackPosition())
 
             return actual.ActionAgentPrompt(props)
         },
@@ -158,11 +159,11 @@ function worktreeStorage(): StorageService {
     } as unknown as StorageService
 }
 
-function renderPopup(contextOverride: ActionContext = context, onClose = vi.fn()) {
+function renderPopup(contextOverride: ActionContext = context, onClose = vi.fn(), stackPosition?: number) {
     function ActionPopupRenderProbe() {
         renderProbes.popup()
 
-        return <ActionPopup anchorElement={document.body} context={contextOverride} onClose={onClose} />
+        return <ActionPopup anchorElement={document.body} context={contextOverride} onClose={onClose} stackPosition={stackPosition} />
     }
 
     render(
@@ -215,6 +216,15 @@ describe('ActionPopup', () => {
         expect(actionGroup.getByRole('button', { name: 'First action' })).toHaveAttribute('aria-pressed', 'true')
         expect(actionGroup.getByRole('button', { name: 'Second action' })).toHaveAttribute('aria-pressed', 'false')
         expect(dialog.getByRole('button', { name: 'Run' })).toBeInTheDocument()
+    })
+
+    it('provides its stack position to Markdown typeahead menus', () => {
+        const stackPosition = 4
+        actionService.loadFromFiles([file(agentDefinition('review', { label: 'Review' }))])
+
+        renderPopup(context, vi.fn(), stackPosition)
+
+        expect(renderProbes.agentPrompt).toHaveBeenCalledWith(stackPosition)
     })
 
     it('shows Project in the project popup header and accessible title', () => {

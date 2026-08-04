@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef } from 'react'
 import { Virtuoso, type VirtuosoHandle } from 'react-virtuoso'
 import type { MarkdownFileSearchOption } from './markdown_file_search_option'
 import { MarkdownFileSearchOptionItem } from './markdown_file_search_option_item'
+import { useMarkdownTypeaheadStackPosition } from './markdown_typeahead_layer_context'
 
 const FILE_SEARCH_MENU_MAX_HEIGHT = 320
 const FILE_SEARCH_OPTION_ESTIMATED_HEIGHT = 52
@@ -41,6 +42,7 @@ function renderOption(index: number, option: MarkdownFileSearchOption, context: 
 /** Virtualized project-file typeahead results. */
 export function MarkdownFileSearchMenu(props: MarkdownFileSearchMenuProps) {
     const { onHighlight, onSelect, options, selectedIndex } = props
+    const stackPosition = useMarkdownTypeaheadStackPosition()
     const virtuosoRef = useRef<VirtuosoHandle>(null)
     const context = useMemo(
         () => ({ onHighlight, onSelect, selectedIndex }),
@@ -56,14 +58,16 @@ export function MarkdownFileSearchMenu(props: MarkdownFileSearchMenuProps) {
 
     return (
         <Paper
-            sx={{
+            sx={(theme) => ({
                 border: '1px solid',
                 borderColor: 'divider',
                 borderRadius: '14px',
                 boxShadow: 8,
                 minWidth: 320,
                 overflow: 'hidden',
-            }}
+                position: 'relative',
+                zIndex: theme.zIndex.modal + stackPosition + 1,
+            })}
         >
             <Virtuoso
                 aria-label="Project files"

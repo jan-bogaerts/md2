@@ -31,6 +31,7 @@ import { ActionScheduleOwner } from './action_schedule_owner'
 import { ActionScheduleStore } from './action_schedule_store'
 import { ActionSelector } from './action_selector'
 import { ActionWorktreeSelectorOwner } from './action_worktree_selector_owner'
+import { MarkdownTypeaheadLayerProvider } from '../editor/markdown_typeahead_layer_provider'
 
 export const CARD_RUN_POPUP_SIZE_STORAGE_KEY = 'md2.cardRunPopupSize'
 export const PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY = 'md2.projectAgentPopupSize'
@@ -160,78 +161,107 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
             stackPosition={stackPosition}
             storageKey={sizeStorageKey}
         >
-            <Typography
-                id={titleId}
-                sx={{ clip: 'rect(0 0 0 0)', clipPath: 'inset(50%)', height: 1, overflow: 'hidden', position: 'absolute', whiteSpace: 'nowrap', width: 1 }}
-            >
-                {target ? `Run actions for ${target}` : 'Run actions'}
-            </Typography>
-            <Box
-                data-drag-handle={draggable ? 'true' : undefined}
-                sx={{
-                    borderBottom: 1, borderColor: 'divider', cursor: draggable ? 'move' : undefined,
-                    display: 'flex', flexDirection: 'column', gap: 1, px: 1.5, py: 1.5,
-                }}
-            >
-                <Box data-testid="action-popup-toolbar" sx={{ alignItems: 'center', display: 'flex', gap: 1 }}>
-                    {target ? (
-                        <Box
-                            component="span"
-                            sx={{
-                                bgcolor: 'custom.primaryBg', borderRadius: '5px', color: 'primary.main', flexShrink: 0,
-                                fontFamily: '"Roboto Mono", ui-monospace, monospace', fontSize: 11.5, fontWeight: 600,
-                                px: 0.875, py: 0.25,
-                            }}
-                        >
-                            {target}
-                        </Box>
-                    ) : null}
-                    {assignmentTarget ? (
-                        <ActionWorktreeSelectorOwner
-                            actionId={action.id}
-                            assignment={worktreeAssignment}
-                            assignmentTarget={assignmentTarget}
-                            context={assignmentContext}
-                            primaryPath={primaryPath}
-                        />
-                    ) : null}
-                    {action.type === 'agent' ? (
-                        <ActionConversationPickerOwner
-                            actionId={action.id}
-                            context={assignmentContext}
-                            store={conversationStore}
-                        />
-                    ) : null}
-                    <Box sx={{ flex: 1 }} />
-                    <Tooltip title={fullHeight ? 'Collapse downward' : 'Expand upward'}>
-                        <IconButton
-                            aria-label={fullHeight ? 'Collapse downward' : 'Expand upward'}
-                            onClick={onToggleFullHeight}
-                            size="small"
-                            sx={{ flexShrink: 0, height: 30, width: 30 }}
-                        >
-                            {fullHeight ? <ArrowCollapseVertical sx={{ fontSize: 18 }} /> : <ArrowExpandVertical sx={{ fontSize: 18 }} />}
+            <MarkdownTypeaheadLayerProvider stackPosition={stackPosition ?? 0}>
+                <Typography
+                    id={titleId}
+                    sx={{ clip: 'rect(0 0 0 0)', clipPath: 'inset(50%)', height: 1, overflow: 'hidden', position: 'absolute', whiteSpace: 'nowrap', width: 1 }}
+                >
+                    {target ? `Run actions for ${target}` : 'Run actions'}
+                </Typography>
+                <Box
+                    data-drag-handle={draggable ? 'true' : undefined}
+                    sx={{
+                        borderBottom: 1, borderColor: 'divider', cursor: draggable ? 'move' : undefined,
+                        display: 'flex', flexDirection: 'column', gap: 1, px: 1.5, py: 1.5,
+                    }}
+                >
+                    <Box data-testid="action-popup-toolbar" sx={{ alignItems: 'center', display: 'flex', gap: 1 }}>
+                        {target ? (
+                            <Box
+                                component="span"
+                                sx={{
+                                    bgcolor: 'custom.primaryBg', borderRadius: '5px', color: 'primary.main', flexShrink: 0,
+                                    fontFamily: '"Roboto Mono", ui-monospace, monospace', fontSize: 11.5, fontWeight: 600,
+                                    px: 0.875, py: 0.25,
+                                }}
+                            >
+                                {target}
+                            </Box>
+                        ) : null}
+                        {assignmentTarget ? (
+                            <ActionWorktreeSelectorOwner
+                                actionId={action.id}
+                                assignment={worktreeAssignment}
+                                assignmentTarget={assignmentTarget}
+                                context={assignmentContext}
+                                primaryPath={primaryPath}
+                            />
+                        ) : null}
+                        {action.type === 'agent' ? (
+                            <ActionConversationPickerOwner
+                                actionId={action.id}
+                                context={assignmentContext}
+                                store={conversationStore}
+                            />
+                        ) : null}
+                        <Box sx={{ flex: 1 }} />
+                        <Tooltip title={fullHeight ? 'Collapse downward' : 'Expand upward'}>
+                            <IconButton
+                                aria-label={fullHeight ? 'Collapse downward' : 'Expand upward'}
+                                onClick={onToggleFullHeight}
+                                size="small"
+                                sx={{ flexShrink: 0, height: 30, width: 30 }}
+                            >
+                                {fullHeight
+                                    ? <ArrowCollapseVertical sx={{ fontSize: 18 }} />
+                                    : <ArrowExpandVertical sx={{ fontSize: 18 }} />}
+                            </IconButton>
+                        </Tooltip>
+                        <IconButton aria-label="Close" onClick={onClose} size="small" sx={{ flexShrink: 0, height: 30, width: 30 }}>
+                            <Close sx={{ fontSize: 18 }} />
                         </IconButton>
-                    </Tooltip>
-                    <IconButton aria-label="Close" onClick={onClose} size="small" sx={{ flexShrink: 0, height: 30, width: 30 }}>
-                        <Close sx={{ fontSize: 18 }} />
-                    </IconButton>
+                    </Box>
+                    <ActionSelector
+                        adding={showSaveControls}
+                        actions={actions}
+                        context={assignmentContext}
+                        onAdd={onAddAction}
+                        onSelect={onSelectAction}
+                        selectedAction={action}
+                        unseenResultActionIds={unseenResultActionIds}
+                    />
                 </Box>
-                <ActionSelector
-                    adding={showSaveControls}
-                    actions={actions}
-                    context={assignmentContext}
-                    onAdd={onAddAction}
-                    onSelect={onSelectAction}
-                    selectedAction={action}
-                    unseenResultActionIds={unseenResultActionIds}
-                />
-            </Box>
-            <Stack spacing={2} sx={{ flex: 1, minHeight: 0, overflow: 'auto', px: 1.5, py: 1 }}>
-                <ActionAgentInteractionVisibility action={action} context={assignmentContext}>
-                    <Stack spacing={1} sx={{ flex: 1, minHeight: 0 }}>
-                        {showSaveControls ? (
-                            <ActionAgentPresetNameOwner
+                <Stack spacing={2} sx={{ flex: 1, minHeight: 0, overflow: 'auto', px: 1.5, py: 1 }}>
+                    <ActionAgentInteractionVisibility action={action} context={assignmentContext}>
+                        <Stack spacing={1} sx={{ flex: 1, minHeight: 0 }}>
+                            {showSaveControls ? (
+                                <ActionAgentPresetNameOwner
+                                    action={action}
+                                    context={assignmentContext}
+                                    conversationStore={conversationStore}
+                                    historyStore={historyStore}
+                                    inputStore={inputStore}
+                                    resultStore={resultStore}
+                                    runValidationError={runValidationError}
+                                />
+                            ) : null}
+                            <Box sx={{ alignItems: 'center', color: 'text.secondary', display: 'flex', flexWrap: 'wrap', fontSize: 12, gap: 0.75 }}>
+                                {action.type === 'agent' ? (
+                                    <ActionAgentSelectorsOwner
+                                        action={action}
+                                        context={assignmentContext}
+                                        store={inputStore}
+                                    />
+                                ) : null}
+                                <ActionLogErrorOwner actionId={action.id} context={assignmentContext} resultStore={resultStore} />
+                            </Box>
+                            <ActionConversationChatOwner
+                                actionId={action.id}
+                                context={assignmentContext}
+                                onConversationViewed={props.onConversationViewed}
+                                store={conversationStore}
+                            />
+                            <ActionAgentPromptOwner
                                 action={action}
                                 context={assignmentContext}
                                 conversationStore={conversationStore}
@@ -239,72 +269,47 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
                                 inputStore={inputStore}
                                 resultStore={resultStore}
                                 runValidationError={runValidationError}
+                                showSaveControls={showSaveControls}
                             />
-                        ) : null}
-                        <Box sx={{ alignItems: 'center', color: 'text.secondary', display: 'flex', flexWrap: 'wrap', fontSize: 12, gap: 0.75 }}>
-                            {action.type === 'agent' ? (
-                                <ActionAgentSelectorsOwner
-                                    action={action}
-                                    context={assignmentContext}
-                                    store={inputStore}
-                                />
-                            ) : null}
-                            <ActionLogErrorOwner actionId={action.id} context={assignmentContext} resultStore={resultStore} />
-                        </Box>
-                        <ActionConversationChatOwner
-                            actionId={action.id}
-                            context={assignmentContext}
-                            onConversationViewed={props.onConversationViewed}
-                            store={conversationStore}
-                        />
-                        <ActionAgentPromptOwner
-                            action={action}
-                            context={assignmentContext}
-                            conversationStore={conversationStore}
-                            historyStore={historyStore}
-                            inputStore={inputStore}
-                            resultStore={resultStore}
-                            runValidationError={runValidationError}
-                            showSaveControls={showSaveControls}
-                        />
-                        <ActionAgentApprovals actionId={action.id} context={assignmentContext} />
-                        <ActionAgentQuestionOwner actionId={action.id} context={assignmentContext} />
-                    </Stack>
-                </ActionAgentInteractionVisibility>
-                <ActionPhraseButtonsOwner
+                            <ActionAgentApprovals actionId={action.id} context={assignmentContext} />
+                            <ActionAgentQuestionOwner actionId={action.id} context={assignmentContext} />
+                        </Stack>
+                    </ActionAgentInteractionVisibility>
+                    <ActionPhraseButtonsOwner
+                        action={action}
+                        context={assignmentContext}
+                        conversationStore={conversationStore}
+                        historyStore={historyStore}
+                        inputStore={inputStore}
+                        resultStore={resultStore}
+                        runValidationError={runValidationError}
+                    />
+                    <ActionScheduleOwner action={action} context={baseContext} store={scheduleStore} />
+                    {action.type !== 'agent' ? (
+                        <ActionRunStatusOwner actionId={action.id} context={assignmentContext} resultStore={resultStore} />
+                    ) : null}
+                    <ActionRunDisabledMessage action={action} store={inputStore} />
+                    {runValidationError ? (
+                        <Typography color="error.main" role="alert" variant="caption">
+                            {runValidationError}
+                        </Typography>
+                    ) : null}
+                    {action.type !== 'agent' ? (
+                        <ActionRunHistoryOwner store={historyStore} />
+                    ) : null}
+                </Stack>
+                <ActionPopupBottomRow
                     action={action}
-                    context={assignmentContext}
+                    assignmentContext={assignmentContext}
                     conversationStore={conversationStore}
                     historyStore={historyStore}
                     inputStore={inputStore}
                     resultStore={resultStore}
                     runValidationError={runValidationError}
+                    scheduleStore={scheduleStore}
+                    showSaveControls={showSaveControls}
                 />
-                <ActionScheduleOwner action={action} context={baseContext} store={scheduleStore} />
-                {action.type !== 'agent' ? (
-                    <ActionRunStatusOwner actionId={action.id} context={assignmentContext} resultStore={resultStore} />
-                ) : null}
-                <ActionRunDisabledMessage action={action} store={inputStore} />
-                {runValidationError ? (
-                    <Typography color="error.main" role="alert" variant="caption">
-                        {runValidationError}
-                    </Typography>
-                ) : null}
-                {action.type !== 'agent' ? (
-                    <ActionRunHistoryOwner store={historyStore} />
-                ) : null}
-            </Stack>
-            <ActionPopupBottomRow
-                action={action}
-                assignmentContext={assignmentContext}
-                conversationStore={conversationStore}
-                historyStore={historyStore}
-                inputStore={inputStore}
-                resultStore={resultStore}
-                runValidationError={runValidationError}
-                scheduleStore={scheduleStore}
-                showSaveControls={showSaveControls}
-            />
+            </MarkdownTypeaheadLayerProvider>
         </ResizablePopper>
     )
 }
