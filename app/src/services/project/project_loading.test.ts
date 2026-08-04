@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { DEFAULT_STATES, defaultColumnAccent, type StorageProjectFiles, type StorageService } from '../../data/data_types'
+import { DEFAULT_STATES, defaultColumnAccent, type MarkdownFile, type StorageProjectFiles, type StorageService } from '../../data/data_types'
 import type { RawActionDefinition } from '../../data/action_types'
 import { actionService } from '../actions/action_service'
 import { configService } from '../config/config_service'
@@ -1093,7 +1093,53 @@ describe('ProjectLoading', () => {
 
             expect(conflicts.messages[0]).toContain(`External change ignored for ${projectCard.path}`)
             expect(document.getDraft().content).toContain('Local draft')
-            expect(storage.loadFile).not.toHaveBeenCalled()
+        } finally {
+            conflicts.stop()
+        }
+    })
+
+    it('drops the watcher echo of a flushed save without reporting a conflict for newer pending edits', async () => {
+        vi.useFakeTimers()
+        configService.init()
+        configService.set('react.autoCommitDelayMs', 1000)
+        let watchChange: (event: { changeKind: 'changed'; path: string }) => void = () => {
+            throw new Error('Watcher not registered')
+        }
+        let committedFile: MarkdownFile | null = null
+        const storage = createStorage({
+            commit: vi.fn(async (request) => {
+                committedFile = request.files[0] ?? committedFile
+
+                return []
+            }),
+            loadFile: vi.fn(async () => {
+                if (!committedFile) throw new Error('Nothing committed yet')
+
+                return committedFile
+            }),
+            watchProject: vi.fn((_project, onChange) => {
+                watchChange = onChange
+
+                return vi.fn()
+            }),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        const conflicts = recordDialogMessages('error')
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+
+        try {
+            service.cards.updateCardBody('design/F-1-root.md', '# Root\n\nFirst edit')
+            await vi.advanceTimersByTimeAsync(1100)
+            expect(storage.commit).toHaveBeenCalled()
+
+            service.cards.updateCardBody('design/F-1-root.md', '# Root\n\nSecond edit')
+            watchChange({ changeKind: 'changed', path: 'design/F-1-root.md' })
+            await vi.advanceTimersByTimeAsync(100)
+
+            expect(conflicts.messages).toEqual([])
+            const card = service.getState().snapshot?.activeCards.find((candidate) => candidate.path === 'design/F-1-root.md')
+            expect(card?.content).toContain('Second edit')
         } finally {
             conflicts.stop()
         }

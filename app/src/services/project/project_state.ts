@@ -16,6 +16,17 @@ interface CardCacheEntry {
     fileContent: string
 }
 
+/** FNV-1a, enough to recognize the watcher echo of our own writes. */
+function hashContent(content: string) {
+    let hash = 0x811c9dc5
+    for (let index = 0; index < content.length; index += 1) {
+        hash ^= content.charCodeAt(index)
+        hash = Math.imul(hash, 0x01000193)
+    }
+
+    return hash >>> 0
+}
+
 function isSameArray<T>(previous: readonly T[], next: readonly T[]) {
     return previous.length === next.length && next.every((item, index) => previous[index] === item)
 }
@@ -34,6 +45,7 @@ export class ProjectState {
     private currentProject: ProjectReference | null = null
     private currentSnapshot: ProjectSnapshot | null = null
     private readonly inFlightCommitPaths: Set<string> = new Set()
+    private readonly committedContentHashByPath = new Map<string, number>()
     private projectLoadToken = 0
     private cardCacheByPath = new Map<string, CardCacheEntry>()
     private parseErrorPaths: Set<string> = new Set()
@@ -64,6 +76,7 @@ export class ProjectState {
         this.currentProject = null
         this.currentSnapshot = null
         this.inFlightCommitPaths.clear()
+        this.committedContentHashByPath.clear()
         this.cardCacheByPath.clear()
         this.parseErrorPaths.clear()
         if (previousActiveCards.length > 0) this.activeCardsChanged(previousActiveCards, [])
@@ -91,10 +104,20 @@ export class ProjectState {
         this.replaceFiles(mergeFiles(this.currentFiles, files), workingFolder)
     }
 
+    /** Remembers what was written to disk so the watcher echo of our own commit can be recognized. */
+    recordCommittedContent(files: MarkdownFile[]) {
+        files.forEach((file) => this.committedContentHashByPath.set(file.path, hashContent(file.content)))
+    }
+
+    isCommittedContent(path: string, content: string) {
+        return this.committedContentHashByPath.get(path) === hashContent(content)
+    }
+
     /** Merges successful companion writes and removes a deleted file from one rebuilt snapshot. */
     deleteFile(path: string, committedFiles: MarkdownFile[], workingFolder: string) {
         const files = mergeFiles(this.currentFiles, committedFiles).filter((file) => file.path !== path)
         const repositoryFiles = (this.currentSnapshot?.repositoryFiles ?? []).filter((filePath) => filePath !== path)
+        this.committedContentHashByPath.delete(path)
 
         this.replaceProjectFiles(files, workingFolder, repositoryFiles)
     }
@@ -102,6 +125,10 @@ export class ProjectState {
     /** Moves a loaded file and its repository entry to a committed path. */
     renameFile(fromPath: string, toPath: string, workingFolder: string) {
         if (fromPath === toPath) return
+
+        const movedHash = this.committedContentHashByPath.get(fromPath)
+        this.committedContentHashByPath.delete(fromPath)
+        if (movedHash !== undefined) this.committedContentHashByPath.set(toPath, movedHash)
 
         const sourceFile = this.currentFiles.find((file) => file.path === fromPath)
         const targetFile = this.currentFiles.find((file) => file.path === toPath)

@@ -23,6 +23,7 @@ export interface CardOperationsDeps {
     files(): MarkdownFile[]
     mergeCommittedFiles(files: MarkdownFile[], workingFolder: string): void
     project(): ProjectReference | null
+    recordCommittedContent(files: MarkdownFile[]): void
     refreshSnapshot(workingFolder: string): void
     reloadCurrentProjectSnapshot(): Promise<ProjectSnapshot | null>
     renameFile(fromPath: string, toPath: string, workingFolder: string): void
@@ -147,7 +148,10 @@ export class CardOperationContext {
         commitPaths.forEach((path) => inFlightCommitPaths.add(path))
 
         try {
-            return await storage.commit(request)
+            const committedFiles = await storage.commit(request)
+            this.dependencies.recordCommittedContent(request.files)
+
+            return committedFiles
         } finally {
             commitPaths.forEach((path) => inFlightCommitPaths.delete(path))
         }

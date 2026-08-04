@@ -114,6 +114,7 @@ export interface ProjectLoadingDeps {
     ensureCardInternalIds(): Promise<void>
     files(): MarkdownFile[]
     flushPendingChanges(): Promise<void>
+    isCommittedContent(path: string, content: string): boolean
     isCurrentLoad(project: ProjectReference, projectLoadToken: number): boolean
     project(): ProjectReference | null
     replaceFiles(files: MarkdownFile[], workingFolder: string): void
@@ -656,6 +657,10 @@ export class ProjectLoading {
 
         for (const event of events) {
             if (this.dependencies.commitPathsInFlight().has(event.path)) continue
+            const loadedFile = event.changeKind === 'removed' ? null : await this.loadWatchedMarkdownFile(event)
+            // The watcher reports our own commits after the in-flight window has closed; the
+            // stored commit hash recognizes those echoes so they never count as external edits.
+            if (loadedFile && this.dependencies.isCommittedContent(loadedFile.path, loadedFile.content)) continue
             const dirtyOpenDocument = openFilesService.getRegisteredDocuments().some((document) => (
                 document.kind === 'card' && document.path === event.path && document.dirty
             ))
@@ -669,7 +674,6 @@ export class ProjectLoading {
                 continue
             }
 
-            const loadedFile = await this.loadWatchedMarkdownFile(event)
             if (!loadedFile) {
                 if (event.changeKind === 'unknown') removedPaths.push(event.path)
                 continue

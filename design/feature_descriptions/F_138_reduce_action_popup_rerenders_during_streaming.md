@@ -2,7 +2,7 @@
 author: 
 id: F_138
 title: reduce action popup rerenders during streaming
-status: design
+status: ready
 owner: 
 affects:
 agents:
