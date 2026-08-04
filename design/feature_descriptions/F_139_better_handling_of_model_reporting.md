@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
 policy:
+after: f63b1866-ff7a-4fe9-b984-06cf1284f74e
 ---
 
 when codex starts, it appears to send an 'unknown agent event' containing something like this:
