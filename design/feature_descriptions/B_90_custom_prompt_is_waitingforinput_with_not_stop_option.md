@@ -3,7 +3,7 @@ author:
 id: B_90
 internalId: ed76ce11-bea8-4942-aba9-2180b019f5f2
 title: custom-prompt is waitingForInput with not stop option
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
