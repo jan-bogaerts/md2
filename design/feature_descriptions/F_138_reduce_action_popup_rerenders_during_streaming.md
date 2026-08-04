@@ -2,12 +2,13 @@
 author: 
 id: F_138
 title: reduce action popup rerenders during streaming
-status: new
+status: design
 owner: 
 affects:
 agents:
 policy:
 internalId: f9a450d8-0f93-4487-99f3-23dcc07b42b2
+after: 
 ---
 
 ## Problem

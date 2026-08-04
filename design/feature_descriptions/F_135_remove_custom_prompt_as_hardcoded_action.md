@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
 policy:
+after: c9e7dccb-d263-4ba6-98fc-b4361a01bf4d
 ---
 
 'custom-prompt' should be removed as hardcoded action. instead a new action will be created, that contains a prompt like:
