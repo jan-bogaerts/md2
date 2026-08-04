@@ -5,7 +5,7 @@ import Close from 'mdi-material-ui/Close'
 import DeleteOutline from 'mdi-material-ui/DeleteOutline'
 import FileDocumentOutline from 'mdi-material-ui/FileDocumentOutline'
 import FolderSearchOutline from 'mdi-material-ui/FolderSearchOutline'
-import type { ProjectCard } from '../../data/data_types'
+import type { CardTypeConfig, ProjectCard } from '../../data/data_types'
 import type { ActionContext } from '../../data/action_context'
 import { POPOVER_SIDE_MARGIN, POPOVER_TOP_MARGIN, ResizablePopover } from '../resizable_popover'
 import { useRunningActionForContext } from '../hooks/use_action_runs'
@@ -59,20 +59,24 @@ interface SelectedCardCommit {
 }
 
 interface CardBodyPopoverProps {
+    cardTypes: CardTypeConfig[]
     isMobile: boolean
     onDeleteCard: (path: string) => Promise<void>
     onOpenAffects: (path: string) => void
     onOpenInFileMode: (path: string) => void
+    statusColors: Map<string, string>
     visible: boolean
 }
 
 /** Card details editor anchored to the card that opened it. */
 export function CardBodyPopover(props: CardBodyPopoverProps) {
     const {
+        cardTypes,
         isMobile,
         onDeleteCard,
         onOpenAffects,
         onOpenInFileMode,
+        statusColors,
         visible,
     } = props
     const { anchorElement, cardPath } = useSyncExternalStore(
@@ -352,11 +356,13 @@ export function CardBodyPopover(props: CardBodyPopoverProps) {
                             sx={{ display: selectedCommit ? 'none' : 'flex', flex: 1, flexDirection: 'column', minHeight: 0 }}
                         >
                             <CardBodyEditor
+                                cardTypes={cardTypes}
                                 historyStore={historyStore}
                                 isFullscreen={isFullscreen}
                                 isMobile={isMobile}
                                 onToggleFullscreen={toggleFullscreen}
                                 overlayContainer={popupContentElement}
+                                statusColors={statusColors}
                             />
                         </Box>
 

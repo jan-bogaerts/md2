@@ -21,7 +21,7 @@ function card(id: string, title: string, status: string, policy: Record<string, 
     return {
         agentConversationErrors: [],
         agentConversations: [],
-        headerFields: {},
+        headerFields: { id, status, title },
         content: `# ${title}\n\nBody of ${id}`,
         header: {
             affects: [], after: null, agentLogReferences: [], author: null, id, internalId: id.toLowerCase(), owner: null,
@@ -78,6 +78,7 @@ function renderCardView(
                         { alwaysVisible: false, state: 'todo' },
                         { alwaysVisible: false, state: 'done' },
                     ]}
+                    statusColors={new Map([['todo', '#111111'], ['done', '#222222']])}
                     {...overrides}
                 />
             </div>
@@ -403,6 +404,20 @@ describe('CardView', () => {
             .toHaveBeenCalledWith('board-card', 'Renamed in popup')
     })
 
+    it('opens card Properties from the board popup toolbar', () => {
+        renderCardView()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Drag F-1' }))
+        const cardDialog = within(screen.getByRole('dialog'))
+        const propertiesButton = cardDialog.getByRole('button', { name: 'Properties' })
+        expect(propertiesButton).toHaveTextContent('')
+        fireEvent.click(propertiesButton)
+
+        const propertiesPopup = within(screen.getByRole('dialog', { name: 'Card properties popup' }))
+        expect(propertiesPopup.getByRole('heading', { name: 'Properties' })).toBeInTheDocument()
+        expect(propertiesPopup.getByLabelText('Card type')).toBeInTheDocument()
+    })
+
     it('expands and restores the card popup from the formatting toolbar', () => {
         renderCardView()
 
@@ -563,6 +578,7 @@ describe('CardView', () => {
                         { alwaysVisible: false, state: 'todo' },
                         { alwaysVisible: false, state: 'done' },
                     ]}
+                    statusColors={new Map([['todo', '#111111'], ['done', '#222222']])}
                 />
             </AppThemeProvider>,
         )

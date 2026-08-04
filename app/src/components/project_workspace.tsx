@@ -244,6 +244,7 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
                 isMobile={isMobile}
                 scrollContainerRef={mobileScrollContainerRef}
                 states={states}
+                statusColors={statusColors}
             />
         </ProjectWorkspaceAvailability>
     )

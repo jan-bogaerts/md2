@@ -750,7 +750,10 @@ describe('TextView', () => {
         clickTreeFile('F-1 Alpha')
 
         expect(screen.queryByRole('dialog', { name: 'Card properties popup' })).not.toBeInTheDocument()
-        fireEvent.click(within(screen.getAllByTestId('mdx-editor-toolbar')[1]).getByRole('button', { name: 'Properties' }))
+        const propertiesButton = within(screen.getAllByTestId('mdx-editor-toolbar')[1])
+            .getByRole('button', { name: 'Properties' })
+        expect(propertiesButton).toHaveTextContent('')
+        fireEvent.click(propertiesButton)
 
         const propertiesPopup = within(screen.getByRole('dialog', { name: 'Card properties popup' }))
         expect(propertiesPopup.getByRole('heading', { name: 'Properties' })).toBeInTheDocument()

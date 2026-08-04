@@ -885,6 +885,105 @@ describe('CardOperations', () => {
             .toEqual(['design/F-1-second-rename.md'])
     })
 
+    it('changes card type with the next configured ID and keeps the open document attached', async () => {
+        configService.init()
+        const typeFiles: MarkdownFile[] = [
+            { content: '---\nid: F-1\ninternalId: root-card\ntitle: Root\nstatus: active\naffects:\n  - app/src/app.tsx\n---\n\n# Root\n\nBody', path: 'design/F-1-root.md' },
+            { content: '---\nid: B-4\ninternalId: bug-card\ntitle: Bug\nstatus: active\n---\n\n# Bug', path: 'design/B-4-bug.md' },
+        ]
+        const storage = createStorage({
+            listRepositoryFiles: vi.fn(async () => typeFiles.map(({ path }) => path)),
+            loadProject: vi.fn(async () => ({ files: typeFiles, workingFolder: 'design' })),
+            loadProjectConfig: vi.fn(async () => ({
+                cardSeparator: '_' as const,
+                cardTypes: [
+                    { color: '#111111', idPrefix: 'F', label: 'Feature', type: 'feature' },
+                    { color: '#222222', idPrefix: 'B', label: 'Bug', type: 'bug' },
+                ],
+                projectFolder: '',
+                workingFolder: 'design',
+            })),
+            loadProjectRoot: vi.fn(async () => ({ files: typeFiles, workingFolder: 'design' })),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        const snapshot = await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        const rootCard = snapshot.activeCards.find(({ header }) => header.internalId === 'root-card')
+        if (!rootCard) throw new Error('Missing root card')
+        const document = openFilesService.openDocument(rootCard)
+        if (document.kind !== 'card') throw new Error('Expected card document')
+
+        const renamedFile = await service.cards.updateCardType(rootCard.path, 'bug')
+
+        expect(renamedFile.path).toBe('design/B_5_root.md')
+        expect(renamedFile.content).toContain('id: B_5')
+        expect(renamedFile.content).toContain('internalId: root-card')
+        expect(renamedFile.content).toContain('status: active')
+        expect(renamedFile.content).toContain('affects:\n  - app/src/app.tsx')
+        expect(renamedFile.content).toContain('# Root\n\nBody')
+        expect(document.path).toBe('design/B_5_root.md')
+        expect(document.getDraft().header.id).toBe('B_5')
+        expect(document.getDraft().header.internalId).toBe('root-card')
+        const committed = vi.mocked(storage.commit).mock.calls.at(-1)?.[0] as CommitRequest
+        expect(committed.moves).toEqual([expect.objectContaining({
+            fromPath: 'design/F-1-root.md',
+            toPath: 'design/B_5_root.md',
+        })])
+    })
+
+    it('does not persist when the selected card type is current', async () => {
+        configService.init()
+        const storage = createStorage()
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        vi.mocked(storage.commit).mockClear()
+
+        await service.cards.updateCardType('design/F-1-root.md', 'feature')
+
+        expect(storage.commit).not.toHaveBeenCalled()
+    })
+
+    it('rejects unknown types and occupied rename targets without changing the card path', async () => {
+        configService.init()
+        const storage = createStorage({
+            listRepositoryFiles: vi.fn(async () => ['design/F-1-root.md', 'design/B_1_root.md']),
+            loadProjectConfig: vi.fn(async () => ({ cardSeparator: '_' as const, projectFolder: '', workingFolder: 'design' })),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        vi.mocked(storage.commit).mockClear()
+
+        await expect(service.cards.updateCardType('design/F-1-root.md', 'unknown')).rejects.toThrow('Unknown card type: unknown')
+        await expect(service.cards.updateCardType('design/F-1-root.md', 'bug')).rejects.toThrow(
+            'A project item already exists at design/B_1_root.md',
+        )
+
+        expect(service.getState().snapshot?.activeCards[0].path).toBe('design/F-1-root.md')
+        expect(storage.commit).not.toHaveBeenCalled()
+    })
+
+    it('keeps the current path when a card type rename commit fails', async () => {
+        configService.init()
+        const storage = createStorage({
+            commit: vi.fn(async (request: CommitRequest) => {
+                if ((request.moves ?? []).length > 0) throw new Error('Type commit rejected')
+
+                return []
+            }),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+
+        await expect(service.cards.updateCardType('design/F-1-root.md', 'bug')).rejects.toThrow('Type commit rejected')
+
+        const rootCard = service.getState().snapshot?.activeCards.find(({ header }) => header.internalId === 'root-card')
+        expect(rootCard?.path).toBe('design/F-1-root.md')
+        expect(service.getState().snapshot?.repositoryFiles).toContain('design/F-1-root.md')
+    })
+
     it('edits a header field while preserving unknown header fields unchanged', async () => {
         configService.init()
         const headerFiles: MarkdownFile[] = [{

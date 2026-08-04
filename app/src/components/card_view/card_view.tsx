@@ -28,6 +28,7 @@ interface CardViewProps {
     isMobile: boolean
     scrollContainerRef: RefObject<HTMLDivElement | null>
     states: StateConfig[]
+    statusColors: Map<string, string>
 }
 
 async function runCardEdit(action: () => unknown, fallbackMessage: string) {
@@ -51,6 +52,7 @@ export function CardView(props: CardViewProps) {
         isMobile,
         scrollContainerRef,
         states,
+        statusColors,
     } = props
     useAgentAcknowledgements()
     const columns = useCardViewColumns(states)
@@ -214,10 +216,12 @@ export function CardView(props: CardViewProps) {
                     <CardDragOverlay cardTypes={cardTypes} />
                 </DragOverlay>
                 <CardBodyPopover
+                    cardTypes={cardTypes}
                     isMobile={isMobile}
                     onDeleteCard={handleDeleteCard}
                     onOpenAffects={handleOpenAffects}
                     onOpenInFileMode={handleOpenInFileMode}
+                    statusColors={statusColors}
                     visible
                 />
                 <AffectsEditorDialog

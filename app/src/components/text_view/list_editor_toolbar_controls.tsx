@@ -1,6 +1,6 @@
 import { Button } from '@mui/material'
 import { Separator } from '@mdxeditor/editor'
-import { useCallback, useEffect, useState, type MouseEvent } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { fileContext } from '../../data/action_context'
 import type { AgentConversation, CardTypeConfig } from '../../data/data_types'
 import { agentAcknowledgementService } from '../../services/agents/agent_acknowledgement_service'
@@ -15,18 +15,12 @@ import { MarkdownDocumentUndoRedo } from '../editor/markdown_document_undo_redo'
 import { MarkdownFormatToolbarControls } from '../editor/markdown_format_toolbar_controls'
 import { useActiveCard } from '../hooks/use_active_card'
 import { useCardCommits } from '../hooks/use_card_commits'
-import { CardPropertiesPanel } from './card_properties_panel'
-import { CardPropertiesPopover } from './card_properties_popover'
+import { CardPropertiesControl } from './card_properties_control'
 
 interface ListEditorToolbarControlsProps {
     cardTypes: CardTypeConfig[]
     historyStore: MarkdownDocumentHistoryStore
     statusColors: Map<string, string>
-}
-
-interface PropertiesAnchor {
-    documentId: string
-    element: HTMLElement
 }
 
 /** Formatting controls and card-specific controls for the active list-card document. */
@@ -36,14 +30,11 @@ export function ListEditorToolbarControls(props: ListEditorToolbarControlsProps)
     const documentId = card?.header.internalId ?? null
     const cardCommits = useCardCommits(documentId)
     const [agentPopupDocumentId, setAgentPopupDocumentId] = useState<string | null>(null)
-    const [propertiesAnchor, setPropertiesAnchor] = useState<PropertiesAnchor | null>(null)
     const isAgentPopupOpen = !!documentId && agentPopupDocumentId === documentId
-    const isPropertiesOpen = !!documentId && propertiesAnchor?.documentId === documentId
 
     useEffect(() => {
         const closeTransientOverlays = () => {
             setAgentPopupDocumentId(null)
-            setPropertiesAnchor(null)
         }
 
         queueMicrotask(closeTransientOverlays)
@@ -54,7 +45,6 @@ export function ListEditorToolbarControls(props: ListEditorToolbarControlsProps)
             if (workspaceViewService.getSnapshot().viewMode === 'text') return
 
             setAgentPopupDocumentId(null)
-            setPropertiesAnchor(null)
         }
 
         workspaceViewService.addEventListener('changed', handleWorkspaceViewChanged)
@@ -71,17 +61,6 @@ export function ListEditorToolbarControls(props: ListEditorToolbarControlsProps)
             dialogService.error(error, { fallbackMessage: 'Card conversation could not be acknowledged' })
         }
     }
-    const handleOpenProperties = useCallback((event: MouseEvent<HTMLElement>) => {
-        try {
-            const activeDocumentId = cardMarkdownDataSource.getActiveDocument('list-card')?.getObject().header.internalId
-            if (!activeDocumentId) throw new Error('Cannot open card properties without an active list-card document')
-
-            setPropertiesAnchor({ documentId: activeDocumentId, element: event.currentTarget })
-        } catch (error) {
-            dialogService.error(error, { fallbackMessage: 'Card properties could not be opened' })
-        }
-    }, [])
-    const handleCloseProperties = useCallback(() => setPropertiesAnchor(null), [])
     const handleToggleAgentPopup = useCallback(() => {
         try {
             const activeDocumentId = cardMarkdownDataSource.getActiveDocument('list-card')?.getObject().header.internalId
@@ -96,7 +75,6 @@ export function ListEditorToolbarControls(props: ListEditorToolbarControlsProps)
 
     if (!card || !documentId) return null
 
-    const propertiesAvailable = Object.keys(card.headerFields).length > 0
     const endControls = (
         <>
             <Separator />
@@ -104,16 +82,11 @@ export function ListEditorToolbarControls(props: ListEditorToolbarControlsProps)
                 Agents{card.agentConversations.length > 0 ? ` (${card.agentConversations.length})` : ''}
             </Button>
             <CardCommitMenu commits={cardCommits.commits} error={cardCommits.error} onSelect={listCardCommitDiffDataSource.select} />
-            {propertiesAvailable ? (
-                <Button
-                    aria-haspopup="dialog"
-                    onClick={handleOpenProperties}
-                    size="small"
-                    variant={isPropertiesOpen ? 'contained' : 'outlined'}
-                >
-                    Properties
-                </Button>
-            ) : null}
+            <CardPropertiesControl
+                binding="list-card"
+                cardTypes={cardTypes}
+                statusColors={statusColors}
+            />
         </>
     )
     const undoRedoControls = <MarkdownDocumentUndoRedo historyKey={documentId} historyStore={historyStore} />
@@ -121,13 +94,6 @@ export function ListEditorToolbarControls(props: ListEditorToolbarControlsProps)
     return (
         <>
             <MarkdownFormatToolbarControls endControls={endControls} undoRedoControls={undoRedoControls} />
-            <CardPropertiesPopover
-                anchorElement={isPropertiesOpen ? propertiesAnchor.element : null}
-                onClose={handleCloseProperties}
-                open={isPropertiesOpen}
-            >
-                <CardPropertiesPanel statusColors={statusColors} />
-            </CardPropertiesPopover>
             {isAgentPopupOpen ? (
                 <ActionPopup
                     anchorElement={null}

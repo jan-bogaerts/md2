@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { StrictMode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { ProjectCard } from '../../data/data_types'
+import { DEFAULT_CARD_TYPES, type ProjectCard } from '../../data/data_types'
 import { openFilesService } from '../../services/open_files_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import { CardBodyPopover } from './card_body_popover'
@@ -86,10 +86,12 @@ describe('CardBodyPopover commit diff', () => {
             <StrictMode>
                 <AppThemeProvider>
                     <CardBodyPopover
+                        cardTypes={DEFAULT_CARD_TYPES}
                         isMobile={false}
                         onDeleteCard={vi.fn(async () => undefined)}
                         onOpenAffects={vi.fn()}
                         onOpenInFileMode={vi.fn()}
+                        statusColors={new Map()}
                         visible
                     />
                 </AppThemeProvider>
@@ -110,10 +112,12 @@ describe('CardBodyPopover commit diff', () => {
         const openBoardDocument = vi.spyOn(openFilesService, 'openBoardDocument')
         const closeBoardDocument = vi.spyOn(openFilesService, 'closeBoardDocument')
         const props = {
+            cardTypes: DEFAULT_CARD_TYPES,
             isMobile: false,
             onDeleteCard: vi.fn(async () => undefined),
             onOpenAffects: vi.fn(),
             onOpenInFileMode: vi.fn(),
+            statusColors: new Map<string, string>(),
             visible: true,
         }
         cardBodyPopoverService.toggle(card.path, anchorElement)
@@ -140,10 +144,12 @@ describe('CardBodyPopover commit diff', () => {
         render(
             <AppThemeProvider>
                 <CardBodyPopover
+                    cardTypes={DEFAULT_CARD_TYPES}
                     isMobile={false}
                     onDeleteCard={vi.fn(async () => undefined)}
                     onOpenAffects={vi.fn()}
                     onOpenInFileMode={vi.fn()}
+                    statusColors={new Map()}
                     visible
                 />
             </AppThemeProvider>,

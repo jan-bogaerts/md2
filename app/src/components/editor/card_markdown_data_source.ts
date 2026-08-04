@@ -1,4 +1,5 @@
 import type { DataService } from '../../services/data/data_service'
+import type { CardType } from '../../data/data_types'
 import { dialogService } from '../../services/dialog_service'
 import {
     openFilesService,
@@ -12,9 +13,10 @@ import {
     type MarkdownDocumentTarget,
 } from './markdown_data_source'
 
-type CardBinding = Exclude<MarkdownBindingKind, 'list-action'>
+export type CardBinding = Exclude<MarkdownBindingKind, 'list-action'>
 type CardMarkdownOwner = EventTarget & Pick<DataService, 'getState'> & {
-    cards: Pick<DataService['cards'], 'toggleCardPolicy' | 'updateCardBody' | 'updateCardHeaderFields' | 'updateCardTitle'>
+    cards: Pick<DataService['cards'],
+        'toggleCardPolicy' | 'updateCardBody' | 'updateCardHeaderFields' | 'updateCardTitle' | 'updateCardType'>
 }
 type ListCardOwner = EventTarget & Pick<OpenFilesService, 'getSnapshot'>
 
@@ -84,6 +86,15 @@ export class CardMarkdownDataSource extends MarkdownDataSourceBase {
         this.requireService().cards.updateCardTitle(document.path, title, document.createSaveReference())
             .catch((error: unknown) => {
                 dialogService.error(error, { fallbackMessage: `Title update failed: ${document.path}` })
+            })
+    }
+
+    updateActiveCardType(binding: CardBinding, type: CardType) {
+        const document = this.requireActiveDocument(binding)
+
+        return this.requireService().cards.updateCardType(document.path, type)
+            .catch((error: unknown) => {
+                dialogService.error(error, { fallbackMessage: `Card type update failed: ${document.path}` })
             })
     }
 

@@ -3,7 +3,7 @@ author:
 id: B_93
 internalId: 50ec96d2-8e7c-471a-a33b-9cbd4210b5cb
 title: the popups are hidden behind the editor
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:

@@ -1,6 +1,6 @@
 import { createCardFile } from '../../data/card_naming'
 import { computeMove, type CardMoveUpdate } from '../../data/card_ordering'
-import type { CardDraft, MarkdownFile } from '../../data/data_types'
+import type { CardDraft, CardType, MarkdownFile } from '../../data/data_types'
 import type { OpenDocumentSaveReference } from '../open_files_service'
 import { telemetryService } from '../telemetry/telemetry_service'
 import { CardArchiveOperations } from './card_archive_operations'
@@ -117,6 +117,10 @@ export class CardOperations {
 
     updateCardTitle(path: string, title: string, saveReference?: OpenDocumentSaveReference) {
         return this.renames.updateCardTitle(path, title, saveReference)
+    }
+
+    updateCardType(path: string, type: CardType, saveReference?: OpenDocumentSaveReference) {
+        return this.renames.updateCardType(path, type, saveReference)
     }
 
     async moveCard(cardPath: string, targetStatus: string, targetIndex: number) {

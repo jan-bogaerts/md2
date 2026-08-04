@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import type { ProjectCard } from '../../data/data_types'
 import { OpenFilesService } from '../../services/open_files_service'
 import type { ActionService } from '../../services/actions/action_service'
+import { dialogService } from '../../services/dialog_service'
 import { CardMarkdownDataSource } from './card_markdown_data_source'
 
 function card(content = 'Original', path = 'design/card.md'): ProjectCard {
@@ -31,7 +32,10 @@ function setup() {
     openFiles.init({ actionService: actionOwner, dataService: dataOwner })
     const document = openFiles.openDocument(projectCard)
     if (document.kind !== 'card') throw new Error('Expected card document')
-    const cards = {toggleCardPolicy: vi.fn(), updateCardBody: vi.fn(), updateCardHeaderFields: vi.fn(), updateCardTitle: vi.fn()}
+    const cards = {
+        toggleCardPolicy: vi.fn(), updateCardBody: vi.fn(), updateCardHeaderFields: vi.fn(),
+        updateCardTitle: vi.fn(), updateCardType: vi.fn(),
+    }
     const source = new CardMarkdownDataSource()
     source.init(Object.assign(dataOwner, { cards }))
     source.bindListCards(openFiles)
@@ -57,6 +61,26 @@ describe('CardMarkdownDataSource', () => {
 
         expect(source.commit('list-card', target, 'Edited')).toBe(true)
         expect(cards.updateCardBody).toHaveBeenCalledWith(document.path, 'Edited', expect.any(Object))
+    })
+
+    it('updates card type through the active binding', async () => {
+        const { cards, document, source } = setup()
+        cards.updateCardType.mockResolvedValue({})
+
+        await source.updateActiveCardType('list-card', 'bug')
+
+        expect(cards.updateCardType).toHaveBeenCalledWith(document.path, 'bug')
+    })
+
+    it('reports card type persistence failures', async () => {
+        const { cards, source } = setup()
+        const error = new Error('Type update rejected')
+        const reportError = vi.spyOn(dialogService, 'error')
+        cards.updateCardType.mockRejectedValue(error)
+
+        await source.updateActiveCardType('list-card', 'bug')
+
+        expect(reportError).toHaveBeenCalledWith(error, { fallbackMessage: 'Card type update failed: design/card.md' })
     })
 
 })

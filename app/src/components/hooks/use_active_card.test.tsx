@@ -21,7 +21,10 @@ function sourceWithCard(initialCard: ProjectCard) {
     let documentCard = initialCard
     const dataSource = new CardMarkdownDataSource()
     const owner = Object.assign(new EventTarget(), {
-        cards: {toggleCardPolicy: vi.fn(), updateCardBody: vi.fn(), updateCardHeaderFields: vi.fn(), updateCardTitle: vi.fn()},
+        cards: {
+            toggleCardPolicy: vi.fn(), updateCardBody: vi.fn(), updateCardHeaderFields: vi.fn(),
+            updateCardTitle: vi.fn(), updateCardType: vi.fn(),
+        },
         getState: () => ({ branch: 'main', project: { branch: 'main', id: 'project' }, runningAgents: [], snapshot }),
         renew: (nextCard: ProjectCard) => {
             snapshot = { ...snapshot, activeCards: [nextCard] }

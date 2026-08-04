@@ -1,32 +1,37 @@
 import { Box } from '@mui/material'
 import { memo, useCallback } from 'react'
+import type { CardTypeConfig } from '../../data/data_types'
 import { MarkdownEditor } from '../editor/markdown_editor'
 import { cardMarkdownDataSource } from '../editor/card_markdown_data_source'
 import type { MarkdownDocumentHistoryStore } from '../editor/markdown_document_history_store'
 import { CardPopupToolbarControls } from './card_popup_toolbar_controls'
 
 interface CardBodyEditorProps {
+    cardTypes: CardTypeConfig[]
     historyStore: MarkdownDocumentHistoryStore
     isMobile?: boolean
     isFullscreen: boolean
     onToggleFullscreen: () => void
     overlayContainer?: HTMLElement | null
+    statusColors: Map<string, string>
 }
 
 /**
  * Body editing surface for a card, bound directly to the card Markdown data source.
  */
 export const CardBodyEditor = memo(function CardBodyEditor(props: CardBodyEditorProps) {
-    const { historyStore, isFullscreen, isMobile = false, onToggleFullscreen, overlayContainer } = props
+    const {cardTypes, historyStore, isFullscreen, isMobile = false, onToggleFullscreen, overlayContainer, statusColors} = props
     const ToolbarContents = useCallback(
         () => (
             <CardPopupToolbarControls
+                cardTypes={cardTypes}
                 isFullscreen={isFullscreen}
                 isMobile={isMobile}
                 onToggleFullscreen={onToggleFullscreen}
+                statusColors={statusColors}
             />
         ),
-        [isFullscreen, isMobile, onToggleFullscreen],
+        [cardTypes, isFullscreen, isMobile, onToggleFullscreen, statusColors],
     )
     return (
         <Box
