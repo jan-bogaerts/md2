@@ -11,7 +11,6 @@ agents:
   - design/activity/card__ed76ce11-bea8-4942-aba9-2180b019f5f2.json#conversation=agent-8c7a3c54-fb91-4c2e-b4df-58db8810cfeb
 policy:
 after: 
-worktree: 1
 ---
 We had a card where the 'custom prompt' action had a conversation that was in the state 'waitingForInput', but no 'stop' or 'ready' buttons are available to mark the conversation as done.
 

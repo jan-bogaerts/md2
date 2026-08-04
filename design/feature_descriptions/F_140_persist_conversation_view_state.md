@@ -3,12 +3,12 @@ author:
 id: F_140
 internalId: 7b158d24-318d-4081-934b-b9255a0672dc
 title: persist conversation view state
-status: new
+status: ready for implementation
 owner:
 affects:
 agents:
 policy:
-after: e9906c7f-d936-4c9a-ab73-2e7df0954024
+after: 
 ---
 
 ## Problem
