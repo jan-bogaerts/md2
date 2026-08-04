@@ -11,7 +11,6 @@ agents:
   - design/activity/card__4b1a6636-3545-4409-bbfe-eed686514d7c.json#conversation=agent-78636834-c55a-42c0-9439-ff9fd7ece6b4
 policy:
 after: 
-worktree: 1
 ---
 
 currently it's rather hard to see which action-popup belongs to which card (or is for the global project agent).
