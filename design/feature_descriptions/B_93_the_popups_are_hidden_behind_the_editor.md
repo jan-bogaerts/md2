@@ -11,7 +11,6 @@ agents:
   - design/activity/card__50ec96d2-8e7c-471a-a33b-9cbd4210b5cb.json#conversation=agent-b54c2dbf-989e-47e5-8d7e-bd529a0fc5fa
 policy:
 after: 
-worktree: 1
 ---
 
 The file-search popup opened with `@` and the placeholder popup opened with `{{` are hidden behind the popup containing the Markdown editor. This affects the action popup and the card create/edit popups.
