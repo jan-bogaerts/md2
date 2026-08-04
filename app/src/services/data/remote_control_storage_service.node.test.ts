@@ -363,6 +363,7 @@ describe('RemoteControlStorageService', () => {
             service.answerActionApproval('action-1', 41, 'accept'),
             service.answerActionQuestion('action-1', 7, { confirm: ['Yes'] }),
             service.finishActionRun('action-1'),
+            service.restartActionRun('action-1', { actionId: 'review', context: { kind: 'project' }, runInput: {} }),
             service.notifyActionCardStateChange('card-1', 'ready'),
         ]
         await flushPromises()
@@ -375,6 +376,7 @@ describe('RemoteControlStorageService', () => {
             { method: 'answerActionApproval', params: ['action-1', 41, 'accept'] },
             { method: 'answerActionQuestion', params: ['action-1', 7, { confirm: ['Yes'] }] },
             { method: 'finishActionRun', params: ['action-1'] },
+            { method: 'restartActionRun', params: ['action-1', { actionId: 'review', context: { kind: 'project' }, runInput: {} }] },
             { method: 'notifyActionCardStateChange', params: ['card-1', 'ready'] },
         ])
         requests.forEach(({ id, method }) => {

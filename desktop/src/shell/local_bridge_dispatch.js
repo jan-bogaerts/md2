@@ -313,6 +313,11 @@ function createLocalBridgeDispatch(dependencies) {
 
             return actionSchedulerService.registerActionSchedule(request);
         },
+        restartActionRun: (runId, request) => {
+            if (!actionRunnerService) throw new Error('Action runner is not available');
+
+            return actionRunnerService.restart(runId, request);
+        },
         runSearchRegexpAgent: async (input, callback) => {
             if (typeof input !== 'string' || input.length === 0) throw new Error('Missing regular expression search input');
 

@@ -459,6 +459,29 @@ export class ActionRunRegistry extends EventTarget {
         return this.waitForRun(runId)
     }
 
+    async restartRun(
+        previousRunId: string,
+        action: ActionDefinition,
+        context: ActionContext,
+        runInput: ActionRunInput,
+        onStarted?: (runId: string) => void,
+    ) {
+        const bridge = getElectronActionBridge()
+        if (!bridge?.restartActionRun) throw new Error('Restarting an action run requires Electron')
+        this.start()
+        this.startsInProgress += 1
+        let runId: string
+        try {
+            runId = await bridge.restartActionRun(previousRunId, { actionId: action.id, context, runInput })
+        } finally {
+            this.startsInProgress -= 1
+            this.terminalResults.delete(previousRunId)
+        }
+        onStarted?.(runId)
+
+        return this.waitForRun(runId)
+    }
+
     private waitForRun(runId: string): Promise<ActionRunResult> {
         const terminalResult = this.terminalResults.get(runId)
         if (terminalResult) {

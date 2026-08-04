@@ -19,6 +19,19 @@ export async function runElectronAction(
     return actionRunRegistry.startRun(action, context, input, handleStarted, interactive)
 }
 
+/** Finish one idle streaming run, persist it, then continue through a new process. */
+export async function restartElectronAction(
+    previousRunId: string,
+    action: ActionDefinition,
+    context: ActionContext,
+    input: ActionRunInput,
+    onStarted?: (runId: string) => void,
+): Promise<ActionRunResult> {
+    if (projectPersistenceService.getSnapshot().hasPendingSave) await projectPersistenceService.flushPendingChanges()
+
+    return actionRunRegistry.restartRun(previousRunId, action, context, input, onStarted)
+}
+
 export async function cancelElectronAction(runId: string) {
     await cancelActionRun(runId)
 }

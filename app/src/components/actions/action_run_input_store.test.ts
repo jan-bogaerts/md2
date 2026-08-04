@@ -18,4 +18,14 @@ describe('ActionRunInputStore', () => {
             thinkingLevelOverride: 'none',
         })
     })
+
+    it('records waiting selector changes until settings are applied', () => {
+        const store = new ActionRunInputStore()
+
+        store.recordSettingsChangeWhileWaiting()
+        expect(store.getSnapshot().settingsChangedWhileWaiting).toBe(true)
+
+        store.markSettingsApplied()
+        expect(store.getSnapshot().settingsChangedWhileWaiting).toBe(false)
+    })
 })

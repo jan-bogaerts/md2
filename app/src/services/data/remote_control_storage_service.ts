@@ -446,6 +446,10 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         await this.request('finishActionRun', [runId])
     }
 
+    async restartActionRun(runId: string, request: ActionStartRequest): Promise<string> {
+        return this.request<string>('restartActionRun', [runId, request])
+    }
+
     async generateDiff(request: DiffRequest): Promise<DiffResult> {
         return this.request<DiffResult>('generateDiff', [request])
     }

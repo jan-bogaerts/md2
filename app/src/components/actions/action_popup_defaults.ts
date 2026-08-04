@@ -13,7 +13,7 @@ import { defaultActionHistoryLoader, loadActionHistory } from '../../services/ac
 import { actionFilePath, createActionDefinition, type ConvertPromptToActionInput } from '../../services/actions/action_definition_writer'
 import { dataService } from '../../services/data/data_service'
 import { projectPersistenceService } from '../../services/project/project_persistence_service'
-import { cancelElectronAction, runElectronAction } from '../../services/actions/electron_action_runner'
+import { cancelElectronAction, restartElectronAction, runElectronAction } from '../../services/actions/electron_action_runner'
 import {
     answerActionApproval,
     answerActionQuestion,
@@ -56,6 +56,16 @@ export function defaultRunAction(
     onStarted?: (runId: string) => void,
 ) {
     return runElectronAction(action, context, input, onStarted)
+}
+
+export function defaultRestartAction(
+    previousRunId: string,
+    action: ActionDefinition,
+    context: ActionContext,
+    input: ActionRunInput,
+    onStarted?: (runId: string) => void,
+) {
+    return restartElectronAction(previousRunId, action, context, input, onStarted)
 }
 
 export function defaultLoadHistory(action: ActionDefinition, context: ActionContext) {

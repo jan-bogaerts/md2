@@ -664,6 +664,35 @@ describe('ActionPopup', () => {
         await waitFor(() => expect(finishActionRun).toHaveBeenCalledWith('run-1'))
     })
 
+    it('enables agent selectors only while waiting for input', async () => {
+        actionRunRegistry.stop()
+        let runListener: ((event: ActionRunEvent) => void) | null = null
+        window.md2Actions = {
+            loadActionRunHistory: vi.fn(async () => []),
+            onActionRun: vi.fn((listener) => {
+                runListener = listener
+                return vi.fn()
+            }),
+            prepareActionPrompt: vi.fn(async () => ({ prompt: 'Plan' })),
+        } as unknown as typeof window.md2Actions
+        actionRunRegistry.start()
+        actionService.loadFromFiles([file(agentDefinition('stream', { label: 'Stream', streaming: true }))])
+        renderPopup()
+        await waitFor(() => expect(runListener).not.toBeNull())
+        const eventBase = {
+            actionId: 'stream', actionType: 'agent' as const, autoFinish: null, context, interactionReady: true,
+            phase: 'main' as const, rootActionId: 'stream', runId: 'run-1', streaming: true,
+        }
+        const model = screen.getByLabelText('Model')
+
+        act(() => runListener?.({ ...eventBase, status: 'queued', type: 'agentState' }))
+        expect(model).toBeDisabled()
+        act(() => runListener?.({ ...eventBase, status: 'running', type: 'agentState' }))
+        expect(model).toBeDisabled()
+        act(() => runListener?.({ ...eventBase, status: 'waitingForInput', type: 'agentState' }))
+        expect(model).toBeEnabled()
+    })
+
     it('uses active one-shot child controls and omits Finish', async () => {
         actionRunRegistry.stop()
         let runListener: ((event: ActionRunEvent) => void) | null = null

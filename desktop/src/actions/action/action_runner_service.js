@@ -57,6 +57,7 @@ class ActionRunnerService {
         this.project = null;
         this.projectFolder = null;
         this.releasesFolder = null;
+        this.restartingRuns = new Set();
     }
 
     async startProject(project, actionsFolder, projectFolder, releasesFolder) {
@@ -191,6 +192,23 @@ class ActionRunnerService {
         this.completedRunResults.delete(runId);
 
         return result;
+    }
+
+    async restart(runId, request) {
+        if (this.restartingRuns.has(runId)) throw new Error(`Action run restart already in progress: ${runId}`);
+        const run = this.requireRun(runId);
+        this.restartingRuns.add(runId);
+        try {
+            run.finishAgent();
+            const result = await run.completion;
+            if (result.status !== 'completed') {
+                throw new Error(result.failure ?? `Action run could not be restarted after ${result.status}`);
+            }
+
+            return await this.start(request);
+        } finally {
+            this.restartingRuns.delete(runId);
+        }
     }
 
     loadActiveRunEvents() {

@@ -68,6 +68,39 @@ async function runToCompletion(runner, request = { actionId: 'main', context, ru
 }
 
 describe('ActionRunnerService', () => {
+    it('finishes and persists old run before starting its replacement', async () => {
+        const { promise, resolve } = Promise.withResolvers();
+        const { runner } = createRunner();
+        const oldRun = { completion: promise, finishAgent: vi.fn() };
+        const request = { actionId: 'main', context, runInput: { continueFrom: 'conversation.json', prompt: 'next' } };
+        const start = vi.spyOn(runner, 'start').mockResolvedValue('new-run');
+        runner.runs.set('old-run', oldRun);
+
+        const restarting = runner.restart('old-run', request);
+        expect(oldRun.finishAgent).toHaveBeenCalledOnce();
+        expect(start).not.toHaveBeenCalled();
+
+        resolve({ failure: null, status: 'completed' });
+        await expect(restarting).resolves.toBe('new-run');
+        expect(start).toHaveBeenCalledWith(request);
+    });
+
+    it('does not overlap or restart after old run persistence fails', async () => {
+        const { promise, resolve } = Promise.withResolvers();
+        const { runner } = createRunner();
+        const oldRun = { completion: promise, finishAgent: vi.fn() };
+        const request = { actionId: 'main', context, runInput: { continueFrom: 'conversation.json', prompt: 'next' } };
+        const start = vi.spyOn(runner, 'start').mockResolvedValue('new-run');
+        runner.runs.set('old-run', oldRun);
+
+        const restarting = runner.restart('old-run', request);
+        await expect(runner.restart('old-run', request)).rejects.toThrow('restart already in progress');
+        resolve({ failure: 'history write failed', status: 'failed' });
+
+        await expect(restarting).rejects.toThrow('history write failed');
+        expect(start).not.toHaveBeenCalled();
+    });
+
     it('returns ordered events for active runs only', () => {
         const { runner } = createRunner();
         const firstEvent = { runId: 'run-1', sequence: 1, type: 'run' };

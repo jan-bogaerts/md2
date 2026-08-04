@@ -8,6 +8,7 @@ import {
     defaultCancelAction,
     defaultConvertPromptToAction,
     defaultFinishAction,
+    defaultRestartAction,
     defaultRunAction,
 } from './action_popup_defaults'
 import type { ActionConversationStore } from './action_conversation_store'
@@ -46,8 +47,8 @@ export function currentActionPromptDraft(action: ActionDefinition, context: Acti
     return actionPromptDraftService.getDraft(action.id, context, run, { prepare })
 }
 
-async function runWithPrompt(input: ActionPopupOperationInput, prompt: string) {
-    const { action, context, conversationStore, historyStore, resultStore, runValidationError, settings } = input
+async function runWithPrompt(input: ActionPopupOperationInput, prompt: string, previousRunId: string | null = null) {
+    const { action, context, conversationStore, historyStore, inputStore, resultStore, runValidationError, settings } = input
     resultStore.setRunning()
     try {
         if (runValidationError) throw new Error(runValidationError)
@@ -67,13 +68,20 @@ async function runWithPrompt(input: ActionPopupOperationInput, prompt: string) {
             : { extraPrompt: prompt }
         const handleStarted = (runId: string) => {
             resultStore.setRunId(runId)
+            inputStore.markSettingsApplied()
             actionPromptDraftService.clearDraft(action.id, context, currentActionRun(action, context))
         }
-        const result = await defaultRunAction(action, context, runInput, handleStarted)
+        const result = previousRunId
+            ? await defaultRestartAction(previousRunId, action, context, runInput, handleStarted)
+            : await defaultRunAction(action, context, runInput, handleStarted)
         resultStore.setResult(result)
         await historyStore.load()
         if (action.type === 'agent') await conversationStore.load()
     } catch (error) {
+        if (previousRunId) {
+            const currentRun = currentActionRun(action, context)
+            actionPromptDraftService.getDraft(action.id, context, currentRun, { prepare: false }).edit(prompt)
+        }
         const message = error instanceof Error ? error.message : 'Action run failed'
         resultStore.setResult({
             logs: [{
@@ -93,7 +101,7 @@ async function runWithPrompt(input: ActionPopupOperationInput, prompt: string) {
 }
 
 export async function runPopupAction(input: ActionPopupOperationInput) {
-    const { action, context } = input
+    const { action, context, inputStore } = input
     const run = currentActionRun(action, context)
     const promptDraft = actionPromptDraftService.getDraft(action.id, context, run, { prepare: false })
     const prompt = promptDraft.getSnapshot()
@@ -102,6 +110,10 @@ export async function runPopupAction(input: ActionPopupOperationInput) {
 
     if (agentActive && run) {
         if (run.question || run.approvals.length) return
+        if (run.status === 'waitingForInput' && inputStore.getSnapshot().settingsChangedWhileWaiting) {
+            await runWithPrompt(input, prompt, run.runId)
+            return
+        }
         try {
             if (run.activeActionStreaming) await promptDraft.send()
             else {

@@ -20,17 +20,19 @@ interface ActionAgentSelectorsOwnerProps {
     store: ActionRunInputStore
 }
 
-function selectSessionActive(run: ActionRun | null) {
-    return run?.status === 'queued' || run?.status === 'running' || run?.status === 'waitingForInput'
+function selectRunStatus(run: ActionRun | null) {
+    return run?.status ?? null
 }
 
 /** Owns agent option subscriptions and editable overrides. */
 export function ActionAgentSelectorsOwner(props: ActionAgentSelectorsOwnerProps) {
     const { action, context, store } = props
-    const sessionActive = useActionRunSelector(action.id, context, selectSessionActive)
+    const runStatus = useActionRunSelector(action.id, context, selectRunStatus)
     const settings = useActionRunSettings(action, store)
+    const disabled = runStatus === 'queued' || runStatus === 'running'
 
     const handleAgentChange = (event: ChangeEvent<HTMLInputElement>) => {
+        if (runStatus === 'waitingForInput') store.recordSettingsChangeWhileWaiting()
         const agent = event.target.value
         const profile = findAgentProfile(settings.agentProfiles, agent)
         store.setAgent(
@@ -42,18 +44,22 @@ export function ActionAgentSelectorsOwner(props: ActionAgentSelectorsOwnerProps)
     }
 
     const handleModelChange = (event: ChangeEvent<HTMLInputElement>) => {
+        if (runStatus === 'waitingForInput') store.recordSettingsChangeWhileWaiting()
         store.setModel(event.target.value)
     }
 
     const handleThinkingLevelChange = (event: ChangeEvent<HTMLInputElement>) => {
+        if (runStatus === 'waitingForInput') store.recordSettingsChangeWhileWaiting()
         store.setThinkingLevel(validateThinkingLevel(event.target.value, 'action run input'))
     }
 
     const handleAccessLevelChange = (event: ChangeEvent<HTMLInputElement>) => {
+        if (runStatus === 'waitingForInput') store.recordSettingsChangeWhileWaiting()
         store.setAccessLevel(event.target.value)
     }
 
     const handleApprovalPolicyChange = (event: ChangeEvent<HTMLInputElement>) => {
+        if (runStatus === 'waitingForInput') store.recordSettingsChangeWhileWaiting()
         store.setApprovalPolicy(event.target.value)
     }
 
@@ -64,7 +70,7 @@ export function ActionAgentSelectorsOwner(props: ActionAgentSelectorsOwnerProps)
             agentAvailability={settings.agentAvailability}
             agentProfiles={settings.agentProfiles}
             approvalPolicy={settings.approvalPolicy}
-            disabled={sessionActive}
+            disabled={disabled}
             model={settings.model}
             onAccessLevelChange={handleAccessLevelChange}
             onAgentChange={handleAgentChange}

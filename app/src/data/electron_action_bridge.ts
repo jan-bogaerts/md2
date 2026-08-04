@@ -119,6 +119,7 @@ export interface ElectronActionBridge {
     prepareActionPrompt(request: ActionPromptRequest): Promise<PreparedActionPrompt>
     readFileAtCommit?(request: ReadFileAtCommitRequest): Promise<HistoricalFileContent>
     registerActionSchedule?(request: ActionScheduleRegistrationRequest): Promise<void>
+    restartActionRun?(runId: string, request: ActionStartRequest): Promise<string>
     runSearchRegexpAgent(input: string, callback?: (event: AgentRunEvent) => void): Promise<string>
     sendActionMessage?(runId: string, content: string): Promise<void>
     sendActionQueuedMessage?(runId: string, sessionId: number, revision: number): Promise<{ sent: true }>

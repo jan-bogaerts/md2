@@ -17,6 +17,7 @@ function createDispatch(options = {}) {
         prepareActionPrompt: vi.fn(async () => ({ prompt: 'Prepared prompt' })),
         requireActionsFolder: vi.fn(() => 'actions'),
         requireProjectFolder: vi.fn(() => 'design'),
+        restart: vi.fn(async () => 'action-2'),
         start: vi.fn(async () => 'action-1'),
         subscribe: vi.fn(() => vi.fn()),
         sendAgentMessage: vi.fn(),
@@ -415,6 +416,14 @@ describe('createLocalBridgeDispatch', () => {
         expect(actionRunnerService.answerAgentApproval).toHaveBeenCalledWith('action-1', 41, 'accept');
         expect(actionRunnerService.answerAgentQuestion).toHaveBeenCalledWith('action-1', 7, { confirm: ['Yes'] });
         expect(actionRunnerService.finishAgentRun).toHaveBeenCalledWith('action-1');
+    });
+
+    it('delegates atomic action restart with old run and new request', async () => {
+        const { actionRunnerService, dispatch } = createDispatch();
+        const request = { actionId: 'test', context: { kind: 'project' }, runInput: { continueFrom: 'conversation.json' } };
+
+        await expect(dispatch.actionBridge.restartActionRun('action-1', request)).resolves.toBe('action-2');
+        expect(actionRunnerService.restart).toHaveBeenCalledWith('action-1', request);
     });
 
     it('delegates card-state auto-finish events to every local run', async () => {

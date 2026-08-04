@@ -7,6 +7,7 @@ interface ActionRunInputSnapshot {
     approvalPolicyOverride: string | null
     convertMessage: string | null
     modelOverride: string | null
+    settingsChangedWhileWaiting: boolean
     thinkingLevelOverride: ThinkingLevel | null
 }
 
@@ -19,6 +20,7 @@ const INITIAL_SNAPSHOT: ActionRunInputSnapshot = {
     approvalPolicyOverride: null,
     convertMessage: null,
     modelOverride: null,
+    settingsChangedWhileWaiting: false,
     thinkingLevelOverride: null,
 }
 
@@ -68,6 +70,18 @@ export class ActionRunInputStore {
 
     setConvertMessage(convertMessage: string | null) {
         this.publish({ ...this.snapshot, convertMessage })
+    }
+
+    recordSettingsChangeWhileWaiting() {
+        if (this.snapshot.settingsChangedWhileWaiting) return
+
+        this.publish({ ...this.snapshot, settingsChangedWhileWaiting: true })
+    }
+
+    markSettingsApplied() {
+        if (!this.snapshot.settingsChangedWhileWaiting) return
+
+        this.publish({ ...this.snapshot, settingsChangedWhileWaiting: false })
     }
 
     private publish(snapshot: ActionRunInputSnapshot) {
