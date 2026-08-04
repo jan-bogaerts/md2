@@ -270,6 +270,13 @@ export class AgentIntegration {
         return this.conversationsByCardInternalId.get(cardInternalId) ?? []
     }
 
+    /** Applies a persisted conversation returned by an atomic backend update. */
+    updateAgentConversation(conversation: AgentConversation) {
+        if (!conversation.cardInternalId) return
+
+        this.upsertAgentConversation(conversation.cardInternalId, conversation)
+    }
+
     triggerStateActions(cardPath: string, state: string) {
         const { config } = this.dependencies.requireDependencies()
         const card = this.dependencies.snapshot()?.activeCards.find((currentCard) => currentCard.path === cardPath)

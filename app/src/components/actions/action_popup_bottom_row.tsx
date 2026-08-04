@@ -65,7 +65,13 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
         promptDraft.getEditorSnapshot,
         promptDraft.getEditorSnapshot,
     )
+    const conversationSnapshot = useSyncExternalStore(
+        conversationStore.subscribe,
+        conversationStore.getSnapshot,
+        conversationStore.getSnapshot,
+    )
     const sessionActive = runStatus === 'queued' || runStatus === 'running' || runStatus === 'waitingForInput'
+    const orphanWaiting = !sessionActive && conversationSnapshot.selectedConversation?.status === 'waitingForInput'
     const showAgentSend = sessionActive ? agentActive : action.type === 'agent'
     const showCommandRun = !sessionActive && action.type === 'command'
     const saveDisabled = settings.actionLabel.trim().length === 0 || sessionActive || !!settings.runDisabledMessage
@@ -103,8 +109,8 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
     const handleSave = async () => {
         await convertPromptToAction(operationInput)
     }
-    const handleCancel = () => void cancelPopupAction(action, assignmentContext)
-    const handleFinish = () => void finishPopupAction(action, assignmentContext)
+    const handleCancel = () => void cancelPopupAction(action, assignmentContext, conversationStore)
+    const handleFinish = () => void finishPopupAction(action, assignmentContext, conversationStore)
     const handleToggleSchedule = () => scheduleStore.toggle()
 
     return (
@@ -116,7 +122,7 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
                 historyStore={historyStore}
             />
             <Box sx={{ flex: 1 }} />
-            {sessionActive ? (
+            {sessionActive || orphanWaiting ? (
                 <Tooltip title="Stop">
                     <span>
                         <IconButton aria-label="Stop" disabled={!settings.backendAvailable} onClick={handleCancel} size="small">
@@ -125,12 +131,12 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
                     </span>
                 </Tooltip>
             ) : null}
-            {manualFinishAvailable ? (
+            {manualFinishAvailable || orphanWaiting ? (
                 <Tooltip title="Finish">
                     <span>
                         <IconButton
                             aria-label="Finish"
-                            disabled={!settings.backendAvailable || !interactionReady}
+                            disabled={!settings.backendAvailable || (sessionActive && !interactionReady)}
                             onClick={handleFinish}
                             size="small"
                         >

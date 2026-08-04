@@ -3,9 +3,11 @@ import type { ActionDefinition } from '../../data/action_types'
 import type { ThinkingLevel } from '../../data/agent_profiles'
 import { actionPromptDraftService } from '../../services/actions/action_prompt_draft_service'
 import { actionRunRegistry } from '../../services/actions/action_run_registry'
+import { dataService } from '../../services/data/data_service'
 import { dialogService } from '../../services/dialog_service'
 import {
     defaultCancelAction,
+    defaultCloseWaitingConversation,
     defaultConvertPromptToAction,
     defaultFinishAction,
     defaultRestartAction,
@@ -162,17 +164,57 @@ export async function saveAndRunPopupAction(input: ActionPopupOperationInput) {
     await runPopupAction(input)
 }
 
-export async function cancelPopupAction(action: ActionDefinition, context: ActionContext) {
+async function closeWaitingConversation(
+    action: ActionDefinition,
+    context: ActionContext,
+    conversationStore: ActionConversationStore,
+    status: 'cancelled' | 'completed',
+) {
+    const conversation = conversationStore.getSnapshot().selectedConversation
+    if (!conversation) throw new Error('No agent conversation is selected')
+    if (conversation.status !== 'waitingForInput') throw new Error('Selected agent conversation is no longer waiting for input')
+
+    const updatedConversation = await defaultCloseWaitingConversation(conversation.path, status)
+    conversationStore.updateConversation(updatedConversation)
+    dataService.agents.updateAgentConversation(updatedConversation)
+    actionPromptDraftService.clearDraft(action.id, context, null)
+}
+
+export async function cancelPopupAction(
+    action: ActionDefinition,
+    context: ActionContext,
+    conversationStore: ActionConversationStore,
+) {
     const run = currentActionRun(action, context)
-    if (!run) return
+    const sessionActive = run?.status === 'queued' || run?.status === 'running' || run?.status === 'waitingForInput'
+    if (!run || !sessionActive) {
+        try {
+            await closeWaitingConversation(action, context, conversationStore, 'cancelled')
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: 'Could not stop waiting agent conversation' })
+        }
+        return
+    }
 
     await defaultCancelAction(run.runId)
     actionPromptDraftService.clearDraft(action.id, context, run)
 }
 
-export async function finishPopupAction(action: ActionDefinition, context: ActionContext) {
+export async function finishPopupAction(
+    action: ActionDefinition,
+    context: ActionContext,
+    conversationStore: ActionConversationStore,
+) {
     const run = currentActionRun(action, context)
-    if (!run) return
+    const sessionActive = run?.status === 'queued' || run?.status === 'running' || run?.status === 'waitingForInput'
+    if (!run || !sessionActive) {
+        try {
+            await closeWaitingConversation(action, context, conversationStore, 'completed')
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: 'Could not finish waiting agent conversation' })
+        }
+        return
+    }
 
     try {
         await defaultFinishAction(run.runId)

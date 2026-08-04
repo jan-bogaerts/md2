@@ -161,6 +161,18 @@ export class ActionConversationStore {
         return liveConversation?.path ?? this.snapshot.selectedConversation?.path ?? null
     }
 
+    /** Applies one backend-returned conversation without another persistence round trip. */
+    updateConversation(conversation: AgentConversation) {
+        this.validateSelection(conversation)
+        const conversations = this.snapshot.conversations.some(({ path }) => path === conversation.path)
+            ? this.snapshot.conversations.map((current) => (current.path === conversation.path ? conversation : current))
+            : [...this.snapshot.conversations, conversation]
+        const selectedConversation = this.snapshot.selectedConversation?.path === conversation.path
+            ? conversation
+            : this.snapshot.selectedConversation
+        this.setSnapshot({ ...this.snapshot, conversations, selectedConversation })
+    }
+
     private clearPromptDraft() {
         const run = actionRunRegistry.getActionRunStore(this.actionId, this.context)?.getSnapshot() ?? null
         actionPromptDraftService.clearDraft(this.actionId, this.context, run)

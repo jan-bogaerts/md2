@@ -685,7 +685,7 @@ describe('ActionPopup', () => {
         }
         const model = screen.getByLabelText('Model')
 
-        act(() => runListener?.({ ...eventBase, status: 'queued', type: 'agentState' }))
+        act(() => runListener?.({ ...eventBase, status: 'queued', type: 'action' }))
         expect(model).toBeDisabled()
         act(() => runListener?.({ ...eventBase, status: 'running', type: 'agentState' }))
         expect(model).toBeDisabled()

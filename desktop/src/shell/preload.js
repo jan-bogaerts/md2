@@ -62,6 +62,7 @@ const ACTION_METHODS = [
     'answerActionQuestion',
     'beginActionPromptDraft',
     'cancelActionRun',
+    'closeWaitingActionConversation',
     'finishActionRun',
     'generateDiff',
     'loadActionRunHistory',

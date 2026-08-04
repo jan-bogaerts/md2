@@ -4,6 +4,7 @@ import type { ActionRunEvent } from '../../data/action_run_types'
 import { runElectronAction } from '../actions/electron_action_runner'
 import { actionRunRegistry } from '../actions/action_run_registry'
 import { configService } from '../config/config_service'
+import { cardAgentState } from './card_agent_state'
 import { conversation, createDataService, createDeferred, createStorage, waitForWorkerTurn } from '.././test_support/data_service_test_support'
 
 vi.mock('../actions/electron_action_runner', () => ({ runElectronAction: vi.fn(async () => ({ logs: [], status: 'completed' })) }))
@@ -202,6 +203,36 @@ describe('AgentIntegration', () => {
         await vi.waitFor(() => {
             expect(service.getState().snapshot?.activeCards[0].agentConversations[0].title).toBe('Agent run')
         })
+    })
+
+    it('refreshes card waiting state from a backend-returned terminal conversation', async () => {
+        configService.init()
+        const agentFiles: MarkdownFile[] = [{
+            content: '---\nid: F-1\ninternalId: root-card\ntitle: Root\nstatus: active\nagents:\n  - design/activity/card__root-card.json#conversation=agent-1\n---\n\n# Root',
+            path: 'design/F-1-root.md',
+        }]
+        const waiting = { ...conversation(), completedAt: null, status: 'waitingForInput' as const }
+        const storage = createStorage({
+            loadAgentConversation: vi.fn(async () => waiting),
+            loadProject: vi.fn(async () => ({ files: agentFiles, workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: agentFiles, workingFolder: 'design' })),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+
+        await vi.waitFor(() => {
+            const card = service.getState().snapshot?.activeCards[0]
+            expect(card && cardAgentState('project', card)).toBe('waiting for input')
+        })
+        service.agents.updateAgentConversation({
+            ...waiting,
+            completedAt: '2026-08-04T10:30:00.000Z',
+            status: 'completed',
+        })
+
+        const card = service.getState().snapshot?.activeCards[0]
+        expect(card && cardAgentState('project', card)).not.toBe('waiting for input')
     })
 
     it('loads conversations only for active, archived, and released cards', async () => {

@@ -152,6 +152,40 @@ async function loadActivityConversation(project, reference) {
     return { ...conversation, path: reference };
 }
 
+async function closeWaitingActivityConversation(project, reference, status) {
+    if (typeof reference !== 'string' || reference.length === 0) throw new Error('Missing agent conversation reference');
+    if (status !== 'completed' && status !== 'cancelled') throw new Error(`Invalid waiting conversation terminal status: ${status}`);
+
+    const rootPath = requireRootPath(project);
+    await assertGitRoot(rootPath);
+    const { activityPath, conversationId } = parseConversationActivityReference(reference);
+    const absolutePath = ensureInsideRoot(rootPath, path.join(rootPath, activityPath));
+
+    return queueActivityUpdate(absolutePath, async () => {
+        const content = await fs.promises.readFile(absolutePath, 'utf8');
+        const storedActivity = JSON.parse(content);
+        const activity = parseActivityFile(content);
+        const conversation = findActivityConversation(activity, conversationId);
+        if (conversation.status !== 'waitingForInput') {
+            throw new Error(`Agent conversation is no longer waiting for input: ${reference}`);
+        }
+
+        const completedAt = new Date().toISOString();
+        const updatedActivity = {
+            ...storedActivity,
+            conversations: storedActivity.conversations.map((storedConversation) => (
+                storedConversation.id === conversationId
+                    ? { ...storedConversation, completedAt, status }
+                    : storedConversation
+            )),
+        };
+        await writeActivityFile(absolutePath, updatedActivity);
+        const updatedConversation = findActivityConversation(parseActivityFile(JSON.stringify(updatedActivity)), conversationId);
+
+        return { ...updatedConversation, path: reference };
+    });
+}
+
 async function listAgentConversationReferences(project, projectFolder) {
     const rootPath = requireRootPath(project);
     await assertGitRoot(rootPath);
@@ -224,6 +258,7 @@ module.exports = {
     appendAndCommitActionActivity,
     appendAndCommitSystemActivity,
     appendActionActivity,
+    closeWaitingActivityConversation,
     listAgentConversationReferences,
     loadCardActivity,
     loadActivityConversation,

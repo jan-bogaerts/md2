@@ -24,6 +24,10 @@ import { flushMarkdownEditors } from '../editor/markdown_editor_flush'
 
 export type PopupRunStatus = 'idle' | 'queued' | 'running' | 'waitingForInput' | ActionRunResult['status']
 export type CancelAction = (runId: string) => Promise<void>
+export type CloseWaitingConversation = (
+    reference: string,
+    status: 'cancelled' | 'completed',
+) => Promise<AgentConversation>
 export type SendMessage = (runId: string, content: string) => Promise<void>
 export type FinishAction = (runId: string) => Promise<void>
 export type AnswerQuestion = (
@@ -108,6 +112,13 @@ export async function defaultConvertPromptToAction(input: ConvertPromptToActionI
 
 export function defaultCancelAction(runId: string) {
     return cancelElectronAction(runId)
+}
+
+export function defaultCloseWaitingConversation(reference: string, status: 'cancelled' | 'completed') {
+    const bridge = getElectronActionBridge()
+    if (!bridge?.closeWaitingActionConversation) throw new Error('Closing a waiting conversation requires Electron')
+
+    return bridge.closeWaitingActionConversation(reference, status)
 }
 
 export function defaultSendMessage(runId: string, content: string) {

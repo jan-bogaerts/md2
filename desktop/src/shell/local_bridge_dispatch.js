@@ -291,6 +291,9 @@ function createLocalBridgeDispatch(dependencies) {
 
             return actionRunnerService.cancel(runId);
         },
+        closeWaitingActionConversation: (reference, status) => (
+            localGitService.closeWaitingActivityConversation(currentLocalProject, reference, status)
+        ),
         finishActionRun: (runId) => {
             if (!actionRunnerService) throw new Error('Action runner is not available');
 

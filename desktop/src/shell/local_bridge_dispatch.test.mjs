@@ -42,6 +42,7 @@ function createDispatch(options = {}) {
         appendAndCommitSystemActivity: vi.fn(async () => undefined),
         assertGitRoot: vi.fn(),
         checkoutBranch: vi.fn(async (project, branch) => ({ ...project, branch })),
+        closeWaitingActivityConversation: vi.fn(async (_project, reference, status) => ({ path: reference, status })),
         commit: vi.fn(async () => []),
         createProject: vi.fn(async (project) => project),
         hasPendingPush: vi.fn(async () => false),
@@ -416,6 +417,17 @@ describe('createLocalBridgeDispatch', () => {
         expect(actionRunnerService.answerAgentApproval).toHaveBeenCalledWith('action-1', 41, 'accept');
         expect(actionRunnerService.answerAgentQuestion).toHaveBeenCalledWith('action-1', 7, { confirm: ['Yes'] });
         expect(actionRunnerService.finishAgentRun).toHaveBeenCalledWith('action-1');
+    });
+
+    it('delegates persisted waiting conversation closure through current project', async () => {
+        const { dispatch, localGitService } = createDispatch();
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
+        const reference = 'design/activity/project.json#conversation=conversation-1';
+        await dispatch.dataBridge.loadProject(project, 'design');
+
+        await expect(dispatch.actionBridge.closeWaitingActionConversation(reference, 'cancelled'))
+            .resolves.toEqual({ path: reference, status: 'cancelled' });
+        expect(localGitService.closeWaitingActivityConversation).toHaveBeenCalledWith(project, reference, 'cancelled');
     });
 
     it('delegates atomic action restart with old run and new request', async () => {

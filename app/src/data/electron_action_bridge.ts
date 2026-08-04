@@ -1,7 +1,7 @@
 import type { ActionContext } from './action_context'
 import type { CardActivityFile } from '../../../shared/card_activity.mjs'
 import type { ActionScheduleTrigger } from './action_schedule_types'
-import type { AgentRunEvent } from './data_types'
+import type { AgentConversation, AgentRunEvent } from './data_types'
 import type { AgentAvailability } from './electron_data_bridge'
 import type { ThinkingLevel } from './agent_profiles'
 import type {
@@ -107,6 +107,7 @@ export interface ElectronActionBridge {
     answerActionQuestion?(runId: string, requestId: number | string | null, answers: Record<string, string[]>): Promise<void>
     beginActionPromptDraft?(runId: string): Promise<number>
     cancelActionRun(runId: string): Promise<void>
+    closeWaitingActionConversation?(reference: string, status: 'cancelled' | 'completed'): Promise<AgentConversation>
     finishActionRun?(runId: string): Promise<void>
     generateDiff(request: DiffRequest): Promise<DiffResult>
     loadActionRunHistory(request: ActionRunHistoryRequest): Promise<ActionRunHistoryEntry[]>

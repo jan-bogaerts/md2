@@ -405,6 +405,13 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         await this.request('cancelActionRun', [runId])
     }
 
+    async closeWaitingActionConversation(
+        reference: string,
+        status: 'cancelled' | 'completed',
+    ): Promise<AgentConversation> {
+        return this.request<AgentConversation>('closeWaitingActionConversation', [reference, status])
+    }
+
     async sendActionMessage(runId: string, content: string): Promise<void> {
         await this.request('sendActionMessage', [runId, content])
     }
