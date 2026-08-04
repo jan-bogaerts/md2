@@ -1,6 +1,7 @@
 import type { ChangeEvent } from 'react'
 import type { ActionContext } from '../../data/action_context'
 import type { ActionDefinition } from '../../data/action_types'
+import type { ActionRun } from '../../services/actions/action_run_registry'
 import {
     defaultAccessLevelForProfile,
     defaultApprovalPolicyForProfile,
@@ -8,7 +9,7 @@ import {
     findAgentProfile,
     validateThinkingLevel,
 } from '../../data/agent_profiles'
-import { useActionRun } from '../hooks/use_action_runs'
+import { useActionRunSelector } from '../hooks/use_action_runs'
 import { ActionAgentSelectors } from './action_agent_selectors'
 import type { ActionRunInputStore } from './action_run_input_store'
 import { useActionRunSettings } from './use_action_run_settings'
@@ -19,12 +20,15 @@ interface ActionAgentSelectorsOwnerProps {
     store: ActionRunInputStore
 }
 
+function selectSessionActive(run: ActionRun | null) {
+    return run?.status === 'queued' || run?.status === 'running' || run?.status === 'waitingForInput'
+}
+
 /** Owns agent option subscriptions and editable overrides. */
 export function ActionAgentSelectorsOwner(props: ActionAgentSelectorsOwnerProps) {
     const { action, context, store } = props
-    const run = useActionRun(action.id, context)
+    const sessionActive = useActionRunSelector(action.id, context, selectSessionActive)
     const settings = useActionRunSettings(action, store)
-    const sessionActive = run?.status === 'queued' || run?.status === 'running' || run?.status === 'waitingForInput'
 
     const handleAgentChange = (event: ChangeEvent<HTMLInputElement>) => {
         const agent = event.target.value

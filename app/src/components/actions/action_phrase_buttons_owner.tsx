@@ -1,8 +1,9 @@
 import { useSyncExternalStore } from 'react'
 import type { ActionContext } from '../../data/action_context'
 import type { ActionDefinition } from '../../data/action_types'
+import type { ActionRun } from '../../services/actions/action_run_registry'
 import { dialogService } from '../../services/dialog_service'
-import { useActionRun } from '../hooks/use_action_runs'
+import { useActionRunSelector } from '../hooks/use_action_runs'
 import type { ActionConversationStore } from './action_conversation_store'
 import type { ActionHistoryStore } from './action_history_store'
 import { currentActionPromptDraft, runPopupAction } from './action_popup_operations'
@@ -21,15 +22,20 @@ interface ActionPhraseButtonsOwnerProps {
     runValidationError: string | null
 }
 
+function selectSessionActive(run: ActionRun | null) {
+    return run?.status === 'queued' || run?.status === 'running' || run?.status === 'waitingForInput'
+}
+
 /** Owns follow-up visibility and phrase actions. */
 export function ActionPhraseButtonsOwner(props: ActionPhraseButtonsOwnerProps) {
     const { action, context, conversationStore, historyStore, inputStore, resultStore, runValidationError } = props
-    const run = useActionRun(action.id, context)
+    const sessionActive = useActionRunSelector(action.id, context, selectSessionActive)
+    const activeActionType = useActionRunSelector(action.id, context, (run) => run?.activeActionType ?? null)
+    const liveConversationPath = useActionRunSelector(action.id, context, (run) => run?.conversation?.path ?? null)
     useSyncExternalStore(conversationStore.subscribe, conversationStore.getSnapshot, conversationStore.getSnapshot)
     const settings = useActionRunSettings(action, inputStore)
-    const sessionActive = run?.status === 'queued' || run?.status === 'running' || run?.status === 'waitingForInput'
-    const agentActive = sessionActive && run?.activeActionType === 'agent'
-    const continuationPath = conversationStore.continuationPath(run?.conversation ?? null)
+    const agentActive = sessionActive && activeActionType === 'agent'
+    const continuationPath = liveConversationPath ?? conversationStore.continuationPath(null)
     const isFollowUp = action.type === 'agent' && (agentActive || (!sessionActive && !!continuationPath))
     if (!isFollowUp || action.phrases.length === 0) return null
 

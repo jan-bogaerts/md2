@@ -1,8 +1,9 @@
 import { useEffect, useSyncExternalStore } from 'react'
 import type { ActionContext } from '../../data/action_context'
 import type { ActionDefinition } from '../../data/action_types'
+import type { ActionRun } from '../../services/actions/action_run_registry'
 import { dialogService } from '../../services/dialog_service'
-import { useActionRun } from '../hooks/use_action_runs'
+import { useActionRunSelector } from '../hooks/use_action_runs'
 import { ActionAgentPrompt } from './action_agent_prompt'
 import type { ActionConversationStore } from './action_conversation_store'
 import type { ActionHistoryStore } from './action_history_store'
@@ -24,17 +25,25 @@ interface ActionAgentPromptOwnerProps {
     showSaveControls: boolean
 }
 
+function selectSessionActive(run: ActionRun | null) {
+    return run?.status === 'queued' || run?.status === 'running' || run?.status === 'waitingForInput'
+}
+
 /** Owns prompt draft binding, preparation, and keyboard-run behavior. */
 export function ActionAgentPromptOwner(props: ActionAgentPromptOwnerProps) {
     const { action, context, conversationStore, historyStore, inputStore, resultStore, runValidationError, showSaveControls } = props
-    const run = useActionRun(action.id, context)
+    const sessionActive = useActionRunSelector(action.id, context, selectSessionActive)
+    const activeActionType = useActionRunSelector(action.id, context, (run) => run?.activeActionType ?? null)
+    const hasApprovals = useActionRunSelector(action.id, context, (run) => !!run?.approvals.length)
+    const hasQuestion = useActionRunSelector(action.id, context, (run) => !!run?.question)
+    const interactionReady = useActionRunSelector(action.id, context, (run) => !!run?.interactionReady)
+    const runStatus = useActionRunSelector(action.id, context, (run) => run?.status ?? 'idle')
     const conversationSnapshot = useSyncExternalStore(
         conversationStore.subscribe,
         conversationStore.getSnapshot,
         conversationStore.getSnapshot,
     )
     const settings = useActionRunSettings(action, inputStore)
-    const sessionActive = run?.status === 'queued' || run?.status === 'running' || run?.status === 'waitingForInput'
     const prepare = action.type === 'agent'
         && !sessionActive
         && conversationSnapshot.selectedConversation?.status !== 'waitingForInput'
@@ -52,12 +61,12 @@ export function ActionAgentPromptOwner(props: ActionAgentPromptOwnerProps) {
         const prompt = promptDraft.getSnapshot()
         const saveDisabled = settings.actionLabel.trim().length === 0 || sessionActive || !!settings.runDisabledMessage
         const runState = {
-            agentActive: !!sessionActive && run?.activeActionType === 'agent',
-            hasApprovals: !!run?.approvals.length,
-            hasQuestion: !!run?.question,
-            interactionReady: !!run?.interactionReady,
+            agentActive: sessionActive && activeActionType === 'agent',
+            hasApprovals,
+            hasQuestion,
+            interactionReady,
             runDisabledMessage: settings.runDisabledMessage,
-            runStatus: run?.status ?? 'idle',
+            runStatus,
             saveDisabled,
         }
         if (actionPopupRunDisabled(

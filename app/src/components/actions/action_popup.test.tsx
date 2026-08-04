@@ -13,11 +13,83 @@ import { AppThemeProvider } from '../../theme/theme_provider'
 import { ActionPopup, CARD_RUN_POPUP_SIZE_STORAGE_KEY, PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY } from './action_popup'
 
 const renderProbes = vi.hoisted(() => ({
+    agentPrompt: vi.fn(),
+    agentSelectors: vi.fn(),
     chat: vi.fn(),
+    conversationPicker: vi.fn(),
     content: vi.fn(),
+    logError: vi.fn(),
+    phraseButtons: vi.fn(),
     popup: vi.fn(),
     selector: vi.fn(),
 }))
+
+vi.mock('./action_agent_prompt', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('./action_agent_prompt')>()
+
+    return {
+        ...actual,
+        ActionAgentPrompt: function ActionAgentPromptRenderProbe(props: Parameters<typeof actual.ActionAgentPrompt>[0]) {
+            renderProbes.agentPrompt()
+
+            return actual.ActionAgentPrompt(props)
+        },
+    }
+})
+
+vi.mock('./action_agent_selectors', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('./action_agent_selectors')>()
+
+    return {
+        ...actual,
+        ActionAgentSelectors: function ActionAgentSelectorsRenderProbe(props: Parameters<typeof actual.ActionAgentSelectors>[0]) {
+            renderProbes.agentSelectors()
+
+            return actual.ActionAgentSelectors(props)
+        },
+    }
+})
+
+vi.mock('./action_conversation_picker', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('./action_conversation_picker')>()
+
+    return {
+        ...actual,
+        ActionConversationPicker: function ActionConversationPickerRenderProbe(
+            props: Parameters<typeof actual.ActionConversationPicker>[0],
+        ) {
+            renderProbes.conversationPicker()
+
+            return actual.ActionConversationPicker(props)
+        },
+    }
+})
+
+vi.mock('./action_log_error_display', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('./action_log_error_display')>()
+
+    return {
+        ...actual,
+        ActionLogErrorDisplay: function ActionLogErrorDisplayRenderProbe(props: Parameters<typeof actual.ActionLogErrorDisplay>[0]) {
+            renderProbes.logError()
+
+            return actual.ActionLogErrorDisplay(props)
+        },
+    }
+})
+
+vi.mock('./action_phrase_buttons', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('./action_phrase_buttons')>()
+
+    return {
+        ...actual,
+        ActionPhraseButtons: function ActionPhraseButtonsRenderProbe(props: Parameters<typeof actual.ActionPhraseButtons>[0]) {
+            renderProbes.phraseButtons()
+
+            return actual.ActionPhraseButtons(props)
+        },
+    }
+})
 
 vi.mock('./action_popup_content', async (importOriginal) => {
     const actual = await importOriginal<typeof import('./action_popup_content')>()
@@ -229,7 +301,7 @@ describe('ActionPopup', () => {
         expect(renderProbes.chat).not.toHaveBeenCalled()
     })
 
-    it('renders only conversation boundary while conversation streams', async () => {
+    it('does not rerender unrelated popup controls while conversation streams', async () => {
         actionRunRegistry.stop()
         let runListener: ((event: ActionRunEvent) => void) | null = null
         window.md2Actions = {
@@ -239,13 +311,21 @@ describe('ActionPopup', () => {
             }),
             prepareActionPrompt: vi.fn(async () => ({ prompt: '' })),
         } as unknown as typeof window.md2Actions
-        actionService.loadFromFiles([file(agentDefinition('review', { label: 'Review', streaming: true }))])
+        actionService.loadFromFiles([file(agentDefinition('review', {label: 'Review', phrases: [{ text: 'Continue', title: '' }], streaming: true}))])
         actionRunRegistry.start()
         renderPopup()
         await waitFor(() => expect(runListener).not.toBeNull())
         const event = {actionId: 'review', context, phase: 'main' as const, rootActionId: 'review', runId: 'run-1', status: 'running' as const}
         act(() => {
             runListener?.({ ...event, type: 'run' })
+            runListener?.({
+                ...event,
+                actionType: 'agent',
+                autoFinish: null,
+                interactionReady: true,
+                streaming: true,
+                type: 'agentState',
+            })
             runListener?.({
                 ...event,
                 type: 'update',
@@ -268,6 +348,11 @@ describe('ActionPopup', () => {
                 },
             })
         })
+        await waitFor(() => expect(renderProbes.phraseButtons).toHaveBeenCalled())
+        expect(renderProbes.agentPrompt).toHaveBeenCalled()
+        expect(renderProbes.agentSelectors).toHaveBeenCalled()
+        expect(renderProbes.conversationPicker).toHaveBeenCalled()
+        expect(renderProbes.logError).toHaveBeenCalled()
         Object.values(renderProbes).forEach((probe) => probe.mockClear())
 
         act(() => runListener?.({
@@ -276,10 +361,14 @@ describe('ActionPopup', () => {
             update: { content: 'streamed', kind: 'output', messageId: 'assistant-1', sequence: 1 },
         }))
 
-        expect(renderProbes.chat).toHaveBeenCalled()
         expect(renderProbes.popup).not.toHaveBeenCalled()
         expect(renderProbes.content).not.toHaveBeenCalled()
         expect(renderProbes.selector).not.toHaveBeenCalled()
+        expect(renderProbes.agentPrompt).not.toHaveBeenCalled()
+        expect(renderProbes.agentSelectors).not.toHaveBeenCalled()
+        expect(renderProbes.conversationPicker).not.toHaveBeenCalled()
+        expect(renderProbes.logError).not.toHaveBeenCalled()
+        expect(renderProbes.phraseButtons).not.toHaveBeenCalled()
     })
 
     it('owns action selection internally', () => {

@@ -1,10 +1,9 @@
 import { MenuItem, TextField } from '@mui/material'
 import type { ChangeEvent } from 'react'
-import type { AgentConversation } from '../../data/data_types'
-import { conversationPickerLabel } from './action_conversation_picker_data'
+import { conversationPickerLabel, type ConversationPickerConversation } from './action_conversation_picker_data'
 
 interface ActionConversationPickerProps {
-    conversations: AgentConversation[]
+    conversations: ConversationPickerConversation[]
     disabled: boolean
     loading: boolean
     onChange: (event: ChangeEvent<HTMLInputElement>) => void

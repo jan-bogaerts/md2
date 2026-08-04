@@ -3,6 +3,7 @@ import type { AgentConversation } from '../../data/data_types'
 import { actionPromptDraftService } from '../../services/actions/action_prompt_draft_service'
 import { actionRunRegistry } from '../../services/actions/action_run_registry'
 import { dialogService } from '../../services/dialog_service'
+import type { ConversationPickerConversation } from './action_conversation_picker_data'
 import { defaultLoadConversation, defaultLoadConversations } from './action_popup_defaults'
 
 interface ActionConversationSnapshot {
@@ -13,25 +14,25 @@ interface ActionConversationSnapshot {
 
 type Listener = () => void
 
-function belongsToContext(conversation: AgentConversation, context: ActionContext) {
+function belongsToContext(conversation: ConversationPickerConversation, context: ActionContext) {
     return context.kind === 'project'
         ? conversation.cardInternalId === null
         : conversation.cardInternalId === context.cardInternalId
 }
 
-function conversationTimestamp(conversation: AgentConversation) {
+function conversationTimestamp(conversation: ConversationPickerConversation) {
     const timestamp = Date.parse(conversation.startedAt)
 
     return Number.isNaN(timestamp) ? 0 : timestamp
 }
 
-export function conversationOptions(
-    conversations: AgentConversation[],
+export function conversationOptions<T extends ConversationPickerConversation>(
+    conversations: T[],
     actionId: string,
     context: ActionContext,
-    liveConversation: AgentConversation | null,
+    liveConversation: T | null,
 ) {
-    const byId = new Map<string, AgentConversation>()
+    const byId = new Map<string, T>()
     for (const conversation of conversations) {
         if (belongsToContext(conversation, context) && conversation.actionId === actionId) {
             byId.set(conversation.id, conversation)
@@ -147,7 +148,9 @@ export class ActionConversationStore {
         }
     }
 
-    conversationOptions(liveConversation: AgentConversation | null) {
+    conversationOptions(liveConversation: AgentConversation | null): AgentConversation[]
+    conversationOptions(liveConversation: ConversationPickerConversation | null): ConversationPickerConversation[]
+    conversationOptions(liveConversation: ConversationPickerConversation | null) {
         const selected = this.snapshot.selectedConversation
         const conversations = selected ? [...this.snapshot.conversations, selected] : this.snapshot.conversations
 

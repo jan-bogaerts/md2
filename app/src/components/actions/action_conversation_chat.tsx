@@ -1,22 +1,15 @@
-import { Box, Stack, Typography } from '@mui/material'
+import { Stack, Typography } from '@mui/material'
 import { useEffect, useLayoutEffect, useRef, type UIEvent } from 'react'
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
-import type { AgentConversation, AgentConversationEvent } from '../../data/data_types'
-import { useAppTheme } from '../../theme/use_app_theme'
+import type { AgentConversation } from '../../data/data_types'
 import type { PopupRunStatus } from './action_popup_defaults'
-import { ActionConversationLink } from './action_conversation_link'
-import { actionConversationUrlTransform } from './action_conversation_url_transform'
+import { ActionConversationEventRow } from './action_conversation_event_row'
+import { ActionConversationMessage } from './action_conversation_message'
 import { actionStatusLabel } from './action_status'
 import { ConversationTimer } from './conversation_timer'
-import { AgentToolEvent } from './agent_tool_event'
-import { CommandExecutionEvent } from './command_execution_event'
-import { ReasoningEvent } from './reasoning_event'
 import { eventIdentity } from './event_display'
 
 const CHAT_END_TOLERANCE = 4
 const MIN_CHAT_HEIGHT = 96
-const MARKDOWN_COMPONENTS = { a: ActionConversationLink }
 
 interface ActionConversationChatProps {
     conversation: AgentConversation | null
@@ -42,16 +35,8 @@ function visibleConversationEntries(conversation: AgentConversation | null) {
         || (showEvents && (entry.type !== 'reasoning' || entry.status !== 'completed')))
 }
 
-function renderEvent(event: AgentConversationEvent) {
-    if (event.type === 'reasoning') return <ReasoningEvent event={event} />
-    if (event.type === 'commandExecution') return <CommandExecutionEvent event={event} />
-
-    return <AgentToolEvent event={event} />
-}
-
 /** Ordered user/assistant transcript shown above the popup prompt. */
 export function ActionConversationChat({ conversation, onConversationViewed, status }: ActionConversationChatProps) {
-    const { markdownContentSx } = useAppTheme()
     const entries = visibleConversationEntries(conversation)
     const viewportRef = useRef<HTMLDivElement>(null)
     const conversationPathRef = useRef<string | null | undefined>(undefined)
@@ -89,35 +74,9 @@ export function ActionConversationChat({ conversation, onConversationViewed, sta
             sx={{ flex: 1, minHeight: MIN_CHAT_HEIGHT, overflowX: 'hidden', overflowY: 'auto' }}
         >
             {entries.map((entry) => entry.kind === 'message' ? (
-                <Box
-                    key={entry.id}
-                    sx={{
-                        alignSelf: entry.role === 'user' ? 'flex-end' : 'flex-start',
-                        bgcolor: entry.role === 'user' ? 'custom.primaryBg' : 'custom.track',
-                        borderRadius: 1,
-                        flexShrink: 0,
-                        maxWidth: '88%',
-                        minWidth: 0,
-                        overflowWrap: 'anywhere',
-                        px: 1.25,
-                        py: 1,
-                        ...markdownContentSx,
-                    }}
-                >
-                    <Box className="mdxeditor-content">
-                        <ReactMarkdown
-                            components={MARKDOWN_COMPONENTS}
-                            remarkPlugins={[remarkGfm]}
-                            urlTransform={actionConversationUrlTransform}
-                        >
-                            {entry.content}
-                        </ReactMarkdown>
-                    </Box>
-                </Box>
+                <ActionConversationMessage entry={entry} key={entry.id} />
             ) : (
-                <Box key={eventIdentity(entry)} sx={{ minWidth: 0 }}>
-                    {renderEvent(entry)}
-                </Box>
+                <ActionConversationEventRow entry={entry} key={eventIdentity(entry)} />
             ))}
             {status !== 'idle' ? (
                 <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexShrink: 0 }}>
