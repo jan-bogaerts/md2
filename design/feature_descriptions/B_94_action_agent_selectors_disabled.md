@@ -3,11 +3,12 @@ author:
 id: B_94
 internalId: d00ed22e-f395-4949-9b0f-ce1c2275c31e
 title: action-agent-selectors disabled
-status: new
+status: design
 owner: 
 affects:
 agents:
 policy:
+after: 
 ---
 
 the action-agent-selectors on the action-popup are only enabled when the conversation has not yet started. It is not possible to change a model setting in the middle of a conversation.
