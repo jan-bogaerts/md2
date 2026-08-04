@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
   - design/activity/card__50ec96d2-8e7c-471a-a33b-9cbd4210b5cb.json#conversation=agent-7380cc17-bb0d-4318-8354-4fdec982959d
+  - design/activity/card__50ec96d2-8e7c-471a-a33b-9cbd4210b5cb.json#conversation=agent-b54c2dbf-989e-47e5-8d7e-bd529a0fc5fa
 policy:
 after: 
 worktree: 1
