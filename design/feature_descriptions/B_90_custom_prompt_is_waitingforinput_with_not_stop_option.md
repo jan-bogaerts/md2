@@ -14,4 +14,6 @@ We had a card where the 'custom prompt' action had a conversation that was in th
 
 Note: the application had stopped and restarted, so the agent itself was no longer running and everything was loaded from log
 
-After sending new input to the agent, 'stop' and 'finish' buttons appear again
+After sending new input to the agent, 'stop' and 'finish' buttons appear again.
+
+This has been seen on regular action for cards as well: when the app is restarted, the 'waitingForInput' state is shown on the 'run' button on the card, but on the action-popup,&#x20;
