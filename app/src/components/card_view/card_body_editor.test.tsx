@@ -55,8 +55,11 @@ describe('CardBodyEditor', () => {
         expect(cardMarkdownDataSource.commit).toHaveBeenCalledWith('board-card', target, '# Alpha\n\nEdited body')
     })
 
-    it('keeps toolbar sticky on mobile', () => {
-        const { container } = renderCardBodyEditor(editorProps({ isMobile: true }))
+    it.each([
+        { isMobile: false, layout: 'desktop' },
+        { isMobile: true, layout: 'mobile' },
+    ])('keeps toolbar sticky on $layout', ({ isMobile }) => {
+        const { container } = renderCardBodyEditor(editorProps({ isMobile }))
 
         expect(container.querySelector('[data-sticky-toolbar="true"]')).not.toBeNull()
     })

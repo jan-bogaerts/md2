@@ -58,7 +58,6 @@ export const CardBodyEditor = memo(function CardBodyEditor(props: CardBodyEditor
                     height: 40,
                     margin: '14px 20px 0',
                     padding: '0 6px',
-                    top: isMobile ? 0 : 'auto',
                     width: 'auto',
                 },
                 '& [class*="_toolbarRoot_"] div[role="separator"]': {
@@ -76,7 +75,6 @@ export const CardBodyEditor = memo(function CardBodyEditor(props: CardBodyEditor
                 dataSource={cardMarkdownDataSource}
                 historyStore={historyStore}
                 overlayContainer={overlayContainer}
-                stickyToolbar={isMobile}
                 toolbarContents={ToolbarContents}
             />
         </Box>

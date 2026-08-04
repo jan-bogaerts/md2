@@ -48,7 +48,6 @@ interface MarkdownEditorPresentationProps {
     overlayContainer?: HTMLElement | null
     placeholders?: readonly ActionPlaceholder[]
     readOnly?: boolean
-    stickyToolbar?: boolean
     toolbarContents?: () => ReactNode
     viewMode?: ViewMode
 }
@@ -100,7 +99,6 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         overlayContainer,
         placeholders = EMPTY_PLACEHOLDERS,
         readOnly = false,
-        stickyToolbar = false,
         toolbarContents: customToolbarContents,
         viewMode,
     } = props
@@ -270,10 +268,10 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         [overlayContainer, placeholders],
     )
     const toolbarContents = customToolbarContents ?? defaultToolbarContents
-    const stickySx = stickyToolbar
-        ? { '& .mdxeditor-toolbar': { position: 'sticky', top: 0, zIndex: 1 } }
-        : undefined
-    const editorSx = { ...markdownContentSx, ...stickySx }
+    const editorSx = {
+        ...markdownContentSx,
+        '& .mdxeditor-toolbar': { bgcolor: 'background.paper', position: 'sticky', top: 0, zIndex: 1 },
+    }
     const historyPlugin = historyPluginConfig ? markdownDocumentHistoryPlugin(historyPluginConfig) : null
     const plugins = [
         headingsPlugin(),
@@ -297,7 +295,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
     ]
 
     return (
-        <Box data-sticky-toolbar={stickyToolbar} onBlur={handleBlur} sx={editorSx}>
+        <Box data-sticky-toolbar onBlur={handleBlur} sx={editorSx}>
             <MDXEditor
                 className={mode === 'dark' ? 'dark-theme' : 'light-theme'}
                 contentEditableClassName="mdxeditor-content"

@@ -198,6 +198,14 @@ describe('ActionEditor', () => {
         expect(screen.getAllByTestId('mdx-editor')).toHaveLength(1)
     })
 
+    it('keeps the Markdown formatting toolbar sticky', () => {
+        renderEditor()
+
+        fireEvent.click(screen.getByRole('tab', { name: 'Prompt' }))
+
+        expect(document.querySelector('[data-sticky-toolbar="true"]')).not.toBeNull()
+    })
+
     it('restores the selected section when the editor becomes active again', () => {
         const action = loadAction({ phrases: [{ text: 'Run tests', title: 'Tests' }] })
         const view = renderEditor(action)

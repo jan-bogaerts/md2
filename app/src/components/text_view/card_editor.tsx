@@ -46,7 +46,6 @@ export const CardEditor = memo(function CardEditor(props: CardEditorProps) {
                     binding="list-card"
                     dataSource={cardMarkdownDataSource}
                     historyStore={historyStore}
-                    stickyToolbar
                     toolbarContents={toolbarContents}
                 />
             </ListCardCommitDiffPanel>
