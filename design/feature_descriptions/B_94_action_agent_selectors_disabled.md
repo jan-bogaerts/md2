@@ -3,7 +3,7 @@ author:
 id: B_94
 internalId: d00ed22e-f395-4949-9b0f-ce1c2275c31e
 title: action-agent-selectors disabled
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
