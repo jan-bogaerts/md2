@@ -1,18 +1,17 @@
-import { useSyncExternalStore } from 'react'
-import { agentAcknowledgementService } from '../../services/agents/agent_acknowledgement_service'
+import { useCallback, useSyncExternalStore } from 'react'
+import {
+    agentAcknowledgementCheckpoint,
+    agentAcknowledgementService,
+} from '../../services/agents/agent_acknowledgement_service'
 
-let revision = 0
+/** Subscribes a leaf owner to the acknowledgement checkpoint for one card. */
+export function useAgentAcknowledgement(projectId: string | null, cardPath: string | null | undefined) {
+    const subscribe = useCallback((onStoreChange: () => void) => (
+        projectId && cardPath ? agentAcknowledgementService.subscribeCard(projectId, cardPath, onStoreChange) : () => undefined
+    ), [cardPath, projectId])
+    const getSnapshot = useCallback(() => (
+        projectId && cardPath ? agentAcknowledgementCheckpoint(projectId, cardPath) : null
+    ), [cardPath, projectId])
 
-function subscribe(onStoreChange: () => void) {
-    const handleChange = () => {
-        revision += 1
-        onStoreChange()
-    }
-    agentAcknowledgementService.addEventListener('changed', handleChange)
-
-    return () => agentAcknowledgementService.removeEventListener('changed', handleChange)
-}
-
-export function useAgentAcknowledgements() {
-    return useSyncExternalStore(subscribe, () => revision)
+    return useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
 }

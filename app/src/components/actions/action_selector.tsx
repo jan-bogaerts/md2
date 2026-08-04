@@ -8,6 +8,7 @@ import type { ActionContext } from '../../data/action_context'
 import type { ActionRunStatus } from '../../data/action_run_types'
 import type { ActionDefinition } from '../../data/action_types'
 import { useActiveActionRunsForContext } from '../hooks/use_action_runs'
+import { useCardActionUnseenResults } from '../hooks/use_card_action_unseen_results'
 
 interface ActionSelectorProps {
     adding: boolean
@@ -15,14 +16,15 @@ interface ActionSelectorProps {
     context: ActionContext
     onAdd: () => void
     onSelect: (actionId: string) => void
+    projectKey: string | null
     selectedAction: ActionDefinition
-    unseenResultActionIds: string[]
 }
 
 /** Horizontally scrollable, mutually exclusive action selector used by the card Run popup. */
 export function ActionSelector(props: ActionSelectorProps) {
-    const { adding, actions, context, onAdd, onSelect, selectedAction, unseenResultActionIds } = props
+    const { adding, actions, context, onAdd, onSelect, projectKey, selectedAction } = props
     const activeRuns = useActiveActionRunsForContext(context)
+    const unseenResultConversations = useCardActionUnseenResults(actions.map(({ id }) => id), context, projectKey)
     const activeActionStatuses: Record<string, ActionRunStatus> = {}
     for (const { rootActionId, status } of activeRuns) {
         if (status === 'waitingForInput' || !activeActionStatuses[rootActionId]) activeActionStatuses[rootActionId] = status
@@ -70,7 +72,7 @@ export function ActionSelector(props: ActionSelectorProps) {
                         const isQueued = activeActionStatuses[action.id] === 'queued'
                         const isWaiting = activeActionStatuses[action.id] === 'waitingForInput'
                         const isRunning = activeActionStatuses[action.id] === 'running'
-                        const hasUnseenResult = unseenResultActionIds.includes(action.id)
+                        const hasUnseenResult = unseenResultConversations.some(({ actionId }) => actionId === action.id)
                         const stateDescription = isQueued
                             ? 'Action is queued'
                             : isWaiting

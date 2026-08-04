@@ -34,7 +34,7 @@ describe('ActionConversationChatOwner', () => {
         actionRunRegistry.start()
         render(
             <AppThemeProvider>
-                <ActionConversationChatOwner actionId="review" context={context} store={store} />
+                <ActionConversationChatOwner actionId="review" context={context} projectKey={null} store={store} />
             </AppThemeProvider>,
         )
         if (!listener) throw new Error('Missing run listener')

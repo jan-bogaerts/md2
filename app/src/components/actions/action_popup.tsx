@@ -1,7 +1,6 @@
 import { useId, useMemo, useState } from 'react'
 import { displayActionsForContext, projectContextWithWorktree, type ActionContext } from '../../data/action_context'
 import { CUSTOM_PROMPT_ACTION_ID } from '../../data/action_types'
-import type { AgentConversation } from '../../data/data_types'
 import { dialogService } from '../../services/dialog_service'
 import { useActions } from '../hooks/use_actions'
 import { useProjectState } from '../hooks/use_project_state'
@@ -26,10 +25,9 @@ interface ActionPopupProps {
     initialActionId?: string
     onActivate?: () => void
     onClose: () => void
-    onConversationViewed?: (conversation: AgentConversation) => void
     open?: boolean
+    projectKey?: string
     stackPosition?: number
-    unseenResultConversations?: AgentConversation[]
 }
 
 /** Universal action selector and run popup for the supplied context. */
@@ -56,6 +54,7 @@ export function ActionPopup(props: ActionPopupProps) {
         ? [...actions, selectedAction]
         : actions
     const target = resolvePopupTarget(context, snapshot)
+    const projectKey = props.projectKey ?? (project ? `${project.id}:${project.branch}` : null)
 
     const handleSelectAction = (actionId: string) => {
         setSelectedActionId(actionId)
@@ -91,6 +90,7 @@ export function ActionPopup(props: ActionPopupProps) {
             onToggleFullHeight={handleToggleFullHeight}
             open={open ?? !!anchorElement}
             primaryPath={project?.rootPath ?? project?.id ?? null}
+            projectKey={projectKey}
             showSaveControls={showSaveControls}
             target={target}
             titleId={titleId}

@@ -5,7 +5,6 @@ import Close from 'mdi-material-ui/Close'
 import { useMemo } from 'react'
 import type { ActionContext } from '../../data/action_context'
 import type { ActionDefinition } from '../../data/action_types'
-import type { AgentConversation } from '../../data/data_types'
 import { worktreeService } from '../../services/project/worktree_service'
 import { ResizablePopper } from '../resizable_popper'
 import type { WorktreeAssignmentTarget } from '../worktree_selector'
@@ -65,7 +64,6 @@ interface ActionPopupContentProps {
     onAddAction: () => void
     onActivate?: () => void
     onClose: () => void
-    onConversationViewed?: (conversation: AgentConversation) => void
     onSelectAction: (actionId: string) => void
     onToggleFullHeight: () => void
     open: boolean
@@ -74,7 +72,7 @@ interface ActionPopupContentProps {
     stackPosition?: number
     target: string | null
     titleId: string
-    unseenResultConversations?: AgentConversation[]
+    projectKey: string | null
 }
 
 /**
@@ -113,16 +111,13 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
     const {
         action, actions, anchorElement, assignmentContext, baseContext, draggable, fullHeight, onActivate, onAddAction,
         onClose, onSelectAction, onToggleFullHeight, open, primaryPath, showSaveControls, stackPosition, target, titleId,
-        unseenResultConversations = [],
+        projectKey,
     } = props
     const bindings = useMemo(
         () => createActionPopupBindings(action, assignmentContext),
         [action, assignmentContext],
     )
     const { conversationStore, historyStore, inputStore, resultStore, scheduleStore } = bindings
-    const unseenResultConversation = unseenResultConversations.find(({ actionId }) => actionId === action.id) ?? null
-    const unseenResultActionIds = unseenResultConversations.flatMap(({ actionId }) => actionId ? [actionId] : [])
-    conversationStore.configureInitialSelection(unseenResultConversation?.path ?? null)
     const runValidationError = worktreeValidationMessage(action, assignmentContext)
     const sizeStorageKey = baseContext.kind === 'project'
         ? PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY
@@ -201,6 +196,7 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
                             <ActionConversationPickerOwner
                                 actionId={action.id}
                                 context={assignmentContext}
+                                projectKey={projectKey}
                                 store={conversationStore}
                             />
                         ) : null}
@@ -227,8 +223,8 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
                         context={assignmentContext}
                         onAdd={onAddAction}
                         onSelect={onSelectAction}
+                        projectKey={projectKey}
                         selectedAction={action}
-                        unseenResultActionIds={unseenResultActionIds}
                     />
                 </Box>
                 <Stack spacing={2} sx={{ flex: 1, minHeight: 0, overflow: 'auto', px: 1.5, py: 1 }}>
@@ -258,7 +254,7 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
                             <ActionConversationChatOwner
                                 actionId={action.id}
                                 context={assignmentContext}
-                                onConversationViewed={props.onConversationViewed}
+                                projectKey={projectKey}
                                 store={conversationStore}
                             />
                             <ActionAgentPromptOwner

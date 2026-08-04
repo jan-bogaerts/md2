@@ -2,8 +2,7 @@ import { Button } from '@mui/material'
 import { Separator } from '@mdxeditor/editor'
 import { useCallback, useEffect, useState } from 'react'
 import { fileContext } from '../../data/action_context'
-import type { AgentConversation, CardTypeConfig } from '../../data/data_types'
-import { agentAcknowledgementService } from '../../services/agents/agent_acknowledgement_service'
+import type { CardTypeConfig } from '../../data/data_types'
 import { dialogService } from '../../services/dialog_service'
 import { workspaceViewService } from '../../services/project/workspace_view_service'
 import { ActionPopup } from '../actions/action_popup'
@@ -52,15 +51,6 @@ export function ListEditorToolbarControls(props: ListEditorToolbarControlsProps)
         return () => workspaceViewService.removeEventListener('changed', handleWorkspaceViewChanged)
     }, [])
 
-    const handleConversationViewed = (conversation: AgentConversation) => {
-        try {
-            if (!conversation.cardPath) throw new Error('Cannot acknowledge a project conversation as a card result')
-
-            agentAcknowledgementService.acknowledge(cardMarkdownDataSource.getProjectKey(), conversation.cardPath, [conversation])
-        } catch (error) {
-            dialogService.error(error, { fallbackMessage: 'Card conversation could not be acknowledged' })
-        }
-    }
     const handleToggleAgentPopup = useCallback(() => {
         try {
             const activeDocumentId = cardMarkdownDataSource.getActiveDocument('list-card')?.getObject().header.internalId
@@ -100,7 +90,6 @@ export function ListEditorToolbarControls(props: ListEditorToolbarControlsProps)
                     context={fileContext(card, cardTypes)}
                     draggable
                     onClose={handleCloseAgentPopup}
-                    onConversationViewed={handleConversationViewed}
                     open
                 />
             ) : null}

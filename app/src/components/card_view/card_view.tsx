@@ -5,7 +5,6 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { RefObject } from 'react'
 import { buildCardColumns } from '../../data/card_ordering'
 import type { CardTypeConfig, StateConfig } from '../../data/data_types'
-import { useAgentAcknowledgements } from '../hooks/use_agent_acknowledgements'
 import { dataService } from '../../services/data/data_service'
 import { dialogService } from '../../services/dialog_service'
 import { openFilesService } from '../../services/open_files_service'
@@ -54,7 +53,6 @@ export function CardView(props: CardViewProps) {
         states,
         statusColors,
     } = props
-    useAgentAcknowledgements()
     const columns = useCardViewColumns(states)
     const [openAffectsPath, setOpenAffectsPath] = useState<string | null>(null)
     const rootElementRef = useRef<HTMLDivElement>(null)

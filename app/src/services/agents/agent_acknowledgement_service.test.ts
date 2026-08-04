@@ -1,6 +1,7 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { AgentConversation } from '../../data/data_types'
 import {
+    agentAcknowledgementCheckpoint,
     agentAcknowledgementService,
     hasUnseenAgentResult,
     latestUnseenAgentResult,
@@ -60,5 +61,47 @@ describe('AgentAcknowledgementService', () => {
 
         expect(latestUnseenAgentResult('project', 'design/F-1-root.md', [newest, older], 'implement')).toBeNull()
         expect(hasUnseenAgentResult('project', 'design/F-1-root.md', [newest, older])).toBe(false)
+    })
+
+    it('notifies only subscribers for the acknowledged card', () => {
+        const conversation = completedConversation('2026-01-01T00:01:00.000Z')
+        const acknowledgedListener = vi.fn()
+        const otherCardListener = vi.fn()
+        const unsubscribeAcknowledged = agentAcknowledgementService.subscribeCard(
+            'project',
+            'design/F-1-root.md',
+            acknowledgedListener,
+        )
+        const unsubscribeOther = agentAcknowledgementService.subscribeCard(
+            'project',
+            'design/F-2.md',
+            otherCardListener,
+        )
+
+        agentAcknowledgementService.acknowledge('project', 'design/F-1-root.md', [conversation])
+
+        expect(acknowledgedListener).toHaveBeenCalledOnce()
+        expect(otherCardListener).not.toHaveBeenCalled()
+        expect(agentAcknowledgementCheckpoint('project', 'design/F-1-root.md')).toBe(conversation.completedAt)
+        unsubscribeAcknowledged()
+        unsubscribeOther()
+    })
+
+    it('notifies the old and new card subscriptions when a checkpoint is renamed', () => {
+        const conversation = completedConversation('2026-01-01T00:01:00.000Z')
+        agentAcknowledgementService.acknowledge('project', 'design/F-1-root.md', [conversation])
+        const oldPathListener = vi.fn()
+        const newPathListener = vi.fn()
+        const unsubscribeOld = agentAcknowledgementService.subscribeCard('project', 'design/F-1-root.md', oldPathListener)
+        const unsubscribeNew = agentAcknowledgementService.subscribeCard('project', 'design/F-1-renamed.md', newPathListener)
+
+        agentAcknowledgementService.renameCardPath('project', 'design/F-1-root.md', 'design/F-1-renamed.md')
+
+        expect(oldPathListener).toHaveBeenCalledOnce()
+        expect(newPathListener).toHaveBeenCalledOnce()
+        expect(agentAcknowledgementCheckpoint('project', 'design/F-1-root.md')).toBeNull()
+        expect(agentAcknowledgementCheckpoint('project', 'design/F-1-renamed.md')).toBe(conversation.completedAt)
+        unsubscribeOld()
+        unsubscribeNew()
     })
 })

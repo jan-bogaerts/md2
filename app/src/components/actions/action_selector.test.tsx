@@ -28,8 +28,8 @@ function renderSelector(mode: PaletteMode) {
                 context={context}
                 onAdd={vi.fn()}
                 onSelect={vi.fn()}
+                projectKey={null}
                 selectedAction={actions[0]}
-                unseenResultActionIds={[]}
             />
         </ThemeProvider>,
     )

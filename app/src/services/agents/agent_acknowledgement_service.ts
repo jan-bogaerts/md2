@@ -3,6 +3,8 @@ import { register } from '.././service_injector'
 
 const STORAGE_KEY = 'md2.agentAcknowledgements'
 
+type Listener = () => void
+
 function completedTimestamp(conversation: AgentConversation) {
     if (conversation.status === 'running' || !conversation.completedAt) return null
 
@@ -25,6 +27,10 @@ function readAcknowledgements() {
 
 function cardKey(projectId: string, cardPath: string) {
     return `${projectId}:${cardPath}`
+}
+
+export function agentAcknowledgementCheckpoint(projectId: string, cardPath: string) {
+    return readAcknowledgements()[cardKey(projectId, cardPath)] ?? null
 }
 
 /** Returns newest completed result for one action beyond card acknowledgement checkpoint. */
@@ -56,9 +62,23 @@ export function hasUnseenAgentResult(projectId: string, cardPath: string, conver
 }
 
 export class AgentAcknowledgementService extends EventTarget {
+    private readonly cardListeners = new Map<string, Set<Listener>>()
+
     constructor() {
         super()
         register('agentAcknowledgementService', this)
+    }
+
+    subscribeCard(projectId: string, cardPath: string, listener: Listener) {
+        const key = cardKey(projectId, cardPath)
+        const listeners = this.cardListeners.get(key) ?? new Set<Listener>()
+        listeners.add(listener)
+        this.cardListeners.set(key, listeners)
+
+        return () => {
+            listeners.delete(listener)
+            if (listeners.size === 0) this.cardListeners.delete(key)
+        }
     }
 
     /** Keeps acknowledgements attached to a card after its file was renamed. */
@@ -69,9 +89,11 @@ export class AgentAcknowledgementService extends EventTarget {
         if (!acknowledgedAt) return
 
         delete values[fromKey]
-        values[cardKey(projectId, toPath)] = acknowledgedAt
+        const toKey = cardKey(projectId, toPath)
+        values[toKey] = acknowledgedAt
         window.localStorage.setItem(STORAGE_KEY, JSON.stringify(values))
-        this.dispatchEvent(new CustomEvent('changed'))
+        this.notifyCard(fromKey)
+        this.notifyCard(toKey)
     }
 
     acknowledge(projectId: string, cardPath: string, conversations: AgentConversation[]) {
@@ -84,9 +106,12 @@ export class AgentAcknowledgementService extends EventTarget {
 
         values[key] = timestamp
         window.localStorage.setItem(STORAGE_KEY, JSON.stringify(values))
-        this.dispatchEvent(new CustomEvent('changed'))
+        this.notifyCard(key)
     }
 
+    private notifyCard(key: string) {
+        for (const listener of this.cardListeners.get(key) ?? []) listener()
+    }
 }
 
 export const agentAcknowledgementService = new AgentAcknowledgementService()

@@ -507,17 +507,8 @@ describe('CardRunButton', () => {
         )
         expect(screen.getByRole('button', { name: 'Run — New agent result available' })).toBeInTheDocument()
 
-        agentAcknowledgementService.acknowledge(PROJECT_KEY, card.path, [completed])
-        rerender(
-            <AppThemeProvider>
-                <CardRunButton
-                    card={cardWith([completed])}
-                    context={cardContext(card, DEFAULT_CARD_TYPES)}
-                    projectKey={PROJECT_KEY}
-                />
-                <CardActionPopupHost />
-            </AppThemeProvider>,
-        )
+        act(() => agentAcknowledgementService.acknowledge(PROJECT_KEY, card.path, [completed]))
+
         expect(screen.getByRole('button', { name: 'Run' })).toBeInTheDocument()
     })
 })

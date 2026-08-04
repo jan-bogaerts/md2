@@ -2,6 +2,7 @@ import { useEffect, useMemo, useSyncExternalStore, type ChangeEvent } from 'reac
 import type { ActionContext } from '../../data/action_context'
 import type { ActionRun } from '../../services/actions/action_run_registry'
 import { useActionRunSelector } from '../hooks/use_action_runs'
+import { useCardActionUnseenResults } from '../hooks/use_card_action_unseen_results'
 import { ActionConversationPicker } from './action_conversation_picker'
 import type { ConversationPickerConversation } from './action_conversation_picker_data'
 import type { ActionConversationStore } from './action_conversation_store'
@@ -9,6 +10,7 @@ import type { ActionConversationStore } from './action_conversation_store'
 interface ActionConversationPickerOwnerProps {
     actionId: string
     context: ActionContext
+    projectKey: string | null
     store: ActionConversationStore
 }
 
@@ -18,7 +20,7 @@ function selectSessionActive(run: ActionRun | null) {
 
 /** Loads and selects conversation history at picker boundary. */
 export function ActionConversationPickerOwner(props: ActionConversationPickerOwnerProps) {
-    const { actionId, context, store } = props
+    const { actionId, context, projectKey, store } = props
     const sessionActive = useActionRunSelector(actionId, context, selectSessionActive)
     const liveActionId = useActionRunSelector(actionId, context, (run) => run?.conversation?.actionId)
     const liveCardInternalId = useActionRunSelector(actionId, context, (run) => run?.conversation?.cardInternalId)
@@ -27,7 +29,9 @@ export function ActionConversationPickerOwner(props: ActionConversationPickerOwn
     const livePath = useActionRunSelector(actionId, context, (run) => run?.conversation?.path)
     const liveStartedAt = useActionRunSelector(actionId, context, (run) => run?.conversation?.startedAt)
     const liveTitle = useActionRunSelector(actionId, context, (run) => run?.conversation?.title)
+    const unseenResultConversations = useCardActionUnseenResults([actionId], context, projectKey)
     const snapshot = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot)
+    store.configureInitialSelection(unseenResultConversations[0]?.path ?? null)
     const liveConversation = useMemo<ConversationPickerConversation | null>(() => {
         if (liveId === null) return null
         if (liveHasExplicitTitle === undefined || livePath === undefined || liveStartedAt === undefined || liveTitle === undefined) {
