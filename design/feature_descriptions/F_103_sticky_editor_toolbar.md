@@ -11,7 +11,6 @@ agents:
   - design/activity/card__2d44bfea-2083-4ec7-b549-3fd4d02f4af9.json#conversation=agent-ae2e8140-c11c-4a46-8c84-11705c30b974
 policy:
 after: 4b1a6636-3545-4409-bbfe-eed686514d7c
-worktree: 2
 ---
 
 The markdown editor toolbar is not sticky, it just scrolls out of view. can we change it so that it remains at the top of the markdown editor
