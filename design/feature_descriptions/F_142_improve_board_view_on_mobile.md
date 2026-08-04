@@ -3,11 +3,12 @@ author:
 id: F_142
 internalId: 5205bb65-078a-411a-9647-0796ad14953c
 title: improve board view on mobile
-status: new
+status: design
 owner: 
 affects:
 agents:
 policy:
+after: 
 ---
 
 We need to improve the board view on mobile to make it usable:
