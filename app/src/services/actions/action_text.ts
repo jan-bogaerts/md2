@@ -1,11 +1,14 @@
 import type { ActionContext } from '../../data/action_context'
 import type { ActionDefinition } from '../../data/action_types'
 
-const PLACEHOLDER_PATTERN = /\{\{\s*(worktree-folder|project-folder|releases-folder|card-file|card-title|card-prompt)\s*\}\}/gu
+const FOLDER_PLACEHOLDER_NAMES = 'worktree-folder|repository-folder|project-folder|releases-folder'
+const CARD_PLACEHOLDER_NAMES = 'card-file|card-title|card-prompt'
+const PLACEHOLDER_PATTERN = new RegExp(`\\{\\{\\s*(${FOLDER_PLACEHOLDER_NAMES}|${CARD_PLACEHOLDER_NAMES})\\s*\\}\\}`, 'gu')
 const CARD_PROMPT_PLACEHOLDER_PATTERN = /\{\{\s*card-prompt\s*\}\}/u
 
 export interface ActionFolderPlaceholderValues {
     projectFolder: string
+    repositoryFolder: string
     releasesFolder: string
     worktreeFolder: string
 }
@@ -22,8 +25,13 @@ export function resolvePlaceholders(
 
             return folders.worktreeFolder
         }
+        if (name === 'repository-folder') {
+            if (!folders.repositoryFolder) throw new Error('Cannot resolve repository-folder without an opened repository path')
+
+            return folders.repositoryFolder
+        }
         if (name === 'project-folder') {
-            if (!folders.projectFolder) throw new Error('Cannot resolve project-folder without an opened repository path')
+            if (!folders.projectFolder) throw new Error('Cannot resolve project-folder without a configured project path')
 
             return folders.projectFolder
         }

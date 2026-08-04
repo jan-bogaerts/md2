@@ -5,7 +5,7 @@ const { promisify } = require('node:util');
 const { requireRootPath } = require('./git_commands');
 
 const execAsync = promisify(exec);
-const DIFF_PLACEHOLDER_PATTERN = /\{\{\s*(worktree-folder|project-folder|releases-folder|commit|branch|file)\s*\}\}/g;
+const DIFF_PLACEHOLDER_PATTERN = /\{\{\s*(worktree-folder|repository-folder|project-folder|releases-folder|commit|branch|file)\s*\}\}/g;
 const HUNK_HEADER_PATTERN = /^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/;
 const DIFF_FILE_HEADER = 'diff --git ';
 const OLD_PATH_HEADER = '--- ';
@@ -21,6 +21,12 @@ function resolveInsideRoot(rootPath, targetPath) {
     }
 
     return resolvedTarget;
+}
+
+function resolveProjectFolder(rootPath, projectFolder) {
+    if (typeof projectFolder !== 'string') return null;
+
+    return projectFolder.length === 0 ? rootPath : path.resolve(rootPath, projectFolder);
 }
 
 /** Substitute the diff command placeholders, failing fast when a referenced value is missing. */
@@ -117,7 +123,8 @@ async function generateDiff(project, request, runner = execAsync) {
         branch: request.branch,
         commit: request.commit,
         file: request.filePath,
-        'project-folder': rootPath,
+        'project-folder': resolveProjectFolder(rootPath, request.projectFolder),
+        'repository-folder': rootPath,
         'releases-folder': typeof request.releasesFolder === 'string' && request.releasesFolder.length > 0
             ? path.resolve(rootPath, request.releasesFolder)
             : null,

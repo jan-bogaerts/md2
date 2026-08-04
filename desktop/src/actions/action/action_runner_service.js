@@ -176,6 +176,7 @@ class ActionRunnerService {
                 promptRequest.context,
                 resolution.runProject,
                 project,
+                this.projectFolder,
                 this.releasesFolder,
             ),
         };

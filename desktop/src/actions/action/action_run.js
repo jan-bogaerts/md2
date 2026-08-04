@@ -355,6 +355,7 @@ class ActionRun {
             onOutput,
             primaryProject: this.project,
             project,
+            projectFolder: this.projectFolder,
             releasesFolder: this.releasesFolder,
             signal: this.controller.signal,
         });

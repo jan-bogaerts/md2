@@ -149,7 +149,7 @@ describe('ActionRunnerService', () => {
         const files = [actionFile('main', {
             command: undefined,
             needsWorkTree: true,
-            prompt: 'Review {{card-file}} in {{worktree-folder}}; project {{project-folder}}; releases {{releases-folder}}',
+            prompt: 'Review {{card-file}} in {{worktree-folder}}; repository {{repository-folder}}; project {{project-folder}}; releases {{releases-folder}}',
             trackFileChanges: true,
             type: 'agent',
         })];
@@ -157,7 +157,7 @@ describe('ActionRunnerService', () => {
         const worktreeProject = { ...project, branch: 'feature', rootPath: 'C:/worktrees/2' };
         actionWorktreeRunService.resolve.mockResolvedValueOnce({ runProject: worktreeProject, runWorktree: 2 });
 
-        await expect(runner.prepareActionPrompt({ actionId: 'main', context })).resolves.toEqual({prompt: `Review design/F-010.md in C:/worktrees/2; project C:/repo; releases ${path.resolve('C:/repo', 'design/releases')}\n\nDo not stage or commit changes. md2 will commit files captured from provider edit tools.`});
+        await expect(runner.prepareActionPrompt({ actionId: 'main', context })).resolves.toEqual({prompt: `Review design/F-010.md in C:/worktrees/2; repository C:/repo; project ${path.resolve('C:/repo', 'design')}; releases ${path.resolve('C:/repo', 'design/releases')}\n\nDo not stage or commit changes. md2 will commit files captured from provider edit tools.`});
         expect(actionWorktreeRunService.resolve).toHaveBeenCalledWith(project, expect.objectContaining({ id: 'main' }), context);
         expect(actionWorktreeRunService.execute).not.toHaveBeenCalled();
         expect(agentRunnerService.start).not.toHaveBeenCalled();

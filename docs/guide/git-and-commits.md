@@ -27,7 +27,7 @@ Commits produced while actions ran on a card are recorded with that card. Open t
 
 ![A commit diff inside the card popup](../screenshots/Screenshot%202026-07-23%20190011.jpg)
 
-The diff itself comes from a configurable command, `project.diffCommand`, default {% raw %}`git show {{commit}}`. Available placeholders: `{{worktree-folder}}`, `{{project-folder}}`, `{{releases-folder}}`, `{{commit}}`, `{{branch}}`, `{{file}}`{% endraw %}.
+The diff itself comes from a configurable command, `project.diffCommand`, default {% raw %}`git show {{commit}}`. Available placeholders: `{{worktree-folder}}`, `{{repository-folder}}`, `{{project-folder}}`, `{{releases-folder}}`, `{{commit}}`, `{{branch}}`, `{{file}}`{% endraw %}.
 
 ## GitHub mode
 

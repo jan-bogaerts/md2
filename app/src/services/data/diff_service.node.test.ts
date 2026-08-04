@@ -33,6 +33,7 @@ describe('generateDiff', () => {
 
         expect(generateDiffBridge).toHaveBeenCalledWith({
             branch: 'topic', commit: 'abc123456789', filePath: 'app/a.ts',
+            projectFolder: 'design',
             releasesFolder: 'design/delivery/releases',
             template: 'git show {{commit}}',
         })

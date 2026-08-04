@@ -1,14 +1,25 @@
 const path = require('node:path');
 const { requireRootPath } = require('../../git/git_commands');
 
-const PLACEHOLDER_PATTERN = /\{\{\s*(worktree-folder|project-folder|releases-folder|card-file|card-title|card-prompt)\s*\}\}/gu;
+const FOLDER_PLACEHOLDER_NAMES = 'worktree-folder|repository-folder|project-folder|releases-folder';
+const CARD_PLACEHOLDER_NAMES = 'card-file|card-title|card-prompt';
+const PLACEHOLDER_PATTERN = new RegExp(`\\{\\{\\s*(${FOLDER_PLACEHOLDER_NAMES}|${CARD_PLACEHOLDER_NAMES})\\s*\\}\\}`, 'gu');
 const CARD_PROMPT_PLACEHOLDER_PATTERN = /\{\{\s*card-prompt\s*\}\}/u;
 const TRACKED_FILE_COMMIT_INSTRUCTION = 'Do not stage or commit changes. md2 will commit files captured from provider edit tools.';
 
-function resolvePlaceholders(text, context, runProject, primaryProject, releasesFolder, extraPrompt) {
+function resolvePlaceholders(text, context, runProject, primaryProject, projectFolder, releasesFolder, extraPrompt) {
     return text.replace(PLACEHOLDER_PATTERN, (_match, name) => {
         if (name === 'worktree-folder') return requireRootPath(runProject);
-        if (name === 'project-folder') return requireRootPath(primaryProject);
+        if (name === 'repository-folder') return requireRootPath(primaryProject);
+        if (name === 'project-folder') {
+            if (typeof projectFolder !== 'string') {
+                throw new Error('Cannot resolve project-folder placeholder without a configured project folder');
+            }
+
+            const repositoryFolder = requireRootPath(primaryProject);
+
+            return projectFolder.length === 0 ? repositoryFolder : path.resolve(repositoryFolder, projectFolder);
+        }
         if (name === 'releases-folder') {
             if (typeof releasesFolder !== 'string' || releasesFolder.length === 0) {
                 throw new Error('Cannot resolve releases-folder placeholder without a configured releases folder');
@@ -28,8 +39,8 @@ function resolvePlaceholders(text, context, runProject, primaryProject, releases
     });
 }
 
-function resolveAgentPrompt(action, context, runProject, primaryProject, releasesFolder, extraPrompt) {
-    const prompt = resolvePlaceholders(action.prompt, context, runProject, primaryProject, releasesFolder, extraPrompt);
+function resolveAgentPrompt(action, context, runProject, primaryProject, projectFolder, releasesFolder, extraPrompt) {
+    const prompt = resolvePlaceholders(action.prompt, context, runProject, primaryProject, projectFolder, releasesFolder, extraPrompt);
     if (CARD_PROMPT_PLACEHOLDER_PATTERN.test(action.prompt) || extraPrompt.trim().length === 0) return prompt;
 
     return `${prompt}\n\n${extraPrompt}`;
@@ -39,8 +50,8 @@ function withTrackedFileCommitInstruction(prompt, trackFileChanges) {
     return trackFileChanges ? `${prompt}\n\n${TRACKED_FILE_COMMIT_INSTRUCTION}` : prompt;
 }
 
-function prepareAgentPrompt(action, context, runProject, primaryProject, releasesFolder, extraPrompt = '') {
-    const prompt = resolveAgentPrompt(action, context, runProject, primaryProject, releasesFolder, extraPrompt);
+function prepareAgentPrompt(action, context, runProject, primaryProject, projectFolder, releasesFolder, extraPrompt = '') {
+    const prompt = resolveAgentPrompt(action, context, runProject, primaryProject, projectFolder, releasesFolder, extraPrompt);
 
     return withTrackedFileCommitInstruction(prompt, action.trackFileChanges);
 }

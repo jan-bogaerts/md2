@@ -14,9 +14,9 @@ export async function generateDiff(commitReference: DiffCommitReference): Promis
 
     const { branch, commit, filePaths } = commitReference
     const template = configService.get('project.diffCommand')
-    const { releasesFolder } = resolveProjectConfigPaths(configService.getProjectConfig())
+    const { projectFolder, releasesFolder } = resolveProjectConfigPaths(configService.getProjectConfig())
 
-    return bridge.generateDiff({ branch, commit, filePath: filePaths[0] ?? '', releasesFolder, template })
+    return bridge.generateDiff({ branch, commit, filePath: filePaths[0] ?? '', projectFolder, releasesFolder, template })
 }
 
 /** Open VS Code at a project file and line clicked in the diff view. */

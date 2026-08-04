@@ -64,6 +64,7 @@ class ActionAgentExecutor {
                 input.context,
                 input.project,
                 input.primaryProject,
+                input.projectFolder,
                 input.releasesFolder,
                 input.runInput.extraPrompt,
             )
@@ -77,6 +78,7 @@ class ActionAgentExecutor {
                     input.context,
                     input.project,
                     input.primaryProject,
+                    input.projectFolder,
                     input.releasesFolder,
                     input.runInput.extraPrompt,
                 );

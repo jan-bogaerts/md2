@@ -43,16 +43,17 @@ describe('diff-service', () => {
         const values = {
             commit: 'abc1234',
             file: 'design/F-010.md',
-            'project-folder': 'C:/repo',
+            'project-folder': 'C:/repo/design',
+            'repository-folder': 'C:/repo',
             'releases-folder': 'C:/repo/delivery/releases',
             'worktree-folder': 'C:/repo',
         };
         const command = resolveDiffCommand(
-            'git -C {{worktree-folder}} show {{commit}} -- {{file}} {{project-folder}} {{releases-folder}}',
+            'git -C {{worktree-folder}} show {{commit}} -- {{file}} {{repository-folder}} {{project-folder}} {{releases-folder}}',
             values,
         );
 
-        expect(command).toBe('git -C C:/repo show abc1234 -- design/F-010.md C:/repo C:/repo/delivery/releases');
+        expect(command).toBe('git -C C:/repo show abc1234 -- design/F-010.md C:/repo C:/repo/design C:/repo/delivery/releases');
     });
 
     it('fails fast when a diff placeholder value is missing', () => {
@@ -68,7 +69,7 @@ describe('diff-service', () => {
         const runner = vi.fn(async () => ({ stdout: SAMPLE_DIFF }));
         const result = await generateDiff(
             { branch: 'main', id: 'local', rootPath: 'C:/repo' },
-            { branch: 'main', commit: 'abc1234', filePath: '', template: 'git show {{commit}}' },
+            { branch: 'main', commit: 'abc1234', filePath: '', projectFolder: '', template: 'git show {{commit}}' },
             runner,
         );
 
@@ -79,17 +80,39 @@ describe('diff-service', () => {
 
     it('resolves custom releases folder from the opened repository for diff commands', async () => {
         const runner = vi.fn(async () => ({ stdout: SAMPLE_DIFF }));
-        const template = 'git -C {{project-folder}} show {{commit}} -- {{releases-folder}}';
+        const template = 'git -C {{repository-folder}} show {{commit}} -- {{project-folder}} {{releases-folder}}';
         await generateDiff(
             { branch: 'main', id: 'local', rootPath: 'C:/repo' },
-            { branch: 'main', commit: 'abc1234', filePath: '', releasesFolder: 'delivery/releases', template },
+            { branch: 'main', commit: 'abc1234', filePath: '', projectFolder: 'design', releasesFolder: 'design/delivery/releases', template },
             runner,
         );
 
         expect(runner).toHaveBeenCalledWith(
-            `git -C C:/repo show abc1234 -- ${path.resolve('C:/repo', 'delivery/releases')}`,
+            `git -C C:/repo show abc1234 -- ${path.resolve('C:/repo', 'design')} ${path.resolve('C:/repo', 'design/delivery/releases')}`,
             expect.objectContaining({ cwd: 'C:/repo' }),
         );
+    });
+
+    it('makes repository and project folders equal for an empty configured project folder', async () => {
+        const runner = vi.fn(async () => ({ stdout: SAMPLE_DIFF }));
+        await generateDiff(
+            { branch: 'main', id: 'local', rootPath: 'C:/repo' },
+            { branch: 'main', commit: 'abc1234', filePath: '', projectFolder: '', template: 'echo {{repository-folder}} {{project-folder}}' },
+            runner,
+        );
+
+        expect(runner).toHaveBeenCalledWith('echo C:/repo C:/repo', expect.objectContaining({ cwd: 'C:/repo' }));
+    });
+
+    it('fails before running when configured project folder is missing', async () => {
+        const runner = vi.fn();
+
+        await expect(generateDiff(
+            { branch: 'main', id: 'local', rootPath: 'C:/repo' },
+            { branch: 'main', commit: 'abc1234', filePath: '', template: 'echo {{project-folder}}' },
+            runner,
+        )).rejects.toThrow('Missing diff command value: project-folder');
+        expect(runner).not.toHaveBeenCalled();
     });
 
     it('reports diff command failures clearly', async () => {
@@ -99,7 +122,7 @@ describe('diff-service', () => {
 
         await expect(generateDiff(
             { branch: 'main', id: 'local', rootPath: 'C:/repo' },
-            { branch: 'main', commit: 'abc1234', filePath: '', template: 'git show {{commit}}' },
+            { branch: 'main', commit: 'abc1234', filePath: '', projectFolder: '', template: 'git show {{commit}}' },
             runner,
         )).rejects.toThrow('Diff command failed: fatal: bad object');
     });
@@ -107,7 +130,7 @@ describe('diff-service', () => {
     it('fails fast when the commit hash is missing', async () => {
         await expect(generateDiff(
             { branch: 'main', id: 'local', rootPath: 'C:/repo' },
-            { branch: 'main', commit: '', filePath: '', template: 'git show {{commit}}' },
+            { branch: 'main', commit: '', filePath: '', projectFolder: '', template: 'git show {{commit}}' },
             vi.fn(),
         )).rejects.toThrow('Missing diff commit hash');
     });
