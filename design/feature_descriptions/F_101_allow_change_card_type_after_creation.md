@@ -13,3 +13,7 @@ after: f9a450d8-0f93-4487-99f3-23dcc07b42b2
 It is currently not possible to change the card type after creation.
 
 in the card-popup on the `board view`, we should add the same button 'properties' as on the card-editor on the `list-view`
+
+
+
+`dd`
