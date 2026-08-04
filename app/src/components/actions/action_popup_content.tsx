@@ -71,6 +71,7 @@ interface ActionPopupContentProps {
     primaryPath: string | null
     showSaveControls: boolean
     stackPosition?: number
+    target: string | null
     titleId: string
     unseenResultConversations?: AgentConversation[]
 }
@@ -110,7 +111,7 @@ function worktreeAssignmentTarget(context: ActionContext): WorktreeAssignmentTar
 export function ActionPopupContent(props: ActionPopupContentProps) {
     const {
         action, actions, anchorElement, assignmentContext, baseContext, draggable, fullHeight, onActivate, onAddAction,
-        onClose, onSelectAction, onToggleFullHeight, open, primaryPath, showSaveControls, stackPosition, titleId,
+        onClose, onSelectAction, onToggleFullHeight, open, primaryPath, showSaveControls, stackPosition, target, titleId,
         unseenResultConversations = [],
     } = props
     const bindings = useMemo(
@@ -163,7 +164,7 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
                 id={titleId}
                 sx={{ clip: 'rect(0 0 0 0)', clipPath: 'inset(50%)', height: 1, overflow: 'hidden', position: 'absolute', whiteSpace: 'nowrap', width: 1 }}
             >
-                Run actions
+                {target ? `Run actions for ${target}` : 'Run actions'}
             </Typography>
             <Box
                 data-drag-handle={draggable ? 'true' : undefined}
@@ -173,6 +174,18 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
                 }}
             >
                 <Box data-testid="action-popup-toolbar" sx={{ alignItems: 'center', display: 'flex', gap: 1 }}>
+                    {target ? (
+                        <Box
+                            component="span"
+                            sx={{
+                                bgcolor: 'custom.primaryBg', borderRadius: '5px', color: 'primary.main', flexShrink: 0,
+                                fontFamily: '"Roboto Mono", ui-monospace, monospace', fontSize: 11.5, fontWeight: 600,
+                                px: 0.875, py: 0.25,
+                            }}
+                        >
+                            {target}
+                        </Box>
+                    ) : null}
                     {assignmentTarget ? (
                         <ActionWorktreeSelectorOwner
                             actionId={action.id}

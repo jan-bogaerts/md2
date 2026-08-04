@@ -10,6 +10,15 @@ import { ActionPopupContent } from './action_popup_content'
 
 export { CARD_RUN_POPUP_SIZE_STORAGE_KEY, PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY } from './action_popup_content'
 
+function resolvePopupTarget(context: ActionContext, snapshot: ReturnType<typeof useProjectState>['snapshot']) {
+    if (context.kind === 'project') return 'Project'
+    if (context.kind !== 'card') return null
+
+    const cards = [...(snapshot?.activeCards ?? []), ...(snapshot?.backgroundCards ?? [])]
+
+    return cards.find(({ header }) => header.internalId === context.cardInternalId)?.header.id ?? null
+}
+
 interface ActionPopupProps {
     anchorElement: HTMLElement | null
     context: ActionContext
@@ -27,7 +36,7 @@ interface ActionPopupProps {
 export function ActionPopup(props: ActionPopupProps) {
     const { anchorElement, context, initialActionId, open } = props
     const { actions: loadedActions } = useActions()
-    const { project } = useProjectState()
+    const { project, snapshot } = useProjectState()
     const projectActionWorktree = useProjectActionWorktree()
     const effectiveContext = useMemo(
         () => projectContextWithWorktree(context, projectActionWorktree),
@@ -46,6 +55,7 @@ export function ActionPopup(props: ActionPopupProps) {
     const selectableActions = selectedAction && !actions.some(({ id }) => id === selectedAction.id)
         ? [...actions, selectedAction]
         : actions
+    const target = resolvePopupTarget(context, snapshot)
 
     const handleSelectAction = (actionId: string) => {
         setSelectedActionId(actionId)
@@ -82,6 +92,7 @@ export function ActionPopup(props: ActionPopupProps) {
             open={open ?? !!anchorElement}
             primaryPath={project?.rootPath ?? project?.id ?? null}
             showSaveControls={showSaveControls}
+            target={target}
             titleId={titleId}
         />
     )

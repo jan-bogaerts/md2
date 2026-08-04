@@ -145,6 +145,13 @@ describe('ActionPopup', () => {
         expect(dialog.getByRole('button', { name: 'Run' })).toBeInTheDocument()
     })
 
+    it('shows Project in the project popup header and accessible title', () => {
+        renderPopup({ kind: 'project' })
+
+        const dialog = within(screen.getByRole('dialog', { name: 'Run actions for Project' }))
+        expect(within(dialog.getByTestId('action-popup-toolbar')).getByText('Project')).toBeInTheDocument()
+    })
+
     it('does not render popup content while typing or flushing a prompt', async () => {
         const loadActionRunHistory = vi.fn(async () => [])
         window.md2Actions = {

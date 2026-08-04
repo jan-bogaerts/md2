@@ -146,6 +146,15 @@ describe('CardRunButton', () => {
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     })
 
+    it('shows card id in the popup header and accessible title', () => {
+        renderCardRunButton()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Run' }))
+
+        const dialog = within(screen.getByRole('dialog', { name: 'Run actions for F-010' }))
+        expect(within(dialog.getByTestId('action-popup-toolbar')).getByText('F-010')).toBeInTheDocument()
+    })
+
     it('opens the card action popup while an action is running', () => {
         let listener: ((event: ActionRunEvent) => void) | null = null
         window.md2Actions = {
@@ -330,11 +339,17 @@ describe('CardRunButton', () => {
         expect(screen.getByRole('dialog')).toBeInTheDocument()
     })
 
-    it('keeps independent popups open for different cards', () => {
+    it('shows distinct target ids and accessible titles for independent card popups', () => {
         const secondCard = {
             ...card,
             header: { ...card.header, id: 'F-011', internalId: 'f-011', title: 'Second feature' },
             path: 'design/F-011.md',
+        }
+        projectState.snapshot = {
+            activeCards: [card, secondCard],
+            backgroundCards: [],
+            repositoryFiles: [],
+            workingFolder: 'design',
         }
         render(
             <>
@@ -347,7 +362,10 @@ describe('CardRunButton', () => {
 
         screen.getAllByRole('button', { name: 'Run' }).forEach((button) => fireEvent.click(button))
 
-        expect(screen.getAllByRole('dialog')).toHaveLength(2)
+        const firstDialog = within(screen.getByRole('dialog', { name: 'Run actions for F-010' }))
+        const secondDialog = within(screen.getByRole('dialog', { name: 'Run actions for F-011' }))
+        expect(within(firstDialog.getByTestId('action-popup-toolbar')).getByText('F-010')).toBeInTheDocument()
+        expect(within(secondDialog.getByTestId('action-popup-toolbar')).getByText('F-011')).toBeInTheDocument()
     })
 
     it('keeps the active card popup at the front without resetting popup state', () => {
