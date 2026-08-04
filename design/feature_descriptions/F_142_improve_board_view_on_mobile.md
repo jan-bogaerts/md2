@@ -3,7 +3,7 @@ author:
 id: F_142
 internalId: 5205bb65-078a-411a-9647-0796ad14953c
 title: improve board view on mobile
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
