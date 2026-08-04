@@ -1,6 +1,6 @@
 {
   "id": "21471796-1562-448a-b7cb-623599dabcea",
-  "label": "prep project",
+  "label": "plan",
   "description": "Makes certain that all projects are properly installed. ready for testing",
   "type": "agent",
   "appliesTo": {
