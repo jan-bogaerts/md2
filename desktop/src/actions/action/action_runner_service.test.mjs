@@ -26,7 +26,14 @@ function createRunner(actionFiles = [actionFile('main')], overrides = {}) {
     const appendActionRunHistory = vi.fn(async () => []);
     const localGitService = {
         appendAndCommitActionActivity: vi.fn(async (_project, projectFolder, _origin, record) => {
-            await appendActionRunHistory(project, { actionId: record.rootActionId, context, projectFolder }, record.history);
+            const entry = {
+                ...record.details,
+                completedAt: record.completedAt,
+                ...(record.rootConversationId ? { rootConversationId: record.rootConversationId } : {}),
+                startedAt: record.startedAt,
+                status: record.status,
+            };
+            await appendActionRunHistory(project, { actionId: record.rootActionId, context, projectFolder }, entry);
 
             return { relativePath: 'design/activity/card__card-010.json' };
         }),

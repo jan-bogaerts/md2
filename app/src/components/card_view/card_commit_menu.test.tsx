@@ -20,7 +20,7 @@ function commit(runId: string, hashCharacter: string): CardCommit {
             completedAt: committedAt,
             conversationIds: [],
             runId,
-            history: { completedAt: committedAt, output: '', prompt: '', status: 'completed' },
+            details: { command: 'edit', output: '', type: 'command' },
             origin: { cardInternalId: 'card-060', kind: 'card' },
             rootActionId: 'implement',
             rootActionLabel: 'Implement',

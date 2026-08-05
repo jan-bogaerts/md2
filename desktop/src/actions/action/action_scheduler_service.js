@@ -10,12 +10,6 @@ function createScheduleId() {
     return `schedule-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-function createFailureEntry(message) {
-    const completedAt = new Date().toISOString();
-
-    return { completedAt, output: message, prompt: '', status: 'failed' };
-}
-
 function scheduleStatusFromResult(status) {
     if (status === 'completed') return 'completed';
     if (status === 'cancelled') return 'cancelled';
@@ -150,9 +144,7 @@ class ActionSchedulerService {
     async loadSchedulesForReconcile() {
         try {
             return await this.localGitService.loadActionSchedules(this.requireCurrentProject(), await this.requireActionsFolder());
-        } catch (error) {
-            await this.recordSchedulerFailure(null, error instanceof Error ? error.message : 'Action schedule load failed');
-
+        } catch {
             return [];
         }
     }
@@ -160,7 +152,7 @@ class ActionSchedulerService {
     createTimerDependencies() {
         return {
             clearTimeout: this.clearTimeout,
-            failSchedule: (schedule, message) => this.failSchedule(schedule, message),
+            failSchedule: (schedule) => this.failSchedule(schedule),
             fireSchedule: (scheduleId) => this.fireSchedule(scheduleId),
             now: this.now,
             setTimeout: this.setTimeout,
@@ -182,10 +174,9 @@ class ActionSchedulerService {
             const result = await this.runScheduledAction(schedule);
             const status = scheduleStatusFromResult(result.status);
             await this.updateScheduleStatus(scheduleId, status);
-        } catch (error) {
+        } catch {
             const schedule = await this.findRunningSchedule(scheduleId);
             if (schedule) {
-                await this.recordSchedulerFailure(schedule, error instanceof Error ? error.message : 'Scheduled action failed');
                 await this.updateScheduleStatus(scheduleId, 'failed');
             }
         } finally {
@@ -200,8 +191,7 @@ class ActionSchedulerService {
         return findPendingSchedule(schedules, scheduleId);
     }
 
-    async failSchedule(schedule, message) {
-        await this.recordSchedulerFailure(schedule, message);
+    async failSchedule(schedule) {
         await this.updateScheduleStatus(schedule.id, 'failed');
     }
 
@@ -225,40 +215,6 @@ class ActionSchedulerService {
         const schedules = await this.localGitService.loadActionSchedules(this.requireCurrentProject(), await this.requireActionsFolder());
 
         return schedules.find((schedule) => schedule.id === scheduleId && schedule.status === 'running') ?? null;
-    }
-
-    async recordSchedulerFailure(schedule, message) {
-        if (!schedule) return;
-
-        const project = this.requireCurrentProject();
-        const projectFolder = await this.requireProjectFolder();
-        const completedAt = new Date(this.now()).toISOString();
-        const origin = schedule.context.kind === 'card' || schedule.context.kind === 'file'
-            ? { cardInternalId: schedule.context.cardInternalId, kind: 'card' }
-            : { kind: 'project' };
-        if (origin.kind === 'card' && (typeof origin.cardInternalId !== 'string' || origin.cardInternalId.length === 0)) {
-            throw new Error('Scheduled card activity requires cardInternalId');
-        }
-        const entry = createFailureEntry(message);
-        const record = {
-            commits: [],
-            completedAt,
-            conversationIds: [],
-            runId: `schedule-${schedule.id}`,
-            history: entry,
-            origin,
-            rootActionId: schedule.actionId,
-            rootActionLabel: schedule.actionId,
-            startedAt: completedAt,
-            status: 'failed',
-        };
-        await this.localGitService.appendAndCommitActionActivity(
-            project,
-            projectFolder,
-            origin,
-            record,
-            `Record ${schedule.actionId} activity`,
-        );
     }
 
     async loadProjectPaths() {
@@ -294,15 +250,6 @@ class ActionSchedulerService {
         return this.actionsFolder;
     }
 
-    async requireProjectFolder() {
-        if (this.projectFolder !== null) return this.projectFolder;
-
-        const { actionsFolder, projectFolder } = await this.loadProjectPaths();
-        this.actionsFolder = actionsFolder;
-        this.projectFolder = projectFolder;
-
-        return this.projectFolder;
-    }
 }
 
 module.exports = { ActionSchedulerService, loadActionDefinitions };

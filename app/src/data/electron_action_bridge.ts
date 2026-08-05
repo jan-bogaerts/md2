@@ -53,19 +53,30 @@ export interface CommitReference {
     repositoryRoot: string
 }
 
-export interface ActionRunHistoryEntry {
+interface ActionRunHistoryEntryBase {
+    commits?: CommitReference[]
+    completedAt: string
+    startedAt: string
+    status: 'cancelled' | 'completed' | 'failed' | 'okButNotAfter'
+}
+
+export interface AgentActionRunHistoryEntry extends ActionRunHistoryEntryBase {
     accessLevel?: string
     agent?: string | null
     approvalPolicy?: string
-    command?: string
-    commits?: CommitReference[]
-    completedAt: string
     model?: string
-    output: string
-    prompt: string
-    status: 'completed' | 'failed'
+    rootConversationId: string
     thinkingLevel?: ThinkingLevel
+    type: 'agent'
 }
+
+export interface CommandActionRunHistoryEntry extends ActionRunHistoryEntryBase {
+    command: string
+    output: string
+    type: 'command'
+}
+
+export type ActionRunHistoryEntry = AgentActionRunHistoryEntry | CommandActionRunHistoryEntry
 
 /** Request to render a commit's diff through the configured Electron command template. */
 export interface DiffRequest {

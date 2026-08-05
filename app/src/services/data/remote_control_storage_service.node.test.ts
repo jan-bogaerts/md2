@@ -290,10 +290,10 @@ describe('RemoteControlStorageService', () => {
         const fileMessage = JSON.parse(socket.sent[1]) as { id: string, method: string, params: unknown[] }
         expect(activityMessage).toMatchObject({ method: 'loadCardActivity', params: [activityRequest] })
         expect(fileMessage).toMatchObject({ method: 'readFileAtCommit', params: [fileRequest] })
-        socket.receive({ id: activityMessage.id, result: { conversations: [], origin: { cardInternalId: 'card-1', kind: 'card' }, records: [], version: 1 } })
+        socket.receive({ id: activityMessage.id, result: { conversations: [], origin: { cardInternalId: 'card-1', kind: 'card' }, records: [], version: 2 } })
         socket.receive({ id: fileMessage.id, result: { content: '# Card', exists: true } })
 
-        await expect(activity).resolves.toMatchObject({ version: 1 })
+        await expect(activity).resolves.toMatchObject({ version: 2 })
         await expect(historicalFile).resolves.toEqual({ content: '# Card', exists: true })
     })
 

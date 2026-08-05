@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createRequire } from 'node:module';
@@ -9,6 +9,7 @@ const {
     closeWaitingActivityConversation,
     listAgentConversationReferences,
     loadActivityConversation,
+    readActivityFile,
     upsertActivityConversation,
     updateActivityConversationViewed,
 } = require('./activity_files');
@@ -34,6 +35,32 @@ function waitingConversation() {
 
 describe('project activity conversations', () => {
     afterEach(() => vi.useRealTimers());
+
+    it('writes migrated schema and viewed state once when reading legacy activity', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-activity-migration-'));
+        const filePath = join(rootPath, 'project.json');
+        const conversation = waitingConversation();
+        const legacyRecord = {
+            commits: [], completedAt: terminalTime, conversationIds: [conversation.id],
+            history: { agent: 'codex', completedAt: terminalTime, output: 'answer', prompt: 'question', status: 'completed' },
+            origin: { kind: 'project' }, rootActionId: conversation.actionId, rootActionLabel: 'Review', runId: 'run-1',
+            startedAt: conversation.startedAt, status: 'completed',
+        };
+        delete conversation.viewed;
+        try {
+            await writeFile(filePath, JSON.stringify({ conversations: [conversation], origin: { kind: 'project' }, records: [legacyRecord], version: 1 }));
+
+            const activity = await readActivityFile(filePath, { kind: 'project' });
+            const persisted = JSON.parse(await readFile(filePath, 'utf8'));
+
+            expect(activity).toMatchObject({ version: 2, conversations: [{ viewed: true }] });
+            expect(persisted).toEqual(activity);
+            expect(persisted.records[0]).not.toHaveProperty('history');
+            expect(persisted.records[0]).toMatchObject({ rootConversationId: conversation.id });
+        } finally {
+            await rm(rootPath, { force: true, recursive: true });
+        }
+    });
 
     it('lists conversation references without routing activity JSON through markdown loading', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-project-activity-'));

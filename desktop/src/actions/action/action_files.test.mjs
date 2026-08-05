@@ -5,7 +5,7 @@ import { createRequire } from 'node:module';
 import { describe, expect, it } from 'vitest';
 
 const require = createRequire(import.meta.url);
-const { appendActionActivity } = require('../activity/activity_files');
+const { appendActionActivity, upsertActivityConversation } = require('../activity/activity_files');
 const { loadActionFile, loadActionFiles, loadActionRunHistory, loadAgentConversation } = require('./action_files');
 const { conversationActivityReference } = require('../../../../shared/activity_paths.mjs');
 
@@ -15,7 +15,7 @@ const context = { cardInternalId: 'card-1', file: 'design/F-010.md', kind: 'card
 function activityRecord(runId, output = 'done') {
     return {
         commits: [], completedAt: '2026-07-20T10:01:00.000Z', conversationIds: [], runId,
-        history: { completedAt: '2026-07-20T10:01:00.000Z', output, prompt: 'run', status: 'completed' },
+        details: { command: 'implement', output, type: 'command' },
         origin, rootActionId: 'implement', rootActionLabel: 'Implement', startedAt: '2026-07-20T10:00:00.000Z',
         status: 'completed',
     };
@@ -64,7 +64,40 @@ describe('action-files', () => {
             await appendActionActivity(project, 'design', origin, activityRecord('run-1'));
 
             await expect(loadActionRunHistory(project, { actionId: 'implement', context, projectFolder: 'design' }))
-                .resolves.toEqual([{ completedAt: '2026-07-20T10:01:00.000Z', output: 'done', prompt: 'run', status: 'completed' }]);
+                .resolves.toEqual([{
+                    command: 'implement', completedAt: '2026-07-20T10:01:00.000Z', output: 'done',
+                    startedAt: '2026-07-20T10:00:00.000Z', status: 'completed', type: 'command',
+                }]);
+        } finally {
+            await rm(rootPath, { force: true, recursive: true });
+        }
+    });
+
+    it('loads agent metadata and root conversation reference without transcript text', async () => {
+        const rootPath = await createRoot('md2-agent-history-');
+        const project = { branch: 'main', rootPath };
+        const conversation = {
+            actionId: 'implement', cardInternalId: 'card-1', cardPath: 'design/F-010.md', completedAt: '2026-07-20T10:01:00.000Z',
+            entries: [{ content: 'secret transcript', id: 'message-1', kind: 'message', role: 'assistant', timestamp: '2026-07-20T10:01:00.000Z' }],
+            id: 'conversation-1', providerSessions: [], startedAt: '2026-07-20T10:00:00.000Z', status: 'completed', title: 'Implement', viewed: true,
+        };
+        const record = {
+            ...activityRecord('run-agent'),
+            conversationIds: ['conversation-1'],
+            details: { agent: 'codex', model: 'gpt-5', thinkingLevel: 'high', type: 'agent' },
+            rootConversationId: 'conversation-1',
+        };
+        try {
+            await upsertActivityConversation(project, 'design', origin, conversation);
+            await appendActionActivity(project, 'design', origin, record);
+
+            const entries = await loadActionRunHistory(project, { actionId: 'implement', context, projectFolder: 'design' });
+
+            expect(entries).toEqual([{
+                agent: 'codex', completedAt: '2026-07-20T10:01:00.000Z', model: 'gpt-5', rootConversationId: 'conversation-1',
+                startedAt: '2026-07-20T10:00:00.000Z', status: 'completed', thinkingLevel: 'high', type: 'agent',
+            }]);
+            expect(JSON.stringify(entries)).not.toContain('secret transcript');
         } finally {
             await rm(rootPath, { force: true, recursive: true });
         }
@@ -90,7 +123,7 @@ describe('action-files', () => {
         const activityFolder = join(rootPath, 'design', 'activity');
         try {
             await mkdir(activityFolder, { recursive: true });
-            await writeFile(join(activityFolder, 'card__card-1.json'), '{"version":1,"origin":{"kind":"card","cardInternalId":"wrong"},"records":[],"conversations":[]}');
+            await writeFile(join(activityFolder, 'card__card-1.json'), '{"version":2,"origin":{"kind":"card","cardInternalId":"wrong"},"records":[],"conversations":[]}');
 
             await expect(loadActionRunHistory({ branch: 'main', rootPath }, { actionId: 'implement', context, projectFolder: 'design' }))
                 .rejects.toThrow('origin does not match');
@@ -107,7 +140,7 @@ describe('action-files', () => {
             await mkdir(activityFolder, { recursive: true });
             await writeFile(join(activityFolder, 'card__card-1.json'), JSON.stringify({
                 conversations: [{ cardInternalId: 'card-1', completedAt: 'done', entries: [], id: 'conversation-1', providerSessions: [], startedAt: 'start', status: 'completed', title: 'Run' }],
-                origin, records: [], version: 1,
+                origin, records: [], version: 2,
             }));
 
             await expect(loadAgentConversation({ branch: 'main', rootPath }, reference))

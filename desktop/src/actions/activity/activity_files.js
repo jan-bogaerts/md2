@@ -2,7 +2,12 @@ const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const { createActivityFile, findActivityConversation, parseActivityFile } = require('../../../../shared/card_activity.mjs');
+const {
+    createActivityFile,
+    findActivityConversation,
+    migrateActivityValue,
+    parseActivityValue,
+} = require('../../../../shared/card_activity.mjs');
 const {
     activityFilePath,
     conversationActivityReference,
@@ -42,8 +47,15 @@ function resolveActivityPath(rootPath, projectFolder, origin) {
 
 async function readActivityFile(filePath, origin) {
     if (!await pathExists(filePath)) return createActivityFile(origin);
+    const value = JSON.parse(await fs.promises.readFile(filePath, 'utf8'));
+    if (value.version === 1) {
+        const migrated = migrateActivityValue(value, origin);
+        await writeActivityFile(filePath, migrated);
 
-    return parseActivityFile(await fs.promises.readFile(filePath, 'utf8'), origin);
+        return migrated;
+    }
+
+    return parseActivityValue(value, origin);
 }
 
 async function writeActivityFile(filePath, activity) {
@@ -154,13 +166,14 @@ async function updateActivityConversationViewed(project, reference, viewed) {
     const absolutePath = ensureInsideRoot(rootPath, path.join(rootPath, activityPath));
 
     return queueActivityUpdate(absolutePath, async () => {
-        const activity = parseActivityFile(await fs.promises.readFile(absolutePath, 'utf8'));
+        const activity = await readActivityFile(absolutePath);
         const conversation = findActivityConversation(activity, conversationId);
         const updatedConversation = { ...conversation, viewed };
+        const storedActivity = JSON.parse(await fs.promises.readFile(absolutePath, 'utf8'));
         const updatedActivity = {
-            ...activity,
-            conversations: activity.conversations.map((current) => (
-                current.id === conversationId ? updatedConversation : current
+            ...storedActivity,
+            conversations: storedActivity.conversations.map((current) => (
+                current.id === conversationId ? { ...current, viewed } : current
             )),
         };
         await writeActivityFile(absolutePath, updatedActivity);
@@ -174,7 +187,7 @@ async function loadActivityConversation(project, reference) {
     await assertGitRoot(rootPath);
     const { activityPath, conversationId } = parseConversationActivityReference(reference);
     const absolutePath = ensureInsideRoot(rootPath, path.join(rootPath, activityPath));
-    const activity = parseActivityFile(await fs.promises.readFile(absolutePath, 'utf8'));
+    const activity = await readActivityFile(absolutePath);
     const conversation = findActivityConversation(activity, conversationId);
 
     return { ...conversation, path: reference };
@@ -190,15 +203,14 @@ async function closeWaitingActivityConversation(project, reference, status) {
     const absolutePath = ensureInsideRoot(rootPath, path.join(rootPath, activityPath));
 
     return queueActivityUpdate(absolutePath, async () => {
-        const content = await fs.promises.readFile(absolutePath, 'utf8');
-        const storedActivity = JSON.parse(content);
-        const activity = parseActivityFile(content);
+        const activity = await readActivityFile(absolutePath);
         const conversation = findActivityConversation(activity, conversationId);
         if (conversation.status !== 'waitingForInput') {
             throw new Error(`Agent conversation is no longer waiting for input: ${reference}`);
         }
 
         const completedAt = new Date().toISOString();
+        const storedActivity = JSON.parse(await fs.promises.readFile(absolutePath, 'utf8'));
         const updatedActivity = {
             ...storedActivity,
             conversations: storedActivity.conversations.map((storedConversation) => (
@@ -208,7 +220,7 @@ async function closeWaitingActivityConversation(project, reference, status) {
             )),
         };
         await writeActivityFile(absolutePath, updatedActivity);
-        const updatedConversation = findActivityConversation(parseActivityFile(JSON.stringify(updatedActivity)), conversationId);
+        const updatedConversation = findActivityConversation(parseActivityValue(updatedActivity), conversationId);
 
         return { ...updatedConversation, path: reference };
     });

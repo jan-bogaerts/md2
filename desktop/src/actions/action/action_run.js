@@ -5,8 +5,8 @@ const { runWithGitOperationContext } = require('../../git/git_operation_context'
 const {
     captureCommitReferences,
     combineOutput,
-    createAgentHistoryEntry,
-    createCommandHistoryEntry,
+    createAgentDetails,
+    createCommandDetails,
 } = require('./action_run_history');
 
 function errorMessage(error, fallback) {
@@ -41,7 +41,8 @@ class ActionRun {
         this.conversationIds = [];
         this.completion = null;
         this.controller = new AbortController();
-        this.rootHistoryEntry = null;
+        this.rootDetails = null;
+        this.rootConversationId = null;
         this.nextEventSequence = 1;
     }
 
@@ -269,12 +270,15 @@ class ActionRun {
                 projectFolder: this.projectFolder,
                 result: committedResult,
             };
-            const entry = action.type === 'agent'
-                ? createAgentHistoryEntry(historyInput)
-                : createCommandHistoryEntry(historyInput);
+            const details = action.type === 'agent'
+                ? createAgentDetails(historyInput)
+                : createCommandDetails(historyInput);
             const commitReferences = await captureCommitReferences(this.localGitService, historyInput);
             this.collectCommitReferences(commitReferences);
-            if (isRoot) this.rootHistoryEntry = entry;
+            if (isRoot) {
+                this.rootDetails = details;
+                if (action.type === 'agent') this.rootConversationId = committedResult.conversationId;
+            }
             if (action.type === 'agent' && typeof committedResult.conversationId === 'string') {
                 this.conversationIds.push(committedResult.conversationId);
             }
@@ -303,17 +307,24 @@ class ActionRun {
 
             return persisted;
         });
-        const history = this.rootHistoryEntry
-            ?? { completedAt, output: failure ? errorMessage(failure, 'Action failed') : '', prompt: '', status: 'failed' };
+        if (this.rootAction.type === 'agent' && typeof this.rootConversationId !== 'string') {
+            return;
+        }
+        const details = this.rootDetails ?? {
+            command: this.rootAction.command,
+            output: failure ? errorMessage(failure, 'Action failed') : '',
+            type: 'command',
+        };
         const record = {
             commits,
             completedAt,
             conversationIds: [...new Set(this.conversationIds)],
+            details,
             runId: this.runId,
-            history,
             origin: this.activityOrigin,
             rootActionId: this.rootAction.id,
             rootActionLabel: this.rootAction.label,
+            ...(this.rootConversationId ? { rootConversationId: this.rootConversationId } : {}),
             startedAt: this.startedAt,
             status,
         };

@@ -33,7 +33,7 @@ function commit(): CardCommit {
             completedAt: committedAt,
             conversationIds: [],
             runId: 'run-1',
-            history: { completedAt: committedAt, output: '', prompt: '', status: 'completed' },
+            details: { command: 'edit', output: '', type: 'command' },
             origin: { cardInternalId: 'card-060', kind: 'card' },
             rootActionId: 'implement',
             rootActionLabel: 'Implement',

@@ -16,23 +16,27 @@ export interface ActivityCommitReference {
     insertions: number
 }
 
-export interface ActionActivityRecord {
+export interface AgentActivityDetails {
+    accessLevel?: string
+    agent?: string | null
+    approvalPolicy?: string
+    model?: string
+    thinkingLevel?: string
+    type: 'agent'
+}
+
+export interface CommandActivityDetails {
+    command: string
+    output: string
+    type: 'command'
+}
+
+interface ActionActivityRecordBase {
     commits: ActivityCommitReference[]
     completedAt: string
     conversationIds: string[]
+    details: AgentActivityDetails | CommandActivityDetails
     runId: string
-    history: {
-        accessLevel?: string
-        agent?: string | null
-        approvalPolicy?: string
-        command?: string
-        completedAt: string
-        model?: string
-        output: string
-        prompt: string
-        status: 'completed' | 'failed'
-        thinkingLevel?: string
-    }
     origin: ActivityOrigin
     rootActionId: string
     rootActionLabel: string
@@ -40,6 +44,18 @@ export interface ActionActivityRecord {
     status: ActionActivityStatus
     type?: undefined
 }
+
+export interface AgentActionActivityRecord extends ActionActivityRecordBase {
+    details: AgentActivityDetails
+    rootConversationId: string
+}
+
+export interface CommandActionActivityRecord extends ActionActivityRecordBase {
+    details: CommandActivityDetails
+    rootConversationId?: never
+}
+
+export type ActionActivityRecord = AgentActionActivityRecord | CommandActionActivityRecord
 
 export interface SystemActivityRecord {
     commits: [ActivityCommitReference]
@@ -55,10 +71,11 @@ export interface CardActivityFile {
     conversations: Omit<AgentConversation, 'path'>[]
     origin: ActivityOrigin
     records: ActivityRecord[]
-    version: 1
+    version: 2
 }
 
 export function createActivityFile(origin: ActivityOrigin): CardActivityFile
 export function parseActivityValue(value: unknown, expectedOrigin?: ActivityOrigin | null): CardActivityFile
 export function parseActivityFile(content: string, expectedOrigin?: ActivityOrigin | null): CardActivityFile
+export function migrateActivityValue(value: unknown, expectedOrigin?: ActivityOrigin | null): CardActivityFile
 export function findActivityConversation(activity: CardActivityFile, conversationId: string): Omit<AgentConversation, 'path'>

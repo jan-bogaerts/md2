@@ -43,7 +43,16 @@ function historyEntry(record, repositoryRoot) {
         repositoryRoot,
     }));
 
-    return commits.length > 0 ? { ...record.history, commits } : record.history;
+    const entry = {
+        ...record.details,
+        completedAt: record.completedAt,
+        ...(commits.length > 0 ? { commits } : {}),
+        ...(record.rootConversationId ? { rootConversationId: record.rootConversationId } : {}),
+        startedAt: record.startedAt,
+        status: record.status,
+    };
+
+    return entry;
 }
 
 async function readActionScheduleFile(filePath) {

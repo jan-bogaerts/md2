@@ -17,14 +17,19 @@ interface ActionRunHistoryProps {
 /** One run history line with commits produced across its action chain. */
 function HistoryEntryRow(props: HistoryEntryRowProps) {
     const { entry } = props
-    const agentLabel = entry.agent
-        ? ` (${entry.agent}${entry.model ? ` / ${entry.model}` : ''}${entry.thinkingLevel ? ` / ${entry.thinkingLevel}` : ''}${entry.accessLevel ? ` / ${entry.accessLevel}` : ''}${entry.approvalPolicy ? ` / ${entry.approvalPolicy}` : ''})`
+    const configuration = entry.type === 'agent'
+        ? [entry.agent, entry.model, entry.thinkingLevel, entry.accessLevel, entry.approvalPolicy].filter((value) => !!value).join(' / ')
         : ''
+    const agentLabel = configuration ? ` (${configuration})` : ''
+    const completedAt = new Date(entry.completedAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })
+    const summary = entry.type === 'agent'
+        ? `${entry.status}${agentLabel} · ${completedAt}`
+        : `${entry.status}: ${entry.output}`
 
     return (
         <Box>
             <Typography color="text.secondary" variant="caption">
-                {entry.status}{agentLabel}: {entry.output || entry.prompt}
+                {summary}
             </Typography>
             {entry.commits?.map((commitReference) => (
                 <CommitReferenceRow

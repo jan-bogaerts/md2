@@ -37,7 +37,15 @@ function createRun(rootAction, overrides = {}) {
                 actionName: commit.actionName ?? record.rootActionLabel,
                 repositoryRoot: project.rootPath,
             }));
-            await appendActionRunHistory(project, { actionId: record.rootActionId, context }, { ...record.history, commits });
+            const entry = {
+                ...record.details,
+                commits,
+                completedAt: record.completedAt,
+                ...(record.rootConversationId ? { rootConversationId: record.rootConversationId } : {}),
+                startedAt: record.startedAt,
+                status: record.status,
+            };
+            await appendActionRunHistory(project, { actionId: record.rootActionId, context }, entry);
 
             return { relativePath: 'design/activity/card__card-1.json' };
         }),
@@ -178,7 +186,7 @@ describe('ActionRun', () => {
         const rootAction = action('main', { command: undefined, onBefore: [linkedAction], prompt: 'Root stored', type: 'agent' });
         const agentExecutor = {
             execute: vi.fn(async (input) => ({
-                agent: 'codex', changedPaths: [], conversation: { id: input.action.id }, exitCode: 0, model: 'gpt',
+                agent: 'codex', changedPaths: [], conversation: { id: input.action.id }, conversationId: input.action.id, exitCode: 0, model: 'gpt',
                 prompt: input.runInput.prompt ?? input.action.prompt, stderr: '', stdout: input.action.id, thinkingLevel: 'none',
             })),
         };
@@ -598,6 +606,14 @@ describe('ActionRun', () => {
             actionId: 'main', actionName: 'main', commit: 'abcdef3456789012345678901234567890123456',
             filePaths: ['app/a.ts', 'app/b.ts'],
         });
+        const record = localGitService.appendAndCommitActionActivity.mock.calls[0][3];
+        expect(record).toMatchObject({
+            conversationIds: ['conversation'], details: { agent: 'codex', model: 'gpt', thinkingLevel: 'none', type: 'agent' },
+            rootConversationId: 'conversation',
+        });
+        expect(record).not.toHaveProperty('history');
+        expect(record.details).not.toHaveProperty('output');
+        expect(record.details).not.toHaveProperty('prompt');
     });
 
     it('groups ordered before, root, matching, and after commits on root history only', async () => {
@@ -656,7 +672,7 @@ describe('ActionRun', () => {
     it('assigns a linked tracked-agent commit to command root history', async () => {
         const trackedAction = action('tracked', {agent: 'codex', model: 'gpt', prompt: 'edit', trackFileChanges: true, type: 'agent'});
         const rootAction = action('main', { onBefore: [trackedAction] });
-        const agentExecutor = {execute: vi.fn(async () => ({agent: 'codex', changedPaths: ['app/a.ts'], exitCode: 0, model: 'gpt', prompt: 'edit', stderr: '', stdout: '', thinkingLevel: 'none'}))};
+        const agentExecutor = {execute: vi.fn(async () => ({agent: 'codex', changedPaths: ['app/a.ts'], conversationId: 'tracked-conversation', exitCode: 0, model: 'gpt', prompt: 'edit', stderr: '', stdout: '', thinkingLevel: 'none'}))};
         const localGitService = {
             appendActionRunHistory: vi.fn(async () => []),
             commitTrackedPaths: vi.fn(async () => 'abcdef3'),

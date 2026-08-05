@@ -40,7 +40,7 @@ function commit(commitHash: string, overrides: Partial<CommitReference> = {}): C
 }
 
 function historyEntry(commits: CommitReference[], status: ActionRunHistoryEntry['status']): ActionRunHistoryEntry {
-    return { commits, completedAt: 'now', output: '', prompt: '', status }
+    return { command: 'implement', commits, completedAt: 'now', output: '', startedAt: 'before', status, type: 'command' }
 }
 
 describe('ActionUsageSummary', () => {

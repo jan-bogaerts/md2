@@ -13,7 +13,7 @@ function activity(): CardActivityFile {
         completedAt: committedAt,
         conversationIds: [],
         runId,
-        history: { completedAt: committedAt, output: '', prompt: '', status: 'completed' as const },
+        details: { command: 'implement', output: '', type: 'command' as const },
         origin: { cardInternalId, kind: 'card' as const },
         rootActionId: 'implement',
         rootActionLabel: 'Implement',
@@ -28,7 +28,7 @@ function activity(): CardActivityFile {
             record('new', newerHash, '2026-07-20T11:00:00.000Z'),
             record('old', olderHash, '2026-07-20T10:00:00.000Z'),
         ],
-        version: 1,
+        version: 2,
     }
 }
 
@@ -55,9 +55,9 @@ describe('loadCardCommits', () => {
     })
 
     it('rejects malformed activity instead of hiding corruption', async () => {
-        installBridge({ loadCardActivity: vi.fn(async () => ({ ...activity(), version: 2 } as never)) })
+        installBridge({ loadCardActivity: vi.fn(async () => ({ ...activity(), version: 1 } as never)) })
 
-        await expect(loadCardCommits(cardInternalId)).rejects.toThrow('unsupported version 2')
+        await expect(loadCardCommits(cardInternalId)).rejects.toThrow('unsupported version 1')
     })
 
     it('loads one system integration commit with its system label', async () => {
@@ -75,7 +75,7 @@ describe('loadCardCommits', () => {
                 origin: { cardInternalId, kind: 'card' },
                 type: 'system',
             }],
-            version: 1,
+            version: 2,
         }
         installBridge({ loadCardActivity: vi.fn(async () => integrationActivity) })
 

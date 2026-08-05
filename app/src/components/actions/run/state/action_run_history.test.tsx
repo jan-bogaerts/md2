@@ -35,15 +35,19 @@ describe('ActionRunHistory', () => {
             approvalPolicy: 'on-request',
             completedAt: '2026-07-05T10:00:00.000Z',
             model: 'gpt-5',
-            output: 'done',
-            prompt: 'run',
+            rootConversationId: 'conversation-1',
+            startedAt: '2026-07-05T09:00:00.000Z',
             status: 'completed',
             thinkingLevel: 'high',
+            type: 'agent',
         }]
 
         render(<ActionRunHistory entries={entries} error={null} />)
 
-        expect(screen.getByText('completed (codex / gpt-5 / high / workspace-write / on-request): done')).toBeInTheDocument()
+        const completedAt = new Date('2026-07-05T10:00:00.000Z').toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })
+        expect(screen.getByText(`completed (codex / gpt-5 / high / workspace-write / on-request) · ${completedAt}`)).toBeInTheDocument()
+        expect(screen.queryByText('done')).not.toBeInTheDocument()
+        expect(screen.queryByText('run')).not.toBeInTheDocument()
     })
 
     it('shows commit date, performer, short hash, and independent diff toggles', () => {
@@ -65,8 +69,9 @@ describe('ActionRunHistory', () => {
             ],
             completedAt: '2026-07-05T10:00:00.000Z',
             output: 'committed',
-            prompt: '',
+            startedAt: '2026-07-05T09:00:00.000Z',
             status: 'completed',
+            type: 'command',
         }]
 
         render(<ActionRunHistory entries={entries} error={null} />)

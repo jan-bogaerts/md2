@@ -85,7 +85,14 @@ function createLocalGitService(
     return {
         appendAndCommitActionActivity: vi.fn(async (_project, projectFolder, _origin, record) => {
             const request = { actionId: record.rootActionId, context, projectFolder };
-            const entry = { ...record.history, commits: record.commits };
+            const entry = {
+                ...record.details,
+                commits: record.commits,
+                completedAt: record.completedAt,
+                ...(record.rootConversationId ? { rootConversationId: record.rootConversationId } : {}),
+                startedAt: record.startedAt,
+                status: record.status,
+            };
             histories.push({ entry, request });
 
             return { relativePath: 'design/activity/card__card-022.json' };
@@ -356,7 +363,7 @@ describe('ActionSchedulerService', () => {
             model: 'fast',
             thinkingLevel: 'high',
         }, 'Agent profile does not support thinking levels: custom'],
-    ])('rejects %s scheduled thinking-level resolution before process start', async (_label, actionFiles, agentConfig, message) => {
+    ])('rejects %s scheduled thinking-level resolution before process start', async (_label, actionFiles, agentConfig) => {
         const schedule = createSchedule('schedule-1', 'implement', { timestamp: '2026-07-06T10:01:00.000Z', type: 'at' });
         const localGitService = createLocalGitService([schedule], actionFiles);
         const agentRunner = vi.fn(async (_project, request) => successfulAgentResult(request));
@@ -369,10 +376,10 @@ describe('ActionSchedulerService', () => {
         await scheduler.fireSchedule('schedule-1');
 
         expect(agentRunner).not.toHaveBeenCalled();
-        expect(localGitService.histories[0].entry).toMatchObject({ output: expect.stringContaining(message), status: 'failed' });
+        expect(localGitService.histories).toEqual([]);
     });
 
-    it('records invalid actions and continues other schedules', async () => {
+    it('rejects invalid actions without a fake run record and continues other schedules', async () => {
         const invalidSchedule = createSchedule('schedule-1', 'missing', { timestamp: '2026-07-06T09:59:00.000Z', type: 'at' });
         const validSchedule = createSchedule('schedule-2', 'implement', { timestamp: '2026-07-06T09:59:00.000Z', type: 'at' });
         const localGitService = createLocalGitService([invalidSchedule, validSchedule]);
@@ -382,10 +389,8 @@ describe('ActionSchedulerService', () => {
         await scheduler.fireSchedule('schedule-1');
         await scheduler.fireSchedule('schedule-2');
 
-        expect(localGitService.histories[0]).toMatchObject({
-            entry: { output: 'Unknown action: missing', status: 'failed' },
-            request: { actionId: 'missing', context, projectFolder: '' },
-        });
+        expect(localGitService.histories).toHaveLength(1);
+        expect(localGitService.histories[0]).toMatchObject({ entry: { command: 'echo done', status: 'completed', type: 'command' } });
         expect(localGitService.runCommand).toHaveBeenCalledWith(project, 'echo done');
         expect(localGitService.schedules()).toEqual([
             { ...invalidSchedule, status: 'failed' },

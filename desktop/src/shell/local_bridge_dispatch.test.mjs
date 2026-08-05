@@ -60,7 +60,7 @@ function createDispatch(options = {}) {
             path: 'actions/test.json',
         }]),
         loadActionRunHistory: vi.fn(async () => []),
-        loadCardActivity: vi.fn(async () => ({ conversations: [], origin: { cardInternalId: 'card-1', kind: 'card' }, records: [], version: 1 })),
+        loadCardActivity: vi.fn(async () => ({ conversations: [], origin: { cardInternalId: 'card-1', kind: 'card' }, records: [], version: 2 })),
         loadProjectAsset: vi.fn(async () => ({ content: 'aWNvbg==', contentType: 'image/png', encoding: 'base64', path: 'actions/icon.png' })),
         loadProjectConfig: vi.fn(async () => ({ projectFolder: 'design' })),
         loadProject: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
