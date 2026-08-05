@@ -4,6 +4,7 @@ import type { ActionRunEvent } from '../../data/action_run_types'
 import { runElectronAction } from '../actions/electron_action_runner'
 import { actionRunRegistry } from '../actions/action_run_registry'
 import { configService } from '../config/config_service'
+import { agentAcknowledgementService } from './agent_acknowledgement_service'
 import { cardAgentState } from './card_agent_state'
 import { conversation, createDataService, createDeferred, createStorage, waitForWorkerTurn } from '../test_support/data_service_test_support'
 
@@ -196,13 +197,21 @@ describe('AgentIntegration', () => {
         service.init({ storage })
 
         const snapshot = await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        const cardListener = vi.fn()
+        const actionListener = vi.fn()
+        const unsubscribeCard = agentAcknowledgementService.subscribeCard('design/F-1-root.md', cardListener)
+        const unsubscribeAction = agentAcknowledgementService.subscribeAction('design/F-1-root.md', 'implement', actionListener)
 
         expect(snapshot.activeCards[0].agentConversations).toHaveLength(0)
-        conversationLoad.resolve(conversation())
+        conversationLoad.resolve({ ...conversation(), actionId: 'implement' })
 
         await vi.waitFor(() => {
             expect(service.getState().snapshot?.activeCards[0].agentConversations[0].title).toBe('Agent run')
         })
+        expect(cardListener).toHaveBeenCalledOnce()
+        expect(actionListener).toHaveBeenCalledOnce()
+        unsubscribeCard()
+        unsubscribeAction()
     })
 
     it('refreshes card waiting state from a backend-returned terminal conversation', async () => {

@@ -110,6 +110,22 @@ describe('AgentAcknowledgementService', () => {
         expect(otherCard).not.toHaveBeenCalled()
     })
 
+    it('notifies loaded conversation actions once and the card aggregate once', () => {
+        const { service } = createService()
+        const firstAction = vi.fn()
+        const secondAction = vi.fn()
+        const card = vi.fn()
+        service.subscribeAction(cardPath, actionId, firstAction)
+        service.subscribeAction(cardPath, 'review', secondAction)
+        service.subscribeCard(cardPath, card)
+
+        service.notifyConversationsChanged(cardPath, [actionId, 'review', actionId])
+
+        expect(firstAction).toHaveBeenCalledOnce()
+        expect(secondAction).toHaveBeenCalledOnce()
+        expect(card).toHaveBeenCalledOnce()
+    })
+
     it.each<ActionRunStatus>(['waitingForInput', 'completed', 'failed'])(
         'marks conversation unseen on transition into %s once',
         async (status) => {

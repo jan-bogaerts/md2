@@ -468,6 +468,18 @@ describe('CardRunButton', () => {
         expect(screen.getByRole('button', { name: 'Run' })).toBeInTheDocument()
     })
 
+    it('updates when a persisted conversation is attached after the card renders', () => {
+        const loadedCard = cardWith([])
+        renderCardRunButton(loadedCard)
+
+        expect(screen.getByRole('button', { name: 'Run' })).toBeInTheDocument()
+
+        loadedCard.agentConversations = [conversation('waitingForInput', [], 'implement')]
+        act(() => agentAcknowledgementService.notifyConversationsChanged(loadedCard.path, ['implement']))
+
+        expect(screen.getByRole('button', { name: /Agent is waiting for input/u })).toBeInTheDocument()
+    })
+
     it('distinguishes waiting, running, unseen and acknowledged agent states', async () => {
         window.localStorage.clear()
         const waiting = conversation('running', [{ content: '', id: 'wait', timestamp: '2026-01-01T00:00:30.000Z', type: 'waiting' }])

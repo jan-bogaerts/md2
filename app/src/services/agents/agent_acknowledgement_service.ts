@@ -98,6 +98,18 @@ export class AgentAcknowledgementService {
         return this.cardRevisions.get(cardPath) ?? 0
     }
 
+    /** Notify scoped UI subscribers after conversations have changed for a card. */
+    notifyConversationsChanged(cardPath: string, actionIds: string[]) {
+        const scopedActionKeys = [...new Set(actionIds)].map((actionId) => actionKey(cardPath, actionId))
+        for (const scopedActionKey of scopedActionKeys) {
+            this.actionRevisions.set(scopedActionKey, (this.actionRevisions.get(scopedActionKey) ?? 0) + 1)
+            for (const listener of this.actionListeners.get(scopedActionKey) ?? []) listener()
+        }
+
+        this.cardRevisions.set(cardPath, this.cardRevision(cardPath) + 1)
+        for (const listener of this.cardListeners.get(cardPath) ?? []) listener()
+    }
+
     conversations(cardPath: string, conversations: AgentConversation[]) {
         const conversationsById = new Map(conversations.map((conversation) => [conversation.id, conversation]))
         const actions = this.runtime.get(cardPath)
@@ -230,11 +242,7 @@ export class AgentAcknowledgementService {
     }
 
     private notify(cardPath: string, actionId: string) {
-        const scopedActionKey = actionKey(cardPath, actionId)
-        this.actionRevisions.set(scopedActionKey, (this.actionRevisions.get(scopedActionKey) ?? 0) + 1)
-        this.cardRevisions.set(cardPath, this.cardRevision(cardPath) + 1)
-        for (const listener of this.actionListeners.get(scopedActionKey) ?? []) listener()
-        for (const listener of this.cardListeners.get(cardPath) ?? []) listener()
+        this.notifyConversationsChanged(cardPath, [actionId])
     }
 
 }

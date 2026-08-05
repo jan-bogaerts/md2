@@ -13,6 +13,7 @@ import {
 } from '../../data/data_types'
 import { actionService } from '../actions/action_service'
 import { actionRunRegistry } from '../actions/action_run_registry'
+import { agentAcknowledgementService } from './agent_acknowledgement_service'
 import { loadAgentConversation } from './agent_conversation_service'
 import { runElectronAction } from '../actions/electron_action_runner'
 import { mapWithConcurrency } from '../concurrency'
@@ -294,6 +295,15 @@ export class AgentIntegration {
         this.errorsByCardPath = this.mergeResolvedAgentErrors(resolved.errorsByCardPath)
         this.reportNewAgentLoadErrors(resolved.errorsByCardPath)
         this.dependencies.refreshSnapshot(config.workingFolder)
+        for (const card of cards) {
+            if (!card.header.internalId) continue
+
+            const conversations = resolved.conversationsByCardInternalId.get(card.header.internalId)
+            if (!conversations || conversations.length === 0) continue
+
+            const actionIds = conversations.flatMap(({ actionId }) => actionId ? [actionId] : [])
+            agentAcknowledgementService.notifyConversationsChanged(card.path, actionIds)
+        }
     }
 
     private shouldApplyProjectLoad(project: ProjectReference, projectLoadToken: number) {
@@ -375,6 +385,13 @@ export class AgentIntegration {
             : [...conversations, conversation]
         this.conversationsByCardInternalId.set(cardInternalId, nextConversations)
         this.dependencies.refreshSnapshot(config.workingFolder)
+        const snapshot = this.dependencies.snapshot()
+        const card = [...(snapshot?.activeCards ?? []), ...(snapshot?.backgroundCards ?? [])]
+            .find((candidate) => candidate.header.internalId === cardInternalId)
+        if (card) {
+            const actionIds = conversation.actionId ? [conversation.actionId] : []
+            agentAcknowledgementService.notifyConversationsChanged(card.path, actionIds)
+        }
     }
 
 }
