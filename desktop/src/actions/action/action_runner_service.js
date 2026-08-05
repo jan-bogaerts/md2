@@ -6,6 +6,7 @@ const { resolveActionDefinition } = require('./action_definition_resolver');
 const { ActionRun } = require('./action_run');
 const { prepareAgentPrompt } = require('./action_text');
 const { validatePreparePromptRequest, validateStartRequest } = require('./action_run_request');
+const { assertReleasedCardActionAllowed } = require('../../../../shared/released_card_actions.mjs');
 
 function createRunId() {
     return `action-${crypto.randomUUID()}`;
@@ -129,6 +130,7 @@ class ActionRunnerService {
     async start(request, options = {}) {
         const startRequest = validateStartRequest(request);
         this.requireReady();
+        assertReleasedCardActionAllowed(startRequest.context, this.releasesFolder);
         const origin = activityOrigin(startRequest.context);
         const project = { ...this.project };
         const actionsFolder = this.actionsFolder;
@@ -166,6 +168,7 @@ class ActionRunnerService {
     async prepareActionPrompt(request) {
         const promptRequest = validatePreparePromptRequest(request);
         this.requirePreparationReady();
+        assertReleasedCardActionAllowed(promptRequest.context, this.releasesFolder);
         const project = { ...this.project };
         const action = await this.loadRootAction(promptRequest.actionId);
         if (action.type !== 'agent') throw new Error('Cannot prepare a prompt for a command action');
@@ -196,6 +199,9 @@ class ActionRunnerService {
 
     async restart(runId, request) {
         if (this.restartingRuns.has(runId)) throw new Error(`Action run restart already in progress: ${runId}`);
+        const startRequest = validateStartRequest(request);
+        this.requireReady();
+        assertReleasedCardActionAllowed(startRequest.context, this.releasesFolder);
         const run = this.requireRun(runId);
         this.restartingRuns.add(runId);
         try {

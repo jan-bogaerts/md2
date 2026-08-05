@@ -23,6 +23,7 @@ function renderSelector(mode: PaletteMode) {
     render(
         <ThemeProvider theme={theme}>
             <ActionSelector
+                allowAdd
                 actions={actions}
                 adding={false}
                 context={context}

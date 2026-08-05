@@ -65,6 +65,7 @@ function createDispatch(options = {}) {
         loadProjectConfig: vi.fn(async () => ({ projectFolder: 'design' })),
         loadProject: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
         loadProjectRoot: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
+        loadTextFile: vi.fn(async (_project, path) => ({ content: '{"version":2}', path })),
         resolveLocalProject: vi.fn(async () => ({ branch: 'topic', id: 'C:/repo', rootPath: 'C:/repo' })),
         readFileAtCommit: vi.fn(async () => ({ content: '# Card', exists: true })),
         resolveCommitMetadata: vi.fn(async (_rootPath, commit) => ({
@@ -493,6 +494,15 @@ describe('createLocalBridgeDispatch', () => {
         await dispatch.dataBridge.loadFile(project, 'design/F-1.md');
 
         expect(localGitService.loadFile).toHaveBeenCalledWith(project, 'design/F-1.md');
+    });
+
+    it('forwards repository text file reads through the data bridge', async () => {
+        const { dispatch, localGitService } = createDispatch();
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
+
+        await dispatch.dataBridge.loadTextFile(project, 'design/activity/card__card-1.json');
+
+        expect(localGitService.loadTextFile).toHaveBeenCalledWith(project, 'design/activity/card__card-1.json');
     });
 
     it('forwards agent conversation reference listing through the data bridge', async () => {

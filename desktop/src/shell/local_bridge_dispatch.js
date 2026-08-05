@@ -104,6 +104,7 @@ function createLocalBridgeDispatch(dependencies) {
             return agentExecutableAvailability(agentProfiles);
         },
         loadFile: (project, path) => localGitService.loadFile(project, path),
+        loadTextFile: (project, path) => localGitService.loadTextFile(project, path),
         loadProjectAsset: (project, path) => localGitService.loadProjectAsset(project, path),
         loadProject: async (project, workingFolder) => {
             await activateProject(project);

@@ -108,6 +108,12 @@ export class GithubStorageLoader {
         return normalizeProjectAsset(payload)
     }
 
+    async loadTextFile(project: ProjectReference, path: string) {
+        this.context.requireGithubProject(project)
+
+        return this.gitData.readFile(project, path)
+    }
+
     async listBranches(project: ProjectReference) {
         this.context.requireGithubProject(project)
         const payload = await this.context.getApiClient().requestJson(`/repos/${project.owner}/${project.repository}/branches`)

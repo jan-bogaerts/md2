@@ -43,6 +43,7 @@ describe('ReleaseOperations', () => {
                 archivedFolder: 'archived',
                 backgroundShade: 'blue' as const,
                 projectFolder: 'design',
+                pushMode: 'auto' as const,
                 releasesFolder: 'releases',
                 states: RELEASE_STATES,
                 workingFolder: 'active',
@@ -122,6 +123,94 @@ describe('ReleaseOperations', () => {
                 },
             ],
         })
+    })
+
+    it('loads and moves card activity beside the released card in the same batch', async () => {
+        configService.init()
+        const activityPath = 'activity/card__root-card.json'
+        const activityContent = JSON.stringify({
+            conversations: [{
+                cardInternalId: 'root-card',
+                completedAt: '2026-08-05T12:01:00.000Z',
+                entries: [],
+                id: 'conversation-1',
+                providerSessions: [],
+                startedAt: '2026-08-05T12:00:00.000Z',
+                status: 'completed',
+            }],
+            origin: { cardInternalId: 'root-card', kind: 'card' },
+            records: [],
+            version: 2,
+        })
+        const cardContent = [
+            '---',
+            'id: F-1',
+            'internalId: root-card',
+            'title: Root',
+            'status: done',
+            'agents:',
+            `  - ${activityPath}#conversation=conversation-1`,
+            '---',
+            '# Root',
+        ].join('\n')
+        const releaseFiles: MarkdownFile[] = [{ content: cardContent, path: 'design/F-1-root.md' }]
+        const storage = createStorage({
+            listRepositoryFiles: vi.fn(async () => [releaseFiles[0].path, activityPath]),
+            loadProject: vi.fn()
+                .mockResolvedValueOnce({ files: releaseFiles, workingFolder: 'design' })
+                .mockResolvedValueOnce({ files: [], workingFolder: 'design' }),
+            loadProjectConfig: vi.fn(async () => ({ projectFolder: '', states: RELEASE_STATES, workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: releaseFiles, workingFolder: 'design' })),
+            loadTextFile: vi.fn(async () => ({ content: activityContent, path: activityPath })),
+        })
+        const service = createDataService()
+        service.init({ storage })
+
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        await service.releases.completeRelease('v1')
+
+        expect(storage.moveFiles).toHaveBeenCalledWith({
+            branch: 'main',
+            message: 'Complete release v1',
+            moves: [
+                expect.objectContaining({
+                    content: expect.stringContaining('history/v1/card__root-card.json#conversation=conversation-1'),
+                    fromPath: 'design/F-1-root.md',
+                    toPath: 'history/v1/F-1-root.md',
+                }),
+                {
+                    content: activityContent,
+                    fromPath: activityPath,
+                    sha: undefined,
+                    toPath: 'history/v1/card__root-card.json',
+                },
+            ],
+        })
+    })
+
+    it('aborts before moving files when referenced activity cannot be loaded', async () => {
+        configService.init()
+        const activityPath = 'activity/card__root-card.json'
+        const cardFile: MarkdownFile = {
+            content: `---\nid: F-1\ninternalId: root-card\ntitle: Root\nstatus: done\nagents:\n  - ${activityPath}#conversation=conversation-1\n---\n# Root`,
+            path: 'design/F-1-root.md',
+        }
+        const storage = createStorage({
+            listRepositoryFiles: vi.fn(async () => [cardFile.path, activityPath]),
+            loadProject: vi.fn(async () => ({ files: [cardFile], workingFolder: 'design' })),
+            loadProjectConfig: vi.fn(async () => ({ projectFolder: '', states: RELEASE_STATES, workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: [cardFile], workingFolder: 'design' })),
+            loadTextFile: vi.fn(async () => {
+                throw new Error('Activity read failed')
+            }),
+        })
+        const service = createDataService()
+        service.init({ storage })
+
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+
+        await expect(service.releases.completeRelease('v1')).rejects.toThrow('Activity read failed')
+        expect(storage.moveFiles).not.toHaveBeenCalled()
     })
 
     it('rejects invalid release names before moving files', async () => {

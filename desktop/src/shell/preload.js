@@ -41,6 +41,7 @@ const DATA_METHODS = [
     'loadProjectAsset',
     'loadProjectConfig',
     'loadProjectRoot',
+    'loadTextFile',
     'moveFiles',
     'openProjectFolder',
     'parkWorktree',

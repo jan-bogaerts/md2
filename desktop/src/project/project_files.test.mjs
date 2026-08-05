@@ -9,6 +9,7 @@ const { GitProcess } = require('../git/git_process');
 const {
     listRepositoryFiles,
     loadProject,
+    loadTextFile,
 } = require('./project_files');
 
 describe('project-files', () => {
@@ -24,6 +25,23 @@ describe('project-files', () => {
             const projectFiles = await loadProject({ branch: 'main', id: 'local', rootPath }, 'design');
 
             expect(projectFiles.files.map((file) => file.path).sort()).toEqual(['design/F-1-root.md', 'design/history/F-2-old.md']);
+        } finally {
+            await rm(rootPath, { force: true, recursive: true });
+        }
+    });
+
+    it('loads a repository text file without requiring a markdown extension', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-project-files-'));
+
+        try {
+            await mkdir(join(rootPath, '.git'));
+            await mkdir(join(rootPath, 'design', 'activity'), { recursive: true });
+            await writeFile(join(rootPath, 'design', 'activity', 'card__card-1.json'), '{"version":2}');
+
+            await expect(loadTextFile(
+                { branch: 'main', id: 'local', rootPath },
+                'design/activity/card__card-1.json',
+            )).resolves.toEqual({ content: '{"version":2}', path: 'design/activity/card__card-1.json' });
         } finally {
             await rm(rootPath, { force: true, recursive: true });
         }

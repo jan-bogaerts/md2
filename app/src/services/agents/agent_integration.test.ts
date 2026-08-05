@@ -246,7 +246,7 @@ describe('AgentIntegration', () => {
             path: 'design/archived/F-2-archived.md',
         }
         const releasedFile: MarkdownFile = {
-            content: '---\nid: F-3\ninternalId: released-card\ntitle: Released\nstatus: ready\nagents:\n  - design/activity/card__released-card.json#conversation=released\n---\n\n# Released',
+            content: '---\nid: F-3\ninternalId: released-card\ntitle: Released\nstatus: ready\nagents:\n  - design/history/v1/card__released-card.json#conversation=released\n---\n\n# Released',
             path: 'design/history/v1/F-3-released.md',
         }
         const actionDocument: MarkdownFile = {
@@ -297,7 +297,7 @@ describe('AgentIntegration', () => {
         const loadedReferences = loadAgentConversation.mock.calls.map(([, reference]) => reference)
         expect(loadedReferences).toEqual(expect.arrayContaining([
             'design/activity/card__archived-card.json#conversation=archived',
-            'design/activity/card__released-card.json#conversation=released',
+            'design/history/v1/card__released-card.json#conversation=released',
         ]))
         expect(loadedReferences).not.toContain('design/activity/card__action-document.json#conversation=action')
     })

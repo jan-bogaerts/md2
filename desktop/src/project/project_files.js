@@ -166,6 +166,17 @@ async function loadFile(project, filePath) {
     return { content, path: normalizePath(path.relative(rootPath, fullPath)) };
 }
 
+async function loadTextFile(project, filePath) {
+    const rootPath = requireRootPath(project);
+    await assertGitRoot(rootPath);
+    if (typeof filePath !== 'string' || filePath.length === 0) throw new Error('Missing text file path');
+
+    const fullPath = ensureInsideRoot(rootPath, path.join(rootPath, filePath));
+    const content = await fs.promises.readFile(fullPath, 'utf8');
+
+    return { content, path: normalizePath(path.relative(rootPath, fullPath)) };
+}
+
 async function loadProjectAsset(project, filePath) {
     const rootPath = requireRootPath(project);
     await assertGitRoot(rootPath);
@@ -425,6 +436,7 @@ module.exports = {
     loadProjectAsset,
     loadProjectConfig,
     loadProjectRoot,
+    loadTextFile,
     moveFiles,
     PROJECT_README_TEMPLATE,
     saveProjectConfig,

@@ -109,6 +109,23 @@ describe('RemoteControlStorageService', () => {
         await expect(missingLoad).rejects.toThrow('File not found: design/missing.md')
     })
 
+    it('loads a repository text file through remote control', async () => {
+        installWebSocket()
+        const service = createService()
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
+        const path = 'design/activity/card__card-1.json'
+        const load = service.loadTextFile(project, path)
+        const socket = lastSocket()
+
+        socket.open()
+        await flushPromises()
+        const request = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
+        expect(request).toMatchObject({ method: 'loadTextFile', params: [project, path] })
+        socket.receive({ id: request.id, result: { content: '{"version":2}', path } })
+
+        await expect(load).resolves.toEqual({ content: '{"version":2}', path })
+    })
+
     it('receives account-wide Codex runtime snapshots through dedicated remote subscription', async () => {
         installWebSocket()
         const service = createService()
