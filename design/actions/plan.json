@@ -6,7 +6,7 @@
   "appliesTo": {
     "kind": "card"
   },
+  "streaming": true,
   "phrases": [],
-  "prompt": "we are preparing to implement \\`{{card-file}}\\`. go over the document and think about how you would implement this. go over every step in detail to see if everything is clear and can be implemented without any issues.\n\nreport back on any problems you encounter.\n\nKeep it short and to the point. use $caveman skill",
-  "streaming": true
+  "prompt": "we are preparing to implement \\`{{card-file}}\\`. go over the document and think about how you would implement this. go over every step in detail to see if everything is clear and can be implemented without any issues.\n\nreport back on any problems you encounter.\n\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill"
 }
