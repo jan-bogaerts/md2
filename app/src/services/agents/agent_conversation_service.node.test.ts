@@ -194,6 +194,34 @@ describe('parseAgentConversationLog', () => {
         expect(JSON.stringify(conversation.entries)).not.toContain('not persisted')
     })
 
+    it('removes legacy runner lifecycle and stderr entries while preserving provider events', () => {
+        const timestamp = '2026-01-01T00:00:00.000Z'
+        const conversation = parseAgentConversationLog(JSON.stringify({
+            completedAt: timestamp,
+            entries: [
+                { content: 'codex app-server --stdio', id: 'started-1', kind: 'event', sequence: 1, timestamp, type: 'started' },
+                {
+                    content: 'modified: design/F-1.md', id: 'file-1', kind: 'event', label: 'File changes',
+                    providerItemId: 'file-1', sequence: 2, status: 'completed', timestamp, type: 'fileChange',
+                },
+                { content: 'internal runtime output', id: 'error-1', kind: 'event', sequence: 3, timestamp, type: 'error' },
+                { content: '', id: 'turn-1', kind: 'event', sequence: 4, timestamp, type: 'turnCompleted' },
+                { content: '0', id: 'closed-1', kind: 'event', sequence: 5, timestamp, type: 'closed' },
+            ],
+            id: 'agent-1',
+            startedAt: timestamp,
+            status: 'completed',
+        }), 'design/logs/legacy-runner-events.json')
+
+        expect(conversation.entries).toEqual([expect.objectContaining({
+            content: 'modified: design/F-1.md',
+            id: 'file-1',
+            label: 'File changes',
+            status: 'completed',
+            type: 'fileChange',
+        })])
+    })
+
     it('fails malformed logs with missing required data', () => {
         expect(() => parseAgentConversationLog(
             JSON.stringify({ cardPath: 'design/F-1.md', entries: [], id: 'agent-1', status: 'completed' }),

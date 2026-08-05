@@ -363,8 +363,6 @@ class AgentRunnerService {
             conversation.entries.push(createMessageEntry(`${id}-user`, 'user', prompt, startedAt, undefined, nextSequence));
             nextSequence += 1;
         }
-        conversation.entries.push(createEventEntry(`${id}-started`, 'started', command.join(' '), startedAt, nextSequence));
-        nextSequence += 1;
         const [configuredExecutable, ...configuredArguments] = command;
         const environment = createAgentEnvironment(process.env);
         const resolvedExecutable = await this.executableResolver.find(configuredExecutable, { cwd: rootPath, env: environment });
@@ -776,6 +774,10 @@ class AgentRunnerService {
             return;
         }
         run.stderr += safeContent;
+        if (run.streaming) {
+            emitRunEvent(run, { content: safeContent, type: 'error' });
+            return;
+        }
         run.conversation.entries.push(createEventEntry(
             `${runId}-error-${run.conversation.entries.length}`,
             'error',
@@ -998,13 +1000,6 @@ class AgentRunnerService {
         if (synchronizedMessage) updateProviderSession(run, synchronizedMessage.id, timestamp);
         run.conversation.status = 'waitingForInput';
         run.conversation.completedAt = null;
-        run.conversation.entries.push(createEventEntry(
-            `${runId}-turn-${run.turnIndex}-completed`,
-            'turnCompleted',
-            '',
-            timestamp,
-            nextRunSequence(run),
-        ));
         await this.persistCheckpoint(run);
         emitRunEvent(run, { state: 'waitingForInput', type: 'state' });
     }
@@ -1114,13 +1109,6 @@ class AgentRunnerService {
             run.conversation.status = preserveWaitingState
                 ? 'waitingForInput'
                 : run.cancelled ? 'cancelled' : succeeded ? 'completed' : 'failed';
-            run.conversation.entries.push(createEventEntry(
-                `${runId}-closed`,
-                'closed',
-                String(exitCode),
-                completedAt,
-                nextRunSequence(run),
-            ));
             console.log('[agent:complete]', {
                 completedAt,
                 durationMs: Date.parse(completedAt) - Date.parse(run.startedAt),

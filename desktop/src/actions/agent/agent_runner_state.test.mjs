@@ -129,10 +129,29 @@ describe('AgentRunnerService state handling', () => {
 
         expect(persistConversationCheckpoint).toHaveBeenCalledWith(expect.objectContaining({
             conversation: expect.objectContaining({
-                entries: expect.arrayContaining([expect.objectContaining({ content: 'Done', kind: 'message' })]),
+                entries: [expect.objectContaining({ content: 'Done', kind: 'message' })],
                 status: 'waitingForInput',
             }),
         }));
+    });
+
+    it('keeps streaming process stderr out of canonical conversation entries', () => {
+        const service = new AgentRunnerService();
+        const run = {
+            conversation: { entries: [] },
+            id: 'run-1',
+            onEvent: vi.fn(),
+            secretValues: new Set(),
+            stderr: '',
+            streaming: true,
+        };
+        service.processes.set('run-1', run);
+
+        service.recordOutput('run-1', 'stderr', 'Codex internal runtime output\n');
+
+        expect(run.stderr).toBe('Codex internal runtime output\n');
+        expect(run.conversation.entries).toEqual([]);
+        expect(run.onEvent).toHaveBeenCalledWith(expect.objectContaining({ type: 'error' }));
     });
 
     it('waits for close processing after terminating every run', async () => {
@@ -215,6 +234,7 @@ describe('AgentRunnerService state handling', () => {
         expect(persistConversation).toHaveBeenCalledWith(expect.objectContaining({
             conversation: expect.objectContaining({
                 completedAt: null,
+                entries: [expect.objectContaining({ content: 'Done', kind: 'message' })],
                 status: 'waitingForInput',
             }),
             stderr: '',
