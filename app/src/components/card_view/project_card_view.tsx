@@ -40,7 +40,6 @@ interface ProjectCardViewContentProps extends CardHandlers {
     isSelected: boolean
     isMobile: boolean
     primaryPath: string
-    projectKey: string
 }
 
 interface MenuPosition {
@@ -57,21 +56,18 @@ export function ProjectCardView(props: ProjectCardViewProps) {
     if (!card || !project) return null
 
     const primaryPath = project.rootPath ?? project.id
-    const projectKey = `${project.id}:${project.branch}`
-
     return (
         <ProjectCardViewContent
             card={card}
             isSelected={isSelected}
             primaryPath={primaryPath}
-            projectKey={projectKey}
             {...contentProps}
         />
     )
 }
 
 function ProjectCardViewContent(props: ProjectCardViewContentProps) {
-    const { card, cardTypes, isSelected, primaryPath, projectKey } = props
+    const { card, cardTypes, isSelected, primaryPath } = props
     const { onOpenInFileMode } = props
     const { onDeleteCard, onTogglePolicy, onTitleChange } = props
     const theme = useTheme()
@@ -247,7 +243,6 @@ function ProjectCardViewContent(props: ProjectCardViewContentProps) {
                         <CardRunButton
                             card={card}
                             context={context}
-                            projectKey={projectKey}
                         />
                     </Box>
                     <Tooltip title="Open in file mode">

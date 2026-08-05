@@ -10,6 +10,7 @@ const {
     listAgentConversationReferences,
     loadActivityConversation,
     upsertActivityConversation,
+    updateActivityConversationViewed,
 } = require('./activity_files');
 
 const terminalTime = '2026-08-04T10:30:00.000Z';
@@ -27,6 +28,7 @@ function waitingConversation() {
         status: 'waitingForInput',
         title: 'Review',
         usage: { cachedInputTokens: 1, inputTokens: 2, outputTokens: 3, reasoningTokens: 4, totalTokens: 10 },
+        viewed: true,
     };
 }
 
@@ -46,6 +48,7 @@ describe('project activity conversations', () => {
                 startedAt: '2026-07-21T10:00:00.000Z',
                 status: 'completed',
                 title: 'Project run',
+                viewed: true,
             });
 
             await expect(listAgentConversationReferences(project, 'design')).resolves.toEqual([
@@ -55,6 +58,48 @@ describe('project activity conversations', () => {
             expect(persisted.conversations[0]).toHaveProperty('entries');
             expect(persisted.conversations[0]).not.toHaveProperty('messages');
             expect(persisted.conversations[0]).not.toHaveProperty('events');
+        } finally {
+            await rm(rootPath, { force: true, recursive: true });
+        }
+    });
+
+    it('updates only targeted conversation viewed state', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-view-conversation-'));
+        const project = { branch: 'main', rootPath };
+        const reference = 'design/activity/project.json#conversation=conversation-1';
+        const source = waitingConversation();
+        const untouched = { ...waitingConversation(), id: 'conversation-2', title: 'Untouched' };
+        try {
+            await mkdir(join(rootPath, '.git'));
+            await upsertActivityConversation(project, 'design', { kind: 'project' }, source);
+            await upsertActivityConversation(project, 'design', { kind: 'project' }, untouched);
+
+            const updated = await updateActivityConversationViewed(project, reference, false);
+            const persisted = JSON.parse(await readFile(join(rootPath, 'design', 'activity', 'project.json'), 'utf8'));
+
+            expect(updated).toMatchObject({ id: source.id, path: reference, viewed: false });
+            expect(persisted.conversations.find(({ id }) => id === source.id).viewed).toBe(false);
+            expect(persisted.conversations.find(({ id }) => id === untouched.id).viewed).toBe(true);
+        } finally {
+            await rm(rootPath, { force: true, recursive: true });
+        }
+    });
+
+    it('preserves latest stored viewed state when stale checkpoint is queued afterward', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-view-checkpoint-race-'));
+        const project = { branch: 'main', rootPath };
+        const reference = 'design/activity/project.json#conversation=conversation-1';
+        const source = waitingConversation();
+        try {
+            await mkdir(join(rootPath, '.git'));
+            await upsertActivityConversation(project, 'design', { kind: 'project' }, source);
+
+            await Promise.all([
+                updateActivityConversationViewed(project, reference, false),
+                upsertActivityConversation(project, 'design', { kind: 'project' }, { ...source, entries: [] }),
+            ]);
+
+            await expect(loadActivityConversation(project, reference)).resolves.toMatchObject({ viewed: false });
         } finally {
             await rm(rootPath, { force: true, recursive: true });
         }

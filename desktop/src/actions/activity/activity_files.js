@@ -117,12 +117,15 @@ async function appendAndCommitSystemActivity(project, projectFolder, origin, rec
 }
 
 function upsertConversation(activity, conversation) {
+    if (typeof conversation.viewed !== 'boolean') throw new Error('Missing agent conversation viewed');
     const storedConversation = Object.fromEntries(Object.entries(conversation).filter(([fieldName]) => fieldName !== 'path'));
 
     return {
         ...activity,
         conversations: activity.conversations.some(({ id }) => id === storedConversation.id)
-            ? activity.conversations.map((current) => (current.id === storedConversation.id ? storedConversation : current))
+            ? activity.conversations.map((current) => (
+                current.id === storedConversation.id ? { ...storedConversation, viewed: current.viewed } : current
+            ))
             : [...activity.conversations, storedConversation],
     };
 }
@@ -139,6 +142,31 @@ async function upsertAndCommitActivityConversation(project, projectFolder, origi
         (activity) => upsertConversation(activity, conversation),
         message,
     );
+}
+
+async function updateActivityConversationViewed(project, reference, viewed) {
+    if (typeof reference !== 'string' || reference.length === 0) throw new Error('Missing agent conversation reference');
+    if (typeof viewed !== 'boolean') throw new Error('Invalid agent conversation viewed');
+
+    const rootPath = requireRootPath(project);
+    await assertGitRoot(rootPath);
+    const { activityPath, conversationId } = parseConversationActivityReference(reference);
+    const absolutePath = ensureInsideRoot(rootPath, path.join(rootPath, activityPath));
+
+    return queueActivityUpdate(absolutePath, async () => {
+        const activity = parseActivityFile(await fs.promises.readFile(absolutePath, 'utf8'));
+        const conversation = findActivityConversation(activity, conversationId);
+        const updatedConversation = { ...conversation, viewed };
+        const updatedActivity = {
+            ...activity,
+            conversations: activity.conversations.map((current) => (
+                current.id === conversationId ? updatedConversation : current
+            )),
+        };
+        await writeActivityFile(absolutePath, updatedActivity);
+
+        return { ...updatedConversation, path: reference };
+    });
 }
 
 async function loadActivityConversation(project, reference) {
@@ -175,7 +203,7 @@ async function closeWaitingActivityConversation(project, reference, status) {
             ...storedActivity,
             conversations: storedActivity.conversations.map((storedConversation) => (
                 storedConversation.id === conversationId
-                    ? { ...storedConversation, completedAt, status }
+                    ? { ...storedConversation, completedAt, status, viewed: conversation.viewed }
                     : storedConversation
             )),
         };
@@ -266,4 +294,5 @@ module.exports = {
     resolveActivityPath,
     upsertAndCommitActivityConversation,
     upsertActivityConversation,
+    updateActivityConversationViewed,
 };

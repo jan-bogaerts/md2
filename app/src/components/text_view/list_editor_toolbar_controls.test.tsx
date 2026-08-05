@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { CardCommit } from '../../services/actions/card_commit_history'
+import { cardActionPopupService } from '../../services/actions/card_action_popup_service'
 import type { ProjectCard } from '../../data/data_types'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import { listCardCommitDiffDataSource } from '../card_view/list_card_commit_diff_data_source'
@@ -13,6 +14,8 @@ import { ListEditorToolbarControls } from './list_editor_toolbar_controls'
 vi.mock('../editor/markdown_format_toolbar_controls', () => ({MarkdownFormatToolbarControls: ({ endControls }: { endControls: ReactNode }) => <div>{endControls}</div>}))
 
 vi.mock('../editor/markdown_document_undo_redo', () => ({ MarkdownDocumentUndoRedo: () => null }))
+
+vi.mock('../hooks/use_project_state', () => ({useProjectState: () => ({ project: { branch: 'main', id: 'project' }, runningAgents: [], snapshot: null })}))
 
 function commit(): CardCommit {
     const committedAt = '2026-07-20T10:00:00.000Z'
@@ -41,6 +44,7 @@ function commit(): CardCommit {
 }
 
 afterEach(() => {
+    cardActionPopupService.clear()
     cleanup()
     vi.restoreAllMocks()
 })
@@ -74,5 +78,29 @@ describe('ListEditorToolbarControls', () => {
         fireEvent.click(screen.getByRole('button', { name: /Implement/ }))
 
         expect(selectCardCommit).toHaveBeenCalledWith(cardCommit)
+    })
+
+    it('opens list-editor card conversation popup through shared popup service', () => {
+        vi.spyOn(cardMarkdownDataSource, 'getActiveCard').mockReturnValue(card)
+        vi.spyOn(cardMarkdownDataSource, 'getActiveDocument').mockReturnValue({ getObject: () => card } as never)
+        vi.spyOn(cardCommitsHook, 'useCardCommits').mockReturnValue({ commits: [], error: null, loading: false, reload: vi.fn() })
+        render(
+            <AppThemeProvider>
+                <ListEditorToolbarControls
+                    cardTypes={[]}
+                    historyStore={new MarkdownDocumentHistoryStore()}
+                    statusColors={new Map()}
+                />
+            </AppThemeProvider>,
+        )
+
+        fireEvent.click(screen.getByRole('button', { name: 'Agents' }))
+
+        expect(cardActionPopupService.getSnapshot()).toHaveLength(1)
+        expect(cardActionPopupService.getSnapshot()[0]?.context).toMatchObject({
+            cardInternalId: 'card-060',
+            file: card.path,
+            kind: 'file',
+        })
     })
 })

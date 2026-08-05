@@ -16,15 +16,14 @@ interface ActionSelectorProps {
     context: ActionContext
     onAdd: () => void
     onSelect: (actionId: string) => void
-    projectKey: string | null
     selectedAction: ActionDefinition
 }
 
 /** Horizontally scrollable, mutually exclusive action selector used by the card Run popup. */
 export function ActionSelector(props: ActionSelectorProps) {
-    const { adding, actions, context, onAdd, onSelect, projectKey, selectedAction } = props
+    const { adding, actions, context, onAdd, onSelect, selectedAction } = props
     const activeRuns = useActiveActionRunsForContext(context)
-    const unseenResultConversations = useCardActionUnseenResults(actions.map(({ id }) => id), context, projectKey)
+    const unseenResultConversations = useCardActionUnseenResults(actions.map(({ id }) => id), context)
     const activeActionStatuses: Record<string, ActionRunStatus> = {}
     for (const { rootActionId, status } of activeRuns) {
         if (status === 'waitingForInput' || !activeActionStatuses[rootActionId]) activeActionStatuses[rootActionId] = status

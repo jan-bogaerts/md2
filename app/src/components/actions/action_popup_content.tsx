@@ -67,12 +67,12 @@ interface ActionPopupContentProps {
     onSelectAction: (actionId: string) => void
     onToggleFullHeight: () => void
     open: boolean
+    popupEntryId?: string
     primaryPath: string | null
     showSaveControls: boolean
     stackPosition?: number
     target: string | null
     titleId: string
-    projectKey: string | null
 }
 
 /**
@@ -111,7 +111,7 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
     const {
         action, actions, anchorElement, assignmentContext, baseContext, draggable, fullHeight, onActivate, onAddAction,
         onClose, onSelectAction, onToggleFullHeight, open, primaryPath, showSaveControls, stackPosition, target, titleId,
-        projectKey,
+        popupEntryId,
     } = props
     const bindings = useMemo(
         () => createActionPopupBindings(action, assignmentContext),
@@ -196,7 +196,6 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
                             <ActionConversationPickerOwner
                                 actionId={action.id}
                                 context={assignmentContext}
-                                projectKey={projectKey}
                                 store={conversationStore}
                             />
                         ) : null}
@@ -223,7 +222,6 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
                         context={assignmentContext}
                         onAdd={onAddAction}
                         onSelect={onSelectAction}
-                        projectKey={projectKey}
                         selectedAction={action}
                     />
                 </Box>
@@ -254,7 +252,7 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
                             <ActionConversationChatOwner
                                 actionId={action.id}
                                 context={assignmentContext}
-                                projectKey={projectKey}
+                                popupEntryId={popupEntryId}
                                 store={conversationStore}
                             />
                             <ActionAgentPromptOwner

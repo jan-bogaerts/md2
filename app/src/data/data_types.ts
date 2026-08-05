@@ -310,6 +310,7 @@ export interface AgentConversation {
     status: AgentConversationStatus
     title: string
     usage?: AgentTokenUsage
+    viewed: boolean
 }
 
 export interface AgentConversationError {

@@ -950,6 +950,7 @@ class AgentRunnerService {
             if (run.pendingApprovals.has(requestId)) throw new Error(`Duplicate agent approval request id: ${requestId}`);
             run.pendingApprovals.set(requestId, { ...event.approval, submitted: false });
             run.conversation.status = 'waitingForInput';
+            await this.persistCheckpoint(run);
             emitRunEvent(run, { approval: event.approval, state: 'waitingForInput', type: 'approval' });
             return;
         }

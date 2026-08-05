@@ -7,19 +7,18 @@ import type { ActionContext } from '../../data/action_context'
 import type { ProjectCard } from '../../data/data_types'
 import { cardActionPopupService } from '../../services/actions/card_action_popup_service'
 import { agentStateDescription, cardAgentState } from '../../services/agents/card_agent_state'
-import { useAgentAcknowledgement } from '../hooks/use_agent_acknowledgements'
+import { useCardAcknowledgements } from '../hooks/use_agent_acknowledgements'
 import { useRunningActionForContext } from '../hooks/use_action_runs'
 
 interface CardRunButtonProps {
     card: ProjectCard
     context: ActionContext
-    projectKey: string
 }
 
 /** Opens the card action selector and run popup, and surfaces the card's agent state. */
-export function CardRunButton({ card, context, projectKey }: CardRunButtonProps) {
-    useAgentAcknowledgement(projectKey, card.path)
-    const agentState = cardAgentState(projectKey, card)
+export function CardRunButton({ card, context }: CardRunButtonProps) {
+    useCardAcknowledgements(card.path)
+    const agentState = cardAgentState(card)
     const runningRun = useRunningActionForContext(context)
     const liveStatus = runningRun?.status
     const isQueued = liveStatus === 'queued'
@@ -35,7 +34,7 @@ export function CardRunButton({ card, context, projectKey }: CardRunButtonProps)
                 : agentStateDescription(agentState)
     const accent = isWaiting ? 'warning.main' : isUnseen ? 'info.main' : 'primary.main'
     const handleRun = (event: MouseEvent<HTMLButtonElement>) => {
-        cardActionPopupService.toggle(context, event.currentTarget, projectKey)
+        cardActionPopupService.toggle(context, event.currentTarget)
     }
 
     const button = (

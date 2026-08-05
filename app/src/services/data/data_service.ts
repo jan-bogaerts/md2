@@ -336,12 +336,11 @@ export class DataService extends EventTarget {
         return { commitBatcher: this.commitBatcher, config, storage: this.storage }
     }
     private dispatchChanged() {
+        agentAcknowledgementService.setLoadedProject(this.projectState.project)
         this.dispatchPersistenceChanged()
         this.dispatchEvent(new CustomEvent<DataServiceState>('changed', { detail: this.getState() }))
     }
     private dispatchCardPathChanged(fromPath: string, toPath: string) {
-        const currentProject = this.projectState.project
-        if (currentProject) agentAcknowledgementService.renameCardPath(currentProject.id, fromPath, toPath)
         const detail: CardPathChangedEventDetail = { fromPath, toPath }
         this.dispatchEvent(new CustomEvent<CardPathChangedEventDetail>(CARD_PATH_CHANGED_EVENT, { detail }))
     }

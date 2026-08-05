@@ -15,6 +15,7 @@ const conversation = (runId: string): AgentConversation => ({
     startedAt: '2026-01-01T00:00:00.000Z',
     status: 'running',
     title: 'Run',
+    viewed: true,
 })
 
 const startedEvent = (runId: string): AgentRunEvent => ({

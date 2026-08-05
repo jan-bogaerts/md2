@@ -75,6 +75,7 @@ function createConversation(request, id, startedAt, reference) {
         startedAt,
         status: 'running',
         title: typeof request.title === 'string' && request.title.length > 0 ? request.title : 'Agent run',
+        viewed: true,
     };
 }
 

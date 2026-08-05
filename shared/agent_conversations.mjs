@@ -151,6 +151,9 @@ export function parseAgentConversation(content, referencePath) {
     const startedAt = requiredString(parsed.startedAt, 'startedAt')
     const hasExplicitTitle = typeof parsed.title === 'string' && parsed.title.trim().length > 0
     const usage = normalizeAgentTokenUsage(parsed.usage)
+    if (parsed.viewed !== undefined && typeof parsed.viewed !== 'boolean') {
+        throw new Error('Malformed agent conversation: invalid viewed')
+    }
 
     return {
         actionId: optionalString(parsed.actionId),
@@ -166,5 +169,6 @@ export function parseAgentConversation(content, referencePath) {
         status,
         title: hasExplicitTitle ? parsed.title : id,
         ...(usage ? { usage } : {}),
+        viewed: parsed.viewed ?? true,
     }
 }

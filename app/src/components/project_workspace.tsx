@@ -22,6 +22,7 @@ import { projectPersistenceService } from '../services/project/project_persisten
 import { CardView } from './card_view/card_view'
 import { MobileCardViewMenu } from './card_view/mobile_card_view_menu'
 import { MobileCardView } from './card_view/mobile_card_view'
+import { CardActionPopupHost } from './actions/card_action_popup_host'
 import { flushMarkdownEditors } from './editor/markdown_editor_flush'
 import { useProjectReference } from './hooks/use_project_reference'
 import { TextView } from './text_view/text_view'
@@ -240,12 +241,12 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
 
     const workspace = (
         <ProjectWorkspaceAvailability>
-            {isMobile ? <MobileLayout content={textView} /> : <SplitLayout left={fileTree} right={textView} />}
             {isMobile ? (
                 <MobileCardView cardTypes={cardTypes} states={states} statusColors={statusColors} />
             ) : (
                 <CardView cardTypes={cardTypes} states={states} statusColors={statusColors} />
             )}
+			<CardActionPopupHost />
         </ProjectWorkspaceAvailability>
     )
     const navigation = project ? fileTree : (

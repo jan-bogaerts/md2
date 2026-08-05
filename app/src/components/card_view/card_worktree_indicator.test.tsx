@@ -17,6 +17,7 @@ function conversation(status: AgentConversation['status'], events: AgentConversa
         startedAt: '2026-01-01T00:00:00.000Z',
         status,
         title: 'Agent',
+        viewed: true,
     }
 }
 

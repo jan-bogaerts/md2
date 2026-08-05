@@ -23,8 +23,37 @@ describe('parseAgentConversationLog', () => {
 
         expect(conversation.path).toBe('.md2-agent-logs/one.json')
         expect(conversation.hasExplicitTitle).toBe(true)
+        expect(conversation.viewed).toBe(true)
         expect(conversation.entries[0]).toMatchObject({ content: 'hello', kind: 'message' })
         expect(conversation.providerSessions[0].conversationId).toBe('session-1')
+    })
+
+    it.each([
+        [undefined, true],
+        [true, true],
+        [false, false],
+    ])('normalizes persisted viewed value %j', (viewed, expected) => {
+        const source = {
+            completedAt: null,
+            entries: [],
+            id: 'agent-1',
+            startedAt: '2026-01-01T00:00:00.000Z',
+            status: 'completed',
+            ...(viewed === undefined ? {} : { viewed }),
+        }
+
+        expect(parseAgentConversationLog(JSON.stringify(source), 'design/logs/one.json').viewed).toBe(expected)
+    })
+
+    it.each([null, 1, 'true', {}])('rejects invalid persisted viewed value %j', (viewed) => {
+        expect(() => parseAgentConversationLog(JSON.stringify({
+            completedAt: null,
+            entries: [],
+            id: 'agent-1',
+            startedAt: '2026-01-01T00:00:00.000Z',
+            status: 'completed',
+            viewed,
+        }), 'design/logs/one.json')).toThrow('Malformed agent conversation: invalid viewed')
     })
 
     it('preserves whether a title was explicit while retaining the id fallback', () => {
