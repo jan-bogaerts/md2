@@ -3,7 +3,7 @@ author:
 id: F_142
 internalId: 5205bb65-078a-411a-9647-0796ad14953c
 title: improve board view on mobile
-status: to fix
+status: ready
 owner: 
 affects:
 agents:
@@ -11,8 +11,7 @@ agents:
   - design/activity/card__5205bb65-078a-411a-9647-0796ad14953c.json#conversation=agent-0c93bf82-9f66-44f7-916a-a1d9e2e99548
   - design/activity/card__5205bb65-078a-411a-9647-0796ad14953c.json#conversation=agent-3b527f89-7a4f-4d2d-8479-2f9bc38a3c9d
 policy:
-after: 
-worktree: 3
+after: d00ed22e-f395-4949-9b0f-ce1c2275c31e
 ---
 
 We need to improve the board view on mobile to make it usable:

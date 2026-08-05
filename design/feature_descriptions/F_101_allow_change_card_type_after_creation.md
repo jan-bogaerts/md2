@@ -10,7 +10,7 @@ agents:
   - design/activity/card__f0fad88a-ea00-41be-aaf9-8f28a4cbdc31.json#conversation=agent-0df646d6-7dac-4371-adcf-3efdf75aee17
   - design/activity/card__f0fad88a-ea00-41be-aaf9-8f28a4cbdc31.json#conversation=agent-3f06363c-0669-4ff6-a794-cd65a4fb7365
 policy:
-after: d00ed22e-f395-4949-9b0f-ce1c2275c31e
+after: 5205bb65-078a-411a-9647-0796ad14953c
 ---
 It is currently not possible to change the card type after creation.
 
