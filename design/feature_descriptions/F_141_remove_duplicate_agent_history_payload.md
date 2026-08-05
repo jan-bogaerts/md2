@@ -3,7 +3,7 @@ author:
 id: F_141
 internalId: 299444fe-cb8b-420f-a89d-3c3300bf249e
 title: remove duplicate agent history payload
-status: ready for implementation
+status: ready
 owner:
 affects:
   - shared/card_activity.mjs
