@@ -18,6 +18,7 @@ affects:
 agents:
 policy:
 after: 299444fe-cb8b-420f-a89d-3c3300bf249e
+worktree: 2
 ---
 
 ## Problem
