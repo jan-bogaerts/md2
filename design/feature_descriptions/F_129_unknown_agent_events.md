@@ -11,6 +11,7 @@ agents:
   - design/activity/card__88a28fc1-ccbf-4d02-b560-c6726a0394dc.json#conversation=agent-145987a3-2dc0-4204-baf6-e0559cc33196
 policy:
 after: 
+worktree: 1
 ---
 
 currently, it seems that every unknown agent event - line is put in it's own box. this clutters the ui. *consecutive unknown agent events*, should be grouped together in 1 block.
