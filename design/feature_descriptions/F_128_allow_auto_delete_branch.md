@@ -3,12 +3,12 @@ author:
 id: F_128
 internalId: efdaf96e-da6f-4d8f-874f-042f30965276
 title: Allow auto delete branch
-status: new
+status: design
 owner: 
 affects:
 agents:
 policy:
-after: dbf63724-048c-44ff-ae98-534c1b37a68e
+after: 963bef1f-5a53-4f16-8941-13f9be36b88a
 ---
 
 When we assign a worktree to a card, a branch is auto created.
