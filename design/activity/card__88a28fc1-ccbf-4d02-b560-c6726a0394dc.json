@@ -701,7 +701,8 @@
         "outputTokens": 226,
         "reasoningTokens": 159,
         "totalTokens": 151192
-      }
+      },
+      "viewed": true
     },
     {
       "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
@@ -2560,7 +2561,8 @@
         "outputTokens": 340,
         "reasoningTokens": 67,
         "totalTokens": 573453
-      }
+      },
+      "viewed": true
     }
   ],
   "origin": {
@@ -2586,18 +2588,15 @@
       "conversationIds": [
         "agent-7c47dc44-50d6-4762-a9d2-12d754fd61e2"
       ],
-      "runId": "action-2be18acb-9001-4b89-bc5d-43c3db030289",
-      "history": {
-        "completedAt": "2026-08-03T12:42:58.035Z",
-        "output": "Using requested skill. First inspect feature doc, then every referenced non-agent file, then code paths before edit.\n\nNo explicit file references in card. Trace shows generic renderer owns one box per event; now checking normalization, streaming lifecycle, architecture/style constraints, tests.\n\nUpdated [F_129_unknown_agent_events.md](C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_129_unknown_agent_events.md) with requested sections.\n\nDefines grouping as maximal consecutive `diagnostic` run. No staging, commit, or tests.\n\n",
-        "prompt": "Add `Current state`, `implementation details`, `acceptance criteria` for `design/feature_descriptions/F_129_unknown_agent_events.md`.&#x20;\n\nRead all referenced files before you begin except `agents` files. it is possible that the file is not yet written. &#x20;\nAsk any question if something is ambiguous or not yet clear.\nKeep it short and to the point. use $caveman skill\n\nDo not stage or commit changes. md2 will commit files captured from provider edit tools.",
-        "status": "completed",
+      "details": {
+        "type": "agent",
         "accessLevel": "workspace-write",
         "agent": "codex",
         "approvalPolicy": "on-request",
         "model": "gpt-5.6-sol",
         "thinkingLevel": "medium"
       },
+      "runId": "action-2be18acb-9001-4b89-bc5d-43c3db030289",
       "origin": {
         "cardInternalId": "88a28fc1-ccbf-4d02-b560-c6726a0394dc",
         "kind": "card"
@@ -2605,7 +2604,8 @@
       "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "rootActionLabel": "complete card",
       "startedAt": "2026-08-03T12:38:36.504Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-7c47dc44-50d6-4762-a9d2-12d754fd61e2"
     },
     {
       "commits": [],
@@ -2613,18 +2613,15 @@
       "conversationIds": [
         "agent-145987a3-2dc0-4204-baf6-e0559cc33196"
       ],
-      "runId": "action-10644772-b3e9-418b-a3fc-e8ab2089c560",
-      "history": {
-        "completedAt": "2026-08-03T12:52:58.065Z",
-        "output": "Using `caveman` skill: terse plan. Reading feature and codebase only; no edits before approval.\n\nAnalysis done. Scope app presentation only; desktop normalization/persistence unchanged. Completed hidden reasoning still splits runs because recognized event remains boundary before visibility filtering.\n\nChange Plan:\n\n- Block 1: Update `action_conversation_chat.tsx` with presentation-only diagnostic grouping.\n- Block 2: Add regression coverage in `action_conversation_chat.test.tsx`.\n- Block 3: Run targeted test + ESLint. Set feature `status: ready`.\n\nNo desktop/backend changes. No edits made.\n\nApprove plan?\n\nChecking message-update ownership against diagnostic ingestion. Plan remains paused; no edits.\n\nYou right about partial responses: grouping happens before render. Same assistant `messageId` updates one canonical message entry in `action_run_registry`; desktop also updates same message. UI receives one message.\n\nDiagnostics differ: adapter assigns unique `providerItemId` per notification, so runner/app append separate persisted events. Feature explicitly says keep those entries separate and make grouping presentation-only. Therefore grouping cannot use same producer model without contradicting spec.\n\nBetter structure: pure presentation projector outside React component. `ActionConversationChat` stays renderer, not grouping engine. Revising plan.\n\nPartial chat responses are grouped upstream by `messageId`; UI receives one updated message.\n\nDiagnostics deliberately remain separate persisted events. Spec requires presentation-only grouping, so upstream merge would violate it.\n\nRevised design: separate pure display-projection module groups diagnostics. React component only renders projected entries. No UI logic overload.\n\nApprove revised plan?\n\nSpec change first. Need define correct producer ownership and boundaries from actual adapter lifecycle. Reading relevant flow; implementation stays paused.\n\n",
-        "prompt": "Read and implement the feature/job described in:  `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/F_129_unknown_agent_events.md`\n\nYou do not need to look at the git status. This is not your concern.  The worktree is what it is, you only need to touch what is required for the above mentioned job/feature description.\n\nUse the Block Workflow:\n\n1. Propose a Change Plan with blocks (no edits yet).\n2. create a task for each block\n3. Wait for approval.\n4. include tests.\n5. After implementation is done, update the field `status` in the markdown feature description file to \\`ready\\`. Be carefully, you are working in `C:\\Users\\janbo\\Documents\\dev\\md2`, the file to update is at `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/F_129_unknown_agent_events.md`\n\nYou may read any files referenced by relative paths in the spec and any file you think is related to the spec.\nRespect the Test Plan and Acceptance Criteria.&#x20;\n\nYou should only run the related tests, do not run the entire test suite, that will be done manually later on.\n\nKeep it short and to the point. use $caveman skill",
-        "status": "failed",
+      "details": {
+        "type": "agent",
         "accessLevel": "workspace-write",
         "agent": "codex",
         "approvalPolicy": "on-request",
         "model": "gpt-5.6-sol",
         "thinkingLevel": "medium"
       },
+      "runId": "action-10644772-b3e9-418b-a3fc-e8ab2089c560",
       "origin": {
         "cardInternalId": "88a28fc1-ccbf-4d02-b560-c6726a0394dc",
         "kind": "card"
@@ -2632,7 +2629,8 @@
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
       "startedAt": "2026-08-03T12:43:14.024Z",
-      "status": "cancelled"
+      "status": "cancelled",
+      "rootConversationId": "agent-145987a3-2dc0-4204-baf6-e0559cc33196"
     },
     {
       "commits": [],
@@ -2640,18 +2638,15 @@
       "conversationIds": [
         "agent-145987a3-2dc0-4204-baf6-e0559cc33196"
       ],
-      "runId": "action-b33f542f-bf82-4497-965c-437295576190",
-      "history": {
-        "completedAt": "2026-08-03T13:02:50.695Z",
-        "output": "Yes. Two ingress boundaries can keep UI clean:\n\n- Producer coalesces live consecutive diagnostics using stable event identity.\n- Conversation reader coalesces consecutive diagnostics from stored files, covering existing files.\n- Renderer stays unchanged.\n\nChecking exact shared reader/call sites before rewriting spec.\n\nYes. Best boundary: `agent_runner_service` creates canonical conversation entries. It can coalesce only when current tail is diagnostic, preserve first entry identity, emit updates under same `providerItemId`. Shared reader performs same coalescing for existing files. Messages/recognized events naturally break tail run. UI unchanged.\n\nUpdating spec only now. Implementation still waits approval.\n\nSpec fixed: grouping now occurs when canonical entries are produced and when persisted files are read. UI stays unchanged.\n\nImplementation plan updated. Awaiting approval.\n\nStarting Block 1: canonical grouping in runner plus targeted tests.\n\nBlock 1 passed: 17 runner tests. Starting Block 2: shared reader normalization for existing files.\n\nBlock 2 passed: 13 parser tests. Starting Block 3: existing chat renderer regression only; no UI production change.\n\nBlock 3 passed: 26 chat tests. Starting final verification: targeted ESLint, then status update.\n\n\u001b[2m2026-08-03T12:58:35.951421Z\u001b[0m \u001b[31mERROR\u001b[0m \u001b[2mcodex_core::tools::router\u001b[0m\u001b[2m:\u001b[0m \u001b[3merror\u001b[0m\u001b[2m=\u001b[0mExit code: 1\nWall time: 0.3 seconds\nOutput:\ndesktop\\src\\actions\\agent\\agent_runner_state.test.mjs:5:const { AGENT_FINISH_GRACE_MS, AgentRunnerService } = require('./agent_runner_service');\ndesktop\\src\\actions\\agent\\agent_runner_state.test.mjs:7:describe('AgentRunnerService state handling', () => {\ndesktop\\src\\actions\\agent\\agent_runner_state.test.mjs:10:        const service = new AgentRunnerService({ diagnoseCodexCacheError });\ndesktop\\src\\actions\\agent\\agent_runner_state.test.mjs:20:            onEvent: vi.fn(),\ndesktop\\src\\actions\\agent\\agent_runner_state.test.mjs:39:        expect(run.conversation.entries).toHaveLength(1);\ndesktop\\src\\actions\\agent\\agent_runner_state.test.mjs:40:        expect(run.onEvent).toHaveBeenCalledOnce();\ndesktop\\src\\actions\\agent\\agent_runner_state.test.mjs:45:        const service = new AgentRunnerService({\ndesktop\\src\\actions\\agent\\agent_runner_state.test.mjs:52:            onEvent: vi.fn(),\ndesktop\\src\\actions\\agent\\agent_runner_state.test.mjs:75:        const service = new AgentRunnerService();\ndesktop\\src\\actions\\agent\\agent_runner_state.test.mjs:95:        const service = new AgentRunnerService({ persistConversationCheckpoint });\ndesktop\\src\\actions\\agent\\agent_runner_state.test.mjs:108:            onEvent: vi.fn(),\ndesktop\\src\\actions\\agent\\agent_runner_state.test.mjs:133:        const service = new AgentRunnerService({ terminateProcessTree: vi.fn(async () => undefined) });\ndesktop\\src\\actions\\agent\\agent_runner_state.test.mjs:154:        const service = new AgentRunnerService({ terminateProcessTree });\ndesktop\\src\\actions\\agent\\agent_runner_state.test.mjs:171:        const service = new AgentRunnerService({ persistConversation, terminateProcessTree });\ndesktop\\src\\actions\\agent\\agent_runner_state.test.mjs:189:            onEvent: vi.fn(),\ndesktop\\src\\actions\\agent\\agent_runner_state.test.mjs:221:        const service = new AgentRunnerService({ setTimeout, terminateProcessTree });\ndesktop\\src\\actions\\agent\\agent_runner_state.test.mjs:247:        const service = new AgentRunnerService({ setTimeout });\ndesktop\\src\\actions\\agent\\agent_runner_state.test.mjs:262:            onEvent: vi.fn(),\ndesktop\\src\\actions\\agent\\agent_runner_state.test.mjs:285:        const service = new AgentRunnerService({\ndesktop\\src\\actions\\agent\\agent_runner_state.test.mjs:292:            onEvent: vi.fn(),\ndesktop\\src\\actions\\agent\\agent_runner_state.test.mjs:311:        const answerMessage = run.conversation.entries.find((entry) => entry.kind === 'message' && entry.role === 'user');\ndesktop\\src\\actions\\agent\\agent_runner_state.test.mjs:314:        expect(JSON.stringify(run.onEvent.mock.calls)).not.toContain('top-secret');\ndesktop\\src\\actions\\agent\\agent_runner_state.test.mjs:318:        const service = new AgentRunnerService();\ndesktop\\src\\actions\\agent\\agent_runner_state.test.mjs:328:            onEvent: vi.fn(),\ndesktop\\src\\actions\\agent\\agent_runner_state.test.mjs:351:        expect(run.conversation.entries).toEqual([\ndesktop\\src\\actions\\agent\\agent_runner_state.test.mjs:359:        const service = new AgentRunnerService();\ndesktop\\src\\actions\\agent\\agent_runner_state.test.mjs:382:            onEvent: vi.fn(),\ndesktop\\src\\actions\\agent\\agent_runner_state.test.mjs:399:        expect(run.conversation.entries).toHaveLength(3);\ndesktop\\src\\actions\\agent\\agent_runner_state.test.mjs:400:        expect(run.conversation.entries[1]).toMatchObject({\ndesktop\\src\\actions\\agent\\agent_runner_state.test.mjs:407:        expect(run.onEvent).toHaveBeenCalledWith(expect.objectContaining({\ndesktop\\src\\actions\\agent\\agent_runner_state.test.mjs:409:            type: 'agentEvent',\ndesktop\\src\\actions\\agent\\agent_runner_state.test.mjs:415:        const service = new AgentRunnerService({\ndesktop\\src\\actions\\agent\\agent_runner_state.test.mjs:427:            onEvent: vi.fn(),\ndesktop\\src\\actions\\agent\\agent_runner_state.test.mjs:441:        expect(run.conversation.entries.filter(({ kind }) => kind === 'message')).toHaveLength(1);\ndesktop\\src\\actions\\agent\\agent_runner_state.test.mjs:451:        const service = new AgentRunnerService({ codexRuntimeService, persistConversation });\ndesktop\\src\\actions\\agent\\agent_runner_state.test.mjs:465:        const service = new AgentRunnerService({ persistConversationCheckpoint });\ndesktop\\src\\actions\\agent\\agent_runner_state.test.mjs:470:            onEvent: vi.fn(),\ndesktop\\src\\actions\\agent\\agent_runner_state.test.mjs:495:        expect(run.conversation.entries).toEqual([]);\ndesktop\\src\\actions\\agent\\agent_runner_state.test.mjs:498:        expect(run.onEvent).toHaveBeenCalledWith(expect.objectContaining({ type: 'approval' }));\ndesktop\\src\\actions\\agent\\agent_runner_state.test.mjs:499:        expect(run.onEvent).toHaveBeenCalledWith(expect.objectContaining({ state: 'waitingForInput', type: 'approvalResolved' }));\ndesktop\\src\\actions\\agent\\agent_runner_state.test.mjs:503:        const service = new AgentRunnerService();\nrg: desktop\\src\\actions\\agent\\agent_runner_service.test.mjs: The system cannot find the file specified. (os error 2)\n\n",
-        "prompt": "can't we group them when:\n\\- events are produced\n\\- file is read",
-        "status": "failed",
+      "details": {
+        "type": "agent",
         "accessLevel": "workspace-write",
         "agent": "codex",
         "approvalPolicy": "on-request",
         "model": "gpt-5.6-sol",
         "thinkingLevel": "medium"
       },
+      "runId": "action-b33f542f-bf82-4497-965c-437295576190",
       "origin": {
         "cardInternalId": "88a28fc1-ccbf-4d02-b560-c6726a0394dc",
         "kind": "card"
@@ -2659,7 +2654,8 @@
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
       "startedAt": "2026-08-03T12:53:34.663Z",
-      "status": "cancelled"
+      "status": "cancelled",
+      "rootConversationId": "agent-145987a3-2dc0-4204-baf6-e0559cc33196"
     },
     {
       "commits": [],
@@ -2667,18 +2663,15 @@
       "conversationIds": [
         "agent-145987a3-2dc0-4204-baf6-e0559cc33196"
       ],
-      "runId": "action-3b2e896a-af8d-4ad8-bec0-c37a372a9bc6",
-      "history": {
+      "details": {
+        "type": "agent",
         "accessLevel": "workspace-write",
         "agent": "codex",
         "approvalPolicy": "on-request",
-        "completedAt": "2026-08-03T13:04:28.713Z",
         "model": "gpt-5.6-sol",
-        "output": "Continuing final verification.\n\nVerification clean: 56 related tests passed; targeted ESLint clean. Marking feature `ready`.\n\nImplemented F_129.\n\n- Runner groups consecutive diagnostics with stable identity.\n- Reader groups diagnostics from existing files.\n- UI production code unchanged.\n- Added runner, parser, chat regressions.\n- 56 related tests passed.\n- Targeted ESLint clean.\n- [F_129 status set to ready](C:/Users/janbo/Documents/dev/md2/design/feature_descriptions/F_129_unknown_agent_events.md).\n\n",
-        "prompt": "continue",
-        "status": "completed",
         "thinkingLevel": "medium"
       },
+      "runId": "action-3b2e896a-af8d-4ad8-bec0-c37a372a9bc6",
       "origin": {
         "cardInternalId": "88a28fc1-ccbf-4d02-b560-c6726a0394dc",
         "kind": "card"
@@ -2686,8 +2679,9 @@
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
       "startedAt": "2026-08-03T13:03:39.968Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-145987a3-2dc0-4204-baf6-e0559cc33196"
     }
   ],
-  "version": 1
+  "version": 2
 }

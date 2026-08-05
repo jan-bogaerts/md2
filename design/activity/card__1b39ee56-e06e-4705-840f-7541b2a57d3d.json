@@ -759,7 +759,8 @@
         "outputTokens": 110,
         "reasoningTokens": 25,
         "totalTokens": 149944
-      }
+      },
+      "viewed": true
     },
     {
       "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
@@ -2154,7 +2155,8 @@
         "outputTokens": 277,
         "reasoningTokens": 61,
         "totalTokens": 276603
-      }
+      },
+      "viewed": true
     }
   ],
   "origin": {
@@ -2168,18 +2170,15 @@
       "conversationIds": [
         "agent-6e7b30ea-5d5c-439b-b2b0-7f656fe5a400"
       ],
-      "runId": "action-73cd409c-c0ea-433d-a195-aa7dd6fc0871",
-      "history": {
-        "completedAt": "2026-08-02T17:52:01.828Z",
-        "output": "Using caveman skill. First inspect feature doc plus every referenced file, then trace relevant code before edit.\n\nCause clear: `watchProject` event reaches mobile, but remote storage lacks `loadFile`; markdown reload exits without reading changed card. Document will target missing RPC proxy plus push-message parity tests.\n\nUpdated [B_87_card_changed_not_pushed_to_mobile.md](C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_87_card_changed_not_pushed_to_mobile.md).\n\nAdded requested sections, identified missing remote `loadFile` proxy, included WebSocket message audit criteria. `git diff --check` clean. Not staged or committed.\n\n\u001b[2m2026-08-02T17:37:00.017017Z\u001b[0m \u001b[31mERROR\u001b[0m \u001b[2mcodex_core::tools::router\u001b[0m\u001b[2m:\u001b[0m \u001b[3merror\u001b[0m\u001b[2m=\u001b[0mExit code: 1\nWall time: 0.3 seconds\nOutput:\n\n",
-        "prompt": "Add \\`Current state\\`, \\`implementation details\\`, \\`acceptance criteria\\` for \\`design/feature_descriptions/B_87_card_changed_not_pushed_to_mobile.md\\`.&#x20;\n\nRead all referenced files before you begin. &#x20;\nAsk any question if something is ambiguous or not yet clear.\nKeep it short and to the point. use $caveman skill\n\nDo not stage or commit changes. md2 will commit files captured from provider edit tools.",
-        "status": "completed",
+      "details": {
+        "type": "agent",
         "accessLevel": "workspace-write",
         "agent": "codex",
         "approvalPolicy": "on-request",
         "model": "gpt-5.5",
         "thinkingLevel": "none"
       },
+      "runId": "action-73cd409c-c0ea-433d-a195-aa7dd6fc0871",
       "origin": {
         "cardInternalId": "1b39ee56-e06e-4705-840f-7541b2a57d3d",
         "kind": "card"
@@ -2187,7 +2186,8 @@
       "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "rootActionLabel": "complete card",
       "startedAt": "2026-08-02T17:35:04.067Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-6e7b30ea-5d5c-439b-b2b0-7f656fe5a400"
     },
     {
       "commits": [],
@@ -2195,18 +2195,15 @@
       "conversationIds": [
         "agent-c6f98940-00b7-4041-a50e-fe0c85838b84"
       ],
-      "runId": "action-45329185-231f-461b-bbf7-bdd72e9493ec",
-      "history": {
-        "completedAt": "2026-08-02T18:08:05.148Z",
-        "output": "Using `caveman` skill for terse output. Reading feature, architecture, related code/tests. No edits. Then block plan + task per block; wait approval.\n\nChange Plan tasks created:\n\n1. Add remote `loadFile`; test success/error parity.\n2. Audit all five push message paths; fix verified setup/cleanup gaps; test server/client.\n3. Test mobile project refresh for added, changed, removed markdown.\n4. Run related tests, affected lint, set feature `status: ready`.\n\nNo edits made. Approve plan to start.\n\nPlan approved. Starting Block 1. `loadFile` has one consumer path: `ProjectLoading` watcher reload. Local storage keeps existing bridge behavior; remote storage gains same contract.\n\nBlock 1 code/tests added. Block 2 audit: all five names match. Verified defect: `watchProject` cleanup before subscription response can leak remote subscription and still deliver events. Only `ProjectLoading` consumes it; desired new behavior applies there. Server/preload call sites unchanged.\n\nBlock 2 implementation/tests added. Block 3 now joining real remote watcher and remote `loadFile` with `ProjectLoading`; existing local watcher tests already cover state logic, new regression proves mobile transport chain. Expanding same regression across added/changed/removed.\n\nBlock 3 passes: mobile transport test covers add/change/remove without reopen. Starting Block 4 validation. Related tests: 56 passed. Running required linters for affected app and desktop.\n\nApp lint found two unused mock constructor parameters. Removing them; runtime still accepts WebSocket arguments. Then rerun linters.\n\nValidation clean. Final required action from feature workflow: update source feature status from `new` to `ready`.\n\nImplemented B_87.\n\n- Added remote `loadFile` proxy.\n- Fixed early `watchProject` cleanup leak.\n- Audited/tested all five push message types.\n- Added mobile add/change/remove refresh regression.\n- Related tests: 56 passed.\n- App + desktop lint: clean.\n- Feature status set to `ready`.\n\nFiles: [remote storage](C:/Users/janbo/Documents/dev/md2_workers/dev1/app/src/services/data/remote_control_storage_service.ts), [feature](C:/Users/janbo/Documents/dev/md2/design/feature_descriptions/B_87_card_changed_not_pushed_to_mobile.md).\n\n\u001b[2m2026-08-02T17:58:49.839492Z\u001b[0m \u001b[31mERROR\u001b[0m \u001b[2mcodex_core::tools::router\u001b[0m\u001b[2m:\u001b[0m \u001b[3merror\u001b[0m\u001b[2m=\u001b[0mExit code: 1\nWall time: 23.7 seconds\nOutput:\n\n> app@0.0.4 lint\n> eslint .\n\n\nC:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\services\\project\\project_loading.test.ts\n  21:17  error  '_url' is defined but never used       @typescript-eslint/no-unused-vars\n  21:31  error  '_protocol' is defined but never used  @typescript-eslint/no-unused-vars\n\n✖ 2 problems (2 errors, 0 warnings)\n\n\n",
-        "prompt": "Read and implement the feature/job described in:  \\`C:\\Users\\janbo\\Documents\\dev\\md2\\\\design/feature_descriptions/B_87_card_changed_not_pushed_to_mobile.md\\`\n\nYou do not need to look at the git status. This is not your concern.  The worktree is what it is, you only need to touch what is required for the above mentioned job/feature description.\n\nUse the Block Workflow:\n\n1. Propose a Change Plan with blocks (no edits yet).\n2. create a task for each block\n3. Wait for approval.\n4. include tests.\n5. After implementation is done, update the field \\`status\\` in the markdown feature description file to \\`ready\\`\n\nYou may read any files referenced by relative paths in the spec and any file you think is related to the spec.\nRespect the Test Plan and Acceptance Criteria.&#x20;\n\nYou should only run the related tests, do not run the entire test suite, that will be done manually later on.\n\nKeep it short and to the point. use $caveman skill",
-        "status": "completed",
+      "details": {
+        "type": "agent",
         "accessLevel": "workspace-write",
         "agent": "codex",
         "approvalPolicy": "on-request",
         "model": "gpt-5.5",
         "thinkingLevel": "none"
       },
+      "runId": "action-45329185-231f-461b-bbf7-bdd72e9493ec",
       "origin": {
         "cardInternalId": "1b39ee56-e06e-4705-840f-7541b2a57d3d",
         "kind": "card"
@@ -2214,11 +2211,13 @@
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
       "startedAt": "2026-08-02T17:52:42.828Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-c6f98940-00b7-4041-a50e-fe0c85838b84"
     },
     {
       "commits": [
         {
+          "branch": "dev_main",
           "commit": "92807cf114dabf537c22c60d9eb5c9c8bad2acd9",
           "committedAt": "2026-08-03T08:29:14+02:00",
           "deletions": 2,
@@ -2229,8 +2228,7 @@
             "desktop/src/integrations/remote_control_service.test.mjs"
           ],
           "filesChanged": 4,
-          "insertions": 320,
-          "branch": "dev_main"
+          "insertions": 320
         }
       ],
       "completedAt": "2026-08-03T08:29:14+02:00",
@@ -2242,5 +2240,5 @@
       "type": "system"
     }
   ],
-  "version": 1
+  "version": 2
 }

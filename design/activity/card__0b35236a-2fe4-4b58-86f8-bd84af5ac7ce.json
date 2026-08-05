@@ -728,7 +728,8 @@
         "outputTokens": 230,
         "reasoningTokens": 158,
         "totalTokens": 141169
-      }
+      },
+      "viewed": true
     },
     {
       "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
@@ -2341,7 +2342,8 @@
         "outputTokens": 194,
         "reasoningTokens": 0,
         "totalTokens": 235003
-      }
+      },
+      "viewed": true
     }
   ],
   "origin": {
@@ -2367,16 +2369,13 @@
       "conversationIds": [
         "agent-d3dee85b-e4fb-4763-89bc-755010c3286e"
       ],
-      "runId": "action-3b77dc0a-2331-41b3-8e23-09e313d3ba65",
-      "history": {
-        "completedAt": "2026-08-01T14:25:37.626Z",
-        "output": "Using `caveman` skill: terse updates and final. First read target, every referenced file, architecture/style rules if relevant. Then trace delete-card flow, edit doc only, verify diff. No staging or commit.\n\nTarget reference fully read. Delete flow now tracing through UI, `CardOperations`, storage, watcher, snapshot state, open-document handling, tests. No ambiguity yet.\n\nAnalysis complete. Shared `deleteProjectFile` serves `deleteCard` and file-tree `deleteFile`; new design keeps both consistent. Local state must remove path, update repository index, merge follower repair result, rebuild snapshot once, dispatch existing events. Storage/push failure semantics stay unchanged. Editing target only.\n\nUpdated [B_83_delete_card_reloads_project.md](C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_83_delete_card_reloads_project.md) with requested sections.\n\n`git diff --check` passes. Tests skipped: documentation-only change. Nothing staged or committed.\n\n\u001b[2m2026-08-01T14:24:27.393261Z\u001b[0m \u001b[31mERROR\u001b[0m \u001b[2mcodex_core::tools::router\u001b[0m\u001b[2m:\u001b[0m \u001b[3merror\u001b[0m\u001b[2m=\u001b[0mExit code: 1\nWall time: 0.4 seconds\nOutput:\nC:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_80_worktree_selector_not_updated.md\r\nC:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_81_new_card_markdown_typing_lag.md\r\nC:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_82_orphaned_git_for_windows_processes.md\r\nC:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_83_delete_card_reloads_project.md\r\nC:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_85_add_the_reference_to_a_chatlog_to_a_card_as_soon_as_possible.md\r\n\n",
-        "prompt": "Add \\`Current state\\`, \\`implementation details\\`, \\`acceptance criteria\\` for \\`design/feature_descriptions/B_83_delete_card_reloads_project.md\\`.&#x20;\n\nRead all referenced files before you begin. &#x20;\nAsk any question if something is ambiguous or not yet clear.\nKeep it short and to the point. use $caveman skill\n\nDo not stage or commit changes. md2 will commit files captured from provider edit tools.",
-        "status": "completed",
+      "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "thinkingLevel": "medium"
       },
+      "runId": "action-3b77dc0a-2331-41b3-8e23-09e313d3ba65",
       "origin": {
         "cardInternalId": "0b35236a-2fe4-4b58-86f8-bd84af5ac7ce",
         "kind": "card"
@@ -2384,7 +2383,8 @@
       "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "rootActionLabel": "complete card",
       "startedAt": "2026-08-01T14:22:46.903Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-d3dee85b-e4fb-4763-89bc-755010c3286e"
     },
     {
       "commits": [],
@@ -2392,16 +2392,13 @@
       "conversationIds": [
         "agent-eddffaed-b7c2-49fc-ac0d-64d88b763b83"
       ],
-      "runId": "action-266d1f2b-6f3f-451a-8c6d-adfb9cbbb25f",
-      "history": {
-        "completedAt": "2026-08-01T15:37:03.799Z",
-        "output": "Using `caveman` for terse plan. Reading skill, feature spec, referenced code. No edits until approval.\n\nChange Plan created: 3 block tasks.\n\n- Block 1: direct `ProjectState` deletion update.\n- Block 2: replace shared deletion reload with local update/events.\n- Block 3: regression tests, targeted lint/tests, then status `ready`.\n\nCall sites checked: `deleteCard` and `deleteFile` both need new behavior. Folder/create/release reloads remain.\n\nNo edits made. Approve plan to begin.\n\n\u001b[2m2026-08-01T14:29:04.524687Z\u001b[0m \u001b[31mERROR\u001b[0m \u001b[2mcodex_core::tools::router\u001b[0m\u001b[2m:\u001b[0m \u001b[3merror\u001b[0m\u001b[2m=\u001b[0mExit code: 1\nWall time: 0.6 seconds\nOutput:\napp\\src\\data\\data_types.ts:353:    deleteFile(request: DeleteFileRequest): Promise<void>\napp\\src\\data\\data_types.ts:354:    deleteFolder(request: DeleteFolderRequest): Promise<void>\napp\\src\\data\\electron_data_bridge.ts:35:    deleteFile(request: DeleteFileRequest): Promise<void>\napp\\src\\data\\electron_data_bridge.ts:36:    deleteFolder(request: DeleteFolderRequest): Promise<void>\napp\\src\\components\\card_view\\use_project_card.ts:5:    CARD_REMOVED_EVENT,\napp\\src\\components\\card_view\\use_project_card.ts:49:        service.addEventListener(CARD_REMOVED_EVENT, handleCardRemoved)\napp\\src\\components\\card_view\\use_project_card.ts:53:            service.removeEventListener(CARD_REMOVED_EVENT, handleCardRemoved)\napp\\src\\components\\card_view\\use_card_view_columns.ts:7:    CARD_REMOVED_EVENT,\napp\\src\\components\\card_view\\use_card_view_columns.ts:48:        this.service.addEventListener(CARD_REMOVED_EVENT, this.handleCardRemoved)\napp\\src\\components\\card_view\\use_card_view_columns.ts:54:            this.service.removeEventListener(CARD_REMOVED_EVENT, this.handleCardRemoved)\napp\\src\\components\\card_view\\use_card_column_cards.ts:6:    CARD_REMOVED_EVENT,\napp\\src\\components\\card_view\\use_card_column_cards.ts:41:        service.addEventListener(CARD_REMOVED_EVENT, handleCardAddedOrRemoved)\napp\\src\\components\\card_view\\use_card_column_cards.ts:46:            service.removeEventListener(CARD_REMOVED_EVENT, handleCardAddedOrRemoved)\napp\\src\\components\\text_view\\text_view.test.tsx:81:            await dataService.cards.deleteFile(path)\napp\\src\\components\\text_view\\text_view.test.tsx:88:            await dataService.cards.deleteFolder(path)\napp\\src\\components\\actions\\action_entry_points.test.tsx:227:describe('entry-point placement in the file tree', () => {\napp\\src\\components\\text_view\\file_tree_view.tsx:70:                dialogService.error(new Error('Missing file tree container'), {fallbackMessage: 'File tree could not be displayed'})\napp\\src\\components\\text_view\\file_tree_view.test.tsx:114:        if (!fileTreeItem) throw new Error('Missing file tree item')\napp\\src\\components\\hooks\\use_action_file_tree_actions.ts:28:/** Subscribe only to published action fields represented by file-tree nodes. */\napp\\src\\components\\hooks\\use_action_file_tree_actions.test.ts:12:    it('updates only when a file-tree action field changes', () => {\napp\\src\\components\\text_view\\file_tree_node_row.tsx:48:/** A single react-arborist row preserving the file tree's existing controls and appearance. */\napp\\src\\components\\text_view\\file_tree_context.ts:28:/** Access dependencies shared by virtualized file-tree rows with a safe fallback. */\napp\\src\\services\\github\\github_storage_write_operations.test.ts:211:        await service.deleteFile({\napp\\src\\services\\github\\github_storage_write_operations.test.ts:250:        await service.deleteFile({\napp\\src\\services\\github\\github_storage_write_operations.test.ts:290:        await service.deleteFolder({ branch: 'main', message: 'Delete design/notes', path: 'design/notes' })\napp\\src\\components\\project_workspace.tsx:103:            await dataService.cards.deleteFile(path)\napp\\src\\components\\project_workspace.tsx:116:            await dataService.cards.deleteFolder(path)\napp\\src\\services\\github\\github_storage_writer.ts:83:    async deleteFile(request: DeleteFileRequest) {\napp\\src\\services\\github\\github_storage_writer.ts:94:    async deleteFolder(request: DeleteFolderRequest) {\napp\\src\\services\\github\\github_storage_service.ts:92:    async deleteFile(request: DeleteFileRequest) {\napp\\src\\services\\github\\github_storage_service.ts:93:        return this.writer.deleteFile(request)\napp\\src\\services\\github\\github_storage_service.ts:96:    async deleteFolder(request: DeleteFolderRequest) {\napp\\src\\services\\github\\github_storage_service.ts:97:        return this.writer.deleteFolder(request)\napp\\src\\services\\data\\card_operations.ts:161:    async deleteFile(path: string) {\napp\\src\\services\\data\\card_operations.ts:172:    deleteFolder(path: string) {\napp\\src\\services\\data\\card_operations.ts:173:        return this.projectFiles.deleteFolder(path)\napp\\src\\services\\data\\card_operations.test.ts:14:    CARD_REMOVED_EVENT,\napp\\src\\services\\data\\card_operations.test.ts:127:        service.addEventListener(CARD_REMOVED_EVENT, removed)\napp\\src\\services\\data\\card_operations.test.ts:218:        await service.cards.deleteFolder('design/notes')\napp\\src\\services\\data\\card_operations.test.ts:675:        await service.cards.deleteFile(actionPath)\napp\\src\\services\\data\\data_service.ts:58:export const CARD_REMOVED_EVENT = 'cardRemoved'\napp\\src\\services\\data\\data_service.ts:350:                this.dispatchEvent(new CustomEvent<CardRemovedEventDetail>(CARD_REMOVED_EVENT, { detail: { card } }))\napp\\src\\services\\data\\local_git_storage_service.node.test.ts:201:        await service.deleteFile(request)\napp\\src\\services\\data\\local_git_storage_service.node.test.ts:217:        await service.deleteFolder(request)\napp\\src\\services\\data\\local_git_storage_service.ts:191:    async deleteFile(request: DeleteFileRequest): Promise<void> {\napp\\src\\services\\data\\local_git_storage_service.ts:192:        await this.requireBridge().deleteFile(request)\napp\\src\\services\\data\\local_git_storage_service.ts:196:    async deleteFolder(request: DeleteFolderRequest): Promise<void> {\napp\\src\\services\\data\\local_git_storage_service.ts:197:        await this.requireBridge().deleteFolder(request)\napp\\src\\services\\data\\project_file_operations.ts:59:    async deleteFolder(path: string) {\napp\\src\\services\\data\\project_file_operations.ts:69:        await storage.deleteFolder({ branch: project.branch, message: `Delete ${path}`, path })\napp\\src\\services\\data\\project_file_operations.ts:94:        await storage.deleteFile({\napp\\src\\services\\data\\remote_control_storage_service.node.test.ts:396:        const deletion = service.deleteFolder(deleteRequest)\napp\\src\\services\\data\\remote_control_storage_service.ts:200:    async deleteFile(request: DeleteFileRequest): Promise<void> {\napp\\src\\services\\data\\remote_control_storage_service.ts:205:    async deleteFolder(request: DeleteFolderRequest): Promise<void> {\nrg: app\\src\\**\\*.test.*: The filename, directory name, or volume label syntax is incorrect. (os error 123)\n\n",
-        "prompt": "Read and implement the feature/job described in:  \\`C:\\Users\\janbo\\Documents\\dev\\md2\\\\design/feature_descriptions/B_83_delete_card_reloads_project.md\\`\n\nYou do not need to look at the git status. This is not your concern.  The worktree is what it is, you only need to touch what is required for the above mentioned job/feature description.\n\nUse the Block Workflow:\n\n1. Propose a Change Plan with blocks (no edits yet).\n2. create a task for each block\n3. Wait for approval.\n4. include tests.\n5. After implementation is done, update the field \\`status\\` in the markdown feature description file to \\`ready\\`\n\nYou may read any files referenced by relative paths in the spec and any file you think is related to the spec.\nRespect the Test Plan and Acceptance Criteria.&#x20;\n\nYou should only run the related tests, do not run the entire test suite, that will be done manually later on.\n\nKeep it short and to the point. use $caveman skill",
-        "status": "failed",
+      "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "thinkingLevel": "medium"
       },
+      "runId": "action-266d1f2b-6f3f-451a-8c6d-adfb9cbbb25f",
       "origin": {
         "cardInternalId": "0b35236a-2fe4-4b58-86f8-bd84af5ac7ce",
         "kind": "card"
@@ -2409,7 +2406,8 @@
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
       "startedAt": "2026-08-01T14:28:27.478Z",
-      "status": "cancelled"
+      "status": "cancelled",
+      "rootConversationId": "agent-eddffaed-b7c2-49fc-ac0d-64d88b763b83"
     },
     {
       "commits": [],
@@ -2417,16 +2415,13 @@
       "conversationIds": [
         "agent-eddffaed-b7c2-49fc-ac0d-64d88b763b83"
       ],
-      "runId": "action-df9115d2-53d9-45e8-9c46-d37e40b641f7",
-      "history": {
-        "completedAt": "2026-08-01T17:41:23.505Z",
-        "output": "Plan approved. Starting Block 1: `ProjectState` deletion primitive and dependency wiring.\n\nBlock 1 wired. Block 2 now replaces full reload after successful storage deletion; failure leaves snapshot untouched.\n\nBlock 2 complete. Block 3 adds regression coverage for state removal, follower repair, no project/index reload, events, failure and push/flush preservation.\n\nCode and tests updated. Running only related service/state and file-tree deletion suites, then targeted lint.\n\nAll 86 related tests pass; targeted lint clean. Final required action: feature status `ready`.\n\nImplemented B_83.\n\n- File/card deletion updates `ProjectState` directly.\n- Repair file merged; deleted path removed from loaded files and repository index.\n- Snapshot rebuilt once; existing events dispatched.\n- No project, repository-index, or agent-conversation reload.\n- Failure, SHA, pending commits, ordering, push modes preserved.\n- Feature status set to `ready`.\n\nValidation:\n\n- 4 related test files passed.\n- 86 tests passed.\n- Targeted lint clean.\n\n\u001b[2m2026-08-01T17:37:12.957005Z\u001b[0m \u001b[31mERROR\u001b[0m \u001b[2mcodex_core::tools::router\u001b[0m\u001b[2m:\u001b[0m \u001b[3merror\u001b[0m\u001b[2m=\u001b[0mExit code: 1\nWall time: 0.3 seconds\nOutput:\nrg: app\\src\\services\\data\\*.ts: IO error for operation on app\\src\\services\\data\\*.ts: The filename, directory name, or volume label syntax is incorrect. (os error 123)\n\n\u001b[2m2026-08-01T17:39:59.451586Z\u001b[0m \u001b[31mERROR\u001b[0m \u001b[2mcodex_core::tools::router\u001b[0m\u001b[2m:\u001b[0m \u001b[3merror\u001b[0m\u001b[2m=\u001b[0mapply_patch verification failed: Failed to find expected lines in C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_83_delete_card_reloads_project.md:\nstatus: ready for implementation\n",
-        "prompt": "go",
-        "status": "completed",
+      "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "thinkingLevel": "medium"
       },
+      "runId": "action-df9115d2-53d9-45e8-9c46-d37e40b641f7",
       "origin": {
         "cardInternalId": "0b35236a-2fe4-4b58-86f8-bd84af5ac7ce",
         "kind": "card"
@@ -2434,11 +2429,13 @@
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
       "startedAt": "2026-08-01T17:36:49.263Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-eddffaed-b7c2-49fc-ac0d-64d88b763b83"
     },
     {
       "commits": [
         {
+          "branch": "dev_main",
           "commit": "ef8b0284b288517db22da0fc207650d1f94f514e",
           "committedAt": "2026-08-03T08:29:00+02:00",
           "deletions": 22,
@@ -2451,8 +2448,7 @@
             "app/src/services/project/project_state.ts"
           ],
           "filesChanged": 6,
-          "insertions": 56,
-          "branch": "dev_main"
+          "insertions": 56
         }
       ],
       "completedAt": "2026-08-03T08:29:00+02:00",
@@ -2464,5 +2460,5 @@
       "type": "system"
     }
   ],
-  "version": 1
+  "version": 2
 }

@@ -379,18 +379,15 @@
       "conversationIds": [
         "agent-3e8afde0-adcb-4394-a6a4-adfe6ddb9ad9"
       ],
-      "runId": "action-a3e430b4-91e4-4235-bb32-a04c9ed6fc0d",
-      "history": {
+      "details": {
+        "type": "agent",
         "accessLevel": "workspace-write",
         "agent": "codex",
         "approvalPolicy": "on-request",
-        "completedAt": "2026-08-05T13:10:51.791Z",
         "model": "gpt-5.6-sol",
-        "output": "Using `caveman`; concise updates and document. First inspect target, every non-agent reference, relevant code flow, architecture/style guidance.\n\nAmbiguity: how much command text stays visible?\n\nRecommend 3-line preview; clicking command toggles full text/collapse. Accept, or specify different behavior.\n\nDecision fixed: one-line preview; command click toggles exact full text. Writing only requested sections.\n\nUpdated [B_96_approval_required_command_text_too_long.md](C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_96_approval_required_command_text_too_long.md).\n\nAdded:\n\n- Current state\n- Implementation details\n- Acceptance criteria\n- One-line preview with click-to-expand/collapse\n- Accessibility and test expectations\n\nNot staged or committed.\n\n",
-        "prompt": "Add `Current state`, `implementation details`, `acceptance criteria` for `design/feature_descriptions/B_96_approval_required_command_text_too_long.md`.&#x20;\n\nRead all referenced files before you begin except `agents` files. it is possible that the file is not yet written. &#x20;\nAsk any question if something is ambiguous or not yet clear.\nKeep it short and to the point. use $caveman skill\n\nDo not stage or commit changes. md2 will commit files captured from provider edit tools.",
-        "status": "failed",
         "thinkingLevel": "medium"
       },
+      "runId": "action-a3e430b4-91e4-4235-bb32-a04c9ed6fc0d",
       "origin": {
         "cardInternalId": "e9906c7f-d936-4c9a-ab73-2e7df0954024",
         "kind": "card"
@@ -398,8 +395,9 @@
       "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "rootActionLabel": "complete",
       "startedAt": "2026-08-05T12:50:47.437Z",
-      "status": "cancelled"
+      "status": "cancelled",
+      "rootConversationId": "agent-3e8afde0-adcb-4394-a6a4-adfe6ddb9ad9"
     }
   ],
-  "version": 1
+  "version": 2
 }

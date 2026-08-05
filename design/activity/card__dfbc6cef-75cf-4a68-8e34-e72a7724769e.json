@@ -836,7 +836,8 @@
         "outputTokens": 64,
         "reasoningTokens": 0,
         "totalTokens": 134369
-      }
+      },
+      "viewed": true
     }
   ],
   "origin": {
@@ -862,18 +863,15 @@
       "conversationIds": [
         "agent-a28f904e-4e39-4eea-a990-4a406f5a08d6"
       ],
-      "runId": "action-bdd2d563-e24d-46e1-8a74-1139f1413311",
-      "history": {
+      "details": {
+        "type": "agent",
         "accessLevel": "workspace-write",
         "agent": "codex",
         "approvalPolicy": "on-request",
-        "completedAt": "2026-08-03T18:29:56.847Z",
         "model": "gpt-5.5",
-        "output": "Using `caveman` as requested. First inspect target doc, every referenced non-agent file, then relevant code/data flow before edit.\n\nCause clear: regular Markdown represented as card-shaped document with `internalId: null`; toolbar component returns `null` before shared formatting controls render. Checking architecture/testing constraints, then document exact scoped fix.\n\nUpdated [B_89_markdown_editor_in_list_view_missing_toolbar.md](C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_89_markdown_editor_in_list_view_missing_toolbar.md).\n\nAdded requested sections. No staging, commit, or tests.\n\n\u001b[2m2026-08-03T17:18:44.413615Z\u001b[0m \u001b[31mERROR\u001b[0m \u001b[2mcodex_core::tools::router\u001b[0m\u001b[2m:\u001b[0m \u001b[3merror\u001b[0m\u001b[2m=\u001b[0mExit code: 1\nWall time: 0.3 seconds\nOutput:\ndesign/feature_descriptions\\F_106_active_popup_to_front.md\r\ndesign/feature_descriptions\\F_105_add_color_to_action_button_for_waiting.md\r\ndesign/feature_descriptions\\F_103_sticky_editor_toolbar.md\r\ndesign/feature_descriptions\\F_134_add_support_streaming_claude.md\r\ndesign/feature_descriptions\\F_92_add_markdownplaceholderplugin_to_action_input.md\r\ndesign/feature_descriptions\\F_133_set_default_push_mode_to_manual.md\r\ndesign/feature_descriptions\\F_108_add_file_search_editor_plugin.md\r\ndesign/feature_descriptions\\F_110_card_action_popup_should_show_card_id.md\r\n\n",
-        "prompt": "Add `Current state`, `implementation details`, `acceptance criteria` for `design/feature_descriptions/B_89_markdown_editor_in_list_view_missing_toolbar.md`.&#x20;\n\nRead all referenced files before you begin except `agents` files. it is possible that the file is not yet written. &#x20;\nAsk any question if something is ambiguous or not yet clear.\nKeep it short and to the point. use $caveman skill\n\nDo not stage or commit changes. md2 will commit files captured from provider edit tools.",
-        "status": "completed",
         "thinkingLevel": "none"
       },
+      "runId": "action-bdd2d563-e24d-46e1-8a74-1139f1413311",
       "origin": {
         "cardInternalId": "dfbc6cef-75cf-4a68-8e34-e72a7724769e",
         "kind": "card"
@@ -881,8 +879,9 @@
       "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "rootActionLabel": "complete card",
       "startedAt": "2026-08-03T17:17:32.355Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-a28f904e-4e39-4eea-a990-4a406f5a08d6"
     }
   ],
-  "version": 1
+  "version": 2
 }
