@@ -3,12 +3,12 @@ author:
 id: F_113
 internalId: 903157da-1625-4516-b5c9-b4880ef7fc40
 title: only show responses when in waitForInput mode
-status: new
+status: design
 owner: 
 affects:
 agents:
 policy:
-after: 01c2c981-7ead-4c33-b999-03a69c6812e9
+after: 
 ---
 
 When an action has 'response' prompts, the list of buttons is shown below the prompt input as soon as the action starts.
