@@ -3,7 +3,7 @@ author:
 id: F_130
 internalId: 9df160a1-c669-422b-aea5-da5655c12134
 title: drop card has too many renders
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
