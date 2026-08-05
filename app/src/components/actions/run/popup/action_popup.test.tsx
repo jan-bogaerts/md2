@@ -515,6 +515,47 @@ describe('ActionPopup', () => {
         expect(screen.getByRole('button', { name: 'Stream' })).toBeInTheDocument()
     })
 
+    it('keeps the prompt empty after completion without preparing another stored prompt', async () => {
+        actionRunRegistry.stop()
+        let runListener: ((event: ActionRunEvent) => void) | null = null
+        const prepareActionPrompt = vi.fn(async () => ({ prompt: 'Stored prompt' }))
+        window.md2Actions = {
+            loadActionRunHistory: vi.fn(async () => []),
+            onActionRun: vi.fn((listener) => {
+                runListener = listener
+
+                return vi.fn()
+            }),
+            prepareActionPrompt,
+        } as unknown as typeof window.md2Actions
+        actionRunRegistry.start()
+        actionService.loadFromFiles([file(agentDefinition('stream', { label: 'Stream', streaming: true }))])
+        renderPopup()
+        const prompt = within(screen.getByLabelText('Prompt')).getByRole('textbox')
+        await waitFor(() => expect(prompt).toHaveValue('Stored prompt'))
+        expect(prepareActionPrompt).toHaveBeenCalledOnce()
+        await waitFor(() => expect(runListener).not.toBeNull())
+
+        act(() => actionPromptDraftService.clearDraft('stream', context, null))
+        act(() => {
+            runListener?.({
+                actionId: 'stream', context, runId: 'run-1', phase: 'main', rootActionId: 'stream',
+                status: 'running', type: 'run',
+            })
+        })
+        expect(prompt).toHaveValue('')
+
+        act(() => {
+            runListener?.({
+                actionId: 'stream', context, runId: 'run-1', phase: 'main', rootActionId: 'stream',
+                status: 'completed', type: 'run',
+            })
+        })
+
+        await waitFor(() => expect(prompt).toHaveValue(''))
+        expect(prepareActionPrompt).toHaveBeenCalledOnce()
+    })
+
     it('clears stored prefill when switching to an active action and restores its draft after reopen', async () => {
         actionRunRegistry.stop()
         let runListener: ((event: ActionRunEvent) => void) | null = null

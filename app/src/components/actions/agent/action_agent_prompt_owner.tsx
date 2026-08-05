@@ -46,6 +46,7 @@ export function ActionAgentPromptOwner(props: ActionAgentPromptOwnerProps) {
     const settings = useActionRunSettings(action, inputStore)
     const prepare = action.type === 'agent'
         && !sessionActive
+        && runStatus !== 'completed'
         && conversationSnapshot.selectedConversation?.status !== 'waitingForInput'
     const promptDraft = currentActionPromptDraft(action, context, prepare)
 
