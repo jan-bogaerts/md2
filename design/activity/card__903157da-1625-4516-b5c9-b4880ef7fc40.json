@@ -1258,7 +1258,7 @@
       "startedAt": "2026-08-05T17:32:47.314Z",
       "status": "waitingForInput",
       "title": "implement",
-      "viewed": false,
+      "viewed": true,
       "usage": {
         "cachedInputTokens": 56064,
         "inputTokens": 59087,

@@ -4,7 +4,7 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "efdaf96e-da6f-4d8f-874f-042f30965276",
       "cardPath": "design/feature_descriptions/F_128_allow_auto_delete_branch.md",
-      "completedAt": "2026-08-05T17:37:23.143Z",
+      "completedAt": null,
       "entries": [
         {
           "content": "Add `Current state`, `implementation details`, `acceptance criteria` for `design/feature_descriptions/F_128_allow_auto_delete_branch.md`.&#x20;\n\nRead all referenced files before you begin except `agents` files. it is possible that the file is not yet written. &#x20;\nAsk any question if something is ambiguous or not yet clear.\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill\n\nDo not stage or commit changes. md2 will commit files captured from provider edit tools.",
@@ -628,6 +628,182 @@
           "role": "assistant",
           "sequence": 43,
           "timestamp": "2026-08-05T17:37:23.143Z"
+        },
+        {
+          "content": "1. Yes, operational, it should be ´unassign and park´\n2. Yes\n3. Not per card",
+          "id": "agent-turn-26ecacc4-def8-44ef-b2ec-03c53fc77d85-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 44,
+          "timestamp": "2026-08-05T17:40:13.871Z"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-26ecacc4-def8-44ef-b2ec-03c53fc77d85-event-45",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_03e7c4d9075b3b6d016a737586517081918d43485f88f8be52",
+          "sequence": 45,
+          "status": "completed",
+          "timestamp": "2026-08-05T17:40:21.116Z",
+          "type": "reasoning",
+          "details": [],
+          "summary": []
+        },
+        {
+          "agent": "codex",
+          "content": "Answers resolve ambiguity. Using technical-writer skill for concise design sections; caveman remains active. Delete means successful integration, then unassign and park; release cleanup waits for release commit and auto-push.\n\n",
+          "id": "agent-turn-26ecacc4-def8-44ef-b2ec-03c53fc77d85-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 46,
+          "timestamp": "2026-08-05T17:40:22.023Z"
+        },
+        {
+          "content": "---\r\nname: technical-writer\r\ndescription: \"Use this agent when you need to create, improve, or maintain technical documentation including API references, user guides, SDK documentation, and getting-started guides.\"\r\ntools: Read, Write, Edit, Glob, Grep, WebFetch, WebSearch\r\nmodel: haiku\r\n---\r\n\r\nYou are a senior technical writer with expertise in creating comprehensive, user-friendly documentation. Your focus spans API references, user guides, tutorials, and technical content with emphasis on clarity, accuracy, and helping users succeed with technical products and services.\r\n\r\n\r\nWhen invoked:\r\n1. Query context manager for documentation needs and audience\r\n2. Review existing documentation, product features, and user feedback\r\n3. Analyze content gaps, clarity issues, and improvement opportunities\r\n4. Create documentation that empowers users and reduces support burden\r\n\r\nTechnical writing checklist:\r\n- Readability score > 60 achieved\r\n- Technical accuracy 100% verified\r\n- Examples provided comprehensively\r\n- Visuals included appropriately\r\n- Version controlled properly\r\n- Peer reviewed thoroughly\r\n- SEO optimized effectively\r\n- User feedback positive consistently\r\n\r\nDocumentation types:\r\n- Developer documentation\r\n- End-user guides\r\n- Administrator manuals\r\n- API references\r\n- SDK documentation\r\n- Integration guides\r\n- Best practices\r\n- Troubleshooting guides\r\n\r\nContent creation:\r\n- Information architecture\r\n- Content planning\r\n- Writing standards\r\n- Style consistency\r\n- Terminology management\r\n- Version control\r\n- Review processes\r\n- Publishing workflows\r\n\r\nAPI documentation:\r\n- Endpoint descriptions\r\n- Parameter documentation\r\n- Request/response examples\r\n- Authentication guides\r\n- Error references\r\n- Code samples\r\n- SDK guides\r\n- Integration tutorials\r\n\r\nUser guides:\r\n- Getting started\r\n- Feature documentation\r\n- Task-based guides\r\n- Troubleshooting\r\n- FAQs\r\n- Video tutorials\r\n- Quick references\r\n- Best practices\r\n\r\nWriting techniques:\r\n- Information architecture\r\n- Progressive disclosure\r\n- Task-based writing\r\n- Minimalist approach\r\n- Visual communication\r\n- Structured authoring\r\n- Single sourcing\r\n- Localization ready\r\n\r\nDocumentation tools:\r\n- Markdown mastery\r\n- Static site generators\r\n- API doc tools\r\n- Diagramming software\r\n- Screenshot tools\r\n- Version control\r\n- CI/CD integration\r\n- Analytics tracking\r\n\r\nContent standards:\r\n- Style guides\r\n- Writing principles\r\n- Formatting rules\r\n- Terminology consistency\r\n- Voice and tone\r\n- Accessibility standards\r\n- SEO guidelines\r\n- Legal compliance\r\n\r\nVisual communication:\r\n- Diagrams\r\n- Screenshots\r\n- Annotations\r\n- Flowcharts\r\n- Architecture diagrams\r\n- Infographics\r\n- Video content\r\n- Interactive elements\r\n\r\nReview processes:\r\n- Technical accuracy\r\n- Clarity checks\r\n- Completeness review\r\n- Consistency validation\r\n- Accessibility testing\r\n- User testing\r\n- Stakeholder approval\r\n- Continuous updates\r\n\r\nDocumentation automation:\r\n- API doc generation\r\n- Code snippet extraction\r\n- Changelog automation\r\n- Link checking\r\n- Build integration\r\n- Version synchronization\r\n- Translation workflows\r\n- Metrics tracking\r\n\r\n## Communication Protocol\r\n\r\n### Documentation Context Assessment\r\n\r\nInitialize technical writing by understanding documentation needs.\r\n\r\nDocumentation context query:\r\n```json\r\n{\r\n  \"requesting_agent\": \"technical-writer\",\r\n  \"request_type\": \"get_documentation_context\",\r\n  \"payload\": {\r\n    \"query\": \"Documentation context needed: product features, target audiences, existing docs, pain points, preferred formats, and success metrics.\"\r\n  }\r\n}\r\n```\r\n\r\n## Development Workflow\r\n\r\nExecute technical writing through systematic phases:\r\n\r\n### 1. Planning Phase\r\n\r\nUnderstand documentation requirements and audience.\r\n\r\nPlanning priorities:\r\n- Audience analysis\r\n- Content audit\r\n- Gap identification\r\n- Structure design\r\n- Tool selection\r\n- Timeline planning\r\n- Review process\r\n- Success metrics\r\n\r\nContent strategy:\r\n- Define objectives\r\n- Identify audiences\r\n- Map user journeys\r\n- Plan content types\r\n- Create outlines\r\n- Set standards\r\n- Establish workflows\r\n- Define metrics\r\n\r\n### 2. Implementation Phase\r\n\r\nCreate clear, comprehensive documentation.\r\n\r\nImplementation approach:\r\n- Research thoroughly\r\n- Write clearly\r\n- Include examples\r\n- Add visuals\r\n- Review accuracy\r\n- Test usability\r\n- Gather feedback\r\n- Iterate continuously\r\n\r\nWriting patterns:\r\n- User-focused approach\r\n- Clear structure\r\n- Consistent style\r\n- Practical examples\r\n- Visual aids\r\n- Progressive complexity\r\n- Searchable content\r\n- Regular updates\r\n\r\nProgress tracking:\r\n```json\r\n{\r\n  \"agent\": \"technical-writer\",\r\n  \"status\": \"documenting\",\r\n  \"progress\": {\r\n    \"pages_written\": 127,\r\n    \"apis_documented\": 45,\r\n    \"readability_score\": 68,\r\n    \"user_satisfaction\": \"92%\"\r\n  }\r\n}\r\n```\r\n\r\n### 3. Documentation Excellence\r\n\r\nDeliver documentation that drives success.\r\n\r\nExcellence checklist:\r\n- Content comprehensive\r\n- Accuracy verified\r\n- Usability tested\r\n- Feedback incorporated\r\n- Search optimized\r\n- Maintenance planned\r\n- Impact measured\r\n- Users empowered\r\n\r\nDelivery notification:\r\n\"Documentation completed. Created 127 pages covering 45 APIs with average readability score of 68. User satisfaction increased to 92% with 73% reduction in support tickets. Documentation-driven adoption increased by 45%.\"\r\n\r\nInformation architecture:\r\n- Logical organization\r\n- Clear navigation\r\n- Consistent structure\r\n- Intuitive categorization\r\n- Effective search\r\n- Cross-references\r\n- Related content\r\n- User pathways\r\n\r\nWriting excellence:\r\n- Clear language\r\n- Active voice\r\n- Concise sentences\r\n- Logical flow\r\n- Consistent terminology\r\n- Helpful examples\r\n- Visual breaks\r\n- Scannable format\r\n\r\nAPI documentation best practices:\r\n- Complete coverage\r\n- Clear descriptions\r\n- Working examples\r\n- Error handling\r\n- Authentication details\r\n- Rate limits\r\n- Versioning info\r\n- Quick start guide\r\n\r\nUser guide strategies:\r\n- Task orientation\r\n- Step-by-step instructions\r\n- Visual aids\r\n- Common scenarios\r\n- Troubleshooting tips\r\n- Best practices\r\n- Advanced features\r\n- Quick references\r\n\r\nContinuous improvement:\r\n- User feedback collection\r\n- Analytics monitoring\r\n- Regular updates\r\n- Content refresh\r\n- Broken link checks\r\n- Accuracy verification\r\n- Performance optimization\r\n- New feature documentation\r\n\r\nIntegration with other agents:\r\n- Collaborate with product-manager on features\r\n- Support developers on API docs\r\n- Work with ux-researcher on user needs\r\n- Guide support teams on FAQs\r\n- Help marketing on content\r\n- Assist sales-engineer on materials\r\n- Partner with customer-success on guides\r\n- Coordinate with legal-advisor on compliance\r\n\r\nAlways prioritize clarity, accuracy, and user success while creating documentation that reduces friction and enables users to achieve their goals efficiently.\r\n",
+          "id": "agent-turn-26ecacc4-def8-44ef-b2ec-03c53fc77d85-event-47",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw '.agents/skills/technical-writer/SKILL.md'\"",
+          "providerItemId": "exec-53805489-4450-4895-b539-113c348991c8",
+          "sequence": 47,
+          "status": "completed",
+          "timestamp": "2026-08-05T17:40:24.050Z",
+          "type": "commandExecution",
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw '.agents/skills/technical-writer/SKILL.md'\"",
+          "durationMs": 339,
+          "exitCode": 0,
+          "output": "---\r\nname: technical-writer\r\ndescription: \"Use this agent when you need to create, improve, or maintain technical documentation including API references, user guides, SDK documentation, and getting-started guides.\"\r\ntools: Read, Write, Edit, Glob, Grep, WebFetch, WebSearch\r\nmodel: haiku\r\n---\r\n\r\nYou are a senior technical writer with expertise in creating comprehensive, user-friendly documentation. Your focus spans API references, user guides, tutorials, and technical content with emphasis on clarity, accuracy, and helping users succeed with technical products and services.\r\n\r\n\r\nWhen invoked:\r\n1. Query context manager for documentation needs and audience\r\n2. Review existing documentation, product features, and user feedback\r\n3. Analyze content gaps, clarity issues, and improvement opportunities\r\n4. Create documentation that empowers users and reduces support burden\r\n\r\nTechnical writing checklist:\r\n- Readability score > 60 achieved\r\n- Technical accuracy 100% verified\r\n- Examples provided comprehensively\r\n- Visuals included appropriately\r\n- Version controlled properly\r\n- Peer reviewed thoroughly\r\n- SEO optimized effectively\r\n- User feedback positive consistently\r\n\r\nDocumentation types:\r\n- Developer documentation\r\n- End-user guides\r\n- Administrator manuals\r\n- API references\r\n- SDK documentation\r\n- Integration guides\r\n- Best practices\r\n- Troubleshooting guides\r\n\r\nContent creation:\r\n- Information architecture\r\n- Content planning\r\n- Writing standards\r\n- Style consistency\r\n- Terminology management\r\n- Version control\r\n- Review processes\r\n- Publishing workflows\r\n\r\nAPI documentation:\r\n- Endpoint descriptions\r\n- Parameter documentation\r\n- Request/response examples\r\n- Authentication guides\r\n- Error references\r\n- Code samples\r\n- SDK guides\r\n- Integration tutorials\r\n\r\nUser guides:\r\n- Getting started\r\n- Feature documentation\r\n- Task-based guides\r\n- Troubleshooting\r\n- FAQs\r\n- Video tutorials\r\n- Quick references\r\n- Best practices\r\n\r\nWriting techniques:\r\n- Information architecture\r\n- Progressive disclosure\r\n- Task-based writing\r\n- Minimalist approach\r\n- Visual communication\r\n- Structured authoring\r\n- Single sourcing\r\n- Localization ready\r\n\r\nDocumentation tools:\r\n- Markdown mastery\r\n- Static site generators\r\n- API doc tools\r\n- Diagramming software\r\n- Screenshot tools\r\n- Version control\r\n- CI/CD integration\r\n- Analytics tracking\r\n\r\nContent standards:\r\n- Style guides\r\n- Writing principles\r\n- Formatting rules\r\n- Terminology consistency\r\n- Voice and tone\r\n- Accessibility standards\r\n- SEO guidelines\r\n- Legal compliance\r\n\r\nVisual communication:\r\n- Diagrams\r\n- Screenshots\r\n- Annotations\r\n- Flowcharts\r\n- Architecture diagrams\r\n- Infographics\r\n- Video content\r\n- Interactive elements\r\n\r\nReview processes:\r\n- Technical accuracy\r\n- Clarity checks\r\n- Completeness review\r\n- Consistency validation\r\n- Accessibility testing\r\n- User testing\r\n- Stakeholder approval\r\n- Continuous updates\r\n\r\nDocumentation automation:\r\n- API doc generation\r\n- Code snippet extraction\r\n- Changelog automation\r\n- Link checking\r\n- Build integration\r\n- Version synchronization\r\n- Translation workflows\r\n- Metrics tracking\r\n\r\n## Communication Protocol\r\n\r\n### Documentation Context Assessment\r\n\r\nInitialize technical writing by understanding documentation needs.\r\n\r\nDocumentation context query:\r\n```json\r\n{\r\n  \"requesting_agent\": \"technical-writer\",\r\n  \"request_type\": \"get_documentation_context\",\r\n  \"payload\": {\r\n    \"query\": \"Documentation context needed: product features, target audiences, existing docs, pain points, preferred formats, and success metrics.\"\r\n  }\r\n}\r\n```\r\n\r\n## Development Workflow\r\n\r\nExecute technical writing through systematic phases:\r\n\r\n### 1. Planning Phase\r\n\r\nUnderstand documentation requirements and audience.\r\n\r\nPlanning priorities:\r\n- Audience analysis\r\n- Content audit\r\n- Gap identification\r\n- Structure design\r\n- Tool selection\r\n- Timeline planning\r\n- Review process\r\n- Success metrics\r\n\r\nContent strategy:\r\n- Define objectives\r\n- Identify audiences\r\n- Map user journeys\r\n- Plan content types\r\n- Create outlines\r\n- Set standards\r\n- Establish workflows\r\n- Define metrics\r\n\r\n### 2. Implementation Phase\r\n\r\nCreate clear, comprehensive documentation.\r\n\r\nImplementation approach:\r\n- Research thoroughly\r\n- Write clearly\r\n- Include examples\r\n- Add visuals\r\n- Review accuracy\r\n- Test usability\r\n- Gather feedback\r\n- Iterate continuously\r\n\r\nWriting patterns:\r\n- User-focused approach\r\n- Clear structure\r\n- Consistent style\r\n- Practical examples\r\n- Visual aids\r\n- Progressive complexity\r\n- Searchable content\r\n- Regular updates\r\n\r\nProgress tracking:\r\n```json\r\n{\r\n  \"agent\": \"technical-writer\",\r\n  \"status\": \"documenting\",\r\n  \"progress\": {\r\n    \"pages_written\": 127,\r\n    \"apis_documented\": 45,\r\n    \"readability_score\": 68,\r\n    \"user_satisfaction\": \"92%\"\r\n  }\r\n}\r\n```\r\n\r\n### 3. Documentation Excellence\r\n\r\nDeliver documentation that drives success.\r\n\r\nExcellence checklist:\r\n- Content comprehensive\r\n- Accuracy verified\r\n- Usability tested\r\n- Feedback incorporated\r\n- Search optimized\r\n- Maintenance planned\r\n- Impact measured\r\n- Users empowered\r\n\r\nDelivery notification:\r\n\"Documentation completed. Created 127 pages covering 45 APIs with average readability score of 68. User satisfaction increased to 92% with 73% reduction in support tickets. Documentation-driven adoption increased by 45%.\"\r\n\r\nInformation architecture:\r\n- Logical organization\r\n- Clear navigation\r\n- Consistent structure\r\n- Intuitive categorization\r\n- Effective search\r\n- Cross-references\r\n- Related content\r\n- User pathways\r\n\r\nWriting excellence:\r\n- Clear language\r\n- Active voice\r\n- Concise sentences\r\n- Logical flow\r\n- Consistent terminology\r\n- Helpful examples\r\n- Visual breaks\r\n- Scannable format\r\n\r\nAPI documentation best practices:\r\n- Complete coverage\r\n- Clear descriptions\r\n- Working examples\r\n- Error handling\r\n- Authentication details\r\n- Rate limits\r\n- Versioning info\r\n- Quick start guide\r\n\r\nUser guide strategies:\r\n- Task orientation\r\n- Step-by-step instructions\r\n- Visual aids\r\n- Common scenarios\r\n- Troubleshooting tips\r\n- Best practices\r\n- Advanced features\r\n- Quick references\r\n\r\nContinuous improvement:\r\n- User feedback collection\r\n- Analytics monitoring\r\n- Regular updates\r\n- Content refresh\r\n- Broken link checks\r\n- Accuracy verification\r\n- Performance optimization\r\n- New feature documentation\r\n\r\nIntegration with other agents:\r\n- Collaborate with product-manager on features\r\n- Support developers on API docs\r\n- Work with ux-researcher on user needs\r\n- Guide support teams on FAQs\r\n- Help marketing on content\r\n- Assist sales-engineer on materials\r\n- Partner with customer-success on guides\r\n- Coordinate with legal-advisor on compliance\r\n\r\nAlways prioritize clarity, accuracy, and user success while creating documentation that reduces friction and enables users to achieve their goals efficiently.\r\n",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-26ecacc4-def8-44ef-b2ec-03c53fc77d85-event-48",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_03e7c4d9075b3b6d016a73758b77d48191ad8c8a7323b6c883",
+          "sequence": 48,
+          "status": "completed",
+          "timestamp": "2026-08-05T17:40:42.954Z",
+          "type": "reasoning",
+          "details": [],
+          "summary": []
+        },
+        {
+          "content": "",
+          "id": "agent-turn-26ecacc4-def8-44ef-b2ec-03c53fc77d85-event-49",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_03e7c4d9075b3b6d016a73759cf45c8191814624c6bb620c50",
+          "sequence": 49,
+          "status": "completed",
+          "timestamp": "2026-08-05T17:40:55.539Z",
+          "type": "reasoning",
+          "details": [],
+          "summary": []
+        },
+        {
+          "content": "",
+          "id": "agent-turn-26ecacc4-def8-44ef-b2ec-03c53fc77d85-event-50",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_03e7c4d9075b3b6d016a7375a988308191bb8c83c6ccf900f6",
+          "sequence": 50,
+          "status": "completed",
+          "timestamp": "2026-08-05T17:41:08.288Z",
+          "type": "reasoning",
+          "details": [],
+          "summary": []
+        },
+        {
+          "content": "",
+          "id": "agent-turn-26ecacc4-def8-44ef-b2ec-03c53fc77d85-event-51",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_03e7c4d9075b3b6d016a7375b64954819189392aede6d59258",
+          "sequence": 51,
+          "status": "completed",
+          "timestamp": "2026-08-05T17:41:10.937Z",
+          "type": "reasoning",
+          "details": [],
+          "summary": []
+        },
+        {
+          "content": "",
+          "id": "agent-turn-26ecacc4-def8-44ef-b2ec-03c53fc77d85-event-52",
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-e7dfcfbd-89ae-4f8a-947a-fbf3e221db3c",
+          "sequence": 52,
+          "status": "completed",
+          "timestamp": "2026-08-05T17:41:35.801Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-26ecacc4-def8-44ef-b2ec-03c53fc77d85-event-53",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_03e7c4d9075b3b6d016a7375d375688191b363abad818ed454",
+          "sequence": 53,
+          "status": "completed",
+          "timestamp": "2026-08-05T17:41:38.061Z",
+          "type": "reasoning",
+          "details": [],
+          "summary": []
+        },
+        {
+          "content": "---\nauthor: \nid: F_128\ninternalId: efdaf96e-da6f-4d8f-874f-042f30965276\ntitle: Allow auto delete branch\nstatus: design\nowner: \naffects:\nagents:\n  - design/activity/card__efdaf96e-da6f-4d8f-874f-042f30965276.json#conversation=agent-74368566-29db-40ee-bab9-299acbddbe92\npolicy:\nafter: 18fd04d3-5df7-4f54-ab7a-94d96f210f13\n---\n\nWhen we assign a worktree to a card, a branch is auto created.\n\nWhen that branch is merged back into projectÂ´s branch, we currently let the branch be.\n\nThe Â´integrate into projectÂ´ dialog should have a checkbox to Â´delete branchÂ´. Last selected value needs to be persisted and restored. When selected, only delete branch after succesful merge.\n\nWhen a release is done, for all cards that a branch was created and not yet deleted, show a checkbox in the release form so branches can still be deleted after release.\n\nUsers should be able to select - unselect all chzckboxes at once. Last selected value should be persisted and restored\n\n## Current state\n\nAssigning a card prepares a local branch derived from card ID and title, then stores only one-based worktree index in card frontmatter. Card does not retain branch name.\n\n`Integrate into project` rebases branch when needed, squash-merges its changes into project branch, and synchronizes linked branch to new project commit. It neither asks for confirmation nor deletes branch. Returning card to Primary parks linked worktree and removes assignment, but leaves card branch in repository.\n\nRelease dialog accepts only release name. Release completion archives final-column cards, optionally pushes release commit, and does no branch cleanup. `F_87` is prerequisite: its assigned-worktree guard must pass before this feature offers release-time branch deletion.\n\n## implementation details\n\n- Persist generated branch name in card frontmatter when assignment succeeds. Keep it after normal unassignment so release flow can identify branch. Clear it only after confirmed branch deletion. A pending branch means card retains branch name and local branch still exists.\n- Replace direct integration action with confirmation dialog containing `Delete branch`. Persist and restore last value globally through config service; do not store preference per card.\n- When deletion is selected, finish squash integration first. After integration succeeds, park linked worktree, unassign card, force-delete local card branch, then clear stored branch name. Force deletion is required because squash integration does not make Git regard original commits as merged. Do not delete remote branches.\n- If integration fails, do not park, unassign, delete, or clear branch name. If later cleanup fails, report partial failure through `dialogService`, keep branch name for retry, and make card assignment match actual worktree state.\n- Extend desktop Git service, Electron and remote-control bridges, storage contracts, and renderer worktree service with explicit local-branch deletion. Validate branch name and reject project branch, parking branches, or any branch still checked out by a worktree.\n- In release dialog, list undeleted branches only for cards included in current release. Add per-branch checkboxes plus `Select all` / `Clear all`. Persist and restore global select-all default; individual card selections are not persisted.\n- Pass selected branch names into release completion. First archive cards and complete configured automatic push. Only after both succeed, delete selected local branches. Release failure deletes no branches. Branch-cleanup failure is reported as post-release partial failure and identifies every branch that was not deleted.\n- Keep `F_87` guard before file moves. Release-time cleanup never parks or unassigns worktrees because release cannot start while any release card remains assigned.\n- Add parser and card-operation tests for branch metadata; desktop Git and bridge tests for safe deletion; worktree integration tests for ordering and partial failures; dialog/config tests for restored defaults and bulk selection; release tests for candidate filtering and post-commit, post-push deletion timing.\n\n## acceptance criteria\n\n- Integration dialog always shows `Delete branch` with globally persisted last value.\n- With deletion cleared, successful integration keeps assignment and local card branch.\n- With deletion selected, successful integration parks worktree, unassigns card, deletes local card branch, and clears stored branch name.\n- Failed integration leaves worktree assignment, branch, and stored branch name unchanged.\n- Cleanup failure after successful integration reports completed integration plus failed cleanup, without losing branch identity needed for retry.\n- Release dialog lists one checkbox for each undeleted local branch belonging to card in current release, and no branch from other cards.\n- `Select all` and `Clear all` update every branch checkbox. Global select-all choice is restored next time; per-card choices are not.\n- Release archive or automatic push failure deletes no selected branch.\n- Successful release commit and automatic push happen before selected local branches are deleted. Unselected branches remain.\n- Project branch, parking branches, remote branches, and branches checked out by any worktree cannot be deleted by this feature.\n- Tests cover successful paths, no candidates, stale or missing branches, partial cleanup failure, restored defaults, and operation ordering.\n\r\n",
+          "id": "agent-turn-26ecacc4-def8-44ef-b2ec-03c53fc77d85-event-54",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design/feature_descriptions/F_128_allow_auto_delete_branch.md'\"",
+          "providerItemId": "exec-6cbdb899-0aa7-469f-893d-6469cba8174e",
+          "sequence": 54,
+          "status": "completed",
+          "timestamp": "2026-08-05T17:41:40.550Z",
+          "type": "commandExecution",
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design/feature_descriptions/F_128_allow_auto_delete_branch.md'\"",
+          "durationMs": 375,
+          "exitCode": 0,
+          "output": "---\nauthor: \nid: F_128\ninternalId: efdaf96e-da6f-4d8f-874f-042f30965276\ntitle: Allow auto delete branch\nstatus: design\nowner: \naffects:\nagents:\n  - design/activity/card__efdaf96e-da6f-4d8f-874f-042f30965276.json#conversation=agent-74368566-29db-40ee-bab9-299acbddbe92\npolicy:\nafter: 18fd04d3-5df7-4f54-ab7a-94d96f210f13\n---\n\nWhen we assign a worktree to a card, a branch is auto created.\n\nWhen that branch is merged back into projectÂ´s branch, we currently let the branch be.\n\nThe Â´integrate into projectÂ´ dialog should have a checkbox to Â´delete branchÂ´. Last selected value needs to be persisted and restored. When selected, only delete branch after succesful merge.\n\nWhen a release is done, for all cards that a branch was created and not yet deleted, show a checkbox in the release form so branches can still be deleted after release.\n\nUsers should be able to select - unselect all chzckboxes at once. Last selected value should be persisted and restored\n\n## Current state\n\nAssigning a card prepares a local branch derived from card ID and title, then stores only one-based worktree index in card frontmatter. Card does not retain branch name.\n\n`Integrate into project` rebases branch when needed, squash-merges its changes into project branch, and synchronizes linked branch to new project commit. It neither asks for confirmation nor deletes branch. Returning card to Primary parks linked worktree and removes assignment, but leaves card branch in repository.\n\nRelease dialog accepts only release name. Release completion archives final-column cards, optionally pushes release commit, and does no branch cleanup. `F_87` is prerequisite: its assigned-worktree guard must pass before this feature offers release-time branch deletion.\n\n## implementation details\n\n- Persist generated branch name in card frontmatter when assignment succeeds. Keep it after normal unassignment so release flow can identify branch. Clear it only after confirmed branch deletion. A pending branch means card retains branch name and local branch still exists.\n- Replace direct integration action with confirmation dialog containing `Delete branch`. Persist and restore last value globally through config service; do not store preference per card.\n- When deletion is selected, finish squash integration first. After integration succeeds, park linked worktree, unassign card, force-delete local card branch, then clear stored branch name. Force deletion is required because squash integration does not make Git regard original commits as merged. Do not delete remote branches.\n- If integration fails, do not park, unassign, delete, or clear branch name. If later cleanup fails, report partial failure through `dialogService`, keep branch name for retry, and make card assignment match actual worktree state.\n- Extend desktop Git service, Electron and remote-control bridges, storage contracts, and renderer worktree service with explicit local-branch deletion. Validate branch name and reject project branch, parking branches, or any branch still checked out by a worktree.\n- In release dialog, list undeleted branches only for cards included in current release. Add per-branch checkboxes plus `Select all` / `Clear all`. Persist and restore global select-all default; individual card selections are not persisted.\n- Pass selected branch names into release completion. First archive cards and complete configured automatic push. Only after both succeed, delete selected local branches. Release failure deletes no branches. Branch-cleanup failure is reported as post-release partial failure and identifies every branch that was not deleted.\n- Keep `F_87` guard before file moves. Release-time cleanup never parks or unassigns worktrees because release cannot start while any release card remains assigned.\n- Add parser and card-operation tests for branch metadata; desktop Git and bridge tests for safe deletion; worktree integration tests for ordering and partial failures; dialog/config tests for restored defaults and bulk selection; release tests for candidate filtering and post-commit, post-push deletion timing.\n\n## acceptance criteria\n\n- Integration dialog always shows `Delete branch` with globally persisted last value.\n- With deletion cleared, successful integration keeps assignment and local card branch.\n- With deletion selected, successful integration parks worktree, unassigns card, deletes local card branch, and clears stored branch name.\n- Failed integration leaves worktree assignment, branch, and stored branch name unchanged.\n- Cleanup failure after successful integration reports completed integration plus failed cleanup, without losing branch identity needed for retry.\n- Release dialog lists one checkbox for each undeleted local branch belonging to card in current release, and no branch from other cards.\n- `Select all` and `Clear all` update every branch checkbox. Global select-all choice is restored next time; per-card choices are not.\n- Release archive or automatic push failure deletes no selected branch.\n- Successful release commit and automatic push happen before selected local branches are deleted. Unselected branches remain.\n- Project branch, parking branches, remote branches, and branches checked out by any worktree cannot be deleted by this feature.\n- Tests cover successful paths, no candidates, stale or missing branches, partial cleanup failure, restored defaults, and operation ordering.\n\r\n",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "diff --git a/design/feature_descriptions/F_128_allow_auto_delete_branch.md b/design/feature_descriptions/F_128_allow_auto_delete_branch.md\nindex dbf3540..b3d6ebb 100644\n--- a/design/feature_descriptions/F_128_allow_auto_delete_branch.md\n+++ b/design/feature_descriptions/F_128_allow_auto_delete_branch.md\n@@ -20,4 +20,38 @@ The ´integrate into project´ dialog should have a checkbox to ´delete branch\n \n When a release is done, for all cards that a branch was created and not yet deleted, show a checkbox in the release form so branches can still be deleted after release.\n \n-Users should be able to select - unselect all chzckboxes at once. Last selected value should be persisted and restored\n\\ No newline at end of file\n+Users should be able to select - unselect all chzckboxes at once. Last selected value should be persisted and restored\n+\n+## Current state\n+\n+Assigning a card prepares a local branch derived from card ID and title, then stores only one-based worktree index in card frontmatter. Card does not retain branch name.\n+\n+`Integrate into project` rebases branch when needed, squash-merges its changes into project branch, and synchronizes linked branch to new project commit. It neither asks for confirmation nor deletes branch. Returning card to Primary parks linked worktree and removes assignment, but leaves card branch in repository.\n+\n+Release dialog accepts only release name. Release completion archives final-column cards, optionally pushes release commit, and does no branch cleanup. `F_87` is prerequisite: its assigned-worktree guard must pass before this feature offers release-time branch deletion.\n+\n+## implementation details\n+\n+- Persist generated branch name in card frontmatter when assignment succeeds. Keep it after normal unassignment so release flow can identify branch. Clear it only after confirmed branch deletion. A pending branch means card retains branch name and local branch still exists.\n+- Replace direct integration action with confirmation dialog containing `Delete branch`. Persist and restore last value globally through config service; do not store preference per card.\n+- When deletion is selected, finish squash integration first. After integration succeeds, park linked worktree, unassign card, force-delete local card branch, then clear stored branch name. Force deletion is required because squash integration does not make Git regard original commits as merged. Do not delete remote branches.\n+- If integration fails, do not park, unassign, delete, or clear branch name. If later cleanup fails, report partial failure through `dialogService`, keep branch name for retry, and make card assignment match actual worktree state.\n+- Extend desktop Git service, Electron and remote-control bridges, storage contracts, and renderer worktree service with explicit local-branch deletion. Validate branch name and reject project branch, parking branches, or any branch still checked out by a worktree.\n+- In release dialog, list undeleted branches only for cards included in current release. Add per-branch checkboxes plus `Select all` / `Clear all`. Persist and restore global select-all default; individual card selections are not persisted.\n+- Pass selected branch names into release completion. First archive cards and complete configured automatic push. Only after both succeed, delete selected local branches. Release failure deletes no branches. Branch-cleanup failure is reported as post-release partial failure and identifies every branch that was not deleted.\n+- Keep `F_87` guard before file moves. Release-time cleanup never parks or unassigns worktrees because release cannot start while any release card remains assigned.\n+- Add parser and card-operation tests for branch metadata; desktop Git and bridge tests for safe deletion; worktree integration tests for ordering and partial failures; dialog/config tests for restored defaults and bulk selection; release tests for candidate filtering and post-commit, post-push deletion timing.\n+\n+## acceptance criteria\n+\n+- Integration dialog always shows `Delete branch` with globally persisted last value.\n+- With deletion cleared, successful integration keeps assignment and local card branch.\n+- With deletion selected, successful integration parks worktree, unassigns card, deletes local card branch, and clears stored branch name.\n+- Failed integration leaves worktree assignment, branch, and stored branch name unchanged.\n+- Cleanup failure after successful integration reports completed integration plus failed cleanup, without losing branch identity needed for retry.\n+- Release dialog lists one checkbox for each undeleted local branch belonging to card in current release, and no branch from other cards.\n+- `Select all` and `Clear all` update every branch checkbox. Global select-all choice is restored next time; per-card choices are not.\n+- Release archive or automatic push failure deletes no selected branch.\n+- Successful release commit and automatic push happen before selected local branches are deleted. Unselected branches remain.\n+- Project branch, parking branches, remote branches, and branches checked out by any worktree cannot be deleted by this feature.\n+- Tests cover successful paths, no candidates, stale or missing branches, partial cleanup failure, restored defaults, and operation ordering.\n",
+          "id": "agent-turn-26ecacc4-def8-44ef-b2ec-03c53fc77d85-event-55",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"git diff -- 'design/feature_descriptions/F_128_allow_auto_delete_branch.md'\"",
+          "providerItemId": "exec-e0f47352-e936-4322-be9b-5ee3c3e620cd",
+          "sequence": 55,
+          "status": "completed",
+          "timestamp": "2026-08-05T17:41:40.568Z",
+          "type": "commandExecution",
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"git diff -- 'design/feature_descriptions/F_128_allow_auto_delete_branch.md'\"",
+          "durationMs": 391,
+          "exitCode": 0,
+          "output": "diff --git a/design/feature_descriptions/F_128_allow_auto_delete_branch.md b/design/feature_descriptions/F_128_allow_auto_delete_branch.md\nindex dbf3540..b3d6ebb 100644\n--- a/design/feature_descriptions/F_128_allow_auto_delete_branch.md\n+++ b/design/feature_descriptions/F_128_allow_auto_delete_branch.md\n@@ -20,4 +20,38 @@ The ´integrate into project´ dialog should have a checkbox to ´delete branch\n \n When a release is done, for all cards that a branch was created and not yet deleted, show a checkbox in the release form so branches can still be deleted after release.\n \n-Users should be able to select - unselect all chzckboxes at once. Last selected value should be persisted and restored\n\\ No newline at end of file\n+Users should be able to select - unselect all chzckboxes at once. Last selected value should be persisted and restored\n+\n+## Current state\n+\n+Assigning a card prepares a local branch derived from card ID and title, then stores only one-based worktree index in card frontmatter. Card does not retain branch name.\n+\n+`Integrate into project` rebases branch when needed, squash-merges its changes into project branch, and synchronizes linked branch to new project commit. It neither asks for confirmation nor deletes branch. Returning card to Primary parks linked worktree and removes assignment, but leaves card branch in repository.\n+\n+Release dialog accepts only release name. Release completion archives final-column cards, optionally pushes release commit, and does no branch cleanup. `F_87` is prerequisite: its assigned-worktree guard must pass before this feature offers release-time branch deletion.\n+\n+## implementation details\n+\n+- Persist generated branch name in card frontmatter when assignment succeeds. Keep it after normal unassignment so release flow can identify branch. Clear it only after confirmed branch deletion. A pending branch means card retains branch name and local branch still exists.\n+- Replace direct integration action with confirmation dialog containing `Delete branch`. Persist and restore last value globally through config service; do not store preference per card.\n+- When deletion is selected, finish squash integration first. After integration succeeds, park linked worktree, unassign card, force-delete local card branch, then clear stored branch name. Force deletion is required because squash integration does not make Git regard original commits as merged. Do not delete remote branches.\n+- If integration fails, do not park, unassign, delete, or clear branch name. If later cleanup fails, report partial failure through `dialogService`, keep branch name for retry, and make card assignment match actual worktree state.\n+- Extend desktop Git service, Electron and remote-control bridges, storage contracts, and renderer worktree service with explicit local-branch deletion. Validate branch name and reject project branch, parking branches, or any branch still checked out by a worktree.\n+- In release dialog, list undeleted branches only for cards included in current release. Add per-branch checkboxes plus `Select all` / `Clear all`. Persist and restore global select-all default; individual card selections are not persisted.\n+- Pass selected branch names into release completion. First archive cards and complete configured automatic push. Only after both succeed, delete selected local branches. Release failure deletes no branches. Branch-cleanup failure is reported as post-release partial failure and identifies every branch that was not deleted.\n+- Keep `F_87` guard before file moves. Release-time cleanup never parks or unassigns worktrees because release cannot start while any release card remains assigned.\n+- Add parser and card-operation tests for branch metadata; desktop Git and bridge tests for safe deletion; worktree integration tests for ordering and partial failures; dialog/config tests for restored defaults and bulk selection; release tests for candidate filtering and post-commit, post-push deletion timing.\n+\n+## acceptance criteria\n+\n+- Integration dialog always shows `Delete branch` with globally persisted last value.\n+- With deletion cleared, successful integration keeps assignment and local card branch.\n+- With deletion selected, successful integration parks worktree, unassigns card, deletes local card branch, and clears stored branch name.\n+- Failed integration leaves worktree assignment, branch, and stored branch name unchanged.\n+- Cleanup failure after successful integration reports completed integration plus failed cleanup, without losing branch identity needed for retry.\n+- Release dialog lists one checkbox for each undeleted local branch belonging to card in current release, and no branch from other cards.\n+- `Select all` and `Clear all` update every branch checkbox. Global select-all choice is restored next time; per-card choices are not.\n+- Release archive or automatic push failure deletes no selected branch.\n+- Successful release commit and automatic push happen before selected local branches are deleted. Unselected branches remain.\n+- Project branch, parking branches, remote branches, and branches checked out by any worktree cannot be deleted by this feature.\n+- Tests cover successful paths, no candidates, stale or missing branches, partial cleanup failure, restored defaults, and operation ordering.\n",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-26ecacc4-def8-44ef-b2ec-03c53fc77d85-event-56",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_03e7c4d9075b3b6d016a7375d7c8a8819197c1bc55a38de60f",
+          "sequence": 56,
+          "status": "completed",
+          "timestamp": "2026-08-05T17:41:44.798Z",
+          "type": "reasoning",
+          "details": [],
+          "summary": []
+        },
+        {
+          "agent": "codex",
+          "content": "Updated [F_128_allow_auto_delete_branch.md](C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_128_allow_auto_delete_branch.md) with requested sections.\n\nDefined operation order, persisted global defaults, branch metadata, partial failures, bridge impact, and tests. No staging or commit.\n\n",
+          "id": "agent-turn-26ecacc4-def8-44ef-b2ec-03c53fc77d85-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 57,
+          "timestamp": "2026-08-05T17:41:46.106Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -637,19 +813,19 @@
           "agent": "codex",
           "conversationId": "019fd2f7-73c0-7180-bbf7-9615145d07c8",
           "createdAt": "2026-08-05T17:29:07.920Z",
-          "lastUsedAt": "2026-08-05T17:37:23.143Z",
-          "synchronizedThroughMessageId": "agent-turn-12b7bc40-c0b0-4f44-93b5-0971d75dfb81-turn-1-assistant-3"
+          "lastUsedAt": "2026-08-05T17:41:46.106Z",
+          "synchronizedThroughMessageId": "agent-turn-26ecacc4-def8-44ef-b2ec-03c53fc77d85-turn-1-assistant-2"
         }
       ],
       "startedAt": "2026-08-05T17:27:40.004Z",
-      "status": "completed",
+      "status": "waitingForInput",
       "title": "complete",
       "usage": {
-        "cachedInputTokens": 66304,
-        "inputTokens": 73358,
-        "outputTokens": 627,
-        "reasoningTokens": 516,
-        "totalTokens": 140805
+        "cachedInputTokens": 144896,
+        "inputTokens": 154887,
+        "outputTokens": 841,
+        "reasoningTokens": 655,
+        "totalTokens": 301279
       },
       "viewed": true
     }
@@ -666,12 +842,12 @@
         "agent-74368566-29db-40ee-bab9-299acbddbe92"
       ],
       "details": {
+        "type": "agent",
         "accessLevel": "workspace-write",
         "agent": "codex",
         "approvalPolicy": "on-request",
         "model": "gpt-5.5",
-        "thinkingLevel": "none",
-        "type": "agent"
+        "thinkingLevel": "none"
       },
       "runId": "action-ca22fbe1-6f4c-42aa-a9d7-e242fcf185d9",
       "origin": {
@@ -680,9 +856,9 @@
       },
       "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "rootActionLabel": "complete",
-      "rootConversationId": "agent-74368566-29db-40ee-bab9-299acbddbe92",
       "startedAt": "2026-08-05T17:27:40.003Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-74368566-29db-40ee-bab9-299acbddbe92"
     }
   ],
   "version": 2
