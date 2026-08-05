@@ -5763,7 +5763,7 @@
         "reasoningTokens": 125,
         "totalTokens": 399895
       },
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
@@ -5801,6 +5801,7 @@
     {
       "commits": [
         {
+          "branch": "dev_main",
           "commit": "4a2e02c621bc06684f8c7dfb6a653ff3715e9a47",
           "committedAt": "2026-08-05T15:10:05+02:00",
           "deletions": 178,
@@ -5833,8 +5834,7 @@
             "shared/card_activity.mjs"
           ],
           "filesChanged": 26,
-          "insertions": 458,
-          "branch": "dev_main"
+          "insertions": 458
         }
       ],
       "completedAt": "2026-08-05T15:10:05+02:00",
