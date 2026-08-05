@@ -1,4 +1,4 @@
-import type { CardHeader, MarkdownFile, ProjectCard } from '../../data/data_types'
+import type { CanonicalCard, CardHeader, MarkdownFile, ProjectCard } from '../../data/data_types'
 import { generateUuid } from '../../data/uuid'
 
 const HEADER_DELIMITER = '---'
@@ -137,6 +137,33 @@ function parseHeaderFields(headerText: string): MarkdownHeaderFields {
     }
 
     return fields
+}
+
+function cloneHeaderFields(fields: MarkdownHeaderFields): MarkdownHeaderFields {
+    return Object.fromEntries(Object.entries(fields).map(([key, value]) => {
+        if (Array.isArray(value)) return [key, [...value]];
+        if (typeof value === 'object') return [key, { ...value }];
+
+        return [key, value];
+    }));
+}
+
+function sameHeaderValue(left: HeaderValue | undefined, right: HeaderValue | undefined) {
+    if (left === right) return true;
+    if (left === undefined || right === undefined || typeof left !== typeof right) return false;
+    if (typeof left === 'string' || typeof right === 'string') return false;
+    if (Array.isArray(left) || Array.isArray(right)) {
+        return Array.isArray(left)
+            && Array.isArray(right)
+            && left.length === right.length
+            && left.every((value, index) => value === right[index]);
+    }
+
+    const leftEntries = Object.entries(left);
+    const rightEntries = Object.entries(right);
+
+    return leftEntries.length === rightEntries.length
+        && leftEntries.every(([key, value]) => right[key] === value);
 }
 
 function getStringField(fields: MarkdownHeaderFields, fieldName: string) {
@@ -308,6 +335,35 @@ function rewriteListLines(lines: string[], key: string, values: string[]) {
     return updated
 }
 
+function rewriteMapLines(lines: string[], key: string, values: Record<string, string>) {
+    const keyLine = `${key}:`;
+    const nextLines = [keyLine, ...Object.entries(values).map(([childKey, value]) => `${CHILD_INDENT}${childKey}: ${value}`)];
+    const keyIndex = lines.findIndex((line) => isHeaderKeyLine(line, key));
+
+    if (keyIndex === -1) return [...lines, ...nextLines];
+
+    const updated = [...lines];
+    updated.splice(keyIndex, childBlockEndIndex(lines, keyIndex) - keyIndex, ...nextLines);
+
+    return updated;
+}
+
+function rewriteHeaderValue(content: string, key: string, value: HeaderValue | undefined) {
+    const { body, hasHeader, rawHeader } = splitHeader(content);
+    const lineEnding = detectLineEnding(content);
+    const startingLines = hasHeader ? rawHeader.split('\n') : [];
+    let nextLines: string[];
+
+    if (value === undefined) nextLines = removeHeaderField(startingLines, key);
+    else if (Array.isArray(value)) nextLines = rewriteListLines(startingLines, key, value);
+    else if (typeof value === 'object') nextLines = rewriteMapLines(startingLines, key, value);
+    else nextLines = rewriteHeaderLine(startingLines, key, value);
+
+    if (hasHeader) return frameDocument(nextLines, body, lineEnding);
+
+    return frameDocument(nextLines, `${lineEnding}${content}`, lineEnding);
+}
+
 function frameDocument(headerLines: string[], body: string, lineEnding: string) {
     return `${HEADER_DELIMITER}${lineEnding}${headerLines.join(lineEnding)}${lineEnding}${HEADER_DELIMITER}${lineEnding}${body}`
 }
@@ -359,7 +415,7 @@ export const markdownParsingService = {
      * all other markdown is a regular document that never receives one.
      * See the card classification rule in design/architecture/current_data_model.md.
      */
-    parseCard(file: MarkdownFile, workingFolder: string): ProjectCard {
+    parseCard(file: MarkdownFile, workingFolder: string): CanonicalCard {
         const { body, rawHeader } = splitHeader(file.content)
         const fields = parseHeaderFields(rawHeader)
 
@@ -372,7 +428,29 @@ export const markdownParsingService = {
             isActive: isRootWorkingFolderFile(file.path, workingFolder),
             path: file.path,
             sha: file.sha,
+            source: { body, content: file.content, headerFields: cloneHeaderFields(fields) },
         }
+    },
+
+    serializeCard(card: CanonicalCard): MarkdownFile {
+        const keys = [...new Set([...Object.keys(card.source.headerFields), ...Object.keys(card.headerFields)])];
+        let content = card.source.content;
+
+        for (const key of keys) {
+            const sourceValue = card.source.headerFields[key];
+            const currentValue = card.headerFields[key];
+            if (sameHeaderValue(sourceValue, currentValue)) continue;
+
+            content = rewriteHeaderValue(content, key, currentValue);
+        }
+        if (card.content !== card.source.body) content = this.replaceBody(content, card.content);
+
+        return { content, path: card.path, ...(card.sha ? { sha: card.sha } : {}) };
+    },
+
+    acknowledgeSerializedCard(card: CanonicalCard, file: MarkdownFile) {
+        const { body, rawHeader } = splitHeader(file.content);
+        card.source = { body, content: file.content, headerFields: cloneHeaderFields(parseHeaderFields(rawHeader)) };
     },
 
     splitCards(files: MarkdownFile[], workingFolder: string) {

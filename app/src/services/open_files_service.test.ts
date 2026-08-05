@@ -164,6 +164,7 @@ describe('OpenFilesService', () => {
 
         expect(boardDocument).toBe(listDocument)
         expect(listDocument.getDraft().content).toBe('# shared edit')
+        expect(projectCard.content).toBe('# shared edit')
         service.closeBoardDocument(boardDocument)
         expect(service.getRegisteredDocuments()).toContain(listDocument)
     })

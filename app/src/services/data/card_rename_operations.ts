@@ -1,8 +1,9 @@
 import { cardPathForId, desiredCardPath, getNextCardNumber } from '../../data/card_naming'
 import { buildCardId, getCardIdPrefix } from '../../data/card_identifiers'
-import type { CardType, MarkdownFile } from '../../data/data_types'
+import type { CanonicalCard, CardType, MarkdownFile } from '../../data/data_types'
 import type { OpenDocumentSaveReference } from '../open_files_service'
-import { attachSaveReference, type CardOperationContext } from './card_operation_context'
+import type { CardOperationContext } from './card_operation_context'
+import { setCardHeaderFields, setCardTitle } from './canonical_card'
 import { markdownParsingService } from './markdown_parsing_service'
 
 /**
@@ -51,21 +52,19 @@ export class CardRenameOperations {
 
     private async applyCardTitle(path: string, title: string, saveReference?: OpenDocumentSaveReference) {
         const { dependencies } = this.context
-        const existingFile = dependencies.requireFile(path)
-        const file = {
-            content: markdownParsingService.setCardTitle(existingFile.content, title),
-            path,
-            ...(existingFile.sha ? { sha: existingFile.sha } : {}),
-        }
         const snapshot = dependencies.snapshot()
         const occupiedPaths = [
             ...dependencies.files().map((currentFile) => currentFile.path),
             ...(snapshot?.repositoryFiles ?? []),
         ]
         const targetPath = desiredCardPath(path, title, occupiedPaths)
-        if (targetPath === path) return this.context.saveCardMetadataFile(file, saveReference)
+        if (targetPath === path) {
+            const card = this.context.saveCardChange(path, (currentCard) => setCardTitle(currentCard, title), saveReference)
 
-        return this.renameCardFile(file, targetPath, saveReference)
+            return markdownParsingService.serializeCard(card)
+        }
+
+        return this.renameCard(path, targetPath, (card) => setCardTitle(card, title), saveReference)
     }
 
     private async applyCardType(path: string, type: CardType, saveReference?: OpenDocumentSaveReference) {
@@ -74,49 +73,41 @@ export class CardRenameOperations {
         const cardType = config.cardTypes.find((candidate) => candidate.type === type)
         if (!cardType) throw new Error(`Unknown card type: ${type}`)
 
-        const existingFile = dependencies.requireFile(path)
-        const card = markdownParsingService.parseCard(existingFile, config.workingFolder)
-        if (getCardIdPrefix(card.header.id) === cardType.idPrefix) return existingFile
+        const card = dependencies.requireCard(path)
+        if (getCardIdPrefix(card.header.id) === cardType.idPrefix) return markdownParsingService.serializeCard(card)
 
         const number = getNextCardNumber(dependencies.files(), cardType.idPrefix)
         const id = buildCardId(cardType.idPrefix, number, config.cardSeparator)
         const targetPath = cardPathForId(path, id, card.header.title, config.cardSeparator)
         this.context.requireAvailablePath(targetPath)
-        const file = {
-            content: markdownParsingService.rewriteHeader(existingFile.content, { id }),
-            path,
-            ...(existingFile.sha ? { sha: existingFile.sha } : {}),
-        }
-
-        return this.renameCardFile(file, targetPath, saveReference)
+        return this.renameCard(path, targetPath, (currentCard) => setCardHeaderFields(currentCard, { id }), saveReference)
     }
 
     /** Commits pending work, then commits the rename on its own so no other change shares its batch entry. */
-    private async renameCardFile(file: MarkdownFile, targetPath: string, saveReference?: OpenDocumentSaveReference) {
+    private async renameCard(
+        path: string,
+        targetPath: string,
+        mutation: (card: CanonicalCard) => void,
+        saveReference?: OpenDocumentSaveReference,
+    ) {
         const { dependencies } = this.context
-        const { commitBatcher, project } = this.context.requireProject('rename a card')
+        const { commitBatcher, config, project } = this.context.requireProject('rename a card')
 
         await this.context.flushPendingCommits()
 
-        const existingFile = dependencies.requireFile(file.path)
-        const openDocument = this.context.findOpenCardDocument(file.path)
-        const { content } = this.context.mergeOpenCardBody(file)
-        const renamedFile = { content, path: targetPath, ...(existingFile.sha ? { sha: existingFile.sha } : {}) }
-
-        // replaceUpdatedFiles already rebuilds the snapshot; the file keeps its old path until the move is committed.
-        this.context.replaceUpdatedFiles([{ ...existingFile, content }])
-        const documentSaveReference = this.context.resyncOpenCardDocument(openDocument, file.path, saveReference, 'Renamed')
+        const card = dependencies.mutateCard(path, mutation, config.workingFolder)
+        const documentSaveReference = saveReference ?? this.context.findOpenCardDocument(path)?.createSaveReference()
         commitBatcher.schedulePathChange(
             project.branch,
-            file.path,
-            attachSaveReference(renamedFile, documentSaveReference),
-            `Rename ${file.path} to ${targetPath}`,
+            path,
+            { card, saveReference: documentSaveReference, targetPath },
+            `Rename ${path} to ${targetPath}`,
             (fromPath, toPath) => this.reconcileCardPath(fromPath, toPath),
         )
         dependencies.dispatchChanged()
         await this.context.flushPendingCommits()
 
-        return renamedFile
+        return markdownParsingService.serializeCard(card)
     }
 
     /** Moves local state onto the committed path and lets path-keyed callers follow the card. */

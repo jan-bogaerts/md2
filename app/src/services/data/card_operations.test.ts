@@ -16,6 +16,7 @@ import {
     type CardChangedEventDetail,
     type CardRemovedEventDetail,
 } from './data_service'
+import { markdownParsingService } from './markdown_parsing_service'
 
 function recordDialogMessages(severity: DialogSeverity) {
     const messages: string[] = []
@@ -1040,6 +1041,29 @@ describe('CardOperations', () => {
         expect(move?.content).toContain('title: Renamed')
         expect(move?.content).toContain('Unflushed body')
         expect(document.dirty).toBe(false)
+    })
+
+    it('serializes one card once when several fields change in one debounce window', async () => {
+        configService.init()
+        const storage = createStorage()
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        vi.mocked(storage.commit).mockClear()
+        const serializeCard = vi.spyOn(markdownParsingService, 'serializeCard')
+
+        service.cards.updateCardHeaderFields('design/F-1-root.md', { status: 'ready' })
+        service.cards.updateCardAffects('design/F-1-root.md', ['app/src/data/data_types.ts'])
+        service.cards.toggleCardPolicy('design/F-1-root.md', 'requireTests')
+        await service.cards.flushPendingCommits()
+
+        const request = vi.mocked(storage.commit).mock.calls[0][0]
+        expect(serializeCard).toHaveBeenCalledOnce()
+        expect(request.files).toHaveLength(1)
+        expect(request.files[0].content).toContain('status: ready')
+        expect(request.files[0].content).toContain('  - app/src/data/data_types.ts')
+        expect(request.files[0].content).toContain('  requireTests: true')
+        serializeCard.mockRestore()
     })
 
     it('does not rebuild, dispatch, or commit when saved content is unchanged', async () => {

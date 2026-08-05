@@ -1,4 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
+import { readFileSync, readdirSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { markdownParsingService } from './markdown_parsing_service'
 import type { MarkdownFile } from '../../data/data_types'
 
@@ -6,6 +8,18 @@ const ROOT_FILE: MarkdownFile = {
     content: '---\nauthor: AB\nid: F-1\ntitle: Root\nstatus: active\nowner: JB\naffects:\n  - app/src/app.tsx\n---\n\n# Root\n\nBody text',
     path: 'design/F-1-root.md',
     sha: 'sha-1',
+}
+
+function markdownPaths(folder: string): string[] {
+    const paths: string[] = []
+
+    for (const entry of readdirSync(folder, { withFileTypes: true })) {
+        const path = resolve(folder, entry.name)
+        if (entry.isDirectory()) paths.push(...markdownPaths(path))
+        else if (entry.name.endsWith('.md')) paths.push(path)
+    }
+
+    return paths
 }
 
 describe('markdownParsingService.parse', () => {
@@ -106,6 +120,32 @@ describe('markdownParsingService.parseCard', () => {
         expect(card.header.policy).toEqual({})
     })
 })
+
+describe('markdownParsingService card serialization', () => {
+    it('round-trips every repository design Markdown file byte-identically', () => {
+        const cardsFolder = resolve(process.cwd(), '..', 'design');
+        const paths = markdownPaths(cardsFolder);
+
+        expect(paths.length).toBeGreaterThan(0);
+        for (const path of paths) {
+            const content = readFileSync(path, 'utf8');
+            const card = markdownParsingService.parseCard({ content, path }, cardsFolder);
+
+            expect(markdownParsingService.serializeCard(card).content).toBe(content);
+        }
+    });
+
+    it('preserves unknown fields, comments, order, and body while serializing one changed field', () => {
+        const content = '---\ncustom: keep\n# retain comment\nid: F-1\nunknownMap:\n  child: value\nstatus: design\n---\n\n# Card\n\nBody';
+        const card = markdownParsingService.parseCard({ content, path: 'design/F-1-card.md' }, 'design');
+        card.header.status = 'ready';
+        card.headerFields.status = 'ready';
+
+        expect(markdownParsingService.serializeCard(card).content).toBe(
+            '---\ncustom: keep\n# retain comment\nid: F-1\nunknownMap:\n  child: value\nstatus: ready\n---\n\n# Card\n\nBody',
+        );
+    });
+});
 
 describe('markdownParsingService.splitCards', () => {
     it('splits active root cards before background cards', () => {

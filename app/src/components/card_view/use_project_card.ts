@@ -60,7 +60,7 @@ export function useProjectCard(path: string | null, service: DataService = dataS
         const signature = card ? cardViewSignature(card) : null
         if (signatureRef.current === signature) return cardRef.current
 
-        cardRef.current = card
+        cardRef.current = card ? { ...card, header: { ...card.header } } : null
         signatureRef.current = signature
 
         return card

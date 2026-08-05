@@ -37,7 +37,7 @@ export class ManagedOpenDocument extends EventTarget {
         this.kind = kind
         this.identity = identity
         this.object = object
-        this.draft = draft
+        this.draft = kind === 'card' ? object as OpenDocumentDraft : draft
     }
 
     get dirty() { return this.editRevision !== this.acknowledgedRevision }
@@ -55,7 +55,7 @@ export class ManagedOpenDocument extends EventTarget {
         if (this.draft === draft) return
 
         const wasDirty = this.dirty
-        this.draft = draft
+        this.applyDraft(draft)
         this.editRevision += 1
         this.dispatchChanged('draft', origin)
         if (!wasDirty) this.dispatchChanged('dirty', origin)
@@ -63,7 +63,7 @@ export class ManagedOpenDocument extends EventTarget {
 
     replaceDraft(draft: OpenDocumentDraft) {
         const wasDirty = this.dirty
-        this.draft = draft
+        this.applyDraft(draft)
         this.editRevision += 1
         this.acknowledgedRevision = this.editRevision
         this.dispatchChanged('draft', null)
@@ -96,6 +96,19 @@ export class ManagedOpenDocument extends EventTarget {
         this.acknowledgedRevision = revision
         this.dispatchChanged('saved', null)
         if (wasDirty && !this.dirty) this.dispatchChanged('dirty', null)
+    }
+
+    private applyDraft(draft: OpenDocumentDraft) {
+        if (this.kind === 'card') {
+            if (!isCardObject(this.object) || !isCardObject(draft)) {
+                throw new Error('Cannot update card document with a different draft kind')
+            }
+            Object.assign(this.object, draft)
+            this.draft = this.object
+            return
+        }
+
+        this.draft = draft
     }
 
     private dispatchChanged(type: OpenDocumentChangedDetail['type'], origin: OpenDocumentOrigin) {

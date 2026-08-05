@@ -1,10 +1,12 @@
 ﻿import { AUTO_COMMIT_DELAY_MS, type CommitRequest, type MarkdownFile } from './data_types'
 
 import type { OpenDocumentSaveReference } from '../services/open_files_service'
+import type { CanonicalCard } from './data_types'
 
 type DelayId = number
 
 interface CommitBatcherDependencies {
+    acknowledgeCard?: (card: CanonicalCard, file: MarkdownFile) => void
     afterCommit?: (request: CommitRequest) => Promise<unknown>
     clearDelay: (delayId: DelayId) => void
     commit: (request: CommitRequest) => Promise<unknown>
@@ -12,10 +14,11 @@ interface CommitBatcherDependencies {
     onFlushError?: (error: unknown) => void
     onPendingChange: () => void
     setDelay: (callback: () => void, delayMs: number) => DelayId
+    serializeCard?: (card: CanonicalCard) => MarkdownFile
 }
 
 interface PendingFileChange {
-    file: MarkdownFile
+    change: CommitChange
     fromPath: string
     moveSource: boolean
     onCommitted?: (fromPath: string, toPath: string) => void
@@ -28,7 +31,25 @@ export interface CommitFileChange extends MarkdownFile {
     saveReference?: OpenDocumentSaveReference
 }
 
+export interface CommitCardChange {
+    card: CanonicalCard
+    onPersisted?: () => void
+    saveReference?: OpenDocumentSaveReference
+    targetPath?: string
+}
+
+export type CommitChange = CommitFileChange | CommitCardChange
+
+function isCardChange(change: CommitChange): change is CommitCardChange {
+    return 'card' in change
+}
+
+function changePath(change: CommitChange) {
+    return isCardChange(change) ? change.targetPath ?? change.card.path : change.path
+}
+
 export class CommitBatcher {
+    private readonly acknowledgeCard: ((card: CanonicalCard, file: MarkdownFile) => void) | null
     private activeFlush: Promise<void> | null
     private readonly afterCommit: ((request: CommitRequest) => Promise<unknown>) | null
     private readonly clearDelay
@@ -41,8 +62,10 @@ export class CommitBatcher {
     private readonly onPendingChange: () => void
     private scheduledDelayId: DelayId | null
     private readonly setDelay
+    private readonly serializeCard: ((card: CanonicalCard) => MarkdownFile) | null
 
     constructor(dependencies: CommitBatcherDependencies) {
+        this.acknowledgeCard = dependencies.acknowledgeCard ?? null
         this.activeFlush = null
         this.afterCommit = dependencies.afterCommit ?? null
         this.clearDelay = dependencies.clearDelay
@@ -55,13 +78,21 @@ export class CommitBatcher {
         this.onPendingChange = dependencies.onPendingChange
         this.scheduledDelayId = null
         this.setDelay = dependencies.setDelay
+        this.serializeCard = dependencies.serializeCard ?? null
     }
 
-    schedule(branch: string, changes: CommitFileChange[], message: string) {
+    schedule(branch: string, changes: CommitChange[], message: string) {
         this.pendingBranch = branch
-        changes.forEach(({ onPersisted, saveReference, ...file }) => {
-            this.pendingChanges.set(file.path, { file, fromPath: file.path, moveSource: false, onPersisted, saveReference })
-            this.addPendingMessage(file.path, message)
+        changes.forEach((change) => {
+            const path = changePath(change)
+            this.pendingChanges.set(path, {
+                change,
+                fromPath: path,
+                moveSource: false,
+                onPersisted: change.onPersisted,
+                saveReference: change.saveReference,
+            })
+            this.addPendingMessage(path, message)
         })
 
         this.scheduleFlush()
@@ -70,14 +101,20 @@ export class CommitBatcher {
     schedulePathChange(
         branch: string,
         fromPath: string,
-        change: CommitFileChange,
+        change: CommitChange,
         message: string,
         onCommitted: (fromPath: string, toPath: string) => void,
         sourceExists = true,
     ) {
-        const { onPersisted, saveReference, ...file } = change
         this.pendingBranch = branch
-        this.pendingChanges.set(fromPath, {file, fromPath, moveSource: sourceExists, onCommitted, onPersisted, saveReference})
+        this.pendingChanges.set(fromPath, {
+            change,
+            fromPath,
+            moveSource: sourceExists,
+            onCommitted,
+            onPersisted: change.onPersisted,
+            saveReference: change.saveReference,
+        })
         this.addPendingMessage(fromPath, message)
 
         this.scheduleFlush()
@@ -94,12 +131,14 @@ export class CommitBatcher {
     }
 
     hasPendingFile(path: string) {
-        return [...this.pendingChanges.values()].some(({ file, fromPath }) => fromPath === path || file.path === path)
+        return [...this.pendingChanges.values()].some(({ change, fromPath }) => (
+            fromPath === path || changePath(change) === path
+        ))
     }
 
     discardPendingFile(path: string) {
-        const entry = [...this.pendingChanges.entries()].find(([, { file, fromPath }]) => (
-            fromPath === path || file.path === path
+        const entry = [...this.pendingChanges.entries()].find(([, { change, fromPath }]) => (
+            fromPath === path || changePath(change) === path
         ))
         if (!entry) return
 
@@ -124,18 +163,25 @@ export class CommitBatcher {
 
         this.clearScheduledDelay()
         const pendingChanges = [...this.pendingChanges.values()]
+        const serializedFilesByChange = new Map(
+            pendingChanges.map((change) => [change, this.serializeChange(change.change)]),
+        )
         const files = pendingChanges
             .filter(({ moveSource }) => !moveSource)
-            .map(({ file }) => file)
+            .map((change) => serializedFilesByChange.get(change) as MarkdownFile)
         const moves = pendingChanges
             .filter(({ moveSource }) => moveSource)
-            .map(({ file, fromPath }) => ({
-                content: file.content,
-                ...(file.encoding ? { encoding: file.encoding } : {}),
-                fromPath,
-                ...(file.sha ? { sha: file.sha } : {}),
-                toPath: file.path,
-            }))
+            .map((change) => {
+                const file = serializedFilesByChange.get(change) as MarkdownFile
+
+                return {
+                    content: file.content,
+                    ...(file.encoding ? { encoding: file.encoding } : {}),
+                    fromPath: change.fromPath,
+                    ...(file.sha ? { sha: file.sha } : {}),
+                    toPath: file.path,
+                }
+            })
         const request = {
             branch: this.pendingBranch as string,
             files,
@@ -143,7 +189,7 @@ export class CommitBatcher {
             ...(moves.length > 0 ? { moves } : {}),
         }
 
-        this.activeFlush = this.commitSnapshot(request, pendingChanges)
+        this.activeFlush = this.commitSnapshot(request, pendingChanges, serializedFilesByChange)
         try {
             await this.activeFlush
         } finally {
@@ -158,10 +204,15 @@ export class CommitBatcher {
         this.pendingMessagesByPath.set(path, [...messages, message])
     }
 
-    private async commitSnapshot(request: CommitRequest, changes: PendingFileChange[]) {
+    private async commitSnapshot(
+        request: CommitRequest,
+        changes: PendingFileChange[],
+        serializedFilesByChange: Map<PendingFileChange, MarkdownFile>,
+    ) {
         await this.commit(request)
         for (const change of changes) {
-            const { file, fromPath, onCommitted, onPersisted, saveReference } = change
+            const { fromPath, onCommitted, onPersisted, saveReference } = change
+            const file = serializedFilesByChange.get(change) as MarkdownFile
             const current = this.pendingChanges.get(fromPath)
             if (current === change) {
                 this.pendingChanges.delete(fromPath)
@@ -173,6 +224,7 @@ export class CommitBatcher {
                 this.pendingMessagesByPath.delete(fromPath)
                 if (messages) this.pendingMessagesByPath.set(file.path, messages)
             }
+            if (isCardChange(change.change)) this.acknowledgeCard?.(change.change.card, file)
             saveReference?.acknowledge()
             onPersisted?.()
             onCommitted?.(fromPath, file.path)
@@ -180,6 +232,20 @@ export class CommitBatcher {
         if (this.pendingChanges.size === 0) this.pendingBranch = null
         this.onPendingChange()
         await this.afterCommit?.(request)
+    }
+
+    private serializeChange(change: CommitChange): MarkdownFile {
+        if (!isCardChange(change)) {
+            return {
+                content: change.content,
+                ...(change.encoding ? { encoding: change.encoding } : {}),
+                path: change.path,
+                ...(change.sha ? { sha: change.sha } : {}),
+            }
+        }
+        if (!this.serializeCard) throw new Error('Cannot commit a card without a serializer')
+
+        return { ...this.serializeCard(change.card), path: changePath(change) }
     }
 
     private createCommitMessage() {

@@ -6,6 +6,7 @@ import {
     type AgentConversationError,
     type MarkdownFile,
     type ProjectConfig,
+    type ProjectCard,
     type ProjectReference,
     type ProjectSnapshot,
     type StorageService,
@@ -16,7 +17,6 @@ import { loadAgentConversation } from './agent_conversation_service'
 import { runElectronAction } from '../actions/electron_action_runner'
 import { mapWithConcurrency } from '../concurrency'
 import { type RequiredDataServiceDependencies } from '../data/data_service_context'
-import { markdownParsingService } from '../data/markdown_parsing_service'
 import { telemetryService } from '../telemetry/telemetry_service'
 import { dialogService } from '../dialog_service'
 
@@ -140,15 +140,15 @@ export class AgentIntegration {
     private readonly dependencies: AgentIntegrationDeps
     private errorsByCardPath: Map<string, AgentConversationError[]> = new Map()
     private reportedLoadErrorKeys: Set<string> = new Set()
-    private readonly saveFile: (file: MarkdownFile) => MarkdownFile
+    private readonly addAgentLogReference: (cardPath: string, reference: string) => string | null
     private scheduledRunCleanup: (() => void) | null = null
 
     constructor(
         dependencies: AgentIntegrationDeps,
-        saveFile: (file: MarkdownFile) => MarkdownFile,
+        addAgentLogReference: (cardPath: string, reference: string) => string | null,
     ) {
         this.dependencies = dependencies
-        this.saveFile = saveFile
+        this.addAgentLogReference = addAgentLogReference
     }
 
     reset() {
@@ -200,17 +200,7 @@ export class AgentIntegration {
     }
 
     private saveAgentConversationReference(cardPath: string, reference: string) {
-        const { config } = this.dependencies.requireDependencies()
-        const existingFile = this.dependencies.requireFile(cardPath)
-        const card = markdownParsingService.parseCard(existingFile, config.workingFolder)
-        const nextReferences = [...new Set([...card.header.agentLogReferences, reference])]
-        this.saveFile({
-            content: markdownParsingService.setAgentLogReferences(existingFile.content, nextReferences),
-            path: cardPath,
-            sha: existingFile.sha,
-        })
-
-        return card.header.internalId
+        return this.addAgentLogReference(cardPath, reference)
     }
 
     private linkAgentConversationReference(cardPath: string, reference: string) {
@@ -249,21 +239,18 @@ export class AgentIntegration {
 
     attachAgentConversations(cards: Pick<ProjectSnapshot, 'activeCards' | 'backgroundCards'>) {
         return {
-            activeCards: cards.activeCards.map((card) => ({
-                ...card,
-                agentConversationErrors: this.errorsByCardPath.get(card.path) ?? [],
-                agentConversations: card.header.internalId
-                    ? this.conversationsByCardInternalId.get(card.header.internalId) ?? []
-                    : [],
-            })),
-            backgroundCards: cards.backgroundCards.map((card) => ({
-                ...card,
-                agentConversationErrors: this.errorsByCardPath.get(card.path) ?? [],
-                agentConversations: card.header.internalId
-                    ? this.conversationsByCardInternalId.get(card.header.internalId) ?? []
-                    : [],
-            })),
+            activeCards: cards.activeCards.map((card) => this.attachCardAgentConversations(card)),
+            backgroundCards: cards.backgroundCards.map((card) => this.attachCardAgentConversations(card)),
         }
+    }
+
+    private attachCardAgentConversations(card: ProjectCard) {
+        card.agentConversationErrors = this.errorsByCardPath.get(card.path) ?? []
+        card.agentConversations = card.header.internalId
+            ? this.conversationsByCardInternalId.get(card.header.internalId) ?? []
+            : []
+
+        return card
     }
 
     getAgentConversations(cardInternalId: string) {

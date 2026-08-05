@@ -1,5 +1,6 @@
-import type { MarkdownFile } from '../../data/data_types'
+import type { CanonicalCard } from '../../data/data_types'
 import type { CardOperationContext } from './card_operation_context'
+import { setCardHeaderFields } from './canonical_card'
 import { markdownParsingService } from './markdown_parsing_service'
 
 /**
@@ -22,7 +23,7 @@ export class CardInternalIdOperations {
     /** Returns how many files were queued for persistence. */
     ensureCardInternalIds() {
         const { dependencies } = this.context
-        const { commitBatcher, project } = this.context.requireProject('add card identities')
+        const { commitBatcher, config, project } = this.context.requireProject('add card identities')
         const cards = dependencies.snapshot()?.activeCards ?? []
 
         const projectKey = `${project.id}:${project.branch}`
@@ -37,26 +38,23 @@ export class CardInternalIdOperations {
         const cardsWithoutInternalId = cards.filter(({ header }) => !header.internalId)
         if (cardsWithoutInternalId.length === 0) return 0
 
-        const filesToPersist: MarkdownFile[] = []
-        const updatedFiles = cardsWithoutInternalId.map((card) => {
-            const existingFile = dependencies.requireFile(card.path)
+        const cardsToPersist: CanonicalCard[] = []
+        for (const card of cardsWithoutInternalId) {
             const generatedInternalId = this.generatedInternalIdsByPath.get(card.path)
             const internalId = generatedInternalId ?? markdownParsingService.generateInternalId()
             this.generatedInternalIdsByPath.set(card.path, internalId)
-            const updatedFile = {
-                ...existingFile,
-                content: markdownParsingService.rewriteHeader(existingFile.content, { internalId }),
-            }
-            if (!generatedInternalId) filesToPersist.push(updatedFile)
-
-            return updatedFile
-        })
-        this.context.replaceUpdatedFiles(updatedFiles)
-        if (filesToPersist.length > 0) {
-            commitBatcher.schedule(project.branch, filesToPersist, 'Add missing card internal IDs')
+            const updatedCard = dependencies.mutateCard(
+                card.path,
+                (currentCard) => setCardHeaderFields(currentCard, { internalId }),
+                config.workingFolder,
+            )
+            if (!generatedInternalId) cardsToPersist.push(updatedCard)
+        }
+        if (cardsToPersist.length > 0) {
+            commitBatcher.schedule(project.branch, cardsToPersist.map((card) => ({ card })), 'Add missing card internal IDs')
         }
         dependencies.dispatchChanged()
 
-        return filesToPersist.length
+        return cardsToPersist.length
     }
 }

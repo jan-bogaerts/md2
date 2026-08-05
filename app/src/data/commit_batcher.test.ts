@@ -1,8 +1,36 @@
 ﻿import { describe, expect, it, vi } from 'vitest'
 import { CommitBatcher } from './commit_batcher'
 import { createDeferred, type CommitCallback } from '../services/test_support/data_service_test_support'
+import type { CanonicalCard } from './data_types'
 
 describe('CommitBatcher', () => {
+    it('serializes one canonical card reference once with latest fields at flush', async () => {
+        const card = { header: { status: 'design' }, path: 'design/F-1-root.md' } as CanonicalCard
+        const serializeCard = vi.fn((currentCard: CanonicalCard) => ({
+            content: `status: ${currentCard.header.status}`,
+            path: currentCard.path,
+        }))
+        const acknowledgeCard = vi.fn()
+        const commit = vi.fn<CommitCallback>(async () => undefined)
+        const batcher = new CommitBatcher({
+            acknowledgeCard,
+            clearDelay: vi.fn(),
+            commit,
+            onPendingChange: vi.fn(),
+            serializeCard,
+            setDelay: vi.fn(() => 1),
+        })
+
+        batcher.schedule('main', [{ card }], 'Update card')
+        card.header.status = 'ready'
+        batcher.schedule('main', [{ card }], 'Update card')
+        await batcher.flush()
+
+        expect(serializeCard).toHaveBeenCalledOnce()
+        expect(commit.mock.calls[0][0].files).toEqual([{ content: 'status: ready', path: card.path }])
+        expect(acknowledgeCard).toHaveBeenCalledOnce()
+    })
+
     it('acknowledges a captured document revision only after physical persistence succeeds', async () => {
         const acknowledge = vi.fn()
         const commit = vi.fn(async () => undefined)

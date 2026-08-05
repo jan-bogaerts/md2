@@ -2,6 +2,7 @@ import { computeMove } from '../../data/card_ordering'
 import type { MarkdownFile } from '../../data/data_types'
 import { buildCardArchiveMoves, findArchiveAssetPaths } from '../../data/release_archiving'
 import type { CardOperationContext } from './card_operation_context'
+import { markdownParsingService } from './markdown_parsing_service'
 
 /** Moves a card and its assets into the archived folder in one commit. */
 export class CardArchiveOperations {
@@ -25,7 +26,8 @@ export class CardArchiveOperations {
         if (!archivedCard) throw new Error(`Cannot archive an active card that is not loaded: ${cardPath}`)
 
         const updates = computeMove(activeCards, cardPath, 'archived', targetIndex)
-        const updatedFiles = this.context.applyOrderingUpdates(updates)
+        const updatedCards = this.context.applyOrderingUpdates(updates)
+        const updatedFiles = updatedCards.map((card) => markdownParsingService.serializeCard(card))
         const files = this.context.mergeUpdatedFiles(updatedFiles)
         const assetFiles = await this.loadArchiveAssets(findArchiveAssetPaths(files, [archivedCard]))
         const moves = buildCardArchiveMoves(

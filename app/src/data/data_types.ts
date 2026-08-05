@@ -90,6 +90,18 @@ export interface ProjectCard {
     sha?: string
 }
 
+/** Original parsed document state retained so a mutable card can serialize only changed fields. */
+export interface CardSourceState {
+    body: string
+    content: string
+    headerFields: Record<string, string | string[] | Record<string, string>>
+}
+
+/** Canonical mutable card owned by project state. */
+export interface CanonicalCard extends ProjectCard {
+    source: CardSourceState
+}
+
 export interface ProjectSnapshot {
     activeCards: ProjectCard[]
     backgroundCards: ProjectCard[]

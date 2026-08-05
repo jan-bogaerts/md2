@@ -19,7 +19,7 @@ import { getService, register } from '../service_injector'
 import { telemetryService } from '../telemetry/telemetry_service'
 import { worktreeService } from '../project/worktree_service'
 import { dialogService } from '../dialog_service'
-import type { CardParseError } from './markdown_parsing_service'
+import { markdownParsingService, type CardParseError } from './markdown_parsing_service'
 import type { OpenDocumentSaveReference } from '../open_files_service'
 
 export type { RemarkableImportInput }
@@ -63,6 +63,18 @@ function reportCardParseErrors(errors: CardParseError[]) {
     errors.forEach(({ error }) => telemetryService.captureError(error))
 }
 
+function eventCard(card: ProjectSnapshot['activeCards'][number]) {
+    return {
+        ...card,
+        header: {
+            ...card.header,
+            affects: [...card.header.affects],
+            agentLogReferences: [...card.header.agentLogReferences],
+            policy: { ...card.header.policy },
+        },
+    }
+}
+
 async function flushAggregatePendingChanges() {
     const persistenceService = getService<{ flushPendingChanges(): Promise<void> }>('projectPersistenceService')
     await persistenceService.flushPendingChanges()
@@ -102,7 +114,10 @@ export class DataService extends EventTarget {
                 })
             },
         )
-        this.agents = new AgentIntegration(this.createAgentIntegrationDependencies(), (file) => this.cards.saveFile(file))
+        this.agents = new AgentIntegration(
+            this.createAgentIntegrationDependencies(),
+            (cardPath, reference) => this.cards.addAgentLogReference(cardPath, reference),
+        )
         this.projectLoading = new ProjectLoading(
             this.createProjectLoadingDependencies(),
             (snapshot, project, projectLoadToken) => this.agents.loadAgentConversationsInBackground(snapshot, project, projectLoadToken),
@@ -130,6 +145,7 @@ export class DataService extends EventTarget {
         this.agents.startScheduledRunWatch()
         const delayMs = configService.get('react.autoCommitDelayMs')
         this.commitBatcher = new CommitBatcher({
+            acknowledgeCard: (card, file) => markdownParsingService.acknowledgeSerializedCard(card, file),
             afterCommit: (request) => this.cards.pushCommittedFiles(request),
             clearDelay: (delayId) => window.clearTimeout(delayId),
             commit: (request) => this.cards.commitFiles(request),
@@ -137,6 +153,7 @@ export class DataService extends EventTarget {
             onFlushError: (error) => this.reportCommitFlushFailure(error),
             onPendingChange: () => this.dispatchPersistenceChanged(),
             setDelay: (callback, delay) => window.setTimeout(callback, delay),
+            serializeCard: (card) => markdownParsingService.serializeCard(card),
         })
         this.dispatchChanged()
         this.dispatchPersistenceChanged()
@@ -257,12 +274,14 @@ export class DataService extends EventTarget {
             ),
             files: () => this.projectState.files,
             mergeCommittedFiles: (files, workingFolder) => this.projectState.mergeCommittedFiles(files, workingFolder),
+            mutateCard: (path, mutation, workingFolder) => this.projectState.mutateCard(path, mutation, workingFolder),
             project: () => this.projectState.project,
             recordCommittedContent: (files) => this.projectState.recordCommittedContent(files),
             refreshSnapshot: (workingFolder) => this.refreshSnapshot(workingFolder),
             reloadCurrentProjectSnapshot: () => this.projectLoading.reloadCurrentProjectSnapshot(),
             renameFile: (fromPath, toPath, workingFolder) => this.projectState.renameFile(fromPath, toPath, workingFolder),
             requireDependencies: () => this.requireDependencies(),
+            requireCard: (path) => this.projectState.requireCard(path),
             requireFile: (path) => this.projectState.requireFile(path),
             replaceFiles: (files, workingFolder) => this.projectState.replaceFiles(files, workingFolder),
             snapshot: () => this.projectState.snapshot,
@@ -352,15 +371,15 @@ export class DataService extends EventTarget {
         const nextByPath = new Map(nextCards.map((card) => [card.path, card]))
         for (const card of previousCards) {
             if (!nextByPath.has(card.path)) {
-                this.dispatchEvent(new CustomEvent<CardRemovedEventDetail>(CARD_REMOVED_EVENT, { detail: { card } }))
+                this.dispatchEvent(new CustomEvent<CardRemovedEventDetail>(CARD_REMOVED_EVENT, { detail: { card: eventCard(card) } }))
             }
         }
         for (const card of nextCards) {
             const previousCard = previousByPath.get(card.path)
             if (!previousCard) {
-                this.dispatchEvent(new CustomEvent<CardAddedEventDetail>(CARD_ADDED_EVENT, { detail: { card } }))
+                this.dispatchEvent(new CustomEvent<CardAddedEventDetail>(CARD_ADDED_EVENT, { detail: { card: eventCard(card) } }))
             } else if (previousCard !== card) {
-                const detail = { card, previousCard }
+                const detail = { card: eventCard(card), previousCard: eventCard(previousCard) }
                 this.dispatchEvent(new CustomEvent<CardChangedEventDetail>(CARD_CHANGED_EVENT, { detail }))
                 if (previousCard.header.status !== card.header.status && card.header.status) {
                     const finishNotification = notifyActionCardStateChange(card.header.internalId, card.header.status)
