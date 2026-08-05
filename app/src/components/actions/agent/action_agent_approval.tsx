@@ -93,10 +93,12 @@ function approvalDetails(approval: LiveAgentApproval) {
 
 /** Security context and exact provider decisions for one pending agent approval. */
 export function ActionAgentApproval({ approval, onDecision }: ActionAgentApprovalProps) {
+    const [commandExpanded, setCommandExpanded] = useState(false)
     const [submitting, setSubmitting] = useState(false)
     const decisions = approval.availableDecisions ?? DEFAULT_APPROVAL_DECISIONS
     const disabled = submitting || approval.submitted
     const details = approvalDetails(approval)
+    const handleCommandToggle = () => setCommandExpanded((expanded) => !expanded)
     const handleDecisionClick = async (event: MouseEvent<HTMLButtonElement>) => {
         const decisionIndex = Number(event.currentTarget.dataset.decisionIndex)
         const decision = decisions[decisionIndex]
@@ -119,13 +121,32 @@ export function ActionAgentApproval({ approval, onDecision }: ActionAgentApprova
                 <Stack key={label} spacing={0.25}>
                     <Typography color="text.secondary" variant="caption">{label}</Typography>
                     {values.map((value) => (
-                        <Box
-                            component="code"
-                            key={value}
-                            sx={{ color: 'text.primary', overflowWrap: 'anywhere', whiteSpace: 'pre-wrap' }}
-                        >
-                            {value}
-                        </Box>
+                        label === 'Command' ? (
+                            <Box
+                                aria-expanded={commandExpanded}
+                                aria-label="Toggle full command"
+                                component="button"
+                                key={value}
+                                onClick={handleCommandToggle}
+                                sx={{
+                                    bgcolor: 'transparent', border: 0, color: 'text.primary', cursor: 'pointer', display: 'block',
+                                    font: 'inherit', fontFamily: 'monospace', minWidth: 0, overflow: 'hidden',
+                                    overflowWrap: commandExpanded ? 'anywhere' : 'normal',
+                                    p: 0, textAlign: 'left', textOverflow: commandExpanded ? 'clip' : 'ellipsis',
+                                    whiteSpace: commandExpanded ? 'pre-wrap' : 'nowrap', width: '100%',
+                                }}
+                            >
+                                {value}
+                            </Box>
+                        ) : (
+                            <Box
+                                component="code"
+                                key={value}
+                                sx={{ color: 'text.primary', overflowWrap: 'anywhere', whiteSpace: 'pre-wrap' }}
+                            >
+                                {value}
+                            </Box>
+                        )
                     ))}
                 </Stack>
             ))}

@@ -47,6 +47,42 @@ describe('ActionAgentApproval', () => {
         await waitFor(() => expect(onDecision).toHaveBeenCalledWith(41, approval.availableDecisions?.[1]))
     })
 
+    it('clips command to one line and toggles exact full command', () => {
+        const command = 'powershell -Command "Get-ChildItem\n| Select-Object -First 20"'
+        render(<ActionAgentApproval approval={{ ...approval, command }} onDecision={vi.fn()} />)
+        const commandButton = screen.getByRole('button', { name: 'Toggle full command' })
+
+        expect(commandButton).toHaveAttribute('aria-expanded', 'false')
+        expect(commandButton).toHaveStyle({ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' })
+        expect(commandButton.textContent).toBe(command)
+        commandButton.focus()
+        expect(commandButton).toHaveFocus()
+
+        fireEvent.click(commandButton)
+
+        expect(commandButton).toHaveAttribute('aria-expanded', 'true')
+        expect(commandButton).toHaveStyle({ overflowWrap: 'anywhere', textOverflow: 'clip', whiteSpace: 'pre-wrap' })
+        expect(commandButton.textContent).toBe(command)
+
+        fireEvent.click(commandButton)
+
+        expect(commandButton).toHaveAttribute('aria-expanded', 'false')
+        expect(commandButton).toHaveStyle({ textOverflow: 'ellipsis', whiteSpace: 'nowrap' })
+    })
+
+    it('expands each pending approval independently', () => {
+        render(<>
+            <ActionAgentApproval approval={{ ...approval, command: 'first command', requestId: 1 }} onDecision={vi.fn()} />
+            <ActionAgentApproval approval={{ ...approval, command: 'second command', requestId: 2 }} onDecision={vi.fn()} />
+        </>)
+        const commandButtons = screen.getAllByRole('button', { name: 'Toggle full command' })
+
+        fireEvent.click(commandButtons[0])
+
+        expect(commandButtons[0]).toHaveAttribute('aria-expanded', 'true')
+        expect(commandButtons[1]).toHaveAttribute('aria-expanded', 'false')
+    })
+
     it('offers standard decisions and disables them after submission starts', async () => {
         let resolveDecision!: () => void
         const pendingDecision = new Promise<void>((resolve) => {
