@@ -9,7 +9,7 @@ affects:
 agents:
   - design/activity/card__5cdae748-9597-4d29-8dc0-3d4b5df3aa7f.json#conversation=agent-b9d63699-a849-4936-a09d-11ca31f0a753
 policy:
-after: 88a28fc1-ccbf-4d02-b560-c6726a0394dc
+after: b0ac8dca-7740-48b1-b5d4-1c1e5750ee39
 ---
 The markdown editor currently already has support for the `placeholder plugin (place holder type ahead pluging)` which shows an overlay container when the user enters '{{'
 

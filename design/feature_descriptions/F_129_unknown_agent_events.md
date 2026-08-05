@@ -3,14 +3,14 @@ author:
 id: F_129
 internalId: 88a28fc1-ccbf-4d02-b560-c6726a0394dc
 title: unknown agent events
-status: ready
+status: to fix
 owner: 
 affects:
 agents:
   - design/activity/card__88a28fc1-ccbf-4d02-b560-c6726a0394dc.json#conversation=agent-7c47dc44-50d6-4762-a9d2-12d754fd61e2
   - design/activity/card__88a28fc1-ccbf-4d02-b560-c6726a0394dc.json#conversation=agent-145987a3-2dc0-4204-baf6-e0559cc33196
 policy:
-after: b0ac8dca-7740-48b1-b5d4-1c1e5750ee39
+after: 
 ---
 
 currently, it seems that every unknown agent event - line is put in it's own box. this clutters the ui. *consecutive unknown agent events*, should be grouped together in 1 block.
