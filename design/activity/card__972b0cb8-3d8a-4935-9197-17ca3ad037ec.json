@@ -13077,6 +13077,46 @@
       "rootActionLabel": "implement",
       "startedAt": "2026-08-05T12:34:31.857Z",
       "status": "completed"
+    },
+    {
+      "commits": [
+        {
+          "commit": "5872c872bf989c541e057d46f0db66eaa9982774",
+          "committedAt": "2026-08-05T15:10:43+02:00",
+          "deletions": 261,
+          "filePaths": [
+            "app/src/components/card_view/use_project_card.ts",
+            "app/src/data/commit_batcher.test.ts",
+            "app/src/data/commit_batcher.ts",
+            "app/src/data/data_types.ts",
+            "app/src/services/agents/agent_integration.ts",
+            "app/src/services/data/canonical_card.ts",
+            "app/src/services/data/card_archive_operations.ts",
+            "app/src/services/data/card_internal_id_operations.ts",
+            "app/src/services/data/card_operation_context.ts",
+            "app/src/services/data/card_operations.test.ts",
+            "app/src/services/data/card_operations.ts",
+            "app/src/services/data/card_rename_operations.ts",
+            "app/src/services/data/data_service.ts",
+            "app/src/services/data/markdown_parsing_service.node.test.ts",
+            "app/src/services/data/markdown_parsing_service.ts",
+            "app/src/services/data/project_file_operations.ts",
+            "app/src/services/managed_open_document.ts",
+            "app/src/services/open_files_service.test.ts",
+            "app/src/services/project/project_state.ts"
+          ],
+          "filesChanged": 19,
+          "insertions": 618,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-05T15:10:43+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "972b0cb8-3d8a-4935-9197-17ca3ad037ec",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 1
