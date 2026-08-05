@@ -10,6 +10,7 @@ agents:
   - design/activity/card__efdaf96e-da6f-4d8f-874f-042f30965276.json#conversation=agent-74368566-29db-40ee-bab9-299acbddbe92
 policy:
 after: 18fd04d3-5df7-4f54-ab7a-94d96f210f13
+worktree: 1
 ---
 
 When we assign a worktree to a card, a branch is auto created.
