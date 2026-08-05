@@ -15,14 +15,6 @@
           "timestamp": "2026-08-05T14:12:04.826Z"
         },
         {
-          "content": "codex --model gpt-5.6-sol -c model_reasoning_effort=medium --sandbox workspace-write --ask-for-approval on-request app-server --stdio",
-          "id": "agent-turn-052aef04-ba8a-4de1-a045-4c39497e6759-started",
-          "kind": "event",
-          "sequence": 2,
-          "timestamp": "2026-08-05T14:12:04.826Z",
-          "type": "started"
-        },
-        {
           "content": "",
           "details": [],
           "id": "agent-turn-052aef04-ba8a-4de1-a045-4c39497e6759-event-3",
@@ -708,22 +700,6 @@
           "role": "assistant",
           "sequence": 50,
           "timestamp": "2026-08-05T14:16:17.055Z"
-        },
-        {
-          "content": "",
-          "id": "agent-turn-052aef04-ba8a-4de1-a045-4c39497e6759-turn-1-completed",
-          "kind": "event",
-          "sequence": 51,
-          "timestamp": "2026-08-05T14:14:20.912Z",
-          "type": "turnCompleted"
-        },
-        {
-          "content": "1",
-          "id": "agent-turn-052aef04-ba8a-4de1-a045-4c39497e6759-closed",
-          "kind": "event",
-          "sequence": 52,
-          "timestamp": "2026-08-05T14:16:17.055Z",
-          "type": "closed"
         }
       ],
       "hasExplicitTitle": true,
@@ -753,7 +729,7 @@
       "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "cardInternalId": "963bef1f-5a53-4f16-8941-13f9be36b88a",
       "cardPath": "design/feature_descriptions/B_97_when_action_completes_dont_autofill_the_input_again.md",
-      "completedAt": null,
+      "completedAt": "2026-08-05T17:37:12.908Z",
       "entries": [
         {
           "content": "Read and implement the feature/job described in:  `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/B_97_when_action_completes_dont_autofill_the_input_again.md`\n\nYou do not need to look at the git status. This is not your concern.  The worktree is what it is, you only need to touch what is required for the above mentioned job/feature description.\n\nUse the Block Workflow:\n\n1. Propose a Change Plan with blocks (no edits yet).\n2. create a task for each block\n3. Wait for approval.\n4. include tests.\n5. After implementation is done, update the field `status` in the markdown feature description file to \\`ready\\`. Be carefully, you are working in `C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev2`, the file to update is at `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/B_97_when_action_completes_dont_autofill_the_input_again.md`\n\nYou may read any files referenced by relative paths in the spec and any file you think is related to the spec.\nRespect the Test Plan and Acceptance Criteria.&#x20;\n\nYou should only run the related tests, do not run the entire test suite, that will be done manually later on.\n\nKeep it short and to the point. use $caveman skill",
@@ -762,14 +738,6 @@
           "role": "user",
           "sequence": 1,
           "timestamp": "2026-08-05T14:30:42.020Z"
-        },
-        {
-          "content": "codex --model gpt-5.6-sol -c model_reasoning_effort=medium --sandbox workspace-write --ask-for-approval on-request app-server --stdio",
-          "id": "agent-turn-62c8c744-0780-43f7-9d2f-7baf6081c7fa-started",
-          "kind": "event",
-          "sequence": 2,
-          "timestamp": "2026-08-05T14:30:42.020Z",
-          "type": "started"
         },
         {
           "content": "",
@@ -1150,20 +1118,345 @@
           "timestamp": "2026-08-05T14:50:17.881Z"
         },
         {
-          "content": "",
-          "id": "agent-turn-62c8c744-0780-43f7-9d2f-7baf6081c7fa-turn-1-completed",
-          "kind": "event",
+          "content": "go",
+          "id": "agent-turn-061d6885-11e7-413c-af8b-b7160d783c9f-user",
+          "kind": "message",
+          "role": "user",
           "sequence": 29,
-          "timestamp": "2026-08-05T14:32:34.491Z",
-          "type": "turnCompleted"
+          "timestamp": "2026-08-05T17:33:19.056Z"
         },
         {
-          "content": "1",
-          "id": "agent-turn-62c8c744-0780-43f7-9d2f-7baf6081c7fa-closed",
+          "content": "",
+          "id": "agent-turn-061d6885-11e7-413c-af8b-b7160d783c9f-event-30",
           "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_06801430294c59d3016a7373e613b88191a13397531cfdce38",
           "sequence": 30,
-          "timestamp": "2026-08-05T14:50:17.881Z",
-          "type": "closed"
+          "status": "completed",
+          "timestamp": "2026-08-05T17:33:32.976Z",
+          "type": "reasoning",
+          "details": [],
+          "summary": []
+        },
+        {
+          "agent": "codex",
+          "content": "Plan approved. Block 1 active: tighten preparation gate only.\n\n",
+          "id": "agent-turn-061d6885-11e7-413c-af8b-b7160d783c9f-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 31,
+          "timestamp": "2026-08-05T17:33:33.378Z"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-061d6885-11e7-413c-af8b-b7160d783c9f-event-32",
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-2f79e65e-da7c-4ce7-915c-020c44f83989",
+          "sequence": 32,
+          "status": "completed",
+          "timestamp": "2026-08-05T17:33:39.444Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-061d6885-11e7-413c-af8b-b7160d783c9f-event-33",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_06801430294c59d3016a7373f6b9288191bc116c13dc6414e9",
+          "sequence": 33,
+          "status": "completed",
+          "timestamp": "2026-08-05T17:33:46.352Z",
+          "type": "reasoning",
+          "details": [],
+          "summary": []
+        },
+        {
+          "agent": "codex",
+          "content": "Block 1 done. Block 2 active: add popup regression covering idle prefill then completion.\n\n",
+          "id": "agent-turn-061d6885-11e7-413c-af8b-b7160d783c9f-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 34,
+          "timestamp": "2026-08-05T17:33:47.030Z"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-061d6885-11e7-413c-af8b-b7160d783c9f-event-35",
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-3630e569-3d10-4cfd-b571-7fb1f50a08f7",
+          "sequence": 35,
+          "status": "completed",
+          "timestamp": "2026-08-05T17:33:57.218Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-061d6885-11e7-413c-af8b-b7160d783c9f-event-36",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_06801430294c59d3016a73740b0a1881919b9882dd3b63a15e",
+          "sequence": 36,
+          "status": "completed",
+          "timestamp": "2026-08-05T17:34:01.525Z",
+          "type": "reasoning",
+          "details": [],
+          "summary": []
+        },
+        {
+          "agent": "codex",
+          "content": "Blocks 1–2 done. Block 3 active: related test, scoped lint, then feature status.\n\n",
+          "id": "agent-turn-061d6885-11e7-413c-af8b-b7160d783c9f-turn-1-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 37,
+          "timestamp": "2026-08-05T17:34:06.554Z"
+        },
+        {
+          "content": "{\n  \"name\": \"app\",\n  \"private\": true,\n  \"version\": \"0.0.7\",\n  \"type\": \"module\",\n  \"scripts\": {\n    \"dev\": \"vite\",\n    \"build\": \"tsc && vite build\",\n    \"lint\": \"eslint .\",\n    \"lint-fix\": \"eslint . --fix\",\n    \"preview\": \"vite preview\",\n    \"typecheck\": \"tsc --noEmit\",\n    \"test\": \"vitest run\"\n  },\n  \"devDependencies\": {\n    \"@eslint/js\": \"^9.39.4\",\n    \"@testing-library/jest-dom\": \"^6.9.1\",\n    \"@testing-library/react\": \"^16.3.2\",\n    \"@types/prismjs\": \"^1.26.6\",\n    \"@types/qrcode\": \"^1.5.6\",\n    \"@types/react\": \"^19.2.17\",\n    \"@types/react-dom\": \"^19.2.3\",\n    \"@vitejs/plugin-react\": \"^6.0.3\",\n    \"eslint\": \"^9.39.4\",\n    \"eslint-plugin-import\": \"^2.32.0\",\n    \"eslint-plugin-react\": \"^7.37.5\",\n    \"eslint-plugin-react-hooks\": \"^7.1.1\",\n    \"eslint-plugin-react-refresh\": \"^0.5.3\",\n    \"globals\": \"^17.7.0\",\n    \"jsdom\": \"^29.1.1\",\n    \"typescript\": \"~6.0.2\",\n    \"typescript-eslint\": \"^8.62.1\",\n    \"vite\": \"^8.1.1\",\n    \"vitest\": \"^4.1.9\"\n  },\n  \"dependencies\": {\n    \"@aptabase/web\": \"^0.5.0\",\n    \"@dnd-kit/core\": \"^6.3.1\",\n    \"@dnd-kit/sortable\": \"^10.0.0\",\n    \"@emotion/react\": \"^11.14.0\",\n    \"@emotion/styled\": \"^11.14.1\",\n    \"@lexical/history\": \"^0.35.0\",\n    \"@lexical/link\": \"^0.35.0\",\n    \"@lexical/react\": \"^0.35.0\",\n    \"@mdxeditor/editor\": \"^4.0.4\",\n    \"@mui/icons-material\": \"^9.2.0\",\n    \"@mui/material\": \"^9.2.0\",\n    \"@sentry/react\": \"^10.63.0\",\n    \"lexical\": \"^0.35.0\",\n    \"mdi-material-ui\": \"^8.0.0\",\n    \"prismjs\": \"^1.30.0\",\n    \"qrcode\": \"^1.5.4\",\n    \"react\": \"^19.2.7\",\n    \"react-arborist\": \"^3.13.2\",\n    \"react-diff-viewer-continued\": \"^4.2.2\",\n    \"react-dom\": \"^19.2.7\",\n    \"react-markdown\": \"^10.1.0\",\n    \"react-virtuoso\": \"^4.18.11\",\n    \"remark-gfm\": \"^4.0.1\",\n    \"uuid\": \"^14.0.1\"\n  }\n}\n\r\n",
+          "id": "agent-turn-061d6885-11e7-413c-af8b-b7160d783c9f-event-38",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'package.json'\"",
+          "providerItemId": "exec-a5f6c521-91fa-4568-a5d2-8fa5464a1669",
+          "sequence": 38,
+          "status": "completed",
+          "timestamp": "2026-08-05T17:34:08.259Z",
+          "type": "commandExecution",
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'package.json'\"",
+          "durationMs": 335,
+          "exitCode": 0,
+          "output": "{\n  \"name\": \"app\",\n  \"private\": true,\n  \"version\": \"0.0.7\",\n  \"type\": \"module\",\n  \"scripts\": {\n    \"dev\": \"vite\",\n    \"build\": \"tsc && vite build\",\n    \"lint\": \"eslint .\",\n    \"lint-fix\": \"eslint . --fix\",\n    \"preview\": \"vite preview\",\n    \"typecheck\": \"tsc --noEmit\",\n    \"test\": \"vitest run\"\n  },\n  \"devDependencies\": {\n    \"@eslint/js\": \"^9.39.4\",\n    \"@testing-library/jest-dom\": \"^6.9.1\",\n    \"@testing-library/react\": \"^16.3.2\",\n    \"@types/prismjs\": \"^1.26.6\",\n    \"@types/qrcode\": \"^1.5.6\",\n    \"@types/react\": \"^19.2.17\",\n    \"@types/react-dom\": \"^19.2.3\",\n    \"@vitejs/plugin-react\": \"^6.0.3\",\n    \"eslint\": \"^9.39.4\",\n    \"eslint-plugin-import\": \"^2.32.0\",\n    \"eslint-plugin-react\": \"^7.37.5\",\n    \"eslint-plugin-react-hooks\": \"^7.1.1\",\n    \"eslint-plugin-react-refresh\": \"^0.5.3\",\n    \"globals\": \"^17.7.0\",\n    \"jsdom\": \"^29.1.1\",\n    \"typescript\": \"~6.0.2\",\n    \"typescript-eslint\": \"^8.62.1\",\n    \"vite\": \"^8.1.1\",\n    \"vitest\": \"^4.1.9\"\n  },\n  \"dependencies\": {\n    \"@aptabase/web\": \"^0.5.0\",\n    \"@dnd-kit/core\": \"^6.3.1\",\n    \"@dnd-kit/sortable\": \"^10.0.0\",\n    \"@emotion/react\": \"^11.14.0\",\n    \"@emotion/styled\": \"^11.14.1\",\n    \"@lexical/history\": \"^0.35.0\",\n    \"@lexical/link\": \"^0.35.0\",\n    \"@lexical/react\": \"^0.35.0\",\n    \"@mdxeditor/editor\": \"^4.0.4\",\n    \"@mui/icons-material\": \"^9.2.0\",\n    \"@mui/material\": \"^9.2.0\",\n    \"@sentry/react\": \"^10.63.0\",\n    \"lexical\": \"^0.35.0\",\n    \"mdi-material-ui\": \"^8.0.0\",\n    \"prismjs\": \"^1.30.0\",\n    \"qrcode\": \"^1.5.4\",\n    \"react\": \"^19.2.7\",\n    \"react-arborist\": \"^3.13.2\",\n    \"react-diff-viewer-continued\": \"^4.2.2\",\n    \"react-dom\": \"^19.2.7\",\n    \"react-markdown\": \"^10.1.0\",\n    \"react-virtuoso\": \"^4.18.11\",\n    \"remark-gfm\": \"^4.0.1\",\n    \"uuid\": \"^14.0.1\"\n  }\n}\n\r\n",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev2\\app"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-061d6885-11e7-413c-af8b-b7160d783c9f-event-39",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_06801430294c59d3016a7374143ec88191a66087f620017273",
+          "sequence": 39,
+          "status": "completed",
+          "timestamp": "2026-08-05T17:34:10.527Z",
+          "type": "reasoning",
+          "details": [],
+          "summary": []
+        },
+        {
+          "content": "\n> app@0.0.7 test\n> vitest run src/components/actions/run/popup/action_popup.test.tsx\n\n\n RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2_workers/dev2/app\n\n\n Test Files  1 passed (1)\n      Tests  31 passed (31)\n   Start at  19:34:12\n   Duration  7.84s (transform 794ms, setup 129ms, import 2.15s, tests 4.40s, environment 1.03s)\n\n",
+          "id": "agent-turn-061d6885-11e7-413c-af8b-b7160d783c9f-event-40",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm test -- src/components/actions/run/popup/action_popup.test.tsx'",
+          "providerItemId": "exec-29e3573f-b38b-4029-961e-8f466ae1e656",
+          "sequence": 40,
+          "status": "completed",
+          "timestamp": "2026-08-05T17:34:20.605Z",
+          "type": "commandExecution",
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm test -- src/components/actions/run/popup/action_popup.test.tsx'",
+          "durationMs": 8932,
+          "exitCode": 0,
+          "output": "\n> app@0.0.7 test\n> vitest run src/components/actions/run/popup/action_popup.test.tsx\n\n\n RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2_workers/dev2/app\n\n\n Test Files  1 passed (1)\n      Tests  31 passed (31)\n   Start at  19:34:12\n   Duration  7.84s (transform 794ms, setup 129ms, import 2.15s, tests 4.40s, environment 1.03s)\n\n",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev2\\app"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-061d6885-11e7-413c-af8b-b7160d783c9f-event-41",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_06801430294c59d3016a737425236c8191a017092044072297",
+          "sequence": 41,
+          "status": "completed",
+          "timestamp": "2026-08-05T17:34:29.370Z",
+          "type": "reasoning",
+          "details": [],
+          "summary": []
+        },
+        {
+          "content": "",
+          "id": "agent-turn-061d6885-11e7-413c-af8b-b7160d783c9f-event-42",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npx eslint src/components/actions/agent/action_agent_prompt_owner.tsx src/components/actions/run/popup/action_popup.test.tsx --fix'",
+          "providerItemId": "exec-df2d577c-c2c2-41dc-876d-8f95b6229d5f",
+          "sequence": 42,
+          "status": "completed",
+          "timestamp": "2026-08-05T17:34:51.437Z",
+          "type": "commandExecution",
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npx eslint src/components/actions/agent/action_agent_prompt_owner.tsx src/components/actions/run/popup/action_popup.test.tsx --fix'",
+          "durationMs": 20373,
+          "exitCode": 0,
+          "output": "",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev2\\app"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-061d6885-11e7-413c-af8b-b7160d783c9f-event-43",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_06801430294c59d3016a7374357c70819188380cbacb565f6b",
+          "sequence": 43,
+          "status": "completed",
+          "timestamp": "2026-08-05T17:34:43.794Z",
+          "type": "reasoning",
+          "details": [],
+          "summary": []
+        },
+        {
+          "content": "",
+          "id": "agent-turn-061d6885-11e7-413c-af8b-b7160d783c9f-event-44",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_06801430294c59d3016a73743f2f9881919e19d818cd4d715a",
+          "sequence": 44,
+          "status": "completed",
+          "timestamp": "2026-08-05T17:34:56.301Z",
+          "type": "reasoning",
+          "details": [],
+          "summary": []
+        },
+        {
+          "content": "\n> app@0.0.7 test\n> vitest run src/components/actions/run/popup/action_popup.test.tsx\n\n\n RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2_workers/dev2/app\n\n\n Test Files  1 passed (1)\n      Tests  31 passed (31)\n   Start at  19:34:58\n   Duration  7.54s (transform 841ms, setup 103ms, import 2.25s, tests 4.23s, environment 828ms)\n\n",
+          "id": "agent-turn-061d6885-11e7-413c-af8b-b7160d783c9f-event-45",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm test -- src/components/actions/run/popup/action_popup.test.tsx'",
+          "providerItemId": "exec-24418bec-483e-4d4d-a072-2adad8a2d4b6",
+          "sequence": 45,
+          "status": "completed",
+          "timestamp": "2026-08-05T17:35:06.536Z",
+          "type": "commandExecution",
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm test -- src/components/actions/run/popup/action_popup.test.tsx'",
+          "durationMs": 8663,
+          "exitCode": 0,
+          "output": "\n> app@0.0.7 test\n> vitest run src/components/actions/run/popup/action_popup.test.tsx\n\n\n RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2_workers/dev2/app\n\n\n Test Files  1 passed (1)\n      Tests  31 passed (31)\n   Start at  19:34:58\n   Duration  7.54s (transform 841ms, setup 103ms, import 2.25s, tests 4.23s, environment 828ms)\n\n",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev2\\app"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-061d6885-11e7-413c-af8b-b7160d783c9f-event-46",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npx eslint src/components/actions/agent/action_agent_prompt_owner.tsx src/components/actions/run/popup/action_popup.test.tsx'",
+          "providerItemId": "exec-f231b20a-925d-48aa-8d6a-820e472244f9",
+          "sequence": 46,
+          "status": "completed",
+          "timestamp": "2026-08-05T17:35:00.691Z",
+          "type": "commandExecution",
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npx eslint src/components/actions/agent/action_agent_prompt_owner.tsx src/components/actions/run/popup/action_popup.test.tsx'",
+          "durationMs": 2817,
+          "exitCode": 0,
+          "output": "",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev2\\app"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-061d6885-11e7-413c-af8b-b7160d783c9f-event-47",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_06801430294c59d3016a73744eed18819187970f88be4d413c",
+          "sequence": 47,
+          "status": "completed",
+          "timestamp": "2026-08-05T17:35:10.335Z",
+          "type": "reasoning",
+          "details": [],
+          "summary": []
+        },
+        {
+          "agent": "codex",
+          "content": "Verification passed. Final required action: set external feature status to `ready`.\n\n",
+          "id": "agent-turn-061d6885-11e7-413c-af8b-b7160d783c9f-turn-1-assistant-4",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 48,
+          "timestamp": "2026-08-05T17:35:10.876Z"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-061d6885-11e7-413c-af8b-b7160d783c9f-event-49",
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-1ce9d36e-083e-4669-b052-d6affe7435d6",
+          "sequence": 49,
+          "status": "completed",
+          "timestamp": "2026-08-05T17:36:54.708Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-061d6885-11e7-413c-af8b-b7160d783c9f-event-50",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_06801430294c59d3016a7374b9d8708191af2948af9e7cda58",
+          "sequence": 50,
+          "status": "completed",
+          "timestamp": "2026-08-05T17:36:57.141Z",
+          "type": "reasoning",
+          "details": [],
+          "summary": []
+        },
+        {
+          "content": "",
+          "id": "agent-turn-061d6885-11e7-413c-af8b-b7160d783c9f-event-51",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_06801430294c59d3016a7374bf40948191a5ef3ab3267762b1",
+          "sequence": 51,
+          "status": "completed",
+          "timestamp": "2026-08-05T17:37:01.711Z",
+          "type": "reasoning",
+          "details": [],
+          "summary": []
+        },
+        {
+          "content": "6:status: ready\n",
+          "id": "agent-turn-061d6885-11e7-413c-af8b-b7160d783c9f-event-52",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n \"''^status:\" '\"'C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\design\\\\feature_descriptions\\\\B_97_when_action_completes_dont_autofill_the_input_again.md'\"",
+          "providerItemId": "exec-7d4f7551-b685-4069-962b-700fd0a7516d",
+          "sequence": 52,
+          "status": "completed",
+          "timestamp": "2026-08-05T17:37:05.322Z",
+          "type": "commandExecution",
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n \"''^status:\" '\"'C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\design\\\\feature_descriptions\\\\B_97_when_action_completes_dont_autofill_the_input_again.md'\"",
+          "durationMs": 352,
+          "exitCode": 0,
+          "output": "6:status: ready\n",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev2"
+        },
+        {
+          "content": "app/src/components/actions/run/popup/action_popup.test.tsx:518:    it('keeps the prompt empty after completion without preparing another stored prompt', async () => {\napp/src/components/actions/run/popup/action_popup.test.tsx:521:        const prepareActionPrompt = vi.fn(async () => ({ prompt: 'Stored prompt' }))\napp/src/components/actions/run/popup/action_popup.test.tsx:536:        expect(prepareActionPrompt).toHaveBeenCalledOnce()\napp/src/components/actions/run/popup/action_popup.test.tsx:556:        expect(prepareActionPrompt).toHaveBeenCalledOnce()\napp/src/components/actions/agent/action_agent_prompt_owner.tsx:47:    const prepare = action.type === 'agent'\napp/src/components/actions/agent/action_agent_prompt_owner.tsx:49:        && runStatus !== 'completed'\n",
+          "id": "agent-turn-061d6885-11e7-413c-af8b-b7160d783c9f-event-53",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n \"const prepare|runStatus !==|keeps the prompt empty|prepareActionPrompt'\"\\\\).toHaveBeenCalledOnce\\\" app/src/components/actions/agent/action_agent_prompt_owner.tsx app/src/components/actions/run/popup/action_popup.test.tsx\"",
+          "providerItemId": "exec-da6868db-1a2b-42ee-8959-d2fca4c4be65",
+          "sequence": 53,
+          "status": "completed",
+          "timestamp": "2026-08-05T17:37:05.342Z",
+          "type": "commandExecution",
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n \"const prepare|runStatus !==|keeps the prompt empty|prepareActionPrompt'\"\\\\).toHaveBeenCalledOnce\\\" app/src/components/actions/agent/action_agent_prompt_owner.tsx app/src/components/actions/run/popup/action_popup.test.tsx\"",
+          "durationMs": 371,
+          "exitCode": 0,
+          "output": "app/src/components/actions/run/popup/action_popup.test.tsx:518:    it('keeps the prompt empty after completion without preparing another stored prompt', async () => {\napp/src/components/actions/run/popup/action_popup.test.tsx:521:        const prepareActionPrompt = vi.fn(async () => ({ prompt: 'Stored prompt' }))\napp/src/components/actions/run/popup/action_popup.test.tsx:536:        expect(prepareActionPrompt).toHaveBeenCalledOnce()\napp/src/components/actions/run/popup/action_popup.test.tsx:556:        expect(prepareActionPrompt).toHaveBeenCalledOnce()\napp/src/components/actions/agent/action_agent_prompt_owner.tsx:47:    const prepare = action.type === 'agent'\napp/src/components/actions/agent/action_agent_prompt_owner.tsx:49:        && runStatus !== 'completed'\n",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev2"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-061d6885-11e7-413c-af8b-b7160d783c9f-event-54",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_06801430294c59d3016a7374c4c9c88191921ec14f2a841798",
+          "sequence": 54,
+          "status": "completed",
+          "timestamp": "2026-08-05T17:37:07.068Z",
+          "type": "reasoning",
+          "details": [],
+          "summary": []
+        },
+        {
+          "agent": "codex",
+          "content": "Implemented B_97.\n\n- Completed runs no longer prepare stored prompt.\n- Idle prefill preserved.\n- Failed/cancelled retry behavior unchanged.\n- Added popup regression test.\n- Related tests: 31 passed.\n- Scoped lint passed.\n- Feature status set to `ready`.\n\n",
+          "id": "agent-turn-061d6885-11e7-413c-af8b-b7160d783c9f-turn-1-assistant-5",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 55,
+          "timestamp": "2026-08-05T17:37:12.908Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1173,21 +1466,21 @@
           "agent": "codex",
           "conversationId": "019fd255-6fb9-7b41-974e-db18283318ea",
           "createdAt": "2026-08-05T14:32:34.491Z",
-          "lastUsedAt": "2026-08-05T14:32:34.491Z",
-          "synchronizedThroughMessageId": "agent-turn-62c8c744-0780-43f7-9d2f-7baf6081c7fa-turn-1-assistant-2"
+          "lastUsedAt": "2026-08-05T17:37:12.908Z",
+          "synchronizedThroughMessageId": "agent-turn-061d6885-11e7-413c-af8b-b7160d783c9f-turn-1-assistant-5"
         }
       ],
       "startedAt": "2026-08-05T14:30:42.020Z",
-      "status": "waitingForInput",
+      "status": "completed",
       "title": "implement",
       "usage": {
-        "cachedInputTokens": 60160,
-        "inputTokens": 61092,
-        "outputTokens": 100,
+        "cachedInputTokens": 126464,
+        "inputTokens": 127751,
+        "outputTokens": 160,
         "reasoningTokens": 0,
-        "totalTokens": 121352
+        "totalTokens": 254375
       },
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
@@ -1227,12 +1520,12 @@
         "agent-2381b098-316e-4282-b15c-a6e4982600e7"
       ],
       "details": {
+        "type": "agent",
         "accessLevel": "workspace-write",
         "agent": "codex",
         "approvalPolicy": "on-request",
         "model": "gpt-5.6-sol",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-17caf734-321f-4da7-bce2-a29f6b6e8759",
       "origin": {
@@ -1241,9 +1534,9 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-2381b098-316e-4282-b15c-a6e4982600e7",
       "startedAt": "2026-08-05T14:30:42.020Z",
-      "status": "cancelled"
+      "status": "cancelled",
+      "rootConversationId": "agent-2381b098-316e-4282-b15c-a6e4982600e7"
     }
   ],
   "version": 2
