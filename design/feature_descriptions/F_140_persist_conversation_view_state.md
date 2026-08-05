@@ -3,7 +3,7 @@ author:
 id: F_140
 internalId: 7b158d24-318d-4081-934b-b9255a0672dc
 title: persist conversation view state
-status: ready for implementation
+status: ready
 owner:
 affects:
 agents:
