@@ -19,7 +19,6 @@ agents:
   - design/activity/card__972b0cb8-3d8a-4935-9197-17ca3ad037ec.json#conversation=agent-2cb02458-5f36-4749-aa25-b0efc7b2eaf5
 policy:
 after: 299444fe-cb8b-420f-a89d-3c3300bf249e
-worktree: 2
 ---
 
 ## Problem
