@@ -247,6 +247,10 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         return this.request<ProjectAsset>('loadProjectAsset', [path])
     }
 
+    async loadTextFile(project: ProjectReference, path: string): Promise<MarkdownFile> {
+        return this.request<MarkdownFile>('loadTextFile', [project, path])
+    }
+
     async loadProject(project: ProjectReference, workingFolder: string): Promise<StorageProjectFiles> {
         return this.request<StorageProjectFiles>('loadProject', [project, workingFolder])
     }

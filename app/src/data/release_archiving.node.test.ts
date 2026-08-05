@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { MarkdownFile, ProjectCard } from './data_types'
 import { buildReleaseMoves } from './release_archiving'
 
-function card(path: string): ProjectCard {
+function card(path: string, agentLogReferences: string[] = []): ProjectCard {
     return {
         agentConversationErrors: [],
         agentConversations: [],
@@ -10,10 +10,10 @@ function card(path: string): ProjectCard {
         header: {
             affects: [],
             after: null,
-            agentLogReferences: [],
+            agentLogReferences,
             author: null,
             id: path,
-            internalId: null,
+            internalId: 'card-1',
             owner: null,
             policy: {},
             status: 'active',
@@ -26,6 +26,22 @@ function card(path: string): ProjectCard {
 }
 
 describe('buildReleaseMoves', () => {
+    const activityPath = 'design/activity/card__card-1.json'
+    const createActivityContent = (conversationIds: string[] = [], cardInternalId = 'card-1') => JSON.stringify({
+        conversations: conversationIds.map((id) => ({
+            cardInternalId,
+            completedAt: '2026-08-05T12:01:00.000Z',
+            entries: [],
+            id,
+            providerSessions: [],
+            startedAt: '2026-08-05T12:00:00.000Z',
+            status: 'completed',
+        })),
+        origin: { cardInternalId, kind: 'card' },
+        records: [],
+        version: 2,
+    })
+
     it('moves card assets referenced by archived cards', () => {
         const files: MarkdownFile[] = [
             { content: '# Card\n\n![note](note.png)', path: 'design/F-1-card.md', sha: 'card-sha' },
@@ -85,5 +101,121 @@ describe('buildReleaseMoves', () => {
 
     it('rejects a releases folder outside the project folder', () => {
         expect(() => buildReleaseMoves([], [], 'design', 'outside', 'v1')).toThrow('must stay inside the project folder')
+    })
+
+    it('moves one activity log and rewrites every conversation reference in order', () => {
+        const activityContent = createActivityContent(['conversation-1', 'conversation-2'])
+        const source = card('design/F-1-card.md', [
+            `${activityPath}#conversation=conversation-1`,
+            `${activityPath}#conversation=conversation-2`,
+        ])
+        const files: MarkdownFile[] = [{
+            content: [
+                '---',
+                'id: F-1',
+                'internalId: card-1',
+                'agents:',
+                `  - ${activityPath}#conversation=conversation-1`,
+                `  - ${activityPath}#conversation=conversation-2`,
+                '---',
+                '# Card',
+            ].join('\n'),
+            path: source.path,
+        }]
+
+        const moves = buildReleaseMoves(
+            files,
+            [source],
+            'design',
+            'design/releases',
+            'v1',
+            [source.path, activityPath],
+            [{ content: activityContent, path: activityPath, sha: 'activity-sha' }],
+        )
+
+        expect(moves).toHaveLength(2)
+        expect(moves[0].content).toContain('  - design/releases/v1/card__card-1.json#conversation=conversation-1')
+        expect(moves[0].content).toContain('  - design/releases/v1/card__card-1.json#conversation=conversation-2')
+        expect(moves[1]).toEqual({
+            content: activityContent,
+            fromPath: activityPath,
+            sha: 'activity-sha',
+            toPath: 'design/releases/v1/card__card-1.json',
+        })
+    })
+
+    it('rejects a referenced activity path outside the canonical card log', () => {
+        const activityContent = createActivityContent(['conversation-1'])
+        const source = card('design/F-1-card.md', ['design/activity/project.json#conversation=conversation-1'])
+        const files: MarkdownFile[] = [{ content: '# Card', path: source.path }]
+
+        expect(() => buildReleaseMoves(
+            files,
+            [source],
+            'design',
+            'design/releases',
+            'v1',
+            [source.path, activityPath],
+            [{ content: activityContent, path: activityPath }],
+        )).toThrow('Unexpected activity path')
+    })
+
+    it('rejects a missing referenced activity log', () => {
+        const source = card('design/F-1-card.md', [`${activityPath}#conversation=conversation-1`])
+
+        expect(() => buildReleaseMoves(
+            [{ content: '# Card', path: source.path }],
+            [source],
+            'design',
+            'design/releases',
+            'v1',
+            [source.path],
+        )).toThrow(`Missing referenced activity log: ${activityPath}`)
+    })
+
+    it('rejects an activity log owned by another card', () => {
+        const source = card('design/F-1-card.md')
+        const wrongActivity = createActivityContent([], 'card-2')
+
+        expect(() => buildReleaseMoves(
+            [{ content: '# Card', path: source.path }],
+            [source],
+            'design',
+            'design/releases',
+            'v1',
+            [source.path, activityPath],
+            [{ content: wrongActivity, path: activityPath }],
+        )).toThrow('Activity log does not belong to released card')
+    })
+
+    it('moves an existing activity log when the card has no conversation references', () => {
+        const source = card('design/F-1-card.md')
+        const activityContent = createActivityContent()
+
+        const moves = buildReleaseMoves(
+            [{ content: '# Card', path: source.path }],
+            [source],
+            'design',
+            'design/releases',
+            'v1',
+            [source.path, activityPath, 'design/activity/project.json', 'design/activity/card__other.json'],
+            [{ content: activityContent, path: activityPath }],
+        )
+
+        expect(moves.map(({ fromPath }) => fromPath)).toEqual([source.path, activityPath])
+    })
+
+    it('rejects a reference to a conversation missing from the activity log', () => {
+        const source = card('design/F-1-card.md', [`${activityPath}#conversation=conversation-1`])
+
+        expect(() => buildReleaseMoves(
+            [{ content: '# Card', path: source.path }],
+            [source],
+            'design',
+            'design/releases',
+            'v1',
+            [source.path, activityPath],
+            [{ content: createActivityContent(), path: activityPath }],
+        )).toThrow('Referenced conversation is missing from activity log')
     })
 })

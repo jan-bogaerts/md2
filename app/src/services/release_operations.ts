@@ -1,4 +1,9 @@
-import { buildReleaseMoves, findArchiveAssetPaths, validateReleaseName } from '../data/release_archiving'
+import {
+    buildReleaseMoves,
+    findArchiveAssetPaths,
+    findReleaseActivityPaths,
+    validateReleaseName,
+} from '../data/release_archiving'
 import { statusOf } from '../data/card_ordering'
 import type { MarkdownFile, ProjectAsset, ProjectReference, ProjectSnapshot } from '../data/data_types'
 import { type RequiredDataServiceDependencies } from './data/data_service_context'
@@ -43,6 +48,8 @@ export class ReleaseOperations {
         const files = this.dependencies.files()
         const assetPaths = findArchiveAssetPaths(files, releaseCards)
         const assetFiles = await this.loadReleaseAssets(assetPaths)
+        const activityPaths = findReleaseActivityPaths(releaseCards, config.projectFolder, repositoryFiles)
+        const activityFiles = await this.loadReleaseActivityFiles(activityPaths)
         const moves = buildReleaseMoves(
             [...files, ...assetFiles],
             releaseCards,
@@ -50,6 +57,7 @@ export class ReleaseOperations {
             config.releasesFolder,
             safeReleaseName,
             repositoryFiles,
+            activityFiles,
         )
         await storage.moveFiles({
             branch: currentProject.branch,
@@ -83,5 +91,21 @@ export class ReleaseOperations {
             encoding: asset.encoding,
             path: asset.path,
         }))
+    }
+
+    private async loadReleaseActivityFiles(activityPaths: string[]) {
+        if (activityPaths.length === 0) return []
+
+        const { storage } = this.dependencies.requireDependencies()
+        const currentProject = this.dependencies.project()
+        if (!currentProject) throw new Error('Cannot load release activity before a project is open')
+        if (!storage.loadTextFile) throw new Error('Repository text file loading is not available')
+
+        const activityFiles: MarkdownFile[] = []
+        for (const activityPath of activityPaths) {
+            activityFiles.push(await storage.loadTextFile(currentProject, activityPath))
+        }
+
+        return activityFiles
     }
 }

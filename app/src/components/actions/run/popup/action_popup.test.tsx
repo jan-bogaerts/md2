@@ -8,6 +8,7 @@ import { actionService } from '../../../../services/actions/action_service'
 import { actionRunRegistry } from '../../../../services/actions/action_run_registry'
 import { actionPromptDraftService } from '../../../../services/actions/action_prompt_draft_service'
 import { dialogService } from '../../../../services/dialog_service'
+import { dataService } from '../../../../services/data/data_service'
 import { worktreeService } from '../../../../services/project/worktree_service'
 import { AppThemeProvider } from '../../../../theme/theme_provider'
 import { ActionPopup, CARD_RUN_POPUP_SIZE_STORAGE_KEY, PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY } from './action_popup'
@@ -216,6 +217,21 @@ describe('ActionPopup', () => {
         expect(actionGroup.getByRole('button', { name: 'First action' })).toHaveAttribute('aria-pressed', 'true')
         expect(actionGroup.getByRole('button', { name: 'Second action' })).toHaveAttribute('aria-pressed', 'false')
         expect(dialog.getByRole('button', { name: 'Run' })).toBeInTheDocument()
+    })
+
+    it('keeps released-card conversation history available without run controls', () => {
+        actionService.loadFromFiles([file(agentDefinition('review', { label: 'Review' }))])
+        vi.spyOn(dataService, 'getConfig').mockReturnValue({ releasesFolder: 'design/releases' } as never)
+
+        renderPopup({ cardInternalId: 'card-10', file: 'design/releases/v1/F-010.md', kind: 'card' })
+
+        const dialog = within(screen.getByRole('dialog', { name: 'Run actions' }))
+        expect(dialog.getByRole('combobox', { name: 'Conversation history' })).toBeInTheDocument()
+        expect(dialog.getByRole('note')).toHaveTextContent('Released cards are read-only. Create a new card for more work.')
+        expect(dialog.queryByRole('textbox', { name: 'Prompt' })).not.toBeInTheDocument()
+        expect(dialog.queryByRole('button', { name: 'Send' })).not.toBeInTheDocument()
+        expect(dialog.queryByRole('button', { name: 'Schedule' })).not.toBeInTheDocument()
+        expect(dialog.queryByRole('button', { name: 'Add action' })).not.toBeInTheDocument()
     })
 
     it('provides its stack position to Markdown typeahead menus', () => {

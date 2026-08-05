@@ -2,6 +2,8 @@ import { useId, useMemo, useState } from 'react'
 import { displayActionsForContext, projectContextWithWorktree, type ActionContext } from '../../../../data/action_context'
 import { CUSTOM_PROMPT_ACTION_ID } from '../../../../data/action_types'
 import { dialogService } from '../../../../services/dialog_service'
+import { dataService } from '../../../../services/data/data_service'
+import { isReleasedCardActionContext, RELEASED_CARD_RUN_MESSAGE } from '../../../../../../shared/released_card_actions.mjs'
 import { useActions } from '../../../hooks/use_actions'
 import { useProjectState } from '../../../hooks/use_project_state'
 import { useProjectActionWorktree } from '../../../hooks/use_worktrees'
@@ -54,6 +56,10 @@ export function ActionPopup(props: ActionPopupProps) {
         ? [...actions, selectedAction]
         : actions
     const target = resolvePopupTarget(context, snapshot)
+    const releasesFolder = dataService.getConfig()?.releasesFolder
+    const readOnlyMessage = releasesFolder && isReleasedCardActionContext(effectiveContext, releasesFolder)
+        ? RELEASED_CARD_RUN_MESSAGE
+        : null
 
     const handleSelectAction = (actionId: string) => {
         setSelectedActionId(actionId)
@@ -89,6 +95,7 @@ export function ActionPopup(props: ActionPopupProps) {
             onToggleFullHeight={handleToggleFullHeight}
             open={open ?? !!anchorElement}
             primaryPath={project?.rootPath ?? project?.id ?? null}
+            readOnlyMessage={readOnlyMessage}
             showSaveControls={showSaveControls}
             target={target}
             titleId={titleId}

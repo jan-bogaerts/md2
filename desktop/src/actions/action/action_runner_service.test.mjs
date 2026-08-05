@@ -75,6 +75,51 @@ async function runToCompletion(runner, request = { actionId: 'main', context, ru
 }
 
 describe('ActionRunnerService', () => {
+    const releasedContext = {
+        ...context,
+        file: 'design/releases/v1/F-010.md',
+    };
+
+    it('rejects new and continued runs for released cards while archived cards remain runnable', async () => {
+        const { commandRunner, runner } = createRunner();
+
+        await expect(runner.start({ actionId: 'main', context: releasedContext, runInput: {} }))
+            .rejects.toThrow('Released cards are read-only. Create a new card for more work.');
+        await expect(runner.start({
+            actionId: 'main',
+            context: releasedContext,
+            runInput: { continueFrom: 'design/releases/v1/card__card-010.json#conversation=conversation-1' },
+        })).rejects.toThrow('Released cards are read-only. Create a new card for more work.');
+        expect(commandRunner).not.toHaveBeenCalled();
+
+        await expect(runToCompletion(runner, {
+            actionId: 'main',
+            context: { ...context, file: 'design/archived/F-010.md' },
+            runInput: {},
+        })).resolves.toMatchObject({ status: 'completed' });
+    });
+
+    it('rejects restart before changing the old run', async () => {
+        const { runner } = createRunner();
+        const oldRun = { completion: Promise.resolve({ failure: null, status: 'completed' }), finishAgent: vi.fn() };
+        runner.runs.set('old-run', oldRun);
+
+        await expect(runner.restart('old-run', {
+            actionId: 'main',
+            context: releasedContext,
+            runInput: { prompt: 'More work' },
+        })).rejects.toThrow('Released cards are read-only. Create a new card for more work.');
+        expect(oldRun.finishAgent).not.toHaveBeenCalled();
+    });
+
+    it('rejects prompt preparation for released cards', async () => {
+        const { actionWorktreeRunService, runner } = createRunner();
+
+        await expect(runner.prepareActionPrompt({ actionId: 'main', context: releasedContext }))
+            .rejects.toThrow('Released cards are read-only. Create a new card for more work.');
+        expect(actionWorktreeRunService.resolve).not.toHaveBeenCalled();
+    });
+
     it('finishes and persists old run before starting its replacement', async () => {
         const { promise, resolve } = Promise.withResolvers();
         const { runner } = createRunner();

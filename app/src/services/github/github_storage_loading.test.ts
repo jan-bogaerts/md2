@@ -52,6 +52,24 @@ describe('GithubStorageService', () => {
         expect(fetchImplementation.mock.calls.some(([url]) => url.includes('/git/blobs/sha-2'))).toBe(false)
     })
 
+    it('loads a UTF-8 repository text file by path', async () => {
+        const path = 'design/activity/card__card-1.json'
+        const fetchImplementation = vi.fn().mockResolvedValue(createResponse({
+            content: btoa('{"version":2}'),
+            encoding: 'base64',
+            path,
+            sha: 'activity-sha',
+        }))
+        const service = new GithubStorageService()
+        service.init({ accessToken: 'token', fetchImplementation })
+
+        await expect(service.loadTextFile(project, path)).resolves.toEqual({
+            content: '{"version":2}',
+            path,
+            sha: 'activity-sha',
+        })
+    })
+
     it('bounds parallel markdown content requests when loading a project', async () => {
         let activeBlobRequests = 0
         let maxActiveBlobRequests = 0

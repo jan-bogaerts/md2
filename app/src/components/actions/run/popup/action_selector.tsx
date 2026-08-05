@@ -11,6 +11,7 @@ import { useActiveActionRunsForContext } from '../../../hooks/use_action_runs'
 import { useCardActionUnseenResults } from '../../../hooks/use_card_action_unseen_results'
 
 interface ActionSelectorProps {
+    allowAdd: boolean
     adding: boolean
     actions: ActionDefinition[]
     context: ActionContext
@@ -21,7 +22,7 @@ interface ActionSelectorProps {
 
 /** Horizontally scrollable, mutually exclusive action selector used by the card Run popup. */
 export function ActionSelector(props: ActionSelectorProps) {
-    const { adding, actions, context, onAdd, onSelect, selectedAction } = props
+    const { adding, allowAdd, actions, context, onAdd, onSelect, selectedAction } = props
     const activeRuns = useActiveActionRunsForContext(context)
     const unseenResultConversations = useCardActionUnseenResults(actions.map(({ id }) => id), context)
     const activeActionStatuses: Record<string, ActionRunStatus> = {}
@@ -143,7 +144,7 @@ export function ActionSelector(props: ActionSelectorProps) {
                     })}
                 </ToggleButtonGroup>
             </Box>
-            <Tooltip title="Add action">
+            {allowAdd ? <Tooltip title="Add action">
                 <IconButton
                     aria-label="Add action"
                     onClick={onAdd}
@@ -160,7 +161,7 @@ export function ActionSelector(props: ActionSelectorProps) {
                 >
                     <Plus sx={{ fontSize: 18 }} />
                 </IconButton>
-            </Tooltip>
+            </Tooltip> : null}
         </Box>
     )
 }
