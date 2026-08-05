@@ -3,7 +3,7 @@ author:
 id: B_96
 internalId: e9906c7f-d936-4c9a-ab73-2e7df0954024
 title: approval required command text too long
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
