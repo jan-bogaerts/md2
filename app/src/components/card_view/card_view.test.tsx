@@ -1,6 +1,8 @@
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { DndContext } from '@dnd-kit/core'
-import { createRef } from 'react'
+import type { DndContextProps, DragEndEvent } from '@dnd-kit/core'
+import { createRef, Profiler } from 'react'
+import type { ProfilerOnRenderCallback } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { CardView } from './card_view'
 import { CardColumn } from './card_column'
@@ -10,12 +12,32 @@ import type { ActionFile } from '../../data/action_types'
 import { DEFAULT_CARD_TYPES, type CardTypeConfig, type ProjectCard } from '../../data/data_types'
 import { telemetryService } from '../../services/telemetry/telemetry_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
-import { dataService } from '../../services/data/data_service'
+import { CARD_CHANGED_EVENT, dataService } from '../../services/data/data_service'
 import { worktreeService } from '../../services/project/worktree_service'
 import { cardMarkdownDataSource } from '../editor/card_markdown_data_source'
 import { openFilesService } from '../../services/open_files_service'
 import { workspaceViewService } from '../../services/project/workspace_view_service'
 import { cardDragDropService } from './card_drag_drop_service'
+
+const dragContextHandlers = vi.hoisted(() => ({
+    onDragCancel: null as DndContextProps['onDragCancel'] | null,
+    onDragEnd: null as DndContextProps['onDragEnd'] | null,
+}))
+
+vi.mock('@dnd-kit/core', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('@dnd-kit/core')>()
+    const { createElement } = await import('react')
+
+    return {
+        ...actual,
+        DndContext: (props: DndContextProps) => {
+            dragContextHandlers.onDragCancel = props.onDragCancel ?? null
+            dragContextHandlers.onDragEnd = props.onDragEnd ?? null
+
+            return createElement(actual.DndContext, props)
+        },
+    }
+})
 
 function card(id: string, title: string, status: string, policy: Record<string, boolean> = {}): ProjectCard {
     return {
@@ -63,6 +85,7 @@ function renderCardView(
     overrides: Partial<Parameters<typeof CardView>[0]> = {},
     activeCards = cards,
     repositoryFiles = ['app/src/app.tsx', 'design/F-1.md'],
+    onRender?: ProfilerOnRenderCallback,
 ) {
     setProjectCards(activeCards, repositoryFiles)
     const scrollContainerRef = createRef<HTMLDivElement>()
@@ -70,17 +93,19 @@ function renderCardView(
     render(
         <AppThemeProvider>
             <div data-testid="mobile-scroll-container" ref={scrollContainerRef}>
-                <CardView
-                    cardTypes={DEFAULT_CARD_TYPES}
-                    isMobile={false}
-                    scrollContainerRef={scrollContainerRef}
-                    states={[
-                        { alwaysVisible: false, state: 'todo' },
-                        { alwaysVisible: false, state: 'done' },
-                    ]}
-                    statusColors={new Map([['todo', '#111111'], ['done', '#222222']])}
-                    {...overrides}
-                />
+                <Profiler id="card-view" onRender={onRender ?? (() => undefined)}>
+                    <CardView
+                        cardTypes={DEFAULT_CARD_TYPES}
+                        isMobile={false}
+                        scrollContainerRef={scrollContainerRef}
+                        states={[
+                            { alwaysVisible: false, state: 'todo' },
+                            { alwaysVisible: false, state: 'done' },
+                        ]}
+                        statusColors={new Map([['todo', '#111111'], ['done', '#222222']])}
+                        {...overrides}
+                    />
+                </Profiler>
             </div>
         </AppThemeProvider>,
     )
@@ -88,6 +113,8 @@ function renderCardView(
 
 describe('CardView', () => {
     beforeEach(() => {
+        dragContextHandlers.onDragCancel = null
+        dragContextHandlers.onDragEnd = null
         workspaceViewService.setViewMode('cards')
         cardDragDropService.endDrag()
         vi.spyOn(dataService, 'getState')
@@ -381,6 +408,130 @@ describe('CardView', () => {
         expect(renderCardColumn).toHaveBeenCalledTimes(initialRenderCount + 3)
         expect(renderCardColumn.mock.calls.slice(-2).map(([props]) => props.column.status))
             .toEqual(expect.arrayContaining(['done', 'todo']))
+    })
+
+    it('commits a cross-column drop without an intermediate destination render', () => {
+        const renderCardColumn = vi.spyOn(cardColumnModule, 'CardColumn')
+        let activeCards = cards
+        const destinationSnapshots: Array<{ hasPreview: boolean, text: string }> = []
+        const previewCleanupCards: string[][] = []
+        vi.mocked(dataService.cards.moveCard).mockImplementation(async () => {
+            const previousCard = activeCards[0]
+            const movedCard = {
+                ...previousCard,
+                header: { ...previousCard.header, after: activeCards[1].header.internalId, status: 'done' },
+                headerFields: { ...previousCard.headerFields, status: 'done' },
+            }
+            activeCards = [movedCard, activeCards[1]]
+            setProjectCards(activeCards)
+            dataService.dispatchEvent(new CustomEvent(CARD_CHANGED_EVENT, { detail: { card: movedCard, previousCard } }))
+
+            return []
+        })
+        const captureDestination = () => {
+            const destination = screen.queryByLabelText('done column')
+            if (destination) destinationSnapshots.push({
+                hasPreview: !!within(destination).queryByLabelText('Card drop position'),
+                text: destination.textContent ?? '',
+            })
+        }
+        renderCardView({}, activeCards, undefined, captureDestination)
+        act(() => {
+            cardDragDropService.startDrag('design/F-1.md', 107, 235)
+            cardDragDropService.setDropPreview({ targetIndex: 1, targetStatus: 'done' })
+        })
+        const unsubscribe = cardDragDropService.subscribeColumn('done', () => {
+            previewCleanupCards.push(activeCards.filter(({ header }) => header.status === 'done').map(({ path }) => path))
+        })
+        destinationSnapshots.length = 0
+        renderCardColumn.mockClear()
+
+        act(() => dragContextHandlers.onDragEnd?.({
+            active: { id: 'design/F-1.md' },
+            over: { id: 'column:done' },
+        } as DragEndEvent))
+        unsubscribe()
+
+        const destinationRenders = renderCardColumn.mock.calls.filter(([props]) => props.column.status === 'done')
+        expect(destinationRenders).toHaveLength(1)
+        expect(destinationSnapshots.length).toBeGreaterThan(0)
+        expect(destinationSnapshots).toEqual(destinationSnapshots.map(({ text }) => ({ hasPreview: false, text })))
+        expect(destinationSnapshots.at(-1)?.text).toContain('Second')
+        expect(destinationSnapshots.at(-1)?.text).toContain('First')
+        expect(previewCleanupCards).toEqual([['design/F-1.md', 'design/F-2.md']])
+        expect(screen.queryByLabelText('todo column')).not.toBeInTheDocument()
+        const destination = within(screen.getByLabelText('done column'))
+        const movedCard = destination.getByRole('button', { name: 'Drag F-1' })
+        const previousCard = destination.getByRole('button', { name: 'Drag F-2' })
+        expect(previousCard.compareDocumentPosition(movedCard) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+        expect(destination.getAllByRole('button', { name: /^Drag /u })).toHaveLength(2)
+        expect(cardDragDropService.getOverlaySnapshot().cardPath).toBeNull()
+    })
+
+    it('commits a same-column reorder without an intermediate destination render', () => {
+        const renderCardColumn = vi.spyOn(cardColumnModule, 'CardColumn')
+        const firstCard = card('F-1', 'First', 'done')
+        const secondCard = card('F-2', 'Second', 'done')
+        let activeCards = [firstCard, secondCard]
+        const destinationSnapshots: string[] = []
+        const overlayCleanupCards: string[][] = []
+        vi.mocked(dataService.cards.moveCard).mockImplementation(async () => {
+            const movedFirstCard = {
+                ...firstCard,
+                header: { ...firstCard.header, after: secondCard.header.internalId },
+            }
+            activeCards = [secondCard, movedFirstCard]
+            setProjectCards(activeCards)
+            dataService.dispatchEvent(new CustomEvent(CARD_CHANGED_EVENT, {detail: { card: movedFirstCard, previousCard: firstCard }}))
+
+            return []
+        })
+        const captureDestination = () => {
+            const destination = screen.queryByLabelText('done column')
+            if (destination) destinationSnapshots.push(destination.textContent ?? '')
+        }
+        renderCardView({}, activeCards, undefined, captureDestination)
+        act(() => cardDragDropService.startDrag('design/F-1.md', 107, 235))
+        const unsubscribe = cardDragDropService.subscribeOverlay(() => {
+            overlayCleanupCards.push(activeCards.map(({ path }) => path))
+        })
+        destinationSnapshots.length = 0
+        renderCardColumn.mockClear()
+
+        act(() => dragContextHandlers.onDragEnd?.({
+            active: { id: 'design/F-1.md' },
+            over: { id: 'column:done' },
+        } as DragEndEvent))
+        unsubscribe()
+
+        const destinationRenders = renderCardColumn.mock.calls.filter(([props]) => props.column.status === 'done')
+        expect(destinationRenders).toHaveLength(1)
+        expect(destinationSnapshots.length).toBeGreaterThan(0)
+        expect(overlayCleanupCards).toEqual([['design/F-2.md', 'design/F-1.md']])
+        const first = screen.getByRole('button', { name: 'Drag F-1' })
+        const second = screen.getByRole('button', { name: 'Drag F-2' })
+        expect(second.compareDocumentPosition(first) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+        expect(within(screen.getByLabelText('done column')).getByText('2')).toBeInTheDocument()
+        expect(cardDragDropService.getOverlaySnapshot().cardPath).toBeNull()
+    })
+
+    it('keeps invalid drops and cancellation as cleanup-only paths', () => {
+        renderCardView()
+        act(() => cardDragDropService.startDrag('design/F-1.md', 107, 235))
+
+        act(() => dragContextHandlers.onDragEnd?.({
+            active: { id: 'design/F-1.md' },
+            over: { id: 'design/F-1.md' },
+        } as DragEndEvent))
+
+        expect(dataService.cards.moveCard).not.toHaveBeenCalled()
+        expect(cardDragDropService.getOverlaySnapshot().cardPath).toBeNull()
+
+        act(() => cardDragDropService.startDrag('design/F-1.md', 107, 235))
+        act(() => dragContextHandlers.onDragCancel?.({} as Parameters<NonNullable<DndContextProps['onDragCancel']>>[0]))
+
+        expect(dataService.cards.moveCard).not.toHaveBeenCalled()
+        expect(cardDragDropService.getOverlaySnapshot().cardPath).toBeNull()
     })
 
     it('routes the file-mode action from the popup to the callback', () => {
