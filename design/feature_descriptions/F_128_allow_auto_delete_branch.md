@@ -8,7 +8,7 @@ owner:
 affects:
 agents:
 policy:
-after: 963bef1f-5a53-4f16-8941-13f9be36b88a
+after: 18fd04d3-5df7-4f54-ab7a-94d96f210f13
 ---
 
 When we assign a worktree to a card, a branch is auto created.
