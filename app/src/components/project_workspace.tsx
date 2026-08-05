@@ -241,12 +241,13 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
 
     const workspace = (
         <ProjectWorkspaceAvailability>
+            {isMobile ? <MobileLayout content={textView} /> : <SplitLayout left={fileTree} right={textView} />}
             {isMobile ? (
                 <MobileCardView cardTypes={cardTypes} states={states} statusColors={statusColors} />
             ) : (
                 <CardView cardTypes={cardTypes} states={states} statusColors={statusColors} />
             )}
-			<CardActionPopupHost />
+            <CardActionPopupHost />
         </ProjectWorkspaceAvailability>
     )
     const navigation = project ? fileTree : (
