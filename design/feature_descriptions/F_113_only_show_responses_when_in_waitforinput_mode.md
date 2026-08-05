@@ -3,7 +3,7 @@ author:
 id: F_113
 internalId: 903157da-1625-4516-b5c9-b4880ef7fc40
 title: only show responses when in waitForInput mode
-status: design
+status: ready
 owner: 
 affects:
 agents:
