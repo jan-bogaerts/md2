@@ -3,7 +3,7 @@ author:
 id: B_97
 internalId: 963bef1f-5a53-4f16-8941-13f9be36b88a
 title: when action completes dont autofill the input again
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
