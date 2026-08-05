@@ -5797,6 +5797,53 @@
       "rootActionLabel": "implement",
       "startedAt": "2026-08-05T12:32:53.796Z",
       "status": "completed"
+    },
+    {
+      "commits": [
+        {
+          "commit": "4a2e02c621bc06684f8c7dfb6a653ff3715e9a47",
+          "committedAt": "2026-08-05T15:10:05+02:00",
+          "deletions": 178,
+          "filePaths": [
+            "app/src/components/actions/run/popup/action_usage_summary.test.tsx",
+            "app/src/components/actions/run/state/action_run_history.test.tsx",
+            "app/src/components/actions/run/state/action_run_history.tsx",
+            "app/src/components/card_view/card_body_popover_commit.test.tsx",
+            "app/src/components/card_view/card_commit_diff_panel.test.tsx",
+            "app/src/components/card_view/card_commit_menu.test.tsx",
+            "app/src/components/text_view/card_editor.test.tsx",
+            "app/src/components/text_view/list_editor_toolbar_controls.test.tsx",
+            "app/src/data/electron_action_bridge.ts",
+            "app/src/services/actions/card_commit_history.node.test.ts",
+            "app/src/services/data/remote_control_storage_service.node.test.ts",
+            "desktop/src/actions/action/action_files.js",
+            "desktop/src/actions/action/action_files.test.mjs",
+            "desktop/src/actions/action/action_run.js",
+            "desktop/src/actions/action/action_run.test.mjs",
+            "desktop/src/actions/action/action_run_history.js",
+            "desktop/src/actions/action/action_run_history.test.mjs",
+            "desktop/src/actions/action/action_runner_service.test.mjs",
+            "desktop/src/actions/action/action_scheduler_service.js",
+            "desktop/src/actions/action/action_scheduler_service.test.mjs",
+            "desktop/src/actions/activity/activity_files.js",
+            "desktop/src/actions/activity/activity_files.test.mjs",
+            "desktop/src/actions/activity/card_activity.test.mjs",
+            "desktop/src/shell/local_bridge_dispatch.test.mjs",
+            "shared/card_activity.d.mts",
+            "shared/card_activity.mjs"
+          ],
+          "filesChanged": 26,
+          "insertions": 458,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-05T15:10:05+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "299444fe-cb8b-420f-a89d-3c3300bf249e",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 1
