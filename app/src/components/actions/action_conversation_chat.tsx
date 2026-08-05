@@ -1,5 +1,5 @@
 import { Stack, Typography } from '@mui/material'
-import { useEffect, useLayoutEffect, useRef, type UIEvent } from 'react'
+import { useLayoutEffect, useRef, type UIEvent } from 'react'
 import type { AgentConversation } from '../../data/data_types'
 import type { PopupRunStatus } from './action_popup_defaults'
 import { ActionConversationEventRow } from './action_conversation_event_row'
@@ -13,7 +13,6 @@ const MIN_CHAT_HEIGHT = 96
 
 interface ActionConversationChatProps {
     conversation: AgentConversation | null
-    onConversationViewed?: (conversation: AgentConversation) => void
     status: PopupRunStatus
 }
 
@@ -36,7 +35,7 @@ function visibleConversationEntries(conversation: AgentConversation | null) {
 }
 
 /** Ordered user/assistant transcript shown above the popup prompt. */
-export function ActionConversationChat({ conversation, onConversationViewed, status }: ActionConversationChatProps) {
+export function ActionConversationChat({ conversation, status }: ActionConversationChatProps) {
     const entries = visibleConversationEntries(conversation)
     const viewportRef = useRef<HTMLDivElement>(null)
     const conversationPathRef = useRef<string | null | undefined>(undefined)
@@ -45,12 +44,6 @@ export function ActionConversationChat({ conversation, onConversationViewed, sta
     const handleScroll = (event: UIEvent<HTMLDivElement>) => {
         stuckToEndRef.current = viewportIsAtEnd(event.currentTarget)
     }
-
-    useEffect(() => {
-        if (!conversation?.completedAt || conversation.status === 'running' || conversation.status === 'waitingForInput') return
-
-        onConversationViewed?.(conversation)
-    }, [conversation, onConversationViewed])
 
     useLayoutEffect(() => {
         const viewport = viewportRef.current

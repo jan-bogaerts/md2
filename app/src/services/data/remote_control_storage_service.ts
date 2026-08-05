@@ -412,6 +412,10 @@ export class RemoteControlStorageService implements StorageService, ElectronActi
         return this.request<AgentConversation>('closeWaitingActionConversation', [reference, status])
     }
 
+    async updateActionConversationViewed(reference: string, viewed: boolean): Promise<AgentConversation> {
+        return this.request<AgentConversation>('updateActionConversationViewed', [reference, viewed])
+    }
+
     async sendActionMessage(runId: string, content: string): Promise<void> {
         await this.request('sendActionMessage', [runId, content])
     }

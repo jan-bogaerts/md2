@@ -10,7 +10,6 @@ import type { ActionConversationStore } from './action_conversation_store'
 interface ActionConversationPickerOwnerProps {
     actionId: string
     context: ActionContext
-    projectKey: string | null
     store: ActionConversationStore
 }
 
@@ -20,7 +19,7 @@ function selectSessionActive(run: ActionRun | null) {
 
 /** Loads and selects conversation history at picker boundary. */
 export function ActionConversationPickerOwner(props: ActionConversationPickerOwnerProps) {
-    const { actionId, context, projectKey, store } = props
+    const { actionId, context, store } = props
     const sessionActive = useActionRunSelector(actionId, context, selectSessionActive)
     const liveActionId = useActionRunSelector(actionId, context, (run) => run?.conversation?.actionId)
     const liveCardInternalId = useActionRunSelector(actionId, context, (run) => run?.conversation?.cardInternalId)
@@ -29,7 +28,7 @@ export function ActionConversationPickerOwner(props: ActionConversationPickerOwn
     const livePath = useActionRunSelector(actionId, context, (run) => run?.conversation?.path)
     const liveStartedAt = useActionRunSelector(actionId, context, (run) => run?.conversation?.startedAt)
     const liveTitle = useActionRunSelector(actionId, context, (run) => run?.conversation?.title)
-    const unseenResultConversations = useCardActionUnseenResults([actionId], context, projectKey)
+    const unseenResultConversations = useCardActionUnseenResults([actionId], context)
     const snapshot = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot)
     store.configureInitialSelection(unseenResultConversations[0]?.path ?? null)
     const liveConversation = useMemo<ConversationPickerConversation | null>(() => {

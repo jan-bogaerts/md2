@@ -28,7 +28,7 @@ export function CardActionPopupHostEntry({ entry, stackPosition }: CardActionPop
             draggable
             onActivate={handleActivate}
             onClose={handleClose}
-            projectKey={entry.projectKey}
+            popupEntryId={entry.id}
             stackPosition={stackPosition}
         />
     )

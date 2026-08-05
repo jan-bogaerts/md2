@@ -223,7 +223,7 @@ describe('AgentIntegration', () => {
 
         await vi.waitFor(() => {
             const card = service.getState().snapshot?.activeCards[0]
-            expect(card && cardAgentState('project', card)).toBe('waiting for input')
+            expect(card && cardAgentState(card)).toBe('waiting for input')
         })
         service.agents.updateAgentConversation({
             ...waiting,
@@ -232,7 +232,7 @@ describe('AgentIntegration', () => {
         })
 
         const card = service.getState().snapshot?.activeCards[0]
-        expect(card && cardAgentState('project', card)).not.toBe('waiting for input')
+        expect(card && cardAgentState(card)).not.toBe('waiting for input')
     })
 
     it('loads conversations only for active, archived, and released cards', async () => {

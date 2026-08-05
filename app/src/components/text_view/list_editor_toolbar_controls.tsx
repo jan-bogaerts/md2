@@ -1,11 +1,10 @@
 import { Button } from '@mui/material'
 import { Separator } from '@mdxeditor/editor'
-import { useCallback, useEffect, useState } from 'react'
-import { fileContext } from '../../data/action_context'
+import { useCallback, useSyncExternalStore, type MouseEvent } from 'react'
+import { actionContextIdentity, fileContext } from '../../data/action_context'
 import type { CardTypeConfig } from '../../data/data_types'
+import { cardActionPopupService, subscribeCardActionPopups } from '../../services/actions/card_action_popup_service'
 import { dialogService } from '../../services/dialog_service'
-import { workspaceViewService } from '../../services/project/workspace_view_service'
-import { ActionPopup } from '../actions/action_popup'
 import { CardCommitMenu } from '../card_view/card_commit_menu'
 import { listCardCommitDiffDataSource } from '../card_view/list_card_commit_diff_data_source'
 import { cardMarkdownDataSource } from '../editor/card_markdown_data_source'
@@ -14,6 +13,7 @@ import { MarkdownDocumentUndoRedo } from '../editor/markdown_document_undo_redo'
 import { MarkdownFormatToolbarControls } from '../editor/markdown_format_toolbar_controls'
 import { useActiveCard } from '../hooks/use_active_card'
 import { useCardCommits } from '../hooks/use_card_commits'
+import { useProjectState } from '../hooks/use_project_state'
 import { CardPropertiesControl } from './card_properties_control'
 
 interface ListEditorToolbarControlsProps {
@@ -28,40 +28,29 @@ export function ListEditorToolbarControls(props: ListEditorToolbarControlsProps)
     const card = useActiveCard('list-card')
     const documentId = card?.header.internalId ?? null
     const cardCommits = useCardCommits(documentId)
-    const [agentPopupDocumentId, setAgentPopupDocumentId] = useState<string | null>(null)
-    const isAgentPopupOpen = !!documentId && agentPopupDocumentId === documentId
+    const { project } = useProjectState()
+    const popupEntries = useSyncExternalStore(
+        subscribeCardActionPopups,
+        () => cardActionPopupService.getSnapshot(),
+        () => cardActionPopupService.getSnapshot(),
+    )
+    const context = card ? fileContext(card, cardTypes) : null
+    const contextIdentity = context ? actionContextIdentity(context) : null
+    const isAgentPopupOpen = !!contextIdentity && popupEntries.some((entry) => (
+        actionContextIdentity(entry.context) === contextIdentity
+    ))
 
-    useEffect(() => {
-        const closeTransientOverlays = () => {
-            setAgentPopupDocumentId(null)
-        }
-
-        queueMicrotask(closeTransientOverlays)
-    }, [documentId])
-
-    useEffect(() => {
-        const handleWorkspaceViewChanged = () => {
-            if (workspaceViewService.getSnapshot().viewMode === 'text') return
-
-            setAgentPopupDocumentId(null)
-        }
-
-        workspaceViewService.addEventListener('changed', handleWorkspaceViewChanged)
-
-        return () => workspaceViewService.removeEventListener('changed', handleWorkspaceViewChanged)
-    }, [])
-
-    const handleToggleAgentPopup = useCallback(() => {
+    const handleToggleAgentPopup = useCallback((event: MouseEvent<HTMLButtonElement>) => {
         try {
             const activeDocumentId = cardMarkdownDataSource.getActiveDocument('list-card')?.getObject().header.internalId
             if (!activeDocumentId) throw new Error('Cannot open card agents without an active list-card document')
+            if (!context || !project) throw new Error('Cannot open card agents without a loaded project')
 
-            setAgentPopupDocumentId((current) => current === activeDocumentId ? null : activeDocumentId)
+            cardActionPopupService.toggle(context, event.currentTarget)
         } catch (error) {
             dialogService.error(error, { fallbackMessage: 'Card agents could not be opened' })
         }
-    }, [])
-    const handleCloseAgentPopup = useCallback(() => setAgentPopupDocumentId(null), [])
+    }, [context, project])
 
     if (!card || !documentId) return null
 
@@ -82,17 +71,6 @@ export function ListEditorToolbarControls(props: ListEditorToolbarControlsProps)
     const undoRedoControls = <MarkdownDocumentUndoRedo historyKey={documentId} historyStore={historyStore} />
 
     return (
-        <>
-            <MarkdownFormatToolbarControls endControls={endControls} undoRedoControls={undoRedoControls} />
-            {isAgentPopupOpen ? (
-                <ActionPopup
-                    anchorElement={null}
-                    context={fileContext(card, cardTypes)}
-                    draggable
-                    onClose={handleCloseAgentPopup}
-                    open
-                />
-            ) : null}
-        </>
+        <MarkdownFormatToolbarControls endControls={endControls} undoRedoControls={undoRedoControls} />
     )
 }

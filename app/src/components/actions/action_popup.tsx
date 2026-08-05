@@ -26,7 +26,7 @@ interface ActionPopupProps {
     onActivate?: () => void
     onClose: () => void
     open?: boolean
-    projectKey?: string
+    popupEntryId?: string
     stackPosition?: number
 }
 
@@ -54,7 +54,6 @@ export function ActionPopup(props: ActionPopupProps) {
         ? [...actions, selectedAction]
         : actions
     const target = resolvePopupTarget(context, snapshot)
-    const projectKey = props.projectKey ?? (project ? `${project.id}:${project.branch}` : null)
 
     const handleSelectAction = (actionId: string) => {
         setSelectedActionId(actionId)
@@ -90,7 +89,6 @@ export function ActionPopup(props: ActionPopupProps) {
             onToggleFullHeight={handleToggleFullHeight}
             open={open ?? !!anchorElement}
             primaryPath={project?.rootPath ?? project?.id ?? null}
-            projectKey={projectKey}
             showSaveControls={showSaveControls}
             target={target}
             titleId={titleId}

@@ -582,8 +582,11 @@ describe('AgentRunnerService state handling', () => {
         expect(answerApproval).toHaveBeenCalledWith(41, 'accept');
         expect(run.conversation.entries).toEqual([]);
         expect(run.conversation.status).toBe('waitingForInput');
-        expect(persistConversationCheckpoint).not.toHaveBeenCalled();
+        expect(persistConversationCheckpoint).toHaveBeenCalledOnce();
         expect(run.onEvent).toHaveBeenCalledWith(expect.objectContaining({ type: 'approval' }));
+        const approvalCallIndex = run.onEvent.mock.calls.findIndex(([event]) => event.type === 'approval');
+        expect(persistConversationCheckpoint.mock.invocationCallOrder[0])
+            .toBeLessThan(run.onEvent.mock.invocationCallOrder[approvalCallIndex]);
         expect(run.onEvent).toHaveBeenCalledWith(expect.objectContaining({ state: 'waitingForInput', type: 'approvalResolved' }));
     });
 

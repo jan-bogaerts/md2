@@ -127,6 +127,7 @@ export interface ElectronActionBridge {
     setActionQueuedMessage?(runId: string, sessionId: number, content: string, revision: number): Promise<{ accepted: boolean }>
     startAction(request: ActionStartRequest): Promise<string>
     startUnattendedAction?(request: ActionStartRequest): Promise<string>
+    updateActionConversationViewed?(reference: string, viewed: boolean): Promise<AgentConversation>
 }
 
 declare global {

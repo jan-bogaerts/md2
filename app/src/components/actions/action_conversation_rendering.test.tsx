@@ -37,6 +37,7 @@ function conversation(entries: AgentConversationEntry[]): AgentConversation {
         startedAt: '2026-08-04T10:00:00.000Z',
         status: 'running',
         title: 'Review',
+        viewed: true,
     }
 }
 

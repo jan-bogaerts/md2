@@ -53,6 +53,7 @@ function agentConversation(entries: AgentConversationEntry[], overrides: Partial
         startedAt: 'now',
         status: 'running',
         title: 'Review',
+        viewed: true,
         ...overrides,
     }
 }

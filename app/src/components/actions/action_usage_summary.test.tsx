@@ -18,6 +18,7 @@ function conversation(actionId: string, cardInternalId: string, totalTokens: num
         startedAt: 'now',
         status: 'completed',
         title: 'Run',
+        viewed: true,
         usage: { cachedInputTokens: 0, inputTokens: totalTokens, outputTokens: 0, reasoningTokens: 0, totalTokens },
     }
 }

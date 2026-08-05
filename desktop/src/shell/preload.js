@@ -81,6 +81,7 @@ const ACTION_METHODS = [
     'setActionQueuedMessage',
     'startAction',
     'startUnattendedAction',
+    'updateActionConversationViewed',
 ];
 const EVENT_METHODS = new Set(['runSearchRegexpAgent']);
 const CODEX_RUNTIME_METHODS = ['getCodexRateLimits'];

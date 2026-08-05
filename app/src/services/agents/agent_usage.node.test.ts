@@ -33,6 +33,7 @@ function card(path: string, usages: Array<AgentTokenUsage | undefined>): Project
         startedAt: 'now',
         status: 'completed',
         title: 'Run',
+        viewed: true,
         ...(agentUsage ? { usage: agentUsage } : {}),
     } satisfies AgentConversation))
 

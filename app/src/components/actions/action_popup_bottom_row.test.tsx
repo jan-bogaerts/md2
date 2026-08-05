@@ -39,6 +39,7 @@ function waitingConversation(actionId: string): AgentConversation {
         startedAt: '2026-08-04T10:00:00.000Z',
         status: 'waitingForInput',
         title: 'Waiting conversation',
+        viewed: true,
     }
 }
 

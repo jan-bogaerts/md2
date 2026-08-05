@@ -1,117 +1,257 @@
-import type { AgentConversation } from '../../data/data_types'
-import { register } from '.././service_injector'
+import type { ActionRunEvent, ActionRunStatus } from '../../data/action_run_types'
+import { getElectronActionBridge } from '../../data/electron_action_bridge'
+import type { AgentConversation, ProjectReference } from '../../data/data_types'
+import { actionRunRegistry } from '../actions/action_run_registry'
+import { dialogService } from '../dialog_service'
+import { register } from '../service_injector'
 
-const STORAGE_KEY = 'md2.agentAcknowledgements'
+const UNSEEN_STATUSES = new Set<ActionRunStatus>(['completed', 'failed', 'waitingForInput'])
 
 type Listener = () => void
+type PersistViewed = (reference: string, viewed: boolean) => Promise<AgentConversation>
+type SubscribeRunEvents = (listener: (event: ActionRunEvent) => void) => () => void
+type GetRunConversation = (runId: string) => AgentConversation | null
 
-function completedTimestamp(conversation: AgentConversation) {
-    if (conversation.status === 'running' || !conversation.completedAt) return null
-
-    return conversation.completedAt
+interface RuntimeConversation {
+    conversation: AgentConversation
+    revision: number
 }
 
-function latestCompletedTimestamp(conversations: AgentConversation[]) {
-    return conversations.map(completedTimestamp).filter((timestamp): timestamp is string => !!timestamp).sort().at(-1) ?? null
+function conversationKey(cardPath: string, actionId: string, conversationId: string) {
+    return `${cardPath}\u0000${actionId}\u0000${conversationId}`
 }
 
-function readAcknowledgements() {
-    const content = window.localStorage.getItem(STORAGE_KEY)
-    if (!content) return {}
-
-    const value: unknown = JSON.parse(content)
-    if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Invalid agent acknowledgement storage')
-
-    return value as Record<string, string>
+function actionKey(cardPath: string, actionId: string) {
+    return `${cardPath}\u0000${actionId}`
 }
 
-function cardKey(projectId: string, cardPath: string) {
-    return `${projectId}:${cardPath}`
+function projectIdentity(project: ProjectReference | null) {
+    return project ? `${project.id}\u0000${project.branch}` : null
 }
 
-export function agentAcknowledgementCheckpoint(projectId: string, cardPath: string) {
-    return readAcknowledgements()[cardKey(projectId, cardPath)] ?? null
+async function persistConversationViewed(reference: string, viewed: boolean) {
+    const bridge = getElectronActionBridge()
+    if (!bridge?.updateActionConversationViewed) throw new Error('Updating conversation view state requires Electron')
+
+    return bridge.updateActionConversationViewed(reference, viewed)
 }
 
-/** Returns newest completed result for one action beyond card acknowledgement checkpoint. */
-export function latestUnseenAgentResult(
-    projectId: string,
-    cardPath: string,
-    conversations: AgentConversation[],
-    actionId: string,
-) {
-    const acknowledgedAt = readAcknowledgements()[cardKey(projectId, cardPath)]
-
-    return conversations
-        .filter((conversation) => conversation.actionId === actionId)
-        .filter((conversation) => {
-            const timestamp = completedTimestamp(conversation)
-
-            return !!timestamp && (!acknowledgedAt || timestamp > acknowledgedAt)
-        })
-        .sort((left, right) => (completedTimestamp(right) ?? '').localeCompare(completedTimestamp(left) ?? ''))[0] ?? null
+function newestConversation(conversations: AgentConversation[]) {
+    return [...conversations].sort((left, right) => right.startedAt.localeCompare(left.startedAt))[0] ?? null
 }
 
-export function hasUnseenAgentResult(projectId: string, cardPath: string, conversations: AgentConversation[]) {
-    const timestamp = latestCompletedTimestamp(conversations)
-    if (!timestamp) return false
+function subscribeListener(listenersByKey: Map<string, Set<Listener>>, key: string, listener: Listener) {
+    const listeners = listenersByKey.get(key) ?? new Set<Listener>()
+    listeners.add(listener)
+    listenersByKey.set(key, listeners)
 
-    const acknowledgedAt = readAcknowledgements()[cardKey(projectId, cardPath)]
-
-    return !acknowledgedAt || timestamp > acknowledgedAt
+    return () => {
+        listeners.delete(listener)
+        if (listeners.size === 0) listenersByKey.delete(key)
+    }
 }
 
-export class AgentAcknowledgementService extends EventTarget {
+/** Owns transient card conversation view state and scoped acknowledgement events. */
+export class AgentAcknowledgementService {
+    private readonly actionListeners = new Map<string, Set<Listener>>()
+    private readonly actionRevisions = new Map<string, number>()
     private readonly cardListeners = new Map<string, Set<Listener>>()
+    private readonly cardRevisions = new Map<string, number>()
+    private currentProjectIdentity: string | null = null
+    private readonly getRunConversation: GetRunConversation
+    private readonly persistViewed: PersistViewed
+    private readonly runStatuses = new Map<string, ActionRunStatus>()
+    private readonly runtime = new Map<string, Map<string, Map<string, RuntimeConversation>>>()
+    private readonly visibleEntries = new Map<string, Set<string>>()
 
-    constructor() {
-        super()
-        register('agentAcknowledgementService', this)
+    constructor(
+        persistViewed: PersistViewed,
+        subscribeRunEvents: SubscribeRunEvents,
+        getRunConversation: GetRunConversation,
+    ) {
+        this.persistViewed = persistViewed
+        this.getRunConversation = getRunConversation
+        subscribeRunEvents(this.handleActionRunEvent)
     }
 
-    subscribeCard(projectId: string, cardPath: string, listener: Listener) {
-        const key = cardKey(projectId, cardPath)
-        const listeners = this.cardListeners.get(key) ?? new Set<Listener>()
-        listeners.add(listener)
-        this.cardListeners.set(key, listeners)
+    setLoadedProject(project: ProjectReference | null) {
+        const nextIdentity = projectIdentity(project)
+        if (nextIdentity === this.currentProjectIdentity) return
 
-        return () => {
-            listeners.delete(listener)
-            if (listeners.size === 0) this.cardListeners.delete(key)
+        this.currentProjectIdentity = nextIdentity
+        this.clearRuntimeState()
+    }
+
+    subscribeAction(cardPath: string, actionId: string, listener: Listener) {
+        return subscribeListener(this.actionListeners, actionKey(cardPath, actionId), listener)
+    }
+
+    subscribeCard(cardPath: string, listener: Listener) {
+        return subscribeListener(this.cardListeners, cardPath, listener)
+    }
+
+    actionRevision(cardPath: string, actionId: string) {
+        return this.actionRevisions.get(actionKey(cardPath, actionId)) ?? 0
+    }
+
+    cardRevision(cardPath: string) {
+        return this.cardRevisions.get(cardPath) ?? 0
+    }
+
+    conversations(cardPath: string, conversations: AgentConversation[]) {
+        const conversationsById = new Map(conversations.map((conversation) => [conversation.id, conversation]))
+        const actions = this.runtime.get(cardPath)
+        for (const runtimeConversations of actions?.values() ?? []) {
+            for (const { conversation } of runtimeConversations.values()) conversationsById.set(conversation.id, conversation)
+        }
+
+        return [...conversationsById.values()]
+    }
+
+    latestUnseen(cardPath: string, conversations: AgentConversation[], actionId: string) {
+        return newestConversation(this.conversations(cardPath, conversations).filter((conversation) => (
+            conversation.actionId === actionId && !conversation.viewed
+        )))
+    }
+
+    hasUnseen(cardPath: string, conversations: AgentConversation[]) {
+        return this.conversations(cardPath, conversations).some(({ viewed }) => !viewed)
+    }
+
+    setConversationVisible(
+        entryId: string,
+        cardPath: string,
+        actionId: string,
+        conversation: AgentConversation,
+        visible: boolean,
+    ) {
+        const key = conversationKey(cardPath, actionId, conversation.id)
+        const entries = this.visibleEntries.get(key) ?? new Set<string>()
+        if (visible) entries.add(entryId)
+        else entries.delete(entryId)
+        if (entries.size > 0) this.visibleEntries.set(key, entries)
+        else this.visibleEntries.delete(key)
+        if (visible && !this.currentConversation(cardPath, actionId, conversation).viewed) {
+            void this.setViewed(cardPath, actionId, conversation, true)
         }
     }
 
-    /** Keeps acknowledgements attached to a card after its file was renamed. */
-    renameCardPath(projectId: string, fromPath: string, toPath: string) {
-        const values = readAcknowledgements()
-        const fromKey = cardKey(projectId, fromPath)
-        const acknowledgedAt = values[fromKey]
-        if (!acknowledgedAt) return
+    async setViewed(cardPath: string, actionId: string, conversation: AgentConversation, viewed: boolean) {
+        const current = this.currentConversation(cardPath, actionId, conversation)
+        if (current.viewed === viewed) return current
 
-        delete values[fromKey]
-        const toKey = cardKey(projectId, toPath)
-        values[toKey] = acknowledgedAt
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(values))
-        this.notifyCard(fromKey)
-        this.notifyCard(toKey)
+        const previousRuntime = this.runtimeConversation(cardPath, actionId, conversation.id)
+        const revision = (previousRuntime?.revision ?? 0) + 1
+        const next = { ...current, viewed }
+        this.storeRuntime(cardPath, actionId, { conversation: next, revision })
+        this.notify(cardPath, actionId)
+
+        try {
+            const persisted = await this.persistViewed(conversation.path, viewed)
+            const latest = this.runtimeConversation(cardPath, actionId, conversation.id)
+            if (latest?.revision === revision) {
+                this.storeRuntime(cardPath, actionId, { conversation: { ...persisted, viewed }, revision })
+            }
+
+            return persisted
+        } catch (error) {
+            const latest = this.runtimeConversation(cardPath, actionId, conversation.id)
+            if (latest?.revision === revision) {
+                if (previousRuntime) this.storeRuntime(cardPath, actionId, previousRuntime)
+                else this.deleteRuntime(cardPath, actionId, conversation.id)
+                this.notify(cardPath, actionId)
+            }
+            dialogService.error(error, { fallbackMessage: 'Card conversation view state could not be saved' })
+            throw error
+        }
     }
 
-    acknowledge(projectId: string, cardPath: string, conversations: AgentConversation[]) {
-        const timestamp = latestCompletedTimestamp(conversations)
-        if (!timestamp) return
-
-        const values = readAcknowledgements()
-        const key = cardKey(projectId, cardPath)
-        if (values[key] && values[key] >= timestamp) return
-
-        values[key] = timestamp
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(values))
-        this.notifyCard(key)
+    clearRuntimeState() {
+        const cardPaths = [...new Set([
+            ...this.runtime.keys(),
+            ...this.cardListeners.keys(),
+        ])]
+        this.runtime.clear()
+        this.runStatuses.clear()
+        this.visibleEntries.clear()
+        for (const cardPath of cardPaths) this.cardRevisions.set(cardPath, this.cardRevision(cardPath) + 1)
+        for (const key of this.actionListeners.keys()) this.actionRevisions.set(key, (this.actionRevisions.get(key) ?? 0) + 1)
+        for (const cardPath of cardPaths) {
+            for (const listener of this.cardListeners.get(cardPath) ?? []) listener()
+        }
+        for (const listeners of this.actionListeners.values()) {
+            for (const listener of listeners) listener()
+        }
     }
 
-    private notifyCard(key: string) {
-        for (const listener of this.cardListeners.get(key) ?? []) listener()
+    private readonly handleActionRunEvent = (event: ActionRunEvent) => {
+        const previousStatus = this.runStatuses.get(event.runId)
+        this.runStatuses.set(event.runId, event.status)
+        const conversation = this.getRunConversation(event.runId)
+        const cardPath = event.context.file
+        const actionId = conversation?.actionId
+        const isCardConversation = !!event.context.cardInternalId && !!cardPath && !!actionId && !!conversation
+        if (!isCardConversation) return
+
+        const current = this.currentConversation(cardPath, actionId, conversation)
+        const revision = this.runtimeConversation(cardPath, actionId, conversation.id)?.revision ?? 0
+        this.storeRuntime(cardPath, actionId, { conversation: current, revision })
+        if (previousStatus === event.status || !UNSEEN_STATUSES.has(event.status)) return
+        const key = conversationKey(cardPath, actionId, conversation.id)
+        if ((this.visibleEntries.get(key)?.size ?? 0) > 0) return
+
+        void this.setViewed(cardPath, actionId, conversation, false).catch(() => undefined)
     }
+
+    private currentConversation(cardPath: string, actionId: string, fallback: AgentConversation) {
+        const runtimeConversation = this.runtimeConversation(cardPath, actionId, fallback.id)?.conversation
+
+        return runtimeConversation ? { ...fallback, viewed: runtimeConversation.viewed } : fallback
+    }
+
+    private runtimeConversation(cardPath: string, actionId: string, conversationId: string) {
+        return this.runtime.get(cardPath)?.get(actionId)?.get(conversationId)
+    }
+
+    private storeRuntime(cardPath: string, actionId: string, value: RuntimeConversation) {
+        const actions = this.runtime.get(cardPath) ?? new Map<string, Map<string, RuntimeConversation>>()
+        const conversations = actions.get(actionId) ?? new Map<string, RuntimeConversation>()
+        conversations.set(value.conversation.id, value)
+        actions.set(actionId, conversations)
+        this.runtime.set(cardPath, actions)
+    }
+
+    private deleteRuntime(cardPath: string, actionId: string, conversationId: string) {
+        const actions = this.runtime.get(cardPath)
+        const conversations = actions?.get(actionId)
+        conversations?.delete(conversationId)
+        if (conversations?.size === 0) actions?.delete(actionId)
+        if (actions?.size === 0) this.runtime.delete(cardPath)
+    }
+
+    private notify(cardPath: string, actionId: string) {
+        const scopedActionKey = actionKey(cardPath, actionId)
+        this.actionRevisions.set(scopedActionKey, (this.actionRevisions.get(scopedActionKey) ?? 0) + 1)
+        this.cardRevisions.set(cardPath, this.cardRevision(cardPath) + 1)
+        for (const listener of this.actionListeners.get(scopedActionKey) ?? []) listener()
+        for (const listener of this.cardListeners.get(cardPath) ?? []) listener()
+    }
+
 }
 
-export const agentAcknowledgementService = new AgentAcknowledgementService()
+export const agentAcknowledgementService = register(
+    'agentAcknowledgementService',
+    new AgentAcknowledgementService(
+        persistConversationViewed,
+        (listener) => actionRunRegistry.subscribeActiveRunEvents(listener),
+        (runId) => actionRunRegistry.getRunStore(runId)?.getSnapshot().conversation ?? null,
+    ),
+)
+
+export function latestUnseenAgentResult(cardPath: string, conversations: AgentConversation[], actionId: string) {
+    return agentAcknowledgementService.latestUnseen(cardPath, conversations, actionId)
+}
+
+export function hasUnseenAgentResult(cardPath: string, conversations: AgentConversation[]) {
+    return agentAcknowledgementService.hasUnseen(cardPath, conversations)
+}

@@ -20,6 +20,7 @@ import { workspaceViewService } from '../services/project/workspace_view_service
 import { workspaceNavigationService, type WorkspaceOpenRequest } from '../services/project/workspace_navigation_service'
 import { projectPersistenceService } from '../services/project/project_persistence_service'
 import { CardView } from './card_view/card_view'
+import { CardActionPopupHost } from './actions/card_action_popup_host'
 import { flushMarkdownEditors } from './editor/markdown_editor_flush'
 import { useProjectReference } from './hooks/use_project_reference'
 import { TextView } from './text_view/text_view'
@@ -246,6 +247,7 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
                 states={states}
                 statusColors={statusColors}
             />
+            <CardActionPopupHost />
         </ProjectWorkspaceAvailability>
     )
     const navigation = project ? fileTree : (

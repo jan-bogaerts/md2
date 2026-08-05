@@ -24,10 +24,10 @@ export function hasRunningConversation(card: ProjectCard) {
 }
 
 /** Resolve the single agent state shown for a card, mirroring the priority waiting > running > unseen > idle. */
-export function cardAgentState(projectKey: string, card: ProjectCard): CardAgentState {
+export function cardAgentState(card: ProjectCard): CardAgentState {
     if (isConversationWaiting(card)) return 'waiting for input'
     if (hasRunningConversation(card)) return 'running'
-    if (hasUnseenAgentResult(projectKey, card.path, card.agentConversations)) return 'unseen result'
+    if (hasUnseenAgentResult(card.path, card.agentConversations)) return 'unseen result'
 
     return 'idle'
 }

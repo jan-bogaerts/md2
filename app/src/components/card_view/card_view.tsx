@@ -11,7 +11,6 @@ import { openFilesService } from '../../services/open_files_service'
 import { workspaceViewService } from '../../services/project/workspace_view_service'
 import { telemetryService } from '../../services/telemetry/telemetry_service'
 import { AffectsEditorDialog } from './affects_editor_dialog'
-import { CardActionPopupHost } from '../actions/card_action_popup_host'
 import { CardBodyPopover } from './card_body_popover'
 import { cardBodyPopoverService } from './card_body_popover_service'
 import { CardColumn } from './card_column'
@@ -227,7 +226,6 @@ export function CardView(props: CardViewProps) {
                     onClose={handleCloseAffects}
                     onSave={handleAffectsChange}
                 />
-                <CardActionPopupHost />
             </DndContext>
         </Box>
     )
