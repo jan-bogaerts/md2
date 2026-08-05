@@ -81,7 +81,11 @@ const approval: AgentApproval = {
     turnId: 'turn-1',
 }
 
+const conversationsByCardInternalId = new Map<string, AgentConversation[]>()
+
 function cardWith(conversations: AgentConversation[]): ProjectCard {
+    conversationsByCardInternalId.set('f-010', conversations)
+
     return { ...card, agentConversations: conversations }
 }
 
@@ -106,7 +110,11 @@ function renderCardRunButton(projectCard: ProjectCard = card) {
 
 describe('CardRunButton', () => {
     beforeEach(() => {
-        agentAcknowledgementService.clearRuntimeState()
+        agentAcknowledgementService.reset()
+        conversationsByCardInternalId.clear()
+        vi.spyOn(dataService.agents, 'getAgentConversations').mockImplementation((cardInternalId: string) => (
+            conversationsByCardInternalId.get(cardInternalId) ?? []
+        ))
         window.md2Actions = {
             onActionRun: vi.fn(() => vi.fn()),
             prepareActionPrompt: vi.fn(async () => ({ prompt: '' })),
@@ -469,15 +477,25 @@ describe('CardRunButton', () => {
     })
 
     it('updates when a persisted conversation is attached after the card renders', () => {
-        const loadedCard = cardWith([])
-        renderCardRunButton(loadedCard)
+        renderCardRunButton(cardWith([]))
 
         expect(screen.getByRole('button', { name: 'Run' })).toBeInTheDocument()
 
-        loadedCard.agentConversations = [conversation('waitingForInput', [], 'implement')]
-        act(() => agentAcknowledgementService.notifyConversationsChanged(loadedCard.path, ['implement']))
+        conversationsByCardInternalId.set('f-010', [conversation('waitingForInput', [], 'implement')])
+        act(() => agentAcknowledgementService.announceConversationsChanged('f-010', ['implement']))
 
         expect(screen.getByRole('button', { name: /Agent is waiting for input/u })).toBeInTheDocument()
+    })
+
+    it('updates when an unseen conversation is attached after the card renders', () => {
+        renderCardRunButton(cardWith([]))
+
+        expect(screen.getByRole('button', { name: 'Run' })).toBeInTheDocument()
+
+        conversationsByCardInternalId.set('f-010', [{ ...conversation('completed', [], 'implement'), viewed: false }])
+        act(() => agentAcknowledgementService.announceConversationsChanged('f-010', ['implement']))
+
+        expect(screen.getByRole('button', { name: /New agent result available/u })).toBeInTheDocument()
     })
 
     it('distinguishes waiting, running, unseen and acknowledged agent states', async () => {
@@ -520,7 +538,7 @@ describe('CardRunButton', () => {
         )
         expect(screen.getByRole('button', { name: 'Run — New agent result available' })).toBeInTheDocument()
 
-        await act(() => agentAcknowledgementService.setViewed(card.path, 'implement', completed, true))
+        await act(() => agentAcknowledgementService.setViewed('f-010', 'implement', completed, true))
 
         expect(screen.getByRole('button', { name: 'Run' })).toBeInTheDocument()
     })

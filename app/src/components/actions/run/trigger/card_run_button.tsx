@@ -6,8 +6,8 @@ import type { MouseEvent } from 'react'
 import type { ActionContext } from '../../../../data/action_context'
 import type { ProjectCard } from '../../../../data/data_types'
 import { cardActionPopupService } from '../../../../services/actions/card_action_popup_service'
-import { agentStateDescription, cardAgentState } from '../../../../services/agents/card_agent_state'
-import { useCardAcknowledgements } from '../../../hooks/use_agent_acknowledgements'
+import { agentStateDescription } from '../../../../services/agents/card_agent_state'
+import { useCardAgentState } from '../../../hooks/use_agent_acknowledgements'
 import { useRunningActionForContext } from '../../../hooks/use_action_runs'
 
 interface CardRunButtonProps {
@@ -17,8 +17,7 @@ interface CardRunButtonProps {
 
 /** Opens the card action selector and run popup, and surfaces the card's agent state. */
 export function CardRunButton({ card, context }: CardRunButtonProps) {
-    useCardAcknowledgements(card.path)
-    const agentState = cardAgentState(card)
+    const agentState = useCardAgentState(card.header.internalId)
     const runningRun = useRunningActionForContext(context)
     const liveStatus = runningRun?.status
     const isQueued = liveStatus === 'queued'

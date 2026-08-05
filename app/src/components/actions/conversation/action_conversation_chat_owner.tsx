@@ -2,9 +2,7 @@ import { useEffect, useSyncExternalStore } from 'react'
 import type { ActionContext } from '../../../data/action_context'
 import { cardActionPopupService, subscribeCardActionPopups } from '../../../services/actions/card_action_popup_service'
 import { agentAcknowledgementService } from '../../../services/agents/agent_acknowledgement_service'
-import { useActionAcknowledgements } from '../../hooks/use_agent_acknowledgements'
 import { useActionRunSelector } from '../../hooks/use_action_runs'
-import { useActionContextCard } from '../../hooks/use_action_context_card'
 import { ActionConversationChat } from './action_conversation_chat'
 import type { ActionConversationStore } from './action_conversation_store'
 
@@ -26,25 +24,24 @@ export function ActionConversationChatOwner(props: ActionConversationChatOwnerPr
         () => cardActionPopupService.getSnapshot(),
         () => cardActionPopupService.getSnapshot(),
     )
-    const { cardPath } = useActionContextCard(context)
-    useActionAcknowledgements(cardPath, actionId)
+    const cardInternalId = context.cardInternalId
     const conversation = liveConversation ?? selectedConversation
     const status = runStatus === 'idle' && conversation?.status === 'waitingForInput' ? 'waitingForInput' : runStatus
-    const visible = !!popupEntryId && popupEntries.at(-1)?.id === popupEntryId && !!cardPath && !!conversation
+    const visible = !!popupEntryId && popupEntries.at(-1)?.id === popupEntryId && !!cardInternalId && !!conversation
 
     useEffect(() => {
-        if (!popupEntryId || !cardPath || !conversation) return undefined
+        if (!popupEntryId || !cardInternalId || !conversation) return undefined
 
-        agentAcknowledgementService.setConversationVisible(popupEntryId, cardPath, actionId, conversation, visible)
+        agentAcknowledgementService.setConversationVisible(popupEntryId, cardInternalId, actionId, conversation, visible)
 
         return () => agentAcknowledgementService.setConversationVisible(
             popupEntryId,
-            cardPath,
+            cardInternalId,
             actionId,
             conversation,
             false,
         )
-    }, [actionId, cardPath, conversation, popupEntryId, visible])
+    }, [actionId, cardInternalId, conversation, popupEntryId, visible])
 
     return <ActionConversationChat conversation={conversation} status={status} />
 }

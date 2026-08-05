@@ -118,6 +118,7 @@ export class DataService extends EventTarget {
             this.createAgentIntegrationDependencies(),
             (cardPath, reference) => this.cards.addAgentLogReference(cardPath, reference),
         )
+        agentAcknowledgementService.connectConversationStore((conversation) => this.agents.findStoredConversation(conversation))
         this.projectLoading = new ProjectLoading(
             this.createProjectLoadingDependencies(),
             (snapshot, project, projectLoadToken) => this.agents.loadAgentConversationsInBackground(snapshot, project, projectLoadToken),
@@ -355,7 +356,6 @@ export class DataService extends EventTarget {
         return { commitBatcher: this.commitBatcher, config, storage: this.storage }
     }
     private dispatchChanged() {
-        agentAcknowledgementService.setLoadedProject(this.projectState.project)
         this.dispatchPersistenceChanged()
         this.dispatchEvent(new CustomEvent<DataServiceState>('changed', { detail: this.getState() }))
     }

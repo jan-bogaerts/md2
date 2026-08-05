@@ -1,16 +1,23 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ActionRunEvent, ActionRunStatus } from '../../data/action_run_types'
 import type { AgentConversation } from '../../data/data_types'
-import { AgentAcknowledgementService } from './agent_acknowledgement_service'
+import { setActionBridgeOverride, type ElectronActionBridge } from '../../data/electron_action_bridge'
+import { actionRunRegistry } from '../actions/action_run_registry'
+import {
+    actionAcknowledgementEvent,
+    agentAcknowledgementService,
+    cardAcknowledgementEvent,
+} from './agent_acknowledgement_service'
+import { hasUnseenConversation, latestUnseenConversation } from './card_agent_state'
 
-const cardPath = 'design/F-1-root.md'
+const cardInternalId = 'root-card'
 const actionId = 'implement'
 
 function conversation(id = 'conversation-1', viewed = true): AgentConversation {
     return {
         actionId,
-        cardInternalId: 'root-card',
-        cardPath,
+        cardInternalId,
+        cardPath: 'design/F-1-root.md',
         completedAt: null,
         entries: [],
         hasExplicitTitle: true,
@@ -27,7 +34,7 @@ function conversation(id = 'conversation-1', viewed = true): AgentConversation {
 function runEvent(status: ActionRunStatus): ActionRunEvent {
     return {
         actionId,
-        context: { cardInternalId: 'root-card', file: cardPath, kind: 'card' },
+        context: { cardInternalId, file: 'design/F-1-root.md', kind: 'card' },
         phase: 'main',
         rootActionId: actionId,
         runId: 'run-1',
@@ -36,192 +43,193 @@ function runEvent(status: ActionRunStatus): ActionRunEvent {
     }
 }
 
-function createService(persist = vi.fn(async (reference: string, viewed: boolean) => ({
-    ...conversation(),
-    path: reference,
-    viewed,
-}))) {
-    let listener: ((event: ActionRunEvent) => void) | null = null
-    let liveConversation: AgentConversation | null = conversation()
-    const service = new AgentAcknowledgementService(
-        persist,
-        (nextListener) => {
-            listener = nextListener
+/** Starts the run registry against a bridge that reports the given conversation for the emitted run. */
+function startRunRegistry(runConversation: AgentConversation | null) {
+    let emit: ((event: ActionRunEvent) => void) | null = null
+    const updateActionConversationViewed = vi.fn(async (reference: string, viewed: boolean) => ({
+        ...conversation(),
+        path: reference,
+        viewed,
+    }))
+    setActionBridgeOverride({
+        onActionRun: vi.fn((listener: (event: ActionRunEvent) => void) => {
+            emit = listener
 
-            return () => undefined
-        },
-        () => liveConversation,
-    )
-
-    return {
-        emit: (event: ActionRunEvent) => {
-            if (!listener) throw new Error('Missing action-run listener')
-            listener(event)
-        },
-        persist,
-        service,
-        setLiveConversation: (next: AgentConversation | null) => {
-            liveConversation = next
-        },
+            return vi.fn()
+        }),
+        updateActionConversationViewed,
+    } as unknown as ElectronActionBridge)
+    actionRunRegistry.start()
+    if (!emit) throw new Error('Missing run listener')
+    const emitEvent = emit as (event: ActionRunEvent) => void
+    let seeded = false
+    /** Publishes a status event, seeding the run store with its conversation on first use. */
+    const publish = (event: ActionRunEvent) => {
+        if (runConversation && !seeded) {
+            seeded = true
+            emitEvent({ ...event, status: 'running', type: 'run' })
+            emitEvent({
+                ...event,
+                status: 'running',
+                type: 'update',
+                update: { conversation: runConversation, kind: 'agentStarted' },
+            })
+        }
+        emitEvent(event)
     }
-}
 
-function deferredConversation() {
-    let rejectPromise: (error: Error) => void = () => undefined
-    let resolvePromise: (value: AgentConversation) => void = () => undefined
-    const promise = new Promise<AgentConversation>((resolve, reject) => {
-        rejectPromise = reject
-        resolvePromise = resolve
-    })
-
-    return { promise, reject: rejectPromise, resolve: resolvePromise }
+    return { publish, updateActionConversationViewed }
 }
 
 describe('AgentAcknowledgementService', () => {
-    afterEach(() => vi.restoreAllMocks())
-
-    it('selects newest unseen conversation without acknowledging older conversations', async () => {
-        const { service } = createService()
-        const older = conversation('older', false)
-        const newest = conversation('newest', false)
-
-        await service.setViewed(cardPath, actionId, newest, true)
-
-        expect(service.latestUnseen(cardPath, [newest, older], actionId)).toEqual(older)
-        expect(service.hasUnseen(cardPath, [newest, older])).toBe(true)
+    afterEach(() => {
+        actionRunRegistry.stop()
+        agentAcknowledgementService.reset()
+        agentAcknowledgementService.connectConversationStore(() => null)
+        setActionBridgeOverride(null)
+        vi.restoreAllMocks()
     })
 
-    it('notifies only exact action subscribers and card aggregate subscriber', async () => {
-        const { service } = createService()
-        const exact = vi.fn()
+    it('announces card and exact action events without touching other scopes', async () => {
+        const { updateActionConversationViewed } = startRunRegistry(null)
+        const exactAction = vi.fn()
         const otherAction = vi.fn()
-        const otherCard = vi.fn()
         const card = vi.fn()
-        service.subscribeAction(cardPath, actionId, exact)
-        service.subscribeAction(cardPath, 'review', otherAction)
-        service.subscribeCard(cardPath, card)
-        service.subscribeCard('design/F-2.md', otherCard)
+        const otherCard = vi.fn()
+        agentAcknowledgementService.addEventListener(actionAcknowledgementEvent(cardInternalId, actionId), exactAction)
+        agentAcknowledgementService.addEventListener(actionAcknowledgementEvent(cardInternalId, 'review'), otherAction)
+        agentAcknowledgementService.addEventListener(cardAcknowledgementEvent(cardInternalId), card)
+        agentAcknowledgementService.addEventListener(cardAcknowledgementEvent('other-card'), otherCard)
 
-        await service.setViewed(cardPath, actionId, conversation('conversation-1', false), true)
+        await agentAcknowledgementService.setViewed(cardInternalId, actionId, conversation('conversation-1', false), true)
 
-        expect(exact).toHaveBeenCalledOnce()
+        expect(updateActionConversationViewed).toHaveBeenCalledOnce()
+        expect(exactAction).toHaveBeenCalledOnce()
         expect(card).toHaveBeenCalledOnce()
         expect(otherAction).not.toHaveBeenCalled()
         expect(otherCard).not.toHaveBeenCalled()
     })
 
-    it('notifies loaded conversation actions once and the card aggregate once', () => {
-        const { service } = createService()
-        const firstAction = vi.fn()
-        const secondAction = vi.fn()
-        const card = vi.fn()
-        service.subscribeAction(cardPath, actionId, firstAction)
-        service.subscribeAction(cardPath, 'review', secondAction)
-        service.subscribeCard(cardPath, card)
+    it('applies the view change to the stored conversation record', async () => {
+        startRunRegistry(null)
+        const stored = conversation('conversation-1', false)
+        agentAcknowledgementService.connectConversationStore(() => stored)
 
-        service.notifyConversationsChanged(cardPath, [actionId, 'review', actionId])
+        await agentAcknowledgementService.setViewed(cardInternalId, actionId, conversation('conversation-1', false), true)
 
-        expect(firstAction).toHaveBeenCalledOnce()
-        expect(secondAction).toHaveBeenCalledOnce()
-        expect(card).toHaveBeenCalledOnce()
+        expect(stored.viewed).toBe(true)
+        expect(hasUnseenConversation([stored])).toBe(false)
+    })
+
+    it('selects the newest unseen conversation and leaves older ones unseen', async () => {
+        startRunRegistry(null)
+        const older = conversation('older', false)
+        const newest = conversation('newest', false)
+        agentAcknowledgementService.connectConversationStore(() => newest)
+
+        await agentAcknowledgementService.setViewed(cardInternalId, actionId, newest, true)
+
+        expect(latestUnseenConversation([newest, older], actionId)).toEqual(older)
+        expect(hasUnseenConversation([newest, older])).toBe(true)
     })
 
     it.each<ActionRunStatus>(['waitingForInput', 'completed', 'failed'])(
         'marks conversation unseen on transition into %s once',
         async (status) => {
-            const { emit, persist, service } = createService()
-            emit(runEvent('running'))
-            emit(runEvent(status))
-            emit(runEvent(status))
-            await vi.waitFor(() => expect(persist).toHaveBeenCalledOnce())
+            const running = conversation()
+            const { publish, updateActionConversationViewed } = startRunRegistry(running)
+            publish(runEvent('running'))
+            publish(runEvent(status))
+            publish(runEvent(status))
 
-            expect(persist).toHaveBeenCalledWith(conversation().path, false)
-            expect(service.latestUnseen(cardPath, [], actionId)?.id).toBe('conversation-1')
+            await vi.waitFor(() => expect(updateActionConversationViewed).toHaveBeenCalledOnce())
+            expect(updateActionConversationViewed).toHaveBeenCalledWith(running.path, false)
         },
     )
+
+    it('marks conversation unseen again when it returns to a qualifying state', async () => {
+        const running = conversation()
+        const { publish, updateActionConversationViewed } = startRunRegistry(running)
+        agentAcknowledgementService.connectConversationStore(() => running)
+        publish(runEvent('waitingForInput'))
+        await vi.waitFor(() => expect(running.viewed).toBe(false))
+
+        await agentAcknowledgementService.setViewed(cardInternalId, actionId, running, true)
+        publish(runEvent('running'))
+        publish(runEvent('waitingForInput'))
+
+        await vi.waitFor(() => expect(running.viewed).toBe(false))
+        expect(updateActionConversationViewed).toHaveBeenCalledTimes(3)
+        expect(updateActionConversationViewed).toHaveBeenLastCalledWith(running.path, false)
+    })
 
     it.each<ActionRunStatus>(['queued', 'running', 'cancelled', 'okButNotAfter'])(
         'does not mark conversation unseen on transition into %s',
         (status) => {
-            const { emit, persist } = createService()
-            emit(runEvent(status))
+            const { publish, updateActionConversationViewed } = startRunRegistry(conversation())
+            publish(runEvent(status))
 
-            expect(persist).not.toHaveBeenCalled()
+            expect(updateActionConversationViewed).not.toHaveBeenCalled()
         },
     )
 
-    it('keeps visible conversation viewed during qualifying transition', () => {
-        const { emit, persist, service } = createService()
-        service.setConversationVisible('popup-1', cardPath, actionId, conversation(), true)
+    it('keeps a visible conversation viewed during a qualifying transition', () => {
+        const running = conversation()
+        const { publish, updateActionConversationViewed } = startRunRegistry(running)
+        agentAcknowledgementService.setConversationVisible('popup-1', cardInternalId, actionId, running, true)
 
-        emit(runEvent('running'))
-        emit(runEvent('completed'))
+        publish(runEvent('running'))
+        publish(runEvent('completed'))
 
-        expect(persist).not.toHaveBeenCalled()
-        expect(service.hasUnseen(cardPath, [])).toBe(false)
+        expect(updateActionConversationViewed).not.toHaveBeenCalled()
     })
 
-    it('acknowledges unseen conversation when it becomes visible', async () => {
-        const { persist, service } = createService()
+    it('acknowledges an unseen conversation when its chat becomes visible', async () => {
+        const { updateActionConversationViewed } = startRunRegistry(null)
         const unseen = conversation('conversation-1', false)
 
-        service.setConversationVisible('popup-1', cardPath, actionId, unseen, true)
+        agentAcknowledgementService.setConversationVisible('popup-1', cardInternalId, actionId, unseen, true)
 
-        await vi.waitFor(() => expect(persist).toHaveBeenCalledWith(unseen.path, true))
-        expect(service.hasUnseen(cardPath, [unseen])).toBe(false)
+        await vi.waitFor(() => expect(updateActionConversationViewed).toHaveBeenCalledWith(unseen.path, true))
+        await vi.waitFor(() => expect(unseen.viewed).toBe(true))
     })
 
-    it('rolls back failed optimistic update and allows retry', async () => {
+    it('leaves the conversation unseen and retryable when persistence fails', async () => {
         const error = new Error('disk failed')
-        const persist = vi.fn()
+        const updateActionConversationViewed = vi.fn()
             .mockRejectedValueOnce(error)
             .mockImplementation(async (reference: string, viewed: boolean) => ({ ...conversation(), path: reference, viewed }))
-        const { service } = createService(persist)
+        setActionBridgeOverride({
+            onActionRun: vi.fn(() => vi.fn()),
+            updateActionConversationViewed,
+        } as unknown as ElectronActionBridge)
+        actionRunRegistry.start()
         const unseen = conversation('conversation-1', false)
 
-        const failed = service.setViewed(cardPath, actionId, unseen, true)
-        expect(service.hasUnseen(cardPath, [unseen])).toBe(false)
-        await expect(failed).rejects.toThrow('disk failed')
-        expect(service.hasUnseen(cardPath, [unseen])).toBe(true)
+        await expect(agentAcknowledgementService.setViewed(cardInternalId, actionId, unseen, true)).rejects.toThrow('disk failed')
+        expect(unseen.viewed).toBe(false)
 
-        await service.setViewed(cardPath, actionId, unseen, true)
-        expect(persist).toHaveBeenCalledTimes(2)
-        expect(service.hasUnseen(cardPath, [unseen])).toBe(false)
+        await agentAcknowledgementService.setViewed(cardInternalId, actionId, unseen, true)
+        expect(unseen.viewed).toBe(true)
+        expect(updateActionConversationViewed).toHaveBeenCalledTimes(2)
     })
 
-    it('does not let older failed request roll back newer desired state', async () => {
-        const first = deferredConversation()
-        const persist = vi.fn()
-            .mockImplementationOnce(() => first.promise)
-            .mockImplementationOnce(async (reference: string, viewed: boolean) => ({ ...conversation(), path: reference, viewed }))
-        const { service } = createService(persist)
-        const source = conversation()
+    it('ignores transitions without a card conversation identity', () => {
+        const { publish, updateActionConversationViewed } = startRunRegistry(null)
 
-        const olderRequest = service.setViewed(cardPath, actionId, source, false)
-        await service.setViewed(cardPath, actionId, source, true)
-        first.reject(new Error('older failed'))
-        await expect(olderRequest).rejects.toThrow('older failed')
+        publish(runEvent('completed'))
 
-        expect(service.hasUnseen(cardPath, [source])).toBe(false)
+        expect(updateActionConversationViewed).not.toHaveBeenCalled()
     })
 
-    it('clears runtime acknowledgement state when loaded project changes', async () => {
-        const { service } = createService()
-        service.setLoadedProject({ branch: 'main', id: 'one' })
-        await service.setViewed(cardPath, actionId, conversation(), false)
-        expect(service.hasUnseen(cardPath, [])).toBe(true)
+    it('clears chat visibility at a project boundary', () => {
+        const running = conversation()
+        const { publish, updateActionConversationViewed } = startRunRegistry(running)
+        agentAcknowledgementService.setConversationVisible('popup-1', cardInternalId, actionId, running, true)
 
-        service.setLoadedProject({ branch: 'main', id: 'two' })
+        agentAcknowledgementService.reset()
+        publish(runEvent('completed'))
 
-        expect(service.hasUnseen(cardPath, [])).toBe(false)
-    })
-
-    it('ignores transitions without card conversation identity', () => {
-        const { emit, persist, setLiveConversation } = createService()
-        setLiveConversation(null)
-
-        emit(runEvent('completed'))
-
-        expect(persist).not.toHaveBeenCalled()
+        expect(updateActionConversationViewed).toHaveBeenCalledWith(running.path, false)
     })
 })

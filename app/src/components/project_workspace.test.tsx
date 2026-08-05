@@ -500,8 +500,8 @@ describe('ProjectWorkspace', () => {
                 expect.objectContaining({ alwaysVisible: true, state: 'new' }),
                 expect.objectContaining({ alwaysVisible: true, state: 'design' }),
                 expect.objectContaining({ alwaysVisible: true, state: 'ready for implementation' }),
-                expect.objectContaining({ alwaysVisible: true, state: 'in progress' }),
-                expect.objectContaining({ alwaysVisible: true, state: 'done' }),
+                expect.objectContaining({ alwaysVisible: true, state: 'to fix' }),
+                expect.objectContaining({ alwaysVisible: true, state: 'ready' }),
             ]),
             workingFolder: 'docs',
         })))

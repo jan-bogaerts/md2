@@ -109,8 +109,8 @@ describe('mergeStatesWithDefaults', () => {
             { alwaysVisible: true, color: defaultColumnAccent(1), state: 'design' },
             { alwaysVisible: true, color: defaultColumnAccent(0), state: 'new' },
             { alwaysVisible: true, color: defaultColumnAccent(2), state: 'ready for implementation' },
-            { alwaysVisible: true, color: defaultColumnAccent(3), state: 'in progress' },
-            { alwaysVisible: true, color: defaultColumnAccent(4), state: 'done' },
+            { alwaysVisible: true, color: defaultColumnAccent(3), state: 'to fix' },
+            { alwaysVisible: true, color: defaultColumnAccent(4), state: 'ready' },
         ])
     })
 })

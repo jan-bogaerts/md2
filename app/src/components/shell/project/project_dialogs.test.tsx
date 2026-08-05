@@ -406,7 +406,7 @@ describe('project dialog components', () => {
 
         expect(screen.getByRole('combobox', { name: 'Target column' })).toHaveTextContent('design')
         fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Target column' }))
-        fireEvent.click(await screen.findByRole('option', { name: 'in progress' }))
+        fireEvent.click(await screen.findByRole('option', { name: 'to fix' }))
         fireEvent.change(screen.getByRole('textbox', { name: 'Title' }), { target: { value: '  New Card  ' } })
         fireEvent.change(getDescriptionEditor(), { target: { value: 'Body' } })
         fireEvent.click(screen.getByRole('button', { name: 'Create card' }))
@@ -416,7 +416,7 @@ describe('project dialog components', () => {
             bodyIncludesTemplate: true,
             title: 'New Card',
             type: 'feature',
-        }, 'in progress'))
+        }, 'to fix'))
     })
 
     it('uses full-height mobile chrome with synchronized create controls and safe footer targets', async () => {

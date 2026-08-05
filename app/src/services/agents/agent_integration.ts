@@ -162,6 +162,15 @@ export class AgentIntegration {
         this.conversationsByCardInternalId = new Map()
         this.errorsByCardPath = new Map()
         this.reportedLoadErrorKeys.clear()
+        agentAcknowledgementService.reset()
+    }
+
+    /** Resolves the loaded record matching a conversation, so view changes update the canonical instance. */
+    findStoredConversation(conversation: AgentConversation) {
+        if (!conversation.cardInternalId) return null
+
+        return (this.conversationsByCardInternalId.get(conversation.cardInternalId) ?? [])
+            .find(({ id }) => id === conversation.id) ?? null
     }
 
     startScheduledRunWatch() {
@@ -295,14 +304,9 @@ export class AgentIntegration {
         this.errorsByCardPath = this.mergeResolvedAgentErrors(resolved.errorsByCardPath)
         this.reportNewAgentLoadErrors(resolved.errorsByCardPath)
         this.dependencies.refreshSnapshot(config.workingFolder)
-        for (const card of cards) {
-            if (!card.header.internalId) continue
-
-            const conversations = resolved.conversationsByCardInternalId.get(card.header.internalId)
-            if (!conversations || conversations.length === 0) continue
-
+        for (const [cardInternalId, conversations] of resolved.conversationsByCardInternalId) {
             const actionIds = conversations.flatMap(({ actionId }) => actionId ? [actionId] : [])
-            agentAcknowledgementService.notifyConversationsChanged(card.path, actionIds)
+            agentAcknowledgementService.announceConversationsChanged(cardInternalId, actionIds)
         }
     }
 
@@ -385,13 +389,8 @@ export class AgentIntegration {
             : [...conversations, conversation]
         this.conversationsByCardInternalId.set(cardInternalId, nextConversations)
         this.dependencies.refreshSnapshot(config.workingFolder)
-        const snapshot = this.dependencies.snapshot()
-        const card = [...(snapshot?.activeCards ?? []), ...(snapshot?.backgroundCards ?? [])]
-            .find((candidate) => candidate.header.internalId === cardInternalId)
-        if (card) {
-            const actionIds = conversation.actionId ? [conversation.actionId] : []
-            agentAcknowledgementService.notifyConversationsChanged(card.path, actionIds)
-        }
+        const actionIds = conversation.actionId ? [conversation.actionId] : []
+        agentAcknowledgementService.announceConversationsChanged(cardInternalId, actionIds)
     }
 
 }

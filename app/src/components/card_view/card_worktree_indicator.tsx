@@ -12,7 +12,7 @@ interface CardWorktreeIndicatorProps {
 
 export function CardWorktreeIndicator(props: CardWorktreeIndicatorProps) {
     const { card, primaryPath } = props
-    const isRunning = hasRunningConversation(card)
+    const isRunning = hasRunningConversation(card.agentConversations)
     const wasRunning = useRef(isRunning)
 
     useEffect(() => {

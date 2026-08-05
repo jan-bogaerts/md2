@@ -4,7 +4,11 @@ import type { ActionRunEvent } from '../../data/action_run_types'
 import { runElectronAction } from '../actions/electron_action_runner'
 import { actionRunRegistry } from '../actions/action_run_registry'
 import { configService } from '../config/config_service'
-import { agentAcknowledgementService } from './agent_acknowledgement_service'
+import {
+    actionAcknowledgementEvent,
+    agentAcknowledgementService,
+    cardAcknowledgementEvent,
+} from './agent_acknowledgement_service'
 import { cardAgentState } from './card_agent_state'
 import { conversation, createDataService, createDeferred, createStorage, waitForWorkerTurn } from '../test_support/data_service_test_support'
 
@@ -199,8 +203,10 @@ describe('AgentIntegration', () => {
         const snapshot = await service.projectLoading.openProject({ branch: 'main', id: 'project' })
         const cardListener = vi.fn()
         const actionListener = vi.fn()
-        const unsubscribeCard = agentAcknowledgementService.subscribeCard('design/F-1-root.md', cardListener)
-        const unsubscribeAction = agentAcknowledgementService.subscribeAction('design/F-1-root.md', 'implement', actionListener)
+        const cardEvent = cardAcknowledgementEvent('root-card')
+        const actionEvent = actionAcknowledgementEvent('root-card', 'implement')
+        agentAcknowledgementService.addEventListener(cardEvent, cardListener)
+        agentAcknowledgementService.addEventListener(actionEvent, actionListener)
 
         expect(snapshot.activeCards[0].agentConversations).toHaveLength(0)
         conversationLoad.resolve({ ...conversation(), actionId: 'implement' })
@@ -210,8 +216,47 @@ describe('AgentIntegration', () => {
         })
         expect(cardListener).toHaveBeenCalledOnce()
         expect(actionListener).toHaveBeenCalledOnce()
-        unsubscribeCard()
-        unsubscribeAction()
+        agentAcknowledgementService.removeEventListener(cardEvent, cardListener)
+        agentAcknowledgementService.removeEventListener(actionEvent, actionListener)
+    })
+
+    it('announces only the scopes of cards whose conversations were attached', async () => {
+        configService.init()
+        const agentFiles: MarkdownFile[] = [
+            {
+                content: '---\nid: F-1\ninternalId: root-card\ntitle: Root\nstatus: active\nagents:\n  - design/activity/card__root-card.json#conversation=agent-1\n---\n\n# Root',
+                path: 'design/F-1-root.md',
+            },
+            {
+                content: '---\nid: F-2\ninternalId: plain-card\ntitle: Plain\nstatus: active\n---\n\n# Plain',
+                path: 'design/F-2-plain.md',
+            },
+        ]
+        const storage = createStorage({
+            loadAgentConversation: vi.fn(async () => ({ ...conversation(), actionId: 'implement' })),
+            loadProject: vi.fn(async () => ({ files: agentFiles, workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: agentFiles, workingFolder: 'design' })),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        const loadedListener = vi.fn()
+        const otherListener = vi.fn()
+        const otherActionListener = vi.fn()
+        const loadedEvent = cardAcknowledgementEvent('root-card')
+        const otherEvent = cardAcknowledgementEvent('plain-card')
+        const otherActionEvent = actionAcknowledgementEvent('root-card', 'review')
+        agentAcknowledgementService.addEventListener(loadedEvent, loadedListener)
+        agentAcknowledgementService.addEventListener(otherEvent, otherListener)
+        agentAcknowledgementService.addEventListener(otherActionEvent, otherActionListener)
+
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        await vi.waitFor(() => expect(loadedListener).toHaveBeenCalledOnce())
+
+        expect(otherListener).not.toHaveBeenCalled()
+        expect(otherActionListener).not.toHaveBeenCalled()
+        agentAcknowledgementService.removeEventListener(loadedEvent, loadedListener)
+        agentAcknowledgementService.removeEventListener(otherEvent, otherListener)
+        agentAcknowledgementService.removeEventListener(otherActionEvent, otherActionListener)
     })
 
     it('refreshes card waiting state from a backend-returned terminal conversation', async () => {
@@ -232,7 +277,7 @@ describe('AgentIntegration', () => {
 
         await vi.waitFor(() => {
             const card = service.getState().snapshot?.activeCards[0]
-            expect(card && cardAgentState(card)).toBe('waiting for input')
+            expect(card && cardAgentState(card.agentConversations)).toBe('waiting for input')
         })
         service.agents.updateAgentConversation({
             ...waiting,
@@ -241,7 +286,7 @@ describe('AgentIntegration', () => {
         })
 
         const card = service.getState().snapshot?.activeCards[0]
-        expect(card && cardAgentState(card)).not.toBe('waiting for input')
+        expect(card && cardAgentState(card.agentConversations)).not.toBe('waiting for input')
     })
 
     it('loads conversations only for active, archived, and released cards', async () => {

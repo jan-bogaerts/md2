@@ -1,47 +1,59 @@
 import { useCallback, useSyncExternalStore } from 'react'
-import { agentAcknowledgementService } from '../../services/agents/agent_acknowledgement_service'
+import {
+    actionAcknowledgementEvent,
+    agentAcknowledgementService,
+    cardAcknowledgementEvent,
+} from '../../services/agents/agent_acknowledgement_service'
+import { cardAgentState, latestUnseenConversation } from '../../services/agents/card_agent_state'
+import { dataService } from '../../services/data/data_service'
 
-/** Subscribes one leaf to aggregate acknowledgement changes for a card. */
-export function useCardAcknowledgements(cardPath: string | null | undefined) {
+function subscribeToAcknowledgements(eventTypes: string[], onStoreChange: () => void) {
+    for (const eventType of eventTypes) agentAcknowledgementService.addEventListener(eventType, onStoreChange)
+
+    return () => {
+        for (const eventType of eventTypes) agentAcknowledgementService.removeEventListener(eventType, onStoreChange)
+    }
+}
+
+/** Reads the live conversations of a card, which a rendered card copy cannot provide. */
+export function cardConversations(cardInternalId: string | null | undefined) {
+    return cardInternalId ? dataService.agents.getAgentConversations(cardInternalId) : []
+}
+
+/**
+ * Agent state of one card, refreshed on that card's scoped conversation events.
+ * Conversations are read from the agent store on every snapshot, so newly attached or
+ * acknowledged conversations are picked up without republishing the card.
+ */
+export function useCardAgentState(cardInternalId: string | null | undefined) {
     const subscribe = useCallback((onStoreChange: () => void) => (
-        cardPath ? agentAcknowledgementService.subscribeCard(cardPath, onStoreChange) : () => undefined
-    ), [cardPath])
-    const getSnapshot = useCallback(() => (
-        cardPath ? agentAcknowledgementService.cardRevision(cardPath) : 0
-    ), [cardPath])
+        cardInternalId
+            ? subscribeToAcknowledgements([cardAcknowledgementEvent(cardInternalId)], onStoreChange)
+            : () => undefined
+    ), [cardInternalId])
+    const getSnapshot = useCallback(() => cardAgentState(cardConversations(cardInternalId)), [cardInternalId])
 
     return useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
 }
 
-/** Subscribes one popup leaf to acknowledgement changes for its exact card action. */
-export function useActionAcknowledgements(cardPath: string | null | undefined, actionId: string) {
-    return useActionsAcknowledgements(cardPath, [actionId])
-}
+/** Identifies the unseen conversations of the given card actions, refreshed on their scoped events. */
+export function useActionsUnseenKey(cardInternalId: string | null | undefined, actionIds: string[]) {
+    const actionIdsKey = [...new Set(actionIds)].sort().join(',')
+    const subscribe = useCallback((onStoreChange: () => void) => {
+        if (!cardInternalId) return () => undefined
+        const eventTypes = actionIdsKey.split(',')
+            .filter((actionId) => actionId.length > 0)
+            .map((actionId) => actionAcknowledgementEvent(cardInternalId, actionId))
 
-/** Subscribes one popup leaf to acknowledgement changes for supplied card actions. */
-export function useActionsAcknowledgements(cardPath: string | null | undefined, actionIds: string[]) {
-    const actionIdsKey = [...actionIds].sort().join('\u0000')
-    const subscribe = useCallback((onStoreChange: () => void) => (
-        cardPath
-            ? actionIdsKey.split('\u0000').filter((actionId) => actionId.length > 0).reduce<Array<() => void>>(
-                (unsubscribes, actionId) => [
-                    ...unsubscribes,
-                    agentAcknowledgementService.subscribeAction(cardPath, actionId, onStoreChange),
-                ],
-            [],
-            )
-            : []
-    ), [actionIdsKey, cardPath])
-    const getSnapshot = useCallback(() => (
-        cardPath
-            ? actionIdsKey.split('\u0000').map((actionId) => agentAcknowledgementService.actionRevision(cardPath, actionId)).join(':')
-            : ''
-    ), [actionIdsKey, cardPath])
-    const subscribeAll = useCallback((onStoreChange: () => void) => {
-        const unsubscribes = subscribe(onStoreChange)
+        return subscribeToAcknowledgements(eventTypes, onStoreChange)
+    }, [actionIdsKey, cardInternalId])
+    const getSnapshot = useCallback(() => {
+        const conversations = cardConversations(cardInternalId)
 
-        return () => unsubscribes.forEach((unsubscribe) => unsubscribe())
-    }, [subscribe])
+        return actionIdsKey.split(',')
+            .map((actionId) => latestUnseenConversation(conversations, actionId)?.id ?? '')
+            .join(',')
+    }, [actionIdsKey, cardInternalId])
 
-    return useSyncExternalStore(subscribeAll, getSnapshot, getSnapshot)
+    return useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
 }

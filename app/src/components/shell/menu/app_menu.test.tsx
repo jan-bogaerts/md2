@@ -264,7 +264,7 @@ describe('AppMenu', () => {
         expect(screen.queryByRole('button', { name: 'Custom prompt' })).not.toBeInTheDocument()
 
         fireEvent.click(screen.getByRole('button', { name: 'Review project' }))
-        const dialog = within(screen.getByRole('dialog', { name: 'Run actions' }))
+        const dialog = within(screen.getByRole('dialog', { name: 'Run actions for Project' }))
         expect(dialog.getByRole('button', { name: 'Review project' })).toHaveAttribute('aria-pressed', 'true')
     })
 

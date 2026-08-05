@@ -21,7 +21,7 @@ describe('ActionConversationChatOwner', () => {
         cleanup()
         actionRunRegistry.stop()
         cardActionPopupService.clear()
-        agentAcknowledgementService.clearRuntimeState()
+        agentAcknowledgementService.reset()
         setActionBridgeOverride(null)
     })
 

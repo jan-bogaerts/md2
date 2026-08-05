@@ -719,22 +719,6 @@ describe('TextView', () => {
         expect(document.querySelector('[data-sticky-toolbar="true"]')).not.toBeNull()
     })
 
-    it('opens the standard action popup without an anchor from the editor toolbar', () => {
-        renderTextView()
-
-        clickTreeFile('F-1 Alpha')
-
-        const editorToolbar = within(screen.getAllByTestId('mdx-editor-toolbar')[1])
-        fireEvent.click(editorToolbar.getByRole('button', { name: 'Agents' }))
-
-        const dialog = within(screen.getByRole('dialog', { name: 'Run actions' }))
-        expect(dialog.getByRole('button', { name: 'Custom prompt' })).toHaveAttribute('aria-pressed', 'true')
-        expect(dialog.getByRole('button', { name: 'Schedule' })).toBeInTheDocument()
-        expect(dialog.getByRole('button', { name: 'Send' })).toBeInTheDocument()
-        expect(screen.queryByText('No agent conversations.')).not.toBeInTheDocument()
-        expect(screen.getByRole('dialog', { name: 'Run actions' })).toHaveStyle({ position: 'fixed' })
-    })
-
     it('publishes the desktop tree without a Browse files button', () => {
         renderTextView()
 

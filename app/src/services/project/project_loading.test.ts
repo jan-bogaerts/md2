@@ -132,8 +132,8 @@ describe('ProjectLoading', () => {
             { alwaysVisible: true, color: defaultColumnAccent(1), state: 'design' },
             { alwaysVisible: true, color: defaultColumnAccent(2), state: 'ready for implementation' },
             { alwaysVisible: true, color: defaultColumnAccent(0), state: 'new' },
-            { alwaysVisible: true, color: defaultColumnAccent(3), state: 'in progress' },
-            { alwaysVisible: true, color: defaultColumnAccent(4), state: 'done' },
+            { alwaysVisible: true, color: defaultColumnAccent(3), state: 'to fix' },
+            { alwaysVisible: true, color: defaultColumnAccent(4), state: 'ready' },
         ])
     })
 
@@ -168,7 +168,7 @@ describe('ProjectLoading', () => {
 
     it('renames card files one at a time while publishing global progress', async () => {
         configService.init()
-        const storage = createStorage({loadProjectConfig: vi.fn(async () => ({ backgroundShade: 'blue' as const, cardSeparator: '-' as const, projectFolder: '', workingFolder: 'design' }))})
+        const storage = createStorage({loadProjectConfig: vi.fn(async () => ({ backgroundShade: 'blue' as const, cardSeparator: '-' as const, projectFolder: '', pushMode: 'auto' as const, workingFolder: 'design' }))})
         const service = createDataService()
         service.init({ storage })
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })

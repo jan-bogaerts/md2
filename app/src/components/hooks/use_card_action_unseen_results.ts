@@ -1,22 +1,21 @@
 import type { ActionContext } from '../../data/action_context'
 import type { AgentConversation } from '../../data/data_types'
-import { latestUnseenAgentResult } from '../../services/agents/agent_acknowledgement_service'
+import { latestUnseenConversation } from '../../services/agents/card_agent_state'
 import { useActionContextCard } from './use_action_context_card'
-import { useActionsAcknowledgements } from './use_agent_acknowledgements'
+import { cardConversations, useActionsUnseenKey } from './use_agent_acknowledgements'
 
 /** Owns acknowledgement and conversation data for one card-scoped action leaf. */
 export function useCardActionUnseenResults(
     actionIds: string[],
     context: ActionContext,
 ): AgentConversation[] {
-    const { card, cardPath } = useActionContextCard(context)
-    const conversations = card?.agentConversations ?? []
-    useActionsAcknowledgements(cardPath, actionIds)
-
-    if (!cardPath) return []
+    const { card } = useActionContextCard(context)
+    const cardInternalId = card?.header.internalId ?? context.cardInternalId
+    useActionsUnseenKey(cardInternalId, actionIds)
+    const conversations = cardConversations(cardInternalId)
 
     return actionIds.flatMap((actionId) => {
-        const conversation = latestUnseenAgentResult(cardPath, conversations, actionId)
+        const conversation = latestUnseenConversation(conversations, actionId)
 
         return conversation ? [conversation] : []
     })

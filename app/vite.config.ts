@@ -128,6 +128,7 @@ export default defineConfig({
                     maxWorkers: NODE_TEST_WORKERS,
                     name: 'unit',
                     sequence: { groupOrder: NODE_TEST_GROUP_ORDER },
+                    setupFiles: './src/test/node_setup.ts',
                 },
             },
             {

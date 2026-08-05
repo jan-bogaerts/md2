@@ -143,7 +143,7 @@ describe('CardOperations', () => {
         configService.init()
         const storage = createStorage({
             loadProject: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
-            loadProjectConfig: vi.fn(async () => ({ projectFolder: 'design', workingFolder: 'active' })),
+            loadProjectConfig: vi.fn(async () => ({ projectFolder: 'design', pushMode: 'auto' as const, workingFolder: 'active' })),
             loadProjectRoot: vi.fn(async () => ({ files: [], workingFolder: 'design/active' })),
         })
         const service = createDataService()
@@ -175,7 +175,7 @@ describe('CardOperations', () => {
                 folderCreated ? ['design/notes/.gitkeep'] : ['design/active/F-1-root.md']
             )),
             loadProject: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
-            loadProjectConfig: vi.fn(async () => ({ projectFolder: 'design', workingFolder: 'active' })),
+            loadProjectConfig: vi.fn(async () => ({ projectFolder: 'design', pushMode: 'auto' as const, workingFolder: 'active' })),
             loadProjectRoot: vi.fn(async () => ({ files: [], workingFolder: 'design/active' })),
         })
         const service = createDataService()
@@ -208,7 +208,7 @@ describe('CardOperations', () => {
                     : ['design/active/F-1-root.md', 'design/notes/.gitkeep', 'design/notes/nested/info.txt']
             )),
             loadProject: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
-            loadProjectConfig: vi.fn(async () => ({ projectFolder: 'design', workingFolder: 'active' })),
+            loadProjectConfig: vi.fn(async () => ({ projectFolder: 'design', pushMode: 'auto' as const, workingFolder: 'active' })),
             loadProjectRoot: vi.fn(async () => ({ files: [], workingFolder: 'design/active' })),
         })
         const service = createDataService()
@@ -538,6 +538,7 @@ describe('CardOperations', () => {
                 archivedFolder: 'vault/archived',
                 backgroundShade: 'blue' as const,
                 projectFolder: 'design',
+                pushMode: 'auto' as const,
                 releasesFolder: 'releases',
                 workingFolder: 'active',
             })),
