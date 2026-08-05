@@ -16,6 +16,7 @@ affects:
 agents:
 policy:
 after: 
+worktree: 1
 ---
 
 ## Problem
