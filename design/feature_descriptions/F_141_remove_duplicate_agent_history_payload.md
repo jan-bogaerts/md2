@@ -3,7 +3,7 @@ author:
 id: F_141
 internalId: 299444fe-cb8b-420f-a89d-3c3300bf249e
 title: remove duplicate agent history payload
-status: new
+status: design
 owner:
 affects:
   - shared/card_activity.mjs
@@ -15,7 +15,7 @@ affects:
   - app/src/components/actions/action_run_history.tsx
 agents:
 policy:
-after: e9906c7f-d936-4c9a-ab73-2e7df0954024
+after: 972b0cb8-3d8a-4935-9197-17ca3ad037ec
 ---
 
 ## Problem

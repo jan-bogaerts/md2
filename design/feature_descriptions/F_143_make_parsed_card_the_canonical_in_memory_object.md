@@ -3,7 +3,7 @@ author:
 id: F_143
 internalId: 972b0cb8-3d8a-4935-9197-17ca3ad037ec
 title: make parsed card the canonical in-memory object
-status: new
+status: design
 owner:
 affects:
   - app/src/services/data/card_operation_context.ts
@@ -17,7 +17,7 @@ affects:
   - app/src/data/data_types.ts
 agents:
 policy:
-after: 299444fe-cb8b-420f-a89d-3c3300bf249e
+after: 
 ---
 
 ## Problem
