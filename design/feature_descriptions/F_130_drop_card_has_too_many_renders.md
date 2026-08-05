@@ -10,7 +10,7 @@ agents:
   - design/activity/card__9df160a1-c669-422b-aea5-da5655c12134.json#conversation=agent-b96a213d-d994-4a54-b335-63fae8ffbb04
   - design/activity/card__9df160a1-c669-422b-aea5-da5655c12134.json#conversation=agent-31ff5cfe-afaa-446c-b096-91db0b7020e7
 policy:
-after: 7b158d24-318d-4081-934b-b9255a0672dc
+after: f9a450d8-0f93-4487-99f3-23dcc07b42b2
 ---
 it seems when dropping a card, that first the 'drop target' is removed, a full refresh is done to show the drop target is gone, then the card is added and then a final rerender is done. there is a visible glitch.
 
