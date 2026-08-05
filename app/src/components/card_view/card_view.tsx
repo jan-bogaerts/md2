@@ -2,6 +2,8 @@ import { Box } from '@mui/material'
 import { DndContext, DragOverlay, PointerSensor, closestCorners, useSensor, useSensors } from '@dnd-kit/core'
 import type { DragEndEvent, DragMoveEvent, DragStartEvent } from '@dnd-kit/core'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import type { RefObject } from 'react'
+import { flushSync } from 'react-dom'
 import { buildCardColumns } from '../../data/card_ordering'
 import type { CardTypeConfig, StateConfig } from '../../data/data_types'
 import { dataService } from '../../services/data/data_service'
@@ -124,9 +126,16 @@ export function CardView(props: CardViewProps) {
     const handleDragEnd = useCallback((event: DragEndEvent) => {
         const { active, over } = event
         const drop = over ? resolveCardDragEvent(currentCardColumns(states), event) : null
-        clearActiveCard()
         const path = String(active.id)
-        if (drop) void runCardEdit(() => dataService.cards.moveCard(path, drop.targetStatus, drop.targetIndex), `Card move failed: ${path}`)
+        if (!drop) {
+            clearActiveCard()
+            return
+        }
+
+        flushSync(() => {
+            void runCardEdit(() => dataService.cards.moveCard(path, drop.targetStatus, drop.targetIndex), `Card move failed: ${path}`)
+            clearActiveCard()
+        })
     }, [clearActiveCard, states])
 
     const handleOpenInFileMode = (path: string) => {

@@ -1,5 +1,8 @@
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { DndContext } from '@dnd-kit/core'
+import type { DndContextProps, DragEndEvent } from '@dnd-kit/core'
+import { createRef, Profiler } from 'react'
+import type { ProfilerOnRenderCallback } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { CardView } from './card_view'
 import { CardColumn } from './card_column'
@@ -9,12 +12,32 @@ import type { ActionFile } from '../../data/action_types'
 import { DEFAULT_CARD_TYPES, type CardTypeConfig, type ProjectCard } from '../../data/data_types'
 import { telemetryService } from '../../services/telemetry/telemetry_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
-import { dataService } from '../../services/data/data_service'
+import { CARD_CHANGED_EVENT, dataService } from '../../services/data/data_service'
 import { worktreeService } from '../../services/project/worktree_service'
 import { cardMarkdownDataSource } from '../editor/card_markdown_data_source'
 import { openFilesService } from '../../services/open_files_service'
 import { workspaceViewService } from '../../services/project/workspace_view_service'
 import { cardDragDropService } from './card_drag_drop_service'
+
+const dragContextHandlers = vi.hoisted(() => ({
+    onDragCancel: null as DndContextProps['onDragCancel'] | null,
+    onDragEnd: null as DndContextProps['onDragEnd'] | null,
+}))
+
+vi.mock('@dnd-kit/core', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('@dnd-kit/core')>()
+    const { createElement } = await import('react')
+
+    return {
+        ...actual,
+        DndContext: (props: DndContextProps) => {
+            dragContextHandlers.onDragCancel = props.onDragCancel ?? null
+            dragContextHandlers.onDragEnd = props.onDragEnd ?? null
+
+            return createElement(actual.DndContext, props)
+        },
+    }
+})
 
 function card(id: string, title: string, status: string, policy: Record<string, boolean> = {}): ProjectCard {
     return {
