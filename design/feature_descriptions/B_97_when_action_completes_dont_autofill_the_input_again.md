@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
 policy:
+after: 02a44ecf-5974-4822-8e07-8a00f2c889c8
 ---
 
 In the action-popup, when an action switches to 'completed' the input box is auto-filled again with a new input which should not happen.
