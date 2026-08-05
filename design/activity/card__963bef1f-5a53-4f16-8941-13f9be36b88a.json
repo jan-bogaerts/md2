@@ -4,7 +4,7 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "963bef1f-5a53-4f16-8941-13f9be36b88a",
       "cardPath": "design/feature_descriptions/B_97_when_action_completes_dont_autofill_the_input_again.md",
-      "completedAt": null,
+      "completedAt": "2026-08-05T14:30:12.134Z",
       "entries": [
         {
           "content": "Add `Current state`, `implementation details`, `acceptance criteria` for `design/feature_descriptions/B_97_when_action_completes_dont_autofill_the_input_again.md`.&#x20;\n\nRead all referenced files before you begin except `agents` files. it is possible that the file is not yet written. &#x20;\nAsk any question if something is ambiguous or not yet clear.\nKeep it short and to the point. use $caveman skill\n\nDo not stage or commit changes. md2 will commit files captured from provider edit tools.",
@@ -738,7 +738,7 @@
         }
       ],
       "startedAt": "2026-08-05T14:12:04.826Z",
-      "status": "waitingForInput",
+      "status": "completed",
       "title": "complete",
       "usage": {
         "cachedInputTokens": 68352,
@@ -747,7 +747,7 @@
         "reasoningTokens": 146,
         "totalTokens": 139114
       },
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {

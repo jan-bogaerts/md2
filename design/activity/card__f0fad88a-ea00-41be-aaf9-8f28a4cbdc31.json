@@ -4,7 +4,7 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "f0fad88a-ea00-41be-aaf9-8f28a4cbdc31",
       "cardPath": "design/feature_descriptions/F_101_allow_change_card_type_after_creation.md",
-      "completedAt": null,
+      "completedAt": "2026-08-05T13:51:07.741Z",
       "entries": [
         {
           "content": "Add `Current state`, `implementation details`, `acceptance criteria` for `design/feature_descriptions/F_101_allow_change_card_type_after_creation.md`.&#x20;\n\nRead all referenced files before you begin except `agents` files. it is possible that the file is not yet written. &#x20;\nAsk any question if something is ambiguous or not yet clear.\nKeep it short and to the point. use $caveman skill\n\nDo not stage or commit changes. md2 will commit files captured from provider edit tools.",
@@ -4417,7 +4417,7 @@
         }
       ],
       "startedAt": "2026-08-04T11:51:12.149Z",
-      "status": "waitingForInput",
+      "status": "completed",
       "title": "complete card",
       "usage": {
         "cachedInputTokens": 180736,
