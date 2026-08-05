@@ -10,7 +10,7 @@ agents:
   - design/activity/card__4b1a6636-3545-4409-bbfe-eed686514d7c.json#conversation=agent-f450eda4-992d-4caf-b501-14ee88edcdb8
   - design/activity/card__4b1a6636-3545-4409-bbfe-eed686514d7c.json#conversation=agent-78636834-c55a-42c0-9439-ff9fd7ece6b4
 policy:
-after: 
+after: c9f18659-b8ae-4fa1-8400-9056c028ccfd
 ---
 
 currently it's rather hard to see which action-popup belongs to which card (or is for the global project agent).

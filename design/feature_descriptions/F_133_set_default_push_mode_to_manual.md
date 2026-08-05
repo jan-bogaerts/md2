@@ -10,7 +10,7 @@ agents:
   - design/activity/card__252c6173-b044-4c83-8867-e99254db44d5.json#conversation=agent-18b8d2e7-1d51-4674-b796-0aa81047e6af
   - design/activity/card__252c6173-b044-4c83-8867-e99254db44d5.json#conversation=agent-81c30572-d080-4d63-8b59-7a6439e81d89
 policy:
-after: 
+after: e6a79155-179c-46bb-b31e-722dffd7ec2e
 ---
 
 probably best if we set the config's default push mode to 'manual'

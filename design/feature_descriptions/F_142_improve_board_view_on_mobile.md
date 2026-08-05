@@ -3,14 +3,15 @@ author:
 id: F_142
 internalId: 5205bb65-078a-411a-9647-0796ad14953c
 title: improve board view on mobile
-status: ready
+status: to fix
 owner: 
 affects:
 agents:
   - design/activity/card__5205bb65-078a-411a-9647-0796ad14953c.json#conversation=agent-3091898f-7991-40fd-b485-6c737add8a11
   - design/activity/card__5205bb65-078a-411a-9647-0796ad14953c.json#conversation=agent-0c93bf82-9f66-44f7-916a-a1d9e2e99548
+  - design/activity/card__5205bb65-078a-411a-9647-0796ad14953c.json#conversation=agent-3b527f89-7a4f-4d2d-8479-2f9bc38a3c9d
 policy:
-after: 7b158d24-318d-4081-934b-b9255a0672dc
+after: 
 worktree: 3
 ---
 
