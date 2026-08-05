@@ -4,7 +4,7 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "18fd04d3-5df7-4f54-ab7a-94d96f210f13",
       "cardPath": "design/feature_descriptions/F_87_block_release_when_cards_have_assigned_worktrees.md",
-      "completedAt": null,
+      "completedAt": "2026-08-05T17:40:53.676Z",
       "entries": [
         {
           "content": "Add `Current state`, `implementation details`, `acceptance criteria` for `design/feature_descriptions/F_87_block_release_when_cards_have_assigned_worktrees.md`.&#x20;\n\nRead all referenced files before you begin except `agents` files. it is possible that the file is not yet written. &#x20;\nAsk any question if something is ambiguous or not yet clear.\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill\n\nDo not stage or commit changes. md2 will commit files captured from provider edit tools.",
@@ -432,7 +432,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 30,
-          "timestamp": "2026-08-05T17:27:27.005Z"
+          "timestamp": "2026-08-05T17:40:53.676Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -442,14 +442,14 @@
           "agent": "codex",
           "conversationId": "019fd2f6-11b4-7693-a040-1161b0167e7d",
           "createdAt": "2026-08-05T17:27:27.005Z",
-          "lastUsedAt": "2026-08-05T17:27:27.005Z",
+          "lastUsedAt": "2026-08-05T17:40:53.676Z",
           "synchronizedThroughMessageId": "agent-turn-ec6a673e-1143-457c-928e-c42d81498ad7-turn-1-assistant-2"
         }
       ],
       "startedAt": "2026-08-05T17:26:09.335Z",
-      "status": "waitingForInput",
+      "status": "completed",
       "title": "complete",
-      "viewed": false,
+      "viewed": true,
       "usage": {
         "cachedInputTokens": 56064,
         "inputTokens": 58046,
