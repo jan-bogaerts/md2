@@ -24,6 +24,7 @@ function renderMobileMainWindow(showNavigationInCards: boolean) {
         <AppThemeProvider>
             <MobileMainWindow
                 auth={auth}
+                cardNavigation={<nav>Board navigation</nav>}
                 isMenuOpen
                 leftPanel={<nav>Project navigation</nav>}
                 onCloseMenu={vi.fn()}
@@ -54,6 +55,7 @@ describe('MobileMainWindow', () => {
         renderMobileMainWindow(false)
 
         expect(screen.getByText('Project navigation')).not.toBeVisible()
+        expect(screen.getByText('Board navigation')).toBeVisible()
         expect(screen.getByText('Project workspace')).toBeInTheDocument()
     })
 
@@ -65,5 +67,6 @@ describe('MobileMainWindow', () => {
 
         expect(screen.getByText('Project navigation')).toBe(navigation)
         expect(navigation).toBeVisible()
+        expect(screen.getByText('Board navigation')).not.toBeVisible()
     })
 })

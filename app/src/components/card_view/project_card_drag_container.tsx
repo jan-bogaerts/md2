@@ -1,13 +1,11 @@
 import { Box } from '@mui/material'
 import { useSortable } from '@dnd-kit/sortable'
 import { useCallback } from 'react'
-import type { MouseEventHandler, ReactNode, TouchEventHandler } from 'react'
+import type { MouseEventHandler, ReactNode } from 'react'
 
 export interface ProjectCardDragInteractions {
     onClick: MouseEventHandler<HTMLElement>
     onContextMenu: MouseEventHandler<HTMLElement>
-    onTouchEnd: TouchEventHandler<HTMLElement>
-    onTouchStart: TouchEventHandler<HTMLElement>
 }
 
 interface ProjectCardDragContainerProps {
@@ -16,14 +14,15 @@ interface ProjectCardDragContainerProps {
     children: ReactNode
     interactions: ProjectCardDragInteractions
     isBodyOpen: boolean
+    isMobile: boolean
     isSelected: boolean
     onCardElementChange: (element: HTMLDivElement | null) => void
 }
 
 /** Lightweight sortable adapter that updates only card drag DOM around stable card content. */
 export function ProjectCardDragContainer(props: ProjectCardDragContainerProps) {
-    const {cardId, cardPath, children, interactions, isBodyOpen, isSelected, onCardElementChange} = props
-    const { onClick, onContextMenu, onTouchEnd, onTouchStart } = interactions
+    const {cardId, cardPath, children, interactions, isBodyOpen, isMobile, isSelected, onCardElementChange} = props
+    const { onClick, onContextMenu } = interactions
     const sortable = useSortable({ id: cardPath })
     const { attributes, isDragging, listeners, setActivatorNodeRef, setNodeRef, transform, transition } = sortable
     const dragTranslation = transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : ''
@@ -38,10 +37,6 @@ export function ProjectCardDragContainer(props: ProjectCardDragContainerProps) {
             data-card-path={cardPath}
             data-selected={isSelected ? 'true' : undefined}
             onContextMenu={onContextMenu}
-            onTouchCancel={onTouchEnd}
-            onTouchEnd={onTouchEnd}
-            onTouchMove={onTouchEnd}
-            onTouchStart={onTouchStart}
             ref={setCardElement}
             sx={{
                 bgcolor: 'background.paper',
@@ -72,7 +67,7 @@ export function ProjectCardDragContainer(props: ProjectCardDragContainerProps) {
                     cursor: isDragging ? 'grabbing' : 'pointer',
                     inset: 0,
                     position: 'absolute',
-                    touchAction: 'none',
+                    touchAction: isMobile ? 'pan-y' : 'none',
                     zIndex: 1,
                     '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: -2 },
                 }}

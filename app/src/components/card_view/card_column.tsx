@@ -66,6 +66,7 @@ export function CardColumn(props: CardColumnProps) {
                 key={cardPath}
                 cardPath={cardPath}
                 cardTypes={cardTypes}
+                isMobile={isMobile}
                 {...handlers}
             />,
         )

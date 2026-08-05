@@ -20,6 +20,8 @@ import { workspaceViewService } from '../services/project/workspace_view_service
 import { workspaceNavigationService, type WorkspaceOpenRequest } from '../services/project/workspace_navigation_service'
 import { projectPersistenceService } from '../services/project/project_persistence_service'
 import { CardView } from './card_view/card_view'
+import { MobileCardViewMenu } from './card_view/mobile_card_view_menu'
+import { MobileCardView } from './card_view/mobile_card_view'
 import { flushMarkdownEditors } from './editor/markdown_editor_flush'
 import { useProjectReference } from './hooks/use_project_reference'
 import { TextView } from './text_view/text_view'
@@ -239,13 +241,11 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
     const workspace = (
         <ProjectWorkspaceAvailability>
             {isMobile ? <MobileLayout content={textView} /> : <SplitLayout left={fileTree} right={textView} />}
-            <CardView
-                cardTypes={cardTypes}
-                isMobile={isMobile}
-                scrollContainerRef={mobileScrollContainerRef}
-                states={states}
-                statusColors={statusColors}
-            />
+            {isMobile ? (
+                <MobileCardView cardTypes={cardTypes} states={states} statusColors={statusColors} />
+            ) : (
+                <CardView cardTypes={cardTypes} states={states} statusColors={statusColors} />
+            )}
         </ProjectWorkspaceAvailability>
     )
     const navigation = project ? fileTree : (
@@ -265,6 +265,7 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
             {isMobile ? (
                 <MobileMainWindow
                     auth={auth}
+                    cardNavigation={project ? <MobileCardViewMenu onSelected={onLeftPanelInteraction} states={states} /> : null}
                     isMenuOpen={isMenuOpen}
                     leftPanel={navigation}
                     onCloseMenu={onLeftPanelInteraction}

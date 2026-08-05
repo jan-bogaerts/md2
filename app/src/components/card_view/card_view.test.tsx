@@ -1,6 +1,5 @@
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { DndContext } from '@dnd-kit/core'
-import { createRef } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { CardView } from './card_view'
 import { CardColumn } from './card_column'
@@ -65,23 +64,17 @@ function renderCardView(
     repositoryFiles = ['app/src/app.tsx', 'design/F-1.md'],
 ) {
     setProjectCards(activeCards, repositoryFiles)
-    const scrollContainerRef = createRef<HTMLDivElement>()
-
     render(
         <AppThemeProvider>
-            <div data-testid="mobile-scroll-container" ref={scrollContainerRef}>
-                <CardView
-                    cardTypes={DEFAULT_CARD_TYPES}
-                    isMobile={false}
-                    scrollContainerRef={scrollContainerRef}
-                    states={[
-                        { alwaysVisible: false, state: 'todo' },
-                        { alwaysVisible: false, state: 'done' },
-                    ]}
-                    statusColors={new Map([['todo', '#111111'], ['done', '#222222']])}
-                    {...overrides}
-                />
-            </div>
+            <CardView
+                cardTypes={DEFAULT_CARD_TYPES}
+                states={[
+                    { alwaysVisible: false, state: 'todo' },
+                    { alwaysVisible: false, state: 'done' },
+                ]}
+                statusColors={new Map([['todo', '#111111'], ['done', '#222222']])}
+                {...overrides}
+            />
         </AppThemeProvider>,
     )
 }
@@ -158,82 +151,6 @@ describe('CardView', () => {
         expect(columnStyle.maxWidth).toBe('320px')
     })
 
-    it('renders both edge scroll zones only on mobile', () => {
-        renderCardView()
-
-        expect(screen.queryByTestId('left-card-scroll-zone')).not.toBeInTheDocument()
-        expect(screen.queryByTestId('right-card-scroll-zone')).not.toBeInTheDocument()
-
-        cleanup()
-        renderCardView({ isMobile: true })
-
-        expect(screen.getByTestId('left-card-scroll-zone')).toBeInTheDocument()
-        expect(screen.getByTestId('right-card-scroll-zone')).toBeInTheDocument()
-    })
-
-    it('scrolls the mobile shell container from either edge and stops on pointer up', () => {
-        renderCardView({ isMobile: true })
-        const scrollContainer = screen.getByTestId('mobile-scroll-container')
-        const leftZone = screen.getByTestId('left-card-scroll-zone')
-        const rightZone = screen.getByTestId('right-card-scroll-zone')
-        scrollContainer.scrollTop = 100
-
-        fireEvent.pointerDown(leftZone, { clientY: 100, pointerId: 1 })
-        fireEvent.pointerMove(leftZone, { clientY: 70, pointerId: 1 })
-        expect(scrollContainer.scrollTop).toBe(130)
-
-        fireEvent.pointerUp(leftZone, { pointerId: 1 })
-        fireEvent.pointerMove(leftZone, { clientY: 40, pointerId: 1 })
-        expect(scrollContainer.scrollTop).toBe(130)
-
-        fireEvent.pointerDown(rightZone, { clientY: 50, pointerId: 2 })
-        fireEvent.pointerMove(rightZone, { clientY: 80, pointerId: 2 })
-        expect(scrollContainer.scrollTop).toBe(100)
-    })
-
-    it('stops edge scrolling on pointer cancellation and uses native scroll boundaries', () => {
-        renderCardView({ isMobile: true })
-        const scrollContainer = screen.getByTestId('mobile-scroll-container')
-        const leftZone = screen.getByTestId('left-card-scroll-zone')
-        const rightZone = screen.getByTestId('right-card-scroll-zone')
-        let scrollTop = 0
-        Object.defineProperty(scrollContainer, 'scrollTop', {
-            configurable: true,
-            get: () => scrollTop,
-            set: (value: number) => {
-                scrollTop = Math.max(0, Math.min(200, value))
-            },
-        })
-
-        fireEvent.pointerDown(leftZone, { clientY: 100, pointerId: 1 })
-        fireEvent.pointerMove(leftZone, { clientY: 130, pointerId: 1 })
-        expect(scrollContainer.scrollTop).toBe(0)
-
-        fireEvent.pointerCancel(leftZone, { pointerId: 1 })
-        fireEvent.pointerMove(leftZone, { clientY: 70, pointerId: 1 })
-        expect(scrollContainer.scrollTop).toBe(0)
-
-        scrollContainer.scrollTop = 200
-        fireEvent.pointerDown(rightZone, { clientY: 100, pointerId: 2 })
-        fireEvent.pointerMove(rightZone, { clientY: 70, pointerId: 2 })
-        expect(scrollContainer.scrollTop).toBe(200)
-    })
-
-    it('keeps edge gestures away from cards and preserves card interaction outside the zones', () => {
-        renderCardView({ isMobile: true })
-        const leftZone = screen.getByTestId('left-card-scroll-zone')
-
-        fireEvent.pointerDown(leftZone, { clientY: 100, pointerId: 1 })
-        fireEvent.pointerMove(leftZone, { clientY: 70, pointerId: 1 })
-        fireEvent.pointerUp(leftZone, { pointerId: 1 })
-
-        expect(cardDragDropService.getOverlaySnapshot().cardPath).toBeNull()
-        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-
-        fireEvent.click(screen.getByRole('button', { name: 'Drag F-1' }))
-        expect(screen.getByRole('dialog')).toBeInTheDocument()
-    })
-
     it('shows always-visible columns without cards and hides other empty columns in config order', () => {
         renderCardView({
             states: [
@@ -305,6 +222,7 @@ describe('CardView', () => {
 
         expect(dragButton).toBeEmptyDOMElement()
         expect(dragButton).toHaveStyle({ backgroundColor: 'rgba(0, 0, 0, 0)', inset: '0', position: 'absolute' })
+        expect(dragButton).toHaveStyle({ touchAction: 'none' })
     })
 
     it('renders one policy led per policy flag and toggles on click', () => {
@@ -502,7 +420,7 @@ describe('CardView', () => {
         fireEvent.contextMenu(screen.getByText('First'))
         fireEvent.click(screen.getByRole('menuitem', { name: 'Implement' }))
 
-        const dialog = within(screen.getByRole('dialog', { name: 'Run actions' }))
+        const dialog = within(screen.getByRole('dialog', { name: 'Run actions for F-1' }))
         expect(dialog.getByRole('button', { name: 'Implement' })).toHaveAttribute('aria-pressed', 'true')
         expect(dialog.getByRole('button', { name: 'Send' })).toBeInTheDocument()
     })
@@ -527,30 +445,6 @@ describe('CardView', () => {
         await waitFor(() => expect(dataService.cards.deleteCard).toHaveBeenCalledWith('design/F-1.md'))
     })
 
-    it('opens a viewport-sized card popup with mobile actions', () => {
-        renderCardView({ isMobile: true })
-
-        fireEvent.click(screen.getByRole('button', { name: 'Drag F-1' }))
-
-        const dialog = screen.getByRole('dialog')
-        const affectsButton = within(dialog).getByRole('button', { name: 'Affects' })
-        expect(within(dialog).getByDisplayValue(/Body of F-1/)).toBeInTheDocument()
-        expect(dialog).toHaveStyle({
-            borderRadius: 0,
-            height: '100vh',
-            left: 0,
-            margin: 0,
-            top: 0,
-            width: '100vw',
-        })
-        expect(affectsButton).toHaveTextContent('')
-        expect(within(dialog).getByRole('button', { name: 'Delete' })).toHaveTextContent('')
-        expect(within(dialog).getByRole('button', { name: 'Open in file mode' })).toHaveTextContent('')
-        expect(within(dialog).queryByRole('button', { name: 'Close' })).not.toBeInTheDocument()
-        expect(within(dialog).queryByRole('button', { name: 'Fullscreen' })).not.toBeInTheDocument()
-        expect(screen.queryByRole('separator', { name: /Resize card details popup/u })).not.toBeInTheDocument()
-    })
-
     it('keeps desktop popup sizing, actions, resizing, and fullscreen control', () => {
         renderCardView()
 
@@ -572,8 +466,6 @@ describe('CardView', () => {
             <AppThemeProvider>
                 <CardView
                     cardTypes={DEFAULT_CARD_TYPES}
-                    isMobile={false}
-                    scrollContainerRef={createRef<HTMLDivElement>()}
                     states={[
                         { alwaysVisible: false, state: 'todo' },
                         { alwaysVisible: false, state: 'done' },
